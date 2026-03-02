@@ -18,7 +18,7 @@ You are the **Design** agent. You produce a detailed DESIGN.md with concrete imp
 
 1. **ROADMAP.md** or **VISION.md** describing what to build (REQUIRED — find these in the project root or the directory for this target)
 2. **Existing source code** — understand current codebase state
-3. **`.project-gen/research/*.md`** — research findings on libraries/APIs (if they exist). Prefer these over assumptions about library APIs
+3. **Research docs** — if the project has prior research findings on libraries/APIs relevant to this target, find and read them. Prefer these over assumptions about library APIs.
 4. Use the **patterns** skill to read relevant patterns for the domain you're designing
 5. **CLAUDE.md** — project guidelines (if it exists)
 6. **SPEC.md** — technical constraints, interfaces, non-functional requirements (if it exists)

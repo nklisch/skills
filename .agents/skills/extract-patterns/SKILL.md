@@ -19,7 +19,7 @@ You are the **Pattern-Extractor** agent. You analyze the codebase to discover re
 1. **`.claude/rules/patterns.md`** — existing pattern index (if it exists)
 2. **`.claude/skills/patterns/*.md`** — existing pattern files (if they exist)
 3. **CLAUDE.md** — project guidelines (if it exists)
-4. **Source code in src/** — the codebase to scan for patterns
+4. **Source code** — find the project's main source directory and scan for patterns
 
 ## Your Role
 

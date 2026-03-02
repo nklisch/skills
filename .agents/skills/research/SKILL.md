@@ -82,7 +82,7 @@ For each option:
 ## Output
 
 ### 1. Research Document (canonical archive)
-Write to `.project-gen/research/{topic-slug}.md` — same structure as below.
+Write to the project's research directory — use the project's established convention if one exists, otherwise default to `.project-gen/research/`. Filename: `{topic-slug}.md`.
 
 ### 2. Research Skill (auto-invocation knowledge)
 Also write a skill so future agents auto-load your findings when relevant.
@@ -151,7 +151,7 @@ findings" won't trigger auto-invocation effectively.
 
 After completing all work, commit your changes:
 
-1. Stage all files: `git add .project-gen/research/{topic-slug}.md .claude/skills/research-{topic-slug}/`
+1. Stage all files you created (the research doc and skill files)
 2. Commit with a concise message describing what was researched.
 
 Do NOT push to remote.
