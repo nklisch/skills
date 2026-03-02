@@ -1,0 +1,54 @@
+{
+  "name": "nklisch",
+  "description": "Reusable agent skills for software development workflows",
+  "skills": [
+    {
+      "name": "research",
+      "description": "Research external libs, APIs, and patterns. Use when investigating technology choices.",
+      "repo": "nklisch/skills",
+      "tags": ["research", "documentation", "agentic", "workflow"]
+    },
+    {
+      "name": "extract-patterns",
+      "description": "Discover and document reusable code patterns. Use after implementation to capture conventions.",
+      "repo": "nklisch/skills",
+      "tags": ["patterns", "documentation", "agentic", "workflow"]
+    },
+    {
+      "name": "refactor-plan",
+      "description": "Plan refactoring work. Use when code quality or structure needs improvement.",
+      "repo": "nklisch/skills",
+      "tags": ["refactor", "quality", "agentic", "workflow"]
+    },
+    {
+      "name": "design",
+      "description": "Create detailed DESIGN.md with implementation units. Use when translating a vision into code specs.",
+      "repo": "nklisch/skills",
+      "tags": ["design", "planning", "agentic", "workflow", "pipeline"]
+    },
+    {
+      "name": "implement",
+      "description": "Write code from a DESIGN.md. Use when a design exists and code needs to be written.",
+      "repo": "nklisch/skills",
+      "tags": ["implementation", "coding", "agentic", "workflow", "pipeline"]
+    },
+    {
+      "name": "verify",
+      "description": "Verify implementation against design. Use when code has been written and needs checking.",
+      "repo": "nklisch/skills",
+      "tags": ["verification", "quality", "agentic", "workflow", "pipeline"]
+    },
+    {
+      "name": "fix",
+      "description": "Fix gaps from VERIFICATION.md. Use when verification found issues that need resolution.",
+      "repo": "nklisch/skills",
+      "tags": ["bugfix", "quality", "agentic", "workflow", "pipeline"]
+    },
+    {
+      "name": "quality-gate",
+      "description": "Final quality assessment for a feature or phase. Use when checking if work is complete enough to move on.",
+      "repo": "nklisch/skills",
+      "tags": ["quality", "assessment", "agentic", "workflow", "pipeline"]
+    }
+  ]
+}
