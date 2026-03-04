@@ -49,6 +49,54 @@
       "description": "Final quality assessment for a feature or phase. Use when checking if work is complete enough to move on.",
       "repo": "nklisch/skills",
       "tags": ["quality", "assessment", "agentic", "workflow", "pipeline"]
+    },
+    {
+      "name": "zod-v4",
+      "description": "Zod v4 validation library reference. Auto-loads for schemas, validation, z.object, safeParse, transforms.",
+      "repo": "nklisch/skills",
+      "tags": ["zod", "validation", "schema", "typescript", "library"]
+    },
+    {
+      "name": "biome-v2",
+      "description": "Biome v2 linter/formatter reference. Auto-loads for biome config, linting rules, formatting.",
+      "repo": "nklisch/skills",
+      "tags": ["biome", "linter", "formatter", "eslint", "prettier", "library"]
+    },
+    {
+      "name": "drizzle-v0",
+      "description": "Drizzle ORM v0.45+ PostgreSQL reference. Auto-loads for schema definitions, queries, migrations.",
+      "repo": "nklisch/skills",
+      "tags": ["drizzle", "orm", "postgresql", "database", "library"]
+    },
+    {
+      "name": "hono-v4",
+      "description": "Hono v4 web framework reference. Auto-loads for routes, middleware, SSE, validation.",
+      "repo": "nklisch/skills",
+      "tags": ["hono", "api", "web-framework", "middleware", "library"]
+    },
+    {
+      "name": "tanstack-query-v5",
+      "description": "TanStack Query v5 (React Query) reference. Auto-loads for useQuery, useMutation, caching.",
+      "repo": "nklisch/skills",
+      "tags": ["tanstack", "react-query", "data-fetching", "cache", "library"]
+    },
+    {
+      "name": "tanstack-router-v1",
+      "description": "TanStack Router v1 reference. Auto-loads for file-based routing, loaders, search params.",
+      "repo": "nklisch/skills",
+      "tags": ["tanstack", "router", "file-based-routing", "react", "library"]
+    },
+    {
+      "name": "zustand-v5",
+      "description": "Zustand v5 state management reference. Auto-loads for stores, selectors, persist, middleware.",
+      "repo": "nklisch/skills",
+      "tags": ["zustand", "state-management", "react", "store", "library"]
+    },
+    {
+      "name": "tanstack-table-v8",
+      "description": "TanStack Table v8 headless table reference. Auto-loads for sorting, filtering, pagination, columns.",
+      "repo": "nklisch/skills",
+      "tags": ["tanstack", "table", "data-table", "sorting", "pagination", "library"]
     }
   ]
 }
