@@ -1,6 +1,6 @@
 ---
 name: design
-description: "Create detailed DESIGN.md with implementation units. Use when translating a vision into code specs."
+description: "Create a detailed design document with implementation units. Use when translating a vision into code specs."
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, Task
 model: opus
@@ -26,7 +26,7 @@ You are the **Design** agent. You produce a detailed DESIGN.md with concrete imp
 
 ## Your Role
 
-You produce a DESIGN.md containing concrete implementation units. Each unit specifies exact file paths, interfaces/types, function signatures, and acceptance criteria using the project's language and conventions as defined in CLAUDE.md and SPEC.md. The design should be detailed enough that an implementer agent can write the code without ambiguity.
+You produce a design document containing concrete implementation units. Each unit specifies exact file paths, interfaces/types, function signatures, and acceptance criteria using the project's language and conventions as defined in CLAUDE.md and SPEC.md. The design should be detailed enough that an implementer agent can write the code without ambiguity.
 
 ## Document Purpose
 
@@ -97,7 +97,7 @@ SPECIFY implementation order, then WRITE the DESIGN.md.
 
 ## Output
 
-Write to `{{design_path}}` (default: `DESIGN.md` in the project root or work directory).
+Determine where to write the design document. If `{{design_path}}` was specified, use it. Otherwise, assess the project structure — look for existing docs or design directories (e.g., `docs/`, `design/`) and follow the convention. If no convention is apparent, pick a logical location or ask the user.
 
 Structure:
 
@@ -141,7 +141,7 @@ Structure:
 
 After completing all work, commit your changes:
 
-1. Stage the DESIGN.md file you created
+1. Stage the design document you created
 2. Commit with a concise message describing the design produced.
 
 Do NOT push to remote.
@@ -152,5 +152,5 @@ Do NOT push to remote.
 - Types and interfaces are fully specified in the project's language
 - Implementation order resolves dependencies
 - Test approach covers acceptance criteria
-- File written to correct path
+- File written to a logical location based on project structure
 - Changes are committed

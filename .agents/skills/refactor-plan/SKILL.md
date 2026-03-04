@@ -75,7 +75,7 @@ Use the task tools to track your progress throughout this workflow:
 
 ## Output
 
-Write to `REFACTOR-PLAN.md` (or a path of your choice if working in a specific subdirectory).
+Determine where to write the refactor plan by assessing the project structure — look for existing docs or design directories (e.g., `docs/`, `design/`) and follow the convention. If no convention is apparent, pick a logical location or ask the user.
 
 Structure:
 
@@ -116,5 +116,5 @@ Do NOT push to remote.
 - All identified issues have a refactoring step
 - Steps are ordered by dependency and priority
 - Each step has verification criteria
-- REFACTOR-PLAN.md written to disk
+- Refactor plan written to a logical location based on project structure
 - Changes are committed

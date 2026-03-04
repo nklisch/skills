@@ -81,7 +81,7 @@ For each option:
 ## Output
 
 ### 1. Research Document (canonical archive)
-Write to the project's research directory — use the project's established convention if one exists, otherwise default to `.project-gen/research/`. Filename: `{topic-slug}.md`.
+Determine where to write the research document by assessing the project structure — look for existing docs or research directories (e.g., `docs/`, `research/`) and follow the convention. If no convention is apparent, pick a logical location or ask the user. Filename: `{topic-slug}.md`.
 
 ### 2. Research Skill (auto-invocation knowledge)
 Also write a skill so future agents auto-load your findings when relevant.
@@ -160,5 +160,5 @@ Do NOT push to remote.
 - All research questions answered
 - Multiple options evaluated with trade-offs
 - Clear recommendation with rationale
-- Files written to correct paths
+- Files written to logical locations based on project structure
 - Changes are committed
