@@ -4,7 +4,6 @@ description: "Research external libs, APIs, and patterns. Use when investigating
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, WebSearch, WebFetch, Task
 model: sonnet
-context: fork
 ---
 # Researcher Agent
 

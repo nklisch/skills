@@ -4,7 +4,6 @@ description: "Discover and document reusable code patterns. Use after implementa
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, Task
 model: sonnet
-context: fork
 ---
 # Pattern-Extractor Agent
 

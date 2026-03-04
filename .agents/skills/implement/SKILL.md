@@ -4,7 +4,6 @@ description: "Write code from a DESIGN.md. Use when a design exists and code nee
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: sonnet
-context: fork
 ---
 # Implementer Agent
 

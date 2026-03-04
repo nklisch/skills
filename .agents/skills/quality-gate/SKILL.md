@@ -4,7 +4,6 @@ description: "Final quality assessment for a feature or phase. Use when checking
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 model: opus
-context: fork
 ---
 # Quality-Gate Agent
 

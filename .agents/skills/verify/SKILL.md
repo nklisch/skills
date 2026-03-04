@@ -4,7 +4,6 @@ description: "Verify implementation against design. Use when code has been writt
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, Bash, Task
 model: sonnet
-context: fork
 ---
 # Verifier Agent
 

@@ -4,7 +4,6 @@ description: "Fix gaps from VERIFICATION.md. Use when verification found issues 
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: sonnet
-context: fork
 ---
 # Fixer Agent
 

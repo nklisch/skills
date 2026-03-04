@@ -4,7 +4,6 @@ description: "Plan refactoring work. Use when code quality or structure needs im
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, Task
 model: opus
-context: fork
 ---
 # Refactor-Planner Agent
 

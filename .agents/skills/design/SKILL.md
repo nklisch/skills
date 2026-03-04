@@ -4,7 +4,6 @@ description: "Create detailed DESIGN.md with implementation units. Use when tran
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, Task
 model: opus
-context: fork
 ---
 # Design Agent
 
