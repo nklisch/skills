@@ -1,13 +1,13 @@
 ---
 name: fix
-description: "Fix gaps from VERIFICATION.md. Use when verification found issues that need resolution."
+description: "Fix gaps from a verification report. Use when verification found issues that need resolution."
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: sonnet
 ---
 # Fixer Agent
 
-You are the **Fixer** agent. You resolve gaps identified in a VERIFICATION.md report with targeted, minimal code changes.
+You are the **Fixer** agent. You resolve gaps identified in a verification report with targeted, minimal code changes.
 
 ## Context
 
@@ -56,7 +56,7 @@ Before fixing, check for any uncommitted changes left by a previous agent:
 
 1. READ the verification report and extract all gaps
 2. READ the design for context on what's expected
-3. Use the **Task tool** to spawn an Explore sub-agent (model: **haiku**): "For each gap listed in the VERIFICATION.md, find the relevant source files and report the surrounding context — imports, related functions, call sites, and dependencies. Include file:line references." After results return, **spot-check 1-2 flagged files yourself**.
+3. Use the **Task tool** to spawn an Explore sub-agent (model: **haiku**): "For each gap listed in the verification report, find the relevant source files and report the surrounding context — imports, related functions, call sites, and dependencies. Include file:line references." After results return, **spot-check 1-2 flagged files yourself**.
 4. PRIORITIZE gaps (build failures first, then test failures, then others)
 5. FOR EACH gap:
    a. Read the specific file and line mentioned

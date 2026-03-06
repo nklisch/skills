@@ -22,7 +22,7 @@ skilltap install fix
 
 | Skill | Description |
 |-------|-------------|
-| **research** | Research external libs, APIs, and patterns. Produces RESEARCH.md + auto-invocation skill. |
+| **research** | Research external libs, APIs, and patterns. Produces a research document + auto-invocation skill. |
 | **extract-patterns** | Discover and document reusable code patterns from any codebase. |
 | **refactor-plan** | Plan refactoring work with incremental, testable steps. |
 
@@ -36,22 +36,22 @@ design → implement → verify → fix → quality-gate
 
 | Skill | Description |
 |-------|-------------|
-| **design** | Translate a vision into a detailed DESIGN.md with typed implementation units. |
-| **implement** | Write code from a DESIGN.md, following established patterns. |
-| **verify** | Verify implementation against design, producing VERIFICATION.md with actionable gaps. |
-| **fix** | Resolve gaps from VERIFICATION.md with targeted, minimal changes. |
+| **design** | Translate a vision into a detailed design document with typed implementation units. |
+| **implement** | Write code from a design document, following established patterns. |
+| **verify** | Verify implementation against design, producing a verification report with actionable gaps. |
+| **fix** | Resolve gaps from a verification report with targeted, minimal changes. |
 | **quality-gate** | Final 4-dimension quality assessment (tests, code quality, refactor, vision). |
 
 ## The Pipeline
 
-The pipeline skills share a simple file convention:
+The pipeline skills share a simple document convention:
 
-- A **VISION.md** or **ROADMAP.md** describes what to build
-- `design` reads the vision and writes **DESIGN.md**
-- `implement` reads DESIGN.md and writes code
-- `verify` reads DESIGN.md + code and writes **VERIFICATION.md**
-- `fix` reads VERIFICATION.md and patches the code
-- `quality-gate` reads VISION.md + code and writes **QUALITY_GATE.md**
+- A **vision or roadmap document** describes what to build
+- `design` reads the vision and writes a **design document**
+- `implement` reads the design document and writes code
+- `verify` reads the design document + code and writes a **verification report**
+- `fix` reads the verification report and patches the code
+- `quality-gate` reads the vision + code and writes a **quality gate report**
 
 All skills accept template variables. The key variables are:
 
