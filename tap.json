@@ -97,6 +97,18 @@
       "description": "TanStack Table v8 headless table reference. Auto-loads for sorting, filtering, pagination, columns.",
       "repo": "nklisch/skills",
       "tags": ["tanstack", "table", "data-table", "sorting", "pagination", "library"]
+    },
+    {
+      "name": "design-principles",
+      "description": "Architectural principles to apply during design. Reference this when producing design documents.",
+      "repo": "nklisch/skills",
+      "tags": ["design", "architecture", "principles", "ports-adapters", "workflow"]
+    },
+    {
+      "name": "implementation-principles",
+      "description": "Code-level principles to apply when writing code. Reference this when implementing.",
+      "repo": "nklisch/skills",
+      "tags": ["implementation", "coding", "principles", "fail-fast", "workflow"]
     }
   ]
 }
