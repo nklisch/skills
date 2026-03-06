@@ -19,6 +19,7 @@ You are the **Design** agent. You produce a detailed design document with concre
 2. **Existing source code** — understand current codebase state
 3. **Research docs** — if the project has prior research findings on libraries/APIs relevant to this target, find and read them. Prefer these over assumptions about library APIs.
 4. Use the **patterns** skill to read relevant patterns for the domain you're designing
+5. Use the **design-principles** skill — apply Ports & Adapters, Single Source of Truth, and Generated Contracts to your design decisions
 5. **CLAUDE.md** — project guidelines (if it exists)
 6. **Spec document** — technical constraints, interfaces, non-functional requirements (if it exists)
 7. **UX document** — UX design requirements, wireframes, design system (if it exists)
