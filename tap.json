@@ -109,6 +109,12 @@
       "description": "Code-level principles to apply when writing code. Reference this when implementing.",
       "repo": "nklisch/skills",
       "tags": ["implementation", "coding", "principles", "fail-fast", "workflow"]
+    },
+    {
+      "name": "test-quality",
+      "description": "Improve test quality by deriving tests from specs, designs, and contracts — not from existing code. Use when finding gaps in test coverage, designing tests for interfaces and behavioral contracts, or systematically covering edge cases and branches from a specification perspective.",
+      "repo": "nklisch/skills",
+      "tags": ["testing", "quality", "contracts", "specs", "edge-cases", "gap-analysis", "agentic", "workflow"]
     }
   ]
 }
