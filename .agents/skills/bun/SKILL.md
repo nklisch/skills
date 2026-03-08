@@ -23,7 +23,7 @@ await $`git clone --depth 1 ${url} ${dest}`
 
 // Capture output as string (.text() auto-quiets)
 const sha = await $`git rev-parse HEAD`.cwd(dir).text()
-// sha === "abc123def456\n"
+// sha === "<commit-hash>\n"
 
 // Capture output as trimmed string
 const sha = (await $`git rev-parse HEAD`.cwd(dir).text()).trim()
@@ -67,7 +67,7 @@ if (exitCode !== 0) {
 ```typescript
 // Per-command
 await $`git status`.cwd("/path/to/repo")
-await $`echo $TOKEN`.env({ ...process.env, TOKEN: "secret" })
+await $`echo $TOKEN`.env({ ...process.env, TOKEN: process.env.TOKEN })
 
 // Global defaults
 $.cwd("/default/dir")
