@@ -115,6 +115,12 @@
       "description": "Improve test quality by deriving tests from specs, designs, and contracts — not from existing code. Use when finding gaps in test coverage, designing tests for interfaces and behavioral contracts, or systematically covering edge cases and branches from a specification perspective.",
       "repo": "nklisch/skills",
       "tags": ["testing", "quality", "contracts", "specs", "edge-cases", "gap-analysis", "agentic", "workflow"]
+    },
+    {
+      "name": "clean-memory",
+      "description": "Audit, validate, and interactively refine MEMORY.md. Removes contradicted and redundant entries, trims bloat, then guides you section-by-section through what to keep.",
+      "repo": "nklisch/skills",
+      "tags": ["memory", "maintenance", "interactive", "cleanup", "workflow"]
     }
   ]
 }
