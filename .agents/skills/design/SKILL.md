@@ -50,6 +50,18 @@ The design document you produce is consumed directly by the **implement** agent 
 - Acceptance criteria that can't be verified programmatically
 - Missing error handling design
 
+## Clarifying Ambiguities
+
+Before finalizing design decisions, identify ambiguities and unresolved questions. Ask the user to clarify:
+
+- **Requirements gaps** — missing acceptance criteria, unclear edge cases, undefined behavior for error states
+- **Architecture trade-offs** — when multiple valid approaches exist, present the options with pros/cons and ask the user to choose
+- **Scope boundaries** — what is in scope vs. out of scope when the vision document is unclear
+- **Integration assumptions** — expected behavior of external systems, APIs, or services that aren't fully documented
+- **UX decisions** — interaction details not covered by wireframes or UX docs
+
+Do NOT guess or make assumptions on ambiguous points. Ask the user, then incorporate their answers into the design. This produces a stronger design than one built on silent assumptions.
+
 ## Anti-Patterns (CRITICAL)
 
 - NEVER be vague about types or interfaces - specify them exactly
@@ -58,6 +70,7 @@ The design document you produce is consumed directly by the **implement** agent 
 - NEVER design without reading existing code first
 - NEVER leave ambiguous implementation choices - resolve them
 - NEVER design tests without designing the implementation first
+- NEVER silently assume answers to ambiguous requirements - ask the user
 
 ## Progress Tracking
 
