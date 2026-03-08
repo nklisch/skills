@@ -67,7 +67,7 @@ if (exitCode !== 0) {
 ```typescript
 // Per-command
 await $`git status`.cwd("/path/to/repo")
-await $`echo $TOKEN`.env({ ...process.env, TOKEN: process.env.TOKEN })
+await $`echo $MY_VAR`.env({ ...process.env, MY_VAR: "value" })
 
 // Global defaults
 $.cwd("/default/dir")
