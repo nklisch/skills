@@ -121,6 +121,42 @@
       "description": "Audit, validate, and interactively refine MEMORY.md. Removes contradicted and redundant entries, trims bloat, then guides you section-by-section through what to keep.",
       "repo": "nklisch/skills",
       "tags": ["memory", "maintenance", "interactive", "cleanup", "workflow"]
+    },
+    {
+      "name": "bun",
+      "description": "Bun runtime reference. Auto-loads for Bun.$, Bun.file, bun:test, shell commands, file I/O, and monorepo config.",
+      "repo": "nklisch/skills",
+      "tags": ["bun", "runtime", "shell", "testing", "javascript", "library"]
+    },
+    {
+      "name": "citty",
+      "description": "citty CLI framework reference (UnJS). Auto-loads for defineCommand, subcommands, argument definitions, lifecycle hooks.",
+      "repo": "nklisch/skills",
+      "tags": ["citty", "cli", "unjs", "commands", "library"]
+    },
+    {
+      "name": "clack-prompts",
+      "description": "@clack/prompts terminal UI reference. Auto-loads for interactive CLI prompts, spinners, selects, confirms, and cancel handling.",
+      "repo": "nklisch/skills",
+      "tags": ["clack", "prompts", "cli", "terminal", "interactive", "library"]
+    },
+    {
+      "name": "smol-toml",
+      "description": "smol-toml TOML parser/serializer reference. Auto-loads for parse, stringify, TOML config files.",
+      "repo": "nklisch/skills",
+      "tags": ["toml", "parser", "config", "serialization", "library"]
+    },
+    {
+      "name": "update-documentation",
+      "description": "Align all documentation layers to code after implementing a feature. Covers internal specs, public website, LLM ingestion files, and project memory.",
+      "repo": "nklisch/skills",
+      "tags": ["documentation", "docs", "maintenance", "workflow"]
+    },
+    {
+      "name": "claude-cli-sdk",
+      "description": "@nklisch/claude-cli-sdk reference. Auto-loads when working with this SDK — spawns Claude CLI as a subprocess using Pro/Max billing (no API key needed).",
+      "repo": "nklisch/skills",
+      "tags": ["claude", "sdk", "cli", "anthropic", "library"]
     }
   ]
 }
