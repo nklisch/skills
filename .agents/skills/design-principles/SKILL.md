@@ -1,6 +1,10 @@
 ---
 name: design-principles
-description: "Architectural principles to apply during design. Reference this when producing design documents."
+description: >
+  Architectural principles (Ports & Adapters, Single Source of Truth, Generated Contracts).
+  Auto-loads when designing new modules, defining interfaces between layers, discussing system
+  architecture, drawing system boundaries, reviewing architectural decisions, or any time
+  the design or implement skill is active.
 user-invocable: false
 ---
 # Design Principles

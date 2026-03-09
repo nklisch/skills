@@ -1,6 +1,10 @@
 ---
 name: research
-description: "Research external libs, APIs, and patterns. Use when investigating technology choices."
+description: >
+  Research external libs, APIs, and patterns. Use before designing a feature that depends on
+  an unfamiliar library or API, when choosing between technology options, when the user asks
+  about third-party integrations, or when design assumptions about an external API are uncertain.
+  Run before design when the tech choices are not yet settled.
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, WebSearch, WebFetch, Task
 model: sonnet
@@ -86,13 +90,13 @@ Determine where to write the research document by assessing the project structur
 ### 2. Research Skill (auto-invocation knowledge)
 Also write a skill so future agents auto-load your findings when relevant.
 
-**`.claude/skills/research-{topic-slug}/findings.md`**
+**`.claude/skills/{topic-slug}/findings.md`**
 Copy of the research document (identical content to the archive).
 
-**`.claude/skills/research-{topic-slug}/SKILL.md`**
+**`.claude/skills/{topic-slug}/SKILL.md`**
 ```yaml
 ---
-name: research-{topic-slug}
+name: {topic-slug}
 description: "Research findings on {topic}. Auto-loads when working with
   {relevant keywords from your research — library names, API names, pattern names}.
   Contains recommendations, trade-offs, and implementation notes."
@@ -110,9 +114,7 @@ See [findings.md](findings.md) for the complete analysis.
 {3-5 actionable bullet points from Implementation Notes}
 ```
 
-The description must include specific keywords that would match future agent work —
-library names, API method names, pattern names. Generic descriptions like "research
-findings" won't trigger auto-invocation effectively.
+The skill name and directory must be named after the topic itself (e.g., `hono-v4`, `redis`, `openai-api`) — no `research-` prefix. The description must include specific keywords that would match future agent work — library names, API method names, pattern names. Generic descriptions like "research findings" won't trigger auto-invocation effectively.
 
 ### Research Document Structure
 

@@ -1,6 +1,10 @@
 ---
 name: implementation-principles
-description: "Code-level principles to apply when writing code. Reference this when implementing."
+description: >
+  Code-level principles (Fail Fast, Single Source of Truth, Ports & Adapters enforcement).
+  Auto-loads when writing new functions or modules, implementing features, applying code
+  standards, or any time the implement or fix skill is active. Governs input validation,
+  guard clauses, and avoiding defensive boilerplate.
 user-invocable: false
 ---
 # Implementation Principles

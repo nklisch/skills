@@ -1,6 +1,10 @@
 ---
 name: clack-prompts
-description: Reference for @clack/prompts terminal UI library. Use this skill whenever building interactive CLI prompts, spinners, select menus, confirmation dialogs, or any terminal UI. Covers text, password, confirm, select, multiselect, spinner, group flows, tasks, logging, and cancel handling. Use this for any file in packages/cli/src/ui/ or any command that needs user interaction.
+description: >
+  Reference for @clack/prompts terminal UI library. Auto-loads when importing from
+  '@clack/prompts', or building interactive CLI prompts, spinners, select menus,
+  confirmation dialogs, or any terminal user interaction flow. Covers text, password,
+  confirm, select, multiselect, spinner, group flows, tasks, logging, and cancel handling.
 ---
 
 # @clack/prompts — Terminal UI Reference

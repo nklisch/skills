@@ -1,6 +1,10 @@
 ---
 name: refactor-plan
-description: "Plan refactoring work. Use when code quality or structure needs improvement."
+description: >
+  Plan incremental, safe refactoring. Use when duplicate logic has been found across files,
+  when architectural violations exist (e.g. domain importing infrastructure), when quality-gate
+  recommends structural improvements, or when a large area needs restructuring before further
+  feature work. Do NOT use for small inline cleanups — those belong in fix or implement.
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, Task
 model: opus

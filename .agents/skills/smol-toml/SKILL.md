@@ -1,6 +1,9 @@
 ---
 name: smol-toml
-description: Reference for smol-toml TOML parser/serializer. Use this skill whenever reading, writing, or manipulating TOML files, especially config.toml. Covers parse, stringify, TomlDate, TomlError, and the TOML-to-JavaScript type mapping. Use this for packages/core/src/config.ts or any code touching config.toml.
+description: >
+  Reference for smol-toml TOML parser/serializer. Auto-loads when importing from 'smol-toml',
+  or reading, writing, or manipulating any TOML configuration files. Covers parse, stringify,
+  TomlDate, TomlError, and the TOML-to-JavaScript type mapping.
 ---
 
 # smol-toml — TOML Parser Reference
