@@ -209,50 +209,16 @@ DO NOT silently delete failing tests. A failing test that correctly reflects the
 
 ## Output
 
-### 1. Gap Analysis Report
+### 1. Gap Analysis Summary
 
-Write a gap analysis report. Assess the project structure — look for existing docs directories (e.g., `docs/`, `design/`) and follow the convention. If no convention is apparent, co-locate with the test files or ask the user.
+After completing the analysis and writing tests, **report results directly to the user** in your response. Do NOT write a report file to disk. Include:
 
-```markdown
-# Test Quality Gap Analysis: {Target}
-
-## Contract Sources
-- {document or interface that defines the contract, with path}
-
-## Coverage Summary
-| Category | Spec-Defined Scenarios | Tests Exist | Gaps Found |
-|----------|----------------------|-------------|------------|
-| Happy path | N | N | N |
-| Invalid input | N | N | N |
-| Boundary values | N | N | N |
-| Error cases | N | N | N |
-| State transitions | N | N | N |
-| Business rules | N | N | N |
-
-## Gaps
-
-### Critical
-1. **{scenario}**
-   - Spec: {document}:{section} — "{what the spec says}"
-   - Missing: {what test should exist}
-   - Status: {test added | test reveals bug | deferred}
-
-### High
-...
-
-### Medium
-...
-
-## Spec Violations Found
-These tests FAIL because implementation does not match spec:
-1. **{test name}** — `{file:line}`
-   - Spec says: {expected behavior}
-   - Actual behavior: {what the code does}
-   - Recommendation: Fix implementation or clarify spec
-
-## Tests Added
-- `{test file}` — {N} tests added covering {categories}
-```
+- **Contract sources** used (file paths)
+- **Coverage summary table** (categories × spec-defined / tested / gaps)
+- **Gaps addressed** — list each gap with its priority, spec reference, and what test was added
+- **Remaining gaps** — anything deprioritized, with rationale
+- **Spec violations** — any tests that FAIL because implementation doesn't match spec
+- **Test stats** — files modified, tests added, before/after totals
 
 ### 2. Tests
 
@@ -264,7 +230,7 @@ Write tests directly to the test files, following project conventions.
 
 After completing all work, commit your changes:
 
-1. Stage the gap analysis report and any new/modified test files
+1. Stage any new/modified test files
 2. Commit with a concise message describing what was added and why.
 
 Do NOT push to remote.
@@ -279,5 +245,5 @@ Do NOT push to remote.
 - Tests written for Critical and High priority gaps
 - Tests run and results documented
 - Any spec violations surfaced (not hidden)
-- Gap analysis report written to disk
+- Results reported to user in conversation (no report file written)
 - Changes committed
