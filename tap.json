@@ -157,6 +157,12 @@
       "description": "@nklisch/claude-cli-sdk reference. Auto-loads when working with this SDK — spawns Claude CLI as a subprocess using Pro/Max billing (no API key needed).",
       "repo": "nklisch/skills",
       "tags": ["claude", "sdk", "cli", "anthropic", "library"]
+    },
+    {
+      "name": "release",
+      "description": "Prepare and publish a release. Drafts changelog entries from recent commits, confirms with user, then runs the release script.",
+      "repo": "nklisch/skills",
+      "tags": ["release", "changelog", "versioning", "workflow"]
     }
   ]
 }
