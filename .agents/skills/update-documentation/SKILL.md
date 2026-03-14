@@ -44,6 +44,7 @@ For the change that was just made, identify its category:
 | Phase or milestone complete | Roadmap / changelog |
 | New stable pattern or gotcha | Memory file |
 | Changed interface, workflow, or convention | Repo-specific derived skills that reference it |
+| New accepted value or alias for existing param | Tool/API reference, skills with example calls using that param |
 
 Don't limit yourself to a fixed checklist — reason from the map you built in Phase 1.
 
@@ -72,7 +73,10 @@ If you find a file that is auto-generated, never edit it — regenerate it from 
 **Rule 6 — Sync repo-specific derived skills.**
 If the change alters an interface, workflow, convention, or domain concept that a repo-specific
 skill references, update that skill to match. Grep skill files for the changed names, flags, or
-patterns. Skills that encode stale assumptions will silently produce wrong guidance.
+patterns. Skills that encode stale assumptions will silently produce wrong guidance. Pay special
+attention to example calls in skills — if a parameter gains a new accepted value or alias
+(e.g., `"latest"` for a session ID), update example calls in skills to use the simpler form
+where it improves clarity.
 
 ## Completion Criteria
 
