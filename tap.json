@@ -163,6 +163,12 @@
       "description": "Prepare and publish a release. Drafts changelog entries from recent commits, confirms with user, then runs the release script.",
       "repo": "nklisch/skills",
       "tags": ["release", "changelog", "versioning", "workflow"]
+    },
+    {
+      "name": "design-pages",
+      "description": "Design GitHub Pages for a project. Explores the codebase deeply, considers domain and audience, then pitches layout, content, structure, and visual identity choices.",
+      "repo": "nklisch/skills",
+      "tags": ["pages", "website", "design", "vitepress", "landing-page", "agentic", "workflow"]
     }
   ]
 }
