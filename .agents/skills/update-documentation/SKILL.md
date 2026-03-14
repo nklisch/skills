@@ -25,8 +25,9 @@ Before updating anything, map what documentation exists in this project.
    comments like `# generated`, scripts that concatenate docs, or files named `llms-full.txt`,
    `api.md`, etc.). Note these — never edit them directly; regenerate them.
 5. **Find memory** — look for `MEMORY.md` in `~/.claude/projects/…/memory/` or the project root.
-
-Build a mental map of: **file → what it owns**. Use this to reason about which files a change touches.
+6. **Find repo-specific skills** — look for `.agents/skills/`, `.claude/skills/`, or similar
+   directories containing skills derived for this repo. These skills encode repo-specific
+   workflows, conventions, or domain knowledge and must stay in sync with the codebase.
 
 ## Phase 2: Classify the Change
 
@@ -42,6 +43,7 @@ For the change that was just made, identify its category:
 | Bug fix with behavior impact | Spec (if behavior was mis-documented), changelog |
 | Phase or milestone complete | Roadmap / changelog |
 | New stable pattern or gotcha | Memory file |
+| Changed interface, workflow, or convention | Repo-specific derived skills that reference it |
 
 Don't limit yourself to a fixed checklist — reason from the map you built in Phase 1.
 
@@ -67,9 +69,15 @@ Keep memory terse (under 200 lines). Put detail in a topic file if needed.
 **Rule 5 — Do not edit generated files directly.**
 If you find a file that is auto-generated, never edit it — regenerate it from source.
 
+**Rule 6 — Sync repo-specific derived skills.**
+If the change alters an interface, workflow, convention, or domain concept that a repo-specific
+skill references, update that skill to match. Grep skill files for the changed names, flags, or
+patterns. Skills that encode stale assumptions will silently produce wrong guidance.
+
 ## Completion Criteria
 
 - All doc files that own the changed area have been updated
 - No stale references to old behavior remain (grep-verified)
 - Generated files have been regenerated if source docs changed
 - Memory updated if a new stable pattern or gotcha was introduced
+- Repo-specific derived skills updated if the change affects anything they reference
