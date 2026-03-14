@@ -6,7 +6,7 @@ description: >
   Opus reads the design, splits work into agent-sized units, crafts focused prompts,
   and spawns Sonnet agents to implement them.
 disable-model-invocation: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task, AskUserQuestion
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task, AskUserQuestion, Skill
 model: opus
 ---
 
@@ -22,8 +22,10 @@ You are an **Opus orchestrator**. Your job is to read a design document, underst
 
 1. **Design document** — the target above (REQUIRED). If it's a file path, read it. Otherwise, look in `docs/design/`, `docs/`, or project root. If not found, ask the user.
 2. **CLAUDE.md** — project conventions, commands, patterns, project structure
-3. **Pattern files** — if the project has documented patterns (e.g., `.claude/rules/`, `.claude/skills/patterns/`), read them
-4. **Referenced spec/architecture/roadmap docs** — if the design references other docs, read the relevant sections
+3. **Design principles skill** — invoke `/design-principles` to load architectural principles (Ports & Adapters, Single Source of Truth, Generated Contracts)
+4. **Implementation principles skill** — invoke `/implementation-principles` to load code-level principles (Fail Fast, guard clauses, validation boundaries)
+5. **Pattern files** — if the project has documented patterns (e.g., `.claude/rules/`, `.claude/skills/patterns/`), read them
+6. **Referenced spec/architecture/roadmap docs** — if the design references other docs, read the relevant sections
 
 ## Progress Tracking
 
@@ -41,8 +43,10 @@ You cannot craft good agent prompts without deep understanding. Before spawning 
 #### 1a. Read the design document thoroughly
 Read every unit — understand the full scope, dependencies between units, and the implementation order.
 
-#### 1b. Read project documentation
+#### 1b. Read project documentation and principles
 - **CLAUDE.md** (project root and `.claude/` if they exist) — conventions, commands, patterns, project structure
+- **Design principles** — invoke `/design-principles` to load architectural principles
+- **Implementation principles** — invoke `/implementation-principles` to load code-level principles
 - **Any referenced spec/architecture/roadmap docs** — if the design references other docs, read the relevant sections
 - **Pattern files** — if the project has documented patterns, read them for concrete examples of how existing code is structured
 
@@ -89,9 +93,11 @@ For each agent, write a self-contained prompt that includes:
 
 4. **Implementation order** — which units to implement first (dependency order from the design).
 
-5. **Verification commands** — what to run when done (from CLAUDE.md, e.g., `pnpm typecheck && pnpm lint && pnpm test`).
+5. **Principles** — instruct the agent: "Before writing any code, invoke `/design-principles` and `/implementation-principles` to load the project's architectural and code-level principles. Follow them throughout implementation."
 
-6. **Commit instruction** — "After all code compiles and tests pass, commit with a message describing what was implemented. Do NOT push."
+6. **Verification commands** — what to run when done (from CLAUDE.md, e.g., `pnpm typecheck && pnpm lint && pnpm test`).
+
+7. **Commit instruction** — "After all code compiles and tests pass, commit with a message describing what was implemented. Do NOT push."
 
 #### Prompt crafting principles:
 
