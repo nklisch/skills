@@ -175,6 +175,12 @@
       "description": "Design GitHub Pages for a project. Explores the codebase deeply, considers domain and audience, then pitches layout, content, structure, and visual identity choices.",
       "repo": "nklisch/skills",
       "tags": ["pages", "website", "design", "vitepress", "landing-page", "agentic", "workflow"]
+    },
+    {
+      "name": "write-tool-skill",
+      "description": "Write agent skills for external tools, CLIs, MCP servers, and libraries. Interactive workflow with research, structure decisions, and multi-skill breakout advice.",
+      "repo": "nklisch/skills",
+      "tags": ["skills", "authoring", "cli", "mcp", "library", "tool", "interactive", "workflow"]
     }
   ]
 }
