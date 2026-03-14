@@ -33,6 +33,12 @@
       "tags": ["implementation", "coding", "agentic", "workflow", "pipeline"]
     },
     {
+      "name": "implement-design",
+      "description": "Orchestrate implementation of a design document by spawning Sonnet task agents. Opus reads the design, splits work, crafts focused prompts, and delegates.",
+      "repo": "nklisch/skills",
+      "tags": ["implementation", "orchestration", "delegation", "agentic", "workflow", "pipeline"]
+    },
+    {
       "name": "verify",
       "description": "Verify implementation against design. Use when code has been written and needs checking.",
       "repo": "nklisch/skills",
