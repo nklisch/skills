@@ -181,6 +181,12 @@
       "description": "Write agent skills for external tools, CLIs, MCP servers, and libraries. Interactive workflow with research, structure decisions, and multi-skill breakout advice.",
       "repo": "nklisch/skills",
       "tags": ["skills", "authoring", "cli", "mcp", "library", "tool", "interactive", "workflow"]
+    },
+    {
+      "name": "schemars",
+      "description": "schemars 1.x Rust JSON Schema generation reference. Auto-loads for JsonSchema derive, json_schema! macro, schema_for!, SchemaSettings, SchemaGenerator.",
+      "repo": "nklisch/skills",
+      "tags": ["schemars", "json-schema", "rust", "derive", "codegen", "library"]
     }
   ]
 }
