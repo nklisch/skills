@@ -187,6 +187,12 @@
       "description": "schemars 1.x Rust JSON Schema generation reference. Auto-loads for JsonSchema derive, json_schema! macro, schema_for!, SchemaSettings, SchemaGenerator.",
       "repo": "nklisch/skills",
       "tags": ["schemars", "json-schema", "rust", "derive", "codegen", "library"]
+    },
+    {
+      "name": "e2e-test-design",
+      "description": "Design comprehensive e2e test suites with golden-path user journeys and adversarial failure-mode tests. Interactive — gathers failure expectations from the user.",
+      "repo": "nklisch/skills",
+      "tags": ["e2e", "testing", "end-to-end", "integration", "test-design", "failure-modes", "interactive", "workflow"]
     }
   ]
 }
