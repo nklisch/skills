@@ -205,6 +205,12 @@
       "description": "Interactively refine a rough skill idea into a well-designed agent skill. Guides through ideation, scoping, naming, description writing, structure decisions, and progressive disclosure, then scaffolds the skill files.",
       "repo": "nklisch/skills",
       "tags": ["skills", "ideation", "authoring", "design", "interactive", "workflow", "best-practices"]
+    },
+    {
+      "name": "structural-refactor-creator",
+      "description": "Create or update a project-specific structural-refactor skill. Explores the repo, researches organizational conventions, interviews the user about structural preferences (file size, folder layout, module boundaries, co-location, documentation layout), then generates a skill that produces prioritized refactoring backlogs.",
+      "repo": "nklisch/skills",
+      "tags": ["refactor", "structure", "organization", "interactive", "skill-creator", "workflow"]
     }
   ]
 }
