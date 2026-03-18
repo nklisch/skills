@@ -135,7 +135,12 @@ Each style has a reference file with rationale, examples, and exceptions.
 
 ## Output
 
-Produce a **prioritized refactoring backlog** as a markdown document with three tiers:
+Write the refactoring backlog to a `.md` file in a logical project location. Name and place it
+based on the project's conventions — e.g., `docs/stylistic-refactor-backlog.md`, `REFACTORING.md`,
+or `{docs-dir}/refactoring-backlog.md`. If the project has a `docs/` directory, prefer it.
+If no obvious location exists, place it at the repo root as `stylistic-refactor-backlog.md`.
+
+The document should be a **prioritized refactoring backlog** with three tiers:
 
 ### High Value
 Refactors that significantly improve readability, consistency, or maintainability
