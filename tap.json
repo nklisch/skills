@@ -193,6 +193,18 @@
       "description": "Design comprehensive e2e test suites with golden-path user journeys and adversarial failure-mode tests. Interactive — gathers failure expectations from the user.",
       "repo": "nklisch/skills",
       "tags": ["e2e", "testing", "end-to-end", "integration", "test-design", "failure-modes", "interactive", "workflow"]
+    },
+    {
+      "name": "stylistic-refactor-creator",
+      "description": "Create or update a project-specific stylistic-refactor skill. Explores the repo, researches stack-specific best practices, interviews the user, then generates a skill that produces prioritized refactoring backlogs.",
+      "repo": "nklisch/skills",
+      "tags": ["refactor", "style", "conventions", "interactive", "skill-creator", "workflow"]
+    },
+    {
+      "name": "skill-idea-refiner",
+      "description": "Interactively refine a rough skill idea into a well-designed agent skill. Guides through ideation, scoping, naming, description writing, structure decisions, and progressive disclosure, then scaffolds the skill files.",
+      "repo": "nklisch/skills",
+      "tags": ["skills", "ideation", "authoring", "design", "interactive", "workflow", "best-practices"]
     }
   ]
 }
