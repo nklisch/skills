@@ -211,6 +211,12 @@
       "description": "Create or update a project-specific structural-refactor skill. Explores the repo, researches organizational conventions, interviews the user about structural preferences (file size, folder layout, module boundaries, co-location, documentation layout), then generates a skill that produces prioritized refactoring backlogs.",
       "repo": "nklisch/skills",
       "tags": ["refactor", "structure", "organization", "interactive", "skill-creator", "workflow"]
+    },
+    {
+      "name": "ideate",
+      "description": "Interactive project definition workshop. Explores an idea through discovery, refinement, and requirements phases, then produces tailored foundation documents (VISION.md, SPEC.md, ARCHITECTURE.md, and domain-specific docs) based on the project's actual needs.",
+      "repo": "nklisch/skills",
+      "tags": ["ideation", "project-definition", "foundation-docs", "interactive", "workflow"]
     }
   ]
 }
