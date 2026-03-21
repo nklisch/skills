@@ -1,5 +1,5 @@
 ---
-name: implement-design
+name: implement-orchestrator
 description: >
   Orchestrate implementation of a design or plan document by spawning Sonnet task agents.
   Use for large designs (20+ files) or designs with independent subsystems that benefit

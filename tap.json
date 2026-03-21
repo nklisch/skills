@@ -15,14 +15,20 @@
       "tags": ["patterns", "documentation", "agentic", "workflow"]
     },
     {
-      "name": "refactor-plan",
+      "name": "refactor-design",
       "description": "Plan refactoring work. Use when code quality or structure needs improvement.",
       "repo": "nklisch/skills",
       "tags": ["refactor", "quality", "agentic", "workflow"]
     },
     {
+      "name": "expand",
+      "description": "Expand a project's scope by updating foundation documents. Reads existing vision, spec, and architecture, interviews about the expansion, then updates docs and roadmap for the next design phase.",
+      "repo": "nklisch/skills",
+      "tags": ["expand", "scope", "roadmap", "foundation-docs", "interactive", "workflow", "pipeline"]
+    },
+    {
       "name": "feature",
-      "description": "Scope a new feature within an existing project. Explores the codebase, interviews the user about requirements, and produces a feature brief that design consumes.",
+      "description": "Scope a quick extension or one-off feature outside the core roadmap. Produces a feature brief that design consumes.",
       "repo": "nklisch/skills",
       "tags": ["feature", "scoping", "requirements", "interactive", "workflow", "pipeline"]
     },
@@ -39,7 +45,7 @@
       "tags": ["implementation", "coding", "agentic", "workflow", "pipeline"]
     },
     {
-      "name": "implement-design",
+      "name": "implement-orchestrator",
       "description": "Orchestrate implementation by spawning Sonnet task agents. Use for large designs (20+ files) or designs with independent subsystems that benefit from parallel implementation.",
       "repo": "nklisch/skills",
       "tags": ["implementation", "orchestration", "delegation", "agentic", "workflow", "pipeline"]

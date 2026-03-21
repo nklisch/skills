@@ -15,7 +15,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, WebSearch, WebFetch, 
 You create (or update) a project-specific **structural-refactor** skill that teaches agents to
 recognize and fix organizational issues in a codebase.
 
-This is NOT about code style (that's stylistic-refactor), deduplication (that's refactor-plan),
+This is NOT about code style (that's stylistic-refactor), deduplication (that's refactor-design),
 or architectural theory (that's design-principles). This is about **concrete organizational
 structure**: where files live, how big they get, what gets grouped together, and how modules
 draw their boundaries.
@@ -265,7 +265,7 @@ Ask if they want to adjust anything before finalizing.
 ## Anti-Patterns
 
 - NEVER include code style rules (early returns, composition) — that's stylistic-refactor territory
-- NEVER include deduplication work — that's refactor-plan territory
+- NEVER include deduplication work — that's refactor-design territory
 - NEVER include architectural theory (ports & adapters) — that's design-principles territory
 - NEVER include formatting rules — that's linter territory
 - NEVER generate more than 12 structural rules — curate ruthlessly
@@ -281,5 +281,5 @@ Before finishing:
 - [ ] Each reference file is under 150 lines
 - [ ] Exceptions are documented for every rule
 - [ ] Examples use the project's actual directory structure and conventions
-- [ ] No overlap with stylistic-refactor, refactor-plan, or design-principles
+- [ ] No overlap with stylistic-refactor, refactor-design, or design-principles
 - [ ] Generated skill outputs a prioritized plan with implement-ready High Value entries and a "not worth it" section

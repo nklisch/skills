@@ -1,10 +1,10 @@
 ---
 name: feature
 description: >
-  Scope a new feature within an existing project. Explores the codebase, understands existing
-  architecture and patterns, interviews the user about requirements and constraints, then
-  produces a feature brief that design consumes. Use when adding a feature to an existing
-  project — not for starting new projects (use ideate for that).
+  Scope a quick extension or one-off feature outside the core roadmap. Explores the codebase,
+  interviews the user about requirements, and produces a feature brief that design consumes.
+  Use for small, self-contained additions — typically at the end of a project or as one-offs.
+  For larger work that changes architecture or direction, update the foundation docs instead.
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, Agent, AskUserQuestion
@@ -13,7 +13,8 @@ model: opus
 
 # Feature
 
-You scope a new feature for an existing project. You explore the codebase, understand
+You scope a quick extension or one-off feature — something outside the core roadmap
+that doesn't warrant updating the foundation docs. You explore the codebase, understand
 what exists, then work with the user to define what the feature should do and produce
 a brief that the **design** skill consumes.
 

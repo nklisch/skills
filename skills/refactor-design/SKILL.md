@@ -1,5 +1,5 @@
 ---
-name: refactor-plan
+name: refactor-design
 description: >
   Plan incremental, safe refactoring. Use when duplicate logic has been found across files,
   when architectural violations exist (e.g. domain importing infrastructure), when quality-gate

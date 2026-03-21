@@ -3,7 +3,7 @@ name: implement
 description: >
   Write code from a design or plan document. Use when a design, refactor plan, or refactoring
   plan exists and code needs to be written. Best for plans targeting fewer than ~20 files or
-  with tightly coupled units. For larger or parallelizable work, use implement-design instead.
+  with tightly coupled units. For larger or parallelizable work, use implement-orchestrator instead.
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: sonnet

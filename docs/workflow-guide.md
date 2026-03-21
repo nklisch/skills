@@ -2,6 +2,29 @@
 
 How to use the workflow skills together to build software projects.
 
+## How to Use This Suite
+
+The recommended workflow depends on your model access.
+
+### With Opus 1M context (recommended)
+
+Stay in a single Opus 1M session. Opus runs the planning skills directly — feature,
+design, refactor-design, extract-patterns — building up rich context over time. When
+it's time to write code, **implement-orchestrator** orchestrates by spawning Sonnet agents
+while Opus retains the full picture.
+
+A session stays productive through roughly 600-800k tokens. When context gets heavy,
+start a fresh session; the design docs and pattern files carry the knowledge forward.
+
+Each phase typically gets one feature → design → implement-orchestrator cycle, though large
+phases may be split into multiple designs (a, b, sometimes c) within the same session.
+
+### Without Opus 1M
+
+Run each skill in a fresh Sonnet session. Use **implement** (single Sonnet agent)
+instead of implement-orchestrator. Each skill invocation starts clean — the design documents
+and plan artifacts carry the context between sessions.
+
 ## The Pipeline
 
 These skills form a pipeline where each skill's output feeds the next.
@@ -12,47 +35,69 @@ These skills form a pipeline where each skill's output feeds the next.
 **ideate** — Interactive workshop that produces foundation documents (VISION.md,
 SPEC.md, ARCHITECTURE.md, and domain-specific docs). Run once at project start.
 
-### Feature Development (iterative)
+### Expanding Scope
 
-Each feature follows this loop:
+**expand** — When the project needs a major new capability, subsystem, or
+architectural shift. Reads existing foundation docs and codebase, interviews
+about the expansion, then updates the foundation docs and roadmap. The next
+design phase picks up where expand left off.
 
-1. **feature** — Scope the feature: explore the codebase, define requirements,
-   produce a feature brief
-2. **design** — Turn the feature brief into detailed implementation units with
-   exact interfaces, types, and acceptance criteria
-3. **implement-design** — Opus orchestrator spawns Sonnet agents to implement
-   the design in parallel (use for 20+ files or independent subsystems)
-   — OR **implement** — Single Sonnet agent implements the design directly
-   (use for <20 files or tightly coupled units)
+Use expand when the change is big enough to affect the vision, spec, or
+architecture. If it's small and self-contained, use feature instead.
 
-Repeat this loop 2-4 times per project phase. Each iteration builds on the last.
+### Core Development (per phase)
 
-### Post-Implementation
+Each phase is driven by the project's foundation docs (VISION.md, SPEC.md,
+ARCHITECTURE.md, roadmap). Design reads these directly — no intermediate step.
+Large phases may be split into multiple designs (a, b, sometimes c).
 
-After each development loop:
+1. **research** (if needed) — Investigate unfamiliar libraries or APIs before
+   designing. Produces a research doc and an auto-loading reference skill.
+2. **design** — Read the roadmap/vision, produce detailed implementation units
+   with exact interfaces, types, and acceptance criteria
+3. **implement-orchestrator** (Opus 1M) — Opus orchestrator spawns Sonnet agents to
+   implement the design
+   — OR **implement** (Sonnet) — Single agent implements the design directly
 
-4. **refactor-plan** — Find duplication, missing abstractions, structural
-   improvements. Produces a refactor plan that **implement** executes.
-5. **extract-patterns** — Document reusable patterns for consistency across
-   future work. Other skills read these patterns before acting.
-6. **update-documentation** — Align all docs to the code changes just made.
+### Quick Extensions
+
+**feature** — For small, self-contained additions outside the core roadmap.
+Typically used at the end of a project or as one-offs. Produces a lightweight
+feature brief that design consumes.
+
+### After Each Phase
+
+5. **update-documentation** — Align all docs to the code changes just made.
    Runs inline (same context), not as a separate agent.
 
-### Refactoring (after critical mass)
+### Refactoring (every 2-4 phases)
 
-After 3-4 phases of accumulated code — not before:
+After 2-4 implementation phases (typically 3), run a refactoring pass:
 
-7. **stylistic-refactor-creator** — Interview-based. Produces a project-specific
+6. **refactor-design** — Find duplication, missing abstractions, structural
+   improvements. Produces a refactor plan.
+7. **implement-orchestrator** or **implement** — Execute the refactor plan.
+8. **extract-patterns** — Document reusable patterns for consistency across
+   future work. Other skills read these patterns before acting.
+
+> Don't refactor after every phase. Let code accumulate so refactor-design
+> can identify real duplication and missing abstractions, not one-off patterns.
+
+### Style & Structure Refactoring (every 3-5 phases)
+
+After more significant accumulation (3-5 phases):
+
+9. **stylistic-refactor-creator** — Interview-based. Produces a project-specific
    **stylistic-refactor** skill that scans for coding style inconsistencies.
-8. **structural-refactor-creator** — Interview-based. Produces a project-specific
-   **structural-refactor** skill that scans for organizational issues.
+10. **structural-refactor-creator** — Interview-based. Produces a project-specific
+    **structural-refactor** skill that scans for organizational issues.
 
-Run the generated skills, then use **implement** to apply the high-value items.
-Re-run periodically and at project end.
+Run the generated skills, then use **implement-orchestrator** or **implement** to apply
+the high-value items. Re-run periodically and at project end.
 
-> **Timing matters.** Running the refactor creators too early produces noise.
-> You need enough generated code for the skills to identify real patterns
-> and real inconsistencies. Wait until 3-4 development phases are complete.
+> **Timing matters.** The creators need even more code than refactor-design to be
+> effective. Running them too early produces noise — wait until the codebase has
+> enough patterns and structure to analyze meaningfully.
 
 ### Testing
 
@@ -70,22 +115,29 @@ Re-run periodically and at project end.
 
 ## Selection Guide
 
-### implement vs implement-design
+### implement vs implement-orchestrator
 
-| Criteria | implement | implement-design |
+| Criteria | implement | implement-orchestrator |
 |----------|-----------|------------------|
-| Design size | <20 files | 20+ files |
-| Unit coupling | Tightly coupled | Independent subsystems |
-| Model | Sonnet (single agent) | Opus orchestrator + Sonnet agents |
-| Parallelism | Sequential | Parallel where possible |
+| Model access | Sonnet (no Opus 1M) | Opus 1M |
+| How it works | Single Sonnet agent, fresh context | Opus orchestrator spawns Sonnet agents |
+| Best for | Any size design, sequential | Large designs, parallelizable work |
+| Context | Reads the design doc cold | Opus already has deep project context |
 
-### refactor-plan vs the creators
+**If you have Opus 1M**: Use implement-orchestrator. Opus has been running feature, design,
+refactor-design in the same session — it already understands the codebase deeply and
+crafts precise prompts for the Sonnet agents it spawns.
+
+**If you don't**: Use implement in a fresh Sonnet session. The design document carries
+all the context the agent needs.
+
+### refactor-design vs the creators
 
 | Skill | Focus | When to run |
 |-------|-------|-------------|
-| refactor-plan | Code reuse, deduplication, missing abstractions | After each development loop |
-| stylistic-refactor-creator | Coding style preferences | After 3-4 phases of code |
-| structural-refactor-creator | File/folder organization | After 3-4 phases of code |
+| refactor-design | Code reuse, deduplication, missing abstractions | Every 2-4 phases (typically 3) |
+| stylistic-refactor-creator | Coding style preferences | Every 3-5 phases |
+| structural-refactor-creator | File/folder organization | Every 3-5 phases |
 
 These three have distinct, non-overlapping scopes. They complement each other.
 
@@ -99,27 +151,40 @@ These three have distinct, non-overlapping scopes. They complement each other.
 ## Typical Project Lifecycle
 
 ```
-ideate                          ← project start (once)
+ideate                                       ← project start (once)
 │
-├─ feature → design → implement-design    ← phase 1 (repeat 2-4x)
-├─ feature → design → implement-design    ← phase 2
-├─ refactor-plan → implement              ← clean up
-├─ extract-patterns                       ← capture conventions
+│  ┌── Opus 1M session ──────────────────┐
+│  │                                     │
+├──│─ design → implement-orchestrator            │  ← phase 1
+├──│─ design → implement-orchestrator            │  ← phase 2
+├──│─ design → implement-orchestrator            │  ← phase 3
+│  │                                     │
+├──│─ refactor-design → implement-orchestrator    │  ← refactor pass (~every 3 phases)
+├──│─ extract-patterns                    │  ← capture conventions
+│  │                                     │
+│  └─ ~600-800k tokens, start fresh ─────┘
 │
-├─ feature → design → implement-design    ← phase 3
-├─ feature → design → implement-design    ← phase 4
-├─ refactor-plan → implement
-├─ extract-patterns
+│  ┌── new session ──────────────────────┐
+│  │                                     │
+├──│─ design → implement-orchestrator            │  ← phase 4
+├──│─ design a,b → implement-orchestrator       │  ← phase 5 (large, split)
+├──│─ design → implement-orchestrator            │  ← phase 6
+│  │                                     │
+├──│─ refactor-design → implement-orchestrator    │  ← refactor pass
+├──│─ extract-patterns                    │
+│  │                                     │
+├──│─ stylistic-refactor-creator          │  ← style/structure pass (~phase 5)
+├──│─ structural-refactor-creator         │
+├──│─ run generated skills → impl-design  │
+│  │                                     │
+│  └─────────────────────────────────────┘
 │
-├─ stylistic-refactor-creator             ← first refactor pass
-├─ structural-refactor-creator
-├─ run generated skills → implement
-│
-├─ test-quality                           ← testing pass
+├─ test-quality                              ← testing pass
 ├─ e2e-test-design → implement
 │
-├─ ... more phases ...
+├─ run refactor skills again                 ← periodic cleanup
 │
-├─ run refactor skills again              ← periodic cleanup
-├─ release                                ← ship it
+├─ feature → design → implement             ← quick extensions / one-offs
+│
+├─ release                                   ← ship it
 ```

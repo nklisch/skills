@@ -1,111 +1,122 @@
 # nklisch/skills
 
-A collection of reusable agent skills for software development workflows, installable via [skilltap](https://github.com/nklisch/skilltap).
+A software development workflow suite for Claude Code — from ideation through implementation, refactoring, testing, and release.
+
+Available as a **Claude Code plugin** and via **[skilltap](https://github.com/nklisch/skilltap)**.
 
 ## Install
+
+### As a Plugin
+
+```bash
+/plugin install nklisch/skills
+```
+
+Installs the full workflow suite. Skills are namespaced as `workflow:design`, `workflow:implement`, etc.
+
+### Via Skilltap
 
 ```bash
 # Add this tap
 skilltap tap add nklisch https://github.com/nklisch/skills
 
 # Install individual skills
-skilltap install research
 skilltap install design
 skilltap install implement
-skilltap install verify
-skilltap install fix
+skilltap install research
 ```
 
-## Skills
+## Workflow Skills
 
-### Dev Workflow Pipeline
+These skills form an iterative pipeline. See [docs/workflow-guide.md](docs/workflow-guide.md) for the full usage guide.
 
-These skills form a complete design-to-code workflow. Use them in sequence:
+### Pipeline
 
 ```
-design → implement → verify → fix → quality-gate
+ideate                              ← project start
+    ↓
+design → implement/implement-orchestrator ← core phases (from roadmap)
+    ↓
+refactor-design → implement → extract-patterns  ← every 2-4 phases
+    ↓
+expand                              ← major scope changes (updates foundation docs)
+    ↓
+stylistic/structural-refactor-creator         ← every 3-5 phases
+    ↓
+feature → design → implement        ← quick one-offs near the end
+    ↓
+release                              ← ship it
 ```
 
-| Skill | Description |
+| Skill | What it does |
 |-------|-------------|
-| **design** | Translate a vision into a detailed design document with typed implementation units. |
-| **implement** | Write code from a design document, following established patterns. |
-| **implement-design** | Orchestrate implementation by spawning Sonnet task agents. Opus reads the design, splits work, crafts focused prompts, and delegates. |
-| **verify** | Verify implementation against design, producing a verification report with actionable gaps. |
-| **fix** | Resolve gaps from a verification report with targeted, minimal changes. |
-| **quality-gate** | Final 4-dimension quality assessment (tests, code quality, refactor, vision). |
-
-### Standalone Utilities
-
-| Skill | Description |
-|-------|-------------|
-| **research** | Research external libs, APIs, and patterns. Produces a research document + auto-invocation skill. |
-| **extract-patterns** | Discover and document reusable code patterns from any codebase. |
-| **refactor-plan** | Plan refactoring work with incremental, testable steps. |
-| **test-quality** | Improve test quality by deriving tests from specs, designs, and contracts — not from existing code. |
-| **e2e-test-design** | Design comprehensive e2e test suites with golden-path user journeys and adversarial failure-mode tests. Interactive. |
-| **clean-memory** | Audit, validate, and interactively refine MEMORY.md. Removes contradicted and redundant entries. |
-| **update-documentation** | Align all documentation layers to code after implementing a feature. |
-| **release** | Prepare and publish a release. Drafts changelog entries from recent commits. |
-| **design-pages** | Design GitHub Pages for a project. Explores the codebase, then pitches layout, content, and visual identity. |
-| **write-tool-skill** | Write agent skills for external tools, CLIs, MCP servers, and libraries. Interactive workflow. |
+| **ideate** | Interactive project definition workshop. Produces foundation docs (VISION.md, SPEC.md, ARCHITECTURE.md). Run once at project start. |
+| **expand** | Expand project scope — new subsystem, major capability, architectural shift. Updates foundation docs and roadmap. |
+| **feature** | Scope a quick extension or one-off outside the core roadmap. Produces a feature brief that design consumes. |
+| **design** | Produce detailed implementation units with exact interfaces, types, and acceptance criteria. |
+| **implement** | Write code from a design or plan. Single Sonnet agent. Best for <20 files. |
+| **implement-orchestrator** | Opus orchestrator that spawns Sonnet agents. For 20+ files or independent subsystems. |
+| **research** | Investigate libraries, APIs, and SDKs. Produces a research doc and an auto-loading reference skill. |
+| **refactor-design** | Find duplication and missing abstractions. Produces a refactor plan that implement executes. |
+| **extract-patterns** | Document reusable code patterns for consistency across future work. |
+| **stylistic-refactor-creator** | Interview-based. Generates a project-specific stylistic-refactor skill. |
+| **structural-refactor-creator** | Interview-based. Generates a project-specific structural-refactor skill. |
+| **test-quality** | Spec-driven test gap analysis. Derives tests from contracts, not code. Writes the tests. |
+| **e2e-test-design** | Design golden-path and adversarial e2e test suites. Interactive. |
+| **update-documentation** | Align all docs to code after changes. Runs inline, not as a separate agent. |
+| **release** | Draft changelog, confirm with user, run the project's release mechanism. |
 
 ### Principles (auto-load)
 
-These skills auto-load during relevant workflows to enforce architectural and code-level standards.
+Auto-load during design and implementation to enforce standards.
 
-| Skill | Description |
+| Skill | What it enforces |
+|-------|-----------------|
+| **design-principles** | Ports & Adapters, Single Source of Truth, Generated Contracts |
+| **implementation-principles** | Fail Fast, guard clauses, data-driven extensibility, boundary enforcement |
+
+## Library & Tool References
+
+Reference skills that auto-load when their library is detected. Installed individually via skilltap.
+
+| Skill | Library |
+|-------|---------|
+| **bun** | Bun runtime — Bun.$, Bun.file, bun:test |
+| **zod-v4** | Zod v4 — schemas, safeParse, transforms |
+| **biome-v2** | Biome v2 — linter/formatter config |
+| **drizzle-v0** | Drizzle ORM v0.45+ PostgreSQL |
+| **hono-v4** | Hono v4 — routes, middleware, SSE |
+| **tanstack-query-v5** | TanStack Query v5 (React Query) |
+| **tanstack-router-v1** | TanStack Router v1 — file-based routing |
+| **tanstack-table-v8** | TanStack Table v8 — headless tables |
+| **zustand-v5** | Zustand v5 — state management |
+| **citty** | citty CLI framework (UnJS) |
+| **clack-prompts** | @clack/prompts — terminal UI |
+| **smol-toml** | smol-toml — TOML parser/serializer |
+| **claude-cli-sdk** | @nklisch/claude-cli-sdk |
+| **schemars** | schemars 1.x — Rust JSON Schema generation |
+
+## Other Skills
+
+| Skill | What it does |
 |-------|-------------|
-| **design-principles** | Architectural principles (Ports & Adapters, Single Source of Truth, Generated Contracts). |
-| **implementation-principles** | Code-level principles (Fail Fast, Single Source of Truth, Ports & Adapters enforcement). |
+| **skill-evaluator** | Evaluate skills against type-specific quality rubrics |
+| **skill-idea-refiner** | Refine a rough skill idea into a well-designed skill |
+| **write-tool-skill** | Write reference skills for external tools, CLIs, and libraries |
+| **design-pages** | Design GitHub Pages for a project |
+| **clean-memory** | Audit and refine MEMORY.md |
 
-### Library & Tool References (auto-load)
+## Repo Structure
 
-Reference skills that auto-load when their library is detected in your project.
-
-| Skill | Description |
-|-------|-------------|
-| **bun** | Bun runtime reference — Bun.$, Bun.file, bun:test, shell commands, file I/O, monorepo config. |
-| **zod-v4** | Zod v4 validation library — schemas, safeParse, transforms. |
-| **biome-v2** | Biome v2 linter/formatter — config, linting rules, formatting. |
-| **drizzle-v0** | Drizzle ORM v0.45+ PostgreSQL — schema definitions, queries, migrations. |
-| **hono-v4** | Hono v4 web framework — routes, middleware, SSE, validation. |
-| **tanstack-query-v5** | TanStack Query v5 (React Query) — useQuery, useMutation, caching. |
-| **tanstack-router-v1** | TanStack Router v1 — file-based routing, loaders, search params. |
-| **tanstack-table-v8** | TanStack Table v8 — sorting, filtering, pagination, columns. |
-| **zustand-v5** | Zustand v5 state management — stores, selectors, persist, middleware. |
-| **citty** | citty CLI framework (UnJS) — defineCommand, subcommands, argument definitions. |
-| **clack-prompts** | @clack/prompts terminal UI — interactive CLI prompts, spinners, selects, confirms. |
-| **smol-toml** | smol-toml TOML parser/serializer — parse, stringify, config files. |
-| **claude-cli-sdk** | @nklisch/claude-cli-sdk — spawns Claude CLI as a subprocess using Pro/Max billing. |
-| **schemars** | schemars 1.x Rust JSON Schema generation — JsonSchema derive, json_schema! macro, SchemaSettings. |
-
-## The Pipeline
-
-The pipeline skills share a simple document convention:
-
-- A **vision or roadmap document** describes what to build
-- `design` reads the vision and writes a **design document**
-- `implement` reads the design document and writes code
-- `verify` reads the design document + code and writes a **verification report**
-- `fix` reads the verification report and patches the code
-- `quality-gate` reads the vision + code and writes a **quality gate report**
-
-All skills accept template variables. The key variables are:
-
-| Variable | Used by | Description |
-|----------|---------|-------------|
-| `{{target}}` | all | Name/description of what you're building |
-| `{{design_path}}` | design, implement, verify, fix | Path to DESIGN.md (default: `DESIGN.md`) |
-| `{{verification_path}}` | verify, fix | Path to VERIFICATION.md (default: `VERIFICATION.md`) |
-| `{{topic}}` | research | The technology/library to research |
-| `{{guidelines}}` | research | Project-specific guidelines for the research |
-
-## Build & Test Commands
-
-The pipeline skills are build-tool agnostic. They run your project's build and test commands — set these in your project's CLAUDE.md so the agents know what to use.
+```
+skills/                    # Workflow plugin skills (plugin + skilltap)
+.agents/skills/            # Reference, principle, and utility skills (skilltap)
+.claude-plugin/            # Claude Code plugin manifest
+docs/                      # Workflow guide and design docs
+tap.json                   # Skilltap registry
+```
 
 ## Requirements
 
-- Claude Code with [Task tool](https://docs.anthropic.com/en/docs/claude-code) support (for sub-agent spawning)
+- Claude Code with Task/Agent tool support
 - Git repository

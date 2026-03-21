@@ -20,8 +20,8 @@ skills-repo/
 │   ├── feature/SKILL.md                   # NEW
 │   ├── design/SKILL.md
 │   ├── implement/SKILL.md
-│   ├── implement-design/SKILL.md
-│   ├── refactor-plan/SKILL.md
+│   ├── implement-orchestrator/SKILL.md
+│   ├── refactor-design/SKILL.md
 │   ├── extract-patterns/SKILL.md
 │   ├── stylistic-refactor-creator/        # includes references/
 │   ├── structural-refactor-creator/       # includes references/
@@ -199,7 +199,7 @@ Each feature follows this loop:
    produce a feature brief
 2. **design** — Turn the feature brief into detailed implementation units with
    exact interfaces, types, and acceptance criteria
-3. **implement-design** — Opus orchestrator spawns Sonnet agents to implement
+3. **implement-orchestrator** — Opus orchestrator spawns Sonnet agents to implement
    the design in parallel (use for 20+ files or independent subsystems)
    — OR **implement** — Single Sonnet agent implements the design directly
    (use for <20 files or tightly coupled units)
@@ -210,7 +210,7 @@ Repeat this loop 2-4 times per project phase. Each iteration builds on the last.
 
 After each development loop:
 
-4. **refactor-plan** — Find duplication, missing abstractions, structural
+4. **refactor-design** — Find duplication, missing abstractions, structural
    improvements. Produces a refactor plan that **implement** executes.
 5. **extract-patterns** — Document reusable patterns for consistency across
    future work. Other skills read these patterns before acting.
@@ -249,20 +249,20 @@ Re-run periodically and at project end.
 
 ## Selection Guide
 
-### implement vs implement-design
+### implement vs implement-orchestrator
 
-| Criteria | implement | implement-design |
+| Criteria | implement | implement-orchestrator |
 |----------|-----------|------------------|
 | Design size | <20 files | 20+ files |
 | Unit coupling | Tightly coupled | Independent subsystems |
 | Model | Sonnet (single agent) | Opus orchestrator + Sonnet agents |
 | Parallelism | Sequential | Parallel where possible |
 
-### refactor-plan vs the creators
+### refactor-design vs the creators
 
 | Skill | Focus | When to run |
 |-------|-------|-------------|
-| refactor-plan | Code reuse, deduplication, missing abstractions | After each development loop |
+| refactor-design | Code reuse, deduplication, missing abstractions | After each development loop |
 | stylistic-refactor-creator | Coding style preferences | After 3-4 phases of code |
 | structural-refactor-creator | File/folder organization | After 3-4 phases of code |
 
@@ -280,14 +280,14 @@ These three have distinct, non-overlapping scopes. They complement each other.
 ```
 ideate                          ← project start (once)
 │
-├─ feature → design → implement-design    ← phase 1 (repeat 2-4x)
-├─ feature → design → implement-design    ← phase 2
-├─ refactor-plan → implement              ← clean up
+├─ feature → design → implement-orchestrator    ← phase 1 (repeat 2-4x)
+├─ feature → design → implement-orchestrator    ← phase 2
+├─ refactor-design → implement              ← clean up
 ├─ extract-patterns                       ← capture conventions
 │
-├─ feature → design → implement-design    ← phase 3
-├─ feature → design → implement-design    ← phase 4
-├─ refactor-plan → implement
+├─ feature → design → implement-orchestrator    ← phase 3
+├─ feature → design → implement-orchestrator    ← phase 4
+├─ refactor-design → implement
 ├─ extract-patterns
 │
 ├─ stylistic-refactor-creator             ← first refactor pass
@@ -312,7 +312,7 @@ ideate                          ← project start (once)
 
 **Acceptance Criteria**:
 - [ ] Covers all workflow skills in the suite
-- [ ] Includes selection guides for implement vs implement-design, refactor-plan vs creators, test-quality vs e2e-test-design
+- [ ] Includes selection guides for implement vs implement-orchestrator, refactor-design vs creators, test-quality vs e2e-test-design
 - [ ] Includes the iterative lifecycle diagram
 - [ ] Notes timing for refactor creators (after 3-4 phases)
 - [ ] Human-readable, no agent instructions
@@ -356,8 +356,8 @@ Move these skill directories from `.agents/skills/` to `skills/`:
 |-------|--------|-------------|
 | design | `.agents/skills/design/` | `skills/design/` |
 | implement | `.agents/skills/implement/` | `skills/implement/` |
-| implement-design | `.agents/skills/implement-design/` | `skills/implement-design/` |
-| refactor-plan | `.agents/skills/refactor-plan/` | `skills/refactor-plan/` |
+| implement-orchestrator | `.agents/skills/implement-orchestrator/` | `skills/implement-orchestrator/` |
+| refactor-design | `.agents/skills/refactor-design/` | `skills/refactor-design/` |
 | extract-patterns | `.agents/skills/extract-patterns/` | `skills/extract-patterns/` |
 | stylistic-refactor-creator | `.agents/skills/stylistic-refactor-creator/` | `skills/stylistic-refactor-creator/` |
 | structural-refactor-creator | `.agents/skills/structural-refactor-creator/` | `skills/structural-refactor-creator/` |

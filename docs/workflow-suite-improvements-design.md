@@ -15,7 +15,7 @@ Tighten the workflow skill suite into a cohesive system where **implement is the
 
 **Implementation Notes**:
 - Delete the entire skill directories, not just the SKILL.md files
-- These are retired because implement already self-verifies (Phase 4) and implement-design has its own review phases (5-6)
+- These are retired because implement already self-verifies (Phase 4) and implement-orchestrator has its own review phases (5-6)
 
 **Acceptance Criteria**:
 - [ ] `.agents/skills/verify/` directory deleted
@@ -60,9 +60,9 @@ Also update these descriptions in tap.json:
   ...
 }
 
-// implement-design — add selection criteria
+// implement-orchestrator — add selection criteria
 {
-  "name": "implement-design",
+  "name": "implement-orchestrator",
   "description": "Orchestrate implementation by spawning Sonnet task agents. Use for large designs (20+ files) or designs with independent subsystems that benefit from parallel implementation.",
   ...
 }
@@ -85,7 +85,7 @@ Also update these descriptions in tap.json:
 **Acceptance Criteria**:
 - [ ] verify, fix, quality-gate entries removed from tap.json
 - [ ] implement description updated with selection criteria
-- [ ] implement-design description updated with selection criteria
+- [ ] implement-orchestrator description updated with selection criteria
 - [ ] Creator descriptions say "plan" not "backlog"
 
 ---
@@ -131,7 +131,7 @@ To:
 description: >
   Write code from a design or plan document. Use when a design, refactor plan, or refactoring
   plan exists and code needs to be written. Best for plans targeting fewer than ~20 files or
-  with tightly coupled units. For larger or parallelizable work, use implement-design instead.
+  with tightly coupled units. For larger or parallelizable work, use implement-orchestrator instead.
 ```
 
 Change "Your Role" section — replace first sentence:
@@ -173,9 +173,9 @@ To:
 
 ---
 
-### Unit 5: Update implement-design SKILL.md — add selection criteria
+### Unit 5: Update implement-orchestrator SKILL.md — add selection criteria
 
-**File**: `.agents/skills/implement-design/SKILL.md`
+**File**: `.agents/skills/implement-orchestrator/SKILL.md`
 
 Change frontmatter description from:
 ```yaml
@@ -204,9 +204,9 @@ description: >
 
 ---
 
-### Unit 6: Adapt refactor-plan output format
+### Unit 6: Adapt refactor-design output format
 
-**File**: `.agents/skills/refactor-plan/SKILL.md`
+**File**: `.agents/skills/refactor-design/SKILL.md`
 
 Replace the output template (current lines 86-107) with:
 
@@ -281,7 +281,7 @@ ORDER by dependency and priority, then WRITE the refactor plan.
 **Implementation Notes**:
 - The key change is adding `Current State` / `Target State` as **code blocks** (not prose), `Implementation Notes`, and `Acceptance Criteria` to each step — mirroring design's Implementation Units format
 - Added `Overview` section and `Implementation Order` section to match design's output structure
-- This makes refactor-plan output directly consumable by implement
+- This makes refactor-design output directly consumable by implement
 
 **Acceptance Criteria**:
 - [ ] Each refactor step has Current State and Target State as code blocks
@@ -302,9 +302,9 @@ Replace the generated SKILL.md's output section (lines 136-158 in the template) 
 ## Output
 
 Write the refactoring plan to a `.md` file in a logical project location. Name and place it
-based on the project's conventions — e.g., `docs/stylistic-refactor-plan.md`,
-or `{docs-dir}/stylistic-refactor-plan.md`. If the project has a `docs/` directory, prefer it.
-If no obvious location exists, place it at the repo root as `stylistic-refactor-plan.md`.
+based on the project's conventions — e.g., `docs/stylistic-refactor-design.md`,
+or `{docs-dir}/stylistic-refactor-design.md`. If the project has a `docs/` directory, prefer it.
+If no obvious location exists, place it at the repo root as `stylistic-refactor-design.md`.
 
 The document should be a **prioritized refactoring plan** with these sections:
 
@@ -349,7 +349,7 @@ for refactoring's sake.
 
 Also update these references throughout the file:
 - All instances of "backlog" → "plan" (in description, output section, quality checklist)
-- `stylistic-refactor-backlog.md` → `stylistic-refactor-plan.md`
+- `stylistic-refactor-backlog.md` → `stylistic-refactor-design.md`
 
 Update quality checklist item:
 ```
@@ -378,9 +378,9 @@ Same pattern as Unit 7, adapted for structural concerns. Replace the generated S
 ## Output
 
 Write the refactoring plan to a `.md` file in a logical project location. Name and place it
-based on the project's conventions — e.g., `docs/structural-refactor-plan.md`,
-or `{docs-dir}/structural-refactor-plan.md`. If the project has a `docs/` directory, prefer it.
-If no obvious location exists, place it at the repo root as `structural-refactor-plan.md`.
+based on the project's conventions — e.g., `docs/structural-refactor-design.md`,
+or `{docs-dir}/structural-refactor-design.md`. If the project has a `docs/` directory, prefer it.
+If no obvious location exists, place it at the repo root as `structural-refactor-design.md`.
 
 The document should be a **prioritized refactoring plan** with these sections:
 
@@ -429,7 +429,7 @@ current structure has historical reasons that still apply.
 
 Also update throughout the file:
 - All instances of "backlog" → "plan"
-- `structural-refactor-backlog.md` → `structural-refactor-plan.md`
+- `structural-refactor-backlog.md` → `structural-refactor-design.md`
 
 Update quality checklist item:
 ```
@@ -465,8 +465,8 @@ Change workflow headers from "Phase" (already correct) — actually, extract-pat
 2. **Unit 2** — Update tap.json (depends on Unit 1 being committed)
 3. **Unit 3** — Update design SKILL.md (no dependencies)
 4. **Unit 4** — Update implement SKILL.md (no dependencies)
-5. **Unit 5** — Update implement-design SKILL.md (no dependencies)
-6. **Unit 6** — Adapt refactor-plan output (no dependencies)
+5. **Unit 5** — Update implement-orchestrator SKILL.md (no dependencies)
+6. **Unit 6** — Adapt refactor-design output (no dependencies)
 7. **Unit 7** — Update stylistic-refactor-creator template (no dependencies)
 8. **Unit 8** — Update structural-refactor-creator template (no dependencies)
 
@@ -492,9 +492,9 @@ test ! -d .agents/skills/verify && echo "PASS: verify deleted"
 test ! -d .agents/skills/fix && echo "PASS: fix deleted"
 test ! -d .agents/skills/quality-gate && echo "PASS: quality-gate deleted"
 python3 -c "import json; json.load(open('tap.json'))" && echo "PASS: valid JSON"
-! grep -r "backlog" .agents/skills/{design,implement,implement-design,refactor-plan,stylistic-refactor-creator,structural-refactor-creator,extract-patterns}/SKILL.md && echo "PASS: no backlog references"
+! grep -r "backlog" .agents/skills/{design,implement,implement-orchestrator,refactor-design,stylistic-refactor-creator,structural-refactor-creator,extract-patterns}/SKILL.md && echo "PASS: no backlog references"
 ! grep -r "verify agent" .agents/skills/*/SKILL.md && echo "PASS: no verify agent references"
-! grep -r "Step [0-9]" .agents/skills/{design,refactor-plan}/SKILL.md && echo "PASS: no Step N headers"
+! grep -r "Step [0-9]" .agents/skills/{design,refactor-design}/SKILL.md && echo "PASS: no Step N headers"
 ```
 
 ## Verification Checklist
@@ -502,8 +502,8 @@ python3 -c "import json; json.load(open('tap.json'))" && echo "PASS: valid JSON"
 - [ ] verify, fix, quality-gate directories deleted
 - [ ] tap.json valid and updated
 - [ ] implement accepts "design or plan" documents
-- [ ] implement vs implement-design have clear selection criteria in descriptions
-- [ ] refactor-plan output has Current/Target code blocks + Acceptance Criteria
+- [ ] implement vs implement-orchestrator have clear selection criteria in descriptions
+- [ ] refactor-design output has Current/Target code blocks + Acceptance Criteria
 - [ ] Generated stylistic-refactor outputs implement-ready plan (not backlog)
 - [ ] Generated structural-refactor outputs implement-ready plan (not backlog)
 - [ ] All skills use "Phase N" headers consistently
