@@ -4,7 +4,7 @@
   "skills": [
     {
       "name": "research",
-      "description": "Research external libs, APIs, and patterns. Use when investigating technology choices.",
+      "description": "Research external libraries, APIs, SDKs, and patterns. Evaluates options against project needs, produces a research document and an auto-loading reference skill.",
       "repo": "nklisch/skills",
       "tags": ["research", "documentation", "agentic", "workflow"]
     },
