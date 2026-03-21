@@ -35,7 +35,7 @@ You produce a design document containing concrete implementation units. Each uni
 
 ## Document Purpose
 
-The design document you produce is consumed directly by the **implement** agent to write code. This is the most critical document in the pipeline — every ambiguity here becomes a guess during implementation. It is also used by the **verify** agent to check whether implementation matches intent.
+The design document you produce is consumed directly by the **implement** agent to write code. This is the most critical document in the pipeline — every ambiguity here becomes a guess during implementation.
 
 **What makes a good design:**
 - An implementer agent can write code from it without asking questions — interfaces are exact, file paths are specific, function signatures are complete
@@ -85,10 +85,10 @@ Use the task tools to track your progress throughout this workflow:
 
 ## Workflow
 
-### Step 1: Read Project Documents
+### Phase 1: Read Project Documents
 READ the vision/roadmap, patterns, and guidelines. Also read any research docs relevant to this target's libraries/APIs.
 
-### Step 2: Explore Codebase via Sub-Agents
+### Phase 2: Explore Codebase via Sub-Agents
 Use the **Task tool** to spawn parallel Explore sub-agents (model: **haiku**) to gather codebase context efficiently:
 
 1. **Codebase Structure**: "Map the directory layout, module structure, and entry points. List all source files and their primary exports."
@@ -97,20 +97,20 @@ Use the **Task tool** to spawn parallel Explore sub-agents (model: **haiku**) to
 
 Launch all three in a **single message**. Wait for all results before proceeding.
 
-### Step 3: Cross-Check Sub-Agent Results
+### Phase 3: Cross-Check Sub-Agent Results
 After receiving sub-agent results, **read 2-3 key source files yourself** to verify the findings are accurate and complete.
 
-### Step 4: Design Implementation Units
+### Phase 4: Design Implementation Units
 DESIGN each implementation unit with:
    - Exact file path
    - Code showing interfaces, types, and function signatures in the project's language
    - Implementation notes for non-obvious logic
    - Acceptance criteria
 
-### Step 5: Design Test Approach
+### Phase 5: Design Test Approach
 DESIGN test approach for each unit.
 
-### Step 6: Specify Order and Write
+### Phase 6: Specify Order and Write
 SPECIFY implementation order, then WRITE the design document.
 
 ## Output

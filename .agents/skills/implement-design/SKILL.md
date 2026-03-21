@@ -1,10 +1,10 @@
 ---
 name: implement-design
 description: >
-  Orchestrate implementation of a design document by spawning Sonnet task agents.
-  Use when a design doc exists and you want parallel, autonomous implementation.
-  Opus reads the design, splits work into agent-sized units, crafts focused prompts,
-  and spawns Sonnet agents to implement them.
+  Orchestrate implementation of a design or plan document by spawning Sonnet task agents.
+  Use for large designs (20+ files) or designs with independent subsystems that benefit
+  from parallel implementation. Opus reads the plan, splits work into agent-sized units,
+  crafts focused prompts, and spawns Sonnet agents to implement them.
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task, AskUserQuestion, Skill
 model: opus

@@ -28,33 +28,15 @@
     },
     {
       "name": "implement",
-      "description": "Write code from a DESIGN.md. Use when a design exists and code needs to be written.",
+      "description": "Write code from a design or plan document. Use for designs targeting fewer than ~20 files or with tightly coupled units.",
       "repo": "nklisch/skills",
       "tags": ["implementation", "coding", "agentic", "workflow", "pipeline"]
     },
     {
       "name": "implement-design",
-      "description": "Orchestrate implementation of a design document by spawning Sonnet task agents. Opus reads the design, splits work, crafts focused prompts, and delegates.",
+      "description": "Orchestrate implementation by spawning Sonnet task agents. Use for large designs (20+ files) or designs with independent subsystems that benefit from parallel implementation.",
       "repo": "nklisch/skills",
       "tags": ["implementation", "orchestration", "delegation", "agentic", "workflow", "pipeline"]
-    },
-    {
-      "name": "verify",
-      "description": "Verify implementation against design. Use when code has been written and needs checking.",
-      "repo": "nklisch/skills",
-      "tags": ["verification", "quality", "agentic", "workflow", "pipeline"]
-    },
-    {
-      "name": "fix",
-      "description": "Fix gaps from VERIFICATION.md. Use when verification found issues that need resolution.",
-      "repo": "nklisch/skills",
-      "tags": ["bugfix", "quality", "agentic", "workflow", "pipeline"]
-    },
-    {
-      "name": "quality-gate",
-      "description": "Final quality assessment for a feature or phase. Use when checking if work is complete enough to move on.",
-      "repo": "nklisch/skills",
-      "tags": ["quality", "assessment", "agentic", "workflow", "pipeline"]
     },
     {
       "name": "zod-v4",
@@ -196,7 +178,7 @@
     },
     {
       "name": "stylistic-refactor-creator",
-      "description": "Create or update a project-specific stylistic-refactor skill. Explores the repo, researches stack-specific best practices, interviews the user, then generates a skill that produces prioritized refactoring backlogs.",
+      "description": "Create or update a project-specific stylistic-refactor skill. Explores the repo, researches stack-specific best practices, interviews the user, then generates a skill that scans for opportunities and produces a prioritized refactoring plan.",
       "repo": "nklisch/skills",
       "tags": ["refactor", "style", "conventions", "interactive", "skill-creator", "workflow"]
     },
@@ -208,7 +190,7 @@
     },
     {
       "name": "structural-refactor-creator",
-      "description": "Create or update a project-specific structural-refactor skill. Explores the repo, researches organizational conventions, interviews the user about structural preferences (file size, folder layout, module boundaries, co-location, documentation layout), then generates a skill that produces prioritized refactoring backlogs.",
+      "description": "Create or update a project-specific structural-refactor skill. Explores the repo, researches organizational conventions, interviews the user about structural preferences, then generates a skill that scans for issues and produces a prioritized refactoring plan.",
       "repo": "nklisch/skills",
       "tags": ["refactor", "structure", "organization", "interactive", "skill-creator", "workflow"]
     },

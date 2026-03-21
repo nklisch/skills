@@ -63,19 +63,29 @@ Use the task tools to track your progress throughout this workflow:
 
 ## Workflow
 
-1. Use the **patterns** skill to read established patterns — use these as reference for what "good" looks like, not as a source of refactoring flags
-2. Use the **Task tool** to spawn parallel Explore sub-agents (model: **haiku**) to find refactoring opportunities:
-   - **Duplicate Logic**: "Find code that does the same or very similar things in multiple places. Look for duplicated: error handling blocks, data transformations, validation logic, API call patterns, setup/teardown sequences. Report each pair/group with file:line references."
-   - **Missing Abstractions**: "Find places where multiple modules implement similar logic that could be extracted into a shared utility, base class, or common helper. Report each opportunity with file:line references and which modules would benefit."
-   - **Pattern Violations**: "Read `.claude/skills/patterns/*.md` (if they exist). Find code that deviates from established patterns — inconsistent approaches to the same problem, modules that don't follow the documented structure. Report each violation with file:line."
-   Launch all in a **single message**. Wait for results. After results return, **read 2-3 key files yourself** to verify.
-3. IDENTIFY refactoring opportunities, categorized by:
-   - **High value**: Reduces duplication, extracts shared abstractions, consolidates similar code
-   - **Medium value**: Improves consistency, aligns with established patterns
-   - **Low value**: Minor structural improvements
-4. PLAN each refactor as a discrete, testable step
-5. ORDER by dependency and priority
-6. WRITE the refactor plan
+### Phase 1: Read Context
+Read the vision document, patterns, and CLAUDE.md guidelines. Use the **patterns** skill to read established patterns — use these as reference for what "good" looks like, not as a source of refactoring flags.
+
+### Phase 2: Explore via Sub-Agents
+Use the **Task tool** to spawn parallel Explore sub-agents (model: **haiku**) to find refactoring opportunities:
+
+- **Duplicate Logic**: "Find code that does the same or very similar things in multiple places. Look for duplicated: error handling blocks, data transformations, validation logic, API call patterns, setup/teardown sequences. Report each pair/group with file:line references."
+- **Missing Abstractions**: "Find places where multiple modules implement similar logic that could be extracted into a shared utility, base class, or common helper. Report each opportunity with file:line references and which modules would benefit."
+- **Pattern Violations**: "Read `.claude/skills/patterns/*.md` (if they exist). Find code that deviates from established patterns — inconsistent approaches to the same problem, modules that don't follow the documented structure. Report each violation with file:line."
+
+Launch all in a **single message**. Wait for results. After results return, **read 2-3 key files yourself** to verify.
+
+### Phase 3: Identify and Categorize
+IDENTIFY refactoring opportunities, categorized by:
+- **High value**: Reduces duplication, extracts shared abstractions, consolidates similar code
+- **Medium value**: Improves consistency, aligns with established patterns
+- **Low value**: Minor structural improvements
+
+### Phase 4: Design Refactor Steps
+PLAN each refactor as a discrete, testable step with current/target code and acceptance criteria.
+
+### Phase 5: Order and Write
+ORDER by dependency and priority, then WRITE the refactor plan.
 
 ## Output
 
@@ -86,8 +96,8 @@ Structure:
 ```markdown
 # Refactor Plan: {Focus Area}
 
-## Summary
-{What needs refactoring and why}
+## Overview
+{What needs refactoring and why — summarize the key problems found}
 
 ## Refactor Steps
 
@@ -96,14 +106,30 @@ Structure:
 **Risk**: Low/Medium/High
 **Files**: `src/path/file.ts`, `src/path/other.ts`
 
-**Current State**: {What's wrong}
-**Target State**: {What it should look like}
-**Approach**: {How to get there}
+**Current State**:
+\`\`\`{lang}
+// Actual code showing what exists now
+\`\`\`
 
-**Verification**:
-- Build passes
-- Tests pass
-- {specific check}
+**Target State**:
+\`\`\`{lang}
+// Exact code showing what it should look like after
+\`\`\`
+
+**Implementation Notes**:
+- How to get from current to target
+- Non-obvious considerations
+
+**Acceptance Criteria**:
+- [ ] Build passes
+- [ ] Tests pass
+- [ ] {specific structural/behavioral check}
+
+---
+
+## Implementation Order
+1. Step to implement first (lowest dependency)
+2. Next step
 ```
 
 ## Commit Workflow

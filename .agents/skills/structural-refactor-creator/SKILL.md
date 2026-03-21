@@ -5,7 +5,7 @@ description: >
   stack-specific organizational conventions, interviews the user about their structural preferences
   (file size, folder layout, module boundaries, co-location, separation of concerns, documentation
   layout), then generates a structural-refactor skill with per-category reference files. The
-  generated skill proactively scans for organizational issues and produces a prioritized backlog.
+  generated skill proactively scans for organizational issues and produces a prioritized plan.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, WebSearch, WebFetch, AskUserQuestion
 ---
@@ -133,7 +133,7 @@ reference files. Use this structure:
 name: structural-refactor
 description: >
   Project structural organization rules for [language/stack]. Proactively scans for organizational
-  issues and produces a prioritized backlog. Defines the team's preferred file, folder, and module
+  issues and produces a prioritized plan. Defines the team's preferred file, folder, and module
   structure.
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Bash, Agent, Write
@@ -152,28 +152,54 @@ Each rule has a reference file with rationale, examples, and exceptions.
 
 ## Output
 
-Write the refactoring backlog to a `.md` file in a logical project location. Name and place it
-based on the project's conventions — e.g., `docs/structural-refactor-backlog.md`, `REFACTORING.md`,
-or `{docs-dir}/refactoring-backlog.md`. If the project has a `docs/` directory, prefer it.
-If no obvious location exists, place it at the repo root as `structural-refactor-backlog.md`.
+Write the refactoring plan to a `.md` file in a logical project location. Name and place it
+based on the project's conventions — e.g., `docs/structural-refactor-plan.md`,
+or `{docs-dir}/structural-refactor-plan.md`. If the project has a `docs/` directory, prefer it.
+If no obvious location exists, place it at the repo root as `structural-refactor-plan.md`.
 
-The document should be a **prioritized refactoring backlog** with three tiers:
+The document should be a **prioritized refactoring plan** with these sections:
 
 ### High Value
+
 Structural changes that significantly improve navigability, maintainability, or developer
-onboarding with low risk. Each entry: current structure, proposed change, rationale, affected files.
+onboarding with low risk. Each entry must be **implement-ready**:
+
+#### {N}. {Name}
+**Files**: `src/path/old-location.ts` → `src/path/new-location.ts`
+**Rule**: {which structural rule}
+
+**Current**:
+\`\`\`
+{actual directory tree or file layout}
+\`\`\`
+
+**Target**:
+\`\`\`
+{reorganized structure}
+\`\`\`
+
+**Implementation Notes**:
+- Import updates needed
+- Files affected by the move
+
+**Acceptance Criteria**:
+- [ ] Files moved to target locations
+- [ ] All imports updated
+- [ ] Build passes
+- [ ] Tests pass
+
+---
 
 ### Worth Considering
-Valid reorganizations with moderate impact or moderate effort. Include rationale.
+
+Valid reorganizations with moderate impact or moderate effort. Brief entries with
+file paths and rationale — not implement-ready detail.
 
 ### Not Worth It
+
 Code that technically violates a structural rule but should NOT be reorganized. Include WHY:
 too many dependents, would break imports across the codebase, churn outweighs benefit, the
-current structure has historical reasons that still apply. We want an organized codebase, not
-reorganization for reorganization's sake.
-
-Focus on structural changes that make the codebase easier to navigate and maintain — skip
-changes that would cause massive churn for marginal improvement.
+current structure has historical reasons that still apply.
 ```
 
 ### Generate Reference Files
@@ -256,4 +282,4 @@ Before finishing:
 - [ ] Exceptions are documented for every rule
 - [ ] Examples use the project's actual directory structure and conventions
 - [ ] No overlap with stylistic-refactor, refactor-plan, or design-principles
-- [ ] Generated skill outputs a prioritized backlog with a "not worth it" section
+- [ ] Generated skill outputs a prioritized plan with implement-ready High Value entries and a "not worth it" section

@@ -4,7 +4,7 @@ description: >
   Create or update a project-specific stylistic-refactor skill. Explores the repo, researches
   stack-specific best practices, interviews the user about their stylistic preferences, then
   generates a stylistic-refactor skill with per-style reference files. The generated skill
-  proactively scans for refactoring opportunities and produces a prioritized backlog.
+  proactively scans for refactoring opportunities and produces a prioritized plan.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, WebSearch, WebFetch, AskUserQuestion
 ---
@@ -117,7 +117,7 @@ reference files. Use this structure:
 name: stylistic-refactor
 description: >
   Project stylistic refactoring rules for [language/stack]. Proactively scans for refactoring
-  opportunities and produces a prioritized backlog. Defines the team's preferred coding style.
+  opportunities and produces a prioritized plan. Defines the team's preferred coding style.
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Bash, Agent, Write
 ---
@@ -135,27 +135,50 @@ Each style has a reference file with rationale, examples, and exceptions.
 
 ## Output
 
-Write the refactoring backlog to a `.md` file in a logical project location. Name and place it
-based on the project's conventions — e.g., `docs/stylistic-refactor-backlog.md`, `REFACTORING.md`,
-or `{docs-dir}/refactoring-backlog.md`. If the project has a `docs/` directory, prefer it.
-If no obvious location exists, place it at the repo root as `stylistic-refactor-backlog.md`.
+Write the refactoring plan to a `.md` file in a logical project location. Name and place it
+based on the project's conventions — e.g., `docs/stylistic-refactor-plan.md`,
+or `{docs-dir}/stylistic-refactor-plan.md`. If the project has a `docs/` directory, prefer it.
+If no obvious location exists, place it at the repo root as `stylistic-refactor-plan.md`.
 
-The document should be a **prioritized refactoring backlog** with three tiers:
+The document should be a **prioritized refactoring plan** with these sections:
 
 ### High Value
+
 Refactors that significantly improve readability, consistency, or maintainability
-with low risk. Each entry: file path, current code snippet, proposed change, rationale.
+with low risk. Each entry must be **implement-ready**:
+
+#### {N}. {Name}
+**File**: `src/path/file.ts:42`
+**Style**: {which style rule}
+
+**Current**:
+\`\`\`{lang}
+// actual code from the repo
+\`\`\`
+
+**Target**:
+\`\`\`{lang}
+// refactored code
+\`\`\`
+
+**Acceptance Criteria**:
+- [ ] Follows {style-name} rule
+- [ ] Tests pass
+- [ ] No behavior change
+
+---
 
 ### Worth Considering
-Valid refactors with moderate impact or moderate effort. Include rationale.
+
+Valid refactors with moderate impact or moderate effort. Brief entries with
+file paths and rationale — not implement-ready detail.
 
 ### Not Worth It
+
 Code that technically violates a style but should NOT be refactored. Include WHY:
 too destructive, too complex for marginal gain, would obscure domain logic, breaks
 API contracts, or forces unnatural patterns. We want a unified feel, not refactoring
 for refactoring's sake.
-
-Focus on code that benefits from the change — skip trivial or cosmetic-only improvements.
 ```
 
 ### Generate Reference Files
@@ -236,4 +259,4 @@ Before finishing:
 - [ ] Exceptions are documented for every style
 - [ ] Examples use the project's actual language and conventions
 - [ ] No overlap with linter rules or structural patterns
-- [ ] Generated skill outputs a prioritized backlog with a "not worth it" section
+- [ ] Generated skill outputs a prioritized plan with implement-ready High Value entries and a "not worth it" section
