@@ -63,8 +63,16 @@ release                              ← ship it
 | **structural-refactor-creator** | Interview-based. Generates a project-specific structural-refactor skill. |
 | **test-quality** | Spec-driven test gap analysis. Derives tests from contracts, not code. Writes the tests. |
 | **e2e-test-design** | Design golden-path and adversarial e2e test suites. Interactive. |
-| **update-documentation** | Align all docs to code after changes. Runs inline, not as a separate agent. |
+| **update-documentation** | Opus orchestrator that spawns Sonnet agents to align all docs to code after changes. |
 | **release** | Draft changelog, confirm with user, run the project's release mechanism. |
+
+### Skill Authoring
+
+| Skill | What it does |
+|-------|-------------|
+| **write-tool-skill** | Create reference skills for external tools, CLIs, MCP servers, and libraries. Interactive. |
+| **skill-idea-refiner** | Refine a rough skill idea into a well-designed skill. Guides through ideation, scoping, and scaffolding. |
+| **skill-evaluator** | Evaluate skills against type-specific quality rubrics. Produces scored reports with improvements. |
 
 ### Principles (auto-load)
 
@@ -100,9 +108,6 @@ Reference skills that auto-load when their library is detected. Installed indivi
 
 | Skill | What it does |
 |-------|-------------|
-| **skill-evaluator** | Evaluate skills against type-specific quality rubrics |
-| **skill-idea-refiner** | Refine a rough skill idea into a well-designed skill |
-| **write-tool-skill** | Write reference skills for external tools, CLIs, and libraries |
 | **design-pages** | Design GitHub Pages for a project |
 | **clean-memory** | Audit and refine MEMORY.md |
 

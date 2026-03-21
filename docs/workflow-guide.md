@@ -16,7 +16,7 @@ while Opus retains the full picture.
 A session stays productive through roughly 600-800k tokens. When context gets heavy,
 start a fresh session; the design docs and pattern files carry the knowledge forward.
 
-Each phase typically gets one feature → design → implement-orchestrator cycle, though large
+Each phase typically gets one design → implement-orchestrator cycle, though large
 phases may be split into multiple designs (a, b, sometimes c) within the same session.
 
 ### Without Opus 1M
@@ -68,7 +68,9 @@ feature brief that design consumes.
 ### After Each Phase
 
 5. **update-documentation** — Align all docs to the code changes just made.
-   Runs inline (same context), not as a separate agent.
+   Opus identifies which docs need updating based on its session context, then
+   spawns Sonnet edit agents with precise instructions. Each agent validates
+   against reality before editing.
 
 ### Refactoring (every 2-4 phases)
 
@@ -148,6 +150,26 @@ These three have distinct, non-overlapping scopes. They complement each other.
 | test-quality | Spec-driven, finds gaps in unit/integration tests | Yes — writes them directly |
 | e2e-test-design | Journey-driven, designs e2e test suites | No — produces a design for implement |
 
+### Skill Authoring
+
+These skills help you create and maintain agent skills — both for this suite
+and for project-specific reference skills.
+
+- **write-tool-skill** — Create reference skills for external tools, CLIs, MCP
+  servers, and libraries. Interactive workflow: researches the tool (code is
+  source of truth, not docs), proposes scope and structure, writes the skill
+  files. Use when you need agents to learn a new tool.
+- **skill-idea-refiner** — Refine a rough skill idea into a well-designed skill.
+  Guides through ideation, scoping, naming, structure decisions, and progressive
+  disclosure. Produces a design brief, then scaffolds the files.
+- **skill-evaluator** — Evaluate existing skills against type-specific quality
+  rubrics. Classifies the skill type, scores across dimensions, recommends
+  improvements, and generates test scenarios.
+
+**Typical usage**: research produces a quick reference skill for a library.
+If it later needs to be more thorough, use write-tool-skill to build a
+full-featured reference skill. Use skill-evaluator to audit any skill's quality.
+
 ## Typical Project Lifecycle
 
 ```
@@ -175,7 +197,7 @@ ideate                                       ← project start (once)
 │  │                                     │
 ├──│─ stylistic-refactor-creator          │  ← style/structure pass (~phase 5)
 ├──│─ structural-refactor-creator         │
-├──│─ run generated skills → impl-design  │
+├──│─ run generated skills → impl-orch     │
 │  │                                     │
 │  └─────────────────────────────────────┘
 │
