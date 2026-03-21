@@ -5,12 +5,18 @@ description: >
   config key, new CLI command, new flag, or any non-trivial code change. Invoke proactively
   when finishing implementation — not only when the user asks. Discovers the project's doc
   structure dynamically rather than assuming fixed paths.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
+model: opus
 ---
 
 # Update Documentation
 
-> **Run inline — do NOT spawn a subagent.** Your live context of what changed is the primary
-> input. Delegating forces a lossy re-briefing and causes gaps.
+You are an **Opus orchestrator** for documentation updates. You use your context of what
+changed to identify which docs need updating, then spawn **Sonnet edit agents** with
+precise instructions. You do NOT edit docs yourself — you craft targeted prompts and delegate.
+
+If you're running in the same session that made the code changes, you already have deep
+context. Use it — but still verify your assumptions in the prompts you craft.
 
 ## Phase 1: Discover the Doc Structure
 
@@ -25,13 +31,12 @@ Before updating anything, map what documentation exists in this project.
    comments like `# generated`, scripts that concatenate docs, or files named `llms-full.txt`,
    `api.md`, etc.). Note these — never edit them directly; regenerate them.
 5. **Find memory** — look for `MEMORY.md` in `~/.claude/projects/…/memory/` or the project root.
-6. **Find repo-specific skills** — look for `.agents/skills/`, `.claude/skills/`, or similar
-   directories containing skills derived for this repo. These skills encode repo-specific
-   workflows, conventions, or domain knowledge and must stay in sync with the codebase.
+6. **Find repo-specific skills** — look for `.agents/skills/`, `.claude/skills/`, `skills/`,
+   or similar directories containing skills derived for this repo.
 
 ## Phase 2: Classify the Change
 
-For the change that was just made, identify its category:
+For the change that was just made, identify its category and which docs own it:
 
 | Change type | Typical doc owners |
 |---|---|
@@ -44,39 +49,58 @@ For the change that was just made, identify its category:
 | Phase or milestone complete | Roadmap / changelog |
 | New stable pattern or gotcha | Memory file |
 | Changed interface, workflow, or convention | Repo-specific derived skills that reference it |
-| New accepted value or alias for existing param | Tool/API reference, skills with example calls using that param |
+| New accepted value or alias for existing param | Tool/API reference, skills with example calls |
 
 Don't limit yourself to a fixed checklist — reason from the map you built in Phase 1.
 
-## Phase 3: Update
+## Phase 3: Plan Update Tasks
 
-**Rule 1 — Grep before reading.**
-Search for the changed feature's name, flag, or function across all doc roots to find stale
-references and gaps. Read only the relevant section, not the whole file.
+For each doc that needs updating, define a task:
+- Which file to update
+- What section(s) to change
+- What the change is (add, modify, remove)
+- What grep searches the agent should run first to find stale references
+- What the agent should verify before editing (validate against reality)
 
-**Rule 2 — Guide pages own the narrative.**
-Where guide pages exist, they are where users learn behavior — update prose, examples, and
-condition lists there. Reference pages (tables, option lists) must stay accurate too.
+Group related updates into agent-sized tasks. One agent per doc area is typical —
+e.g., one for spec + architecture, one for guide pages, one for skills.
 
-**Rule 3 — Regenerate generated files last.**
-If any source doc changed and a generated aggregate file exists (e.g., a concatenated LLM
-ingestion file, an auto-built API reference), regenerate it after all source edits are done.
-Find the generation script by searching for it (`gen-`, `build-docs`, `scripts/`) or checking
-`package.json` / `Makefile` tasks.
+## Phase 4: Spawn Edit Agents
 
-**Rule 4 — Update memory for new stable patterns, gotchas, or completed phases.**
-Keep memory terse (under 200 lines). Put detail in a topic file if needed.
+For each task, spawn a **Sonnet agent** with a self-contained prompt including:
 
-**Rule 5 — Do not edit generated files directly.**
-If you find a file that is auto-generated, never edit it — regenerate it from source.
+1. **Goal** — one sentence: what docs to update and why
+2. **What changed** — describe the code change that triggered the update. Be specific:
+   new function names, changed signatures, new config keys, new behavior.
+3. **Files to update** — exact paths
+4. **Validation step** — "Before editing, grep for [terms] across the doc roots to find
+   all references. Read the relevant sections. Verify the current content matches your
+   understanding — if it doesn't, adjust your edits accordingly."
+5. **Update rules**:
+   - Grep before reading — find stale references, don't read whole files
+   - Guide pages own the narrative — update prose, examples, and condition lists
+   - Reference pages must stay accurate — update tables, option lists
+   - Do NOT edit generated files — note them for regeneration
+   - Update memory for new stable patterns or gotchas (keep under 200 lines)
+   - Sync repo-specific derived skills if the change affects anything they reference
+6. **Commit instruction** — "After all edits, commit with a message describing what
+   docs were updated and why. Do NOT push."
 
-**Rule 6 — Sync repo-specific derived skills.**
-If the change alters an interface, workflow, convention, or domain concept that a repo-specific
-skill references, update that skill to match. Grep skill files for the changed names, flags, or
-patterns. Skills that encode stale assumptions will silently produce wrong guidance. Pay special
-attention to example calls in skills — if a parameter gains a new accepted value or alias
-(e.g., `"latest"` for a session ID), update example calls in skills to use the simpler form
-where it improves clarity.
+**Prompt crafting principles** (same as implement-orchestrator):
+- Be concrete — exact file paths, exact terms to grep for
+- Include the change context — the agent doesn't know what you know
+- Flag non-obvious things — if a doc uses unusual structure, mention it
+- Don't over-constrain — Sonnet can figure out how to phrase the update
+
+## Phase 5: Review and Regenerate
+
+After agents complete:
+
+1. Read each agent's result summary
+2. If any generated files need regeneration (agent should have noted these), run the
+   generation scripts now
+3. Verify no stale references remain: grep for the changed feature's name/flag/function
+   across all doc roots
 
 ## Completion Criteria
 
@@ -85,3 +109,4 @@ where it improves clarity.
 - Generated files have been regenerated if source docs changed
 - Memory updated if a new stable pattern or gotcha was introduced
 - Repo-specific derived skills updated if the change affects anything they reference
+- All changes committed
