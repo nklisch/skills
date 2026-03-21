@@ -85,21 +85,26 @@ After 2-4 implementation phases (typically 3), run a refactoring pass:
 > Don't refactor after every phase. Let code accumulate so refactor-design
 > can identify real duplication and missing abstractions, not one-off patterns.
 
-### Style & Structure Refactoring (every 3-5 phases)
+### Style & Structure Refactoring (once, after 3-5 phases)
 
-After more significant accumulation (3-5 phases):
+After 3-5 phases of accumulated code, run the creators **once** to set up
+project-specific refactoring skills:
 
 9. **stylistic-refactor-creator** — Interview-based. Produces a project-specific
    **stylistic-refactor** skill that scans for coding style inconsistencies.
 10. **structural-refactor-creator** — Interview-based. Produces a project-specific
     **structural-refactor** skill that scans for organizational issues.
+11. Run the **generated skills** immediately after — they scan the codebase and
+    produce refactoring plans.
+12. Use **implement-orchestrator** or **implement** to apply the high-value items.
 
-Run the generated skills, then use **implement-orchestrator** or **implement** to apply
-the high-value items. Re-run periodically and at project end.
+From then on, periodically re-run the **generated skills** (not the creators)
+to find new inconsistencies as the codebase grows. Only re-run the creators
+if you want to expand or update the style/structure rules themselves.
 
-> **Timing matters.** The creators need even more code than refactor-design to be
-> effective. Running them too early produces noise — wait until the codebase has
-> enough patterns and structure to analyze meaningfully.
+> **Timing matters.** The creators need significant accumulated code to
+> interview effectively. Running them too early produces thin, obvious rules.
+> Wait until the codebase has enough patterns to analyze meaningfully.
 
 ### Testing
 
@@ -138,8 +143,8 @@ all the context the agent needs.
 | Skill | Focus | When to run |
 |-------|-------|-------------|
 | refactor-design | Code reuse, deduplication, missing abstractions | Every 2-4 phases (typically 3) |
-| stylistic-refactor-creator | Coding style preferences | Every 3-5 phases |
-| structural-refactor-creator | File/folder organization | Every 3-5 phases |
+| stylistic-refactor-creator | Coding style preferences | Once after 3-5 phases, then re-run generated skill |
+| structural-refactor-creator | File/folder organization | Once after 3-5 phases, then re-run generated skill |
 
 These three have distinct, non-overlapping scopes. They complement each other.
 
