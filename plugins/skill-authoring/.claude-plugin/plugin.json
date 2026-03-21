@@ -1,0 +1,10 @@
+{
+  "name": "skill-authoring",
+  "description": "Create, evaluate, and refine agent skills — write distributable reference skills for tools, refine skill ideas, and audit skill quality.",
+  "version": "1.0.0",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT"
+}

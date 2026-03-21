@@ -1,0 +1,18 @@
+{
+  "name": "nklisch-skills",
+  "owner": {
+    "name": "nklisch"
+  },
+  "plugins": [
+    {
+      "name": "workflow",
+      "source": "./plugins/workflow",
+      "description": "Software development workflow skills — design features, implement from plans, refactor codebases, extract patterns, design tests, and ship releases."
+    },
+    {
+      "name": "skill-authoring",
+      "source": "./plugins/skill-authoring",
+      "description": "Create, evaluate, and refine agent skills — write distributable reference skills for tools, refine skill ideas, and audit skill quality."
+    }
+  ]
+}
