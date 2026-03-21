@@ -21,6 +21,12 @@
       "tags": ["refactor", "quality", "agentic", "workflow"]
     },
     {
+      "name": "feature",
+      "description": "Scope a new feature within an existing project. Explores the codebase, interviews the user about requirements, and produces a feature brief that design consumes.",
+      "repo": "nklisch/skills",
+      "tags": ["feature", "scoping", "requirements", "interactive", "workflow", "pipeline"]
+    },
+    {
       "name": "design",
       "description": "Create detailed DESIGN.md with implementation units. Use when translating a vision into code specs.",
       "repo": "nklisch/skills",
