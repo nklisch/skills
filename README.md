@@ -6,13 +6,20 @@ Available as a **Claude Code plugin** and via **[skilltap](https://github.com/nk
 
 ## Install
 
-### As a Plugin
+### As a Plugin (Claude Code)
 
 ```bash
-/plugin install nklisch/skills
+# Step 1: Add the marketplace
+/plugin marketplace add nklisch/skills
+
+# Step 2: Install plugins
+/plugin install workflow@nklisch-skills
+/plugin install skill-authoring@nklisch-skills
 ```
 
-Installs the full workflow suite. Skills are namespaced as `workflow:design`, `workflow:implement`, etc.
+Two plugins available:
+- **workflow** — 16 skills for the full development pipeline
+- **skill-authoring** — 3 skills for creating, evaluating, and refining agent skills
 
 ### Via Skilltap
 
