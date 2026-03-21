@@ -35,6 +35,11 @@ These skills form a pipeline where each skill's output feeds the next.
 **ideate** — Interactive workshop that produces foundation documents (VISION.md,
 SPEC.md, ARCHITECTURE.md, and domain-specific docs). Run once at project start.
 
+After ideate finishes, stay in the same session and ask Claude to build a
+**roadmap** — a phased breakdown of the work into design-sized chunks. This
+doesn't need a skill; it's a natural conversation that flows from the foundation
+docs. The roadmap is what design reads to know what to build each phase.
+
 ### Expanding Scope
 
 **expand** — When the project needs a major new capability, subsystem, or
