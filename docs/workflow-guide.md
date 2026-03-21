@@ -160,10 +160,11 @@ These three have distinct, non-overlapping scopes. They complement each other.
 These skills help you create and maintain agent skills — both for this suite
 and for project-specific reference skills.
 
-- **write-tool-skill** — Create reference skills for external tools, CLIs, MCP
-  servers, and libraries. Interactive workflow: researches the tool (code is
-  source of truth, not docs), proposes scope and structure, writes the skill
-  files. Use when you need agents to learn a new tool.
+- **write-tool-skill** — Create distributable reference skills for the current
+  project's tool, CLI, MCP server, or library. Researches the codebase (code
+  is source of truth, not docs), proposes scope and structure, writes the skill
+  files for others to install. Use when you want to teach other people's agents
+  how to use your project.
 - **skill-idea-refiner** — Refine a rough skill idea into a well-designed skill.
   Guides through ideation, scoping, naming, structure decisions, and progressive
   disclosure. Produces a design brief, then scaffolds the files.
@@ -171,9 +172,10 @@ and for project-specific reference skills.
   rubrics. Classifies the skill type, scores across dimensions, recommends
   improvements, and generates test scenarios.
 
-**Typical usage**: research produces a quick reference skill for a library.
-If it later needs to be more thorough, use write-tool-skill to build a
-full-featured reference skill. Use skill-evaluator to audit any skill's quality.
+**Typical usage**: research produces a quick internal reference skill for a
+library your project depends on. write-tool-skill creates a distributable
+skill that teaches others how to use your project's own tool/API/library.
+Use skill-evaluator to audit any skill's quality.
 
 ## Typical Project Lifecycle
 

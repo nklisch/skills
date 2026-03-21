@@ -70,7 +70,7 @@ release                              ← ship it
 
 | Skill | What it does |
 |-------|-------------|
-| **write-tool-skill** | Create reference skills for external tools, CLIs, MCP servers, and libraries. Interactive. |
+| **write-tool-skill** | Create distributable reference skills for your project's tool, CLI, MCP server, or library — for others to install. |
 | **skill-idea-refiner** | Refine a rough skill idea into a well-designed skill. Guides through ideation, scoping, and scaffolding. |
 | **skill-evaluator** | Evaluate skills against type-specific quality rubrics. Produces scored reports with improvements. |
 
