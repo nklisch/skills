@@ -217,6 +217,12 @@
       "description": "Interactive project definition workshop. Explores an idea through discovery, refinement, and requirements phases, then produces tailored foundation documents (VISION.md, SPEC.md, ARCHITECTURE.md, and domain-specific docs) based on the project's actual needs.",
       "repo": "nklisch/skills",
       "tags": ["ideation", "project-definition", "foundation-docs", "interactive", "workflow"]
+    },
+    {
+      "name": "skill-evaluator",
+      "description": "Evaluate agent skills against type-specific quality rubrics. Classifies skills as reference, workflow, interactive, or principle, then scores against universal and type-specific criteria. Produces scored evaluation reports with prioritized improvements and test scenarios.",
+      "repo": "nklisch/skills",
+      "tags": ["skills", "evaluation", "quality", "rubric", "audit", "review", "interactive", "workflow"]
     }
   ]
 }
