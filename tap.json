@@ -207,6 +207,12 @@
       "tags": ["refactor", "structure", "organization", "interactive", "skill-creator", "workflow"]
     },
     {
+      "name": "bold-refactor",
+      "description": "Find beautiful code abstractions and cross-cutting simplifications. Applies conceptual lenses (elimination, unification, inversion) to surface bold architectural ideas, then converges into an implement-ready design document.",
+      "repo": "nklisch/skills",
+      "tags": ["refactor", "architecture", "abstractions", "simplification", "interactive", "workflow", "pipeline"]
+    },
+    {
       "name": "ideate",
       "description": "Interactive project definition workshop. Explores an idea through discovery, refinement, and requirements phases, then produces tailored foundation documents (VISION.md, SPEC.md, ARCHITECTURE.md, and domain-specific docs) based on the project's actual needs.",
       "repo": "nklisch/skills",
