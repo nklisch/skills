@@ -13,6 +13,17 @@
       "name": "skill-authoring",
       "source": "./plugins/skill-authoring",
       "description": "Create, evaluate, and refine agent skills — write distributable reference skills for tools, refine skill ideas, and audit skill quality."
+    },
+    {
+      "name": "krometrail",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/nklisch/krometrail",
+        "path": "plugin"
+      },
+      "description": "Runtime debugging for AI agents — debug 10 languages via DAP, record and control Chrome via CDP.",
+      "category": "developer-tools",
+      "tags": ["debugging", "dap", "cdp", "mcp", "browser"]
     }
   ]
 }
