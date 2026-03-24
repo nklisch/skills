@@ -213,6 +213,12 @@
       "tags": ["refactor", "architecture", "abstractions", "simplification", "interactive", "workflow", "pipeline"]
     },
     {
+      "name": "perf-design",
+      "description": "Profile performance bottlenecks and design optimized solutions. Follows a strict optimization hierarchy: algorithmic fixes, I/O reduction, language idioms, then parallelism. Produces implementation-unit plans with benchmark scaffolds for implement or implement-orchestrator.",
+      "repo": "nklisch/skills",
+      "tags": ["performance", "profiling", "optimization", "benchmarks", "agentic", "workflow", "pipeline"]
+    },
+    {
       "name": "ideate",
       "description": "Interactive project definition workshop. Explores an idea through discovery, refinement, and requirements phases, then produces tailored foundation documents (VISION.md, SPEC.md, ARCHITECTURE.md, and domain-specific docs) based on the project's actual needs.",
       "repo": "nklisch/skills",

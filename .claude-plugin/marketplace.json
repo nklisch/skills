@@ -7,7 +7,7 @@
     {
       "name": "workflow",
       "source": "./plugins/workflow",
-      "description": "Software development workflow skills — ideate projects, design features, implement from plans, refactor codebases with bold architectural reconceptions, extract patterns, design tests, and ship releases."
+      "description": "Software development workflow skills — ideate projects, design features, implement from plans, profile and optimize performance, refactor codebases with bold architectural reconceptions, extract patterns, design tests, and ship releases."
     },
     {
       "name": "skill-authoring",
