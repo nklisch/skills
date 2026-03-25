@@ -48,3 +48,7 @@ new="$major.$minor.$patch"
 jq --arg v "$new" '.version = $v' "$json" > "$json.tmp" && mv "$json.tmp" "$json"
 
 echo "$plugin: v$current -> v$new"
+
+git add "$json"
+git commit -m "Bump $plugin plugin to v$new"
+git push
