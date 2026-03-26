@@ -213,6 +213,12 @@
       "tags": ["refactor", "architecture", "abstractions", "simplification", "interactive", "workflow", "pipeline"]
     },
     {
+      "name": "cruft-cleaner",
+      "description": "Sweep a codebase for AI-accumulated cruft (dead code, stale comments, compatibility shims, defensive bloat, over-abstraction), triage findings by confidence tier, then orchestrate parallel cleanup agents with worktree isolation.",
+      "repo": "nklisch/skills",
+      "tags": ["cleanup", "dead-code", "cruft", "unused-code", "comments", "agentic", "workflow"]
+    },
+    {
       "name": "perf-design",
       "description": "Profile performance bottlenecks and design optimized solutions. Follows a strict optimization hierarchy: algorithmic fixes, I/O reduction, language idioms, then parallelism. Produces implementation-unit plans with benchmark scaffolds for implement or implement-orchestrator.",
       "repo": "nklisch/skills",
