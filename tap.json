@@ -231,6 +231,12 @@
       "tags": ["ideation", "project-definition", "foundation-docs", "interactive", "workflow"]
     },
     {
+      "name": "roadmap",
+      "description": "Generate an agent-optimized project roadmap from foundation documents. Reads VISION, SPEC, ARCHITECTURE, and other docs produced by /ideate, interviews about build style, then decomposes into chunky phases with dependencies, deliverables, and test checkpoints for AI-assisted development.",
+      "repo": "nklisch/skills",
+      "tags": ["roadmap", "phases", "planning", "agent-optimized", "interactive", "workflow", "pipeline"]
+    },
+    {
       "name": "skill-evaluator",
       "description": "Evaluate agent skills against type-specific quality rubrics. Classifies skills as reference, workflow, interactive, or principle, then scores against universal and type-specific criteria. Produces scored evaluation reports with prioritized improvements and test scenarios.",
       "repo": "nklisch/skills",
