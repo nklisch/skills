@@ -18,7 +18,7 @@ Available as a **Claude Code plugin** and via **[skilltap](https://github.com/nk
 ```
 
 Two plugins available:
-- **workflow** — 16 skills for the full development pipeline
+- **workflow** — 21 skills for the full development pipeline
 - **skill-authoring** — 3 skills for creating, evaluating, and refining agent skills
 
 ### Via Skilltap
@@ -40,15 +40,19 @@ These skills form an iterative pipeline. See [docs/workflow-guide.md](docs/workf
 ### Pipeline
 
 ```
-ideate                              ← project start
+ideate → roadmap                    ← project start
     ↓
 design → implement/implement-orchestrator ← core phases (from roadmap)
     ↓
 refactor-design → implement → extract-patterns  ← every 2-4 phases
     ↓
+bold-refactor / perf-design → implement         ← targeted improvements
+    ↓
 expand                              ← major scope changes (updates foundation docs)
     ↓
 stylistic/structural-refactor-creator         ← every 3-5 phases
+    ↓
+security-review → design → implement           ← security audit pass
     ↓
 feature → design → implement        ← quick one-offs near the end
     ↓
@@ -58,6 +62,7 @@ release                              ← ship it
 | Skill | What it does |
 |-------|-------------|
 | **ideate** | Interactive project definition workshop. Produces foundation docs (VISION.md, SPEC.md, ARCHITECTURE.md). Run once at project start. |
+| **roadmap** | Generate an agent-optimized project roadmap from foundation docs. Decomposes into phases with dependencies and test checkpoints. |
 | **expand** | Expand project scope — new subsystem, major capability, architectural shift. Updates foundation docs and roadmap. |
 | **feature** | Scope a quick extension or one-off outside the core roadmap. Produces a feature brief that design consumes. |
 | **design** | Produce detailed implementation units with exact interfaces, types, and acceptance criteria. |
@@ -65,12 +70,16 @@ release                              ← ship it
 | **implement-orchestrator** | Opus orchestrator that spawns Sonnet agents. For 20+ files or independent subsystems. |
 | **research** | Investigate libraries, APIs, and SDKs. Produces a research doc and an auto-loading reference skill. |
 | **refactor-design** | Find duplication and missing abstractions. Produces a refactor plan that implement executes. |
+| **bold-refactor** | Find beautiful code abstractions and cross-cutting simplifications using conceptual lenses. Produces an implement-ready design. |
 | **extract-patterns** | Document reusable code patterns for consistency across future work. |
 | **stylistic-refactor-creator** | Interview-based. Generates a project-specific stylistic-refactor skill. |
 | **structural-refactor-creator** | Interview-based. Generates a project-specific structural-refactor skill. |
+| **perf-design** | Profile performance bottlenecks and design optimized solutions. Follows a strict optimization hierarchy. |
+| **security-review** | Comprehensive security audit. Discovers stack, user selects focus domains, produces scored report with severity-classified findings. |
+| **cruft-cleaner** | Sweep for AI-accumulated cruft (dead code, stale comments, defensive bloat). Triages by confidence, parallel cleanup. |
 | **test-quality** | Spec-driven test gap analysis. Derives tests from contracts, not code. Writes the tests. |
 | **e2e-test-design** | Design golden-path and adversarial e2e test suites. Interactive. |
-| **update-documentation** | Opus orchestrator that spawns Sonnet agents to align all docs to code after changes. |
+| **update-documentation** | Align all docs to code after changes. |
 | **release** | Draft changelog, confirm with user, run the project's release mechanism. |
 
 ### Skill Authoring
@@ -80,6 +89,7 @@ release                              ← ship it
 | **write-tool-skill** | Create distributable reference skills for your project's tool, CLI, MCP server, or library — for others to install. |
 | **skill-idea-refiner** | Refine a rough skill idea into a well-designed skill. Guides through ideation, scoping, and scaffolding. |
 | **skill-evaluator** | Evaluate skills against type-specific quality rubrics. Produces scored reports with improvements. |
+| **tool-evaluator** | Self-evaluate agent tool usage in the current conversation. Produces a report with recommendations for tool authors. |
 
 ### Principles (auto-load)
 

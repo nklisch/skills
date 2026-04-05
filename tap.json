@@ -249,6 +249,12 @@
       "tags": ["tools", "evaluation", "mcp", "feedback", "self-reflection", "interactive", "workflow"]
     },
     {
+      "name": "security-review",
+      "description": "Comprehensive security audit for any codebase. Discovers stack, lets user choose focus domains, researches best practices, produces scored markdown report with severity-classified findings.",
+      "repo": "nklisch/skills",
+      "tags": ["security", "audit", "vulnerability", "review", "interactive", "workflow"]
+    },
+    {
       "name": "claude-code-marketplace",
       "description": "Research findings on Claude Code marketplace, plugin structure, and distribution. Auto-loads when working with marketplace.json, plugin.json, plugin distribution, Claude Code plugin format, SKILL.md frontmatter, tap.json integration, npm skill packages, agentskills.io standard, or designing how skilltap interacts with the Claude Code plugin ecosystem.",
       "repo": "nklisch/skills",

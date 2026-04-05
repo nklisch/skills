@@ -35,10 +35,11 @@ These skills form a pipeline where each skill's output feeds the next.
 **ideate** — Interactive workshop that produces foundation documents (VISION.md,
 SPEC.md, ARCHITECTURE.md, and domain-specific docs). Run once at project start.
 
-After ideate finishes, stay in the same session and ask Claude to build a
-**roadmap** — a phased breakdown of the work into design-sized chunks. This
-doesn't need a skill; it's a natural conversation that flows from the foundation
-docs. The roadmap is what design reads to know what to build each phase.
+After ideate finishes, run **roadmap** to generate a phased breakdown of the
+work into design-sized chunks. It reads the foundation docs, interviews about
+build style preferences, and decomposes into phases with dependencies,
+deliverables, and test checkpoints. The roadmap is what design reads to know
+what to build each phase.
 
 ### Expanding Scope
 
@@ -111,6 +112,32 @@ if you want to expand or update the style/structure rules themselves.
 > interview effectively. Running them too early produces thin, obvious rules.
 > Wait until the codebase has enough patterns to analyze meaningfully.
 
+### Performance (as needed)
+
+- **perf-design** — Profile performance bottlenecks and design optimized solutions.
+  Follows a strict optimization hierarchy: algorithmic fixes, I/O reduction,
+  language idioms, then parallelism. Produces implementation-unit plans with
+  benchmark scaffolds for **implement** or **implement-orchestrator**.
+
+### Security Audit (pre-release or as needed)
+
+- **security-review** — Comprehensive security audit. Discovers the codebase
+  stack, lets you choose which security domains to focus on (auth, injection,
+  secrets, dependencies, API, infra, crypto, data protection, error handling),
+  researches current best practices, then produces a scored markdown report
+  with severity-classified findings. The report feeds into **design** for
+  remediation planning.
+
+### Cleanup (as needed)
+
+- **cruft-cleaner** — Sweep for AI-accumulated cruft: dead code, stale
+  comments, compatibility shims, defensive bloat, over-abstraction. Triages
+  findings by confidence tier, then orchestrates parallel cleanup agents.
+- **bold-refactor** — Find beautiful code abstractions and cross-cutting
+  simplifications. Applies conceptual lenses (elimination, unification,
+  inversion) to surface bold architectural ideas, then converges into an
+  implement-ready design document.
+
 ### Testing
 
 - **test-quality** — Spec-driven gap analysis. Derives tests from behavioral
@@ -176,6 +203,9 @@ and for project-specific reference skills.
 - **skill-evaluator** — Evaluate existing skills against type-specific quality
   rubrics. Classifies the skill type, scores across dimensions, recommends
   improvements, and generates test scenarios.
+- **tool-evaluator** — Self-evaluate agent tool usage in the current
+  conversation. Analyzes confusion points, inefficiencies, and API surface
+  friction. Produces a report with recommendations for tool authors.
 
 **Typical usage**: research produces a quick internal reference skill for a
 library your project depends on. write-tool-skill creates a distributable
@@ -185,40 +215,45 @@ Use skill-evaluator to audit any skill's quality.
 ## Typical Project Lifecycle
 
 ```
-ideate                                       ← project start (once)
+ideate → roadmap                             ← project start (once)
 │
 │  ┌── Opus 1M session ──────────────────┐
 │  │                                     │
-├──│─ design → implement-orchestrator            │  ← phase 1
-├──│─ design → implement-orchestrator            │  ← phase 2
-├──│─ design → implement-orchestrator            │  ← phase 3
+├──│─ design → implement-orchestrator     │  ← phase 1
+├──│─ design → implement-orchestrator     │  ← phase 2
+├──│─ design → implement-orchestrator     │  ← phase 3
 │  │                                     │
-├──│─ refactor-design → implement-orchestrator    │  ← refactor pass (~every 3 phases)
+├──│─ refactor-design → impl-orch         │  ← refactor pass (~every 3 phases)
 ├──│─ extract-patterns                    │  ← capture conventions
 │  │                                     │
 │  └─ ~600-800k tokens, start fresh ─────┘
 │
 │  ┌── new session ──────────────────────┐
 │  │                                     │
-├──│─ design → implement-orchestrator            │  ← phase 4
-├──│─ design a,b → implement-orchestrator       │  ← phase 5 (large, split)
-├──│─ design → implement-orchestrator            │  ← phase 6
+├──│─ design → implement-orchestrator     │  ← phase 4
+├──│─ design a,b → impl-orch             │  ← phase 5 (large, split)
+├──│─ design → implement-orchestrator     │  ← phase 6
 │  │                                     │
-├──│─ refactor-design → implement-orchestrator    │  ← refactor pass
+├──│─ refactor-design → impl-orch         │  ← refactor pass
 ├──│─ extract-patterns                    │
 │  │                                     │
 ├──│─ stylistic-refactor-creator          │  ← style/structure pass (~phase 5)
 ├──│─ structural-refactor-creator         │
-├──│─ run generated skills → impl-orch     │
+├──│─ run generated skills → impl-orch    │
 │  │                                     │
 │  └─────────────────────────────────────┘
+│
+├─ perf-design → implement                   ← performance pass (as needed)
+├─ security-review → design → implement      ← security audit (pre-release)
+├─ cruft-cleaner                             ← cleanup pass (as needed)
+├─ bold-refactor → implement                 ← architectural simplification
 │
 ├─ test-quality                              ← testing pass
 ├─ e2e-test-design → implement
 │
 ├─ run refactor skills again                 ← periodic cleanup
 │
-├─ feature → design → implement             ← quick extensions / one-offs
+├─ feature → design → implement              ← quick extensions / one-offs
 │
 ├─ release                                   ← ship it
 ```
