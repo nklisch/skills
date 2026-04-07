@@ -65,14 +65,17 @@ Use the task tools to track your progress throughout this workflow:
 4. Note any concerns or blockers
 5. If blockers exist, STOP and report them
 
-### Phase 3: Implement (WRITE)
+### Phase 3: Re-align to Project Standards
+Re-read **CLAUDE.md** (project root and `.claude/` if both exist) and all files in **`.claude/rules/`** (if the directory exists). Even if you read these earlier, re-read them now — recency improves adherence. Confirm your approach aligns with project conventions before proceeding.
+
+### Phase 4: Implement (WRITE)
 1. Write code following design exactly
 2. Apply established patterns
 3. Include error handling per design
 4. Write tests as specified
 5. Update module exports (index files)
 
-### Phase 4: Self-Verify (CHECK)
+### Phase 5: Self-Verify (CHECK)
 1. Re-read design requirements
 2. Verify all requirements implemented
 3. Run your build command to check compilation

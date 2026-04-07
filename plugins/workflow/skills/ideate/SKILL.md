@@ -39,7 +39,7 @@ unsure about something, help them think through it rather than skipping it.
 **When you feel you understand the idea well enough to explain it to someone else,** summarize your
 understanding in a few paragraphs and ask: "Did I get this right? What did I miss or get wrong?"
 
-Iterate until the user confirms your understanding is solid. Then move to Phase 2.
+Iterate until the user confirms your understanding is solid. Then move to Refinement.
 
 ### Phase 2: Refinement
 
@@ -64,7 +64,7 @@ under 200ms at p95." Challenge scope that feels too broad.
 - Key decisions made
 - Open questions remaining
 
-Iterate until approved. Then move to Phase 3.
+Iterate until approved. Then move to Definitions.
 
 ### Phase 3: Definitions
 
@@ -86,7 +86,7 @@ this project needs. Draw from the doc menu below, and propose custom docs when t
 with a one-sentence description of what it will contain for *this specific project*. The user may add,
 remove, or modify docs.
 
-Iterate until approved. Then move to Phase 4.
+Iterate until approved. Then move to Doc Writing.
 
 ### Phase 4: Doc Writing
 
@@ -182,7 +182,7 @@ a starting point, not a constraint. Name it clearly and explain what it covers.
 - **Don't produce a roadmap.** Ever. Not even if the user asks during this workflow. Suggest they
   do roadmapping as a separate activity after docs are approved.
 - **Don't write code or scaffold projects.** This skill produces documents, not implementation.
-- **Don't skip checkpoints.** The user must approve the project summary (Phase 2) and doc plan
-  (Phase 3) before you write anything to disk.
-- **Don't gate discovery behind AskUserQuestion.** Phase 1 should feel like a natural conversation,
+- **Don't skip checkpoints.** The user must approve the project summary (Refinement) and doc plan
+  (Definitions) before you write anything to disk.
+- **Don't gate discovery behind AskUserQuestion.** Discovery should feel like a natural conversation,
   not a questionnaire.

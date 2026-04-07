@@ -100,17 +100,20 @@ Launch all three in a **single message**. Wait for all results before proceeding
 ### Phase 3: Cross-Check Sub-Agent Results
 After receiving sub-agent results, **read 2-3 key source files yourself** to verify the findings are accurate and complete.
 
-### Phase 4: Design Implementation Units
+### Phase 4: Re-align to Project Standards
+Re-read **CLAUDE.md** (project root and `.claude/` if both exist) and all files in **`.claude/rules/`** (if the directory exists). Even if you read these earlier, re-read them now — recency improves adherence. Confirm your approach aligns with project conventions before proceeding.
+
+### Phase 5: Design Implementation Units
 DESIGN each implementation unit with:
    - Exact file path
    - Code showing interfaces, types, and function signatures in the project's language
    - Implementation notes for non-obvious logic
    - Acceptance criteria
 
-### Phase 5: Design Test Approach
+### Phase 6: Design Test Approach
 DESIGN test approach for each unit.
 
-### Phase 6: Specify Order and Write
+### Phase 7: Specify Order and Write
 SPECIFY implementation order, then WRITE the design document.
 
 ## Output

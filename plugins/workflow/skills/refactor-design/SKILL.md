@@ -81,10 +81,13 @@ IDENTIFY refactoring opportunities, categorized by:
 - **Medium value**: Improves consistency, aligns with established patterns
 - **Low value**: Minor structural improvements
 
-### Phase 4: Design Refactor Steps
+### Phase 4: Re-align to Project Standards
+Re-read **CLAUDE.md** (project root and `.claude/` if both exist) and all files in **`.claude/rules/`** (if the directory exists). Even if you read these earlier, re-read them now — recency improves adherence. Confirm your approach aligns with project conventions before proceeding.
+
+### Phase 5: Design Refactor Steps
 PLAN each refactor as a discrete, testable step with current/target code and acceptance criteria.
 
-### Phase 5: Order and Write
+### Phase 6: Order and Write
 ORDER by dependency and priority, then WRITE the refactor plan.
 
 ## Output

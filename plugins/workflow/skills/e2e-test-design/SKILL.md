@@ -53,7 +53,10 @@ Ask the user to confirm and expand:
 - "Who are the target users? (developers, end users, other services)"
 - "Are there any undocumented workflows or edge cases I should know about?"
 
-### Phase 3: Design golden-path tests
+### Phase 3: Re-align to Project Standards
+Re-read **CLAUDE.md** (project root and `.claude/` if both exist) and all files in **`.claude/rules/`** (if the directory exists). Even if you read these earlier, re-read them now — recency improves adherence. Confirm your approach aligns with project conventions before proceeding.
+
+### Phase 4: Design golden-path tests
 
 Design tests for realistic, successful user journeys. These assume correct input,
 valid configuration, and a healthy environment.
@@ -81,7 +84,7 @@ Teardown: {cleanup}
 - **Data variations** — different valid inputs (small, large, edge-of-valid)
 - **Multi-step workflows** — sequences of operations that build on each other
 
-### Phase 4: Gather failure expectations
+### Phase 5: Gather failure expectations
 
 Before designing adversarial tests, understand how the project *should* handle problems.
 
@@ -96,7 +99,7 @@ Before designing adversarial tests, understand how the project *should* handle p
 
 Record the user's answers — these become the assertion targets for adversarial tests.
 
-### Phase 5: Design adversarial / failure-mode tests
+### Phase 6: Design adversarial / failure-mode tests
 
 Design tests that verify the project handles bad situations gracefully.
 
@@ -133,11 +136,11 @@ Design tests that verify the project handles bad situations gracefully.
 Test: {descriptive name — what goes wrong}
 Scenario: {what bad situation is set up}
 Action: {what the user does}
-Expected: {how the project should respond — from Phase 4 answers}
+Expected: {how the project should respond — from Phase 5 answers}
 Verify: {no corrupted state, proper cleanup, clear error message}
 ```
 
-### Phase 6: Review and finalize
+### Phase 7: Review and finalize
 
 Present the complete test suite design to the user.
 
@@ -208,5 +211,5 @@ directories to place it. If unclear, ask the user.
 - NEVER skip asking the user about failure expectations — you cannot guess error handling philosophy
 - NEVER write tests that depend on implementation internals — test user-visible behavior
 - NEVER design tests that can't run independently — each test must be self-contained
-- NEVER assume how errors should be handled — ask the user in Phase 4
+- NEVER assume how errors should be handled — ask the user in Phase 5
 - NEVER ignore existing test infrastructure — build on what's already there

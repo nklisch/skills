@@ -73,7 +73,10 @@ Decide how to split the design into agent tasks. Guidelines:
 - **Never split more than 3 agents.** If a design needs more, it's too large — tell the user to split the design first.
 - **Sequential when dependent, parallel when independent.** If Agent B needs types/files created by Agent A, run A first. If they're independent, run them in parallel.
 
-### Phase 3: Craft Agent Prompts
+### Phase 3: Re-align to Project Standards
+Re-read **CLAUDE.md** (project root and `.claude/` if both exist) and all files in **`.claude/rules/`** (if the directory exists). Even if you read these earlier, re-read them now — recency improves adherence. Confirm your approach aligns with project conventions before proceeding.
+
+### Phase 4: Craft Agent Prompts
 
 For each agent, write a self-contained prompt that includes:
 
@@ -106,7 +109,7 @@ For each agent, write a self-contained prompt that includes:
 - **Flag non-obvious things.** If a design unit has a subtle requirement, highlight it explicitly.
 - **Don't over-constrain.** Give the agent room to handle implementation details the design left to the implementer.
 
-### Phase 4: Spawn Agents
+### Phase 5: Spawn Agents
 
 Use the **Agent tool** to spawn each implementation agent:
 
@@ -123,7 +126,7 @@ Agent(
 - **Sequential agents**: If Agent B depends on Agent A's output, wait for Agent A to complete before spawning Agent B.
 - **Worktree isolation**: Use `isolation: "worktree"` when running parallel agents that modify overlapping files. Otherwise, skip it.
 
-### Phase 5: Review Results
+### Phase 6: Review Results
 
 After each agent completes:
 
@@ -136,7 +139,7 @@ If an agent failed or left gaps:
 - For small fixes: make them yourself directly.
 - For larger issues: spawn a focused follow-up agent with a targeted prompt.
 
-### Phase 6: Final Verification and Report
+### Phase 7: Final Verification and Report
 
 1. Run the project's verification commands (e.g., `pnpm typecheck && pnpm lint && pnpm test`).
 2. Report results to the user: what was implemented, how many agents were used, any deviations from the design, any remaining issues.
