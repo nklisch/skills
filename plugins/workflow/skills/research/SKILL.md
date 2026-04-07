@@ -23,7 +23,7 @@ Understand what needs investigating and why.
 
 1. Read **CLAUDE.md** and relevant project docs — understand the stack, constraints,
    and what's already in use
-2. Use the Explore agent (model: haiku) to find how the project currently handles
+2. Use the Explore agent (model: **sonnet** minimum, **opus** for large or complex codebases) to find how the project currently handles
    the area being researched — existing dependencies, imports, patterns
 3. Define research questions:
    - What specific problem does this technology need to solve for the project?

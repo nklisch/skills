@@ -53,7 +53,7 @@ Use the task tools to track your progress throughout this workflow:
 1. Find and read the design or plan document for the target (see "You MUST read these files" above for discovery steps)
 2. Use the **patterns** skill to read relevant patterns for the code you're about to write
 3. **Read research documents**: If the design references external libraries or APIs, find the project's research docs for those topics — validated API usage patterns, version-specific guidance, and known gotchas.
-4. Use the **Task tool** to spawn an Explore sub-agent (model: **haiku**) to map integration points: "Find all public exports, shared utilities, type definitions, and module boundaries that the new code must integrate with. Include file paths and signatures. Also check for existing test helpers and fixtures."
+4. Use the **Task tool** to spawn an Explore sub-agent (model: **sonnet** minimum, **opus** for large or complex codebases) to map integration points: "Find all public exports, shared utilities, type definitions, and module boundaries that the new code must integrate with. Include file paths and signatures. Also check for existing test helpers and fixtures."
 5. After receiving sub-agent results, **spot-check 1-2 key integration points** by reading those files yourself to verify accuracy
 6. **Compare the design's assumptions against repo reality**: Check whether interfaces, types, module paths, and dependencies referenced in the design actually exist as described. Note any discrepancies.
 7. Identify all files to create or modify

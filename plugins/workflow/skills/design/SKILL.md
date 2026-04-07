@@ -89,7 +89,7 @@ Use the task tools to track your progress throughout this workflow:
 READ the vision/roadmap, patterns, and guidelines. Also read any research docs relevant to this target's libraries/APIs.
 
 ### Phase 2: Explore Codebase via Sub-Agents
-Use the **Task tool** to spawn parallel Explore sub-agents (model: **haiku**) to gather codebase context efficiently:
+Use the **Task tool** to spawn parallel Explore sub-agents (model: **sonnet** minimum, **opus** for large or complex codebases) to gather codebase context efficiently:
 
 1. **Codebase Structure**: "Map the directory layout, module structure, and entry points. List all source files and their primary exports."
 2. **Interface & Type Inventory**: "List all exported interfaces, types, and function signatures. Include file paths and full signatures."

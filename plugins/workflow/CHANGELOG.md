@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.2.7
+
+### Features
+- Add repo-eval skill: multi-dimensional codebase evaluation with calibrated scoring
+
+### Changes
+- Upgrade Explore sub-agent model from haiku to sonnet minimum (opus for large/complex codebases) across all skills that spawn explore agents
+- Add repo-eval, design-principles, and implementation-principles to workflow guide
+
 ## v1.2.5
 
 ### Features

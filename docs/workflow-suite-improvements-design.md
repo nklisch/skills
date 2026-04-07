@@ -264,7 +264,7 @@ Also standardize the workflow section to use "Phase" headers consistently. The c
 Read the vision document, patterns, and CLAUDE.md guidelines.
 
 ### Phase 2: Explore via Sub-Agents
-Use the **Task tool** to spawn parallel Explore sub-agents (model: **haiku**):
+Use the **Task tool** to spawn parallel Explore sub-agents (model: **sonnet** minimum, **opus** for large or complex codebases):
 ...
 
 ### Phase 3: Identify and Categorize

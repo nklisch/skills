@@ -28,7 +28,7 @@ Before discussing the expansion, deeply understand the current project.
 
 1. Read all foundation docs: **VISION.md**, **SPEC.md**, **ARCHITECTURE.md**, roadmap,
    and any domain-specific docs (UX.md, CONTRACT.md, etc.)
-2. Use the Explore agent (model: haiku) to map the current codebase: directory structure,
+2. Use the Explore agent (model: **sonnet** minimum, **opus** for large or complex codebases) to map the current codebase: directory structure,
    modules, key abstractions, what's been built so far
 3. Read **patterns** if they exist — understand established conventions
 4. Read **CLAUDE.md** — project guidelines and conventions

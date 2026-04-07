@@ -67,7 +67,7 @@ Use the task tools to track your progress throughout this workflow:
 Read the vision document, patterns, and CLAUDE.md guidelines. Use the **patterns** skill to read established patterns — use these as reference for what "good" looks like, not as a source of refactoring flags.
 
 ### Phase 2: Explore via Sub-Agents
-Use the **Task tool** to spawn parallel Explore sub-agents (model: **haiku**) to find refactoring opportunities:
+Use the **Task tool** to spawn parallel Explore sub-agents (model: **sonnet** minimum, **opus** for large or complex codebases) to find refactoring opportunities:
 
 - **Duplicate Logic**: "Find code that does the same or very similar things in multiple places. Look for duplicated: error handling blocks, data transformations, validation logic, API call patterns, setup/teardown sequences. Report each pair/group with file:line references."
 - **Missing Abstractions**: "Find places where multiple modules implement similar logic that could be extracted into a shared utility, base class, or common helper. Report each opportunity with file:line references and which modules would benefit."

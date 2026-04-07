@@ -62,7 +62,7 @@ Use the task tools to track your progress throughout this workflow:
 ## Workflow
 
 ### Phase 1: Explore Codebase via Sub-Agents
-Use the **Task tool** to spawn parallel Explore sub-agents (model: **haiku**) to scan different dimensions concurrently:
+Use the **Task tool** to spawn parallel Explore sub-agents (model: **sonnet** minimum, **opus** for large or complex codebases) to scan different dimensions concurrently:
 
 1. **Shared Abstractions & Utilities**: "Find all shared/reusable code: utility functions, base classes, common helpers, shared types used across multiple modules. List each with file:line and which modules use it."
 2. **Architectural Patterns**: "Identify recurring structural approaches: how modules are organized, how services/components are composed, how data flows between layers, how configuration is handled, how async operations and errors propagate. Report with concrete file:line examples."

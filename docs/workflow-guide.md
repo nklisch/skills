@@ -119,8 +119,14 @@ if you want to expand or update the style/structure rules themselves.
   language idioms, then parallelism. Produces implementation-unit plans with
   benchmark scaffolds for **implement** or **implement-orchestrator**.
 
-### Security Audit (pre-release or as needed)
+### Evaluation & Security (as needed)
 
+- **repo-eval** — Multi-dimensional codebase evaluation. Launches parallel
+  explore agents to score architecture, code quality, testing, documentation,
+  CI/CD, error handling, security, DX, and maintainability on a calibrated
+  1–10 scale. Produces a scorecard with verified findings and prioritized
+  recommendations. Use to audit a repo holistically or scope to a subtree
+  or specific dimensions.
 - **security-review** — Comprehensive security audit. Discovers the codebase
   stack, lets you choose which security domains to focus on (auth, injection,
   secrets, dependencies, API, infra, crypto, data protection, error handling),
@@ -187,6 +193,19 @@ These three have distinct, non-overlapping scopes. They complement each other.
 | test-quality | Spec-driven, finds gaps in unit/integration tests | Yes — writes them directly |
 | e2e-test-design | Journey-driven, designs e2e test suites | No — produces a design for implement |
 
+### Principles (auto-loading)
+
+These skills are not invoked directly. They auto-load when relevant skills
+(design, implement) are active, providing consistent architectural and
+coding standards across the pipeline.
+
+- **design-principles** — Architectural principles: Ports & Adapters, Single
+  Source of Truth, Generated Contracts. Auto-loads during design, interface
+  definition, and architectural decisions.
+- **implementation-principles** — Code-level principles: Fail Fast, Single
+  Source of Truth enforcement, guard clauses. Auto-loads during implement
+  and any code-writing activity.
+
 ### Skill Authoring
 
 These skills help you create and maintain agent skills — both for this suite
@@ -244,6 +263,7 @@ ideate → roadmap                             ← project start (once)
 │  └─────────────────────────────────────┘
 │
 ├─ perf-design → implement                   ← performance pass (as needed)
+├─ repo-eval                                 ← holistic codebase scoring
 ├─ security-review → design → implement      ← security audit (pre-release)
 ├─ cruft-cleaner                             ← cleanup pass (as needed)
 ├─ bold-refactor → implement                 ← architectural simplification

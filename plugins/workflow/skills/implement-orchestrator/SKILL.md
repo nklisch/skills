@@ -56,7 +56,7 @@ This is where most orchestrators fail — they send agents in blind. You must re
 - **Find concrete pattern examples.** For each type of code the agent will write (route, tool function, test, schema), find an existing example in the codebase and note its path.
 - **Understand integration points.** Read the files where new code will be wired in (e.g., server.ts for routes, registry files for tool registration, package.json for dependencies).
 
-Use the **Explore sub-agent** (model: haiku) if the codebase is large and you need to map structure quickly. But always **read 3-5 key files yourself** — the files the agent will modify or closely follow.
+Use the **Explore sub-agent** (model: **sonnet** minimum, **opus** for large or complex codebases) if the codebase is large and you need to map structure quickly. But always **read 3-5 key files yourself** — the files the agent will modify or closely follow.
 
 #### 1d. Identify discrepancies
 Compare the design against the actual repo. Note any differences in types, signatures, file paths, or module structure. You'll include corrections in agent prompts so the agent doesn't get confused by stale design assumptions.

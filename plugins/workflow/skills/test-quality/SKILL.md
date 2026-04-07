@@ -90,7 +90,7 @@ For each interface or behavioral unit in scope, extract:
 
 ### Step 1.3: Survey Existing Tests
 
-Spawn a parallel sub-agent (model: **haiku**) to map what is already tested:
+Spawn a parallel sub-agent (model: **sonnet** minimum, **opus** for large or complex codebases) to map what is already tested:
 
 > "Read all test files for [target]. For each test, identify: what input scenario is being tested, what outcome is being verified, and what spec condition or business rule it covers. Group by: happy path, invalid input, boundary conditions, error cases, state transitions. List any business rules or input partitions that appear to have NO tests. Cite file:line for each test."
 

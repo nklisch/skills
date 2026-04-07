@@ -78,7 +78,7 @@ Before scoping a feature, understand what already exists.
 
 1. Read **CLAUDE.md**, **VISION.md**, **SPEC.md**, **ARCHITECTURE.md** — whatever
    foundation docs exist
-2. Use the Explore agent (model: haiku) to map the codebase: directory structure,
+2. Use the Explore agent (model: **sonnet** minimum, **opus** for large or complex codebases) to map the codebase: directory structure,
    modules, entry points, key abstractions
 3. Read the **patterns** skill if it exists — understand established conventions
 4. Note the project's current state: what's built, what's not, what stage it's in
