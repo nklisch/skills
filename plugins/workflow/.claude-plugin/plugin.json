@@ -1,7 +1,7 @@
 {
   "name": "workflow",
   "description": "Software development workflow skills — design features, implement from plans, refactor codebases, extract patterns, design tests, and ship releases.",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "author": {
     "name": "nklisch"
   },
