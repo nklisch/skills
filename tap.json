@@ -261,6 +261,12 @@
       "tags": ["evaluation", "audit", "scoring", "code-quality", "architecture", "agentic", "workflow"]
     },
     {
+      "name": "autopilot",
+      "description": "Autonomously execute a project roadmap end-to-end. Loops design -> implement-orchestrator -> test for each phase, with judgment-driven refactoring passes. Tracks progress for cross-session resumption.",
+      "repo": "nklisch/skills",
+      "tags": ["autopilot", "autonomous", "roadmap", "orchestration", "agentic", "workflow", "pipeline"]
+    },
+    {
       "name": "claude-code-marketplace",
       "description": "Research findings on Claude Code marketplace, plugin structure, and distribution. Auto-loads when working with marketplace.json, plugin.json, plugin distribution, Claude Code plugin format, SKILL.md frontmatter, tap.json integration, npm skill packages, agentskills.io standard, or designing how skilltap interacts with the Claude Code plugin ecosystem.",
       "repo": "nklisch/skills",

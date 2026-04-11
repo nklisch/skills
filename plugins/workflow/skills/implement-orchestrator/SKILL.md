@@ -5,7 +5,6 @@ description: >
   Use for large designs (20+ files) or designs with independent subsystems that benefit
   from parallel implementation. Opus reads the plan, splits work into agent-sized units,
   crafts focused prompts, and spawns Sonnet agents to implement them.
-disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task, AskUserQuestion, Skill
 model: opus
 ---
