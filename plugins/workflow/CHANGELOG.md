@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.3.0
+
+### Features
+- Add custom Explore agent that overrides the built-in Haiku Explore with a Sonnet-powered version. Synthesizes findings into actionable answers with structured output (answer first, citations, code quotes, not-found items) instead of raw search results. Automatically replaces the built-in for all skills that spawn Explore agents.
+
 ## v1.2.8
 
 ### Improvements
