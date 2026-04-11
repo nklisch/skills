@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.3.2
+
+### Features
+- Add `autopilot` skill: autonomously executes a full project roadmap end-to-end, looping design → implement-orchestrator → test for each phase, with judgment-driven refactoring passes every 2-4 phases, testing passes at major boundaries, and update-documentation at the end. Tracks progress in PROGRESS.md for cross-session resumption. Includes decision frameworks and progress file format as reference files.
+
+### Internal
+- Remove `disable-model-invocation` from design, implement-orchestrator, refactor-design, extract-patterns, and test-quality so they can be invoked by autopilot via the Skill tool
+
 ## v1.3.1
 
 ### Improvements
