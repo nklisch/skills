@@ -25,6 +25,21 @@ Run each skill in a fresh Sonnet session. Use **implement** (single Sonnet agent
 instead of implement-orchestrator. Each skill invocation starts clean — the design documents
 and plan artifacts carry the context between sessions.
 
+### Fully autonomous (autopilot)
+
+If you want hands-off execution, run **autopilot** after ideate and roadmap are complete.
+It reads the roadmap and loops through design → implement-orchestrator → test for each
+phase autonomously — making all decisions itself using built-in decision frameworks.
+Refactoring passes trigger every 2-4 phases, testing passes at major boundaries, and
+documentation updates at the end.
+
+Autopilot tracks progress in `docs/PROGRESS.md`. If a session runs out of context, start
+a fresh `/autopilot` — it resumes from where it left off.
+
+Use autopilot when you trust the roadmap and want to let Claude execute without
+intervention. Use the manual workflow when you want to review designs and make
+decisions at each step.
+
 ## The Pipeline
 
 These skills form a pipeline where each skill's output feeds the next.
@@ -176,6 +191,17 @@ crafts precise prompts for the Sonnet agents it spawns.
 **If you don't**: Use implement in a fresh Sonnet session. The design document carries
 all the context the agent needs.
 
+### Manual workflow vs autopilot
+
+| Criteria | Manual | Autopilot |
+|----------|--------|-----------|
+| User involvement | Review designs, approve refactors, make judgment calls | Fully autonomous — no questions asked |
+| When to use | Want control over each phase | Trust the roadmap, want hands-off execution |
+| Resumability | Session context carries state | PROGRESS.md tracks state across sessions |
+| Refactoring | You decide when | Every 2-4 phases (judgment-driven) |
+| Testing passes | You decide when | At major boundaries and end of roadmap |
+| Prerequisites | Foundation docs + roadmap | Foundation docs + roadmap |
+
 ### refactor-design vs the creators
 
 | Skill | Focus | When to run |
@@ -235,6 +261,10 @@ Use skill-evaluator to audit any skill's quality.
 
 ```
 ideate → roadmap                             ← project start (once)
+│
+├─ autopilot                                 ← autonomous: runs everything below
+│                                              until roadmap is complete
+│  ── OR ── manual workflow: ───────────────
 │
 │  ┌── Opus 1M session ──────────────────┐
 │  │                                     │
