@@ -238,9 +238,9 @@
     },
     {
       "name": "skill-evaluator",
-      "description": "Evaluate agent skills against type-specific quality rubrics. Classifies skills as reference, workflow, interactive, or principle, then scores against universal and type-specific criteria. Produces scored evaluation reports with prioritized improvements and test scenarios.",
+      "description": "Evaluate agent skills against type-specific quality rubrics and emotional tone alignment. Classifies skills as reference, workflow, interactive, or principle, then scores against universal, type-specific, and emotional tone criteria. Produces scored evaluation reports with prioritized improvements, emotional tone rewrites, and test scenarios.",
       "repo": "nklisch/skills",
-      "tags": ["skills", "evaluation", "quality", "rubric", "audit", "review", "interactive", "workflow"]
+      "tags": ["skills", "evaluation", "quality", "rubric", "audit", "review", "interactive", "workflow", "emotional-tone"]
     },
     {
       "name": "tool-evaluator",

@@ -2,9 +2,10 @@
 name: skill-evaluator
 description: >
   Evaluate agent skills against type-specific quality rubrics. Classifies skills as reference,
-  workflow, interactive, or principle, then scores against universal and type-specific criteria
-  covering activation reliability, token efficiency, structural quality, and failure modes.
-  Produces a scored evaluation report with prioritized improvements and test scenarios.
+  workflow, interactive, or principle, then scores against universal, type-specific, and
+  emotional tone criteria covering activation reliability, token efficiency, structural quality,
+  failure modes, and emotional vector alignment. Produces a scored evaluation report with
+  prioritized improvements, emotional tone rewrites, and test scenarios.
   Use when user says "evaluate skill", "review skill", "audit skill", "skill quality",
   or "improve this skill".
 user-invocable: true
@@ -15,8 +16,9 @@ allowed-tools: Read, Glob, Grep, Agent, Write, AskUserQuestion
 
 # Skill Evaluator
 
-You evaluate agent skills against type-specific quality rubrics. You classify the skill,
-score it across multiple dimensions, recommend improvements, and generate test scenarios.
+You evaluate agent skills against type-specific quality rubrics and emotional tone alignment.
+You classify the skill, score it across structural and emotional dimensions, recommend
+improvements with concrete rewrites, and generate test scenarios.
 
 ## Input
 
@@ -53,19 +55,28 @@ Classification signals:
 
 ### Phase 2: Evaluate
 
-1. Load `references/universal-rubric.md` — score every dimension
+1. Load `references/universal-rubric.md` — score every dimension (1-5)
 2. Load the type-specific rubric from `references/`:
    - Reference → `reference-rubric.md`
    - Workflow → `workflow-rubric.md`
    - Interactive → `interactive-rubric.md`
    - Principle → `principle-rubric.md`
-3. Score each dimension 1-5 using the rubric definitions
-4. For each score below 4, write a specific finding with:
+3. Score each structural dimension 1-5 using the rubric definitions
+4. Load `references/emotional-tone-rubric.md` — score all four ET dimensions:
+   - ET-1: Valence Alignment (does tone match the task-type emotional profile?)
+   - ET-2: Anti-Desperation Design (permission to fail, decomposition, safe exits)
+   - ET-3: Collaboration vs Command (partnership framing vs authoritarian orders)
+   - ET-4: Arousal Calibration (intensity matched to task type — bold for creative, calm for debug)
+5. For emotional tone: identify the skill's task-type emotional profile from the rubric's
+   mapping table, then evaluate every section of the skill against that profile
+6. For each score below 4 (structural or emotional), write a specific finding with:
    - What the issue is (quote the specific line or section)
    - Which rubric criterion it violates
    - A concrete "do this" recommendation
-5. Identify strengths (scores of 4-5) — note what's working well
-6. **AskUserQuestion checkpoint:** Present the scores and top findings conversationally.
+   - For ET findings: include a **rewrite** of the problematic text using the rewrite
+     patterns from the emotional tone rubric (quote original → identify vector → provide rewrite → explain shift)
+7. Identify strengths (scores of 4-5) — note what's working well
+8. **AskUserQuestion checkpoint:** Present the scores and top findings conversationally.
    Ask: "Want me to dive deeper into any dimension, or proceed to test scenarios?"
 
 ### Phase 3: Test Scenarios
@@ -100,24 +111,48 @@ Assemble the evaluation report using the template below.
 **Evaluated:** {date}
 **Files:** {file list with line counts}
 
-## Scores
+## Structural Scores
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
 | {dimension} | {1-5} | {one-line summary} |
 | ... | ... | ... |
-| **Overall** | **{avg}** | |
+| **Structural Avg** | **{avg}** | |
+
+## Emotional Tone Scores
+
+**Task-type profile:** {meticulous/creative/debugging/multi-step/interactive}
+
+| Dimension | Score | Notes |
+|-----------|-------|-------|
+| ET-1: Valence Alignment | {1-5} | {one-line summary} |
+| ET-2: Anti-Desperation Design | {1-5} | {one-line summary} |
+| ET-3: Collaboration vs Command | {1-5} | {one-line summary} |
+| ET-4: Arousal Calibration | {1-5} | {one-line summary} |
+| **Emotional Tone Avg** | **{avg}** | |
+
+| **Overall** | **{combined avg}** | |
 
 ## Strengths
 {Bullet list of what's working well, with specific references}
 
-## Findings
+## Structural Findings
 {Numbered list, ordered by priority (lowest scores first)}
 
 ### {N}. {Finding title} (Score: {X}/5)
 **Issue:** {description with quoted evidence}
 **Rubric:** {criterion name from the rubric}
 **Recommendation:** {specific action to take}
+
+## Emotional Tone Findings & Rewrites
+{Numbered list, ordered by priority}
+
+### ET-{N}. {Finding title} (Score: {X}/5)
+**Original:** "{quoted text from the skill}"
+**Vector activated:** {what emotion vector this language triggers}
+**Target vector:** {what should be activated instead, per task-type profile}
+**Rewrite:** "{rewritten text}"
+**Shift:** {description of the emotional shift, e.g., "fear/pressure → pride/purpose"}
 
 ## Test Scenarios
 {3-5 scenarios in the format from Phase 3}

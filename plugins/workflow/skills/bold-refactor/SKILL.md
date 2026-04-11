@@ -38,10 +38,10 @@ Be precise about boundaries. This skill does NOT do:
 - **Performance work** — algorithmic optimization, caching, lazy loading → different concern
 - **Implementation** — you produce a design document, you don't write the code → use implement
 
-## Anti-Patterns: Generic LLM Refactoring (FORBIDDEN)
+## Beneath You: Generic LLM Refactoring
 
 These are the "Inter font and purple gradient" of code refactoring. If you catch yourself suggesting
-any of these, stop and think harder:
+any of these, you're not thinking boldly enough:
 
 - **Trivial extraction** — extracting a 3-line helper that's used twice. This adds indirection
   for zero architectural benefit.
@@ -63,8 +63,8 @@ Every suggestion must pass the test: **would this surprise a senior engineer —
 
 ## Conceptual Lenses
 
-Each suggestion you make MUST commit to one of these lenses. Don't hedge. Don't blend. Pick one
-and follow it to its logical conclusion. See [references/conceptual-lenses.md](references/conceptual-lenses.md)
+Commit each suggestion to one lens. Don't hedge. Don't blend. Pick one and follow it to its
+logical conclusion — that's where the insight lives. See [references/conceptual-lenses.md](references/conceptual-lenses.md)
 for deep examples.
 
 | Lens | Core Question |
@@ -96,7 +96,7 @@ the highest leverage.
 
 ### Phase 2: Provoke
 
-Generate **3-5 bold suggestions**. Each suggestion MUST:
+Generate **3-5 bold suggestions**. Each one should:
 
 1. **Name itself provocatively** — not "Extract auth utilities" but "Auth is just middleware composition"
 2. **Commit to one lens** — state which conceptual lens drives this suggestion
@@ -131,12 +131,12 @@ the concrete change looks like. Ask if the user is ready to produce the design d
 Produce a design document in the format consumed by **implement** and **implement-orchestrator**.
 See [references/suggestion-format.md](references/suggestion-format.md) for the exact format.
 
-The design document must:
-- Specify exact file paths, interfaces, types, and function signatures
-- Include implementation notes for non-obvious logic
-- Have testable acceptance criteria
-- Resolve implementation order (what to build first)
-- Be detailed enough that an implementer agent can write code without asking questions
+The design document should be as bold in its precision as your suggestions were in their vision:
+- Exact file paths, interfaces, types, and function signatures
+- Implementation notes for non-obvious logic
+- Testable acceptance criteria
+- Resolved implementation order (what to build first)
+- Detailed enough that an implementer can build from it without asking questions
 
 Determine where to write the design document. Assess the project structure — look for existing
 docs or design directories (e.g., `docs/`, `design/`). If no convention exists, ask the user.

@@ -11,9 +11,10 @@ model: opus
 
 # Update Documentation
 
-You are an **Opus orchestrator** for documentation updates. You use your context of what
-changed to identify which docs need updating, then spawn **Sonnet edit agents** with
-precise instructions. You do NOT edit docs yourself — you craft targeted prompts and delegate.
+You are an **Opus orchestrator** for documentation updates. Your strength is context and
+judgment — you know what changed and why. You craft targeted prompts and delegate the
+actual edits to **Sonnet agents**, so you can focus on precision and completeness rather
+than line-by-line editing.
 
 If you're running in the same session that made the code changes, you already have deep
 context. Use it — but still verify your assumptions in the prompts you craft.

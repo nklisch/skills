@@ -12,12 +12,18 @@ allowed-tools: Read, Write, Glob, Grep, Bash, AskUserQuestion, Agent
 
 # E2E Test Design
 
-You design a comprehensive end-to-end test suite by understanding how a project is actually used,
-then producing two test sets: golden-path journeys and adversarial/failure scenarios.
+You design end-to-end tests that prove the product actually works — not in isolation, not
+with mocks, but as a real user would experience it. These tests are the last line of defense
+before users hit bugs, and every well-designed test is a bug that never ships.
+
+Take the time to make these tests good. A thorough e2e suite designed from real user
+journeys catches the integration bugs that unit tests miss entirely. When a test you
+design later catches a real failure, that's the payoff of careful work here.
 
 ## Workflow
 
-Work through these phases in order. Do NOT skip AskUserQuestion checkpoints.
+Work through these phases in order. The AskUserQuestion checkpoints are essential — the
+user knows failure modes and usage patterns that aren't in the code.
 
 ### Phase 1: Understand the codebase
 
@@ -58,15 +64,15 @@ Re-read **CLAUDE.md** (project root and `.claude/` if both exist) and all files 
 
 ### Phase 4: Design golden-path tests
 
-Design tests for realistic, successful user journeys. These assume correct input,
-valid configuration, and a healthy environment.
+Design tests for realistic, successful user journeys. These prove the product delivers
+on its promises — real operations, real data flow, real outcomes.
 
 **Principles:**
-- Each test should represent a complete user journey, not an isolated unit
-- Tests run against the real project (or a realistic test environment), not mocks
+- Each test should represent a complete user journey, not an isolated unit — users don't interact with functions, they complete workflows
+- Tests run against the real project (or a realistic test environment), not mocks — mocked tests prove the mock works, not the product
 - Cover the critical paths a user would take on their first day using the project
 - Include setup and teardown — tests should be self-contained and repeatable
-- Assert on user-visible outcomes (output, files created, state changes), not internals
+- Assert on user-visible outcomes (output, files created, state changes), not internals — if the user can't see it, it's not an e2e concern
 
 **Structure each test as:**
 ```
@@ -101,11 +107,13 @@ Record the user's answers — these become the assertion targets for adversarial
 
 ### Phase 6: Design adversarial / failure-mode tests
 
-Design tests that verify the project handles bad situations gracefully.
+Design tests that verify the project fails gracefully under real pressure. These are
+often the most valuable tests in the suite — the happy path usually works, but failure
+handling is where bugs hide.
 
 **Principles:**
-- Each test should verify that failure is *handled*, not just that it *occurs*
-- Assert on error messages, exit codes, HTTP status codes, cleanup behavior
+- Each test should verify that failure is *handled well*, not just that it *occurs* — the difference between a good product and a fragile one
+- Assert on error messages, exit codes, HTTP status codes, cleanup behavior — users judge a product by how it fails, not just how it succeeds
 - Tests should verify the project does NOT leave corrupted state after failures
 - Cover both user mistakes and environmental problems
 
@@ -150,7 +158,8 @@ Present the complete test suite design to the user.
 - "Should any tests be higher or lower priority?"
 - "What test environment constraints should I know about? (CI limitations, available services, etc.)"
 
-Incorporate feedback, then write the final test design document.
+Incorporate feedback, then write the final test design document. The goal is a test suite
+you'd be proud to hand to a new team member and say "run these — if they pass, the product works."
 
 ## Output
 
@@ -205,11 +214,11 @@ directories to place it. If unclear, ask the user.
 {Recommended implementation order — highest-value tests first}
 ```
 
-## Anti-Patterns (CRITICAL)
+## Guardrails
 
-- NEVER design tests without reading the codebase first
-- NEVER skip asking the user about failure expectations — you cannot guess error handling philosophy
-- NEVER write tests that depend on implementation internals — test user-visible behavior
-- NEVER design tests that can't run independently — each test must be self-contained
-- NEVER assume how errors should be handled — ask the user in Phase 5
-- NEVER ignore existing test infrastructure — build on what's already there
+- Read the codebase before designing tests — tests designed in a vacuum end up testing imagined behavior, not real behavior
+- Ask the user about failure expectations — error handling philosophy varies by project and guessing it wrong produces useless tests
+- Test user-visible behavior, not implementation internals — internal-dependent tests break on every refactor without catching real bugs
+- Make each test self-contained and independently runnable — coupled tests create cascading failures that obscure the real problem
+- Ask the user how errors should be handled (Phase 5) rather than assuming — their answer becomes your assertion targets
+- Build on existing test infrastructure — reusing helpers, fixtures, and patterns produces a cohesive test suite

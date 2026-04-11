@@ -15,13 +15,13 @@ These principles govern how code is written. Apply them at the function, module,
 
 ## 1. Fail Fast
 
-Validate inputs at the entry point of every function or system boundary. Do not pass unvalidated or ambiguous data into business logic.
+Catch bad data at the door, not three calls deep where the stack trace is useless. Validate inputs at the entry point of every function or system boundary.
 
-**Rules:**
-- At system boundaries (HTTP handlers, CLI args, external API responses, config files): parse with Zod or equivalent before any logic runs
+**The principle in practice:**
+- At system boundaries (HTTP handlers, CLI args, external API responses, config files): parse with Zod or equivalent before any logic runs — this is where external data enters your world
 - At internal function boundaries: assert preconditions at the top of the function — guard clauses, not nested ifs
-- Prefer `throw`/`return early` over propagating bad state deep into call chains
-- Errors should be loud and specific at the point of violation, not silent failures discovered three layers deep
+- Prefer `throw`/`return early` over propagating bad state deep into call chains — the deeper bad data travels, the harder the bug is to trace
+- Errors should be loud and specific at the point of violation — "expected positive number, got -3" beats a cryptic null reference five layers down
 
 **Good:**
 ```typescript
@@ -50,11 +50,11 @@ function processOrder(input: any) {
 
 Implement extensible variant sets as a single typed constant. Derive all downstream behavior from it — do not re-enumerate variants in switch statements, conditionals, or validation schemas.
 
-**Rules:**
-- Define the registry once with `as const` or a typed config map
-- Derive the TypeScript union type from the registry: `type Role = keyof typeof ROLE_CONFIG`
+**The principle in practice:**
+- Define the registry once with `as const` or a typed config map — this is the single source
+- Derive the TypeScript union type from the registry: `type Role = keyof typeof ROLE_CONFIG` — the type stays in sync automatically
 - Use `Object.keys`, `Object.entries`, or iteration over the registry rather than repeating the list
-- Zod enums and validation should be derived from the registry: `z.enum(ROLES)` not `z.enum(['admin', 'editor', 'viewer'])`
+- Zod enums and validation should be derived from the registry: `z.enum(ROLES)` not `z.enum(['admin', 'editor', 'viewer'])` — adding a new role should mean changing one line, not hunting through files
 
 **Good:**
 ```typescript
@@ -89,11 +89,11 @@ switch (role) {
 
 When implementing domain logic, enforce the boundary: domain code receives infrastructure as a typed parameter, never imports it directly.
 
-**Rules:**
-- Domain functions take infrastructure dependencies as typed parameters (the port interface)
-- Never `import { db } from '../db'` in a domain module — pass `db: UserRepository` instead
+**The principle in practice:**
+- Domain functions take infrastructure dependencies as typed parameters (the port interface) — this makes them testable and swappable
+- Never `import { db } from '../db'` in a domain module — pass `db: UserRepository` instead. The domain shouldn't know or care which database backs it.
 - Adapter implementations live in infrastructure directories and are wired at the entry point
-- If you find yourself needing to import infrastructure into domain, stop and add a port interface instead
+- If you find yourself needing to import infrastructure into domain, that's the signal to add a port interface instead
 
 **Good:**
 ```typescript
@@ -125,11 +125,11 @@ export function createUser(email: string) {
 
 Do not hand-write types that are derivable from a schema, router, or database definition. Import or generate them.
 
-**Rules:**
-- Drizzle/Prisma: use inferred types (`typeof schema.$inferSelect`) — do not duplicate as hand-written interfaces
-- tRPC: share the router type directly — do not write separate client-side type definitions
-- OpenAPI/REST: run codegen and import from the generated file — do not hand-write response types
-- If a generated type needs extending, use `type MyType = GeneratedType & { extra: string }` — extend, don't replace
+**The principle in practice:**
+- Drizzle/Prisma: use inferred types (`typeof schema.$inferSelect`) — hand-written interfaces drift from the schema and cause subtle type mismatches
+- tRPC: share the router type directly — separate client-side type definitions are a maintenance trap that breaks silently
+- OpenAPI/REST: run codegen and import from the generated file — hand-written response types are stale the moment the API changes
+- If a generated type needs extending, use `type MyType = GeneratedType & { extra: string }` — extend the source of truth, don't replace it
 
 **Good:**
 ```typescript
