@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.3.1
+
+### Improvements
+- Add emotional tone guidance to orchestrator prompt crafting — implement-orchestrator and update-documentation now instruct the parent to frame sub-agent prompts with craft/pride language, permission to report blockers, and no pressure language
+
 ## v1.3.0
 
 ### Features
