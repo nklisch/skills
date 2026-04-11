@@ -18,7 +18,7 @@ Available as a **Claude Code plugin** and via **[skilltap](https://github.com/nk
 ```
 
 Two plugins available:
-- **workflow** — 21 skills for the full development pipeline
+- **workflow** — 22 skills for the full development pipeline
 - **skill-authoring** — 3 skills for creating, evaluating, and refining agent skills
 
 ### Via Skilltap
@@ -42,6 +42,9 @@ These skills form an iterative pipeline. See [docs/workflow-guide.md](docs/workf
 ```
 ideate → roadmap                    ← project start
     ↓
+autopilot                           ← autonomous end-to-end execution
+    ── OR ── manual workflow:
+    ↓
 design → implement/implement-orchestrator ← core phases (from roadmap)
     ↓
 refactor-design → implement → extract-patterns  ← every 2-4 phases
@@ -63,6 +66,7 @@ release                              ← ship it
 |-------|-------------|
 | **ideate** | Interactive project definition workshop. Produces foundation docs (VISION.md, SPEC.md, ARCHITECTURE.md). Run once at project start. |
 | **roadmap** | Generate an agent-optimized project roadmap from foundation docs. Decomposes into phases with dependencies and test checkpoints. |
+| **autopilot** | Autonomously execute an entire roadmap end-to-end. Loops design → implement-orchestrator → test per phase with refactoring passes. Tracks progress for cross-session resume. |
 | **expand** | Expand project scope — new subsystem, major capability, architectural shift. Updates foundation docs and roadmap. |
 | **feature** | Scope a quick extension or one-off outside the core roadmap. Produces a feature brief that design consumes. |
 | **design** | Produce detailed implementation units with exact interfaces, types, and acceptance criteria. |
