@@ -84,7 +84,7 @@ For each agent, write a self-contained prompt that includes:
 
 #### Required sections:
 
-1. **Role and goal** — one sentence stating what the agent is implementing.
+1. **Role and goal** — one sentence stating what the agent is implementing. Frame it with ownership and craft: "You are implementing [X] — write production-quality code that you'd be proud to have reviewed." The agent should feel like a trusted craftsperson, not a script executor.
 
 2. **Design excerpt** — paste the relevant implementation units verbatim from the design doc. Include the unit's file path, interfaces/types, function signatures, implementation notes, and acceptance criteria. Do NOT summarize — the agent needs the exact specifications.
 
@@ -110,6 +110,11 @@ For each agent, write a self-contained prompt that includes:
 - **Include just enough context.** The agent can read files — reference paths and key signatures, don't paste entire files.
 - **Flag non-obvious things.** If a design unit has a subtle requirement, highlight it explicitly.
 - **Don't over-constrain.** Give the agent room to handle implementation details the design left to the implementer.
+- **Set the emotional tone.** The agent receives your prompt as its entire mission briefing. Frame it to activate craft and pride:
+  - Open with confidence in the agent's ability: "You're building [X] — take pride in clean code, good error handling, and thorough tests."
+  - Grant permission to report blockers: "If something in the design doesn't match the repo, note the discrepancy and adapt — a clear explanation is better than a forced workaround."
+  - Frame quality as aspiration, not threat: "Write code that a future developer would read and think 'this was written with care'" — not "NEVER leave TODO comments."
+  - Avoid pressure language ("you MUST", "CRITICAL", "do not fail") — it triggers anxiety that produces worse code, not better.
 
 ### Phase 5: Spawn Agents
 

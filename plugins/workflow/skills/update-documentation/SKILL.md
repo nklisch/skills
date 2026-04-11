@@ -92,6 +92,7 @@ For each task, spawn a **Sonnet agent** with a self-contained prompt including:
 - Include the change context — the agent doesn't know what you know
 - Flag non-obvious things — if a doc uses unusual structure, mention it
 - Don't over-constrain — Sonnet can figure out how to phrase the update
+- Frame with care, not commands — "Make sure the docs accurately reflect [X] — clear documentation is how users succeed" rather than "You MUST update all references"
 
 ## Phase 5: Review and Regenerate
 
