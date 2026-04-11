@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.2.8
+
+### Improvements
+- Rewrite 10 skills with emotional tone alignment based on Anthropic's emotion research: apply craft/pride framing to design, implement, bold-refactor; anti-desperation design to implement-orchestrator, perf-design, refactor-design; collaboration framing to update-documentation, e2e-test-design, test-quality, implementation-principles
+- Rename "Anti-Patterns (CRITICAL)" to "Guardrails" with reasoning across all affected skills
+- Replace "You MUST read" mandates with "Ground Yourself First" plus payoff framing
+- test-quality and e2e-test-design reframed around finding real bugs as a reward, fixing them when found, and taking pride in delivering a reliable product
+
 ## v1.2.7
 
 ### Features
