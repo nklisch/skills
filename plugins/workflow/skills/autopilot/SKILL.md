@@ -69,6 +69,24 @@ Read these to build a complete mental model before touching any code:
 - Read the deviation log for context on prior decisions
 - Continue from where the previous session stopped
 
+#### Schedule the Watchdog Loop
+
+Before starting any phase work, invoke the `/loop` skill to schedule a watchdog that
+re-invokes `/autopilot` on an interval. This ensures the session keeps moving even if you
+pause, finish a turn, or stop unexpectedly — the loop will fire and resume from PROGRESS.md.
+
+Invoke: `/loop 10m /autopilot`
+
+Why this matters:
+- Autopilot runs are long. Without a watchdog, a single paused turn can stall the whole build.
+- The next `/autopilot` invocation reads PROGRESS.md and continues exactly where you left off,
+  so re-firing is safe and idempotent.
+- Pick an interval long enough that an active phase isn't interrupted (10–15 min is a good
+  default). The loop is a safety net, not the primary driver.
+- If you reach the **truly stuck** stopping condition from the Autonomy Mandate, cancel the
+  loop before stopping so it doesn't keep firing against an unresolvable blocker. Otherwise,
+  leave it running across phases and sessions.
+
 ### Phase 3: Execute Phases
 
 Loop through each pending phase in order. For each phase:
@@ -214,6 +232,8 @@ The way you frame prompts to sub-agents matters. Follow these principles through
 ## Guardrails
 
 - Never use AskUserQuestion — resolve everything autonomously
+- Always schedule the `/loop /autopilot` watchdog before starting phase work, and cancel it
+  only when stopping cleanly on an unresolvable blocker
 - Always commit after completing a phase — small, frequent commits are safer than one giant one
 - Never force-push or push to remote — the user reviews and pushes
 - If context is getting heavy (~600k+ tokens), finish the current phase, update PROGRESS.md,
