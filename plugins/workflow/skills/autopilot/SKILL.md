@@ -69,23 +69,47 @@ Read these to build a complete mental model before touching any code:
 - Read the deviation log for context on prior decisions
 - Continue from where the previous session stopped
 
-#### Schedule the Watchdog Loop
+#### Schedule the Watchdog Loops
 
-Before starting any phase work, invoke the `/loop` skill to schedule a watchdog that
-re-invokes `/autopilot` on an interval. This ensures the session keeps moving even if you
-pause, finish a turn, or stop unexpectedly — the loop will fire and resume from PROGRESS.md.
+Before starting any phase work, set up two watchdog loops via `/loop`. Together they keep
+the session alive: a frequent lightweight nudge and a less frequent full re-engagement.
+The loops fire and resume from PROGRESS.md, so re-firing is always safe and idempotent.
 
-Invoke: `/loop 10m /autopilot`
+**First — check for existing loops.** Before creating any loop, check whether autopilot
+watchdog loops are already running. If they are, **do NOT create duplicates** — they're
+already doing their job, and stacking duplicates causes the session to get hammered with
+redundant prompts. Only create the loops below if no equivalent loop is already active.
+
+**Loop 1 — Nudge (every 30 minutes):**
+
+```
+/loop 30m continue with autopilot run
+```
+
+A lightweight prompt that keeps you moving on the current phase between fuller
+re-engagements. Most ticks just need a small push to keep going.
+
+**Loop 2 — Full re-engagement (every 3 hours):**
+
+```
+/loop 3h Resume the autopilot workflow: read docs/PROGRESS.md, find the first non-done phase, verify its dependencies, then continue the design → implement → test → update-progress cycle per the autopilot skill. Apply the refactor and testing gates as appropriate.
+```
+
+A heavier re-grounding for cases where state has drifted, context has compacted, or the
+30-minute nudges aren't enough to re-anchor the workflow.
+
+**Note on invocation style:** Neither loop invokes `/autopilot` as a slash command. Plain-text
+prompts are sufficient — you're already in the autopilot context, so re-firing the slash would
+just reload SKILL.md needlessly. The text prompts above are the "actual autopilot invocation"
+in natural language.
 
 Why this matters:
 - Autopilot runs are long. Without a watchdog, a single paused turn can stall the whole build.
-- The next `/autopilot` invocation reads PROGRESS.md and continues exactly where you left off,
-  so re-firing is safe and idempotent.
-- Pick an interval long enough that an active phase isn't interrupted (10–15 min is a good
-  default). The loop is a safety net, not the primary driver.
-- If you reach the **truly stuck** stopping condition from the Autonomy Mandate, cancel the
-  loop before stopping so it doesn't keep firing against an unresolvable blocker. Otherwise,
-  leave it running across phases and sessions.
+- Pick intervals long enough that an active phase isn't interrupted. The loops are a safety
+  net, not the primary driver.
+- If you reach the **truly stuck** stopping condition from the Autonomy Mandate, cancel both
+  loops before stopping so they don't keep firing against an unresolvable blocker. Otherwise,
+  leave them running across phases and sessions.
 
 ### Phase 3: Execute Phases
 
@@ -232,8 +256,9 @@ The way you frame prompts to sub-agents matters. Follow these principles through
 ## Guardrails
 
 - Never use AskUserQuestion — resolve everything autonomously
-- Always schedule the `/loop /autopilot` watchdog before starting phase work, and cancel it
-  only when stopping cleanly on an unresolvable blocker
+- Always schedule the watchdog loops (30min nudge + 3hr re-engagement) before starting phase
+  work, but check for existing loops first and skip creation if equivalents are already running
+- Cancel the watchdog loops only when stopping cleanly on an unresolvable blocker
 - Always commit after completing a phase — small, frequent commits are safer than one giant one
 - Never force-push or push to remote — the user reviews and pushes
 - If context is getting heavy (~600k+ tokens), finish the current phase, update PROGRESS.md,

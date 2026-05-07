@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.4
+
+### Improvements
+- Autopilot watchdog now runs as two plain-text loops instead of one slash-command loop: a 30-minute "continue with autopilot run" nudge plus a 3-hour full re-engagement prompt. Both use natural-language prompts rather than re-firing `/autopilot`, avoiding redundant SKILL.md reloads when already in context.
+- Autopilot now checks for existing watchdog loops before scheduling new ones, preventing duplicate stacked loops from hammering the session with redundant prompts.
+
 ## v1.3.2
 
 ### Features
