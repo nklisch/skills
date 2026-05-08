@@ -8,7 +8,7 @@ The recommended workflow depends on your model access.
 
 ### With Opus 1M context (recommended)
 
-Stay in a single Opus 1M session. Opus runs the planning skills directly — feature,
+Stay in a single Opus 1M session. Opus runs the planning skills directly — extend,
 design, refactor-design, extract-patterns — building up rich context over time. When
 it's time to write code, **implement-orchestrator** orchestrates by spawning Sonnet agents
 while Opus retains the full picture.
@@ -56,15 +56,18 @@ build style preferences, and decomposes into phases with dependencies,
 deliverables, and test checkpoints. The roadmap is what design reads to know
 what to build each phase.
 
-### Expanding Scope
+### Extending the Project
 
-**expand** — When the project needs a major new capability, subsystem, or
-architectural shift. Reads existing foundation docs and codebase, interviews
-about the expansion, then updates the foundation docs and roadmap. The next
-design phase picks up where expand left off.
+**extend** — Add capability to an existing project. The skill branches in Phase 3 based
+on scope:
 
-Use expand when the change is big enough to affect the vision, spec, or
-architecture. If it's small and self-contained, use feature instead.
+- **Small addition** (one-off feature, doesn't change architecture) → produces a feature
+  brief at `docs/features/{slug}.md` that **design** consumes.
+- **Major expansion** (new subsystem, architectural shift, new domain area) → updates
+  foundation docs and roadmap so the next design phase builds on solid ground.
+
+You don't pick the path upfront — `extend` asks you which fits after exploring the idea
+with you. (This skill replaces the previous `feature` + `expand` pair.)
 
 ### Core Development (per phase)
 
@@ -79,12 +82,6 @@ Large phases may be split into multiple designs (a, b, sometimes c).
 3. **implement-orchestrator** (Opus 1M) — Opus orchestrator spawns Sonnet agents to
    implement the design
    — OR **implement** (Sonnet) — Single agent implements the design directly
-
-### Quick Extensions
-
-**feature** — For small, self-contained additions outside the core roadmap.
-Typically used at the end of a project or as one-offs. Produces a lightweight
-feature brief that design consumes.
 
 ### After Each Phase
 
@@ -106,26 +103,30 @@ After 2-4 implementation phases (typically 3), run a refactoring pass:
 > Don't refactor after every phase. Let code accumulate so refactor-design
 > can identify real duplication and missing abstractions, not one-off patterns.
 
-### Style & Structure Refactoring (once, after 3-5 phases)
+### Refactor Conventions (once, after 3-5 phases)
 
-After 3-5 phases of accumulated code, run the creators **once** to set up
-project-specific refactoring skills:
+After 3-5 phases of accumulated code, run the creator **once** to set up a
+project-specific refactoring skill that captures both style and structure preferences:
 
-9. **stylistic-refactor-creator** — Interview-based. Produces a project-specific
-   **stylistic-refactor** skill that scans for coding style inconsistencies.
-10. **structural-refactor-creator** — Interview-based. Produces a project-specific
-    **structural-refactor** skill that scans for organizational issues.
-11. Run the **generated skills** immediately after — they scan the codebase and
-    produce refactoring plans.
-12. Use **implement-orchestrator** or **implement** to apply the high-value items.
+9. **refactor-conventions-creator** — Interview-based. Explores the repo, researches
+   stack-specific best practices, interviews you about both stylistic preferences
+   (early returns, error handling, paradigm) and structural preferences (file size,
+   folder layout, module boundaries, co-location), then generates a project-specific
+   **refactor-conventions** skill with `references/style/` and `references/structure/`
+   subdirectories.
+10. Run the **generated skill** immediately after — it scans the codebase and produces
+    a prioritized refactoring plan with separate Style Refactors and Structure Refactors
+    sections.
+11. Use **implement-orchestrator** or **implement** to apply the high-value items.
 
-From then on, periodically re-run the **generated skills** (not the creators)
-to find new inconsistencies as the codebase grows. Only re-run the creators
-if you want to expand or update the style/structure rules themselves.
+From then on, periodically re-run the **generated skill** (not the creator) to find new
+inconsistencies as the codebase grows. Only re-run the creator if you want to expand or
+update the rules themselves. (This skill replaces the previous separate
+`stylistic-refactor-creator` and `structural-refactor-creator` skills.)
 
-> **Timing matters.** The creators need significant accumulated code to
-> interview effectively. Running them too early produces thin, obvious rules.
-> Wait until the codebase has enough patterns to analyze meaningfully.
+> **Timing matters.** The creator needs significant accumulated code to interview
+> effectively. Running it too early produces thin, obvious rules. Wait until the
+> codebase has enough patterns to analyze meaningfully.
 
 ### Performance (as needed)
 
@@ -158,6 +159,21 @@ if you want to expand or update the style/structure rules themselves.
   simplifications. Applies conceptual lenses (elimination, unification,
   inversion) to surface bold architectural ideas, then converges into an
   implement-ready design document.
+
+### Fixing Bugs
+
+- **fix** — Diagnose and repair a specific reported bug. Reproduces the issue,
+  bisects to the root cause, writes a failing test that captures the bug,
+  applies the minimal fix, then confirms. Use when something is verifiably
+  broken — not for unverified hunches, refactoring, or feature additions.
+
+### Code Review
+
+- **review** — Peer review a specific code change. Accepts flexible targets:
+  branch diff (default vs main), specific commit, commit range, working tree,
+  unpushed commits (`@{u}..HEAD`), or PR by number (via `gh`). Produces a
+  prioritized review with Blocker / Important / Nit findings. Different from
+  `/repo-eval` and `/security-review` which audit the full repository.
 
 ### Testing
 
@@ -202,15 +218,17 @@ all the context the agent needs.
 | Testing passes | You decide when | At major boundaries and end of roadmap |
 | Prerequisites | Foundation docs + roadmap | Foundation docs + roadmap |
 
-### refactor-design vs the creators
+### refactor-design vs refactor-conventions-creator vs bold-refactor
 
 | Skill | Focus | When to run |
 |-------|-------|-------------|
-| refactor-design | Code reuse, deduplication, missing abstractions | Every 2-4 phases (typically 3) |
-| stylistic-refactor-creator | Coding style preferences | Once after 3-5 phases, then re-run generated skill |
-| structural-refactor-creator | File/folder organization | Once after 3-5 phases, then re-run generated skill |
+| refactor-design | Code smells, dedup, missing abstractions, dead weight | Every 2-4 phases (typically 3) |
+| refactor-conventions-creator | Both stylistic and structural conventions | Once after 3-5 phases, then re-run the generated skill |
+| bold-refactor | Conceptual reconceptions — what single elegant idea would make half this code unnecessary | Occasionally, when something feels architecturally off |
 
-These three have distinct, non-overlapping scopes. They complement each other.
+These four (with bold-refactor) have distinct, non-overlapping scopes. `refactor-design`
+finds incremental improvements; `refactor-conventions-creator` codifies team preferences;
+`bold-refactor` questions the underlying design.
 
 ### test-quality vs e2e-test-design
 
@@ -221,16 +239,16 @@ These three have distinct, non-overlapping scopes. They complement each other.
 
 ### Principles (auto-loading)
 
-These skills are not invoked directly. They auto-load when relevant skills
-(design, implement) are active, providing consistent architectural and
-coding standards across the pipeline.
+This skill is not invoked directly. It auto-loads when relevant skills
+(design, implement, refactor-design, etc.) are active, providing consistent
+architectural and coding standards across the pipeline.
 
-- **design-principles** — Architectural principles: Ports & Adapters, Single
-  Source of Truth, Generated Contracts. Auto-loads during design, interface
-  definition, and architectural decisions.
-- **implementation-principles** — Code-level principles: Fail Fast, Single
-  Source of Truth enforcement, guard clauses. Auto-loads during implement
-  and any code-writing activity.
+- **principles** — Ports & Adapters, Single Source of Truth, Generated Contracts,
+  and Fail Fast. Each principle has per-phase subsections covering both design-time
+  application (the architectural decision) and implementation-time enforcement
+  (the code-level discipline). Auto-loads when either /design or /implement is
+  active. (This skill replaces the previous separate `design-principles` and
+  `implementation-principles` skills.)
 
 ### Skill Authoring
 
@@ -286,9 +304,8 @@ ideate → roadmap                             ← project start (once)
 ├──│─ refactor-design → impl-orch         │  ← refactor pass
 ├──│─ extract-patterns                    │
 │  │                                     │
-├──│─ stylistic-refactor-creator          │  ← style/structure pass (~phase 5)
-├──│─ structural-refactor-creator         │
-├──│─ run generated skills → impl-orch    │
+├──│─ refactor-conventions-creator        │  ← conventions pass (~phase 5)
+├──│─ run generated skill → impl-orch     │
 │  │                                     │
 │  └─────────────────────────────────────┘
 │
@@ -301,9 +318,35 @@ ideate → roadmap                             ← project start (once)
 ├─ test-quality                              ← testing pass
 ├─ e2e-test-design → implement
 │
-├─ run refactor skills again                 ← periodic cleanup
+├─ run refactor-conventions skill again      ← periodic cleanup
 │
-├─ feature → design → implement              ← quick extensions / one-offs
+├─ extend → design → implement               ← quick extensions / one-offs
+├─ fix                                        ← bugs surfaced along the way
+├─ review                                     ← peer-review changes before shipping
 │
 ├─ release                                   ← ship it
 ```
+
+## Canonical `docs/` Structure
+
+The workflow skills converge on this layout in any project that uses them. Each
+doc-producing skill writes to its canonical path by default — you don't need to
+configure anything.
+
+```
+docs/
+├── VISION.md, SPEC.md, ARCHITECTURE.md, ROADMAP.md   ← foundation docs (from ideate, roadmap, extend)
+├── PROGRESS.md                                         ← autopilot state (from autopilot)
+├── designs/                                            ← active design docs
+│   ├── {name}.md                                       ← from /design
+│   ├── refactor-{name}.md                              ← from /refactor-design
+│   ├── perf-{name}.md                                  ← from /perf-design
+│   ├── bold-{name}.md                                  ← from /bold-refactor
+│   ├── e2e-{name}.md                                   ← from /e2e-test-design
+│   └── completed/                                      ← /implement moves designs here after success
+└── features/                                           ← briefs from /extend (small mode)
+```
+
+Skills will only deviate from these defaults if your project clearly has a different
+convention already in place. `/update-documentation` includes a Phase 6 audit that detects
+misplaced files and offers to `git mv` them into the canonical layout.

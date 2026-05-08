@@ -18,7 +18,7 @@ Available as a **Claude Code plugin** and via **[skilltap](https://github.com/nk
 ```
 
 Two plugins available:
-- **workflow** — 22 skills for the full development pipeline
+- **workflow** — 24 skills for the full development pipeline (design, implement, refactor, fix, review, test, ship)
 - **skill-authoring** — 3 skills for creating, evaluating, and refining agent skills
 
 ### Via Skilltap
@@ -51,39 +51,43 @@ refactor-design → implement → extract-patterns  ← every 2-4 phases
     ↓
 bold-refactor / perf-design → implement         ← targeted improvements
     ↓
-expand                              ← major scope changes (updates foundation docs)
+extend                              ← scope additions (small or large)
     ↓
-stylistic/structural-refactor-creator         ← every 3-5 phases
+refactor-conventions-creator        ← once after 3-5 phases
     ↓
 security-review → design → implement           ← security audit pass
     ↓
-feature → design → implement        ← quick one-offs near the end
+fix                                 ← bugs found along the way
+    ↓
+review                              ← peer-review changes before shipping
     ↓
 release                              ← ship it
 ```
 
 | Skill | What it does |
 |-------|-------------|
-| **ideate** | Interactive project definition workshop. Produces foundation docs (VISION.md, SPEC.md, ARCHITECTURE.md). Run once at project start. |
+| **ideate** | Interactive project definition workshop. Produces foundation docs (VISION.md, SPEC.md, ARCHITECTURE.md). Includes anti-vision, competitive landscape, and maximalist-vs-minimalist contrast to attack the idea. Run once at project start. |
 | **roadmap** | Generate an agent-optimized project roadmap from foundation docs. Decomposes into phases with dependencies and test checkpoints. |
 | **autopilot** | Autonomously execute an entire roadmap end-to-end. Loops design → implement-orchestrator → test per phase with refactoring passes. Tracks progress for cross-session resume. |
-| **expand** | Expand project scope — new subsystem, major capability, architectural shift. Updates foundation docs and roadmap. |
-| **feature** | Scope a quick extension or one-off outside the core roadmap. Produces a feature brief that design consumes. |
-| **design** | Produce detailed implementation units with exact interfaces, types, and acceptance criteria. |
-| **implement** | Write code from a design or plan. Single Sonnet agent. Best for <20 files. |
-| **implement-orchestrator** | Opus orchestrator that spawns Sonnet agents. For 20+ files or independent subsystems. |
+| **extend** | Add capability to an existing project. Branches on scope: small additions produce a feature brief; major expansions update foundation docs and roadmap. |
+| **design** | Produce detailed implementation units with exact interfaces, types, and acceptance criteria. Considers 2-3 architectural options, designs the trickiest unit first, includes a pre-mortem. |
+| **implement** | Write code from a design or plan. Single Sonnet agent. Best for <20 files. Moves the design doc to `docs/designs/completed/` after success. |
+| **implement-orchestrator** | Opus orchestrator that spawns Sonnet agents. For 20+ files or independent subsystems. Moves the design doc to `docs/designs/completed/` after success. |
 | **research** | Investigate libraries, APIs, and SDKs. Produces a research doc and an auto-loading reference skill. |
-| **refactor-design** | Find duplication and missing abstractions. Produces a refactor plan that implement executes. |
-| **bold-refactor** | Find beautiful code abstractions and cross-cutting simplifications using conceptual lenses. Produces an implement-ready design. |
+| **refactor-design** | Find duplication, missing abstractions, code smells, and dead weight. Produces a refactor plan that implement executes. |
+| **bold-refactor** | Find beautiful code abstractions and cross-cutting simplifications using conceptual lenses (elimination, unification, inversion, etc.). Produces an implement-ready design. |
 | **extract-patterns** | Document reusable code patterns for consistency across future work. |
-| **stylistic-refactor-creator** | Interview-based. Generates a project-specific stylistic-refactor skill. |
-| **structural-refactor-creator** | Interview-based. Generates a project-specific structural-refactor skill. |
+| **refactor-conventions-creator** | Interview-based. Generates a project-specific refactor-conventions skill that scans for both stylistic and structural issues. |
 | **perf-design** | Profile performance bottlenecks and design optimized solutions. Follows a strict optimization hierarchy. |
 | **security-review** | Comprehensive security audit. Discovers stack, user selects focus domains, produces scored report with severity-classified findings. |
 | **cruft-cleaner** | Sweep for AI-accumulated cruft (dead code, stale comments, defensive bloat). Triages by confidence, parallel cleanup. |
-| **test-quality** | Spec-driven test gap analysis. Derives tests from contracts, not code. Writes the tests. |
-| **e2e-test-design** | Design golden-path and adversarial e2e test suites. Interactive. |
-| **update-documentation** | Align all docs to code after changes. |
+| **test-quality** | Spec-driven test gap analysis. Derives tests from contracts, not code. Reworks tautological tests (rewrites or deletes). Writes new tests. |
+| **e2e-test-design** | Design golden-path and adversarial e2e test suites. Output uses the implementation-units format so /implement can execute it directly. |
+| **fix** | Diagnose and repair a specific bug. Reproduces, bisects, writes a failing test, applies the minimal fix, confirms. |
+| **review** | Review a code change — branch diff, commit, range, working tree, unpushed commits, or PR. Produces Blocker / Important / Nit findings. |
+| **repo-eval** | Multi-dimensional codebase evaluation. Launches parallel explore agents, cross-checks claims, produces a calibrated 1-10 scorecard with prioritized recommendations. |
+| **tool-evaluator** | Self-evaluate agent tool usage in the current conversation. Produces a report with recommendations for tool authors. |
+| **update-documentation** | Align all docs to code after changes. Includes a doc-organization audit that moves misplaced files into the canonical `docs/` structure. |
 | **release** | Draft changelog, confirm with user, run the project's release mechanism. |
 
 ### Skill Authoring
@@ -97,12 +101,9 @@ release                              ← ship it
 
 ### Principles (auto-load)
 
-Auto-load during design and implementation to enforce standards.
-
 | Skill | What it enforces |
 |-------|-----------------|
-| **design-principles** | Ports & Adapters, Single Source of Truth, Generated Contracts |
-| **implementation-principles** | Fail Fast, guard clauses, data-driven extensibility, boundary enforcement |
+| **principles** | Ports & Adapters, Single Source of Truth, Generated Contracts, Fail Fast — with per-phase guidance for design time and implementation time. Auto-loads when either /design or /implement is active. |
 
 ## Library & Tool References
 
@@ -132,10 +133,34 @@ Reference skills that auto-load when their library is detected. Installed indivi
 | **design-pages** | Design GitHub Pages for a project |
 | **clean-memory** | Audit and refine MEMORY.md |
 
-## Repo Structure
+## Canonical `docs/` Structure (in projects using these skills)
+
+The workflow skills converge on a shared `docs/` layout in any project that uses them. Each
+doc-producing skill writes to its canonical path by default; you don't need to configure anything.
 
 ```
-skills/                    # Workflow plugin skills (plugin + skilltap)
+docs/
+├── VISION.md, SPEC.md, ARCHITECTURE.md, ROADMAP.md, etc.   ← foundation docs (from ideate, roadmap, extend)
+├── PROGRESS.md                                              ← autopilot state
+├── designs/                                                 ← active design docs
+│   ├── {name}.md                                            ← from /design
+│   ├── refactor-{name}.md                                   ← from /refactor-design
+│   ├── perf-{name}.md                                       ← from /perf-design
+│   ├── bold-{name}.md                                       ← from /bold-refactor
+│   ├── e2e-{name}.md                                        ← from /e2e-test-design
+│   └── completed/                                           ← moved here by /implement after success
+└── features/                                                ← briefs from /extend (small mode)
+```
+
+`/update-documentation` includes a Phase 6 audit that detects misplaced docs and offers to
+`git mv` them into the canonical layout. Skills will only deviate from these defaults if your
+project clearly has a different convention already in place.
+
+## Repo Structure (this repo)
+
+```
+plugins/workflow/skills/   # Workflow plugin skills (plugin + skilltap)
+plugins/skill-authoring/skills/   # Skill-authoring plugin skills
 .agents/skills/            # Reference, principle, and utility skills (skilltap)
 .claude-plugin/            # Claude Code plugin manifest
 docs/                      # Workflow guide and design docs

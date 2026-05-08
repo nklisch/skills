@@ -1,5 +1,43 @@
 # Changelog
 
+## v1.4.0
+
+### Breaking Changes
+- **Removed skills** (with replacements): `feature` and `expand` → both replaced by `/extend` (branches on scope in Phase 3); `design-principles` and `implementation-principles` → merged into `/principles` (per-phase subsections); `stylistic-refactor-creator` and `structural-refactor-creator` → merged into `/refactor-conventions-creator` (generates `style/` and `structure/` reference subdirectories)
+- Skill references in `tap.json` updated accordingly. Existing installs of the removed skills will continue to work locally but will not receive updates.
+
+### New Skills
+- **`/fix`** — diagnose-and-repair workflow: reproduce → bisect → write failing test → minimal fix → confirm. Distinct from a previously deleted `/fix` (that one consumed `VERIFICATION.md` from a since-removed `/verify` skill).
+- **`/review`** — flexible-target peer review: branch diff, commit, commit range, working tree, unpushed commits, or PR by number. Produces Blocker / Important / Nit findings.
+- **`/extend`** — replaces `/feature` + `/expand` with one skill that branches on scope after exploring the idea.
+- **`/principles`** — replaces `/design-principles` + `/implementation-principles` with one skill that has per-phase guidance per principle.
+- **`/refactor-conventions-creator`** — replaces the two creator skills with one that interviews about both axes and generates a single project-specific skill.
+
+### Workflow Content Improvements
+- **Pre-mortem step** added to `/design` (Phase 5.5), `/bold-refactor` (Phase 4 — softened to execution-planning), and `/refactor-design` (Phase 5 — advisory, acknowledges atomic refactors).
+- **`/design` Phase 5 expanded** to require considering 2-3 architectural options and designing the trickiest unit first. Phase 6 (test design) elevated from a single paragraph to a substantive phase covering unit tests, integration points, and test data.
+- **`/ideate` attacks the idea**: anti-vision and competitive landscape questions added to Discovery; new Phase 1.5 generates maximalist vs minimalist versions and forces the user to navigate the gap.
+- **`/bold-refactor`** quantity target ("3-5 suggestions") removed in favor of "until you've exhausted the lenses." Added explicit "do nothing is valid" option in Phase 3 discussion.
+- **`/refactor-design`** sub-agent briefs expanded from 3 to 4: Code Smells (incl. long files, deep nesting, god functions), Missing Abstractions, Pattern Violations & Naming, Dead Weight.
+- **`/e2e-test-design`** output replaced with the standard implementation-units format so `/implement` and `/implement-orchestrator` can consume it directly.
+- **`/test-quality`** Phase 1.5 audits tautological tests, rewrites recoverable ones as spec-derived tests, deletes the rest. Output report tracks tautological rework separately.
+- **`/autopilot`** Phase 5 (Testing Passes) restructured into 5a/5b/5c (test the contract / test against reality / adversarial coverage) with explicit "find real bugs, not green checkmarks" framing. Decision-frameworks major-boundary triggers made concrete.
+- **`patterns` skill mention** added to `/e2e-test-design`, `/test-quality`, `/cruft-cleaner` (skills that should conform to project patterns). Deliberately omitted from `/bold-refactor` and `/perf-design` (skills that exist to question or override patterns).
+
+### Canonical Docs Structure (new convention)
+Doc-producing skills now default to canonical paths in any project that uses them:
+- Foundation docs → `docs/` flat (VISION.md, SPEC.md, ARCHITECTURE.md, ROADMAP.md)
+- Feature briefs → `docs/features/{slug}.md` (from `/extend` small mode)
+- Design docs → `docs/designs/{name}.md` with type prefixes for non-greenfield (`refactor-`, `perf-`, `bold-`, `e2e-`)
+- Completed designs → `docs/designs/completed/` (`/implement` and `/implement-orchestrator` move them after successful verification using `git mv`)
+
+`/update-documentation` gains a Phase 6 (Organize Docs) that audits the project's `docs/` folder against this layout, detects misplaced files, and offers to `git mv` them into the canonical structure.
+
+### Internal
+- Deleted `plugins/workflow/skills/repo-eval/repo-eval/` (verbatim duplicate directory)
+- All principle-skill references in design, implement, implement-orchestrator, test-quality updated to point at `/principles`
+- `tap.json` restructured to align with skilltap-author conventions: workflow + skill-authoring skills moved into inline TapPlugin definitions, all entries gain `trust.verified` metadata
+
 ## v1.3.4
 
 ### Improvements
