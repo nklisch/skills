@@ -99,7 +99,7 @@ For each agent, write a self-contained prompt that includes:
 
 6. **Verification commands** — what to run when done (from CLAUDE.md, e.g., `pnpm typecheck && pnpm lint && pnpm test`).
 
-7. **Commit instruction** — "After all code compiles and tests pass, commit with a message describing what was implemented. Do NOT push."
+7. **Commit instruction** — "After all code compiles and tests pass, commit with a message describing what was implemented. Do NOT push." Note: the **orchestrator** (not the spawned agents) handles moving the design document to `docs/designs/completed/` after all agents succeed — see Phase 7 below.
 
 #### Prompt crafting principles:
 
@@ -146,8 +146,9 @@ If an agent failed or left gaps:
 ### Phase 7: Final Verification and Report
 
 1. Run the project's verification commands (e.g., `pnpm typecheck && pnpm lint && pnpm test`).
-2. Report results to the user: what was implemented, how many agents were used, any deviations from the design, any remaining issues.
-3. If the project has an agent-tracker, post a progress update.
+2. **Move the design document to completed/** — if the design lives at `docs/designs/{name}.md` and verification passed, move it to `docs/designs/completed/{name}.md` using `git mv` so history is preserved. Commit this move (separate commit or amended onto the last agent commit, your choice). Skip if the design is in a non-canonical location (different convention) — note it in the report instead. Create `docs/designs/completed/` if it doesn't exist.
+3. Report results to the user: what was implemented, how many agents were used, any deviations from the design, any remaining issues.
+4. If the project has an agent-tracker, post a progress update.
 
 ## Guardrails
 

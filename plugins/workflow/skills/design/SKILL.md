@@ -165,7 +165,7 @@ Specify implementation order (resolve dependencies — what must exist before wh
 
 ## Output
 
-Determine where to write the design document. If `{{design_path}}` was specified, use it. Otherwise, assess the project structure — look for existing docs or design directories (e.g., `docs/`, `design/`) and follow the convention. If no convention is apparent, pick a logical location or ask the user.
+If `{{design_path}}` was specified, use it. Otherwise, write the design document to **`docs/designs/{descriptive-name}.md`** by default. This is the canonical location for design documents in projects following the workflow plugin's convention. Create `docs/designs/` if it doesn't exist. Only deviate if the project clearly has a different convention (e.g., an existing `design/` folder with prior design docs already in it).
 
 Structure:
 

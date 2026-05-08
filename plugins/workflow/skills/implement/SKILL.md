@@ -114,7 +114,8 @@ After completing all work and self-verification passes, commit your changes:
 
 1. Stage all source and test files you created or modified
 2. Also stage any other modified files (e.g., updated exports)
-3. Commit with a concise message describing what was implemented.
+3. **Move the design document to completed/** — if the design lives at `docs/designs/{name}.md`, move it to `docs/designs/completed/{name}.md` using `git mv` so history is preserved. Skip this step if the design is in a non-canonical location (different convention) — note it in the output instead. Create `docs/designs/completed/` if it doesn't exist.
+4. Commit with a concise message describing what was implemented.
 
 Do NOT push to remote.
 

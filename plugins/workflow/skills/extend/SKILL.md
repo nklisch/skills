@@ -82,7 +82,7 @@ Sharpen the scope:
 
 ### 4a.2: Write Feature Brief
 
-Write the brief to a location based on project conventions (e.g., `docs/features/`, `docs/`, or project root). Ask the user if unclear.
+Write the brief to **`docs/features/{feature-slug}.md`** by default. This is the canonical location for feature briefs in projects following the workflow plugin's convention. Create `docs/features/` if it doesn't exist. Only deviate if the project clearly has a different convention.
 
 ```markdown
 # Feature: {Name}

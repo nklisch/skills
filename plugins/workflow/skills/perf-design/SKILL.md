@@ -139,7 +139,7 @@ Write the design document in implementation-unit format that `implement` or `imp
 
 ## Output
 
-Determine where to write the design document. Assess the project structure — look for existing docs or design directories (e.g., `docs/`, `design/`) and follow the convention. If no convention is apparent, pick a logical location or ask the user.
+Write the performance design to **`docs/designs/perf-{descriptive-name}.md`** by default. The `perf-` prefix distinguishes it from greenfield and refactor designs in the same folder. Create `docs/designs/` if it doesn't exist. Only deviate if the project clearly has a different convention.
 
 ```markdown
 # Performance Design: {Target Name}

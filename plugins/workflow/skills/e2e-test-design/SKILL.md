@@ -169,8 +169,7 @@ document uses the same implementation-units format that both skills consume.**
 
 ## Output
 
-Write the test design document to the project. Look for existing test directories or docs
-directories to place it. If unclear, ask the user.
+Write the test design document to **`docs/designs/e2e-{descriptive-name}.md`** by default. The `e2e-` prefix distinguishes it from other designs in the same folder. Create `docs/designs/` if it doesn't exist. Only deviate if the project clearly has a different convention.
 
 The output uses the **standard implementation-units format** so `/implement` and
 `/implement-orchestrator` can execute it directly.

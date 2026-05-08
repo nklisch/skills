@@ -120,7 +120,7 @@ Write docs one at a time. For each document:
 3. **Iterate** — incorporate feedback. Repeat until the user approves.
 4. **Write to disk** — save the approved doc.
 
-Ask the user where to write docs (project root vs `/docs/` directory) before writing the first one.
+**Output location:** Default to **`docs/`** for foundation documents — `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, etc. This is the canonical location for projects following the workflow plugin's convention. If the `docs/` directory doesn't exist, create it. Only ask the user if the project clearly has a different convention (e.g., an existing `documentation/` folder with foundation docs already in it).
 
 After all docs are written, present a final summary listing every file produced with a one-line
 description of each.

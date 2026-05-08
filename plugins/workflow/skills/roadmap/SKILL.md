@@ -108,7 +108,7 @@ Break the project into phases. Apply these principles:
 
 ### Phase 4: Write ROADMAP.md
 
-Write the roadmap to `docs/ROADMAP.md` (or wherever the project keeps docs).
+Write the roadmap to **`docs/ROADMAP.md`**. This is the canonical location. Only deviate if the project clearly uses a different convention.
 
 **Format — follow this exactly:**
 

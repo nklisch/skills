@@ -94,7 +94,7 @@ ORDER by dependency and priority, then WRITE the refactor plan.
 
 ## Output
 
-Determine where to write the refactor plan by assessing the project structure — look for existing docs or design directories (e.g., `docs/`, `design/`) and follow the convention. If no convention is apparent, pick a logical location or ask the user.
+Write the refactor plan to **`docs/designs/refactor-{descriptive-name}.md`** by default. The `refactor-` prefix distinguishes it from greenfield designs in the same folder. Create `docs/designs/` if it doesn't exist. Only deviate if the project clearly has a different convention.
 
 Structure:
 

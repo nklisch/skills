@@ -151,8 +151,7 @@ The design document should be as bold in its precision as your suggestions were 
 - Resolved implementation order (what to build first)
 - Detailed enough that an implementer can build from it without asking questions
 
-Determine where to write the design document. Assess the project structure — look for existing
-docs or design directories (e.g., `docs/`, `design/`). If no convention exists, ask the user.
+Write the design document to **`docs/designs/bold-{descriptive-name}.md`** by default. The `bold-` prefix marks it as a conceptual reconception rather than a greenfield design or routine refactor. Create `docs/designs/` if it doesn't exist. Only deviate if the project clearly has a different convention.
 
 **Checkpoint:** Present the design document. Ask if anything needs adjustment before handing off
 to implement.

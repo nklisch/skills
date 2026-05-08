@@ -104,6 +104,53 @@ After agents complete:
 3. Verify no stale references remain: grep for the changed feature's name/flag/function
    across all doc roots
 
+## Phase 6: Organize Docs
+
+Audit the project's `docs/` folder against the workflow plugin's canonical structure.
+Skip this phase if the project clearly uses a different convention.
+
+**Canonical structure:**
+
+```
+docs/
+├── VISION.md, SPEC.md, ARCHITECTURE.md, ROADMAP.md, etc.   ← foundation docs (flat)
+├── PROGRESS.md                                              ← autopilot state (if present)
+├── designs/                                                 ← active design docs
+│   └── completed/                                           ← designs whose implementation shipped
+└── features/                                                ← feature briefs
+```
+
+Naming conventions for `docs/designs/`:
+- `{name}.md` — greenfield design (from `/design`)
+- `refactor-{name}.md` — refactor plan (from `/refactor-design`)
+- `perf-{name}.md` — performance design (from `/perf-design`)
+- `bold-{name}.md` — bold reconception (from `/bold-refactor`)
+- `e2e-{name}.md` — e2e test design (from `/e2e-test-design`)
+
+**Audit steps:**
+
+1. **Misplaced design docs** — find `*.md` files at `docs/` (not in `designs/`) that look like designs (contain "Implementation Units", "Acceptance Criteria", a Plan structure, or have the `-design`/`-plan` naming). Report each with a suggested target path under `docs/designs/`.
+
+2. **Misplaced feature briefs** — find `*.md` files at `docs/` that look like feature briefs (contain "## Requirements", "## Scope" with In/Out, or `feature-` prefix). Report with suggested target under `docs/features/`.
+
+3. **Completed designs not yet moved** — for each file in `docs/designs/` (not already in `completed/`), check whether implementation has shipped:
+   - **Strong signal:** all files referenced in the design's Implementation Units exist in the repo
+   - **Strong signal:** recent git log shows commits with the design's name in the message
+   - **Weak signal:** the design's age (older than ~30 days)
+   Report candidates for moving to `docs/designs/completed/`.
+
+4. **Missing canonical directories** — note if `docs/designs/`, `docs/designs/completed/`, or `docs/features/` should exist based on what's been produced.
+
+**AskUserQuestion checkpoint:**
+
+If any audit findings exist, present the proposed moves grouped by category (misplaced / completed / missing dirs) and ask:
+- "Apply all recommended moves" (Recommended if findings are confident)
+- "Apply only the high-confidence moves (skip ambiguous ones)"
+- "Show me each move individually"
+- "Skip — leave docs as-is"
+
+For approved moves, use `git mv` so history is preserved. Commit the reorganization separately from doc content updates so the move is reviewable on its own.
+
 ## Completion Criteria
 
 - All doc files that own the changed area have been updated
@@ -111,4 +158,5 @@ After agents complete:
 - Generated files have been regenerated if source docs changed
 - Memory updated if a new stable pattern or gotcha was introduced
 - Repo-specific derived skills updated if the change affects anything they reference
+- Doc structure audit performed (Phase 6); approved moves applied with `git mv`
 - All changes committed
