@@ -87,7 +87,7 @@ Re-read **CLAUDE.md** (project root and `.claude/` if both exist) and all files 
 ### Phase 5: Design Refactor Steps
 PLAN each refactor as a discrete, testable step with current/target code and acceptance criteria.
 
-For each step, name the riskiest part — what could go wrong — and identify the safe fallback. If a step has no clear rollback path, split it further until it does. A refactor step you can't undo is too large.
+For each step, name the riskiest part — what could go wrong — and identify the rollback path if one exists. Prefer splitting steps to keep them reversible, but accept that some refactors are atomic by nature (renaming a public API, schema migrations, contract changes). For genuinely atomic steps, acknowledge the irreversibility explicitly and stage the work behind feature flags or migration scripts where possible.
 
 ### Phase 6: Order and Write
 ORDER by dependency and priority, then WRITE the refactor plan.

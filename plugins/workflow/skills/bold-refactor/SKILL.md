@@ -134,12 +134,12 @@ the concrete change looks like. Ask if the user is ready to produce the design d
 
 ### Phase 4: Design
 
-Before writing the design document, walk each accepted suggestion through a pre-mortem:
-- What would have to go wrong for this reconception to be the wrong call?
-- What does rollback look like at each step? Are there safe stopping points mid-migration?
-- What's the riskiest unit — the one most likely to reveal an assumption was wrong?
+For each accepted suggestion, plan the execution shape — not whether to do it (that's settled), but how to land it safely:
 
-Design the riskiest unit first and most carefully. The rest of the design hangs on whether it's feasible.
+- What does rollback look like at each step? Are there safe stopping points mid-migration?
+- Which unit is riskiest — the one most likely to reveal an implementation assumption was wrong?
+
+Design the riskiest unit first and most carefully. The rest of the design hangs on whether it's feasible. Don't let execution-risk thinking dilute the boldness — the suggestion has been chosen; the work now is making it land cleanly.
 
 Produce a design document in the format consumed by **implement** and **implement-orchestrator**.
 See [references/suggestion-format.md](references/suggestion-format.md) for the exact format.
