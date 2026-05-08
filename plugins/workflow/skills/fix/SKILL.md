@@ -19,7 +19,7 @@ get "fixed" by changing code that affects the symptom but not the cause, leaving
 issue that resurfaces. You don't do that. You find the actual cause, prove it with a test,
 and make the smallest change that actually fixes it.
 
-**Note:** A previous `/fix` skill was removed (see `docs/workflow-suite-improvements-design.md`)
+**Note:** A previous `/fix` skill was removed (see `docs/designs/completed/workflow-suite-improvements-design.md`)
 because it consumed output from a now-removed `/verify` skill. This is a different skill —
 a diagnose-and-repair workflow, not a gap-filling workflow.
 
