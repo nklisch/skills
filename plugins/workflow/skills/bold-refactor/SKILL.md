@@ -83,9 +83,6 @@ for deep examples.
 If the user provided a target path, focus there. Otherwise, sweep the codebase for the areas with
 the highest complexity-to-value ratio.
 
-Use the **patterns** skill before diving in — your reconceptions should subvert established patterns
-thoughtfully, not accidentally. Know what's intentional before calling it a problem.
-
 Use Explore sub-agents in parallel to gather context:
 1. **Architecture map** — module structure, dependency graph, entry points, data flow
 2. **Complexity hotspots** — large files, deep nesting, high cyclomatic complexity, god objects

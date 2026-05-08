@@ -24,7 +24,6 @@ Read these before profiling — each one prevents wasted effort downstream:
 2. **Existing benchmarks** — search for benchmark files, perf tests, or load tests in the project
 3. **Existing test suite** — understand how the project tests itself so benchmarks follow the same patterns
 4. **Source code under investigation** — read the target code thoroughly before profiling
-5. Use the **patterns** skill to read patterns relevant to the code you'll be optimizing — performance fixes that violate the project's established structures create maintenance debt
 
 ## The Optimization Hierarchy
 

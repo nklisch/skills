@@ -268,28 +268,25 @@ discovered and how the design handles them in a "Risks" section near the end.
 
 ### Unit 7: Add patterns-skill mention to skills that touch code but don't currently mention it
 
-**Files:**
-- `plugins/workflow/skills/bold-refactor/SKILL.md`
-- `plugins/workflow/skills/perf-design/SKILL.md`
+**Files (final, after implementation-time deviation):**
 - `plugins/workflow/skills/e2e-test-design/SKILL.md`
 - `plugins/workflow/skills/test-quality/SKILL.md`
 - `plugins/workflow/skills/cruft-cleaner/SKILL.md`
 
+**Deviation from original plan:** The patterns-skill mention was originally proposed for `bold-refactor` and `perf-design` as well. Removed during implementation because those skills exist *to question or override patterns* — bold-refactor's whole point is conceptual reconception (often subverting patterns), and perf-design fixes often legitimately need to violate patterns (caching, denormalization, inlining across abstractions). Forcing pattern-awareness as a precondition biases both skills toward conservatism that defeats their purpose.
+
 **Implementation Notes:**
-- Each skill gets a one-line addition in its grounding/exploration phase, modeled on what `design` and `implement` already say:
-  - `design`: "Use the **patterns** skill to read relevant patterns for the domain you're designing"
-  - `implement`: "Use the **patterns** skill to read relevant patterns for the code you're about to write"
+- Each skill gets a one-line addition in its grounding/exploration phase, modeled on what `design` and `implement` already say
 - Per-skill phrasing:
-  - `bold-refactor` (Phase 1 Explore): "Use the patterns skill to understand established code structures — your reconceptions should subvert patterns thoughtfully, not unintentionally."
-  - `perf-design` (Phase 1 Ground Yourself): "Use the patterns skill to read patterns relevant to the code you'll be optimizing — performance fixes that violate the project's patterns create maintenance debt."
   - `e2e-test-design` (Phase 1 Understand the codebase): "Use the patterns skill to read test patterns — your designed tests should be runnable in the project's existing test infrastructure."
   - `test-quality` (Phase 1 Ground Yourself First): "Use the patterns skill to read test patterns — your new tests should follow the project's existing test structure."
   - `cruft-cleaner` (Phase 1 Detect): "Use the patterns skill to understand what's *intentionally* repetitive vs accidentally so — patterns are NOT cruft."
 
 **Acceptance Criteria:**
-- [ ] All five skills mention the patterns skill in an early grounding phase
-- [ ] Phrasing is consistent with the domain (refactor, perf, test, etc.)
+- [ ] e2e-test-design, test-quality, cruft-cleaner mention the patterns skill in an early grounding phase
+- [ ] Phrasing is consistent with the domain (test, cleanup)
 - [ ] cruft-cleaner specifically mentions patterns as a guard against deleting intentional repetition
+- [ ] bold-refactor and perf-design do NOT mention patterns (deliberate omission — see deviation note above)
 
 ---
 
