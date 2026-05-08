@@ -29,7 +29,7 @@ you resolve now prevents a guess during implementation:
 2. **Existing source code** — understand current codebase state
 3. **Research docs** — if the project has prior research findings on libraries/APIs relevant to this target, find and read them. Prefer these over assumptions about library APIs.
 4. Use the **patterns** skill to read relevant patterns for the domain you're designing
-5. Use the **design-principles** skill — apply Ports & Adapters, Single Source of Truth, and Generated Contracts to your design decisions
+5. Use the **principles** skill — apply Ports & Adapters, Single Source of Truth, and Generated Contracts to your design decisions
 6. **CLAUDE.md** — project guidelines (if it exists)
 7. **Spec document** — technical constraints, interfaces, non-functional requirements (if it exists)
 8. **UX document** — UX design requirements, wireframes, design system (if it exists)
@@ -113,16 +113,52 @@ After receiving sub-agent results, **read 2-3 key source files yourself** to ver
 Re-read **CLAUDE.md** (project root and `.claude/` if both exist) and all files in **`.claude/rules/`** (if the directory exists). Even if you read these earlier, re-read them now — recency improves adherence. Confirm your approach aligns with project conventions before proceeding.
 
 ### Phase 5: Design Implementation Units
-This is where your architectural judgment matters most. For each unit, specify:
-   - Exact file path
-   - Code showing interfaces, types, and function signatures in the project's language
-   - Implementation notes for non-obvious logic — the things that aren't obvious from the type signatures
-   - Acceptance criteria that are testable assertions, not vibes
+
+This is the substantive phase. Don't rush it.
+
+**5a. Consider 2-3 architectural options first.**
+
+Before designing units, name 2-3 plausible high-level approaches. For each:
+- One-paragraph description
+- Key tradeoff (what it optimizes for, what it sacrifices)
+- Why it might or might not fit this project
+
+Choose one explicitly. State why over the others. This is what separates a design from "the first reasonable thing that came to mind."
+
+**5b. Identify the trickiest unit.**
+
+Among the units you'll design, name the one you're least sure about — the one with the highest unknowns, the most novel logic, or the most external dependencies. Design this unit first and most carefully. The rest of the design hangs on whether this unit is feasible.
+
+**5c. Design each unit.**
+
+For each unit, specify:
+- Exact file path
+- Code showing interfaces, types, and function signatures in the project's language
+- Implementation notes for non-obvious logic — the things that aren't obvious from the type signatures
+- Acceptance criteria that are testable assertions, not vibes
 
 Make strong decisions about abstractions, naming, and module boundaries. If you see a better structure than what the vision doc implies, design it and explain why.
 
+### Phase 5.5: Pre-Mortem
+
+Before finalizing the design, take a few minutes to attack it:
+
+- **What's the riskiest assumption in this design?** Name it explicitly.
+- **What would have to be true for this to fail in production?** Be specific about failure modes.
+- **What's the fallback if the riskiest unit doesn't work?** Is there a path that doesn't blow up the whole design?
+- **Where am I least sure?** Mark those units — they get extra design care or early validation.
+
+If the pre-mortem surfaces a serious risk, revise the design or add a spike unit that validates the risky assumption before the rest of implementation commits to it. Document discovered risks in a **Risks** section near the end of the design document.
+
 ### Phase 6: Design Test Approach
 Design the test approach for each unit. Tests should verify the contracts you designed — if the acceptance criteria are precise, the tests write themselves.
+
+For each unit, design:
+- **Unit tests** — what behaviors to verify, what edge cases to cover, what error paths to exercise
+- **Integration points** — where does this unit meet other units? What integration tests prove the seams hold?
+- **Test data** — what fixtures, factories, or seed data are needed?
+
+If a unit is hard to test, the design is probably wrong. Note this and revise the unit before proceeding.
 
 ### Phase 7: Specify Order and Write
 Specify implementation order (resolve dependencies — what must exist before what can be built), then write the design document. The document should read as a confident blueprint, not a tentative proposal.

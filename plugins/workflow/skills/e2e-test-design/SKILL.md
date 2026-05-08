@@ -38,6 +38,8 @@ Map the project before designing anything.
 3. **Identify the project type** — CLI tool, web app, library, API server, monorepo, etc.
 4. **Catalog existing tests** — what's already covered? What testing framework is used?
    Note gaps: untested entry points, missing integration tests, no failure-case coverage
+5. **Use the patterns skill** if it exists — read test patterns so your designed tests fit
+   the project's existing test infrastructure and fixture conventions
 
 Summarize findings for the user: project type, entry points, existing test coverage, testing framework.
 
@@ -161,57 +163,91 @@ Present the complete test suite design to the user.
 Incorporate feedback, then write the final test design document. The goal is a test suite
 you'd be proud to hand to a new team member and say "run these — if they pass, the product works."
 
+**After producing the design, hand off to `/implement` (small suite) or `/implement-orchestrator`
+(large suite, or when test infrastructure and test cases are clearly independent work). The design
+document uses the same implementation-units format that both skills consume.**
+
 ## Output
 
 Write the test design document to the project. Look for existing test directories or docs
 directories to place it. If unclear, ask the user.
 
-**Document structure:**
+The output uses the **standard implementation-units format** so `/implement` and
+`/implement-orchestrator` can execute it directly.
 
 ```markdown
-# E2E Test Suite Design
+# Design: E2E Test Suite for {Project}
 
-## Project Summary
-{Project type, entry points, target users}
+## Overview
+{What this suite covers, what it doesn't, which framework it uses}
 
-## Test Environment
-{Framework, setup requirements, fixtures needed}
+## Implementation Units
 
-## Existing Coverage
-{What's already tested, identified gaps}
+### Unit 1: Test Infrastructure
+**File**: `tests/e2e/setup.{ext}`
 
----
+\`\`\`{lang}
+// fixtures, helpers, mock services, seed data, test server setup
+// concrete interface — not pseudocode
+\`\`\`
 
-## Golden-Path Tests
+**Implementation Notes**:
+- {What real services this connects to vs what's mocked}
+- {Test data seeding approach}
 
-### Journey: {Name}
-**Priority:** {high/medium/low}
-
-#### Test: {test name}
-- **Setup:** ...
-- **Steps:** ...
-- **Assertions:** ...
-- **Teardown:** ...
+**Acceptance Criteria**:
+- [ ] Test infrastructure starts cleanly and tears down without side effects
 
 ---
 
-## Adversarial / Failure-Mode Tests
+### Unit 2: {Golden-Path Journey Name}
+**File**: `tests/e2e/{journey-slug}.test.{ext}`
 
-### Category: {User Mistakes | Bad Environment | Boundary Conditions}
+\`\`\`{lang}
+// describe/it blocks, setup/teardown calls, assertion targets named explicitly
+// test skeleton the implementer fills in
+\`\`\`
 
-#### Test: {test name — what goes wrong}
-- **Scenario:** ...
-- **Action:** ...
-- **Expected behavior:** ...
-- **Verify no side effects:** ...
+**Implementation Notes**:
+- {Steps in order — what the user does}
+- {What this test asserts — user-visible outcomes, not internals}
+- {Teardown requirements}
+
+**Acceptance Criteria**:
+- [ ] Test exercises the full journey end-to-end against real infrastructure
+- [ ] All assertions verify user-visible outcomes
 
 ---
 
-## Implementation Notes
-{Testing framework specifics, shared fixtures, helper utilities needed}
+{Repeat for each golden-path journey}
 
-## Priority Order
-{Recommended implementation order — highest-value tests first}
+---
+
+### Unit N: {Adversarial Category Name}
+**File**: `tests/e2e/{category-slug}-failures.test.{ext}`
+
+\`\`\`{lang}
+// adversarial test skeletons
+\`\`\`
+
+**Implementation Notes**:
+- {Failure scenario being induced}
+- {Expected behavior from Phase 5 answers}
+- {How to verify no corrupted state remains}
+
+**Acceptance Criteria**:
+- [ ] Test verifies the project fails gracefully (error message, exit code, HTTP status)
+- [ ] Test confirms no corrupted state after failure
+
+---
+
+## Implementation Order
+1. Unit 1 (test infrastructure) — everything else depends on it
+2. Golden-path tests (build on infrastructure)
+3. Adversarial tests (leverage infrastructure built by golden-path tests)
+
+## Verification Checklist
+{Commands to run the full suite}
 ```
 
 ## Guardrails

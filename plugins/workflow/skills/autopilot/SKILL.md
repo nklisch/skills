@@ -215,15 +215,40 @@ Log the refactor pass in PROGRESS.md. Commit all changes.
 
 ### Phase 5: Testing Passes
 
-At major boundaries — when transitioning between backend and frontend work, or at the end
-of the roadmap — run deeper testing:
+At major boundaries, the per-phase test checkpoints aren't enough. Run a deeper testing pass.
+The goal is to **find real bugs**, not produce green checkmarks.
 
-- Invoke `/test-quality` to find and fill test gaps from a spec-driven perspective.
-- Invoke `/e2e-test-design` to design golden-path and adversarial test suites, then implement
-  the test design via `/implement-orchestrator`.
+See [references/decision-frameworks.md](references/decision-frameworks.md) for what
+constitutes a major boundary — but always run this pass at end-of-roadmap.
 
-Decision framework: see [references/decision-frameworks.md](references/decision-frameworks.md)
-for what constitutes a "major boundary."
+#### 5a. Test the contract, not the implementation
+
+Invoke `/test-quality`. Its core principle: tests derived from reading implementation are
+tautological — they prove the code does what the code does, which catches nothing. Tests
+derived from specs prove the code does what it *should* do — that's where real bugs live.
+
+When test-quality finds tautological tests in existing coverage, it reworks them (recovers
+the spec behavior they were meant to verify, then rewrites them as proper spec-derived tests)
+or deletes them if no spec behavior is recoverable. The reward is a failing test that reveals
+a real bug — fix it, and the codebase is genuinely more reliable.
+
+#### 5b. Test against reality
+
+Invoke `/e2e-test-design` to design the test suite, then `/implement-orchestrator` to write it.
+Push the test boundary as close to real conditions as possible:
+- Real database (test instance, not mock)
+- Real HTTP requests (test server, not mocked client)
+- Real file system where relevant (temp directory)
+- Realistic data volumes
+
+Mocks prove the mocks work. Reality proves the product works.
+
+#### 5c. Adversarial coverage
+
+The golden-path tests are the easy half. Bug-finding happens in the adversarial suite: invalid
+input, missing config, unavailable dependencies, boundary values, interrupted operations.
+The `/e2e-test-design` Phase 5 (Gather failure expectations) is where assertion targets come from.
+Drive it to concrete answers before designing adversarial tests.
 
 ### Phase 6: Final Pass
 

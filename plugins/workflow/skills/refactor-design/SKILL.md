@@ -68,9 +68,10 @@ Read the vision document, patterns, and CLAUDE.md guidelines. Use the **patterns
 ### Phase 2: Explore via Sub-Agents
 Use the **Task tool** to spawn parallel Explore sub-agents (model: **sonnet** minimum, **opus** for large or complex codebases) to find refactoring opportunities:
 
-- **Duplicate Logic**: "Find code that does the same or very similar things in multiple places. Look for duplicated: error handling blocks, data transformations, validation logic, API call patterns, setup/teardown sequences. Report each pair/group with file:line references."
-- **Missing Abstractions**: "Find places where multiple modules implement similar logic that could be extracted into a shared utility, base class, or common helper. Report each opportunity with file:line references and which modules would benefit."
-- **Pattern Violations**: "Read `.claude/skills/patterns/*.md` (if they exist). Find code that deviates from established patterns — inconsistent approaches to the same problem, modules that don't follow the documented structure. Report each violation with file:line."
+- **Code Smells**: "Find code that smells off. Look for: duplicated logic across files (error handling blocks, data transformations, validation logic, API call patterns); long files (>500 lines, or >300 if very dense); deep nesting (>4 levels); god functions (>100 lines doing multiple distinct things); god classes/modules (>15 methods or handling multiple responsibilities); leaky abstractions (consumers reaching past a module's public API into its internals). Report each finding with file:line and a one-line explanation."
+- **Missing Abstractions**: "Find places where multiple modules implement similar logic that could be extracted into a shared utility, base class, or common helper. Report each opportunity with file:line references and which modules would benefit from the extraction."
+- **Pattern Violations & Naming Inconsistencies**: "Read `.claude/skills/patterns/*.md` (if they exist). Find code that deviates from established patterns — inconsistent approaches to the same problem, modules that don't follow the documented structure. Also report naming inconsistencies: the same concept named differently across modules, abbreviations used inconsistently, function names that don't match what they do. Report each with file:line."
+- **Dead Weight**: "Find dead code and clutter: unused exports (grep for importers across the repo), commented-out code blocks, TODO/FIXME comments where the work is clearly already done, files with very few callers that may be obsolete. Cross-check exports against grep before reporting. Report each with file:line."
 
 Launch all in a **single message**. Wait for results. After results return, **read 2-3 key files yourself** to verify.
 
@@ -85,6 +86,8 @@ Re-read **CLAUDE.md** (project root and `.claude/` if both exist) and all files 
 
 ### Phase 5: Design Refactor Steps
 PLAN each refactor as a discrete, testable step with current/target code and acceptance criteria.
+
+For each step, name the riskiest part — what could go wrong — and identify the safe fallback. If a step has no clear rollback path, split it further until it does. A refactor step you can't undo is too large.
 
 ### Phase 6: Order and Write
 ORDER by dependency and priority, then WRITE the refactor plan.

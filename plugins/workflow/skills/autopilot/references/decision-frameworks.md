@@ -96,16 +96,20 @@ but the phase-level "can you do X now?" check):
 
 ## Major Boundary Detection (for Testing Passes)
 
-Trigger deeper testing (test-quality + e2e-test-design) at these points:
+Trigger a deep testing pass (test-quality + e2e-test-design) when ANY of these become true:
 
-- **Backend-to-frontend transition:** When all backend/API phases are done
-  and the next phase starts frontend/UI work.
-- **Subsystem completion:** When a major subsystem (auth, data pipeline,
-  core domain logic) is fully implemented across multiple phases.
-- **End of roadmap:** Always run a final testing pass.
+- **Backend complete:** Every roadmap phase that produces or modifies API/server code is done,
+  and the next phase starts frontend/UI or client work.
+- **Subsystem closed:** A named subsystem (auth, billing, search, data pipeline, core domain)
+  has all its phases marked done. The subsystem is now testable as a whole.
+- **Stack transition:** About to start work that uses a fundamentally different layer than
+  what was just built.
+- **End of roadmap:** Always. Even if "everything seems fine." That's exactly when the next
+  bug ships.
 
-Do NOT run deep testing after every phase — the per-phase test checkpoints
-are sufficient for incremental verification.
+Do NOT run deep testing after every phase — per-phase test checkpoints are sufficient for
+incremental verification. Save the deep pass for genuine boundaries where the integrated
+system can be evaluated as a whole.
 
 ## Context Window Management
 

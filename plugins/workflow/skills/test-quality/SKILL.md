@@ -36,7 +36,8 @@ Read these to understand what the code promises, not how it's currently written:
 2. **Interface and type definitions** — the public surface of what you are testing (types, function signatures, API contracts — NOT the implementation bodies)
 3. **Existing tests** for the target — what is already tested, so you can find gaps
 4. **CLAUDE.md** — project guidelines, test conventions, frameworks in use (if it exists)
-5. Use the **design-principles** skill to apply interface and contract thinking
+5. Use the **principles** skill to apply interface and contract thinking
+6. Use the **patterns** skill if it exists — read test patterns so your new tests follow the project's existing test structure and fixture conventions
 
 Resist the pull to read implementation code to figure out what to test. If you find
 yourself reading a function body to understand what to test, stop — go back to the spec.
@@ -115,6 +116,29 @@ Do NOT read implementation code — only test files and spec/interface files.
 ### Step 1.4: Cross-Read Key Findings
 
 After the sub-agent returns, **read 2-3 test files yourself** to verify the mapping is accurate. Confirm the contract documents you found match what tests are actually covering.
+
+### Step 1.5: Audit Tautological Tests
+
+For each existing test mapped in Step 1.3, classify it:
+
+- **Spec-derived** — the test exercises a behavior stated in the spec, contract, or interface.
+  Keep it.
+- **Implementation-derived (tautological)** — the test verifies that the code does what
+  the code does. Common signs: assertions that mirror the implementation step-by-step,
+  tests that broke during a refactor but caught no real regression, tests using internal
+  mocks that simulate the function's own logic back to itself.
+
+For each tautological test, choose one of:
+
+1. **Rewrite it** — if you can articulate the spec behavior it was *meant* to cover, rewrite
+   the test as a proper spec-derived test. The original test masked a real gap worth filling.
+   These rewrites count as gap closures.
+2. **Delete it** — if no spec behavior is recoverable from the test, it has no value.
+   Delete it cleanly. Note the deletion in the report so the user sees what was removed.
+
+Do NOT replace tautological tests with new tautological tests. If you can't derive
+a real spec behavior, deletion is the right call — a deleted bad test is better than
+a kept bad test.
 
 ---
 
@@ -234,10 +258,11 @@ After completing the analysis and writing tests, **report results directly to th
 
 - **Contract sources** used (file paths)
 - **Coverage summary table** (categories × spec-defined / tested / gaps)
-- **Gaps addressed** — list each gap with its priority, spec reference, and what test was added
+- **Tautological tests reworked** — list each: file:line, what it was, what it became (rewritten as spec-derived or deleted)
+- **Gaps addressed** — list each gap with its priority, spec reference, and what test was added (includes tautological rewrites that surface a real gap)
 - **Remaining gaps** — anything deprioritized, with rationale
 - **Spec violations** — any tests that FAIL because implementation doesn't match spec
-- **Test stats** — files modified, tests added, before/after totals
+- **Test stats** — files modified, tests added, tests rewritten, tests deleted, net change
 
 ### 2. Tests
 

@@ -32,6 +32,8 @@ Explore these areas through natural conversation:
 - **Constraints** — what's fixed? Budget, timeline, platform, team size, existing systems?
 - **Inspiration** — what projects, products, or ideas influenced this?
 - **Ambition** — is this a weekend hack or a long-term investment?
+- **Anti-vision** — what does failure look like? What would make you say in a year "this didn't work"? Specific failure modes clarify success better than success descriptions do.
+- **Competitive landscape** — who else is solving this? Why isn't their solution good enough? If "nobody is solving this," be skeptical — why not?
 
 Ask probing questions. Challenge vague answers. Dig into "why" more than "what." If the user is
 unsure about something, help them think through it rather than skipping it.
@@ -39,7 +41,23 @@ unsure about something, help them think through it rather than skipping it.
 **When you feel you understand the idea well enough to explain it to someone else,** summarize your
 understanding in a few paragraphs and ask: "Did I get this right? What did I miss or get wrong?"
 
-Iterate until the user confirms your understanding is solid. Then move to Refinement.
+Iterate until the user confirms your understanding is solid. Then move to Phase 1.5.
+
+### Phase 1.5: Maximalist vs Minimalist Contrast
+
+Before refining, generate two concrete versions of the project:
+
+**Maximalist version:** "If you had unlimited time, budget, and team — what would this project be at its most ambitious?" Describe the full vision: every feature, every audience, the complete picture.
+
+**Minimalist version:** "What is the absolute smallest version of this that still proves the core idea is worth pursuing? What's the minimum that makes the point?"
+
+Present both versions to the user with a clear contrast. Then ask: "Where between these two should we land — and why?"
+
+This is not a survey — it's a forcing function. The user's instinct will be to land near maximalist ("but this part matters too"). Push back respectfully. The real design conversation is about *where to cut*, not *what to keep*. The cuts reveal what the user actually values.
+
+When the user stakes out their position, summarize it: "So you're building something closer to the minimalist version, but you want to keep X and Y from the maximalist. Is that right?" Get confirmation before moving on.
+
+The Refinement checkpoint summary should capture the chosen scope point and the specific cuts that produced it. Docs proposed in Phase 3 should serve the chosen scope — not the maximalist vision.
 
 ### Phase 2: Refinement
 

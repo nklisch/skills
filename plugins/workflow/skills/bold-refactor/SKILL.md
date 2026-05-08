@@ -83,6 +83,9 @@ for deep examples.
 If the user provided a target path, focus there. Otherwise, sweep the codebase for the areas with
 the highest complexity-to-value ratio.
 
+Use the **patterns** skill before diving in — your reconceptions should subvert established patterns
+thoughtfully, not accidentally. Know what's intentional before calling it a problem.
+
 Use Explore sub-agents in parallel to gather context:
 1. **Architecture map** — module structure, dependency graph, entry points, data flow
 2. **Complexity hotspots** — large files, deep nesting, high cyclomatic complexity, god objects
@@ -96,7 +99,9 @@ the highest leverage.
 
 ### Phase 2: Provoke
 
-Generate **3-5 bold suggestions**. Each one should:
+Generate suggestions until you've exhausted the lenses or run out of leverage. Quality over quantity — one sharp suggestion is better than five mediocre ones. If you have only one bold idea worth pursuing after applying all the lenses, that's the right output. If you have more than five, present the strongest ones and note why the others didn't make the cut.
+
+Each suggestion should:
 
 1. **Name itself provocatively** — not "Extract auth utilities" but "Auth is just middleware composition"
 2. **Commit to one lens** — state which conceptual lens drives this suggestion
@@ -122,11 +127,22 @@ This is a dialogue, not a presentation. For each suggestion the user engages wit
 - **Combine and evolve** — suggestions may merge or spawn new ideas through discussion.
 - **Narrow scope** — a bold idea might be right in principle but too large. Find the version that
   captures 80% of the value in 20% of the change.
+- **Recommend "do nothing" when appropriate** — sometimes the right answer is that the code is
+  fine, the refactoring isn't worth the disruption, and the effort is better spent elsewhere.
+  If you genuinely believe this after the exploration, say so. A confident "don't refactor this"
+  is more valuable than a forced suggestion.
 
 **Checkpoint:** Present the refined scope — which suggestions survived, how they evolved, what
 the concrete change looks like. Ask if the user is ready to produce the design document.
 
 ### Phase 4: Design
+
+Before writing the design document, walk each accepted suggestion through a pre-mortem:
+- What would have to go wrong for this reconception to be the wrong call?
+- What does rollback look like at each step? Are there safe stopping points mid-migration?
+- What's the riskiest unit — the one most likely to reveal an assumption was wrong?
+
+Design the riskiest unit first and most carefully. The rest of the design hangs on whether it's feasible.
 
 Produce a design document in the format consumed by **implement** and **implement-orchestrator**.
 See [references/suggestion-format.md](references/suggestion-format.md) for the exact format.

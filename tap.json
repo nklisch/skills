@@ -6,271 +6,572 @@
       "name": "research",
       "description": "Research external libraries, APIs, SDKs, and patterns. Evaluates options against project needs, produces a research document and an auto-loading reference skill.",
       "repo": "nklisch/skills",
-      "tags": ["research", "documentation", "agentic", "workflow"]
+      "tags": [
+        "research",
+        "documentation",
+        "agentic",
+        "workflow"
+      ]
     },
     {
       "name": "extract-patterns",
       "description": "Discover and document reusable code patterns. Use after implementation to capture conventions.",
       "repo": "nklisch/skills",
-      "tags": ["patterns", "documentation", "agentic", "workflow"]
+      "tags": [
+        "patterns",
+        "documentation",
+        "agentic",
+        "workflow"
+      ]
+    },
+    {
+      "name": "extend",
+      "description": "Add capability to an existing project \u2014 handles both small one-off features and major scope expansions. Reads foundation docs, explores the codebase, then branches based on scope: small additions produce a feature brief for design; large expansions update foundation docs and roadmap.",
+      "repo": "nklisch/skills",
+      "tags": [
+        "extend",
+        "feature",
+        "expand",
+        "scope",
+        "foundation-docs",
+        "interactive",
+        "workflow",
+        "pipeline"
+      ]
     },
     {
       "name": "refactor-design",
       "description": "Plan refactoring work. Use when code quality or structure needs improvement.",
       "repo": "nklisch/skills",
-      "tags": ["refactor", "quality", "agentic", "workflow"]
-    },
-    {
-      "name": "expand",
-      "description": "Expand a project's scope by updating foundation documents. Reads existing vision, spec, and architecture, interviews about the expansion, then updates docs and roadmap for the next design phase.",
-      "repo": "nklisch/skills",
-      "tags": ["expand", "scope", "roadmap", "foundation-docs", "interactive", "workflow", "pipeline"]
-    },
-    {
-      "name": "feature",
-      "description": "Scope a quick extension or one-off feature outside the core roadmap. Produces a feature brief that design consumes.",
-      "repo": "nklisch/skills",
-      "tags": ["feature", "scoping", "requirements", "interactive", "workflow", "pipeline"]
+      "tags": [
+        "refactor",
+        "quality",
+        "agentic",
+        "workflow"
+      ]
     },
     {
       "name": "design",
       "description": "Create detailed DESIGN.md with implementation units. Use when translating a vision into code specs.",
       "repo": "nklisch/skills",
-      "tags": ["design", "planning", "agentic", "workflow", "pipeline"]
+      "tags": [
+        "design",
+        "planning",
+        "agentic",
+        "workflow",
+        "pipeline"
+      ]
+    },
+    {
+      "name": "principles",
+      "description": "Architectural and code-level principles (Ports & Adapters, Single Source of Truth, Generated Contracts, Fail Fast). Auto-loads when designing or implementing.",
+      "repo": "nklisch/skills",
+      "tags": [
+        "design",
+        "architecture",
+        "principles",
+        "ports-adapters",
+        "fail-fast",
+        "workflow"
+      ]
     },
     {
       "name": "implement",
       "description": "Write code from a design or plan document. Use for designs targeting fewer than ~20 files or with tightly coupled units.",
       "repo": "nklisch/skills",
-      "tags": ["implementation", "coding", "agentic", "workflow", "pipeline"]
+      "tags": [
+        "implementation",
+        "coding",
+        "agentic",
+        "workflow",
+        "pipeline"
+      ]
     },
     {
       "name": "implement-orchestrator",
       "description": "Orchestrate implementation by spawning Sonnet task agents. Use for large designs (20+ files) or designs with independent subsystems that benefit from parallel implementation.",
       "repo": "nklisch/skills",
-      "tags": ["implementation", "orchestration", "delegation", "agentic", "workflow", "pipeline"]
+      "tags": [
+        "implementation",
+        "orchestration",
+        "delegation",
+        "agentic",
+        "workflow",
+        "pipeline"
+      ]
     },
     {
       "name": "zod-v4",
       "description": "Zod v4 validation library reference. Auto-loads for schemas, validation, z.object, safeParse, transforms.",
       "repo": "nklisch/skills",
-      "tags": ["zod", "validation", "schema", "typescript", "library"]
+      "tags": [
+        "zod",
+        "validation",
+        "schema",
+        "typescript",
+        "library"
+      ]
     },
     {
       "name": "biome-v2",
       "description": "Biome v2 linter/formatter reference. Auto-loads for biome config, linting rules, formatting.",
       "repo": "nklisch/skills",
-      "tags": ["biome", "linter", "formatter", "eslint", "prettier", "library"]
+      "tags": [
+        "biome",
+        "linter",
+        "formatter",
+        "eslint",
+        "prettier",
+        "library"
+      ]
     },
     {
       "name": "drizzle-v0",
       "description": "Drizzle ORM v0.45+ PostgreSQL reference. Auto-loads for schema definitions, queries, migrations.",
       "repo": "nklisch/skills",
-      "tags": ["drizzle", "orm", "postgresql", "database", "library"]
+      "tags": [
+        "drizzle",
+        "orm",
+        "postgresql",
+        "database",
+        "library"
+      ]
     },
     {
       "name": "hono-v4",
       "description": "Hono v4 web framework reference. Auto-loads for routes, middleware, SSE, validation.",
       "repo": "nklisch/skills",
-      "tags": ["hono", "api", "web-framework", "middleware", "library"]
+      "tags": [
+        "hono",
+        "api",
+        "web-framework",
+        "middleware",
+        "library"
+      ]
     },
     {
       "name": "tanstack-query-v5",
       "description": "TanStack Query v5 (React Query) reference. Auto-loads for useQuery, useMutation, caching.",
       "repo": "nklisch/skills",
-      "tags": ["tanstack", "react-query", "data-fetching", "cache", "library"]
+      "tags": [
+        "tanstack",
+        "react-query",
+        "data-fetching",
+        "cache",
+        "library"
+      ]
     },
     {
       "name": "tanstack-router-v1",
       "description": "TanStack Router v1 reference. Auto-loads for file-based routing, loaders, search params.",
       "repo": "nklisch/skills",
-      "tags": ["tanstack", "router", "file-based-routing", "react", "library"]
+      "tags": [
+        "tanstack",
+        "router",
+        "file-based-routing",
+        "react",
+        "library"
+      ]
     },
     {
       "name": "zustand-v5",
       "description": "Zustand v5 state management reference. Auto-loads for stores, selectors, persist, middleware.",
       "repo": "nklisch/skills",
-      "tags": ["zustand", "state-management", "react", "store", "library"]
+      "tags": [
+        "zustand",
+        "state-management",
+        "react",
+        "store",
+        "library"
+      ]
     },
     {
       "name": "tanstack-table-v8",
       "description": "TanStack Table v8 headless table reference. Auto-loads for sorting, filtering, pagination, columns.",
       "repo": "nklisch/skills",
-      "tags": ["tanstack", "table", "data-table", "sorting", "pagination", "library"]
-    },
-    {
-      "name": "design-principles",
-      "description": "Architectural principles to apply during design. Reference this when producing design documents.",
-      "repo": "nklisch/skills",
-      "tags": ["design", "architecture", "principles", "ports-adapters", "workflow"]
-    },
-    {
-      "name": "implementation-principles",
-      "description": "Code-level principles to apply when writing code. Reference this when implementing.",
-      "repo": "nklisch/skills",
-      "tags": ["implementation", "coding", "principles", "fail-fast", "workflow"]
+      "tags": [
+        "tanstack",
+        "table",
+        "data-table",
+        "sorting",
+        "pagination",
+        "library"
+      ]
     },
     {
       "name": "test-quality",
-      "description": "Improve test quality by deriving tests from specs, designs, and contracts — not from existing code. Use when finding gaps in test coverage, designing tests for interfaces and behavioral contracts, or systematically covering edge cases and branches from a specification perspective.",
+      "description": "Improve test quality by deriving tests from specs, designs, and contracts \u2014 not from existing code. Use when finding gaps in test coverage, designing tests for interfaces and behavioral contracts, or systematically covering edge cases and branches from a specification perspective.",
       "repo": "nklisch/skills",
-      "tags": ["testing", "quality", "contracts", "specs", "edge-cases", "gap-analysis", "agentic", "workflow"]
+      "tags": [
+        "testing",
+        "quality",
+        "contracts",
+        "specs",
+        "edge-cases",
+        "gap-analysis",
+        "agentic",
+        "workflow"
+      ]
     },
     {
       "name": "clean-memory",
       "description": "Audit, validate, and interactively refine MEMORY.md. Removes contradicted and redundant entries, trims bloat, then guides you section-by-section through what to keep.",
       "repo": "nklisch/skills",
-      "tags": ["memory", "maintenance", "interactive", "cleanup", "workflow"]
+      "tags": [
+        "memory",
+        "maintenance",
+        "interactive",
+        "cleanup",
+        "workflow"
+      ]
     },
     {
       "name": "bun",
       "description": "Bun runtime reference. Auto-loads for Bun.$, Bun.file, bun:test, shell commands, file I/O, and monorepo config.",
       "repo": "nklisch/skills",
-      "tags": ["bun", "runtime", "shell", "testing", "javascript", "library"]
+      "tags": [
+        "bun",
+        "runtime",
+        "shell",
+        "testing",
+        "javascript",
+        "library"
+      ]
     },
     {
       "name": "citty",
       "description": "citty CLI framework reference (UnJS). Auto-loads for defineCommand, subcommands, argument definitions, lifecycle hooks.",
       "repo": "nklisch/skills",
-      "tags": ["citty", "cli", "unjs", "commands", "library"]
+      "tags": [
+        "citty",
+        "cli",
+        "unjs",
+        "commands",
+        "library"
+      ]
     },
     {
       "name": "clack-prompts",
       "description": "@clack/prompts terminal UI reference. Auto-loads for interactive CLI prompts, spinners, selects, confirms, and cancel handling.",
       "repo": "nklisch/skills",
-      "tags": ["clack", "prompts", "cli", "terminal", "interactive", "library"]
+      "tags": [
+        "clack",
+        "prompts",
+        "cli",
+        "terminal",
+        "interactive",
+        "library"
+      ]
     },
     {
       "name": "smol-toml",
       "description": "smol-toml TOML parser/serializer reference. Auto-loads for parse, stringify, TOML config files.",
       "repo": "nklisch/skills",
-      "tags": ["toml", "parser", "config", "serialization", "library"]
+      "tags": [
+        "toml",
+        "parser",
+        "config",
+        "serialization",
+        "library"
+      ]
     },
     {
       "name": "update-documentation",
       "description": "Align all documentation layers to code after implementing a feature. Covers internal specs, public website, LLM ingestion files, and project memory.",
       "repo": "nklisch/skills",
-      "tags": ["documentation", "docs", "maintenance", "workflow"]
+      "tags": [
+        "documentation",
+        "docs",
+        "maintenance",
+        "workflow"
+      ]
     },
     {
       "name": "claude-cli-sdk",
-      "description": "@nklisch/claude-cli-sdk reference. Auto-loads when working with this SDK — spawns Claude CLI as a subprocess using Pro/Max billing (no API key needed).",
+      "description": "@nklisch/claude-cli-sdk reference. Auto-loads when working with this SDK \u2014 spawns Claude CLI as a subprocess using Pro/Max billing (no API key needed).",
       "repo": "nklisch/skills",
-      "tags": ["claude", "sdk", "cli", "anthropic", "library"]
+      "tags": [
+        "claude",
+        "sdk",
+        "cli",
+        "anthropic",
+        "library"
+      ]
     },
     {
       "name": "release",
       "description": "Prepare and publish a release. Drafts changelog entries from recent commits, confirms with user, then runs the release script.",
       "repo": "nklisch/skills",
-      "tags": ["release", "changelog", "versioning", "workflow"]
+      "tags": [
+        "release",
+        "changelog",
+        "versioning",
+        "workflow"
+      ]
     },
     {
       "name": "design-pages",
       "description": "Design GitHub Pages for a project. Explores the codebase deeply, considers domain and audience, then pitches layout, content, structure, and visual identity choices.",
       "repo": "nklisch/skills",
-      "tags": ["pages", "website", "design", "vitepress", "landing-page", "agentic", "workflow"]
+      "tags": [
+        "pages",
+        "website",
+        "design",
+        "vitepress",
+        "landing-page",
+        "agentic",
+        "workflow"
+      ]
     },
     {
       "name": "write-tool-skill",
       "description": "Write agent skills for external tools, CLIs, MCP servers, and libraries. Interactive workflow with research, structure decisions, and multi-skill breakout advice.",
       "repo": "nklisch/skills",
-      "tags": ["skills", "authoring", "cli", "mcp", "library", "tool", "interactive", "workflow"]
+      "tags": [
+        "skills",
+        "authoring",
+        "cli",
+        "mcp",
+        "library",
+        "tool",
+        "interactive",
+        "workflow"
+      ]
     },
     {
       "name": "schemars",
       "description": "schemars 1.x Rust JSON Schema generation reference. Auto-loads for JsonSchema derive, json_schema! macro, schema_for!, SchemaSettings, SchemaGenerator.",
       "repo": "nklisch/skills",
-      "tags": ["schemars", "json-schema", "rust", "derive", "codegen", "library"]
+      "tags": [
+        "schemars",
+        "json-schema",
+        "rust",
+        "derive",
+        "codegen",
+        "library"
+      ]
     },
     {
       "name": "e2e-test-design",
-      "description": "Design comprehensive e2e test suites with golden-path user journeys and adversarial failure-mode tests. Interactive — gathers failure expectations from the user.",
+      "description": "Design comprehensive e2e test suites with golden-path user journeys and adversarial failure-mode tests. Interactive \u2014 gathers failure expectations from the user.",
       "repo": "nklisch/skills",
-      "tags": ["e2e", "testing", "end-to-end", "integration", "test-design", "failure-modes", "interactive", "workflow"]
-    },
-    {
-      "name": "stylistic-refactor-creator",
-      "description": "Create or update a project-specific stylistic-refactor skill. Explores the repo, researches stack-specific best practices, interviews the user, then generates a skill that scans for opportunities and produces a prioritized refactoring plan.",
-      "repo": "nklisch/skills",
-      "tags": ["refactor", "style", "conventions", "interactive", "skill-creator", "workflow"]
+      "tags": [
+        "e2e",
+        "testing",
+        "end-to-end",
+        "integration",
+        "test-design",
+        "failure-modes",
+        "interactive",
+        "workflow"
+      ]
     },
     {
       "name": "skill-idea-refiner",
       "description": "Interactively refine a rough skill idea into a well-designed agent skill. Guides through ideation, scoping, naming, description writing, structure decisions, and progressive disclosure, then scaffolds the skill files.",
       "repo": "nklisch/skills",
-      "tags": ["skills", "ideation", "authoring", "design", "interactive", "workflow", "best-practices"]
-    },
-    {
-      "name": "structural-refactor-creator",
-      "description": "Create or update a project-specific structural-refactor skill. Explores the repo, researches organizational conventions, interviews the user about structural preferences, then generates a skill that scans for issues and produces a prioritized refactoring plan.",
-      "repo": "nklisch/skills",
-      "tags": ["refactor", "structure", "organization", "interactive", "skill-creator", "workflow"]
+      "tags": [
+        "skills",
+        "ideation",
+        "authoring",
+        "design",
+        "interactive",
+        "workflow",
+        "best-practices"
+      ]
     },
     {
       "name": "bold-refactor",
       "description": "Find beautiful code abstractions and cross-cutting simplifications. Applies conceptual lenses (elimination, unification, inversion) to surface bold architectural ideas, then converges into an implement-ready design document.",
       "repo": "nklisch/skills",
-      "tags": ["refactor", "architecture", "abstractions", "simplification", "interactive", "workflow", "pipeline"]
+      "tags": [
+        "refactor",
+        "architecture",
+        "abstractions",
+        "simplification",
+        "interactive",
+        "workflow",
+        "pipeline"
+      ]
+    },
+    {
+      "name": "refactor-conventions-creator",
+      "description": "Create or update a project-specific refactor-conventions skill. Explores the repo, researches stack-specific best practices, interviews about both stylistic and structural preferences, then generates a combined skill with per-rule reference files.",
+      "repo": "nklisch/skills",
+      "tags": [
+        "refactor",
+        "style",
+        "structure",
+        "conventions",
+        "interactive",
+        "skill-creator",
+        "workflow"
+      ]
     },
     {
       "name": "cruft-cleaner",
       "description": "Sweep a codebase for AI-accumulated cruft (dead code, stale comments, compatibility shims, defensive bloat, over-abstraction), triage findings by confidence tier, then orchestrate parallel cleanup agents with worktree isolation.",
       "repo": "nklisch/skills",
-      "tags": ["cleanup", "dead-code", "cruft", "unused-code", "comments", "agentic", "workflow"]
+      "tags": [
+        "cleanup",
+        "dead-code",
+        "cruft",
+        "unused-code",
+        "comments",
+        "agentic",
+        "workflow"
+      ]
     },
     {
       "name": "perf-design",
       "description": "Profile performance bottlenecks and design optimized solutions. Follows a strict optimization hierarchy: algorithmic fixes, I/O reduction, language idioms, then parallelism. Produces implementation-unit plans with benchmark scaffolds for implement or implement-orchestrator.",
       "repo": "nklisch/skills",
-      "tags": ["performance", "profiling", "optimization", "benchmarks", "agentic", "workflow", "pipeline"]
+      "tags": [
+        "performance",
+        "profiling",
+        "optimization",
+        "benchmarks",
+        "agentic",
+        "workflow",
+        "pipeline"
+      ]
     },
     {
       "name": "ideate",
       "description": "Interactive project definition workshop. Explores an idea through discovery, refinement, and requirements phases, then produces tailored foundation documents (VISION.md, SPEC.md, ARCHITECTURE.md, and domain-specific docs) based on the project's actual needs.",
       "repo": "nklisch/skills",
-      "tags": ["ideation", "project-definition", "foundation-docs", "interactive", "workflow"]
+      "tags": [
+        "ideation",
+        "project-definition",
+        "foundation-docs",
+        "interactive",
+        "workflow"
+      ]
     },
     {
       "name": "roadmap",
       "description": "Generate an agent-optimized project roadmap from foundation documents. Reads VISION, SPEC, ARCHITECTURE, and other docs produced by /ideate, interviews about build style, then decomposes into chunky phases with dependencies, deliverables, and test checkpoints for AI-assisted development.",
       "repo": "nklisch/skills",
-      "tags": ["roadmap", "phases", "planning", "agent-optimized", "interactive", "workflow", "pipeline"]
+      "tags": [
+        "roadmap",
+        "phases",
+        "planning",
+        "agent-optimized",
+        "interactive",
+        "workflow",
+        "pipeline"
+      ]
     },
     {
       "name": "skill-evaluator",
       "description": "Evaluate agent skills against type-specific quality rubrics and emotional tone alignment. Classifies skills as reference, workflow, interactive, or principle, then scores against universal, type-specific, and emotional tone criteria. Produces scored evaluation reports with prioritized improvements, emotional tone rewrites, and test scenarios.",
       "repo": "nklisch/skills",
-      "tags": ["skills", "evaluation", "quality", "rubric", "audit", "review", "interactive", "workflow", "emotional-tone"]
+      "tags": [
+        "skills",
+        "evaluation",
+        "quality",
+        "rubric",
+        "audit",
+        "review",
+        "interactive",
+        "workflow",
+        "emotional-tone"
+      ]
     },
     {
       "name": "tool-evaluator",
       "description": "Structured self-evaluation of agent tool usage in the current conversation. Analyzes confusion points, inefficiencies, missing capabilities, and API surface friction. Produces a prioritized .md report with actionable recommendations for tool authors.",
       "repo": "nklisch/skills",
-      "tags": ["tools", "evaluation", "mcp", "feedback", "self-reflection", "interactive", "workflow"]
+      "tags": [
+        "tools",
+        "evaluation",
+        "mcp",
+        "feedback",
+        "self-reflection",
+        "interactive",
+        "workflow"
+      ]
     },
     {
       "name": "security-review",
       "description": "Comprehensive security audit for any codebase. Discovers stack, lets user choose focus domains, researches best practices, produces scored markdown report with severity-classified findings.",
       "repo": "nklisch/skills",
-      "tags": ["security", "audit", "vulnerability", "review", "interactive", "workflow"]
+      "tags": [
+        "security",
+        "audit",
+        "vulnerability",
+        "review",
+        "interactive",
+        "workflow"
+      ]
     },
     {
       "name": "repo-eval",
       "description": "Multi-dimensional codebase evaluation with verified scoring. Launches parallel explore agents, cross-checks findings, produces calibrated 1-10 scorecard across architecture, code quality, testing, documentation, CI/CD, error handling, security, DX, and maintainability with prioritized recommendations.",
       "repo": "nklisch/skills",
-      "tags": ["evaluation", "audit", "scoring", "code-quality", "architecture", "agentic", "workflow"]
+      "tags": [
+        "evaluation",
+        "audit",
+        "scoring",
+        "code-quality",
+        "architecture",
+        "agentic",
+        "workflow"
+      ]
+    },
+    {
+      "name": "fix",
+      "description": "Diagnose and repair a specific bug. Reproduces the issue, bisects to root cause, writes a failing test, applies the minimal fix, then confirms. Use when something is verifiably broken.",
+      "repo": "nklisch/skills",
+      "tags": [
+        "bugfix",
+        "debugging",
+        "diagnose",
+        "repair",
+        "agentic",
+        "workflow"
+      ]
+    },
+    {
+      "name": "review",
+      "description": "Review a specific code change \u2014 branch diff, commit, commit range, working tree, unpushed commits, or PR. Produces a prioritized review with Blockers, Important issues, and Nits. Different from /repo-eval and /security-review which audit the full repository.",
+      "repo": "nklisch/skills",
+      "tags": [
+        "review",
+        "code-review",
+        "pr",
+        "diff",
+        "audit",
+        "agentic",
+        "workflow"
+      ]
     },
     {
       "name": "autopilot",
       "description": "Autonomously execute a project roadmap end-to-end. Loops design -> implement-orchestrator -> test for each phase, with judgment-driven refactoring passes. Tracks progress for cross-session resumption.",
       "repo": "nklisch/skills",
-      "tags": ["autopilot", "autonomous", "roadmap", "orchestration", "agentic", "workflow", "pipeline"]
+      "tags": [
+        "autopilot",
+        "autonomous",
+        "roadmap",
+        "orchestration",
+        "agentic",
+        "workflow",
+        "pipeline"
+      ]
     },
     {
       "name": "claude-code-marketplace",
       "description": "Research findings on Claude Code marketplace, plugin structure, and distribution. Auto-loads when working with marketplace.json, plugin.json, plugin distribution, Claude Code plugin format, SKILL.md frontmatter, tap.json integration, npm skill packages, agentskills.io standard, or designing how skilltap interacts with the Claude Code plugin ecosystem.",
       "repo": "nklisch/skills",
-      "tags": ["claude-code", "marketplace", "plugins", "ecosystem", "research", "reference"]
+      "tags": [
+        "claude-code",
+        "marketplace",
+        "plugins",
+        "ecosystem",
+        "research",
+        "reference"
+      ]
     }
   ]
 }

@@ -34,6 +34,8 @@ Identify the project's language(s), framework, build tools, and test runner by e
 
 This determines which language-aware tools are available. Store findings for Phase 3.
 
+Use the **patterns** skill if it exists before detection — intentional repetition documented as a pattern is NOT cruft. Know what's deliberate before flagging it as debris.
+
 ### 1.2 Run language-aware detection
 
 Load [references/detection-patterns.md](references/detection-patterns.md) and run every
