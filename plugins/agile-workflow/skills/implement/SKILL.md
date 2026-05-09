@@ -1,0 +1,161 @@
+---
+name: implement
+description: >
+  Write code from a substrate item at stage:implementing. Reads the design embedded
+  in the feature/story body, writes code per the spec, runs build+tests, advances
+  stage implementing -> review, and updates the item body with implementation notes.
+  Use when an item is at stage:implementing and ready to be coded — single-stride
+  sequential implementation. For features with > 3 child stories that can run in
+  parallel, use /agile-workflow:implement-orchestrator instead.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
+model: sonnet
+---
+
+# Implement
+
+You implement a substrate item — feature or story at `stage: implementing` — by
+reading the design embedded in its body and writing code that conforms. The item
+file is your spec. The item body is also your scratchpad: you add implementation
+notes there as you work.
+
+## Trigger
+
+The agent picks this skill when an item is at `stage: implementing` with code work
+ready to begin. Common phrases:
+- "implement story X", "implement this feature"
+- "let's code feature Y"
+- "the design is ready, start building"
+
+For features with multiple child stories that can run in parallel, prefer
+`/agile-workflow:implement-orchestrator`. For single-story implementation or
+sequential walking of a feature's stories, use this skill.
+
+## Workflow
+
+### Phase 1: Ground yourself
+
+The principles skill auto-loads (both code-design and substrate-execution paradigms
+active during implementation).
+
+Read:
+1. **The item file** at `.work/active/{features,stories}/<id>.md` — this is your
+   spec. The design is in there.
+2. **The parent feature** if implementing a story: `.work/active/features/<parent>.md`
+   — context and acceptance criteria for the parent
+3. **Foundation docs** referenced by the design: `docs/SPEC.md`, `docs/ARCHITECTURE.md`
+4. `CLAUDE.md` and `.claude/rules/` for project conventions
+5. **Research docs** referenced by the design: `docs/research/<topic>.md` if any
+6. **Existing source code** the design references — verify interfaces, signatures,
+   module paths
+
+### Phase 2: Verify dependency readiness
+
+If the item has `depends_on`, run:
+
+```bash
+.work/bin/work-view --stage done --paths
+```
+
+Confirm every entry in `depends_on` is at `stage: done` (or in releases/archive,
+which count as terminal-done). If any dep is unmet, halt:
+> "Item `<id>` depends on `<dep-id>` which is at stage:`<x>`. Cannot start. Either
+> finish the dependency first, or remove it from `depends_on` if it's no longer
+> required."
+
+### Phase 3: Map integration points
+
+Use the **Task tool** to spawn an Explore sub-agent (sonnet minimum, opus for large
+codebases):
+- "Find all public exports, shared utilities, type definitions, and module
+  boundaries that <new code area> must integrate with. Include file paths and
+  signatures. Also check for existing test helpers and fixtures."
+
+After results, **spot-check 1-2 key integration points** by reading those files
+yourself.
+
+### Phase 4: Plan and reconcile design vs reality
+
+For each file the design says to modify or depend on:
+- Confirm the file exists at the path the design specifies
+- Confirm interfaces, types, signatures match the design's expectations
+- Note any discrepancies — the design captured intent at design time; the repo is
+  ground truth NOW
+
+Reconcile silently if changes are minor and obvious. Surface significant discrepancies
+in the implementation notes you'll write in Phase 7.
+
+### Phase 5: Re-align to project standards
+
+Re-read `CLAUDE.md` (project root and `.claude/` if both exist) and any files in
+`.claude/rules/`. Recency improves adherence.
+
+### Phase 6: Implement
+
+For each unit/file in the item's design:
+1. Write the code following the design's specifications — exact types, signatures,
+   contracts
+2. Apply established patterns from the codebase
+3. Handle every error path the design specifies
+4. Write tests that verify behavior, not implementation
+5. Update module exports (index files) so new code integrates cleanly
+
+Take pride in the details: clean variable names, idiomatic control flow, meaningful
+error messages. Code that a future developer would read with appreciation.
+
+### Phase 7: Update item body with implementation notes
+
+Append (or update) an "Implementation notes" section in the item's body:
+
+```markdown
+## Implementation notes
+- Files changed: <list>
+- Tests added: <list>
+- Discrepancies from design: <list with one-line explanation each, or "none">
+- Adjacent issues parked: <list of backlog ids if any, or "none">
+```
+
+This is part of the rolling record of the item — a future agent reading this file
+should see the design AND what actually happened.
+
+### Phase 8: Self-verify
+
+1. Run the build command from `CLAUDE.md`
+2. Run the test command — all tests including new ones must pass
+3. Walk through each acceptance criterion in the item body — confirm each is met
+4. If any gap, fix or report
+
+Don't claim done if tests don't pass. A known gap reported is better than a hidden one.
+
+### Phase 9: Advance stage and commit
+
+1. Edit the item's frontmatter: `stage: implementing → review`. PostToolUse hook
+   bumps `updated:`.
+2. Commit:
+   ```bash
+   git add <changed-files> <test-files> .work/active/<kind>s/<id>.md
+   git commit -m "implement: <id>"
+   ```
+
+## Output
+
+In conversation:
+- **Implemented**: `<id>` advanced to `stage: review`
+- **Files changed**: list
+- **Tests added**: list
+- **Discrepancies from design**: list (or "none")
+- **Adjacent issues parked**: backlog ids (or "none")
+- **Next**: `/agile-workflow:review <id>` to evaluate the change
+
+## Guardrails
+
+- The item file is your spec. If it conflicts with the repo, trust the repo's
+  reality and note the discrepancy in implementation notes.
+- The design's INTENT is your north star. The repo's INTERFACES are your reality.
+  When they disagree, adapt the implementation, document the why.
+- Implement fully or report a blocker. NEVER leave TODO comments or `unimplemented!`.
+- Don't add unrequested features. Adapt to repo reality freely; expand scope never.
+- Don't advance past `review` — that's `/agile-workflow:review`'s job.
+- If during implementation you discover a genuine design flaw, halt. Update the item
+  body with what you learned, set stage back to `drafting` if needed, and surface
+  to the user. Don't muscle through a flawed design.
+- Adjacent issues you notice get parked via `/agile-workflow:park`, not bundled.

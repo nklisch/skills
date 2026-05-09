@@ -488,6 +488,66 @@
           "description": "agile-workflow principles — code-design (Ports & Adapters, SSOT, Generated Contracts, Fail Fast) and substrate-execution (Item-IS-the-Work, Rolling-Foundation, Late-Binding). Auto-loads during agile-workflow design/implement/review."
         },
         {
+          "name": "ideate",
+          "path": "skills/ideate",
+          "description": "Interactive project definition workshop for agile-workflow. Discovery, refinement, and definitions phases produce foundation docs (VISION.md, SPEC.md, ARCHITECTURE.md) that encode the rolling-foundation principle. Use before /agile-workflow:convert."
+        },
+        {
+          "name": "convert",
+          "path": "skills/convert",
+          "description": "Bootstrap the agile-workflow substrate. Detects project shape (workflow-plugin / ad-hoc / no-tracking / greenfield), seeds initial items, writes .claude/rules/agile-workflow.md, runs the conventions interview to populate .work/CONVENTIONS.md, copies work-view, appends CLAUDE.md section, produces MIGRATION_REPORT.md. Idempotent via --update."
+        },
+        {
+          "name": "epicize",
+          "path": "skills/epicize",
+          "description": "Decompose foundation docs into multiple epics in .work/active/epics/ with declared depends_on chains. Reads VISION/SPEC/ARCHITECTURE, identifies capability arcs, proposes a decomposition, writes epic files at stage:drafting after user confirmation."
+        },
+        {
+          "name": "park",
+          "path": "skills/park",
+          "description": "Quickly capture an idea into .work/backlog/ without disrupting current work. Triggers on 'park this', 'remind me about X', 'add to backlog'. Single-stride, low-friction capture; full sizing happens later via /agile-workflow:scope."
+        },
+        {
+          "name": "scope",
+          "path": "skills/scope",
+          "description": "Promote a backlog item or fresh request into .work/active/ as an epic, feature, or story with declared dependencies. For large scope (changes vision/spec/architecture), also rolls foundation docs forward in the same stride. Triggers on 'scope this', 'promote this', 'let's track this'."
+        },
+        {
+          "name": "fix",
+          "path": "skills/fix",
+          "description": "Diagnose and repair a specific bug as a single-stride substrate story. Reproduces, identifies root cause, writes failing test, applies minimal fix, creates story at stage:review. Triggers on 'fix bug X', 'fix the issue with Y'."
+        },
+        {
+          "name": "design",
+          "path": "skills/design",
+          "description": "Design a feature at stage:drafting with no specialized tag. Greenfield design — produces detailed implementation units written INTO the feature's body, spawns child stories with declared depends_on, advances stage to implementing. For [refactor] features use /agile-workflow:refactor-design; for [perf] use /agile-workflow:perf-design."
+        },
+        {
+          "name": "refactor-design",
+          "path": "skills/refactor-design",
+          "description": "Plan an incremental, safe refactor for a feature with tags:[refactor] at stage:drafting. Code-smell scan via parallel agents, before/after step shape, risk + rollback per step. Plan written INTO feature body, child stories spawned, stage advances to implementing."
+        },
+        {
+          "name": "perf-design",
+          "path": "skills/perf-design",
+          "description": "Profile bottlenecks and design optimized solutions for a feature with tags:[perf] at stage:drafting. Strict optimization hierarchy (algorithmic > I/O > idioms > parallelism), benchmark scaffolds. Plan written INTO feature body, child stories spawned, stage advances to implementing."
+        },
+        {
+          "name": "implement",
+          "path": "skills/implement",
+          "description": "Write code from a substrate item at stage:implementing. Reads design embedded in feature/story body, writes code, runs build+tests, advances stage implementing -> review, updates item body with implementation notes. Single-stride sequential; for parallel multi-story features use /agile-workflow:implement-orchestrator."
+        },
+        {
+          "name": "implement-orchestrator",
+          "path": "skills/implement-orchestrator",
+          "description": "Implement a feature with multiple child stories by walking the depends_on graph and spawning Sonnet sub-agents. Parallel-vs-sequential schedule, capped at 3 agents per wave. Use for features with > 3 child stories that have a non-trivial dependency graph."
+        },
+        {
+          "name": "review",
+          "path": "skills/review",
+          "description": "Review a substrate item at stage:review. Runs structured code review (correctness, tests, design, security, breaking changes, foundation-doc alignment), classifies findings as blockers/important/nits, triages findings into items, advances stage to done if approved or back to implementing if changes needed."
+        },
+        {
           "name": "research",
           "path": "skills/research",
           "description": "Research external libraries, APIs, SDKs, and patterns. Evaluates options against project needs, produces a research document and an auto-loading reference skill."
