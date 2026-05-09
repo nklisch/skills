@@ -469,6 +469,45 @@
           "description": "Write agent skills for external tools, CLIs, MCP servers, and libraries. Interactive workflow with research, structure decisions, and multi-skill breakout advice."
         }
       ]
+    },
+    {
+      "name": "agile-workflow",
+      "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/ with structured frontmatter, late-binding releases, gates that produce items, autopilot queue runner respecting depends_on graphs.",
+      "version": "0.1.0",
+      "tags": [
+        "workflow",
+        "agile",
+        "substrate",
+        "tracking",
+        "agentic"
+      ],
+      "skills": [
+        {
+          "name": "principles",
+          "path": "skills/principles",
+          "description": "agile-workflow principles — code-design (Ports & Adapters, SSOT, Generated Contracts, Fail Fast) and substrate-execution (Item-IS-the-Work, Rolling-Foundation, Late-Binding). Auto-loads during agile-workflow design/implement/review."
+        },
+        {
+          "name": "research",
+          "path": "skills/research",
+          "description": "Research external libraries, APIs, SDKs, and patterns. Evaluates options against project needs, produces a research document and an auto-loading reference skill."
+        },
+        {
+          "name": "repo-eval",
+          "path": "skills/repo-eval",
+          "description": "Multi-dimensional codebase evaluation with verified scoring. Launches parallel explore agents, cross-checks findings, produces calibrated 1-10 scorecard across architecture, code quality, testing, documentation, CI/CD, error handling, security, DX, and maintainability with prioritized recommendations."
+        },
+        {
+          "name": "tool-evaluator",
+          "path": "skills/tool-evaluator",
+          "description": "Structured self-evaluation of agent tool usage in the current conversation. Analyzes confusion points, inefficiencies, missing capabilities, and API surface friction. Produces a prioritized .md report with actionable recommendations for tool authors."
+        },
+        {
+          "name": "refactor-conventions-creator",
+          "path": "skills/refactor-conventions-creator",
+          "description": "Create or update a project-specific refactor-conventions skill. Explores the repo, researches stack-specific best practices, interviews about both stylistic and structural preferences, then generates a combined skill with per-rule reference files."
+        }
+      ]
     }
   ]
 }
