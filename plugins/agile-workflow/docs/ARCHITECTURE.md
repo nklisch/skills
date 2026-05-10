@@ -450,87 +450,27 @@ section. Format:
 
 ```markdown
 <!-- agile-workflow:start -->
-## Working with Claude on this project
+## Agile-Workflow Substrate
 
-Work in this project is tracked as markdown items in `.work/` (epics,
-features, stories, releases). You don't edit those files yourself or run the
-`.work/bin/work-view` CLI — both happen automatically as part of normal
-conversation with your agent. Your job is to set intent: what to scope,
-what to design next, when to ship.
+Work tracked in `.work/` as markdown items with YAML frontmatter
+(`kind, stage, tags, parent, depends_on, release_binding`).
+Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
+`.work/releases/<version>/`, `.work/archive/`.
 
-### Everyday motions — just talk
+**Primary query tool:** `.work/bin/work-view` filters by stage, tag, kind,
+parent, and dependency. Common patterns:
+- `work-view --ready` — items ready to work (deps satisfied)
+- `work-view --stage review` — items waiting on user
+- `work-view --parent <id>` / `--blocking <id>` — hierarchy / sequencing
+- `work-view --help` for the full flag set
 
-Most work routes itself when you state intent in plain words. You don't need
-to name skills.
+Detailed navigation rules in `.claude/rules/agile-workflow.md` (auto-loaded
+when editing `.work/` or `docs/`). Foundation docs in `docs/` describe the
+system NOW — never add legacy notes; git history is the audit trail.
 
-| What you say                                       | What you get                                   |
-|----------------------------------------------------|------------------------------------------------|
-| "Park this: would be cool to support webhooks"     | Idea lands in `.work/backlog/`                  |
-| "Pull idea-webhooks up and scope it"               | Promoted to active, sized as a feature or story |
-| "Design feature-uploads-retry"                     | Drafts the design (refactor/perf variants auto-route by tag) |
-| "Implement story-rate-limits"                      | Executes; orchestrator drains the implementing band when scope warrants |
-| "Review what's waiting on me"                      | Walks the `stage: review` queue with you       |
-| "Quick fix: button is misaligned on mobile"        | Spawns a story and fixes inline                |
-
-Diagnostic questions work too — "what's ready?", "what's blocked?", "what's
-in flight under epic-uploads?" — answers come straight from the substrate.
-
-### Heavyweight moments — slash commands
-
-Four commands worth invoking explicitly, because they're broad,
-long-running, or reshape the project:
-
-**`/agile-workflow:ideate`** — Author or refresh foundation docs (VISION,
-SPEC, ARCHITECTURE, PRINCIPLES). Run once at project start; re-run when the
-project's premise shifts. Everything that follows anchors to these docs.
-
-**`/agile-workflow:epicize`** — Decompose vision into epics. Run after
-ideation, or whenever enough new context has built up to warrant a fresh
-arc. Output: epic items in `.work/active/epics/`, sized and
-dependency-chained.
-
-**`/agile-workflow:autopilot [<epic-id> | --all]`** — Drain a queue
-hands-off. Pick a target (one epic, or everything ready in `.work/active/`),
-fire it, walk away. Items get designed, implemented, and reviewed in
-dependency order; commits land per transition. Stops cleanly on blockers,
-on your interjection, or near context limits.
-
-**`/agile-workflow:release-deploy <version>`** — Bind in-flight items to a
-release, run the gate sequence (security → tests → cruft → docs → patterns),
-ship when all bound items reach done. Idempotent — re-run as items land.
-
-### A typical flow
-
-**Greenfield project:**
-1. `/agile-workflow:ideate` — get foundation docs in place
-2. `/agile-workflow:epicize` — turn vision into epics
-3. Park ideas as they occur to you; scope them when ready
-4. `/agile-workflow:autopilot <epic-id>` to drain an epic hands-off
-5. `/agile-workflow:release-deploy v0.1.0` to ship
-
-**Mid-stride:**
-- "What's waiting on me?" — walk the review queue
-- "Take the next ready one through to review" — one item end-to-end
-- `/agile-workflow:autopilot --all` — drain everything that's unblocked
-
-### Tagging shapes which design path runs
-
-When you scope or describe a feature, the tags you suggest matter:
-- `[refactor]` → uses the refactor design path (cost/benefit, before/after,
-  rollback per step)
-- `[perf]` → uses the perf design path (measurement strategy, hot-path
-  analysis)
-- untagged → standard greenfield design (vision, decomposition, pre-mortem)
-
-For sweeping refactors that don't fit incremental work, ask for a "bold
-refactor" — that one's user-only on purpose, never auto-fired.
-
-### One convention worth knowing
-
-Foundation docs in `docs/` describe the system as it is **now**. There are
-no "previously…" or "in v1.2…" notes there — git history is the audit
-trail. If you spot a doc that's lying about current state, ask for a
-refresh and the agent will update it.
+Slash commands (user-invokable):
+`/agile-workflow:ideate`, `/agile-workflow:epicize`,
+`/agile-workflow:autopilot`, `/agile-workflow:release-deploy`.
 <!-- agile-workflow:end -->
 ```
 

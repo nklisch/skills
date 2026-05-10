@@ -141,15 +141,16 @@ paths: ['.work/**', 'docs/**']
 ### CLAUDE.md addition
 
 `convert` appends (or replaces, idempotently) a section in the project's
-`CLAUDE.md` delimited by HTML comment markers. The block is **human-facing
-onboarding** — written for a teammate reading CLAUDE.md to understand how to
-collaborate with the agent on this project, not as instructions to the agent
-itself (the agent gets its substrate rules from `.claude/rules/agile-workflow.md`,
-which is auto-loaded via `paths:` frontmatter).
+`CLAUDE.md` delimited by HTML comment markers:
 
 ```markdown
 <!-- agile-workflow:start -->
-## Working with Claude on this project
+## Agile-Workflow Substrate
+
+Work tracked in `.work/` as markdown items with YAML frontmatter
+(`kind, stage, tags, parent, depends_on, release_binding`).
+Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
+`.work/releases/<version>/`, `.work/archive/`.
 
 [full content — see ARCHITECTURE.md]
 <!-- agile-workflow:end -->
