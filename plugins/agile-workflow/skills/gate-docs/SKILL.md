@@ -1,21 +1,26 @@
 ---
 name: gate-docs
 description: >
-  Documentation gate that enforces the rolling-foundation principle. Scans items
-  bound to a release for foundation-doc drift (assertions in docs/ that no longer
-  match implementation), changelog gaps, and skill/pattern-skill staleness. Produces
-  items in .work/active/ with gate_origin:docs and tags:[documentation].
-  Auto-triggers during /agile-workflow:release-deploy.
+  Documentation gate that enforces the rolling-foundation principle. Delegates
+  the full drift detection to an opus sub-agent which scans the bundle's
+  changes for foundation-doc drift (assertions in docs/ that no longer match
+  implementation), changelog gaps, README staleness, and skill/pattern-skill
+  staleness. The orchestrator converts findings into items in .work/active/
+  with gate_origin:docs and tags:[documentation]. Auto-triggers during
+  /agile-workflow:release-deploy.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
-model: opus
+model: sonnet
 ---
 
 # Gate-Docs
 
-You enforce the **rolling-foundation principle**: foundation docs in `docs/`
-describe the system as it is NOW. After implementation work, foundation-doc
-assertions can drift from reality. This gate finds the drift and produces items
-to roll the docs forward.
+You orchestrate a documentation gate that enforces the **rolling-foundation
+principle**: foundation docs in `docs/` describe the system as it is NOW.
+After implementation work, foundation-doc assertions can drift from reality.
+
+The actual drift detection runs inside an **opus sub-agent**; your role is
+to prepare the bundle context, dispatch the sub-agent, and convert the
+findings it returns into items that will roll the docs forward.
 
 ## Trigger
 
@@ -28,71 +33,143 @@ to roll the docs forward.
 
 ```bash
 .work/bin/work-view --release <version> --paths
+
+# Files changed by the bundle
+for item in $(.work/bin/work-view --release <version> --paths); do
+  id=$(grep -m1 '^id:' "$item" | awk '{print $2}')
+  git log --grep "$id" --format='%H' | xargs -I{} git diff-tree --no-commit-id --name-only -r {}
+done | sort -u > /tmp/bundle-files-<version>.txt
 ```
 
-Build the union of files changed by the bundle (per phase 1 in `gate-cruft`).
+### Phase 2: Read existing gate items (idempotency prep)
 
-### Phase 2: Discover the doc structure
+```bash
+.work/bin/work-view --release <version> --gate docs --paths
+```
 
-Map the project's docs:
-- Foundation docs at `docs/`: VISION.md, SPEC.md, ARCHITECTURE.md, PRINCIPLES.md,
-  domain-specific (UX.md, CONTRACT.md, GAMEPLAY.md, etc.)
-- README.md at repo root
-- CHANGELOG.md
-- Repo-specific skills at `.claude/skills/` or `.agents/skills/`
-- Pattern skills at `.claude/skills/patterns/`
-- Generated files (look for `# generated`, `llms-full.txt`, etc. — never edit;
-  flag for regeneration)
+Capture the set of `(doc-file:line, drift-category)` already-tracked findings.
 
-### Phase 3: Classify the bundle's changes
+### Phase 3: Dispatch the drift-detection sub-agent
 
-For each bound item, classify its change type by reading the item body:
+Spawn ONE Agent (subagent_type=general-purpose, model=opus) with the full
+drift-detection brief. The sub-agent maps the doc structure, classifies the
+bundle's changes, runs parallel drift checks, and returns structured
+findings.
 
-| Change type | Doc owners |
-|---|---|
-| New feature / behavior | SPEC.md, ARCHITECTURE.md, relevant guide pages |
-| New CLI command or flag | CLI reference, SPEC.md, guide pages |
-| New config key | Config reference, SPEC.md |
-| Prompt / UX flow change | UX.md, guide pages |
-| New module or interface | ARCHITECTURE.md, API reference |
-| Bug fix with behavior impact | SPEC.md (if behavior was mis-documented), CHANGELOG.md |
-| New stable pattern | Pattern skills under `.claude/skills/patterns/` |
-| Changed interface used by repo skills | Repo-specific skills referencing it |
+**Brief template**:
 
-### Phase 4: Drift detection
+> You are conducting a documentation drift audit for release `<version>`.
+> The principle: docs in `docs/` describe the system as it is NOW. Drift =
+> doc says X, code now does Y. You have access to Read, Write, Edit, Glob,
+> Grep, Bash, Task. You may spawn parallel sub-tasks for the different
+> drift categories.
+>
+> **Bundle scope** (the changes that may have caused drift):
+> ```
+> <bundle-files>
+> ```
+>
+> **Bound items** (read each item's body to classify the change type):
+> `<bound-item-ids>`
+>
+> **Already-tracked findings to skip**:
+> ```
+> <already-tracked doc:line / category pairs>
+> ```
+>
+> **Methodology**:
+>
+> 1. **Map the doc structure**:
+>    - Foundation docs at `docs/`: VISION.md, SPEC.md, ARCHITECTURE.md,
+>      PRINCIPLES.md, domain-specific (UX.md, CONTRACT.md, GAMEPLAY.md, etc.)
+>    - README.md at repo root
+>    - CHANGELOG.md
+>    - Repo-specific skills at `.claude/skills/` or `.agents/skills/`
+>    - Pattern skills at `.claude/skills/patterns/`
+>    - Generated files (look for `# generated`, `llms-full.txt` — never
+>      edit; flag for regeneration)
+>
+> 2. **Classify each bound item's change type**:
+>    | Change type | Doc owners |
+>    |---|---|
+>    | New feature / behavior | SPEC.md, ARCHITECTURE.md, relevant guide pages |
+>    | New CLI command or flag | CLI reference, SPEC.md, guide pages |
+>    | New config key | Config reference, SPEC.md |
+>    | Prompt / UX flow change | UX.md, guide pages |
+>    | New module or interface | ARCHITECTURE.md, API reference |
+>    | Bug fix with behavior impact | SPEC.md (if behavior was mis-documented), CHANGELOG.md |
+>    | New stable pattern | Pattern skills under `.claude/skills/patterns/` |
+>    | Changed interface used by repo skills | Repo-specific skills referencing it |
+>
+> 3. **Parallel drift checks** — spawn sub-tasks for each:
+>    - **Foundation-doc drift** — for VISION.md, SPEC.md, ARCHITECTURE.md,
+>      for each assertion (interface, contract, component, behavior), grep
+>      the bundle's changed files. Flag any assertion where the doc says X
+>      but the code now does Y. Cite file:line for the doc and the code.
+>    - **README staleness** — verify quick-start, install steps, examples,
+>      command names match the codebase post-bundle.
+>    - **CHANGELOG gap** — for each item bound to release `<version>`,
+>      verify a changelog entry exists.
+>    - **Repo skill staleness** — for each `.claude/skills/<name>/SKILL.md`,
+>      grep for terms used in the skill against the bundle's changed files.
+>      Flag references to terms that no longer exist or signatures that
+>      changed.
+>    - **Pattern skill staleness** — for each `.claude/skills/patterns/*.md`,
+>      verify example file:line references still resolve and code still
+>      matches.
+>    - **Doc misplacement** — scan `docs/` for files that are item-shaped
+>      (contain `## Acceptance Criteria`, `## Implementation Units`, or
+>      `feature-`/`story-` prefixes). These belong in `.work/`.
+>
+> **Output format** — return a single markdown document with:
+>
+> ```
+> ## Findings
+>
+> ### Finding 1
+> - **Title**: <one-line: which doc, what drift>
+> - **Drift category**: foundation-doc-assertion | readme-staleness |
+>   changelog-gap | repo-skill-staleness | pattern-skill-staleness |
+>   generated-file-needs-regen | doc-misplacement
+> - **Confidence**: High | Medium
+> - **Doc location**: `<file>:<line>`
+> - **Code location**: `<file>:<line>` (for assertion drift; omit for gaps)
+> - **Current doc text**:
+>   > <quote — what the doc currently says>
+> - **Reality**: <what the code now does, post-bundle>
+> - **Required edit**: <roll the doc forward to match the new present.
+>   Apply rolling-foundation: no "previously" prose, no "in v1.x" notes.
+>   Replace the assertion in place. For generated files, give the
+>   regeneration command.>
+>
+> ### Finding 2
+> ...
+> ```
+>
+> Followed by:
+>
+> ```
+> ## Audit summary
+> - Doc structure: <one-line>
+> - Drift checks run: <list>
+> - Findings by category: <breakdown>
+> ```
+>
+> **Rules**:
+> - Scan only the bundle's changes plus the docs that own those areas.
+>   Don't audit every doc in the repo.
+> - Cite file:line for every finding.
+> - Required edits ENFORCE rolling-foundation: replace stale assertions in
+>   place. Do NOT propose adding "previously" or "in v1.x" prose. Git is the
+>   audit trail; the doc is the present.
+> - For generated files, the required edit is the regeneration command, not
+>   a manual edit.
+> - Skip already-tracked findings.
+> - Don't fix the docs in the sub-agent. Findings only.
 
-Spawn parallel Explore sub-agents (sonnet minimum) to find drift:
+### Phase 4: Convert findings to items
 
-1. **Foundation-doc drift** — "Read VISION.md, SPEC.md, ARCHITECTURE.md. For each
-   assertion (interface, contract, component, behavior), grep the bundle's changed
-   files. Flag any assertion where the doc says X but the code now does Y. Cite
-   file:line for the doc, file:line for the code."
-
-2. **README staleness** — "Read README.md. Verify quick-start, install steps,
-   examples, command names match the codebase post-bundle. Flag any drift."
-
-3. **CHANGELOG gap** — "Read CHANGELOG.md. For each item bound to release
-   `<version>`, verify a changelog entry exists. Flag missing entries."
-
-4. **Repo skill staleness** — "Read each `.claude/skills/<name>/SKILL.md`.
-   For each, grep for terms used in the skill against the bundle's changed
-   files. Flag any skill referencing terms that no longer exist or signatures
-   that have changed."
-
-5. **Pattern skill staleness** — "Read each `.claude/skills/patterns/*.md`.
-   For each pattern, verify its example file:line references still resolve and
-   the code still matches. Flag stale references."
-
-6. **Doc misplacement** — "Scan `docs/` for files that are item-shaped (contain
-   `## Acceptance Criteria`, `## Implementation Units`, or `feature-`/`story-`
-   prefixes). These belong in `.work/` as items, not loose in `docs/` —
-   foundation docs in `docs/` should describe the system as it is now, not
-   carry feature briefs or design plans. Flag each with a suggestion to migrate
-   into the substrate via `/agile-workflow:scope` or to delete if redundant."
-
-### Phase 5: Convert drift to items
-
-For each finding:
+For each finding the sub-agent returned:
 
 ```yaml
 ---
@@ -112,8 +189,7 @@ updated: YYYY-MM-DD
 # <one-line: which doc, what drift>
 
 ## Drift category
-foundation-doc-assertion | readme-staleness | changelog-gap |
-repo-skill-staleness | pattern-skill-staleness | generated-file-needs-regen
+<category>
 
 ## Location
 - Doc: `<file>:<line>`
@@ -133,11 +209,7 @@ no "previously" prose, no "in v1.x" notes. Replace the assertion in place.>
 For generated files needing regeneration, the item describes the regeneration
 command rather than a manual edit.
 
-### Phase 6: Idempotency
-
-Skip findings already tracked as gate-docs items for this release.
-
-### Phase 7: Commit
+### Phase 5: Commit
 
 ```bash
 git add .work/active/stories/
@@ -156,12 +228,16 @@ In conversation:
 
 ## Guardrails
 
-- Foundation-doc drift is the gate's primary job. Find it and surface it.
-- Required edits ENFORCE rolling-foundation: replace stale assertions in place.
-  Do NOT propose adding "previously" or "in v1.x" prose. Git is the audit trail;
-  the doc is the present.
-- Don't fix the docs in this skill — produce items only. Implementation of the
-  fixes happens via `/agile-workflow:implement` on each item.
-- Audit only the bundle's changes plus the docs that own those areas. Don't audit
-  every doc in the repo — that's unscoped scope creep.
-- Generated files get items describing the regeneration command, not manual edits.
+- **The drift detection happens in the sub-agent, not here.** Your job is
+  bundle prep, dispatch, and item-writing. Don't replicate the sub-agent's
+  analysis in the orchestrator's context.
+- Foundation-doc drift is the gate's primary job. The sub-agent surfaces it;
+  you turn it into items.
+- Required edits ENFORCE rolling-foundation: replace stale assertions in
+  place. Do NOT propose adding "previously" or "in v1.x" prose.
+- Don't fix the docs in this skill — produce items only. Implementation of
+  the fixes happens via `/agile-workflow:implement` on each item.
+- Audit only the bundle's changes plus the docs that own those areas — the
+  sub-agent enforces this; don't override.
+- Generated files get items describing the regeneration command, not manual
+  edits.

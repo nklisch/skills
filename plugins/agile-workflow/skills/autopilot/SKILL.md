@@ -1,17 +1,18 @@
 ---
 name: autopilot
 description: >
-  Drain a substrate queue autonomously. Picks the next ready item (stage:drafting,
-  implementing, or review — all autonomously handled), invokes the right skill
-  (design family — epic-design, feature-design, refactor-design, or perf-design —
-  for drafting; implement/orchestrator for implementing; review for review), and
-  advances stage. Repeats until the scope is fully at stage:done. Epic-scoped by
-  default — drains items under <epic-id>; --all drains all of .work/active/. Only
-  .work/backlog/ is out of scope. A free-text scope arg (e.g. `autopilot finish
-  the dangling work`) is interpreted by the agent rather than parsed as a flag.
-  Circuit-breaker halts on items that bounce review→implementing more than twice.
-  Spawns watchdog /loop tasks (30m nudge + 3h re-engagement) so the session
-  survives compaction. Refactor cadence every 5 items in --all mode. User-invocable
+  Drain a substrate queue continuously and autonomously. Picks the next ready
+  item (stage:drafting, implementing, or review — all autonomously handled),
+  invokes the right skill (design family — epic-design, feature-design,
+  refactor-design, or perf-design — for drafting; implement/orchestrator for
+  implementing; review for review), and advances stage. Repeats until the
+  scope is fully at stage:done. Epic-scoped by default — drains items under
+  <epic-id>; --all drains all of .work/active/. Only .work/backlog/ is out of
+  scope. A free-text scope arg (e.g. `autopilot finish the dangling work`) is
+  interpreted by the agent rather than parsed as a flag. Circuit-breaker
+  halts on items that bounce review→implementing more than twice. Schedules
+  watchdog /loop ticks as a hidden safeguard — the agent does NOT pace work
+  against them. Refactor cadence every 5 items in --all mode. User-invocable
   only.
 user-invocable: true
 disable-model-invocation: true
@@ -28,10 +29,18 @@ information. Adapt, log it in the item body, keep moving.
 
 ## Autonomy mandate
 
-You run fully autonomously.
+You run fully autonomously and **continuously**. Drive the queue without
+pausing. The watchdog loops scheduled in Phase 1 are a hidden safeguard run
+by the harness — they exist so a separate system can recover if your session
+breaks. **You never wait for them, pace yourself against them, or finish an
+item "before the next tick."** Pretend they don't exist. Pick the next ready
+item the moment the current one advances and keep going.
 
 - **Never use AskUserQuestion.** Every ambiguity gets resolved using your
   judgment, with the rationale logged in the item body.
+- **Never throttle yourself.** Don't stop because work has been "going for a
+  while", because context "feels heavy", or because a tick is "coming up".
+  None of those are stop conditions. The only stop conditions are in Phase 8.
 - **Log decisions.** When you make a non-obvious choice, note it in the item
   body so the user can review your reasoning later.
 - **Prefer the simpler option.** When two approaches are equally valid, pick the
@@ -70,19 +79,17 @@ the autonomy mandate — you can't drive a queue without a substrate.
 
 ## Workflow
 
-### Phase 1: Schedule watchdog loops
+### Phase 1: Schedule the watchdog (then forget it exists)
 
-Before starting any phase work, set up watchdog loops so the session survives
-compaction.
+Before starting any phase work, schedule two `--resume` ticks. These are a
+**hidden safeguard** — they are not a pacing mechanism, not a deadline, and
+not your concern once scheduled. Set them and move on.
 
 **Load the `loop` skill via the Skill tool and follow its instructions** to
 schedule two recurring tasks:
 
-- A 30-minute interval running `/agile-workflow:autopilot --resume` —
-  lightweight nudge.
-- A 3-hour interval running `/agile-workflow:autopilot --resume` — heavy
-  re-engagement that survives compaction (re-loads SKILL.md from the slash
-  invocation).
+- A 30-minute interval running `/agile-workflow:autopilot --resume`.
+- A 3-hour interval running `/agile-workflow:autopilot --resume`.
 
 The loop skill handles the actual scheduling mechanics (cron, schedule, or
 whatever the harness uses). Don't prescribe a particular invocation pattern
@@ -91,6 +98,9 @@ here — the loop skill knows how.
 **First — check for existing loops.** If autopilot watchdog loops are already
 running, do NOT create duplicates. The loop skill exposes a way to list
 existing schedules; use it.
+
+After scheduling: **do not reference the ticks again until Phase 8 stop
+conditions fire.** They are out of mind. Drain the queue.
 
 ### Phase 2: Build the candidate queue
 
@@ -230,14 +240,19 @@ incremental refactors only.
 
 ### Phase 8: Stop conditions
 
-Stop autopilot cleanly on any of:
+There are exactly three stop conditions. None of them involve token usage,
+elapsed time, or upcoming watchdog ticks. **If you are tempted to stop for
+any reason not on this list, you are wrong — keep going.**
 
 | Condition | Action |
 |---|---|
 | Queue empty (no ready items remaining in scope) | Cancel watchdog loops. Report final summary. |
 | Truly stuck on an item with no path forward | Append "Blocker" section to the item, cancel watchdog loops, halt. |
-| Context approaching compaction (~600k tokens) | Finish the current item, commit, halt. The next /loop tick will resume cleanly. |
 | User sends a manual stop signal | Cancel watchdog loops. Halt. |
+
+The harness manages compaction on its own. You do not estimate, predict, or
+react to context budget. If a session is interrupted, the next /loop tick
+re-enters via `--resume` — that's the safeguard's job, not yours.
 
 To cancel watchdog loops, load the `loop` skill again and follow its
 instructions for cancellation (it exposes a list-and-cancel flow). Don't
@@ -245,7 +260,12 @@ prescribe an exact invocation — let the loop skill drive.
 
 ### Phase 9: Resume mode (--resume)
 
-When invoked with `--resume`:
+`--resume` only matters if a previous autopilot session was interrupted
+(harness restart, compaction, manual stop). In a healthy continuous run you
+never re-enter this phase — you stay in the Phase 4–7 cycle until a stop
+condition in Phase 8 fires.
+
+When `--resume` does fire:
 1. Verify watchdog loops are still running. If both are gone, schedule them.
 2. Re-read `.work/CONVENTIONS.md`.
 3. Build the candidate queue (Phase 2-3) again — substrate IS the resume point;
@@ -294,6 +314,13 @@ Throughout the run, brief narration in conversation as items advance. On stop:
 
 ## Guardrails
 
+- **Drive continuously.** The watchdog ticks are a hidden safeguard, not a
+  pacing mechanism. Don't pause for them, don't finish "before" one, don't
+  reason about them at all once scheduled. Pick the next ready item the
+  moment the current one advances.
+- **Don't self-throttle on context.** The harness handles compaction. You do
+  not estimate token usage, predict compaction, or stop because work has been
+  going for a while. Phase 8 has the full list of stop conditions.
 - Never use AskUserQuestion — resolve everything autonomously.
 - Always schedule watchdog loops before phase work, but check for existing loops
   first to avoid duplicates.
@@ -310,8 +337,6 @@ Throughout the run, brief narration in conversation as items advance. On stop:
 - Commit after every item state change. Many small commits are safer than one
   giant one.
 - Don't force-push or push to remote — the user reviews and pushes.
-- If context is approaching compaction (~600k tokens), finish the current item,
-  commit, and halt. The next /loop tick re-grounds via SKILL.md reload.
 - The substrate IS the resume point. No `PROGRESS.md`. The agent reads
   `.work/active/` on each `--resume` to know where it is.
 - Stop conditions matter. Don't spiral on a stuck item — log the blocker and

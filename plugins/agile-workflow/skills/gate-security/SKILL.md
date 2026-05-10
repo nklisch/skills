@@ -2,24 +2,27 @@
 name: gate-security
 description: >
   Security gate that scans items bound to a release and produces items as findings.
-  Discovers stack, picks relevant security domains (auth, injection, secrets, deps,
-  API, infra, crypto, data protection, error handling), audits the bundle's code
-  changes, and creates items in .work/active/ with gate_origin:security and
-  appropriate tags. Auto-triggers during /agile-workflow:release-deploy quality-gate
-  stage. Item-producer, NOT a pass/fail report.
-allowed-tools: Read, Glob, Grep, Bash, Agent, WebSearch, WebFetch, Write, Edit
-model: opus
+  Delegates the full audit to an opus sub-agent which discovers stack, picks
+  relevant security domains (auth, injection, secrets, deps, API, infra, crypto,
+  data protection, error handling), audits the bundle's code changes, and returns
+  findings. The orchestrator converts findings into items in .work/active/ with
+  gate_origin:security and appropriate tags. Auto-triggers during
+  /agile-workflow:release-deploy quality-gate stage. Item-producer, NOT a
+  pass/fail report.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
+model: sonnet
 ---
 
 # Gate-Security
 
-You scan the items bound to the current release for security concerns and produce
-items as findings. Each finding gets a `gate_origin: security` item in
-`.work/active/`, properly tagged, with `release_binding` set to the same release.
+You orchestrate a security gate over the items bound to a release. The actual
+audit runs inside an **opus sub-agent**; your role is to prepare the bundle
+context, dispatch the sub-agent, and convert the findings it returns into
+items in the substrate.
 
 This is NOT a standalone audit (for that, use `/agile-workflow:repo-eval`). This
-is a gate over a specific release bundle, producing items the release-deploy flow
-can drain to `done` before shipping.
+is a gate over a specific release bundle, producing items the release-deploy
+flow can drain to `done` before shipping.
 
 ## Trigger
 
@@ -41,92 +44,144 @@ Otherwise, find the active release file (the one at `stage: planned` or
 If no items are bound, halt with: "No items bound to release `<version>`. Bind items
 first via `/agile-workflow:release-deploy`."
 
-### Phase 2: Stack discovery
-
-Map the project's security-relevant surface:
-- Languages, frameworks, package managers
-- Auth systems
-- Entry points (API routes, CLI commands, serverless handlers)
-- Infrastructure (Dockerfile, CI configs, IaC)
-
-### Phase 3: Domain selection
-
-Pick relevant security domains for the bundle's changes. The nine domains:
-
-1. **Authentication & Authorization** — auth flows, session management, RBAC/ABAC,
-   token handling, password policies. *Most relevant for: apps with user accounts,
-   APIs with auth.*
-2. **Input Validation & Injection** — XSS, SQL injection, command injection, path
-   traversal, template injection, SSRF. *Most relevant for: web apps, APIs
-   accepting user input.*
-3. **Secrets & Configuration** — hardcoded secrets, env variable leakage, insecure
-   defaults, exposed config files, `.env` in version control. *Relevant for: all
-   projects.*
-4. **Dependencies & Supply Chain** — known CVEs in deps, outdated packages,
-   lockfile integrity, typosquatting risk, unnecessary dependencies. *Relevant
-   for: all projects with external deps.*
-5. **Data Protection** — encryption at rest/in transit, PII handling, data
-   sanitization in logs, secure deletion, backup security. *Most relevant for:
-   apps handling user data.*
-6. **API Security** — rate limiting, CORS configuration, authentication on all
-   endpoints, mass assignment, response data leakage, API versioning. *Most
-   relevant for: REST/GraphQL APIs.*
-7. **Infrastructure & Deployment** — Dockerfile security, CI/CD secret handling,
-   exposed ports, cloud IAM, container hardening, network policies. *Most
-   relevant for: deployed services.*
-8. **Cryptography** — weak algorithms, hardcoded keys, improper randomness,
-   certificate validation, key management. *Most relevant for: apps doing
-   encryption/signing.*
-9. **Error Handling & Logging** — stack trace leakage, insufficient audit logging,
-   PII in logs, missing error boundaries, verbose error messages in production.
-   *Relevant for: all production apps.*
-
-For an automated gate run, default to the domains most relevant to the detected
-stack (no user prompt — gates run autonomously during release-deploy). For manual
-invocation, ask the user via AskUserQuestion which to focus on.
-
-### Severity definitions
-
-Findings are classified by severity. Sub-agents must use these definitions to
-keep gradings comparable across domains and runs.
-
-| Severity | Meaning |
-|---|---|
-| **Critical** | Actively exploitable now (e.g., secrets in source, no auth on a public endpoint, plaintext password storage). Must be fixed before shipping. |
-| **High** | Significant control missing or known CVE in a deployed dep. Strong attacker leverage if exploited. Must be fixed before shipping. |
-| **Medium** | Hardening gap or non-obvious vulnerability requiring chained conditions. Should be fixed before shipping; can defer with explicit acknowledgement. |
-| **Low** | Defense-in-depth improvement; minor info disclosure; outdated-but-not-vulnerable patterns. Backlog. |
-| **Info** | Observation worth noting; not a finding. Don't produce items for these. |
-
-### Phase 4: Parallel domain audits
-
-For each selected domain, spawn an Agent sub-agent (model: sonnet, parallel) with:
-- The bundle's changed files (extract from git history of bound items)
-- The domain's security checklist
-- Instructions to research current best practices via WebSearch
-- Instructions to report findings as: file:line, severity, evidence, remediation
-
-The change scope is the union of files changed by the bound items. Find this via:
+Build the union of files changed by the bundle:
 
 ```bash
-# For each bound item, find its implementation commits
 for item in $(.work/bin/work-view --release <version> --paths); do
   id=$(grep -m1 '^id:' "$item" | awk '{print $2}')
   git log --grep "$id" --format='%H' | xargs -I{} git diff-tree --no-commit-id --name-only -r {}
-done | sort -u
+done | sort -u > /tmp/bundle-files-<version>.txt
 ```
 
-### Phase 5: Convert findings to items
+### Phase 2: Read existing gate items (idempotency prep)
 
-For each finding above Info severity:
+```bash
+.work/bin/work-view --release <version> --gate security --paths
+```
+
+Capture the set of `(file:line, severity)` already-tracked findings so the
+sub-agent can be told to skip duplicates.
+
+### Phase 3: Dispatch the audit sub-agent
+
+Spawn ONE Agent (subagent_type=general-purpose, model=opus) with the full
+audit brief. The sub-agent does all of the analysis end-to-end —
+stack discovery, domain selection, parallel domain audits, severity
+classification — and returns structured findings.
+
+**Brief template** (substitute `<version>`, `<bundle-files>`,
+`<bound-item-ids>`, `<already-tracked>`):
+
+> You are conducting a security gate audit for release `<version>`. You have
+> access to the full toolset (Read, Glob, Grep, Bash, WebSearch, WebFetch,
+> Task) and may spawn parallel sub-tasks for per-domain audits.
+>
+> **Bundle scope** (audit ONLY these files; this is a release gate, not a
+> repo-wide audit):
+> ```
+> <bundle-files>
+> ```
+>
+> **Bound items**: `<bound-item-ids>`
+>
+> **Already-tracked findings to skip** (do not re-report these):
+> ```
+> <already-tracked file:line / severity pairs>
+> ```
+>
+> **Methodology**:
+>
+> 1. **Stack discovery** — read `package.json`, `tsconfig.json`, `Cargo.toml`,
+>    `go.mod`, `pyproject.toml`, `Dockerfile`, CI configs. Identify languages,
+>    frameworks, package managers, auth systems, entry points (API routes, CLI,
+>    serverless), infrastructure.
+>
+> 2. **Domain selection** — pick the relevant domains for this stack and the
+>    bundle's surface. The nine domains:
+>    1. Authentication & Authorization — auth flows, sessions, RBAC/ABAC,
+>       tokens, password policies. Apps with user accounts; APIs with auth.
+>    2. Input Validation & Injection — XSS, SQLi, command injection, path
+>       traversal, template injection, SSRF. Web apps, APIs.
+>    3. Secrets & Configuration — hardcoded secrets, env leakage, insecure
+>       defaults, exposed config, `.env` in VCS. All projects.
+>    4. Dependencies & Supply Chain — known CVEs, outdated packages, lockfile
+>       integrity, typosquatting risk, unnecessary deps. All projects with
+>       external deps.
+>    5. Data Protection — encryption at rest/in transit, PII handling, log
+>       sanitization, secure deletion, backup security. Apps handling user
+>       data.
+>    6. API Security — rate limiting, CORS, auth on all endpoints, mass
+>       assignment, response leakage, versioning. REST/GraphQL APIs.
+>    7. Infrastructure & Deployment — Dockerfile security, CI/CD secrets,
+>       exposed ports, cloud IAM, container hardening, network policies.
+>       Deployed services.
+>    8. Cryptography — weak algorithms, hardcoded keys, RNG, cert validation,
+>       key management. Apps doing encryption/signing.
+>    9. Error Handling & Logging — stack trace leakage, audit gaps, PII in
+>       logs, missing error boundaries, verbose prod errors. All prod apps.
+>
+> 3. **Parallel domain audits** — for each selected domain, spawn a parallel
+>    sub-task (Task tool) that audits the bundle's changed files for that
+>    domain's checklist. Use WebSearch to verify current best practices for
+>    `<stack>+<domain>` combinations before judging.
+>
+> 4. **Severity classification** — every finding gets one of:
+>    | Severity | Meaning |
+>    |---|---|
+>    | Critical | Actively exploitable now (secrets in source, no auth on a public endpoint, plaintext password storage). Must fix before shipping. |
+>    | High | Significant control missing or known CVE in a deployed dep. Strong attacker leverage. Must fix before shipping. |
+>    | Medium | Hardening gap or non-obvious vuln requiring chained conditions. Should fix; can defer with explicit acknowledgement. |
+>    | Low | Defense-in-depth; minor info disclosure; outdated-but-not-vulnerable. Backlog. |
+>    | Info | Observation; not a finding. Don't return Info entries. |
+>
+> **Output format** — return a single markdown document with:
+>
+> ```
+> ## Findings
+>
+> ### Finding 1
+> - **Title**: <one-line>
+> - **Severity**: Critical | High | Medium | Low
+> - **Domain**: <domain name>
+> - **Location**: `<file>:<line>`
+> - **Evidence**:
+>   ```<lang>
+>   <1-5 lines of offending code>
+>   ```
+> - **Remediation direction**: <direction, not finished fix>
+>
+> ### Finding 2
+> ...
+> ```
+>
+> Followed by:
+>
+> ```
+> ## Audit summary
+> - Stack: <one-line>
+> - Domains audited: <list>
+> - Files audited: <count>
+> - Findings by severity: Critical=<n>, High=<n>, Medium=<n>, Low=<n>
+> ```
+>
+> **Rules**:
+> - Audit only the files listed in Bundle scope. Do NOT expand the audit.
+> - Cite file:line for every finding.
+> - Don't fabricate. If evidence is missing, don't report.
+> - Skip findings that match the already-tracked list.
+> - Don't implement fixes. Findings only.
+
+### Phase 4: Convert findings to items
+
+For each finding the sub-agent returned (above Info severity):
 
 ```yaml
 ---
 id: gate-security-<short-slug>
 kind: story
-stage: implementing      # high-confidence findings
-                         # OR drafting for medium-confidence
-                         # OR backlog file for low-confidence
+stage: implementing      # Critical or High
+                         # OR drafting for Medium
+                         # OR backlog file for Low
 tags: [security]
 parent: null
 depends_on: []
@@ -141,6 +196,9 @@ updated: YYYY-MM-DD
 ## Severity
 Critical | High | Medium | Low
 
+## Domain
+<domain>
+
 ## Location
 `<file>:<line>`
 
@@ -153,23 +211,12 @@ Critical | High | Medium | Low
 <what should change — direction, not a finished fix>
 ```
 
-Severity mapping to stage:
+Severity → stage mapping:
 - **Critical** / **High** → `stage: implementing` in `.work/active/stories/`
 - **Medium** → `stage: drafting` in `.work/active/stories/`
 - **Low** → backlog file in `.work/backlog/` (not stage-managed)
 
-### Phase 6: Idempotency check
-
-Before creating any item, check if an equivalent item already exists for this
-release:
-
-```bash
-.work/bin/work-view --release <version> --gate security --paths
-```
-
-If a finding has the same file:line and severity as an existing item, do not duplicate.
-
-### Phase 7: Commit
+### Phase 5: Commit
 
 ```bash
 git add .work/active/stories/ .work/backlog/
@@ -188,12 +235,14 @@ In conversation:
 
 ## Guardrails
 
+- **The audit happens in the sub-agent, not here.** Your job is bundle prep,
+  dispatch, and item-writing. Don't replicate the sub-agent's analysis in
+  the orchestrator's context.
 - Never implement fixes — produce items only.
 - Always cite file:line in finding bodies.
-- Don't fabricate findings. If you can't find evidence, don't report it.
-- Research before judging. WebSearch for current best practices for
-  stack+domain combinations.
-- Idempotent re-runs: don't duplicate items. Check `gate_origin: security` and
-  `release_binding: <version>` before creating.
+- Don't fabricate findings. If the sub-agent returns nothing for a domain, it
+  returns nothing. Don't paper that over.
+- Idempotent re-runs: pass already-tracked findings into the sub-agent's brief
+  so it skips duplicates. Double-check on item-write before creating.
 - Audit only the bundle's changes, not the whole repo. Repo-wide audits are
   `/agile-workflow:repo-eval`'s job, not a release gate's.

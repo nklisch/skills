@@ -1,30 +1,31 @@
 ---
 name: gate-patterns
 description: >
-  Patterns gate that scans the bundle's changes for reusable code structures and
-  writes pattern skills to .claude/skills/patterns/. Identifies recurring shapes
-  (3+ occurrences) introduced or revealed by the bundle, names them, documents
-  them with concrete file:line examples, then produces a tracking item with
-  gate_origin:patterns. Auto-triggers during /agile-workflow:release-deploy as
-  the final gate (after security, tests, cruft, docs).
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
+  Patterns gate that scans the bundle's changes for reusable code structures.
+  Delegates the full discovery to an opus sub-agent which identifies recurring
+  shapes (3+ occurrences) introduced or revealed by the bundle, names them,
+  documents them with concrete file:line examples, and returns pattern drafts.
+  The orchestrator writes pattern skills to .claude/skills/patterns/, updates
+  the index, and produces a tracking item with gate_origin:patterns.
+  Auto-triggers during /agile-workflow:release-deploy as the final gate.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 model: sonnet
 ---
 
 # Gate-Patterns
 
-You scan the bundle's code changes for reusable patterns — recurring shapes that
-appear 3+ times — and codify them into pattern skills at
-`.claude/skills/patterns/<slug>.md`. A tracking item is produced with
-`gate_origin: patterns` so the user has a record in the substrate.
+You orchestrate a patterns gate over the bundle's code changes. The actual
+pattern discovery runs inside an **opus sub-agent**; your role is to prepare
+the bundle context, dispatch the sub-agent, and write the pattern files +
+index it returns.
 
-This is NOT about coding style or naming conventions (that's `CLAUDE.md`'s job).
-This is about identifying structural patterns for consistency and reuse.
+This is NOT about coding style or naming conventions (that's `CLAUDE.md`'s
+job). This is about identifying structural patterns for consistency and reuse.
 
 ## Trigger
 
-- `/agile-workflow:release-deploy` invokes during `quality-gate` stage (typically
-  last in the gate sequence)
+- `/agile-workflow:release-deploy` invokes during `quality-gate` stage
+  (typically last in the gate sequence)
 - User can invoke manually: `/agile-workflow:gate-patterns <release-version>`
 
 ## Workflow
@@ -36,90 +37,164 @@ ls .claude/skills/patterns/ 2>/dev/null
 cat .claude/rules/patterns.md 2>/dev/null
 ```
 
-So you don't redocument existing patterns. Note inconsistencies between existing
-patterns and the bundle's new code (those become items, not new pattern skills).
+Capture the existing pattern catalog so the sub-agent doesn't redocument
+existing patterns. This goes into the brief.
 
 ### Phase 2: Identify bundle scope
 
 ```bash
 .work/bin/work-view --release <version> --paths
+
+for item in $(.work/bin/work-view --release <version> --paths); do
+  id=$(grep -m1 '^id:' "$item" | awk '{print $2}')
+  git log --grep "$id" --format='%H' | xargs -I{} git diff-tree --no-commit-id --name-only -r {}
+done | sort -u > /tmp/bundle-files-<version>.txt
 ```
 
-Find the union of files changed by bound items. This is the new code to scan.
+### Phase 3: Dispatch the discovery sub-agent
 
-### Phase 3: Parallel pattern discovery
+Spawn ONE Agent (subagent_type=general-purpose, model=opus) with the full
+discovery brief. The sub-agent runs parallel pattern searches, filters to
+genuine 3+ occurrences, drafts pattern documentation, and returns
+structured output.
 
-Spawn parallel Explore sub-agents (sonnet minimum) on the bundle's changed files
-plus their immediate consumers (since reuse implies multiple call sites):
+**Brief template**:
 
-1. **Shared abstractions & utilities** — "Find new shared/reusable code introduced
-   in <files>: utility functions, base classes, common helpers, types used across
-   multiple modules. List each with file:line and which modules use it."
+> You are conducting pattern discovery for release `<version>`. Identify
+> reusable code structures the bundle introduces or reveals — recurring
+> shapes that appear 3+ times. NOT coding style or naming conventions
+> (that's CLAUDE.md's job); structural patterns for consistency and reuse.
+>
+> You have access to Read, Glob, Grep, Bash, Task. You may spawn parallel
+> sub-tasks for the different discovery axes.
+>
+> **Bundle scope**:
+> ```
+> <bundle-files>
+> ```
+>
+> **Existing pattern catalog** (do NOT redocument these; flag inconsistencies
+> against them):
+> ```
+> <existing-patterns-listing>
+> ```
+>
+> **Methodology**:
+>
+> 1. **Parallel pattern discovery** — spawn sub-tasks on the bundle's
+>    changed files plus their immediate consumers (since reuse implies
+>    multiple call sites):
+>    - **Shared abstractions & utilities** — find new shared/reusable code
+>      introduced in the bundle: utility functions, base classes, common
+>      helpers, types used across multiple modules. List each with
+>      file:line and which modules use it.
+>    - **Architectural patterns** — identify recurring structural
+>      approaches: how modules are organized, how services are composed,
+>      how data flows between layers, how config and async/error
+>      propagation are handled. Concrete file:line examples.
+>    - **Testing infrastructure** — find new reusable test patterns:
+>      shared fixtures, test utilities, common setup/teardown, mocking
+>      approaches, assertion helpers.
+>
+>    After sub-task results, **read 3-4 key files yourself** to verify.
+>
+> 2. **Filter to genuine patterns.** A finding is a genuine pattern only if
+>    it has **3+ occurrences** in the codebase (not just in the bundle —
+>    count across the whole repo). Single-use shapes are not patterns.
+>    Two-use shapes are coincidence. Three+ is a pattern.
+>
+>    For each candidate, also check: does this contradict an existing
+>    documented pattern? If so, it's a divergence to flag (not a new
+>    pattern to document).
+>
+> 3. **Draft pattern files** for each genuine new pattern.
+>
+> **Output format** — return a single markdown document with:
+>
+> ```
+> ## New patterns
+>
+> ### Pattern: <Pattern Name> (slug: <slug>)
+>
+> <one-line description>
+>
+> #### Rationale
+> <why this pattern exists in this project>
+>
+> #### Examples
+>
+> ##### Example 1: <description>
+> **File**: `src/path/file.ext:42`
+> ```<lang>
+> <concrete code example>
+> ```
+>
+> ##### Example 2: <description>
+> **File**: `src/path/other.ext:18`
+> ```<lang>
+> <concrete code example>
+> ```
+>
+> ##### Example 3: <description>
+> **File**: `src/path/third.ext:55`
+> ```<lang>
+> <concrete code example>
+> ```
+>
+> #### When to Use
+> - <circumstance>
+>
+> #### When NOT to Use
+> - <circumstance>
+>
+> #### Common Violations
+> - <violation and why it's wrong>
+>
+> #### Index entry
+> - **<name>**: <terse rule, one line, suitable for the patterns index>
+>
+> ### Pattern: <next pattern>
+> ...
+> ```
+>
+> Followed by:
+>
+> ```
+> ## Inconsistencies
+>
+> ### Inconsistency 1
+> - **Existing pattern**: <slug or name>
+> - **Bundle code that violates it**: `<file>:<line>`
+> - **Nature of divergence**: <one-line>
+>
+> ### Inconsistency 2
+> ...
+>
+> ## Discovery summary
+> - Files scanned: <count>
+> - Pattern candidates evaluated: <count>
+> - Genuine patterns (3+ occurrences): <count>
+> - Inconsistencies with existing patterns: <count>
+> ```
+>
+> **Rules**:
+> - 3+ occurrences required. Single-use is not a pattern. Two-use is
+>   coincidence.
+> - Don't document style conventions — that's CLAUDE.md's job.
+> - Every pattern needs concrete file:line examples — abstract descriptions
+>   don't serve agents.
+> - Don't propose patterns that contradict existing documented ones; flag
+>   the divergence instead.
+> - Don't fabricate patterns. If discovery yields nothing, return an empty
+>   "New patterns" section.
 
-2. **Architectural patterns** — "Identify recurring structural approaches in
-   <files>: how modules are organized, how services are composed, how data flows
-   between layers, how config and async/error propagation are handled. Report
-   with concrete file:line examples."
+### Phase 4: Write pattern files
 
-3. **Testing infrastructure** — "Find new reusable test patterns in <files>:
-   shared fixtures, test utilities, common setup/teardown, mocking approaches,
-   assertion helpers."
+For each new pattern the sub-agent returned, write
+`.claude/skills/patterns/<slug>.md` with the pattern content (everything
+under the `### Pattern:` heading except the `Index entry` block).
 
-After results, **read 3-4 key files yourself** to verify findings.
-
-### Phase 4: Filter to genuine patterns
-
-A finding is a genuine pattern only if it has **3+ occurrences** in the codebase
-(not just in the bundle — count across the whole repo). Single-use shapes are not
-patterns. Two-use shapes are coincidence. Three+ is a pattern.
-
-For each candidate, also check: does this contradict an existing documented
-pattern? If so, it's a divergence to flag (not a new pattern to document).
-
-### Phase 5: Write pattern files
-
-For each genuine new pattern, write
-`.claude/skills/patterns/<slug>.md`:
-
-```markdown
-# Pattern: <Pattern Name>
-
-<one-line description>
-
-## Rationale
-<why this pattern exists in this project>
-
-## Examples
-
-### Example 1: <description>
-**File**: `src/path/file.ext:42`
-\`\`\`<lang>
-<concrete code example>
-\`\`\`
-
-### Example 2: <description>
-**File**: `src/path/other.ext:18`
-\`\`\`<lang>
-<concrete code example>
-\`\`\`
-
-### Example 3: <description>
-**File**: `src/path/third.ext:55`
-\`\`\`<lang>
-<concrete code example>
-\`\`\`
-
-## When to Use
-- <circumstance>
-
-## When NOT to Use
-- <circumstance>
-
-## Common Violations
-- <violation and why it's wrong>
-```
-
-### Phase 6: Update the index
+### Phase 5: Update the index
 
 Regenerate `.claude/rules/patterns.md`:
 
@@ -133,9 +208,10 @@ paths: ['src/**', 'lib/**', 'app/**']
 - ...
 ```
 
-Keep the index under 30 lines. Order by relevance (most commonly applicable first).
+Combine existing entries with the new ones from the sub-agent's output. Keep
+the index under 30 lines. Order by relevance (most commonly applicable first).
 
-### Phase 7: Update the patterns SKILL.md
+### Phase 6: Update the patterns SKILL.md
 
 Create or update `.claude/skills/patterns/SKILL.md`:
 
@@ -160,7 +236,7 @@ Available patterns:
 
 Keep the available patterns list current.
 
-### Phase 8: Produce tracking item
+### Phase 7: Produce tracking item
 
 Create one item summarizing what was extracted:
 
@@ -195,10 +271,14 @@ updated: YYYY-MM-DD
 This item is at `stage: done` because the gate's work IS the writing of the
 pattern files. No further implementation needed.
 
-### Phase 9: Commit
+For each inconsistency the sub-agent flagged, ALSO produce a `[refactor]`
+story (`stage: drafting`) so the divergence gets reconciled in a subsequent
+release.
+
+### Phase 8: Commit
 
 ```bash
-git add .claude/skills/patterns/ .claude/rules/patterns.md .work/active/stories/gate-patterns-<version>.md
+git add .claude/skills/patterns/ .claude/rules/patterns.md .work/active/stories/gate-patterns-<version>.md .work/active/stories/gate-patterns-inconsistency-*.md
 git commit -m "gate-patterns: <N> patterns extracted for <version>"
 ```
 
@@ -207,18 +287,20 @@ git commit -m "gate-patterns: <N> patterns extracted for <version>"
 In conversation:
 - **Bundle**: `<version>`
 - **New patterns extracted**: list with slugs
-- **Inconsistencies flagged**: count
+- **Inconsistencies flagged**: count, with new story ids
 - **Index updated**: `.claude/rules/patterns.md`
 - **Tracking item**: `gate-patterns-<version>` at `stage: done`
 
 ## Guardrails
 
-- A pattern requires 3+ occurrences. Single-use is not a pattern. Two-use is
-  coincidence.
+- **The discovery happens in the sub-agent, not here.** Your job is bundle
+  prep, dispatch, and writing the pattern files + index + tracking item.
+  Don't replicate the sub-agent's analysis.
+- A pattern requires 3+ occurrences. The sub-agent enforces this; trust it.
 - Don't document style conventions — that's CLAUDE.md's job.
-- Every pattern needs concrete file:line examples — abstract descriptions don't
-  serve agents.
-- Don't propose patterns that contradict existing documented ones without
-  flagging it explicitly.
+- Every pattern needs concrete file:line examples — the sub-agent provides
+  them; don't write a pattern file without them.
+- Inconsistencies with existing patterns become `[refactor]` stories, not
+  new pattern files.
 - The tracking item is `stage: done` because the gate's deliverable is the
   pattern files themselves, not deferred work.

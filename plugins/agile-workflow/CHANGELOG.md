@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.4.0 — gates run in opus sub-agents, autopilot drives continuously
+
+Two related shifts in how heavy thinking gets dispatched and how the queue
+runner paces itself.
+
+- **Gates are sub-agent driven.** All five quality gates (`gate-security`,
+  `gate-cruft`, `gate-docs`, `gate-tests`, `gate-patterns`) now delegate
+  their full analysis to a single opus sub-agent. The orchestrator skill
+  becomes a thin shell: prepare bundle context, dispatch the sub-agent
+  with a methodology brief, convert the structured findings it returns
+  into items (or pattern files, for `gate-patterns`), commit. The heavy
+  reasoning runs in an isolated context — domain audits, drift detection,
+  contract extraction, pattern discovery — leaving the orchestrator's
+  context lean and the analysis quality consistent. Orchestrator model
+  dropped from `opus` to `sonnet` for the four item-producing gates;
+  `gate-patterns` was already sonnet.
+- **Autopilot drives continuously; watchdog ticks are a hidden
+  safeguard.** Earlier wording around "session survives compaction" and a
+  "context approaching ~600k tokens" stop condition made the agent
+  self-throttle — pacing work against the watchdog ticks instead of
+  draining the queue. The skill now states explicitly: drive the queue
+  without pausing, the ticks are a harness-level safeguard you do not
+  reason about once scheduled, and there are exactly three stop
+  conditions (queue empty / truly stuck / user stop signal). Compaction
+  prediction is removed entirely — the harness handles it.
+
 ## v0.3.2 — autopilot delegates to loop skill instead of prescribing args
 
 v0.3.1 prescribed `Skill(skill="loop", args="30m /agile-workflow:autopilot
