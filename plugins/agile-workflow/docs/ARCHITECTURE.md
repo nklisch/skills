@@ -59,8 +59,8 @@ An item flows through tiers as work progresses on it.
                        (design written into body; child stories spawned)
                               │
                               ▼
-                  /implement or /implement-orchestrator
-                  (respects depends_on)
+                  /implement-orchestrator (default; scope-driven,
+                  cross-feature waves) or /implement (inline alternative)
                               │
                               ▼
                        stage: review
@@ -274,7 +274,7 @@ adding a tag and a skill — no architectural change.
    - if epic-scoped: items with parent == <epic-id>, transitively
      (include grandchildren via parent chain)
    - if --all: all items in .work/active/
-2. Filter to stage in {drafting, implementing}
+2. Filter to stage in {drafting, implementing, review}
 3. For each candidate, check depends_on:
    - all deps must be at stage: done (or in releases/archive)
    - candidates with unmet deps are filtered out
@@ -284,11 +284,14 @@ adding a tag and a skill — no architectural change.
 5. Pop the first item.
 6. Work it:
    - if drafting → invoke /design (or /refactor-design / /perf-design by tag)
-   - if implementing → invoke /implement (or /implement-orchestrator
-     if children > 3)
+   - if implementing → invoke /implement-orchestrator with the autopilot
+     scope (the picked item is an anchor; the orchestrator drains the whole
+     in-scope implementing band as one batch, cross-feature is fine).
+     /implement is reserved for the inline small-delivery case.
+   - if review → invoke /review (autonomous: produces verdict, advances
+     review→done or sends back to implementing)
 7. Advance stage on completion. Commit.
-8. If stage == review, hand to user (don't auto-advance through review).
-9. Goto 1 unless stop condition.
+8. Goto 1 unless stop condition.
 ```
 
 ### Stop conditions
@@ -476,8 +479,8 @@ All 26 skills with their roles, invocability, and triggers.
 
 | Skill | Role | Trigger |
 |---|---|---|
-| `implement` | Read feature/story body, write code, run build+tests, advance stage. | item at `stage: implementing` with code work pending |
-| `implement-orchestrator` | Fan agents over child story files of a feature. Respects `depends_on` (sequential vs parallel). | feature at `stage: implementing` with > 3 child stories |
+| `implement-orchestrator` | Default. Fan Sonnet sub-agents over a scope (feature, epic, --all, or explicit list). Builds a unified `depends_on` graph across the scope (cross-feature is fine), waves up to 3 in parallel, advances every parent feature whose children all reach `review`. | item(s) at `stage: implementing` |
+| `implement` | Inline alternative. Read item body, write code, run build+tests, advance stage. | small / focused work where sub-agent fan-out wouldn't pay off, or user asks to implement inline |
 
 ### Review & delivery (mixed invocability)
 

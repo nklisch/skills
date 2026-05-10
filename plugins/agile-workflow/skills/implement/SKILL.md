@@ -1,12 +1,13 @@
 ---
 name: implement
 description: >
-  Write code from a substrate item at stage:implementing. Reads the design embedded
-  in the feature/story body, writes code per the spec, runs build+tests, advances
-  stage implementing -> review, and updates the item body with implementation notes.
-  Use when an item is at stage:implementing and ready to be coded — single-stride
-  sequential implementation. For features with > 3 child stories that can run in
-  parallel, use /agile-workflow:implement-orchestrator instead.
+  Inline single-stride implementation of a substrate item at stage:implementing.
+  Reads the design embedded in the item body, writes code per the spec, runs
+  build+tests, advances stage implementing -> review, and updates the item body
+  with implementation notes. /agile-workflow:implement-orchestrator is the default
+  routing for implementing work; this skill is the inline alternative — pick it
+  for small, focused deliveries where spawning a sub-agent wouldn't pay off, or
+  when the user explicitly asks to implement inline.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 ---
 
@@ -19,15 +20,24 @@ notes there as you work.
 
 ## Trigger
 
-The agent picks this skill when an item is at `stage: implementing` with code work
-ready to begin. Common phrases:
+`/agile-workflow:implement-orchestrator` is the default routing for implementing
+work, including lone stories. This skill is the **inline alternative** — same
+work, no sub-agent fan-out — and it's the right call when:
+
+- The delivery is small and focused (a tiny tweak, a single-file change, a
+  flag flip, landing code already in the working tree)
+- The user explicitly asks to implement inline / "do it yourself"
+- You're already mid-flow on this item and a hand-off would lose context
+
+When the work is multi-unit, spans several files, or has sibling stories that
+could run in parallel, prefer the orchestrator. When in doubt and nothing
+strongly points either way, the orchestrator is the safer default.
+
+Common phrases:
 - "implement story X", "implement this feature"
 - "let's code feature Y"
 - "the design is ready, start building"
-
-For features with multiple child stories that can run in parallel, prefer
-`/agile-workflow:implement-orchestrator`. For single-story implementation or
-sequential walking of a feature's stories, use this skill.
+- "just do it inline"
 
 ## Workflow
 

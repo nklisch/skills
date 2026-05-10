@@ -151,6 +151,12 @@ Pop the first.
 
 If the queue is empty at this point: **stop condition met**. See Phase 8.
 
+Note on the `stage: implementing` branch: the picked item is treated as an
+**anchor** for the implementing band — Phase 5 hands the whole in-scope
+implementing batch to the orchestrator in one call, not just this one item.
+For `drafting` and `review` stages, the picked item is processed individually,
+as before.
+
 ### Phase 5: Work the item
 
 Based on the item's `stage` and `kind`:
@@ -166,17 +172,30 @@ Based on the item's `stage` and `kind`:
 Only items in `.work/backlog/` are out of scope for autopilot — the queue only
 reads from `.work/active/` so backlog never enters consideration.
 
-**`stage: implementing`**:
+**`stage: implementing`** — drain the whole band at once via the orchestrator:
 - For epics: nothing to implement directly — the children are the work
   targets. Skip and pick the next ready candidate. (The `review` skill
   auto-advances an epic from `implementing → review` when its last child
   reaches `done`.)
-- For features with one or more child stories →
-  `/agile-workflow:implement-orchestrator` (default). It runs single-story
-  features as a one-agent wave; multi-story features as multiple waves
-  scheduled by `depends_on`. The per-story prompt mirrors `implement`.
-- For features without child stories, and for stories →
-  `/agile-workflow:implement`.
+- For everything else (features with or without children, lone stories,
+  parentless items): hand the **full scope** to
+  `/agile-workflow:implement-orchestrator` in one call. Pass the autopilot
+  scope through directly — `<epic-id>` if epic-scoped, `--all` if `--all`
+  mode, or the explicit list if you reduced it via a free-text directive.
+  The orchestrator builds a unified `depends_on` graph across every ready
+  implementing item in scope (cross-feature is fine), waves them in groups
+  of up to 3 parallel sub-agents, and advances each parent feature whose
+  children all reach `review`.
+- The orchestrator returns once the implementing band in scope is fully
+  drained (every item at `stage: review`, every qualifying parent advanced).
+  After it returns, resume the queue at Phase 2 — there will likely now be
+  new `stage: review` candidates to process, plus any drafting items still
+  waiting on design.
+- Inline `/agile-workflow:implement` is reserved for the small-delivery case
+  the orchestrator routes around: items the orchestrator declined or items
+  the user has explicitly asked to land inline. Autopilot itself defaults to
+  the orchestrator — never call `implement` directly during autonomous
+  routing unless the orchestrator has already deferred the item back.
 
 **`stage: review`** (any kind):
 - All kinds → `/agile-workflow:review <id>`. The review skill is

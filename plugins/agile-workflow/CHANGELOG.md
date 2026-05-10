@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.4.3 — orchestrator becomes default, scope-driven, cross-feature
+
+Shifts the routing for `stage: implementing` work so the orchestrator is the
+default path and is no longer scoped to a single parent feature.
+
+- **`implement-orchestrator`** — now the default for everything at
+  `stage: implementing` (features with or without children, lone stories,
+  parentless items). Accepts a scope arg in any of four forms: a feature id
+  (current behavior), an epic id, `--all`, or an explicit list of item ids.
+  Phase 1 grounding reads every parent feature in the work set, not just
+  one. Phase 2 builds a unified `depends_on` graph across the whole scope —
+  cross-feature dependencies are first-class, not partitioned by parent.
+  Phase 3 introduces a file-overlap conflict check before each wave; either
+  serialize conflicting items into a later sub-wave or spawn the wave with
+  `isolation: "worktree"`. Phase 9 advances **every** parent feature whose
+  children are all at `review` (multi-parent), and leaves parents with
+  out-of-scope implementing children at `implementing` until a later run
+  finishes them.
+- **`implement`** — repositioned as the inline alternative. Same single-stride
+  workflow as before; the trigger now points at the orchestrator as the
+  default and lists the cases where inline is the right call (small / focused
+  work, user explicitly asks to land inline, mid-flow continuation). No
+  numeric thresholds — the choice stays a judgment call.
+- **`autopilot`** Phase 5 — when the picked anchor is at `stage: implementing`,
+  hands the **full autopilot scope** (epic id, `--all`, or the reduced list
+  from a free-text directive) to the orchestrator in one call. The
+  orchestrator drains the entire in-scope implementing band, advancing
+  parents along the way. Phase 4 documents that the picked item is an
+  "anchor" only on the implementing branch — drafting and review continue
+  to be processed one item at a time.
+- **`docs/ARCHITECTURE.md`** — pipeline diagram, queue-selection algorithm,
+  and skill table updated to reflect orchestrator-as-default and the
+  scope-driven shape. Queue filter expanded to include `review` (autopilot
+  has handled review autonomously since v0.3.x; the doc was stale).
+
+The throughput motivation: with stories defaulting to the orchestrator, a
+ready story from feature A and a ready story from feature B can pack into the
+same 3-agent wave instead of running sequentially. Single-feature scopes
+behave exactly like before — only multi-feature or `--all` scopes see the new
+fan-out.
+
 ## v0.4.2 — human-facing work-board view
 
 Adds a slash command and renderer that produce a self-contained HTML
