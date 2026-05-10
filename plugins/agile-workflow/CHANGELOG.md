@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.1 — autopilot /loop invocation fix
+
+The `autopilot` skill instructed the agent to run `/loop ...` in bare code
+blocks, which agents interpreted as bash commands and ran via the Bash tool —
+silently dropping the watchdog scaffolding. Phase 1 (schedule) and Phase 8
+(cancel) now spell out the `Skill` tool invocation explicitly:
+`Skill(skill="loop", args="...")`.
+
 ## v0.3.0 — autonomous review, caller awareness, orchestrator default
 
 Autopilot now drains `stage: review` items end-to-end. Skills called by

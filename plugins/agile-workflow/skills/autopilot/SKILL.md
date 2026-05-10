@@ -72,17 +72,19 @@ the autonomy mandate — you can't drive a queue without a substrate.
 
 ### Phase 1: Schedule watchdog loops
 
-Before starting any phase work, set up watchdog loops via `/loop` so the session
-survives compaction.
+Before starting any phase work, set up watchdog loops so the session survives
+compaction. **Use the `Skill` tool** to invoke the `loop` skill — `/loop` is
+not a bash command, it's a skill invocation. Running it through Bash will
+fail.
 
 **First — check for existing loops.** If autopilot watchdog loops are already
 running, do NOT create duplicates.
 
-If no equivalents are running, schedule:
+If no equivalents are running, schedule via two Skill tool calls:
 
 ```
-/loop 30m /agile-workflow:autopilot --resume
-/loop 3h /agile-workflow:autopilot --resume
+Skill(skill="loop", args="30m /agile-workflow:autopilot --resume")
+Skill(skill="loop", args="3h /agile-workflow:autopilot --resume")
 ```
 
 The 30-minute loop is a lightweight nudge. The 3-hour loop is heavy
@@ -236,12 +238,13 @@ Stop autopilot cleanly on any of:
 | Context approaching compaction (~600k tokens) | Finish the current item, commit, halt. The next /loop tick will resume cleanly. |
 | User sends a manual stop signal | Cancel watchdog loops. Halt. |
 
-Cancel watchdog loops by running:
+Cancel watchdog loops via the `Skill` tool (not Bash):
+
 ```
-/loop cancel <loop-id>
+Skill(skill="loop", args="cancel <loop-id>")
 ```
 
-(Or whatever the harness uses to cancel a loop. Check existing loop list.)
+Check the existing loop list first to find the ids.
 
 ### Phase 9: Resume mode (--resume)
 
