@@ -193,25 +193,61 @@ release  planned → quality-gate → released
 id, kind, stage, tags[], parent, depends_on[], release_binding,
 gate_origin, created, updated
 
-## Navigation primitives (run these; don't scan by hand)
+## Querying with work-view (primary tool)
 
-# Items at a stage
-grep -lr 'stage: implementing' .work/active/
+`.work/bin/work-view` is the canonical query tool — use it instead of
+hand-grepping frontmatter. Filters compose with AND semantics; combine
+freely. Run `--help` for the authoritative flag list.
 
-# Items by tag
-grep -lr 'tags:.*\bsecurity\b' .work/active/
+### Filters
+--stage <stage>      drafting | implementing | review | done | released
+--tag <tag>          repeatable; AND across tags
+--kind <kind>        epic | feature | story | release
+--parent <id>        direct children of given item
+--release <version>  items with release_binding: <version>
+--gate <name>        items produced by gate <name>
+--ready              stage:implementing AND all depends_on done
+--blocked            stage:implementing AND unmet dependencies
+--blocking <id>      items that depend on <id>
 
-# Children of an epic (hierarchy)
-grep -lr 'parent: <epic-id>' .work/active/
+### Output modes
+(default tabular)    columns: ID  KIND  STAGE  TAGS  PARENT
+--paths              one file path per line (pipe-friendly)
+--cat                full item bodies, separated by ---
+--count              match count only
 
-# Items that depend on X (sequencing)
-grep -lr 'depends_on:.*<id>' .work/active/
+### Common queries
 
-# Bound to a release
-grep -lr 'release_binding: v1.2.0' .work/active/
+# Items ready to work right now
+.work/bin/work-view --ready
 
-# Compose: implementing & ready (no unmet deps)
-.work/bin/work-view --stage implementing --ready
+# Items awaiting user review
+.work/bin/work-view --stage review
+
+# All children of an epic
+.work/bin/work-view --parent <epic-id>
+
+# Children of an epic that are still blocked
+.work/bin/work-view --parent <epic-id> --blocked
+
+# Read full bodies of every item bound to a release
+.work/bin/work-view --release v1.2.0 --cat
+
+# Security-tagged items currently implementing
+.work/bin/work-view --stage implementing --tag security
+
+# Items that would unblock if <id> finishes
+.work/bin/work-view --blocking <id>
+
+# Pipe paths into another tool
+.work/bin/work-view --ready --paths | xargs grep -l 'TODO'
+
+## Fallback: raw substrate access
+
+When work-view doesn't fit (e.g. searching item bodies, not frontmatter):
+
+# Search inside item bodies
+grep -rn '<phrase>' .work/active/
 
 # Item history
 git log -p -- .work/active/features/<id>.md
@@ -416,24 +452,25 @@ section. Format:
 <!-- agile-workflow:start -->
 ## Agile-Workflow Substrate
 
-This project tracks work in `.work/` (markdown items + frontmatter).
-See `.claude/rules/agile-workflow.md` for navigation primitives.
+Work tracked in `.work/` as markdown items with YAML frontmatter
+(`kind, stage, tags, parent, depends_on, release_binding`).
+Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
+`.work/releases/<version>/`, `.work/archive/`.
 
-Quick reference:
-- `.work/bin/work-view --help` — query items
-- `.work/active/` — in-flight; `.work/backlog/` — parked ideas
-- Foundation docs in `docs/` describe the system NOW; never add legacy notes
+**Primary query tool:** `.work/bin/work-view` filters by stage, tag, kind,
+parent, and dependency. Common patterns:
+- `work-view --ready` — items ready to work (deps satisfied)
+- `work-view --stage review` — items waiting on user
+- `work-view --parent <id>` / `--blocking <id>` — hierarchy / sequencing
+- `work-view --help` for the full flag set
 
-Common skills (auto-triggered by conversation):
-- park an idea               | scope a backlog item up
-- design a drafting feature  | implement an implementing feature
-- review work at review      | fix a quick bug as a story
+Detailed navigation rules in `.claude/rules/agile-workflow.md` (auto-loaded
+when editing `.work/` or `docs/`). Foundation docs in `docs/` describe the
+system NOW — never add legacy notes; git history is the audit trail.
 
-Heavy-weight skills (you invoke explicitly):
-- /agile-workflow:ideate          — foundation docs
-- /agile-workflow:epicize         — decompose into epics
-- /agile-workflow:autopilot       — drain queue
-- /agile-workflow:release-deploy  — bind, gate, ship
+Slash commands (user-invokable):
+`/agile-workflow:ideate`, `/agile-workflow:epicize`,
+`/agile-workflow:autopilot`, `/agile-workflow:release-deploy`.
 <!-- agile-workflow:end -->
 ```
 

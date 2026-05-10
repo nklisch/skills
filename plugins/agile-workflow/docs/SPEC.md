@@ -147,15 +147,12 @@ paths: ['.work/**', 'docs/**']
 <!-- agile-workflow:start -->
 ## Agile-Workflow Substrate
 
-This project tracks work in `.work/` (markdown items + frontmatter).
-See `.claude/rules/agile-workflow.md` for navigation primitives.
+Work tracked in `.work/` as markdown items with YAML frontmatter
+(`kind, stage, tags, parent, depends_on, release_binding`).
+Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
+`.work/releases/<version>/`, `.work/archive/`.
 
-Quick reference:
-- `.work/bin/work-view --help` — query items by stage/tag/kind/dependency
-- `.work/active/` — in-flight; `.work/backlog/` — parked ideas
-- Foundation docs in `docs/` describe the system NOW; never add legacy notes
-
-[skill list — see ARCHITECTURE.md for full content]
+[full content — see ARCHITECTURE.md]
 <!-- agile-workflow:end -->
 ```
 

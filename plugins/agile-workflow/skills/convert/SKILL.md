@@ -121,24 +121,25 @@ comment markers:
 <!-- agile-workflow:start -->
 ## Agile-Workflow Substrate
 
-This project tracks work in `.work/` (markdown items + frontmatter).
-See `.claude/rules/agile-workflow.md` for navigation primitives.
+Work tracked in `.work/` as markdown items with YAML frontmatter
+(`kind, stage, tags, parent, depends_on, release_binding`).
+Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
+`.work/releases/<version>/`, `.work/archive/`.
 
-Quick reference:
-- `.work/bin/work-view --help` — query items
-- `.work/active/` — in-flight; `.work/backlog/` — parked ideas
-- Foundation docs in `docs/` describe the system NOW; never add legacy notes
+**Primary query tool:** `.work/bin/work-view` filters by stage, tag, kind,
+parent, and dependency. Common patterns:
+- `work-view --ready` — items ready to work (deps satisfied)
+- `work-view --stage review` — items waiting on user
+- `work-view --parent <id>` / `--blocking <id>` — hierarchy / sequencing
+- `work-view --help` for the full flag set
 
-Common skills (auto-triggered by conversation):
-- park an idea               | scope a backlog item up
-- design a drafting feature  | implement an implementing feature
-- review work at review      | fix a quick bug as a story
+Detailed navigation rules in `.claude/rules/agile-workflow.md` (auto-loaded
+when editing `.work/` or `docs/`). Foundation docs in `docs/` describe the
+system NOW — never add legacy notes; git history is the audit trail.
 
-Heavy-weight skills (you invoke explicitly):
-- /agile-workflow:ideate          — foundation docs
-- /agile-workflow:epicize         — decompose into epics
-- /agile-workflow:autopilot       — drain queue
-- /agile-workflow:release-deploy  — bind, gate, ship
+Slash commands (user-invokable):
+`/agile-workflow:ideate`, `/agile-workflow:epicize`,
+`/agile-workflow:autopilot`, `/agile-workflow:release-deploy`.
 <!-- agile-workflow:end -->
 ```
 
