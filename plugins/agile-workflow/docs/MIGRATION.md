@@ -373,9 +373,9 @@ If `convert` fails partway through:
   versioned software (internal tools, research codebases); the user
   acknowledges this trade-off.
 - **Empty tag taxonomy.** Effect: tag-based skill routing degrades.
-  `design` always runs (no `[refactor]` or `[perf]` tag to route to
-  specialized skills). This is a starter trade-off — the user can add
-  tags later by editing CONVENTIONS.md.
+  `feature-design` always runs for features (no `[refactor]` or `[perf]` tag
+  to route to specialized skills). This is a starter trade-off — the user can
+  add tags later by editing CONVENTIONS.md.
 - **Custom stage names.** Effect: every skill must read CONVENTIONS.md
   to know the project's stage names; the rules file's stage flow
   diagrams become aspirational rather than authoritative. Discouraged

@@ -473,7 +473,7 @@
     {
       "name": "agile-workflow",
       "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/ with structured frontmatter, late-binding releases, gates that produce items, autopilot queue runner respecting depends_on graphs.",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "tags": [
         "workflow",
         "agile",
@@ -495,7 +495,7 @@
         {
           "name": "convert",
           "path": "skills/convert",
-          "description": "Bootstrap the agile-workflow substrate. Detects project shape (workflow-plugin / ad-hoc / no-tracking / greenfield), seeds initial items, writes .claude/rules/agile-workflow.md, runs the conventions interview to populate .work/CONVENTIONS.md, copies work-view, appends CLAUDE.md section, produces MIGRATION_REPORT.md. Idempotent via --update."
+          "description": "Bootstrap the agile-workflow substrate. Detects project shape (workflow-plugin / ad-hoc / no-tracking / greenfield), seeds initial items with per-design stage classification (drafting/implementing/review/done-shipped/done-archived), captures uncommitted in-flight working-tree work as substrate items via Explore-driven clustering, writes .claude/rules/agile-workflow.md, runs the conventions interview to populate .work/CONVENTIONS.md, copies work-view, appends CLAUDE.md section, produces MIGRATION_REPORT.md. Idempotent via --update."
         },
         {
           "name": "epicize",
@@ -518,9 +518,14 @@
           "description": "Diagnose and repair a specific bug as a single-stride substrate story. Reproduces, identifies root cause, writes failing test, applies minimal fix, creates story at stage:review. Triggers on 'fix bug X', 'fix the issue with Y'."
         },
         {
-          "name": "design",
-          "path": "skills/design",
-          "description": "Design a feature at stage:drafting with no specialized tag. Greenfield design — produces detailed implementation units written INTO the feature's body, spawns child stories with declared depends_on, advances stage to implementing. For [refactor] features use /agile-workflow:refactor-design; for [perf] use /agile-workflow:perf-design."
+          "name": "epic-design",
+          "path": "skills/epic-design",
+          "description": "Decompose an epic at stage:drafting into child features with declared depends_on chains. Reads the epic body, foundation docs, and codebase; identifies feature-level capability arcs; writes child feature files at .work/active/features/ at stage:drafting; advances epic stage to implementing. Design-family entry point for kind:epic — autopilot routes here. For project-level seeding from foundation docs use /agile-workflow:epicize."
+        },
+        {
+          "name": "feature-design",
+          "path": "skills/feature-design",
+          "description": "Design a feature at stage:drafting with no specialized tag. Greenfield design — produces detailed implementation units written INTO the feature's body, spawns child stories with declared depends_on, advances stage to implementing. For [refactor] features use /agile-workflow:refactor-design; for [perf] use /agile-workflow:perf-design; for epics use /agile-workflow:epic-design."
         },
         {
           "name": "refactor-design",
@@ -535,17 +540,17 @@
         {
           "name": "implement",
           "path": "skills/implement",
-          "description": "Write code from a substrate item at stage:implementing. Reads design embedded in feature/story body, writes code, runs build+tests, advances stage implementing -> review, updates item body with implementation notes. Single-stride sequential; for parallel multi-story features use /agile-workflow:implement-orchestrator."
+          "description": "Write code from a substrate item at stage:implementing. Use for stories (no children to orchestrate) and for features without child stories. Reads design from item body, writes code, runs build+tests, advances stage implementing -> review. Detects 'land mode' when code already exists in the working tree (typical for retroactively-captured items) and validates+commits+advances rather than re-implementing. For features with child stories, /agile-workflow:implement-orchestrator is the default — it mirrors implement's per-story logic across waves."
         },
         {
           "name": "implement-orchestrator",
           "path": "skills/implement-orchestrator",
-          "description": "Implement a feature with multiple child stories by walking the depends_on graph and spawning Sonnet sub-agents. Parallel-vs-sequential schedule, capped at 3 agents per wave. Use for features with > 3 child stories that have a non-trivial dependency graph."
+          "description": "Default implementation path for features with child stories. Walks the depends_on graph, spawns Sonnet sub-agents in waves capped at 3 per wave (no upper limit on waves — bigger features just mean more waves). Each per-story prompt mirrors /agile-workflow:implement's workflow (land mode, dep check, design-flaw rollback). Single-story features run as a one-agent wave."
         },
         {
           "name": "review",
           "path": "skills/review",
-          "description": "Review a substrate item at stage:review. Runs structured code review (correctness, tests, design, security, breaking changes, foundation-doc alignment), classifies findings as blockers/important/nits, triages findings into items, advances stage to done if approved or back to implementing if changes needed."
+          "description": "Review a substrate item at stage:review. Runs structured code review (correctness, tests, design, security, breaking changes, foundation-doc alignment), classifies findings as blockers/important/nits, triages findings into items, advances stage to done if approved or back to implementing if changes needed. Auto-advances parent (feature or epic) to review when its last child reaches done. Autonomous-safe — autopilot calls this directly to drain stage:review items without human intervention."
         },
         {
           "name": "release-deploy",
@@ -585,7 +590,7 @@
         {
           "name": "autopilot",
           "path": "skills/autopilot",
-          "description": "Drain a substrate queue autonomously. Picks the next ready item respecting depends_on, invokes the right skill (design family for drafting, implement family for implementing), advances stage, repeats. Epic-scoped by default; --all drains all of .work/active/. Watchdog /loop tasks survive compaction."
+          "description": "Drain a substrate queue autonomously. Picks the next ready item respecting depends_on, invokes the right skill (epic-design for kind:epic at drafting; feature-design / refactor-design / perf-design for kind:feature at drafting; implement / implement-orchestrator for implementing; review for review), advances stage, repeats. Epic-scoped by default; --all drains all of .work/active/; free-text scope arg interpreted by the agent. Only .work/backlog/ is out of scope. Circuit-breaker halts on items that bounce review→implementing more than twice. Watchdog /loop tasks survive compaction."
         },
         {
           "name": "research",

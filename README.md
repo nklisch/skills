@@ -20,7 +20,7 @@ Available as a **Claude Code plugin** and via **[skilltap](https://github.com/nk
 
 Three plugins available:
 - **workflow** — 24 skills for the full development pipeline (design, implement, refactor, fix, review, test, ship). Doc-driven: design docs as artifacts, roadmap-shaped phase plans.
-- **agile-workflow** — 25 skills for substrate-driven work tracking. Items as files in `.work/`, late-binding releases, gates that produce items, autopilot queue runner. Sibling to `workflow`. See [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md).
+- **agile-workflow** — 26 skills for substrate-driven work tracking. Items as files in `.work/`, late-binding releases, gates that produce items, autopilot queue runner. Sibling to `workflow`. See [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md).
 - **skill-authoring** — 3 skills for creating, evaluating, and refining agent skills
 
 ### Choosing between workflow and agile-workflow
@@ -146,11 +146,12 @@ autopilot <epic>                    ← queue runner over the whole substrate
 | **scope** | Promote backlog item or fresh request into `.work/active/` as epic/feature/story. For large scope, rolls foundation docs forward in the same stride. Cycle-prevention via `work-view --blocking`. |
 | **fix** | Single-stride bug repair. Reproduces, identifies root cause, writes failing test, applies minimal fix, lands story at stage:review. |
 
-### Design family (model-invocable, tag-routed)
+### Design family (model-invocable, kind- and tag-routed)
 
 | Skill | Triggered by | What it produces |
 |-------|---|---|
-| **design** | feature at stage:drafting, no specialized tag | Greenfield design — written INTO feature body, child stories spawned with depends_on, advances stage to implementing |
+| **epic-design** | epic at stage:drafting | Decomposes the epic into child features at stage:drafting with declared depends_on chains, written INTO the epic body; advances epic to implementing |
+| **feature-design** | feature at stage:drafting, no specialized tag | Greenfield design — written INTO feature body, child stories spawned with depends_on, advances stage to implementing |
 | **refactor-design** | feature with tags:[refactor] | Code-smell scan, before/after step shape, risk + rollback per step |
 | **perf-design** | feature with tags:[perf] | Bottleneck identification, optimization hierarchy (algorithmic > I/O > idioms > parallelism), benchmark scaffolds |
 
@@ -167,7 +168,7 @@ autopilot <epic>                    ← queue runner over the whole substrate
 | Skill | What it does |
 |-------|-------------|
 | **release-deploy** | Bind items to a version, run all configured gates in CONVENTIONS.md order, wait for readiness, ship per release mapping (tag-based / branch-held / release-branch), archive items via git mv. Idempotent. |
-| **autopilot** | Queue runner. Picks next ready item respecting depends_on (topological sort with FIFO tie-break), invokes the right skill, advances stage, repeats. Watchdog `/loop` tasks survive compaction. Epic-scoped default; `--all` drains everything. |
+| **autopilot** | Queue runner. Picks next ready item respecting depends_on (topological sort with FIFO tie-break), invokes the right skill (epic-design / feature-design / refactor-design / perf-design at drafting; implement / implement-orchestrator at implementing), advances stage, repeats. Watchdog `/loop` tasks survive compaction. Epic-scoped default; `--all` drains everything in `.work/active/`. Only `.work/backlog/` is out of scope. |
 | **bold-refactor** | Architectural reconception via conceptual lenses. Produces a refactor EPIC with child features tagged [refactor]. User-invocable only — too aggressive for auto-trigger. |
 
 ### Gates (model-invocable; produce items, NOT pass/fail reports)
@@ -277,7 +278,7 @@ Skills only deviate from these defaults if your project clearly has a different 
 plugins/workflow/                  # workflow plugin (24 skills, doc-driven)
 ├── skills/                        #   skill source
 └── docs/                          #   plugin foundation docs (some)
-plugins/agile-workflow/            # agile-workflow plugin (25 skills, substrate-driven)
+plugins/agile-workflow/            # agile-workflow plugin (26 skills, substrate-driven)
 ├── skills/                        #   skill source
 ├── docs/                          #   foundation docs (VISION, SPEC, ARCHITECTURE, PRINCIPLES, MIGRATION)
 ├── hooks/                         #   SessionStart + PostToolUse hook scripts

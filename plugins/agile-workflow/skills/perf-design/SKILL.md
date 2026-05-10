@@ -6,7 +6,7 @@ description: >
   language idioms > parallelism), produces an implementation plan with benchmark
   scaffolds written INTO the feature's body. Spawns child stories per optimization with
   declared depends_on, then advances stage drafting -> implementing. For greenfield
-  design use /agile-workflow:design; for refactor use /agile-workflow:refactor-design.
+  design use /agile-workflow:feature-design; for refactor use /agile-workflow:refactor-design.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
 model: opus
 ---
@@ -50,8 +50,12 @@ Read `.work/active/features/<id>.md`. Confirm:
 - `stage: drafting`
 - `tags` includes `perf`
 
-The brief should describe the perf problem and target. If it's vague, ask the user
-for: target scenario, current measured performance, desired performance.
+The brief should describe the perf problem and target. If it's vague:
+- Autopilot mode: profile the hottest identifiable path, set a "2x current"
+  default target, log under `## Inferred targets` in the body. Halt only if
+  there's no measurable scenario at all (no entry point matching the brief).
+- Otherwise: ask the user for target scenario, current measured performance,
+  desired performance.
 
 ### Phase 2: Ground yourself
 

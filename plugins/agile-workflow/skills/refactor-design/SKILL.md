@@ -6,7 +6,7 @@ description: >
   abstractions, dead weight), produces a step-by-step before/after plan with risk and
   rollback per step, written INTO the feature's body. Spawns child stories per refactor
   step with declared depends_on, then advances stage drafting -> implementing. For
-  greenfield design use /agile-workflow:design; for perf use /agile-workflow:perf-design.
+  greenfield design use /agile-workflow:feature-design; for perf use /agile-workflow:perf-design.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: opus
 ---

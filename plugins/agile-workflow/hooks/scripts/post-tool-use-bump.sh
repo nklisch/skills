@@ -34,7 +34,9 @@ if [[ ! -f "$file_path" ]]; then
   exit 0
 fi
 
-today=$(date -u +%Y-%m-%d)
+# Use local time, not UTC. Substrate dates feel local to the user — an item
+# updated at 11pm PST should read as today's date, not tomorrow's UTC date.
+today=$(date +%Y-%m-%d)
 
 # Replace `updated:` line if present. Portable across GNU and BSD sed.
 if grep -q '^updated:' "$file_path"; then

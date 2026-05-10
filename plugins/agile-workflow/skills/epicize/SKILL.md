@@ -37,7 +37,7 @@ Before decomposing anything, think about what an agent (in autopilot or manual
 mode) would need to execute each epic:
 
 - **What can be built in one design + implement cycle?** A child feature under
-  the epic should fit comfortably in one `/agile-workflow:design` →
+  the epic should fit comfortably in one `/agile-workflow:feature-design` →
   `/agile-workflow:implement` pass — 5-15 implementation units. If a single
   child feature would need more, the epic is too coarse; split.
 - **What can be parallelized?** If two children of an epic don't share types or
@@ -51,8 +51,10 @@ mode) would need to execute each epic:
   feature reaches `stage: done`. Stage transitions are the agent-readable
   completion signal.
 - **What design artifact feeds implementation?** Each child feature's body
-  accumulates the design when `/agile-workflow:design` (or refactor-design /
-  perf-design) runs on it. The epic's body is a brief, not a design.
+  accumulates the design when `/agile-workflow:feature-design` (or
+  refactor-design / perf-design) runs on it. The epic's body is a brief, not a
+  design — `/agile-workflow:epic-design` later writes the realized
+  decomposition into it.
 
 ## Anti-patterns
 
@@ -201,8 +203,9 @@ In conversation:
   references — NOT designs. Design happens at the feature level under each epic, not
   at the epic level.
 - Anticipated child features are provisional, not commitments. Don't pre-create child
-  feature files at epicize time — that's `/agile-workflow:scope` or `/agile-workflow:design`'s
-  job when a feature is ready to actually be designed.
+  feature files at epicize time — that's `/agile-workflow:scope` (manual) or
+  `/agile-workflow:epic-design` (autopilot-driven) when the epic is ready to be
+  decomposed into real feature files.
 - Don't pre-bind epics to releases. `release_binding` stays `null` until
   `/agile-workflow:release-deploy` runs.
 - Don't infer `depends_on` purely from docs without confirming with the user.

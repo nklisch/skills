@@ -1,0 +1,306 @@
+---
+name: epic-design
+description: >
+  Design an epic at stage:drafting by decomposing it into child features with
+  declared depends_on chains. Reads the epic body, foundation docs, and the
+  codebase; identifies feature-level capability arcs; writes child feature files
+  at .work/active/features/ at stage:drafting with parent set; updates the epic
+  body with the realized decomposition; advances epic stage drafting ->
+  implementing. Use for epics with no children yet — when autopilot picks an
+  epic at drafting, this is the design-family entry point. For project-level
+  epic seeding from foundation docs use /agile-workflow:epicize; for feature
+  design use /agile-workflow:feature-design.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
+model: opus
+---
+
+# Epic-Design
+
+You design an epic in the agile-workflow substrate. The decomposition lives in
+the epic item's body (replacing the provisional "Anticipated child features"
+sketch with the realized list), and child feature files are spawned at
+`.work/active/features/` with declared `depends_on` chains. When the
+decomposition is done, you advance the epic's stage `drafting → implementing`.
+
+This skill is the design-family entry point for `kind: epic`. The downstream
+feature-design family (`design`, `refactor-design`, `perf-design`) then runs
+on each child feature individually.
+
+## Trigger
+
+Auto-triggers when the agent identifies an epic at `stage: drafting` ready for
+decomposition — typically inside `/agile-workflow:autopilot <epic-id>` runs.
+Common phrases:
+- "design epic X"
+- "decompose this epic"
+- "this epic is ready to break down"
+
+User-invocable too when the user wants to break down a specific epic without
+running full autopilot.
+
+## Anti-patterns
+
+These mirror `epicize`'s anti-patterns at the next level down:
+
+- **Don't produce a phase plan.** Features are containment shapes, not temporal
+  slots. Use the dependency graph; let the autopilot pick what's ready.
+- **Don't split by layer.** Feature-DB / Feature-API / Feature-UI under one
+  epic is an anti-pattern unless the layers are genuinely independent
+  deliverables. Split by capability.
+- **Don't pad with refactor or test features.** Refactoring happens incrementally
+  via `/agile-workflow:refactor-design` on tagged features when actual smells
+  surface. Don't manufacture features for either.
+- **Don't design the features.** That's the per-feature design pass. Here you
+  write a brief and declare dependencies — the feature body fills in interfaces,
+  signatures, and test approach when its own design pass runs.
+- **Don't pre-bind to releases.** Child features get `release_binding: null`.
+- **Don't pre-populate child feature stages beyond `drafting`.** Stage advances
+  through actual work.
+
+## Workflow
+
+### Phase 1: Read the epic
+
+Read `.work/active/epics/<id>.md`. Confirm:
+- `kind: epic`
+- `stage: drafting`
+- No direct children yet (see Phase 1.5)
+
+Note the epic's `tags` — if `[refactor]` or `[perf]`, propagate the tag to
+child features so the right design-family skill picks them up.
+
+### Phase 1.5: Children-already-exist short-circuit
+
+Run:
+
+```bash
+.work/bin/work-view --parent <epic-id> --paths
+```
+
+If direct children already exist, the decomposition was done previously (manually
+via `scope`, or by an upstream skill like `bold-refactor`). Don't re-decompose.
+Instead:
+
+1. Verify the children form a coherent decomposition (every child has a
+   sensible `parent: <epic-id>`, no obvious capability gaps relative to the
+   brief).
+2. Append a short note to the epic body: "Decomposition pre-existed — N child
+   features, listed below."
+3. Advance epic stage `drafting → implementing` and commit.
+4. Skip Phases 2-7. Go to Output.
+
+### Phase 2: Ground yourself
+
+The principles skill auto-loads — both code-design (Ports & Adapters, SSOT,
+Generated Contracts, Fail Fast) and substrate-execution (Item-IS-the-Work,
+Rolling-Foundation, Late-Binding) are active.
+
+Read:
+1. `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md` — foundation that
+   constrains this epic
+2. `CLAUDE.md` (project conventions)
+3. `docs/PRINCIPLES.md` if it exists
+4. The epic's parent if `parent` is set (rare — epics usually top-level)
+5. Sibling epics in `.work/active/epics/` — to see what they cover and avoid
+   straddling boundaries
+6. Research docs in `docs/research/` for any libraries the epic mentions
+   that you haven't verified
+
+### Phase 3: Map the codebase
+
+Use the **Task tool** to spawn parallel Explore sub-agents (sonnet minimum,
+opus for large codebases). Send all in one message and wait for all.
+
+1. **Existing surface in this epic's area** — what modules, components, or
+   integration points already exist that this epic will extend or touch?
+   Report file paths and brief responsibility per finding.
+2. **Cross-cutting touchpoints** — what areas does this epic interact with
+   (auth, persistence, transport, UI shell, etc.)? Each touchpoint is a
+   candidate for a dedicated feature OR a constraint on existing features.
+3. **Already-scoped sibling work** — features and stories under sibling epics
+   in `.work/active/`. Report any overlap or shared types that imply a
+   dependency edge from this epic's children to a sibling epic.
+
+After results, **read 2-3 key source files yourself** to verify findings.
+
+### Phase 4: Identify feature arcs
+
+Look for natural decomposition seams within the epic:
+
+- The epic body's "Anticipated child features" sketch (if any) is your seed —
+  it's provisional, but the user wrote it for a reason. Honor the spirit, refine
+  the shape.
+- Foundation-doc sections within the epic's scope often map to features.
+- Capability arcs from the brief — "users can do X" usually maps to one feature;
+  "system supports Y constraint" might be its own feature or fold into an
+  existing one.
+- Sequencing implied by the brief or the architecture (foundation systems
+  before consumers, contracts before clients) — these become `depends_on`
+  edges.
+
+**Sizing rule (from epicize, mirrored down a level):** each child feature
+should fit comfortably in one `/agile-workflow:feature-design` →
+`/agile-workflow:implement` pass — 5-15 implementation units. If a single
+candidate feature would need more, split it. If candidates feel tiny (1-2
+units each), collapse them into one feature.
+
+Aim for 2-6 child features per epic. Fewer than 2 means the epic was probably
+sized as a feature; flag the user. More than 6 means you're slicing too thin;
+collapse.
+
+### Phase 4.5: Identify cross-feature dependencies
+
+For each candidate feature, ask:
+- What must be done first before this can be designed and implemented?
+- Does this feature share types or contracts with another candidate? If yes,
+  the producer of the type is a `depends_on`.
+- Independent features (no shared types, no cross-cutting concerns) have no
+  dependencies and can be parallelized by autopilot.
+
+Cycle check: for every candidate `depends_on` edge, verify no cycle. Once the
+child files exist (Phase 6) you'll re-check via `work-view --blocking`. For
+now, sanity-check by hand.
+
+### Phase 5: Pre-mortem
+
+Before writing files, attack the decomposition:
+- What's the riskiest feature? Is it sized correctly?
+- What capability is least clearly assigned to a feature? Is there a gap?
+- Are any features so tightly coupled they should be one feature?
+- Does the dependency chain create a critical path that defeats the parallelism
+  intent?
+
+Revise the decomposition if anything surfaces. Document discovered risks in a
+`## Decomposition risks` section in the epic body.
+
+### Phase 6: Write child feature files
+
+For each child feature, create `.work/active/features/<feature-id>.md`:
+
+```yaml
+---
+id: <epic-slug>-<feature-slug>
+kind: feature
+stage: drafting
+tags: [<inherited from epic if [refactor] or [perf]>, ...]
+parent: <epic-id>
+depends_on: [<feature-id>, ...]
+release_binding: null
+gate_origin: null
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+---
+
+# <Feature Name>
+
+## Brief
+<two to three paragraphs: what this feature delivers within the epic, what
+capability it covers, why it exists in this epic, what it does NOT cover>
+
+## Epic context
+- Parent epic: `<epic-id>`
+- Position in epic: <e.g., "foundation feature — others depend on its types"
+  / "consumer of feature-X" / "independent capability">
+
+## Foundation references
+- `docs/VISION.md` — relevant section(s) (only if directly relevant)
+- `docs/ARCHITECTURE.md` — relevant component(s)
+- (other foundation docs as relevant)
+
+<!-- The design pass on this feature (`/agile-workflow:feature-design`,
+refactor-design, or perf-design) will fill in interfaces, signatures, and
+implementation units. -->
+```
+
+Naming convention: `<epic-slug>-<feature-slug>` — e.g., epic `epic-auth`
+spawns features `epic-auth-login`, `epic-auth-session`, `epic-auth-recovery`.
+This makes parent-child relationships obvious from filenames at a glance.
+
+### Phase 6.5: Cycle check
+
+For every child feature with non-empty `depends_on`, run:
+
+```bash
+.work/bin/work-view --blocking <feature-id> --paths
+```
+
+If any candidate dependency appears in that output, the edge would create a
+cycle. Drop or reroute the edge before continuing.
+
+### Phase 7: Write decomposition INTO epic body
+
+Update the epic file. Replace the provisional "Anticipated child features"
+section (if present) with a `## Decomposition` section listing the realized
+features:
+
+```markdown
+## Decomposition
+
+<one-paragraph summary of the chosen decomposition and why this shape over
+alternatives — e.g., "Split by capability: login flow, session handling, and
+recovery are independent enough to parallelize after the shared session-type
+feature lands.">
+
+### Child features
+
+- `<feature-id-1>` — <one-line description> — depends on: `[]`
+- `<feature-id-2>` — <one-line description> — depends on: `[<feature-id-1>]`
+- `<feature-id-3>` — <one-line description> — depends on: `[<feature-id-1>]`
+
+### Decomposition risks
+
+<from pre-mortem, if any. Otherwise omit the section.>
+```
+
+Do NOT write design content (interfaces, signatures, test plans) into the epic
+body. That's feature-level work.
+
+### Phase 8: Advance epic stage and commit
+
+1. Edit the epic file's frontmatter: `stage: drafting → implementing`. The
+   PostToolUse hook auto-bumps `updated:`.
+2. Commit:
+
+```bash
+git add .work/active/epics/<epic-id>.md .work/active/features/<epic-id>-*.md
+git commit -m "epic-design: <epic-id> (<N> child features)"
+```
+
+## Output
+
+In conversation:
+- **Decomposed**: `<epic-id>` advanced to `stage: implementing`
+- **Child features**: list with `depends_on` chains, e.g.:
+  - `epic-auth-session` — depends on: `[]`
+  - `epic-auth-login` — depends on: `[epic-auth-session]`
+  - `epic-auth-recovery` — depends on: `[epic-auth-session]`
+- **Tags propagated**: list (or "none — greenfield")
+- **Decomposition risks flagged**: list (or "none")
+- **Next**: each child feature is at `stage: drafting` ready for the
+  feature-design family (`/agile-workflow:feature-design`,
+  `/agile-workflow:refactor-design`, or `/agile-workflow:perf-design` based on
+  tags). Autopilot will pick them up automatically.
+
+## Guardrails
+
+- The decomposition lives in the epic's body. NEVER create
+  `docs/designs/epic-<name>.md` — that's a workflow-plugin pattern;
+  agile-workflow uses item-IS-the-work.
+- Child features are at `stage: drafting` — they get DESIGNED next, not
+  implemented next. Don't pre-populate them at `implementing`.
+- Don't write feature-level design content (interfaces, signatures, tests)
+  into the epic body or the child feature briefs. That belongs in each
+  feature's own design pass.
+- Propagate `[refactor]` or `[perf]` tags from the epic to child features so
+  the right design-family skill picks them up. Greenfield epics produce
+  greenfield features.
+- Aim for 2-6 child features per epic. Outside that range, ask whether the
+  epic is sized correctly.
+- Cycle prevention is mandatory for `depends_on`. Use `work-view --blocking`.
+- If the epic already has direct children (Phase 1.5), short-circuit — advance
+  the stage and stop. Don't re-decompose work the user or another skill
+  already did.
+- Don't pre-bind child features to releases. `release_binding` stays `null`
+  until `/agile-workflow:release-deploy` runs.
+- Don't manufacture refactor/test/deployment features just to have them.
+  Those surface organically from gates and refactor-tagged work.

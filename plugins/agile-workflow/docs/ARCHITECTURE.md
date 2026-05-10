@@ -125,7 +125,8 @@ distinct from `parent` (which is **hierarchy**).
 | Skill | Declares dependencies between |
 |---|---|
 | `scope` | The new item and any items the user mentions as prerequisites |
-| `design` / `refactor-design` / `perf-design` | Child stories of the feature being designed (some sequential, some parallel) |
+| `epic-design` | Child features of the epic being decomposed (some sequential, some parallel) |
+| `feature-design` / `refactor-design` / `perf-design` | Child stories of the feature being designed (some sequential, some parallel) |
 | `implement-orchestrator` | Read existing dependencies; do not modify; respect when fanning out |
 | `epicize` | Epics where one's output feeds another |
 | `convert` | Inferred from source: workflow `ROADMAP.md` phase order → epic-level deps; ad-hoc gets no inferred deps |
@@ -242,18 +243,21 @@ The agent loads this automatically when working in `.work/` or `docs/`. The
 
 ## Design family routing
 
-Three skills share a design slot, routed by item tags:
+Four skills share the design slot, routed by item kind first, then tags:
 
 | Skill | Triggered by | Cognitive shape |
 |---|---|---|
-| `design` | feature at `stage: drafting`, no specialized tag | Greenfield design: vision absorption, codebase mapping, unit decomposition, pre-mortem, test design |
+| `epic-design` | epic at `stage: drafting` | Epic decomposition: capability-arc identification, child-feature spawning with `depends_on` chains, decomposition pre-mortem. Writes the realized decomposition into the epic body |
+| `feature-design` | feature at `stage: drafting`, no specialized tag | Greenfield feature design: vision absorption, codebase mapping, unit decomposition, pre-mortem, test design |
 | `refactor-design` | feature with `tags: [refactor]` at `stage: drafting` | Refactor planning: code-smell scan, before/after step shape, risk + rollback per step, cost-benefit framing |
 | `perf-design` | feature with `tags: [perf]` at `stage: drafting` | Perf design: bottleneck identification, measurement strategy, hot-path analysis |
 
-Each writes its design into the feature item's body, advances stage to
-`implementing`, and may spawn child stories with declared dependencies.
+Each writes its output into the item's body and advances stage to
+`implementing`. `epic-design` spawns child features at `stage: drafting` (which
+the feature-level family then picks up); the feature-level skills spawn child
+stories at `stage: implementing` with declared dependencies.
 
-The model picks the right skill from the item's tags. SKILL.md `description:`
+The model picks the right skill from kind + tags. SKILL.md `description:`
 fields cross-reference each other so the agent doesn't pick the wrong one.
 New design specializations (e.g., `security-design`) join the family by
 adding a tag and a skill — no architectural change.
@@ -358,8 +362,9 @@ Implementation: bash + grep over item frontmatter. No LLM.
 `.work/active/**.md` or `.work/backlog/**.md`.
 
 **Effect:** reads the item file, replaces the `updated:` line with today's
-UTC date, writes back. Does nothing else — doesn't validate other
-frontmatter, doesn't enforce stage transitions.
+date in local time, writes back. Local rather than UTC so the date matches
+the user's perception of "today" while they're working. Does nothing else —
+doesn't validate other frontmatter, doesn't enforce stage transitions.
 
 This is a deterministic command hook — no LLM.
 
@@ -440,7 +445,7 @@ Heavy-weight skills (you invoke explicitly):
 
 ## Skill catalog
 
-All 25 skills with their roles, invocability, and triggers.
+All 26 skills with their roles, invocability, and triggers.
 
 ### Bootstrap (user-invocable only)
 
@@ -458,11 +463,12 @@ All 25 skills with their roles, invocability, and triggers.
 | `scope` | Promote backlog item or fresh request to `.work/active/`. Sizes as epic/feature/story. If large, rolls foundation docs forward. Declares dependencies. | "scope this", "promote this", "let's track this" |
 | `fix` | Park-and-implement quick bug as a story. Single-stride: creates story at `stage: implementing`, writes fix, advances to review. | "fix bug X", "fix the typo in", "fix this issue" |
 
-### Design family (model-invocable, tag-routed)
+### Design family (model-invocable, kind- and tag-routed)
 
 | Skill | Role | Trigger |
 |---|---|---|
-| `design` | Greenfield feature design. Writes design into feature body, advances stage. Spawns child stories with declared deps. | feature at `stage: drafting`, no specialized tag |
+| `epic-design` | Epic decomposition. Spawns child features with declared `depends_on`, writes realized decomposition into epic body, advances stage. | epic at `stage: drafting` |
+| `feature-design` | Greenfield feature design. Writes design into feature body, advances stage. Spawns child stories with declared deps. | feature at `stage: drafting`, no specialized tag |
 | `refactor-design` | Refactor planning. Code-smell scan, before/after steps, risk + rollback per step. | feature with `tags: [refactor]` at `stage: drafting` |
 | `perf-design` | Perf design. Bottleneck identification, measurement strategy, hot-path analysis. | feature with `tags: [perf]` at `stage: drafting` |
 

@@ -57,10 +57,16 @@ If the item has `depends_on`, run:
 ```
 
 Confirm every entry in `depends_on` is at `stage: done` (or in releases/archive,
-which count as terminal-done). If any dep is unmet, halt:
-> "Item `<id>` depends on `<dep-id>` which is at stage:`<x>`. Cannot start. Either
-> finish the dependency first, or remove it from `depends_on` if it's no longer
-> required."
+which count as terminal-done).
+
+If any dep is unmet, append a one-line note to the item body and return
+without advancing the stage:
+
+> Skipped: depends_on `<dep-id>` not yet done (stage:`<x>`).
+
+Autopilot pre-filters via `work-view --ready` so this should rarely fire under
+autopilot. Interactive callers will see the note and can choose to fix the
+dep or remove it.
 
 ### Phase 3: Map integration points
 
@@ -83,6 +89,23 @@ For each file the design says to modify or depend on:
 
 Reconcile silently if changes are minor and obvious. Surface significant discrepancies
 in the implementation notes you'll write in Phase 7.
+
+#### Phase 4a: Detect "code already exists" (land mode)
+
+Check if the implementation already exists in the working tree (typical for
+items captured retroactively by `convert` Phase 8.5 or manual scope).
+Signals: a "Files in this cluster" list in the body, a retroactive-capture
+note, sparse design with concrete file paths matching `git status`. Two or
+more signals → land mode.
+
+In land mode:
+1. Read the existing code; update the body's design section to reflect
+   as-built reality (paths, interfaces, signatures).
+2. Validate — typecheck, lint, tests scoped to touched packages
+   (`pnpm --filter`, `cargo -p`, `pytest <path>`).
+3. Fill test gaps for any meaningful behavior that lacks coverage.
+4. Skip Phase 6 (no new code) and go straight to Phase 7 (notes — log
+   "Land mode" explicitly), Phase 8 (verify), Phase 9 (commit + advance).
 
 ### Phase 5: Re-align to project standards
 
@@ -155,7 +178,7 @@ In conversation:
 - Implement fully or report a blocker. NEVER leave TODO comments or `unimplemented!`.
 - Don't add unrequested features. Adapt to repo reality freely; expand scope never.
 - Don't advance past `review` — that's `/agile-workflow:review`'s job.
-- If during implementation you discover a genuine design flaw, halt. Update the item
-  body with what you learned, set stage back to `drafting` if needed, and surface
-  to the user. Don't muscle through a flawed design.
+- If you discover a genuine design flaw, don't muscle through. Append a
+  `## Implementation discovery` section, set stage back to `drafting`, and
+  return. The design family will pick it up on the next pass.
 - Adjacent issues you notice get parked via `/agile-workflow:park`, not bundled.

@@ -364,3 +364,56 @@ Items advance stages when work actually completes. Releases bind items only when
 - [ ] No `release_binding` set without an active release-deploy
 - [ ] Dependencies expressed via `depends_on`, not by ordering in any external plan
 - [ ] No ROADMAP.md or equivalent that pre-commits work to releases
+
+---
+
+# Part III — Caller Awareness
+
+**The rule:** If `/agile-workflow:autopilot` was invoked in this session, no
+AskUserQuestion, no halts on ambiguity — resolve with judgment and log the
+rationale in the item body. Otherwise, asking the user is fine and often
+helpful.
+
+This is binary and detectable. Check the conversation history: did
+`/agile-workflow:autopilot` appear as a slash invocation? If yes, autopilot
+mode is on for the rest of the session — every skill autopilot delegates to
+inherits it. If no, you're interactive.
+
+## What still warrants a hard halt (autopilot or not)
+
+- Substrate not bootstrapped (no `.work/CONVENTIONS.md`)
+- Foundation docs missing for a foundation-required workflow
+- `depends_on` cycle detected when writing items
+- Genuinely contradictory state the skill cannot recover from
+
+Everything else should resolve via judgment under autopilot. When in doubt,
+prefer the simpler option and log the rationale in the item body so the user
+can review later.
+
+## Worked examples (autopilot mode)
+
+| Situation | Judgment-mode action |
+|---|---|
+| Two architectural options both look valid | Pick the one with fewer moving parts; log "Chose X over Y because: simpler surface" |
+| Brief is vague, several plausible interpretations | Pick the one most consistent with foundation docs; log under `## Design decisions` |
+| Multiple candidate items at a stage and no id was passed | Pick most recent by `updated:`; the next iteration picks the next |
+| Wrong-tag invocation routed to you by mistake | Log a misroute note in the body; return without advancing |
+| Empty diff during review after trying ranges | Advance to `done` with a "No diff found" note; don't block the queue |
+| Item at unexpected stage | Use judgment about what transition makes sense; log it |
+
+## How to phrase decision points
+
+> If autopilot was invoked this session, <judgment-mode behavior>. Otherwise,
+> ask the user via AskUserQuestion.
+
+Not "halt and tell the user." The first form supports both modes; the second
+silently kills autopilot.
+
+## Skills this applies to
+
+Autopilot delegates to: `feature-design`, `epic-design`, `refactor-design`,
+`perf-design`, `implement`, `implement-orchestrator`, `review`. Every one of
+those needs caller-aware decision points.
+
+User-invocable-only skills (`convert`, `epicize`, `ideate`, `bold-refactor`,
+`release-deploy`) can stay interactive-first — autopilot doesn't call them.

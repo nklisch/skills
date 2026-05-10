@@ -64,7 +64,7 @@ updated: 2026-05-10
 <what this is, why it exists>
 
 ## Design
-<written by /agile-workflow:design — not a separate doc>
+<written by /agile-workflow:feature-design — not a separate doc>
 
 ## Implementation notes
 <accumulated by /agile-workflow:implement as work progresses>
@@ -91,7 +91,8 @@ all live in the same file as stages advance. There is no parallel design doc.
 # From here, just talk to the agent. It picks the right skill from context:
 "park the idea of CSV export"           → /agile-workflow:park
 "scope this as a feature"                → /agile-workflow:scope
-"design feature-csv-export"              → /agile-workflow:design
+"design feature-csv-export"              → /agile-workflow:feature-design
+"decompose epic-billing"                 → /agile-workflow:epic-design
 "implement story-csv-export-validation"  → /agile-workflow:implement
 "review feature-csv-export"              → /agile-workflow:review
 "fix the typo in README.md"              → /agile-workflow:fix
@@ -139,10 +140,15 @@ Tell the agent what you want to do, or let it pick. Common moves:
 - **Scope a backlog item to active** — "let's scope idea-csv-export as a
   feature." `scope` decides epic/feature/story sizing, declares dependencies,
   and (for large scope) rolls foundation docs forward in place.
+- **Decompose an epic** — "decompose epic-billing." `epic-design` reads the
+  epic body and foundation docs, identifies feature-level capability arcs,
+  and spawns child feature files at `stage: drafting` with declared
+  `depends_on`. Autopilot routes here automatically when an epic is at
+  `drafting`.
 - **Design a feature** — "design feature-csv-export." The right skill in the
-  design family fires based on tags: `design` for greenfield, `refactor-design`
-  for `[refactor]`-tagged, `perf-design` for `[perf]`-tagged. The design lands
-  inside the feature item's body.
+  design family fires based on tags: `feature-design` for greenfield,
+  `refactor-design` for `[refactor]`-tagged, `perf-design` for `[perf]`-tagged.
+  The design lands inside the feature item's body.
 - **Implement** — "implement story-csv-validate." The `implement` skill reads
   the design from the item body, writes code, runs tests, advances stage to
   `review`. For features with > 3 child stories that have a non-trivial
@@ -302,7 +308,7 @@ The full migration matrix (with paths, ad-hoc, and greenfield variants) is in
 
 ## Skill catalog
 
-Twenty-five skills across seven tiers:
+Twenty-six skills across seven tiers:
 
 ### Bootstrap (user-invocable)
 - **ideate** — foundation-docs workshop
@@ -314,8 +320,9 @@ Twenty-five skills across seven tiers:
 - **scope** — promote to active; rolls foundation docs forward when large
 - **fix** — single-stride bug repair
 
-### Design family (model-invocable, tag-routed)
-- **design** — greenfield design (no specialized tag)
+### Design family (model-invocable, kind- and tag-routed)
+- **epic-design** — decompose an epic at `stage: drafting` into child features
+- **feature-design** — greenfield feature design (no specialized tag)
 - **refactor-design** — for features tagged `[refactor]`
 - **perf-design** — for features tagged `[perf]`
 
@@ -350,8 +357,8 @@ Twenty-five skills across seven tiers:
   substrates. `--ready` gives you the autopilot queue without invoking
   autopilot.
 - **Don't pre-decompose.** Epicize at bootstrap; let features and stories
-  emerge from `scope` and `design` as work surfaces. The substrate rewards
-  late-binding.
+  emerge from `scope`, `epic-design`, and `feature-design` as work surfaces.
+  The substrate rewards late-binding.
 - **Hooks fire only with substrate.** Both hooks (`SessionStart` queue
   snapshot, `PostToolUse` `updated:` auto-bump) check for `.work/CONVENTIONS.md`
   and exit silently in non-substrate repos. They're inert by default.

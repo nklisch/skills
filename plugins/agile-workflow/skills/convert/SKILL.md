@@ -43,6 +43,11 @@ matrix is specified in `docs/MIGRATION.md` of the agile-workflow plugin source.
    - If `--update`: proceed to update mode
    - Otherwise: halt with "Substrate already bootstrapped. Use `convert --update` to
      refresh plugin artifacts, or remove `.work/` first if you want to re-bootstrap."
+4. **Check for in-flight working-tree work.** Run `git status --porcelain` and
+   note the count of changed/untracked files. If > 5, this is a "dirty repo
+   bootstrap" — uncommitted work needs to be captured into the substrate
+   alongside the migration, otherwise autopilot will have nothing to drain
+   right after bootstrap. See Phase 8.5 for capture handling.
 
 ### Phase 2: Detect project shape
 
@@ -146,23 +151,43 @@ Per the matrix in MIGRATION.md, seed initial items:
 
 #### Path A — workflow-plugin
 
-For each `docs/designs/<name>.md`:
-1. Slug it as `feature-<name>` (kebab-case)
-2. Copy the design content into a new `.work/active/features/feature-<name>.md` with
-   frontmatter: `kind: feature`, `stage: implementing`, body = original design
-3. Inferred from `git log` recency: which designs are most actively edited
+**Per-design stage classification** (NOT a binary "active vs completed" split).
+For each `docs/designs/<name>.md` AND each `docs/designs/completed/<name>.md`,
+read the design body and `git log -- <path>` to infer state, then classify it
+into one of five buckets:
 
-For each `docs/designs/completed/<name>.md`:
-- Default: synthesize a retro-release. Create `.work/releases/v0/feature-<name>.md`
-  with `stage: done`, `release_binding: v0`, body = original design. Plus a single
-  `.work/releases/v0/release-v0.md` at `stage: released`.
-- Opt-out: ask user → move to `.work/archive/feature-<name>.md` instead
+| Bucket | Substrate placement | Frontmatter |
+|---|---|---|
+| `done-shipped` | `.work/releases/v0/feature-<name>.md` | `kind: feature, stage: done, release_binding: v0` |
+| `done-archived` | `.work/archive/feature-<name>.md` | `kind: feature, stage: done` |
+| `review` | `.work/active/features/feature-<name>.md` | `kind: feature, stage: review` |
+| `implementing` | `.work/active/features/feature-<name>.md` | `kind: feature, stage: implementing` |
+| `drafting` | `.work/active/features/feature-<name>.md` | `kind: feature, stage: drafting` |
+
+Heuristics for inferred default (use these to pre-fill the per-design ask):
+- In `docs/designs/completed/`, recent git activity, no obvious uncommitted
+  follow-up → `done-shipped`
+- In `docs/designs/completed/`, stale, no real adoption signal → `done-archived`
+- In `docs/designs/`, code exists for it but tests/PRs pending → `review`
+- In `docs/designs/`, code partially landed → `implementing`
+- In `docs/designs/`, no code yet → `drafting`
+
+Ask the user to confirm/edit the classification per design via AskUserQuestion
+(group designs by inferred bucket if there are many, to keep the question count
+under 4-options-per-call). The body of each new feature item = the original
+design content.
+
+If the user picks any `done-shipped` items, also create
+`.work/releases/v0/release-v0.md` at `stage: released` to bind them.
 
 For `docs/ROADMAP.md` phases:
-1. Each phase becomes an epic at `.work/active/epics/epic-phase-<n>-<slug>.md` at
-   `stage: drafting` (or `implementing` if some children are already done)
-2. Phase ordering becomes `depends_on` chains (phase 2 depends on phase 1, etc.)
-3. Confirm with the user via AskUserQuestion before committing
+1. Each phase becomes an epic at `.work/active/epics/epic-phase-<n>-<slug>.md`.
+2. Stage inference from per-design classifications: if every child design under
+   the phase is at `done-*`, the epic is at `stage: done` and goes to
+   `.work/archive/epics/`. If any child is `implementing` or `review`, epic is
+   at `stage: implementing`. Otherwise `stage: drafting`.
+3. Phase ordering becomes `depends_on` chains (phase 2 depends on phase 1, etc.).
+4. Confirm with the user via AskUserQuestion before committing.
 
 For `docs/PROGRESS.md` deviation logs: fold notes into relevant items' bodies.
 
@@ -194,6 +219,29 @@ Bootstrap an empty `.work/` skeleton. Optionally seed sparse backlog from recent
 
 Bootstrap empty `.work/`. Suggest running `/agile-workflow:epicize` next to seed
 epics from the foundation docs.
+
+### Phase 8.5: Capture in-flight working-tree work
+
+Skip if Phase 1's `git status --porcelain` count was ≤ 5 (small changes go
+into the bootstrap commit itself).
+
+Otherwise, capture the in-flight code as substrate items so autopilot has
+something to drain after bootstrap:
+
+1. **Cluster** the changed files via a Task Explore sub-agent: "Categorize
+   these <N> files into 1-5 coherent feature buckets by path, imports, and
+   diff content. Report each as slug + one-paragraph description + file
+   list." Pass `git status --porcelain` and `git diff --stat` as context;
+   don't read 50 diffs yourself.
+2. **Confirm with the user** via AskUserQuestion (groups of 2-4 buckets if
+   there are many). Allow merge / split / rename.
+3. **Scope each cluster** as `.work/active/features/feature-<slug>.md` with
+   `kind: feature, stage: implementing`, body = brief + "Files in this
+   cluster" list + "Design captured retroactively from existing code". No
+   parent or deps unless obvious.
+4. **Bootstrap commit stays substrate-only** — don't commit the working-tree
+   code yet. `implement`'s land mode (Phase 4a) handles validate-commit-advance
+   per cluster after bootstrap.
 
 ### Phase 9: Write MIGRATION_REPORT.md
 

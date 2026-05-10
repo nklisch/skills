@@ -53,7 +53,7 @@ Write to `.work/backlog/<id>.md`:
 ```yaml
 ---
 id: <id>
-created: YYYY-MM-DD     # today's UTC date
+created: YYYY-MM-DD     # today's local date (matches the PostToolUse hook)
 tags: [<tag>, ...]      # empty array if no clear category
 ---
 

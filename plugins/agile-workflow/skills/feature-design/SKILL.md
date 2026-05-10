@@ -1,5 +1,5 @@
 ---
-name: design
+name: feature-design
 description: >
   Design a feature at stage:drafting in the agile-workflow substrate. Reads the
   feature item, grounds in foundation docs and codebase, produces a detailed design
@@ -7,26 +7,31 @@ description: >
   with declared depends_on chains, and advances stage drafting -> implementing.
   Use for greenfield feature design — features without [refactor] or [perf] tags.
   For [refactor] use /agile-workflow:refactor-design; for [perf] use
-  /agile-workflow:perf-design.
+  /agile-workflow:perf-design. For decomposing an epic into child features use
+  /agile-workflow:epic-design.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 model: opus
 ---
 
-# Design
+# Feature-Design
 
 You design a feature in the agile-workflow substrate. The design lives in the
 feature item's body — there is no separate `docs/designs/<name>.md`. As the design
 takes shape, child stories are spawned with declared `depends_on` chains. When the
 design is done, you advance the feature's stage `drafting → implementing`.
 
-This skill is for **greenfield feature design** — features without `[refactor]` or
-`[perf]` tags. The design family routes by tag:
-- `design` (this skill) — feature with no specialized tag
-- `refactor-design` — feature with `tags: [refactor]`
-- `perf-design` — feature with `tags: [perf]`
+This skill is the feature-level entry point in the design family. The family
+routes by item kind and tags:
+- `epic-design` — `kind: epic` at `stage: drafting` (decomposes into features)
+- `feature-design` (this skill) — `kind: feature`, no specialized tag
+- `refactor-design` — `kind: feature` with `tags: [refactor]`
+- `perf-design` — `kind: feature` with `tags: [perf]`
 
-If the feature you're looking at has `[refactor]` or `[perf]` in `tags`, halt and
-tell the user to invoke the right specialized skill instead.
+If the feature you're looking at has `[refactor]` or `[perf]` in `tags`, you
+were misrouted. Don't try to design it — log a one-line note to the item body
+("Misrouted to feature-design; should have gone to refactor-design / perf-design
+based on tags") and return without advancing the stage. The caller (autopilot
+or human) will route correctly on the next pass.
 
 ## Trigger
 
@@ -43,7 +48,8 @@ design, with no specialized tag. Common phrases:
 Read the feature file at `.work/active/features/<id>.md`. Confirm:
 - `kind: feature`
 - `stage: drafting`
-- `tags` does NOT include `refactor` or `perf` (otherwise halt and route)
+- `tags` does NOT include `refactor` or `perf` (otherwise log a misroute
+  note and return without advancing — see the description block above)
 
 The body should already have a brief from `scope`. Use it as the seed for design.
 
@@ -81,21 +87,23 @@ project conventions.
 
 ### Phase 4.5: Surface ambiguities
 
-Before locking in design decisions, identify ambiguities and unresolved
-questions. Ask the user via AskUserQuestion to clarify these categories:
+Identify ambiguities — requirements gaps, architecture trade-offs, scope
+boundaries, integration assumptions, UX decisions.
 
-- **Requirements gaps** — missing acceptance criteria, unclear edge cases,
-  undefined behavior for error states
-- **Architecture trade-offs** — when multiple valid approaches exist, present
-  the options with pros/cons and ask the user to choose
-- **Scope boundaries** — what's in scope vs. out of scope when the brief is
-  unclear
-- **Integration assumptions** — expected behavior of external systems, APIs, or
-  services the design depends on
-- **UX decisions** — interaction details not covered by foundation UX docs
+If autopilot was invoked this session, resolve each one with judgment
+(prioritize: consistent with foundation docs > simpler option > defers
+irreversible decisions) and log under `## Design decisions` in the body:
 
-Do NOT guess on ambiguous points. A question now saves a rewrite later. After
-the user clarifies, incorporate their answers into the design.
+```markdown
+## Design decisions
+- **<ambiguity>**: <choice> — <one-line rationale>
+```
+
+Otherwise, ask the user via AskUserQuestion before locking in.
+
+The exception under autopilot: a 50/50 between two large irreversible choices
+(e.g., SQL vs document store). Append a `## Blocker` section and return
+without advancing — autopilot will skip and surface the blocker.
 
 ### Phase 5: Design the units
 
@@ -148,8 +156,41 @@ If a unit is hard to test, the design is probably wrong. Note it and revise.
 
 ### Phase 7: Order and child stories
 
-Specify implementation order — what must exist before what. Where there are clear
-sub-units that warrant their own implementation passes, **spawn child stories**.
+Specify implementation order — what must exist before what. Decide whether to
+spawn child stories or treat the feature itself as the single implementation
+unit.
+
+#### When to spawn stories
+
+Stories pay for themselves when **at least one** of these is true:
+
+- **Parallelizable.** Three or more chunks can be implemented by independent
+  agents simultaneously — `/agile-workflow:implement-orchestrator` wants
+  stories so it has fan-out targets.
+- **Non-trivial dependencies.** Story A blocks B blocks C; declaring
+  `depends_on:` at the story level makes the chain visible without reading
+  the full design body.
+- **Multi-session work.** A feature that won't fit in one stride needs
+  resume points. A story file gives a fresh agent a smaller surface to
+  absorb than the entire feature design.
+- **Heterogeneous acceptance.** Different chunks have different test
+  surfaces (UI works / IPC errors / DB schema). Gates score per-story
+  rather than per-feature, which is cleaner when the surfaces are genuinely
+  different.
+
+#### When stories are pure overhead
+
+Skip stories when **all** of these hold:
+
+- Retroactive capture of already-done work (stories are forward-looking
+  containers; if the work is already done, just land it under the feature)
+- Single-stride implementation (one session can finish the whole feature)
+- Tight cohesion (every test exercises every code path; the chunks aren't
+  meaningfully independent)
+- The natural decomposition is just "frontend / backend" — that's the
+  package boundary, not stories
+
+#### Spawning a story
 
 For each child story to spawn:
 - Create `.work/active/stories/<feature-id>-<story-slug>.md`
@@ -159,9 +200,6 @@ For each child story to spawn:
 
 Cycle check: run `.work/bin/work-view --blocking <story-id>` before adding any
 `depends_on` entry.
-
-If the feature is small enough to implement as a single unit, skip child stories —
-the feature itself is the implementation unit.
 
 ### Phase 8: Write design INTO the feature body
 
@@ -208,7 +246,7 @@ Update the feature file. Append (after the existing brief) sections like:
 2. Commit:
    ```bash
    git add .work/active/features/<id>.md .work/active/stories/<feature-id>-*.md
-   git commit -m "design: <feature-id> (<N> child stories)"
+   git commit -m "feature-design: <feature-id> (<N> child stories)"
    ```
 
 ## Output

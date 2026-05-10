@@ -20,15 +20,17 @@ agents.
 
 ## Trigger
 
-The agent picks this skill when:
-- A feature is at `stage: implementing` AND has more than 3 child stories AND those
-  stories have a non-trivial `depends_on` graph (otherwise sequential `implement`
-  is fine)
+This is the **default implementation path for features** at
+`stage: implementing` with one or more child stories. Single-story features
+run as a one-agent wave — orchestration overhead is small and the
+prompt-crafting + verification scaffolding is still useful. Use
+`/agile-workflow:implement` directly only for stories (which have no children
+to orchestrate) or for features without child stories.
 
 Common phrases:
+- "implement feature X"
 - "orchestrate implementation of feature X"
 - "fan out the stories under feature Y"
-- "drive the parallel implementation"
 
 ## Workflow
 
@@ -85,39 +87,61 @@ Recency improves prompt adherence.
 
 ### Phase 5: Craft agent prompts
 
+The per-story prompt mirrors `/agile-workflow:implement`'s workflow — same
+phases, same logic — just inlined so a sub-agent can execute it self-contained.
+Whatever capabilities `implement` gains over time should be reflected here too.
+
 For each story to spawn an agent for, write a self-contained prompt with:
 
-1. **Role and goal** — one sentence stating what the agent is implementing. Frame it
-   with ownership and craft: "You are implementing <story-name> for feature
-   <feature-name> — write production-quality code that you'd be proud to have
-   reviewed."
+1. **Role and goal** — one sentence with ownership framing: "You are
+   implementing <story-name> for feature <feature-name> — write
+   production-quality code that you'd be proud to have reviewed."
 
-2. **Story file content** — paste the story's body verbatim. Include the design,
-   acceptance criteria, and any notes. Tell the agent: "Update this file with
-   implementation notes when done."
+2. **Land-mode check** (from implement Phase 4a) — "Before writing new code,
+   check if the implementation already exists in the working tree. Signals: a
+   'Files in this cluster' list in the story body, retroactive-capture note,
+   sparse design with concrete file paths matching `git status`. If you're
+   in land mode: read the existing code, update the story body's design
+   section to reflect as-built reality, validate (typecheck/lint/test scoped
+   to touched packages), add tests for any meaningful behavior that lacks
+   them, log 'Land mode' in implementation notes, then proceed to commit."
 
-3. **Parent feature design excerpt** — paste the relevant implementation units from
-   the feature body. Don't summarize — exact specifications matter.
+3. **Dep readiness check** (from implement Phase 2) — "If this story has
+   non-empty `depends_on`, verify each dep is at `stage: done` (or in
+   releases/archive). If any dep is unmet, append a one-line note and return
+   without advancing — don't try to implement on top of unmet deps."
 
-4. **Codebase context** — concrete:
+4. **Story file content** — paste the story body verbatim. Tell the agent:
+   "Update this file with implementation notes when done."
+
+5. **Parent feature design excerpt** — paste the relevant implementation units
+   from the feature body. Don't summarize — exact specs matter.
+
+6. **Codebase context** — concrete:
    - Key file paths it will read or modify (specific, not generic)
    - Existing patterns to follow with concrete codebase examples
    - Discrepancies between design and repo reality you found
    - Specific imports needed
    - Project conventions from CLAUDE.md
 
-5. **Stage transition instruction** — "When done, update the story's frontmatter
-   `stage: implementing → review` and append implementation notes to the body. The
-   PostToolUse hook will auto-bump `updated:`."
+7. **Design-flaw escape hatch** (from implement guardrails) — "If during
+   implementation you discover a genuine design flaw, don't muscle through.
+   Update the story body with a `## Implementation discovery` section, set
+   stage back to `drafting`, and return. The orchestrator will route the
+   story back through the design family on the next pass."
 
-6. **Verification commands** — what to run when done (from CLAUDE.md, e.g.,
-   `pnpm typecheck && pnpm lint && pnpm test`)
+8. **Stage transition instruction** — "When done, update the story's
+   frontmatter `stage: implementing → review` and append implementation notes.
+   The PostToolUse hook auto-bumps `updated:`."
 
-7. **Commit instruction** — "After all code compiles and tests pass, commit with
-   message `implement: <story-id>`. Do NOT push."
+9. **Verification commands** — from CLAUDE.md (e.g.,
+   `pnpm typecheck && pnpm lint && pnpm test`).
 
-8. **Emotional framing** — pride in craft, permission to report blockers, quality
-   as aspiration not threat. Avoid pressure language ("you MUST", "CRITICAL").
+10. **Commit instruction** — "After build and tests pass, commit with message
+    `implement: <story-id>`. Do NOT push."
+
+11. **Emotional framing** — pride in craft, permission to report blockers,
+    quality as aspiration not threat. Avoid pressure language.
 
 ### Phase 6: Spawn agents (per wave)
 
@@ -186,14 +210,11 @@ In conversation:
 ## Guardrails
 
 - Ground yourself before spawning agents. Vague prompts produce vague implementations.
-- Cap parallelism at 3 sub-agents per wave. More than that, split into sub-waves.
-- Cap at 3 sub-agents per wave. More than that, split into sub-waves of 3 run
-  sequentially within the wave.
-- If a feature has > 20 child stories or > 2000 lines of new code estimated, halt
-  and tell the user: "This feature is too large for orchestration. Split the
-  design first via /agile-workflow:design or refactor it into multiple smaller
-  features." Don't try to orchestrate beyond 3 effective parallel agents — the
-  design itself is the wrong shape if it needs more.
+- Cap parallelism at 3 sub-agents per wave. Bigger features just mean more
+  waves, scheduled by `depends_on`. There's no upper limit on waves — a
+  feature with 30 children runs as 10+ waves, not as one giant wave or as
+  a fallback to sequential. The orchestrator's job is to keep producing
+  waves until every child reaches `stage: review`.
 - Every agent prompt must be self-contained. Agents share no context.
 - Reference paths and key signatures in prompts, not entire files. Agents read files.
 - Only reference patterns you've verified by reading.

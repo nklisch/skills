@@ -6,6 +6,9 @@ description: >
   nits), triages findings into items in the substrate (with appropriate tags), and
   advances the item to done if approved or back to implementing if changes needed.
   Triggers on items at stage:review or phrases like "review item X", "review this".
+  Autonomous-safe: produces verdicts and files findings as items rather than gating
+  on human acknowledgment, so autopilot can call this directly to drain stage:review
+  items.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 model: opus
 ---
@@ -26,20 +29,26 @@ The agent picks this skill when an item is at `stage: review`. Common phrases:
 - "is this ready to ship"
 - "look at item Y"
 
-The user can also explicitly invoke `/agile-workflow:review <id>`.
+The user can also explicitly invoke `/agile-workflow:review <id>`. **Autopilot
+also invokes this skill directly** when it picks up a `stage: review` item — the
+verdict-and-file-findings shape works the same whether the caller is a human or
+autopilot.
 
 ## Workflow
 
 ### Phase 1: Identify the target
 
-If the user passed an id, target that item. Otherwise:
+If the caller (user or autopilot) passed an id, target that item. Otherwise:
 
 ```bash
 .work/bin/work-view --stage review --paths
 ```
 
-If multiple items are at `review`, ask the user which one (or pick the most recent
-by `updated:`).
+If multiple items are at `review`:
+- Interactive caller (user, no id passed): ask which one via AskUserQuestion.
+- Autonomous caller (autopilot): pick the most recent by `updated:` and proceed
+  without asking. Autopilot will fire this skill repeatedly across `stage: review`
+  items, so single-item-per-invocation is the right shape.
 
 ### Phase 2: Read the item
 
@@ -71,7 +80,18 @@ implementation. Pick the right scoping pattern:
 For a feature with child stories, the diff spans all the stories' implementation
 commits — find them by grepping for each story id, then unioning the patches.
 
-If the diff is empty, tell the user and stop — there's nothing to review.
+For an **epic**, there's no per-line diff to review — each child was already
+reviewed when it advanced through `stage: review`. Instead, gather:
+- The epic body (brief + decomposition)
+- Each child feature's body, particularly its `## Review` section if present
+- The aggregate file-touched list from `git log --grep "<child-id>"` across all
+  children — useful for spotting cross-cutting concerns
+
+If the (non-epic) diff is empty after trying the obvious ranges (item-id
+grep, branch-vs-base, working tree), the work was likely already merged or
+captured retroactively without a diff trail. Under autopilot: advance to
+`done` with a "No diff found to review" note. Interactive: ask the user
+which range to review.
 
 ### Phase 4: Ground in the project
 
@@ -82,6 +102,17 @@ If the diff is empty, tell the user and stop — there's nothing to review.
 ### Phase 5: Apply review lenses
 
 Walk the change through each lens. Note explicitly which you skip and why.
+
+**For epics** the per-line lenses (Correctness, Tests, Naming and comments) don't
+apply — those were exercised when each child was reviewed individually. Skip
+them and focus the epic-review on the aggregate lenses below: Design alignment
+(does the realized decomposition match the brief?), Foundation-doc alignment
+(did the cumulative work invalidate any foundation assertion that no child
+caught?), Breaking changes (cross-cutting public-API shifts visible only when
+the children are viewed together), and a "capability completeness" check —
+does the brief's promised capability actually work end-to-end? Keep epic
+reviews short. If everything's clean, "Epic delivered as briefed; advancing to
+done" is a complete review.
 
 **Correctness**:
 - Does the change do what the design says?
@@ -154,10 +185,21 @@ not gate-driven. (Gates set `gate_origin`; manual review doesn't.)
 1. Advance the item: `stage: review → done`
 2. If the item has `release_binding: <version>`, leave it in active (it'll be moved
    to `releases/<version>/` by `/agile-workflow:release-deploy`)
-3. If no `release_binding` and no parent epic that's still active: move to
+3. If no `release_binding` and no parent epic/feature that's still active: move to
    `.work/archive/` via `git mv`
-4. If the item is a child of an active epic: leave in active. The epic's stage
-   advances when all children are done.
+4. If the item has a parent (feature or epic), check whether all siblings are
+   now at `stage: done`:
+
+   ```bash
+   parent_id=$(grep '^parent:' .work/active/<kind>s/<id>.md | awk '{print $2}')
+   .work/bin/work-view --parent "$parent_id" --stage done --count
+   .work/bin/work-view --parent "$parent_id" --count
+   ```
+
+   If counts match, advance the parent `implementing → review` and append a
+   "Children complete" note. Autopilot picks the parent up next pass and runs
+   review on it. For epics, the per-line lenses don't apply — see Phase 3
+   and Phase 5.
 
 **If blockers exist**:
 1. Set the item back to `stage: implementing`

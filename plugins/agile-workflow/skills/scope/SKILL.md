@@ -186,7 +186,9 @@ In conversation:
 - **Depends on**: `[<id>, ...]` (or "no dependencies")
 - **Foundation docs rolled forward**: list of files touched (or "none")
 - **Next**: for features at `drafting`, the design family will pick this up
-  (`/agile-workflow:design`, `refactor-design`, or `perf-design` based on tags)
+  (`/agile-workflow:feature-design`, `refactor-design`, or `perf-design` based
+  on tags); for epics at `drafting`, `/agile-workflow:epic-design` decomposes
+  into child features.
 
 ## Guardrails
 

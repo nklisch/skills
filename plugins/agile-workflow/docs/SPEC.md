@@ -333,7 +333,9 @@ initial context):
 `.work/active/**.md` or `.work/backlog/**.md`. Otherwise exits 0.
 
 **Effect:** auto-bumps the `updated:` frontmatter field of the modified
-item file to today's date (UTC).
+item file to today's date in **local time** (the user's "today," not
+UTC's "today" — keeps `updated:` consistent with what the user perceives
+as the current date when they're working).
 
 ## Tooling requirements
 
