@@ -15,6 +15,11 @@
       "description": "Create, evaluate, and refine agent skills — write distributable reference skills for tools, refine skill ideas, and audit skill quality."
     },
     {
+      "name": "agile-workflow",
+      "source": "./plugins/agile-workflow",
+      "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/, late-binding releases, gates that produce items, autopilot queue runner."
+    },
+    {
       "name": "krometrail",
       "source": {
         "source": "git-subdir",
