@@ -277,7 +277,16 @@ The unit of work is its file. The brief, the design, the implementation notes, a
 
 ## 6. Rolling-Foundation
 
-Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, and any others) describe the system as it is NOW. When implementation changes what those docs assert, the docs update to match the new present. No legacy comments. Git carries history; the doc carries truth.
+Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, and any others) describe the project's vision (future-looking) and current intent — what is true now, OR what will be true once in-flight design lands. They roll forward in place as either evolves. No legacy comments. Git carries history; the doc carries truth.
+
+### Two timing styles
+
+Both are legitimate; the project picks one or mixes per change size:
+
+- **Code-first (default for routine features):** docs update at implementation merge, in the same commit set as the code that lands the change.
+- **Design-first (for large scope, initial ideation, architectural shifts):** docs preflight-update at scope time, leading the code through the implementation window. The doc temporarily describes an intended near-future state. The agile-workflow `scope` skill operates this way for large scope; `ideate` operates this way at project bootstrap.
+
+The discipline is identical in both styles: replace stale assertions in place, never accumulate "previously" / "in v1.x" / migration prose. `gate-docs` at release-deploy time is the backstop — it catches drift between intent and reality regardless of which timing style was used.
 
 ### What this forbids
 
@@ -289,29 +298,31 @@ Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, and a
 
 ### What this enables
 
-- A new contributor reads the doc and learns the system as it IS, not as it was
+- A new contributor reads the doc and learns the system as it IS or as it is meant to imminently become — not as it was
 - Foundation docs stay short and current rather than growing with every change
 - `git log docs/<file>.md` shows every rolling-forward edit — perfect audit trail
-- Discrepancies between code and docs become bugs, not historical artifacts
+- Discrepancies between intent (what the doc asserts) and reality (what code does) become bugs that gate-docs surfaces, not historical artifacts
 
 ### At design time
 
-- When scoping a feature that changes a foundation-doc assertion, plan the doc update as part of the work
+- When scoping a feature that changes a foundation-doc assertion, decide the timing: code-first (defer the doc update) or design-first (preflight the update as part of scope)
+- For large-scope `scope` operations, design-first is the default — `scope` rolls foundation docs forward as part of the same operation
 - Identify which foundation doc(s) need rolling forward; reading them at design time prevents stale assumptions
 - If a feature's design contradicts a foundation doc, EITHER the design is wrong OR the doc is. Resolve before designing the implementation.
 
 ### At implementation time
 
-- After implementing a change, ask: "what does a foundation doc now say that's no longer true?"
-- Update those assertions in place. Delete the old text. Replace, do not append.
-- Commit the foundation-doc update with the implementation, not as a separate "docs cleanup" pass weeks later
-- The `gate-docs` runs at release-deploy time and produces items for any drift it finds — but the goal is to never have drift
+- If working code-first: after implementing a change, ask "what does a foundation doc now say that's no longer true?" — update assertions in place, commit with the implementation
+- If working design-first: the doc was preflight-updated at scope time. Verify the implementation matches the doc's assertion; if it deviates, adjust whichever was wrong (implementation or assertion).
+- Replace stale assertions in place. Delete the old text. Never append.
+- The `gate-docs` skill runs at release-deploy time and produces items for any remaining drift — but the goal is to leave it nothing to find.
 
 ### Design checklist
 
-- [ ] Every behavior assertion in a foundation doc reflects current code
-- [ ] No "previously" / "originally" / "in v1.x" prose
-- [ ] When a feature changes the system's behavior, foundation docs update in the same commit set
+- [ ] Every assertion in SPEC and ARCHITECTURE reflects current code OR imminent in-flight design (no stale assertions from cancelled work)
+- [ ] VISION.md reflects the project's current direction, not past direction
+- [ ] No "previously" / "originally" / "in v1.x" prose anywhere in `docs/`
+- [ ] When a feature changes behavior or direction, foundation docs update in the same commit set as the change (code-first) or were preflight-updated and are still accurate (design-first)
 - [ ] `git log docs/<file>.md` shows the audit trail; the doc shows the present
 
 ---
