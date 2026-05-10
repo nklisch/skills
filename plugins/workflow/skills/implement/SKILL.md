@@ -28,7 +28,15 @@ implementation stronger:
 2. **Existing source code** — understand what you're building on
 3. **Research docs** — if the project has prior research findings on libraries/APIs relevant to this target, find and read them. Prefer these over assumptions about library APIs.
 4. **CLAUDE.md** — project guidelines (if it exists)
-5. Use the **principles** skill — apply Fail Fast, Single Source of Truth, Ports & Adapters enforcement, and Generated Contracts when writing code
+5. Use the **principles** skill — apply Fail Fast, Single Source of Truth, Ports & Adapters enforcement, Generated Contracts, and Rolling-Foundation when writing code
+
+**Rolling-foundation principle (auto-loaded by `/principles`):** Foundation docs in
+`docs/` (VISION, SPEC, ARCHITECTURE) describe the project's vision and current intent —
+never its history. They roll forward in place. If your implementation changes what a
+foundation doc asserts (a SPEC interface, an ARCHITECTURE component), update the doc in
+the same commit set to match the new reality. Replace stale assertions in place — never
+add "previously" / "in v1.x" / migration prose. Git is the audit trail; the doc carries
+the present.
 
 ## Your Role
 

@@ -1,5 +1,44 @@
 # Changelog
 
+## v1.5.0
+
+### New Principle: Rolling-Foundation
+Adds the **Rolling-Foundation** principle to `/principles` (section 5) and propagates a
+short-form reminder across every skill that touches foundation docs.
+
+Foundation docs in `docs/` (VISION, SPEC, ARCHITECTURE) describe the project's vision
+(future-looking) and current intent — what is true now, OR what will be true once
+in-flight design lands — never its history. They roll forward in place. When work
+changes what a foundation doc asserts, the doc updates in place — no "previously" /
+"in v1.x" / migration prose. Git is the audit trail; the doc carries the present.
+
+The principle's two time axes:
+- **VISION.md is future-looking** — rolls forward as direction evolves
+- **SPEC.md and ARCHITECTURE.md describe present-tense intent** — what is true now
+  (code-first style: docs update at implementation merge) OR what will be true once
+  in-flight design lands (design-first style: docs preflight-update at scope or
+  extend time, leading the code through the implementation window). Both styles are
+  legitimate; the project picks one or mixes per change size. The forbidden patterns
+  (no historical prose) are identical in both.
+
+### Skills updated
+- `/principles` — adds section 5 (long form) with forbids/enables/checklist; description
+  expanded to auto-load on foundation-doc edits
+- `/ideate` — Phase 4 (Doc Writing) carries the principle so docs are written present-tense
+- `/extend` — Phase 4b (Expansion Path) reinforces in-place edits to foundation docs
+- `/update-documentation` — top-of-skill reminder so spawned agents preserve discipline
+- `/autopilot` — Phase 1 (Ground Yourself) reminds the orchestrator to enforce on each
+  phase's implementation pass
+- `/review` — adds a "Foundation-doc alignment" review lens; drift becomes a finding
+- `/roadmap`, `/design`, `/implement`, `/refactor-design`, `/perf-design`,
+  `/bold-refactor` — short-form reminders inserted near foundation-doc reading or
+  doc-update points
+
+### Why
+Agents may not always reach for the principles reference. Repeating a terse short-form
+in every skill that touches foundation docs ensures the discipline lands at decision
+moments without requiring a load.
+
 ## v1.4.0
 
 ### Breaking Changes

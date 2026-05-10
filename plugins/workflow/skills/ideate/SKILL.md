@@ -110,6 +110,13 @@ Iterate until approved. Then move to Doc Writing.
 
 **Goal:** Produce the approved foundation documents.
 
+**Rolling-foundation principle (auto-loaded by `/principles`):** Foundation docs in
+`docs/` (VISION, SPEC, ARCHITECTURE) describe the project's vision and current intent —
+never its history. They roll forward in place. The docs you write here will be edited
+in place forever; encode that intent now. Write every assertion in present tense (or
+present-tense aspiration for VISION). No "future plans" prose, no "phase 1 / phase 2"
+upfront commitments, no roadmap-shaped sections inside foundation docs.
+
 Write docs one at a time. For each document:
 
 1. **Draft it** — write the full document based on everything discussed in Phases 1-3.

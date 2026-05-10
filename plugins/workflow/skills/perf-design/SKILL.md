@@ -24,6 +24,16 @@ Read these before profiling — each one prevents wasted effort downstream:
 2. **Existing benchmarks** — search for benchmark files, perf tests, or load tests in the project
 3. **Existing test suite** — understand how the project tests itself so benchmarks follow the same patterns
 4. **Source code under investigation** — read the target code thoroughly before profiling
+5. **Foundation docs** — `docs/SPEC.md` (perf targets, latency requirements) and
+   `docs/ARCHITECTURE.md` (where the code lives in the system) if they exist
+
+**Rolling-foundation principle (auto-loaded by `/principles`):** Foundation docs in
+`docs/` describe the project's vision and current intent — never its history. If SPEC.md
+states a perf target ("API responses under 200ms at p95"), that's the contract — design
+optimizations to meet it. If your optimization changes what ARCHITECTURE.md describes
+(e.g., adding a worker pool, introducing batching as an architectural element), plan
+the doc update as part of the implementation — the implementer updates the doc in the
+same commit set. Replace assertions in place; never add "previously" / "in v1.x" prose.
 
 ## The Optimization Hierarchy
 

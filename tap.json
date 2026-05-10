@@ -377,7 +377,7 @@
         {
           "name": "principles",
           "path": "skills/principles",
-          "description": "Architectural and code-level principles (Ports & Adapters, Single Source of Truth, Generated Contracts, Fail Fast). Auto-loads when designing or implementing."
+          "description": "Architectural and code-level principles (Ports & Adapters, Single Source of Truth, Generated Contracts, Fail Fast) plus Rolling-Foundation (foundation docs in docs/ describe vision and current intent — what is true now or imminent — never history; they roll forward in place). Auto-loads when designing, implementing, extending, or updating documentation."
         },
         {
           "name": "refactor-conventions-creator",

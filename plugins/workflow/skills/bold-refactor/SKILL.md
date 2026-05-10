@@ -134,6 +134,15 @@ the concrete change looks like. Ask if the user is ready to produce the design d
 
 ### Phase 4: Design
 
+**Rolling-foundation principle (auto-loaded by `/principles`):** A bold refactor often
+restructures what `docs/ARCHITECTURE.md` describes — that's the whole point. Foundation
+docs in `docs/` describe the project's vision and current intent, never its history. If
+the reconception changes what ARCHITECTURE.md asserts, plan that doc update as part of
+the design — the implementer rolls the doc forward in the same commit set as the
+structural change. Replace stale architectural assertions in place; never add
+"previously" / "in v1.x" / migration prose. The doc carries the new shape; git carries
+the old one.
+
 For each accepted suggestion, plan the execution shape — not whether to do it (that's settled), but how to land it safely:
 
 - What does rollback look like at each step? Are there safe stopping points mid-migration?

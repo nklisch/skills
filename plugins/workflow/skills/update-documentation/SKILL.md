@@ -19,6 +19,19 @@ than line-by-line editing.
 If you're running in the same session that made the code changes, you already have deep
 context. Use it — but still verify your assumptions in the prompts you craft.
 
+**Rolling-foundation principle (auto-loaded by `/principles`):** Foundation docs in
+`docs/` (VISION, SPEC, ARCHITECTURE, etc.) describe the project's vision and current
+intent — never its history. They roll forward in place. When the agents you spawn update
+foundation docs, the edits must replace stale assertions rather than appending
+"previously" prose. Git is the audit trail; the doc carries the present. Encode this in
+every prompt you craft for foundation-doc edits.
+
+Foundation docs may be **temporarily future-looking** when design has preflighted the
+intended architecture (post-`/extend`, post-`/ideate`) and code is still catching up.
+That's still present-tense intent, not historical narrative. Spawned agents updating
+docs should describe the system as it is now OR as it will be once in-flight design
+lands — both are valid; never as it was.
+
 ## Phase 1: Discover the Doc Structure
 
 Before updating anything, map what documentation exists in this project.

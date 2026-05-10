@@ -55,6 +55,12 @@ project keeps documentation:
 - **CLAUDE.md** — project conventions
 - **concept.md** or similar — any raw concept/brainstorm documents
 
+**Rolling-foundation principle (auto-loaded by `/principles`):** Foundation docs in
+`docs/` describe the project's vision and current intent — never its history. They roll
+forward in place. Read them as present-tense truth. If you spot historical prose
+("previously", "in v1.x", migration notes) inside a foundation doc, flag it — that
+content belongs in CHANGELOG / git history, not in the foundation doc.
+
 Also check for existing source code — if the project has already started, understand what's
 built and what's remaining.
 

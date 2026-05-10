@@ -56,6 +56,14 @@ Read these to build a complete mental model before touching any code:
 4. **Existing source code** — if the project has already started, understand what's built
 5. **PROGRESS.md** — if it exists, you're resuming. Read it to understand where you left off.
 
+**Rolling-foundation principle (auto-loaded by `/principles`):** Foundation docs in
+`docs/` describe the project's vision and current intent — never its history. They roll
+forward in place. As phases complete and the system's behavior changes, ensure foundation
+docs reflect the new reality (the per-phase test checkpoints + the implementation pass
+should leave docs current). When work invalidates a foundation-doc assertion, the
+implementing agent updates the doc in the same commit. Never accumulate "previously" /
+"in v1.x" / migration prose; git is the audit trail.
+
 ### Phase 2: Initialize or Resume
 
 **If PROGRESS.md does not exist** — this is a fresh start:

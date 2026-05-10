@@ -102,6 +102,21 @@ Walk the change through each lens. Note explicitly which you skip and why.
 - Are comments explaining *why* (high value) vs *what* (usually noise)?
 - Is anything undocumented that future maintainers will need to understand?
 
+### Foundation-doc alignment
+
+**Rolling-foundation principle (auto-loaded by `/principles`):** Foundation docs in
+`docs/` (VISION, SPEC, ARCHITECTURE) describe the project's vision and current intent —
+never its history. They roll forward in place.
+
+- Does the change invalidate any assertion in `docs/VISION.md`, `docs/SPEC.md`, or
+  `docs/ARCHITECTURE.md`?
+- If yes — were those docs updated in the same change set to reflect the new reality?
+- Did the change introduce "previously" / "in v1.x" / migration prose into a foundation
+  doc? (Should not — git is the audit trail; the doc carries the present.)
+
+Foundation-doc drift is **important** at minimum, **blocker** if the docs are part of
+the project's published surface or if the divergence is large.
+
 ## Phase 4: Synthesize and Report
 
 Classify findings:

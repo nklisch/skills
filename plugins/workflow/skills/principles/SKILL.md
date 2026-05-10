@@ -2,10 +2,11 @@
 name: principles
 description: >
   Architectural and code-level principles (Ports & Adapters, Single Source of Truth,
-  Generated Contracts, Fail Fast). Auto-loads when designing new modules, defining
-  interfaces between layers, discussing system architecture, writing new functions or
-  modules, implementing features, applying code standards, or any time the design or
-  implement skills are active.
+  Generated Contracts, Fail Fast) plus the doc-discipline principle (Rolling-Foundation).
+  Auto-loads when designing new modules, defining interfaces between layers, discussing
+  system architecture, writing new functions or modules, implementing features, updating
+  foundation docs (VISION/SPEC/ARCHITECTURE), applying code standards, or any time the
+  design, implement, extend, or update-documentation skills are active.
 user-invocable: false
 ---
 # Principles
@@ -218,3 +219,103 @@ function processOrder(input: any) {
   return computeTotal(input)
 }
 ```
+
+---
+
+## 5. Rolling-Foundation
+
+Foundation documents (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`,
+and any other docs living at `docs/`) describe the project's **vision** —
+where it is going — and its **current intent** — what is true now or what
+will be true once in-flight design lands. They roll forward in place as
+either evolves. They never carry historical prose. Git carries history; the
+doc carries truth.
+
+### What this forbids
+
+- "Note: in v1.2 this was X" footnotes
+- "Previously" / "originally" / "we used to" prose
+- "Migration notes" sections retaining old behavior descriptions
+- Compatibility shims documented in foundation docs (those go in code comments
+  only, where they live with the workaround)
+- Changelog-style entries inside foundation docs (`CHANGELOG.md` is its own file)
+
+### What this enables
+
+- A new contributor reads the doc and learns the project as it IS — or as it
+  is meant to become — not as it was
+- Foundation docs stay short and current rather than growing with every change
+- `git log docs/<file>.md` shows every rolling-forward edit — perfect audit
+  trail without bloating the doc
+- Discrepancies between code and current-state docs become bugs, not historical
+  artifacts to reconcile mentally
+
+### Two time axes
+
+Foundation docs split along two axes; both share the same discipline.
+
+- **VISION.md is future-looking.** It rolls forward as the project's vision
+  evolves: who it's for, what success looks like, what we want this to become.
+  When the direction shifts, update vision in place. Don't pile new direction
+  onto an old description.
+- **SPEC.md and ARCHITECTURE.md describe present-tense intent.** They roll
+  forward as the system's intent evolves: what is true now, OR what will be
+  true once in-flight design lands. When implementation changes the system's
+  shape (or design preflights an architectural change), update these to match.
+
+Either way, the doc reads as present-tense truth or present-tense aspiration —
+never as a historical layer.
+
+### Two timing styles for SPEC and ARCHITECTURE
+
+Both styles are legitimate; the project picks one (or mixes per change size):
+
+- **Code-first (default for routine features):** docs update at implementation
+  merge, in the same commit set as the code that lands the change. Simple,
+  zero risk of doc-stale-during-design-gap. Right for most features.
+- **Design-first (for major expansions, initial ideation, or architectural
+  shifts):** docs update at scope-or-design time, leading the code through the
+  implementation window. The doc temporarily describes an intended near-future
+  state; once the feature lands, the doc was already correct (or gets adjusted
+  if implementation deviated). Right when team alignment on intended
+  architecture matters before code lands. The `/extend` skill operates this
+  way for major expansions; `/ideate` operates this way at project bootstrap.
+
+The discipline is identical in both styles: replace stale assertions in place,
+never accumulate "previously" / "in v1.x" / migration prose.
+
+### At design time
+
+- When designing a feature that changes a foundation-doc assertion, plan the
+  doc update as part of the work
+- Identify which foundation doc(s) need rolling forward; reading them at
+  design time prevents stale assumptions
+- If a feature's design contradicts a foundation doc, EITHER the design is
+  wrong OR the doc is. Resolve the contradiction before designing the
+  implementation.
+
+### At implementation time
+
+- If working in code-first style: after implementing a change that modifies
+  what a foundation doc asserts, ask: "what does the doc now say that's no
+  longer true?" — update those assertions in place, delete the old text,
+  commit with the implementation.
+- If working in design-first style: the doc was preflight-updated at scope or
+  extend time. Verify the implementation matches the doc's assertion; if it
+  deviates, either the implementation is wrong or the assertion was too
+  optimistic — adjust whichever was wrong.
+- Replace stale assertions in place. Delete the old text. Never append
+  "previously" / "in v1.x" / migration prose.
+- Record the version-y, time-y notes in `CHANGELOG.md` (if the project keeps
+  one) or in commit messages — never inside the foundation doc itself
+
+### Design checklist
+
+- [ ] Every assertion in SPEC and ARCHITECTURE reflects current code OR
+      imminent in-flight design (no stale assertions from cancelled work)
+- [ ] VISION.md reflects the project's current direction, not past direction
+- [ ] No "previously" / "originally" / "in v1.x" prose anywhere in `docs/`
+- [ ] When a feature changes the system's behavior or direction, foundation
+      docs update in the same commit set as the change (code-first) or were
+      preflight-updated and are still accurate (design-first)
+- [ ] `git log docs/<file>.md` shows the audit trail; the doc shows the present

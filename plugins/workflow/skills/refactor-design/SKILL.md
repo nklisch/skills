@@ -24,6 +24,14 @@ Understand the code's purpose and context before planning changes — a refactor
 3. **CLAUDE.md** — project guidelines (if it exists)
 4. **Spec document** — technical constraints, interfaces, non-functional requirements (if it exists). Refactoring must not violate spec constraints.
 
+**Rolling-foundation principle (auto-loaded by `/principles`):** Foundation docs in
+`docs/` (VISION, SPEC, ARCHITECTURE) describe the project's vision and current intent —
+never its history. A refactor preserves behavior, so the SPEC's assertions should remain
+true post-refactor. If a refactor restructures architecture in a way that changes what
+ARCHITECTURE.md describes, plan that doc update as part of the refactor — the implementer
+updates the doc in the same commit set as the structural change. Never add "previously" /
+"in v1.x" / migration prose to foundation docs.
+
 ## Your Role
 
 You produce a refactor plan that plans incremental, safe refactoring. Each refactor step should be small, testable, and non-breaking. Focus on consolidating duplicate logic, extracting shared abstractions, and aligning with established patterns.

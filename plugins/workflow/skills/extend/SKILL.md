@@ -115,6 +115,13 @@ The feature brief is consumed by **design** to produce implementation units.
 
 ## Phase 4b: Expansion Path (major expansions)
 
+**Rolling-foundation principle (auto-loaded by `/principles`):** Foundation
+docs in `docs/` (VISION, SPEC, ARCHITECTURE) describe the project's vision
+and current state — never its history. They roll forward in place. When you
+update a foundation doc here, **edit it to match the new reality** — never
+add "previously" / "in v1.x" / migration prose. Git is the audit trail; the
+doc carries the present (or present aspiration). Replace, don't append.
+
 ### 4b.1: Assess Impact
 
 Before updating docs, map how the expansion affects what exists.

@@ -29,11 +29,18 @@ you resolve now prevents a guess during implementation:
 2. **Existing source code** — understand current codebase state
 3. **Research docs** — if the project has prior research findings on libraries/APIs relevant to this target, find and read them. Prefer these over assumptions about library APIs.
 4. Use the **patterns** skill to read relevant patterns for the domain you're designing
-5. Use the **principles** skill — apply Ports & Adapters, Single Source of Truth, and Generated Contracts to your design decisions
+5. Use the **principles** skill — apply Ports & Adapters, Single Source of Truth, Generated Contracts, and Rolling-Foundation to your design decisions
 6. **CLAUDE.md** — project guidelines (if it exists)
 7. **Spec document** — technical constraints, interfaces, non-functional requirements (if it exists)
 8. **UX document** — UX design requirements, wireframes, design system (if it exists)
 9. **User stories document** — user stories with acceptance criteria (if it exists)
+
+**Rolling-foundation principle (auto-loaded by `/principles`):** Foundation docs in
+`docs/` (VISION, SPEC, ARCHITECTURE) describe the project's vision and current intent —
+never its history. They roll forward in place. Read them as present-tense truth. If
+your design changes what a foundation doc asserts, plan the doc update as part of the
+implementation work; the implementer updates the doc in the same commit set. Never
+introduce "previously" / "in v1.x" / migration prose into foundation docs.
 
 ## Your Role
 
