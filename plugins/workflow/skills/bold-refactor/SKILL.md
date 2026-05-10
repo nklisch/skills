@@ -7,7 +7,6 @@ description: >
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion
-model: opus
 ---
 
 # Bold Refactor

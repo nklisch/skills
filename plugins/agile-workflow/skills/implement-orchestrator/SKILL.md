@@ -8,7 +8,6 @@ description: >
   waits, advances stages, repeats until all stories at done. For features with > 3
   child stories. For single-stride sequential implementation, use /agile-workflow:implement.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
-model: opus
 ---
 
 # Implement-Orchestrator

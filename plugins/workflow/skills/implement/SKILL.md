@@ -6,7 +6,6 @@ description: >
   with tightly coupled units. For larger or parallelizable work, use implement-orchestrator instead.
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
-model: sonnet
 ---
 # Implementer Agent
 

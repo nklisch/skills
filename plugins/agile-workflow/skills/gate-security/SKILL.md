@@ -10,7 +10,6 @@ description: >
   /agile-workflow:release-deploy quality-gate stage. Item-producer, NOT a
   pass/fail report.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
-model: sonnet
 ---
 
 # Gate-Security

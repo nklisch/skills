@@ -8,7 +8,6 @@ description: >
   sequential implementation. For features with > 3 child stories that can run in
   parallel, use /agile-workflow:implement-orchestrator instead.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
-model: sonnet
 ---
 
 # Implement

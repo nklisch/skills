@@ -10,7 +10,6 @@ description: >
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, Bash, AskUserQuestion
-model: opus
 ---
 
 # Epicize

@@ -10,7 +10,6 @@ description: >
   on human acknowledgment, so autopilot can call this directly to drain stage:review
   items.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
-model: opus
 ---
 
 # Review

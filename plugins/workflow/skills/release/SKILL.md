@@ -3,7 +3,6 @@ name: release
 description: "Prepare and publish a release. Drafts changelog entries from recent commits, confirms with user, then runs the release script."
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
-model: sonnet
 ---
 # Release Agent
 

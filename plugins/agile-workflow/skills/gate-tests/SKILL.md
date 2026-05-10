@@ -8,7 +8,6 @@ description: >
   The orchestrator converts findings into gate_origin:tests items in
   .work/active/. Auto-triggers during /agile-workflow:release-deploy.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
-model: sonnet
 ---
 
 # Gate-Tests

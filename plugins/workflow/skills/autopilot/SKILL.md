@@ -7,7 +7,6 @@ description: >
   Use after /ideate and /roadmap when you want hands-off execution of a full build plan.
 user-invocable: true
 disable-model-invocation: true
-model: opus
 ---
 
 # Autopilot

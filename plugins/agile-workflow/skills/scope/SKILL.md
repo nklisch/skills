@@ -8,7 +8,6 @@ description: >
   this", "this needs to be a feature/epic", or when the user describes a new direction
   to formalize.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
-model: opus
 ---
 
 # Scope

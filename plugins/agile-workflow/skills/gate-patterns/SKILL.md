@@ -9,7 +9,6 @@ description: >
   the index, and produces a tracking item with gate_origin:patterns.
   Auto-triggers during /agile-workflow:release-deploy as the final gate.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
-model: sonnet
 ---
 
 # Gate-Patterns

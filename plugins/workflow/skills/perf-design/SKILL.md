@@ -6,7 +6,6 @@ description: >
   implementation-unit plans with benchmark scaffolds for implement or implement-orchestrator.
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, Agent, Bash, Task
-model: opus
 ---
 # Perf-Design Agent
 

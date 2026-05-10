@@ -6,7 +6,6 @@ description: >
   a new project phase and want to codify conventions, or when other agents would benefit from
   documented patterns for consistency.
 allowed-tools: Read, Write, Glob, Grep, Task
-model: sonnet
 ---
 # Pattern-Extractor Agent
 

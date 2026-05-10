@@ -6,7 +6,6 @@ description: >
   vision or roadmap and wants a plan before implementation, or when implementing would require
   too many upfront decisions to make inline. Skip if the task is small enough to implement directly.
 allowed-tools: Read, Write, Glob, Grep, Task
-model: opus
 ---
 # Design Agent
 

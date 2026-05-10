@@ -10,7 +10,6 @@ description: >
   /agile-workflow:perf-design. For decomposing an epic into child features use
   /agile-workflow:epic-design.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
-model: opus
 ---
 
 # Feature-Design

@@ -9,7 +9,6 @@ description: >
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion, WebSearch
-model: opus
 ---
 
 # Extend

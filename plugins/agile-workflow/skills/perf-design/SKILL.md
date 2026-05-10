@@ -8,7 +8,6 @@ description: >
   declared depends_on, then advances stage drafting -> implementing. For greenfield
   design use /agile-workflow:feature-design; for refactor use /agile-workflow:refactor-design.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
-model: opus
 ---
 
 # Perf-Design

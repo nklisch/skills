@@ -7,7 +7,6 @@ description: >
   Use when user says "security review", "security audit", "vulnerability check", or "find security issues".
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Bash, Agent, WebSearch, WebFetch, Write, AskUserQuestion
-model: opus
 ---
 
 # Security Review

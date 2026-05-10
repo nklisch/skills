@@ -1,5 +1,4 @@
 ---
-model: opus
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, AskUserQuestion, WebSearch

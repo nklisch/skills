@@ -6,7 +6,6 @@ description: >
   recommends structural improvements, or when a large area needs restructuring before further
   feature work. Do NOT use for small inline cleanups — those belong in fix or implement.
 allowed-tools: Read, Write, Glob, Grep, Task
-model: opus
 ---
 # Refactor-Planner Agent
 

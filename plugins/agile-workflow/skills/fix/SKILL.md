@@ -8,7 +8,6 @@ description: >
   hunches, refactors, or feature additions. Triggers on "fix bug X", "fix the typo
   in", "fix this issue".
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
-model: opus
 ---
 
 # Fix

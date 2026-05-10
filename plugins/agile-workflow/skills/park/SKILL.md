@@ -7,7 +7,6 @@ description: >
   ("park this", "remind me about X", "add to backlog", "we should consider Y") and you
   shouldn't derail what's currently in progress.
 allowed-tools: Read, Write, Bash
-model: sonnet
 ---
 
 # Park

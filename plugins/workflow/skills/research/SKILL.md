@@ -8,7 +8,6 @@ description: >
   need verification.
 user-invocable: true
 allowed-tools: Read, Write, Glob, Grep, WebSearch, WebFetch, Agent, AskUserQuestion
-model: sonnet
 ---
 
 # Research

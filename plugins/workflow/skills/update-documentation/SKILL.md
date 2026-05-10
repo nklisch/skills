@@ -6,7 +6,6 @@ description: >
   when finishing implementation — not only when the user asks. Discovers the project's doc
   structure dynamically rather than assuming fixed paths.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
-model: opus
 ---
 
 # Update Documentation

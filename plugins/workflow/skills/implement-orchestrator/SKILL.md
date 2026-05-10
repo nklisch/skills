@@ -6,7 +6,6 @@ description: >
   from parallel implementation. Opus reads the plan, splits work into agent-sized units,
   crafts focused prompts, and spawns Sonnet agents to implement them.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task, AskUserQuestion, Skill
-model: opus
 ---
 
 # Implementation Orchestrator

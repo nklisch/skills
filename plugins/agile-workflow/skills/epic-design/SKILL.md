@@ -11,7 +11,6 @@ description: >
   epic seeding from foundation docs use /agile-workflow:epicize; for feature
   design use /agile-workflow:feature-design.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
-model: opus
 ---
 
 # Epic-Design

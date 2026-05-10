@@ -9,7 +9,6 @@ description: >
   into items in .work/active/ with gate_origin:cruft and tags:[cleanup].
   Auto-triggers during /agile-workflow:release-deploy.
 allowed-tools: Read, Glob, Grep, Bash, Agent, Edit
-model: sonnet
 ---
 
 # Gate-Cruft

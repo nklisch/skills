@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.5.1 — drop model: frontmatter, skills inherit session model
+
+Removed the `model:` frontmatter field from every skill in the plugin
+(previously a mix of `opus` and `sonnet`). Skills now run at whatever model
+the session is on, rather than overriding for the current turn.
+
+Rationale: the `model:` override changed the model only for the turn the
+skill loaded into and reverted on the next prompt — useful only when a
+specific tier was genuinely required. For a workflow plugin where the user
+chooses the session model deliberately, forcing a different model per skill
+fragmented behavior and silently consumed extra tier capacity. Inheriting
+the session model is the right default.
+
+Also brings the frontmatter into alignment with the skilltap official
+schema, which doesn't include `model:` at all. Note: the `Explore` agent
+definition under `agents/` still carries `model:` — agent definitions use
+that field for sub-agent dispatch, which is a different mechanism from
+skill frontmatter.
+
 ## v1.5.0
 
 ### New Principle: Rolling-Foundation

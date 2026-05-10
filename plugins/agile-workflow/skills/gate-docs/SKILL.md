@@ -9,7 +9,6 @@ description: >
   with gate_origin:docs and tags:[documentation]. Auto-triggers during
   /agile-workflow:release-deploy.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
-model: sonnet
 ---
 
 # Gate-Docs

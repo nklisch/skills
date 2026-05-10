@@ -8,7 +8,6 @@ description: >
   Use when user asks to evaluate, audit, score, or review a repository holistically.
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Bash, Agent, Write, AskUserQuestion
-model: opus
 ---
 
 # Repo Eval

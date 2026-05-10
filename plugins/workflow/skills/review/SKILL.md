@@ -9,7 +9,6 @@ description: >
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Bash, Agent, AskUserQuestion, WebFetch
-model: opus
 ---
 
 # Review

@@ -7,7 +7,6 @@ description: >
   "unused code", "stale comments", or "AI leftovers".
 user-invocable: true
 allowed-tools: Agent, Bash, Glob, Grep, Read, Edit, AskUserQuestion, TaskCreate, TaskUpdate
-model: opus
 ---
 
 # Cruft Cleaner
