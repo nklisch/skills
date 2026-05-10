@@ -548,6 +548,46 @@
           "description": "Review a substrate item at stage:review. Runs structured code review (correctness, tests, design, security, breaking changes, foundation-doc alignment), classifies findings as blockers/important/nits, triages findings into items, advances stage to done if approved or back to implementing if changes needed."
         },
         {
+          "name": "release-deploy",
+          "path": "skills/release-deploy",
+          "description": "Cut a release: bind items to a version, run all configured gates in CONVENTIONS.md order (default: security -> tests -> cruft -> docs -> patterns), wait for readiness (all bound + gate-produced items at stage:done), ship per release mapping, archive items via git mv to releases/<version>/. Idempotent."
+        },
+        {
+          "name": "gate-security",
+          "path": "skills/gate-security",
+          "description": "Security gate over a release bundle. Discovers stack, audits the bundle's code changes against domain checklists, produces items in .work/active/ with gate_origin:security and tags:[security]. Item-producer, NOT a pass/fail report."
+        },
+        {
+          "name": "gate-tests",
+          "path": "skills/gate-tests",
+          "description": "Test-quality gate over a release bundle. Derives expected coverage from each item's acceptance criteria (NOT from implementation code). Identifies gaps, tautological tests, and e2e seams between bound items. Produces items with gate_origin:tests."
+        },
+        {
+          "name": "gate-cruft",
+          "path": "skills/gate-cruft",
+          "description": "Cruft gate over a release bundle. Scans bundle changes for AI-accumulated debris (dead code, stale comments, compatibility shims, defensive bloat, over-abstraction) using language-aware tools and heuristics. Produces items with gate_origin:cruft."
+        },
+        {
+          "name": "gate-docs",
+          "path": "skills/gate-docs",
+          "description": "Documentation gate. Enforces rolling-foundation principle: scans bound items for foundation-doc drift (assertions in docs/ that no longer match implementation), changelog gaps, repo-skill staleness, pattern-skill staleness. Produces items with gate_origin:docs."
+        },
+        {
+          "name": "gate-patterns",
+          "path": "skills/gate-patterns",
+          "description": "Patterns gate. Scans bundle changes for reusable code structures (3+ occurrences). Writes pattern skills to .claude/skills/patterns/, regenerates .claude/rules/patterns.md index, produces a tracking item with gate_origin:patterns."
+        },
+        {
+          "name": "bold-refactor",
+          "path": "skills/bold-refactor",
+          "description": "Find beautiful code abstractions and cross-cutting simplifications via conceptual lenses (elimination, unification, inversion, algebraic, declarative, domain crystallization). Produces a refactor EPIC with child features tagged [refactor] and depends_on chains. User-invocable only — too aggressive for auto-trigger."
+        },
+        {
+          "name": "autopilot",
+          "path": "skills/autopilot",
+          "description": "Drain a substrate queue autonomously. Picks the next ready item respecting depends_on, invokes the right skill (design family for drafting, implement family for implementing), advances stage, repeats. Epic-scoped by default; --all drains all of .work/active/. Watchdog /loop tasks survive compaction."
+        },
+        {
           "name": "research",
           "path": "skills/research",
           "description": "Research external libraries, APIs, SDKs, and patterns. Evaluates options against project needs, produces a research document and an auto-loading reference skill."
