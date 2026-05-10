@@ -179,13 +179,17 @@ plugins/agile-workflow/
 ├── skills/<skill-name>/
 │   ├── SKILL.md
 │   └── references/<topic>.md
+├── commands/
+│   └── board.md
 ├── hooks/
 │   ├── hooks.json
 │   └── scripts/
 │       ├── session-start-snapshot.sh
 │       └── post-tool-use-bump.sh
 ├── scripts/
-│   └── work-view.sh
+│   ├── work-view.sh
+│   ├── work-board.sh
+│   └── work-board.template.html
 ├── CHANGELOG.md
 └── README.md
 ```
@@ -276,6 +280,76 @@ Multiple filters compose with AND semantics.
 | `1` | Usage error (bad flag, conflicting flags) |
 | `2` | Substrate not found (no `.work/CONVENTIONS.md` in CWD or ancestor) |
 | `3` | Internal error (corrupted item file, etc.) |
+
+## work-board script
+
+Lives at `plugins/agile-workflow/scripts/work-board.sh` with a paired
+template at `plugins/agile-workflow/scripts/work-board.template.html`.
+Read-only; emits a self-contained HTML kanban view of the substrate and
+nothing else. Invoked via the slash command `/agile-workflow:board`.
+
+Pure bash + awk + `base64`. Optional: `python3` only used by `--serve`.
+
+### Flag set
+
+| Flag | Argument | Effect |
+|---|---|---|
+| `--out` | `<path>` | Write HTML to this path (default: temp file) |
+| `--print` | (none) | Print the output path; skip auto-opening a browser |
+| `--no-open` | (none) | Alias for `--print` |
+| `--serve` | `[port]` | Serve via `python3 -m http.server`, default `8181` |
+| `--port` | `<port>` | Override the `--serve` port |
+| `--help` | (none) | Show usage and exit |
+
+### Stage → column mapping
+
+```
+Backlog       — items in .work/backlog/
+Drafting      — stage: drafting (also: stage: planned for releases)
+In Progress   — stage: implementing
+Review        — stage: review (also: stage: quality-gate for releases)
+Done          — stage: done | released, items in .work/archive/, items in .work/releases/
+```
+
+### Embedded data shape
+
+The renderer emits a `<script type="application/json" id="items-data">`
+block whose contents are a JSON array of item objects:
+
+```ts
+{
+  id: string;
+  kind: 'epic' | 'feature' | 'story' | 'release' | '';
+  stage: string;
+  parent: string | null;
+  release_binding: string | null;
+  gate_origin: string | null;
+  created: string;
+  updated: string;
+  tags: string[];
+  depends_on: string[];
+  unmet_deps: string[];          // computed
+  bucket: 'active' | 'backlog' | 'releases' | 'archive' | 'other';
+  release_dir: string | null;    // version slug from .work/releases/<v>/...
+  ready: boolean;                // implementing AND all deps done
+  blocked: boolean;              // implementing AND ≥1 unmet dep
+  title_b64: string;             // base64-encoded body title
+  excerpt_b64: string;           // base64-encoded first paragraph
+  path_b64: string;              // base64-encoded path relative to repo root
+}
+```
+
+Item title and excerpt are base64-encoded so that quotes, backticks,
+backslashes, and embedded `</script>` sequences in markdown bodies do not
+corrupt the JSON envelope.
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | Usage error (bad flag) or template missing |
+| `2` | Substrate not found |
 
 ## Hook contracts
 

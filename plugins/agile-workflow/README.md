@@ -43,6 +43,14 @@ skilltap install nklisch/agile-workflow
 └── CONVENTIONS.md                    project-specific overrides
 ```
 
+## Human-facing tools
+
+- **`/agile-workflow:board`** — render `.work/` as a self-contained HTML
+  kanban board (Backlog → Drafting → In Progress → Review → Done) with a
+  Releases section. Pure bash + a single template, no toolchain. Auto-opens
+  in your default browser. Re-run to refresh. Supports `--print`,
+  `--out <path>`, and `--serve [port]`.
+
 Every item is a markdown file with structured frontmatter
 (`id, kind, stage, tags, parent, depends_on, release_binding, gate_origin, created, updated`).
 Stages advance as work completes. Foundation docs in `docs/` roll forward.

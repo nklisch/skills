@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.4.2 — human-facing work-board view
+
+Adds a slash command and renderer that produce a self-contained HTML
+kanban board from the project's `.work/` substrate.
+
+- **`/agile-workflow:board`** — new slash command. Walks `.work/`, parses
+  every item's frontmatter, and writes a single HTML file (no external
+  assets) with five columns mapped from stage: Backlog → Drafting → In
+  Progress → Review → Done. Auto-opens via `xdg-open` / `open` /
+  `wslview` / `start` when a launcher is available.
+- **`scripts/work-board.sh`** — pure-bash renderer. Reuses the
+  `work-view` frontmatter parsing patterns. Item title and excerpt are
+  base64-encoded into the embedded JSON so quotes, backticks, and
+  `</script>` sequences round-trip safely. Computes ready/blocked
+  signals and surfaces unmet dependencies on each card.
+- **`scripts/work-board.template.html`** — embedded CSS/JS, light + dark
+  modes via `prefers-color-scheme`, kind-colored card borders, kind/tag
+  filter pills, fuzzy id/title search ('/' to focus), and a collapsed
+  Releases section grouping items by `release_binding` /
+  `.work/releases/<version>/` directory.
+
+Flags: `--print` (skip auto-open), `--out <path>` (custom output path),
+`--serve [port]` (tiny `python3 -m http.server` for remote access).
+
+The renderer is read-only. Re-run the command to refresh — there's no
+watcher, no daemon, no background process. Stays consistent with the
+substrate philosophy: items are the source of truth.
+
 ## v0.4.1 — drop model: frontmatter, skills inherit session model
 
 Removed the `model:` frontmatter field from every skill in the plugin
