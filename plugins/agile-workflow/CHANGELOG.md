@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.2 — autopilot delegates to loop skill instead of prescribing args
+
+v0.3.1 prescribed `Skill(skill="loop", args="30m /agile-workflow:autopilot
+--resume")` directly in autopilot's Phase 1, which still over-specified the
+invocation — agents either guessed at the args format or skipped the loop
+skill entirely and went straight to CronCreate. Phase 1 and Phase 8 now just
+say "load the loop skill via the Skill tool and follow its instructions" and
+describe the desired schedule (30m + 3h, --resume), letting the loop skill
+handle the actual scheduling mechanics.
+
 ## v0.3.1 — autopilot /loop invocation fix
 
 The `autopilot` skill instructed the agent to run `/loop ...` in bare code

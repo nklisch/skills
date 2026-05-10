@@ -73,23 +73,24 @@ the autonomy mandate — you can't drive a queue without a substrate.
 ### Phase 1: Schedule watchdog loops
 
 Before starting any phase work, set up watchdog loops so the session survives
-compaction. **Use the `Skill` tool** to invoke the `loop` skill — `/loop` is
-not a bash command, it's a skill invocation. Running it through Bash will
-fail.
+compaction.
+
+**Load the `loop` skill via the Skill tool and follow its instructions** to
+schedule two recurring tasks:
+
+- A 30-minute interval running `/agile-workflow:autopilot --resume` —
+  lightweight nudge.
+- A 3-hour interval running `/agile-workflow:autopilot --resume` — heavy
+  re-engagement that survives compaction (re-loads SKILL.md from the slash
+  invocation).
+
+The loop skill handles the actual scheduling mechanics (cron, schedule, or
+whatever the harness uses). Don't prescribe a particular invocation pattern
+here — the loop skill knows how.
 
 **First — check for existing loops.** If autopilot watchdog loops are already
-running, do NOT create duplicates.
-
-If no equivalents are running, schedule via two Skill tool calls:
-
-```
-Skill(skill="loop", args="30m /agile-workflow:autopilot --resume")
-Skill(skill="loop", args="3h /agile-workflow:autopilot --resume")
-```
-
-The 30-minute loop is a lightweight nudge. The 3-hour loop is heavy
-re-engagement that survives compaction (re-loading SKILL.md from the slash
-invocation).
+running, do NOT create duplicates. The loop skill exposes a way to list
+existing schedules; use it.
 
 ### Phase 2: Build the candidate queue
 
@@ -238,13 +239,9 @@ Stop autopilot cleanly on any of:
 | Context approaching compaction (~600k tokens) | Finish the current item, commit, halt. The next /loop tick will resume cleanly. |
 | User sends a manual stop signal | Cancel watchdog loops. Halt. |
 
-Cancel watchdog loops via the `Skill` tool (not Bash):
-
-```
-Skill(skill="loop", args="cancel <loop-id>")
-```
-
-Check the existing loop list first to find the ids.
+To cancel watchdog loops, load the `loop` skill again and follow its
+instructions for cancellation (it exposes a list-and-cancel flow). Don't
+prescribe an exact invocation — let the loop skill drive.
 
 ### Phase 9: Resume mode (--resume)
 
