@@ -34,6 +34,23 @@ if [[ "$bump" != "major" && "$bump" != "minor" && "$bump" != "patch" ]]; then
   exit 1
 fi
 
+# Refuse to run if the plugin directory has uncommitted changes. Bumping
+# before the feature commit produces a published "Bump to vN" commit that
+# doesn't actually contain the work, which is confusing on the remote.
+if ! git diff --quiet -- "plugins/$plugin/" \
+   || ! git diff --cached --quiet -- "plugins/$plugin/"; then
+  {
+    echo "Error: plugins/$plugin/ has uncommitted changes."
+    echo ""
+    echo "Commit your feature changes BEFORE bumping the version, so the"
+    echo "published bump commit follows real work on the remote."
+    echo ""
+    echo "Pending changes:"
+    git status --short -- "plugins/$plugin/" | sed 's/^/  /'
+  } >&2
+  exit 1
+fi
+
 current=$(jq -r '.version' "$json")
 IFS='.' read -r major minor patch <<< "$current"
 

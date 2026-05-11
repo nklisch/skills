@@ -13,6 +13,8 @@ This repo contains agent skills distributed via skilltap. Skills are defined as 
 
 Each plugin has a `plugin.json` at `plugins/<name>/.claude-plugin/plugin.json` with a semver `version` field.
 
+**Commit your feature changes BEFORE bumping.** `bump-version.sh` auto-commits and pushes the version bump on its own — if you run it with pending changes in the plugin dir, the published bump commit won't contain them. The script refuses to run if `plugins/<plugin>/` has uncommitted changes.
+
 Bump versions with `./scripts/bump-version.sh <plugin> <major|minor|patch>`:
 - **patch** — new skill, bug fix, or minor update to an existing skill
 - **minor** — significant new capability or breaking change to a skill's workflow
@@ -26,7 +28,8 @@ When adding or modifying a skill, bump the version of the plugin it belongs to.
 2. Write `SKILL.md` with frontmatter and workflow
 3. Add reference files in `references/` if needed (one per topic, under 200 lines each)
 4. Add a tap entry in `tap.json`
-5. Bump the plugin version: `./scripts/bump-version.sh <plugin> patch`
+5. Commit your changes (the bump script refuses to run with a dirty plugin dir)
+6. Bump the plugin version: `./scripts/bump-version.sh <plugin> patch`
 
 ## Adding a plugin
 
