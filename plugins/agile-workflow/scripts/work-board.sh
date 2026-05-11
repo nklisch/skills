@@ -13,6 +13,35 @@
 set -euo pipefail
 
 # ============================================================================
+# Bash 4+ required (associative arrays). macOS ships bash 3.2 at /bin/bash,
+# so re-exec under a modern bash if one is available.
+# ============================================================================
+
+if [[ "${BASH_VERSINFO[0]:-0}" -lt 4 ]]; then
+  for candidate in \
+    /opt/homebrew/bin/bash \
+    /usr/local/bin/bash \
+    /home/linuxbrew/.linuxbrew/bin/bash \
+    /usr/bin/bash \
+    "$(command -v bash 2>/dev/null || true)"
+  do
+    [[ -n "$candidate" && -x "$candidate" ]] || continue
+    ver="$("$candidate" -c 'echo "${BASH_VERSINFO[0]}"' 2>/dev/null || echo 0)"
+    if [[ "${ver:-0}" -ge 4 ]]; then
+      exec "$candidate" "$0" "$@"
+    fi
+  done
+  {
+    echo "work-board: requires bash 4 or newer (current: ${BASH_VERSION:-unknown})"
+    case "$(uname -s 2>/dev/null)" in
+      Darwin) echo "  macOS ships bash 3.2. Install a modern bash: brew install bash" ;;
+      *)      echo "  Install bash 4+ via your package manager." ;;
+    esac
+  } >&2
+  exit 1
+fi
+
+# ============================================================================
 # Usage
 # ============================================================================
 
