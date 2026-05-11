@@ -87,8 +87,23 @@ not your concern once scheduled. Set them and move on.
 **Load the `loop` skill via the Skill tool and follow its instructions** to
 schedule two recurring tasks:
 
-- A 30-minute interval running `/agile-workflow:autopilot --resume`.
-- A 3-hour interval running `/agile-workflow:autopilot --resume`.
+- **30-minute interval** — fire the literal prompt `continue autopilot`
+  (plain text, **not** a slash invocation). This is a soft nudge for a
+  live session that's still mid-run. The agent sees the words and naturally
+  resumes the Phase 4–7 cycle using its existing context. No re-entry, no
+  Phase 1 re-scheduling, no candidate-queue rebuild — it's a heartbeat.
+- **3-hour interval** — fire `/agile-workflow:autopilot --resume` (full
+  slash invocation). This is the actual recovery mechanism: if the session
+  was interrupted (harness restart, compaction, manual stop) and the soft
+  nudges did nothing, the slash invocation re-enters the skill from scratch,
+  rebuilds the queue from the substrate (Phase 9), and continues.
+
+The split matters: the 30-min nudge stays cheap and in-context; the 3-hour
+tick pays the full re-entry cost only when needed. If the live session is
+healthy, the 30-min nudges keep it ticking and the 3-hour `--resume` is a
+no-op (Phase 9 is idempotent). If the live session is gone, the 30-min
+nudges land in a dead conversation and do nothing, but the 3-hour `--resume`
+boots a fresh autopilot run.
 
 The loop skill handles the actual scheduling mechanics (cron, schedule, or
 whatever the harness uses). Don't prescribe a particular invocation pattern
