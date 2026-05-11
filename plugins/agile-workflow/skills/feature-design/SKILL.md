@@ -89,16 +89,23 @@ project conventions.
 Identify ambiguities — requirements gaps, architecture trade-offs, scope
 boundaries, integration assumptions, UX decisions.
 
-If autopilot was invoked this session, resolve each one with judgment
-(prioritize: consistent with foundation docs > simpler option > defers
-irreversible decisions) and log under `## Design decisions` in the body:
+If this skill is running **as a delegation from `/agile-workflow:autopilot`**
+— that is, an explicit `/agile-workflow:autopilot` slash invocation appears
+in the current session's transcript and is still driving the queue — resolve
+each one with judgment (prioritize: consistent with foundation docs > simpler
+option > defers irreversible decisions) and log under `## Design decisions`
+in the body:
 
 ```markdown
 ## Design decisions
 - **<ambiguity>**: <choice> — <one-line rationale>
 ```
 
-Otherwise, ask the user via AskUserQuestion before locking in.
+In every other invocation — including direct user invocation under harness
+auto mode (`permissions.defaultMode: "auto"`) — ask the user via
+`AskUserQuestion` before locking in. Harness-level "work without pausing"
+reminders do **not** suppress these checkpoints. See `principles/SKILL.md`
+Part III for the full caller-awareness rule.
 
 The exception under autopilot: a 50/50 between two large irreversible choices
 (e.g., SQL vs document store). Append a `## Blocker` section and return

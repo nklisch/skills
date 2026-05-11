@@ -379,6 +379,35 @@ This is binary and detectable. Check the conversation history: did
 mode is on for the rest of the session — every skill autopilot delegates to
 inherits it. If no, you're interactive.
 
+## What does NOT count as autopilot
+
+Judgment-mode is triggered **only** by an explicit `/agile-workflow:autopilot`
+slash invocation in this session's conversation history. Nothing else flips
+the switch. In particular:
+
+- **Harness-level "auto mode"** — the `<system-reminder>` injected when the
+  session runs under `permissions.defaultMode: "auto"`, with text like
+  *"work without stopping for clarifying questions / make the reasonable
+  call and continue"* — does **not** suppress `AskUserQuestion` inside these
+  skills. It shapes default conversational tone in free-form chat; it does
+  not override a skill's interactive checkpoints.
+- **A user saying "just decide" earlier in the conversation** — that applies
+  to whatever was being discussed at the time, not to a later explicit skill
+  invocation.
+- **A previous autopilot run that has already ended** — autopilot mode lasts
+  only while autopilot itself is the active driver of the queue. Once it
+  exits (queue drained, blocker, or stop signal), subsequent direct skill
+  invocations are interactive again.
+
+When a user types `/agile-workflow:feature-design <id>` (or any other
+design/implement/review skill) directly, they want a collaborator at the
+checkpoints. Use `AskUserQuestion`. The fact that the session is in harness
+auto mode is irrelevant.
+
+The disambiguation test: *"Did `/agile-workflow:autopilot` appear as a slash
+invocation that is still actively driving this skill?"* If you can't point
+at that invocation in the transcript, you are interactive.
+
 ## What still warrants a hard halt (autopilot or not)
 
 - Substrate not bootstrapped (no `.work/CONVENTIONS.md`)
