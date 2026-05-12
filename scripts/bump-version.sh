@@ -4,7 +4,9 @@ set -euo pipefail
 usage() {
   echo "Usage: $0 <plugin> <major|minor|patch>"
   echo ""
-  echo "Bump the semantic version of a plugin's plugin.json."
+  echo "Bump the semantic version of a plugin's plugin.json manifests."
+  echo "Each plugin has parallel Claude and Codex manifests; both are bumped"
+  echo "in lockstep so the marketplaces report the same version."
   echo ""
   echo "Plugins:"
   for dir in plugins/*/; do
@@ -22,10 +24,11 @@ usage() {
 
 plugin="$1"
 bump="$2"
-json="plugins/$plugin/.claude-plugin/plugin.json"
+claude_json="plugins/$plugin/.claude-plugin/plugin.json"
+codex_json="plugins/$plugin/.codex-plugin/plugin.json"
 
-if [[ ! -f "$json" ]]; then
-  echo "Error: $json not found"
+if [[ ! -f "$claude_json" ]]; then
+  echo "Error: $claude_json not found"
   exit 1
 fi
 
@@ -51,7 +54,25 @@ if ! git diff --quiet -- "plugins/$plugin/" \
   exit 1
 fi
 
-current=$(jq -r '.version' "$json")
+current=$(jq -r '.version' "$claude_json")
+
+# If a Codex manifest exists, require its version to match before bumping.
+# A mismatch means a prior bump went sideways and we shouldn't silently
+# paper over it.
+if [[ -f "$codex_json" ]]; then
+  codex_current=$(jq -r '.version' "$codex_json")
+  if [[ "$current" != "$codex_current" ]]; then
+    {
+      echo "Error: version mismatch between manifests for $plugin."
+      echo "  $claude_json: $current"
+      echo "  $codex_json:  $codex_current"
+      echo ""
+      echo "Reconcile the two before bumping."
+    } >&2
+    exit 1
+  fi
+fi
+
 IFS='.' read -r major minor patch <<< "$current"
 
 case "$bump" in
@@ -62,10 +83,16 @@ esac
 
 new="$major.$minor.$patch"
 
-jq --arg v "$new" '.version = $v' "$json" > "$json.tmp" && mv "$json.tmp" "$json"
+bump_json() {
+  local file="$1"
+  jq --arg v "$new" '.version = $v' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+  git add "$file"
+}
+
+bump_json "$claude_json"
+[[ -f "$codex_json" ]] && bump_json "$codex_json"
 
 echo "$plugin: v$current -> v$new"
 
-git add "$json"
 git commit -m "Bump $plugin plugin to v$new"
 git push

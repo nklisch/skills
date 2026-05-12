@@ -1,0 +1,19 @@
+{
+  "name": "workflow",
+  "version": "1.5.1",
+  "description": "Software development workflow skills — design features, implement from plans, refactor codebases, extract patterns, design tests, and ship releases.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Workflow",
+    "shortDescription": "Doc-driven software development workflow",
+    "longDescription": "24 skills covering the full development pipeline: ideate, roadmap, design, implement, refactor, test, fix, review, and ship. Doc-driven — design docs as artifacts, roadmap-shaped phase plans.",
+    "developerName": "nklisch",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/nklisch/skills"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "agile-workflow",
+  "version": "0.4.8",
+  "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/, late-binding releases, gates that produce items, autopilot queue runner.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agile Workflow",
+    "shortDescription": "Substrate-driven work tracking with autopilot",
+    "longDescription": "26 skills for substrate-driven work tracking. Items as files in .work/, late-binding releases, gates that produce items (security, tests, cruft, docs, patterns), autopilot queue runner. Sibling to workflow.",
+    "developerName": "nklisch",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/nklisch/skills"
+  }
+}

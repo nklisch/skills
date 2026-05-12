@@ -6,18 +6,24 @@
   "plugins": [
     {
       "name": "workflow",
-      "source": "./plugins/workflow",
-      "description": "Software development workflow skills — ideate projects, design features, implement from plans, profile and optimize performance, refactor codebases with bold architectural reconceptions, extract patterns, design tests, and ship releases."
+      "source": { "source": "local", "path": "./plugins/workflow" },
+      "description": "Software development workflow skills — ideate projects, design features, implement from plans, profile and optimize performance, refactor codebases with bold architectural reconceptions, extract patterns, design tests, and ship releases.",
+      "category": "productivity",
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
     {
       "name": "skill-authoring",
-      "source": "./plugins/skill-authoring",
-      "description": "Create, evaluate, and refine agent skills — write distributable reference skills for tools, refine skill ideas, and audit skill quality."
+      "source": { "source": "local", "path": "./plugins/skill-authoring" },
+      "description": "Create, evaluate, and refine agent skills — write distributable reference skills for tools, refine skill ideas, and audit skill quality.",
+      "category": "productivity",
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
     {
       "name": "agile-workflow",
-      "source": "./plugins/agile-workflow",
-      "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/, late-binding releases, gates that produce items, autopilot queue runner."
+      "source": { "source": "local", "path": "./plugins/agile-workflow" },
+      "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/, late-binding releases, gates that produce items, autopilot queue runner.",
+      "category": "productivity",
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
     {
       "name": "krometrail",
@@ -28,7 +34,8 @@
       },
       "description": "Runtime debugging for AI agents — debug 10 languages via DAP, record and control Chrome via CDP.",
       "category": "developer-tools",
-      "tags": ["debugging", "dap", "cdp", "mcp", "browser"]
+      "tags": ["debugging", "dap", "cdp", "mcp", "browser"],
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     }
   ]
 }
