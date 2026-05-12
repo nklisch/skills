@@ -1,6 +1,6 @@
 {
   "name": "skill-authoring",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Create, evaluate, and refine agent skills — write distributable reference skills for tools, refine skill ideas, and audit skill quality.",
   "author": {
     "name": "nklisch"
