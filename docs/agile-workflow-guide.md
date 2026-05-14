@@ -127,8 +127,11 @@ From here you talk to the agent. Some example openings:
 
 - *"Park the idea of CSV export — we'll get to it after billing ships."*
 - *"Pull idea-csv-export up and scope it as a feature under epic-export."*
+- *"Scope the backlog."* (clusters every backlog item into a proposed structure)
 - *"Design feature-csv-export, then start implementing the validation story."*
 - *"What's waiting on me right now?"*
+- *"Find refactor candidates in src/auth/."* (scans, emits items)
+- *"What's slow in the API layer?"* (profiles, emits items per bottleneck)
 - *"Run autopilot on epic-billing — I'll be back in an hour."*
 - *"Cut release v0.1.0 with the four features that just hit done."*
 
@@ -251,6 +254,10 @@ but knowing what each does helps you steer.
   "promote that to active." Output: file moves from `.work/backlog/` to
   `.work/active/<kind>/`, frontmatter populated, dependencies declared. For
   large scope, `scope` rolls foundation docs forward as part of the move.
+  Say "scope the backlog" (or just "scope") and it clusters every backlog
+  item — does a light pass over the codebase to spot natural seams, proposes
+  epics / features / stories, confirms with you once, then writes everything.
+  Filter with natural language ("scope the auth stuff") to narrow.
 - **`fix`** fires for quick bugs: "fix the typo in README" or "the pagination
   is off by one." Single-stride: reproduces, finds root cause, writes a
   failing test, applies the minimal fix, lands the story at `stage: review`.
@@ -266,13 +273,23 @@ of these fires based on item kind and tags:
 - **`feature-design`** — fires for an untagged feature at `stage: drafting`.
   Greenfield design: vision absorption, codebase mapping, unit decomposition,
   pre-mortem, test design.
-- **`refactor-design`** — fires for a feature tagged `[refactor]`.
-  Cost/benefit framing, before/after step shape, rollback per step.
-- **`perf-design`** — fires for a feature tagged `[perf]`. Bottleneck
-  identification, measurement strategy, hot-path analysis.
+- **`refactor-design`** — two modes. When a feature is tagged `[refactor]`:
+  plans the refactor (cost/benefit, before/after, rollback per step). When
+  you ask "find refactor candidates" or "what should we clean up here":
+  scans the codebase (or a path / NL scope), classifies findings as
+  pure-refactor or behavior-changing, and emits items. Pure-refactor
+  findings come back tagged `[refactor]`; behavior-changing ones route to
+  `feature-design` on a later pass.
+- **`perf-design`** — two modes. When a feature is tagged `[perf]`:
+  bottleneck identification, optimization hierarchy, benchmark scaffolds.
+  When you ask "find perf issues" or "what's slow here": picks the top 3-5
+  likely hot paths in the target scope, profiles them, emits items per
+  bottleneck.
 
 The tag you suggest at scope time decides the design path. Untagged →
-greenfield. `[refactor]` → refactor design. `[perf]` → perf design.
+greenfield. `[refactor]` → refactor design. `[perf]` → perf design. You can
+also ask either skill to **discover** candidates directly — no existing
+item required.
 
 ### Production
 
@@ -291,7 +308,9 @@ greenfield. `[refactor]` → refactor design. `[perf]` → perf design.
   tests, design, security, breaking changes, foundation-doc alignment.
   Findings get triaged into items so they don't evaporate into prose. Auto-
   advances `review → done` if everything passes; otherwise sends the item
-  back to `implementing` with the new findings as child items.
+  back to `implementing` with the new findings as child items. Say "review
+  everything at review" or "review the auth stuff" and it walks the queue
+  in batch with a single summary at the end.
 
 ### Gates (release-time only)
 
@@ -315,8 +334,13 @@ Worth knowing they exist so the items they produce make sense:
 
 - **`principles`** auto-loads during design, implement, review, and any time
   foundation docs are touched.
-- **`research`**, **`repo-eval`**, **`tool-evaluator`**,
-  **`refactor-conventions-creator`** — auto-loading or one-shot helpers.
+- **`repo-eval`** — multi-dimensional codebase audit. Say "evaluate this
+  repo" or "score the codebase". Produces a calibrated scorecard, then asks
+  whether to file the top recommendations as substrate items (backlog or
+  active) tagged `[audit]` — so the audit drives action instead of just
+  sitting in a report.
+- **`research`**, **`tool-evaluator`**, **`refactor-conventions-creator`** —
+  auto-loading or one-shot helpers.
 
 ## A typical day
 
@@ -350,15 +374,24 @@ backlogged. No re-feed needed. From here you decide what to do.
 
 Tell the agent your intent. Common moves and what they trigger:
 
-| What you say | What fires | What you get back |
+Either style works — invoke the slash command directly, or describe what you
+want in plain language and the agent picks the skill. Slash form is faster
+when you know the verb; conversational form is more natural when you're
+thinking out loud.
+
+| Ask / invoke | What fires | What you get back |
 |---|---|---|
-| *"Park the idea of an admin dashboard for later."* | `park` | A flat file in `.work/backlog/`; agent confirms. |
-| *"Scope idea-csv-export as a feature."* | `scope` | File moves to `.work/active/features/`; agent reports the new ID and any declared dependencies. |
-| *"Decompose epic-billing."* | `epic-design` | Child features spawned at `stage: drafting` with `depends_on` chains; agent reports the structure. |
-| *"Design feature-csv-export."* | `feature-design` (or `refactor-design`/`perf-design` by tag) | Design written into the feature item's body; stage advances to `implementing`; agent walks you through the design. |
-| *"Implement story-csv-validate."* | `implement` | Code written, tests run, stage advances to `review`; agent reports what it built and any caveats. |
-| *"Review feature-csv-export."* | `review` | Structured review; either advances to `done` or returns the item to `implementing` with findings. |
-| *"Fix the typo in README.md."* | `fix` | New story spawned, fix landed, stage at `review`. |
+| `/agile-workflow:park <desc>` or *"park the idea of an admin dashboard"* | `park` | A flat file in `.work/backlog/`; agent confirms. |
+| `/agile-workflow:scope <id>` or *"scope idea-csv-export as a feature"* | `scope` | File moves to `.work/active/features/`; agent reports the new ID and any declared dependencies. |
+| `/agile-workflow:scope` (no arg) or *"scope the backlog"* / *"scope the auth stuff"* | `scope` (batch) | Backlog clustered into a proposed structure; agent confirms once before writing everything. |
+| `/agile-workflow:refactor-design` or *"find refactor candidates"* / *"what should we clean up?"* | `refactor-design` (discovery) | Items emitted for what was found, classified pure-refactor vs behavior-changing. |
+| `/agile-workflow:perf-design` or *"what's slow here?"* / *"profile the API layer"* | `perf-design` (discovery) | Top 3-5 hot paths profiled, items emitted per bottleneck. |
+| `/agile-workflow:review` (no arg) or *"review everything at review"* | `review` (batch) | Walks the review queue, single summary at the end. |
+| `/agile-workflow:epic-design <id>` or *"decompose epic-billing"* | `epic-design` | Child features spawned at `stage: drafting` with `depends_on` chains; agent reports the structure. |
+| `/agile-workflow:feature-design <id>` or *"design feature-csv-export"* | `feature-design` (or `refactor-design` / `perf-design` by tag) | Design written into the feature item's body; stage advances to `implementing`; agent walks you through the design. |
+| `/agile-workflow:implement <id>` or *"implement story-csv-validate"* | `implement` | Code written, tests run, stage advances to `review`; agent reports what it built and any caveats. |
+| `/agile-workflow:review <id>` or *"review feature-csv-export"* | `review` | Structured review; either advances to `done` or returns the item to `implementing` with findings. |
+| `/agile-workflow:fix <desc>` or *"fix the typo in README.md"* | `fix` | New story spawned, fix landed, stage at `review`. |
 | *"What's waiting on me?"* | (substrate query) | List of items at `stage: review`. |
 | *"What's ready to work?"* | (substrate query) | List of items with deps satisfied. |
 | *"What's in flight under epic-uploads?"* | (substrate query) | Children of the epic with their stages. |
@@ -399,8 +432,10 @@ item, commits, and stops cleanly. Resume with
 state.
 
 For a full project drain (everything ready in `.work/active/`):
-`/agile-workflow:autopilot --all`. That mode also triggers an
-incremental refactor pass every 5 items completed.
+`/agile-workflow:autopilot --all`. That mode also runs a refactor scan
+every 5 items completed — `refactor-design` discovery mode against the
+files those items touched, emitting any pure-refactor or behavior-changing
+items it finds for the next loop iteration to drain.
 
 ### Cutting a release
 
@@ -433,9 +468,11 @@ For sweeping reshapes (not routine refactoring), use:
 
 This uses conceptual lenses (elimination, unification, inversion, etc.) to
 surface beautiful abstractions. It's user-invocable only — too aggressive
-for the agent to auto-trigger. Output is a refactor **epic** with child
-features tagged `[refactor]`, ready for `refactor-design` to plan each
-piece. From there, `autopilot` can drain the epic.
+for the agent to auto-trigger. Output is one or more refactor **epics**
+with child features tagged `[refactor]`, ready for `refactor-design` to
+plan each piece. From there, `autopilot` can drain them. You can also run
+it with no argument to sweep the whole codebase, or with a path
+(`/agile-workflow:bold-refactor src/auth/`) to focus.
 
 ## Foundation docs roll forward
 
@@ -528,14 +565,14 @@ explicitly — the rest the agent picks for you.
 
 ### Capture & promotion (agent picks naturally)
 - **park** — quick capture into `.work/backlog/`
-- **scope** — promote to active; rolls foundation docs forward when large
+- **scope** — promote to active; rolls foundation docs forward when large; clusters the whole backlog in batch mode
 - **fix** — single-stride bug repair
 
 ### Design family (agent picks; kind- and tag-routed)
 - **epic-design** — decompose an epic at `stage: drafting` into child features
 - **feature-design** — greenfield feature design (no specialized tag)
-- **refactor-design** — for features tagged `[refactor]`
-- **perf-design** — for features tagged `[perf]`
+- **refactor-design** — for features tagged `[refactor]`; also discovery mode (scan codebase, emit items) when no feature is named
+- **perf-design** — for features tagged `[perf]`; also discovery mode (profile hot paths, emit items)
 
 ### Production (agent picks)
 - **implement** — single-stride code from item body
@@ -554,8 +591,8 @@ explicitly — the rest the agent picks for you.
 
 ### Reference (carried from workflow)
 - **principles** — code-design + substrate-execution principles
-- **research**, **repo-eval**, **tool-evaluator**,
-  **refactor-conventions-creator** — auto-loading or one-shot helpers
+- **repo-eval** — codebase audit; files top recommendations as substrate items tagged `[audit]` when a substrate exists
+- **research**, **tool-evaluator**, **refactor-conventions-creator** — auto-loading or one-shot helpers
 
 ## Tips for productive collaboration
 

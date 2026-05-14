@@ -143,7 +143,7 @@ autopilot <epic>                    ← queue runner over the whole substrate
 | Skill | What it does |
 |-------|-------------|
 | **park** | Quick capture into `.work/backlog/`. Triggers on "park this", "add to backlog". |
-| **scope** | Promote backlog item or fresh request into `.work/active/` as epic/feature/story. For large scope, rolls foundation docs forward in the same stride. Cycle-prevention via `work-view --blocking`. |
+| **scope** | Promote backlog item or fresh request into `.work/active/` as epic/feature/story. For large scope, rolls foundation docs forward in the same stride. Cycle-prevention via `work-view --blocking`. **Batch mode** (no arg, `--all`, or NL filter) clusters the whole backlog by code seam and capability arc, proposes a structure, confirms once with the user, then writes everything. |
 | **fix** | Single-stride bug repair. Reproduces, identifies root cause, writes failing test, applies minimal fix, lands story at stage:review. |
 
 ### Design family (model-invocable, kind- and tag-routed)
@@ -152,24 +152,24 @@ autopilot <epic>                    ← queue runner over the whole substrate
 |-------|---|---|
 | **epic-design** | epic at stage:drafting | Decomposes the epic into child features at stage:drafting with declared depends_on chains, written INTO the epic body; advances epic to implementing |
 | **feature-design** | feature at stage:drafting, no specialized tag | Greenfield design — written INTO feature body, child stories spawned with depends_on, advances stage to implementing |
-| **refactor-design** | feature with tags:[refactor] | Code-smell scan, before/after step shape, risk + rollback per step |
-| **perf-design** | feature with tags:[perf] | Bottleneck identification, optimization hierarchy (algorithmic > I/O > idioms > parallelism), benchmark scaffolds |
+| **refactor-design** | feature with tags:[refactor], OR discovery (no arg / path / NL scope) | Per-feature: code-smell scan, before/after step shape, risk + rollback per step. Discovery: scans target scope, classifies findings as pure-refactor or behavior-changing, emits items (pure-refactor tagged `[refactor]`; behavior-changing untagged → feature-design picks up) |
+| **perf-design** | feature with tags:[perf], OR discovery (no arg / path / NL scope) | Per-feature: bottleneck identification, optimization hierarchy (algorithmic > I/O > idioms > parallelism), benchmark scaffolds. Discovery: picks top 3-5 likely hot paths, profiles them, emits items per bottleneck |
 
 ### Production + review (model-invocable)
 
 | Skill | What it does |
 |-------|-------------|
 | **implement** | Read item body (design is in there), write code, run build+tests, advance stage implementing → review. Single-stride sequential. |
-| **implement-orchestrator** | For features with > 3 child stories: walk depends_on graph, spawn parallel Sonnet agents capped at 3 per wave. |
-| **review** | Structured peer review with five lenses including foundation-doc alignment. Triages findings into items so they don't disappear into prose. |
+| **implement-orchestrator** | For features with > 3 child stories: walk depends_on graph, spawn parallel Sonnet agents capped at 3 per wave. Accepts `<id>` / `<id-list>` / `--all` (default with no arg) / NL filter. |
+| **review** | Structured peer review with five lenses including foundation-doc alignment. Triages findings into items so they don't disappear into prose. Accepts `<id>` (single item), `--all` / no arg (drain the whole review queue), or NL filter ("review the auth stuff"). |
 
 ### Release & autonomous (mostly user-invocable)
 
 | Skill | What it does |
 |-------|-------------|
 | **release-deploy** | Bind items to a version, run all configured gates in CONVENTIONS.md order, wait for readiness, ship per release mapping (tag-based / branch-held / release-branch), archive items via git mv. Idempotent. |
-| **autopilot** | Queue runner. Picks next ready item respecting depends_on (topological sort with FIFO tie-break), invokes the right skill (epic-design / feature-design / refactor-design / perf-design at drafting; implement / implement-orchestrator at implementing), advances stage, repeats. Watchdog `/loop` tasks survive compaction. Epic-scoped default; `--all` drains everything in `.work/active/`. Only `.work/backlog/` is out of scope. |
-| **bold-refactor** | Architectural reconception via conceptual lenses. Produces a refactor EPIC with child features tagged [refactor]. User-invocable only — too aggressive for auto-trigger. |
+| **autopilot** | Queue runner. Picks next ready item respecting depends_on (topological sort with FIFO tie-break), invokes the right skill (epic-design / feature-design / refactor-design / perf-design at drafting; implement / implement-orchestrator at implementing), advances stage, repeats. Watchdog `/loop` tasks survive compaction. Epic-scoped default; `--all` drains everything in `.work/active/`; free-text scope arg interpreted as a directive. Only `.work/backlog/` is out of scope. In `--all` mode, every 5 done items runs a refactor cadence via `refactor-design` discovery against touched paths. |
+| **bold-refactor** | Architectural reconception via conceptual lenses. Sweeps a target (no arg / path / NL scope) and produces one or more refactor EPICs with child features tagged [refactor]. User-invocable only — too aggressive for auto-trigger. |
 
 ### Gates (model-invocable; produce items, NOT pass/fail reports)
 
@@ -188,7 +188,8 @@ All five fire during release-deploy's quality-gate stage in the order configured
 | Skill | What it does |
 |-------|-------------|
 | **principles** | Code-design (Ports & Adapters, SSOT, Generated Contracts, Fail Fast) + substrate-execution (Item-IS-the-Work, Rolling-Foundation, Late-Binding) principles. Auto-loads. |
-| **research, repo-eval, tool-evaluator, refactor-conventions-creator** | Carried from `workflow`, unchanged behavior — they don't need substrate adaptation. |
+| **research, tool-evaluator, refactor-conventions-creator** | Carried from `workflow`, unchanged behavior — they don't need substrate adaptation. |
+| **repo-eval** | Carried from `workflow` with an agile-workflow extension: after the scorecard report, if `.work/CONVENTIONS.md` is present, asks whether to file the top recommendations as substrate items (backlog or active) tagged `[audit]` with `gate_origin: repo-eval`. Pure scorecard behavior is unchanged. |
 
 ### Skill Authoring
 
