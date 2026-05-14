@@ -33,6 +33,20 @@ also invokes this skill directly** when it picks up a `stage: review` item — t
 verdict-and-file-findings shape works the same whether the caller is a human or
 autopilot.
 
+## Invocation modes
+
+| Invocation | Behavior |
+|---|---|
+| `review <id>` | Review one item — workflow Phases 1-10 below. |
+| `review` (no arg) | **Default → equivalent to `--all`**: drain the review queue (every item at `stage: review`). |
+| `review --all` | Explicit form of the above. |
+| `review <NL filter>` (e.g. "review the auth stuff", "review everything tagged refactor") | Drain a filtered subset of the review queue. The filter is interpreted against item bodies, tags, and parent chains. |
+
+In batch modes (`--all` / NL filter), loop Phases 1-10 once per matched item in
+sequence. Skip the Phase 1 disambiguation prompt — the matched set is the
+queue. Output a single consolidated summary at the end (verdicts per item plus
+total findings counts).
+
 ## Workflow
 
 ### Phase 1: Identify the target

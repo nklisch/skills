@@ -1,12 +1,15 @@
 ---
 name: perf-design
 description: >
-  Profile performance bottlenecks and design optimized solutions for a feature tagged
-  [perf] at stage:drafting. Follows a strict optimization hierarchy (algorithmic > I/O >
-  language idioms > parallelism), produces an implementation plan with benchmark
-  scaffolds written INTO the feature's body. Spawns child stories per optimization with
-  declared depends_on, then advances stage drafting -> implementing. For greenfield
-  design use /agile-workflow:feature-design; for refactor use /agile-workflow:refactor-design.
+  Two modes. Discovery mode (default with no arg, `--all`, `<path>`, or `<NL scope>`)
+  detects entry points, picks the top 3-5 likely hot paths, profiles them, and emits
+  substrate items per bottleneck. Per-feature mode (default when given a feature id)
+  designs the perf work for an existing `[perf]`-tagged feature at stage:drafting,
+  following the optimization hierarchy (algorithmic > I/O > language idioms >
+  parallelism), produces an implementation plan with benchmark scaffolds written INTO
+  the feature's body, spawns child stories per optimization, then advances stage
+  drafting -> implementing. For greenfield design use /agile-workflow:feature-design;
+  for refactor use /agile-workflow:refactor-design.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
 ---
 
@@ -18,11 +21,100 @@ including benchmark scaffolds for the implementation pass.
 
 ## Trigger
 
-The agent picks this skill when it identifies a feature at `stage: drafting` with
-`tags: [perf, ...]`. Common phrases:
-- "design the perf optimization for X"
-- "this perf feature is ready to design"
-- "plan the perf work on Y"
+The agent picks this skill in two cases:
+- A feature at `stage: drafting` with `tags: [perf, ...]` is ready for design (per-feature mode)
+- The user asks to find perf candidates ("what's slow", "profile the codebase", "find perf issues") (discovery mode)
+
+Common phrases:
+- per-feature: "design the perf optimization for X", "plan the perf work on Y"
+- discovery: "find perf issues", "what's slow here", "profile the codebase"
+
+## Invocation modes
+
+| Invocation | Behavior |
+|---|---|
+| `perf-design` (no arg) / `--all` | **Discovery mode**: detect entry points, pick top 3-5 hot paths, profile, emit items |
+| `perf-design <path>` | Discovery mode scoped to a path |
+| `perf-design <NL scope>` (e.g. "the api layer") | Discovery mode scoped by NL filter |
+| `perf-design <feature-id>` | **Per-feature mode**: design the perf work for an existing `[perf]`-tagged feature at `stage: drafting` |
+| `perf-design --only-questions <id>` / `--only-questions --all` | Question-only alignment pass over `[perf]`-tagged drafting features. Captures answers under `## Design decisions`, does NOT design or advance stage. Requires interactive mode. |
+
+Disambiguation: an arg is treated as a feature id only if
+`.work/active/features/<arg>.md` exists and has `tags: [perf]`. Otherwise
+discovery mode against the arg as path or NL scope.
+
+## Workflow — discovery mode
+
+Use this path for `perf-design`, `--all`, `<path>`, or `<NL scope>`. Goal:
+profile likely hot paths, emit items per bottleneck.
+
+### Phase D1: Resolve scope
+
+- no arg / `--all` → whole codebase
+- `<path>` → that directory or file
+- `<NL scope>` → interpret against the codebase structure; log the interpretation
+
+### Phase D2: Detect entry points and pick top N
+
+Discover candidate entry points: HTTP handlers, CLI commands, public library
+APIs, batch job entrypoints, hot loops with measurable workload. Use Glob and
+Grep against the target scope.
+
+Pick the **top 3-5** entry points most likely to dominate runtime. Heuristics:
+on critical user paths, called per-request or per-event, high call count from
+logs/tests, known historically slow, contain nested loops or I/O.
+
+If confidence is low about which to pick, ask via `AskUserQuestion` (single
+multi-select question). Log the picks.
+
+**Cap the scan.** Never profile every function in the codebase.
+
+### Phase D3: Profile the picks
+
+For each picked entry point, run the existing Phase 3-5 logic (detect &
+research profiling tools, profile, diagnose). Capture top bottleneck per entry
+point.
+
+### Phase D4: Emit items per bottleneck
+
+| Bottleneck shape | Item kind | Stage |
+|---|---|---|
+| Single-site, surgical fix (e.g. eliminate one N+1) | story | `implementing` |
+| Multi-site or needs a design pass / benchmarks | feature | `drafting` (with `[perf]` tag — per-feature mode picks up later) |
+
+Set `gate_origin: perf-design`. Brief = bottleneck location + profiling
+evidence + proposed hierarchy level.
+
+Commit per batch:
+```bash
+git add .work/active/stories/ .work/active/features/
+git commit -m "perf-design discovery: <N> bottlenecks across <M> entry points"
+```
+
+### Phase D5: Output
+
+In conversation:
+- **Scope**: how the target was interpreted
+- **Entry points profiled**: the picks
+- **Bottlenecks**: count, with top hierarchy levels (algorithmic / I/O / idiom / parallelism)
+- **Items emitted**: counts by kind with new ids
+- **Next**: `/agile-workflow:autopilot` to drain, or `/agile-workflow:perf-design <feature-id>` per emitted feature for the detailed design pass
+
+## Workflow — `--only-questions` mode
+
+Mirrors `feature-design`'s `--only-questions` mode, scoped to `[perf]`-tagged
+drafting features. Iterate over the target set:
+
+1. Read the feature; skip if not `[perf]`-tagged or not at `stage: drafting`
+2. Light ground (foundation docs + CLAUDE.md + existing benchmarks)
+3. Surface strategic ambiguities specific to perf (e.g., "what target
+   scenario?", "current vs desired measured throughput?", "acceptable memory
+   tradeoff for speed?"). Use AskUserQuestion.
+4. Capture answers under `## Design decisions` in the feature body
+5. Do NOT design or advance stage
+6. Commit per feature: `perf-design --only-questions: <id>`
+
+Requires interactive mode; refuse to run under autopilot.
 
 ## The optimization hierarchy
 
@@ -40,7 +132,7 @@ bottleneck.
 processing N independent requests sequentially, or a map operation over independent
 items. In those cases, parallelism IS the algorithmic fix.
 
-## Workflow
+## Workflow — per-feature mode
 
 ### Phase 1: Read the feature item
 

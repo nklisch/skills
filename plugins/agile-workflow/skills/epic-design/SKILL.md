@@ -37,6 +37,20 @@ Common phrases:
 User-invocable too when the user wants to break down a specific epic without
 running full autopilot.
 
+## Invocation modes
+
+| Invocation | Behavior |
+|---|---|
+| `epic-design <id>` (default) | Full design pass on one epic — workflow Phases 1-7. |
+| `epic-design --only-questions <id>` | Question-only pass on one epic — runs read/ground phases, surfaces strategic ambiguities (Phase 4.7), captures answers under `## Design decisions`, does NOT decompose or advance stage. |
+| `epic-design --only-questions <id1> <id2> ...` | Question-only pass over each listed epic, in order. |
+| `epic-design --only-questions --all` | Question-only pass over every epic at `stage: drafting` in `.work/active/epics/`. Iterate in dependency order. |
+
+`--only-questions` mode requires interactive mode — refuse to run under autopilot
+(matches feature-design's rule). When the design family runs later, captured
+answers are inherited from each epic body, so autopilot no longer has to use
+judgment on those points.
+
 ## Anti-patterns
 
 These mirror `epicize`'s anti-patterns at the next level down:
@@ -55,6 +69,24 @@ These mirror `epicize`'s anti-patterns at the next level down:
 - **Don't pre-bind to releases.** Child features get `release_binding: null`.
 - **Don't pre-populate child feature stages beyond `drafting`.** Stage advances
   through actual work.
+
+## Workflow — `--only-questions` mode
+
+Use this path when invoked with `--only-questions`. Iterate over the target set
+(one epic, an explicit list, or every drafting epic under `--all`):
+
+For each epic:
+1. Read the epic file; skip if `kind` is not `epic` or `stage` is not `drafting`
+2. Ground yourself (Phase 2 below — foundation docs + CLAUDE.md + parent if any)
+3. Map the codebase lightly — one Task Explore over the epic's area
+4. Run Phase 4.7 (Surface high-level design ambiguities) in the interactive
+   branch, always using `AskUserQuestion`
+5. Capture answers under `## Design decisions` in the epic body (merge with
+   existing entries; don't overwrite without flagging)
+6. Do NOT decompose into child features or advance stage
+7. Commit per epic: `epic-design --only-questions: <id>`
+
+Requires interactive mode; refuse to run under autopilot.
 
 ## Workflow
 

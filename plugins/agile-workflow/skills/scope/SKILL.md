@@ -1,12 +1,16 @@
 ---
 name: scope
 description: >
-  Promote an idea — from .work/backlog/ or a fresh user request — into the active tier
-  as an epic, feature, or story with declared dependencies. For large scope (something
-  that changes the project's vision/spec/architecture), also rolls foundation docs
-  forward in the same stride. Triggers on "scope this", "promote this", "let's track
-  this", "this needs to be a feature/epic", or when the user describes a new direction
-  to formalize.
+  Promote ideas from .work/backlog/ or fresh user requests into the active tier as
+  epics, features, or stories with declared dependencies. Default invocation with no
+  arg (or `--all`, or a natural-language filter like `scope the auth stuff`) clusters
+  the targeted backlog by code seam and capability arc, proposes a structure, confirms
+  once with the user, and promotes. Single-id (`scope <id>`) and single-idea (`scope
+  <free-form idea>`) invocations also work. For large scope (something that changes
+  vision/spec/architecture), also rolls foundation docs forward in the same stride.
+  Triggers on "scope this", "promote this", "scope the backlog", "cluster the backlog",
+  "let's track this", "this needs to be a feature/epic", or when the user describes a
+  new direction to formalize.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
@@ -23,11 +27,171 @@ Trigger phrases:
 - "let's track this as a feature"
 - "this needs to be a feature/epic/story"
 - A new direction surfaces and the user wants to formalize it
+- "scope the backlog", "scope all of this", "cluster the backlog",
+  "promote the backlog", or `scope <NL filter>` like "scope the auth stuff"
+  → batch / clustering mode (see Invocation modes below)
 
 If the user wants to fix a bug, use `/agile-workflow:fix`. If they want to capture
 an idea without acting on it, use `/agile-workflow:park`.
 
-## Workflow
+## Invocation modes
+
+| Invocation | Behavior |
+|---|---|
+| `scope <id>` | Single-idea mode — promote one backlog item at `.work/backlog/<id>.md`. |
+| `scope <free-form idea>` | Single-idea mode — distill the user's fresh idea, then promote. |
+| `scope` (no arg) | **Default → equivalent to `--all`**: batch / clustering mode over all of `.work/backlog/`. |
+| `scope --all` | Explicit batch / clustering mode over all of `.work/backlog/`. |
+| `scope <NL filter>` (e.g. `scope the auth-related stuff`, `scope everything tagged perf`) | Batch / clustering mode over the filtered subset of `.work/backlog/`. The filter is interpreted by the agent as a directive against the backlog, not parsed as a flag. |
+
+**Disambiguation.** An arg is treated as a backlog `<id>` only if
+`.work/backlog/<arg>.md` exists. Otherwise: if it reads like a one-paragraph
+fresh idea, treat as single-idea mode; if it reads like a filter directive over
+the backlog (mentions tags, areas, themes, or "everything that..."), treat as
+batch-filter mode. When genuinely ambiguous, prefer batch-filter mode and
+confirm via `AskUserQuestion` before writing — a bigger read costs nothing, but
+a fresh idea misread as a filter wastes user time.
+
+## Workflow — batch / clustering mode
+
+Use this path for `scope`, `scope --all`, or `scope <NL filter>`. Goal: read the
+targeted backlog, find natural clusters, propose a structure (epics / features /
+stories), confirm with the user once, then promote.
+
+### Phase B1: Inventory the backlog
+
+Read every targeted backlog file. Targeting:
+- `scope` / `scope --all` → all of `.work/backlog/*.md`
+- `scope <NL filter>` → interpret the filter against each backlog file's body
+  and tags; keep matches. Log the interpretation for the run summary.
+
+For each item, capture id, brief, tags, and any inline hints (referenced files,
+areas, related ids).
+
+If the targeted set is empty, halt with a clear message — suggest a narrower
+filter or `/agile-workflow:park` for fresh ideas.
+
+If the targeted set is a single item, fall through to single-idea mode with
+that item.
+
+### Phase B2: Light grounding
+
+Read `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `.work/CONVENTIONS.md`,
+and `CLAUDE.md`. One pass, skim — you're orienting, not absorbing every detail.
+You'll re-read selectively for large clusters in Phase B5.
+
+### Phase B3: Map code areas (one Explore agent)
+
+Spawn **one** `Agent` sub-agent with `subagent_type: Explore` (medium breadth).
+Give it:
+- The list of targeted backlog ideas (id + brief, one per line)
+- A one-paragraph summary of the foundation docs from Phase B2
+- The question: "Which areas of the codebase do these ideas touch, and what
+  natural seams (modules, packages, bounded contexts) group them?"
+
+Expect back an area-map keyed by code seam, with backlog ids attached to each
+seam plus a one-line rationale. Don't recurse — one pass.
+
+If the agent's confidence is low for an idea (no clear code touchpoint), note
+it and fall back to text-only clustering for that idea in Phase B4.
+
+### Phase B4: Cluster
+
+Using the area-map plus the backlog text, group ideas into clusters. Each
+proposed cluster gets a kind, a parent decision, and a one-line rationale.
+
+Sizing heuristics (same as single-idea-mode Phase 2, applied per cluster):
+
+| Cluster shape | Proposed kind |
+|---|---|
+| 1 item, no architectural shift | story (standalone) |
+| 2-5 cohesive items in one area, deserves a design pass, no foundation-doc impact | feature; backlog items become child stories or design inputs |
+| Multi-feature scope, OR shifts vision / spec / architecture / audience, OR a clear capability arc that wants `epic-design` decomposition | epic |
+
+Bias rules:
+- **Lean smaller** — prefer multiple features over one giant epic. But forming
+  an epic as a *natural grouping* is fine even without a foundation-doc shift:
+  if a set of backlog items clearly belongs under one capability arc, hand it
+  to `/agile-workflow:epic-design` rather than pre-flattening it into features
+  here.
+- **Don't force-cluster.** Ideas that don't naturally belong with anything else
+  are leftovers; handle them in Phase B6.
+
+### Phase B5: Strategic decisions (per large cluster)
+
+For each cluster sized **large** (epic with foundation-doc impact), run the
+single-idea-mode Phase 1.7 logic — derive 2-5 strategic-level ambiguities for
+that cluster (vision / spec / architecture / audience layer) and queue them
+for the Phase B7 confirmation gate.
+
+For small / medium clusters and for "natural grouping" epics with no
+foundation-doc impact, skip — strategic ambiguities fall to `epic-design` or
+`feature-design` later.
+
+If more than 3 clusters are sized large, defer strategic decisions to the
+design family entirely — don't try to consolidate them into one round.
+
+### Phase B6: Prepare leftovers question
+
+Identify backlog items that didn't fit any cluster. Queue a multi-select
+question for the Phase B7 gate, offering per leftover:
+- promote as standalone story
+- promote as standalone feature
+- leave in `.work/backlog/` (default)
+
+### Phase B7: Confirm with the user (single round-trip)
+
+Make **one** `AskUserQuestion` call covering all of the below (the tool accepts
+1-4 questions per call):
+
+1. **Cluster structure** — present each cluster (ids included, proposed kind,
+   proposed parent, one-line rationale) and accept adjustments. Common NL
+   feedback: "merge clusters 2 and 3", "split that cluster", "make X an epic
+   instead", "move Y under Z". The "Other" option handles free-form replies.
+2. **Strategic decisions** — one question per large cluster from Phase B5
+   (skip if more than 3 large clusters per the Phase B5 rule).
+3. **Leftovers disposition** — the multi-select question prepared in Phase B6.
+
+Apply the adjustments and proceed. **One gate is enough** — do not loop on a
+second confirmation round.
+
+### Phase B8: Promote each confirmed cluster
+
+For each cluster, run the single-idea-mode Phases 3-6 inline:
+
+1. **Declare dependencies** — within-cluster (child stories under a feature)
+   and cross-cluster (one feature depends on another's output). Use
+   `work-view --blocking` for cycle detection.
+2. **Foundation-doc roll-forward** (large clusters only) — full Phase 4 of
+   single-idea mode, scoped to that cluster's impact.
+3. **Write item files** — the parent (epic or feature) plus any child files.
+   Use `git mv` to move backlog files into the new structure where they map
+   1:1; reference the backlog idea in the parent's brief and `git rm` the
+   backlog file where it was absorbed without a direct child.
+4. **Commit per cluster** — `scope: <cluster-id> (<kind>, <size>)` with a
+   foundation-doc roll-forward note where applicable.
+
+Promote leftovers per the Phase B7 decision (one commit per promoted leftover,
+same message format).
+
+### Phase B9: Output
+
+In conversation:
+- **Filter interpretation** (NL-filter mode only): one-line description of how
+  the filter was applied
+- **Clusters promoted**: for each, `<id> (<kind>, <size>)` with member backlog ids
+- **Leftovers**: list with disposition (promoted as standalone story/feature, or
+  left in backlog)
+- **Foundation docs rolled forward**: list of files touched (or "none")
+- **Next**: design family picks up drafting features/epics
+  (`/agile-workflow:feature-design`, `epic-design`, `refactor-design`, or
+  `perf-design` based on kind and tags); implementing stories are ready for
+  `/agile-workflow:autopilot` or `/agile-workflow:implement-orchestrator`.
+
+## Workflow — single-idea mode
+
+Use this path for `scope <id>` and `scope <free-form idea>`. The phases below
+also serve as the per-cluster engine for batch mode Phase B8.
 
 ### Phase 1: Source the idea
 
@@ -220,7 +384,9 @@ scope: <id> (epic) + foundation roll-forward
 Rolled forward: SPEC.md (added multi-tenancy section), ARCHITECTURE.md (added tenant boundary).
 ```
 
-## Output
+## Output (single-idea mode)
+
+(Batch mode has its own output in Phase B9.)
 
 In conversation:
 - **Scoped**: `<id>` as `<kind>` at `stage: <stage>`
@@ -244,3 +410,15 @@ In conversation:
   `/agile-workflow:release-deploy` runs.
 - If sizing is genuinely unclear after Phase 2, ask the user via AskUserQuestion
   rather than guessing.
+- **Batch mode: one confirmation gate, not many.** Phase B7 is a single
+  `AskUserQuestion` call (up to 4 questions). Apply NL adjustments from the
+  user's reply and proceed — do not loop on a second confirmation round.
+- **Batch mode: one Explore agent in Phase B3, not three.** A single
+  medium-breadth pass over the backlog list is enough. Don't fan out per
+  cluster.
+- **Batch mode: leftovers default to staying in backlog.** Forcing leftovers
+  into a "miscellaneous" feature dilutes the clustering signal.
+- **Batch mode: lean smaller, but accept natural-grouping epics.** Prefer
+  multiple features over one giant epic; form an epic when there's a real
+  capability arc that wants `epic-design` decomposition, not just to bundle
+  loosely related items.

@@ -178,6 +178,29 @@ Present the full report in conversation. Then:
 **AskUserQuestion checkpoint**: Ask whether to save the report to a markdown file.
 If yes, write to `REPO-EVAL.md` in the project root (or user-specified path).
 
+### Phase 4: File findings as substrate items (if substrate exists)
+
+If `.work/CONVENTIONS.md` is present, ask one more `AskUserQuestion`: should the
+top recommendations be filed as substrate items?
+
+Options:
+- **All as backlog items** (default, lowest commitment) — each recommendation becomes a `.work/backlog/<id>.md` for later scoping
+- **All as active items** — each becomes a story (surgical) or feature (design pass needed) in `.work/active/`, kind chosen per scope
+- **Skip** — leave findings in the report only
+
+For each filed item:
+- Tag with `[audit]` plus the dimension (`[testing]`, `[security]`, etc.)
+- Set `gate_origin: repo-eval` so the origin is traceable
+- Brief = the recommendation text plus the verified evidence from the report
+
+Commit per batch: `repo-eval: filed <N> findings as <backlog|active>`.
+
+In the final conversation output, append:
+- **Items filed**: count by dimension, with new ids
+- **Next**: `/agile-workflow:scope` (batch mode) to cluster the audit findings, or `/agile-workflow:autopilot` to drain them.
+
+If no substrate exists, skip this phase silently.
+
 ## Language Detection
 
 Before launching agents, detect the primary language(s) to tailor verification checks:

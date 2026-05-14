@@ -446,3 +446,49 @@ those needs caller-aware decision points.
 
 User-invocable-only skills (`convert`, `epicize`, `ideate`, `bold-refactor`,
 `release-deploy`) can stay interactive-first — autopilot doesn't call them.
+
+---
+
+# Part IV — Skill invocation patterns
+
+Three arg shapes recur across the plugin. New skills should pick the one that
+fits their role rather than inventing a fresh shape.
+
+## Orchestration verbs (drain a queue)
+
+`scope`, `implement-orchestrator`, `autopilot`, `review`
+
+| Arg | Behavior |
+|---|---|
+| `<id>` or `<id-list>` | Operate on those items |
+| `--all` or no arg | Operate on the full queue (default) |
+| `<NL filter>` | Interpret free text against the queue; log the interpretation |
+
+## Discovery + emit verbs (scan code, produce items)
+
+`refactor-design`, `perf-design`, `bold-refactor`, `repo-eval`, and the gate
+family (`gate-cruft`, `gate-security`, `gate-tests`, `gate-docs`,
+`gate-patterns`)
+
+| Arg | Behavior |
+|---|---|
+| no arg / `--all` | Sweep the relevant scope (whole codebase, or release bundle for gates) |
+| `<path>` | Scope to that subtree |
+| `<NL scope>` | Interpret free text against the codebase; log the interpretation |
+| `<feature-id>` (where applicable) | Per-feature design mode (refactor-design, perf-design) |
+
+These skills *emit substrate items as findings* rather than gating pass/fail.
+
+## Per-item design verbs
+
+`feature-design`, `epic-design`, `refactor-design`, `perf-design`
+
+| Arg | Behavior |
+|---|---|
+| `<id>` | Full design pass on that item (default) |
+| `--only-questions <id>` | Question-only alignment pass; captures answers under `## Design decisions`; does NOT design or advance stage |
+| `--only-questions <id-list>` | Question-only pass over each listed item |
+| `--only-questions --all` | Question-only pass over every drafting item of the matching kind/tags |
+
+`--only-questions` always requires interactive mode and refuses to run under
+autopilot.

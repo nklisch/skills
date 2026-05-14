@@ -45,16 +45,22 @@ Common phrases:
 
 Accept any of:
 
+- no arg → equivalent to `--all` (the default)
+- `--all` — every implementing item in `.work/active/` (regardless of parent)
 - `<feature-id>` — every child story of that feature at `stage: implementing`,
   plus the feature itself if it has no children
 - `<epic-id>` — every implementing item transitively under that epic
-- `--all` — every implementing item in `.work/active/` (regardless of parent)
 - `<id> [<id>...]` — explicit list, can mix kinds and parents
 - single `<story-id>` with no parent or whose parent isn't in scope — run as a
   one-agent wave, advance only that story
+- `<NL filter>` (e.g. "the auth stories", "everything tagged refactor") — same
+  shape as autopilot's free-text scope: interpret against the implementing-band
+  items, log the interpretation in the run summary
 
-Whatever you accept, the rest of the workflow is the same — the difference is
-just which items populate the queue at Phase 1.
+Disambiguation: an arg is treated as an id only if a matching file exists in
+`.work/active/`. Otherwise it's an NL filter. Whatever you accept, the rest of
+the workflow is the same — the difference is just which items populate the
+queue at Phase 1.
 
 ## Workflow
 
@@ -68,8 +74,10 @@ exact invocation depends on what you were given:
   itself if it has no children
 - An epic id → walk the parent chain to gather every implementing item beneath
   it (features without children, plus all stories)
-- `--all` → every item under `.work/active/` at `stage: implementing`
+- `--all` (or no arg) → every item under `.work/active/` at `stage: implementing`
 - An explicit id list → use those items directly
+- An NL filter → interpret against the implementing-band items, keep matches,
+  log the interpretation
 
 Note the **set of distinct parent features** that appear in the work set. Some
 items may share a parent, others may not. You'll need each distinct parent for

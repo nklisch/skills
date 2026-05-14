@@ -1,12 +1,16 @@
 ---
 name: refactor-design
 description: >
-  Plan an incremental, safe refactor for a feature tagged [refactor] at stage:drafting.
-  Scans for code smells (duplication, long files, deep nesting, god functions, leaky
-  abstractions, dead weight), produces a step-by-step before/after plan with risk and
-  rollback per step, written INTO the feature's body. Spawns child stories per refactor
-  step with declared depends_on, then advances stage drafting -> implementing. For
-  greenfield design use /agile-workflow:feature-design; for perf use /agile-workflow:perf-design.
+  Two modes. Discovery mode (default with no arg, `--all`, `<path>`, or `<NL scope>`)
+  scans code for smells (duplication, long files, deep nesting, god functions, leaky
+  abstractions, dead weight), classifies findings as pure-refactor or behavior-changing,
+  and emits substrate items — pure-refactor findings get `[refactor]` tag; behavior
+  changers get no tag so feature-design picks them up. Per-feature mode (default when
+  given a feature id) plans the refactor for an existing `[refactor]`-tagged feature
+  at stage:drafting, written INTO the feature's body, with child stories and
+  depends_on chains, then advances stage drafting -> implementing. For greenfield design
+  use /agile-workflow:feature-design; for perf use /agile-workflow:perf-design; for
+  architectural reconceptions use /agile-workflow:bold-refactor.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 ---
 
@@ -23,13 +27,117 @@ tag instead.
 
 ## Trigger
 
-The agent picks this skill when it identifies a feature at `stage: drafting` with
-`tags: [refactor, ...]`. Common phrases:
-- "design the refactor of X"
-- "plan the refactor for feature Y"
-- "this refactor feature is ready"
+The agent picks this skill in two cases:
+- A feature at `stage: drafting` with `tags: [refactor, ...]` is ready for design (per-feature mode)
+- The user asks to find refactor candidates ("audit for cruft", "what should we clean up", "find refactor candidates") (discovery mode)
 
-## Workflow
+Common phrases:
+- per-feature: "design the refactor of X", "plan the refactor for feature Y"
+- discovery: "find refactor candidates", "scan for cruft", "what should we clean up here"
+
+## Invocation modes
+
+| Invocation | Behavior |
+|---|---|
+| `refactor-design` (no arg) / `--all` | **Discovery mode**: sweep the whole codebase for refactor candidates, emit items |
+| `refactor-design <path>` | Discovery mode scoped to a path |
+| `refactor-design <NL scope>` (e.g. "the auth module") | Discovery mode scoped by NL filter |
+| `refactor-design <feature-id>` | **Per-feature mode**: design the refactor for an existing `[refactor]`-tagged feature at `stage: drafting` |
+| `refactor-design --only-questions <id>` / `--only-questions --all` | Question-only alignment pass over `[refactor]`-tagged drafting features. Mirrors feature-design's `--only-questions` mode — surfaces ambiguities, captures answers under `## Design decisions`, does NOT design or advance stage. Requires interactive mode. |
+
+Disambiguation: an arg is treated as a feature id only if
+`.work/active/features/<arg>.md` exists and has `tags: [refactor]`. Otherwise
+discovery mode against the arg as path or NL scope.
+
+## Workflow — discovery mode
+
+Use this path for `refactor-design`, `--all`, `<path>`, or `<NL scope>`. Goal:
+scan the target, classify findings, emit items so the substrate can drain
+them.
+
+### Phase D1: Resolve scope
+
+- no arg / `--all` → whole codebase
+- `<path>` → that directory or file
+- `<NL scope>` → interpret against the codebase structure; log the interpretation
+
+### Phase D2: Ground yourself
+
+Read `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `CLAUDE.md`, and
+`.work/CONVENTIONS.md`. One pass — orient, don't memorize.
+
+### Phase D3: Code-smell scan via parallel Task agents
+
+Run the same parallel sub-agent scan as Phase 3 of per-feature mode (Code
+Smells, Missing Abstractions, Pattern Violations & Naming Inconsistencies,
+Dead Weight) but scoped to the target from Phase D1 instead of one feature's
+area. After results, read 2-3 key files yourself to verify.
+
+### Phase D4: Classify each finding
+
+Each finding is either:
+
+- **Pure refactor** — behavior-preserving. Examples: extract helper to dedupe,
+  split god file, rename for clarity, dead code removal.
+- **Behavior-changing** — adds capability, fixes a bug, alters semantics.
+  Examples: handling an unhandled error case discovered mid-scan, replacing a
+  silent failure with explicit reporting, splitting a function in a way that
+  changes call-site contracts.
+
+If unclear, default to behavior-changing — feature-design will refine the
+classification at its own pass.
+
+### Phase D5: Decide item size per finding
+
+| Finding shape | Item kind | Stage |
+|---|---|---|
+| Single-file, surgical, no design needed | story | `implementing` |
+| Multi-file or needs a design pass | feature | `drafting` |
+| Cohesive cluster of 3+ findings in one area | feature | `drafting` (group findings as child stories of one feature) |
+
+For pure-refactor findings, tag `[refactor]`. For behavior-changing findings,
+omit the `[refactor]` tag — let feature-design handle them.
+
+### Phase D6: Emit items and commit
+
+For each finding (or cluster), write the item file with brief + file:line
+references + one-line rationale. Set `gate_origin: refactor-design` for trace.
+Cycle-check `depends_on` if any.
+
+Commit per batch:
+```bash
+git add .work/active/stories/ .work/active/features/
+git commit -m "refactor-design discovery: <N> findings (<M> pure-refactor, <K> behavior-changing)"
+```
+
+### Phase D7: Output
+
+In conversation:
+- **Scope**: how the target was interpreted
+- **Findings**: count by classification (pure-refactor vs behavior-changing)
+- **Items emitted**: counts by kind (story / feature) with new ids
+- **Next**: `/agile-workflow:scope` (batch mode) to cluster further, or
+  `/agile-workflow:autopilot` to drain. Behavior-changing items will route to
+  feature-design when their stage advances.
+
+## Workflow — `--only-questions` mode
+
+Mirrors `feature-design`'s `--only-questions` mode, scoped to `[refactor]`-tagged
+drafting features. Iterate over the target set:
+
+1. Read the feature; skip if not `[refactor]`-tagged or not at `stage: drafting`
+2. Light ground (foundation docs + CLAUDE.md)
+3. One Task Explore over the feature's area
+4. Surface strategic ambiguities specific to the refactor (e.g., "preserve API
+   shape or break consumers?", "in-place or shadow-then-swap?", "rollback
+   strategy when atomic?"). Use AskUserQuestion.
+5. Capture answers under `## Design decisions` in the feature body
+6. Do NOT design or advance stage — let the design family pick up later
+7. Commit per feature: `refactor-design --only-questions: <id>`
+
+Requires interactive mode; refuse to run under autopilot.
+
+## Workflow — per-feature mode
 
 ### Phase 1: Read the feature item
 

@@ -257,19 +257,28 @@ across resume ticks — they don't re-attempt automatically.
 
 ### Phase 7: Refactor cadence (--all mode only)
 
-Every 5 items advanced to `done` in `--all` mode, evaluate:
+Every 5 items advanced to `done` in `--all` mode, delegate to `refactor-design`
+discovery mode against the files those 5 items touched:
 
-- Has duplication accumulated? (Quick scan via `work-view --tag refactor` —
-  what's already pending?)
-- Has a coherent refactor opportunity surfaced?
+1. Collect the set of files modified by the last 5 done items (`git log
+   --grep "<id>" --name-only` per item, then union)
+2. Invoke `/agile-workflow:refactor-design <path1> <path2> ...` — passes the
+   touched paths as scope
+3. refactor-design's discovery workflow classifies findings (pure-refactor vs
+   behavior-changing) and emits items at the right size and tag
+4. Continue Phase 4-7 cycle; the next iteration picks up any new items
+   naturally (pure-refactor → refactor-design per-feature mode for ones that
+   landed as features; behavior-changing → feature-design)
 
-If yes, scope a refactor feature with `tags: [refactor]` at `stage: drafting`,
-with `depends_on` on the recently completed items. The next loop iteration picks
-it up via `refactor-design`.
+This replaces the prior inline "quick scan + scope one refactor feature"
+heuristic. Multiple opportunities can surface from one cadence tick now, and
+the "what counts as a refactor candidate" judgment lives inside
+`refactor-design` where it belongs.
 
-**Important**: never invoke `/agile-workflow:bold-refactor` from autopilot. That
-verb is user-only — too aggressive for autonomous reach. Autopilot scopes
-incremental refactors only.
+**Important**: never invoke `/agile-workflow:bold-refactor` from autopilot.
+That verb is user-only — too aggressive for autonomous reach. Discovery-mode
+`refactor-design` is the right surface; epic-scale reconceptions need
+human sign-off.
 
 ### Phase 8: Stop conditions
 
@@ -339,7 +348,8 @@ Throughout the run, brief narration in conversation as items advance. On stop:
 - **Items escalated** (circuit-breaker fired after 2 bounces): count, with ids
   so the user can intervene
 - **Items blocked at start** (couldn't begin work): count
-- **Refactor passes scoped** (--all mode): count
+- **Refactor cadences run** (--all mode): count of refactor-design discovery
+  invocations, plus total items emitted (pure-refactor vs behavior-changing)
 - **Scope interpretation** (free-text arg only): one-line description of how
   you interpreted the directive and which items were included
 - **Total time** in autopilot run (rough)
