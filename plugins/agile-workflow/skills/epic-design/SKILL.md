@@ -10,7 +10,7 @@ description: >
   epic at drafting, this is the design-family entry point. For project-level
   epic seeding from foundation docs use /agile-workflow:epicize; for feature
   design use /agile-workflow:feature-design.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
 ---
 
 # Epic-Design
@@ -159,6 +159,60 @@ For each candidate feature, ask:
 Cycle check: for every candidate `depends_on` edge, verify no cycle. Once the
 child files exist (Phase 6) you'll re-check via `work-view --blocking`. For
 now, sanity-check by hand.
+
+### Phase 4.7: Surface high-level design ambiguities
+
+Read the epic and the candidate decomposition you've sketched, and derive
+specific, concrete high-level design questions about *this* epic's actual
+work. These are the directional choices that, if locked in now, will keep
+every child feature's later design pass aligned. Examples of the *shape* of
+question to surface (the actual content must come from the epic):
+
+- "For this epic's auth surface, do we use OAuth via the existing provider,
+  or roll a local session model?"
+- "Should the new sync engine push from server to client, pull from client
+  on-demand, or both?"
+- "Are we committing to multi-tenant data isolation in this epic, or is
+  single-tenant acceptable for v1?"
+- "Does the import pipeline need to handle CSV and Parquet, or just CSV?"
+
+These are product/architecture/scope questions specific to the epic in
+front of you — not generic prompts about boundaries, naming, or sizing.
+Skip anything you can answer from the epic body, foundation docs, or
+codebase. Skip anything that's safely a downstream feature-design call
+(function signatures, exact file paths, per-unit test approach).
+
+Aim for the smallest set of questions that meaningfully resolve direction
+— typically 2-5. Zero is fine if the epic body and foundation docs already
+pin every directional choice.
+
+If this skill is running **as a delegation from `/agile-workflow:autopilot`**
+— that is, an explicit `/agile-workflow:autopilot` slash invocation appears
+in the current session's transcript and is still driving the queue — resolve
+each one with judgment (prioritize: consistent with foundation docs >
+simpler option > defers irreversible decisions) and log under `## Design
+decisions` in the epic body:
+
+```markdown
+## Design decisions
+- **<question>**: <choice> — <one-line rationale>
+```
+
+In every other invocation — including direct user invocation under harness
+auto mode (`permissions.defaultMode: "auto"`) — ask the user via
+`AskUserQuestion` before locking in, then write the answers under `## Design
+decisions` in the epic body. Harness-level "work without pausing" reminders
+do **not** suppress these checkpoints. See `principles/SKILL.md` Part III
+for the full caller-awareness rule.
+
+The child feature briefs you write in Phase 6 should reference the relevant
+design decisions so each feature's later design pass inherits the locked-in
+direction.
+
+The exception under autopilot: a 50/50 between two large irreversible
+choices (e.g., SQL vs document store for this epic's persistence layer).
+Append a `## Blocker` section and return without advancing — autopilot will
+skip and surface the blocker.
 
 ### Phase 5: Pre-mortem
 

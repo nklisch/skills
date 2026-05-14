@@ -38,7 +38,7 @@ The input is one of:
 
 ### Phase 1.5: Explore the idea (large-scope only)
 
-For small or medium scope, skip this phase — go straight to Phase 2.
+For small or medium scope, skip this phase — go to Phase 1.7.
 
 For large scope (something that may change vision/spec/architecture), have a
 short freeform conversation before sizing. Cover:
@@ -55,6 +55,49 @@ short freeform conversation before sizing. Cover:
 Push for specificity. "Handle errors well" becomes "invalid input returns a 400
 with a structured error body." When you can articulate the addition clearly,
 summarize and ask: "Did I get this right?"
+
+Then proceed to Phase 1.7.
+
+### Phase 1.7: Surface strategic-level design ambiguities
+
+Before sizing or writing the item, derive specific, concrete strategic
+questions about *this* idea — directional choices at the vision / spec /
+architecture / audience layer. These are the calls that, if locked in now,
+will set the frame for the whole epic and any foundation-doc roll-forward.
+The questions must come from the actual idea; examples of the *shape* only:
+
+- "Is this aimed at our existing users or a new audience segment?"
+- "Should this live as a new bounded context, or extend the existing
+  domain model?"
+- "Is real-time sync a v1 requirement, or is eventual-consistency
+  acceptable?"
+- "Do we expose this externally (public API surface) or keep it
+  internal-only for now?"
+- "Does this displace an existing capability, or sit alongside it?"
+
+These sit a layer *above* `epic-design` Phase 4.7 and `feature-design`
+Phase 4.5 — those resolve epic- and feature-internal direction. Phase 1.7
+resolves the framing that determines what the epic even *is*. Skip anything
+the foundation docs or the user's prompt already pin. Skip anything that is
+safely an epic-design or feature-design call (decomposition, boundaries,
+interfaces).
+
+Aim for 2-5 questions. Zero is fine if the user's brief and foundation docs
+already pin every strategic choice. For small (story) and medium (feature)
+scope, the bar is higher — only ask if a strategic ambiguity genuinely
+affects framing; otherwise skip directly to Phase 2.
+
+Use `AskUserQuestion` to ask. Capture answers in the item body under a
+`## Strategic decisions` section so the downstream design family inherits
+the locked-in direction:
+
+```markdown
+## Strategic decisions
+- **<question>**: <choice> — <one-line rationale>
+```
+
+For large scope, the answers here directly inform the foundation-doc
+roll-forward in Phase 4.
 
 Then proceed to Phase 2.
 

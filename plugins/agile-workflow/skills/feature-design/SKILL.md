@@ -9,7 +9,7 @@ description: >
   For [refactor] use /agile-workflow:refactor-design; for [perf] use
   /agile-workflow:perf-design. For decomposing an epic into child features use
   /agile-workflow:epic-design.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
 ---
 
 # Feature-Design
@@ -39,6 +39,77 @@ design, with no specialized tag. Common phrases:
 - "design feature X"
 - "let's design this feature"
 - "this feature is ready to design"
+
+## Invocation modes
+
+The skill accepts an optional `--only-questions` flag and an optional target.
+
+| Invocation | Behavior |
+|---|---|
+| `<feature-id>` (default) | Full design pass on one feature — workflow Phases 1-9. |
+| `<feature-id> --only-questions` | Question-only pass on one feature — runs the read/ground phases, surfaces ambiguities, asks the user, captures answers in the body, does NOT design or advance stage. |
+| `--only-questions <id1> <id2> ...` | Question-only pass over each listed feature, in order. |
+| `--only-questions --all` | Question-only pass over every `kind: feature` at `stage: drafting` in `.work/active/features/` whose `tags` does not contain `refactor` or `perf`. Iterate in dependency order (features with fewer unresolved upstream deps first). |
+
+`--only-questions` mode exists so a user can align with the agent on
+high-level direction across many drafting features in one session, then
+hand off to `/agile-workflow:autopilot` for the full design + implement
+pass. Autopilot inherits the captured answers from each feature body and
+no longer has to use judgment on those points.
+
+`--only-questions` requires interactive mode — if `/agile-workflow:autopilot`
+is the active driver of this session, refuse to run and report that the
+flag is for interactive alignment only.
+
+## Workflow — `--only-questions` mode
+
+Use this path when invoked with `--only-questions`. Iterate over the
+target set (one feature, an explicit list, or every drafting feature
+under `--all` per the table above).
+
+For each feature in the target set:
+
+1. **Read the feature item** at `.work/active/features/<id>.md`.
+   - Skip if `kind` is not `feature`, if `stage` is not `drafting`, or if
+     `tags` contains `refactor` or `perf`. Log the skip and move on.
+2. **Ground yourself** — read the parent epic body if `parent` is set, plus
+   the foundation docs (`docs/VISION.md`, `docs/SPEC.md`,
+   `docs/ARCHITECTURE.md`) and `CLAUDE.md`. Be efficient: skim, don't
+   exhaustively re-read across iterations within one session.
+3. **Map the codebase lightly** — one Task-tool Explore sub-agent is enough
+   to surface the area the feature touches. Skip the full three-agent
+   parallel sweep used in the default mode; you're not designing units.
+4. **Surface ambiguities** — run Phase 4.5 as written above, but always in
+   the interactive branch (use `AskUserQuestion`). Do not resolve with
+   judgment — the whole point of this mode is to capture user answers.
+5. **Capture answers** — append (or merge into existing) `## Design
+   decisions` in the feature body:
+   ```markdown
+   ## Design decisions
+   - **<question>**: <choice> — <one-line rationale>
+   ```
+   If the section already exists, merge — don't duplicate previously
+   answered questions, and don't overwrite prior answers without flagging
+   the conflict to the user.
+6. **Do NOT** spawn child stories, write the design body, or advance the
+   stage. The feature stays at `stage: drafting` so the design family can
+   pick it up later.
+7. **Commit per feature**:
+   ```bash
+   git add .work/active/features/<id>.md
+   git commit -m "feature-design --only-questions: <id>"
+   ```
+
+### Output (`--only-questions` mode)
+
+In conversation, after the run:
+- **Aligned**: list of feature ids and the count of design decisions
+  captured per feature
+- **Skipped**: list of feature ids and reason (wrong stage, wrong tag, no
+  ambiguities found)
+- **Next**: features stay at `stage: drafting` — run
+  `/agile-workflow:autopilot <epic-id>` (or `--all`) and the design pass
+  on each feature will inherit the captured answers
 
 ## Workflow
 
@@ -86,8 +157,23 @@ project conventions.
 
 ### Phase 4.5: Surface ambiguities
 
-Identify ambiguities — requirements gaps, architecture trade-offs, scope
-boundaries, integration assumptions, UX decisions.
+Read the feature brief and the design space you've started to map, and
+derive specific, concrete design questions about *this* feature's actual
+work — requirements gaps, architecture trade-offs, scope boundaries,
+integration assumptions, UX decisions. The questions must come from the
+feature in front of you; examples of the *shape* only:
+
+- "Should the cache invalidate on write or rely on TTL only?"
+- "Does the upload accept multipart, or a presigned URL flow?"
+- "When the parser hits a malformed row, do we skip and continue or fail
+  the whole batch?"
+- "Is paging cursor-based or offset-based?"
+
+Skip anything the brief, parent epic body, foundation docs, or codebase
+already pin. Skip anything that's safely an implementation-time call.
+
+Aim for the smallest set of questions that meaningfully resolve direction
+— typically 2-5. Zero is fine if everything's already pinned.
 
 If this skill is running **as a delegation from `/agile-workflow:autopilot`**
 — that is, an explicit `/agile-workflow:autopilot` slash invocation appears
@@ -98,8 +184,12 @@ in the body:
 
 ```markdown
 ## Design decisions
-- **<ambiguity>**: <choice> — <one-line rationale>
+- **<question>**: <choice> — <one-line rationale>
 ```
+
+If the body already contains a `## Design decisions` section (from a prior
+`--only-questions` pass or from `epic-design` Phase 4.7), treat those
+locked-in answers as inputs — do NOT re-ask them.
 
 In every other invocation — including direct user invocation under harness
 auto mode (`permissions.defaultMode: "auto"`) — ask the user via
@@ -255,7 +345,9 @@ Update the feature file. Append (after the existing brief) sections like:
    git commit -m "feature-design: <feature-id> (<N> child stories)"
    ```
 
-## Output
+## Output (default mode)
+
+(For `--only-questions` mode output, see the section above.)
 
 In conversation:
 - **Designed**: `<feature-id>` advanced to `stage: implementing`
@@ -278,3 +370,8 @@ In conversation:
 - Cycle prevention is mandatory for `depends_on`. Use `work-view --blocking`.
 - Don't pre-populate stage on child stories beyond `implementing`. Stage advances
   through actual work, not at design time.
+- `--only-questions` mode never advances stage, never spawns stories, and never
+  writes design content beyond the `## Design decisions` section. If you find
+  yourself doing any of those, you're in the wrong mode.
+- `--only-questions` is interactive-only — refuse to run when
+  `/agile-workflow:autopilot` is the active driver of the session.
