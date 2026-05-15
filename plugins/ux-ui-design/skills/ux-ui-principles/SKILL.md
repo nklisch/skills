@@ -72,16 +72,21 @@ Every project using this plugin has the same `.mockups/` shape:
 
 ## Tech rule
 
-- One `.html` file per mock. No build step. No frameworks.
+- One `.html` file per mock. No build step. No JS framework. No npm packages.
 - Vanilla CSS inside a single `<style>` tag in `<head>`.
 - Vanilla JS inside a single `<script>` tag.
-- No CDN dependencies, no external CSS, no npm packages. Self-contained so
-  the file opens correctly years from now, offline, on any machine.
-- Reuse `../../design-system/tokens.css` via a `<link rel="stylesheet">` when
-  a design system exists — that one local external is allowed.
+- **No CSS framework CDNs** (Tailwind, Bootstrap, etc.) — they drift the
+  mock toward "production code that kinda works" and break the throwaway
+  property.
+- **Hosted fonts via CDN are fine** (Google Fonts, Fontsource, etc.) when
+  the palette has called for a distinctive face. Load via `<link>` in
+  `<head>` and declare a full system-stack fallback so offline rendering
+  degrades cleanly. `palette` decides per-project; mocks honor that choice.
+- Reuse `../../design-system/tokens.css` via a `<link rel="stylesheet">`
+  when a design system exists.
 - Semantic HTML (`<header>`, `<nav>`, `<main>`, `<section>`, `<footer>`).
-- Realistic placeholder content. Real-looking copy, plausible numbers, names
-  that aren't "Lorem ipsum" when the domain has a clear voice.
+- Realistic placeholder content. Real-looking copy, plausible numbers,
+  names that aren't "Lorem ipsum" when the domain has a clear voice.
 
 See `references/shared-chrome-css.md` for the shared HTML chrome (the
 `.mock-meta` strip, the `.flow-meta` sticky header, the index-grid styles)
@@ -182,9 +187,10 @@ the rule"), then proceeds.
   the host stack. The implementer translates the chosen mock into the real
   components later. Don't reach for React or Svelte here; the throwaway
   property is what keeps them honest.
-- **No CSS frameworks via CDN.** Tailwind, Bootstrap, and friends drift
-  toward "this kinda works as a real page" and undermine the mockup-as-
-  reference idea. Vanilla CSS keeps the mock honest about its scope.
+- **No CSS framework CDNs.** Tailwind, Bootstrap, and friends drift the
+  mock toward "this kinda works as a real page" and undermine the
+  mockup-as-reference idea. Vanilla CSS keeps the mock honest about its
+  scope. (Hosted *fonts* via CDN are fine — see the tech rule.)
 - **Always write the index.html.** For screens and flows, it IS the review
   artifact — the four option files (or N step pages) are inputs; the index
   is what the user opens. Without it review fragments across four tabs and

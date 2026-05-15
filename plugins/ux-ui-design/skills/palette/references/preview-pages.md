@@ -108,9 +108,21 @@ side make the dual-mode commitment visible at review time.
 Same outer shape, two option sections (typography needs fewer options than
 palette — usually two distinct stacks is enough).
 
+If a typography option uses a hosted face (Google Fonts, Fontsource,
+etc.), load it via `<link>` in `typography.html`'s `<head>`:
+
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+```
+
+Then apply the font on each option's section so reviewers see the actual
+face, not the fallback.
+
 For each typography option, show:
 
-- **The stack** as a code block (`--font-sans: ...;`)
+- **The stack** as a code block (`--font-sans: 'Fraunces', Georgia, serif;`)
 - **The scale** at every size token, with the label visible
   (e.g. "xl / 20px / Display heading sample")
 - **The weights** demonstrated in a sample paragraph

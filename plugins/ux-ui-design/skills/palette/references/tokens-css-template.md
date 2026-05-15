@@ -82,6 +82,34 @@ plus the spacing and radius scales.
 }
 ```
 
+## Loading hosted fonts
+
+When `palette` picks a hosted face (Google Fonts, Fontsource, etc.),
+include the `@import` at the top of `tokens.css` so every mock that links
+`tokens.css` automatically gets the font:
+
+```css
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, ui-sans-serif, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  /* ... */
+}
+```
+
+Always declare a full system-stack fallback after the hosted face name.
+Offline rendering, slow networks, and tracker-blocking extensions all
+benefit from a clean fallback chain — the mock degrades gracefully
+instead of falling back to Times New Roman.
+
+`display=swap` lets the system stack render immediately and swap to the
+hosted face when it loads. Better than the flash-of-invisible-text
+default.
+
+If the project chooses system fonts only, skip the `@import` entirely
+and declare just the system stack in the tokens.
+
 ## Dark-mode mechanism
 
 Pick the dark-mode mechanism that fits the project:

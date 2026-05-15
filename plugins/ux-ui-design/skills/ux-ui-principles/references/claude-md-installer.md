@@ -47,7 +47,8 @@ kebab-case short name.
 - Convention reference (auto-loads): `/ux-ui-design:ux-ui-principles`
 
 **Tech rule.** Single-file HTML per mock, vanilla CSS in `<style>`, vanilla JS
-in `<script>`. No build step, no CDN.
+in `<script>`. No build step, no CSS framework CDNs. Hosted fonts (Google
+Fonts, etc.) are fine when the palette specifies one.
 
 **Linking.** Each substrate item with mocks gets a `## Mockups` section in its
 body pointing at the relevant `.mockups/` paths.

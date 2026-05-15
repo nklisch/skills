@@ -298,6 +298,7 @@ Adapt to the screen being mocked.
 - **Three rounds is the soft cap.** After three rounds without
   convergence, surface that scope might be unclear — looping a fourth
   time rarely lands the design and often signals upstream ambiguity.
-- **Vanilla CSS only — no CDN frameworks.** `ux-ui-principles` carries the
-  tech rule. Tailwind via CDN here drifts the mock toward "production
-  code that kinda works" and breaks the throwaway property.
+- **Vanilla CSS only — no CSS framework CDNs.** `ux-ui-principles` carries
+  the tech rule. Tailwind via CDN here drifts the mock toward "production
+  code that kinda works" and breaks the throwaway property. Hosted fonts
+  via CDN are fine when the palette specifies one.

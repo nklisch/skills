@@ -173,11 +173,17 @@ Two typography options. Vary along:
 For each, define the full type-token set from
 `references/token-vocabulary.md`.
 
-**Constraint:** prefer system stacks. Avoid Google-Fonts-loaded hosted
-fonts in mocks — they break the "self-contained, opens offline forever"
-rule. If a hosted font is needed for visual identity, document it in the
-option but use the closest system fallback in `tokens.css`. The implementer
-adds the loader in production code, not the mock.
+**Hosted fonts (Google Fonts, etc.) are fine.** When a project's identity
+calls for a distinctive face — Inter, IBM Plex, Fraunces, JetBrains Mono,
+Space Grotesk, anything — load it via `<link>` in the mock's `<head>` and
+declare the full fallback chain in `--font-sans` / `--font-mono`. Cache
+catches most repeat opens; offline rendering falls back to the next stack
+entry. That's a reasonable trade for using the actual face the project
+intends to ship.
+
+System stacks are still a strong choice when the project's character calls
+for "honest defaults" (developer tools, terminals, utilitarian dashboards).
+Pick deliberately — not by default.
 
 ### Phase 6: Write typography.html
 
@@ -288,9 +294,13 @@ confirmation. The header comment is the source of truth for what's locked.
   options share a hue family at similar saturation, the design space
   hasn't been explored yet; reach for a third axis (warm/cool, muted/
   punchy, corporate/expressive).
-- **No Google Fonts via CDN in mocks.** Breaks the offline-forever rule.
-  Use system stacks; if a hosted font is decided, the user adds it in
-  production code, not in mocks.
+- **Pick fonts deliberately, not by default.** Hosted faces (Google Fonts,
+  etc.) are fine when the project's identity calls for a specific one;
+  load them via `<link>` in the mock and declare the fallback chain. But
+  don't reach for Inter/Space Grotesk reflexively — those are the AI
+  default and most projects deserve better. System stacks are a
+  legitimate choice for "honest defaults" projects; just commit to one
+  on purpose.
 - **The contrast check is non-negotiable.** Mocks set expectations. A
   palette that fails WCAG AA in the mock will fail in production too.
 - **Don't define tokens that won't get used.** A 200-token palette is

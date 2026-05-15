@@ -292,7 +292,7 @@ handoff between them.
   just a screen. Redirect.
 - **More than 7 steps → split.** Composing flows linked at a handoff
   step are easier to review than one giant flow.
-- **Vanilla CSS only — no JS frameworks or CDN.** `ux-ui-principles`
-  tech rule applies.
+- **Vanilla CSS only — no CSS framework CDNs and no JS frameworks.**
+  `ux-ui-principles` tech rule applies. Hosted fonts via CDN are fine.
 - **Three rounds is the soft cap on iteration.** Looping a fourth time
   rarely lands the design.
