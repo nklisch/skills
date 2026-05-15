@@ -192,6 +192,32 @@ Cycle check: for every candidate `depends_on` edge, verify no cycle. Once the
 child files exist (Phase 6) you'll re-check via `work-view --blocking`. For
 now, sanity-check by hand.
 
+### Phase 4.6: UI surface check (optional — runs when ux-ui-design is installed)
+
+If the `ux-ui-design` plugin is installed, the epic-level decomposition is the
+RIGHT place to commit to design-system tokens and any multi-screen user
+journeys. Mocking at this level means downstream feature designs inherit a
+locked-in palette and journey shape.
+
+Check the candidate feature arcs you sketched in Phase 4:
+
+- **Any arc introduces net-new UI surface or visual identity decisions** → if
+  `.mockups/design-system/tokens.css` doesn't exist yet, invoke
+  `/ux-ui-design:palette` to lock the design system before any feature design
+  runs. Cheap once, expensive later.
+- **The epic spans a multi-step user journey** (e.g. onboarding, checkout) →
+  invoke `/ux-ui-design:flows <flow-name>` to align on the journey shape across
+  features. Reference the flow path in the parent-epic body so feature designs
+  inherit it.
+- **The epic only touches existing UI surfaces** → skip; feature-design will
+  handle screen-level mockups conditionally.
+- **No UI surface** → skip.
+
+The `ux-ui-principles` skill (auto-loads when ux-ui-design is present) has the
+full REQUIRED / OPTIONAL / SKIP matrix.
+
+Skip this phase entirely if `ux-ui-design` is not installed — loose coupling.
+
 ### Phase 4.7: Surface high-level design ambiguities
 
 Read the epic and the candidate decomposition you've sketched, and derive

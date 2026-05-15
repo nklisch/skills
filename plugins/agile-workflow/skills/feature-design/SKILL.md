@@ -201,6 +201,31 @@ The exception under autopilot: a 50/50 between two large irreversible choices
 (e.g., SQL vs document store). Append a `## Blocker` section and return
 without advancing — autopilot will skip and surface the blocker.
 
+### Phase 4.6: UI surface check (optional — runs when ux-ui-design is installed)
+
+If the `ux-ui-design` plugin is installed (skill `ux-ui-design:ux-ui-principles`
+is available), check whether this feature has UI surface that warrants a mockup
+pass BEFORE you design the implementation units.
+
+Decision rule (the principles skill carries the full matrix):
+
+- **Net-new UI surface, or composition that doesn't reuse existing patterns
+  cleanly** → invoke `/ux-ui-design:screens <feature-id>` and have the user
+  align on a direction. Reference the chosen mock in the design body's
+  Implementation Units section so unit-level decisions inherit it.
+- **Multi-screen flow under this feature** → invoke `/ux-ui-design:flows
+  <flow-name>`.
+- **Feature reuses existing components/patterns** → skip; the existing
+  pattern IS the mock.
+- **No UI surface** → skip.
+
+When mocks are produced, the `screens`/`flows` skills will add a `## Mockups`
+section to this feature's body automatically. Reference those paths from the
+implementation units you design in Phase 5.
+
+Skip this phase entirely if `ux-ui-design` is not installed — it's loose
+coupling, not a hard dependency.
+
 ### Phase 5: Design the units
 
 The substantive phase. Don't rush.

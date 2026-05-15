@@ -263,6 +263,22 @@ the locked-in direction:
 For large scope, the answers here directly inform the foundation-doc
 roll-forward in Phase 4.
 
+### Phase 1.8: UI surface flag (optional — runs when ux-ui-design is installed)
+
+If the `ux-ui-design` plugin is installed and the idea you're scoping has UI
+surface, flag it now so downstream design family runs the mockup pass.
+
+- **Large scope + UI** → note in `## Strategic decisions` that the design
+  system needs to be locked in early (the implementer can invoke
+  `/ux-ui-design:palette` during the foundation-doc roll-forward in Phase 4
+  if it isn't already locked).
+- **Medium scope + UI surface that's net-new or novel** → no immediate action
+  here, but tag the resulting feature item with `[ui]` (or note in the body)
+  so `feature-design`'s Phase 4.6 picks it up.
+- **Small scope or no UI** → skip; mockups would be overhead.
+
+Skip this phase if `ux-ui-design` is not installed — loose coupling.
+
 Then proceed to Phase 2.
 
 ### Phase 2: Size the scope

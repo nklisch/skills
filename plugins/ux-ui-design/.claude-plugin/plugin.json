@@ -1,0 +1,10 @@
+{
+  "name": "ux-ui-design",
+  "description": "HTML/CSS/JS mockup-first UI/UX design. Generate multi-option screen mockups, multi-page user flows, and design-system palettes as throwaway single-file mockups in .mockups/ for alignment before implementation. Loosely integrates with agile-workflow.",
+  "version": "0.1.0",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT"
+}

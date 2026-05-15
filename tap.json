@@ -633,6 +633,41 @@
           "description": "Create or update a project-specific refactor-conventions skill. Explores the repo, researches stack-specific best practices, interviews about both stylistic and structural preferences, then generates a combined skill with per-rule reference files."
         }
       ]
+    },
+    {
+      "name": "ux-ui-design",
+      "description": "HTML/CSS/JS mockup-first UI/UX design. Generate multi-option screen mockups, multi-page user flows, and design-system palettes as throwaway single-file mockups in .mockups/ for alignment before implementation. Loosely integrates with agile-workflow.",
+      "version": "0.1.0",
+      "tags": [
+        "design",
+        "ui",
+        "ux",
+        "mockups",
+        "html",
+        "interactive"
+      ],
+      "skills": [
+        {
+          "name": "ux-ui-principles",
+          "path": "plugins/ux-ui-design/skills/ux-ui-principles",
+          "description": "Reference for the mockup-first UI/UX design convention. Auto-loads when designing UI surfaces or when screens/flows/palette skills run. Carries the .mockups/ storage layout, the REQUIRED/OPTIONAL/SKIP decision matrix, the linking convention to agile-workflow items, and the single-file HTML/CSS/JS tech rule. Also installs the rule into CLAUDE.md on first invocation."
+        },
+        {
+          "name": "screens",
+          "path": "plugins/ux-ui-design/skills/screens",
+          "description": "Generate N distinct single-screen HTML mockup options (default 4) for one UI surface in .mockups/screens/<feature-id>/, open them side-by-side via an index.html grid, and ask the user to pick or describe a hybrid. Iterates with feedback until sign-off."
+        },
+        {
+          "name": "flows",
+          "path": "plugins/ux-ui-design/skills/flows",
+          "description": "Generate a multi-page user-flow mockup as a numbered sequence of HTML pages in .mockups/flows/<flow-name>/, with prev/next chrome and an index.html navigator. For signup, checkout, onboarding, recovery, and other multi-screen journeys that need sign-off before implementation."
+        },
+        {
+          "name": "palette",
+          "path": "plugins/ux-ui-design/skills/palette",
+          "description": "Generate the project's design-system mockup — color palette, typography scale, and a reusable tokens.css — as HTML preview pages in .mockups/design-system/. Produces multiple palette + type options for the user to pick, then locks the chosen tokens. Run before screens/flows so all mocks share a coherent visual language."
+        }
+      ]
     }
   ]
 }

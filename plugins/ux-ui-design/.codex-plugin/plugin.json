@@ -1,0 +1,19 @@
+{
+  "name": "ux-ui-design",
+  "version": "0.1.0",
+  "description": "HTML/CSS/JS mockup-first UI/UX design. Generate multi-option screen mockups, multi-page user flows, and design-system palettes as throwaway single-file mockups in .mockups/ for alignment before implementation. Loosely integrates with agile-workflow.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "UX / UI Design",
+    "shortDescription": "Mockup-first UI/UX design in HTML/CSS/JS",
+    "longDescription": "Four skills for design-phase UI/UX work: ux-ui-principles (auto-loading reference + CLAUDE.md installer), screens (4-option single-screen mockups), flows (multi-page user journeys for sign-off), palette (color + typography design system). All outputs are standalone single-file HTML mockups in .mockups/ — throwaway artifacts that align design decisions before implementation, loosely integrated with agile-workflow item ids.",
+    "developerName": "nklisch",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/nklisch/skills"
+  }
+}
