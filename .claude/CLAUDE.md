@@ -16,7 +16,7 @@ Each plugin ships **two parallel manifests**, kept in lockstep:
 - `plugins/<name>/.claude-plugin/plugin.json` — for Claude Code (`/plugin install`).
 - `plugins/<name>/.codex-plugin/plugin.json` — for OpenAI Codex CLI (`codex plugin marketplace add`).
 
-The root `.claude-plugin/marketplace.json` uses the explicit-source-object shape (`source: { source: "local", path: "..." }`) plus `policy` + `category`. Codex officially reads this file as an alternative marketplace location, so both ecosystems install from the same git tree.
+The root `.claude-plugin/marketplace.json` uses the legacy string-path shape for local plugins (`"source": "./plugins/<name>"`) plus `policy` + `category`. Claude Code does NOT support the object shape `{ "source": "local", "path": "..." }` — only `github`, `url`, `git-subdir`, and `npm` are valid object-form source types. Codex reads this file as an alternative marketplace location, so both ecosystems install from the same git tree.
 
 **Cross-vendor surface (works in both):** SKILL.md files (open Agent Skills standard at agentskills.io), `skills/` directory, marketplace.json entries.
 
@@ -59,6 +59,6 @@ When creating a new plugin (a new directory under `plugins/`), register it in **
 1. **`plugins/<name>/.claude-plugin/plugin.json`** — Claude Code plugin manifest.
 2. **`plugins/<name>/.codex-plugin/plugin.json`** — Codex plugin manifest. Same `version` as the Claude manifest. Must declare `"skills": "./skills/"` explicitly (Codex does not auto-discover) and an `interface` block for marketplace presentation.
 3. **`tap.json`** — so skilltap users can discover and install its skills.
-4. **`.claude-plugin/marketplace.json`** — so Claude Code and Codex marketplace users can install the plugin. Add an entry with `name`, `source: { source: "local", path: "./plugins/<name>" }`, `description`, `category`, and `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }`.
+4. **`.claude-plugin/marketplace.json`** — so Claude Code and Codex marketplace users can install the plugin. Add an entry with `name`, `"source": "./plugins/<name>"` (string form — the object form `{ source: "local", ... }` is NOT supported by Claude Code), `description`, `category`, and `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }`.
 
 Verify all four files reference the new plugin before considering the plugin shippable.
