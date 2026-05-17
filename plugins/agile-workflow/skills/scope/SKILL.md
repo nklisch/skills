@@ -262,21 +262,30 @@ the locked-in direction:
 For large scope, the answers here directly inform the foundation-doc
 roll-forward in Phase 4.
 
-### Phase 1.8: UI surface flag (optional — runs when ux-ui-design is installed)
+### Phase 1.8: UI surface alignment (runs when ux-ui-design is installed)
 
-If the `ux-ui-design` plugin is installed and the idea you're scoping has UI
-surface, flag it now so downstream design family runs the mockup pass.
+Per the tier rule in `ux-ui-principles` (mock at the highest tier where it
+can land), scope-tier locks the design system and any clear cross-feature
+journey before the item is written.
 
-- **Large scope + UI** → note in `## Strategic decisions` that the design
-  system needs to be locked in early (the implementer can invoke
-  `/ux-ui-design:palette` during the foundation-doc roll-forward in Phase 4
-  if it isn't already locked).
-- **Medium scope + UI surface that's net-new or novel** → no immediate action
-  here, but tag the resulting feature item with `[ui]` (or note in the body)
-  so `feature-design`'s Phase 4.6 picks it up.
-- **Small scope or no UI** → skip; mockups would be overhead.
+- **Large scope + UI (epic-shaped)** →
+  1. If `.mockups/design-system/tokens.css` does NOT exist, invoke
+     `/ux-ui-design:palette` during the Phase 4 roll-forward.
+  2. If the idea spans a multi-screen journey that's already clear (signup,
+     onboarding, checkout, recovery), invoke `/ux-ui-design:flows
+     <flow-name>`. Reference the path under `## Strategic decisions` so
+     `epic-design` Phase 4.6 inherits it.
 
-Skip this phase if `ux-ui-design` is not installed — loose coupling.
+  Screen-level mocks belong to `epic-design` once the decomposition exists.
+
+- **Medium scope (feature) + UI surface that's net-new or novel** → tag the
+  feature `[ui]` and note the surface in the body. Mocking happens at
+  whichever tier picks it up next — `epic-design` if there's an epic parent,
+  `feature-design` otherwise.
+
+- **Small scope or no UI** → skip.
+
+Skip this phase if `ux-ui-design` is not installed.
 
 Then proceed to Phase 2.
 
@@ -346,6 +355,11 @@ For each affected doc:
 2. Edit the relevant sections to reflect the **new present** — extend, replace, restructure as needed
 3. **Do NOT add "previously" notes, "in v1.x", or migration prose.** Git carries
    history; the doc carries truth (rolling-foundation principle)
+
+**Design-system lock-in (UI-bearing large scope only).** If Phase 1.8 flagged
+palette or a flow, invoke `/ux-ui-design:palette` and/or
+`/ux-ui-design:flows <flow-name>` here. The locked mocks ship in the same
+roll-forward commit and are inherited by `epic-design` Phase 4.6.
 
 ### Phase 5: Write the item file
 

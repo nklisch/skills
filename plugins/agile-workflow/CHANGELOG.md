@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.6.1 — UI/UX alignment promoted to scope/epic tier
+
+Shifts where `ux-ui-design` mockups get produced. Epic-design Phase 4.6 is
+now the PRIMARY mockup tier and errs on the side of mocking; feature-design
+is the FALLBACK, used only for minor surfaces not covered upstream. The
+`--only-questions` modes always run the mockup pass — they're the visual
+alignment gate, not just the textual one.
+
+- **`epic-design`** Phase 4.6 — primary mockup tier: palette + screens
+  (for every net-new surface) + flows (for every journey). Under
+  autopilot, defers with a `## UI alignment deferred` note. Child feature
+  template now carries `## Mockups` for inheritance.
+- **`epic-design --only-questions`** — mockup pass added to the workflow.
+- **`feature-design`** Phase 4.6 — fallback tier. Inherits parent-epic
+  mocks by reference; only invokes ux-ui-design for surfaces upstream
+  missed.
+- **`feature-design --only-questions`** — Phase 4.6 added with the same
+  fallback rules.
+- **`scope`** Phase 1.8 — large-scope + UI actively invokes `:palette`
+  during the Phase 4 roll-forward and `:flows` for cross-feature
+  journeys clear at scope time.
+- **`ux-ui-design:ux-ui-principles`** — new "Where in the workflow to mock"
+  section encoding the tier ordering; description rewritten in ALWAYS
+  style to match agile-workflow conventions.
+
 ## v0.4.3 — orchestrator becomes default, scope-driven, cross-feature
 
 Shifts the routing for `stage: implementing` work so the orchestrator is the

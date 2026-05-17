@@ -6,12 +6,14 @@ description: >
   Designs a feature at stage:drafting in the agile-workflow substrate. Reads the
   feature item, grounds in foundation docs and codebase, produces a detailed design
   WRITTEN INTO THE FEATURE'S BODY (not as a separate doc), spawns child story files
-  with declared depends_on chains, and advances stage drafting -> implementing. Use
-  for greenfield feature design — features without [refactor] or [perf] tags. For
-  [refactor] use /agile-workflow:refactor-design; for [perf] use
-  /agile-workflow:perf-design. For decomposing an epic into child features use
-  /agile-workflow:epic-design. Triggers on "design this feature", "design <id>",
-  "let's design", "flesh out this feature", "draft the design for X".
+  with declared depends_on chains, and advances stage drafting -> implementing. UI/UX
+  mockups are FALLBACK here — Phase 4.6 inherits from the parent epic and only
+  invokes ux-ui-design for minor surfaces not covered upstream. Use for greenfield
+  feature design — features without [refactor] or [perf] tags. For [refactor] use
+  /agile-workflow:refactor-design; for [perf] use /agile-workflow:perf-design. For
+  decomposing an epic into child features use /agile-workflow:epic-design. Triggers
+  on "design this feature", "design <id>", "let's design", "flesh out this feature",
+  "draft the design for X".
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
 ---
 
@@ -82,10 +84,14 @@ For each feature in the target set:
 3. **Map the codebase lightly** — one Task-tool Explore sub-agent is enough
    to surface the area the feature touches. Skip the full three-agent
    parallel sweep used in the default mode; you're not designing units.
-4. **Surface ambiguities** — run Phase 4.5 as written above, but always in
+4. **Run Phase 4.6 (UI surface fallback)** when `ux-ui-design` is installed
+   — same rules as default mode (inheritance check, mock only when
+   upstream coverage is missing). Most ask-questions runs find the parent
+   epic already mocked and skip here.
+5. **Surface ambiguities** — run Phase 4.5 as written above, but always in
    the interactive branch (use `AskUserQuestion`). Do not resolve with
    judgment — the whole point of this mode is to capture user answers.
-5. **Capture answers** — append (or merge into existing) `## Design
+6. **Capture answers** — append (or merge into existing) `## Design
    decisions` in the feature body:
    ```markdown
    ## Design decisions
@@ -94,10 +100,10 @@ For each feature in the target set:
    If the section already exists, merge — don't duplicate previously
    answered questions, and don't overwrite prior answers without flagging
    the conflict to the user.
-6. **Do NOT** spawn child stories, write the design body, or advance the
+7. **Do NOT** spawn child stories, write the design body, or advance the
    stage. The feature stays at `stage: drafting` so the design family can
    pick it up later.
-7. **Commit per feature**:
+8. **Commit per feature**:
    ```bash
    git add .work/active/features/<id>.md
    git commit -m "feature-design --only-questions: <id>"
@@ -204,30 +210,33 @@ The exception under autopilot: a 50/50 between two large irreversible choices
 (e.g., SQL vs document store). Append a `## Blocker` section and return
 without advancing — autopilot will skip and surface the blocker.
 
-### Phase 4.6: UI surface check (optional — runs when ux-ui-design is installed)
+### Phase 4.6: UI surface fallback (runs when ux-ui-design is installed)
 
-If the `ux-ui-design` plugin is installed (skill `ux-ui-design:ux-ui-principles`
-is available), check whether this feature has UI surface that warrants a mockup
-pass BEFORE you design the implementation units.
+This is the **fallback** mockup tier per `ux-ui-principles`. Epic-design
+Phase 4.6 is primary; this phase exists to catch surfaces it didn't cover.
 
-Decision rule (the principles skill carries the full matrix):
+**Inheritance check first.** Read the parent epic body for a `## Mockups`
+section and check `.mockups/screens/<this-feature-id>/` and
+`.mockups/flows/` for existing mocks. If coverage exists, copy those paths
+into this feature's `## Mockups` section and **skip the rest of this
+phase**. Do not re-mock.
 
-- **Net-new UI surface, or composition that doesn't reuse existing patterns
-  cleanly** → invoke `/ux-ui-design:screens <feature-id>` and have the user
-  align on a direction. Reference the chosen mock in the design body's
-  Implementation Units section so unit-level decisions inherit it.
-- **Multi-screen flow under this feature** → invoke `/ux-ui-design:flows
-  <flow-name>`.
-- **Feature reuses existing components/patterns** → skip; the existing
-  pattern IS the mock.
+**Fallback only when upstream coverage is missing** — i.e. there's no
+parent epic, the epic body shows a `## UI alignment deferred` note, OR a
+genuinely-new surface emerged after epic-design ran. Then:
+
+- **Net-new screen** → `/ux-ui-design:screens <feature-id>`.
+- **Multi-screen flow tighter than the feature** → `/ux-ui-design:flows
+  <flow-name>` (rare).
+- **Minor composition reusing existing patterns** → skip; note the
+  feature inherits from `<epic-id>`'s mocks.
 - **No UI surface** → skip.
 
-When mocks are produced, the `screens`/`flows` skills will add a `## Mockups`
-section to this feature's body automatically. Reference those paths from the
-implementation units you design in Phase 5.
+If prominent UI surface is missing both coverage AND a deferred note, the
+epic-design tier should have caught it. Proceed with the fallback mock
+and flag the discrepancy in the run output.
 
-Skip this phase entirely if `ux-ui-design` is not installed — it's loose
-coupling, not a hard dependency.
+Skip this phase entirely if `ux-ui-design` is not installed.
 
 ### Phase 5: Design the units
 
@@ -390,6 +399,10 @@ In conversation:
 
 - The design lives in the feature's body. NEVER create `docs/designs/<name>.md` —
   that's a workflow-plugin pattern; agile-workflow uses item-IS-the-work.
+- **UI/UX mockups are FALLBACK here.** Check the parent epic body for
+  `## Mockups` first; reference and skip. Only mock at this tier for
+  genuinely-new surfaces the parent epic didn't cover, and flag the
+  upstream gap rather than silently back-filling.
 - Specify types and signatures EXACTLY. Vague descriptions become guesses during
   implementation, and guesses become bugs.
 - Design error handling explicitly. Undesigned error paths are the #1 source of
