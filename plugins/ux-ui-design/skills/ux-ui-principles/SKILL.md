@@ -1,14 +1,16 @@
 ---
 name: ux-ui-principles
 description: >
-  Reference for the mockup-first UI/UX design convention. Auto-loads when designing,
-  proposing, mocking, or reviewing user interfaces; when invoking screens / flows /
-  palette skills; or when any other workflow (agile-workflow, workflow design,
-  feature-design, epic-design, ideate, scope) reaches a UI surface decision. Carries
-  the storage layout (.mockups/{design-system,screens,flows}/), the required vs
-  optional vs skip matrix, the linking convention to agile-workflow items, and the
-  single-file HTML/CSS/JS tech rule. Also installs the rule into the project's
-  CLAUDE.md on first invocation (with confirmation).
+  ALWAYS load this skill when designing, proposing, mocking, or reviewing user
+  interfaces; when invoking screens / flows / palette; or when any other workflow
+  (agile-workflow, workflow design, feature-design, epic-design, ideate, scope)
+  reaches a UI surface decision — do not start mocking inline. Reference for the
+  mockup-first UI/UX design convention. Carries the storage layout
+  (.mockups/{design-system,screens,flows}/), the REQUIRED vs OPTIONAL vs SKIP
+  decision matrix, the tier-ordering rule (scope/epic primary, feature fallback),
+  the linking convention to agile-workflow items, and the single-file HTML/CSS/JS
+  tech rule. Also installs the rule into the project's CLAUDE.md on first
+  invocation (with confirmation).
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
@@ -100,8 +102,10 @@ that `screens`, `flows`, and `palette` all use.
 - Epics whose scope spans multiple screens or a multi-step user flow
 
 **OPTIONAL** (use judgment):
-- Feature-level UI that reuses existing components and patterns — mock only
-  if the composition is novel or ambiguous
+- Minor feature-level UI extensions that reuse existing components and
+  patterns and weren't anticipated at the epic-design tier — mock only if
+  the composition is novel or ambiguous and a parent-tier mock doesn't
+  already pin direction
 - Visual refactors that change look but not structure
 
 **SKIP:**
@@ -113,6 +117,23 @@ that `screens`, `flows`, and `palette` all use.
 
 When unsure, default to mocking the higher-value variant: a 10-minute screen
 mock is cheap insurance against a misaligned implementation.
+
+## Where in the workflow to mock — tier ordering
+
+**Mock at the highest tier where it can land.** Mocks are cheap;
+re-aligning implemented code because direction wasn't pinned at the right
+tier is not.
+
+1. **Scope** — locks palette and any cross-feature journey clear at scope
+   time for large (epic-shaped) UI work.
+2. **Epic-design — primary.** Mocks every net-new screen and multi-step
+   journey across the decomposition. Err on the side of mocking here;
+   don't defer minor surfaces "just in case".
+3. **Feature-design — fallback.** References parent-epic mocks and
+   skips when coverage exists. Mocks only genuinely-minor surfaces that
+   weren't anticipated upstream.
+4. **`--only-questions` gates ALWAYS run the mockup pass.** Those modes
+   are the visual alignment gate, not just the textual one.
 
 ## Linking to agile-workflow items
 
@@ -207,17 +228,16 @@ the rule"), then proceeds.
 
 ## When other workflows call this skill
 
-The agile-workflow design family (`epic-design`, `feature-design`) and the
-project-definition skills (`ideate`, `scope`) call into this plugin when
-they hit a UI surface decision. Their typical pattern:
+Per the tier-ordering rule above:
 
-1. They detect a UI-shaped decision in front of them.
-2. They check this skill's decision matrix (above).
-3. If REQUIRED or OPTIONAL-and-they-judge-yes, they invoke
-   `/ux-ui-design:screens` or `/ux-ui-design:flows` or
-   `/ux-ui-design:palette` directly.
-4. They reference the resulting mock paths in the design body they're
-   writing.
+- **`scope`** — large-scope UI: invokes `/ux-ui-design:palette` and
+  `/ux-ui-design:flows` for cross-feature journeys clear at scope time.
+- **`epic-design`** — primary tier. Invokes palette + screens + flows
+  across the decomposition. `--only-questions` always runs this pass.
+- **`feature-design`** — fallback. Inherits from the parent epic;
+  invokes screens/flows only for minor surfaces not covered upstream.
+- **`ideate`** — recommends `/ux-ui-design:palette` after foundation
+  docs for UI-bearing projects.
 
 The plugin is **loosely** coupled — agile-workflow runs fine without it;
 this plugin runs fine without agile-workflow. The link is only the path

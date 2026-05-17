@@ -71,15 +71,19 @@ behind-the-scenes refactors.
 
 ## Integration with agile-workflow (loose)
 
-When `agile-workflow` is also installed, the design family skills check the
-matrix and call into `ux-ui-design` automatically:
+When `agile-workflow` is also installed, the design family skills follow a
+**tier-ordering rule** — mock at the highest tier where it can land:
 
-- `agile-workflow:epic-design` — locks design-system tokens via `:palette` at
-  epic decomposition; invokes `:flows` for multi-screen journeys.
-- `agile-workflow:feature-design` — runs `:screens` for net-new UI features.
-- `agile-workflow:scope` — flags UI surface during scope.
-- `agile-workflow:ideate` — recommends running `:palette` after foundation
-  docs for UI projects.
+- `agile-workflow:scope` — large UI scope: invokes `:palette` and `:flows`
+  for cross-feature journeys clear at scope time.
+- `agile-workflow:epic-design` — **primary tier.** Invokes palette +
+  screens + flows across the decomposition. `--only-questions` always
+  runs this pass.
+- `agile-workflow:feature-design` — **fallback.** Inherits parent-epic
+  mocks; only invokes `:screens`/`:flows` for minor surfaces not covered
+  upstream.
+- `agile-workflow:ideate` — recommends `:palette` after foundation docs
+  for UI projects.
 
 When mocks are generated for a substrate item, a `## Mockups` section is added
 to the item body pointing at the relevant paths. Linking is via path
