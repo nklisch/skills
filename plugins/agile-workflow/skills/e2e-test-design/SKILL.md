@@ -208,6 +208,24 @@ Every test in the design must:
 
 Reference `references/anti-tautology.md` for the full pattern catalog.
 
+#### 5d. Test-integrity rules baked into the design
+
+The design must teach implementers how to handle failures honestly:
+
+- **Park production bugs, don't hide them.** If a test the design specs
+  will fail because the product is genuinely broken, the implementer
+  parks the bug via `/agile-workflow:park`, lands the failing test with
+  a `skip`/`xfail` linked to the backlog id and a one-line reason, and
+  proceeds. The failing test is a feature, not a defect.
+- **Fix bad tests in-session.** Stale fixtures, drifted assertions,
+  drifted mocks — repair as part of the stride.
+- **Never game an assertion to make it pass.** No
+  `expect(true).toBe(true)`, no asserting on whatever the code happens
+  to return now, no deleting a flaky test without root-causing.
+
+Cite this section in each child story's body so it's repeated where the
+implementer reads it.
+
 #### 5d. Design each unit
 
 For each test unit, specify:
@@ -468,3 +486,8 @@ git commit -m "e2e-test-design --audit: <N> findings (gate=<version>)"
   audit mode) or `null`. Never invent values.
 - Don't pre-populate stages beyond `implementing` on child stories. Stages
   advance through actual work.
+- **Test integrity is part of the design contract.** Each child story's
+  body must restate Phase 5d's rules so the implementer reads them at
+  authoring time, not just at gate time: park production bugs, fix bad
+  tests, never game an assertion. A green suite that lies is worse than
+  a red suite that documents what's broken.

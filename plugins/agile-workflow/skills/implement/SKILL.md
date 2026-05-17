@@ -159,6 +159,25 @@ should see the design AND what actually happened.
 
 Don't claim done if tests don't pass. A known gap reported is better than a hidden one.
 
+#### Test integrity
+
+When tests fail during verification, classify each failure before reacting:
+
+- **Bad test** (stale fixture, drifted assertion, broken mock, outdated
+  snapshot) → fix in-session. Repairing the suite is part of the stride.
+- **Real production bug** surfaced by the test → park it via
+  `/agile-workflow:park` with a short repro. Do NOT silently fix mid-pass.
+  Once the suite is green, if the parked bug is small enough for a single
+  stride, pick it up immediately with `/agile-workflow:scope` → design →
+  implement. Larger bugs stay in backlog for prioritization.
+- **Pre-existing flake or unrelated regression** → park it. Don't bundle.
+
+NEVER game a test to make it pass. A failing test that documents *why* it
+fails (inline comment, `skip` linked to a backlog id, `xfail` with reason)
+is more honest than a green test that lies. No `expect(true).toBe(true)`,
+no asserting on whatever the code happens to return, no deleting a test
+as "flaky" without root-causing first.
+
 ### Phase 9: Advance stage and commit
 
 1. Edit the item's frontmatter: `stage: implementing → review`. PostToolUse hook
@@ -192,3 +211,5 @@ In conversation:
   `## Implementation discovery` section, set stage back to `drafting`, and
   return. The design family will pick it up on the next pass.
 - Adjacent issues you notice get parked via `/agile-workflow:park`, not bundled.
+- Test integrity is non-negotiable. Fix bad tests in-session; park real
+  production bugs; never make a test pass just to make it pass.

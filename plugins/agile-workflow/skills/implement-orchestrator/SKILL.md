@@ -215,7 +215,18 @@ For each story to spawn an agent for, write a self-contained prompt with:
 10. **Commit instruction** — "After build and tests pass, commit with message
     `implement: <story-id>`. Do NOT push."
 
-11. **Emotional framing** — pride in craft, permission to report blockers,
+11. **Test integrity** — "When tests fail during verification: fix bad
+    tests (stale fixtures, drifted assertions, broken mocks) in-session.
+    Park real production bugs via `/agile-workflow:park` instead of
+    silently fixing mid-pass. Park pre-existing flakes too — don't bundle.
+    NEVER game a test to make it pass. A failing test that documents *why*
+    it fails (inline comment naming the bug, `skip` linked to a backlog
+    id, `xfail` with reason) is more honest than a green test that lies.
+    No `expect(true).toBe(true)`, no asserting on whatever the code
+    happens to return, no deleting a test as 'flaky' without root-causing
+    first."
+
+12. **Emotional framing** — pride in craft, permission to report blockers,
     quality as aspiration not threat. Avoid pressure language.
 
 ### Phase 6: Spawn agents (per wave)
@@ -330,3 +341,9 @@ In conversation:
   individual agents. Agents only manage their own item files. And only
   advance a parent whose children are *all* at `review` or terminal — partial
   parents stay at `implementing`.
+- **Test integrity** is reinforced in every agent prompt and again at your
+  post-wave verification (Phase 7). If an agent's commit silenced a test
+  to make it pass — deletion, broad skip, `expect(true).toBe(true)`,
+  asserting on whatever the code now returns — treat that as a blocker:
+  revert or fix yourself, and surface it in the run summary. Real
+  production bugs surfaced during verification get parked, not bundled.

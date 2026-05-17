@@ -128,6 +128,19 @@ for separate consideration — don't bundle.
 
 If any step fails, return to diagnosis. Do not ship a fix you can't confirm works.
 
+**Test integrity during Phase 6.** If running the full suite surfaces
+*other* failing tests:
+
+- Bad tests (stale fixtures, drifted assertions, broken mocks) → fix
+  in-session if the fix is small and scoped to this bug's surface area;
+  otherwise park.
+- Pre-existing real production bugs → park via `/agile-workflow:park`.
+  Do NOT bundle them into this fix's commit; this skill is for *one*
+  bug.
+- NEVER make a test pass by weakening its assertion or silencing it
+  without a documented reason. The regression test you wrote in Phase 3
+  must verify behavior, not "whatever the code returns now".
+
 ### Phase 7: Advance to review and commit
 
 1. Update story stage: `implementing → review`. The PostToolUse hook auto-bumps `updated:`.

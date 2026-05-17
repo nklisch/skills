@@ -1,14 +1,15 @@
 ---
 name: convert
 description: >
-  Bootstrap the agile-workflow substrate in a project. Detects the project's current
-  shape (workflow-plugin / ad-hoc / no-tracking / greenfield), seeds initial items
-  from any source layout, writes the .claude/rules/agile-workflow.md navigation rules,
-  runs the conventions interview to populate .work/CONVENTIONS.md, copies the work-view
-  script into .work/bin/, appends the agile-workflow section to CLAUDE.md (with
-  idempotency markers), produces MIGRATION_REPORT.md, and commits everything as a
-  single revertible commit. Idempotent via --update for plugin upgrades. User-invocable
-  only — substrate bootstrap is consequential and interactive.
+  Bootstrap or sync the agile-workflow substrate in a project. Detects current repo
+  state (no substrate / partially set up / fully set up) and auto-routes: bootstrap
+  mode for fresh projects (creates .work/ skeleton + CONVENTIONS.md + rules file +
+  CLAUDE.md section + migration based on detected source shape), sync mode for
+  projects that already have the substrate (refreshes plugin-shipped artifacts —
+  CLAUDE.md section, .claude/rules/agile-workflow.md, .work/bin/work-view — while
+  preserving user-owned CONVENTIONS.md and substrate state, and reports drift).
+  Idempotent — re-running on a healthy project is a no-op sync. User-invocable only
+  since substrate work is consequential and interactive.
 user-invocable: true
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
@@ -16,18 +17,23 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 
 # Convert
 
-You bootstrap the `.work/` substrate in a target project, migrating from whatever
-tracking shape exists today (or starting empty for greenfield). The full migration
-matrix is specified in `docs/MIGRATION.md` of the agile-workflow plugin source.
+You bootstrap OR sync the `.work/` substrate in a target project. Plain `convert`
+inspects the current repo and auto-routes:
+
+- **Bootstrap** — no substrate yet. Migrate from whatever tracking shape exists
+  (or seed empty for greenfield). Full migration matrix in `docs/MIGRATION.md`.
+- **Sync** — substrate exists. Refresh plugin-shipped artifacts so a project
+  picks up plugin upgrades. Preserves all user content.
 
 ## Arguments
 
-- `convert` — full bootstrap on a project (creates `.work/` skeleton + CONVENTIONS.md +
-  rules file + CLAUDE.md addition + migration based on detected shape)
-- `convert --update` — refresh plugin-shipped artifacts (rules file, work-view script,
-  CLAUDE.md section). Preserves user-owned `.work/CONVENTIONS.md` and substrate state.
-- `convert --shape <shape>` — force a specific detection (`workflow-plugin`, `ad-hoc`,
-  `no-tracking`, `greenfield`)
+- `convert` — auto-detect mode (recommended). Bootstraps if no substrate is
+  present, otherwise syncs plugin artifacts and reports drift.
+- `convert --update` — explicit sync. Identical to auto-sync; useful in scripts
+  or when you want to assert intent.
+- `convert --shape <shape>` — force a specific source shape for bootstrap
+  (`workflow-plugin`, `ad-hoc`, `no-tracking`, `greenfield`). Errors if the
+  substrate already exists — remove `.work/` first to force a re-bootstrap.
 
 ## Workflow
 
@@ -38,15 +44,40 @@ matrix is specified in `docs/MIGRATION.md` of the agile-workflow plugin source.
    > foundation docs, then re-run `/agile-workflow:convert`."
 2. Verify CWD is a git repo. If not, ask: "This isn't a git repo. agile-workflow's
    substrate relies on git for the audit trail. Run `git init` first?"
-3. Verify `.work/` doesn't already exist. If it does:
-   - If `--update`: proceed to update mode
-   - Otherwise: halt with "Substrate already bootstrapped. Use `convert --update` to
-     refresh plugin artifacts, or remove `.work/` first if you want to re-bootstrap."
-4. **Check for in-flight working-tree work.** Run `git status --porcelain` and
-   note the count of changed/untracked files. If > 5, this is a "dirty repo
-   bootstrap" — uncommitted work needs to be captured into the substrate
-   alongside the migration, otherwise autopilot will have nothing to drain
-   right after bootstrap. See Phase 8.5 for capture handling.
+
+### Phase 1.5: Detect run mode
+
+Compute substrate health by checking these markers:
+
+| Marker | What to check |
+|---|---|
+| `substrate_root` | `.work/` directory exists |
+| `conventions` | `.work/CONVENTIONS.md` exists |
+| `rules_file` | `.claude/rules/agile-workflow.md` exists |
+| `claude_md_section` | `CLAUDE.md` exists AND contains `<!-- agile-workflow:start -->` |
+| `work_view` | `.work/bin/work-view` exists and is executable |
+
+Route on the result:
+
+| Condition | Mode | Notes |
+|---|---|---|
+| `--shape` was passed AND `substrate_root` is false | **bootstrap** | Forced source-shape bootstrap. |
+| `--shape` was passed AND `substrate_root` is true | halt | "Substrate already bootstrapped at `.work/`. Remove it first to force a re-bootstrap, or drop `--shape` to sync." |
+| `--update` was passed AND `substrate_root` is false | halt | "No substrate found. Run `convert` (without `--update`) to bootstrap." |
+| `--update` was passed AND `substrate_root` is true | **sync** | Explicit sync. |
+| No args AND `substrate_root` is false | **bootstrap** | Standard fresh project flow. |
+| No args AND `substrate_root` is true | **sync** | Auto-sync. Log the decision: "Substrate detected at `.work/` — running in sync mode. Use `--shape` after removing `.work/` if you want a re-bootstrap." |
+
+When in **sync mode**, jump to the Sync Workflow section below. Otherwise
+continue with Phase 2.
+
+### Phase 1.6 (bootstrap only): Check for in-flight working-tree work
+
+Run `git status --porcelain` and note the count of changed/untracked files.
+If > 5, this is a "dirty repo bootstrap" — uncommitted work needs to be
+captured into the substrate alongside the migration, otherwise autopilot
+will have nothing to drain right after bootstrap. See Phase 8.5 for
+capture handling.
 
 ### Phase 2: Detect project shape
 
@@ -137,6 +168,28 @@ Detailed navigation rules in `.claude/rules/agile-workflow.md` (auto-loaded
 when editing `.work/` or `docs/`). Foundation docs in `docs/` describe the
 system NOW — never add legacy notes; git history is the audit trail.
 
+### Test integrity
+
+When running, writing, or modifying tests:
+
+- **File real production bugs as backlog items.** When a test failure
+  surfaces an actual product bug (not a stale fixture, drifted assertion,
+  or broken mock), park it via `/agile-workflow:park` instead of silently
+  fixing it inline mid-test-pass. The backlog item is the audit trail.
+- **Fix bad tests in-session.** Stale fixtures, drifted assertions, broken
+  mocks, and outdated snapshots are test debt, not product bugs. Repair
+  them as you go so the suite stays meaningful.
+- **Then drain small backlog bugs with a full pass.** Once tests are
+  green again, if a parked production bug is small enough for a single
+  stride, pick it up immediately as `/agile-workflow:scope` → design →
+  implement. Larger bugs stay in backlog for prioritization.
+- **NEVER game a test to make it pass.** A failing test that documents
+  *why* it fails — an inline comment naming the bug, a `skip` linked to a
+  backlog id, an `xfail` with a reason — is more honest than a green test
+  that lies. No `expect(true).toBe(true)`, no asserting on whatever the
+  code happens to return, no deleting a test as "flaky" without
+  root-causing first.
+
 Slash commands (user-invokable):
 `/agile-workflow:ideate`, `/agile-workflow:epicize`,
 `/agile-workflow:autopilot`, `/agile-workflow:release-deploy`.
@@ -222,7 +275,7 @@ epics from the foundation docs.
 
 ### Phase 8.5: Capture in-flight working-tree work
 
-Skip if Phase 1's `git status --porcelain` count was ≤ 5 (small changes go
+Skip if Phase 1.6's `git status --porcelain` count was ≤ 5 (small changes go
 into the bootstrap commit itself).
 
 Otherwise, capture the in-flight code as substrate items so autopilot has
@@ -261,28 +314,84 @@ git commit -m "chore: bootstrap agile-workflow substrate"
 User reverts via `git revert HEAD` if anything looks wrong. Source files are
 preserved across all paths.
 
-## --update mode
+## Sync Workflow
 
-When invoked with `--update`:
+Entered via auto-detection when `.work/` exists, or explicitly via `--update`.
+Non-destructive — refreshes plugin-shipped artifacts and reports drift.
 
-1. Verify substrate exists. If not, halt: "No substrate found. Run `convert` (without
-   --update) first."
-2. Refresh:
-   - `.claude/rules/agile-workflow.md` — overwrite with current plugin's version
-   - `.work/bin/work-view` — overwrite with current plugin's script
-   - The CLAUDE.md section between markers — overwrite
-3. Preserve untouched:
-   - `.work/CONVENTIONS.md`, all of `.work/active/`, `.work/backlog/`, `.work/releases/`,
-     `.work/archive/`
-   - The rest of CLAUDE.md outside the markers
-4. If the user has manually edited inside the CLAUDE.md markers, show the diff and ask
-   before overwriting.
-5. Commit:
+### Phase S1: Audit substrate health
+
+Re-use the marker checks from Phase 1.5 plus deeper checks:
+
+- All five markers (`substrate_root`, `conventions`, `rules_file`,
+  `claude_md_section`, `work_view`) — present or missing
+- For each plugin-shipped artifact that IS present, compare its content against
+  the version in the current plugin source:
+  - `.claude/rules/agile-workflow.md` vs the plugin's canonical rules content
+  - `.work/bin/work-view` vs `${CLAUDE_PLUGIN_ROOT}/scripts/work-view.sh`
+  - The CLAUDE.md section between `<!-- agile-workflow:start -->` /
+    `<!-- agile-workflow:end -->` vs the canonical template in Phase 7
+
+Classify each artifact as one of:
+
+| State | Meaning |
+|---|---|
+| `match` | Installed bytes match the plugin's current canonical version. No-op. |
+| `drift_plugin` | Installed version differs because the plugin moved forward. Refresh. |
+| `drift_user` | Installed version differs because the user edited it. Ask. |
+| `missing` | Marker absent. Install fresh. |
+
+Heuristic for `drift_plugin` vs `drift_user` on the CLAUDE.md section: if the
+installed text matches a known prior plugin release's template (recognisable
+shape, just older content), assume `drift_plugin`. Otherwise treat as
+`drift_user` and ask.
+
+### Phase S2: Plan the sync
+
+Produce a per-artifact plan: what's `match` (skip), what's `drift_plugin`
+(auto-refresh), what's `drift_user` (ask before overwriting), what's `missing`
+(install).
+
+If every artifact is `match`, the sync is a true no-op — log "Substrate already
+up to date. No changes." and return without committing.
+
+If anything would change, summarise the plan and (when running interactively)
+confirm before applying.
+
+### Phase S3: Apply refreshes
+
+For each artifact with a non-`match` state:
+
+- `.claude/rules/agile-workflow.md` — overwrite with the plugin's current
+  rules-file content (full template from ARCHITECTURE.md, see Phase 6)
+- `.work/bin/work-view` — overwrite with the plugin's current script and
+  `chmod +x`
+- CLAUDE.md section between markers — overwrite. If the file lacks markers,
+  append the section. If the file doesn't exist, create it with just the
+  section.
+
+For `drift_user` items, only proceed after the user confirms.
+
+### Phase S4: Preserve user state
+
+These are NEVER touched in sync mode:
+
+- `.work/CONVENTIONS.md` (user-owned)
+- Everything under `.work/active/`, `.work/backlog/`, `.work/releases/`,
+  `.work/archive/`
+- The rest of `CLAUDE.md` outside the markers
+- `MIGRATION_REPORT.md` (a bootstrap artifact; sync never writes it)
+
+### Phase S5: Commit
+
+If any files were rewritten:
 
 ```bash
 git add .claude/rules/agile-workflow.md .work/bin/work-view CLAUDE.md
-git commit -m "chore: agile-workflow plugin update"
+git commit -m "chore: agile-workflow sync"
 ```
+
+Skip the commit entirely if Phase S3 produced no file changes.
 
 ## Output
 
@@ -291,17 +400,27 @@ After bootstrap:
   chosen, next-step recommendation.
 - Point at `MIGRATION_REPORT.md` for the full breakdown.
 
-After --update:
-- One-line confirmation: "Refreshed plugin artifacts. CONVENTIONS.md preserved."
+After sync (auto or `--update`):
+- Per-artifact line: `match` / `refreshed (plugin drift)` / `refreshed (user
+  drift, confirmed)` / `installed (was missing)`.
+- If everything matched: one line — "Substrate already up to date. No changes."
+- If anything changed: one line summary plus the commit sha.
 
 ## Guardrails
 
-- Single-commit migration ALWAYS. No partial states. If anything errors mid-run,
-  rollback (no commit). User can re-run cleanly.
+- **Bootstrap is a single-commit migration ALWAYS.** No partial states. If
+  anything errors mid-run, rollback (no commit). User can re-run cleanly.
 - Source files are preserved across all paths. Convert never deletes user content.
-- The conventions interview is mandatory. No silent inference of release mapping or
-  tag taxonomy.
+- The conventions interview is mandatory in bootstrap mode. No silent inference
+  of release mapping or tag taxonomy.
 - Foundation docs are read-only from convert. They roll forward through `scope`,
   `design`, `implement`, NOT through bootstrap.
-- `--update` never touches user-edited CONVENTIONS.md or substrate state. Refresh is
-  only for plugin-shipped artifacts.
+- **Sync mode never touches user-edited CONVENTIONS.md or substrate state.**
+  Refresh is only for plugin-shipped artifacts.
+- **Sync is non-destructive on user edits.** When an installed artifact looks
+  like a user customisation (not a known prior plugin template), confirm before
+  overwriting. Don't silently clobber.
+- **Sync is idempotent.** Re-running plain `convert` on a healthy, up-to-date
+  project is a true no-op — no commit, no edits, just a status line.
+- Auto-detection is the default. Treat `--update` as documentation of intent,
+  not as a different code path — it routes through the same Sync Workflow.

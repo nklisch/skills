@@ -233,6 +233,24 @@ and returns structured findings.
 > - Prioritize invalid input, error cases, boundary conditions.
 > - Audit only the bundle's items, not the whole repo.
 > - Skip already-tracked.
+>
+> **Test integrity findings** (additional pass — flag and surface as
+> Critical findings):
+> - Tests that make themselves pass without verifying behavior:
+>   `expect(true).toBe(true)`, asserting on the literal return of the
+>   function under test, `assert 1 == 1`, tautological mock-on-mock
+>   assertions.
+> - Tests that were silenced rather than diagnosed: broad `skip` /
+>   `xfail` / `it.todo` with no linked backlog id or written reason.
+> - Tests deleted in the bundle's commits with no replacement coverage
+>   for the same acceptance criterion. (Check `git log` of the bundle.)
+> - Tests whose assertion was rewritten to match new-but-undocumented
+>   behavior — i.e. the test was made to follow the code instead of the
+>   code being made to follow the spec.
+>
+> When you flag a test-integrity finding, also identify whether a real
+> production bug was being silenced. If so, surface BOTH the integrity
+> finding and the underlying-bug finding.
 
 ### Phase 4: Convert findings to items
 
@@ -315,3 +333,7 @@ In conversation:
 - A failing test that exposes a real spec violation is the most valuable
   output. Don't sand it down — surface it as a Critical finding so the
   implementation gets fixed before shipping.
+- **Test-integrity is a first-class concern of this gate.** A test that
+  was made to pass instead of made to fail honestly is worse than a
+  missing test — it lies to every future reviewer. Surface those as
+  Critical findings even when nominal coverage looks complete.
