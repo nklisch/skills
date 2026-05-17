@@ -1,14 +1,17 @@
 ---
 name: feature-design
 description: >
-  Design a feature at stage:drafting in the agile-workflow substrate. Reads the
+  ALWAYS invoke this skill when the user asks to design a feature, flesh out a feature
+  item, or pick up a feature at stage:drafting — do not write design prose inline.
+  Designs a feature at stage:drafting in the agile-workflow substrate. Reads the
   feature item, grounds in foundation docs and codebase, produces a detailed design
   WRITTEN INTO THE FEATURE'S BODY (not as a separate doc), spawns child story files
-  with declared depends_on chains, and advances stage drafting -> implementing.
-  Use for greenfield feature design — features without [refactor] or [perf] tags.
-  For [refactor] use /agile-workflow:refactor-design; for [perf] use
+  with declared depends_on chains, and advances stage drafting -> implementing. Use
+  for greenfield feature design — features without [refactor] or [perf] tags. For
+  [refactor] use /agile-workflow:refactor-design; for [perf] use
   /agile-workflow:perf-design. For decomposing an epic into child features use
-  /agile-workflow:epic-design.
+  /agile-workflow:epic-design. Triggers on "design this feature", "design <id>",
+  "let's design", "flesh out this feature", "draft the design for X".
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
 ---
 

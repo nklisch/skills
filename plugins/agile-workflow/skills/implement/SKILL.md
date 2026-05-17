@@ -1,13 +1,14 @@
 ---
 name: implement
 description: >
-  Inline single-stride implementation of a substrate item at stage:implementing.
-  Reads the design embedded in the item body, writes code per the spec, runs
-  build+tests, advances stage implementing -> review, and updates the item body
-  with implementation notes. /agile-workflow:implement-orchestrator is the default
-  routing for implementing work; this skill is the inline alternative — pick it
-  for small, focused deliveries where spawning a sub-agent wouldn't pay off, or
-  when the user explicitly asks to implement inline.
+  ALWAYS invoke this skill when the user explicitly asks to implement a substrate
+  item inline OR the delivery is tiny (≤ ~50 LoC, ≤ 2 files, no coordination) — for
+  any larger or default implementing work prefer /agile-workflow:implement-orchestrator.
+  Inline single-stride implementation of a substrate item at stage:implementing. Reads
+  the design embedded in the item body, writes code per the spec, runs build+tests,
+  advances stage implementing -> review, and updates the item body with implementation
+  notes. Triggers on "implement this inline", "implement <id> inline", "just do it
+  inline", or a very small explicit delivery.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 ---
 

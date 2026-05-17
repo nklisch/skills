@@ -1,11 +1,13 @@
 ---
 name: park
 description: >
-  Quickly capture an idea into the agile-workflow backlog without disrupting the current
-  conversation. Creates a flat markdown file at .work/backlog/<id>.md with minimal
-  frontmatter and a one-paragraph idea body. Use when a new direction surfaces mid-flow
-  ("park this", "remind me about X", "add to backlog", "we should consider Y") and you
-  shouldn't derail what's currently in progress.
+  ALWAYS invoke this skill when the user wants to capture an idea for later without
+  derailing current work — do not start working on the parked idea inline. Quickly
+  captures an idea into the agile-workflow backlog at .work/backlog/<id>.md with
+  minimal frontmatter and a one-paragraph idea body. Use when a new direction surfaces
+  mid-flow and you shouldn't derail what's currently in progress. Triggers on "park
+  this", "park it", "remind me about X", "add to backlog", "we should consider Y",
+  "save this for later", "let's not lose this".
 allowed-tools: Read, Write, Bash
 ---
 

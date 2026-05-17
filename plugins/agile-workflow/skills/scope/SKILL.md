@@ -1,16 +1,15 @@
 ---
 name: scope
 description: >
-  Promote ideas from .work/backlog/ or fresh user requests into the active tier as
-  epics, features, or stories with declared dependencies. Default invocation with no
-  arg (or `--all`, or a natural-language filter like `scope the auth stuff`) clusters
-  the targeted backlog by code seam and capability arc, proposes a structure, confirms
-  once with the user, and promotes. Single-id (`scope <id>`) and single-idea (`scope
-  <free-form idea>`) invocations also work. For large scope (something that changes
-  vision/spec/architecture), also rolls foundation docs forward in the same stride.
-  Triggers on "scope this", "promote this", "scope the backlog", "cluster the backlog",
-  "let's track this", "this needs to be a feature/epic", or when the user describes a
-  new direction to formalize.
+  ALWAYS invoke this skill when the user asks to scope, promote, formalize, cluster,
+  or track new work — do not start drafting items inline. Promotes ideas from
+  .work/backlog/ or fresh user requests into the active tier as epics, features, or
+  stories with declared dependencies. Use when scoping new work, formalizing a new
+  direction, clustering backlog, or promoting an idea into tracking. Triggers on
+  "scope this", "scope it", "let's scope", "scope <id>", "scope the backlog",
+  "promote this", "let's track this", "this should be a feature/epic/story", or any
+  request to formalize a new direction. For vision/spec/architecture changes, also
+  rolls foundation docs forward in the same stride.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 

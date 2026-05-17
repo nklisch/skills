@@ -1,15 +1,17 @@
 ---
 name: implement-orchestrator
 description: >
-  Default implementation path for items at stage:implementing. Accepts a scope —
-  a feature id, an epic id, --all, or an explicit list of items — builds a
-  unified depends_on graph across that scope (cross-feature is fine), and walks
-  it in waves of up to 3 parallel Sonnet sub-agents. After each wave, verifies
-  integration; after the run, advances every parent feature whose children are
-  all at stage:review. For lone stories or single-story features, runs as a
-  one-agent wave — the prompt-crafting and verification scaffolding still pay
-  for themselves. Use /agile-workflow:implement only for very small deliveries
-  (≤ ~50 LoC, ≤ 2 files, no coordination).
+  ALWAYS invoke this skill when the user asks to implement substrate items, work
+  through items at stage:implementing, or drain the implementation queue — do not
+  call /agile-workflow:implement directly unless the user explicitly says "inline".
+  Default implementation path for items at stage:implementing. Accepts a scope — a
+  feature id, an epic id, --all, or an explicit list of items — builds a unified
+  depends_on graph across that scope (cross-feature is fine), and walks it in waves
+  of up to 3 parallel Sonnet sub-agents. After each wave verifies integration; after
+  the run advances every parent feature whose children are all at stage:review. For
+  lone stories or single-story features, runs as a one-agent wave. Triggers on
+  "implement this feature", "implement <id>", "let's implement", "work the queue",
+  "drain implementing", "implement everything".
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
 ---
 

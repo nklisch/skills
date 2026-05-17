@@ -1,14 +1,16 @@
 ---
 name: review
 description: >
-  Review a substrate item at stage:review. Reads the item's design and implementation
-  notes, runs a code review of the changes, classifies findings (blockers / important /
-  nits), triages findings into items in the substrate (with appropriate tags), and
-  advances the item to done if approved or back to implementing if changes needed.
-  Triggers on items at stage:review or phrases like "review item X", "review this".
-  Autonomous-safe: produces verdicts and files findings as items rather than gating
-  on human acknowledgment, so autopilot can call this directly to drain stage:review
-  items.
+  ALWAYS invoke this skill when the user asks to review a substrate item, when an item
+  is at stage:review, or when the user says "review this" — do not just skim the diff
+  and comment inline. Reviews a substrate item at stage:review. Reads the item's
+  design and implementation notes, runs a code review of the changes, classifies
+  findings (blockers / important / nits), triages findings into items in the substrate
+  (with appropriate tags), and advances the item to done if approved or back to
+  implementing if changes needed. Autonomous-safe: produces verdicts and files
+  findings as items rather than gating on human acknowledgment, so autopilot can call
+  this directly to drain stage:review items. Triggers on "review item X", "review
+  this", "review <id>", "is this ready", "verdict on <id>".
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 ---
 

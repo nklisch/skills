@@ -1,11 +1,14 @@
 ---
 name: research
 description: >
-  Research external libraries, APIs, SDKs, and patterns to inform design and implementation.
-  Investigates options, evaluates trade-offs against project needs, and produces both a
-  research document and an auto-loading reference skill. Use before designing features that
-  depend on unfamiliar technology, when choosing between options, or when API assumptions
-  need verification.
+  ALWAYS invoke this skill when the user asks to research a library, API, SDK, or
+  technology choice — do not just web-search and summarize inline. Researches external
+  libraries, APIs, SDKs, and patterns to inform design and implementation.
+  Investigates options, evaluates trade-offs against project needs, and produces both
+  a research document and an auto-loading reference skill. Use before designing
+  features that depend on unfamiliar technology, when choosing between options, or
+  when API assumptions need verification. Triggers on "research X", "compare X vs Y",
+  "what library should I use for Y", "investigate <api>", "evaluate <sdk>".
 user-invocable: true
 allowed-tools: Read, Write, Glob, Grep, WebSearch, WebFetch, Agent, AskUserQuestion
 ---

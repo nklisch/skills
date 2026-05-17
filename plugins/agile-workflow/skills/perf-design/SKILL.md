@@ -1,15 +1,19 @@
 ---
 name: perf-design
 description: >
-  Two modes. Discovery mode (default with no arg, `--all`, `<path>`, or `<NL scope>`)
-  detects entry points, picks the top 3-5 likely hot paths, profiles them, and emits
-  substrate items per bottleneck. Per-feature mode (default when given a feature id)
-  designs the perf work for an existing `[perf]`-tagged feature at stage:drafting,
-  following the optimization hierarchy (algorithmic > I/O > language idioms >
-  parallelism), produces an implementation plan with benchmark scaffolds written INTO
-  the feature's body, spawns child stories per optimization, then advances stage
-  drafting -> implementing. For greenfield design use /agile-workflow:feature-design;
-  for refactor use /agile-workflow:refactor-design.
+  ALWAYS invoke this skill when the user asks to profile performance, find
+  bottlenecks, or design a [perf]-tagged feature — do not start optimizing code
+  inline. Two modes. Discovery mode (default with no arg, `--all`, `<path>`, or
+  `<NL scope>`) detects entry points, picks the top 3-5 likely hot paths, profiles
+  them, and emits substrate items per bottleneck. Per-feature mode (default when given
+  a feature id) designs the perf work for an existing `[perf]`-tagged feature at
+  stage:drafting, following the optimization hierarchy (algorithmic > I/O > language
+  idioms > parallelism), produces an implementation plan with benchmark scaffolds
+  written INTO the feature's body, spawns child stories per optimization, then
+  advances stage drafting -> implementing. For greenfield design use
+  /agile-workflow:feature-design; for refactor use /agile-workflow:refactor-design.
+  Triggers on "profile this", "find perf bottlenecks", "design this perf work",
+  "optimize <id>", "make X faster".
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
 ---
 
