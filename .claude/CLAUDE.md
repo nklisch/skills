@@ -2,11 +2,35 @@
 
 This repo contains agent skills distributed via skilltap, the Claude Code plugin marketplace, and the OpenAI Codex plugin marketplace. Skills are defined as tap entries in `tap.json` and stored in plugin skill directories or `.agents/skills/<skill-name>/`.
 
-## Important
+## Orient first — `ls plugins/` before assuming
 
-- Workflow plugin skills live in `plugins/workflow/skills/<skill-name>/`.
-- Skill authoring plugin skills live in `plugins/skill-authoring/skills/<skill-name>/`.
-- Reference and principle skills live in `.agents/skills/<skill-name>/`.
+**There are FOUR distinct plugins under `plugins/`, not one.** Before designing on top of any plugin, run `ls plugins/` and read the target plugin's `plugin.json` + `docs/` (if it has them). Skill names overlap between plugins by design; the plugin a skill lives in determines its semantics.
+
+### Plugin map
+
+| Directory | Published name | Purpose |
+|---|---|---|
+| `plugins/workflow/` | `workflow` | **Doc-driven** software workflow. Design docs as artifacts in `docs/designs/`, roadmaps with phases, stable doc-driven cycle. Minimal change to existing dev habits. |
+| `plugins/agile-workflow/` | `agile-workflow` | **Substrate-driven** work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, autopilot queue runner. See `plugins/agile-workflow/docs/VISION.md`. |
+| `plugins/skill-authoring/` | `skill-authoring` | Create, evaluate, and refine agent skills. |
+| `plugins/ux-ui-design/` | `ux-ui-design` | HTML/CSS/JS mockup-first UI/UX design. Throwaway single-file mockups in `.mockups/`. Loose integration with agile-workflow. |
+
+### workflow vs agile-workflow
+
+These are **sibling plugins, not versions of each other.** Both ship from this repo. Both stay supported. They share no skills.
+
+- Pick `workflow` when the project wants design docs as files in `docs/designs/`, roadmap phases, doc-as-artifact tracking.
+- Pick `agile-workflow` when the project wants `.work/` substrate, item-as-state, late-binding releases, autopilot.
+
+**Many skill names exist in both plugins** with intentionally different implementations — `perf-design`, `refactor-design`, `implement`, `autopilot`, `principles`, `review`, `fix`, `ideate`, `repo-eval`, `research`, `bold-refactor`, `tool-evaluator`, `refactor-conventions-creator`, `implement-orchestrator`. Same name, different substrate, different output. When working on a "design" skill, confirm which plugin you're in.
+
+**Surface-area differences:**
+- `workflow` has: `design`, `roadmap`, `extend`, `e2e-test-design`, `test-quality`, `update-documentation`, `security-review`, `release`, `cruft-cleaner`, `extract-patterns`
+- `agile-workflow` has: `scope`, `convert`, `epicize`, `epic-design`, `feature-design`, `park`, `gate-{security,tests,cruft,docs,patterns}`, `release-deploy`
+
+### Other locations
+
+- Reference and principle skills (not part of a plugin) live in `.agents/skills/<skill-name>/`.
 - Skilltap resolves from `plugins/*/skills/`, `.agents/skills/`, and `skills/`.
 
 ## Dual marketplace support (Claude Code + Codex)

@@ -558,6 +558,11 @@
           "description": "Profile bottlenecks and design optimized solutions for a feature with tags:[perf] at stage:drafting. Strict optimization hierarchy (algorithmic > I/O > idioms > parallelism), benchmark scaffolds. Plan written INTO feature body, child stories spawned, stage advances to implementing."
         },
         {
+          "name": "e2e-test-design",
+          "path": "skills/e2e-test-design",
+          "description": "Design comprehensive e2e tests with service-level mocks only (LocalStack, Testcontainers, WireMock, Toxiproxy) for a feature with tags:[e2e-test] or [testing] at stage:drafting. Family member alongside feature-design / refactor-design / perf-design — writes design INTO feature body, spawns child stories with depends_on, advances stage to implementing. Covers four test styles: golden-path, failure-mode, chaos, fuzzing. Two extra modes: --bootstrap seeds an e2e test epic + child features when none exists; --audit analyzes the test program's shape (mock-boundary violations, missing taxonomy layers, journey gaps, suite-level tautology) and produces items. Audit accepts --release <version> to plug into release-deploy as a quality gate."
+        },
+        {
           "name": "implement",
           "path": "skills/implement",
           "description": "Write code from a substrate item at stage:implementing. Use for stories (no children to orchestrate) and for features without child stories. Reads design from item body, writes code, runs build+tests, advances stage implementing -> review. Detects 'land mode' when code already exists in the working tree (typical for retroactively-captured items) and validates+commits+advances rather than re-implementing. For features with child stories, /agile-workflow:implement-orchestrator is the default — it mirrors implement's per-story logic across waves."
