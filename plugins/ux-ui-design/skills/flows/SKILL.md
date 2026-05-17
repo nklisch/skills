@@ -1,13 +1,16 @@
 ---
 name: flows
 description: >
-  Generate a multi-page user-flow mockup as a sequence of numbered single-file HTML
-  pages in .mockups/flows/<flow-name>/, with an index.html navigator that lets
-  reviewers step through the flow as a real user would. Captures cross-screen
-  journeys for sign-off — signup, checkout, onboarding, recovery flows, multi-step
-  forms, wizards. Triggers on "mock the signup flow", "design the checkout journey",
-  "flow mockup for onboarding", "multi-page wireframe for X". Defers to
-  ux-ui-principles for storage, tech, and linking conventions.
+  ALWAYS invoke this skill when the user asks to mock, design, wireframe, or explore
+  a multi-screen journey — signup, checkout, onboarding, recovery, multi-step forms,
+  wizards — do not start writing production flow code inline. Generates a multi-page
+  user-flow mockup as a sequence of numbered single-file HTML pages in
+  .mockups/flows/<flow-name>/, with an index.html navigator that lets reviewers step
+  through the flow as a real user would. Captures cross-screen journeys for sign-off.
+  Triggers on "mock the signup flow", "design the checkout journey", "flow mockup
+  for onboarding", "multi-page wireframe for X", "design the onboarding journey",
+  "wireframe the wizard". Defers to ux-ui-principles for storage, tech, and linking
+  conventions.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---

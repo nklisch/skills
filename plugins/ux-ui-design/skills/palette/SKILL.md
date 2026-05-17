@@ -1,13 +1,17 @@
 ---
 name: palette
 description: >
-  Generate a project's design-system mockup — color palette, typography scale,
-  and a reusable tokens.css — as standalone HTML preview pages in
-  .mockups/design-system/. Produces multiple palette and type options up-front
-  for the user to pick from, then locks in the chosen tokens. Triggers on
-  "design a palette", "pick brand colors", "design system mockup", "font and
-  color choices", "generate design tokens". Defers to ux-ui-principles for
-  storage, tech, and linking conventions.
+  ALWAYS invoke this skill when the user asks to design a palette, pick brand colors,
+  build a design system, choose typography, or generate design tokens — do not start
+  hardcoding colors or fonts inline. Generates a project's design-system mockup —
+  color palette, typography scale, and a reusable tokens.css — as standalone HTML
+  preview pages in .mockups/design-system/. Produces multiple palette and type
+  options up-front for the user to pick from, then locks in the chosen tokens. Use
+  before screen or flow mockups so every mock shares a coherent visual language.
+  Triggers on "design a palette", "pick brand colors", "design system mockup", "font
+  and color choices", "generate design tokens", "choose a typeface", "set up the
+  visual system". Defers to ux-ui-principles for storage, tech, and linking
+  conventions.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---

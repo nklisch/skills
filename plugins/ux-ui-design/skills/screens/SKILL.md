@@ -1,12 +1,16 @@
 ---
 name: screens
 description: >
-  Generate N distinct single-screen HTML mockup options (default 4) for one UI
-  surface, write them to .mockups/screens/<feature-id>/, open them in the user's
-  browser, and ask the user to pick or describe a hybrid. Iterates with feedback
-  until the user signs off. Triggers on "mock the X screen", "give me 4 options
-  for Y", "screen mockups for Z", "let's design the login page". Defers to
-  ux-ui-principles for storage, tech, and linking conventions.
+  ALWAYS invoke this skill when the user asks to mock, design, wireframe, or explore
+  options for a single UI screen, page, or surface — do not start writing production
+  components inline. Generates N distinct single-screen HTML mockup options (default
+  4) for one UI surface, writes them to .mockups/screens/<feature-id>/, opens them in
+  the user's browser, and asks the user to pick or describe a hybrid. Iterates with
+  feedback until the user signs off. Use whenever a new screen, page, or surface
+  needs design exploration before code. Triggers on "mock the X screen", "design the
+  login page", "give me 4 options for Y", "screen mockups for Z", "wireframe X",
+  "let's mock up the dashboard". Defers to ux-ui-principles for storage, tech, and
+  linking conventions.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
