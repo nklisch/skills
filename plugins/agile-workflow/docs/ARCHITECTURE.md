@@ -303,6 +303,46 @@ adding a tag and a skill — no architectural change.
 `/agile-workflow:autopilot <epic-id>` drains an epic to done.
 `/agile-workflow:autopilot --all` drains all of `.work/active/`.
 
+### Pre-flight: align on strategic questions first
+
+**Before kicking off autopilot, run `epic-design --only-questions` over the
+epics you're about to drain.** This is the single highest-leverage step in
+the agile-workflow loop and should generally always be done.
+
+```bash
+# Per-epic — align on one epic before autopilot picks it up
+/agile-workflow:epic-design --only-questions <epic-id>
+
+# Cover the whole active queue at once — recommended before autopilot --all
+/agile-workflow:epic-design --only-questions --all
+```
+
+What the pass does (see `epic-design` SKILL Phase 4.7): for each epic at
+`stage: drafting`, it grounds in foundation docs + codebase, surfaces the
+2–5 directional product / architecture / scope questions specific to that
+epic, asks the user via `AskUserQuestion`, and writes the answers under
+`## Design decisions` in the epic body. It does NOT decompose into child
+features and does NOT advance stage — that's left to the real design pass.
+
+Why it matters:
+
+- **Autopilot inherits the answers.** When `epic-design` (full pass) runs
+  later under autopilot, it reads the already-captured `## Design decisions`
+  and skips Phase 4.7 — no autonomous judgment on directional choices,
+  because they're already locked in by the user.
+- **Cheap up front, expensive later.** Five minutes of interactive Q&A on
+  the whole drafting queue prevents autopilot from committing to a wrong
+  architectural direction across multiple features before the user notices.
+- **One human checkpoint instead of N.** A single `--only-questions --all`
+  pass answers every strategic question across the queue in one sitting,
+  rather than autopilot pausing per-epic mid-run (or worse, not pausing and
+  guessing).
+
+`--only-questions` mode refuses to run under autopilot itself — it's
+explicitly a pre-autopilot, human-in-the-loop step. The right invocation
+shape is: `--only-questions --all` first, review the captured decisions,
+then `autopilot --all` (or `autopilot <epic-id>`).
+
 ### Queue selection algorithm
 
 ```

@@ -121,6 +121,10 @@ The agent reads and writes them as part of normal conversation.
 
 # 4. Decompose foundation docs into epics
 /agile-workflow:epicize
+
+# 5. Before any autopilot run — always-do — align on strategic questions
+#    across every drafting epic. See the autopilot section below.
+/agile-workflow:epic-design --only-questions --all
 ```
 
 From here you talk to the agent. Some example openings:
@@ -186,6 +190,39 @@ skill for each (design family for `drafting`, implement family for
 transition. Stops cleanly on blockers, on your interjection, or near
 context limits. Schedules watchdog `/loop` tasks so it survives
 compaction.
+
+**Before you invoke (almost always do this first).** Run
+`/agile-workflow:epic-design --only-questions --all` (or pass specific
+epic IDs) to align on strategic direction across every drafting epic
+*before* autopilot starts. The pass walks each drafting epic, surfaces
+2–5 high-leverage product / architecture / scope questions specific to
+that epic, asks you via `AskUserQuestion`, and writes your answers under
+`## Design decisions` in the epic body. It does NOT decompose features
+or advance stage — that's left to the real design pass that autopilot
+will run.
+
+Why this is the single highest-leverage habit in the agile-workflow loop:
+
+- **Autopilot inherits your answers.** When the full `epic-design` pass
+  later fires under autopilot, it reads the captured `## Design decisions`
+  and skips its own question-asking phase — no autonomous guessing on
+  directional choices, because you've already locked them in.
+- **One sitting beats N pauses.** Five minutes of interactive Q&A over the
+  whole drafting queue up front replaces autopilot pausing per-epic
+  mid-run, or worse, not pausing and committing to a wrong direction
+  across multiple features before you notice.
+- **Cheap now, expensive later.** Catching a wrong directional choice
+  before any code or child-feature design lands is far cheaper than
+  unwinding it after autopilot has built on top of it.
+
+`--only-questions` refuses to run *inside* autopilot — it's explicitly a
+pre-autopilot, human-in-the-loop step. The right rhythm is:
+`--only-questions --all` → review the captured decisions →
+`autopilot --all` (or `autopilot <epic-id>`).
+
+You can skip this only when the drafting queue is empty (nothing for the
+pass to do) or when every drafting epic's body and the foundation docs
+already pin every directional choice — rare in practice.
 
 **When to invoke.**
 - `/agile-workflow:autopilot <epic-id>` — drain everything under one epic.
@@ -414,11 +451,27 @@ transition automatically.
 
 ### Driving an epic to done with autopilot
 
-Epics are multi-feature arcs. To drain one autonomously:
+Epics are multi-feature arcs. To drain one autonomously, first align on
+strategic questions, then run autopilot:
 
 ```
+# Always-do pre-flight: lock in directional choices interactively
+/agile-workflow:epic-design --only-questions epic-rate-limits
+
+# Then drain
 /agile-workflow:autopilot epic-rate-limits
 ```
+
+The `--only-questions` pass surfaces 2–5 high-leverage product /
+architecture / scope questions specific to this epic, asks you via
+`AskUserQuestion`, and captures the answers under `## Design decisions`
+in the epic body. When autopilot then runs the full `epic-design` pass,
+it inherits those answers and skips its own question-asking phase — no
+autonomous guessing on direction. See the
+`/agile-workflow:autopilot` section above for the full rationale.
+
+For a multi-epic run, do it across the whole drafting queue in one sitting:
+`/agile-workflow:epic-design --only-questions --all`.
 
 The agent works the queue: picks the next ready item, invokes the right
 skill, advances stage, commits, repeats. You'll see periodic reports.
@@ -610,6 +663,14 @@ explicitly — the rest the agent picks for you.
 - **Use autopilot for breadth, conversation for depth.** Autopilot is great
   when you have a queue of well-shaped items. When you want close
   collaboration on a hard design, just talk.
+- **Always run `epic-design --only-questions` before autopilot.** This is
+  the single highest-leverage habit in the loop. A short interactive pass
+  (per-epic, or `--all` across the drafting queue) captures your
+  directional answers under `## Design decisions` in each epic body, and
+  autopilot inherits them — replacing autonomous guessing on architecture
+  / product / scope choices with one human checkpoint up front. Skip it
+  only when the drafting queue is empty or every epic body already pins
+  every directional choice (rare).
 - **Items at review come back to you.** The agent's autonomous review can
   advance trivial items, but anything with judgment calls lands at
   `stage: review` for your eyes. Walk that queue regularly.

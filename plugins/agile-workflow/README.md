@@ -28,8 +28,28 @@ skilltap install nklisch/agile-workflow
 /agile-workflow:ideate            # produce foundation docs (greenfield)
 /agile-workflow:convert           # bootstrap .work/ substrate
 /agile-workflow:epicize           # decompose foundation docs into epics
-# ... then work normally; agent picks operational skills as conversation flows
+
+# Before kicking off autopilot — align on strategic questions across every
+# drafting epic. Recommended in nearly every run; see ARCHITECTURE.md
+# "Pre-flight: align on strategic questions first".
+/agile-workflow:epic-design --only-questions --all
+
+# Then drain the queue
+/agile-workflow:autopilot --all
+
+# ... or work normally; agent picks operational skills as conversation flows
 ```
+
+### Always-do step: `epic-design --only-questions` before autopilot
+
+The single highest-leverage habit in the agile-workflow loop: run
+`/agile-workflow:epic-design --only-questions --all` (or per-epic with an
+`<epic-id>`) **before** any `autopilot` invocation. It surfaces 2–5
+directional product/architecture/scope questions per drafting epic, captures
+your answers under `## Design decisions` in each epic body, and does NOT
+decompose or advance stage. Autopilot then inherits those answers — no
+autonomous judgment on directional choices, and one human checkpoint
+instead of N pauses scattered through the run.
 
 ## Substrate at a glance
 
