@@ -665,12 +665,22 @@
         {
           "name": "flows",
           "path": "plugins/ux-ui-design/skills/flows",
-          "description": "Generate a multi-page user-flow mockup as a numbered sequence of HTML pages in .mockups/flows/<flow-name>/, with prev/next chrome and an index.html navigator. For signup, checkout, onboarding, recovery, and other multi-screen journeys that need sign-off before implementation."
+          "description": "Generate a multi-page user-flow mockup in .mockups/flows/<flow-name>/ with chrome matched to the flow's topology — sequential (prev/next), hub-and-spoke (persistent nav bar), or hybrid (sequence + cross-jump breadcrumb). Renders both navigation patterns when both fit; renders the one that fits when only one does. Always includes an index.html navigator that visualizes the topology. For signup, checkout, onboarding, settings, dashboards, and other multi-screen journeys that need sign-off before implementation."
         },
         {
           "name": "palette",
           "path": "plugins/ux-ui-design/skills/palette",
-          "description": "Generate the project's design-system mockup — color palette, typography scale, and a reusable tokens.css — as HTML preview pages in .mockups/design-system/. Produces multiple palette + type options for the user to pick, then locks the chosen tokens. Run before screens/flows so all mocks share a coherent visual language."
+          "description": "Generate the project's design-system mockup — color palette, typography scale, and a reusable tokens.css — as HTML preview pages in .mockups/design-system/. Produces multiple palette + type options for the user to pick, then locks the chosen tokens. Run before components and screens/flows so all mocks share a coherent visual language."
+        },
+        {
+          "name": "components",
+          "path": "plugins/ux-ui-design/skills/components",
+          "description": "Generate the project's component library — buttons, form fields, cards, modals, toasts, dropdowns, plus project-specific unique components — as a showcase page (.mockups/design-system/components.html) and a reusable .mockups/design-system/components.css that screens and flows link. Runs AFTER palette (depends on tokens.css) and BEFORE screens/flows to give every mock identical primitives and a unified look."
+        },
+        {
+          "name": "adopt",
+          "path": "plugins/ux-ui-design/skills/adopt",
+          "description": "Bootstrap mockup-first design onto an existing project. Scans the codebase to inventory every UI surface and design-system fragment, audits for inconsistencies (component duplication, hardcoded colors, accessibility gaps, layout drift, copy drift, missing empty/error states), then orchestrates palette → components → screens → flows in MIRROR mode (faithful capture with remediation proposals) or REIMAGINE mode (redesign informed by the audit). Produces .mockups/adoption-report.md as the inventory + findings + decisions artifact. Use when adopting the plugin onto a project that already has UI code, auditing UI quality, or re-syncing mocks with code that has drifted."
         }
       ]
     }

@@ -273,6 +273,26 @@ Update the substrate item body (if applicable):
 `git add .mockups/design-system/`. Tell the user the tokens are locked and
 `screens` / `flows` will inherit them automatically.
 
+### Phase 11: Suggest components as the next step
+
+For any project that will produce more than a few screen or flow mocks,
+`palette` is only the first half of the design system. `components`
+turns the tokens into reusable primitives (buttons, inputs, cards,
+nav-bar, modals) that every downstream mock shares — preventing the
+drift `screens` and `flows` both fight by hand.
+
+Suggest the next step:
+
+```
+With tokens locked, the natural next step is to run /ux-ui-design:components
+— it composes the tokens into reusable component classes that every
+screen and flow mock will inherit. Run it now, defer, or skip?
+```
+
+Skip is fine for fast/exploratory work. Defer is fine when only one or
+two screens are coming. Run it now when the project will span more than
+a handful of mocks.
+
 ## Refinement mode (existing tokens.css present)
 
 If `.mockups/design-system/tokens.css` exists when `palette` is invoked:

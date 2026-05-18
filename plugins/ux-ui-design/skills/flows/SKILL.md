@@ -3,14 +3,17 @@ name: flows
 description: >
   ALWAYS invoke this skill when the user asks to mock, design, wireframe, or explore
   a multi-screen journey — signup, checkout, onboarding, recovery, multi-step forms,
-  wizards — do not start writing production flow code inline. Generates a multi-page
-  user-flow mockup as a sequence of numbered single-file HTML pages in
-  .mockups/flows/<flow-name>/, with an index.html navigator that lets reviewers step
-  through the flow as a real user would. Captures cross-screen journeys for sign-off.
-  Triggers on "mock the signup flow", "design the checkout journey", "flow mockup
-  for onboarding", "multi-page wireframe for X", "design the onboarding journey",
-  "wireframe the wizard". Defers to ux-ui-principles for storage, tech, and linking
-  conventions.
+  wizards, settings, dashboards, account areas — do not start writing production
+  flow code inline. Generates a multi-page user-flow mockup as a set of single-file
+  HTML pages in .mockups/flows/<flow-name>/ with chrome matched to the flow's
+  topology: sequential (prev/next), hub-and-spoke (persistent nav between peer
+  pages), or hybrid (sequence + cross-jumps). Renders BOTH navigation patterns
+  when both fit; renders the one that fits when only one does. Always includes
+  an index.html navigator that visualizes the topology. Triggers on "mock the
+  signup flow", "design the checkout journey", "flow mockup for onboarding",
+  "multi-page wireframe for X", "design the settings area", "navigate between
+  these pages", "design the dashboard pages". Defers to ux-ui-principles for
+  storage, tech, and linking conventions.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
@@ -53,15 +56,17 @@ Agent-driven triggers:
 
 `screens` produces N **alternative** designs for ONE screen — user picks one.
 
-`flows` produces ONE design across **multiple sequential** screens — user
-walks through it.
+`flows` produces ONE design across **multiple** screens — user walks
+through them. The screens may be sequential (a wizard), peers (a settings
+area), or a sequence with cross-jumps (a checkout). Phase 2.5 picks the
+topology.
 
 If the user is unclear which they want, ask. Common confusion: "mock the
 signup" could mean either. "Give me 4 options for the signup form" →
 `screens`. "Walk me through the signup flow" → `flows`.
 
-If the user asks for a flow with only 1-2 steps, redirect to `screens`
-instead — a flow needs sequence to mean anything.
+If the user asks for a flow with only 1-2 pages, redirect to `screens`
+instead — a flow needs multiple connected pages to mean anything.
 
 ## Workflow
 
@@ -81,9 +86,11 @@ Read context lightly:
 A flow is the user's path. Before any HTML, ask the user to walk the path
 out loud. What's their headspace at the start — curious, skeptical, rushed,
 in pain? What's the moment of commitment? What's the resolution that lets
-them exhale?
+them exhale? Or, for hub-and-spoke flows: what brings them into this area,
+which page is the natural entry, where do they go from there?
 
-Translate that into a step sequence and confirm via `AskUserQuestion`:
+Translate that into a page list (for hub-and-spoke) or step sequence (for
+sequential / hybrid) and confirm via `AskUserQuestion`:
 
 ```
 Proposed flow: <flow-name>
@@ -108,6 +115,63 @@ For each step, capture:
 If branches exist, note them in the step description but render the
 **happy path only** by default. Branches get their own dedicated flows
 (e.g. `signup-recovery`) unless the user explicitly asks for branched mocks.
+
+### Phase 2.5: Determine the flow's topology
+
+The chrome on each page should match how users actually move through the
+flow. Three topologies, three chromes:
+
+| Topology | Chrome | When it fits |
+|---|---|---|
+| **Sequential** | prev/next strip (`.flow-meta`) | Each step is a hard gate. Users move strictly forward; back means "abandon and restart." Examples: signup wizard, password reset, multi-step form, onboarding wizard. |
+| **Hub-and-spoke** | persistent nav bar (`.flow-nav`) | Pages are peers; no order. The "flow" is the set of pages that comprise an area. Examples: settings, account, dashboard tabs, admin panels. |
+| **Hybrid** | sequence + cross-jump breadcrumb (`.flow-hybrid`) | Primary sequence AND legitimate cross-jumps to revisit earlier steps. Examples: checkout (cart → shipping → payment → review, with "edit cart" from later steps), multi-stage approval flows, complex onboarding with optional revisits. |
+
+**Decision rule.** When both sequential and cross-nav fit the journey,
+render **both** via the hybrid chrome. When only one fits, render that
+one. Don't shoehorn — if a settings page wouldn't naturally have a "next"
+button, don't add one to satisfy a default.
+
+**Default heuristics by flow shape:**
+- Wizard-shaped names (`signup`, `onboarding`, `recovery`, `checkout-payment`)
+  → propose **sequential**
+- Area-shaped names (`settings`, `account`, `dashboard`, `admin`, `profile`)
+  → propose **hub-and-spoke**
+- Process-shaped names (`checkout`, `application`, `appointment-booking`)
+  → propose **hybrid**
+
+Confirm with the user via `AskUserQuestion`:
+
+```
+Q: How do users move between these pages?
+- Sequential — strictly forward, each step gates the next (wizard / form)
+- Hub-and-spoke — peer pages with shared nav, any order (settings / dashboard)
+- Hybrid — primary sequence with cross-jumps back to earlier steps (checkout)
+```
+
+Frame the default in the question text: "This looks like a wizard, so
+sequential is the default — override if some steps should be revisitable."
+
+**What to capture per topology:**
+
+For **sequential**: page order is the chrome. Each page links prev/next
+via the `.flow-meta` strip.
+
+For **hub-and-spoke**: there's no "next page." Every page links to every
+other page via the `.flow-nav` strip. Pick the **entry page** (where
+users land first); the index.html "enter the area" ribbon points there.
+Group pages into sub-sections only if the flow has clear clusters
+(e.g., "Account settings" / "Workspace settings" / "Billing").
+
+For **hybrid**: capture the primary sequence AND each cross-jump. A
+cross-jump is a link from a later step BACK to an earlier step
+(e.g., from "Payment" back to "Cart" via "edit cart"). Record per page:
+which earlier pages can be jumped to from here. The `.flow-hybrid`
+breadcrumb makes all steps clickable; the cross-jumps are the realistic
+"edit X" links inside the page content.
+
+See `references/topology-guide.md` for the full decision tree, edge
+cases, and worked examples per topology.
 
 ### Phase 3: Set the flow's voice
 
@@ -135,15 +199,21 @@ Q: Which viewport leads?
 State the default in the question and let the user override if they have a
 specific reason.
 
-### Phase 4: Generate each step page
+### Phase 4: Generate each page
 
-For each step, write a standalone HTML file at
+For each page, write a standalone HTML file at
 `.mockups/flows/<flow-name>/NN-<slug>.html` (zero-padded to 2 digits).
+Numbering: for sequential and hybrid flows, the number reflects the
+primary sequence; for hub-and-spoke, the number just keeps files sorted
+in a stable order (entry page first).
 
-Use the file scaffold and the `.flow-meta` sticky header pattern from
-`ux-ui-principles/references/shared-chrome-css.md`. Each page carries the
-sticky chrome (prev link / step indicator / next link) plus a `<main>`
-with the step's content.
+If `.mockups/design-system/components.css` exists, link both stylesheets
+in the `<head>` and prefer component classes (`.btn`, `.input`,
+`.nav-bar`) over inline styles. Layout-only CSS still goes inline.
+
+**Use the chrome that matches the topology** (Phase 2.5):
+
+#### Sequential — `.flow-meta` chrome
 
 ```html
 <header class="flow-meta">
@@ -159,38 +229,115 @@ with the step's content.
 First step: prev link points to `index.html` ("← overview").
 Last step: next link points to `index.html` ("done ↗").
 
-**Cross-step consistency** is the craft demand of this skill:
-- Same color tokens, same fonts, same component shapes across all pages
-- Reusable form fields look the same on every step that has them
-- Buttons, links, and headers stay visually anchored
-- The flow-meta chrome (header, progress indicator, step counter) is
-  identical from page 1 to page N
+#### Hub-and-spoke — `.flow-nav` chrome
 
-Consider including a thin progress indicator in the flow-meta — a step
-counter or a visual progress bar showing position. Helps reviewers feel
-the journey.
+```html
+<header class="flow-nav">
+  <span class="flow-nav__title">{flow-name}</span>
+  <nav>
+    <a href="01-dashboard.html" class="flow-nav__link">Dashboard</a>
+    <a href="02-account.html" class="flow-nav__link flow-nav__link--active">Account</a>
+    <a href="03-billing.html" class="flow-nav__link">Billing</a>
+  </nav>
+  <a href="index.html" class="flow-nav__overview">overview ↗</a>
+</header>
+<main>
+  <!-- page content -->
+</main>
+```
+
+The nav is **identical on every page** except for which link has
+`--active`. If `components.css` defines a `.nav-bar` component, use that
+instead of `.flow-nav`:
+
+```html
+<nav class="nav-bar nav-bar--top">
+  <a href="#" class="nav-bar__brand">{flow-name}</a>
+  <a href="01-dashboard.html" class="nav-bar__item">Dashboard</a>
+  <a href="02-account.html" class="nav-bar__item nav-bar__item--active">Account</a>
+  <a href="03-billing.html" class="nav-bar__item">Billing</a>
+  <a href="index.html" class="nav-bar__overview">overview ↗</a>
+</nav>
+```
+
+Page content should include realistic in-page links to other pages
+wherever a real user would have them (e.g., a "view billing details"
+link on the account page that goes to `03-billing.html`). Don't fake
+isolation — peer pages cross-link freely.
+
+#### Hybrid — `.flow-hybrid` chrome + in-page cross-jumps
+
+```html
+<header class="flow-hybrid">
+  <a href="NN-prev-slug.html" class="flow-hybrid__prev">← prev</a>
+  <nav class="flow-hybrid__crumbs">
+    <a href="01-cart.html">1 Cart</a>
+    <a href="02-shipping.html">2 Shipping</a>
+    <a href="03-payment.html" aria-current="step" class="flow-hybrid__current">3 Payment</a>
+    <a href="04-review.html" class="flow-hybrid__future">4 Review</a>
+  </nav>
+  <a href="NN-next-slug.html" class="flow-hybrid__next">next →</a>
+</header>
+<main>
+  <!-- page content, including realistic in-page "edit X" links
+       to earlier steps (e.g., an "edit cart" link on payment) -->
+</main>
+```
+
+The breadcrumb chrome handles abstract navigation. The **in-page
+cross-jump links** are the realistic ones: an "edit cart" link inside
+the payment summary, an "edit shipping" link in the review section.
+Both must work — reviewers click through to verify the round-trip.
+
+**Cross-page consistency** is the craft demand of this skill:
+- Same color tokens, same fonts, same component shapes across all pages
+- Reusable form fields look the same on every page that has them
+- Buttons, links, and headers stay visually anchored
+- The chrome (flow-meta / flow-nav / flow-hybrid) is identical across
+  every page except for the per-page state (active nav link, current
+  step, prev/next targets)
+
+If `components.css` exists, this is mostly automatic — every page uses
+the same component classes. Without it, you have to enforce consistency
+by hand.
+
+For **sequential** flows, consider including a thin progress indicator
+in the flow-meta — a step counter or a visual progress bar showing
+position. Helps reviewers feel the journey.
+
+For **hub-and-spoke** flows, consistency means the nav bar is byte-for-
+byte identical on every page (only the `--active` class moves). Drift
+here is the #1 reason hub-and-spoke flows feel broken.
 
 **Token usage check.** Before referencing a `var(--token)`, verify it
 exists in `.mockups/design-system/tokens.css`. If a needed token is
 missing, inline the literal with a comment or defer to `palette` (see
 `ux-ui-principles/references/shared-chrome-css.md`).
 
-**Consistency validation before Phase 5.** After generating all step
+**Consistency validation before Phase 5.** After generating all page
 files, scan them: every `--color-*`, `--font-*`, `--space-*` reference
 should resolve to `tokens.css`. Buttons and form fields should use the
-same class names across steps. If a step drifted (different button
-radius, mismatched form field, off-token color), regenerate that step
-before writing the index.
+same class names across pages. If a page drifted (different button
+radius, mismatched form field, off-token color), regenerate it before
+writing the index. For hub-and-spoke flows, also diff the nav-bar markup
+between pages — anything but the `--active` class differing is a bug.
 
 ### Phase 5: Generate the index navigator
 
-Write `.mockups/flows/<flow-name>/index.html` using the light overview
-pattern in `ux-ui-principles/references/shared-chrome-css.md`. Step cards
-with iframe previews; a "start the flow" ribbon at the top; clear visual
-hierarchy showing the journey shape.
+Write `.mockups/flows/<flow-name>/index.html` using the topology-matched
+overview pattern in `ux-ui-principles/references/shared-chrome-css.md`:
+
+- **Sequential** → linear numbered card sequence (default pattern)
+- **Hub-and-spoke** → peer grid, optionally grouped into sub-sections;
+  "enter the area" ribbon points at the entry page
+- **Hybrid** → numbered sequence with cross-jump chips on cards that
+  have non-adjacent links from elsewhere in the flow
 
 The index is the actual review artifact. Reviewers scan the overview to
-see the journey shape, then click into step 1 and walk through.
+see the journey shape — and the topology should be obvious at a glance:
+a numbered sequence reads as "follow these steps," a peer grid reads as
+"these are the pages in this area," a sequence with cross-jump chips
+reads as "primary path plus revisit options."
 
 ### Phase 6: Open and walk through
 
@@ -231,17 +378,25 @@ Q: How does the journey feel?
   check from Phase 4 again. Re-open.
 
 **Restructure:**
-- Run Phase 2 again with the new outline.
-- **Renumber by cascade, not by alpha-suffix.** When inserting a step
-  between 02 and 03, the new step becomes 03, the old 03 becomes 04,
+- Run Phase 2 (and 2.5 if the topology should change) again with the
+  new outline.
+- **Renumber by cascade, not by alpha-suffix.** When inserting a page
+  between 02 and 03, the new page becomes 03, the old 03 becomes 04,
   and so on. Never write `02a-...html`. Delete the old-numbered files
   after writing the new ones in a single batch, then update every
-  page's prev/next links so the chain is whole.
+  page's chrome (prev/next links for sequential/hybrid; nav-bar items
+  for hub-and-spoke) so the chain is whole.
 - Regenerate the index.
+
+**Re-topologize:**
+- When the chosen topology turns out wrong (sequential should have been
+  hybrid; hub-and-spoke should have been sequential), re-run Phase 2.5,
+  regenerate every page's chrome, regenerate the index. Page bodies stay
+  intact; only the chrome and the index change. This is a fast pass.
 
 **Redesign:**
 - Wireframe ↔ polished is a fundamental visual shift, not a tweak.
-  Regenerate all steps with the new treatment and keep the flow
+  Regenerate all pages with the new treatment and keep the flow
   structure intact. The structural decisions from Phase 2 still hold;
   only the visual tone is changing, so the second pass should be fast.
 
@@ -283,19 +438,41 @@ handoff between them.
 
 - **Happy path first.** Branches as separate flows or as explicitly
   requested additional pages — don't mock every error case by default.
-- **Cross-step visual consistency is the craft demand.** Keep color
-  tokens, button shapes, and field styles identical across steps.
-  Journey-level review works because reviewers can focus on the flow's
-  structure instead of decoding visual variation between pages. A
-  consistent flow makes the journey legible at a glance.
-- **Always write the prev/next chrome.** Reviewers step through quickly;
-  navigation is non-negotiable. The chrome is what makes the flow feel
-  like a flow.
-- **Fewer than 3 steps → use `screens`.** A "flow" with one screen is
+- **Match the chrome to the topology.** A settings area with a forced
+  "next →" button feels wrong because settings aren't a sequence. A
+  signup wizard with a peer nav bar feels wrong because the user
+  shouldn't jump to "verify" before "email." Pick the topology in
+  Phase 2.5 deliberately; the chrome falls out of that choice.
+- **When both navigation patterns fit, render both.** Hybrid chrome
+  exists exactly for this case. Sequential strip + cross-jump
+  breadcrumb together is more informative than either alone for
+  checkout-style flows.
+- **Cross-page visual consistency is the craft demand.** Keep color
+  tokens, button shapes, and field styles identical across pages. If
+  `components.css` exists, lean on it — it makes consistency automatic.
+  Drift between pages makes the flow read as four separate screens
+  instead of one journey.
+- **Hub-and-spoke chrome must be byte-identical across pages.** Only
+  the `--active` class moves. Anything else differing — different link
+  order, different brand text, different layout — breaks the "shared
+  nav" illusion and reads as a bug.
+- **Always write the chrome on every page.** Reviewers step through
+  quickly; navigation is non-negotiable. The chrome (whichever variant)
+  is what makes the flow feel like a flow instead of disconnected pages.
+- **Fewer than 3 pages → use `screens`.** A "flow" with one screen is
   just a screen. Redirect.
-- **More than 7 steps → split.** Composing flows linked at a handoff
-  step are easier to review than one giant flow.
+- **More than 7 pages → split (sequential / hybrid) or sub-section
+  (hub-and-spoke).** Composing flows linked at a handoff page are
+  easier to review than one giant flow. Hub-and-spoke flows with many
+  peers can use the sub-section grouping in the index instead of
+  splitting.
 - **Vanilla CSS only — no CSS framework CDNs and no JS frameworks.**
   `ux-ui-principles` tech rule applies. Hosted fonts via CDN are fine.
 - **Three rounds is the soft cap on iteration.** Looping a fourth time
   rarely lands the design.
+
+## Reference files
+
+- `references/topology-guide.md` — full decision tree for picking
+  sequential / hub-and-spoke / hybrid, edge cases, worked examples
+  per topology

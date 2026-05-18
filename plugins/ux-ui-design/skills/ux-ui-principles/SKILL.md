@@ -2,12 +2,13 @@
 name: ux-ui-principles
 description: >
   ALWAYS load this skill when designing, proposing, mocking, or reviewing user
-  interfaces; when invoking screens / flows / palette; or when any other workflow
-  (agile-workflow, workflow design, feature-design, epic-design, ideate, scope)
-  reaches a UI surface decision — do not start mocking inline. Reference for the
-  mockup-first UI/UX design convention. Carries the storage layout
-  (.mockups/{design-system,screens,flows}/), the REQUIRED vs OPTIONAL vs SKIP
-  decision matrix, the tier-ordering rule (scope/epic primary, feature fallback),
+  interfaces; when invoking screens / flows / palette / components; or when any
+  other workflow (agile-workflow, workflow design, feature-design, epic-design,
+  ideate, scope) reaches a UI surface decision — do not start mocking inline.
+  Reference for the mockup-first UI/UX design convention. Carries the storage
+  layout (.mockups/{design-system,screens,flows}/), the REQUIRED vs OPTIONAL
+  vs SKIP decision matrix, the tier-ordering rule (scope/epic primary, feature
+  fallback), the design-system pipeline (palette → components → screens/flows),
   the linking convention to agile-workflow items, and the single-file HTML/CSS/JS
   tech rule. Also installs the rule into the project's CLAUDE.md on first
   invocation (with confirmation).
@@ -18,8 +19,15 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 
 This is the reference skill for mockup-first UI/UX design. It encodes WHERE
 mockups live, WHEN to produce them, HOW they link back to work items, and
-WHAT the rule text in `CLAUDE.md` says. The three generator skills
-(`screens`, `flows`, `palette`) all defer here.
+WHAT the rule text in `CLAUDE.md` says. The five generator skills
+(`palette`, `components`, `screens`, `flows`, `adopt`) all defer here.
+
+**Greenfield vs adoption.** For projects starting fresh, run the
+pipeline directly: `palette` → `components` → `screens`/`flows`. For
+projects that already have UI code, run `adopt` first — it scans the
+codebase, audits existing UI for inconsistency, and orchestrates the
+pipeline in either MIRROR mode (capture current state) or REIMAGINE
+mode (redesign).
 
 ## Why mock first
 
@@ -49,6 +57,8 @@ Every project using this plugin has the same `.mockups/` shape:
     palette.html        # color tokens preview (multiple options when drafting)
     typography.html     # font + scale preview
     tokens.css          # CSS custom properties for reuse across mocks
+    components.html     # full component showcase, every state (after `components` runs)
+    components.css      # reusable component classes linked by every mock
   screens/
     <feature-id>/
       option-1.html
@@ -61,8 +71,36 @@ Every project using this plugin has the same `.mockups/` shape:
       01-<step>.html
       02-<step>.html
       ...
-      index.html        # linear navigator across the flow
+      index.html        # navigator matched to topology
+                        # (linear / hub-and-spoke / hybrid)
 ```
+
+**The design-system pipeline (palette → components → screens/flows).**
+
+The two design-system skills produce artifacts in strict order:
+
+1. `palette` writes `tokens.css` — the locked vocabulary of colors,
+   type, spacing, radii.
+2. `components` writes `components.css` — reusable component classes
+   composed from tokens (`.btn`, `.input`, `.card`, `.nav-bar`, plus
+   any project-unique components).
+3. `screens` and `flows` link BOTH stylesheets and use component
+   classes in their markup, so every mock shares identical primitives.
+
+Skipping `components` is fine for fast/exploratory work — `screens` and
+`flows` will style buttons and inputs inline. But for any project that
+spans more than a handful of mocks, running `components` once up-front
+prevents the drift the other skills explicitly fight ("Cross-page
+visual consistency" in `flows`, "Consistency validation" in `screens`).
+
+**Existing projects use `adopt` as the entry point.** `adopt` runs the
+pipeline above with two additions: a codebase scan that produces
+`.mockups/adoption-report.md` (inventory + audit findings) before any
+mocks, and mode-aware delegation that tells `palette` / `components` /
+`screens` / `flows` whether to MIRROR existing implementation or
+REIMAGINE freely. The adoption report is the alignment artifact for
+adoption + re-sync passes; mocks are the per-surface deliverables as
+usual.
 
 **Feature id resolution:**
 - If agile-workflow is in use (`.work/active/` exists), use the substrate
@@ -99,6 +137,8 @@ that `screens`, `flows`, and `palette` all use.
 **REQUIRED:**
 - Net-new UI surface (a screen, page, or major component that doesn't exist yet)
 - Design-system or palette changes (new colors, fonts, spacing scales)
+- Component-library changes (new shared component, restyled primitive,
+  changed component variants) — `components` runs in refinement mode
 - Epics whose scope spans multiple screens or a multi-step user flow
 
 **OPTIONAL** (use judgment):
@@ -124,14 +164,20 @@ mock is cheap insurance against a misaligned implementation.
 re-aligning implemented code because direction wasn't pinned at the right
 tier is not.
 
-1. **Scope** — locks palette and any cross-feature journey clear at scope
-   time for large (epic-shaped) UI work.
+1. **Scope** — locks palette, locks components, and any cross-feature
+   journey clear at scope time for large (epic-shaped) UI work. The
+   design-system pipeline (palette → components) runs here for
+   UI-bearing projects.
 2. **Epic-design — primary.** Mocks every net-new screen and multi-step
    journey across the decomposition. Err on the side of mocking here;
-   don't defer minor surfaces "just in case".
+   don't defer minor surfaces "just in case". If `components.css`
+   doesn't yet exist, `components` runs as part of the design-system
+   prelude before screens/flows.
 3. **Feature-design — fallback.** References parent-epic mocks and
    skips when coverage exists. Mocks only genuinely-minor surfaces that
-   weren't anticipated upstream.
+   weren't anticipated upstream. Inherits `components.css`; only
+   invokes `components` in refinement mode if a new shared component
+   is genuinely needed.
 4. **`--only-questions` gates ALWAYS run the mockup pass.** Those modes
    are the visual alignment gate, not just the textual one.
 
@@ -188,7 +234,8 @@ open — it's a convenience.
 
 ## What the generator skills inherit
 
-The three generators (`screens`, `flows`, `palette`) all assume:
+The five generators (`palette`, `components`, `screens`, `flows`,
+`adopt`) all assume:
 
 - This skill is loaded (its conventions are active)
 - `.mockups/` exists or will be created
@@ -196,6 +243,9 @@ The three generators (`screens`, `flows`, `palette`) all assume:
 - The user wants mocks opened automatically after generation
 - Mocks are single-file HTML with inline vanilla CSS/JS
 - Shared chrome CSS comes from `references/shared-chrome-css.md`
+- The design-system pipeline order: palette before components before
+  screens/flows; downstream skills delegate upstream if dependencies
+  are missing
 
 If a generator runs and the `CLAUDE.md` marker is absent, the generator
 delegates to this skill first (mention "loading ux-ui-principles to install
@@ -230,14 +280,22 @@ the rule"), then proceeds.
 
 Per the tier-ordering rule above:
 
-- **`scope`** — large-scope UI: invokes `/ux-ui-design:palette` and
-  `/ux-ui-design:flows` for cross-feature journeys clear at scope time.
-- **`epic-design`** — primary tier. Invokes palette + screens + flows
-  across the decomposition. `--only-questions` always runs this pass.
-- **`feature-design`** — fallback. Inherits from the parent epic;
-  invokes screens/flows only for minor surfaces not covered upstream.
-- **`ideate`** — recommends `/ux-ui-design:palette` after foundation
-  docs for UI-bearing projects.
+- **`scope`** — large-scope UI: invokes `/ux-ui-design:adopt` for
+  existing projects, or `/ux-ui-design:palette` +
+  `/ux-ui-design:components` + `/ux-ui-design:flows` for greenfield
+  cross-feature journeys clear at scope time.
+- **`epic-design`** — primary tier. Greenfield: runs the full
+  pipeline (palette → components → screens + flows). Existing-project
+  decomposition with no `.mockups/` artifacts yet: runs `adopt` first
+  to establish the inventory + design system, then resumes the
+  decomposition. `--only-questions` always runs this pass.
+- **`feature-design`** — fallback. Inherits palette + components from
+  the parent epic; invokes screens/flows only for minor surfaces not
+  covered upstream. Invokes `components` only in refinement mode for
+  net-new shared components.
+- **`ideate`** — recommends `/ux-ui-design:palette` then
+  `/ux-ui-design:components` after foundation docs for UI-bearing
+  projects.
 
 The plugin is **loosely** coupled — agile-workflow runs fine without it;
 this plugin runs fine without agile-workflow. The link is only the path

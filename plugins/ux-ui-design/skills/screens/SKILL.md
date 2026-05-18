@@ -152,9 +152,11 @@ The skeleton:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{feature-id} — Option N: {short-label}</title>
   <link rel="stylesheet" href="../../design-system/tokens.css">
+  <link rel="stylesheet" href="../../design-system/components.css">
   <style>
     /* .mock-meta from shared-chrome-css */
-    /* Option-specific CSS here. */
+    /* Layout-only CSS here (grid, flex, page-specific composition). */
+    /* Components style themselves via components.css — don't override. */
   </style>
 </head>
 <body>
@@ -163,12 +165,27 @@ The skeleton:
     <span>{one-sentence rationale}</span>
   </header>
   <main>
-    <!-- The mocked screen content. -->
+    <!-- The mocked screen content. Use component classes:
+         <button class="btn btn-primary">, <input class="input">, etc. -->
   </main>
   <script>/* Optional vanilla JS for interactive bits. */</script>
 </body>
 </html>
 ```
+
+**Link `components.css` only when it exists.** If
+`.mockups/design-system/components.css` is missing, drop that
+`<link>` line and style components inline. For projects spanning more
+than a few mocks, consider delegating to `components` first to lock
+the component layer before generating options.
+
+**Use component classes in markup.** When `components.css` exists,
+markup uses `.btn .btn-primary` / `.input` / `.card` etc. instead of
+inline styles. The `<style>` block in each option is for **layout
+only** (grid, flex, page-specific composition) — not for restyling
+buttons or inputs. This is what makes four options visually compare
+on their layout/density/hierarchy choices instead of comparing
+"how option 3 styled buttons differently."
 
 **Token usage check.** Before referencing a `var(--token)`, verify it exists
 in `.mockups/design-system/tokens.css`. If a needed token is missing,
