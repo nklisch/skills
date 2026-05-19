@@ -1,6 +1,6 @@
 # Scan detectors
 
-The six audit detectors `adopt` runs during Phase 2. Each detector has a
+The seven audit detectors `adopt` runs during Phase 2. Each detector has a
 detection heuristic, a severity rule, and a remediation pattern. Findings
 go into the `adoption-report.md` Findings section.
 
@@ -167,12 +167,85 @@ branches handling `loading` / `error` / `empty` flags.
 - "Add error branch to `Dashboard.tsx` rendering `.alert--danger` on
   query failure"
 
+## Detector 7: Motion drift
+
+**Detection.** Pattern-match against motion-system inconsistencies and
+accessibility omissions:
+
+- **Inline cubic-bezier values** — `cubic-bezier(0.4, 0, 0.2, 1)` appearing
+  in component or page CSS instead of a `var(--motion-*)` token. Cluster
+  by exact value; multiple sites using the same coefficients are one
+  finding, sites with diverging coefficients are multiple.
+- **Hardcoded transition durations** — `transition: ... 200ms ...` /
+  `animation-duration: 350ms` in source, not referencing a `var(--dur-*)`
+  token. Group by value (`200ms` everywhere is one finding; mixed
+  `180ms / 200ms / 220ms` is a drift finding).
+- **Doherty-violation candidates** — animations whose declared duration
+  exceeds 300ms AND that block user interaction (modal entry transitions,
+  route-change transitions, primary CTA confirmations). Pattern-match for
+  `duration > 300ms` paired with `pointer-events: none` mid-transition,
+  or for known-blocking animation patterns.
+- **Missing `prefers-reduced-motion`** — files containing
+  `animation`, `transition`, or `@keyframes` rules but no
+  `@media (prefers-reduced-motion: reduce)` block anywhere in the
+  stylesheet OR in a shared global stylesheet. Strong heuristic; flag
+  even when uncertain.
+- **Infinite-loop animations on non-progress elements** —
+  `animation-iteration-count: infinite` on elements that aren't progress
+  indicators, peripheral indicators, or ambient backgrounds. Pixar's
+  return-to-rest violation; suggests skeleton-breathe or icon-pulse that
+  drowns out actual content arrival.
+- **Layout-property animations** — animations on `width`, `height`,
+  `top`, `left`, `margin`, `padding`. Outside the 60fps performance
+  envelope; should be `transform` / `opacity` / `filter`.
+
+Cluster findings by *kind* (six sub-detectors above) and by *severity
+profile* — e.g., "12 sites animating `width` in transition" is one
+finding with 12 citations.
+
+**Severity rule.**
+- `blocker` for missing `prefers-reduced-motion` (accessibility floor) or
+  Doherty-violation animations that gate input.
+- `important` for inline cubic-bezier values in 5+ places, layout-property
+  animations in heavily-trafficked components, infinite-loop animations on
+  non-progress elements.
+- `nit` for hardcoded durations within a tight cluster (e.g., 180/200/220
+  variants), one-off layout-property animation in a low-traffic component.
+
+**Remediation pattern.**
+- "Lift `cubic-bezier(0.4, 0, 0.2, 1)` to `--motion-standard` token in
+  motion.css; replace inline values in N files."
+- "Add `@media (prefers-reduced-motion: reduce)` block to
+  globals.css with fallback rules (set --dur-quick to --dur-instant; strip
+  ambient loops)."
+- "Replace `transition: width 400ms` in Accordion.tsx with
+  `transition: transform 240ms var(--motion-standard)` + use scaleY for
+  the open/close. Width animation is layout-thrashing; transform is
+  compositor-only."
+- "Modal entry currently 600ms and blocks input — exceeds Doherty 300ms
+  ceiling. Either: shorten to 240ms (`--dur-quick`), or split into
+  240ms enter + 360ms ambient settle that doesn't block input."
+
+**Mockup-side remediation:** when generating mocks for a surface with
+motion findings, include an `option-N-motion-fix.html` showing the same
+layout with token-driven motion replacing the drifted values. The mock
+becomes documentation of the proposed motion-system contract.
+
+**When motion.css doesn't exist yet:** the motion drift findings drive
+the case for delegating to the `motion` skill (Phase 4 of adopt). Pass
+the inline-cubic-bezier values, the hardcoded durations, the missing
+reduced-motion finding as context to `motion` so it can produce a
+mirror-mode motion.css that captures the de-facto language and addresses
+the accessibility gap.
+
 ## What detectors deliberately don't catch
 
 Performance, business-logic correctness, security, dead code,
 type errors, unit-test coverage. Those are other skills' jobs
 (`repo-eval`, `simplify`, etc.). `adopt` stays in the UI/UX-design
-lane.
+lane — but motion drift IS in that lane, because motion is part of the
+design system, even when it's been implemented as inline cubic-beziers
+across 30 components.
 
 ## Finding shape in the report
 

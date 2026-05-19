@@ -14,7 +14,7 @@ agile-workflow's `scope` can read findings from it.
 
 **Generated:** 2026-05-15
 **Scan boundary:** Whole repo
-**Mode chosen:** _(filled in Phase 3 — "Mirror" or "Reimagine")_
+**Mode chosen:** _(filled in Phase 3 — "Mirror" / "Reimagine" / "Diegetic prototype")_
 **Stack detected:** _(e.g., "React + Vite, CSS modules, React Router v6")_
 
 ## Inventory
@@ -110,6 +110,46 @@ _(...)_
 
 _(...)_
 
+### Motion drift (Detector 7)
+
+#### F-701 · important · inline cubic-bezier sprawl
+`cubic-bezier(0.4, 0, 0.2, 1)` inline in 18 component files; should be
+`var(--motion-standard)` from motion.css.
+
+**Sites:**
+- `src/components/Modal.tsx:34`
+- `src/components/Toast.tsx:21`
+- ... 16 more
+
+**Remediation:** Lift to `--motion-standard` in motion.css. Replace
+inline cubic-bezier with `var(--motion-standard)`.
+
+#### F-702 · blocker · Doherty violation on modal entry
+Modal entry transition is 600ms and blocks user input — exceeds Doherty
+300ms ceiling.
+
+**Site:** `src/components/Modal.tsx:42`
+
+**Remediation:** Shorten to 240ms (`--dur-quick`) for the input-gating
+entry, optionally add a 360ms ambient settle that does NOT block input.
+
+#### F-703 · blocker · missing prefers-reduced-motion
+No `@media (prefers-reduced-motion: reduce)` block anywhere in source CSS,
+despite extensive transition/animation usage. Accessibility floor.
+
+**Remediation:** Add reduced-motion fallback block to motion.css (or
+globals.css if motion.css isn't yet locked). Roughly 35% of users
+benefit from reduced motion at some point.
+
+#### F-704 · important · layout-property animation
+`transition: width 350ms` on accordion expand — layout-thrashing, not
+compositor-cheap.
+
+**Site:** `src/components/Accordion.tsx:67`
+
+**Remediation:** Replace with `transition: transform 240ms var(--motion-standard)`
+using scaleY for the expand. Add `transform-origin: top`.
+
 ## Decisions
 
 _(Filled by Phases 3-5)_
@@ -134,9 +174,37 @@ _(Filled by Phase 6 as each delegated skill returns)_
 |---|---|---|---|
 | Design system | `.mockups/design-system/tokens.css` | mirror | F-101, F-102 |
 | Design system | `.mockups/design-system/components.css` | mirror | F-201, F-202, F-301, F-302 |
+| Design system | `.mockups/design-system/motion.css` | mirror | F-701, F-703 (F-702, F-704 flagged for follow-up) |
 | S-002 | `.mockups/screens/login/option-1.html` | mirror | F-301 |
 | S-002 (remediation) | `.mockups/screens/login/option-2-remediation.html` | mirror | F-301, F-401 |
+| S-002 (RTL mirror) | `.mockups/screens/login/option-1-rtl.html` | mirror | (Whose Default? — RTL persona) |
 | F-002 | `.mockups/flows/settings/index.html` | mirror | F-201 |
+
+## Whose Default? mirror-mocks (Phase 6.5)
+
+_(Design Justice pass — Costanza-Chock 2020. Filled by Phase 6.5 as
+mirror-mocks are generated for non-default personas.)_
+
+For each surface mocked in Phase 6, at least one mirror mock for a
+non-default persona. Findings name *who the existing UI excludes*, not
+just "inconsistencies."
+
+| Surface | Non-default persona | Mirror path | Finding(s) surfaced |
+|---|---|---|---|
+| S-002 Login | RTL script (Arabic) | `.mockups/screens/login/option-1-rtl.html` | Cart icon's "shipping" link still expects LTR reading; should mirror |
+| S-002 Login | Screen-reader-only (transcript) | `.mockups/screens/login/option-1-sr-transcript.md` | "Sign in" button has no accessible name; reads as "button" |
+| S-003 Dashboard | Low-bandwidth (no images loaded) | `.mockups/screens/dashboard/option-1-lowbw.html` | Empty-state for charts is "..." not informative |
+
+Surfaces explicitly opted-out of the Whose Default? pass:
+- (none this pass)
+
+## Refusals (Phase 6.6, optional)
+
+_(Filled only if the product has an explicit refusal-as-design position.
+Lives at `.mockups/refusals.md` if generated.)_
+
+- Linked: `.mockups/refusals.md` _(or "skipped — refusal-as-design isn't
+  part of this product's identity")_
 
 ## Remediation queue
 
@@ -182,7 +250,13 @@ scoping as a substrate item or addressing in a future re-sync:
   start at F-101 by convention to leave the F-001..F-099 range for
   flow candidates)
 - `F-001`..`F-099` — flow candidates
-- `F-100`+ — findings
+- `F-100`..`F-199` — design-system fragmentation findings
+- `F-200`..`F-299` — component duplication findings
+- `F-300`..`F-399` — accessibility-gap findings
+- `F-400`..`F-499` — layout-drift findings
+- `F-500`..`F-599` — copy/voice-inconsistency findings
+- `F-600`..`F-699` — empty/error/loading-state findings
+- `F-700`..`F-799` — motion-drift findings (Detector 7)
 
 IDs stay stable across re-syncs. When a finding is resolved, mark it
 RESOLVED in the next report rather than deleting — preserves history.

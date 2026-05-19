@@ -1,32 +1,43 @@
 # Topology guide
 
-The decision tree for picking sequential, hub-and-spoke, or hybrid in
-Phase 2.5, with worked examples per topology and edge-case rulings.
+The decision tree for picking sequential, hub-and-spoke, hybrid, map-as-canvas,
+or chat-as-canvas in Phase 2.5, with worked examples per topology and
+edge-case rulings.
 
-## The three topologies
+## The five topologies
 
 | Topology | Mental model | User movement | Chrome class |
 |---|---|---|---|
 | Sequential | A staircase | Strictly forward, each step gates the next | `.flow-meta` |
 | Hub-and-spoke | A floor plan | Any order, any direction | `.flow-nav` |
 | Hybrid | A staircase with mezzanines | Primary forward, with revisit options | `.flow-hybrid` |
+| Map-as-canvas | A workshop floor | The canvas is the work; pages are modes | `.flow-map` |
+| Chat-as-canvas | A conversation | The thread is the application | `.flow-chat` |
 
 ## Decision tree
 
 Ask these in order:
 
-**1. Is there a forced order?**
+**1. Is there a primary canvas (map / scene / graph) the user interacts with?**
+- Yes → **Map-as-canvas**
+- No → continue
+
+**2. Is the interface fundamentally a conversation?**
+- Yes → **Chat-as-canvas**
+- No → continue
+
+**3. Is there a forced order between page-equivalents?**
 - No → **Hub-and-spoke**
 - Yes → continue
 
-**2. Within that order, can the user legitimately revisit earlier pages
+**4. Within that order, can the user legitimately revisit earlier pages
 without abandoning progress?**
 - No (going back means restarting) → **Sequential**
 - Yes (going back to edit something is part of normal flow) → **Hybrid**
 
 That's the whole tree. The user's spec — "render both when both fit, the
-fitting one when only one fits" — maps directly: hybrid IS "both fit,"
-sequential and hub-and-spoke are the "only one fits" cases.
+fitting one when only one fits" — applies between sequential and hybrid;
+map and chat are topologies that *replace* the page-equivalents entirely.
 
 ## Sequential — examples and edge cases
 
@@ -140,6 +151,97 @@ When jumping back DOES modify later state ("edit cart" invalidates
 page body (e.g., a small note on the cart page: "Editing here will
 recalculate shipping and tax"). The mock chrome handles abstract
 navigation; the page bodies handle realistic UX.
+
+## Map-as-canvas — examples and edge cases
+
+**Canonical examples:**
+- Logistics dashboards (Death Stranding lineage: planning the route IS the gameplay)
+- Route planning for delivery / field service
+- Real-estate browsing (the map IS the property list)
+- Urban planning / GIS tools
+- 3D modeling tools (Figma, Blender — though Figma is multi-canvas)
+- Graph editors (whiteboards, mind maps, node-and-edge diagrams)
+
+**Page count:** 3-6 modes. The "pages" are *states of the same canvas*:
+overview / planning / executing / inspecting / reviewing. More than 6
+modes → the canvas is doing too much; consider splitting into sibling
+canvases.
+
+**Chrome:** `.flow-map` strip with brand + mode switcher + overview link.
+The chrome is *minimal* (max ~40px tall) because the canvas wants the
+viewport. Mode switching is the primary chrome interaction.
+
+**The canvas as page:**
+Each mock page shows the same canvas in a different mode — same map / scene,
+different overlay panels, different cursor affordances, different
+toolbar. For mocks, use a static SVG / image placeholder for the canvas
+itself; the *modes* demonstrate by swapping popover content.
+
+**Edge case: should the canvas have a "next mode" button?**
+Sometimes yes — when there's a natural progression (planning → executing).
+In that case, the chrome's mode switcher highlights the next mode
+prominently. But mode-switching shouldn't feel like wizard-advance; it's
+a *mode change*, not a step. Use subtle highlighting, not a primary CTA.
+
+**Edge case: do you also need flows-within-flows for sub-tasks?**
+When a mode opens a multi-step sub-task (e.g., planning mode → "add
+waypoint" → 3-step waypoint config), the sub-task is a modal-with-its-own-sequential
+flow inside the map. Don't try to fit it into the map topology — let the
+sub-task have its own mini-flow rendered as a sequential overlay. The mock
+shows the modal stack with the map dimmed behind.
+
+**Edge case: multiple canvases?**
+Use sibling flows: `<flow>-canvas-A` + `<flow>-canvas-B`, each
+map-as-canvas. Cross-link between them. Multi-canvas single flows produce
+unreadable mocks; reviewers can't tell which canvas is "the" canvas.
+
+## Chat-as-canvas — examples and edge cases
+
+**Canonical examples:**
+- AI assistants (ChatGPT, Claude, Perplexity)
+- Customer support chat with rich cards (Intercom, Drift)
+- Bot-driven workflows (Slack approval bots, Telegram inline keyboards)
+- Conversational forms (Typeform's chat mode)
+- Notion AI / Cursor / Continue — embedded assistants
+
+**Page count:** 3-7 conversation states. The "pages" are message points
+in the canonical arc: greeting / clarification / first-result /
+followup / resolution. More than 7 messages in the canonical arc → the
+conversation is too long; reviewers lose the thread.
+
+**Chrome:** `.flow-chat` strip with brand + overview link, plus the
+sticky composer at bottom. The thread fills the middle.
+
+**Rich blocks as the layout primitive:**
+Bot messages can carry — *inside the bubble* — cards, choice-chip rails,
+inline forms, streaming-token reveals, code blocks, expandable details.
+Composition shifts from page-as-canvas to message-as-canvas. Each mock
+shows the thread up-to-that-message, with the most-recent message
+demonstrating one block type.
+
+**Edge case: typing indicator and streaming.**
+Real chat surfaces have a typing indicator (3-dot bounce) and streaming
+token reveal. Mock the *post-stream* state for review-by-screenshot, and
+optionally include one step that shows the mid-stream state.
+
+**Edge case: the bot has a persona — is persona writing the flow?**
+Yes. Voice / vocabulary / formality / response-length are part of the
+flow's design. Document the persona in the index.html as a section
+("Persona: terse, technical, jokes only on errors"). The persona shapes
+every bubble.
+
+**Edge case: chat-with-tabs (the assistant has multiple modes — code /
+docs / images).**
+That's chat-as-canvas with mode-style chrome similar to map-as-canvas.
+Treat as a hybrid: chat-as-canvas chrome + mode-switcher in the header.
+Document explicitly in the index.
+
+**Edge case: voice-first vs chat-first.**
+This skill renders the *visual* surface. Voice-first products still have
+a visual surface for transcripts, system prompts, and rich blocks —
+treat as chat-as-canvas with a voice-input affordance in place of the
+text composer. The persona, the rich-block vocabulary, and the
+conversation arc still apply.
 
 ## Both-fit cases — render hybrid
 

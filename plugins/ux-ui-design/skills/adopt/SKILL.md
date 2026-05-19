@@ -31,7 +31,7 @@ what exists, audits the design quality, and orchestrates the full
 pipeline (`palette` → `components` → `screens` → `flows`) to produce
 mockups in one of two modes.
 
-The two modes correspond to the actual choice users face when adopting
+The three modes correspond to the actual choice users face when adopting
 mockup-first onto an existing project:
 
 - **Mirror** — capture what exists, faithfully, as the reference. Audit
@@ -39,8 +39,16 @@ mockup-first onto an existing project:
 - **Reimagine** — redesign. Existing code informs constraints (data
   shape, audience, copy voice) but the visual direction is open. Audit
   findings inform the redesign brief.
+- **Diegetic prototype** — propose a future, not mirror the present.
+  Bruce Sterling lineage: the mock comes with fake-OS chrome, fake
+  timestamps, fake-handset frames, so it situates itself in a *world*
+  the product could plausibly live in. Use for "what if this product
+  existed in 2031" / strategy / spec-fiction passes, not for adopting an
+  existing codebase into the convention.
 
-Audit always runs. The findings inform whichever mode the user picks.
+Audit always runs (except for pure diegetic-prototype passes that are
+strategy-mode and explicitly opt out of audit). The findings inform
+whichever mode the user picks.
 
 ## When to invoke
 
@@ -142,6 +150,7 @@ This is the user's "first question." Use `AskUserQuestion`:
 Q: How should we approach this adoption?
 - Mirror — capture current UI faithfully; audit findings become side-by-side remediation proposals
 - Reimagine — redesign; existing code informs constraints but the visual direction is open
+- Diegetic prototype — propose a future the product could live in (fake OS chrome, fake timestamps); spec-fiction mode, not adoption-of-existing
 ```
 
 Frame the trade-off explicitly:
@@ -153,6 +162,14 @@ Frame the trade-off explicitly:
 - **Reimagine** is the right call when the project is ready for a
   visual overhaul, when the existing UI is a prototype that needs to
   be replaced, or when leadership has explicitly green-lit a redesign.
+- **Diegetic prototype** is the right call when the project wants to
+  *propose* a future (a "what if" / vision document / spec-fiction
+  artifact) rather than mirror the present. Each mock comes with
+  diegetic chrome (fake OS bar, fake handset frame, fake timestamps,
+  in-frame "evidence" components like a fake push-notification stack)
+  so it situates itself in a world. Bruce Sterling's design-fiction
+  lineage. Audit can run optionally — it informs the proposed future
+  rather than the current state.
 
 Record the choice in the adoption report.
 
@@ -162,9 +179,10 @@ Check what exists in `.mockups/design-system/`:
 
 | State | Action |
 |---|---|
-| Neither `tokens.css` nor `components.css` exist | Delegate to `palette` then `components`, mode-aware |
-| `tokens.css` exists but `components.css` doesn't | Delegate to `components`, mode-aware |
-| Both exist | Skip (or offer refinement if the scan surfaced gaps) |
+| Neither `tokens.css` nor `components.css` nor `motion.css` exist | Delegate to `palette` → `components` → `motion`, mode-aware |
+| `tokens.css` exists but `components.css` doesn't | Delegate to `components`, then `motion`, mode-aware |
+| `tokens.css` + `components.css` exist but `motion.css` doesn't, AND the audit found motion drift (Detector 7) | Delegate to `motion`, mode-aware |
+| All three exist | Skip (or offer refinement if the scan surfaced gaps) |
 
 **Mode propagation to palette:**
 - **Mirror:** pass the scanned color/type/spacing values as starting
@@ -173,6 +191,10 @@ Check what exists in `.mockups/design-system/`:
 - **Reimagine:** standard `palette` workflow (3 palette options, 2
   typography options). Existing values surface as one input but not
   the default.
+- **Diegetic prototype:** standard `palette` workflow but framed as
+  "what palette would this product use in 2031 / under the strategy / etc.";
+  audit findings inform constraints (data viz needs, accessibility floor)
+  but not the visual direction.
 
 **Mode propagation to components:**
 - **Mirror:** pass the scanned component inventory. `components`
@@ -181,6 +203,22 @@ Check what exists in `.mockups/design-system/`:
 - **Reimagine:** standard `components` workflow (Phase 2 picks
   starter set, Phase 3 identifies project-unique components from the
   scanned inventory).
+- **Diegetic prototype:** standard workflow; the project-unique
+  components reflect the proposed future, not the current state.
+
+**Mode propagation to motion:**
+- **Mirror:** pass the scanned motion drift (inline cubic-bezier values,
+  hardcoded durations, animations exceeding Doherty 300ms input-gating
+  budget, missing reduced-motion). `motion` generates a single attitude
+  + curve set that captures the current de-facto language; the audit
+  findings become motion.css refinements.
+- **Reimagine:** standard `motion` workflow (Phase 2 picks attitude,
+  Phase 3 named curves, etc.). Existing inline values are one input;
+  Doherty-coupling and reduced-motion are non-negotiable in the new
+  design.
+- **Diegetic prototype:** standard workflow; the attitude reflects the
+  proposed future (a "what would a calm-tech version of this product
+  feel like" pass).
 
 See `references/mode-propagation.md` for the exact context to pass
 each delegated skill.
@@ -240,13 +278,95 @@ surfaces) or `flows` (multi-page journeys) with mode context.
 See `references/mode-propagation.md` for the full delegation
 templates.
 
+### Phase 6.5: "Whose Default?" mirror-mocks (Design Justice pass)
+
+Sasha Costanza-Chock's *Design Justice* (MIT Press 2020) frames a question
+Western mocks chronically skip: **whose default persona is this design
+serving?** The pipeline's mocks default toward an able-bodied, high-bandwidth,
+LTR-script, dominant-language user. That default ships unless the design
+process actively challenges it.
+
+For each surface mocked in Phase 6, generate at least ONE mirror-mock for a
+non-default persona. Pick the personas from the scanned project context —
+not all four for every surface, but at least one per surface, picked to
+challenge the most-likely default:
+
+- **Low-bandwidth / poor-connection mirror.** The same surface rendered as
+  if every image is unloaded, every web font is fallback, every fetch is
+  pending. Reveals whether the design degrades gracefully.
+- **Screen-reader-only mirror.** A transcript of what VoiceOver / NVDA /
+  TalkBack reads for the surface, in order. Reveals semantic-tree quality.
+- **RTL-script mirror.** The surface mirrored for RTL languages (Arabic,
+  Hebrew). Reveals layout assumptions that don't generalize.
+- **Non-Latin / non-English mirror.** The surface with content in a
+  long-glyph language (German compounds, Hindi) or non-Latin script
+  (Chinese, Cyrillic). Reveals text-overflow assumptions.
+
+The mirror lives at `.mockups/screens/<surface-id>/option-N-rtl.html` (etc.)
+and joins the index alongside the canonical option. Each carries a header
+comment:
+
+```html
+<!--
+  "Whose Default?" mirror — RTL script (Arabic).
+  Tests whether the option-2 design generalizes when reading direction
+  flips. Bug surfaced: the cart icon's "shipping address" link still
+  expects LTR reading order; should mirror to RTL.
+-->
+```
+
+Findings from the mirror pass become a "Whose Default?" section in
+`.mockups/adoption-report.md`. The audit lens explicitly names *who the
+existing UI excludes*, not just "inconsistencies."
+
+Skip Phase 6.5 only when the user explicitly opts out (e.g., "this is a
+proof-of-concept; we'll do persona mocks at v1") AND records the opt-out
+in the adoption report.
+
+### Phase 6.6: Refusals footer (optional)
+
+For products that have an explicit "things this product deliberately does
+NOT do" position (refusal-as-design lineage: Light Phone, Freewrite,
+write-only journals, one-button apps), generate `.mockups/refusals.md`
+listing what the product refuses to add, with reasons.
+
+```markdown
+# Refusals
+
+What this product deliberately does not do, and why.
+
+## No infinite scroll
+The product is meant to be finished, not browsed-without-end. The end-of-feed
+sentinel is the design.
+
+## No notifications
+Notifications are interruption. Users come back when they choose to.
+
+## No social-reciprocity baits
+No "people you may know"; no "10 friends saved this"; no "they're online now."
+The product is about the user's own work, not their relationship to others.
+
+## No infinite undo
+Editing is a commitment. Past edits are recoverable from history; past
+versions don't auto-reappear.
+```
+
+Surface this as a section in the index.html for the landing page (a footer
+strip linking to `refusals.md`), so the position is visible to anyone
+reviewing the design.
+
+Skip when refusal isn't part of the product's identity. Most products
+don't need this artifact; the few that do really do.
+
 ### Phase 7: Wrap and record
 
 Update `.mockups/adoption-report.md`:
-- Mark each mocked surface with its mockup path
+- Mark each mocked surface with its mockup path AND its "Whose Default?"
+  mirror paths (from Phase 6.5)
 - Mark deferred surfaces explicitly (don't lose them)
 - Promote each remaining `blocker` / `important` finding to a
   "Remediation queue" section with concrete next steps
+- If Phase 6.6 produced `refusals.md`, link it from the report
 
 If `agile-workflow` is in use, **suggest** (don't auto-create) scoping
 the top remediations as substrate items:
@@ -260,7 +380,8 @@ Preserve the loose coupling — let the user decide whether substrate
 items make sense.
 
 `git add .mockups/adoption-report.md .mockups/design-system/
-.mockups/screens/ .mockups/flows/`. Tell the user adoption is recorded.
+.mockups/screens/ .mockups/flows/`. Add `.mockups/refusals.md` if it
+exists. Tell the user adoption is recorded.
 
 ## Re-sync mode
 
@@ -311,9 +432,10 @@ adoption report is the alignment artifact that keeps them in step.
 
 ## Reference files
 
-- `references/scan-detectors.md` — detector heuristics, severity rules,
-  example findings + remediation patterns
+- `references/scan-detectors.md` — the seven audit detectors (six visual
+  +  motion drift), severity rules, example findings + remediation
+  patterns
 - `references/adoption-report-template.md` — the `adoption-report.md`
-  structure and required sections
+  structure and required sections, including the "Whose Default?" section
 - `references/mode-propagation.md` — exact context passed to delegated
-  skills under mirror vs reimagine modes
+  skills under mirror / reimagine / diegetic-prototype modes

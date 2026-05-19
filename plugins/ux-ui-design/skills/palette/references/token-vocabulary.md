@@ -86,6 +86,59 @@ only when a real downstream mock needs them.
 --radius-full: 9999px;
 ```
 
+## Data-visualization tokens (Bertin's visual-variables tier)
+
+Optional tier — add only when the project actually visualizes data. Jacques Bertin's
+*Semiology of Graphics* (1967) distinguishes three data-encoding intents, each
+requiring a different color ramp:
+
+```
+/* Categorical — for distinguishing nominal categories (no inherent order) */
+--chart-cat-1
+--chart-cat-2
+--chart-cat-3
+--chart-cat-4
+--chart-cat-5
+--chart-cat-6
+/* Pick 6-8 maximally-distinct hues. Test for color-blind safety
+   (Okabe-Ito, IBM Carbon Accessible, or Color Universal Design palettes
+   are good starting sets). */
+
+/* Sequential — for ordered data (low → high, cool → hot) */
+--chart-seq-1   /* lightest */
+--chart-seq-2
+--chart-seq-3
+--chart-seq-4
+--chart-seq-5
+--chart-seq-6
+--chart-seq-7
+--chart-seq-8
+--chart-seq-9   /* darkest */
+/* Use single-hue ramps (light blue → dark blue) for the most-readable
+   sequential viz. ColorBrewer's "Blues" / "Greens" / "Reds" sequential
+   sets are canonical. */
+
+/* Diverging — for data with a meaningful midpoint (positive/negative,
+   above/below baseline) */
+--chart-div-neg-3
+--chart-div-neg-2
+--chart-div-neg-1
+--chart-div-mid       /* neutral pivot */
+--chart-div-pos-1
+--chart-div-pos-2
+--chart-div-pos-3
+/* Two contrasting hues meeting at a neutral midpoint (red ↔ blue,
+   brown ↔ teal). ColorBrewer's "RdBu" / "BrBG" sets are canonical. */
+```
+
+**Bertin's lesson:** match the encoding to the data shape. Nominal categories
+should NOT use a sequential ramp (it implies false order). Ordered data should NOT
+use categorical hues (it implies false separation). Bipolar data should NOT use a
+sequential ramp (it implies a one-way direction).
+
+Most projects need only categorical. Sequential and diverging are for analytics-heavy
+products. Skip both if charts aren't first-class in the design.
+
 ## Naming principles
 
 - **Semantic over hue.** `--color-accent` lets the palette swap; `--color-blue`

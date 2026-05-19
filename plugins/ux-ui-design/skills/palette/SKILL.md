@@ -77,23 +77,73 @@ Read:
 
 Before picking colors, get the project's **personality** into focus. Use
 `AskUserQuestion` (2-4 questions, tailored to what isn't already pinned
-by docs or assets):
+by docs or assets).
+
+The full catalog of 37 poles is in `references/aesthetic-poles.md`, organized
+into 12 families (minimalist, editorial, historical movement, retro futurism,
+internet-native, maximalist, constraint/craft, cultural, refusal, atmosphere,
+function/density, premium). The Phase 2 question pitches a curated subset —
+roughly 12-15 poles spanning the families — to provoke imagination. When the
+user gestures at a direction not in the curated set ("something more 80s / more
+Japanese / more brutalist"), pull the matching pole(s) from the full catalog
+in the follow-up.
 
 ```
 Q: Which aesthetic poles fit this project? Pick 1-2 — push past "professional / clean / modern."
+
+— Minimalist / monastic
 - Brutally minimal — system fonts, one accent, profound restraint
+- Muji / emptiness (kuu) — unbleached neutrals, never #000/#fff, the user completes the page
+
+— Editorial / publication
 - Editorial / magazine — serifs, generous hierarchy, content-as-hero
-- Retro-futuristic — terminal echoes, chunky borders, mono accents
-- Organic / natural — earthy tones, soft shapes, hand-drawn touches
-- Maximalist chaos — overlapping layers, expressive type, color riot
-- Luxury / refined — slow gravitas, gold leaf, considered whitespace
-- Playful / toy-like — rounded everything, bright primaries, spring motion
-- Industrial / utilitarian — dense info, mono numerics, no chrome
-- Art-deco / geometric — symmetrical, rule-bound, ornament with intent
+- Swiss / International Typographic Style — strict 12-col grid, Akzidenz/Helvetica, one accent
+- Dark academia — brooding intellectualism, oxblood + parchment + gold leaf
+
+— Historical movement
+- Bauhaus — primary geometric tokens mapped to primary hues, shape-as-affordance
+- Memphis Milano — squiggles, terrazzo, pastel + black, pattern-on-pattern
+- Russian Constructivism — diagonal as primary axis, photomontage, red+black+cream
+
+— Retro futurism
+- Cassette futurism — Nostromo consoles, amber CRT, beige plastic, wood
+- Frutiger Aero — wet/alive/hopeful, aqua + glass + bubbles, mid-2000s Vista
+- Y2K Chromecore — anxious pre-millennial chrome, liquid metal, lime + orange
+
+— Internet-native
+- Vaporwave — pink/teal grids, Roman busts, late-capitalism elegy
+- Hauntology — Mark Fisher's lost futures, Penguin-paperback + library-music
+- Liminal spaces / dreamcore — empty hallways, fluorescent + teal carpet
+
+— Cultural / regional (see cultural-borrowing.md before picking)
+- Barragán — saturated single-color planes, walls of dyed plaster
+- Marimekko — one enormous brush-painted motif at oversized scale
+- Girih / generative geometry — 5-tile aperiodic patterns; pattern as system
+
+— Refusal / anti-design
+- True brutalist web — motherfuckingwebsite/sourcehut, system Times, default blue links
+- One-button / read-only — refusal-as-design, one screen one input
+- Neubrutalism — thick black borders, hard offset shadows, candy-flat blocks
+
+— Atmosphere / depth
 - Cyberpunk / neon — high-contrast dark, electric accents, glow
-- Earthy / handcrafted — paper textures, ink, warm muted tones
+- Aurora gradient — atmospheric color flow, painterly light
+- Spatial / visionOS — translucent glass with refraction, depth-stacked
+
+— Function / density
 - Data-dense / trading-terminal — green/red against deep navy, mono everywhere
+- Soulslike minimalism — restraint by removal of affordances, not styling
+- Roguelike ASCII — a character is a type not a picture
+
+If none of these click, describe the direction in words — the full 37-pole catalog
+in references/aesthetic-poles.md has more.
 ```
+
+If the user picks a culturally-anchored pole (Barragán, Marimekko, Girih,
+Chromolitho, Korean density, Chinese super-app, Adinkra/Kente, Aboriginal
+dot-painting), trigger the cultural-borrowing guardrail per
+`references/cultural-borrowing.md`. The borrow should be principled — borrow the
+*grammar*, substitute the iconography — unless the project has cultural authority.
 
 ```
 Q: What's the project's tone?
@@ -103,7 +153,30 @@ Q: What's the project's tone?
 - Bold / opinionated
 - Scholarly / thoughtful
 - Rebellious / punk
+- Provocative / questioning  (for speculative / critical-design projects)
 ```
+
+```
+Q: What emotional aesthetic should the design lean into?
+   (Ingrid Fetell Lee's 10 aesthetics of joy — pick 1-2 deliberately;
+    skip the question if the project's emotional thesis is already clear
+    from the poles above)
+- Energy — vibrant color, light, electric saturation
+- Abundance — variety, lushness, multiplicity
+- Freedom — nature, open space, wildness
+- Harmony — balance, symmetry, flow
+- Play — circles, spheres, bubbly forms
+- Surprise — contrast, whimsy
+- Transcendence — elevation, lightness
+- Magic — invisible forms, illusion
+- Celebration — synchrony, bursting, sparkly
+- Renewal — blossoming, expansion, curves
+```
+
+Pin the Fetell Lee aesthetics deliberately when relevant — they shape motion
+and form choices downstream. A productivity tool might pick Harmony + Renewal;
+a celebration product might pick Energy + Celebration; a contemplative app
+might skip Joy aesthetics entirely if the tone is Quiet/Confident.
 
 Also pin:
 - **Density.** Generous and spacious, or information-dense?
@@ -198,6 +271,17 @@ lorem ipsum. Fintech project → financial copy. Game → game copy.
 
 See `references/preview-pages.md` for the structure.
 
+**Typographic-color squint check.** After both type options are rendered,
+squint at each sample paragraph. The block of body text should read as a
+*uniform medium grey* — Tschichold's / Bringhurst's "typographic color." If
+patches read as dark (line-height too tight, weight too heavy, tracking too
+loose) or light (line-height too loose, weight too thin), the option needs
+adjustment before the user sees it. Two paragraphs of the same text on the
+same canvas can read as different shades of grey; the wrong shade fights the
+reader. Quick fix-up loop before lock-in: tweak line-height ± 0.05 or weight
+± 50 (variable fonts) or tracking ± 0.005em until each paragraph reads
+evenly.
+
 ### Phase 7: Open and ask
 
 Open both preview pages:
@@ -273,25 +357,38 @@ Update the substrate item body (if applicable):
 `git add .mockups/design-system/`. Tell the user the tokens are locked and
 `screens` / `flows` will inherit them automatically.
 
-### Phase 11: Suggest components as the next step
+### Phase 11: Suggest components and motion as the next steps
 
 For any project that will produce more than a few screen or flow mocks,
-`palette` is only the first half of the design system. `components`
-turns the tokens into reusable primitives (buttons, inputs, cards,
-nav-bar, modals) that every downstream mock shares — preventing the
-drift `screens` and `flows` both fight by hand.
+`palette` is only the first slice of the design system. The full pipeline:
 
-Suggest the next step:
+1. **`palette`** (you are here) — tokens for color, type, spacing, radii
+2. **`components`** — reusable component primitives that compose tokens
+3. **`motion`** — named easing-curve language, Doherty-coupled durations,
+   springs, designed pauses, reduced-motion fallbacks
+4. **`screens`** / **`flows`** — applications of all three above
+
+`components` prevents the drift that `screens` and `flows` would otherwise fight
+by hand (each mock re-deciding what a button looks like). `motion` prevents the
+parallel drift on the kinetic axis (each mock re-picking a cubic-bezier and a
+duration). Together they keep every downstream mock coherent.
+
+Suggest the next steps:
 
 ```
-With tokens locked, the natural next step is to run /ux-ui-design:components
-— it composes the tokens into reusable component classes that every
-screen and flow mock will inherit. Run it now, defer, or skip?
+With tokens locked, the natural next steps are:
+
+1. /ux-ui-design:components — turns tokens into reusable primitives every
+   screen and flow inherits. Run now, defer, or skip?
+
+2. /ux-ui-design:motion — defines the kinetic language (easing curves,
+   durations, springs, reduced-motion). Run after components, before screens
+   or flows. Run now, defer, or skip?
 ```
 
-Skip is fine for fast/exploratory work. Defer is fine when only one or
-two screens are coming. Run it now when the project will span more than
-a handful of mocks.
+Skip is fine for fast/exploratory work. Defer is fine when only one or two
+screens are coming. Run them in order when the project will span more than a
+handful of mocks — the consistency the pipeline buys compounds.
 
 ## Refinement mode (existing tokens.css present)
 
@@ -343,7 +440,14 @@ confirmation. The header comment is the source of truth for what's locked.
 
 ## Reference files
 
-- `references/token-vocabulary.md` — the semantic CSS-variable vocabulary
+- `references/token-vocabulary.md` — the semantic CSS-variable vocabulary,
+  including the optional Bertin visual-variables tier for data-viz tokens
+  (categorical / sequential / diverging color ramps)
 - `references/preview-pages.md` — `palette.html` and `typography.html` templates
 - `references/tokens-css-template.md` — locked `tokens.css` format and
   header-comment contract
+- `references/aesthetic-poles.md` — the full 37-pole catalog organized into 12
+  families, with starter palettes (hex) + type stacks + component signatures +
+  best-fit projects per pole
+- `references/cultural-borrowing.md` — guardrail for culturally-anchored poles;
+  per-pole risk levels and the principle/iconography two-layer model

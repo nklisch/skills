@@ -641,8 +641,8 @@
     },
     {
       "name": "ux-ui-design",
-      "description": "HTML/CSS/JS mockup-first UI/UX design. Generate multi-option screen mockups, multi-page user flows, and design-system palettes as throwaway single-file mockups in .mockups/ for alignment before implementation. Loosely integrates with agile-workflow.",
-      "version": "0.1.0",
+      "description": "HTML/CSS/JS mockup-first UI/UX design. Generate multi-option screen mockups, multi-page user flows, design-system palettes, component libraries, and motion systems as throwaway single-file mockups in .mockups/ for alignment before implementation. Loosely integrates with agile-workflow.",
+      "version": "0.2.0",
       "tags": [
         "design",
         "ui",
@@ -676,6 +676,11 @@
           "name": "components",
           "path": "plugins/ux-ui-design/skills/components",
           "description": "Generate the project's component library — buttons, form fields, cards, modals, toasts, dropdowns, plus project-specific unique components — as a showcase page (.mockups/design-system/components.html) and a reusable .mockups/design-system/components.css that screens and flows link. Runs AFTER palette (depends on tokens.css) and BEFORE screens/flows to give every mock identical primitives and a unified look."
+        },
+        {
+          "name": "motion",
+          "path": "plugins/ux-ui-design/skills/motion",
+          "description": "Generate the project's motion system — named easing-curve language with attitudes (emphasized / standard / productive / expressive / linear), Doherty-coupled duration scale (instant / quick / ambient with ≤300ms input-gating ceiling), spring presets (stiff / medium / wobbly) for gesture-driven UI, Disney-principle tokens (squash, anticipation, follow-through), designed pauses (ma / hold-beat), and reduced-motion fallbacks — as an interactive showcase motion.html and reusable motion.css that screens, components, and flows link. Runs AFTER palette + components and BEFORE screens/flows to give every mock a coherent kinetic voice. Use when designing animation systems, transition languages, micro-interactions, or any time motion needs to be aligned before being implemented."
         },
         {
           "name": "adopt",

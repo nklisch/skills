@@ -83,23 +83,69 @@ four genuinely different **aesthetic worlds** the screen could live in.
 
 Use `AskUserQuestion` to claim the design space the options should explore.
 Frame each pole as a real direction with personality, not a neutral
-checkbox. Pitch 4-6 poles and let the user pick 2-4 that feel alive for
-this project:
+checkbox. Pitch a varied set of 12-15 poles spanning the families and let
+the user pick 2-4 that feel alive for this project. The full 37-pole catalog
+is in `palette/references/aesthetic-poles.md` (which this skill can read for
+poles beyond the curated set):
 
 ```
-Q: Which aesthetic worlds should the four options explore? Pick 2-4.
-- Brutally minimal — system-fonts, single accent, every pixel earns its place
+Q: Which aesthetic worlds should the options explore? Pick 2-4.
+
+— Minimalist / monastic
+- Brutally minimal — system fonts, single accent, every pixel earns its place
+- Muji / emptiness — invitation, not restraint; user completes the page
+
+— Editorial / publication
 - Editorial / magazine — generous type hierarchy, serifs, image-as-hero
-- Retro-futuristic — chunky borders, mono accents, terminal echoes
-- Organic / natural — earthy tones, soft shapes, hand-drawn touches
-- Maximalist chaos — overlapping layers, expressive type, color riot
-- Luxury / refined — generous whitespace, gold leaf, slow gravitas
-- Playful / toy-like — rounded everything, bright primaries, springy motion
-- Industrial / utilitarian — dense info, monospace numerics, no chrome
-- Art-deco / geometric — symmetrical, rule-bound, ornament with intent
-- Cyberpunk / neon — high-contrast dark mode, electric accents, glow
-- Quiet / monastic — single weight, single color, profound restraint
+- Swiss / International Typographic Style — strict 12-col grid, Akzidenz, one red
+- Dark academia — brooding intellectualism, oxblood + parchment + gold
+
+— Historical movement
+- Bauhaus — primary geometric tokens, shape-as-affordance
+- Memphis Milano — squiggles, terrazzo, pastel + black, pattern-on-pattern
+- Russian Constructivism — diagonal axis, photomontage, red+black+cream
+
+— Retro futurism
+- Cassette futurism — Nostromo consoles, amber CRT, beige plastic, wood
+- Frutiger Aero — wet/alive/hopeful, aqua + glass + bubbles
+- Y2K Chromecore — anxious pre-millennial chrome, liquid metal, lime+orange
+
+— Internet-native
+- Vaporwave — pink/teal grids, Roman busts, late-capitalism elegy
+- Hauntology — Mark Fisher's lost futures, library-music typography
+- Liminal spaces / dreamcore — empty hallways, fluorescent + teal carpet
+
+— Cultural / regional
+- Barragán — saturated single-color planes, walls of dyed plaster
+- Marimekko — one enormous brush-painted motif at oversized scale
+- Girih / generative geometry — 5-tile aperiodic patterns
+
+— Refusal / anti-design
+- True brutalist web — system Times, default blue links, no styling at all
+- One-button — refusal-as-design, single primary action, no chrome
+- Neubrutalism — thick borders, hard offset shadows, candy-flat blocks
+
+— Atmosphere / depth
+- Cyberpunk / neon — high-contrast dark, electric accents, glow
+- Aurora gradient — atmospheric color flow, painterly light
+- Spatial / visionOS — translucent glass with refraction, depth-stacked
+
+— Function / density
+- Data-dense / trading-terminal — green/red against deep navy, mono everywhere
+- Soulslike minimalism — restraint by removal of affordances, not styling
+- Roguelike ASCII — a character is a type, not a picture
+
+— Speculative / critical
+- Provocation — screen as question, not answer (Dunne & Raby)
+- Calm Tech periphery — primary content centered, ambient signals at edges
+
+If none click, describe the direction — the full 37-pole catalog has more.
 ```
+
+When the user picks 2-4 poles, ensure they span genuinely different territory.
+If two picks are too similar (e.g., "Frutiger Aero" + "Y2K Chromecore" both
+sit in the wet/glossy retro-future cluster), surface that and ask if the user
+wants to swap one for a contrast pick.
 
 Also pin what's **locked** (existing brand colors, logo placement, audience
 constraints) and what's a **stretch** ("I keep defaulting to centered
@@ -108,6 +154,12 @@ the stretch things liberate them.
 
 If `.mockups/design-system/tokens.css` already exists, options vary in
 layout and personality — `tokens.css` constrains palette, not direction.
+
+If `.mockups/design-system/motion.css` exists, options should differ in their
+*kinetic* dimension too: option-1 might use `--motion-productive`-only,
+option-2 might lean on `--motion-expressive` with `--squash-on-press`,
+option-3 might be near-motionless with `--hold-beat` between segments. Motion
+is a real axis of variation, not an afterthought to layout.
 
 ### Phase 3: Sketch four distinct directions
 
@@ -283,25 +335,32 @@ chosen option's HTML:
 
 ## Examples of distinct option naming
 
-Adapt to the screen being mocked.
+Adapt to the screen being mocked. Each label combines layout/density/hierarchy
+choice with the aesthetic pole.
 
 **Login screen:**
-- option-1: "Centered card, single CTA, no brand"
-- option-2: "Split — illustration left, form right, branded"
-- option-3: "Full-bleed background, glass-morphism card, expressive"
-- option-4: "Multi-method (SSO + email + magic-link), tabbed"
+- option-1: "Centered card, single CTA, no brand — brutally minimal pole"
+- option-2: "Split — illustration left, form right — Frutiger Aero pole"
+- option-3: "Full-bleed Barragán wall, form floats on plaster pink"
+- option-4: "Cassette futurism — amber terminal, MUTHUR-prompt feel"
 
 **Empty state:**
-- option-1: "Centered icon + CTA + secondary link"
-- option-2: "Illustrated walkthrough card with 3 steps"
-- option-3: "Pre-filled example data with 'this is a demo' label"
-- option-4: "Skeleton-of-real-UI with annotations"
+- option-1: "Centered icon + CTA — Muji emptiness; the user completes it"
+- option-2: "Illustrated walkthrough — solarpunk vines + medallions"
+- option-3: "Pre-filled example data with 'this is a demo' — true brutalist"
+- option-4: "Provocation — large rhetorical question, no CTA"
 
 **Settings page:**
-- option-1: "Long single page, section anchors"
-- option-2: "Tabbed (Account / Security / Billing / Notifications)"
-- option-3: "Sidebar nav, content pane"
-- option-4: "Search-first — start by querying a setting"
+- option-1: "Long single page, section anchors — Swiss grid"
+- option-2: "Tabbed sections — Persona 5 menu-as-character"
+- option-3: "Sidebar nav, content pane — Rams refined-industrial"
+- option-4: "One-button — single primary control, refusals footer"
+
+**Dashboard:**
+- option-1: "Bento grid — Apple iOS 16 tile hierarchy"
+- option-2: "EVE Online overview — spreadsheet-as-UI, sortable tables"
+- option-3: "Map-as-canvas — terrain primary, panels float on top"
+- option-4: "AAA HUD — corner-budgeted (each corner one channel)"
 
 ## Anti-patterns
 

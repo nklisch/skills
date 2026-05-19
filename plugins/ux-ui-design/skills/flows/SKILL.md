@@ -119,13 +119,15 @@ If branches exist, note them in the step description but render the
 ### Phase 2.5: Determine the flow's topology
 
 The chrome on each page should match how users actually move through the
-flow. Three topologies, three chromes:
+flow. Five topologies, five chromes:
 
 | Topology | Chrome | When it fits |
 |---|---|---|
 | **Sequential** | prev/next strip (`.flow-meta`) | Each step is a hard gate. Users move strictly forward; back means "abandon and restart." Examples: signup wizard, password reset, multi-step form, onboarding wizard. |
 | **Hub-and-spoke** | persistent nav bar (`.flow-nav`) | Pages are peers; no order. The "flow" is the set of pages that comprise an area. Examples: settings, account, dashboard tabs, admin panels. |
 | **Hybrid** | sequence + cross-jump breadcrumb (`.flow-hybrid`) | Primary sequence AND legitimate cross-jumps to revisit earlier steps. Examples: checkout (cart → shipping → payment → review, with "edit cart" from later steps), multi-stage approval flows, complex onboarding with optional revisits. |
+| **Map-as-canvas** | floating context strip + on-canvas popovers (`.flow-map`) | The canvas IS the application — a map, a 3D scene, a graph view. Pages are *modes* over the canvas (planning / editing / inspecting) and panels float as popovers on top. Examples: route-planning, logistics dashboards, real-estate browsing, urban planning, hiking tools, field-service apps (lineage: Death Stranding's map-as-hero). |
+| **Chat-as-canvas** | persistent composer + thread scroll (`.flow-chat`) | The thread IS the application. Rich blocks — cards, forms, choice-chips — render *inside* chat bubbles; the conversation is the surface. Examples: AI assistants, support chat with rich cards, bot-driven workflows, conversational forms (lineage: Slack Block Kit / Discord / ChatGPT). |
 
 **Decision rule.** When both sequential and cross-nav fit the journey,
 render **both** via the hybrid chrome. When only one fits, render that
@@ -139,6 +141,10 @@ button, don't add one to satisfy a default.
   → propose **hub-and-spoke**
 - Process-shaped names (`checkout`, `application`, `appointment-booking`)
   → propose **hybrid**
+- Spatial / geographic names (`route-planning`, `delivery`, `field-service`,
+  `map`, `terrain`, `properties`) → propose **map-as-canvas**
+- Conversational / assistant names (`chat`, `assistant`, `support`, `bot`,
+  `agent`, `inquiry-flow`) → propose **chat-as-canvas**
 
 Confirm with the user via `AskUserQuestion`:
 
@@ -147,6 +153,8 @@ Q: How do users move between these pages?
 - Sequential — strictly forward, each step gates the next (wizard / form)
 - Hub-and-spoke — peer pages with shared nav, any order (settings / dashboard)
 - Hybrid — primary sequence with cross-jumps back to earlier steps (checkout)
+- Map-as-canvas — the map/canvas IS the surface; pages are modes (planning / editing / inspecting)
+- Chat-as-canvas — the thread IS the surface; pages are inline blocks inside bubbles
 ```
 
 Frame the default in the question text: "This looks like a wizard, so
@@ -169,6 +177,22 @@ cross-jump is a link from a later step BACK to an earlier step
 which earlier pages can be jumped to from here. The `.flow-hybrid`
 breadcrumb makes all steps clickable; the cross-jumps are the realistic
 "edit X" links inside the page content.
+
+For **map-as-canvas**: capture the *modes* (planning / editing /
+inspecting / executing) and what each mode adds or removes from the
+canvas. The "pages" are mode states — `01-overview.html`,
+`02-planning.html`, `03-executing.html` — all showing the same canvas with
+different popover panels, different cursors, different on-canvas controls.
+Pick the **default mode** (the one users land in); the canvas chrome
+shows the mode switcher prominently.
+
+For **chat-as-canvas**: capture the *conversation arc* — the trigger
+phrase or initiation, the canonical bot/user message sequence, the
+inline-block types the bot uses (rich card, choice-chip rail, inline form,
+streaming-token reveal), and the resolution. The "pages" are message
+states — `01-greeting.html`, `02-task-clarification.html`,
+`03-results-card.html`, `04-followup.html`. Each shows the full thread
+ending at that message; the user reads top-down.
 
 See `references/topology-guide.md` for the full decision tree, edge
 cases, and worked examples per topology.
@@ -264,6 +288,76 @@ Page content should include realistic in-page links to other pages
 wherever a real user would have them (e.g., a "view billing details"
 link on the account page that goes to `03-billing.html`). Don't fake
 isolation — peer pages cross-link freely.
+
+#### Map-as-canvas — `.flow-map` chrome + on-canvas popovers
+
+```html
+<header class="flow-map">
+  <span class="flow-map__title">{flow-name}</span>
+  <nav class="flow-map__modes">
+    <a href="01-overview.html" class="flow-map__mode">Overview</a>
+    <a href="02-planning.html" class="flow-map__mode flow-map__mode--active">Planning</a>
+    <a href="03-executing.html" class="flow-map__mode">Executing</a>
+  </nav>
+  <a href="index.html" class="flow-map__overview">overview ↗</a>
+</header>
+<main class="map-canvas">
+  <!-- The map/scene/graph fills the viewport -->
+  <div class="canvas-fill"><!-- placeholder map SVG / image / canvas --></div>
+  <!-- Floating popover panels with the current mode's content -->
+  <aside class="popover popover--top-left">{mode-specific panel}</aside>
+  <aside class="popover popover--bottom-right">{tools / actions}</aside>
+</main>
+```
+
+The map fills the viewport. The chrome is *minimal* (mode switcher + brand)
+and the mode-specific UI floats on top as popover panels. Planning panels
+sit one corner; tool palettes sit another; selection details appear as
+small popovers near the selected on-canvas element.
+
+For mocks, the canvas can be a static SVG / image placeholder; the *modes*
+demonstrate by swapping the popover panel content. Lineage: Death Stranding's
+map-as-hero where planning the route IS the gameplay; Google Maps' modes;
+Figma's tool modes; Mapbox planning UIs.
+
+#### Chat-as-canvas — `.flow-chat` chrome + thread
+
+```html
+<header class="flow-chat">
+  <span class="flow-chat__title">{flow-name}</span>
+  <a href="index.html" class="flow-chat__overview">overview ↗</a>
+</header>
+<main class="chat-thread">
+  <!-- Each chat bubble; alternates user / bot -->
+  <div class="msg msg--bot">
+    <p>Hi — I can help with X. What are you trying to do today?</p>
+  </div>
+  <div class="msg msg--user">
+    <p>I want to book a meeting with Jordan next Tuesday.</p>
+  </div>
+  <!-- A bot message can carry a rich block — card, choice-chips, inline form -->
+  <div class="msg msg--bot">
+    <p>Here are Jordan's free slots Tuesday:</p>
+    <div class="rich-block choice-chips">
+      <button class="choice-chip">10:00 AM</button>
+      <button class="choice-chip">2:30 PM</button>
+      <button class="choice-chip">4:00 PM</button>
+    </div>
+  </div>
+</main>
+<footer class="composer">
+  <input type="text" class="input" placeholder="Type a message…">
+  <button class="btn btn-primary">Send</button>
+</footer>
+```
+
+The thread scrolls. The composer is sticky at the bottom. Rich blocks
+(cards, choice-chips, inline forms, streaming-token reveals) appear *inside*
+bot bubbles — composition shifts from page-as-canvas to message-as-canvas.
+
+Each mock step shows the thread *up to that message* — reviewers scroll to
+read the conversation arc top-down. The flow's index visualizes the message
+sequence as a vertical timeline.
 
 #### Hybrid — `.flow-hybrid` chrome + in-page cross-jumps
 
@@ -441,8 +535,12 @@ handoff between them.
 - **Match the chrome to the topology.** A settings area with a forced
   "next →" button feels wrong because settings aren't a sequence. A
   signup wizard with a peer nav bar feels wrong because the user
-  shouldn't jump to "verify" before "email." Pick the topology in
-  Phase 2.5 deliberately; the chrome falls out of that choice.
+  shouldn't jump to "verify" before "email." A logistics dashboard with
+  a step-by-step wizard chrome wastes the spatial intelligence that
+  map-as-canvas is the answer for. A conversational assistant forced into
+  hub-and-spoke loses the thread-as-application property that chat-as-canvas
+  earns. Pick the topology in Phase 2.5 deliberately; the chrome falls
+  out of that choice.
 - **When both navigation patterns fit, render both.** Hybrid chrome
   exists exactly for this case. Sequential strip + cross-jump
   breadcrumb together is more informative than either alone for

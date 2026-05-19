@@ -19,15 +19,33 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 
 This is the reference skill for mockup-first UI/UX design. It encodes WHERE
 mockups live, WHEN to produce them, HOW they link back to work items, and
-WHAT the rule text in `CLAUDE.md` says. The five generator skills
-(`palette`, `components`, `screens`, `flows`, `adopt`) all defer here.
+WHAT the rule text in `CLAUDE.md` says. The six generator skills
+(`palette`, `components`, `motion`, `screens`, `flows`, `adopt`) all defer here.
+
+This skill also carries two auto-loaded reference files:
+
+- **`references/ux-laws.md`** — the 12 non-optional UX laws (Hick, Fitts,
+  Miller-corrected-to-Cowan, Jakob, Tesler, Doherty, Peak-End, Zeigarnik,
+  Aesthetic-Usability + Lindgaard 50ms, Norman's gulfs, Affordances vs
+  Signifiers, Calm Tech's 8 principles) plus the Gestalt 8-principle set. Each
+  entry includes the pop-UX inoculation where one exists (Miller, Bertin,
+  choice-overload).
+- **`references/cross-discipline.md`** — 12 transfers from non-software disciplines
+  (Alexander pattern language, Ando procession, Fujimoto nested transparency,
+  Eno generative, Murch Rule of Six, Deakins motivated light, Ikebana
+  three-element, garden shakkei, tea ceremony preparation-as-content, Laban
+  motion taxonomy, music modular scale + counterpoint, info-design canon —
+  Tufte, Bertin, Vignelli, Müller-Brockmann, Aicher, Neurath).
+
+These references are vocabulary the generator skills draw on; they are not
+mechanically checked on every mock.
 
 **Greenfield vs adoption.** For projects starting fresh, run the
-pipeline directly: `palette` → `components` → `screens`/`flows`. For
-projects that already have UI code, run `adopt` first — it scans the
+pipeline directly: `palette` → `components` → `motion` → `screens`/`flows`.
+For projects that already have UI code, run `adopt` first — it scans the
 codebase, audits existing UI for inconsistency, and orchestrates the
-pipeline in either MIRROR mode (capture current state) or REIMAGINE
-mode (redesign).
+pipeline in MIRROR mode (capture current state), REIMAGINE mode (redesign),
+or DIEGETIC-PROTOTYPE mode (propose futures, not mirror current).
 
 ## Why mock first
 
@@ -59,6 +77,9 @@ Every project using this plugin has the same `.mockups/` shape:
     tokens.css          # CSS custom properties for reuse across mocks
     components.html     # full component showcase, every state (after `components` runs)
     components.css      # reusable component classes linked by every mock
+    motion.html         # interactive motion showcase (after `motion` runs)
+    motion.css          # easing curves, durations, springs, principles
+    motion-artifacts/   # optional — Lottie / AHAP files for complex motion
   screens/
     <feature-id>/
       option-1.html
@@ -72,26 +93,38 @@ Every project using this plugin has the same `.mockups/` shape:
       02-<step>.html
       ...
       index.html        # navigator matched to topology
-                        # (linear / hub-and-spoke / hybrid)
+                        # (sequential / hub-and-spoke / hybrid /
+                        #  map-as-canvas / chat-as-canvas)
+  refusals.md           # optional — what the product intentionally lacks, with reasons
+  adoption-report.md    # optional — `adopt` skill output, includes audit findings
 ```
 
-**The design-system pipeline (palette → components → screens/flows).**
+**The design-system pipeline (palette → components → motion → screens/flows).**
 
-The two design-system skills produce artifacts in strict order:
+Three design-system skills produce artifacts in strict order:
 
 1. `palette` writes `tokens.css` — the locked vocabulary of colors,
-   type, spacing, radii.
+   type, spacing, radii. Optionally also Bertin's visual-variables tier
+   for data viz (categorical / sequential / diverging ramps).
 2. `components` writes `components.css` — reusable component classes
    composed from tokens (`.btn`, `.input`, `.card`, `.nav-bar`, plus
    any project-unique components).
-3. `screens` and `flows` link BOTH stylesheets and use component
-   classes in their markup, so every mock shares identical primitives.
+3. `motion` writes `motion.css` — named easing-curve language (emphasized,
+   standard, productive, expressive, linear), Doherty-coupled duration
+   scale (instant / quick / ambient), optional spring presets for
+   gesture-driven UI, optional Disney-principle tokens, designed-pause
+   token (*ma* / hold-beat), and reduced-motion fallbacks.
+4. `screens` and `flows` link all three stylesheets and use component
+   classes in their markup, so every mock shares identical primitives,
+   colors, and kinetic voice.
 
 Skipping `components` is fine for fast/exploratory work — `screens` and
-`flows` will style buttons and inputs inline. But for any project that
-spans more than a handful of mocks, running `components` once up-front
-prevents the drift the other skills explicitly fight ("Cross-page
-visual consistency" in `flows`, "Consistency validation" in `screens`).
+`flows` will style buttons and inputs inline. Skipping `motion` is fine
+for static-feeling products; downstream mocks will use ad-hoc transitions.
+But for any project that spans more than a handful of mocks, running all
+three once up-front prevents the drift the other skills explicitly fight
+("Cross-page visual consistency" in `flows`, "Consistency validation" in
+`screens`, kinetic drift across screens).
 
 **Existing projects use `adopt` as the entry point.** `adopt` runs the
 pipeline above with two additions: a codebase scan that produces
@@ -234,7 +267,7 @@ open — it's a convenience.
 
 ## What the generator skills inherit
 
-The five generators (`palette`, `components`, `screens`, `flows`,
+The six generators (`palette`, `components`, `motion`, `screens`, `flows`,
 `adopt`) all assume:
 
 - This skill is loaded (its conventions are active)
@@ -243,9 +276,11 @@ The five generators (`palette`, `components`, `screens`, `flows`,
 - The user wants mocks opened automatically after generation
 - Mocks are single-file HTML with inline vanilla CSS/JS
 - Shared chrome CSS comes from `references/shared-chrome-css.md`
+- The auto-loaded `ux-laws.md` and `cross-discipline.md` references are
+  vocabulary every generator can pull from
 - The design-system pipeline order: palette before components before
-  screens/flows; downstream skills delegate upstream if dependencies
-  are missing
+  motion before screens/flows; downstream skills delegate upstream if
+  dependencies are missing
 
 If a generator runs and the `CLAUDE.md` marker is absent, the generator
 delegates to this skill first (mention "loading ux-ui-principles to install
@@ -282,20 +317,20 @@ Per the tier-ordering rule above:
 
 - **`scope`** — large-scope UI: invokes `/ux-ui-design:adopt` for
   existing projects, or `/ux-ui-design:palette` +
-  `/ux-ui-design:components` + `/ux-ui-design:flows` for greenfield
-  cross-feature journeys clear at scope time.
+  `/ux-ui-design:components` + `/ux-ui-design:motion` + `/ux-ui-design:flows`
+  for greenfield cross-feature journeys clear at scope time.
 - **`epic-design`** — primary tier. Greenfield: runs the full
-  pipeline (palette → components → screens + flows). Existing-project
+  pipeline (palette → components → motion → screens + flows). Existing-project
   decomposition with no `.mockups/` artifacts yet: runs `adopt` first
   to establish the inventory + design system, then resumes the
   decomposition. `--only-questions` always runs this pass.
-- **`feature-design`** — fallback. Inherits palette + components from
-  the parent epic; invokes screens/flows only for minor surfaces not
-  covered upstream. Invokes `components` only in refinement mode for
-  net-new shared components.
+- **`feature-design`** — fallback. Inherits palette + components + motion
+  from the parent epic; invokes screens/flows only for minor surfaces not
+  covered upstream. Invokes `components` or `motion` only in refinement mode
+  for net-new shared primitives or new motion patterns.
 - **`ideate`** — recommends `/ux-ui-design:palette` then
-  `/ux-ui-design:components` after foundation docs for UI-bearing
-  projects.
+  `/ux-ui-design:components` then `/ux-ui-design:motion` after foundation
+  docs for UI-bearing projects.
 
 The plugin is **loosely** coupled — agile-workflow runs fine without it;
 this plugin runs fine without agile-workflow. The link is only the path

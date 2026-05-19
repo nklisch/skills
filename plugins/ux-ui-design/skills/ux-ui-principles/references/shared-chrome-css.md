@@ -36,17 +36,20 @@ without the header strip."
 
 ## Flow chrome — picking the right topology
 
-`flows` supports three topologies. The chrome differs for each.
+`flows` supports five topologies. The chrome differs for each.
 
 | Topology | Chrome class | When to use |
 |---|---|---|
 | Sequential | `.flow-meta` | Linear journey; each step gates the next (signup, recovery, wizard) |
 | Hub-and-spoke | `.flow-nav` | Peer pages with shared navigation; no ordering (settings, dashboards) |
 | Hybrid | `.flow-hybrid` | Primary sequence + cross-links to revisit prior steps (checkout, multi-stage processes) |
+| Map-as-canvas | `.flow-map` | The canvas IS the surface; pages are modes (logistics, route planning, GIS) |
+| Chat-as-canvas | `.flow-chat` | The thread IS the surface; pages are inline blocks inside bubbles (AI assistants, support chat) |
 
 When both sequential and cross-nav fit the journey, render the **hybrid**
 chrome — sequential chrome plus cross-jump breadcrumb in one strip. When
-only one fits, render that one.
+only one fits, render that one. Map and chat are *replacement* topologies —
+they're not blended with the other three.
 
 ### `.flow-meta` — sequential (prev/next chrome)
 
@@ -185,6 +188,193 @@ are clickable cross-jumps; the current step is highlighted.
 Past steps in the breadcrumb are full opacity (visited, still clickable
 to revisit). Future steps are dimmed but linkable (so reviewers can scan
 ahead). The current step is highlighted.
+
+### `.flow-map` — map-as-canvas (mode switcher over a fill-canvas)
+
+The canvas (map / 3D scene / graph) fills the viewport. The chrome is a thin
+top strip carrying brand + mode switcher + overview link. Mode-specific UI
+floats on top as popover panels.
+
+```html
+<header class="flow-map">
+  <span class="flow-map__title">{flow-name}</span>
+  <nav class="flow-map__modes">
+    <a href="01-overview.html" class="flow-map__mode">Overview</a>
+    <a href="02-planning.html" class="flow-map__mode flow-map__mode--active">Planning</a>
+    <a href="03-executing.html" class="flow-map__mode">Executing</a>
+  </nav>
+  <a href="index.html" class="flow-map__overview">overview ↗</a>
+</header>
+<main class="map-canvas">
+  <div class="canvas-fill"><!-- map / scene SVG placeholder --></div>
+  <aside class="popover popover--top-left">{mode panel}</aside>
+  <aside class="popover popover--bottom-right">{tools}</aside>
+</main>
+```
+
+```css
+.flow-map {
+  position: sticky; top: 0; z-index: 100;
+  background: #0d1117; color: #c9d1d9;
+  padding: 8px 16px;
+  display: flex; gap: 24px; align-items: center;
+  font: 13px/1.4 system-ui, sans-serif;
+  border-bottom: 1px solid #30363d;
+}
+.flow-map__title { font-weight: 600; color: #f0f6fc; }
+.flow-map__modes { display: flex; gap: 4px; flex: 1; }
+.flow-map__mode {
+  color: #8b949e; text-decoration: none;
+  padding: 4px 12px; border-radius: 4px;
+}
+.flow-map__mode:hover { background: #161b22; color: #c9d1d9; }
+.flow-map__mode--active {
+  background: #1f6feb; color: #fff;
+}
+.flow-map__overview { color: #58a6ff; text-decoration: none; font-size: 12px; }
+
+.map-canvas {
+  position: relative;
+  min-height: calc(100vh - 40px);
+  background: #f6f8fa;
+  overflow: hidden;
+}
+.canvas-fill {
+  position: absolute; inset: 0;
+  /* Project supplies a real map SVG / WebGL canvas / image; for mocks,
+     a placeholder image or solid-color block is fine. */
+  background: linear-gradient(135deg, #d0e3f0, #c9e8d2);
+}
+.popover {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+  font: 13px/1.4 system-ui, sans-serif;
+  color: #24292f;
+}
+.popover--top-left { top: 16px; left: 16px; max-width: 280px; }
+.popover--bottom-right { bottom: 16px; right: 16px; max-width: 240px; }
+```
+
+The mode switcher is the primary chrome interaction. The mode-specific
+panels are the *content* of each mode. Reviewers click the mode tabs to
+swap which popover panels appear (each mock page is one mode).
+
+### `.flow-chat` — chat-as-canvas (thread + composer)
+
+The thread fills the middle; a composer sits sticky at the bottom; a thin
+chrome strip carries brand + overview. Bot messages can carry rich blocks
+*inside* their bubble.
+
+```html
+<header class="flow-chat">
+  <span class="flow-chat__title">{flow-name}</span>
+  <a href="index.html" class="flow-chat__overview">overview ↗</a>
+</header>
+<main class="chat-thread">
+  <div class="msg msg--bot">
+    <p>Bot greeting message</p>
+  </div>
+  <div class="msg msg--user">
+    <p>User reply</p>
+  </div>
+  <div class="msg msg--bot">
+    <p>Bot response with a rich block:</p>
+    <div class="rich-block choice-chips">
+      <button class="choice-chip">Option A</button>
+      <button class="choice-chip">Option B</button>
+    </div>
+  </div>
+</main>
+<footer class="composer">
+  <input type="text" class="composer__input" placeholder="Type a message…">
+  <button class="composer__send">Send</button>
+</footer>
+```
+
+```css
+.flow-chat {
+  position: sticky; top: 0; z-index: 100;
+  background: #0d1117; color: #c9d1d9;
+  padding: 10px 16px;
+  display: flex; justify-content: space-between; align-items: center;
+  font: 13px/1.4 system-ui, sans-serif;
+  border-bottom: 1px solid #30363d;
+}
+.flow-chat__title { font-weight: 600; color: #f0f6fc; }
+.flow-chat__overview { color: #58a6ff; text-decoration: none; font-size: 12px; }
+
+.chat-thread {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 24px 16px;
+  max-width: 720px; margin: 0 auto;
+  min-height: calc(100vh - 120px);
+}
+.msg {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font: 14px/1.5 system-ui, sans-serif;
+}
+.msg p { margin: 0; }
+.msg--bot {
+  background: #f1f3f5; color: #24292f;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+.msg--user {
+  background: #0969da; color: #fff;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+.rich-block {
+  margin-top: 8px;
+}
+.choice-chips {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.choice-chip {
+  padding: 6px 12px;
+  background: #fff; color: #0969da;
+  border: 1px solid #d0d7de; border-radius: 9999px;
+  font: 13px/1 system-ui; cursor: pointer;
+}
+.choice-chip:hover { background: #f6f8fa; }
+
+.composer {
+  position: sticky; bottom: 0;
+  background: #fff;
+  border-top: 1px solid #d0d7de;
+  padding: 12px 16px;
+  display: flex; gap: 8px;
+  max-width: 720px; margin: 0 auto; width: 100%;
+}
+.composer__input {
+  flex: 1; padding: 10px 14px;
+  border: 1px solid #d0d7de; border-radius: 9999px;
+  font: 14px/1.4 system-ui; outline: none;
+}
+.composer__input:focus { border-color: #0969da; }
+.composer__send {
+  padding: 10px 18px;
+  background: #0969da; color: #fff;
+  border: 0; border-radius: 9999px;
+  font: 14px/1 system-ui; font-weight: 600; cursor: pointer;
+}
+```
+
+Bot messages live-left, user messages live-right. The bot can carry any
+rich block — cards, choice-chips, inline forms, code blocks — inside its
+bubble. The composer is sticky so reviewers see the composition affordance
+at every scroll position.
+
+For multi-step conversation mocks: each page (`01-greeting.html`,
+`02-clarification.html`, ...) shows the thread *up to that message*. The
+index.html lists the messages as a vertical timeline.
 
 ## The screens 2x2 index grid
 
