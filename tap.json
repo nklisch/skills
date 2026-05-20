@@ -608,6 +608,11 @@
           "description": "Patterns gate. Scans bundle changes for reusable code structures (3+ occurrences). Writes pattern skills to .claude/skills/patterns/, regenerates .claude/rules/patterns.md index, produces a tracking item with gate_origin:patterns."
         },
         {
+          "name": "bug-scan",
+          "path": "skills/bug-scan",
+          "description": "Deep multi-angle bug hunt. Fans parallel opus scanner sub-agents across 8 bug domains (concurrency & races, async/promise, state/closures, resource leaks, time/numbers, error handling, data layer, language footguns). Each scanner loads its domain reference, web-searches current pitfalls for the detected stack, and returns severity-classified findings citing file:line. Standalone mode writes a scored report; gate mode binds to a release bundle and produces items with gate_origin:bugs. Sibling to gate-security but for correctness bugs, not vulnerabilities."
+        },
+        {
           "name": "bold-refactor",
           "path": "skills/bold-refactor",
           "description": "Find beautiful code abstractions and cross-cutting simplifications via conceptual lenses (elimination, unification, inversion, algebraic, declarative, domain crystallization). Produces a refactor EPIC with child features tagged [refactor] and depends_on chains. User-invocable only — too aggressive for auto-trigger."
