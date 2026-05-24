@@ -508,7 +508,9 @@ Worth knowing they exist so the items they produce make sense:
 ### Session start
 
 Open Claude Code in the project. The `SessionStart` hook fires
-`session-start-snapshot.sh`, which prints a queue snapshot:
+`session-start-snapshot.sh` and pipes a queue snapshot **into the agent's
+context** (not your terminal — hook output goes to the agent, not the
+human UI). The snapshot looks roughly like this:
 
 ```
 ## Substrate snapshot
@@ -528,8 +530,12 @@ Open Claude Code in the project. The `SessionStart` hook fires
 - idea-quotas-dashboard   2026-04-21
 ```
 
-You see immediately what's ready, what's waiting on you, and what's
-backlogged. No re-feed needed. From here you decide what to do.
+You won't see this directly — but the agent has it loaded. So the moment
+you open a session, you can just ask: *"what's waiting on me?"*, *"what's
+ready to work?"*, *"what's blocked?"*, *"what's in the backlog?"* — and
+get an instant answer with no re-feed. That's the practical effect of the
+hook: zero-overhead context for the agent, so the first question of a
+fresh session is already answerable.
 
 ### Driving work
 
