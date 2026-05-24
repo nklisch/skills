@@ -1,38 +1,45 @@
 # nklisch/skills
 
-A software development workflow suite for Claude Code — from ideation through implementation, refactoring, testing, and release.
+A software development workflow suite for Claude Code (and Codex) — work
+tracking, UI/UX design, and skill authoring, designed to tee up autonomous
+agent runs that actually ship the right thing.
 
-Available as a **Claude Code plugin** and via **[skilltap](https://github.com/nklisch/skilltap)**.
+Available as **Claude Code plugins**, **Codex plugins**, and via
+**[skilltap](https://github.com/nklisch/skilltap)**.
 
 ## Install
-
-### As a Plugin (Claude Code)
 
 ```bash
 # Step 1: Add the marketplace
 /plugin marketplace add nklisch/skills
 
-# Step 2: Install plugins
-/plugin install workflow@nklisch-skills          # doc-driven workflow
-/plugin install agile-workflow@nklisch-skills    # substrate-driven workflow (sibling)
-/plugin install skill-authoring@nklisch-skills
+# Step 2: Install the plugins you want
+/plugin install agile-workflow@nklisch-skills    # work tracking + autopilot
+/plugin install ux-ui-design@nklisch-skills      # mockup-first UI design
+/plugin install skill-authoring@nklisch-skills   # author your own skills
 ```
 
-Three plugins available:
-- **workflow** — 24 skills for the full development pipeline (design, implement, refactor, fix, review, test, ship). Doc-driven: design docs as artifacts, roadmap-shaped phase plans.
-- **agile-workflow** — 26 skills for substrate-driven work tracking. Items as files in `.work/`, late-binding releases, gates that produce items, autopilot queue runner. Sibling to `workflow`. See [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md).
-- **skill-authoring** — 3 skills for creating, evaluating, and refining agent skills
+## The three supported plugins
 
-### Choosing between workflow and agile-workflow
+| Plugin | What it does | Guide |
+|---|---|---|
+| **agile-workflow** | Substrate-driven work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, autopilot queue runner. | [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md) |
+| **ux-ui-design** | HTML/CSS/JS mockup-first UI design. Throwaway single-file mockups in `.mockups/` for alignment before any production code. Loosely integrated with agile-workflow. | [docs/ux-ui-design-guide.md](docs/ux-ui-design-guide.md) |
+| **skill-authoring** | Create, evaluate, and refine your own agent skills. |  |
 
-| Pick `workflow` if... | Pick `agile-workflow` if... |
-|---|---|
-| Design docs as artifacts (`docs/designs/<name>.md`) fit your habits | You'd rather design live inside the work item itself |
-| Roadmap-shaped phase plans match your project | You want late-binding releases (no upfront commitment to which features ship) |
-| You're comfortable re-feeding context to fresh sessions | You want sessions to pick up active work from `.work/` automatically (via SessionStart queue snapshot hook) |
-| You ship by tagging or merging on a fixed cadence | You want gates (security, tests, cruft, docs, patterns) that produce items to fix rather than pass/fail reports |
+The two big ones — `agile-workflow` + `ux-ui-design` — are designed to work
+together. The killer workflow is to use `ux-ui-design` mocks during
+`agile-workflow`'s pre-autopilot `--only-questions` passes, so autopilot
+inherits both directional and visual alignment before any code lands. See
+the agile-workflow guide for the full rhythm.
 
-Both plugins share the same code-design principles (Ports & Adapters, SSOT, Generated Contracts, Fail Fast) and the rolling-foundation discipline for `docs/`. Pick one per project; both stay supported.
+> **Deprecated:** the `workflow` plugin (doc-driven, `docs/designs/`-as-artifacts)
+> is **deprecated and no longer supported.** Existing projects on it still
+> work, but no new features or fixes will land. New projects should use
+> `agile-workflow`. To migrate an existing `workflow` project, run
+> `/agile-workflow:convert` — it detects the legacy layout and migrates
+> automatically. The old guide at [docs/workflow-guide.md](docs/workflow-guide.md)
+> remains for reference.
 
 ### Via Skilltap
 
@@ -41,139 +48,80 @@ Both plugins share the same code-design principles (Ports & Adapters, SSOT, Gene
 skilltap tap add nklisch https://github.com/nklisch/skills
 
 # Install individual skills
-skilltap install design
-skilltap install implement
-skilltap install research
+skilltap install scope
+skilltap install epic-design
+skilltap install screens
 ```
 
-## Workflow Skills
+## agile-workflow
 
-These skills form an iterative pipeline. See [docs/workflow-guide.md](docs/workflow-guide.md) for the full usage guide.
+Twenty-six skills for tracking and shipping work via a markdown substrate in
+`.work/`. See [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md)
+for the full guide.
 
 ### Pipeline
 
 ```
-ideate → roadmap                    ← project start
+ideate → convert → epicize           ← project bootstrap (greenfield)
     ↓
-autopilot                           ← autonomous end-to-end execution
-    ── OR ── manual workflow:
+park / scope / fix                   ← capture & promotion (agent picks)
     ↓
-design → implement/implement-orchestrator ← core phases (from roadmap)
+epic-design --only-questions --all   ← align on big choices (also runs UI mocks)
+feature-design --only-questions --all   ← drill in per feature
     ↓
-refactor-design → implement → extract-patterns  ← every 2-4 phases
+autopilot --all                      ← drain ready work autonomously
     ↓
-bold-refactor / perf-design → implement         ← targeted improvements
-    ↓
-extend                              ← scope additions (small or large)
-    ↓
-refactor-conventions-creator        ← once after 3-5 phases
-    ↓
-security-review → design → implement           ← security audit pass
-    ↓
-fix                                 ← bugs found along the way
-    ↓
-review                              ← peer-review changes before shipping
-    ↓
-release                              ← ship it
+release-deploy <version>             ← bind, gate, ship
 ```
 
-| Skill | What it does |
-|-------|-------------|
-| **ideate** | Interactive project definition workshop. Produces foundation docs (VISION.md, SPEC.md, ARCHITECTURE.md). Includes anti-vision, competitive landscape, and maximalist-vs-minimalist contrast to attack the idea. Run once at project start. |
-| **roadmap** | Generate an agent-optimized project roadmap from foundation docs. Decomposes into phases with dependencies and test checkpoints. |
-| **autopilot** | Autonomously execute an entire roadmap end-to-end. Loops design → implement-orchestrator → test per phase with refactoring passes. Tracks progress for cross-session resume. |
-| **extend** | Add capability to an existing project. Branches on scope: small additions produce a feature brief; major expansions update foundation docs and roadmap. |
-| **design** | Produce detailed implementation units with exact interfaces, types, and acceptance criteria. Considers 2-3 architectural options, designs the trickiest unit first, includes a pre-mortem. |
-| **implement** | Write code from a design or plan. Single Sonnet agent. Best for <20 files. Moves the design doc to `docs/designs/completed/` after success. |
-| **implement-orchestrator** | Opus orchestrator that spawns Sonnet agents. For 20+ files or independent subsystems. Moves the design doc to `docs/designs/completed/` after success. |
-| **research** | Investigate libraries, APIs, and SDKs. Produces a research doc and an auto-loading reference skill. |
-| **refactor-design** | Find duplication, missing abstractions, code smells, and dead weight. Produces a refactor plan that implement executes. |
-| **bold-refactor** | Find beautiful code abstractions and cross-cutting simplifications using conceptual lenses (elimination, unification, inversion, etc.). Produces an implement-ready design. |
-| **extract-patterns** | Document reusable code patterns for consistency across future work. |
-| **refactor-conventions-creator** | Interview-based. Generates a project-specific refactor-conventions skill that scans for both stylistic and structural issues. |
-| **perf-design** | Profile performance bottlenecks and design optimized solutions. Follows a strict optimization hierarchy. |
-| **security-review** | Comprehensive security audit. Discovers stack, user selects focus domains, produces scored report with severity-classified findings. |
-| **cruft-cleaner** | Sweep for AI-accumulated cruft (dead code, stale comments, defensive bloat). Triages by confidence, parallel cleanup. |
-| **test-quality** | Spec-driven test gap analysis. Derives tests from contracts, not code. Reworks tautological tests (rewrites or deletes). Writes new tests. |
-| **e2e-test-design** | Design golden-path and adversarial e2e test suites. Output uses the implementation-units format so /implement can execute it directly. |
-| **fix** | Diagnose and repair a specific bug. Reproduces, bisects, writes a failing test, applies the minimal fix, confirms. |
-| **review** | Review a code change — branch diff, commit, range, working tree, unpushed commits, or PR. Produces Blocker / Important / Nit findings. |
-| **repo-eval** | Multi-dimensional codebase evaluation. Launches parallel explore agents, cross-checks claims, produces a calibrated 1-10 scorecard with prioritized recommendations. |
-| **tool-evaluator** | Self-evaluate agent tool usage in the current conversation. Produces a report with recommendations for tool authors. |
-| **update-documentation** | Align all docs to code after changes. Includes a doc-organization audit that moves misplaced files into the canonical `docs/` structure. |
-| **release** | Draft changelog, confirm with user, run the project's release mechanism. |
-
-## Agile-Workflow Skills
-
-These skills operate over a markdown-based work-tracking substrate (`.work/`)
-that lives in the repo. See [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md)
-for the full usage guide.
-
-### Pipeline
-
-```
-ideate → convert → epicize          ← project bootstrap (greenfield)
-    └── OR convert (alone)          ← migrate existing repo
-    ↓
-park / scope / fix                  ← capture & promotion (model-invocable)
-    ↓
-design / refactor-design /          ← design family (tag-routed)
-perf-design                         ←   tags: [refactor] / [perf] route to specialists
-    ↓
-implement / implement-orchestrator  ← production
-    ↓
-review                              ← peer review at stage:review
-    ↓
-release-deploy                      ← bind, gate (security → tests → cruft → docs → patterns), ship
-    ↓
-autopilot <epic>                    ← queue runner over the whole substrate
-                                      OR --all for everything in active
-```
+The two `--only-questions` passes are the killer move — front-load every
+directional choice and mock so autopilot runs without guessing.
 
 ### Bootstrap (user-invocable)
 
 | Skill | What it does |
 |-------|-------------|
 | **ideate** | Foundation-docs workshop. Produces VISION.md, SPEC.md, ARCHITECTURE.md that encode rolling-foundation from day one. |
-| **convert** | Bootstrap the `.work/` substrate. Detects project shape (workflow-plugin / ad-hoc / no-tracking / greenfield), seeds initial items, writes `.claude/rules/agile-workflow.md`, runs the conventions interview, copies `work-view`, appends a CLAUDE.md section, produces MIGRATION_REPORT.md. Idempotent via `--update`. |
+| **convert** | Bootstrap the `.work/` substrate. Detects project shape (legacy workflow-plugin / ad-hoc / no-tracking / greenfield), seeds initial items, writes `.claude/rules/agile-workflow.md`, runs the conventions interview, copies `work-view`, appends a CLAUDE.md section, produces MIGRATION_REPORT.md. Idempotent via `--update`. |
 | **epicize** | Decompose foundation docs into multiple epics in `.work/active/epics/` with declared `depends_on` chains. |
 
-### Capture & promotion (model-invocable — agent picks naturally)
+### Capture & promotion (agent picks naturally)
 
 | Skill | What it does |
 |-------|-------------|
 | **park** | Quick capture into `.work/backlog/`. Triggers on "park this", "add to backlog". |
-| **scope** | Promote backlog item or fresh request into `.work/active/` as epic/feature/story. For large scope, rolls foundation docs forward in the same stride. Cycle-prevention via `work-view --blocking`. **Batch mode** (no arg, `--all`, or NL filter) clusters the whole backlog by code seam and capability arc, proposes a structure, confirms once with the user, then writes everything. |
+| **scope** | Promote backlog item or fresh request into `.work/active/` as epic/feature/story. For large scope, rolls foundation docs forward in the same stride. **Batch mode** (no arg, `--all`, or NL filter) clusters the whole backlog by code seam and capability arc, proposes a structure, confirms once with the user, then writes everything. |
 | **fix** | Single-stride bug repair. Reproduces, identifies root cause, writes failing test, applies minimal fix, lands story at stage:review. |
 
-### Design family (model-invocable, kind- and tag-routed)
+### Design family (agent picks; kind- and tag-routed)
 
 | Skill | Triggered by | What it produces |
 |-------|---|---|
-| **epic-design** | epic at stage:drafting | Decomposes the epic into child features at stage:drafting with declared depends_on chains, written INTO the epic body; advances epic to implementing |
-| **feature-design** | feature at stage:drafting, no specialized tag | Greenfield design — written INTO feature body, child stories spawned with depends_on, advances stage to implementing |
-| **refactor-design** | feature with tags:[refactor], OR discovery (no arg / path / NL scope) | Per-feature: code-smell scan, before/after step shape, risk + rollback per step. Discovery: scans target scope, classifies findings as pure-refactor or behavior-changing, emits items (pure-refactor tagged `[refactor]`; behavior-changing untagged → feature-design picks up) |
-| **perf-design** | feature with tags:[perf], OR discovery (no arg / path / NL scope) | Per-feature: bottleneck identification, optimization hierarchy (algorithmic > I/O > idioms > parallelism), benchmark scaffolds. Discovery: picks top 3-5 likely hot paths, profiles them, emits items per bottleneck |
+| **epic-design** | epic at stage:drafting | Decomposes the epic into child features at stage:drafting with declared depends_on chains, written INTO the epic body; advances epic to implementing. Primary tier for `ux-ui-design` mocks. |
+| **feature-design** | feature at stage:drafting, no specialized tag | Greenfield design — written INTO feature body, child stories spawned with depends_on, advances stage to implementing. Fallback tier for mocks. |
+| **refactor-design** | feature with tags:[refactor], OR discovery (no arg / path / NL scope) | Per-feature: code-smell scan, before/after step shape, risk + rollback per step. Discovery: scans target scope, classifies findings as pure-refactor or behavior-changing, emits items. |
+| **perf-design** | feature with tags:[perf], OR discovery (no arg / path / NL scope) | Per-feature: bottleneck identification, optimization hierarchy (algorithmic > I/O > idioms > parallelism), benchmark scaffolds. Discovery: picks top 3-5 likely hot paths, profiles them, emits items per bottleneck. |
 
-### Production + review (model-invocable)
+### Production + review (agent picks)
 
 | Skill | What it does |
 |-------|-------------|
 | **implement** | Read item body (design is in there), write code, run build+tests, advance stage implementing → review. Single-stride sequential. |
-| **implement-orchestrator** | For features with > 3 child stories: walk depends_on graph, spawn parallel Sonnet agents capped at 3 per wave. Accepts `<id>` / `<id-list>` / `--all` (default with no arg) / NL filter. |
-| **review** | Structured peer review with five lenses including foundation-doc alignment. Triages findings into items so they don't disappear into prose. Accepts `<id>` (single item), `--all` / no arg (drain the whole review queue), or NL filter ("review the auth stuff"). |
+| **implement-orchestrator** | For features with > 3 child stories: walk depends_on graph, spawn parallel Sonnet agents capped at 3 per wave. |
+| **review** | Structured peer review with five lenses including foundation-doc alignment. Triages findings into items. Accepts `<id>`, `--all` / no arg (drain the review queue), or NL filter. |
 
 ### Release & autonomous (mostly user-invocable)
 
 | Skill | What it does |
 |-------|-------------|
-| **release-deploy** | Bind items to a version, run all configured gates in CONVENTIONS.md order, wait for readiness, ship per release mapping (tag-based / branch-held / release-branch), archive items via git mv. Idempotent. |
-| **autopilot** | Queue runner. Picks next ready item respecting depends_on (topological sort with FIFO tie-break), invokes the right skill (epic-design / feature-design / refactor-design / perf-design at drafting; implement / implement-orchestrator at implementing), advances stage, repeats. Watchdog `/loop` tasks survive compaction. Epic-scoped default; `--all` drains everything in `.work/active/`; free-text scope arg interpreted as a directive. Only `.work/backlog/` is out of scope. In `--all` mode, every 5 done items runs a refactor cadence via `refactor-design` discovery against touched paths. |
-| **bold-refactor** | Architectural reconception via conceptual lenses. Sweeps a target (no arg / path / NL scope) and produces one or more refactor EPICs with child features tagged [refactor]. User-invocable only — too aggressive for auto-trigger. |
+| **release-deploy** | Bind items to a version, run all configured gates in CONVENTIONS.md order, wait for readiness, ship per release mapping, archive items via git mv. Idempotent. |
+| **autopilot** | Queue runner. Picks next ready item respecting depends_on, invokes the right skill, advances stage, repeats. Watchdog `/loop` tasks survive compaction. Epic-scoped default; `--all` drains everything in `.work/active/`. In `--all` mode, every 5 done items runs a refactor cadence via `refactor-design` discovery against touched paths. |
+| **bold-refactor** | Architectural reconception via conceptual lenses. Sweeps a target and produces one or more refactor EPICs with child features tagged [refactor]. User-invocable only — too aggressive for auto-trigger. |
 
-### Gates (model-invocable; produce items, NOT pass/fail reports)
+### Gates (agent picks; produce items, NOT pass/fail reports)
 
-All five fire during release-deploy's quality-gate stage in the order configured in CONVENTIONS.md (default: security → tests → cruft → docs → patterns).
+All five fire during release-deploy's quality-gate stage in CONVENTIONS.md
+order (default: security → tests → cruft → docs → patterns).
 
 | Skill | Items produced |
 |-------|---|
@@ -183,32 +131,58 @@ All five fire during release-deploy's quality-gate stage in the order configured
 | **gate-docs** | Foundation-doc drift items (enforces rolling-foundation) with `gate_origin: docs` |
 | **gate-patterns** | Reusable patterns extracted to `.claude/skills/patterns/` |
 
-### Reference (carried from workflow)
+### Reference
 
 | Skill | What it does |
 |-------|-------------|
 | **principles** | Code-design (Ports & Adapters, SSOT, Generated Contracts, Fail Fast) + substrate-execution (Item-IS-the-Work, Rolling-Foundation, Late-Binding) principles. Auto-loads. |
-| **research, tool-evaluator, refactor-conventions-creator** | Carried from `workflow`, unchanged behavior — they don't need substrate adaptation. |
-| **repo-eval** | Carried from `workflow` with an agile-workflow extension: after the scorecard report, if `.work/CONVENTIONS.md` is present, asks whether to file the top recommendations as substrate items (backlog or active) tagged `[audit]` with `gate_origin: repo-eval`. Pure scorecard behavior is unchanged. |
+| **research** | Investigate libraries, APIs, SDKs. Produces a research doc and auto-loading reference skill. |
+| **repo-eval** | Multi-dimensional codebase audit. Files top recommendations as substrate items tagged `[audit]` when a substrate exists. |
+| **tool-evaluator** | Self-evaluate agent tool usage in the current conversation. Recommendations for tool authors. |
+| **refactor-conventions-creator** | Interview-based. Generates a project-specific refactor-conventions skill. |
 
-### Skill Authoring
+## ux-ui-design
+
+Seven skills for mockup-first UI/UX design. Throwaway single-file HTML
+mockups in `.mockups/` for alignment before any production code. See
+[docs/ux-ui-design-guide.md](docs/ux-ui-design-guide.md) for the full guide.
 
 | Skill | What it does |
 |-------|-------------|
-| **write-tool-skill** | Create distributable reference skills for your project's tool, CLI, MCP server, or library — for others to install. |
-| **skill-idea-refiner** | Refine a rough skill idea into a well-designed skill. Guides through ideation, scoping, and scaffolding. |
-| **skill-evaluator** | Evaluate skills against type-specific quality rubrics. Produces scored reports with improvements. |
-| **tool-evaluator** | Self-evaluate agent tool usage in the current conversation. Produces a report with recommendations for tool authors. |
+| **palette** | Color + typography options as HTML previews. Locks the choice into `tokens.css`. |
+| **components** | Showcase page of every button/input/card/modal in every state, plus a reusable `components.css`. |
+| **motion** | Named easing-curve vocabulary, durations, springs, designed pauses — playable in browser, plus reusable `motion.css`. |
+| **screens** | N (default 4) distinct HTML mockups for a single screen, plus a 2x2 comparison grid. |
+| **flows** | Multi-page user flow with prev/next or hub-and-spoke chrome, plus index navigator. |
+| **adopt** | Scans an existing codebase, inventories every UI surface, audits for inconsistencies, mirrors current UI into mocks OR reimagines them. |
+| **ux-ui-principles** | Reference: storage layout, decision matrix, tech rule. Adds convention to project CLAUDE.md on first run. Auto-loads. |
 
-### Principles (auto-load)
+### Plugged into agile-workflow
 
-| Skill | What it enforces |
-|-------|-----------------|
-| **principles** | Ports & Adapters, Single Source of Truth, Generated Contracts, Fail Fast — with per-phase guidance for design time and implementation time. Plus **Rolling-Foundation** (foundation docs in `docs/` describe vision and current intent — what is true now or will be true once in-flight design lands — never history; they roll forward in place). Auto-loads when /design, /implement, /extend, or /update-documentation is active. |
+When both plugins are installed, mocks land at four tiers (highest tier
+first wins, downstream inherits):
+
+- **After `ideate`** → `palette` + `components`
+- **During `epic-design --only-questions`** → `screens` + `flows` for cross-feature journeys
+- **During `feature-design --only-questions`** → more `screens` + `flows` for per-feature surfaces
+- **Ad-hoc during design work** → one-off mocks when a particular surface needs exploration
+
+This is the killer pairing: do mocks alongside the `--only-questions`
+passes so autopilot inherits visual alignment along with directional
+choices.
+
+## Skill Authoring
+
+| Skill | What it does |
+|-------|-------------|
+| **write-tool-skill** | Create distributable reference skills for your project's tool, CLI, MCP server, or library. |
+| **skill-idea-refiner** | Refine a rough skill idea into a well-designed skill. |
+| **skill-evaluator** | Evaluate skills against type-specific quality rubrics. Scored reports with improvements. |
 
 ## Library & Tool References
 
-Reference skills that auto-load when their library is detected. Installed individually via skilltap.
+Reference skills that auto-load when their library is detected. Installed
+individually via skilltap.
 
 | Skill | Library |
 |-------|---------|
@@ -236,27 +210,6 @@ Reference skills that auto-load when their library is detected. Installed indivi
 
 ## Canonical layout (in projects using these skills)
 
-### Projects on `workflow`
-
-```
-docs/
-├── VISION.md, SPEC.md, ARCHITECTURE.md, ROADMAP.md, etc.   ← foundation docs (from ideate, roadmap, extend)
-├── PROGRESS.md                                              ← autopilot state
-├── designs/                                                 ← active design docs
-│   ├── {name}.md                                            ← from /design
-│   ├── refactor-{name}.md                                   ← from /refactor-design
-│   ├── perf-{name}.md                                       ← from /perf-design
-│   ├── bold-{name}.md                                       ← from /bold-refactor
-│   ├── e2e-{name}.md                                        ← from /e2e-test-design
-│   └── completed/                                           ← moved here by /implement after success
-└── features/                                                ← briefs from /extend (small mode)
-```
-
-`/update-documentation` includes a Phase 6 audit that detects misplaced docs and offers to
-`git mv` them into the canonical layout.
-
-### Projects on `agile-workflow`
-
 ```
 .work/
 ├── active/{epics,features,stories}/  ← in-flight items (markdown + frontmatter)
@@ -266,33 +219,40 @@ docs/
 ├── bin/work-view                      ← query script (copied by /agile-workflow:convert)
 └── CONVENTIONS.md                     ← project-specific overrides
 .claude/rules/agile-workflow.md        ← navigation rules (auto-loads on .work/** and docs/**)
+.mockups/
+├── design-system/                     ← palette, typography, components, motion + tokens.css/components.css/motion.css
+├── screens/<feature>/                 ← N option HTMLs + index.html
+└── flows/<flow-name>/                 ← numbered sequence + index.html
 docs/                                  ← foundation docs (VISION, SPEC, ARCHITECTURE) — roll forward in place
 ```
 
-Items are markdown files with structured frontmatter (`id, kind, stage, tags, parent, depends_on, release_binding, gate_origin, created, updated`). Design lives inside the item's body — there are no parallel design docs. See [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md).
-
-Skills only deviate from these defaults if your project clearly has a different convention already in place.
+Items are markdown files with structured frontmatter (`id, kind, stage,
+tags, parent, depends_on, release_binding, gate_origin, created, updated`).
+Design lives inside the item's body — there are no parallel design docs.
+Mockups land in `.mockups/` and link back via a `## Mockups` section in
+the item body. See the guides for the full conventions.
 
 ## Repo Structure (this repo)
 
 ```
-plugins/workflow/                  # workflow plugin (24 skills, doc-driven)
-├── skills/                        #   skill source
-└── docs/                          #   plugin foundation docs (some)
 plugins/agile-workflow/            # agile-workflow plugin (26 skills, substrate-driven)
 ├── skills/                        #   skill source
 ├── docs/                          #   foundation docs (VISION, SPEC, ARCHITECTURE, PRINCIPLES, MIGRATION)
 ├── hooks/                         #   SessionStart + PostToolUse hook scripts
 ├── scripts/work-view.sh           #   substrate query CLI (copied by /convert into target repos)
 └── .claude-plugin/plugin.json
+plugins/ux-ui-design/              # ux-ui-design plugin (7 skills, mockup-first)
+├── skills/                        #   skill source
+└── docs/                          #   plugin design docs
 plugins/skill-authoring/skills/    # skill-authoring plugin skills
+plugins/workflow/                  # DEPRECATED — doc-driven, no longer supported
 .agents/skills/                    # reference, principle, and utility skills (skilltap)
 .claude-plugin/                    # Claude Code plugin manifest (root)
-docs/                              # human-facing guides — workflow-guide.md, agile-workflow-guide.md
+docs/                              # human-facing guides — agile-workflow-guide.md, ux-ui-design-guide.md, workflow-guide.md (deprecated)
 tap.json                           # skilltap registry
 ```
 
 ## Requirements
 
-- Claude Code with Task/Agent tool support
+- Claude Code with Task/Agent tool support (or Codex CLI)
 - Git repository

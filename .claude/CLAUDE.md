@@ -8,23 +8,25 @@ This repo contains agent skills distributed via skilltap, the Claude Code plugin
 
 ### Plugin map
 
-| Directory | Published name | Purpose |
-|---|---|---|
-| `plugins/workflow/` | `workflow` | **Doc-driven** software workflow. Design docs as artifacts in `docs/designs/`, roadmaps with phases, stable doc-driven cycle. Minimal change to existing dev habits. |
-| `plugins/agile-workflow/` | `agile-workflow` | **Substrate-driven** work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, autopilot queue runner. See `plugins/agile-workflow/docs/VISION.md`. |
-| `plugins/skill-authoring/` | `skill-authoring` | Create, evaluate, and refine agent skills. |
-| `plugins/ux-ui-design/` | `ux-ui-design` | HTML/CSS/JS mockup-first UI/UX design. Throwaway single-file mockups in `.mockups/`. Loose integration with agile-workflow. |
+| Directory | Published name | Status | Purpose |
+|---|---|---|---|
+| `plugins/agile-workflow/` | `agile-workflow` | supported | **Substrate-driven** work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, autopilot queue runner. See `plugins/agile-workflow/docs/VISION.md`. |
+| `plugins/ux-ui-design/` | `ux-ui-design` | supported | HTML/CSS/JS mockup-first UI/UX design. Throwaway single-file mockups in `.mockups/`. Loose integration with agile-workflow. |
+| `plugins/skill-authoring/` | `skill-authoring` | supported | Create, evaluate, and refine agent skills. |
+| `plugins/workflow/` | `workflow` | **DEPRECATED — no longer supported** | Doc-driven software workflow with design docs as artifacts in `docs/designs/`. Kept in tree so existing installs don't break. No new features or fixes will land. New projects should use `agile-workflow`; existing `workflow` projects migrate via `/agile-workflow:convert`. |
 
-### workflow vs agile-workflow
+### workflow is deprecated
 
-These are **sibling plugins, not versions of each other.** Both ship from this repo. Both stay supported. They share no skills.
+The `workflow` plugin is **deprecated and no longer supported.** It still ships in this repo so existing installations keep working, but no new features or fixes will land. Do not extend it. Do not reference it as a sibling in new docs.
 
-- Pick `workflow` when the project wants design docs as files in `docs/designs/`, roadmap phases, doc-as-artifact tracking.
-- Pick `agile-workflow` when the project wants `.work/` substrate, item-as-state, late-binding releases, autopilot.
+If a user asks for the workflow plugin or wants to migrate, point them at:
+- `/agile-workflow:convert` — detects the legacy `docs/designs/` + `docs/ROADMAP.md` + `docs/PROGRESS.md` layout and migrates phases→epics, designs→features, completed designs→retro-release.
+- `docs/agile-workflow-guide.md` and `docs/ux-ui-design-guide.md` — the supported guides.
+- `plugins/agile-workflow/docs/MIGRATION.md` — full migration matrix.
 
-**Many skill names exist in both plugins** with intentionally different implementations — `perf-design`, `refactor-design`, `implement`, `autopilot`, `principles`, `review`, `fix`, `ideate`, `repo-eval`, `research`, `bold-refactor`, `tool-evaluator`, `refactor-conventions-creator`, `implement-orchestrator`. Same name, different substrate, different output. When working on a "design" skill, confirm which plugin you're in.
+**Skill names that overlap** between `workflow` (deprecated) and the supported plugins — `perf-design`, `refactor-design`, `implement`, `autopilot`, `principles`, `review`, `fix`, `ideate`, `repo-eval`, `research`, `bold-refactor`, `tool-evaluator`, `refactor-conventions-creator`, `implement-orchestrator` — have intentionally different implementations. When touching a skill, confirm which plugin you're in. New work goes into `agile-workflow`.
 
-**Surface-area differences:**
+**Surface-area differences (for reference):**
 - `workflow` has: `design`, `roadmap`, `extend`, `e2e-test-design`, `test-quality`, `update-documentation`, `security-review`, `release`, `cruft-cleaner`, `extract-patterns`
 - `agile-workflow` has: `scope`, `convert`, `epicize`, `epic-design`, `feature-design`, `park`, `gate-{security,tests,cruft,docs,patterns}`, `release-deploy`
 

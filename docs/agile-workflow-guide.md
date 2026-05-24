@@ -1,28 +1,34 @@
 # Agile-Workflow Guide
 
-How to use the `agile-workflow` plugin to track and ship software work using a
-markdown-based substrate that lives in your repo.
+How to use the `agile-workflow` plugin to track and ship software work using
+a markdown-based substrate that lives in your repo.
 
 This guide is for humans collaborating with an agent on a project that uses
 agile-workflow. It explains what your role looks like, when to invoke
-specific slash commands, and how to leverage the agent without micromanaging
-the substrate. For deep specs, see
+specific slash commands, and how to set things up so the agent — and
+especially `autopilot` — runs well.
+
+For deep specs, see
 `plugins/agile-workflow/docs/{VISION,SPEC,ARCHITECTURE,PRINCIPLES,MIGRATION}.md`.
+
+> **Note on the deprecated `workflow` plugin.** This repo previously shipped a
+> sibling `workflow` plugin (doc-driven). It is **deprecated and no longer
+> supported.** New work should use `agile-workflow`. If you have an existing
+> project on `workflow`, `/agile-workflow:convert` will migrate it (see
+> *Migrating an existing project* below).
 
 ## What this is
 
-`agile-workflow` is a sibling plugin to `workflow`. Both ship from this repo;
-both stay supported. Pick one per project.
+`agile-workflow` tracks work as **items** — markdown files with YAML
+frontmatter in `.work/`. The body of each item carries the brief, the
+design, and implementation notes as stages advance. Releases are
+late-binding (you decide what ships at release time, not at scope time).
+Gates produce items to fix instead of pass/fail reports. And `autopilot`
+drains the queue autonomously when the work is shaped well enough to let
+it.
 
-| Use `workflow` when... | Use `agile-workflow` when... |
-|---|---|
-| You like design docs as artifacts (`docs/designs/<name>.md`) | You want design to live inside the work item itself |
-| Roadmap-shaped phase plans fit your project | You want late-binding releases (no upfront commitment to which features ship in v0.1) |
-| You're comfortable re-feeding context to fresh sessions | You want a session to pick up active work from `.work/` automatically |
-| You ship versioned releases by tagging or merging on a fixed cadence | You want gates (security, tests, cruft, docs, patterns) that produce items to fix, not pass/fail reports |
-
-The two plugins do not share skills or state. A project picks one and sticks
-with it.
+The whole plugin is shaped around one idea: **front-load the directional
+choices, then let the agent run.** This guide walks through how.
 
 ## How you interact with this system
 
@@ -48,10 +54,6 @@ What you **don't** have to do:
   the agent reads it on every session start.
 - Re-feed context across sessions. A fresh session picks up active work from
   `.work/active/` automatically, via the SessionStart hook.
-
-If you've used the `workflow` plugin: the conversational rhythm is the same.
-The difference is that work lives in `.work/` items instead of `docs/designs/`,
-and stage advances drive the lifecycle instead of doc-existence.
 
 ## The substrate at a glance
 
@@ -97,50 +99,190 @@ updated: 2026-05-10
 ## Design
 <written by /agile-workflow:feature-design — not a separate doc>
 
+## Mockups
+<written when /ux-ui-design generates mocks against this item>
+
 ## Implementation notes
 <accumulated by /agile-workflow:implement as work progresses>
 ```
 
-The body is the work. Brief → design → implementation notes → review findings
-all live in the same file as stages advance. There is no parallel design doc.
+The body is the work. Brief → design → mockups → implementation notes →
+review findings all live in the same file as stages advance. There is no
+parallel design doc.
 
 You can read these files (they're plain markdown), but you don't edit them.
 The agent reads and writes them as part of normal conversation.
 
-## Quick start
+## Quick start (greenfield)
 
 ```bash
-# 1. Install the plugin
+# 1. Install the plugins
 /plugin install agile-workflow@nklisch-skills
+/plugin install ux-ui-design@nklisch-skills    # for UI mocks (recommended)
 
-# 2. In your target project, set up foundation docs (greenfield only)
+# 2. Foundation docs
 /agile-workflow:ideate
 
-# 3. Bootstrap the substrate
+# 3. Visual identity — palette + components — so every later mock inherits
+/ux-ui-design:palette
+/ux-ui-design:components
+
+# 4. Bootstrap the substrate
 /agile-workflow:convert
 
-# 4. Decompose foundation docs into epics
+# 5. Decompose foundation docs into epics
 /agile-workflow:epicize
 
-# 5. Before any autopilot run — always-do — align on strategic questions
-#    across every drafting epic. See the autopilot section below.
+# 6. Lock in directional choices and mock big surfaces across every drafting epic
 /agile-workflow:epic-design --only-questions --all
+
+# 7. Drill in per feature — scope + remaining mocks before autopilot starts
+/agile-workflow:feature-design --only-questions --all
+
+# 8. Drain
+/agile-workflow:autopilot --all
 ```
 
-From here you talk to the agent. Some example openings:
+Steps 6 and 7 are the heart of it. Read the *killer workflows* section below
+for why this sequence matters.
 
-- *"Park the idea of CSV export — we'll get to it after billing ships."*
-- *"Pull idea-csv-export up and scope it as a feature under epic-export."*
-- *"Scope the backlog."* (clusters every backlog item into a proposed structure)
-- *"Design feature-csv-export, then start implementing the validation story."*
-- *"What's waiting on me right now?"*
-- *"Find refactor candidates in src/auth/."* (scans, emits items)
-- *"What's slow in the API layer?"* (profiles, emits items per bottleneck)
-- *"Run autopilot on epic-billing — I'll be back in an hour."*
-- *"Cut release v0.1.0 with the four features that just hit done."*
+## Quick start (existing repo)
 
-The agent picks the right skill from each ask, reads the substrate to ground
-its work, and reports back what it did. You stay in director mode.
+```bash
+# 1. Install the plugins
+/plugin install agile-workflow@nklisch-skills
+/plugin install ux-ui-design@nklisch-skills
+
+# 2. Bootstrap the substrate (detects existing project shape)
+/agile-workflow:convert
+
+# 3. (Optional) Audit + mirror existing UI into mocks
+/ux-ui-design:adopt
+
+# 4. Cluster your backlog or fresh ideas into structured work
+/agile-workflow:scope    # batch mode — clusters everything in backlog
+# or scope individual items: /agile-workflow:scope <id>
+
+# 5. Same alignment one-two before autopilot
+/agile-workflow:epic-design --only-questions --all
+/agile-workflow:feature-design --only-questions --all
+
+# 6. Drain
+/agile-workflow:autopilot --all
+```
+
+## Killer workflows (the rhythm that makes this click)
+
+The whole plugin is shaped to let `autopilot` carry as much work as
+possible. Autopilot only runs well when it doesn't have to guess on
+directional choices. Front-loading those choices is the highest-leverage
+habit in the loop.
+
+**You can absolutely skip autopilot** and run skills manually in
+conversation — but if you do plan to use autopilot, these are the moves
+that make it work.
+
+### 1. The alignment one-two before autopilot
+
+```
+/agile-workflow:epic-design --only-questions --all
+/agile-workflow:feature-design --only-questions --all
+```
+
+This is the rhythm. Both passes walk every drafting item in their tier,
+surface high-leverage product / architecture / scope questions specific to
+that item, ask you via `AskUserQuestion`, and capture your answers under
+`## Design decisions` in each item body. Neither pass advances stage or
+decomposes children — that's left to the real design pass autopilot will
+run later.
+
+- **`epic-design --only-questions`** handles the arc-level choices: what's
+  this epic actually delivering, what's in scope vs explicitly out, what
+  shape does the user experience take. This is where the load-bearing
+  decisions get made. When `ux-ui-design` is installed, this pass also
+  invokes `:screens` and `:flows` for the cross-feature journeys clear at
+  this tier — the visual decisions get pinned at the same time as the
+  product ones.
+- **`feature-design --only-questions`** drills into each feature: which
+  components to reuse, where the edges are, what the acceptance criteria
+  look like. This pass picks up any remaining `:screens`/`:flows` for
+  surfaces not covered upstream.
+
+Why this works:
+
+- **Autopilot inherits your answers.** When the full design passes run under
+  autopilot later, they read `## Design decisions` and `## Mockups` and
+  skip their own question-asking phase. No autonomous guessing on direction.
+- **One sitting beats N pauses.** Doing all the Q&A up front replaces
+  autopilot pausing per-item mid-run — or worse, not pausing and committing
+  to a wrong direction across multiple features before you notice.
+- **Cheap now, expensive later.** Catching a wrong directional choice
+  before code or child items land is far cheaper than unwinding it after
+  autopilot has built on top of it.
+
+`--only-questions` refuses to run *inside* autopilot — it's explicitly a
+pre-autopilot, human-in-the-loop step. The right rhythm is:
+
+```
+--only-questions --all (both tiers) → review captured decisions → autopilot --all
+```
+
+You can skip this only when the drafting queue is empty or every drafting
+item's body already pins every directional choice. Rare in practice.
+
+### 2. Greenfield bootstrap with mocks first
+
+For a fresh project, the full sequence is:
+
+```
+ideate → palette + components → convert → epicize
+       → epic-design --only-questions --all       (with screens/flows mocks)
+       → feature-design --only-questions --all    (with more mocks)
+       → autopilot --all
+```
+
+The palette/components first means every later mock inherits the visual
+voice. The two `--only-questions` passes mean every later autopilot stride
+inherits both directional and visual alignment. By the time autopilot runs,
+it knows what to build *and* what it should look like.
+
+### 3. Backlog grooming → structured plan
+
+When you have a pile of unstructured ideas in `.work/backlog/`:
+
+```
+/agile-workflow:scope                              # batch — clusters everything
+/agile-workflow:epic-design --only-questions --all # align on the new epics
+/agile-workflow:feature-design --only-questions --all
+/agile-workflow:autopilot --all
+```
+
+The batch `scope` pass clusters the whole backlog by code seam and
+capability arc, proposes a structure, confirms once with you, then writes
+everything as epics / features / stories with declared `depends_on`.
+
+You can also filter: *"scope the auth stuff"* narrows the batch to one
+area. *"Scope idea-csv-export as a feature under epic-export"* promotes one
+item.
+
+### 4. Mock first at every phase
+
+Whenever a new screen or flow shows up in the design queue, mock it before
+designing it in code. The tier-ordering rule:
+
+- **Tier 1 (after ideate):** `palette` + `components` — the foundation
+- **Tier 2 (during `epic-design --only-questions`):** `screens` + `flows`
+  for load-bearing cross-feature journeys
+- **Tier 3 (during `feature-design --only-questions`):** more `screens` +
+  `flows` for per-feature surfaces
+- **Tier 4 (ad-hoc):** one-off mocks mid-design when a particular surface
+  needs exploration before proceeding
+
+You do most of the work at tiers 1 and 2 — the big choices. Tier 3 fills
+in the gaps. Tier 4 is the escape hatch.
+
+See [ux-ui-design-guide.md](ux-ui-design-guide.md) for the full mock-first
+loop.
 
 ## The four slash commands you'll invoke yourself
 
@@ -162,8 +304,11 @@ and shape. Output lands in `docs/`.
   refuses to bootstrap a project without VISION or SPEC — it has no anchor
   for later design passes).
 
-**Ordering.** Always before `convert` and `epicize`. Other commands assume
-foundation docs exist.
+**Pair with `palette`.** If `ux-ui-design` is installed, this skill
+recommends running `/ux-ui-design:palette` right after — so the visual
+identity is locked before epics start to land.
+
+**Ordering.** Always before `convert` and `epicize`.
 
 ### `/agile-workflow:epicize`
 
@@ -191,53 +336,29 @@ transition. Stops cleanly on blockers, on your interjection, or near
 context limits. Schedules watchdog `/loop` tasks so it survives
 compaction.
 
-**Before you invoke (almost always do this first).** Run
-`/agile-workflow:epic-design --only-questions --all` (or pass specific
-epic IDs) to align on strategic direction across every drafting epic
-*before* autopilot starts. The pass walks each drafting epic, surfaces
-2–5 high-leverage product / architecture / scope questions specific to
-that epic, asks you via `AskUserQuestion`, and writes your answers under
-`## Design decisions` in the epic body. It does NOT decompose features
-or advance stage — that's left to the real design pass that autopilot
-will run.
+**Always do this first.** Run the alignment one-two (see *Killer workflows*
+above):
 
-Why this is the single highest-leverage habit in the agile-workflow loop:
+```
+/agile-workflow:epic-design --only-questions --all
+/agile-workflow:feature-design --only-questions --all
+```
 
-- **Autopilot inherits your answers.** When the full `epic-design` pass
-  later fires under autopilot, it reads the captured `## Design decisions`
-  and skips its own question-asking phase — no autonomous guessing on
-  directional choices, because you've already locked them in.
-- **One sitting beats N pauses.** Five minutes of interactive Q&A over the
-  whole drafting queue up front replaces autopilot pausing per-epic
-  mid-run, or worse, not pausing and committing to a wrong direction
-  across multiple features before you notice.
-- **Cheap now, expensive later.** Catching a wrong directional choice
-  before any code or child-feature design lands is far cheaper than
-  unwinding it after autopilot has built on top of it.
-
-`--only-questions` refuses to run *inside* autopilot — it's explicitly a
-pre-autopilot, human-in-the-loop step. The right rhythm is:
-`--only-questions --all` → review the captured decisions →
-`autopilot --all` (or `autopilot <epic-id>`).
-
-You can skip this only when the drafting queue is empty (nothing for the
-pass to do) or when every drafting epic's body and the foundation docs
-already pin every directional choice — rare in practice.
+This locks in directional choices and mocks before autopilot starts.
+Autopilot inherits everything and runs without autonomous guessing.
 
 **When to invoke.**
 - `/agile-workflow:autopilot <epic-id>` — drain everything under one epic.
-  Use this when an epic is ready to march and you want the agent to handle
-  the sequence.
 - `/agile-workflow:autopilot --all` — drain every ready item in
-  `.work/active/`. Use this when you want the agent to make broad progress
-  while you step away.
+  `.work/active/`. Use this when you want broad progress while you step
+  away.
 - `/agile-workflow:autopilot --resume` — pick up where a previous run left
   off. Idempotent; safe to invoke after a stop.
 
 **When NOT to invoke.**
 - When you have a specific item you want done with your own input — invoke
-  the relevant skill in conversation instead ("design feature-X", "implement
-  story-Y").
+  the relevant skill in conversation instead (*"design feature-X"*,
+  *"implement story-Y"*).
 - When the queue is small and you want to stay close to the work.
 
 **How to interrupt.** Just send a message. Autopilot finishes the current
@@ -306,10 +427,13 @@ of these fires based on item kind and tags:
 
 - **`epic-design`** — fires for an epic at `stage: drafting`. Decomposes it
   into child features with `depends_on` chains. Output: child feature files
-  spawned at `stage: drafting`.
+  spawned at `stage: drafting`. When `ux-ui-design` is installed, this is
+  the **primary tier for UI mocks** — palette + screens + flows across the
+  decomposition; `--only-questions` always runs the mock pass.
 - **`feature-design`** — fires for an untagged feature at `stage: drafting`.
   Greenfield design: vision absorption, codebase mapping, unit decomposition,
-  pre-mortem, test design.
+  pre-mortem, test design. Inherits parent-epic mocks; only invokes
+  `:screens`/`:flows` for minor surfaces not covered upstream.
 - **`refactor-design`** — two modes. When a feature is tagged `[refactor]`:
   plans the refactor (cost/benefit, before/after, rollback per step). When
   you ask "find refactor candidates" or "what should we clean up here":
@@ -367,7 +491,7 @@ Worth knowing they exist so the items they produce make sense:
 - **`gate-patterns`** — surfaces reusable patterns that emerged in the
   bundle. Produces pattern-skill files plus a tracking item.
 
-### Reference and helpers (carried from workflow)
+### Reference and helpers
 
 - **`principles`** auto-loads during design, implement, review, and any time
   foundation docs are touched.
@@ -409,7 +533,7 @@ backlogged. No re-feed needed. From here you decide what to do.
 
 ### Driving work
 
-Tell the agent your intent. Common moves and what they trigger:
+Tell the agent your intent. Common moves and what they trigger.
 
 Either style works — invoke the slash command directly, or describe what you
 want in plain language and the agent picks the skill. Slash form is faster
@@ -448,47 +572,6 @@ You don't need to think about commits — the agent commits per stage
 transition automatically.
 
 ## Larger flows
-
-### Driving an epic to done with autopilot
-
-Epics are multi-feature arcs. To drain one autonomously, first align on
-strategic questions, then run autopilot:
-
-```
-# Always-do pre-flight: lock in directional choices interactively
-/agile-workflow:epic-design --only-questions epic-rate-limits
-
-# Then drain
-/agile-workflow:autopilot epic-rate-limits
-```
-
-The `--only-questions` pass surfaces 2–5 high-leverage product /
-architecture / scope questions specific to this epic, asks you via
-`AskUserQuestion`, and captures the answers under `## Design decisions`
-in the epic body. When autopilot then runs the full `epic-design` pass,
-it inherits those answers and skips its own question-asking phase — no
-autonomous guessing on direction. See the
-`/agile-workflow:autopilot` section above for the full rationale.
-
-For a multi-epic run, do it across the whole drafting queue in one sitting:
-`/agile-workflow:epic-design --only-questions --all`.
-
-The agent works the queue: picks the next ready item, invokes the right
-skill, advances stage, commits, repeats. You'll see periodic reports.
-Items at `stage: review` come back to you — autopilot won't auto-advance
-items past review without your eyes (unless it's running in a fully
-autonomous review mode, which is opt-in).
-
-You can interrupt by sending a message. Autopilot finishes the current
-item, commits, and stops cleanly. Resume with
-`/agile-workflow:autopilot --resume` — the substrate IS the resume
-state.
-
-For a full project drain (everything ready in `.work/active/`):
-`/agile-workflow:autopilot --all`. That mode also runs a refactor scan
-every 5 items completed — `refactor-design` discovery mode against the
-files those items touched, emitting any pure-refactor or behavior-changing
-items it finds for the next loop iteration to drain.
 
 ### Cutting a release
 
@@ -579,31 +662,30 @@ yourself often, that's a signal to ask the agent more pointed questions
 instead — "what's blocking story-X?" works better than running
 `--blocking`.
 
-## Migrating from the workflow plugin
+## Migrating an existing project
 
-If you've been using the `workflow` plugin and want to switch:
+If you have an existing project (with or without the deprecated `workflow`
+plugin), `/agile-workflow:convert` detects its shape and migrates:
 
 ```
 /agile-workflow:convert
 ```
 
-`convert` detects the workflow-plugin layout (it sees `docs/designs/`,
-`docs/ROADMAP.md`, `docs/PROGRESS.md`) and offers a structured migration:
+`convert` recognizes four project shapes:
 
-- **Phase decomposition** — `docs/ROADMAP.md` phases become epics in
-  `.work/active/epics/` with declared dependency chains
-- **Active designs** — each `docs/designs/<name>.md` becomes a feature in
-  `.work/active/features/` at `stage: implementing`, with the design content
-  copied into the feature item's body
-- **Completed designs** — by default synthesized into a retro-release at
-  `.work/releases/v0/`. Opt out to archive directly.
-- **Foundation docs preserved** — `docs/VISION.md`, `docs/SPEC.md`,
-  `docs/ARCHITECTURE.md` stay where they are
-- **Source files left alone** — `docs/designs/`, `docs/ROADMAP.md`,
-  `docs/PROGRESS.md` stay in place as legacy history. Delete after verifying
-  the migration via `MIGRATION_REPORT.md`.
+- **`workflow`-plugin layout** (`docs/designs/`, `docs/ROADMAP.md`,
+  `docs/PROGRESS.md`) — phases become epics, designs become features at
+  `stage: implementing`, completed designs synthesize into a retro-release
+  at `.work/releases/v0/` (opt out to archive). Source files left in place
+  as legacy history; delete after verifying the migration via
+  `MIGRATION_REPORT.md`.
+- **Ad-hoc tracking** (loose markdown notes) — best-effort inventory into
+  the substrate.
+- **No tracking at all** — seeds an empty substrate with foundation-doc
+  references.
+- **Greenfield** — seeds the empty substrate ready for `epicize`.
 
-The full migration matrix (with paths, ad-hoc, and greenfield variants) is in
+Idempotent via `--update`. The full migration matrix is in
 `plugins/agile-workflow/docs/MIGRATION.md`.
 
 ## Skill catalog (reference)
@@ -622,8 +704,8 @@ explicitly — the rest the agent picks for you.
 - **fix** — single-stride bug repair
 
 ### Design family (agent picks; kind- and tag-routed)
-- **epic-design** — decompose an epic at `stage: drafting` into child features
-- **feature-design** — greenfield feature design (no specialized tag)
+- **epic-design** — decompose an epic at `stage: drafting` into child features. Primary tier for UI mocks when `ux-ui-design` is installed.
+- **feature-design** — greenfield feature design (no specialized tag). Fallback tier for UI mocks.
 - **refactor-design** — for features tagged `[refactor]`; also discovery mode (scan codebase, emit items) when no feature is named
 - **perf-design** — for features tagged `[perf]`; also discovery mode (profile hot paths, emit items)
 
@@ -642,7 +724,7 @@ explicitly — the rest the agent picks for you.
 - **gate-security**, **gate-tests**, **gate-cruft**, **gate-docs**,
   **gate-patterns**
 
-### Reference (carried from workflow)
+### Reference
 - **principles** — code-design + substrate-execution principles
 - **repo-eval** — codebase audit; files top recommendations as substrate items tagged `[audit]` when a substrate exists
 - **research**, **tool-evaluator**, **refactor-conventions-creator** — auto-loading or one-shot helpers
@@ -663,14 +745,16 @@ explicitly — the rest the agent picks for you.
 - **Use autopilot for breadth, conversation for depth.** Autopilot is great
   when you have a queue of well-shaped items. When you want close
   collaboration on a hard design, just talk.
-- **Always run `epic-design --only-questions` before autopilot.** This is
-  the single highest-leverage habit in the loop. A short interactive pass
-  (per-epic, or `--all` across the drafting queue) captures your
-  directional answers under `## Design decisions` in each epic body, and
-  autopilot inherits them — replacing autonomous guessing on architecture
-  / product / scope choices with one human checkpoint up front. Skip it
-  only when the drafting queue is empty or every epic body already pins
-  every directional choice (rare).
+- **Always run the alignment one-two before autopilot.**
+  `epic-design --only-questions --all` then
+  `feature-design --only-questions --all` is the single highest-leverage
+  habit in the loop. Pair both with `ux-ui-design` mocks so autopilot
+  inherits visual alignment too. Skip only when the drafting queue is
+  empty or every item body already pins every directional choice (rare).
+- **Mock first at every phase.** When `ux-ui-design` is installed, mock big
+  surfaces at tier 1 and tier 2 (palette/components after ideate, then
+  screens/flows during the epic-level `--only-questions` pass) so
+  everything downstream inherits the visual voice.
 - **Items at review come back to you.** The agent's autonomous review can
   advance trivial items, but anything with judgment calls lands at
   `stage: review` for your eyes. Walk that queue regularly.
@@ -687,6 +771,7 @@ explicitly — the rest the agent picks for you.
 
 ## Where to read more
 
+- [ux-ui-design-guide.md](ux-ui-design-guide.md) — the mockup-first design loop that pairs with this plugin
 - `plugins/agile-workflow/docs/VISION.md` — what this is and why it exists (2-min read)
 - `plugins/agile-workflow/docs/SPEC.md` — frontmatter contract, file layouts, hook contracts, work-view flag set
 - `plugins/agile-workflow/docs/ARCHITECTURE.md` — substrate layout, item lifecycle, autopilot algorithm, gate orchestration, full skill catalog
