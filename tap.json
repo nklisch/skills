@@ -570,7 +570,7 @@
         {
           "name": "implement-orchestrator",
           "path": "skills/implement-orchestrator",
-          "description": "Default implementation path for features with child stories. Walks the depends_on graph, spawns Sonnet sub-agents in waves capped at 3 per wave (no upper limit on waves — bigger features just mean more waves). Each per-story prompt mirrors /agile-workflow:implement's workflow (land mode, dep check, design-flaw rollback). Single-story features run as a one-agent wave."
+          "description": "Default implementation path for features with child stories. Walks the depends_on graph, bundles tightly-coupled small items into shared agents (one Sonnet agent owning a 300–500k context cluster when adjacency, size, and shared patterns all warrant it), then spawns the bundles in waves capped at 3 parallel agents per wave (no upper limit on waves — bigger features just mean more waves). Each per-story prompt mirrors /agile-workflow:implement's workflow (land mode, dep check, design-flaw rollback); multi-item bundle prompts amortize that workflow across the cluster. Single-story features run as a one-agent wave."
         },
         {
           "name": "review",
