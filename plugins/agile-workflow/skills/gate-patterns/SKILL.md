@@ -43,13 +43,19 @@ consistency and reuse.
 ls .agents/skills/patterns/ 2>/dev/null
 cat .agents/skills/patterns/SKILL.md 2>/dev/null
 ls .claude/skills/patterns/ 2>/dev/null
-cat .claude/rules/patterns.md 2>/dev/null
+cat AGENTS.md 2>/dev/null
+cat .agents/AGENTS.md 2>/dev/null
+cat .claude/AGENTS.md 2>/dev/null
 ```
 
-Capture the existing pattern catalog so the sub-agent doesn't redocument
-existing patterns. Prefer `.agents/skills/patterns/` as the source of truth;
-read `.claude/skills/patterns/` and `.claude/rules/patterns.md` as legacy
-mirrors.
+Capture the existing pattern catalog and project rules context so the sub-agent
+doesn't redocument existing patterns or mistake project conventions for
+structural patterns. Prefer `.agents/skills/patterns/` as the source of truth;
+read `.claude/skills/patterns/` only as a legacy mirror. Project-level rules
+belong in the selected `AGENTS.md` target. If an older repo still has
+`.claude/rules/patterns.md`, that content should be migrated by
+`/agile-workflow:convert --update`; do not treat it as a gate input or source
+of truth.
 
 ### Phase 2: Identify bundle scope
 

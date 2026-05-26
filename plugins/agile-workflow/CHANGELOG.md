@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.7.4 - AGENTS-backed legacy pattern rules migration
+
+- **Gate-patterns rules source** - `gate-patterns` now reads project rules from
+  AGENTS targets instead of treating `.claude/rules/patterns.md` as an input.
+  `.agents/skills/patterns/` remains the canonical structural-pattern catalog,
+  with `.claude/skills/patterns/` only as a legacy mirror.
+- **Convert sync for older repos** - `convert` and `convert --update` now detect
+  legacy `.claude/rules/patterns.md`, import non-duplicate content into the
+  selected AGENTS target, and replace the legacy file with a shim so AGENTS is
+  the single project-rules source.
+- **Docs alignment** - SPEC, ARCHITECTURE, and MIGRATION now document AGENTS as
+  the canonical rules home and `.agents/skills/patterns/` as the structural
+  pattern-skill home.
+
 ## v0.7.2 - Codex sub-agent and AGENTS.md compatibility
 
 Improves the plugin's Codex path while preserving Claude compatibility.

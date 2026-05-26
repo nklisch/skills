@@ -99,6 +99,7 @@ directories. Detect all of these before writing:
 
 - AGENTS candidates: `AGENTS.md`, `.agents/AGENTS.md`, `.claude/AGENTS.md`
 - Claude candidates: `CLAUDE.md`, `.claude/CLAUDE.md`, `.agents/CLAUDE.md`
+- Legacy Claude rules candidates: `.claude/rules/patterns.md`
 
 Choose the canonical AGENTS target:
 
@@ -113,6 +114,11 @@ If symlinks are unavailable, keep the existing nested AGENTS file as the content
 source and write a root `AGENTS.md` shim or copy that clearly points to the
 canonical nested file. Codex needs a root-readable `AGENTS.md`; do not leave only
 a nested file unless the project has explicitly configured that fallback.
+
+Legacy `.claude/rules/patterns.md` is not a separate canonical rules target.
+When it exists, preserve its non-duplicate content by importing it into the
+selected AGENTS target, then replace the legacy file with a short shim pointing
+agents at `AGENTS.md`. If it does not exist, do not create it.
 
 ### Phase 3: Conventions interview
 
@@ -177,6 +183,10 @@ git history is the audit trail. Item files are the durable state: update the
 body with implementation discoveries, review findings, blockers, and decisions
 instead of relying on chat history.
 
+Project-level agent rules live in AGENTS.md. Do not create or maintain
+`.claude/rules/patterns.md` as a source of truth; reusable structural patterns
+belong in `.agents/skills/patterns/`.
+
 ### Test integrity
 
 When running, writing, or modifying tests:
@@ -239,6 +249,23 @@ Handle every detected Claude candidate (`CLAUDE.md`, `.claude/CLAUDE.md`,
 
 The sync path follows the same rule: refresh `AGENTS.md`, then keep
 Claude entrypoints pointing at it through symlinks or shims.
+
+Handle `.claude/rules/patterns.md` as a legacy Claude rules file, not as a
+Claude compatibility entrypoint:
+
+1. If it exists as a regular file and contains content not already present in
+   the selected AGENTS target, import that content under a short
+   `## Imported Claude Pattern Rules` heading.
+2. Replace `.claude/rules/patterns.md` with this shim:
+
+   ```markdown
+   # Pattern Rules
+
+   Canonical project rules live in AGENTS.md. Read that file.
+   ```
+
+3. If the file is already a symlink or shim that points to `AGENTS.md`, leave it
+   alone.
 
 ### Phase 8: Per-shape migration
 
@@ -350,6 +377,8 @@ Single git commit:
 
 ```bash
 git add .work/ AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md MIGRATION_REPORT.md
+# If a legacy rules shim was created or updated:
+git add .claude/rules/patterns.md
 git commit -m "chore: bootstrap agile-workflow substrate"
 ```
 
@@ -367,12 +396,15 @@ Re-use the marker checks from Phase 1.5 plus deeper checks:
 
 - All five markers (`substrate_root`, `conventions`, `agents_md_section`,
   `claude_compat`, `work_view`) — present or missing
+- Legacy `.claude/rules/patterns.md` — absent, shimmed to AGENTS, or containing
+  importable legacy rules content
 - For each plugin-shipped artifact that IS present, compare its content against
   the version in the current plugin source:
   - The selected AGENTS target section between `<!-- agile-workflow:start -->` /
     `<!-- agile-workflow:end -->` vs the canonical template in Phase 6
   - `.work/bin/work-view` vs `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/work-view.sh`
   - `CLAUDE.md` compatibility state (symlink/shim/legacy copy)
+  - `.claude/rules/patterns.md` state (legacy content vs AGENTS shim)
 
 Classify each artifact as one of:
 
@@ -389,6 +421,13 @@ the installed text matches a known prior plugin release's template
 treat as `drift_user` and ask. If any Claude candidate has legacy content that
 is not yet present in the selected AGENTS target, import it before replacing the
 Claude file with a symlink or shim.
+
+If `.claude/rules/patterns.md` is absent, treat the legacy-rules state as
+`match` and take no action. If it contains non-shim content that is not yet
+present in the selected AGENTS target, import it before replacing the legacy
+rules file with the AGENTS shim. Treat user-edited or ambiguous content as
+`drift_user` and ask before import; treat old generated pattern-rules content as
+`drift_plugin`.
 
 ### Phase S2: Plan the sync
 
@@ -415,6 +454,9 @@ For each artifact with a non-`match` state:
   Claude candidate into the selected AGENTS target, then replace the Claude
   file with a symlink to that target. If symlinks are not available, write the
   shim from Phase 7.
+- Legacy `.claude/rules/patterns.md` — only when present, import
+  non-duplicate content into the selected AGENTS target, then replace the file
+  with the Pattern Rules shim from Phase 7.
 
 For `drift_user` items, only proceed after the user confirms.
 
@@ -426,7 +468,8 @@ These are NEVER touched in sync mode:
 - Everything under `.work/active/`, `.work/backlog/`, `.work/releases/`,
   `.work/archive/`
 - AGENTS content outside the agile-workflow markers, except imported legacy
-  Claude content the user confirms should become canonical
+  Claude content and imported legacy Claude pattern-rules content the user
+  confirms should become canonical
 - `MIGRATION_REPORT.md` (a bootstrap artifact; sync never writes it)
 
 ### Phase S5: Commit
@@ -435,6 +478,8 @@ If any files were rewritten:
 
 ```bash
 git add AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md .work/bin/work-view
+# If a legacy rules shim was created or updated:
+git add .claude/rules/patterns.md
 git commit -m "chore: agile-workflow sync"
 ```
 

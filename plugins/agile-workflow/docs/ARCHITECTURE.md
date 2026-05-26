@@ -512,6 +512,10 @@ git history is the audit trail. The substrate itself is durable memory: record
 decisions, blockers, implementation discoveries, and review findings in item
 bodies instead of depending on chat history.
 
+Project-level agent rules live in AGENTS.md. Reusable structural patterns live
+in `.agents/skills/patterns/`; do not maintain `.claude/rules/patterns.md` as
+a source of truth.
+
 Slash commands (user-invokable):
 `/agile-workflow:ideate`, `/agile-workflow:epicize`,
 `/agile-workflow:autopilot`, `/agile-workflow:release-deploy`.
@@ -529,6 +533,9 @@ Slash commands (user-invokable):
 - `CLAUDE.md`, `.claude/CLAUDE.md`, and `.agents/CLAUDE.md` are maintained only
   as compatibility symlinks to the selected AGENTS target. If symlinks are
   unavailable, each becomes a short shim that points Claude Code at `AGENTS.md`.
+- Legacy `.claude/rules/patterns.md` content is imported into the selected
+  AGENTS target during bootstrap or sync, then replaced with a shim pointing at
+  AGENTS. It is never maintained as a parallel rules file.
 
 ## Skill catalog
 

@@ -329,6 +329,9 @@ plugin-shipped artifacts.
 - `.work/bin/work-view` — overwritten with the current plugin's script
 - `CLAUDE.md` compatibility — converted to a symlink to `AGENTS.md`, or to a
   shim if symlinks are unavailable
+- Legacy `.claude/rules/patterns.md` — imported into `AGENTS.md` when it
+  contains non-duplicate rules content, then replaced with a shim pointing at
+  `AGENTS.md`
 - `hooks/hooks.json` — already in the plugin, but if the plugin's hook
   scripts changed, the user is alerted to restart their agent session
 
@@ -349,6 +352,11 @@ the diff and let the user merge manually.
 If an existing regular `CLAUDE.md` contains content not yet present in
 `AGENTS.md`, `--update` imports that content into `AGENTS.md` before replacing
 `CLAUDE.md` with the compatibility symlink or shim.
+
+If an older `.claude/rules/patterns.md` contains content not yet present in
+`AGENTS.md`, `--update` imports that content into `AGENTS.md` before replacing
+the legacy rules file with a shim. Ambiguous user-edited content is confirmed
+before import.
 
 If `.work/CONVENTIONS.md` is missing on `--update`, that's a corruption
 signal — `convert --update` halts and instructs the user to either

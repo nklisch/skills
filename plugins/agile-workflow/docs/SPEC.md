@@ -143,6 +143,11 @@ Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
 `convert --update` replaces everything between the markers without touching
 the rest of the selected AGENTS target.
 
+Project-level agent rules and migrated legacy rules live in the selected
+AGENTS target. `.claude/rules/patterns.md` is not a supported canonical rules
+file; when present in older repos, `convert` imports its non-duplicate content
+into AGENTS and replaces it with a short shim that points agents at AGENTS.
+
 ### CLAUDE.md compatibility
 
 Claude instruction files are not canonical. `convert` detects `CLAUDE.md`,
@@ -153,6 +158,10 @@ Code to read `AGENTS.md`.
 
 When migrating an existing regular `CLAUDE.md`, `convert` imports non-duplicate
 content into `AGENTS.md` before replacing it with the symlink or shim.
+
+When migrating an older `.claude/rules/patterns.md`, `convert` follows the same
+preservation rule: import non-duplicate content into AGENTS first, then leave
+only a compatibility shim at the legacy path.
 
 ## File and directory layout
 
