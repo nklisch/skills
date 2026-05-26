@@ -1,23 +1,12 @@
 ---
 name: adopt
 description: >
-  ALWAYS invoke this skill when the user asks to bootstrap mockup-first design
-  onto an existing project, audit existing UI for design-system gaps and
-  inconsistencies, mirror current screens into mocks, redesign an existing app,
-  or sync mockups with code that has drifted — do not start running palette /
-  components / screens / flows directly. Scans the codebase to inventory every
-  UI surface and design-system fragment, audits for inconsistencies (component
-  duplication, hardcoded colors, layout drift, accessibility gaps, copy/voice
-  drift, missing empty/error/loading states), then orchestrates the full
-  plugin pipeline (palette → components → screens → flows) in either MIRROR
-  mode (faithful capture of current implementation, with remediation proposals
-  for audit findings) or REIMAGINE mode (4-option redesign exploration informed
-  by the audit). Produces .mockups/adoption-report.md as the inventory +
-  findings + decisions artifact. Triggers on "adopt this project", "bootstrap
-  mockup-first design", "set up design system for existing app", "audit our
-  UI", "mock our current screens", "redesign our app", "find UI
-  inconsistencies", "design sync", "what screens do we have". Defers to
-  ux-ui-principles for storage, tech, and linking conventions.
+  ALWAYS invoke this skill when the user asks to adopt mockup-first design in an
+  existing project, audit UI inconsistencies, mirror current screens into mocks,
+  redesign an app, or sync drifted mockups. Inventories UI surfaces and
+  design-system fragments, audits gaps, then orchestrates palette, components,
+  screens, and flows in MIRROR or REIMAGINE mode. Produces
+  .mockups/adoption-report.md with inventory, findings, and decisions.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---

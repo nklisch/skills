@@ -1,20 +1,12 @@
 ---
 name: refactor-design
 description: >
-  ALWAYS invoke this skill when the user asks to scan for refactor opportunities, plan
-  a refactor, or design a [refactor]-tagged feature — do not start restructuring code
-  inline. Two modes. Discovery mode (default with no arg, `--all`, `<path>`, or
-  `<NL scope>`) scans code for smells (duplication, long files, deep nesting, god
-  functions, leaky abstractions, dead weight), classifies findings as pure-refactor or
-  behavior-changing, and emits substrate items — pure-refactor findings get
-  `[refactor]` tag; behavior changers get no tag so feature-design picks them up.
-  Per-feature mode (default when given a feature id) plans the refactor for an
-  existing `[refactor]`-tagged feature at stage:drafting, written INTO the feature's
-  body, with child stories and depends_on chains, then advances stage drafting ->
-  implementing. For greenfield design use /agile-workflow:feature-design; for perf use
-  /agile-workflow:perf-design; for architectural reconceptions use
-  /agile-workflow:bold-refactor. Triggers on "find refactor opportunities", "scan for
-  smells", "design this refactor", "let's refactor", "refactor <path>".
+  ALWAYS invoke this skill when the user asks to scan for refactor opportunities,
+  plan a refactor, or design a [refactor]-tagged feature. Discovery mode scans
+  code smells, separates pure refactors from behavior changes, and emits
+  substrate items. Per-feature mode plans an existing [refactor] feature at
+  stage:drafting, writes the plan into the feature body, spawns child stories
+  with depends_on chains, and advances drafting -> implementing.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 ---
 

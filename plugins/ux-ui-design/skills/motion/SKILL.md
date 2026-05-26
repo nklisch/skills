@@ -1,20 +1,12 @@
 ---
 name: motion
 description: >
-  ALWAYS invoke this skill when the user asks to design motion, animation, transitions, easing
-  curves, spring physics, micro-interactions, or any kinetic dimension of the UI — do not start
-  inlining cubic-bezier values or transition durations in components, screens, or flows.
-  Generates the project's motion-system mockup — named easing-curve language with attitudes
-  (emphasized / productive / expressive / standard / linear), Doherty-coupled duration scale
-  (instant / quick / ambient), spring presets (stiff / medium / wobbly) for gesture-driven UI,
-  Disney-principle tokens (squash, anticipation, follow-through), designed pauses (ma /
-  hold-beat), and accessibility-first reduced-motion variants. Output is a showcase
-  motion.html (every motion playable in the browser) and a reusable motion.css that screens,
-  components, and flows link. Runs AFTER components (depends on tokens.css and components.css)
-  and BEFORE screens / flows for a coherent kinetic language. Triggers on "design motion",
-  "animation system", "easing curves", "transition language", "design the springs", "motion
-  tokens", "micro-interaction language". Defers to ux-ui-principles for storage, tech, and
-  linking conventions.
+  ALWAYS invoke this skill when the user asks to design motion, animation,
+  transitions, easing curves, spring physics, micro-interactions, or other UI
+  kinetics. Generates motion.html and motion.css with named easing attitudes,
+  duration scale, spring presets, interaction tokens, designed pauses, and
+  reduced-motion variants. Runs after components and before screens or flows so
+  downstream mocks share one kinetic language.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---

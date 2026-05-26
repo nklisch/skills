@@ -1,20 +1,12 @@
 ---
 name: epic-design
 description: >
-  ALWAYS invoke this skill when the user asks to design an epic, decompose an epic, or
-  pick up an epic at stage:drafting — do not draft child features inline. Designs an
-  epic at stage:drafting by decomposing it into child features with declared
-  depends_on chains. Reads the epic body, foundation docs, and the codebase;
-  identifies feature-level capability arcs; writes child feature files at
-  .work/active/features/ at stage:drafting with parent set; updates the epic body with
-  the realized decomposition; advances epic stage drafting -> implementing. Primary
-  UI/UX mockup tier — when ux-ui-design is installed, Phase 4.6 mocks every net-new
-  screen and journey across the decomposition; `--only-questions` always runs that
-  pass. Use for epics with no children yet — when autopilot picks an epic at
-  drafting, this is the design-family entry point. For project-level epic seeding
-  from foundation docs use /agile-workflow:epicize; for feature design use
-  /agile-workflow:feature-design. Triggers on "design this epic", "decompose <id>",
-  "break this epic into features", "epic design for X".
+  ALWAYS invoke this skill when the user asks to design, decompose, or pick up
+  an epic at stage:drafting. Reads the epic, foundation docs, and codebase;
+  identifies child feature arcs; writes feature files with parent and depends_on
+  metadata; updates the epic body with the realized decomposition; and advances
+  drafting -> implementing. When ux-ui-design is installed, includes mockup
+  planning for net-new screens and journeys.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
 ---
 

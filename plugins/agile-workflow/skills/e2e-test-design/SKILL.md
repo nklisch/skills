@@ -1,20 +1,12 @@
 ---
 name: e2e-test-design
 description: >
-  ALWAYS invoke this skill when the user asks to design e2e tests, audit the e2e test
-  program, bootstrap e2e testing, or work on a feature tagged [e2e-test] or [testing]
-  at stage:drafting — do not just write test files inline. Designs comprehensive e2e
-  tests with service-level mocks only (LocalStack, Testcontainers, WireMock,
-  Toxiproxy). Family member alongside feature-design / refactor-design / perf-design —
-  writes design INTO the feature body, spawns child stories with declared depends_on,
-  advances stage drafting -> implementing. Covers four test styles: golden-path,
-  failure-mode, chaos, fuzzing. Two extra modes: --bootstrap seeds an e2e test epic +
-  child features when none exists; --audit analyzes the test program's shape
-  (mock-boundary violations, missing taxonomy layers, journey gaps, suite-level
-  tautology) and produces items. Audit accepts --release <version> to plug into
-  release-deploy as a quality gate. Distinct from /agile-workflow:gate-tests, which
-  audits per-release coverage of acceptance criteria. Triggers on "design e2e tests
-  for X", "audit our e2e tests", "bootstrap e2e testing", "design e2e for <id>".
+  ALWAYS invoke this skill when the user asks to design e2e tests, audit or
+  bootstrap the e2e program, or work on a [e2e-test]/[testing] feature at
+  stage:drafting. Designs service-level-mocked e2e coverage, writes the design
+  into the feature body, spawns child stories with depends_on chains, and
+  advances drafting -> implementing. Supports golden-path, failure-mode, chaos,
+  and fuzzing coverage, plus --bootstrap and --audit modes.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
 ---
 
