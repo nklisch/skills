@@ -74,7 +74,7 @@ Use this path when invoked with `--only-questions`. Iterate over the target set
 
 For each epic:
 1. Read the epic file; skip if `kind` is not `epic` or `stage` is not `drafting`
-2. Ground yourself (Phase 2 below — foundation docs + CLAUDE.md + parent if any)
+2. Ground yourself (Phase 2 below — foundation docs + AGENTS.md / CLAUDE.md + parent if any; AGENTS is canonical)
 3. Map the codebase lightly — one Task Explore over the epic's area
 4. **Run Phase 4.6 (UI surface alignment)** — `--only-questions` is the
    visual alignment gate, not just the textual one. When `ux-ui-design` is
@@ -130,7 +130,7 @@ Rolling-Foundation, Late-Binding) are active.
 Read:
 1. `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md` — foundation that
    constrains this epic
-2. `CLAUDE.md` (project conventions)
+2. `AGENTS.md` / `CLAUDE.md` (project conventions; AGENTS is canonical)
 3. `docs/PRINCIPLES.md` if it exists
 4. The epic's parent if `parent` is set (rare — epics usually top-level)
 5. Sibling epics in `.work/active/epics/` — to see what they cover and avoid
@@ -140,8 +140,13 @@ Read:
 
 ### Phase 3: Map the codebase
 
-Use the **Task tool** to spawn parallel Explore sub-agents (sonnet minimum,
-opus for large codebases). Send all in one message and wait for all.
+Spawn parallel read-only Explore sub-agents. Send all in one message and wait
+for all.
+
+- **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
+  or complex codebases.
+- **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`;
+  use `high` for large or complex codebases.
 
 1. **Existing surface in this epic's area** — what modules, components, or
    integration points already exist that this epic will extend or touch?

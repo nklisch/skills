@@ -119,29 +119,13 @@ gates_for_release: [security, tests, cruft, docs, patterns]
 The default `gates_for_release` order is fixed: **security → tests → cruft
 → docs → patterns**. Override only if the project has a justified reason.
 
-### `.claude/rules/agile-workflow.md`
+### AGENTS.md section
 
-Auto-loaded by Claude Code via `paths:` frontmatter. Written by `convert`,
-updated idempotently on `convert --update`. Contains dense-pointer
-navigation rules: structure, kinds, stages, frontmatter shape, navigation
-primitives (literal grep/find commands), session-start checklist, and the
-rolling-foundation principle reminder.
-
-```markdown
----
-description: Agile-workflow substrate navigation rules
-paths: ['.work/**', 'docs/**']
----
-
-# Agile-Workflow Substrate Navigation
-
-[full content specified in ARCHITECTURE.md]
-```
-
-### CLAUDE.md addition
-
-`convert` appends (or replaces, idempotently) a section in the project's
-`CLAUDE.md` delimited by HTML comment markers:
+`convert` appends or replaces, idempotently, a section in the project's
+canonical AGENTS target delimited by HTML comment markers. It detects
+`AGENTS.md`, `.agents/AGENTS.md`, and `.claude/AGENTS.md`, preferring root
+`AGENTS.md` when present and otherwise creating a root symlink/shim so Codex has
+a root-readable entrypoint.
 
 ```markdown
 <!-- agile-workflow:start -->
@@ -157,7 +141,18 @@ Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
 ```
 
 `convert --update` replaces everything between the markers without touching
-the rest of CLAUDE.md.
+the rest of the selected AGENTS target.
+
+### CLAUDE.md compatibility
+
+Claude instruction files are not canonical. `convert` detects `CLAUDE.md`,
+`.claude/CLAUDE.md`, and `.agents/CLAUDE.md`, then preserves Claude Code
+compatibility by making each one a symlink to the selected AGENTS target where
+possible. If symlinks are not available, it writes a short shim telling Claude
+Code to read `AGENTS.md`.
+
+When migrating an existing regular `CLAUDE.md`, `convert` imports non-duplicate
+content into `AGENTS.md` before replacing it with the symlink or shim.
 
 ## File and directory layout
 
@@ -166,6 +161,8 @@ the rest of CLAUDE.md.
 ```
 plugins/agile-workflow/
 ├── .claude-plugin/
+│   └── plugin.json
+├── .codex-plugin/
 │   └── plugin.json
 ├── docs/
 │   ├── VISION.md
@@ -204,12 +201,12 @@ After `convert` runs in a project repo:
 │   ├── archive/<id>.md
 │   ├── bin/work-view
 │   └── CONVENTIONS.md
-├── .claude/rules/agile-workflow.md
+├── AGENTS.md
+├── CLAUDE.md -> AGENTS.md
 ├── docs/
 │   ├── VISION.md
 │   ├── SPEC.md
 │   └── ARCHITECTURE.md
-└── CLAUDE.md  # contains agile-workflow section
 ```
 
 ## Distribution

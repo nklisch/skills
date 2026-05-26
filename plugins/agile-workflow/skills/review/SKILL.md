@@ -115,7 +115,7 @@ which range to review.
 
 ### Phase 4: Ground in the project
 
-1. Read `CLAUDE.md` for conventions
+1. Read `AGENTS.md` / `CLAUDE.md` for conventions
 2. Read `docs/PRINCIPLES.md` (or invoke the principles skill — it auto-loads)
 3. Read foundation docs the change touches: `docs/SPEC.md`, `docs/ARCHITECTURE.md`
 

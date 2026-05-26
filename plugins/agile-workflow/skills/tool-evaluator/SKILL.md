@@ -7,7 +7,6 @@ description: >
   Use when user says "evaluate tools", "tool feedback", "how did tools perform",
   or invokes /tool-evaluator.
 user-invocable: true
-disable-model-invocation: true
 allowed-tools: Read, AskUserQuestion, Write
 ---
 

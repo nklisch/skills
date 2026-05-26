@@ -2,7 +2,7 @@
 name: gate-docs
 description: >
   Documentation gate that enforces the rolling-foundation principle. Delegates
-  the full drift detection to an opus sub-agent which scans the bundle's
+  the full drift detection to a deep documentation-audit sub-agent which scans the bundle's
   changes for foundation-doc drift (assertions in docs/ that no longer match
   implementation), changelog gaps, README staleness, and skill/pattern-skill
   staleness. The orchestrator converts findings into items in .work/active/
@@ -17,9 +17,15 @@ You orchestrate a documentation gate that enforces the **rolling-foundation
 principle**: foundation docs in `docs/` describe the system as it is NOW.
 After implementation work, foundation-doc assertions can drift from reality.
 
-The actual drift detection runs inside an **opus sub-agent**; your role is
-to prepare the bundle context, dispatch the sub-agent, and convert the
-findings it returns into items that will roll the docs forward.
+The actual drift detection runs inside a **deep documentation-audit sub-agent**;
+your role is to prepare the bundle context, dispatch the sub-agent, and convert
+the findings it returns into items that will roll the docs forward.
+
+Sub-agent strength is explicit:
+- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
+  `subagent_type: "general-purpose"`.
+- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
+  high`; use `xhigh` for large documentation surfaces or broad API drift.
 
 ## Trigger
 
@@ -50,8 +56,10 @@ Capture the set of `(doc-file:line, drift-category)` already-tracked findings.
 
 ### Phase 3: Dispatch the drift-detection sub-agent
 
-Spawn ONE Agent (subagent_type=general-purpose, model=opus) with the full
-drift-detection brief. The sub-agent maps the doc structure, classifies the
+Spawn ONE deep documentation-audit sub-agent with the full drift-detection
+brief. For Claude Code, this is `Agent(subagent_type=general-purpose,
+model=opus)`. For Codex, use `reasoning_effort: high`, or `xhigh` for large
+documentation surfaces. The sub-agent maps the doc structure, classifies the
 bundle's changes, runs parallel drift checks, and returns structured
 findings.
 
@@ -83,8 +91,8 @@ findings.
 >      PRINCIPLES.md, domain-specific (UX.md, CONTRACT.md, GAMEPLAY.md, etc.)
 >    - README.md at repo root
 >    - CHANGELOG.md
->    - Repo-specific skills at `.claude/skills/` or `.agents/skills/`
->    - Pattern skills at `.claude/skills/patterns/`
+>    - Repo-specific skills at `.agents/skills/` or legacy `.claude/skills/`
+>    - Pattern skills at `.agents/skills/patterns/` or legacy `.claude/skills/patterns/`
 >    - Generated files (look for `# generated`, `llms-full.txt` — never
 >      edit; flag for regeneration)
 >
@@ -97,7 +105,7 @@ findings.
 >    | Prompt / UX flow change | UX.md, guide pages |
 >    | New module or interface | ARCHITECTURE.md, API reference |
 >    | Bug fix with behavior impact | SPEC.md (if behavior was mis-documented), CHANGELOG.md |
->    | New stable pattern | Pattern skills under `.claude/skills/patterns/` |
+>    | New stable pattern | Pattern skills under `.agents/skills/patterns/` |
 >    | Changed interface used by repo skills | Repo-specific skills referencing it |
 >
 > 3. **Parallel drift checks** — spawn sub-tasks for each:
@@ -109,11 +117,13 @@ findings.
 >      command names match the codebase post-bundle.
 >    - **CHANGELOG gap** — for each item bound to release `<version>`,
 >      verify a changelog entry exists.
->    - **Repo skill staleness** — for each `.claude/skills/<name>/SKILL.md`,
+>    - **Repo skill staleness** — for each `.agents/skills/<name>/SKILL.md`
+>      or legacy `.claude/skills/<name>/SKILL.md`,
 >      grep for terms used in the skill against the bundle's changed files.
 >      Flag references to terms that no longer exist or signatures that
 >      changed.
->    - **Pattern skill staleness** — for each `.claude/skills/patterns/*.md`,
+>    - **Pattern skill staleness** — for each `.agents/skills/patterns/*.md`
+>      or legacy `.claude/skills/patterns/*.md`,
 >      verify example file:line references still resolve and code still
 >      matches.
 >    - **Doc misplacement** — scan `docs/` for files that are item-shaped

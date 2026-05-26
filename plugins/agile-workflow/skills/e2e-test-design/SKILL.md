@@ -99,13 +99,18 @@ The body should already have a brief. Use it as the seed.
 
 The `principles` skill auto-loads. Read:
 1. `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`
-2. `CLAUDE.md` (project root and `.claude/` if both exist)
+2. `AGENTS.md` / `CLAUDE.md` (root, `.agents/`, or `.claude/`; AGENTS is canonical)
 3. Parent epic body at `.work/active/epics/<parent>.md` if `parent` is set
 4. Foundation docs and existing test infrastructure docs in `docs/research/` if present
 
 ### Phase 3: Map the codebase and the testable surface
 
-Use the **Task tool** to spawn parallel Explore sub-agents in one message:
+Spawn parallel read-only Explore sub-agents in one message:
+
+- **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
+  or complex codebases.
+- **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`;
+  use `high` for large or complex codebases.
 
 1. **Surfaces & journeys** — entry points (CLI, HTTP routes, exported modules),
    primary user journeys traceable from entry to outcome
@@ -119,7 +124,8 @@ After results, **read 2-3 key files yourself** to verify.
 
 ### Phase 4: Re-align to project standards
 
-Re-read `CLAUDE.md` and any files in `.claude/rules/`. Recency improves
+Re-read `AGENTS.md` / `CLAUDE.md` if present at root, `.agents/`, or
+`.claude/`. Treat AGENTS as canonical when they disagree. Recency improves
 adherence.
 
 ### Phase 4.5: Surface ambiguities
@@ -382,8 +388,15 @@ Run `--bootstrap` to seed one."
 
 ### Phase A2: Dispatch audit sub-agent
 
-Spawn ONE `Task` sub-agent (`subagent_type: general-purpose`, `model: opus`)
-with the audit brief. The sub-agent reads test files (NOT implementation
+Spawn ONE deep audit sub-agent with the audit brief.
+
+- **Claude Code / Anthropic:** Task/Agent with `subagent_type:
+  general-purpose`, `model: opus`.
+- **Codex / OpenAI:** analysis sub-agent with `reasoning_effort: high`; use
+  `xhigh` only for large suites, complex mock-boundary audits, or repeated
+  escaped tautologies.
+
+The sub-agent reads test files (NOT implementation
 code — that's how tautologies hide), maps the suite against the four
 taxonomy layers, scans for mock-boundary violations (in-process mocks where
 service-level is possible), and returns structured findings.

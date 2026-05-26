@@ -39,8 +39,13 @@ Score all 9 by default. User may opt out via arguments.
 
 ## Phase 1: Parallel Exploration
 
-Launch 4 explore agents in parallel. Use `model: "opus"` for all agents (minimum
-`"sonnet"` — never use haiku for evaluation). Each agent is a `general-purpose` type.
+Launch 4 explore agents in parallel. Agent strength is explicit:
+
+- **Claude Code / Anthropic:** use `model: "opus"` for all agents (minimum
+  `"sonnet"` — never use haiku for evaluation). Each agent is a
+  `general-purpose` type.
+- **Codex / OpenAI:** use `explorer` sub-agents with `reasoning_effort: high`;
+  use `xhigh` for very large, polyglot, or architecture-heavy repositories.
 
 Give each agent a **complete, standalone brief** — they have no conversation context.
 Include the repo path and any scope restrictions from the user's arguments.

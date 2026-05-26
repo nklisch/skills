@@ -110,7 +110,7 @@ Mirrors `feature-design`'s `--only-questions` mode, scoped to `[perf]`-tagged
 drafting features. Iterate over the target set:
 
 1. Read the feature; skip if not `[perf]`-tagged or not at `stage: drafting`
-2. Light ground (foundation docs + CLAUDE.md + existing benchmarks)
+2. Light ground (foundation docs + AGENTS.md / CLAUDE.md + existing benchmarks)
 3. Surface strategic ambiguities specific to perf (e.g., "what target
    scenario?", "current vs desired measured throughput?", "acceptable memory
    tradeoff for speed?"). Use AskUserQuestion.
@@ -156,7 +156,7 @@ The brief should describe the perf problem and target. If it's vague:
 
 The principles skill auto-loads. Read:
 - `docs/VISION.md`, `docs/SPEC.md` (perf targets may be specified)
-- `CLAUDE.md`
+- `AGENTS.md` / `CLAUDE.md`
 - Existing benchmarks (search for benchmark files, perf tests, load tests)
 - Existing test suite (so benchmarks follow the same patterns)
 - Source code under investigation — read the target code thoroughly before profiling
@@ -164,7 +164,13 @@ The principles skill auto-loads. Read:
 ### Phase 3: Detect & research profiling tools
 
 1. Detect language and runtime from the project's source files and build config
-2. Spawn a research sub-agent (model: sonnet) via the Agent tool. Brief it:
+2. Spawn a research sub-agent:
+   - **Claude Code / Anthropic:** Agent with `model: "sonnet"`; use Opus for
+     unfamiliar runtimes or deep perf investigations.
+   - **Codex / OpenAI:** analysis sub-agent with `reasoning_effort: medium`
+     for known stacks, `high` for unfamiliar runtimes or deeper investigations,
+     and `xhigh` only for broad, high-risk perf redesigns.
+   Brief it:
    "Find the recommended profiling tools for <language/runtime>. Return: CPU
    profiler, memory profiler, flamegraph tool, ecosystem-specific gotchas. Verify
    from current docs — do not trust training data."

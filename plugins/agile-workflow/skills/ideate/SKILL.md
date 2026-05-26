@@ -8,7 +8,6 @@ description: >
   formalizing a rough idea, or establishing a project's foundation documents before
   bootstrapping the substrate via /agile-workflow:convert.
 user-invocable: true
-disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, AskUserQuestion, WebSearch
 ---
 

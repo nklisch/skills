@@ -515,7 +515,7 @@
         {
           "name": "convert",
           "path": "skills/convert",
-          "description": "Bootstrap the agile-workflow substrate. Detects project shape (workflow-plugin / ad-hoc / no-tracking / greenfield), seeds initial items with per-design stage classification (drafting/implementing/review/done-shipped/done-archived), captures uncommitted in-flight working-tree work as substrate items via Explore-driven clustering, writes .claude/rules/agile-workflow.md, runs the conventions interview to populate .work/CONVENTIONS.md, copies work-view, appends CLAUDE.md section, produces MIGRATION_REPORT.md. Idempotent via --update."
+          "description": "Bootstrap the agile-workflow substrate. Detects project shape (workflow-plugin / ad-hoc / no-tracking / greenfield), seeds initial items with per-design stage classification, captures uncommitted in-flight work as substrate items via Explore-driven clustering, writes the canonical AGENTS.md section, preserves Claude compatibility via CLAUDE.md symlink/shim, runs the conventions interview, copies work-view, produces MIGRATION_REPORT.md. Idempotent via --update."
         },
         {
           "name": "epicize",
@@ -570,7 +570,7 @@
         {
           "name": "implement-orchestrator",
           "path": "skills/implement-orchestrator",
-          "description": "Default implementation path for features with child stories. Walks the depends_on graph, bundles tightly-coupled small items into shared agents (one Sonnet agent owning a 300–500k context cluster when adjacency, size, and shared patterns all warrant it), then spawns the bundles in waves capped at 3 parallel agents per wave (no upper limit on waves — bigger features just mean more waves). Each per-story prompt mirrors /agile-workflow:implement's workflow (land mode, dep check, design-flaw rollback); multi-item bundle prompts amortize that workflow across the cluster. Single-story features run as a one-agent wave."
+          "description": "Default implementation path for features with child stories. Walks the depends_on graph, bundles tightly-coupled items into shared implementation agents when useful, chooses wave width and worktree isolation, then spawns bundles in parallel waves. The orchestrator determines how to parallelize, including large write paths when ownership and verification make that safe. Single-story features run as a one-agent wave."
         },
         {
           "name": "review",
@@ -605,12 +605,12 @@
         {
           "name": "gate-patterns",
           "path": "skills/gate-patterns",
-          "description": "Patterns gate. Scans bundle changes for reusable code structures (3+ occurrences). Writes pattern skills to .claude/skills/patterns/, regenerates .claude/rules/patterns.md index, produces a tracking item with gate_origin:patterns."
+          "description": "Patterns gate. Scans bundle changes for reusable code structures (3+ occurrences). Writes pattern skills to .agents/skills/patterns/ with optional Claude mirror, updates the pattern skill index, produces a tracking item with gate_origin:patterns."
         },
         {
           "name": "bug-scan",
           "path": "skills/bug-scan",
-          "description": "Deep multi-angle bug hunt. Fans parallel opus scanner sub-agents across 8 bug domains (concurrency & races, async/promise, state/closures, resource leaks, time/numbers, error handling, data layer, language footguns). Each scanner loads its domain reference, web-searches current pitfalls for the detected stack, and returns severity-classified findings citing file:line. Standalone mode writes a scored report; gate mode binds to a release bundle and produces items with gate_origin:bugs. Sibling to gate-security but for correctness bugs, not vulnerabilities."
+          "description": "Deep multi-angle bug hunt. Fans parallel deep scanner sub-agents across 8 bug domains (concurrency & races, async/promise, state/closures, resource leaks, time/numbers, error handling, data layer, language footguns). Each scanner loads its domain reference, web-searches current pitfalls for the detected stack, and returns severity-classified findings citing file:line. Standalone mode writes a scored report; gate mode binds to a release bundle and produces items with gate_origin:bugs. Sibling to gate-security but for correctness bugs, not vulnerabilities."
         },
         {
           "name": "bold-refactor",

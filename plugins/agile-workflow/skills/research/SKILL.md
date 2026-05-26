@@ -23,10 +23,13 @@ agents use when working with the recommended technology.
 
 Understand what needs investigating and why.
 
-1. Read **CLAUDE.md** and relevant project docs — understand the stack, constraints,
+1. Read **AGENTS.md / CLAUDE.md** and relevant project docs — understand the stack, constraints,
    and what's already in use
-2. Use the Explore agent (model: **sonnet** minimum, **opus** for large or complex codebases) to find how the project currently handles
-   the area being researched — existing dependencies, imports, patterns
+2. Use an Explore sub-agent to find how the project currently handles the area
+   being researched — existing dependencies, imports, patterns.
+   - **Claude Code / Anthropic:** Sonnet minimum, Opus for large or complex codebases.
+   - **Codex / OpenAI:** `reasoning_effort: medium`; use `high` for large or
+     complex codebases.
 3. Define research questions:
    - What specific problem does this technology need to solve for the project?
    - What constraints must it satisfy? (bundle size, license, runtime, compatibility)
@@ -127,7 +130,9 @@ Write to a location based on project conventions (e.g., `docs/research/`, `docs/
 ### 4b. Reference Skill
 Write an auto-loading reference skill so future agents have your findings available.
 
-**Location**: `.claude/skills/{topic-slug}/SKILL.md`
+**Location**: `.agents/skills/{topic-slug}/SKILL.md`
+
+If `.claude/skills/` exists, add a symlink or mirror for Claude compatibility.
 
 The skill must:
 - Be named after the technology, not the research (e.g., `hono-v4`, not `research-hono`)

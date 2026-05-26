@@ -43,8 +43,12 @@ Proceed accordingly — add to existing references or regenerate.
 ## Phase 2: Explore the Codebase
 
 Scan the repo to understand its current coding style and organizational structure. Use the
-Explore agent (model: **sonnet** minimum, **opus** for large or complex codebases) for
-thorough analysis. Look for both dimensions:
+Explore sub-agent for thorough analysis:
+- **Claude Code / Anthropic:** Sonnet minimum, Opus for large or complex codebases.
+- **Codex / OpenAI:** `reasoning_effort: medium`; use `high` for large or
+  complex codebases.
+
+Look for both dimensions:
 
 **Stylistic signals:**
 1. **Paradigm** — Classes? Functional components? Both? Mixed?

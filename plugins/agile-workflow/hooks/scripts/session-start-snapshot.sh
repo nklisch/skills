@@ -1,13 +1,25 @@
 #!/usr/bin/env bash
 # SessionStart hook: print a substrate queue snapshot to stdout.
-# Activation: only runs if .work/CONVENTIONS.md exists in CLAUDE_PROJECT_DIR
-# or any ancestor. Otherwise exits 0 silently.
+# Activation: only runs if .work/CONVENTIONS.md exists in the hook cwd,
+# CLAUDE_PROJECT_DIR, PWD, or any ancestor. Otherwise exits 0 silently.
 
 set -euo pipefail
 
+input="$(cat || true)"
+
+hook_cwd=""
+if command -v jq >/dev/null 2>&1 && [[ -n "$input" ]]; then
+  hook_cwd="$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null || true)"
+elif [[ -n "$input" ]]; then
+  hook_cwd="$(printf '%s' "$input" \
+    | grep -o '"cwd"[[:space:]]*:[[:space:]]*"[^"]*"' \
+    | head -1 \
+    | sed 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || true)"
+fi
+
 # Find substrate root.
 find_substrate_root() {
-  local dir="${CLAUDE_PROJECT_DIR:-$PWD}"
+  local dir="${hook_cwd:-${CLAUDE_PROJECT_DIR:-$PWD}}"
   while [[ "$dir" != "/" && "$dir" != "" ]]; do
     if [[ -f "$dir/.work/CONVENTIONS.md" ]]; then
       echo "$dir"

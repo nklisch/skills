@@ -59,7 +59,8 @@ them.
 
 ### Phase D2: Ground yourself
 
-Read `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `CLAUDE.md`, and
+Read `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `AGENTS.md` /
+`CLAUDE.md`, and
 `.work/CONVENTIONS.md`. One pass — orient, don't memorize.
 
 ### Phase D3: Code-smell scan via parallel Task agents
@@ -122,8 +123,8 @@ Mirrors `feature-design`'s `--only-questions` mode, scoped to `[refactor]`-tagge
 drafting features. Iterate over the target set:
 
 1. Read the feature; skip if not `[refactor]`-tagged or not at `stage: drafting`
-2. Light ground (foundation docs + CLAUDE.md)
-3. One Task Explore over the feature's area
+2. Light ground (foundation docs + AGENTS.md / CLAUDE.md)
+3. One Explore sub-agent over the feature's area
 4. Surface strategic ambiguities specific to the refactor (e.g., "preserve API
    shape or break consumers?", "in-place or shadow-then-swap?", "rollback
    strategy when atomic?"). Use AskUserQuestion.
@@ -149,14 +150,20 @@ The brief should describe what's being refactored and why. Use it as input.
 The principles skill auto-loads. Read:
 - `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md` (refactor must not
   violate spec constraints)
-- `CLAUDE.md`
+- `AGENTS.md` / `CLAUDE.md`
 - The parent epic if `parent` is set
 - The code under refactor — read it thoroughly, don't refactor blind
 
 ### Phase 3: Code-smell scan via parallel Task agents
 
-Use the **Task tool** to spawn parallel Explore sub-agents (sonnet minimum). Send
-all in one message; wait for all.
+Spawn parallel read-only Explore sub-agents. Send all in one message; wait for
+all.
+
+- **Claude Code / Anthropic:** Task/Explore with Sonnet minimum; use Opus for
+  large or architecture-heavy refactors.
+- **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`
+  for focused scans, `high` for normal refactor discovery, and `xhigh` only for
+  large or architecture-heavy refactors.
 
 1. **Code Smells** — "Find code that smells off in <area>. Look for: duplicated
    logic across files; long files (>500 lines); deep nesting (>4 levels); god
@@ -169,8 +176,9 @@ all in one message; wait for all.
    similar logic that could be extracted. Report each with file:line references
    and which modules would benefit."
 
-3. **Pattern Violations & Naming Inconsistencies** — "Read `.claude/skills/patterns/*.md`
-   if they exist. Find code that deviates from established patterns. Report
+3. **Pattern Violations & Naming Inconsistencies** — "Read
+   `.agents/skills/patterns/*.md` and legacy `.claude/skills/patterns/*.md` if
+   they exist. Find code that deviates from established patterns. Report
    naming inconsistencies — same concept named differently across modules. Report
    each with file:line."
 

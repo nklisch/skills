@@ -53,7 +53,8 @@ Read:
 2. **The parent feature** if implementing a story: `.work/active/features/<parent>.md`
    — context and acceptance criteria for the parent
 3. **Foundation docs** referenced by the design: `docs/SPEC.md`, `docs/ARCHITECTURE.md`
-4. `CLAUDE.md` and `.claude/rules/` for project conventions
+4. `AGENTS.md` and `CLAUDE.md` (root, `.agents/`, or `.claude/`) for project
+   conventions. Treat AGENTS as canonical if they disagree.
 5. **Research docs** referenced by the design: `docs/research/<topic>.md` if any
 6. **Existing source code** the design references — verify interfaces, signatures,
    module paths
@@ -80,8 +81,13 @@ dep or remove it.
 
 ### Phase 3: Map integration points
 
-Use the **Task tool** to spawn an Explore sub-agent (sonnet minimum, opus for large
-codebases):
+Spawn one read-only Explore sub-agent:
+- **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
+  or complex codebases.
+- **Codex / OpenAI:** `explorer` sub-agent with `reasoning_effort: medium`;
+  use `high` for large or complex codebases.
+
+Brief:
 - "Find all public exports, shared utilities, type definitions, and module
   boundaries that <new code area> must integrate with. Include file paths and
   signatures. Also check for existing test helpers and fixtures."
@@ -119,8 +125,9 @@ In land mode:
 
 ### Phase 5: Re-align to project standards
 
-Re-read `CLAUDE.md` (project root and `.claude/` if both exist) and any files in
-`.claude/rules/`. Recency improves adherence.
+Re-read `AGENTS.md` and `CLAUDE.md` if present at root, `.agents/`, or
+`.claude/`. Treat AGENTS as canonical when they disagree. Recency improves
+adherence.
 
 ### Phase 6: Implement
 
@@ -152,7 +159,7 @@ should see the design AND what actually happened.
 
 ### Phase 8: Self-verify
 
-1. Run the build command from `CLAUDE.md`
+1. Run the build command from `AGENTS.md` / `CLAUDE.md`
 2. Run the test command — all tests including new ones must pass
 3. Walk through each acceptance criterion in the item body — confirm each is met
 4. If any gap, fix or report

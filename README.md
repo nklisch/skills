@@ -82,7 +82,7 @@ directional choice and mock so autopilot runs without guessing.
 | Skill | What it does |
 |-------|-------------|
 | **ideate** | Foundation-docs workshop. Produces VISION.md, SPEC.md, ARCHITECTURE.md that encode rolling-foundation from day one. |
-| **convert** | Bootstrap the `.work/` substrate. Detects project shape (legacy workflow-plugin / ad-hoc / no-tracking / greenfield), seeds initial items, writes `.claude/rules/agile-workflow.md`, runs the conventions interview, copies `work-view`, appends a CLAUDE.md section, produces MIGRATION_REPORT.md. Idempotent via `--update`. |
+| **convert** | Bootstrap the `.work/` substrate. Detects project shape (legacy workflow-plugin / ad-hoc / no-tracking / greenfield), seeds initial items, writes the canonical AGENTS.md section, keeps CLAUDE.md as a symlink/shim for compatibility, runs the conventions interview, copies `work-view`, produces MIGRATION_REPORT.md. Idempotent via `--update`. |
 | **epicize** | Decompose foundation docs into multiple epics in `.work/active/epics/` with declared `depends_on` chains. |
 
 ### Capture & promotion (agent picks naturally)
@@ -107,7 +107,7 @@ directional choice and mock so autopilot runs without guessing.
 | Skill | What it does |
 |-------|-------------|
 | **implement** | Read item body (design is in there), write code, run build+tests, advance stage implementing → review. Single-stride sequential. |
-| **implement-orchestrator** | For features with > 3 child stories: walk depends_on graph, spawn parallel Sonnet agents capped at 3 per wave. |
+| **implement-orchestrator** | For implementation bands: walk depends_on graph, decide bundles/waves/write-scope isolation, and dispatch implementation sub-agents when parallelism is beneficial. |
 | **review** | Structured peer review with five lenses including foundation-doc alignment. Triages findings into items. Accepts `<id>`, `--all` / no arg (drain the review queue), or NL filter. |
 
 ### Release & autonomous (mostly user-invocable)
@@ -129,7 +129,7 @@ order (default: security → tests → cruft → docs → patterns).
 | **gate-tests** | Coverage gaps + tautological-test reworks with `gate_origin: tests` |
 | **gate-cruft** | Dead code / cruft cleanup items with `gate_origin: cruft` |
 | **gate-docs** | Foundation-doc drift items (enforces rolling-foundation) with `gate_origin: docs` |
-| **gate-patterns** | Reusable patterns extracted to `.claude/skills/patterns/` |
+| **gate-patterns** | Reusable patterns extracted to `.agents/skills/patterns/` with optional Claude mirror |
 
 ### Reference
 
@@ -218,7 +218,8 @@ individually via skilltap.
 ├── archive/                           ← done items not bound to a release
 ├── bin/work-view                      ← query script (copied by /agile-workflow:convert)
 └── CONVENTIONS.md                     ← project-specific overrides
-.claude/rules/agile-workflow.md        ← navigation rules (auto-loads on .work/** and docs/**)
+AGENTS.md                              ← canonical agent instructions
+CLAUDE.md -> AGENTS.md                 ← Claude Code compatibility
 .mockups/
 ├── design-system/                     ← palette, typography, components, motion + tokens.css/components.css/motion.css
 ├── screens/<feature>/                 ← N option HTMLs + index.html

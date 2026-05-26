@@ -79,8 +79,9 @@ For each feature in the target set:
      `tags` contains `refactor` or `perf`. Log the skip and move on.
 2. **Ground yourself** — read the parent epic body if `parent` is set, plus
    the foundation docs (`docs/VISION.md`, `docs/SPEC.md`,
-   `docs/ARCHITECTURE.md`) and `CLAUDE.md`. Be efficient: skim, don't
-   exhaustively re-read across iterations within one session.
+   `docs/ARCHITECTURE.md`) and `AGENTS.md` / `CLAUDE.md`. Treat AGENTS as
+   canonical when both exist. Be efficient: skim, don't exhaustively re-read
+   across iterations within one session.
 3. **Map the codebase lightly** — one Task-tool Explore sub-agent is enough
    to surface the area the feature touches. Skip the full three-agent
    parallel sweep used in the default mode; you're not designing units.
@@ -141,7 +142,7 @@ Rolling-Foundation, Late-Binding) are active.
 Read:
 1. `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md` (foundation docs that
    constrain this feature)
-2. `CLAUDE.md` (project conventions)
+2. `AGENTS.md` / `CLAUDE.md` (project conventions; AGENTS is canonical)
 3. The parent epic if `parent` is set — read `.work/active/epics/<parent>.md`
 4. Existing source code in the area the feature touches
 5. Research docs in `docs/research/` if the feature uses libraries you haven't
@@ -149,8 +150,12 @@ Read:
 
 ### Phase 3: Map the codebase
 
-Use the **Task tool** to spawn parallel Explore sub-agents (model: sonnet minimum,
-opus for large codebases). Send all in one message and wait for all.
+Spawn parallel read-only Explore sub-agents. Send all in one message and wait for all.
+
+- **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
+  or complex codebases.
+- **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`;
+  use `high` for large or complex codebases.
 
 1. **Codebase Structure** — directory layout, modules, entry points, exports
 2. **Interface & Type Inventory** — exported interfaces, types, signatures with file paths
@@ -160,9 +165,9 @@ After results, **read 2-3 key source files yourself** to verify findings.
 
 ### Phase 4: Re-align to project standards
 
-Re-read `CLAUDE.md` (project root and `.claude/` if both exist) and any files in
-`.claude/rules/`. Recency improves adherence. Confirm your approach aligns with
-project conventions.
+Re-read `AGENTS.md` and `CLAUDE.md` if present at root, `.agents/`, or
+`.claude/`. Treat AGENTS as canonical if they disagree. Recency improves
+adherence. Confirm your approach aligns with project conventions.
 
 ### Phase 4.5: Surface ambiguities
 

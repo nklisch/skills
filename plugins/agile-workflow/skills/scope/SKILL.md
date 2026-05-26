@@ -76,12 +76,14 @@ that item.
 ### Phase B2: Light grounding
 
 Read `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `.work/CONVENTIONS.md`,
-and `CLAUDE.md`. One pass, skim — you're orienting, not absorbing every detail.
+and `AGENTS.md` / `CLAUDE.md`. One pass, skim — you're orienting, not absorbing every detail.
 You'll re-read selectively for large clusters in Phase B5.
 
 ### Phase B3: Map code areas (one Explore agent)
 
-Spawn **one** `Agent` sub-agent with `subagent_type: Explore` (medium breadth).
+Spawn **one** read-only Explore sub-agent (medium breadth). For Claude Code,
+use the Explore/Agent shape. For Codex, use an `explorer` sub-agent with
+`reasoning_effort: medium`.
 Give it:
 - The list of targeted backlog ideas (id + brief, one per line)
 - A one-paragraph summary of the foundation docs from Phase B2

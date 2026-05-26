@@ -2,7 +2,7 @@
 name: gate-tests
 description: >
   Test-quality gate that scans items bound to a release for test coverage gaps.
-  Delegates the full analysis to an opus sub-agent which derives expected
+  Delegates the full analysis to a deep test-analysis sub-agent which derives expected
   coverage from each bound item's acceptance criteria (NOT from implementation
   code), maps existing test coverage, identifies gaps, and returns findings.
   The orchestrator converts findings into gate_origin:tests items in
@@ -13,9 +13,18 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 # Gate-Tests
 
 You orchestrate a test-quality gate over the items bound to a release. The
-actual analysis runs inside an **opus sub-agent**; your role is to prepare
-the bundle context, dispatch the sub-agent, and convert the gaps it returns
-into items in the substrate.
+actual analysis runs inside a **deep test-analysis sub-agent**; your role is to
+prepare the bundle context, dispatch the sub-agent, and convert the gaps it
+returns into items in the substrate.
+
+Sub-agent strength is explicit:
+- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
+  `subagent_type: "general-purpose"`.
+- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
+  high`; use `xhigh` only for broad cross-feature releases, complex state
+  machines, concurrency-heavy behavior, or repeated test-quality misses. Use a
+  reviewer/default agent if available, otherwise a worker with read-only
+  instructions.
 
 ## Core principle
 
@@ -64,8 +73,11 @@ Capture already-tracked findings to feed into the sub-agent's brief.
 
 ### Phase 3: Dispatch the test-coverage sub-agent
 
-Spawn ONE Agent (subagent_type=general-purpose, model=opus) with the full
-analysis brief. The sub-agent extracts behavioral contracts from item
+Spawn ONE deep analysis sub-agent with the full analysis brief. For Claude Code,
+this is `Agent(subagent_type=general-purpose, model=opus)`. For Codex, use
+`reasoning_effort: high`, escalating to `xhigh` for broad cross-feature
+releases, complex state machines, concurrency-heavy behavior, or repeated
+test-quality misses. The sub-agent extracts behavioral contracts from item
 bodies, maps existing tests, applies test-design techniques to find gaps,
 and returns structured findings.
 

@@ -153,11 +153,11 @@ cycle and asks the user to resolve.
 Every tier transition is a `git mv` so history is preserved. The substrate's
 audit trail IS the git log of the file's path changes.
 
-## The agile-workflow rules file
+## AGENTS.md substrate section
 
-`convert` writes `.claude/rules/agile-workflow.md` in every bootstrapped
-project. This file is dense pointers — every section is something the agent
-greps or runs as a literal command, not narrative prose.
+`convert` writes the agile-workflow section into the selected AGENTS target in
+every bootstrapped project. This section is dense pointers — every section is
+something the agent greps or runs as a literal command, not narrative prose.
 
 Full content:
 
@@ -464,7 +464,7 @@ and produces new items rather than emitting a pass/fail report:
 | `gate-tests` | Coverage of bound items' acceptance criteria | Items with `gate_origin: tests`, tagged `[testing]` for gaps |
 | `gate-cruft` | Dead code introduced or revealed by the bundle | Items with `gate_origin: cruft`, tagged `[cleanup]` |
 | `gate-docs` | Foundation-doc alignment with the bundle's behavior changes | Items with `gate_origin: docs`, tagged `[documentation]` — enforces rolling-foundation |
-| `gate-patterns` | Reusable patterns that emerged in the bundle | Pattern-skill files in `.claude/skills/patterns/`, plus a tracking item with `gate_origin: patterns` |
+| `gate-patterns` | Reusable patterns that emerged in the bundle | Pattern-skill files in `.agents/skills/patterns/` with optional Claude mirror, plus a tracking item with `gate_origin: patterns` |
 
 Gate-produced items get `stage: implementing` (high-confidence findings),
 `stage: drafting` (medium-confidence), or land in `.work/backlog/`
@@ -483,10 +483,13 @@ items count as part of this set. The release file's `stage` advances
 produced (skills check `gate_origin` and existing IDs before creating).
 Re-running advances the release stage if the readiness condition flipped.
 
-## CLAUDE.md generation
+## AGENTS.md generation
 
-`convert` and `epicize` both ensure CLAUDE.md has the agile-workflow
-section. Format:
+`convert` and `epicize` both ensure the selected AGENTS target has the
+agile-workflow section. The target can be `AGENTS.md`, `.agents/AGENTS.md`, or
+`.claude/AGENTS.md`; root `AGENTS.md` is preferred and should exist as a
+symlink/shim when the canonical content lives under `.agents/` or `.claude/`.
+Format:
 
 ```markdown
 <!-- agile-workflow:start -->
@@ -504,9 +507,10 @@ parent, and dependency. Common patterns:
 - `work-view --parent <id>` / `--blocking <id>` — hierarchy / sequencing
 - `work-view --help` for the full flag set
 
-Detailed navigation rules in `.claude/rules/agile-workflow.md` (auto-loaded
-when editing `.work/` or `docs/`). Foundation docs in `docs/` describe the
-system NOW — never add legacy notes; git history is the audit trail.
+Foundation docs in `docs/` describe the system NOW — never add legacy notes;
+git history is the audit trail. The substrate itself is durable memory: record
+decisions, blockers, implementation discoveries, and review findings in item
+bodies instead of depending on chat history.
 
 Slash commands (user-invokable):
 `/agile-workflow:ideate`, `/agile-workflow:epicize`,
@@ -517,11 +521,14 @@ Slash commands (user-invokable):
 ### Idempotency rules
 
 - `convert --update` re-runs the section between markers, leaves the rest
-  of CLAUDE.md alone
+  of the selected AGENTS target alone
 - If markers are missing, `convert` appends the section with markers
-- If the rest of CLAUDE.md has user edits, those are preserved
+- If the rest of `AGENTS.md` has user edits, those are preserved
 - If the user manually edits inside the markers, `convert --update` warns
   before overwriting (interactive confirm)
+- `CLAUDE.md`, `.claude/CLAUDE.md`, and `.agents/CLAUDE.md` are maintained only
+  as compatibility symlinks to the selected AGENTS target. If symlinks are
+  unavailable, each becomes a short shim that points Claude Code at `AGENTS.md`.
 
 ## Skill catalog
 
@@ -532,7 +539,7 @@ All 26 skills with their roles, invocability, and triggers.
 | Skill | Role | Trigger |
 |---|---|---|
 | `ideate` | Foundation-docs workshop. Produces VISION.md, SPEC.md, ARCHITECTURE.md, optionally PRINCIPLES.md / MIGRATION.md. No substrate dependency. | User-invoked |
-| `convert` | Bootstraps `.work/` substrate. Reads existing project shape, writes rules file, CONVENTIONS.md, copies work-view, appends CLAUDE.md section, seeds initial items. Idempotent via `--update`. | User-invoked, depends on ideate having run |
+| `convert` | Bootstraps `.work/` substrate. Reads existing project shape, writes AGENTS.md section, creates CLAUDE.md compatibility symlink/shim, writes CONVENTIONS.md, copies work-view, seeds initial items. Idempotent via `--update`. | User-invoked, depends on ideate having run |
 | `epicize` | Reads foundation docs. Produces multiple epics in `.work/active/epics/` at `stage: drafting`, with declared dependencies. | User-invoked, depends on convert having run |
 
 ### Capture & promotion (model-invocable)
@@ -556,7 +563,7 @@ All 26 skills with their roles, invocability, and triggers.
 
 | Skill | Role | Trigger |
 |---|---|---|
-| `implement-orchestrator` | Default. Fan Sonnet sub-agents over a scope (feature, epic, --all, or explicit list). Builds a unified `depends_on` graph across the scope (cross-feature is fine), waves up to 3 in parallel, advances every parent feature whose children all reach `review`. | item(s) at `stage: implementing` |
+| `implement-orchestrator` | Default. Orchestrates implementation sub-agents over a scope (feature, epic, --all, or explicit list). Builds a unified `depends_on` graph across the scope (cross-feature is fine), chooses bundles/waves/write-scope isolation, and advances every parent feature whose children all reach `review`. | item(s) at `stage: implementing` |
 | `implement` | Inline alternative. Read item body, write code, run build+tests, advance stage. | small / focused work where sub-agent fan-out wouldn't pay off, or user asks to implement inline |
 
 ### Review & delivery (mixed invocability)

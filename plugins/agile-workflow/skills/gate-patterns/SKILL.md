@@ -2,10 +2,10 @@
 name: gate-patterns
 description: >
   Patterns gate that scans the bundle's changes for reusable code structures.
-  Delegates the full discovery to an opus sub-agent which identifies recurring
+  Delegates the full discovery to a deep pattern-discovery sub-agent which identifies recurring
   shapes (3+ occurrences) introduced or revealed by the bundle, names them,
   documents them with concrete file:line examples, and returns pattern drafts.
-  The orchestrator writes pattern skills to .claude/skills/patterns/, updates
+  The orchestrator writes pattern skills to .agents/skills/patterns/ with optional Claude mirrors, updates
   the index, and produces a tracking item with gate_origin:patterns.
   Auto-triggers during /agile-workflow:release-deploy as the final gate.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
@@ -14,12 +14,20 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 # Gate-Patterns
 
 You orchestrate a patterns gate over the bundle's code changes. The actual
-pattern discovery runs inside an **opus sub-agent**; your role is to prepare
-the bundle context, dispatch the sub-agent, and write the pattern files +
-index it returns.
+pattern discovery runs inside a **deep pattern-discovery sub-agent**; your role
+is to prepare the bundle context, dispatch the sub-agent, and write the pattern
+files + index it returns.
 
-This is NOT about coding style or naming conventions (that's `CLAUDE.md`'s
-job). This is about identifying structural patterns for consistency and reuse.
+Sub-agent strength is explicit:
+- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
+  `subagent_type: "general-purpose"`.
+- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
+  high`; use `xhigh` only for large/polyglot bundles, architecture-wide pattern
+  extraction, or conflicting pattern catalogs.
+
+This is NOT about coding style or naming conventions (that's `AGENTS.md` /
+`CLAUDE.md`'s job). This is about identifying structural patterns for
+consistency and reuse.
 
 ## Trigger
 
@@ -32,12 +40,16 @@ job). This is about identifying structural patterns for consistency and reuse.
 ### Phase 1: Read existing patterns
 
 ```bash
+ls .agents/skills/patterns/ 2>/dev/null
+cat .agents/skills/patterns/SKILL.md 2>/dev/null
 ls .claude/skills/patterns/ 2>/dev/null
 cat .claude/rules/patterns.md 2>/dev/null
 ```
 
 Capture the existing pattern catalog so the sub-agent doesn't redocument
-existing patterns. This goes into the brief.
+existing patterns. Prefer `.agents/skills/patterns/` as the source of truth;
+read `.claude/skills/patterns/` and `.claude/rules/patterns.md` as legacy
+mirrors.
 
 ### Phase 2: Identify bundle scope
 
@@ -52,8 +64,10 @@ done | sort -u > /tmp/bundle-files-<version>.txt
 
 ### Phase 3: Dispatch the discovery sub-agent
 
-Spawn ONE Agent (subagent_type=general-purpose, model=opus) with the full
-discovery brief. The sub-agent runs parallel pattern searches, filters to
+Spawn ONE deep pattern-discovery sub-agent with the full discovery brief. For
+Claude Code, this is `Agent(subagent_type=general-purpose, model=opus)`. For
+Codex, use `reasoning_effort: high`, escalating to `xhigh` for large/polyglot
+bundles, architecture-wide pattern extraction, or conflicting catalogs. The sub-agent runs parallel pattern searches, filters to
 genuine 3+ occurrences, drafts pattern documentation, and returns
 structured output.
 
@@ -62,7 +76,7 @@ structured output.
 > You are conducting pattern discovery for release `<version>`. Identify
 > reusable code structures the bundle introduces or reveals — recurring
 > shapes that appear 3+ times. NOT coding style or naming conventions
-> (that's CLAUDE.md's job); structural patterns for consistency and reuse.
+> (that's AGENTS.md / CLAUDE.md's job); structural patterns for consistency and reuse.
 >
 > You have access to Read, Glob, Grep, Bash, Task. You may spawn parallel
 > sub-tasks for the different discovery axes.
@@ -179,7 +193,7 @@ structured output.
 > **Rules**:
 > - 3+ occurrences required. Single-use is not a pattern. Two-use is
 >   coincidence.
-> - Don't document style conventions — that's CLAUDE.md's job.
+> - Don't document style conventions — that's AGENTS.md / CLAUDE.md's job.
 > - Every pattern needs concrete file:line examples — abstract descriptions
 >   don't serve agents.
 > - Don't propose patterns that contradict existing documented ones; flag
@@ -190,31 +204,14 @@ structured output.
 ### Phase 4: Write pattern files
 
 For each new pattern the sub-agent returned, write
-`.claude/skills/patterns/<slug>.md` with the pattern content (everything
+`.agents/skills/patterns/<slug>.md` with the pattern content (everything
 under the `### Pattern:` heading except the `Index entry` block).
 
 ### Phase 5: Update the index
 
-Regenerate `.claude/rules/patterns.md`:
+Regenerate `.agents/skills/patterns/SKILL.md`:
 
 ```markdown
----
-description: Project pattern index — terse pointers to detailed pattern files
-paths: ['src/**', 'lib/**', 'app/**']
----
-
-- **<name>**: <terse rule> → [<slug>.md](.claude/skills/patterns/<slug>.md)
-- ...
-```
-
-Combine existing entries with the new ones from the sub-agent's output. Keep
-the index under 30 lines. Order by relevance (most commonly applicable first).
-
-### Phase 6: Update the patterns SKILL.md
-
-Create or update `.claude/skills/patterns/SKILL.md`:
-
-```yaml
 ---
 name: patterns
 description: "Project code patterns and conventions. Auto-loads when implementing,
@@ -233,7 +230,23 @@ Available patterns:
 - [<slug>.md](<slug>.md) — <pattern name>
 ```
 
-Keep the available patterns list current.
+Combine existing entries with the new ones from the sub-agent's output. Keep
+the available-patterns list concise. Order by relevance (most commonly
+applicable first).
+
+### Phase 6: Maintain Claude mirror
+
+If `.claude/skills/` exists, keep Claude compatibility by symlinking the
+canonical skill:
+
+```bash
+mkdir -p .claude/skills
+ln -sfn ../../.agents/skills/patterns .claude/skills/patterns
+```
+
+If symlinks are unavailable, copy `.agents/skills/patterns/` into
+`.claude/skills/patterns/` as a mirror and note that `.agents/skills/patterns/`
+is canonical.
 
 ### Phase 7: Produce tracking item
 
@@ -263,8 +276,8 @@ updated: YYYY-MM-DD
 <patterns the bundle introduces that contradict existing documented patterns>
 
 ## Pattern files written
-- `.claude/skills/patterns/<slug>.md`
-- `.claude/rules/patterns.md` (updated index)
+- `.agents/skills/patterns/<slug>.md`
+- `.agents/skills/patterns/SKILL.md` (updated index)
 ```
 
 This item is at `stage: done` because the gate's work IS the writing of the
@@ -277,7 +290,7 @@ release.
 ### Phase 8: Commit
 
 ```bash
-git add .claude/skills/patterns/ .claude/rules/patterns.md .work/active/stories/gate-patterns-<version>.md .work/active/stories/gate-patterns-inconsistency-*.md
+git add .agents/skills/patterns/ .claude/skills/patterns .work/active/stories/gate-patterns-<version>.md .work/active/stories/gate-patterns-inconsistency-*.md
 git commit -m "gate-patterns: <N> patterns extracted for <version>"
 ```
 
@@ -287,7 +300,7 @@ In conversation:
 - **Bundle**: `<version>`
 - **New patterns extracted**: list with slugs
 - **Inconsistencies flagged**: count, with new story ids
-- **Index updated**: `.claude/rules/patterns.md`
+- **Index updated**: `.agents/skills/patterns/SKILL.md`
 - **Tracking item**: `gate-patterns-<version>` at `stage: done`
 
 ## Guardrails
@@ -296,7 +309,7 @@ In conversation:
   prep, dispatch, and writing the pattern files + index + tracking item.
   Don't replicate the sub-agent's analysis.
 - A pattern requires 3+ occurrences. The sub-agent enforces this; trust it.
-- Don't document style conventions — that's CLAUDE.md's job.
+- Don't document style conventions — that's AGENTS.md / CLAUDE.md's job.
 - Every pattern needs concrete file:line examples — the sub-agent provides
   them; don't write a pattern file without them.
 - Inconsistencies with existing patterns become `[refactor]` stories, not

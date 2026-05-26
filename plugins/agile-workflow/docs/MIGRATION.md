@@ -99,8 +99,8 @@ Answers land in `.work/CONVENTIONS.md` in the format specified by SPEC.md.
 ├── archive/                           (or here, if user opted out of retro-release)
 ├── bin/work-view
 └── CONVENTIONS.md
-.claude/rules/agile-workflow.md
-CLAUDE.md (with agile-workflow section appended)
+AGENTS.md (canonical agile-workflow section)
+CLAUDE.md -> AGENTS.md (or shim if symlinks are unavailable)
 ```
 
 The retro-release `v0` carries all previously-completed work as a single
@@ -126,8 +126,8 @@ without falsely implying those items shipped together.
 A single git commit titled `chore: bootstrap agile-workflow substrate`
 containing:
 - New `.work/` skeleton with seeded items
-- New `.claude/rules/agile-workflow.md`
-- CLAUDE.md addition
+- New or updated `AGENTS.md` agile-workflow section
+- `CLAUDE.md` compatibility symlink or shim
 - `MIGRATION_REPORT.md` at repo root
 
 The user can revert this single commit cleanly if the read was wrong.
@@ -166,8 +166,8 @@ docs into epics; backlog items remain in backlog until the user runs
 ├── archive/                          empty
 ├── bin/work-view
 └── CONVENTIONS.md
-.claude/rules/agile-workflow.md
-CLAUDE.md (with agile-workflow section appended)
+AGENTS.md
+CLAUDE.md -> AGENTS.md (or shim)
 ```
 
 Each backlog item has minimal frontmatter: `id`, `created`, `tags` (empty
@@ -212,8 +212,8 @@ Same single-commit pattern as Path A.
 ├── archive/                          empty
 ├── bin/work-view
 └── CONVENTIONS.md
-.claude/rules/agile-workflow.md
-CLAUDE.md (with agile-workflow section appended)
+AGENTS.md
+CLAUDE.md -> AGENTS.md (or shim)
 ```
 
 The substrate is empty but bootstrapped. Subsequent work flows through
@@ -246,8 +246,8 @@ Same single-commit pattern.
 ├── archive/                          empty
 ├── bin/work-view
 └── CONVENTIONS.md
-.claude/rules/agile-workflow.md
-CLAUDE.md (with agile-workflow section appended)
+AGENTS.md
+CLAUDE.md -> AGENTS.md (or shim)
 ```
 
 Empty but ready. The expected next step is `/agile-workflow:epicize` to
@@ -324,27 +324,31 @@ plugin-shipped artifacts.
 
 ### What --update refreshes
 
-- `.claude/rules/agile-workflow.md` — overwritten with the current
-  plugin's version
+- `AGENTS.md` agile-workflow section — overwritten with the current plugin's
+  version between markers
 - `.work/bin/work-view` — overwritten with the current plugin's script
-- The CLAUDE.md section between `<!-- agile-workflow:start -->` and
-  `<!-- agile-workflow:end -->` markers — overwritten
+- `CLAUDE.md` compatibility — converted to a symlink to `AGENTS.md`, or to a
+  shim if symlinks are unavailable
 - `hooks/hooks.json` — already in the plugin, but if the plugin's hook
-  scripts changed, the user is alerted to restart Claude Code
+  scripts changed, the user is alerted to restart their agent session
 
 ### What --update preserves
 
 - `.work/CONVENTIONS.md` — user-owned, never touched by `--update`
 - `.work/active/`, `.work/backlog/`, `.work/releases/`, `.work/archive/`
   — substrate state is sacred
-- The rest of CLAUDE.md (outside the markers)
+- The rest of `AGENTS.md` outside the markers
 - Any user edits to foundation docs
 
 ### Conflict handling
 
-If the user manually edited inside the CLAUDE.md markers, `--update`
+If the user manually edited inside the AGENTS.md markers, `--update`
 warns and asks whether to overwrite. Default: do not overwrite — show
 the diff and let the user merge manually.
+
+If an existing regular `CLAUDE.md` contains content not yet present in
+`AGENTS.md`, `--update` imports that content into `AGENTS.md` before replacing
+`CLAUDE.md` with the compatibility symlink or shim.
 
 If `.work/CONVENTIONS.md` is missing on `--update`, that's a corruption
 signal — `convert --update` halts and instructs the user to either

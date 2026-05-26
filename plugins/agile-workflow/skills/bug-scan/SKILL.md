@@ -1,7 +1,7 @@
 ---
 name: bug-scan
 description: >
-  Deep multi-angle bug hunt that fans parallel opus scanner sub-agents across a codebase, one
+  Deep multi-angle bug hunt that fans parallel deep scanner sub-agents across a codebase, one
   per bug domain (concurrency & races, async/promise, state/closures, resource leaks, time &
   numbers, error handling, data layer, language footguns). Each scanner loads its domain
   reference, web-searches current pitfalls for the detected stack, and returns
@@ -19,10 +19,18 @@ allowed-tools: Read, Glob, Grep, Bash, Agent, WebSearch, WebFetch, Write, Edit, 
 # Bug-Scan
 
 You orchestrate a deep, multi-angle hunt for hard-to-find correctness bugs. You detect the
-stack, choose relevant bug domains, dispatch **one opus Agent per domain in parallel**, and
+stack, choose relevant bug domains, dispatch **one deep scanner sub-agent per domain in parallel**, and
 either write a scored report (standalone) or produce items in `.work/active/stories/` (gate
 mode). Each scanner loads only its domain's reference — that's the progressive-disclosure
 move that keeps each scanner focused and the orchestrator's context lean.
+
+Sub-agent strength is explicit:
+- **Claude Code / Anthropic:** spawn one Agent per selected domain with
+  `model: "opus"` and `subagent_type: "general-purpose"`.
+- **Codex / OpenAI:** spawn one analysis sub-agent per selected domain with
+  `reasoning_effort: high`; use `xhigh` only for concurrency/data-layer/time
+  bugs in high-risk domains, very large scopes, or repeat scans that previously
+  missed issues. These are read-only scanner agents, not fixers.
 
 This skill hunts **correctness** bugs, not vulnerabilities, not perf, not style. Use the
 sibling skills for those.
@@ -103,8 +111,14 @@ Skip the prompt. Default to all domains that touch any file in the bundle.
 
 ## Phase 3: Fan-out scan
 
-For each selected domain, spawn **one parallel Agent in a single message** (so they run
-concurrently). Use `subagent_type=general-purpose, model=opus`.
+For each selected domain, spawn **one parallel scanner sub-agent in a single
+message** so they run concurrently.
+
+- Claude Code / Anthropic: use `Agent(subagent_type=general-purpose,
+  model=opus)`.
+- Codex / OpenAI: use an analysis sub-agent with `reasoning_effort: high`;
+  escalate to `xhigh` only for high-risk domains, very large scopes, or repeat
+  scans that previously missed issues.
 
 ### Scope (passed into every scanner)
 

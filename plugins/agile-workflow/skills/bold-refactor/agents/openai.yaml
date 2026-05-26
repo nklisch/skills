@@ -1,0 +1,5 @@
+interface:
+  display_name: "Agents"
+  short_description: "Explicit-only agile-workflow skill."
+policy:
+  allow_implicit_invocation: false

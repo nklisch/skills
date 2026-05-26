@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.7.2 - Codex sub-agent and AGENTS.md compatibility
+
+Improves the plugin's Codex path while preserving Claude compatibility.
+
+- **AGENTS.md canonicalization** - `convert` now writes the agile-workflow
+  section to AGENTS.md and keeps CLAUDE.md as a symlink or compatibility shim.
+  Root, `.agents/`, and `.claude/` instruction-file locations are detected.
+- **Sub-agent routing** - implementation and gate skills now carry explicit
+  inline guidance for Claude model choices and Codex reasoning effort. The
+  implement orchestrator owns bundle/wave planning and may run large
+  non-overlapping write paths in parallel.
+- **Codex plugin metadata** - the Codex manifest now declares capabilities and
+  a default prompt, and explicit-only skills ship Codex `agents/openai.yaml`
+  policy files.
+- **Hooks** - plugin hooks resolve both Codex and Claude plugin roots, and the
+  PostToolUse hook recognizes Codex `apply_patch` payloads.
+- **Pattern skills** - reusable pattern references are written under
+  `.agents/skills/patterns` with optional Claude mirrors.
+
 ## v0.6.1 — UI/UX alignment promoted to scope/epic tier
 
 Shifts where `ux-ui-design` mockups get produced. Epic-design Phase 4.6 is

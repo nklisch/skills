@@ -2,7 +2,7 @@
 name: gate-security
 description: >
   Security gate that scans items bound to a release and produces items as findings.
-  Delegates the full audit to an opus sub-agent which discovers stack, picks
+  Delegates the full audit to a deep security-audit sub-agent which discovers stack, picks
   relevant security domains (auth, injection, secrets, deps, API, infra, crypto,
   data protection, error handling), audits the bundle's code changes, and returns
   findings. The orchestrator converts findings into items in .work/active/ with
@@ -15,9 +15,17 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 # Gate-Security
 
 You orchestrate a security gate over the items bound to a release. The actual
-audit runs inside an **opus sub-agent**; your role is to prepare the bundle
-context, dispatch the sub-agent, and convert the findings it returns into
-items in the substrate.
+audit runs inside a **deep security-audit sub-agent**; your role is to prepare
+the bundle context, dispatch the sub-agent, and convert the findings it returns
+into items in the substrate.
+
+Sub-agent strength is explicit:
+- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
+  `subagent_type: "general-purpose"`.
+- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
+  high`; use `xhigh` only for auth/crypto/data-loss surfaces, broad public API
+  changes, or a large/polyglot release bundle. Use a reviewer/default agent if
+  available, otherwise a worker with read-only instructions.
 
 This is NOT a standalone audit (for that, use `/agile-workflow:repo-eval`). This
 is a gate over a specific release bundle, producing items the release-deploy
@@ -63,8 +71,10 @@ sub-agent can be told to skip duplicates.
 
 ### Phase 3: Dispatch the audit sub-agent
 
-Spawn ONE Agent (subagent_type=general-purpose, model=opus) with the full
-audit brief. The sub-agent does all of the analysis end-to-end —
+Spawn ONE deep audit sub-agent with the full audit brief. For Claude Code, this
+is `Agent(subagent_type=general-purpose, model=opus)`. For Codex, use
+`reasoning_effort: high`, escalating to `xhigh` for auth/crypto/data-loss
+surfaces, broad public API changes, or large/polyglot bundles. The sub-agent does all of the analysis end-to-end —
 stack discovery, domain selection, parallel domain audits, severity
 classification — and returns structured findings.
 

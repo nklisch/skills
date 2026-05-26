@@ -6,13 +6,13 @@ description: >
   call /agile-workflow:implement directly unless the user explicitly says "inline".
   Default implementation path for items at stage:implementing. Accepts a scope — a
   feature id, an epic id, --all, or an explicit list of items — builds a unified
-  depends_on graph across that scope (cross-feature is fine), bundles tightly-coupled
-  small items so one agent owns the whole cluster (300–500k context budget), and
-  walks the resulting bundles in waves of up to 3 parallel Sonnet sub-agents. After
-  each wave verifies integration; after the run advances every parent feature whose
-  children are all at stage:review. For lone stories or single-story features, runs
-  as a one-agent wave. Triggers on "implement this feature", "implement <id>",
-  "let's implement", "work the queue", "drain implementing", "implement everything".
+  depends_on graph, bundles related work, chooses wave width and worktree
+  isolation, and dispatches implementation sub-agents when parallelism is
+  beneficial. Invocation of this skill is explicit authorization to use sub-agents,
+  including large write paths when ownership and verification make that safe.
+  Advances parent features whose children all reach stage:review. Triggers on
+  "implement this feature", "implement an item id", "let's implement", "work the
+  queue", "drain implementing", "implement everything".
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
 ---
 
@@ -22,7 +22,40 @@ You orchestrate the implementation of one or more substrate items at
 `stage: implementing`. Your value is in the prompt crafting and the
 dependency-aware scheduling across whatever scope you've been given —
 not in writing line-by-line code yourself. You delegate the writing to
-Sonnet agents.
+implementation sub-agents when the work can be split productively. You determine
+how to parallelize: bundles, waves, worker ownership, worktree isolation, and
+serialization are your call.
+
+## Sub-agent contract
+
+Invocation of this skill is explicit authorization to spawn implementation
+sub-agents. Do not wait for the user to separately say "use sub-agents" once this
+skill is active. The user has chosen the orchestrator because the orchestrator is
+the parallelization brain.
+
+Use sub-agents as the primary scaling mechanism when the work has separable
+ownership. Large write paths may still run in parallel when you assign explicit
+file/module ownership, tell workers they are not alone in the codebase, use
+worktree isolation when overlap or merge risk warrants it, and verify integration
+after each wave. Serialize only the portions whose write sets or dependency
+edges make parallel work unsafe.
+
+Use explicit runtime paths:
+
+- **Claude Code / Anthropic path:** spawn implementation workers with the Agent
+  tool using `model: "sonnet"` and `subagent_type: "general-purpose"`. Use the
+  Task/Explore shape only for read-only discovery work. Escalate to `model:
+  "opus"` only for unusually broad implementation diagnosis, not routine code
+  writing.
+- **Codex / OpenAI path:** spawn `worker` sub-agents for implementation. Use
+  `reasoning_effort: medium` for small/single-item bundles, `high` for
+  multi-item, cross-module, or orchestration-critical bundles, and `xhigh` only
+  for large cross-feature write paths, risky migrations, or difficult
+  generated-code reconciliation. Use `explorer` sub-agents with
+  `reasoning_effort: medium` or `high` for read-only mapping.
+
+In every runtime, make each worker prompt self-contained and require one commit
+per item.
 
 ## Trigger
 
@@ -97,7 +130,7 @@ Then read deeply — the quality of your agent prompts depends on this.
 3. **Foundation docs** referenced by any of the above: `docs/SPEC.md`,
    `docs/ARCHITECTURE.md`
 4. **Principles** — both paradigms via the auto-loaded principles skill
-5. **CLAUDE.md** — project conventions, build commands
+5. **AGENTS.md / CLAUDE.md** — project conventions, build commands
 6. **Concrete pattern examples** in the codebase — for each type of code the
    agents will write, find an existing example. Read 3-5 key files yourself;
    use Explore sub-agents for breadth.
@@ -128,9 +161,10 @@ Validate:
 
 #### 3a — Detect bundles
 
-Default to **one agent per item**, but bundle tightly-coupled small items into
-a single agent when doing so produces better code than parallel agents fighting
-the same module. A bundle is a group of items owned by one Sonnet agent that
+Default to **one implementation sub-agent per item**, but bundle tightly-coupled
+small items into a single sub-agent when doing so produces better code than
+parallel agents fighting the same module. A bundle is a group of items owned by
+one implementation sub-agent that
 walks them sequentially, sharing context across all of them.
 
 Bundle a group of items together when **all** of these hold:
@@ -148,10 +182,10 @@ Bundle a group of items together when **all** of these hold:
   wave — i.e. an item cannot be bundled with one of its own (transitive)
   dependencies. Two items that depend on the same upstream are fine; a
   parent-child dep pair is not.
-- **Fits one agent's context budget.** Aim for ~300–500k tokens total per
-  bundle, counting the agent's system prompt + designs + code reads + tool
-  overhead. In practice that's roughly 3–8 small items per bundle. When in
-  doubt, bundle smaller — over-stuffed agents lose precision.
+- **Fits one sub-agent's context budget.** Keep each bundle small enough that
+  the worker can load its prompt, designs, relevant code, and verification
+  output without losing precision. In practice that's roughly 3–8 small items
+  per bundle. When in doubt, bundle smaller.
 
 A single-item "bundle" is the common case and is fine. Don't force bundling.
 The win is reserved for clusters where the coordination overhead between
@@ -179,10 +213,12 @@ bundle A depends on bundle B if any item in A depends on any item in B.
 - **Wave 2** (parallel): bundles whose dependencies are wave-1 bundles
 - **Wave N** (parallel): bundles whose dependencies are wave-(N-1) bundles
 
-Cap parallelism at 3 sub-agents per wave (Claude Code's orchestrator limit) —
-that's 3 *bundles*, not 3 items. A wave of 3 bundles holding 4 items each is
-12 items worked in parallel by 3 agents. If a wave has more than 3 bundles,
-split into sub-waves of 3, run sequentially within the wave.
+Choose parallelism per wave based on write-set independence, dependency edges,
+runtime capacity, and verification cost. Three bundles per wave is the safe
+default for ordinary mixed implementation work. You may raise that for clearly
+disjoint write paths or large independent subsystems, especially with worktree
+isolation. You should lower it or serialize when bundles touch the same files,
+share fragile generated artifacts, or require ordered API/type evolution.
 
 #### 3c — File-overlap conflict check (cross-bundle)
 
@@ -196,7 +232,7 @@ choose one of three mitigations:
   one bundle. Often the cleanest answer.
 - **Serialize the conflicting bundles** — pull one into a later sub-wave so
   they don't share a slot. Preferred when merging would blow the budget.
-- **Spawn the wave with `isolation: "worktree"`** — each agent gets its own
+- **Spawn the wave with worktree isolation** — each agent gets its own
   worktree, you reconcile after. Use when serialization would balloon the
   wave count or when you can't predict overlap precisely.
 
@@ -206,8 +242,10 @@ have no such guarantee.
 
 ### Phase 4: Re-align to project standards
 
-Re-read `CLAUDE.md` (project root and `.claude/` if both exist) and `.claude/rules/`.
-Recency improves prompt adherence.
+Re-read `AGENTS.md` and `CLAUDE.md` if both exist. Treat `AGENTS.md` as
+canonical when they disagree; `CLAUDE.md` is usually a symlink or compatibility
+shim. Also read `.agents/skills/patterns/` and legacy `.claude/skills/patterns/`
+if present. Recency improves prompt adherence.
 
 ### Phase 5: Craft agent prompts
 
@@ -256,7 +294,7 @@ For each **single-item** bundle, write a self-contained prompt with:
    - Existing patterns to follow with concrete codebase examples
    - Discrepancies between design and repo reality you found
    - Specific imports needed
-   - Project conventions from CLAUDE.md
+   - Project conventions from AGENTS.md / CLAUDE.md
 
 7. **Design-flaw escape hatch** (from implement guardrails) — "If during
    implementation you discover a genuine design flaw, don't muscle through.
@@ -268,7 +306,7 @@ For each **single-item** bundle, write a self-contained prompt with:
    frontmatter `stage: implementing → review` and append implementation notes.
    The PostToolUse hook auto-bumps `updated:`."
 
-9. **Verification commands** — from CLAUDE.md (e.g.,
+9. **Verification commands** — from AGENTS.md / CLAUDE.md (e.g.,
    `pnpm typecheck && pnpm lint && pnpm test`).
 
 10. **Commit instruction** — "After build and tests pass, commit with message
@@ -353,13 +391,11 @@ The bundle prompt is longer than a single-item prompt, but the agent reads
 the shared context once and amortizes it across every item — that's the
 budget win the bundle is buying.
 
-### Phase 6: Spawn agents (per wave)
+### Phase 6: Spawn sub-agents (per wave)
 
-Use the **Agent tool** with `model: "sonnet"` and `subagent_type: "general-purpose"`.
-One agent per bundle, regardless of bundle size.
+Spawn one implementation sub-agent per bundle, regardless of bundle size.
 
-For waves with multiple bundles, send all in a **single message** with multiple
-Agent tool calls (parallel execution).
+**Claude Code / Anthropic:**
 
 ```
 Agent(
@@ -370,13 +406,28 @@ Agent(
 )
 ```
 
+**Codex / OpenAI:**
+
+Spawn a `worker` sub-agent with:
+- `reasoning_effort: medium` for small/single-item bundles
+- `reasoning_effort: high` for multi-item, cross-module, or
+  orchestration-critical bundles
+- `reasoning_effort: xhigh` only for large cross-feature write paths, deep
+  migrations, high-risk reconciliation, or repeated failed attempts
+- no model override unless the user has named one or the project has a stable
+  Codex model convention
+
+For waves with multiple bundles, send all in a **single message** with multiple
+sub-agent calls when the runtime supports parallel execution.
+
 The `description` should make the bundle scope visible — e.g.
 `"Implement B2: 4 stories under auth middleware"` for a multi-item bundle, or
 `"Implement story S-12"` for a single-item bundle.
 
-Use `isolation: "worktree"` if multiple bundles in the same wave will modify
-overlapping files and you chose not to merge them (see Phase 3c). Within a
-bundle, isolation is unnecessary — one agent owns the whole cluster.
+Use worktree isolation if multiple bundles in the same wave will modify
+overlapping files and you chose not to merge them (see Phase 3c), or if large
+independent write paths are safer to reconcile from separate worktrees. Within a
+bundle, isolation is unnecessary — one sub-agent owns the whole cluster.
 
 ### Phase 7: Review wave results
 
@@ -463,18 +514,18 @@ In conversation:
 - Ground yourself before spawning agents. Vague prompts produce vague
   implementations. Cross-feature scopes mean more reading, not less — every
   parent in the work set gets the full read.
-- Cap parallelism at 3 sub-agents per wave. Bigger scopes just mean more
-  waves, scheduled by the unified `depends_on` graph lifted to the bundle
-  level. There's no upper limit on waves — a 30-item scope runs as several
-  waves of bundles, not as one giant wave or as a fallback to sequential.
-  The orchestrator's job is to keep producing waves until every item in the
-  work set reaches `stage: review`.
+- Decide parallelism deliberately. Three sub-agents per wave is a conservative
+  default, not a hard ceiling. Use more only when write ownership is clear,
+  dependencies are independent, and verification/reconciliation remains bounded.
+  Use fewer when write sets overlap or the system is fragile. Bigger scopes mean
+  more waves or wider safe waves, scheduled by the unified `depends_on` graph
+  lifted to the bundle level.
 - **Bundle when the cluster wants to be one delivery; don't bundle for its
   own sake.** The default is still one agent per item. Reach for a multi-item
   bundle only when the criteria in Phase 3a all hold — adjacent scope, small
-  individual items, shared patterns, same dependency layer, fits one agent's
-  ~300–500k context budget. Over-bundling produces an agent that loses the
-  thread; under-bundling produces parallel agents that fight the same module.
+  individual items, shared patterns, same dependency layer, fits one sub-agent's
+  context budget. Over-bundling produces an agent that loses the thread;
+  under-bundling produces parallel agents that fight the same module.
 - **Don't bundle a parent-child dependency pair into the same bundle.** A
   bundle is a wave-slot; intra-bundle dependencies are sequenced inside the
   agent prompt, but the dependency must already be satisfiable when the bundle

@@ -9,7 +9,6 @@ description: >
   refactor work then flows through /agile-workflow:refactor-design and
   /agile-workflow:implement. User-invocable only — too aggressive for auto-trigger.
 user-invocable: true
-disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion
 ---
 

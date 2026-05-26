@@ -4,7 +4,7 @@ description: >
   Cruft gate that scans the items bound to a release for AI-accumulated debris
   (dead code, stale comments, compatibility shims, defensive bloat,
   over-abstraction) introduced or revealed by the bundle. Delegates the full
-  scan to an opus sub-agent which runs language-aware detection plus heuristic
+  scan to a deep cleanup-audit sub-agent which runs language-aware detection plus heuristic
   pattern-matching, then returns findings. The orchestrator converts findings
   into items in .work/active/ with gate_origin:cruft and tags:[cleanup].
   Auto-triggers during /agile-workflow:release-deploy.
@@ -14,10 +14,16 @@ allowed-tools: Read, Glob, Grep, Bash, Agent, Edit
 # Gate-Cruft
 
 You orchestrate a cruft gate over the items bound to a release. The actual
-scan runs inside an **opus sub-agent**; your role is to prepare the bundle
-context, dispatch the sub-agent, and convert the findings it returns into
-items in the substrate. Findings get `gate_origin: cruft`, `tags: [cleanup]`,
-with severity tier shaping the stage.
+scan runs inside a **deep cleanup-audit sub-agent**; your role is to prepare the
+bundle context, dispatch the sub-agent, and convert the findings it returns
+into items in the substrate. Findings get `gate_origin: cruft`,
+`tags: [cleanup]`, with severity tier shaping the stage.
+
+Sub-agent strength is explicit:
+- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
+  `subagent_type: "general-purpose"`.
+- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
+  high`; use `xhigh` for large or polyglot release bundles.
 
 ## Trigger
 
@@ -50,8 +56,10 @@ into the sub-agent's brief.
 
 ### Phase 3: Dispatch the cruft sub-agent
 
-Spawn ONE Agent (subagent_type=general-purpose, model=opus) with the full
-scan brief. The sub-agent does ecosystem detection, runs language-aware
+Spawn ONE deep cleanup-audit sub-agent with the full scan brief. For Claude
+Code, this is `Agent(subagent_type=general-purpose, model=opus)`. For Codex,
+use `reasoning_effort: high`, or `xhigh` for large/polyglot bundles. The
+sub-agent does ecosystem detection, runs language-aware
 tools, applies heuristic pattern-matching, triages confidence, and returns
 structured findings.
 
@@ -105,7 +113,8 @@ structured findings.
 >    - Config/options parameters that only ever receive one value
 >    - Abstractions with a single implementation
 >
-> 4. **Cross-check existing patterns** — read `.claude/skills/patterns/` if
+> 4. **Cross-check existing patterns** — read `.agents/skills/patterns/` and
+>    legacy `.claude/skills/patterns/` if
 >    present. Intentional repetition documented as a pattern is NOT cruft.
 >
 > 5. **Triage by confidence**:
@@ -152,7 +161,8 @@ structured findings.
 > - Cite file:line for every finding.
 > - Don't fabricate. If a tool produces no output, don't invent findings.
 > - Skip already-tracked. Patterns documented in
->   `.claude/skills/patterns/` are intentional, not cruft.
+>   `.agents/skills/patterns/` or legacy `.claude/skills/patterns/` are
+>   intentional, not cruft.
 > - Don't propose findings you can't verify (e.g. "is this exported function
 >   used externally?" — if you can't confirm zero callers, downgrade to
 >   medium confidence rather than high).
@@ -229,7 +239,8 @@ Cleanup is mechanical and parallelizes well."
 - Never remove code in this skill — produce items only.
 - Cleanup items must be surgical when implemented. They remove cruft and fix
   the immediate surroundings only. They do NOT improve, refactor, or enhance.
-- Patterns documented in `.claude/skills/patterns/` are intentional, not
+- Patterns documented in `.agents/skills/patterns/` or legacy
+  `.claude/skills/patterns/` are intentional, not
   cruft. The sub-agent cross-checks; don't override.
 - Pass already-tracked findings into the sub-agent's brief so it skips
   duplicates.

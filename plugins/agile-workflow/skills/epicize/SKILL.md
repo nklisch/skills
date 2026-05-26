@@ -8,7 +8,6 @@ description: >
   /agile-workflow:convert on a greenfield project, or any time foundation docs need
   epic decomposition. User-invocable only — interactive workshop.
 user-invocable: true
-disable-model-invocation: true
 allowed-tools: Read, Write, Glob, Grep, Bash, AskUserQuestion
 ---
 

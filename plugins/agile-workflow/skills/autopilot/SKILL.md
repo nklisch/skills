@@ -15,7 +15,6 @@ description: >
   against them. Refactor cadence every 5 items in --all mode. User-invocable
   only.
 user-invocable: true
-disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Skill
 ---
 
@@ -198,13 +197,14 @@ reads from `.work/active/` so backlog never enters consideration.
   scope through directly — `<epic-id>` if epic-scoped, `--all` if `--all`
   mode, or the explicit list if you reduced it via a free-text directive.
   The orchestrator builds a unified `depends_on` graph across every ready
-  implementing item in scope (cross-feature is fine), **bundles tightly-coupled
-  small items into shared agents** (one agent owning a cluster of items when
-  scope, size, and shared-context all warrant it — see the orchestrator's
-  Phase 3a for the criteria), waves the resulting bundles in groups of up to
-  3 parallel sub-agents, and advances each parent feature whose children all
-  reach `review`. Autopilot does not pre-bundle; the orchestrator owns that
-  decision and surfaces it in its run summary.
+  implementing item in scope (cross-feature is fine), **decides how to
+  parallelize**, bundles tightly-coupled items into shared implementation
+  sub-agents when useful, chooses wave width and worktree isolation, and
+  advances each parent feature whose children all reach `review`. Autopilot
+  does not pre-bundle or second-guess the split; the orchestrator owns that
+  decision and surfaces it in its run summary. Invocation through autopilot is
+  explicit authorization for the orchestrator to use implementation sub-agents
+  when it judges parallelism beneficial.
 - The orchestrator returns once the implementing band in scope is fully
   drained (every item at `stage: review`, every qualifying parent advanced).
   After it returns, resume the queue at Phase 2 — there will likely now be

@@ -71,7 +71,8 @@ this layout appears in the repo:
 ├── archive/<id>.md           done items not bound to a release
 ├── bin/work-view             query script (the agent uses this)
 └── CONVENTIONS.md            project-specific overrides
-.claude/rules/agile-workflow.md   agent navigation rules (auto-loads)
+AGENTS.md                         canonical agent instructions
+CLAUDE.md -> AGENTS.md            Claude Code compatibility
 docs/                              foundation docs (VISION, SPEC, ARCHITECTURE)
 ```
 
@@ -457,10 +458,11 @@ item required.
 - **`implement`** — single-stride code from item body. Reads the design,
   writes code, runs tests, advances to `review`. Use for stories or small
   features.
-- **`implement-orchestrator`** — fans Sonnet sub-agents over child stories
-  respecting `depends_on`. Use for features with several child stories that
-  have a non-trivial dependency graph. The agent picks this when scope
-  warrants; you can also ask for it explicitly.
+- **`implement-orchestrator`** — fans implementation sub-agents over child
+  stories respecting `depends_on`. It chooses bundles, wave width, and worktree
+  isolation. Use for features with several child stories that have a non-trivial
+  dependency graph. The agent picks this when scope warrants; you can also ask
+  for it explicitly.
 
 ### Review
 
@@ -717,7 +719,7 @@ explicitly — the rest the agent picks for you.
 
 ### Production (agent picks)
 - **implement** — single-stride code from item body
-- **implement-orchestrator** — fans Sonnet sub-agents over child stories
+- **implement-orchestrator** — fans implementation sub-agents over child stories
   respecting `depends_on`
 
 ### Review & delivery

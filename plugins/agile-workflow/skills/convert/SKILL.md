@@ -3,15 +3,15 @@ name: convert
 description: >
   Bootstrap or sync the agile-workflow substrate in a project. Detects current repo
   state (no substrate / partially set up / fully set up) and auto-routes: bootstrap
-  mode for fresh projects (creates .work/ skeleton + CONVENTIONS.md + rules file +
-  CLAUDE.md section + migration based on detected source shape), sync mode for
+  mode for fresh projects (creates .work/ skeleton + CONVENTIONS.md + canonical
+  AGENTS.md section + Claude compatibility symlink/shim + migration based on detected
+  source shape), sync mode for
   projects that already have the substrate (refreshes plugin-shipped artifacts —
-  CLAUDE.md section, .claude/rules/agile-workflow.md, .work/bin/work-view — while
-  preserving user-owned CONVENTIONS.md and substrate state, and reports drift).
+  AGENTS.md section, CLAUDE.md compatibility, .work/bin/work-view — while preserving
+  user-owned CONVENTIONS.md and substrate state, and reports drift).
   Idempotent — re-running on a healthy project is a no-op sync. User-invocable only
   since substrate work is consequential and interactive.
 user-invocable: true
-disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
@@ -53,8 +53,8 @@ Compute substrate health by checking these markers:
 |---|---|
 | `substrate_root` | `.work/` directory exists |
 | `conventions` | `.work/CONVENTIONS.md` exists |
-| `rules_file` | `.claude/rules/agile-workflow.md` exists |
-| `claude_md_section` | `CLAUDE.md` exists AND contains `<!-- agile-workflow:start -->` |
+| `agents_md_section` | The selected AGENTS target exists AND contains `<!-- agile-workflow:start -->` |
+| `claude_compat` | Any detected Claude instruction entrypoint is a symlink/shim to the selected AGENTS target, OR contains the agile-workflow section for legacy installs |
 | `work_view` | `.work/bin/work-view` exists and is executable |
 
 Route on the result:
@@ -92,6 +92,28 @@ Detection signals (first match wins):
 
 If `--shape` was passed, use it directly.
 
+### Phase 2.5: Resolve agent instruction files
+
+Instruction files can appear at the repo root or under agent-specific
+directories. Detect all of these before writing:
+
+- AGENTS candidates: `AGENTS.md`, `.agents/AGENTS.md`, `.claude/AGENTS.md`
+- Claude candidates: `CLAUDE.md`, `.claude/CLAUDE.md`, `.agents/CLAUDE.md`
+
+Choose the canonical AGENTS target:
+
+1. If `AGENTS.md` exists at the repo root, use it.
+2. Else if `.agents/AGENTS.md` exists, use it and create `AGENTS.md` as a
+   symlink to `.agents/AGENTS.md` when possible.
+3. Else if `.claude/AGENTS.md` exists, use it and create `AGENTS.md` as a
+   symlink to `.claude/AGENTS.md` when possible.
+4. Else create root `AGENTS.md`.
+
+If symlinks are unavailable, keep the existing nested AGENTS file as the content
+source and write a root `AGENTS.md` shim or copy that clearly points to the
+canonical nested file. Codex needs a root-readable `AGENTS.md`; do not leave only
+a nested file unless the project has explicitly configured that fallback.
+
 ### Phase 3: Conventions interview
 
 Run an interactive interview via AskUserQuestion. Five questions, in order:
@@ -117,35 +139,21 @@ mkdir -p .work/backlog .work/releases .work/archive .work/bin
 Copy `work-view` from the plugin to the project:
 
 ```bash
-cp "${CLAUDE_PLUGIN_ROOT:-.}/scripts/work-view.sh" .work/bin/work-view
+cp "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/scripts/work-view.sh" .work/bin/work-view
 chmod +x .work/bin/work-view
 ```
 
-(If `CLAUDE_PLUGIN_ROOT` is not exposed in the agent's shell environment, locate the
-plugin source via the plugin manifest or fall back to a known cache path.)
+(If neither `PLUGIN_ROOT` nor `CLAUDE_PLUGIN_ROOT` is exposed in the agent's shell
+environment, locate the plugin source via the active skill/plugin path or manifest.)
 
 ### Phase 5: Write CONVENTIONS.md
 
 Write `.work/CONVENTIONS.md` from the interview answers, following the format in SPEC.md.
 
-### Phase 6: Write the rules file
+### Phase 6: Write the canonical AGENTS.md section
 
-Write `.claude/rules/agile-workflow.md` with the full content specified in
-ARCHITECTURE.md. The rules file is dense pointers — folder structure, kinds, stages,
-frontmatter, navigation primitives, session-start checklist, rolling-foundation reminder.
-
-The frontmatter must include:
-
-```yaml
----
-description: Agile-workflow substrate navigation rules
-paths: ['.work/**', 'docs/**']
----
-```
-
-### Phase 7: Append CLAUDE.md section
-
-If `CLAUDE.md` exists at repo root, append the agile-workflow section between HTML
+The selected AGENTS target is the canonical project instruction file for
+agile-workflow. Write or refresh the agile-workflow section between HTML
 comment markers:
 
 ```markdown
@@ -164,9 +172,10 @@ parent, and dependency. Common patterns:
 - `work-view --parent <id>` / `--blocking <id>` — hierarchy / sequencing
 - `work-view --help` for the full flag set
 
-Detailed navigation rules in `.claude/rules/agile-workflow.md` (auto-loaded
-when editing `.work/` or `docs/`). Foundation docs in `docs/` describe the
-system NOW — never add legacy notes; git history is the audit trail.
+Foundation docs in `docs/` describe the system NOW — never add legacy notes;
+git history is the audit trail. Item files are the durable state: update the
+body with implementation discoveries, review findings, blockers, and decisions
+instead of relying on chat history.
 
 ### Test integrity
 
@@ -196,7 +205,40 @@ Slash commands (user-invokable):
 <!-- agile-workflow:end -->
 ```
 
-If `CLAUDE.md` doesn't exist, create it with this section as the entire body.
+Preserve all content outside the markers. If the selected AGENTS target does
+not exist, create it with this section as the whole body.
+
+### Phase 7: Preserve Claude Code compatibility
+
+The selected AGENTS target is canonical. Claude instruction files are only
+compatibility entrypoints for Claude Code and should not become independent
+copies.
+
+Handle every detected Claude candidate (`CLAUDE.md`, `.claude/CLAUDE.md`,
+`.agents/CLAUDE.md`) as follows:
+
+1. If the file is already a symlink to the selected AGENTS target or to root
+   `AGENTS.md`, leave it alone.
+2. If it exists as a regular file, read it before touching it.
+   - If it contains an old agile-workflow marked section, migrate that section's
+     current content into the selected AGENTS target only when it contains user
+     edits not already present there.
+   - Preserve non-agile Claude instructions by importing them into the selected
+     AGENTS target under a short `## Imported Claude Code Instructions` heading,
+     unless the same content is already present.
+   - After import, replace the Claude file with a symlink to the selected
+     AGENTS target.
+3. If symlink creation is unavailable or unsafe in the environment, write this
+   shim instead:
+
+   ```markdown
+   # Claude Code Instructions
+
+   Canonical agent instructions live in AGENTS.md. Read that file.
+   ```
+
+The sync path follows the same rule: refresh `AGENTS.md`, then keep
+Claude entrypoints pointing at it through symlinks or shims.
 
 ### Phase 8: Per-shape migration
 
@@ -281,7 +323,7 @@ into the bootstrap commit itself).
 Otherwise, capture the in-flight code as substrate items so autopilot has
 something to drain after bootstrap:
 
-1. **Cluster** the changed files via a Task Explore sub-agent: "Categorize
+1. **Cluster** the changed files via a read-only Explore sub-agent: "Categorize
    these <N> files into 1-5 coherent feature buckets by path, imports, and
    diff content. Report each as slug + one-paragraph description + file
    list." Pass `git status --porcelain` and `git diff --stat` as context;
@@ -307,7 +349,7 @@ seeded by tier, files left in place, conventions chosen, next steps.
 Single git commit:
 
 ```bash
-git add .work/ .claude/rules/agile-workflow.md CLAUDE.md MIGRATION_REPORT.md
+git add .work/ AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md MIGRATION_REPORT.md
 git commit -m "chore: bootstrap agile-workflow substrate"
 ```
 
@@ -323,14 +365,14 @@ Non-destructive — refreshes plugin-shipped artifacts and reports drift.
 
 Re-use the marker checks from Phase 1.5 plus deeper checks:
 
-- All five markers (`substrate_root`, `conventions`, `rules_file`,
-  `claude_md_section`, `work_view`) — present or missing
+- All five markers (`substrate_root`, `conventions`, `agents_md_section`,
+  `claude_compat`, `work_view`) — present or missing
 - For each plugin-shipped artifact that IS present, compare its content against
   the version in the current plugin source:
-  - `.claude/rules/agile-workflow.md` vs the plugin's canonical rules content
-  - `.work/bin/work-view` vs `${CLAUDE_PLUGIN_ROOT}/scripts/work-view.sh`
-  - The CLAUDE.md section between `<!-- agile-workflow:start -->` /
-    `<!-- agile-workflow:end -->` vs the canonical template in Phase 7
+  - The selected AGENTS target section between `<!-- agile-workflow:start -->` /
+    `<!-- agile-workflow:end -->` vs the canonical template in Phase 6
+  - `.work/bin/work-view` vs `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/work-view.sh`
+  - `CLAUDE.md` compatibility state (symlink/shim/legacy copy)
 
 Classify each artifact as one of:
 
@@ -341,10 +383,12 @@ Classify each artifact as one of:
 | `drift_user` | Installed version differs because the user edited it. Ask. |
 | `missing` | Marker absent. Install fresh. |
 
-Heuristic for `drift_plugin` vs `drift_user` on the CLAUDE.md section: if the
-installed text matches a known prior plugin release's template (recognisable
-shape, just older content), assume `drift_plugin`. Otherwise treat as
-`drift_user` and ask.
+Heuristic for `drift_plugin` vs `drift_user` on the selected AGENTS section: if
+the installed text matches a known prior plugin release's template
+(recognisable shape, just older content), assume `drift_plugin`. Otherwise
+treat as `drift_user` and ask. If any Claude candidate has legacy content that
+is not yet present in the selected AGENTS target, import it before replacing the
+Claude file with a symlink or shim.
 
 ### Phase S2: Plan the sync
 
@@ -362,13 +406,15 @@ confirm before applying.
 
 For each artifact with a non-`match` state:
 
-- `.claude/rules/agile-workflow.md` — overwrite with the plugin's current
-  rules-file content (full template from ARCHITECTURE.md, see Phase 6)
+- Selected AGENTS target section between markers — overwrite with the canonical
+  template from Phase 6. If the file lacks markers, append the section. If the
+  file doesn't exist, create it.
 - `.work/bin/work-view` — overwrite with the plugin's current script and
   `chmod +x`
-- CLAUDE.md section between markers — overwrite. If the file lacks markers,
-  append the section. If the file doesn't exist, create it with just the
-  section.
+- Claude compatibility — convert legacy generated content from any detected
+  Claude candidate into the selected AGENTS target, then replace the Claude
+  file with a symlink to that target. If symlinks are not available, write the
+  shim from Phase 7.
 
 For `drift_user` items, only proceed after the user confirms.
 
@@ -379,7 +425,8 @@ These are NEVER touched in sync mode:
 - `.work/CONVENTIONS.md` (user-owned)
 - Everything under `.work/active/`, `.work/backlog/`, `.work/releases/`,
   `.work/archive/`
-- The rest of `CLAUDE.md` outside the markers
+- AGENTS content outside the agile-workflow markers, except imported legacy
+  Claude content the user confirms should become canonical
 - `MIGRATION_REPORT.md` (a bootstrap artifact; sync never writes it)
 
 ### Phase S5: Commit
@@ -387,7 +434,7 @@ These are NEVER touched in sync mode:
 If any files were rewritten:
 
 ```bash
-git add .claude/rules/agile-workflow.md .work/bin/work-view CLAUDE.md
+git add AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md .work/bin/work-view
 git commit -m "chore: agile-workflow sync"
 ```
 

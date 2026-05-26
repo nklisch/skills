@@ -9,7 +9,6 @@ description: >
   bound items via git mv to releases/<version>/, advances release to released.
   Idempotent — safe to re-run after fixing gate findings.
 user-invocable: true
-disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion, Skill
 ---
 
