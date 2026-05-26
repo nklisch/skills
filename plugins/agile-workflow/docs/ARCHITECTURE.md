@@ -532,7 +532,7 @@ Slash commands (user-invokable):
 
 ## Skill catalog
 
-All 26 skills with their roles, invocability, and triggers.
+All skills with their roles, invocability, and triggers.
 
 ### Bootstrap (user-invocable only)
 

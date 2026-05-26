@@ -236,7 +236,7 @@ the item body. See the guides for the full conventions.
 ## Repo Structure (this repo)
 
 ```
-plugins/agile-workflow/            # agile-workflow plugin (26 skills, substrate-driven)
+plugins/agile-workflow/            # agile-workflow plugin (substrate-driven)
 ├── skills/                        #   skill source
 ├── docs/                          #   foundation docs (VISION, SPEC, ARCHITECTURE, PRINCIPLES, MIGRATION)
 ├── hooks/                         #   SessionStart + PostToolUse hook scripts

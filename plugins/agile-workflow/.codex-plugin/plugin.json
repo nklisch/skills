@@ -8,10 +8,11 @@
   "repository": "https://github.com/nklisch/skills",
   "license": "MIT",
   "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Agile Workflow",
     "shortDescription": "Substrate-driven work tracking with autopilot",
-    "longDescription": "26 skills for substrate-driven work tracking. Items as files in .work/, late-binding releases, gates that produce items (security, tests, cruft, docs, patterns), autopilot queue runner. Sibling to workflow.",
+    "longDescription": "Skills for substrate-driven work tracking. Items as files in .work/, late-binding releases, gates that produce items (security, tests, cruft, docs, patterns), autopilot queue runner. Sibling to workflow.",
     "developerName": "nklisch",
     "category": "Productivity",
     "capabilities": [
