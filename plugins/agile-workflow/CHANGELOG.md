@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.7.6 - Perf and refactor design alignment
+
+Tightens performance-design guidance for low-level systems and makes refactor
+conventions a cohesive extension of agile-workflow rather than a standalone
+planning path.
+
+- **Perf-design profiling depth** - The optimization hierarchy now calls out
+  data locality and microarchitecture work explicitly, including cache locality,
+  pointer chasing, allocation pressure, branch predictability, false sharing,
+  NUMA effects, and benchmark/counter evidence for CPU-bound systems.
+- **Profiling taxonomy** - Discovery mode now classifies workload baseline,
+  on-CPU, memory/GC, I/O/serialization, off-CPU/synchronization, and
+  cache-line/NUMA bottlenecks before emitting perf items.
+- **Refactor conventions integration** - `refactor-conventions-creator` now
+  writes short style summaries into AGENTS plus a canonical
+  `.agents/skills/refactor-conventions/` catalog. `refactor-design` keeps its
+  built-in defaults and treats the catalog only as an extension lens.
+- **Convert one-pass alignment** - `convert --update` now covers AGENTS/CLAUDE
+  compatibility, work-view, pattern-skill mirrors, and refactor-conventions
+  catalog placement in one pass. Cleanup is opt-in: convert asks whether
+  destructive cleanup is in scope and defaults to preserve-only.
+- **Tool metadata fixes** - Skills that ask strategic questions now declare
+  `AskUserQuestion` in their allowed tools.
+
 ## v0.7.5 - Tighten [refactor] tag routing
 
 Stops mistagged "major rework" items from leaking into `refactor-design` when

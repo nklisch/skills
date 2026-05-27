@@ -7,14 +7,16 @@ description: >
   `<NL scope>`) detects entry points, picks the top 3-5 likely hot paths, profiles
   them, and emits substrate items per bottleneck. Per-feature mode (default when given
   a feature id) designs the perf work for an existing `[perf]`-tagged feature at
-  stage:drafting, following the optimization hierarchy (algorithmic > I/O > language
-  idioms > parallelism), produces an implementation plan with benchmark scaffolds
-  written INTO the feature's body, spawns child stories per optimization, then
-  advances stage drafting -> implementing. For greenfield design use
+  stage:drafting, following the optimization hierarchy (algorithmic/data model >
+  I/O > data locality/microarchitecture > language/runtime idioms > parallelism),
+  explicitly considering CPU/cache behavior for low-level high-throughput systems,
+  produces an implementation plan with benchmark scaffolds written INTO the
+  feature's body, spawns child stories per optimization, then advances stage
+  drafting -> implementing. For greenfield design use
   /agile-workflow:feature-design; for refactor use /agile-workflow:refactor-design.
   Triggers on "profile this", "find perf bottlenecks", "design this perf work",
   "optimize <id>", "make X faster".
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task, AskUserQuestion
 ---
 
 # Perf-Design
@@ -22,6 +24,12 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
 You diagnose performance bottlenecks via profiling, then design optimized solutions
 following a strict optimization hierarchy. The plan lives in the feature item's body,
 including benchmark scaffolds for the implementation pass.
+
+Use the hierarchy to choose solution shape, and use the profiling taxonomy below
+to choose what to measure. For low-level engines, runtimes, databases, compilers,
+graphics/simulation code, storage/networking code, or any CPU-bound path with
+tight throughput or tail-latency targets, CPU/cache behavior is first-class. If
+you do not collect microarchitecture evidence for that class of work, state why.
 
 ## Trigger
 
@@ -87,7 +95,7 @@ point.
 | Multi-site or needs a design pass / benchmarks | feature | `drafting` (with `[perf]` tag — per-feature mode picks up later) |
 
 Set `gate_origin: perf-design`. Brief = bottleneck location + profiling
-evidence + proposed hierarchy level.
+evidence + proposed hierarchy level + probe family.
 
 Commit per batch:
 ```bash
@@ -100,7 +108,7 @@ git commit -m "perf-design discovery: <N> bottlenecks across <M> entry points"
 In conversation:
 - **Scope**: how the target was interpreted
 - **Entry points profiled**: the picks
-- **Bottlenecks**: count, with top hierarchy levels (algorithmic / I/O / idiom / parallelism)
+- **Bottlenecks**: count, with top hierarchy levels and probe families
 - **Items emitted**: counts by kind with new ids
 - **Next**: `/agile-workflow:autopilot` to drain, or `/agile-workflow:perf-design <feature-id>` per emitted feature for the detailed design pass
 
@@ -112,8 +120,8 @@ drafting features. Iterate over the target set:
 1. Read the feature; skip if not `[perf]`-tagged or not at `stage: drafting`
 2. Light ground (foundation docs + AGENTS.md / CLAUDE.md + existing benchmarks)
 3. Surface strategic ambiguities specific to perf (e.g., "what target
-   scenario?", "current vs desired measured throughput?", "acceptable memory
-   tradeoff for speed?"). Use AskUserQuestion.
+   scenario?", "current vs desired measured throughput?", "target hardware?",
+   "acceptable memory or layout tradeoff for speed?"). Use AskUserQuestion.
 4. Capture answers under `## Design decisions` in the feature body
 5. Do NOT design or advance stage
 6. Commit per feature: `perf-design --only-questions: <id>`
@@ -127,14 +135,41 @@ bottleneck.
 
 | Priority | Level | Examples |
 |---|---|---|
-| 1 (highest) | **Algorithmic** | Better data structures, reduced complexity class, eliminated redundant work |
-| 2 | **I/O** | Batched queries, connection pooling, eliminated N+1, reduced serialization |
-| 3 | **Language idioms** | Pre-allocation, avoiding copies, string builders, struct vs pointer |
-| 4 (lowest) | **Parallelism** | Worker pools, async pipelines, concurrent data structures |
+| 1 (highest) | **Algorithmic / data model** | Better data structures, reduced complexity class, eliminated redundant work, changed representation or traversal that reduces work |
+| 2 | **I/O / service boundary** | Batched queries, connection pooling, eliminated N+1, reduced serialization, fewer syscalls |
+| 3 | **Data locality / microarchitecture** | Contiguous access, hot/cold splits, AoS vs SoA, fewer pointer hops, cache/TLB locality, branch predictability, SIMD/vectorization, false-sharing fixes |
+| 4 | **Language / runtime idioms** | Pre-allocation, avoiding copies/boxing, string builders, fewer temporary objects, lower GC pressure, monomorphization/devirtualization when measured |
+| 5 (lowest) | **Parallelism** | Worker pools, async pipelines, concurrent data structures, sharding to reduce contention |
 
 **Exception**: Parallelism moves up when the bottleneck is *inherently parallel* —
 processing N independent requests sequentially, or a map operation over independent
 items. In those cases, parallelism IS the algorithmic fix.
+
+**Data-layout rule**: if changing layout changes the work model or traversal shape,
+treat it as level 1. If the algorithm stays the same but the hot path is bound by
+cache misses, TLB misses, branch misses, vectorization limits, or cache-line
+contention, treat it as level 3.
+
+## Profiling taxonomy
+
+Do not run every profiler. Pick probes that match the symptom, workload, and
+runtime. Record skipped high-value probes when the target is low-level or
+CPU-bound.
+
+| Probe family | Finds | Typical evidence |
+|---|---|---|
+| **Workload baseline** | Real throughput/latency target, p50/p95/p99, warmup effects, regression budget | benchmark timings, load-test output, production trace/metric excerpts |
+| **On-CPU time** | Hot functions, call paths, inefficient loops | CPU samples, wall/CPU flamegraphs, cumulative time |
+| **Memory allocation / GC** | Allocation rate, retained heap, GC pauses, allocator overhead | allocs/op, bytes/op, heap profile, GC traces, RSS growth |
+| **I/O and serialization** | Slow DB/network/disk calls, redundant round-trips, syscall overhead | traces/spans, query logs, syscall profiles, bytes transferred |
+| **Off-CPU / synchronization** | Blocking, lock contention, scheduler delay, queueing | block/mutex profiles, off-CPU flamegraphs, run queue, context switches |
+| **Microarchitecture** | IPC/CPI loss, cache/TLB misses, branch misses, frontend/backend stalls, vectorization limits | hardware counters, cache/branch profiles, compiler vectorization reports, instruction throughput analysis |
+| **Cache-line / NUMA contention** | False sharing, remote memory access, cross-core cache bouncing | c2c/cache-line reports, remote vs local access counters, per-core contention evidence |
+
+For low-level high-performance systems, include a microarchitecture pass when
+the profile is CPU-bound: at minimum cycles/instructions/IPC, cache/LLC or TLB
+misses, and branch misses when tooling permits. Add false-sharing/NUMA probes
+when threads mutate adjacent or shared state.
 
 ## Workflow — per-feature mode
 
@@ -172,36 +207,55 @@ The principles skill auto-loads. Read:
      and `xhigh` only for broad, high-risk perf redesigns.
    Brief it:
    "Find the recommended profiling tools for <language/runtime>. Return: CPU
-   profiler, memory profiler, flamegraph tool, ecosystem-specific gotchas. Verify
-   from current docs — do not trust training data."
+   profiler, memory/allocation profiler, I/O/tracing tool, lock/off-CPU profiler,
+   flamegraph workflow, and hardware-counter/cache/branch tools for CPU-bound or
+   low-level code. Include ecosystem-specific gotchas. Verify from current docs -
+   do not trust training data."
 3. Read the results before proceeding
 
 ### Phase 4: Profile
 
 Run profiling using the researched tools via Bash.
 
-1. **CPU/latency**: profile the target code path with representative input. For a
-   function: write a driver script. For a server: use existing load tests or write
-   a minimal one.
-2. **Memory**: track allocation counts and sizes; identify GC pressure if applicable.
-3. **Flamegraphs** if the ecosystem supports them.
-4. **Save raw output** to a temp file for reference.
+1. **Workload baseline**: capture current throughput/latency with representative
+   input. Include warmup, input size, machine/runtime details, and the exact run
+   command when they affect repeatability.
+2. **CPU/latency**: profile the target code path. For a function: write a driver
+   script. For a server: use existing load tests or write a minimal one.
+3. **Memory**: track allocation counts and sizes; identify GC/allocator pressure
+   if applicable.
+4. **I/O / serialization**: inspect traces, query logs, syscall/network/disk
+   profiles, or spans when the hot path crosses process or storage boundaries.
+5. **Off-CPU / synchronization**: profile blocking time, mutexes, channels,
+   scheduler delay, and queueing when wall time exceeds on-CPU time or concurrent
+   work is involved.
+6. **Microarchitecture**: for CPU-bound or low-level high-perf paths, collect
+   counters for cycles, instructions, IPC/CPI, cache/LLC/TLB misses, and branch
+   misses when tooling permits. Use cache/branch profilers, compiler
+   vectorization reports, or instruction-throughput analyzers when they fit.
+7. **Cache-line / NUMA contention**: for multi-threaded hot paths, check false
+   sharing, cache-line bouncing, remote memory, and per-core contention when
+   shared or adjacent mutable state appears in the profile.
+8. **Flamegraphs** if the ecosystem supports them.
+9. **Save raw output** to a temp file for reference.
 
 ### Phase 5: Diagnose
 
 Analyze the profile to identify top bottlenecks.
 
 1. **Rank by impact** — sort hot spots by cumulative time or allocation volume
-2. **Categorize** each bottleneck by hierarchy level:
-   - Wrong complexity class? → Algorithmic
-   - Waiting on I/O / redundant calls / unnecessary serialization? → I/O
-   - Inefficient language construct? → Idiom
-   - Inherently parallel work being done sequentially? → Parallelism
+2. **Categorize** each bottleneck by hierarchy level and probe family:
+   - Wrong complexity class, redundant work, or representation forces excess work? -> Algorithmic / data model
+   - Waiting on I/O, redundant calls, syscalls, or unnecessary serialization? -> I/O / service boundary
+   - CPU-bound with poor cache/TLB locality, pointer chasing, branch misses, vectorization limits, or false sharing? -> Data locality / microarchitecture
+   - Excess allocations, copies, boxing, temporary objects, GC pressure, or inefficient runtime construct? -> Language / runtime idiom
+   - Inherently parallel work being done sequentially, or contention solved by ownership/sharding? -> Parallelism
 3. **Identify the top 3-5 bottlenecks**. Don't try to fix everything.
 
 For each bottleneck, note:
 - File and function/method
-- Profiling evidence (time %, allocation count, call count)
+- Profiling evidence (time %, allocation count, call count, IPC/cache/branch
+  counters, lock/off-CPU time, trace span, etc. as applicable)
 - Current complexity class (if relevant)
 - Why it's slow (root cause, not symptom)
 
@@ -209,18 +263,29 @@ For each bottleneck, note:
 
 For each bottleneck, walk the hierarchy top-down:
 
-1. **Algorithmic fix?** Better data structure, reduced work, eliminated redundancy?
+1. **Algorithmic / data-model fix?** Better data structure, reduced work,
+   eliminated redundancy, changed layout/traversal that reduces the amount of
+   work?
    If yes → design it. Stop here.
 2. **I/O fix?** Batching, pooling, eliminating round-trips, reducing serialization?
    If yes → design it. Stop here.
-3. **Language idiom fix?** Pre-allocation, avoiding copies, struct layout?
+3. **Data-locality / microarchitecture fix?** Contiguous access, hot/cold split,
+   AoS/SoA change, fewer pointer hops, cache/TLB locality, predictable branches,
+   SIMD/vectorization, cache-line padding/alignment, NUMA locality, or reduced
+   false sharing?
    If yes → design it. Stop here.
-4. **Parallelism?** Or is the work inherently parallel (algorithmic)?
+4. **Language / runtime idiom fix?** Pre-allocation, avoiding copies/boxing,
+   fewer temporary objects, lower GC/allocator pressure, devirtualization, or
+   simpler constructs?
+   If yes → design it. Stop here.
+5. **Parallelism?** Or is the work inherently parallel (algorithmic)?
    If yes → design it with explicit justification for why higher levels don't apply.
 
 For each solution:
-- Hierarchy level + why higher levels don't apply (skip this for level 1)
+- Hierarchy level + probe family + why higher levels don't apply (skip this for level 1)
 - Expected improvement (quantified: "O(n²) → O(n log n)" or "eliminates N round-trips")
+- Expected metric movement (wall time, p99, allocations/op, cycles/op, IPC,
+  cache-miss rate, branch-miss rate, lock wait, bytes transferred)
 - Exact file paths and function signatures
 - Implementation notes for non-obvious logic
 - Risk assessment (does this change behavior? thread safety concerns?)
@@ -236,6 +301,9 @@ Write benchmark code that measures before/after.
    etc.).
 3. Write **after benchmark stubs** with comments indicating expected targets.
 4. Include representative input data — must exercise the actual hot path.
+5. For low-level CPU-bound optimizations, include hardware-counter or
+   cache/branch measurements in the benchmark command when the project tooling
+   supports them.
 
 ### Phase 8: Spawn child stories
 
@@ -261,8 +329,10 @@ Append to the feature file:
 ## Optimization Plan
 
 ### Optimization 1: <name>
-**Hierarchy Level**: Algorithmic / I/O / Idiom / Parallelism
+**Hierarchy Level**: Algorithmic / Data Model / I/O / Data Locality / Microarchitecture / Runtime Idiom / Parallelism
+**Probe Family**: <CPU / memory / I/O / off-CPU / microarchitecture / cache-line / NUMA>
 **Bottleneck**: <what's slow and why — cite profiling data>
+**Expected Metric Movement**: <wall time, p99, allocations/op, cycles/op, cache misses, branch misses, lock wait, etc.>
 **Why higher levels don't apply**: <skip for algorithmic-level fixes>
 **Story**: `<story-id>` (if spawned)
 
@@ -290,6 +360,7 @@ Append to the feature file:
 **Run command**: <command>
 **Baseline targets**: <current measured>
 **Expected targets**: <post-optimization>
+**Counter targets**: <optional cycles/op, IPC, cache/branch miss rate, allocations/op>
 
 ## Implementation Order
 1. <highest impact, lowest risk first>
@@ -309,7 +380,7 @@ Append to the feature file:
 
 In conversation:
 - **Designed**: `<feature-id>` advanced to `stage: implementing`
-- **Top bottlenecks**: list with hierarchy level
+- **Top bottlenecks**: list with hierarchy level and probe family
 - **Optimizations**: list ordered by impact
 - **Benchmarks**: location and run command
 - **Next**: `/agile-workflow:implement <story-id>` per optimization, or
@@ -317,9 +388,9 @@ In conversation:
 
 ## Common traps
 
-- Reach for parallelism only after exhausting algorithmic, I/O, and language-level
-  solutions — parallelism adds complexity, and higher-level fixes often eliminate
-  the bottleneck entirely
+- Reach for parallelism only after exhausting algorithmic, I/O, data-locality,
+  and language/runtime solutions — parallelism adds complexity, and higher-level
+  fixes often eliminate the bottleneck entirely
 - Design solutions from profiling data, not intuition — gut feelings about
   bottlenecks are frequently wrong
 - **Focus effort on the hot path** — optimizing cold code wastes time for
@@ -330,6 +401,15 @@ In conversation:
   is genuinely irreducible.
 - Profile memory alongside CPU — GC pressure and allocation overhead are real
   bottlenecks that CPU profiles miss
+- Do not skip CPU/cache evidence for low-level CPU-bound systems. If hardware
+  counters or cache/branch tools are unavailable, say what blocked them and use
+  the nearest substitute.
+- Treat microbenchmarks as evidence, not proof. Validate hot-path wins against
+  representative end-to-end workload, and control obvious noise: warmup, input
+  size, CPU frequency, debug builds, logging, and background load.
+- Beware pointer chasing, branch unpredictability, cache-line bouncing, and NUMA
+  effects in concurrent low-level code. These often look like "CPU time" until
+  hardware counters or cache-line tools separate the cause.
 - Research the ecosystem's profiling tools first — they vary dramatically and
   using the wrong one wastes cycles
 
@@ -343,6 +423,8 @@ In conversation:
   irreducible.
 - Profile memory alongside CPU. GC pressure and allocation overhead are real
   bottlenecks that CPU profiles miss.
+- For low-level CPU-bound work, include CPU/cache and branch evidence or record
+  why it was not available.
 - Research the ecosystem's profiling tools first. Don't trust training data for
   fast-moving tooling.
 - The plan lives in the feature's body. NEVER create `docs/designs/perf-<name>.md`.

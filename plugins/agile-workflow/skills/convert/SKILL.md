@@ -7,8 +7,11 @@ description: >
   AGENTS.md section + Claude compatibility symlink/shim + migration based on detected
   source shape), sync mode for
   projects that already have the substrate (refreshes plugin-shipped artifacts —
-  AGENTS.md section, CLAUDE.md compatibility, .work/bin/work-view — while preserving
-  user-owned CONVENTIONS.md and substrate state, and reports drift).
+  AGENTS.md section, CLAUDE.md compatibility, .work/bin/work-view, and optional
+  .agents skill catalog mirrors — while preserving user-owned CONVENTIONS.md,
+  refactor convention rules, and substrate state, and reports drift). Always asks
+  whether destructive cleanup is in scope before deleting, moving, or replacing
+  legacy artifacts; preserve-only is the default.
   Idempotent — re-running on a healthy project is a no-op sync. User-invocable only
   since substrate work is consequential and interactive.
 user-invocable: true
@@ -25,12 +28,23 @@ inspects the current repo and auto-routes:
 - **Sync** — substrate exists. Refresh plugin-shipped artifacts so a project
   picks up plugin upgrades. Preserves all user content.
 
+Convert distinguishes **alignment** from **cleanup**:
+
+- **Alignment** adds or refreshes plugin-owned artifacts: `.work/bin/work-view`,
+  the marked agile-workflow AGENTS section, missing shims, and generated wrapper
+  text that can be refreshed without losing user content.
+- **Cleanup** deletes, moves, or replaces existing legacy artifacts: old tracking
+  docs, duplicate Claude files, divergent `.claude/skills/*` copies, or legacy
+  generated plan files. Cleanup is opt-in and path-specific.
+
 ## Arguments
 
 - `convert` — auto-detect mode (recommended). Bootstraps if no substrate is
   present, otherwise syncs plugin artifacts and reports drift.
-- `convert --update` — explicit sync. Identical to auto-sync; useful in scripts
-  or when you want to assert intent.
+- `convert --update` — explicit sync / one-pass artifact alignment. Identical
+  to auto-sync, but useful when you want to assert intent or repair plugin
+  artifacts, AGENTS/CLAUDE compatibility, `.work/bin/work-view`, pattern-skill
+  mirrors, and refactor-conventions catalog placement in one pass.
 - `convert --shape <shape>` — force a specific source shape for bootstrap
   (`workflow-plugin`, `ad-hoc`, `no-tracking`, `greenfield`). Errors if the
   substrate already exists — remove `.work/` first to force a re-bootstrap.
@@ -68,8 +82,8 @@ Route on the result:
 | No args AND `substrate_root` is false | **bootstrap** | Standard fresh project flow. |
 | No args AND `substrate_root` is true | **sync** | Auto-sync. Log the decision: "Substrate detected at `.work/` — running in sync mode. Use `--shape` after removing `.work/` if you want a re-bootstrap." |
 
-When in **sync mode**, jump to the Sync Workflow section below. Otherwise
-continue with Phase 2.
+When in **bootstrap mode**, continue with Phase 1.6. When in **sync mode**, skip
+Phase 1.6, run Phase 1.7, then jump to the Sync Workflow section below.
 
 ### Phase 1.6 (bootstrap only): Check for in-flight working-tree work
 
@@ -78,6 +92,46 @@ If > 5, this is a "dirty repo bootstrap" — uncommitted work needs to be
 captured into the substrate alongside the migration, otherwise autopilot
 will have nothing to drain right after bootstrap. See Phase 8.5 for
 capture handling.
+
+### Phase 1.7: Cleanup scope checkpoint
+
+Before any bootstrap or sync writes, detect likely cleanup candidates:
+
+- Legacy tracking docs: `docs/designs/`, `docs/designs/completed/`,
+  `docs/ROADMAP.md`, `docs/PROGRESS.md`, `TODO.md`, `BACKLOG.md`, `NOTES.md`,
+  `tasks/`.
+- Duplicate or legacy agent entrypoints: regular-file `CLAUDE.md`,
+  `.claude/CLAUDE.md`, `.agents/CLAUDE.md`, `.claude/rules/patterns.md`.
+- Legacy skill mirrors: `.claude/skills/patterns/`,
+  `.claude/skills/refactor-conventions/`.
+- Old generated refactor-conventions wrappers that tell agents to write
+  standalone `.md` refactoring plans.
+
+If no candidates exist, set `cleanup_scope: preserve-only` and continue.
+
+If candidates exist, ask once via `AskUserQuestion`:
+
+> "I found legacy or duplicate agile-workflow artifacts. Should convert only
+> align the current artifacts, or is cleanup in scope too?"
+
+Offer exactly these choices:
+
+1. **Preserve all (Recommended)** — add/refresh current artifacts, import useful
+   legacy content, but do not delete, move, or replace existing legacy files.
+2. **Generated only** — may replace known generated duplicate/shim/mirror files
+   with current symlinks or shims after preserving/importing content.
+3. **Legacy cleanup** — may also remove or move old tracking artifacts after
+   migration, but only after a second confirmation that lists exact paths.
+
+Normalize and record the answer as `cleanup_scope` in the run notes and, for
+bootstrap, in `MIGRATION_REPORT.md`: `preserve-only`, `generated-only`, or
+`legacy-cleanup`. `legacy-cleanup` includes generated cleanup.
+
+Even when `cleanup_scope` allows cleanup, every destructive action still needs
+an exact path list in the plan before applying. Prefer `git mv` to a clearly
+named legacy location when the user wants retention; use `git rm` only when the
+user explicitly chose deletion for those paths. Never use broad globs for
+cleanup.
 
 ### Phase 2: Detect project shape
 
@@ -117,8 +171,10 @@ a nested file unless the project has explicitly configured that fallback.
 
 Legacy `.claude/rules/patterns.md` is not a separate canonical rules target.
 When it exists, preserve its non-duplicate content by importing it into the
-selected AGENTS target, then replace the legacy file with a short shim pointing
-agents at `AGENTS.md`. If it does not exist, do not create it.
+selected AGENTS target. Replace it with a short shim only when
+`cleanup_scope` allows generated cleanup or the user confirms that exact path;
+otherwise leave it in place and report it as legacy content that was imported.
+If it does not exist, do not create it.
 
 ### Phase 3: Conventions interview
 
@@ -186,6 +242,12 @@ instead of relying on chat history.
 Project-level agent rules live in AGENTS.md. Do not create or maintain
 `.claude/rules/patterns.md` as a source of truth; reusable structural patterns
 belong in `.agents/skills/patterns/`.
+
+Project-specific refactor style conventions belong in AGENTS.md under
+`## Refactor Style Conventions`. Detailed refactor convention references belong
+in `.agents/skills/refactor-conventions/` and extend `refactor-design`'s
+defaults; they do not replace the built-in scan and they do not create
+standalone plan docs.
 
 ### Tag semantics
 
@@ -257,9 +319,12 @@ Handle every detected Claude candidate (`CLAUDE.md`, `.claude/CLAUDE.md`,
      AGENTS target under a short `## Imported Claude Code Instructions` heading,
      unless the same content is already present.
    - After import, replace the Claude file with a symlink to the selected
-     AGENTS target.
+     AGENTS target only when `cleanup_scope` allows generated cleanup or the
+     user confirms that exact path. Otherwise leave it in place and report the
+     duplicate entrypoint.
 3. If symlink creation is unavailable or unsafe in the environment, write this
-   shim instead:
+   shim instead only when the same cleanup authorization exists. Otherwise leave
+   the file in place and report it as a duplicate entrypoint:
 
    ```markdown
    # Claude Code Instructions
@@ -276,7 +341,9 @@ Claude compatibility entrypoint:
 1. If it exists as a regular file and contains content not already present in
    the selected AGENTS target, import that content under a short
    `## Imported Claude Pattern Rules` heading.
-2. Replace `.claude/rules/patterns.md` with this shim:
+2. Replace `.claude/rules/patterns.md` with this shim only when
+   `cleanup_scope` allows generated cleanup or the user confirms that exact
+   path:
 
    ```markdown
    # Pattern Rules
@@ -333,8 +400,17 @@ For `docs/ROADMAP.md` phases:
 
 For `docs/PROGRESS.md` deviation logs: fold notes into relevant items' bodies.
 
-Leave alone: `docs/designs/`, `docs/designs/completed/`, `docs/ROADMAP.md`,
-`docs/PROGRESS.md`. They become legacy history; user can delete after verifying.
+By default, leave alone: `docs/designs/`, `docs/designs/completed/`,
+`docs/ROADMAP.md`, `docs/PROGRESS.md`. They become legacy history.
+
+If `cleanup_scope: legacy-cleanup`, build a separate cleanup plan after item
+creation:
+
+1. List the exact legacy paths that are fully represented in `.work/`.
+2. Ask the user whether to keep, move, or delete them.
+3. Apply only the confirmed path actions. Prefer `git mv` when the user wants a
+   retained legacy copy; use `git rm` only for paths explicitly chosen for
+   deletion.
 
 #### Path B — ad-hoc
 
@@ -389,7 +465,8 @@ something to drain after bootstrap:
 
 Write `MIGRATION_REPORT.md` at the repo root (NOT in `docs/`) per the format in
 MIGRATION.md. Include: source shape, foundation docs detected (preserved), items
-seeded by tier, files left in place, conventions chosen, next steps.
+seeded by tier, cleanup scope, files left in place, cleanup actions taken,
+conventions chosen, next steps.
 
 ### Phase 10: Commit
 
@@ -399,16 +476,20 @@ Single git commit:
 git add .work/ AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md MIGRATION_REPORT.md
 # If a legacy rules shim was created or updated:
 git add .claude/rules/patterns.md
+# If cleanup was explicitly confirmed for exact paths:
+git add -A <confirmed-cleanup-paths>
 git commit -m "chore: bootstrap agile-workflow substrate"
 ```
 
 User reverts via `git revert HEAD` if anything looks wrong. Source files are
-preserved across all paths.
+preserved across all paths unless the user explicitly opted into cleanup and
+confirmed exact paths.
 
 ## Sync Workflow
 
 Entered via auto-detection when `.work/` exists, or explicitly via `--update`.
-Non-destructive — refreshes plugin-shipped artifacts and reports drift.
+Non-destructive by default — refreshes plugin-shipped artifacts and reports
+drift. Cleanup runs only when Phase 1.7 explicitly put it in scope.
 
 ### Phase S1: Audit substrate health
 
@@ -418,6 +499,10 @@ Re-use the marker checks from Phase 1.5 plus deeper checks:
   `claude_compat`, `work_view`) — present or missing
 - Legacy `.claude/rules/patterns.md` — absent, shimmed to AGENTS, or containing
   importable legacy rules content
+- Optional project skill catalogs — canonical `.agents/skills/patterns/` and
+  `.agents/skills/refactor-conventions/`, plus `.claude/skills/*` compatibility
+  mirrors when present
+- Cleanup candidates and current `cleanup_scope` answer from Phase 1.7
 - For each plugin-shipped artifact that IS present, compare its content against
   the version in the current plugin source:
   - The selected AGENTS target section between `<!-- agile-workflow:start -->` /
@@ -427,6 +512,12 @@ Re-use the marker checks from Phase 1.5 plus deeper checks:
   - `.claude/rules/patterns.md` state (legacy content vs AGENTS shim)
   - `.work/CONVENTIONS.md` load-bearing tag entries (see below). The rest of
     CONVENTIONS is user-owned and untouched.
+  - `.agents/skills/refactor-conventions/SKILL.md` wrapper shape when present:
+    current catalog shape vs old generated template that writes standalone
+    `.md` refactoring plans. Rule reference files are user-owned.
+  - `.claude/skills/patterns/` and `.claude/skills/refactor-conventions/`
+    mirror state: absent, symlink to `.agents`, byte-for-byte mirror, or
+    divergent copy.
 
 **Load-bearing tag drift in CONVENTIONS.md.** CONVENTIONS is user-owned, but a
 narrow subset of its content — the entries for routing tags (`refactor`,
@@ -472,14 +563,45 @@ rules file with the AGENTS shim. Treat user-edited or ambiguous content as
 `drift_user` and ask before import; treat old generated pattern-rules content as
 `drift_plugin`.
 
+**Refactor-conventions catalog alignment.** This catalog is optional. If absent
+from both `.agents` and `.claude`, treat it as `match` and do not create it.
+When present:
+
+- `.agents/skills/refactor-conventions/` is canonical.
+- `.claude/skills/refactor-conventions/` is only a compatibility mirror.
+- If only the Claude copy exists, classify as `drift_plugin` when it matches a
+  known generated template; otherwise classify as `drift_user` and ask before
+  copying it into `.agents`.
+- If both copies exist and differ, classify as `drift_user`; ask whether to
+  merge unique rule references into `.agents`, prefer `.agents`, or leave both.
+- If the `.agents` `SKILL.md` contains the old generated instruction to write a
+  standalone `.md` refactoring plan, classify only the wrapper as
+  `drift_plugin`. Refresh the wrapper/index shape, but preserve
+  `references/style/` and `references/structure/` content.
+- If the catalog has style rule references but the selected AGENTS target lacks
+  `## Refactor Style Conventions`, classify as `missing` and ask whether to
+  synthesize concise AGENTS entries from the catalog. Do not invent style rules
+  when the catalog lacks them.
+
 ### Phase S2: Plan the sync
 
 Produce a per-artifact plan: what's `match` (skip), what's `drift_plugin`
 (auto-refresh), what's `drift_user` (ask before overwriting), what's `missing`
 (install).
 
+Also produce a cleanup plan, even if the answer is "none":
+
+- **Out of scope** — candidates found but preserved because
+  `cleanup_scope: preserve-only`.
+- **Generated cleanup candidates** — generated duplicate files/mirrors that can
+  be replaced by symlinks/shims if `cleanup_scope` allows it.
+- **Legacy cleanup candidates** — old tracking docs or task files that can be
+  moved or removed only under `cleanup_scope: legacy-cleanup` and after exact
+  path confirmation.
+
 If every artifact is `match`, the sync is a true no-op — log "Substrate already
-up to date. No changes." and return without committing.
+up to date. No changes." If cleanup candidates exist but cleanup is out of
+scope, still report them as preserved and return without committing.
 
 If anything would change, summarise the plan and (when running interactively)
 confirm before applying.
@@ -495,11 +617,26 @@ For each artifact with a non-`match` state:
   `chmod +x`
 - Claude compatibility — convert legacy generated content from any detected
   Claude candidate into the selected AGENTS target, then replace the Claude
-  file with a symlink to that target. If symlinks are not available, write the
-  shim from Phase 7.
+  file with a symlink to that target only when `cleanup_scope` allows generated
+  cleanup or the user confirms that exact path. If symlinks are not available,
+  write the shim from Phase 7 only under the same cleanup authorization.
 - Legacy `.claude/rules/patterns.md` — only when present, import
   non-duplicate content into the selected AGENTS target, then replace the file
-  with the Pattern Rules shim from Phase 7.
+  with the Pattern Rules shim from Phase 7 only when cleanup is authorized for
+  that exact path.
+- Optional pattern and refactor-conventions mirrors — align `.claude/skills/*`
+  to `.agents/skills/*` when the `.agents` catalog exists and the Claude copy is
+  absent, a symlink, or a known generated mirror, and cleanup is in scope for
+  generated mirrors. If the Claude copy contains unique user content, ask before
+  import or replacement.
+- Refactor-conventions wrapper — when `.agents/skills/refactor-conventions/`
+  exists and its `SKILL.md` is a known old generated template, rewrite only
+  `SKILL.md` to the current catalog/index shape. Preserve all rule reference
+  files and user-authored examples.
+- Refactor style conventions in AGENTS — if missing but derivable from
+  `.agents/skills/refactor-conventions/references/style/`, ask before adding a
+  concise `## Refactor Style Conventions` section. If the user declines, leave
+  the catalog intact and report the mismatch.
 - Load-bearing tag entries in `.work/CONVENTIONS.md` — for each entry flagged
   `drift_plugin` or `missing` in Phase S1, ask the user via `AskUserQuestion`
   before rewriting:
@@ -516,6 +653,10 @@ For each artifact with a non-`match` state:
 
 For `drift_user` items, only proceed after the user confirms.
 
+For cleanup candidates, only proceed when the candidate class is inside
+`cleanup_scope`, then ask with exact paths before applying any `git mv` or
+`git rm`. If the user declines, leave the files and report them as preserved.
+
 ### Phase S4: Preserve user state
 
 These are NEVER touched in sync mode:
@@ -527,10 +668,18 @@ These are NEVER touched in sync mode:
   tags, slug conventions, gate config, any user prose — is untouched.
 - Everything under `.work/active/`, `.work/backlog/`, `.work/releases/`,
   `.work/archive/`
+- User-authored rule references under `.agents/skills/refactor-conventions/`.
+  Sync may refresh the generated `SKILL.md` wrapper when it matches a known old
+  template, but it must not rewrite rule bodies, examples, exceptions, or scope
+  content without explicit confirmation.
+- `.agents/skills/patterns/` pattern bodies. Sync may align mirrors, but
+  `gate-patterns` owns pattern discovery and updates.
 - AGENTS content outside the agile-workflow markers, except imported legacy
-  Claude content and imported legacy Claude pattern-rules content the user
-  confirms should become canonical
+  Claude content, imported legacy Claude pattern-rules content, and synthesized
+  refactor style convention summaries the user confirms should become canonical
 - `MIGRATION_REPORT.md` (a bootstrap artifact; sync never writes it)
+- Any cleanup candidate outside the chosen `cleanup_scope`
+- Any cleanup candidate not listed by exact path in the confirmed cleanup plan
 
 ### Phase S5: Commit
 
@@ -540,8 +689,12 @@ If any files were rewritten:
 git add AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md .work/bin/work-view
 # If a legacy rules shim was created or updated:
 git add .claude/rules/patterns.md
+# If optional project skill catalogs or mirrors were aligned:
+git add .agents/skills/patterns .claude/skills/patterns .agents/skills/refactor-conventions .claude/skills/refactor-conventions
 # If load-bearing CONVENTIONS tag entries were refreshed with user confirmation:
 git add .work/CONVENTIONS.md
+# If cleanup was explicitly confirmed for exact paths:
+git add -A <confirmed-cleanup-paths>
 git commit -m "chore: agile-workflow sync"
 ```
 
@@ -551,12 +704,16 @@ Skip the commit entirely if Phase S3 produced no file changes.
 
 After bootstrap:
 - Brief summary in conversation: shape detected, items seeded by tier, conventions
-  chosen, next-step recommendation.
+  chosen, cleanup scope, cleanup actions taken or preserved, next-step
+  recommendation.
 - Point at `MIGRATION_REPORT.md` for the full breakdown.
 
 After sync (auto or `--update`):
 - Per-artifact line: `match` / `refreshed (plugin drift)` / `refreshed (user
   drift, confirmed)` / `installed (was missing)`.
+- Include optional artifact status for pattern-skill mirrors and
+  refactor-conventions catalog/mirrors when present.
+- Include cleanup scope plus preserved / cleaned exact paths.
 - If everything matched: one line — "Substrate already up to date. No changes."
 - If anything changed: one line summary plus the commit sha.
 
@@ -564,7 +721,14 @@ After sync (auto or `--update`):
 
 - **Bootstrap is a single-commit migration ALWAYS.** No partial states. If
   anything errors mid-run, rollback (no commit). User can re-run cleanly.
-- Source files are preserved across all paths. Convert never deletes user content.
+- Source files are preserved across all paths by default. Convert never deletes
+  user content unless the user explicitly opted into cleanup and confirmed exact
+  paths.
+- Destructive cleanup is opt-in. Default to `cleanup_scope: preserve-only`.
+- Never delete, move, or replace existing legacy artifacts unless cleanup is in
+  scope and the exact path appears in the confirmed cleanup plan.
+- Prefer `git mv` for retained legacy artifacts. Use `git rm` only when the user
+  explicitly chose deletion for exact paths. Never use broad cleanup globs.
 - The conventions interview is mandatory in bootstrap mode. No silent inference
   of release mapping or tag taxonomy.
 - Foundation docs are read-only from convert. They roll forward through `scope`,

@@ -11,7 +11,7 @@ description: >
   findings as items rather than gating on human acknowledgment, so autopilot can call
   this directly to drain stage:review items. Triggers on "review item X", "review
   this", "review <id>", "is this ready", "verdict on <id>".
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion
 ---
 
 # Review

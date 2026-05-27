@@ -6,8 +6,10 @@ description: >
   code smells, separates pure refactors from behavior changes, and emits
   substrate items. Per-feature mode plans an existing [refactor] feature at
   stage:drafting, writes the plan into the feature body, spawns child stories
-  with depends_on chains, and advances drafting -> implementing.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
+  with depends_on chains, and advances drafting -> implementing. Uses sensible
+  built-in refactor heuristics by default, and extends them with a
+  project-specific refactor-conventions catalog when present.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
 ---
 
 # Refactor-Design
@@ -20,6 +22,12 @@ paths. Each step that warrants its own implementation pass becomes a child story
 A refactor preserves behavior. If you find yourself adding capability, that's not a
 refactor — escalate via `/agile-workflow:scope` to add a feature without `[refactor]`
 tag instead.
+
+`refactor-design` has its own sensible defaults: code smells, missing
+abstractions, established pattern drift, naming inconsistencies, and dead weight.
+If `.agents/skills/refactor-conventions/` exists, treat it as an additional
+project-specific lens. It extends the default scan; it never replaces it. If the
+catalog is absent, proceed normally.
 
 ## Trigger
 
@@ -60,15 +68,18 @@ them.
 ### Phase D2: Ground yourself
 
 Read `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `AGENTS.md` /
-`CLAUDE.md`, and
-`.work/CONVENTIONS.md`. One pass — orient, don't memorize.
+`CLAUDE.md`, `.work/CONVENTIONS.md`, and, if present,
+`.agents/skills/refactor-conventions/SKILL.md` plus relevant referenced rule
+files. One pass — orient, don't memorize.
 
 ### Phase D3: Code-smell scan via parallel Task agents
 
 Run the same parallel sub-agent scan as Phase 3 of per-feature mode (Code
 Smells, Missing Abstractions, Pattern Violations & Naming Inconsistencies,
-Dead Weight) but scoped to the target from Phase D1 instead of one feature's
-area. After results, read 2-3 key files yourself to verify.
+Dead Weight, and optional Project Refactor Conventions) but scoped to the
+target from Phase D1 instead of one feature's area. The optional conventions
+scan only runs when `.agents/skills/refactor-conventions/` exists. After
+results, read 2-3 key files yourself to verify.
 
 ### Phase D4: Classify each finding
 
@@ -98,7 +109,9 @@ omit the `[refactor]` tag — let feature-design handle them.
 ### Phase D6: Emit items and commit
 
 For each finding (or cluster), write the item file with brief + file:line
-references + one-line rationale. Set `gate_origin: refactor-design` for trace.
+references + one-line rationale. Include the source lens when useful
+(`code-smell`, `missing-abstraction`, `pattern-drift`, `dead-weight`, or
+`refactor-convention:<rule>`). Set `gate_origin: refactor-design` for trace.
 Cycle-check `depends_on` if any.
 
 Commit per batch:
@@ -124,7 +137,8 @@ drafting features. Iterate over the target set:
 
 1. Read the feature; skip if not `[refactor]`-tagged or not at `stage: drafting`
 2. Light ground (foundation docs + AGENTS.md / CLAUDE.md)
-3. One Explore sub-agent over the feature's area
+3. One Explore sub-agent over the feature's area; include
+   `.agents/skills/refactor-conventions/` as context when present
 4. Surface strategic ambiguities specific to the refactor (e.g., "preserve API
    shape or break consumers?", "in-place or shadow-then-swap?", "rollback
    strategy when atomic?"). Use AskUserQuestion.
@@ -162,6 +176,9 @@ The principles skill auto-loads. Read:
 - `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md` (refactor must not
   violate spec constraints)
 - `AGENTS.md` / `CLAUDE.md`
+- `.agents/skills/refactor-conventions/SKILL.md` and relevant referenced rule
+  files, if present. Treat these as project-specific extension lenses, not as
+  replacements for the defaults below.
 - The parent epic if `parent` is set
 - The code under refactor — read it thoroughly, don't refactor blind
 
@@ -169,6 +186,10 @@ The principles skill auto-loads. Read:
 
 Spawn parallel read-only Explore sub-agents. Send all in one message; wait for
 all.
+
+The first four scan axes are mandatory. Run them even when a project-specific
+refactor-conventions catalog exists. The catalog adds a fifth scan axis; it
+does not narrow or disable the default refactor judgment.
 
 - **Claude Code / Anthropic:** Task/Explore with Sonnet minimum; use Opus for
   large or architecture-heavy refactors.
@@ -197,23 +218,41 @@ all.
    for importers), commented-out blocks, TODO/FIXME where the work is clearly
    already done, files with very few callers. Report each with file:line."
 
+5. **Project Refactor Conventions** — Run only when
+   `.agents/skills/refactor-conventions/` exists. "Read
+   `.agents/skills/refactor-conventions/SKILL.md`, its referenced rule files,
+   and the `## Refactor Style Conventions` section in AGENTS.md if present.
+   Find high-confidence convention drift in <area>. Report only issues where a
+   behavior-preserving refactor has real value: less duplication, clearer
+   boundaries, easier scanning, lower coordination cost, or alignment with a
+   repeatedly-used project rule. Do not report churn-only violations. Include
+   the rule name, file:line, why it matters, and whether it is small/surgical
+   or multi-file."
+
 After results, **read 2-3 key files yourself** to verify findings.
 
 ### Phase 4: Categorize findings
 
 Sort the findings into:
 - **High value** — reduces duplication, extracts shared abstractions, consolidates
-  similar code
+  similar code, or corrects convention drift that materially improves module
+  boundaries or repeated project workflow
 - **Medium value** — improves consistency, aligns with established patterns
 - **Low value** — minor structural improvements
 
 Each refactor step you plan must articulate the value. If you can't articulate the
 payoff, drop the step.
 
+Convention drift by itself is not automatically high value. Aesthetic-only or
+mass-import-churn fixes should be dropped or recorded as "not worth it" in the
+run summary.
+
 ### Phase 5: Design refactor steps
 
 For each step, specify:
 - **Step name and value tier** (High / Medium / Low)
+- **Source lens**: code smell / missing abstraction / pattern drift /
+  dead weight / refactor convention `<rule>` (if applicable)
 - **Files affected**: paths
 - **Current state**: actual code showing what exists now
 - **Target state**: exact code showing what it should look like after
@@ -258,6 +297,7 @@ Append to the feature file's body:
 ### Step 1: <name>
 **Priority**: High/Medium/Low
 **Risk**: Low/Medium/High
+**Source Lens**: code smell / missing abstraction / pattern drift / dead weight / refactor convention `<rule>`
 **Files**: `src/path/file.ext`, ...
 **Story**: `<story-id>` (if spawned)
 
@@ -306,6 +346,7 @@ Append to the feature file's body:
 In conversation:
 - **Designed**: `<feature-id>` advanced to `stage: implementing`
 - **Steps**: list with priority and risk
+- **Convention-driven steps**: list or "none"
 - **Child stories**: list with `depends_on` chain
 - **Atomic steps acknowledged**: any that can't be cleanly rolled back
 - **Next**: `/agile-workflow:implement <story-id>` for sequential, or
@@ -320,6 +361,10 @@ In conversation:
 - Specify test verification for every step. A refactor without verification is a hope.
 - Prioritize measurable improvements (less duplication, clearer boundaries) over
   aesthetic preferences. Beauty that doesn't reduce complexity isn't worth the risk.
+- Project-specific refactor conventions extend the defaults; they never replace
+  the built-in scan. If no convention catalog exists, proceed normally.
+- Convention violations are not automatically work. Emit only behavior-preserving
+  refactors with meaningful payoff; record churn-only fixes as not worth it.
 - If a refactor changes a public API, include a migration path. Breaking consumers
   without a path forward creates more work than the refactor saves.
 - Cycle prevention is mandatory for `depends_on`. Use `work-view --blocking`.
