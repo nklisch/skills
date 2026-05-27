@@ -145,6 +145,17 @@ Read `.work/active/features/<id>.md`. Confirm:
 
 The brief should describe what's being refactored and why. Use it as input.
 
+**Misroute check.** Apply the black-box test to the brief: would any observable
+behavior change for a caller of the public surface as a result of this work?
+Signals you're misrouted: the brief describes new capability, an API or
+contract change, swapped semantics, "replacing X with Y" rather than
+"restructuring X," or "major rework of X." If any of those apply, this item
+was mistagged. Strip `refactor` from the item's `tags` frontmatter, append a
+one-line note to the body ("Misrouted to refactor-design; brief describes
+behavior change rather than pure restructuring — retagged for feature-design"),
+commit (`refactor-design misroute: <id> retagged for feature-design`), and
+return without advancing the stage. Autopilot will reroute on the next pass.
+
 ### Phase 2: Ground yourself
 
 The principles skill auto-loads. Read:

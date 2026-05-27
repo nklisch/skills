@@ -117,6 +117,13 @@ Bias rules:
   here.
 - **Don't force-cluster.** Ideas that don't naturally belong with anything else
   are leftovers; handle them in Phase B6.
+- **`[refactor]` tag application.** Only tag a cluster `[refactor]` if it
+  passes the black-box test — no observable behavior change for callers of
+  the public surface. Pure structural cleanup (dedupe, split, rename,
+  dead-code removal) qualifies. "Major rework that keeps the surface" or
+  anything that shifts internal semantics does NOT — let those route through
+  `feature-design`. Same rule for `[perf]`: pure performance work on an
+  existing capability only.
 
 ### Phase B5: Strategic decisions (per large cluster)
 
@@ -365,7 +372,17 @@ roll-forward commit and are inherited by `epic-design` Phase 4.6.
 
 ### Phase 5: Write the item file
 
-Per the SPEC.md frontmatter contract. Required fields for an item in active:
+Per the SPEC.md frontmatter contract. Required fields for an item in active.
+
+**Before applying `[refactor]` as a tag**, apply the black-box test: would any
+observable behavior of the public surface change for a caller? If yes, do NOT
+tag `[refactor]` — let the item route to `feature-design` instead. `[refactor]`
+is reserved for pure structural change (extract helpers, split god files,
+rename for clarity, remove dead code, inline a one-call abstraction). "Major
+rework that keeps the API shape" still fails the test if internal semantics
+shift. The same rule applies to `[perf]` — apply only if the work is purely
+about throughput / latency / memory of an existing capability, not adding new
+capability that happens to be fast.
 
 ```yaml
 ---

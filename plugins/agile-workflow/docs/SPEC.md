@@ -103,8 +103,8 @@ skill reads this at session start (via the SessionStart hook or directly).
 ## Tag taxonomy
 <list of tags this project uses, with one-line semantics>
 - security    auth, validation, secrets, supply chain
-- perf        throughput, latency, memory
-- refactor    structural cleanup, no behavior change
+- perf        throughput, latency, memory — routes to perf-design
+- refactor    behavior-preserving structural change ONLY — fails the black-box test (any observable behavior change for callers) means NOT a refactor — routes to refactor-design
 
 ## Slug conventions
 <format and prefix rules>

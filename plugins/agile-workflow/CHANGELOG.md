@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.7.5 - Tighten [refactor] tag routing
+
+Stops mistagged "major rework" items from leaking into `refactor-design` when
+they actually change observable behavior.
+
+- **Sharper tag semantics** - The AGENTS.md section now ships a `### Tag
+  semantics` subsection with the black-box test ("would any observable
+  behavior change for a caller of the public surface?") plus contrasting
+  examples on each side. Definition is re-read by agents mid-work, not just
+  buried in CONVENTIONS.md. SPEC.md's CONVENTIONS template entries for
+  `[refactor]` and `[perf]` are tightened to match.
+- **Misroute self-heal in refactor-design** - Per-feature mode Phase 1 now
+  applies the black-box test to the brief. If the item describes new
+  capability, an API change, swapped semantics, or "rework rather than
+  restructuring," it strips `[refactor]`, logs the misroute, commits, and
+  returns without advancing - autopilot reroutes to `feature-design` on the
+  next pass. Mirrors `feature-design`'s existing misroute guard.
+- **Tag application gate in scope** - Phase 5 (single-idea) and Phase B4
+  (batch clustering) now require the black-box test before applying
+  `[refactor]` or `[perf]`. Stops the bad tag at the source.
+- **Convert sync handles existing projects** - `convert` and
+  `convert --update` now detect verbatim-stale tag entries in
+  `.work/CONVENTIONS.md` (only the known prior plugin defaults — user-edited
+  lines are treated as intentional) and offer to refresh them via
+  AskUserQuestion. Non-destructive: only flagged lines are touched, never the
+  rest of CONVENTIONS.
+
 ## v0.7.4 - AGENTS-backed legacy pattern rules migration
 
 - **Gate-patterns rules source** - `gate-patterns` now reads project rules from

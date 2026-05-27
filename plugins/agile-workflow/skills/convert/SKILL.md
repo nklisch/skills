@@ -187,6 +187,26 @@ Project-level agent rules live in AGENTS.md. Do not create or maintain
 `.claude/rules/patterns.md` as a source of truth; reusable structural patterns
 belong in `.agents/skills/patterns/`.
 
+### Tag semantics
+
+The `tags` field on items routes them to the right design skill. One tag has
+load-bearing semantics — get this one right:
+
+- **`[refactor]`** — behavior-preserving structural change ONLY. Apply the
+  black-box test: would any observable behavior change for a caller of the
+  public surface? If yes, this is NOT a refactor — drop the tag and let the
+  item route through `feature-design`.
+  - Counts as refactor: extract a helper to dedupe, split a god file, rename
+    for clarity, remove dead code, inline a one-call abstraction.
+  - Does NOT count as refactor (even if it feels "structural"): change an API
+    signature, swap a storage backend with different consistency guarantees,
+    replace a silent failure with an explicit error, split a function in a
+    way that changes call-site contracts, "major rework of X."
+- **`[perf]`** — performance work. Routes to `perf-design`.
+
+All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
+affect skill routing.
+
 ### Test integrity
 
 When running, writing, or modifying tests:
@@ -405,6 +425,29 @@ Re-use the marker checks from Phase 1.5 plus deeper checks:
   - `.work/bin/work-view` vs `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/work-view.sh`
   - `CLAUDE.md` compatibility state (symlink/shim/legacy copy)
   - `.claude/rules/patterns.md` state (legacy content vs AGENTS shim)
+  - `.work/CONVENTIONS.md` load-bearing tag entries (see below). The rest of
+    CONVENTIONS is user-owned and untouched.
+
+**Load-bearing tag drift in CONVENTIONS.md.** CONVENTIONS is user-owned, but a
+narrow subset of its content — the entries for routing tags (`refactor`,
+`perf`) — has plugin-defined semantics. When those entries match a known prior
+plugin default verbatim, treat them as plugin-shipped drift candidates.
+
+Known prior defaults to recognize:
+- `refactor    structural cleanup, no behavior change` (verbatim, any leading
+  `- `)
+- `refactor    structural cleanup` (older terser variant)
+- `perf        throughput, latency, memory` (without the routing note)
+
+Detection rule for each load-bearing tag line:
+- Line matches a known prior default verbatim → `drift_plugin` (offer refresh)
+- Line is user-customized (any divergence from known defaults) → `match`
+  (treat as intentional; do not touch)
+- Line is absent entirely → `missing` (offer to add the canonical entry)
+
+The current canonical entries live in `docs/SPEC.md` under
+"`.work/CONVENTIONS.md` → Tag taxonomy" and must be kept in sync with that
+template.
 
 Classify each artifact as one of:
 
@@ -457,6 +500,19 @@ For each artifact with a non-`match` state:
 - Legacy `.claude/rules/patterns.md` — only when present, import
   non-duplicate content into the selected AGENTS target, then replace the file
   with the Pattern Rules shim from Phase 7.
+- Load-bearing tag entries in `.work/CONVENTIONS.md` — for each entry flagged
+  `drift_plugin` or `missing` in Phase S1, ask the user via `AskUserQuestion`
+  before rewriting:
+  > "Your `.work/CONVENTIONS.md` has the old default text for the `[refactor]`
+  > tag. The current plugin default tightens the definition to lock the
+  > `refactor-design` vs `feature-design` routing — refresh it?"
+  > Options: `Refresh to current default` / `Keep my current text` /
+  > `Show me the diff first`.
+
+  If the user accepts, replace just that line in CONVENTIONS.md (preserve
+  everything else). Do NOT rewrite the whole tag taxonomy section — only the
+  lines flagged as drift. If the entry was `missing`, append it in the Tag
+  taxonomy section.
 
 For `drift_user` items, only proceed after the user confirms.
 
@@ -464,7 +520,11 @@ For `drift_user` items, only proceed after the user confirms.
 
 These are NEVER touched in sync mode:
 
-- `.work/CONVENTIONS.md` (user-owned)
+- `.work/CONVENTIONS.md` user-customized content. The single exception is
+  load-bearing tag entries (`refactor`, `perf`) when they match a known prior
+  plugin default verbatim — those may be refreshed in Phase S3 with user
+  confirmation. Everything else in CONVENTIONS — release mapping, project
+  tags, slug conventions, gate config, any user prose — is untouched.
 - Everything under `.work/active/`, `.work/backlog/`, `.work/releases/`,
   `.work/archive/`
 - AGENTS content outside the agile-workflow markers, except imported legacy
@@ -480,6 +540,8 @@ If any files were rewritten:
 git add AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md .work/bin/work-view
 # If a legacy rules shim was created or updated:
 git add .claude/rules/patterns.md
+# If load-bearing CONVENTIONS tag entries were refreshed with user confirmation:
+git add .work/CONVENTIONS.md
 git commit -m "chore: agile-workflow sync"
 ```
 
