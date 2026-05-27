@@ -1,17 +1,14 @@
 ---
 name: bug-scan
 description: >
-  Deep multi-angle bug hunt that fans parallel deep scanner sub-agents across a codebase, one
-  per bug domain (concurrency & races, async/promise, state/closures, resource leaks, time &
-  numbers, error handling, data layer, language footguns). Each scanner loads its domain
-  reference, web-searches current pitfalls for the detected stack, and returns
-  severity-classified findings citing file:line. Runs in two modes: STANDALONE produces a
-  scored markdown report; GATE binds to a release bundle and produces items in
-  .work/active/stories/ with gate_origin:bugs (sibling to gate-security but for correctness
-  bugs, not vulnerabilities). Use when user says "scan for bugs", "bug hunt", "deep bug audit",
-  "find hidden bugs", "find race conditions", "audit for lurking bugs". Distinct from
-  /agile-workflow:gate-security (security focus), /agile-workflow:review (per-change),
-  /agile-workflow:perf-design (performance), /agile-workflow:repo-eval (broad evaluation).
+  Deep multi-angle correctness bug hunt. Use when the user asks to "scan for
+  bugs", "bug hunt", "deep bug audit", "find hidden bugs", "find race
+  conditions", or audit lurking correctness issues. Fans parallel scanner
+  sub-agents across relevant domains such as concurrency, async, state,
+  resource leaks, time/numbers, error handling, data layer, and language
+  footguns. Standalone mode writes a scored report; gate mode binds to a
+  release bundle and emits .work/active/stories/ items with gate_origin:bugs.
+  Distinct from gate-security, review, perf-design, and repo-eval.
 user-invocable: true
 allowed-tools: Read, Glob, Grep, Bash, Agent, WebSearch, WebFetch, Write, Edit, AskUserQuestion
 ---

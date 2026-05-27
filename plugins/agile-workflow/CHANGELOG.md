@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.7.7 - Skill metadata hotfix
+
+- **Codex skill loading** - Shortened long agile-workflow skill frontmatter
+  descriptions so every `SKILL.md` stays under Codex's 1024-character
+  description limit. This fixes `perf-design` being skipped by Codex after the
+  v0.7.6 release.
+
 ## v0.7.6 - Perf and refactor design alignment
 
 Tightens performance-design guidance for low-level systems and makes refactor

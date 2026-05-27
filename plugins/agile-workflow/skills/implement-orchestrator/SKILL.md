@@ -1,18 +1,14 @@
 ---
 name: implement-orchestrator
 description: >
-  ALWAYS invoke this skill when the user asks to implement substrate items, work
-  through items at stage:implementing, or drain the implementation queue — do not
-  call /agile-workflow:implement directly unless the user explicitly says "inline".
-  Default implementation path for items at stage:implementing. Accepts a scope — a
-  feature id, an epic id, --all, or an explicit list of items — builds a unified
-  depends_on graph, bundles related work, chooses wave width and worktree
-  isolation, and dispatches implementation sub-agents when parallelism is
-  beneficial. Invocation of this skill is explicit authorization to use sub-agents,
-  including large write paths when ownership and verification make that safe.
-  Advances parent features whose children all reach stage:review. Triggers on
-  "implement this feature", "implement an item id", "let's implement", "work the
-  queue", "drain implementing", "implement everything".
+  ALWAYS invoke when the user asks to implement substrate items, work through
+  stage:implementing items, drain the queue, or implement a feature/epic scope.
+  Default implementation path; call implement directly only when the user says
+  "inline". Builds a depends_on graph, bundles related work, chooses wave width
+  and worktree isolation, and dispatches implementation sub-agents when useful.
+  This skill authorizes sub-agents, including large non-overlapping write paths
+  when ownership and verification make that safe. Advances parents whose
+  children all reach stage:review.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
 ---
 

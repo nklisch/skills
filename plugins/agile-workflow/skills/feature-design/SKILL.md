@@ -1,19 +1,14 @@
 ---
 name: feature-design
 description: >
-  ALWAYS invoke this skill when the user asks to design a feature, flesh out a feature
-  item, or pick up a feature at stage:drafting — do not write design prose inline.
-  Designs a feature at stage:drafting in the agile-workflow substrate. Reads the
-  feature item, grounds in foundation docs and codebase, produces a detailed design
-  WRITTEN INTO THE FEATURE'S BODY (not as a separate doc), spawns child story files
-  with declared depends_on chains, and advances stage drafting -> implementing. UI/UX
-  mockups are FALLBACK here — Phase 4.6 inherits from the parent epic and only
-  invokes ux-ui-design for minor surfaces not covered upstream. Use for greenfield
-  feature design — features without [refactor] or [perf] tags. For [refactor] use
-  /agile-workflow:refactor-design; for [perf] use /agile-workflow:perf-design. For
-  decomposing an epic into child features use /agile-workflow:epic-design. Triggers
-  on "design this feature", "design <id>", "let's design", "flesh out this feature",
-  "draft the design for X".
+  ALWAYS invoke when the user asks to design or flesh out a feature at
+  stage:drafting; do not write design prose inline. Designs the feature inside
+  its agile-workflow item body, grounded in foundation docs and code, then
+  spawns child stories with depends_on chains and advances drafting ->
+  implementing. Use for greenfield features without [refactor] or [perf] tags;
+  route [refactor] to refactor-design, [perf] to perf-design, and epic
+  decomposition to epic-design. UI/UX mockups are fallback here, inherited from
+  the parent epic when available.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
 ---
 

@@ -1,19 +1,14 @@
 ---
 name: convert
 description: >
-  Bootstrap or sync the agile-workflow substrate in a project. Detects current repo
-  state (no substrate / partially set up / fully set up) and auto-routes: bootstrap
-  mode for fresh projects (creates .work/ skeleton + CONVENTIONS.md + canonical
-  AGENTS.md section + Claude compatibility symlink/shim + migration based on detected
-  source shape), sync mode for
-  projects that already have the substrate (refreshes plugin-shipped artifacts —
-  AGENTS.md section, CLAUDE.md compatibility, .work/bin/work-view, and optional
-  .agents skill catalog mirrors — while preserving user-owned CONVENTIONS.md,
-  refactor convention rules, and substrate state, and reports drift). Always asks
-  whether destructive cleanup is in scope before deleting, moving, or replacing
-  legacy artifacts; preserve-only is the default.
-  Idempotent — re-running on a healthy project is a no-op sync. User-invocable only
-  since substrate work is consequential and interactive.
+  Bootstrap or sync the agile-workflow substrate. Auto-detects repo state:
+  bootstrap creates .work/, CONVENTIONS.md, the canonical AGENTS.md section,
+  Claude compatibility, work-view, and migrated items; sync refreshes
+  plugin-owned artifacts plus optional skill catalog mirrors while preserving
+  user-owned CONVENTIONS.md, refactor rules, and substrate state. `convert
+  --update` performs one-pass artifact alignment. Always asks whether
+  destructive cleanup is in scope before deleting, moving, or replacing legacy
+  artifacts; preserve-only is the default.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
