@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "plugin-dev@claude-code-plugins": true,
+    "agile-workflow@nklisch-skills": true
+  }
+}

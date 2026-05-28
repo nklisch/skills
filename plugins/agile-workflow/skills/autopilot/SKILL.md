@@ -6,10 +6,11 @@ description: >
   an epic, continue through .work/active/, or make autonomous progress on the
   substrate. Reads .work/active/, picks ready items by depends_on and stage,
   delegates to design, implement, and review skills, commits transitions, and
-  repeats until the scope is done or blocked. No /loop or --resume mechanics;
-  the harness goal/continuation feature owns long-running persistence.
-  Epic-scoped by default; --all drains all active work; free-text scope
-  directives are allowed.
+  repeats until the scope is done or blocked. Before reporting complete, runs a
+  final peer-review/fresh-context completion pass and fixes or files accepted
+  findings. No /loop or --resume mechanics; the harness goal/continuation
+  feature owns long-running persistence. Epic-scoped by default; --all drains
+  all active work; free-text scope directives are allowed.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Skill
 ---
@@ -122,7 +123,10 @@ this caller note in every delegated prompt:
 
 > Delegated by an active agile-workflow autopilot goal for `<scope>`. Resolve
 > ambiguities with judgment, log rationale in the item body, and do not ask
-> strategic questions unless a hard halt condition applies.
+> strategic questions unless a hard halt condition applies. For large or risky
+> design decisions, use the cross-model advisory review policy from
+> `principles/SKILL.md` only when a different model class is available; peer
+> failures are non-blocking.
 
 Routing:
 
@@ -179,7 +183,7 @@ queue driving.
 After each queue rebuild:
 
 - If no in-scope active items remain at `drafting`, `implementing`, or `review`,
-  the goal is complete.
+  run Phase 8 (Final Peer Review Loop) before reporting completion.
 - If in-scope active items remain but none are ready, the goal is blocked on
   dependencies or unresolved blockers. Report the blocking ids.
 - If the user interrupts, stop at the next safe boundary and report remaining
@@ -189,6 +193,49 @@ After each queue rebuild:
 Do not stop because of elapsed time, context size, or "long run" concerns. The
 harness owns continuation. Your job is to keep applying the queue policy until a
 real stop rule fires.
+
+### Phase 8: Final Peer Review Loop
+
+This is the last step before reporting `complete`. It runs in addition to any
+design-time cross-model advisory passes from delegated skills.
+
+When the scoped queue appears drained:
+
+1. Build a concise completion bundle:
+   - scope interpretation
+   - items advanced during this run
+   - final state of in-scope epics/features/stories
+   - commits associated with advanced items
+   - notable design decisions, implementation deviations, blockers resolved,
+     and verification results reported by delegated skills
+2. If `peer-review` is available with a different model class, run one
+   cross-model peer-review loop over that completion bundle. Ask for bugs,
+   missed acceptance criteria, unreviewed risks, foundation-doc drift, and
+   substrate-state inconsistencies that would make "complete" premature.
+3. If peeragent would use the same model class, do not use `peer-review`; use a
+   local inline review sub-agent as a fresh-context completion check and record
+   that it was not cross-model.
+4. If peer-review is unavailable, use the local inline review fallback. If the
+   selected final-review path fails, do not report completion; mark the run
+   blocked on final review and include the failure reason. Do not invent a pass.
+5. For every substantive accepted finding:
+   - Small and clearly safe fix: fix it immediately, run verification, commit,
+     and rebuild the queue.
+   - Needs tracked work: create or update a substrate item at the right stage
+     (`drafting` for design gaps, `implementing` for concrete fixes), commit,
+     and rebuild the queue.
+   - Invalid or lower-value finding: reject it with a one-line rationale in the
+     final review summary.
+6. If rebuilding the queue finds new or regressed `drafting`, `implementing`, or
+   `review` items in scope, return to Phase 2 and drain them. Completion is not
+   allowed while accepted final-review findings remain active.
+7. Once the final review path succeeds, produces no accepted
+   blocking/substantive findings, and the queue is still empty, report the goal
+   as complete.
+
+Record the final review in the autopilot final summary. Do not paste the full
+peer transcript into item bodies; summarize accepted/rejected points where they
+affect specific items.
 
 ## Output
 
@@ -201,12 +248,16 @@ Narrate briefly as items advance. Final summary:
 - Escalated or blocked item ids
 - Refactor cadences run (`--all` only)
 - Implement-orchestrator bundle summary, if reported
+- Final peer-review status: cross-model, local fallback, skipped, or failed;
+  include accepted findings fixed/filed and rejected findings summary
 - Goal outcome: complete, blocked, or interrupted
 
 ## Guardrails
 
 - Never use AskUserQuestion while an autopilot goal is actively driving the
   delegated work. Resolve with judgment and log rationale.
+- Do not report `complete` until Phase 8 has run successfully and all accepted
+  final-review findings have been fixed or filed back into the queue.
 - Commit after every item state change or blocker note.
 - Do not push, force-push, or release; the user controls publication.
 - Do not touch `.work/backlog/` except to report that backlog items are out of

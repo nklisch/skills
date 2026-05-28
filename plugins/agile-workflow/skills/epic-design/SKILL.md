@@ -89,6 +89,8 @@ For each epic:
 8. Commit per epic: `epic-design --only-questions: <id>`
 
 Requires interactive mode; refuse to run under an active autopilot run or goal.
+Do not run cross-model advisory review in this mode — the user is the alignment
+signal.
 
 ## Workflow
 
@@ -252,6 +254,23 @@ codebase. Skip anything that's safely a downstream feature-design call
 Aim for the smallest set of questions that meaningfully resolve direction
 — typically 2-5. Zero is fine if the epic body and foundation docs already
 pin every directional choice.
+
+**Cross-model advisory review under autopilot.** If this skill is running as a
+delegation from active autopilot, the epic has large/risky architectural
+decisions, and the body does not already contain useful `## Design decisions`
+from a prior `--only-questions` pass, apply the cross-model advisory review
+policy from `principles/SKILL.md` before resolving the questions yourself.
+
+Use one focused `peer` pass only when a different model class is available.
+Ask for missing questions, risks, ambiguous constraints, and alternatives for
+this epic's decomposition — not for a final verdict. Do not run the multi-pass
+`peer-review` loop during routine autopilot design. If peeragent is
+unavailable, the peer would use the same model class, or the invocation fails,
+continue with host judgment and note that the advisory pass was skipped.
+
+Summarize the useful output under `## Other agent review` in the epic body and
+fold accepted questions/risks into the decisions you log. Do not paste the peer
+transcript into the item.
 
 If this skill is running **as a delegation from an active autopilot run or
 harness goal**, resolve each question with judgment (prioritize: consistent

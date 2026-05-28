@@ -446,7 +446,73 @@ User-invocable-only skills (`convert`, `epicize`, `ideate`, `bold-refactor`,
 
 ---
 
-# Part IV — Skill invocation patterns
+# Part IV — Cross-Model Advisory Review
+
+Cross-model review is an advisory signal, not a stage transition. Use it only
+when a different model class is available through an installed peer mechanism
+such as `peeragent:peer` or `peeragent:peer-review`. If the peer would be the
+same model class as the host, do not use `peer` or `peer-review`; use a local
+inline sub-agent only as an ordinary fresh-context pass, and do not describe it
+as cross-model review. If the peer's model class is uncertain, skip peeragent.
+
+Explicit user instructions and project-level `AGENTS.md` / `CLAUDE.md` review
+rules override this policy. If they require review, follow them. If they opt out
+or restrict external model egress, do not invoke peeragent.
+
+Default judgment:
+
+- Small, low-risk work: skip cross-model review.
+- Small/medium work with real uncertainty: optionally use one focused `peer`
+  pass.
+- Large, risky, or architectural design points under autopilot: use one focused
+  `peer` pass when no prior `--only-questions` / `## Design decisions`
+  alignment exists.
+- End of an autopilot run, after the scoped queue appears drained and before
+  reporting `complete`: run a final `peer-review` loop when a different model
+  class is available, then fix or file accepted findings before completion.
+- Completed substantial artifacts, or explicit user requests for review: use
+  `peer-review` only when the full iterative loop is appropriate.
+
+For autopilot-driven design work, the default peer ask is **question/risk
+augmentation before decisions are locked**, not validation after the host has
+already decided. Ask the other model for missing questions, risks, ambiguous
+constraints, and alternatives. The host still chooses, verifies against
+foundation docs and code, and records the rationale.
+
+Design-time advisory peer failures are non-blocking under autopilot. If the
+peer wrapper is missing, the executable cannot be resolved, the invocation
+fails, or the call would use the same model class, continue with host judgment
+and log the reason briefly. Do not halt the queue for an advisory review
+failure.
+
+The final autopilot completion review is stricter: it must succeed through a
+different-model `peer-review` loop or a same-model local fallback before the
+run reports `complete`. If the selected final-review path fails, the run is
+blocked on final review rather than complete.
+
+When invoked, summarize the result in the item body without dumping transcripts:
+
+```markdown
+## Other agent review
+- Invoked because: <large/risky/autopilot/no prior alignment>
+- Reviewer: <agent/model class, if known>
+- Mode: peer advisory | peer-review
+- Questions/risks considered:
+  - <summary>
+- Accepted:
+  - <decision or adjustment>
+- Rejected:
+  - <point> — <reason>
+```
+
+Limit autopilot to one advisory pass per item per design stage. Do not run a
+multi-pass `peer-review` loop inside routine autopilot design unless the user or
+project instructions explicitly require it. The final completion review at the
+end of autopilot is separate from these design-time advisory passes.
+
+---
+
+# Part V — Skill invocation patterns
 
 Three arg shapes recur across the plugin. New skills should pick the one that
 fits their role rather than inventing a fresh shape.
