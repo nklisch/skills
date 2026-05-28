@@ -369,44 +369,41 @@ Items advance stages when work actually completes. Releases bind items only when
 
 # Part III — Caller Awareness
 
-**The rule:** If `/agile-workflow:autopilot` was invoked in this session, no
-AskUserQuestion, no halts on ambiguity — resolve with judgment and log the
-rationale in the item body. Otherwise, asking the user is fine and often
-helpful.
+**The rule:** If an active agile-workflow autopilot run or harness goal is
+driving this skill, no AskUserQuestion and no halts on ordinary ambiguity.
+Resolve with judgment and log the rationale in the item body. Otherwise,
+asking the user is fine and often helpful.
 
-This is binary and detectable. Check the conversation history: did
-`/agile-workflow:autopilot` appear as a slash invocation? If yes, autopilot
-mode is on for the rest of the session — every skill autopilot delegates to
-inherits it. If no, you're interactive.
+This is binary and detectable. Autopilot mode is on when the current skill was
+delegated by an explicit autopilot invocation, an active autopilot harness goal,
+or a prompt that clearly says it is continuing/draining an autopilot scope.
+Autopilot includes a caller note when delegating work; treat that note as the
+strongest signal. If no active autopilot driver exists, you are interactive.
 
 ## What does NOT count as autopilot
 
-Judgment-mode is triggered **only** by an explicit `/agile-workflow:autopilot`
-slash invocation in this session's conversation history. Nothing else flips
-the switch. In particular:
+Judgment-mode is triggered only by an active autopilot driver. In particular:
 
-- **Harness-level "auto mode"** — the `<system-reminder>` injected when the
-  session runs under `permissions.defaultMode: "auto"`, with text like
-  *"work without stopping for clarifying questions / make the reasonable
-  call and continue"* — does **not** suppress `AskUserQuestion` inside these
-  skills. It shapes default conversational tone in free-form chat; it does
-  not override a skill's interactive checkpoints.
+- **General harness "auto mode"** — a reminder to work without unnecessary
+  clarification does **not** suppress `AskUserQuestion` inside these skills.
+  It shapes default conversational tone; it does not mean an autopilot queue
+  goal is active.
 - **A user saying "just decide" earlier in the conversation** — that applies
   to whatever was being discussed at the time, not to a later explicit skill
   invocation.
 - **A previous autopilot run that has already ended** — autopilot mode lasts
-  only while autopilot itself is the active driver of the queue. Once it
-  exits (queue drained, blocker, or stop signal), subsequent direct skill
-  invocations are interactive again.
+  only while autopilot itself is the active driver of the queue. Once the goal
+  completes, blocks, or is interrupted, subsequent direct skill invocations are
+  interactive again.
 
 When a user types `/agile-workflow:feature-design <id>` (or any other
 design/implement/review skill) directly, they want a collaborator at the
-checkpoints. Use `AskUserQuestion`. The fact that the session is in harness
-auto mode is irrelevant.
+checkpoints. Use `AskUserQuestion` unless the direct prompt also makes clear it
+is part of an active autopilot goal.
 
-The disambiguation test: *"Did `/agile-workflow:autopilot` appear as a slash
-invocation that is still actively driving this skill?"* If you can't point
-at that invocation in the transcript, you are interactive.
+The disambiguation test: *"Is an active autopilot queue goal currently driving
+this skill?"* If you cannot point to that active driver or caller note, you are
+interactive.
 
 ## What still warrants a hard halt (autopilot or not)
 
@@ -432,8 +429,8 @@ can review later.
 
 ## How to phrase decision points
 
-> If autopilot was invoked this session, <judgment-mode behavior>. Otherwise,
-> ask the user via AskUserQuestion.
+> If an active autopilot run or goal is driving this skill, <judgment-mode
+> behavior>. Otherwise, ask the user via AskUserQuestion.
 
 Not "halt and tell the user." The first form supports both modes; the second
 silently kills autopilot.

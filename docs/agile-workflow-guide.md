@@ -4,8 +4,8 @@ How to use the `agile-workflow` plugin to track and ship software work using
 a markdown-based substrate that lives in your repo.
 
 This guide is for humans collaborating with an agent on a project that uses
-agile-workflow. It explains what your role looks like, when to invoke
-specific slash commands, and how to set things up so the agent — and
+agile-workflow. It explains what your role looks like, when to invoke specific
+entry points or goal statements, and how to set things up so the agent —
 especially `autopilot` — runs well.
 
 For deep specs, see
@@ -40,8 +40,9 @@ Your role in a project that uses agile-workflow:
   be promoted? Is this feature ready for review? Should we cut a release?
 - **Provide context.** When the agent asks "what do you mean by X?" — answer.
   When you have a clarifying constraint, surface it.
-- **Invoke a few slash commands at the right moments.** There are four worth
-  knowing by name (covered below). Everything else routes from conversation.
+- **Invoke a few broad entry points at the right moments.** Some are slash
+  commands, and autopilot is best started as a goal statement. Everything else
+  routes from conversation.
 - **Review what the agent produced.** Designs, code, gate findings — your eyes
   on the result, before stages advance to `done`.
 
@@ -140,8 +141,8 @@ The agent reads and writes them as part of normal conversation.
 # 7. Drill in per feature — scope + remaining mocks before autopilot starts
 /agile-workflow:feature-design --only-questions --all
 
-# 8. Drain
-/agile-workflow:autopilot --all
+# 8. Drain with a harness goal
+Goal: Use agile-workflow autopilot to drain --all
 ```
 
 Steps 6 and 7 are the heart of it. Read the *killer workflows* section below
@@ -168,8 +169,8 @@ for why this sequence matters.
 /agile-workflow:epic-design --only-questions --all
 /agile-workflow:feature-design --only-questions --all
 
-# 6. Drain
-/agile-workflow:autopilot --all
+# 6. Drain with a harness goal
+Goal: Use agile-workflow autopilot to drain --all
 ```
 
 ## Killer workflows (the rhythm that makes this click)
@@ -221,11 +222,12 @@ Why this works:
   before code or child items land is far cheaper than unwinding it after
   autopilot has built on top of it.
 
-`--only-questions` refuses to run *inside* autopilot — it's explicitly a
-pre-autopilot, human-in-the-loop step. The right rhythm is:
+`--only-questions` refuses to run *inside* an active autopilot goal — it's
+explicitly a pre-autopilot, human-in-the-loop step. The right rhythm is:
 
 ```
---only-questions --all (both tiers) → review captured decisions → autopilot --all
+--only-questions --all (both tiers) → review captured decisions
+→ Goal: Use agile-workflow autopilot to drain --all
 ```
 
 You can skip this only when the drafting queue is empty or every drafting
@@ -239,7 +241,7 @@ For a fresh project, the full sequence is:
 ideate → palette + components → convert → epicize
        → epic-design --only-questions --all       (with screens/flows mocks)
        → feature-design --only-questions --all    (with more mocks)
-       → autopilot --all
+       → Goal: Use agile-workflow autopilot to drain --all
 ```
 
 The palette/components first means every later mock inherits the visual
@@ -255,7 +257,7 @@ When you have a pile of unstructured ideas in `.work/backlog/`:
 /agile-workflow:scope                              # batch — clusters everything
 /agile-workflow:epic-design --only-questions --all # align on the new epics
 /agile-workflow:feature-design --only-questions --all
-/agile-workflow:autopilot --all
+Goal: Use agile-workflow autopilot to drain --all
 ```
 
 The batch `scope` pass clusters the whole backlog by code seam and
@@ -285,10 +287,11 @@ in the gaps. Tier 4 is the escape hatch.
 See [ux-ui-design-guide.md](ux-ui-design-guide.md) for the full mock-first
 loop.
 
-## The four slash commands you'll invoke yourself
+## The broad entry points you'll use
 
-Most operations route from conversation. These four are different — broad
-enough or consequential enough that you trigger them deliberately.
+Most operations route from conversation. These entry points are different —
+broad enough or consequential enough that you trigger them deliberately. Three
+are slash commands; autopilot is best expressed as a harness goal statement.
 
 ### `/agile-workflow:ideate`
 
@@ -327,15 +330,17 @@ order of work is encoded in the substrate.
 
 **Ordering.** After `ideate` + `convert`, before serious work begins.
 
-### `/agile-workflow:autopilot`
+### Autopilot Goal
 
-**What it does.** Drains a queue of ready work without further input from
-you. Picks items by dependency (least-blocked first), invokes the right
-skill for each (design family for `drafting`, implement family for
-`implementing`, review for `review`), advances stages, commits per
-transition. Stops cleanly on blockers, on your interjection, or near
-context limits. Schedules watchdog `/loop` tasks so it survives
-compaction.
+**What it does.** Drains a queue of ready work without further input from you.
+Picks items by dependency (least-blocked first), invokes the right skill for
+each stage (design family for `drafting`, implement family for `implementing`,
+review for `review`), advances stages, commits per transition, and repeats
+until the goal scope is done or blocked.
+
+Autopilot does not schedule `/loop` tasks or maintain its own resume command.
+Claude/Codex harness goal/continuation features keep long-running work alive.
+The substrate is the resume point: a continued run re-reads `.work/active/`.
 
 **Always do this first.** Run the alignment one-two (see *Killer workflows*
 above):
@@ -345,16 +350,17 @@ above):
 /agile-workflow:feature-design --only-questions --all
 ```
 
-This locks in directional choices and mocks before autopilot starts.
-Autopilot inherits everything and runs without autonomous guessing.
+This locks in directional choices and mocks before autopilot starts. Autopilot
+inherits everything and runs without autonomous guessing.
 
-**When to invoke.**
-- `/agile-workflow:autopilot <epic-id>` — drain everything under one epic.
-- `/agile-workflow:autopilot --all` — drain every ready item in
-  `.work/active/`. Use this when you want broad progress while you step
+**How to start it.**
+- `Goal: Use agile-workflow autopilot to drain <epic-id>` — drain everything
+  under one epic.
+- `Goal: Use agile-workflow autopilot to drain --all` — drain every ready item
+  in `.work/active/`. Use this when you want broad progress while you step
   away.
-- `/agile-workflow:autopilot --resume` — pick up where a previous run left
-  off. Idempotent; safe to invoke after a stop.
+- Direct `/agile-workflow:autopilot <scope>` still works, but goal text is the
+  preferred shape for long runs because the harness owns continuation.
 
 **When NOT to invoke.**
 - When you have a specific item you want done with your own input — invoke
@@ -368,10 +374,8 @@ item cleanly, commits, and stops. No special halt command.
 **What to do when it stops.**
 - If it hit a blocker: read the agent's report. Often the blocker is "this
   feature needs your design input" or "this story has unclear acceptance
-  criteria." Resolve in conversation, then resume.
-- If it hit context limits: invoke `/agile-workflow:autopilot --resume` in a
-  fresh session. The substrate IS the resume point — there's no separate
-  progress file to maintain.
+  criteria." Resolve in conversation, then continue the same goal or start a
+  new autopilot goal for the remaining scope.
 - If it found nothing ready: queue is drained, or every remaining item is
   blocked. Look at what's blocking and unblock it.
 
@@ -725,7 +729,7 @@ explicitly — the rest the agent picks for you.
 ### Review & delivery
 - **review** *(agent picks)* — peer review at `stage: review`
 - **release-deploy** *(you invoke)* — bind, gate, ship
-- **autopilot** *(you invoke)* — autonomous queue runner
+- **autopilot** *(goal-backed; user or agent starts it)* — autonomous queue runner
 - **bold-refactor** *(you invoke)* — architectural reconception
 
 ### Gates (agent picks; produce items, not pass/fail; release-time only)
@@ -751,8 +755,8 @@ explicitly — the rest the agent picks for you.
   don't write a "previously…" note yourself. The agent updates the doc in
   place.
 - **Use autopilot for breadth, conversation for depth.** Autopilot is great
-  when you have a queue of well-shaped items. When you want close
-  collaboration on a hard design, just talk.
+  when you have a queue of well-shaped items and can state the drain scope as a
+  goal. When you want close collaboration on a hard design, just talk.
 - **Always run the alignment one-two before autopilot.**
   `epic-design --only-questions --all` then
   `feature-design --only-questions --all` is the single highest-leverage

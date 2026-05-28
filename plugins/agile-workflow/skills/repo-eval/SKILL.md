@@ -202,7 +202,8 @@ Commit per batch: `repo-eval: filed <N> findings as <backlog|active>`.
 
 In the final conversation output, append:
 - **Items filed**: count by dimension, with new ids
-- **Next**: `/agile-workflow:scope` (batch mode) to cluster the audit findings, or `/agile-workflow:autopilot` to drain them.
+- **Next**: `/agile-workflow:scope` (batch mode) to cluster the audit findings,
+  or start an autopilot goal to drain them.
 
 If no substrate exists, skip this phase silently.
 

@@ -23,7 +23,7 @@ Available as **Claude Code plugins**, **Codex plugins**, and via
 
 | Plugin | What it does | Guide |
 |---|---|---|
-| **agile-workflow** | Substrate-driven work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, autopilot queue runner. | [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md) |
+| **agile-workflow** | Substrate-driven work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, goal-backed autopilot queue runner. | [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md) |
 | **ux-ui-design** | HTML/CSS/JS mockup-first UI design. Throwaway single-file mockups in `.mockups/` for alignment before any production code. Loosely integrated with agile-workflow. | [docs/ux-ui-design-guide.md](docs/ux-ui-design-guide.md) |
 | **skill-authoring** | Create, evaluate, and refine your own agent skills. |  |
 
@@ -69,7 +69,7 @@ park / scope / fix                   ← capture & promotion (agent picks)
 epic-design --only-questions --all   ← align on big choices (also runs UI mocks)
 feature-design --only-questions --all   ← drill in per feature
     ↓
-autopilot --all                      ← drain ready work autonomously
+Goal: Use agile-workflow autopilot to drain --all
     ↓
 release-deploy <version>             ← bind, gate, ship
 ```
@@ -110,12 +110,12 @@ directional choice and mock so autopilot runs without guessing.
 | **implement-orchestrator** | For implementation bands: walk depends_on graph, decide bundles/waves/write-scope isolation, and dispatch implementation sub-agents when parallelism is beneficial. |
 | **review** | Structured peer review with five lenses including foundation-doc alignment. Triages findings into items. Accepts `<id>`, `--all` / no arg (drain the review queue), or NL filter. |
 
-### Release & autonomous (mostly user-invocable)
+### Release & autonomous
 
 | Skill | What it does |
 |-------|-------------|
 | **release-deploy** | Bind items to a version, run all configured gates in CONVENTIONS.md order, wait for readiness, ship per release mapping, archive items via git mv. Idempotent. |
-| **autopilot** | Queue runner. Picks next ready item respecting depends_on, invokes the right skill, advances stage, repeats. Watchdog `/loop` tasks survive compaction. Epic-scoped default; `--all` drains everything in `.work/active/`. In `--all` mode, every 5 done items runs a refactor cadence via `refactor-design` discovery against touched paths. |
+| **autopilot** | Goal-backed queue runner. Picks next ready item respecting depends_on, invokes the right skill, advances stage, repeats until the goal scope is done or blocked. Invokable from goal text such as "Use agile-workflow autopilot to drain --all"; direct `/agile-workflow:autopilot <scope>` still works. Harness goal/continuation owns persistence, not `/loop`. |
 | **bold-refactor** | Architectural reconception via conceptual lenses. Sweeps a target and produces one or more refactor EPICs with child features tagged [refactor]. User-invocable only — too aggressive for auto-trigger. |
 
 ### Gates (agent picks; produce items, NOT pass/fail reports)

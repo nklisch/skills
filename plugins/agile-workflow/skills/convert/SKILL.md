@@ -286,9 +286,10 @@ When running, writing, or modifying tests:
   code happens to return, no deleting a test as "flaky" without
   root-causing first.
 
-Slash commands (user-invokable):
+Broad entry points:
 `/agile-workflow:ideate`, `/agile-workflow:epicize`,
-`/agile-workflow:autopilot`, `/agile-workflow:release-deploy`.
+autopilot goals such as "Use agile-workflow autopilot to drain --all",
+and `/agile-workflow:release-deploy`.
 <!-- agile-workflow:end -->
 ```
 

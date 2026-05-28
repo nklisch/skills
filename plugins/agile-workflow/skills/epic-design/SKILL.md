@@ -25,7 +25,7 @@ on each child feature individually.
 ## Trigger
 
 Auto-triggers when the agent identifies an epic at `stage: drafting` ready for
-decomposition — typically inside `/agile-workflow:autopilot <epic-id>` runs.
+decomposition — often inside an active autopilot goal.
 Common phrases:
 - "design epic X"
 - "decompose this epic"
@@ -43,10 +43,11 @@ running full autopilot.
 | `epic-design --only-questions <id1> <id2> ...` | Question-only pass over each listed epic, in order. |
 | `epic-design --only-questions --all` | Question-only pass over every epic at `stage: drafting` in `.work/active/epics/`. Iterate in dependency order. |
 
-`--only-questions` mode requires interactive mode — refuse to run under autopilot
-(matches feature-design's rule). When the design family runs later, captured
-answers are inherited from each epic body, so autopilot no longer has to use
-judgment on those points.
+`--only-questions` mode requires interactive mode — refuse to run when an
+active autopilot run or harness goal is driving the session (matches
+feature-design's rule). When the design family runs later, captured answers are
+inherited from each epic body, so autopilot no longer has to use judgment on
+those points.
 
 ## Anti-patterns
 
@@ -87,7 +88,7 @@ For each epic:
 7. Do NOT decompose into child features or advance stage
 8. Commit per epic: `epic-design --only-questions: <id>`
 
-Requires interactive mode; refuse to run under autopilot.
+Requires interactive mode; refuse to run under an active autopilot run or goal.
 
 ## Workflow
 
@@ -252,12 +253,10 @@ Aim for the smallest set of questions that meaningfully resolve direction
 — typically 2-5. Zero is fine if the epic body and foundation docs already
 pin every directional choice.
 
-If this skill is running **as a delegation from `/agile-workflow:autopilot`**
-— that is, an explicit `/agile-workflow:autopilot` slash invocation appears
-in the current session's transcript and is still driving the queue — resolve
-each one with judgment (prioritize: consistent with foundation docs >
-simpler option > defers irreversible decisions) and log under `## Design
-decisions` in the epic body:
+If this skill is running **as a delegation from an active autopilot run or
+harness goal**, resolve each question with judgment (prioritize: consistent
+with foundation docs > simpler option > defers irreversible decisions) and log
+under `## Design decisions` in the epic body:
 
 ```markdown
 ## Design decisions

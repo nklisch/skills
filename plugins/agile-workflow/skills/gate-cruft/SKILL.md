@@ -228,8 +228,8 @@ In conversation:
 If the count of cleanup items is large (> 20), suggest the user implement them
 in a single orchestrated pass: "These items can be drained efficiently via
 `/agile-workflow:implement-orchestrator` against a parent feature, OR by
-spawning a `/agile-workflow:autopilot --all` run scoped to gate-cruft items.
-Cleanup is mechanical and parallelizes well."
+starting an autopilot goal scoped to gate-cruft items. Cleanup is mechanical
+and parallelizes well."
 
 ## Guardrails
 

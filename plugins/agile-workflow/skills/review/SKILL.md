@@ -60,11 +60,10 @@ If the caller (user or autopilot) passed an id, target that item. Otherwise:
 ```
 
 If multiple items are at `review`:
-- **Delegated from `/agile-workflow:autopilot`** (an explicit autopilot
-  slash invocation in the session transcript is still driving the queue):
-  pick the most recent by `updated:` and proceed without asking. Autopilot
-  will fire this skill repeatedly across `stage: review` items, so
-  single-item-per-invocation is the right shape.
+- **Delegated by an active autopilot run or harness goal**: pick the most
+  recent by `updated:` and proceed without asking. Autopilot will fire this
+  skill repeatedly across `stage: review` items, so single-item-per-invocation
+  is the right shape.
 - **Any other caller** — including direct user invocation under harness auto
   mode: ask which one via `AskUserQuestion`. Harness-level "work without
   pausing" reminders do **not** suppress this checkpoint. See

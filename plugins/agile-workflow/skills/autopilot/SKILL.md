@@ -1,394 +1,215 @@
 ---
 name: autopilot
 description: >
-  Drain a substrate queue continuously and autonomously. Picks the next ready
-  item (stage:drafting, implementing, or review — all autonomously handled),
-  invokes the right skill (design family — epic-design, feature-design,
-  refactor-design, or perf-design — for drafting; implement/orchestrator for
-  implementing; review for review), and advances stage. Repeats until the
-  scope is fully at stage:done. Epic-scoped by default — drains items under
-  <epic-id>; --all drains all of .work/active/. Only .work/backlog/ is out of
-  scope. A free-text scope arg (e.g. `autopilot finish the dangling work`) is
-  interpreted by the agent rather than parsed as a flag. Circuit-breaker
-  halts on items that bounce review→implementing more than twice. Schedules
-  watchdog /loop ticks as a hidden safeguard — the agent does NOT pace work
-  against them. Refactor cadence every 5 items in --all mode. User-invocable
-  only.
+  Goal-statement or direct-invocation queue driver for agile-workflow. Use when
+  a harness goal or user request says to run autopilot, drain ready work, finish
+  an epic, continue through .work/active/, or make autonomous progress on the
+  substrate. Reads .work/active/, picks ready items by depends_on and stage,
+  delegates to design, implement, and review skills, commits transitions, and
+  repeats until the scope is done or blocked. No /loop or --resume mechanics;
+  the harness goal/continuation feature owns long-running persistence.
+  Epic-scoped by default; --all drains all active work; free-text scope
+  directives are allowed.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Skill
 ---
 
 # Autopilot
 
-You drain a substrate queue. Take pride in the craft — each item you work on
-moves the project forward, and the substrate is your durable memory across the
-session and across sessions. When something doesn't go as planned, that's
-information. Adapt, log it in the item body, keep moving.
+Autopilot is the queue policy that runs inside a harness goal. It can also be
+called directly as a skill. It does not schedule watchdog loops, manage timers,
+or maintain a progress file. The substrate is the state, and the harness
+goal/continuation feature is responsible for carrying long-running work across
+compaction or continuation turns.
 
-## Autonomy mandate
+Agents may invoke this skill when the active goal statement or user request asks
+for autonomous substrate progress. The user can still invoke it directly.
 
-You run fully autonomously and **continuously**. Drive the queue without
-pausing. The watchdog loops scheduled in Phase 1 are a hidden safeguard run
-by the harness — they exist so a separate system can recover if your session
-breaks. **You never wait for them, pace yourself against them, or finish an
-item "before the next tick."** Pretend they don't exist. Pick the next ready
-item the moment the current one advances and keep going.
+## Goal Contract
 
-- **Never use AskUserQuestion.** Every ambiguity gets resolved using your
-  judgment, with the rationale logged in the item body.
-- **Never throttle yourself.** Don't stop because work has been "going for a
-  while", because context "feels heavy", or because a tick is "coming up".
-  None of those are stop conditions. The only stop conditions are in Phase 8.
-- **Log decisions.** When you make a non-obvious choice, note it in the item
-  body so the user can review your reasoning later.
-- **Prefer the simpler option.** When two approaches are equally valid, pick the
-  one with fewer moving parts.
-- **If truly stuck, stop cleanly.** Append a "Blocker" section to the item body,
-  commit, and report. Cancel the watchdog loops. A clean stopping point beats a
-  messy workaround.
+The cleanest invocation is a goal statement that names autopilot:
+
+> Use agile-workflow autopilot to drain `<scope>` until all in-scope active
+> items are done or blocked.
+
+When an active goal exists, treat the goal statement as the invocation surface
+and run this skill inside that goal. Do not create a nested goal. If no active
+goal exists, run the same queue policy inline for the direct invocation.
+
+Only create a new harness goal when the caller explicitly asks the agent to
+create/start one and the harness exposes that API. Otherwise, attach to the
+active goal or run inline.
+
+Use `.work/active/` as the resume point. Do not call `/loop`, do not create
+watchdog schedules, and do not support `--resume`; those are legacy mechanics.
+
+When running under a harness goal, mark/report the goal outcome this way. When
+running inline, use the same categories in the final summary:
+
+- **Complete** when no in-scope active item remains at `drafting`,
+  `implementing`, or `review`.
+- **Blocked** when in-scope items remain but none are ready, an item has a hard
+  blocker, or the review circuit-breaker escalated unresolved work.
+- **Interrupted** when the user stops the run. Finish the current safe
+  transition, commit if anything changed, summarize the remaining queue, and
+  let the harness/user decide whether to continue the goal later.
 
 ## Arguments
 
-- `autopilot <epic-id>` — drain items under `<epic-id>` (transitively, including
-  grandchildren via parent chain) until all are at `stage: done`
-- `autopilot --all` — drain all of `.work/active/` (every kind, every parent)
-- `autopilot --resume` — continue an autopilot run after a /loop tick. Reads
-  state from the substrate; safe to fire repeatedly.
-- `autopilot <free-text>` — anything that isn't a recognized item id, `--all`,
-  or `--resume` is treated as a **scope directive**, not a flag. Examples:
-  "finish the dangling work", "wrap up phase 14", "drain everything tagged
-  refactor". Interpret the directive against the substrate, build the queue
-  accordingly, and log the interpretation in the run summary so the user can
-  see what was included. When in doubt about scope, prefer the broader read —
-  the user can manually park items they don't want touched. Only
-  `.work/backlog/` is hard-out-of-scope; everything in `.work/active/` is
-  fair game.
+- `autopilot <epic-id>` - drain items under `<epic-id>` transitively via the
+  parent chain until the scoped queue is done or blocked.
+- `autopilot --all` - drain all `.work/active/` items.
+- `autopilot <free-text>` - interpret as a scope directive, such as "finish the
+  dangling work", "wrap up phase 14", or "drain everything tagged refactor".
+  Log the interpretation in the run summary. When scope is ambiguous, prefer the
+  broader active-work interpretation. `.work/backlog/` is always out of scope.
 
 ## Prerequisites
 
 Before starting:
 
-1. `.work/CONVENTIONS.md` exists (substrate is bootstrapped). If not, halt:
-   "No substrate found. Run `/agile-workflow:convert` first."
-2. Foundation docs exist (`docs/VISION.md` or `docs/SPEC.md`).
+1. `.work/CONVENTIONS.md` exists. If not, halt: "No substrate found. Run
+   `/agile-workflow:convert` first."
+2. Foundation docs exist (`docs/VISION.md` or `docs/SPEC.md`). If not, halt
+   with a clear message.
 
-If either is missing, halt with a clear message. This is the one exception to
-the autonomy mandate — you can't drive a queue without a substrate.
+These are hard halts because the queue has no reliable substrate or design
+anchor without them.
 
 ## Workflow
 
-### Phase 1: Schedule the watchdog (then forget it exists)
+### Phase 1: Resolve Scope
 
-Before starting any phase work, schedule two `--resume` ticks. These are a
-**hidden safeguard** — they are not a pacing mechanism, not a deadline, and
-not your concern once scheduled. Set them and move on.
+Build the scope from the argument:
 
-**Load the `loop` skill via the Skill tool and follow its instructions** to
-schedule two recurring tasks:
+- Epic id: include the epic plus descendants through `parent` links.
+- `--all`: include every item in `.work/active/{epics,features,stories}/`.
+- Free text: inspect item ids, tags, parents, titles, and bodies; select the
+  matching active subset and record the interpretation.
 
-- **30-minute interval** — fire the literal prompt `continue autopilot`
-  (plain text, **not** a slash invocation). This is a soft nudge for a
-  live session that's still mid-run. The agent sees the words and naturally
-  resumes the Phase 4–7 cycle using its existing context. No re-entry, no
-  Phase 1 re-scheduling, no candidate-queue rebuild — it's a heartbeat.
-- **3-hour interval** — fire `/agile-workflow:autopilot --resume` (full
-  slash invocation). This is the actual recovery mechanism: if the session
-  was interrupted (harness restart, compaction, manual stop) and the soft
-  nudges did nothing, the slash invocation re-enters the skill from scratch,
-  rebuilds the queue from the substrate (Phase 9), and continues.
+Only active items are candidates. Backlog items must be promoted through
+`scope` before autopilot can touch them.
 
-The split matters: the 30-min nudge stays cheap and in-context; the 3-hour
-tick pays the full re-entry cost only when needed. If the live session is
-healthy, the 30-min nudges keep it ticking and the 3-hour `--resume` is a
-no-op (Phase 9 is idempotent). If the live session is gone, the 30-min
-nudges land in a dead conversation and do nothing, but the 3-hour `--resume`
-boots a fresh autopilot run.
+### Phase 2: Build The Queue
 
-The loop skill handles the actual scheduling mechanics (cron, schedule, or
-whatever the harness uses). Don't prescribe a particular invocation pattern
-here — the loop skill knows how.
+Filter candidates to `stage` in `{drafting, implementing, review}`.
 
-**First — check for existing loops.** If autopilot watchdog loops are already
-running, do NOT create duplicates. The loop skill exposes a way to list
-existing schedules; use it.
+An item is ready when every `depends_on` entry is terminal:
 
-After scheduling: **do not reference the ticks again until Phase 8 stop
-conditions fire.** They are out of mind. Drain the queue.
+- `stage: done`, or
+- already moved to `.work/releases/` or `.work/archive/`.
 
-### Phase 2: Build the candidate queue
+Use `.work/bin/work-view` when it can answer the query; otherwise read
+frontmatter directly.
 
-Collect candidate items.
+### Phase 3: Pick The Next Item
 
-```bash
-# Epic-scoped: items under <epic-id> (transitive via parent chain)
-if [[ -n "$EPIC_ID" ]]; then
-  # Direct children
-  .work/bin/work-view --parent "$EPIC_ID" --paths
-  # Grandchildren: walk parent chain
-  for child in $(...); do
-    child_id=$(grep '^id:' "$child" | awk '{print $2}')
-    .work/bin/work-view --parent "$child_id" --paths
-  done
-fi
+Sort ready candidates by:
 
-# --all: everything in active
-if [[ "$ALL" == "1" ]]; then
-  ls .work/active/{epics,features,stories}/*.md 2>/dev/null
-fi
+1. `depends_on` count ascending
+2. `created` ascending
+
+Pop the first item. If there are no ready candidates, evaluate the stop rules.
+
+For `stage: implementing`, the picked item is only an anchor. Hand the whole
+in-scope implementing band to `implement-orchestrator`; do not pre-bundle it
+yourself.
+
+### Phase 4: Delegate Work
+
+Invoke the relevant skill through `Skill` or the local skill mechanism. Include
+this caller note in every delegated prompt:
+
+> Delegated by an active agile-workflow autopilot goal for `<scope>`. Resolve
+> ambiguities with judgment, log rationale in the item body, and do not ask
+> strategic questions unless a hard halt condition applies.
+
+Routing:
+
+- `stage: drafting`, `kind: epic` -> `epic-design`
+- `stage: drafting`, feature with `tags: [refactor]` -> `refactor-design`
+- `stage: drafting`, feature with `tags: [perf]` -> `perf-design`
+- `stage: drafting`, other feature -> `feature-design`
+- `stage: implementing`, epic -> skip direct implementation; children are the
+  work targets
+- `stage: implementing`, non-epic -> `implement-orchestrator <scope>`
+- `stage: review` -> `review <id>`
+
+The delegated skill owns its internal workflow and stage transition. After it
+returns, rebuild the queue from disk rather than relying on cached state.
+
+If a delegated skill reports a hard blocker without a stage transition, append
+a `## Blocker` section to the item body, commit that note, and continue with
+other ready items. The final goal outcome is blocked if unresolved blockers
+remain in scope.
+
+### Phase 5: Review Circuit-Breaker
+
+Track per-item review bounces during the run:
+
+```text
+bounces[<item-id>] = times this item has gone implementing -> review -> implementing
 ```
 
-Filter to items with `stage` in `{drafting, implementing, review}`. Review-stage
-items are now in scope — they get drained by invoking the `review` skill, same
-as drafting items get drained by the design family.
+If an item bounces back to `implementing` twice:
 
-### Phase 3: Filter for readiness
+1. Append `## Stuck at review` with the latest blockers and the two-pass note.
+2. Leave the item at `review`.
+3. Log it as escalated.
+4. Continue draining other ready work.
 
-For each candidate, check `depends_on`. An item is **ready** when:
-- Every entry in `depends_on` is at `stage: done`, OR
-- Every entry is in `releases/` or `archive/` (terminal-done)
+Escalated items make the final goal outcome blocked unless the user resolves
+them before the run ends.
 
-Use `work-view --ready` for stage:implementing items:
+### Phase 6: Refactor Cadence (`--all` Only)
 
-```bash
-.work/bin/work-view --ready --paths | grep "<scope-filter>"
-```
+Every 5 items advanced to `done` in `--all` mode, delegate a conservative
+discovery pass to `refactor-design` over files touched by those items:
 
-For drafting items, check deps manually — `--ready` only filters implementing.
+1. Collect touched paths from the commits associated with those item ids.
+2. Invoke `refactor-design <path...>` in discovery mode.
+3. Let `refactor-design` classify and emit any follow-up items.
+4. Rebuild the queue; newly emitted items are picked up naturally.
 
-### Phase 4: Sort and pick
+Never invoke `bold-refactor` from autopilot. It is too aggressive for autonomous
+queue driving.
 
-Sort the ready candidates:
-1. **`depends_on` count ascending** — less-blocked first
-2. **`created` ascending** — FIFO tie-break
+### Phase 7: Stop Rules
 
-Pop the first.
+After each queue rebuild:
 
-If the queue is empty at this point: **stop condition met**. See Phase 8.
+- If no in-scope active items remain at `drafting`, `implementing`, or `review`,
+  the goal is complete.
+- If in-scope active items remain but none are ready, the goal is blocked on
+  dependencies or unresolved blockers. Report the blocking ids.
+- If the user interrupts, stop at the next safe boundary and report remaining
+  state without claiming completion.
+- Otherwise pick the next item and continue.
 
-Note on the `stage: implementing` branch: the picked item is treated as an
-**anchor** for the implementing band — Phase 5 hands the whole in-scope
-implementing batch to the orchestrator in one call, not just this one item.
-For `drafting` and `review` stages, the picked item is processed individually,
-as before.
-
-### Phase 5: Work the item
-
-Based on the item's `stage` and `kind`:
-
-**`stage: drafting`** (epic or feature):
-- For epics → `/agile-workflow:epic-design` (decomposes into child features at
-  `stage: drafting` and advances the epic to `implementing`)
-- For features, route by tags:
-  - No specialized tag → `/agile-workflow:feature-design`
-  - `tags: [refactor]` → `/agile-workflow:refactor-design`
-  - `tags: [perf]` → `/agile-workflow:perf-design`
-
-Only items in `.work/backlog/` are out of scope for autopilot — the queue only
-reads from `.work/active/` so backlog never enters consideration.
-
-**`stage: implementing`** — drain the whole band at once via the orchestrator:
-- For epics: nothing to implement directly — the children are the work
-  targets. Skip and pick the next ready candidate. (The `review` skill
-  auto-advances an epic from `implementing → review` when its last child
-  reaches `done`.)
-- For everything else (features with or without children, lone stories,
-  parentless items): hand the **full scope** to
-  `/agile-workflow:implement-orchestrator` in one call. Pass the autopilot
-  scope through directly — `<epic-id>` if epic-scoped, `--all` if `--all`
-  mode, or the explicit list if you reduced it via a free-text directive.
-  The orchestrator builds a unified `depends_on` graph across every ready
-  implementing item in scope (cross-feature is fine), **decides how to
-  parallelize**, bundles tightly-coupled items into shared implementation
-  sub-agents when useful, chooses wave width and worktree isolation, and
-  advances each parent feature whose children all reach `review`. Autopilot
-  does not pre-bundle or second-guess the split; the orchestrator owns that
-  decision and surfaces it in its run summary. Invocation through autopilot is
-  explicit authorization for the orchestrator to use implementation sub-agents
-  when it judges parallelism beneficial.
-- The orchestrator returns once the implementing band in scope is fully
-  drained (every item at `stage: review`, every qualifying parent advanced).
-  After it returns, resume the queue at Phase 2 — there will likely now be
-  new `stage: review` candidates to process, plus any drafting items still
-  waiting on design.
-- Inline `/agile-workflow:implement` is reserved for the small-delivery case
-  the orchestrator routes around: items the orchestrator declined or items
-  the user has explicitly asked to land inline. Autopilot itself defaults to
-  the orchestrator — never call `implement` directly during autonomous
-  routing unless the orchestrator has already deferred the item back.
-
-**`stage: review`** (any kind):
-- All kinds → `/agile-workflow:review <id>`. The review skill is
-  autonomous-safe: it produces a verdict, files findings as items in the
-  substrate, and either advances `review → done` (no blockers) or sends the
-  item back to `implementing` (blockers). Either outcome moves the queue
-  forward — nothing sits at review waiting for a human.
-- See Phase 6 for the circuit-breaker that catches items bouncing between
-  review and implementing.
-
-Invoke the relevant skill via the `Skill` tool. The skill advances the item's
-stage on completion (`drafting → implementing` for design family;
-`implementing → review` for implement family; `review → done` or `review →
-implementing` for review).
-
-If the skill encounters a blocker that isn't reflected in a stage transition
-(e.g. it can't even start): it returns a blocker report. Append the blocker
-to the item body, log a deviation note, and skip this item — pick the next
-ready one.
-
-### Phase 6: Review circuit-breaker
-
-Track a per-item bounce counter in your run notes:
-
-```
-bounces[<item-id>] = times this item has gone implementing → review → implementing
-```
-
-Increment on every autopilot-triggered `review → implementing` transition.
-At count **2**, halt on this item:
-
-1. Append a `## Stuck at review` section to the body with the latest review's
-   blockers and a note that two implementation passes failed to clear them.
-2. Leave stage at `review` — don't loop back a third time.
-3. Log the item as escalated in the run summary.
-4. Skip and continue draining the rest of the queue.
-
-Bounce-count 1 is normal (implement missed something, review caught it, next
-pass fixes it). 2+ usually means the design is wrong — human-judgment
-territory.
-
-Reset the counter on `done`. Escalated items at review persist their counter
-across resume ticks — they don't re-attempt automatically.
-
-### Phase 7: Refactor cadence (--all mode only)
-
-Every 5 items advanced to `done` in `--all` mode, delegate to `refactor-design`
-discovery mode against the files those 5 items touched:
-
-1. Collect the set of files modified by the last 5 done items (`git log
-   --grep "<id>" --name-only` per item, then union)
-2. Invoke `/agile-workflow:refactor-design <path1> <path2> ...` — passes the
-   touched paths as scope
-3. refactor-design's discovery workflow classifies findings (pure-refactor vs
-   behavior-changing) and emits items at the right size and tag
-4. Continue Phase 4-7 cycle; the next iteration picks up any new items
-   naturally (pure-refactor → refactor-design per-feature mode for ones that
-   landed as features; behavior-changing → feature-design)
-
-This replaces the prior inline "quick scan + scope one refactor feature"
-heuristic. Multiple opportunities can surface from one cadence tick now, and
-the "what counts as a refactor candidate" judgment lives inside
-`refactor-design` where it belongs.
-
-**Important**: never invoke `/agile-workflow:bold-refactor` from autopilot.
-That verb is user-only — too aggressive for autonomous reach. Discovery-mode
-`refactor-design` is the right surface; epic-scale reconceptions need
-human sign-off.
-
-### Phase 8: Stop conditions
-
-There are exactly three stop conditions. None of them involve token usage,
-elapsed time, or upcoming watchdog ticks. **If you are tempted to stop for
-any reason not on this list, you are wrong — keep going.**
-
-| Condition | Action |
-|---|---|
-| Queue empty (no ready items remaining in scope) | Cancel watchdog loops. Report final summary. |
-| Truly stuck on an item with no path forward | Append "Blocker" section to the item, cancel watchdog loops, halt. |
-| User sends a manual stop signal | Cancel watchdog loops. Halt. |
-
-The harness manages compaction on its own. You do not estimate, predict, or
-react to context budget. If a session is interrupted, the next /loop tick
-re-enters via `--resume` — that's the safeguard's job, not yours.
-
-To cancel watchdog loops, load the `loop` skill again and follow its
-instructions for cancellation (it exposes a list-and-cancel flow). Don't
-prescribe an exact invocation — let the loop skill drive.
-
-### Phase 9: Resume mode (--resume)
-
-`--resume` only matters if a previous autopilot session was interrupted
-(harness restart, compaction, manual stop). In a healthy continuous run you
-never re-enter this phase — you stay in the Phase 4–7 cycle until a stop
-condition in Phase 8 fires.
-
-When `--resume` does fire:
-1. Verify watchdog loops are still running. If both are gone, schedule them.
-2. Re-read `.work/CONVENTIONS.md`.
-3. Build the candidate queue (Phase 2-3) again — substrate IS the resume point;
-   no separate PROGRESS.md is consulted.
-4. Continue from Phase 4.
-
-This is idempotent. Re-firing `--resume` repeatedly is safe.
-
-## Emotional tone
-
-The way you frame prompts to sub-agents (in `implement-orchestrator` invocations
-during autopilot) matters. Follow these principles throughout:
-
-- **Pride in craft, not pressure to perform.** "You're building <X> — take pride
-  in clean code and thorough tests" beats "You MUST implement <X> correctly."
-- **Permission to adapt.** "If the design doesn't match the repo, note the
-  discrepancy and adapt" beats "Follow the design exactly."
-- **Quality as aspiration.** "Write code a future developer would read with
-  appreciation" beats "NEVER leave TODO comments."
-- **Calm through setbacks.** "That test failure is information — trace it back,
-  understand it, fix it" beats "Fix this immediately, it's blocking everything."
-- **Celebrate milestones.** When an item advances to `done`, append a brief
-  "what's now possible" note to its body. Not fluff — it maintains momentum
-  for the next session reading the substrate.
-
-Apply the same tone when narrating progress in conversation. Pressure language
-("you MUST", "CRITICAL", "do not fail") triggers anxiety that produces worse
-work, not better.
+Do not stop because of elapsed time, context size, or "long run" concerns. The
+harness owns continuation. Your job is to keep applying the queue policy until a
+real stop rule fires.
 
 ## Output
 
-Throughout the run, brief narration in conversation as items advance. On stop:
+Narrate briefly as items advance. Final summary:
 
-- **Items advanced to done**: count
-- **Items reviewed and approved** (advanced review → done): count
-- **Items reviewed and bounced** (sent review → implementing): count, with how
-  many ultimately advanced to done vs. escalated
-- **Items escalated** (circuit-breaker fired after 2 bounces): count, with ids
-  so the user can intervene
-- **Items blocked at start** (couldn't begin work): count
-- **Refactor cadences run** (--all mode): count of refactor-design discovery
-  invocations, plus total items emitted (pure-refactor vs behavior-changing)
-- **Bundles used** (implementing band): if the orchestrator reported bundling
-  in any of its runs this session, summarize — e.g. "3 orchestrator runs
-  bundled 14 items into 9 agent slots". Pass through the orchestrator's own
-  bundle summaries rather than recomputing.
-- **Scope interpretation** (free-text arg only): one-line description of how
-  you interpreted the directive and which items were included
-- **Total time** in autopilot run (rough)
-- **Watchdog status**: cancelled / still running
+- Goal scope and interpretation
+- Items advanced to done
+- Items reviewed and approved
+- Items reviewed and bounced
+- Escalated or blocked item ids
+- Refactor cadences run (`--all` only)
+- Implement-orchestrator bundle summary, if reported
+- Goal outcome: complete, blocked, or interrupted
 
 ## Guardrails
 
-- **Drive continuously.** The watchdog ticks are a hidden safeguard, not a
-  pacing mechanism. Don't pause for them, don't finish "before" one, don't
-  reason about them at all once scheduled. Pick the next ready item the
-  moment the current one advances.
-- **Don't self-throttle on context.** The harness handles compaction. You do
-  not estimate token usage, predict compaction, or stop because work has been
-  going for a while. Phase 8 has the full list of stop conditions.
-- Never use AskUserQuestion — resolve everything autonomously.
-- Always schedule watchdog loops before phase work, but check for existing loops
-  first to avoid duplicates.
-- Cancel watchdog loops only when stopping cleanly on an unresolvable blocker
-  OR when the queue is fully drained.
-- Items at `stage: review` are autonomously handled by the `review` skill —
-  they advance to `done` on no-blockers or back to `implementing` on
-  blockers. Don't try to interpret findings yourself; let the review skill
-  produce the verdict and advance the stage.
-- Respect the circuit-breaker: if an item bounces `implementing → review →
-  implementing` twice, halt on it (set stage: review, log the escalation,
-  skip). Don't keep re-implementing a stuck item.
-- Don't invoke `bold-refactor` from autopilot. Incremental refactors only.
-- Commit after every item state change. Many small commits are safer than one
-  giant one.
-- Don't force-push or push to remote — the user reviews and pushes.
-- The substrate IS the resume point. No `PROGRESS.md`. The agent reads
-  `.work/active/` on each `--resume` to know where it is.
-- Stop conditions matter. Don't spiral on a stuck item — log the blocker and
-  pick the next candidate. Spiraling burns context for no gain.
+- Never use AskUserQuestion while an autopilot goal is actively driving the
+  delegated work. Resolve with judgment and log rationale.
+- Commit after every item state change or blocker note.
+- Do not push, force-push, or release; the user controls publication.
+- Do not touch `.work/backlog/` except to report that backlog items are out of
+  scope.
+- The substrate is the resume point. No `PROGRESS.md`, no watchdog loops, no
+  `--resume`.

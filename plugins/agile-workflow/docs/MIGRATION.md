@@ -310,8 +310,8 @@ Format:
 1. Review the seeded items in .work/active/
 2. Verify epic dependencies match your intent
 3. Delete legacy docs/designs/ etc. once verified
-4. Run `/agile-workflow:autopilot epic-uploads-architecture` to drain
-   the first epic, or pick up an in-flight feature manually
+4. Start an autopilot goal for `epic-uploads-architecture` to drain the first
+   epic, or pick up an in-flight feature manually
 ```
 
 The report stays at repo root through the user's review. Once verified,

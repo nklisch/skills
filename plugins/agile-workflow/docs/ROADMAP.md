@@ -67,14 +67,14 @@ epics on user request.
 - `release-deploy/` (+ release-mapping reference)
 - 5 gates: `gate-security/`, `gate-tests/`, `gate-cruft/`, `gate-docs/`,
   `gate-patterns/` — each with reference file
-- `autopilot/` (+ queue-algorithm and watchdog-loops references)
+- `autopilot/` (+ queue-algorithm and harness-goal references)
 - `bold-refactor/` (+ architectural-shifts reference) — user-invocable only
 - `tap.json` entries for all 8 skills
 
 **Test checkpoint:** In the test repo from Phase 2, cut a fake release end
 to end with `release-deploy` — gates run, items advance, release ships.
-Run `/agile-workflow:autopilot` against an epic with depends_on chains —
-order is respected. That's it.
+Run an autopilot goal against an epic with depends_on chains — order is
+respected. That's it.
 
 ---
 

@@ -141,7 +141,7 @@ pin. Aim for 2-5 questions.
 
 **Caller-awareness rule (mirrors feature-design):**
 
-- Running under `/agile-workflow:autopilot`? Resolve with judgment
+- Running under an active autopilot run or harness goal? Resolve with judgment
   (consistent with foundation docs > simpler > defers irreversible decisions)
   and log under `## Design decisions` in the body.
 - Otherwise (including under harness auto mode): ask via `AskUserQuestion`
@@ -373,7 +373,7 @@ git commit -m "e2e-test-design --bootstrap: seed e2e test program"
 ```
 
 Direct the user: "Run `/agile-workflow:e2e-test-design <feature-id>` against
-each child feature, or `/agile-workflow:autopilot e2e-test-program` to drive
+each child feature, or start an autopilot goal for `e2e-test-program` to drive
 the program end-to-end."
 
 ## Workflow — `--audit` mode
@@ -409,8 +409,8 @@ the design phase uses, plus the mock-ladder challenge from the mock policy.
 `AskUserQuestion`: present finding counts by severity (Critical / High /
 Medium / Low). User confirms which to file as items.
 
-Skipping triage for autopilot-driven invocations: classify all Critical and
-High automatically; route Medium and Low to `.work/backlog/`.
+Skipping triage for active autopilot-driven invocations: classify all Critical
+and High automatically; route Medium and Low to `.work/backlog/`.
 
 ### Phase A4: File items
 
@@ -465,8 +465,8 @@ git commit -m "e2e-test-design --audit: <N> findings (gate=<version>)"
 **Bootstrap mode**:
 - **Seeded epic**: `e2e-test-program`
 - **Child features**: list (one per taxonomy layer chosen + infra)
-- **Next**: `/agile-workflow:e2e-test-design <feature-id>` per child, or
-  `/agile-workflow:autopilot e2e-test-program`
+- **Next**: `/agile-workflow:e2e-test-design <feature-id>` per child, or an
+  autopilot goal for `e2e-test-program`
 
 **Audit mode**:
 - **Suite path**: detected location

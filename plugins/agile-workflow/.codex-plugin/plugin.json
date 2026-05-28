@@ -1,7 +1,7 @@
 {
   "name": "agile-workflow",
   "version": "0.7.6",
-  "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/, late-binding releases, gates that produce items, autopilot queue runner.",
+  "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/, late-binding releases, gates that produce items, goal-backed autopilot queue runner.",
   "author": {
     "name": "nklisch"
   },
@@ -11,8 +11,8 @@
   "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Agile Workflow",
-    "shortDescription": "Substrate-driven work tracking with autopilot",
-    "longDescription": "Skills for substrate-driven work tracking. Items as files in .work/, late-binding releases, gates that produce items (security, tests, cruft, docs, patterns), autopilot queue runner. Sibling to workflow.",
+    "shortDescription": "Substrate tracking with goal-backed autopilot",
+    "longDescription": "Skills for substrate-driven work tracking. Items as files in .work/, late-binding releases, gates that produce items (security, tests, cruft, docs, patterns), and a goal-backed autopilot queue runner. Sibling to workflow.",
     "developerName": "nklisch",
     "category": "Productivity",
     "capabilities": [

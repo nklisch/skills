@@ -492,7 +492,7 @@
     },
     {
       "name": "agile-workflow",
-      "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/ with structured frontmatter, late-binding releases, gates that produce items, autopilot queue runner respecting depends_on graphs.",
+      "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/ with structured frontmatter, late-binding releases, gates that produce items, goal-backed autopilot queue runner respecting depends_on graphs.",
       "version": "0.3.2",
       "tags": [
         "workflow",
@@ -620,7 +620,7 @@
         {
           "name": "autopilot",
           "path": "skills/autopilot",
-          "description": "Drain a substrate queue autonomously. Picks the next ready item respecting depends_on, invokes the right skill (epic-design for kind:epic at drafting; feature-design / refactor-design / perf-design for kind:feature at drafting; implement / implement-orchestrator for implementing; review for review), advances stage, repeats. Epic-scoped by default; --all drains all of .work/active/; free-text scope arg interpreted by the agent. Only .work/backlog/ is out of scope. Circuit-breaker halts on items that bounce review→implementing more than twice. Watchdog /loop tasks survive compaction."
+          "description": "Goal-backed agile-workflow queue driver. Invokable from a harness goal statement such as \"Use agile-workflow autopilot to drain --all\" or directly by the user. Picks the next ready item respecting depends_on, delegates to design / implement / review skills by stage and tag, commits transitions, and repeats until the scope is done or blocked. Epic-scoped by default; --all drains .work/active/; free-text scope directives are allowed. Harness goal/continuation owns persistence; no /loop or --resume mechanics."
         },
         {
           "name": "research",

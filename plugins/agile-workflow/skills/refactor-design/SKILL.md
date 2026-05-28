@@ -126,8 +126,8 @@ In conversation:
 - **Scope**: how the target was interpreted
 - **Findings**: count by classification (pure-refactor vs behavior-changing)
 - **Items emitted**: counts by kind (story / feature) with new ids
-- **Next**: `/agile-workflow:scope` (batch mode) to cluster further, or
-  `/agile-workflow:autopilot` to drain. Behavior-changing items will route to
+- **Next**: `/agile-workflow:scope` (batch mode) to cluster further, or start
+  an autopilot goal to drain. Behavior-changing items will route to
   feature-design when their stage advances.
 
 ## Workflow — `--only-questions` mode
@@ -146,7 +146,7 @@ drafting features. Iterate over the target set:
 6. Do NOT design or advance stage — let the design family pick up later
 7. Commit per feature: `refactor-design --only-questions: <id>`
 
-Requires interactive mode; refuse to run under autopilot.
+Requires interactive mode; refuse to run under an active autopilot run or goal.
 
 ## Workflow — per-feature mode
 

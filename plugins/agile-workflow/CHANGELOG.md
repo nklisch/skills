@@ -6,6 +6,14 @@
   descriptions so every `SKILL.md` stays under Codex's 1024-character
   description limit. This fixes `perf-design` being skipped by Codex after the
   v0.7.6 release.
+- **Goal-backed autopilot** - Reshaped `autopilot` as a model- and
+  user-invocable queue policy that can be selected from a harness goal
+  statement such as "Use agile-workflow autopilot to drain --all." Removed
+  current docs' dependence on `/loop`, watchdog ticks, and `--resume`; the
+  harness goal/continuation feature now owns long-running persistence.
+- **Caller-awareness alignment** - Updated delegated skills and docs so
+  "autopilot mode" means an active autopilot run or goal, not only a literal
+  slash invocation in the transcript.
 
 ## v0.7.6 - Perf and refactor design alignment
 

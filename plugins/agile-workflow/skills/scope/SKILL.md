@@ -194,7 +194,7 @@ In conversation:
 - **Next**: design family picks up drafting features/epics
   (`/agile-workflow:feature-design`, `epic-design`, `refactor-design`, or
   `perf-design` based on kind and tags); implementing stories are ready for
-  `/agile-workflow:autopilot` or `/agile-workflow:implement-orchestrator`.
+  an autopilot goal or `/agile-workflow:implement-orchestrator`.
 
 ## Workflow — single-idea mode
 

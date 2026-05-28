@@ -53,13 +53,13 @@ The skill accepts an optional `--only-questions` flag and an optional target.
 
 `--only-questions` mode exists so a user can align with the agent on
 high-level direction across many drafting features in one session, then
-hand off to `/agile-workflow:autopilot` for the full design + implement
-pass. Autopilot inherits the captured answers from each feature body and
-no longer has to use judgment on those points.
+hand off to an autopilot goal for the full design + implement pass. Autopilot
+inherits the captured answers from each feature body and no longer has to use
+judgment on those points.
 
-`--only-questions` requires interactive mode — if `/agile-workflow:autopilot`
-is the active driver of this session, refuse to run and report that the
-flag is for interactive alignment only.
+`--only-questions` requires interactive mode — if an active autopilot run or
+harness goal is driving this session, refuse to run and report that the flag is
+for interactive alignment only.
 
 ## Workflow — `--only-questions` mode
 
@@ -112,9 +112,9 @@ In conversation, after the run:
   captured per feature
 - **Skipped**: list of feature ids and reason (wrong stage, wrong tag, no
   ambiguities found)
-- **Next**: features stay at `stage: drafting` — run
-  `/agile-workflow:autopilot <epic-id>` (or `--all`) and the design pass
-  on each feature will inherit the captured answers
+- **Next**: features stay at `stage: drafting` — start an autopilot goal for
+  `<epic-id>` or `--all`, or use direct `/agile-workflow:autopilot <scope>`.
+  The design pass on each feature will inherit the captured answers.
 
 ## Workflow
 
@@ -184,12 +184,10 @@ already pin. Skip anything that's safely an implementation-time call.
 Aim for the smallest set of questions that meaningfully resolve direction
 — typically 2-5. Zero is fine if everything's already pinned.
 
-If this skill is running **as a delegation from `/agile-workflow:autopilot`**
-— that is, an explicit `/agile-workflow:autopilot` slash invocation appears
-in the current session's transcript and is still driving the queue — resolve
-each one with judgment (prioritize: consistent with foundation docs > simpler
-option > defers irreversible decisions) and log under `## Design decisions`
-in the body:
+If this skill is running **as a delegation from an active autopilot run or
+harness goal**, resolve each question with judgment (prioritize: consistent
+with foundation docs > simpler option > defers irreversible decisions) and log
+under `## Design decisions` in the body:
 
 ```markdown
 ## Design decisions
@@ -414,5 +412,5 @@ In conversation:
 - `--only-questions` mode never advances stage, never spawns stories, and never
   writes design content beyond the `## Design decisions` section. If you find
   yourself doing any of those, you're in the wrong mode.
-- `--only-questions` is interactive-only — refuse to run when
-  `/agile-workflow:autopilot` is the active driver of the session.
+- `--only-questions` is interactive-only — refuse to run when an active
+  autopilot run or harness goal is driving the session.

@@ -104,7 +104,9 @@ In conversation:
 - **Entry points profiled**: the picks
 - **Bottlenecks**: count, with top hierarchy levels and probe families
 - **Items emitted**: counts by kind with new ids
-- **Next**: `/agile-workflow:autopilot` to drain, or `/agile-workflow:perf-design <feature-id>` per emitted feature for the detailed design pass
+- **Next**: start an autopilot goal to drain, or run
+  `/agile-workflow:perf-design <feature-id>` per emitted feature for the
+  detailed design pass
 
 ## Workflow — `--only-questions` mode
 
@@ -120,7 +122,7 @@ drafting features. Iterate over the target set:
 5. Do NOT design or advance stage
 6. Commit per feature: `perf-design --only-questions: <id>`
 
-Requires interactive mode; refuse to run under autopilot.
+Requires interactive mode; refuse to run under an active autopilot run or goal.
 
 ## The optimization hierarchy
 

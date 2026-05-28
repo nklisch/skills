@@ -192,8 +192,8 @@ git commit -m "epicize: <N> epics seeded from foundation docs"
 In conversation:
 - **Seeded**: list of `<id>` per epic with `depends_on` per epic
 - **Suggested next step**: pick one epic to start with —
-  `/agile-workflow:autopilot <epic-id>` for autonomous execution, or scope a feature
-  under one of the epics manually for guided exploration
+  start an autopilot goal for `<epic-id>` for autonomous execution, or scope a
+  feature under one of the epics manually for guided exploration
 
 ## Guardrails
 
@@ -202,7 +202,7 @@ In conversation:
   at the epic level.
 - Anticipated child features are provisional, not commitments. Don't pre-create child
   feature files at epicize time — that's `/agile-workflow:scope` (manual) or
-  `/agile-workflow:epic-design` (autopilot-driven) when the epic is ready to be
+  `/agile-workflow:epic-design` (often autopilot-driven) when the epic is ready to be
   decomposed into real feature files.
 - Don't pre-bind epics to releases. `release_binding` stays `null` until
   `/agile-workflow:release-deploy` runs.

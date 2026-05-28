@@ -34,8 +34,8 @@ skilltap install nklisch/agile-workflow
 # "Pre-flight: align on strategic questions first".
 /agile-workflow:epic-design --only-questions --all
 
-# Then drain the queue
-/agile-workflow:autopilot --all
+# Then drain the queue with a harness goal
+Goal: Use agile-workflow autopilot to drain --all
 
 # ... or work normally; agent picks operational skills as conversation flows
 ```
@@ -44,7 +44,7 @@ skilltap install nklisch/agile-workflow
 
 The single highest-leverage habit in the agile-workflow loop: run
 `/agile-workflow:epic-design --only-questions --all` (or per-epic with an
-`<epic-id>`) **before** any `autopilot` invocation. It surfaces 2–5
+`<epic-id>`) **before** any autopilot goal or direct invocation. It surfaces 2–5
 directional product/architecture/scope questions per drafting epic, captures
 your answers under `## Design decisions` in each epic body, and does NOT
 decompose or advance stage. Autopilot then inherits those answers — no

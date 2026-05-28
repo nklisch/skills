@@ -300,8 +300,19 @@ adding a tag and a skill — no architectural change.
 
 ## Autopilot algorithm
 
-`/agile-workflow:autopilot <epic-id>` drains an epic to done.
-`/agile-workflow:autopilot --all` drains all of `.work/active/`.
+Autopilot is the queue policy for autonomous substrate goals. The preferred
+shape is a harness goal statement that names the skill and scope:
+
+```text
+Use agile-workflow autopilot to drain <epic-id>
+Use agile-workflow autopilot to drain --all
+```
+
+Direct skill invocation remains supported: `/agile-workflow:autopilot
+<epic-id>` drains one epic, and `/agile-workflow:autopilot --all` drains all of
+`.work/active/`. In both cases, autopilot does not create `/loop` schedules or
+maintain a progress file; harness goal/continuation owns long-running
+persistence and `.work/active/` is the resume point.
 
 ### Pre-flight: align on strategic questions first
 
@@ -313,7 +324,7 @@ the agile-workflow loop and should generally always be done.
 # Per-epic — align on one epic before autopilot picks it up
 /agile-workflow:epic-design --only-questions <epic-id>
 
-# Cover the whole active queue at once — recommended before autopilot --all
+# Cover the whole active queue at once — recommended before a --all autopilot goal
 /agile-workflow:epic-design --only-questions --all
 ```
 
@@ -341,7 +352,7 @@ Why it matters:
 `--only-questions` mode refuses to run under autopilot itself — it's
 explicitly a pre-autopilot, human-in-the-loop step. The right invocation
 shape is: `--only-questions --all` first, review the captured decisions,
-then `autopilot --all` (or `autopilot <epic-id>`).
+then start an autopilot goal for `--all` (or `<epic-id>`).
 
 ### Queue selection algorithm
 
@@ -375,31 +386,20 @@ then `autopilot --all` (or `autopilot <epic-id>`).
 - Empty queue (all candidates exhausted)
 - User invokes a halt command or sends a manual prompt
 - A skill reports a blocker that can't be resolved autonomously
-- Context approaches compaction threshold (~600k tokens) — finish current
-  item, commit, stop cleanly
 
-### Watchdog loops
+### Harness goal continuation
 
-`/loop` watchdog pattern:
-
-- **30-minute nudge:** `/loop 30m /agile-workflow:autopilot --resume` —
-  keeps the session moving
-- **3-hour re-engagement:** `/loop 3h /agile-workflow:autopilot --resume`
-  — heavier re-grounding via skill invocation, survives compaction
-
-Autopilot checks for existing watchdog loops at start; doesn't duplicate.
-Cancels them only on clean unresolvable stop.
-
-`--resume` mode reads `.work/active/` for state — there is no separate
-`PROGRESS.md`. The substrate IS the resume point.
+Autopilot does not own continuation mechanics. Claude/Codex harness goal
+features keep the run alive across compaction and continuation turns. If a run
+resumes, the agent re-reads `.work/active/` and applies the same queue selection
+algorithm. There is no `--resume`, no watchdog `/loop`, and no `PROGRESS.md`.
 
 ### Refactor cadence during --all mode
 
-Every N items completed (default N=5), autopilot evaluates whether a
-refactor pass is warranted. If yes, it scopes a refactor feature with
-`tags: [refactor]` at `stage: drafting`, with `depends_on` on the recently
-completed items, and continues. The next loop iteration picks it up via
-`refactor-design`.
+Every N items completed (default N=5), autopilot delegates a conservative
+discovery pass to `refactor-design` over recently touched files. That skill
+classifies pure refactors vs behavior-changing work and emits the appropriate
+items. The next queue rebuild picks them up naturally.
 
 The refactor cadence is conservative: never invokes `bold-refactor` (that's
 user-only). Only scopes incremental refactor features.
@@ -503,7 +503,7 @@ Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
 **Primary query tool:** `.work/bin/work-view` filters by stage, tag, kind,
 parent, and dependency. Common patterns:
 - `work-view --ready` — items ready to work (deps satisfied)
-- `work-view --stage review` — items waiting on user
+- `work-view --stage review` — items awaiting review
 - `work-view --parent <id>` / `--blocking <id>` — hierarchy / sequencing
 - `work-view --help` for the full flag set
 
@@ -516,9 +516,10 @@ Project-level agent rules live in AGENTS.md. Reusable structural patterns live
 in `.agents/skills/patterns/`; do not maintain `.claude/rules/patterns.md` as
 a source of truth.
 
-Slash commands (user-invokable):
+Broad entry points:
 `/agile-workflow:ideate`, `/agile-workflow:epicize`,
-`/agile-workflow:autopilot`, `/agile-workflow:release-deploy`.
+autopilot goals such as "Use agile-workflow autopilot to drain --all",
+and `/agile-workflow:release-deploy`.
 <!-- agile-workflow:end -->
 ```
 
@@ -580,7 +581,7 @@ All skills with their roles, invocability, and triggers.
 | `review` | model-invocable | Code review of changes for an item. Triages findings into items with proper tags. Advances to done if approved. | item at `stage: review` |
 | `release-deploy` | user-invocable | Bind items to release, run gates, ship, archive. Idempotent. | User-invoked when ready to cut a version |
 | `bold-refactor` | user-invocable | Multi-feature architectural refactor. Scopes a refactor epic with child features. Aggressive — only on user request. | User-invoked |
-| `autopilot` | user-invocable | Queue runner. Drains an epic or all of active. Watchdog loops. | `/agile-workflow:autopilot <epic>` or `--all` |
+| `autopilot` | model- and user-invocable | Goal-backed queue runner. Drains an epic or all active work using the harness goal/continuation feature. | Goal text like "Use agile-workflow autopilot to drain <epic>" or direct `/agile-workflow:autopilot --all` |
 
 ### Gates (model-invocable, fire during release flow)
 

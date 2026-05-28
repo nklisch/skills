@@ -222,10 +222,10 @@ In conversation, per epic produced (1-N):
 - **Children**: list of child features with `depends_on` chains
 - **Riskiest first**: which feature gets designed first
 
-Then a single **Next**: `/agile-workflow:autopilot --all` (or
-`autopilot <epic-id>` per epic) for autonomous execution through the
-dependency graph; or `/agile-workflow:refactor-design` on the riskiest child
-of each epic to begin the cascade manually.
+Then a single **Next**: start an autopilot goal for `--all` (or for each new
+`<epic-id>`) to execute through the dependency graph; or run
+`/agile-workflow:refactor-design` on the riskiest child of each epic to begin
+the cascade manually.
 
 ## Guardrails
 
