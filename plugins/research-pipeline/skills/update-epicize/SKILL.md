@@ -1,166 +1,156 @@
 ---
-name: update-roadmap
+name: update-epicize
 description: >
-  Revisit and update the roadmap after building phases. Assesses what was learned during
-  implementation, identifies phases that need rescoping, splitting, merging, or reordering,
-  and updates roadmap.md to reflect current reality. Use after completing a batch of phases,
-  when scope has shifted, when new blockers were discovered, or when the roadmap no longer
-  matches the project's trajectory.
+  Revisit and update epic items after building features. Reads current epic items
+  in .work/active/epics/ + their child features' actual completion status; identifies
+  divergence between planned vs actual (scope creep, missed dependencies, scope
+  reduction); proposes epic rescoping / splits / merges / archive moves. Use after
+  completing a batch of features, when scope has shifted, when new blockers were
+  discovered, or when the epic graph no longer matches the project's trajectory.
 user-invocable: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 model: opus
 ---
 
-# Update Roadmap
+# Update-Epicize
 
-You revisit the project's roadmap after implementation has taught you things the original
-plan couldn't anticipate. Building reveals scope changes, new blockers, phases that were
-too big or too small, dependencies that shifted, and decisions that need recording. This
-skill captures those learnings and produces an updated roadmap that reflects reality.
+You revisit the project's epic graph after substantial work has landed, and update
+it to reflect what was actually learned during implementation. This is the substrate
+equivalent of "update the roadmap" — but instead of editing a `roadmap.md` doc, you
+update individual epic items and their `depends_on` chains.
 
 **You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
 
+**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` for consideration.** Apply Challenge and Synthesize — challenge the current decomposition against actual evidence; synthesize learnings into the updated graph.
+
+## When to invoke
+
+- After completing 2-4 features within an epic (epic-level checkpoint)
+- After completing a full epic (cross-epic re-evaluation)
+- When scope has shifted (e.g., a feature revealed an unanticipated capability area)
+- When new blockers were discovered (a brief surfaced a research gap; an integration revealed a tighter coupling)
+- When the epic graph no longer matches the project's trajectory (visible via repeated `## Blocker` items or autopilot stalls)
+
+## Prerequisites
+
+- `.work/CONVENTIONS.md` exists (substrate bootstrapped)
+- At least one epic item exists in `.work/active/epics/` (otherwise there's nothing to update)
+
 ## Model Assignment
 
-Per [model-selection-pattern.md](../docs/model-selection-pattern.md):
+Per [model-selection-pattern.md](/dev/skills-v2/plugins/research-pipeline/docs/model-selection-pattern.md):
 
-- **Roadmap reviewer (this skill's main loop)** — Orchestration. Opus high effort. Runs in parent context.
+- **Updater (this skill's main loop)** — Orchestration. Opus high effort. Runs in parent context.
 
-Rescoping decisions affect every subsequent phase — the orchestrator warrants Opus. This skill does not spawn sub-agents.
+Cross-epic decisions affect every downstream design and implement pass — Opus warrants. This skill does not spawn sub-agents.
 
-## When to Use
+## Workflow
 
-- **After completing 2-4 phases** — check if remaining phases still make sense
-- **When scope shifted during implementation** — a phase produced different output than expected
-- **When new blockers were discovered** — a future phase now needs a brief that wasn't originally listed
-- **When a phase turned out to be too big** — split it
-- **When phases turned out to be trivial** — merge them
-- **When dependencies changed** — reorder based on what was learned
-- **After `/expand`** — scope expansion means the roadmap needs new phases
+### Phase 1: Inventory current state
 
-## Phase 0: Load Context
+Read all epic items via `.work/bin/work-view --kind epic`:
+- Current epics + their stages
+- Each epic's `depends_on` chain
+- Each epic's child features (via `--parent <epic-id>`)
+- Feature completion status per epic (count at `done` vs `implementing` vs `drafting` vs blocked)
+- Items in `.work/releases/*/` (already-shipped epics for reference)
 
-1. **Check the knowledge index** — read `docs/knowledge-index.yaml`. Load the architecture doc,
-   north star, and any briefs relevant to the areas that changed.
-2. **Read the current roadmap** — `docs/architecture/epicize.md` (or wherever the project stores it).
-   Note: which phases are DONE, which is NEXT, which are future.
-3. **Read recent git history** — `git log --oneline -20` to see what was actually built recently.
-   This grounds the update in reality, not just plans.
+### Phase 2: Read foundation docs + recent decisions
 
-## Phase 1: Assess What Changed
+Read foundation docs per `.work/CONVENTIONS.md` `foundation_docs:` declaration. Check
+for any changes since the last epicize — new sections, new capability areas, new
+constraints.
 
-For each completed phase since the last roadmap update, check:
+Read recent `## Design decisions` and `## Blocker` entries across active epics and
+features. These are the most recent signals about where the work is actually heading.
 
-1. **Did the output match the spec?** Read the phase's "Done when" criteria. Were they all met?
-   Were additional things built that weren't planned? Were planned items deferred?
-2. **Did assumptions hold?** The phase may have assumed an API works a certain way, a library
-   handles a case, or a dependency exists. Were any assumptions wrong?
-3. **Were new blockers discovered?** A future phase may now need research or a brief that wasn't
-   listed as blocking.
-4. **Did the work surface architectural changes?** New modules, changed interfaces, shifted
-   dependencies — things the remaining phases may depend on.
+### Phase 3: Identify divergence
 
-**Present findings to the user:**
-"Reviewed phases N-M. Key changes: {list}. This affects phases {list}."
+For each active epic, ask:
 
-**AskUserQuestion:** "Anything else that shifted that I should factor in?"
+- **Scope creep**: did child features extend beyond the epic's original brief? If yes, is the brief still right, or has the epic outgrown its boundary?
+- **Scope reduction**: did the epic turn out smaller than planned? Should it be collapsed into a sibling?
+- **Missed dependency**: did a feature reveal a dependency on a sibling epic that wasn't declared? Should the `depends_on` chain be updated?
+- **Stale dependency**: is a declared `depends_on` no longer needed (e.g., the dependency was inlined)?
+- **Splitting opportunity**: did a single epic accumulate multiple capability arcs that should split?
+- **Merging opportunity**: do two epics overlap enough that they should merge?
+- **New epic needed**: did a feature reveal an unanticipated capability area that warrants its own epic?
+- **Archive candidate**: is an epic effectively done but stale (all children at `done`, parent still at `implementing`)?
 
-## Phase 2: Evaluate Remaining Phases
+### Phase 4: Propose changes
 
-For each future phase (NEXT and beyond):
-
-1. **Still correctly scoped?** Too big (should split), too small (should merge), or just right?
-2. **Dependencies still correct?** Does it depend on phases that changed? Do its blocking briefs
-   still exist and are they still relevant?
-3. **Blocking briefs still needed?** Any new ones required? Any listed ones now unnecessary
-   (the brief was implicitly covered by work already done)?
-4. **Acceptance criteria still accurate?** Do the "Done when" checks reflect the current
-   architecture, not the old one?
-5. **"Read before building" docs still exist?** File paths may have changed.
-
-Flag issues by severity:
-- **Must fix** — phase is blocked, scoped wrong, or depends on something that changed
-- **Should fix** — acceptance criteria stale, minor rescoping needed
-- **Optional** — phase could benefit from splitting or reordering but isn't broken
-
-## Phase 3: Propose Changes
-
-Present a concrete change plan:
+Present proposed changes to the user via `AskUserQuestion` or conversational summary:
 
 ```
-## Proposed Roadmap Changes
+Proposed epic updates:
 
-### Phases to rescope
-- Phase X: {what changed, new scope description}
+1. epic-auth — rescoping
+   Reason: recovery flow grew beyond original brief; splitting into epic-auth-core
+   and epic-auth-recovery
+   Changes:
+     - epic-auth: scope reduced to login + session
+     - new epic-auth-recovery: depends_on [epic-auth]
+     - features under epic-auth tagged for new parent assignment
 
-### Phases to split
-- Phase Y → Y + Ya: {why, what each sub-phase covers}
+2. epic-admin-dashboard — dependency added
+   Reason: profile-edit feature uses User type owned by epic-user-profile
+   Changes:
+     - depends_on: [epic-auth] → [epic-auth, epic-user-profile]
 
-### Phases to merge
-- Phases A + B → A: {why they're now one unit of work}
-
-### New phases to add
-- Phase Z: {what, why, where in the sequence}
-
-### New blocking briefs
-- Phase X now needs: {brief topic} — {why}
-
-### Dependency changes
-- Phase Y no longer depends on Phase X because {reason}
-- Phase Z now depends on Phase W because {reason}
-
-### Status updates
-- Phase X: mark DONE (was NEXT)
-- Phase Y: mark NEXT
+3. epic-notifications — archive candidate
+   Reason: all 4 child features done; epic still at implementing
+   Changes: stage drafting/implementing → done, will archive on next release-deploy
 ```
 
-**AskUserQuestion:** "Does this restructuring make sense? Any changes you'd make?"
+Iterate with user — confirm each change before applying.
 
-Iterate until approved.
+### Phase 5: Apply changes
 
-## Phase 4: Update the Roadmap
+For each confirmed change:
 
-Apply the approved changes to `roadmap.md`:
+- **Rescope**: edit the epic body (revise `## Brief`) + frontmatter (revise `tags` if needed)
+- **Split**: edit the existing epic; create the new epic file; reassign child features (edit each child's `parent` field)
+- **Merge**: edit one epic to absorb the other's brief; reassign child features; archive the absorbed epic
+- **Dependency change**: edit `depends_on` on the affected epic; cycle-check via `.work/bin/work-view --blocking`
+- **New epic**: create the file per epicize Phase 6 schema
+- **Archive**: advance stage to `done` if all children done; release-deploy will archive on next bind
 
-- Update phase statuses (DONE/NEXT/blank)
-- Rescope phase descriptions, blocking briefs, "Read before building" sections, and acceptance criteria
-- Split/merge phases as approved
-- Add new phases with full structure (all required sections per the build-process format)
-- Update the dependency graph diagram
-- Update the track summary
-- Update the roadmap's frontmatter `description` and `updated` date
+### Phase 6: Cycle check
 
-**Rules:**
-- Preserve the roadmap format exactly (per build-process: blocking briefs, read before building, build, done when)
-- Don't drop history — phases marked DONE keep their content (it's the record of what was built)
-- New phases get the same level of detail as existing ones (not stubs)
-- If the dependency graph changed, redraw it
+For every epic whose `depends_on` changed, run:
 
-## Phase 5: Regenerate the Knowledge Index
+```bash
+.work/bin/work-view --blocking <epic-id> --paths
+```
 
-Run `/knowledge-index` to regenerate the index from the (now-modified) roadmap frontmatter.
-Do NOT hand-edit `docs/knowledge-index.yaml`. Update the roadmap's `description`,
-`summary`, `decisions`, and `updated` fields in its frontmatter — the regenerator picks
-those up.
+If any cycle exists, surface it and ask the user to break it.
 
-If new blocking briefs were identified, those will be written via `/brief` before the phase
-starts; their entries appear in the index automatically once written.
+### Phase 7: Commit
 
-## Phase 6: Summary
+```bash
+git add .work/active/epics/
+git commit -m "update-epicize: <N> epics updated"
+```
 
-Present:
-- Number of phases changed (rescoped, split, merged, added)
-- New NEXT phase
-- Any new blocking briefs that need to be written before building resumes
-- Whether the overall timeline/scope grew, shrank, or stayed the same
+If new epics were created OR splits happened, the commit message should note specifics:
+- `update-epicize: split epic-auth into auth-core + auth-recovery`
+- `update-epicize: merged epic-admin and epic-config; updated 6 children`
 
----
+## Output
 
-## Anti-Patterns
+In conversation:
 
-- **Don't rewrite the whole roadmap from scratch.** This is an update, not a redo. Preserve completed phases and their content.
-- **Don't add speculative phases.** Only add phases for work that's clearly needed based on what was learned, not "it might be nice to..."
-- **Don't skip the git log.** Plans say one thing; the code says what actually happened.
-- **Don't forget to update the dependency graph.** It's easy to update phase text and forget the diagram.
-- **Don't split phases just because they're big.** Split only when a phase has genuinely independent units that should be separately testable and mergeable.
-- **Don't update without user approval.** Present changes, get buy-in, then write. The user may have context you don't.
+- **Changes applied**: list of (epic-id, change-type, summary) per change
+- **Items affected**: count of features whose `parent` was reassigned, count of new epics created
+- **Suggested next steps**:
+  - For newly-created epics: invoke `/epic-design <id>` to decompose
+  - For [needs-brief] tags surfaced during update: invoke `/brief <topic>`
+  - For archive candidates: next `/agile-workflow:release-deploy` will move them to `.work/releases/<version>/`
+
+## Guardrails
+
+- Don't rewrite epic history. Past `## Design decisions` are kept — append revisions with dated annotations rather than overwriting.
+- Don't archive epics that still have `implementing` or `drafting` children — those need to advance first.
+- Don't break parent-child relationships silently. Every feature's `parent` must point to a real epic in `.work/active/epics/` or `.work/releases/*/`.
+- Cycle prevention is mandatory.
+- Don't propose changes that contradict already-bound releases (`release_binding != null`); those items are part of a shipped/in-flight version.

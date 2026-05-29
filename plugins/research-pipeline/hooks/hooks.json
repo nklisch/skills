@@ -1,0 +1,29 @@
+{
+  "description": "research-pipeline hooks: knowledge-index navigator on SessionStart + docs/ updated: auto-bump on PostToolUse. Both flag-gated by docs/knowledge-index-nav.yaml or docs/knowledge-index.yaml presence; inert in non-knowledge-indexed repos.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/session-start-nav.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/post-tool-use-docs-bump.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

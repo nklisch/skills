@@ -1,251 +1,312 @@
 ---
-name: roadmap
+name: epicize
 description: >
-  Generate a phased roadmap from foundation documents. Reads north-star.md, architecture.md,
-  and domain briefs, then decomposes into phases with blocking briefs, Input/Output/Tests, dependencies,
-  and acceptance gates. Each phase is scoped for one build session. Follows the build process
-  at /dev/skills-v2/plugins/research-pipeline/docs/build-process.md.
-  Use after /ideate, or when a project needs a build plan.
+  Decompose architecture + research briefs into epic items at .work/active/epics/.
+  Adaptive grounding: heavy when research briefs exist (knowledge-index +
+  /dev/skills-v2/plugins/research-pipeline/.research corpus), light foundation-docs-only
+  otherwise. Defers per-feature acceptance criteria and implementation detail to
+  /epic-design and /feature-design downstream. Emits epic items with depends_on chains
+  for autopilot draining. Tags epics with [needs-brief] when downstream design requires
+  a research brief.
 user-invocable: true
-allowed-tools: Read, Write, Glob, Grep, AskUserQuestion, Agent
+allowed-tools: Read, Write, Glob, Grep, Bash, AskUserQuestion, Task
 model: opus
 ---
 
-# Roadmap
+# Epicize
 
-You are a **roadmap architect**. You read a project's foundation documents and produce a
-`roadmap.md` that can be executed phase by phase — each phase picked up by a fresh conversation
-with only the roadmap, relevant briefs, and codebase as context.
+You read the project's foundation docs + research corpus and produce **multiple epics**
+at `.work/active/epics/`, each at `stage: drafting`, with declared `depends_on` chains
+where one epic's output feeds another.
+
+Epics are containment shapes — multi-feature architectural arcs. Each epic later gets
+designed (`/epic-design` decomposes it into child features; `/feature-design` writes
+detailed design content per feature). This skill establishes the top-level decomposition
+only.
+
+**This is the merged version** of Nathan's `agile-workflow:epicize` (foundation-doc-grounded,
+substrate-emitting) and Andrew's `roadmap` (research-grounded, knowledge-index-aware). It
+behaves as a strict superset: with research present, it does heavy grounding; without
+research, it falls back to Nathan's foundation-doc-only flow.
 
 **You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` for consideration.** Apply its thinking moves — especially Challenge and Synthesize — to question phase ordering assumptions and find high-leverage sequencing.
+**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` for consideration.** Apply its thinking moves — especially Challenge and Synthesize — to question epic boundary assumptions and find high-leverage sequencing.
 
-## Arguments
+## Prerequisites
 
-- No arguments: create a roadmap for the entire project
-- Module name (e.g. `ds-engine`): create a roadmap for a specific module
+- **Substrate bootstrapped.** `.work/CONVENTIONS.md` must exist. If not, halt and tell
+  the user to run `/agile-workflow:convert` first.
+- **Foundation docs exist.** At minimum the project must have a vision/north-star doc
+  + an architecture doc (per `.work/CONVENTIONS.md` `foundation_docs:` declaration —
+  default Nathan layout is `docs/VISION.md` + `docs/ARCHITECTURE.md`; ds-engine layout
+  is `docs/architecture/north-star-*.md` + `docs/architecture/architecture.md`). If
+  missing, halt and tell the user to run `/research-pipeline:ideate` first.
 
 ## Model Assignment
 
-Per [model-selection-pattern.md](../docs/model-selection-pattern.md):
+Per [model-selection-pattern.md](/dev/skills-v2/plugins/research-pipeline/docs/model-selection-pattern.md):
 
-- **Roadmap architect (this skill's main loop)** — Orchestration. Opus high effort. Runs in parent context.
+- **Epicize architect (this skill's main loop)** — Orchestration. Opus high effort. Runs in parent context.
 
-Phase ordering and dependency decisions drive every downstream build phase — the orchestrator warrants Opus. This skill does not spawn sub-agents; all reasoning happens in the parent context.
+Epic decomposition decisions cascade into every downstream design and implement phase — the orchestrator warrants Opus. This skill does not spawn sub-agents; reasoning happens in the parent context.
 
----
+## Think like an agent
+
+Before decomposing anything, think about what an agent (in autopilot or manual mode)
+would need to execute each epic:
+
+- **What can be built in one design + implement cycle?** A child feature under the
+  epic should fit comfortably in one `/feature-design` → `/agile-workflow:implement`
+  pass — 5-15 implementation units. If a single child feature would need more, the
+  epic is too coarse; split.
+- **What can be parallelized?** If two children of an epic don't share types or files,
+  declare them with no `depends_on` between them. Autopilot fans them out as parallel
+  agents.
+- **What's needed before starting?** Dependencies aren't just code — research needs
+  (unfamiliar libraries, APIs you don't know cold), seed data, configuration. If an
+  epic uses a library no one has touched yet, plan for a research pass on the first
+  child via `[needs-brief]` tag.
+- **How do you know an epic is done?** Not "it looks right" — every child feature
+  reaches `stage: done`. Stage transitions are the agent-readable completion signal.
+- **What design artifact feeds implementation?** Each child feature's body accumulates
+  the design when `/feature-design` runs on it. The epic's body is a brief, not a
+  design — `/epic-design` later writes the realized decomposition into it.
+
+## Anti-patterns
+
+- **Don't produce a phase plan.** Epics are containment shapes, not temporal slots.
+  No "Phase 1: Auth, Phase 2: Profiles, Phase 3: Admin." Use the dependency graph; let
+  autopilot pick what's ready.
+- **Don't split by layer.** Epic-DB / Epic-API / Epic-UI is anti-pattern unless layers
+  are genuinely independent products. Split by capability: "core search works" /
+  "results link to the right app" / "users can see it in a browser."
+- **Don't pad with refactor or test epics.** Refactoring happens incrementally via
+  `/agile-workflow:refactor-design` on tagged features. Testing happens through
+  `gate-tests` at release time and per-feature acceptance criteria. Don't manufacture
+  epics for either.
+- **Don't estimate.** No "this epic is bigger than that one" sizing labels. The agent
+  doesn't benefit from difficulty ratings; the work either fits in 5-15 child-feature
+  units or it should be split further.
+- **Don't pre-bind to releases.** Epics get `release_binding: null`. Binding happens
+  only when `/agile-workflow:release-deploy` runs.
+- **Don't include deployment as an epic** unless deployment infrastructure is the core
+  value of the project.
+- **Don't skip the knowledge-index check.** If research exists in `.research/` and the
+  knowledge-index references it, you MUST surface relevant briefs in the epic bodies.
+  Designs based on missed research context cause rewrites.
 
 ## Workflow
 
-### Phase 1: Read Foundation Documents
+### Phase 0: Load knowledge index (OURS — adaptive grounding entry point)
 
-Read everything the project has:
+Read `docs/knowledge-index-nav.yaml` if it exists (or run `/knowledge-index` if it
+doesn't). Identify:
 
-- **`north-star.md`** — vision, principles, domain model
-- **`architecture.md`** — modules, data flow, conventions
-- **Domain briefs** — any research docs in `docs/briefs/` or `docs/<module>/briefs/`
-- **Existing source code** — if the project has started, understand what's built
-- **`CLAUDE.md`** — project conventions
-- **`/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`** — the build process methodology (REQUIRED)
+- Every architecture doc, brief, and research synthesis relevant to this project
+- Briefs flagged with `nav_priority: high` in frontmatter (load-bearing for design)
+- The corpus shape: heavy research-corpus → trigger heavy grounding; sparse → trigger
+  light foundation-doc-only mode
 
-If no foundation docs exist, tell the user to run `/ideate` first.
+If no `docs/knowledge-index-nav.yaml` AND no `.research/` directory AND no
+`docs/briefs/`: enter **light mode** (Nathan's foundation-doc-only flow per Phase 1
+below; skip Phase 0.5).
 
-### Phase 2: Interview
+### Phase 0.5: Load research corpus (OURS — heavy-mode only)
 
-**AskUserQuestion** — calibrate phase sizing:
+If research exists:
 
-1. **What's built so far?** "Is any code written? Which parts work today?"
-   — Determines where the roadmap starts (Phase 1 from scratch, or continuing from existing work).
+- Read every brief whose `blocks_phase` frontmatter is null (uncommitted) or matches
+  potential epic scope
+- Read `.research/programs/*/super-parent.md` (program syntheses) — these often signal
+  natural epic boundaries
+- Read `.research/briefs/*/parent.md` (deep-research syntheses)
+- Note any briefs already committed to phases (`blocks_phase: <id>`); these inform
+  but don't drive epic decomposition
 
-2. **Build style?** "Solo with AI? How do you plan to test — continuously or at checkpoints?"
-   — Determines phase granularity.
+### Phase 1: Read foundation docs
 
-3. **Deployment target?** "Where does this run? Local only, or deploying to cloud/production?"
-   — Determines whether infrastructure phases are needed and where they go (local-first = deploy last).
+Read every foundation doc declared in `.work/CONVENTIONS.md` `foundation_docs:` list.
+For Nathan's default layout:
+- `docs/VISION.md`
+- `docs/SPEC.md`
+- `docs/ARCHITECTURE.md`
+- `docs/PRINCIPLES.md` (if exists)
 
-4. **Domain complexity?** "Which parts need domain research before building? Any blocking briefs needed?"
-   — Surfaces briefs that must be written before certain phases.
+For ds-engine-style nested layouts:
+- `docs/architecture/north-star-*.md`
+- `docs/architecture/architecture.md`
+- `docs/architecture/dag-design.md`
+- Other declared foundation docs
 
-### Phase 3: Decompose
+Build a mental model of the system as foundation describes it. Cross-reference with
+research findings from Phase 0.5 — flag any architectural assumptions in foundation
+docs that research contradicts (these are surfacing-for-user-decision later).
 
-Break the project into phases. Apply these rules:
+### Phase 2: Identify capability arcs
 
-#### Phase Sizing
+Look for natural decomposition seams. Signals:
 
-- **One build session per phase.** A fresh conversation can pick it up with just the roadmap + relevant briefs + codebase.
-- **Each phase produces something that works** — not just "types were added" but "you can now search and get results."
-- **If a phase would require more than ~15 implementation units, it's too big** — split it (use a, b, c suffixes).
-- **If a phase has fewer than 3 implementation units, it's too small** — merge it.
+- **Architecture** describes distinct components or boundaries — each is a candidate
+  epic
+- **Vision** identifies multiple capability areas — each is a candidate epic
+- **Spec / north-star** groups requirements by domain — each group is a candidate epic
+- **Research syntheses** identify integration boundaries (e.g., "X domain requires its
+  own dispatcher") — these become epics
+- **Sequencing implied by foundation docs** (foundation systems before consumers,
+  contracts before clients) — these become `depends_on` chains
 
-#### Phase Structure (REQUIRED for every phase)
+Aim for **3-8 epics** for a typical project. Fewer than 3 means you should consider
+whether this project even needs epic-level decomposition (maybe just go straight to
+features). More than 8 means slicing too thin — collapse some.
 
-Every phase MUST have all of these sections:
+### Phase 3: Identify research-blocked epics (OURS — tag with [needs-brief])
 
-```markdown
-## Phase N: {Name}
+For each epic candidate, ask: does designing/implementing this require a research
+brief that doesn't yet exist?
 
-**Blocking briefs:** {List of briefs that must be written before this phase, or "None."}
+- If a child feature would use a library/API/protocol that has NO research brief in
+  the corpus → tag the epic `[needs-brief]`
+- If a child feature would touch a domain (e.g. PII handling, scheduling, distributed
+  state) that has thin research → tag `[needs-brief]`
+- If the epic is well-covered by existing briefs → no tag
 
-**What:** {One paragraph describing what this phase builds and why.}
+Epics tagged `[needs-brief]` will signal to downstream `/epic-design` and
+`/feature-design` that a `/brief` pass is required before design work proceeds.
 
-**Read before building:**
+### Phase 4: Propose dependencies
 
-| Doc | Sections |
-|-----|----------|
-| {doc path} | {relevant sections} |
+For each epic candidate, identify what must be done first:
 
-**Architecture touched:**
-- {file/module} — {what changes}
+- "Auth epic must be at `done` before User-Profile epic can start" → User-Profile
+  `depends_on: [epic-auth]`
+- Independent epics (no shared types, no cross-cutting concerns) have no dependencies
+  and can be worked in parallel
+- Research-blocked epics depend on no other epic structurally, but their
+  `[needs-brief]` tag signals that `/brief` runs first on the human-driven side
 
-**Build:**
-- {Specific deliverable with file paths}
-- {Specific deliverable}
+### Phase 5: Confirm with user
 
-**Output:** {List of files/modules produced}
+Present the proposed decomposition via `AskUserQuestion` or conversational summary:
 
-**Done when:**
+```
+Proposed epic decomposition (4 epics):
 
-| Criterion | Verification |
-|-----------|:---:|
-| {Specific criterion} | Automated test |
-| {Specific criterion} | Manual — {what to check} |
+1. epic-substrate-foundation
+   depends_on: []
+   tags: []
+   covers: foundation work that everything else builds on
+   research grounding: docs/architecture/architecture.md §1
+
+2. epic-auth
+   depends_on: [epic-substrate-foundation]
+   tags: [auth]
+   covers: authentication and session management
+   research grounding: .research/briefs/auth-providers/parent.md
+
+3. epic-pii-handling
+   depends_on: [epic-substrate-foundation]
+   tags: [pii, needs-brief]   ← research thin; brief required
+   covers: PII scrubbing across all data paths
+
+4. epic-admin-dashboard
+   depends_on: [epic-auth]
+   tags: [admin]
+   covers: admin-only views, user management
 ```
 
-#### Acceptance Gate (applies to ALL phases)
+Iterate with the user — they may collapse, split, rename, or reorder epics. Confirm
+each rename and dependency edge before writing. Surface any contradictions between
+foundation docs and research that you flagged in Phase 1.
 
-State this at the top of the roadmap:
+### Phase 6: Write epic files
 
-> Each phase ships with tests and goes through a PR. The phase is complete when:
-> 1. Automated tests pass
-> 2. Docker build succeeds (if applicable)
-> 3. Human confirms manual checks (if any)
-> 4. PR is opened, CI passes, and PR is merged to main
-
-#### Dependencies
-
-- List explicit dependencies: "Depends on Phase N"
-- If two phases are independent, note they can run in parallel
-- If a phase needs a blocking brief, list it — the brief must be written first
-- If a phase needs domain research, list `/research` as a prerequisite
-
-#### Quality Checkpoints
-
-Insert quality checkpoint phases every 2-4 build phases:
-
-```markdown
-## Quality Checkpoint (after Phases N-M)
-
-- Run `/refactor-design` → find duplication, missing abstractions → implement fixes
-- Run `/extract-patterns` → document reusable patterns
-- Run `/test-quality` → spec-driven test gap analysis → write missing tests
-```
-
-#### Security Review
-
-Insert a security review checkpoint before any deploy phase:
-
-```markdown
-## Security Review (before deploy)
-
-- Run `/security-review` → comprehensive audit
-- Address all Critical/High findings before deploying
-- Track Medium findings
-```
-
-#### Features Doc
-
-Insert a features doc phase after all modules are built:
-
-```markdown
-## Phase Nb: Features Doc
-
-- Document what the tool can do today
-- Organized by user-facing capability, not by internal module
-```
-
-### Phase 4: Dependency Graph
-
-Draw an ASCII dependency graph showing:
-- Which phases depend on which
-- Which can run in parallel
-- Where quality checkpoints fall
-- Where the security review falls
-- Where the deploy phase sits (should be last)
-
-### Phase 5: Write
-
-Write `roadmap.md` to the project's docs directory. **Required: emit standard frontmatter at the top** so `/knowledge-index` regeneration picks it up reliably.
-
-```markdown
----
-description: {phase count + current status, e.g., "29 sub-phases across 4 tracks. Phase 5 is NEXT."}
-type: roadmap
-updated: {today's date, YYYY-MM-DD}
----
-
-# Roadmap: {Project Name}
-
-...
-```
-
-**Format rules:**
-- Phases numbered sequentially (use a, b, c suffixes for split phases)
-- Every phase has ALL required sections (blocking briefs, read before building, build, output, done when)
-- Done-when criteria split into Automated vs Manual
-- Blocking briefs listed even if "None"
-- Status markers: ✅ for done, ← NEXT for current, blank for future
-- Include the dependency graph at the end
-- Include a track summary explaining the parallel tracks
-
-### Phase 6: Review
-
-Present to the user:
-- Total number of phases
-- Which phases can be parallelized
-- Where quality checkpoints and security review fall
-- Where blocking briefs are needed (and which are already written)
-- Any scope deferred
-
-**AskUserQuestion:** "Does this phasing make sense? Any phases too big or too small?"
-
-Iterate until approved, then write final version.
-
-### Phase 7: Regenerate Knowledge Index
-
-After writing the roadmap, **run `/knowledge-index`** to regenerate the index from
-frontmatter. Do NOT hand-edit `docs/knowledge-index.yaml` — it's a derived artifact.
-
-Required frontmatter on the roadmap:
+For each confirmed epic, write `.work/active/epics/<id>.md`:
 
 ```yaml
 ---
-description: <one-line "when do I read this?" hook>
-type: roadmap
-kind: planning
-updated: <YYYY-MM-DD>
-summary: |
-  <1-2 sentences: phase count, what's done, what's NEXT, key dependencies>
-decisions:
-  - <5-9 highest-leverage roadmap commitments — phase boundaries, sequencing, key blocking briefs>
+id: epic-<slug>
+kind: epic
+stage: drafting
+tags: [<tag>, ...]   # e.g. [needs-brief], or domain tag from foundation docs
+parent: null
+depends_on: [<epic-id>, ...]
+release_binding: null
+gate_origin: null
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
 ---
+
+# <Epic Name>
+
+## Brief
+
+<two to four paragraphs: what this epic delivers, what capability area it covers,
+why it exists, what it does NOT cover>
+
+## Research briefs
+
+<links to .research/briefs/, .research/programs/, or docs/briefs/ that ground this
+epic. Include 1-line summary per brief. If [needs-brief] tag is set, note here what
+research is missing and what topic the future /brief invocation should cover.>
+
+## Foundation references
+
+- `docs/architecture/north-star-<project>.md` — relevant section(s)
+- `docs/architecture/architecture.md` — relevant component(s)
+- (other foundation docs as relevant)
+
+## Anticipated child features
+
+<NOT a commitment — a sketch of where features will likely live under this epic.
+The actual feature decomposition happens at design time via /epic-design, not now.
+Keep this short and provisional.>
+
+<!-- The /epic-design pass will fill in real child feature specifics into a
+## Decomposition section below this one. -->
 ```
 
-### Phase 8: Run Doc Review
+Use `YYYY-MM-DD` from local time (matches Nathan's `post-tool-use-bump.sh` hook
+convention; not UTC).
 
-**Run `/doc-review` after writing the roadmap.** The roadmap references everything —
-architecture decisions, blocking briefs, phase dependencies, north star concepts. This is
-the last consistency gate before implementation begins. Verify it all agrees.
+### Phase 7: Cycle check
 
----
+Run `.work/bin/work-view --blocking <id> --paths` for each epic against its
+`depends_on`. If any cycle exists, surface it and ask the user to break it before
+committing.
 
-## Anti-Patterns
+### Phase 8: Commit
 
-- **Don't produce a waterfall plan.** Each phase produces something that works.
-- **Don't skip blocking briefs.** If a phase needs domain knowledge, list it.
-- **Don't omit the acceptance gate.** Every phase goes through PR + CI.
-- **Don't estimate time.** Agents don't benefit from difficulty ratings.
-- **Don't forget quality checkpoints.** Every 2-4 phases, pause and refactor/test.
-- **Don't put deploy first.** Local-first. Deploy is the last phase.
-- **Don't produce vague "done when" criteria.** "Verify it works" is not a criterion. "Run `pnpm test`, expect 22 tests pass" is.
-- **Don't include human-only activities** ("present to stakeholders"). This is an agent-executable plan.
+```bash
+git add .work/active/epics/
+git commit -m "epicize: <N> epics seeded from foundation docs"
+```
+
+## Output
+
+In conversation:
+
+- **Seeded**: list of `<id>` per epic with `depends_on` and tags
+- **Research-blocked epics**: epics tagged `[needs-brief]` and what brief topic each needs
+- **Suggested next steps**:
+  - If any `[needs-brief]` epics: invoke `/brief <topic>` for each
+  - Otherwise: pick one epic to start with — `/epic-design <epic-id>` for decomposition,
+    or start an autopilot goal for `<epic-id>` for autonomous execution
+
+## Guardrails
+
+- Epics produced here are at `stage: drafting`. Their bodies are briefs and references
+  — NOT designs. Design happens at the feature level via `/feature-design` later, not
+  at the epic level.
+- Anticipated child features are provisional, not commitments. Don't pre-create child
+  feature files at epicize time — that's `/agile-workflow:scope` (manual) or
+  `/epic-design` when the epic is ready to be decomposed into real feature files.
+- Don't pre-bind epics to releases. `release_binding` stays `null` until
+  `/agile-workflow:release-deploy` runs.
+- Don't infer `depends_on` purely from docs without confirming with the user. Doc
+  ordering doesn't always mean execution dependency.
+- If the foundation docs don't have enough content to identify capability arcs,
+  halt and tell the user to run `/research-pipeline:ideate` to flesh out the
+  architecture before epicizing.
+- If `[needs-brief]` epics have no candidate brief topic, ask the user — don't guess.
+  An over-broad brief request is more expensive than asking.

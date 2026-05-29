@@ -13,6 +13,10 @@ DOCS = REPO / "docs"
 # Additional scan root — projects that organise research artifacts under .research/
 # get them indexed too. Harmless for projects without a .research/ directory.
 RESEARCH_DIR = REPO / ".research"
+# Substrate scan root — agile-workflow plugin's .work/ tree. Indexed as kind:substrate
+# items with a different frontmatter schema than docs (id/kind/stage vs name/type).
+# Harmless for projects without a .work/ directory.
+WORK_DIR = REPO / ".work"
 
 # Type → kind derivation per skill spec
 PLANNING_TYPES = {
@@ -21,6 +25,11 @@ PLANNING_TYPES = {
     "feature", "expansion",
 }
 RESEARCH_TYPES = {"brief", "program-parent", "program-report", "landscape"}
+# Substrate item kinds (agile-workflow). Items at .work/active/, .work/backlog/,
+# .work/releases/, .work/archive/ have these in their frontmatter `kind:` field
+# (NOT the docs-style `type:` field). Detected separately from docs-style frontmatter.
+SUBSTRATE_KINDS = {"epic", "feature", "story", "release"}
+SUBSTRATE_STAGES = {"drafting", "implementing", "review", "done", "planned", "quality-gate", "released"}
 KNOWN_STATUSES = {"draft", "locked", "superseded", "legacy", "in-progress"}
 
 def derive_kind(fm):
@@ -55,6 +64,7 @@ def parse_frontmatter(path):
     return fm, None
 
 def discover_docs():
+    """Discover docs and research files (NOT substrate items — those go through discover_substrate)."""
     docs = []
     scan_roots = [DOCS]
     if RESEARCH_DIR.is_dir():
@@ -73,6 +83,26 @@ def discover_docs():
                 continue
             docs.append(p)
     return docs
+
+def discover_substrate():
+    """Discover substrate items (.work/ tree). Returns list of Paths.
+
+    Substrate items have a different frontmatter schema than docs (kind/stage/depends_on
+    vs type/summary/decisions). Returned separately so lint and emit logic can route
+    by schema shape.
+    """
+    items = []
+    if not WORK_DIR.is_dir():
+        return items
+    # Scan active/, backlog/, releases/, archive/ — skip bin/ and CONVENTIONS.md
+    scan_subdirs = ["active", "backlog", "releases", "archive"]
+    for sub in scan_subdirs:
+        root = WORK_DIR / sub
+        if not root.is_dir():
+            continue
+        for p in sorted(root.rglob("*.md")):
+            items.append(p)
+    return items
 
 def normalize_slug(slug, base_dir):
     """Normalize a related-slug to a canonical absolute repo-rooted path."""
@@ -198,6 +228,67 @@ def lint_doc(path, fm, schema_version, all_paths):
 
     return errors, warnings
 
+def lint_substrate_item(path, fm):
+    """Validate substrate-item frontmatter (epic/feature/story/release).
+
+    Returns (errors, warnings). Substrate items use a different schema than docs:
+    required: id, kind, stage, created, updated
+    expected: tags (list, possibly empty), parent (str|null), depends_on (list, possibly empty),
+              release_binding (str|null), gate_origin (str|null)
+    """
+    errors = []
+    warnings = []
+    rel = str(path.relative_to(REPO))
+
+    if fm is None:
+        # Substrate items with no frontmatter are a real problem (vs docs which can be informal).
+        errors.append(f"{rel}: substrate item has no frontmatter")
+        return errors, warnings
+
+    # Required scalar fields
+    for f in ("id", "kind", "stage", "created", "updated"):
+        if fm.get(f) is None:
+            errors.append(f"{rel}: substrate item missing required field `{f}`")
+
+    # kind must be a known substrate kind
+    kind = fm.get("kind")
+    if kind and kind not in SUBSTRATE_KINDS:
+        errors.append(f"{rel}: kind `{kind}` not a substrate kind {sorted(SUBSTRATE_KINDS)}")
+
+    # stage must be a known substrate stage
+    stage = fm.get("stage")
+    if stage and stage not in SUBSTRATE_STAGES:
+        warnings.append(f"{rel}: stage `{stage}` not in known substrate stages {sorted(SUBSTRATE_STAGES)}")
+
+    # Backlog items have a leaner schema — they only require id/created (kind/stage unknown
+    # until /scope promotes them). Don't error on missing kind/stage for backlog items.
+    is_backlog = "/backlog/" in rel
+    if is_backlog and stage is None:
+        # Suppress the missing-stage error for backlog items (lenient schema per Nathan's SPEC.md).
+        errors = [e for e in errors if "missing required field `stage`" not in e]
+    if is_backlog and kind is None:
+        errors = [e for e in errors if "missing required field `kind`" not in e]
+
+    # List-typed fields should be lists when present
+    for f in ("tags", "depends_on"):
+        v = fm.get(f)
+        if v is not None and not isinstance(v, list):
+            errors.append(f"{rel}: substrate field `{f}` should be a list, got {type(v).__name__}")
+
+    return errors, warnings
+
+def derive_substrate_state(path, fm):
+    """Return ('active'|'backlog'|'releases'|'archive', subkind, stage)."""
+    rel = str(path.relative_to(REPO))
+    parts = rel.split("/")
+    # Expect .work/<tier>/...
+    if len(parts) < 2 or parts[0] != ".work":
+        return None, None, None
+    tier = parts[1]
+    kind = (fm or {}).get("kind")
+    stage = (fm or {}).get("stage")
+    return tier, kind, stage
+
 def get_git_mtime(path):
     try:
         out = subprocess.check_output(
@@ -210,6 +301,7 @@ def get_git_mtime(path):
 
 def main():
     files = discover_docs()
+    substrate_files = discover_substrate()
     all_paths = {str(p.relative_to(REPO)) for p in files}
 
     # Schema version: read from existing index if present, else default to 1
@@ -223,6 +315,7 @@ def main():
                 break
 
     parsed = []  # list of (path_obj, frontmatter_dict | None)
+    substrate_parsed = []  # list of (path_obj, frontmatter_dict | None) for substrate items
     all_errors = []
     all_warnings = []
 
@@ -234,6 +327,18 @@ def main():
             continue
         parsed.append((p, fm))
         errs, warns = lint_doc(p, fm, schema_version, all_paths)
+        all_errors.extend(errs)
+        all_warnings.extend(warns)
+
+    # Substrate items use a different schema; lint separately.
+    for p in substrate_files:
+        fm, err = parse_frontmatter(p)
+        if err and fm is None:
+            all_warnings.append(f"{p.relative_to(REPO)}: {err}")
+            substrate_parsed.append((p, None))
+            continue
+        substrate_parsed.append((p, fm))
+        errs, warns = lint_substrate_item(p, fm)
         all_errors.extend(errs)
         all_warnings.extend(warns)
 
@@ -272,6 +377,7 @@ def main():
     print("=" * 40)
     print(f"Project: ds-engine")
     print(f"Total docs found: {len(files)}")
+    print(f"Substrate items found: {len(substrate_files)}")
     print(f"Schema version: {schema_version}")
     print(f"Errors:   {len(all_errors)}")
     print(f"Warnings: {len(all_warnings)}")
@@ -429,6 +535,42 @@ def main():
     )
     (DOCS / "knowledge-index-detail.yaml").write_text(detail_text, encoding="utf-8")
 
+    # ── Substrate aggregates (for nav substrate_summary block) ─────────────
+    # active: counts by kind (epic/feature/story/release)
+    # backlog: total count (kind unknown until /scope)
+    # releases: counts by version
+    # archive: total count
+    substrate_summary = {
+        "active": {"epic": 0, "feature": 0, "story": 0, "release": 0},
+        "backlog": 0,
+        "releases": {},   # version → count
+        "archive": 0,
+    }
+    # Ready/blocked counts derived from depends_on graph on active items
+    active_by_id = {}   # id → (kind, stage, depends_on)
+    for p, fm in substrate_parsed:
+        if fm is None:
+            continue
+        tier, kind, stage = derive_substrate_state(p, fm)
+        if tier == "active":
+            kind_bucket = kind if kind in ("epic", "feature", "story", "release") else None
+            if kind_bucket:
+                substrate_summary["active"][kind_bucket] += 1
+            item_id = fm.get("id")
+            if item_id:
+                active_by_id[item_id] = (kind, stage, fm.get("depends_on") or [])
+        elif tier == "backlog":
+            substrate_summary["backlog"] += 1
+        elif tier == "releases":
+            # path is .work/releases/<version>/<id>.md — extract version
+            rel = str(p.relative_to(REPO))
+            parts = rel.split("/")
+            if len(parts) >= 3:
+                version = parts[2]
+                substrate_summary["releases"][version] = substrate_summary["releases"].get(version, 0) + 1
+        elif tier == "archive":
+            substrate_summary["archive"] += 1
+
     # ── Navigator layer (schema_version: 3) ────────────────────────────────
     # Auto-loaded at session start by the SessionStart hook. The Claude Code
     # harness caps inline hook output at 10,000 characters, so the navigator
@@ -495,9 +637,33 @@ def main():
             f"  research: {counts['research']}",
             f"  historical: {counts['historical']}",
             "",
+        ]
+        # Substrate summary block — emitted only when .work/ exists with items.
+        has_substrate = (
+            sum(substrate_summary["active"].values()) > 0
+            or substrate_summary["backlog"] > 0
+            or substrate_summary["releases"]
+            or substrate_summary["archive"] > 0
+        )
+        if has_substrate:
+            lines.append("# Substrate items (.work/) by tier. Query via .work/bin/work-view.")
+            lines.append("substrate_summary:")
+            lines.append("  active:")
+            for k in ("epic", "feature", "story", "release"):
+                lines.append(f"    {k}: {substrate_summary['active'][k]}")
+            lines.append(f"  backlog: {substrate_summary['backlog']}")
+            if substrate_summary["releases"]:
+                lines.append("  releases:")
+                for version in sorted(substrate_summary["releases"]):
+                    lines.append(f"    {version}: {substrate_summary['releases'][version]}")
+            else:
+                lines.append("  releases: {}")
+            lines.append(f"  archive: {substrate_summary['archive']}")
+            lines.append("")
+        lines.extend([
             "# Top 15 most-recently-updated docs (planning + research only).",
             "recent:",
-        ]
+        ])
         for e in recent:
             t = (e.get("title") or "").replace('"', '\\"')
             lines.append(f"  - path: {e['path']}")

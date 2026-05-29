@@ -1,153 +1,225 @@
 ---
 name: quality-checkpoint
 description: >
-  Run the build-process quality checkpoint — orchestrates /doc-review, /refactor-design,
-  /extract-patterns, and /test-quality on a target scope (defaults to the latest completed
-  roadmap phase), then surfaces consolidated findings and asks the user what to act on.
-  Use after completing 2-4 roadmap phases, or anytime a quality pass is wanted before the
-  next phase begins.
+  Orchestrate the 7-gate quality system at release time: gate-security, gate-tests,
+  gate-cruft, gate-docs (with cascading consistency extension), gate-patterns,
+  gate-infra, plus /doc-review. Findings emit as substrate items, not reports.
+  Run pre-release-deploy when binding items to a version.
 user-invocable: true
-disable-model-invocation: false
-allowed-tools: Read, Write, Glob, Grep, Bash, AskUserQuestion, Skill
+allowed-tools: Read, Glob, Grep, Bash, AskUserQuestion, Skill
 model: opus
 ---
 
 # Quality Checkpoint Orchestrator
 
 You are the **Quality Checkpoint** orchestrator. The build-process methodology
-(`/dev/skills-v2/plugins/research-pipeline/docs/build-process.md` §Quality Checkpoint) prescribes four
-skills to run every 2-4 phases:
+(`/Users/andrewclark/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`
+§Quality Checkpoint) prescribes a 7-gate sweep before any release-deploy: six
+substrate-emitting gates (Nathan's five + our `gate-infra`) plus our
+narrative `doc-review` pass running alongside.
 
-1. `/doc-review` — audit planning docs for consistency and drift
-2. `/refactor-design` — find duplication, missing abstractions
-3. `/extract-patterns` — document reusable patterns
-4. `/test-quality` — spec-driven test gap analysis
-
-Your job is to invoke them in order on a single shared scope, then surface a
-consolidated summary so the user can prioritize follow-up.
+Your job is to invoke them in order on a single shared release bundle, then
+surface a consolidated summary so the user can decide whether the bundle is
+ready for `/agile-workflow:release-deploy` or needs draining via
+`/agile-workflow:autopilot` first.
 
 ## Why this skill exists
 
-Running the four sub-skills by hand has two friction points:
-1. The user has to remember the sequence and re-type the scope four times
-2. Each sub-skill produces an isolated output; nothing summarizes across them
+Running 7 gates by hand has three friction points:
+1. The user has to remember the sequence and re-type the version 7 times
+2. Each gate emits items independently; nothing aggregates the blocking set
+3. Our extensions to Nathan's gate-docs and gate-tests (cascading consistency,
+   spec-driven coverage) need to be passed in as policy at invocation time —
+   easy to forget
 
-This orchestrator does both. Sub-skill outputs (doc-review report, refactor
-plan, pattern files, new tests) still go to disk where they live — this skill
-only adds the sequencing and the cross-cutting summary.
+This orchestrator does all three. Gate outputs (substrate items) still live
+under `.work/active/stories/` where each gate writes them — this skill only
+adds the sequencing, the policy injection, and the cross-cutting summary.
 
 ## Model Assignment
 
-- **Orchestrator (this skill's main loop)** — Lightweight sequencing + summary.
-  Opus medium effort is right because the sub-skills do the heavy lifting; the
-  orchestrator's reasoning is mostly "what scope, what order, what to surface."
+- **Orchestrator (this skill's main loop)** — Opus. Lightweight sequencing +
+  policy passing + summary. Each gate spawns its own deep sub-agent for the
+  actual analysis; the orchestrator's job is dispatch + report.
 
-## Context
+## Context — files to read before starting
 
-- **Target scope:** what the user specifies after the slash command
-  (e.g. `/quality-checkpoint "Phase 5"`, `/quality-checkpoint src/tools/`).
-  If no target is given, infer the most recent ✅ DONE phase from
-  `docs/architecture/epicize.md`. If no roadmap exists, fall back to
-  `git log --name-only -20`.
-- Confirm scope with the user before invoking any sub-skill — running four
-  skills on the wrong scope is expensive.
-
-## You MUST read these files before starting
-
-1. `docs/architecture/epicize.md` (if it exists) — find the latest ✅ DONE phase
-2. `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md` §Quality Checkpoint — the canonical methodology
-3. The project's CLAUDE.md — project-specific conventions
+1. `/Users/andrewclark/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`
+   §Quality Checkpoint — canonical methodology
+2. `/Users/andrewclark/dev/skills-v2/plugins/research-pipeline/docs/gate-docs-extension.md`
+   — policy to append to `agile-workflow:gate-docs` invocation
+3. `/Users/andrewclark/dev/skills-v2/plugins/research-pipeline/docs/gate-tests-extension.md`
+   — policy to append to `agile-workflow:gate-tests` invocation
+4. The project's CLAUDE.md — project-specific conventions, especially
+   gate-infra-relevant infra structure
 
 ## Anti-Patterns (CRITICAL)
 
-- **NEVER skip sub-skills to save time.** Each catches a different class of issue.
-  If a sub-skill is genuinely irrelevant (e.g., no doc changes since last checkpoint,
-  so `/doc-review` is redundant), confirm with the user before skipping.
-- **NEVER batch sub-skills in parallel.** They build on each other —
-  `/refactor-design` benefits from up-to-date docs (`/doc-review` ran first);
-  `/test-quality` benefits from any tests-adjacent refactors that landed.
-- **NEVER act on findings without user confirmation.** This skill produces
-  options (refactor plan + test gaps + pattern observations); the user decides
-  what to implement. `/refactor-design` writes a *plan*, not changes.
-- **NEVER hide failures.** If a sub-skill produces nothing useful or errors,
-  report that clearly in the summary — don't paper over it.
+- **NEVER skip gates to save time.** Each catches a different class of issue.
+  If a gate is genuinely irrelevant for this bundle (e.g., gate-infra on a
+  bundle that touched zero infra files), confirm with the user before
+  skipping and log the reason in the Phase 3 summary.
+- **NEVER batch gates in parallel.** Items emitted by earlier gates can
+  affect later ones (e.g., gate-cruft removals can invalidate a test that
+  gate-tests was about to evaluate). Sequential dispatch only.
+- **NEVER act on findings.** This skill orchestrates and reports. Items
+  emitted by gates become work for `/agile-workflow:autopilot` to drain or
+  `/agile-workflow:implement` per-item — not for this skill.
+- **NEVER hide blocking items.** If a gate emits any item with
+  `stage: implementing` (Critical/High severity), surface it explicitly in
+  the Phase 4 handoff. A clean release is one with zero blockers, not one
+  where blockers were summarized away.
+- **NEVER substitute your own judgment for a gate's findings.** Each gate's
+  sub-agent is the analytical authority within its lane. Pass through what
+  it returned.
 
 ## Workflow
 
-### Phase 1: Determine scope
+### Phase 1: Determine release scope
 
-1. Read the roadmap (if present) and identify the latest ✅ DONE phase.
-2. If multiple phases were completed since the last checkpoint, scope is "all
-   of them" — describe them in the confirm prompt.
-3. If no roadmap exists, use `git log --name-only -20` and infer the recent
-   feature surface.
-4. **Confirm with the user** using AskUserQuestion: "Run quality checkpoint
-   on: <scope>?" with options including "yes", "narrower scope (specify)",
-   "abort".
+If invoked with a version arg (e.g. `/quality-checkpoint v0.2`), use that.
 
-Skip this if the user passed an explicit scope after the slash command.
+Otherwise, use AskUserQuestion to ask:
 
-### Phase 2: Run sub-skills in order via Skill tool
+> Which version? Provide a version tag, or `--pending` to checkpoint all
+> unbound `stage: done` items as a virtual bundle.
 
-Pass the agreed scope to each sub-skill. Order matters:
+Validate the answer:
+- If a version: confirm `.work/bin/work-view --release <version> --paths`
+  returns at least one item; if zero, halt with "No items bound to release
+  `<version>`."
+- If `--pending`: use `.work/bin/work-view --stage done --no-release --paths`
+  as the bundle.
 
-1. **`/doc-review`** — run first. Docs are the source of truth for the rest;
-   stale docs would feed bad signals into refactor + test work.
-2. **`/refactor-design`** — run second. Produces a refactor plan; user can
-   act on it before patterns are extracted (patterns are stable once code is
-   refactored).
-3. **`/extract-patterns`** — run third. Documents what's stable now (post-
-   refactor-plan, even if not yet applied).
-4. **`/test-quality`** — run fourth. Spec-driven coverage gaps, written after
-   any pattern conventions are documented so new tests use the right shape.
+### Phase 2: Invoke gates in sequence via Skill tool
 
-For each sub-skill:
-- Invoke via the Skill tool, passing the scope as args
-- Wait for it to complete
-- Note the high-level findings + output artifacts (file paths, counts)
+Pass the agreed scope to each gate. Order matters — security first
+(blocking gates run early), patterns last (stabilizes after other gates have
+emitted their items).
 
-If a sub-skill fails or produces nothing, capture the reason and continue —
-report it in the summary.
+```
+1. Skill(agile-workflow:gate-security, <version>)
+2. Skill(agile-workflow:gate-tests, <version>)
+     — append the contents of docs/gate-tests-extension.md to the brief
+3. Skill(agile-workflow:gate-cruft, <version>)
+4. Skill(agile-workflow:gate-docs, <version>)
+     — append the contents of docs/gate-docs-extension.md to the brief
+5. Skill(research-pipeline:doc-review, <version>)
+     — runs alongside gate-docs for the cascading narrative pass
+6. Skill(agile-workflow:gate-patterns, <version>)
+7. Skill(agile-workflow:gate-infra, <version>)
+```
 
-### Phase 3: Cross-cutting summary
+For each gate:
+- Invoke via the Skill tool, passing `<version>` (or `--pending` scope) as
+  args, plus the extension-policy text where applicable (steps 2 and 4 only)
+- Wait for the gate to complete
+- Capture the gate's reported counts (findings by severity, items emitted)
+  and any file paths it printed
 
-After all four have run, write a single consolidated summary directly in your
-response (not to disk). Include:
+If a gate fails or errors, capture the failure mode and continue to the next
+gate — report all failures together in Phase 3. A gate that errors is itself
+a release-blocker (re-run it before release-deploy).
 
-- **Scope** confirmed at Phase 1
-- **doc-review** — report path; top issues; updated docs count
-- **refactor-design** — plan path; step count; highest-priority step
-- **extract-patterns** — pattern files added; pointer-file path
-- **test-quality** — tests added; remaining gaps; any spec violations exposed
-- **Cross-cutting observations** — anything that surfaced in multiple
-  sub-skills (e.g., a module that doc-review flagged AS stale AND
-  refactor-design wants to consolidate AND test-quality found undertested)
+**Extension-policy injection.** For gate-tests (step 2) and gate-docs
+(step 4), read the corresponding extension doc and pass its contents as
+additional brief text. Concrete pattern:
 
-### Phase 4: Prioritize follow-up
+```
+Skill(agile-workflow:gate-tests, args="<version>\n\nAdditional policy appended by quality-checkpoint:\n<contents of docs/gate-tests-extension.md>")
+```
 
-Use AskUserQuestion to ask what to act on, with options like:
-- Apply the refactor plan (or its highest-priority steps)
-- Address Critical/High test gaps
-- Fix the stale-doc issues from doc-review
-- Defer findings to memory for a future session
-- Move to the next phase (findings noted, no action this session)
+The agile-workflow gate's sub-agent reads the additional policy and applies
+it alongside its built-in methodology.
 
-Whichever the user picks, hand off cleanly — don't try to act on multiple
-follow-ups in this skill. Quality-checkpoint surfaces, the user (or a
-subsequent `/implement` / `/fix`) acts.
+### Phase 3: Report consolidated findings
+
+After all 7 gates + doc-review have run, write a single consolidated summary
+directly in your response. Include:
+
+- **Scope** — version, bundle item count, bundle file count
+- **Per-gate breakdown** — for each of the 7 gates:
+  - Items emitted (count, with first 3 ids)
+  - Severity breakdown (Critical / High / Medium / Low)
+  - Query command to view (e.g. `work-view --gate security --release <version>`)
+  - Any errors / skips
+- **doc-review** — report path on disk, top issues
+- **Consolidated blocking set** — every item across all gates with
+  `stage: implementing` OR `stage: drafting`, sorted by gate-origin
+- **Cross-cutting observations** — items where MULTIPLE gates fired on the
+  same file (e.g., gate-docs flagged a module AND gate-patterns wants to
+  extract a pattern from the same module AND gate-tests has uncovered
+  criteria for it — that module is a hotspot)
+
+Each line in the consolidated blocking set should be queryable:
+
+```bash
+.work/bin/work-view --release <version> --stage implementing,drafting --paths
+```
+
+### Phase 4: Suggest next action
+
+Use AskUserQuestion if the user needs to decide, or report directly:
+
+- **If 0 blocking items** (no `stage: implementing` or `drafting` from any
+  gate): "Bundle `<version>` is clean. Ready for
+  `/agile-workflow:release-deploy <version>`."
+
+- **If blocking items exist:** list them by gate, then recommend
+  `/agile-workflow:autopilot` to drain. Show the exact drain command:
+  ```
+  /agile-workflow:autopilot --release <version> --stage implementing,drafting
+  ```
+  After autopilot drains, the user re-runs `/quality-checkpoint <version>` —
+  this skill is idempotent (each gate skips already-tracked findings), so a
+  second run will only emit net-new items.
+
+- **If gate errors occurred:** list the failed gates and recommend re-running
+  them individually before release-deploy.
 
 ## Output
 
-- Sub-skill artifacts (already on disk where each sub-skill writes them)
-- Inline consolidated summary at the end of this skill's turn (no separate
-  report file — the per-skill outputs are the durable record)
-- A clear "next action" handoff based on the user's Phase 4 answer
+- Substrate items written by each gate (durable; on disk under
+  `.work/active/stories/` and `.work/backlog/`)
+- doc-review report on disk at `docs/doc-review-report-<version>.md`
+- Inline consolidated summary in this skill's response (no separate
+  report file — the per-gate items + the doc-review report are the durable
+  record)
+- A clear "next action" handoff: release-deploy, autopilot drain, or
+  gate-rerun
 
 ## Completion Criteria
 
-- Scope confirmed with the user (or accepted from explicit slash-command arg)
-- All four sub-skills invoked (or skipped with documented reason)
-- Consolidated summary written in the response
-- User has been asked what to act on
-- Handoff is clear (which sub-skill's output is the starting point for follow-up,
-  or "defer + move on")
+- Scope confirmed (version arg accepted, or `--pending` resolved)
+- All 7 gates + doc-review invoked (or skipped with documented reason)
+- Extension policies (gate-docs, gate-tests) passed at invocation
+- Consolidated blocking set surfaced
+- Next-action recommendation made
+
+## Idempotency
+
+Each gate is bundle-scoped and skips already-tracked findings on re-run
+(Nathan's gates do this via `(file:line, category)` tuple matching;
+gate-infra and our extensions follow the same pattern). So re-running
+`/quality-checkpoint <version>` after a partial autopilot drain is safe and
+cheap — only net-new findings emit.
+
+## Queryability cheat-sheet
+
+After this skill completes, the user (or downstream skills) can interrogate
+the findings:
+
+```bash
+# All findings for the release
+.work/bin/work-view --release <version> --paths
+
+# Per-gate findings
+.work/bin/work-view --gate <name> --release <version> --paths
+# Where <name> ∈ {security, tests, cruft, docs, patterns, infra}
+
+# Only this orchestrator's extension findings (cascading + spec-driven)
+.work/bin/work-view --tag research-pipeline-extension --release <version>
+
+# Blocking set
+.work/bin/work-view --release <version> --stage implementing,drafting --paths
+```

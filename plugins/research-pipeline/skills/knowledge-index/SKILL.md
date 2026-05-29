@@ -63,10 +63,16 @@ this cleanly. No sub-agents.
 
 ### Step 1: Discover all knowledge docs
 
-Glob `docs/**/*.md` recursively. Exclude:
+**Docs corpus** — glob `docs/**/*.md` AND `.research/**/*.md` recursively. Exclude:
 - `docs/_archive/**/*` (archived)
 - `docs/**/doc-review-report-*.md` (audit artifacts)
 - Any path matching `**/RESUME-STATE.md` or session artifacts (no frontmatter, by convention)
+
+**Substrate corpus (when `.work/` exists)** — also glob `.work/active/**/*.md`,
+`.work/backlog/**/*.md`, `.work/releases/**/*.md`, `.work/archive/**/*.md`. These are
+substrate items emitted by the `agile-workflow` plugin. They have a different
+frontmatter schema than docs (`id`/`kind`/`stage`/`depends_on` instead of
+`type`/`description`/`summary`/`decisions`) and are linted separately (see Step 4).
 
 For each match, parse the YAML frontmatter (the block between leading `---` and the next `---`).
 
@@ -150,6 +156,14 @@ If `--lint-only`, print the report and exit. Otherwise continue.
 If errors are present and `--no-lint` is NOT passed: stop, print errors, do not regenerate.
 If `--no-lint`: print warnings but proceed.
 
+**Substrate-item lint** (separate validator, applied to items under `.work/`):
+- Required fields: `id`, `kind`, `stage`, `created`, `updated` — always errors if missing (except backlog items which have a leaner schema per Nathan's SPEC.md; their `kind` and `stage` are unknown until `/scope` promotes them, so missing-kind/missing-stage on backlog items is suppressed)
+- `kind` must be one of `epic`, `feature`, `story`, `release` — error if outside that set
+- `stage` must be one of `drafting`, `implementing`, `review`, `done`, `planned`, `quality-gate`, `released` — warning if outside that set (substrate may extend)
+- `tags` and `depends_on` must be lists when present — error if scalar/string
+
+Substrate items do NOT go through docs-style v1/v2 validation. They have their own schema (Nathan's `agile-workflow:SPEC.md`); we just sanity-check shape.
+
 ### Step 5: Write `docs/knowledge-index-nav.yaml` (navigator layer)
 
 Full overwrite. This is the **layer auto-loaded at session start** — the harness inlines hook output up to 10,000 characters, so the navigator stays under that cap by carrying only aggregates + curated subsets, not per-doc records. Format:
@@ -168,6 +182,20 @@ by_kind:
   planning: <n>
   research: <n>
   historical: <n>
+
+# Substrate items (.work/) by tier. Emitted only when .work/ exists with items.
+# Query individual items via .work/bin/work-view (--ready, --blocked, --kind, etc.).
+substrate_summary:                    # OMITTED when .work/ is absent
+  active:
+    epic: <n>
+    feature: <n>
+    story: <n>
+    release: <n>
+  backlog: <n>
+  releases:
+    v0.1: <n>                         # versions populated per .work/releases/<v>/ dirs
+    v0.2: <n>
+  archive: <n>
 
 # Top 15 most-recently-updated high-signal docs (planning + super-parent.md +
 # program-report.md + program.md only — specialist briefs and campaign parents
