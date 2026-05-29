@@ -13,7 +13,7 @@ model: opus
 # Quality Checkpoint Orchestrator
 
 You are the **Quality Checkpoint** orchestrator. The build-process methodology
-(`/Users/andrewclark/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`
+(`${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`
 §Quality Checkpoint) prescribes a 7-gate sweep before any release-deploy: six
 substrate-emitting gates (Nathan's five + our `gate-infra`) plus our
 narrative `doc-review` pass running alongside.
@@ -44,11 +44,11 @@ adds the sequencing, the policy injection, and the cross-cutting summary.
 
 ## Context — files to read before starting
 
-1. `/Users/andrewclark/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`
+1. `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`
    §Quality Checkpoint — canonical methodology
-2. `/Users/andrewclark/dev/skills-v2/plugins/research-pipeline/docs/gate-docs-extension.md`
+2. `${CLAUDE_PLUGIN_ROOT}/docs/gate-docs-extension.md`
    — policy to append to `agile-workflow:gate-docs` invocation
-3. `/Users/andrewclark/dev/skills-v2/plugins/research-pipeline/docs/gate-tests-extension.md`
+3. `${CLAUDE_PLUGIN_ROOT}/docs/gate-tests-extension.md`
    — policy to append to `agile-workflow:gate-tests` invocation
 4. The project's CLAUDE.md — project-specific conventions, especially
    gate-infra-relevant infra structure

@@ -16,9 +16,9 @@ model: opus
 You research external systems deeply and produce two outputs: a domain brief with your
 findings and an auto-loading reference skill. You also update the project's knowledge index.
 
-**You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
+**You follow the build process at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`.** Read it before starting.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` for consideration.** Apply its thinking moves — especially Open and Challenge — to decompose domains deeply and stress-test assumptions during research.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/first-principles.md` for consideration.** Apply its thinking moves — especially Open and Challenge — to decompose domains deeply and stress-test assumptions during research.
 
 **Extended for domain research (protocols, game rules, analytical methods) and knowledge index integration.**
 
@@ -30,7 +30,7 @@ Per [model-selection-pattern.md](../docs/model-selection-pattern.md):
 - **Investigation sub-agents (Phase 2)** — Parallel worker. Sonnet medium. Typically 3-5 parallel across sub-questions.
 - **Synthesis (Phase 3)** — Synthesis. Opus high. Runs in parent context after sub-agents complete.
 
-Scoping, synthesis, and recommendation are high-leverage — the orchestrator warrants Opus. Parallel investigation is scoped work where Sonnet is sufficient. For broader topics, escalate to `/deep-research`; for genuine megatopics spanning multiple domains, escalate further to `/research-program`. See [research-skills-overview.md](/dev/skills-v2/plugins/research-pipeline/docs/research-skills-overview.md) for the three-scale family.
+Scoping, synthesis, and recommendation are high-leverage — the orchestrator warrants Opus. Parallel investigation is scoped work where Sonnet is sufficient. For broader topics, escalate to `/deep-research`; for genuine megatopics spanning multiple domains, escalate further to `/research-program`. See [research-skills-overview.md](${CLAUDE_PLUGIN_ROOT}/docs/research-skills-overview.md) for the three-scale family.
 
 ## What This Covers
 
@@ -64,7 +64,7 @@ This skill handles two types of research:
 
 1. Read **CLAUDE.md** and project docs — understand the stack, constraints, what's known
 2. Explore the codebase — find how the project currently handles the area being researched
-3. **Assess breadth.** Is this a focused single-domain topic, or does it span 5+ orthogonal aspects? If the topic is genuinely broad (multiple perspectives, requires decomposition, multi-angle synthesis matters), suggest `/deep-research` instead. If the topic spans multiple distinct domains each big enough to be its own campaign (3+), suggest `/research-program`. Let the user decide. See [build-process.md § When to Use /research vs /deep-research vs /research-program](/dev/skills-v2/plugins/research-pipeline/docs/build-process.md).
+3. **Assess breadth.** Is this a focused single-domain topic, or does it span 5+ orthogonal aspects? If the topic is genuinely broad (multiple perspectives, requires decomposition, multi-angle synthesis matters), suggest `/deep-research` instead. If the topic spans multiple distinct domains each big enough to be its own campaign (3+), suggest `/research-program`. Let the user decide. See [build-process.md § When to Use /research vs /deep-research vs /research-program](${CLAUDE_PLUGIN_ROOT}/docs/build-process.md).
 4. Define research questions:
    - What specific problem does this knowledge solve for the project?
    - What assumptions are we making that need verification?
@@ -219,7 +219,7 @@ Write an auto-loading reference skill at `.claude/skills/{topic-slug}/SKILL.md`:
 After writing the brief, **run `/knowledge-index`** to regenerate the index from frontmatter.
 
 Do NOT hand-edit `docs/knowledge-index.yaml` — it's a derived artifact. Frontmatter is the
-only source of truth. See `/dev/skills-v2/plugins/research-pipeline/skills/knowledge-index/SKILL.md` for the full schema and
+only source of truth. See `${CLAUDE_PLUGIN_ROOT}/skills/knowledge-index/SKILL.md` for the full schema and
 field semantics.
 
 Required frontmatter on the brief:

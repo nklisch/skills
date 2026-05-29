@@ -3,7 +3,7 @@ name: epicize
 description: >
   Decompose architecture + research briefs into epic items at .work/active/epics/.
   Adaptive grounding: heavy when research briefs exist (knowledge-index +
-  /dev/skills-v2/plugins/research-pipeline/.research corpus), light foundation-docs-only
+  the project's .research/ corpus), light foundation-docs-only
   otherwise. Defers per-feature acceptance criteria and implementation detail to
   /epic-design and /feature-design downstream. Emits epic items with depends_on chains
   for autopilot draining. Tags epics with [needs-brief] when downstream design requires
@@ -29,9 +29,9 @@ substrate-emitting) and Andrew's `roadmap` (research-grounded, knowledge-index-a
 behaves as a strict superset: with research present, it does heavy grounding; without
 research, it falls back to Nathan's foundation-doc-only flow.
 
-**You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
+**You follow the build process at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`.** Read it before starting.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` for consideration.** Apply its thinking moves — especially Challenge and Synthesize — to question epic boundary assumptions and find high-leverage sequencing.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/first-principles.md` for consideration.** Apply its thinking moves — especially Challenge and Synthesize — to question epic boundary assumptions and find high-leverage sequencing.
 
 ## Prerequisites
 
@@ -45,7 +45,7 @@ research, it falls back to Nathan's foundation-doc-only flow.
 
 ## Model Assignment
 
-Per [model-selection-pattern.md](/dev/skills-v2/plugins/research-pipeline/docs/model-selection-pattern.md):
+Per [model-selection-pattern.md](${CLAUDE_PLUGIN_ROOT}/docs/model-selection-pattern.md):
 
 - **Epicize architect (this skill's main loop)** — Orchestration. Opus high effort. Runs in parent context.
 

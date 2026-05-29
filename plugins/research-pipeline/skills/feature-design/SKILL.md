@@ -27,11 +27,11 @@ grounded, knowledge-index-first, patterns-bridged, system-design-primed). The me
 Nathan's procedural structure (Phases 4.5/5a/5b/5.5/7) and adds our grounding (Phase 0
 knowledge-index, patterns skill, research corpus, system-design moves).
 
-**You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
+**You follow the build process at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`.** Read it before starting.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/system-design.md` for design patterns.** 15 moves across 5 concerns. Emphasis for `/feature-design`: Interface moves (Contracts Before Implementations, Match API to Consumer, Evolve Additively) and Data moves (Normalize First, Per-Feature Consistency, Cache Deliberately). Design bridges architecture to implementation — your moves are at the interface and data layers.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/system-design.md` for design patterns.** 15 moves across 5 concerns. Emphasis for `/feature-design`: Interface moves (Contracts Before Implementations, Match API to Consumer, Evolve Additively) and Data moves (Normalize First, Per-Feature Consistency, Cache Deliberately). Design bridges architecture to implementation — your moves are at the interface and data layers.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` for consideration.** Apply Challenge and Synthesize — stress-test design decisions and build from verified foundations.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/first-principles.md` for consideration.** Apply Challenge and Synthesize — stress-test design decisions and build from verified foundations.
 
 ## Routing
 
@@ -76,7 +76,7 @@ interactive alignment only.
 
 ## Model Assignment
 
-Per [model-selection-pattern.md](/dev/skills-v2/plugins/research-pipeline/docs/model-selection-pattern.md):
+Per [model-selection-pattern.md](${CLAUDE_PLUGIN_ROOT}/docs/model-selection-pattern.md):
 
 - **Designer (this skill's main loop)** — Orchestration. Opus high effort. Runs in parent context.
 - **Explore sub-agents (Phase 3)** — Parallel worker. Sonnet medium (Opus for large or complex codebases). Typically 3 parallel in default mode; 1 in --only-questions mode.

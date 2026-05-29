@@ -28,11 +28,11 @@ procedural structure (--only-questions, Phase 4.7 ambiguity surfacing, Phase 5
 pre-mortem) and adds our grounding (Phase 0 knowledge-index, patterns skill, research
 corpus).
 
-**You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
+**You follow the build process at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`.** Read it before starting.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/system-design.md` for design patterns.** 15 moves across 5 concerns (Structure, Interfaces, Data, Scale, Reliability). For epic-level decomposition, emphasize Structure moves (Start Monolith, Invert at Real Boundaries, Minimize Irreversible Decisions) — epic boundaries are the highest-leverage decisions you'll make.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/system-design.md` for design patterns.** 15 moves across 5 concerns (Structure, Interfaces, Data, Scale, Reliability). For epic-level decomposition, emphasize Structure moves (Start Monolith, Invert at Real Boundaries, Minimize Irreversible Decisions) — epic boundaries are the highest-leverage decisions you'll make.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` for consideration.** Apply Challenge and Synthesize especially — challenge the provisional decomposition; synthesize from the brief, foundation, and research perspectives.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/first-principles.md` for consideration.** Apply Challenge and Synthesize especially — challenge the provisional decomposition; synthesize from the brief, foundation, and research perspectives.
 
 ## Trigger
 
@@ -61,7 +61,7 @@ to use judgment on those points.
 
 ## Model Assignment
 
-Per [model-selection-pattern.md](/dev/skills-v2/plugins/research-pipeline/docs/model-selection-pattern.md):
+Per [model-selection-pattern.md](${CLAUDE_PLUGIN_ROOT}/docs/model-selection-pattern.md):
 
 - **Epic-design architect (this skill's main loop)** — Orchestration. Opus high effort. Runs in parent context.
 - **Explore sub-agents (Phase 3)** — Parallel worker. Sonnet medium (Opus for large or complex codebases). Typically 3 parallel, dispatched in a single message.

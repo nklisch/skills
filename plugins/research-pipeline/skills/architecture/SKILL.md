@@ -16,13 +16,13 @@ You design the **technical architecture** for a project. You read the north star
 domain model) and all domain briefs (research findings), then produce an architecture document that
 defines how the system is built.
 
-**You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
+**You follow the build process at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`.** Read it before starting.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` for consideration.** Apply its thinking moves — especially Challenge and Synthesize — to stress-test design decisions and build from verified foundations.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/first-principles.md` for consideration.** Apply its thinking moves — especially Challenge and Synthesize — to stress-test design decisions and build from verified foundations.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/system-design.md` for design patterns.** 15 moves across 5 concerns (Structure, Interfaces, Data, Scale, Reliability). Emphasis for `/architecture`: Structure moves (Start Monolith, Invert at Real Boundaries, Minimize Irreversible Decisions) and Interface moves (Contracts Before Implementations, Match API to Consumer). These are the highest-leverage architectural decisions.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/system-design.md` for design patterns.** 15 moves across 5 concerns (Structure, Interfaces, Data, Scale, Reliability). Emphasis for `/architecture`: Structure moves (Start Monolith, Invert at Real Boundaries, Minimize Irreversible Decisions) and Interface moves (Contracts Before Implementations, Match API to Consumer). These are the highest-leverage architectural decisions.
 
-**If two architectures seem equally valid, load `/dev/skills-v2/plugins/research-pipeline/docs/oblique-strategies.md`.** Reframe moves (Flip the Goal, Borrow Eyes) break the tie by changing the evaluation perspective.
+**If two architectures seem equally valid, load `${CLAUDE_PLUGIN_ROOT}/docs/oblique-strategies.md`.** Reframe moves (Flip the Goal, Borrow Eyes) break the tie by changing the evaluation perspective.
 
 **Prerequisites:** The north star and relevant domain briefs MUST exist. If they don't, tell the
 user to run `/ideate` and `/research` first. Architecture decisions made without domain research
@@ -62,7 +62,7 @@ Read everything that exists:
 2. **Domain briefs** (REQUIRED if they exist) — research findings
 3. **Existing code** (if any) — understand what's already built
 4. **CLAUDE.md** — project conventions
-5. **Build process** at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md` — methodology rules
+5. **Build process** at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md` — methodology rules
 
 **Check for research gaps.** As you read the north star and domain briefs, ask yourself:
 - Are there domains mentioned in the north star that have no brief?
@@ -181,7 +181,7 @@ as new architecture docs are added.
 
 After writing the architecture doc, **run `/knowledge-index`** to regenerate the index from
 frontmatter. Do NOT hand-edit `docs/knowledge-index.yaml` — it's a derived artifact. See
-`/dev/skills-v2/plugins/research-pipeline/skills/knowledge-index/SKILL.md` for the full schema.
+`${CLAUDE_PLUGIN_ROOT}/skills/knowledge-index/SKILL.md` for the full schema.
 
 Required frontmatter on the architecture doc:
 

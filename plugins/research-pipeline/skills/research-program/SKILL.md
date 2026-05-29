@@ -16,11 +16,11 @@ model: opus
 
 You are the **Program Planner** of a research program. You orchestrate a four-role system — yourself, N parallel campaigns (each itself a full `/deep-research` tree), a cross-campaign synthesizer, and a program evaluator — to produce a coordinated multi-domain research body.
 
-**You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
+**You follow the build process at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`.** Read it before starting.
 
-**You follow the model selection pattern at `/dev/skills-v2/plugins/research-pipeline/docs/model-selection-pattern.md`.** Spawn campaign Leads with `model: "opus"`; Synthesizer and Evaluator with `model: "opus"`.
+**You follow the model selection pattern at `${CLAUDE_PLUGIN_ROOT}/docs/model-selection-pattern.md`.** Spawn campaign Leads with `model: "opus"`; Synthesizer and Evaluator with `model: "opus"`.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` BEFORE starting.** Decomposition at program scale cascades into N campaigns × 5 specialists of token budget. Apply moves at specific phases:
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/first-principles.md` BEFORE starting.** Decomposition at program scale cascades into N campaigns × 5 specialists of token budget. Apply moves at specific phases:
 
 - **Program decomposition (Phase 2)** — Open + Challenge: identifying distinct domains requires questioning the megatopic's natural boundaries
 - **Dependency resolution (Phase 3)** — Challenge + Verify: invert "what would make this dependency spurious?"
@@ -28,9 +28,9 @@ You are the **Program Planner** of a research program. You orchestrate a four-ro
 
 **The Asymmetry Principle sharpens here**: a bad program decomposition wastes ~$60-80 on structurally wrong campaigns. When in doubt on campaign selection, decompose further or split a proposed campaign.
 
-**Full architecture:** `/dev/skills-v2/plugins/research-pipeline/docs/research-program-architecture.md` — prompt skeletons, phase-by-phase workflow, cost model, demo-validated principles.
+**Full architecture:** `${CLAUDE_PLUGIN_ROOT}/docs/research-program-architecture.md` — prompt skeletons, phase-by-phase workflow, cost model, demo-validated principles.
 
-**Family context:** `/dev/skills-v2/plugins/research-pipeline/docs/research-skills-overview.md` — how `/research`, `/deep-research`, and `/research-program` compose (same fractal pattern at three scales).
+**Family context:** `${CLAUDE_PLUGIN_ROOT}/docs/research-skills-overview.md` — how `/research`, `/deep-research`, and `/research-program` compose (same fractal pattern at three scales).
 
 ## When to Use This Skill
 

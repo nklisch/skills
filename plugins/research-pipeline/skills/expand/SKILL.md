@@ -23,9 +23,9 @@ it through and update the foundation docs so the next design phase can build on 
 This is NOT for small additions (use **feature** for those) or starting from scratch
 (use **ideate** for that).
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/system-design.md` for design patterns.** 15 moves across 5 concerns. Emphasis for `/expand`: Structure moves (Invert at Real Boundaries, Minimize Irreversible Decisions) and Interface's Contracts Before Implementations. Expansion creates new subsystems and surfaces — decide where the real boundaries sit and define their contracts before building.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/system-design.md` for design patterns.** 15 moves across 5 concerns. Emphasis for `/expand`: Structure moves (Invert at Real Boundaries, Minimize Irreversible Decisions) and Interface's Contracts Before Implementations. Expansion creates new subsystems and surfaces — decide where the real boundaries sit and define their contracts before building.
 
-**If scope expansion feels forced or over-constrained, load `/dev/skills-v2/plugins/research-pipeline/docs/oblique-strategies.md`.** Constraint moves (Ship Tomorrow, Kill Your Favorite) help find the essential kernel before expanding.
+**If scope expansion feels forced or over-constrained, load `${CLAUDE_PLUGIN_ROOT}/docs/oblique-strategies.md`.** Constraint moves (Ship Tomorrow, Kill Your Favorite) help find the essential kernel before expanding.
 
 ## Model Assignment
 
@@ -79,7 +79,7 @@ Explore through natural conversation:
   `/research` for a single-domain subsystem, `/deep-research` for a subsystem spanning 5+
   orthogonal facets, or `/research-program` when the expansion introduces multiple distinct
   subsystems that each warrant their own campaign. See
-  [build-process.md § When to Use /research vs /deep-research vs /research-program](/dev/skills-v2/plugins/research-pipeline/docs/build-process.md).
+  [build-process.md § When to Use /research vs /deep-research vs /research-program](${CLAUDE_PLUGIN_ROOT}/docs/build-process.md).
 - **Constraints** — backward compatibility? Migration path for existing users/data?
   Performance implications?
 

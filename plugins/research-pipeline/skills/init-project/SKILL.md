@@ -35,7 +35,7 @@ Copying template files, substituting placeholders, and running a couple of shell
 The canonical template lives at:
 
 ```
-~/dev/skills-v2/plugins/research-pipeline/templates/project/
+${CLAUDE_PLUGIN_ROOT}/templates/project/
 ├── CLAUDE.md                       # lean project CLAUDE.md with {{PROJECT_NAME}}
 ├── docs/
 │   ├── knowledge-index.yaml        # empty valid scaffold
@@ -78,7 +78,7 @@ Run a quick check:
 
 ### Step 3: Copy the template
 
-For each file in `~/dev/skills-v2/plugins/research-pipeline/templates/project/`:
+For each file in `${CLAUDE_PLUGIN_ROOT}/templates/project/`:
 
 1. Read the template file.
 2. Substitute `{{PROJECT_NAME}}` and `{{DATE}}` placeholders.

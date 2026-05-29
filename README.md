@@ -447,8 +447,8 @@ To work on the plugins themselves, clone the repo and add it as a local marketpl
 
 ```bash
 git clone https://github.com/andrewclark88/skills-v2.git ~/dev/skills-v2
-# Inside Claude Code:
-/plugin marketplace add /Users/andrewclark/dev/skills-v2
+# Inside Claude Code (use the path you cloned to):
+/plugin marketplace add ~/dev/skills-v2
 /plugin install agile-workflow
 /plugin install research-pipeline
 ```

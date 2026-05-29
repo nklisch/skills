@@ -26,11 +26,11 @@ auto-call). It behaves as a strict super-layer: produces everything Nathan does 
 and respects his foundation-doc layout (no separate `north-star.md`; the role splits into
 VISION + parts of SPEC).
 
-**You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
+**You follow the build process at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`.** Read it before starting.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` for consideration.** Apply Open and Synthesize especially — deeply explore the problem space; synthesize from multiple angles before converging.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/first-principles.md` for consideration.** Apply Open and Synthesize especially — deeply explore the problem space; synthesize from multiple angles before converging.
 
-**If ideation gets stuck, load `/dev/skills-v2/plugins/research-pipeline/docs/oblique-strategies.md`.** 10 lateral thinking moves across Reframe → Constrain → Stimulate. Use them when the conversation has been circular for 3+ exchanges, every solution feels like a variation of the same idea, or the problem seems over-constrained.
+**If ideation gets stuck, load `${CLAUDE_PLUGIN_ROOT}/docs/oblique-strategies.md`.** 10 lateral thinking moves across Reframe → Constrain → Stimulate. Use them when the conversation has been circular for 3+ exchanges, every solution feels like a variation of the same idea, or the problem seems over-constrained.
 
 ## When to use
 
@@ -44,7 +44,7 @@ For ds-engine and other established projects: don't run this. Existing nested do
 
 ## Model Assignment
 
-Per [model-selection-pattern.md](/dev/skills-v2/plugins/research-pipeline/docs/model-selection-pattern.md):
+Per [model-selection-pattern.md](${CLAUDE_PLUGIN_ROOT}/docs/model-selection-pattern.md):
 
 - **Ideator (this skill's main loop)** — Orchestration. Opus high effort. Runs in parent context.
 - **Scout auto-call (Phase 2)** — Skill chain via `Skill` tool. Spawns Sonnet workers internally.
@@ -188,7 +188,7 @@ updated: YYYY-MM-DD
 ---
 ```
 
-See `/dev/skills-v2/plugins/research-pipeline/docs/knowledge-storage-pattern.md` for the full schema.
+See `${CLAUDE_PLUGIN_ROOT}/docs/knowledge-storage-pattern.md` for the full schema.
 
 ### Phase 8: Write docs (Write tool — never overwrite if existing)
 

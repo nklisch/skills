@@ -423,17 +423,19 @@ fi
 mkdir -p "$(dirname "$out_path")"
 
 # Use awk for substitution — sed struggles with multi-line / large JSON.
-awk -v project="$PROJECT_NAME" \
-    -v ts="$TIMESTAMP" \
-    -v tags_b64="$TAGS_DOC" \
-    -v items="$ITEMS_JSON" '
+# items / tags_b64 are passed via the environment (ENVIRON[]) rather than -v:
+# awk's -v assignment cannot contain literal newlines (it errors with
+# "newline in string"), and ITEMS_JSON is pretty-printed multi-line JSON.
+ITEMS_JSON="$ITEMS_JSON" TAGS_DOC_B64="$TAGS_DOC" awk -v project="$PROJECT_NAME" \
+    -v ts="$TIMESTAMP" '
   {
     line = $0
     gsub(/\{\{PROJECT_NAME\}\}/, project, line)
     gsub(/\{\{TIMESTAMP\}\}/, ts, line)
-    gsub(/\{\{TAGS_DOC_B64\}\}/, tags_b64, line)
+    gsub(/\{\{TAGS_DOC_B64\}\}/, ENVIRON["TAGS_DOC_B64"], line)
     if (line ~ /\{\{ITEMS_JSON\}\}/) {
       # Direct injection — items may contain backslashes/etc that gsub mangles.
+      items = ENVIRON["ITEMS_JSON"]
       n = index(line, "{{ITEMS_JSON}}")
       before = substr(line, 1, n - 1)
       after = substr(line, n + length("{{ITEMS_JSON}}"))

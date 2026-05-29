@@ -19,9 +19,9 @@ it to reflect what was actually learned during implementation. This is the subst
 equivalent of "update the roadmap" — but instead of editing a `roadmap.md` doc, you
 update individual epic items and their `depends_on` chains.
 
-**You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
+**You follow the build process at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`.** Read it before starting.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` for consideration.** Apply Challenge and Synthesize — challenge the current decomposition against actual evidence; synthesize learnings into the updated graph.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/first-principles.md` for consideration.** Apply Challenge and Synthesize — challenge the current decomposition against actual evidence; synthesize learnings into the updated graph.
 
 ## When to invoke
 
@@ -38,7 +38,7 @@ update individual epic items and their `depends_on` chains.
 
 ## Model Assignment
 
-Per [model-selection-pattern.md](/dev/skills-v2/plugins/research-pipeline/docs/model-selection-pattern.md):
+Per [model-selection-pattern.md](${CLAUDE_PLUGIN_ROOT}/docs/model-selection-pattern.md):
 
 - **Updater (this skill's main loop)** — Orchestration. Opus high effort. Runs in parent context.
 

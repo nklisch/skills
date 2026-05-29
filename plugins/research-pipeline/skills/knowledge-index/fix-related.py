@@ -14,7 +14,7 @@ import re
 import sys
 from pathlib import Path
 
-REPO = Path("/Users/andrewclark/dev/ds-engine")
+REPO = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
 
 # Match a flow-style related item:
 #   - {slug: X, relationship: Y, note: Z}

@@ -18,11 +18,11 @@ exactly the context it needs to implement a roadmap phase correctly. A brief is 
 research, not architecture, not a tutorial. It's the distilled domain knowledge that prevents
 a builder from making wrong assumptions.
 
-**You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
+**You follow the build process at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`.** Read it before starting.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` for consideration.** Apply its thinking moves — especially Open and Verify — to decompose domains deeply and confirm you truly understand what you're curating.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/first-principles.md` for consideration.** Apply its thinking moves — especially Open and Verify — to decompose domains deeply and confirm you truly understand what you're curating.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/system-design.md` when the brief covers system design topics.** The 15 design moves inform what a builder needs to know — curate toward the decisions they'll face (structure, interfaces, data, scale, reliability), not just the domain facts.
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/system-design.md` when the brief covers system design topics.** The 15 design moves inform what a builder needs to know — curate toward the decisions they'll face (structure, interfaces, data, scale, reliability), not just the domain facts.
 
 ## Arguments
 
@@ -82,7 +82,7 @@ Investigate the domain deeply. Use every tool available:
 - **Existing code** — if the project has related code, read it to understand what patterns are established
 - **Existing data** — if the project has data (card pools, technique inventories, etc.), analyze it to ground the brief in reality
 
-**For broad blocking briefs, consider `/deep-research` instead.** If the phase's blocking brief spans 5+ orthogonal aspects (a whole subsystem's worth of domain knowledge, not just one topic), escalate to `/deep-research`. It produces a cross-referenced brief set with a parent summary — better coverage for broad topics than a single agent. Most blocking briefs are focused enough for `/brief` alone; only escalate when the breadth genuinely warrants it. See [build-process.md § When to Use /research vs /deep-research](/dev/skills-v2/plugins/research-pipeline/docs/build-process.md).
+**For broad blocking briefs, consider `/deep-research` instead.** If the phase's blocking brief spans 5+ orthogonal aspects (a whole subsystem's worth of domain knowledge, not just one topic), escalate to `/deep-research`. It produces a cross-referenced brief set with a parent summary — better coverage for broad topics than a single agent. Most blocking briefs are focused enough for `/brief` alone; only escalate when the breadth genuinely warrants it. See [build-process.md § When to Use /research vs /deep-research](${CLAUDE_PLUGIN_ROOT}/docs/build-process.md).
 
 **Research with the consumer in mind.** Don't research everything about the topic — research
 what the builder needs. If the phase is "implement the mana system," you don't need the history
@@ -183,10 +183,10 @@ Iterate until approved, then write to disk.
 After writing the brief, **run `/knowledge-index`** to regenerate the index from frontmatter.
 
 Do NOT hand-edit `docs/knowledge-index.yaml` — it's a derived artifact (per the redesign at
-`/dev/skills-v2/plugins/research-pipeline/skills/knowledge-index/REDESIGN-SKETCH.md`). Frontmatter is the only source of truth;
+`${CLAUDE_PLUGIN_ROOT}/skills/knowledge-index/REDESIGN-SKETCH.md`). Frontmatter is the only source of truth;
 your job is to write conformant frontmatter on the brief, then run `/knowledge-index`.
 
-Required frontmatter on the brief (see `/dev/skills-v2/plugins/research-pipeline/skills/knowledge-index/SKILL.md` for the full
+Required frontmatter on the brief (see `${CLAUDE_PLUGIN_ROOT}/skills/knowledge-index/SKILL.md` for the full
 schema):
 
 ```yaml

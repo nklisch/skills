@@ -18,10 +18,10 @@ Every doc this project produces (north-star, architecture, roadmap, brief, desig
 - `kind:` — usually derived from `type:` + `status:`; set explicitly to override
 - `updated:` — YYYY-MM-DD
 
-See `~/dev/skills-v2/plugins/research-pipeline/skills/knowledge-index/SKILL.md` for the full schema and field semantics.
+See the `research-pipeline:knowledge-index` skill for the full schema and field semantics.
 
 ## Build process
-Follow the global methodology at `~/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`. Project knowledge lives under `docs/`:
+Follow the global methodology in the `research-pipeline:build-process` skill. Project knowledge lives under `docs/`:
 
 - `docs/architecture/` — north star, conventions, roadmap
 - `docs/briefs/` — domain briefs from `/research` and `/brief`

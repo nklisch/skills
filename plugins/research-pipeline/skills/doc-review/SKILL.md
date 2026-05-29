@@ -17,7 +17,7 @@ You audit a project's core planning documents for consistency, completeness, and
 You find the gaps between what was decided and what's documented — the drift that accumulates
 as a project evolves. You also verify docs match the actual codebase.
 
-**You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
+**You follow the build process at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`.** Read it before starting.
 
 ## Why This Exists
 

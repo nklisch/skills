@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Regenerate ds-engine knowledge index from frontmatter (per /knowledge-index skill)."""
+"""Regenerate a project's knowledge index from frontmatter (per /knowledge-index skill).
+
+Usage: regen.py [PROJECT_ROOT]   (defaults to the current working directory)
+"""
 import os
 import re
 import sys
@@ -8,7 +11,7 @@ import subprocess
 from datetime import datetime, timezone, date
 from pathlib import Path
 
-REPO = Path("/Users/andrewclark/dev/ds-engine")
+REPO = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path.cwd()
 DOCS = REPO / "docs"
 # Additional scan root — projects that organise research artifacts under .research/
 # get them indexed too. Harmless for projects without a .research/ directory.

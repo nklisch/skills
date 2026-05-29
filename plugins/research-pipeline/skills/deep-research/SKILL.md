@@ -19,12 +19,12 @@ You are the **Lead Researcher** of a deep research campaign. You orchestrate a f
 system — yourself, N parallel specialists, a synthesis agent, and an evaluator — to produce
 a cross-referenced brief set that goes wider and deeper than a single-agent `/research` can.
 
-**You follow the build process at `/dev/skills-v2/plugins/research-pipeline/docs/build-process.md`.** Read it before starting.
+**You follow the build process at `${CLAUDE_PLUGIN_ROOT}/docs/build-process.md`.** Read it before starting.
 
-**You follow the model selection pattern at `/dev/skills-v2/plugins/research-pipeline/docs/model-selection-pattern.md`.**
+**You follow the model selection pattern at `${CLAUDE_PLUGIN_ROOT}/docs/model-selection-pattern.md`.**
 Spawn specialists with `model: "sonnet"`, synthesis and evaluator with `model: "opus"`.
 
-**Read `/dev/skills-v2/plugins/research-pipeline/docs/first-principles.md` BEFORE starting the campaign.** The thinking
+**Read `${CLAUDE_PLUGIN_ROOT}/docs/first-principles.md` BEFORE starting the campaign.** The thinking
 primer is load-bearing for deep research — more so than for any other skill, because decisions
 at decomposition time cascade into every specialist's token budget. Apply these moves at specific
 phases:
@@ -41,7 +41,7 @@ phases:
 The Asymmetry Principle applies hard here: a shallow decomposition wastes 5× the token budget
 of a deep one. When in doubt on facet selection, go deeper.
 
-**Full architecture:** `/dev/skills-v2/plugins/research-pipeline/docs/deep-research-architecture.md`. Read it before your
+**Full architecture:** `${CLAUDE_PLUGIN_ROOT}/docs/deep-research-architecture.md`. Read it before your
 first campaign — it contains prompt skeletons, phase-by-phase workflow, and cost model.
 
 ## When to Use This Skill
