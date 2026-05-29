@@ -6,9 +6,13 @@ description: >
   Claude compatibility, work-view, and migrated items; sync refreshes
   plugin-owned artifacts plus optional skill catalog mirrors while preserving
   user-owned CONVENTIONS.md, refactor rules, and substrate state. `convert
-  --update` performs one-pass artifact alignment. Always asks whether
-  destructive cleanup is in scope before deleting, moving, or replacing legacy
-  artifacts; preserve-only is the default.
+  --update` performs one-pass artifact alignment. Discovery-driven: sweeps both
+  skill roots to detect bespoke DIY skills that overlap plugin-owned concepts
+  (patterns, refactor conventions, plan-doc generators) and offers to converge
+  them to the canonical layout, deferring to the owning skill for placement.
+  Checks inbound references before moving any path and rewrites or shims them.
+  Always asks whether destructive cleanup is in scope before deleting, moving,
+  or replacing legacy artifacts; preserve-only is the default.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
@@ -23,6 +27,18 @@ inspects the current repo and auto-routes:
 - **Sync** — substrate exists. Refresh plugin-shipped artifacts so a project
   picks up plugin upgrades. Preserves all user content.
 
+Convert is **discovery-driven, not a fixed checklist.** It enumerates the actual
+state of the repo — both skill roots, the rules tree, every agent entrypoint —
+and classifies what it finds, rather than probing a hardcoded set of known
+paths. Bespoke DIY skills and rules that mirror a plugin-owned concept
+(patterns, refactor conventions, cleanup, plan-doc generators) are usually
+*convergence signals* — the project hand-rolled something the plugin now owns —
+not intentional divergence to preserve. The detection sweep, the DIY→canonical
+mapping, the classification taxonomy, the reference-integrity rule, and the
+single-owner deferral table live in
+[`references/legacy-overlap-migration.md`](references/legacy-overlap-migration.md);
+read it before any discovery, convergence, or cleanup step.
+
 Convert distinguishes **alignment** from **cleanup**:
 
 - **Alignment** adds or refreshes plugin-owned artifacts: `.work/bin/work-view`,
@@ -31,6 +47,14 @@ Convert distinguishes **alignment** from **cleanup**:
 - **Cleanup** deletes, moves, or replaces existing legacy artifacts: old tracking
   docs, duplicate Claude files, divergent `.claude/skills/*` copies, or legacy
   generated plan files. Cleanup is opt-in and path-specific.
+
+**Convert places content; the owning skill defines where it lives.** For any
+plugin-owned concept, defer to its owner's canonical location instead of
+carrying a divergent rule: reusable patterns → `gate-patterns` Phase 1
+(`.agents/skills/patterns/`); refactor conventions →
+`refactor-conventions-creator` Phase 1/5 (AGENTS style section +
+`.agents/skills/refactor-conventions/`). See the single-owner deferral table in
+the reference.
 
 ## Arguments
 
@@ -62,8 +86,8 @@ Compute substrate health by checking these markers:
 |---|---|
 | `substrate_root` | `.work/` directory exists |
 | `conventions` | `.work/CONVENTIONS.md` exists |
-| `agents_md_section` | The selected AGENTS target exists AND contains `<!-- agile-workflow:start -->` |
-| `claude_compat` | Any detected Claude instruction entrypoint is a symlink/shim to the selected AGENTS target, OR contains the agile-workflow section for legacy installs |
+| `managed_section` | Some root instruction file (`AGENTS.md` or `CLAUDE.md`) contains `<!-- agile-workflow:start -->`. Whichever holds it is the detected canonical instruction file for this repo — direction-agnostic, since `entrypoint_model` isn't decided until Phase 1.8 |
+| `entrypoint_compat` | The *other* root entrypoint (the one without the managed section) is a symlink/shim to the canonical instruction file, OR itself contains the section for legacy installs |
 | `work_view` | `.work/bin/work-view` exists and is executable |
 
 Route on the result:
@@ -78,7 +102,8 @@ Route on the result:
 | No args AND `substrate_root` is true | **sync** | Auto-sync. Log the decision: "Substrate detected at `.work/` — running in sync mode. Use `--shape` after removing `.work/` if you want a re-bootstrap." |
 
 When in **bootstrap mode**, continue with Phase 1.6. When in **sync mode**, skip
-Phase 1.6, run Phase 1.7, then jump to the Sync Workflow section below.
+Phase 1.6, run Phase 1.7 and Phase 1.8, then jump to the Sync Workflow section
+below.
 
 ### Phase 1.6 (bootstrap only): Check for in-flight working-tree work
 
@@ -88,45 +113,113 @@ captured into the substrate alongside the migration, otherwise autopilot
 will have nothing to drain right after bootstrap. See Phase 8.5 for
 capture handling.
 
-### Phase 1.7: Cleanup scope checkpoint
+### Phase 1.7: Discover legacy, duplicate, and overlapping artifacts
 
-Before any bootstrap or sync writes, detect likely cleanup candidates:
+Before any bootstrap or sync writes, run the **detection sweep** from
+[`references/legacy-overlap-migration.md`](references/legacy-overlap-migration.md).
+Do not probe a hardcoded path list — enumerate and classify:
 
-- Legacy tracking docs: `docs/designs/`, `docs/designs/completed/`,
-  `docs/ROADMAP.md`, `docs/PROGRESS.md`, `TODO.md`, `BACKLOG.md`, `NOTES.md`,
-  `tasks/`.
-- Duplicate or legacy agent entrypoints: regular-file `CLAUDE.md`,
-  `.claude/CLAUDE.md`, `.agents/CLAUDE.md`, `.claude/rules/patterns.md`.
-- Legacy skill mirrors: `.claude/skills/patterns/`,
-  `.claude/skills/refactor-conventions/`.
-- Old generated refactor-conventions wrappers that tell agents to write
-  standalone `.md` refactoring plans.
+1. **Legacy tracking docs** (fixed candidates are fine here, they're not
+   skills): `docs/designs/`, `docs/designs/completed/`, `docs/ROADMAP.md`,
+   `docs/PROGRESS.md`, `TODO.md`, `BACKLOG.md`, `NOTES.md`, `tasks/`.
+2. **Agent entrypoints**: regular-file `CLAUDE.md`, `.claude/CLAUDE.md`,
+   `.agents/CLAUDE.md`, plus the AGENTS candidates from Phase 2.5.
+3. **Skill-root sweep**: `ls -d .agents/skills/*/ .claude/skills/*/` and
+   `ls .claude/rules/*.md`. For each entry, read its header (name +
+   description) and classify it via the taxonomy in the reference:
+   `canonical` / `plugin-mirror-symlink` / `plugin-mirror-divergent-copy` /
+   `bespoke` / `unrelated` (project skills that mirror no plugin concept — left
+   untouched). Diff the actual contents of any `.agents` vs `.claude` pair —
+   duplicated-but-drifted copies in both roots are a real shape this repo has
+   hit, and a fixed-path check never finds them.
+4. **Overlap flags**: mark any `bespoke` entry that mirrors a plugin-owned
+   concept, instructs writing a standalone plan doc, or is a user-invocable
+   command superseded by a plugin gate (see the reference's overlap-candidate
+   rules). These become the convergence question in Phase 1.8.
 
-If no candidates exist, set `cleanup_scope: preserve-only` and continue.
+Record the classified inventory in the run notes (and `MIGRATION_REPORT.md` for
+bootstrap). If the sweep finds nothing legacy, duplicate, or overlapping, set
+`cleanup_scope: preserve-only`, note "no convergence candidates", and continue.
 
-If candidates exist, ask once via `AskUserQuestion`:
+### Phase 1.8: Decisions checkpoint
 
-> "I found legacy or duplicate agile-workflow artifacts. Should convert only
-> align the current artifacts, or is cleanup in scope too?"
+Surface the real decisions the sweep uncovered. Ask only the questions that
+apply — skip any whose trigger condition is absent.
 
-Offer exactly these choices:
+**1. Entrypoint model (ask only when a healthy `CLAUDE.md` exists and there is
+no `AGENTS.md` at any candidate location — i.e. a Claude-native repo).** Flipping
+a working repo's source of truth is disruptive and must be explicit. This is a
+dual-marketplace repo, so a root-readable `AGENTS.md` is required either way;
+the genuine toggle is what happens to `CLAUDE.md`:
 
-1. **Preserve all (Recommended)** — add/refresh current artifacts, import useful
-   legacy content, but do not delete, move, or replace existing legacy files.
-2. **Generated only** — may replace known generated duplicate/shim/mirror files
-   with current symlinks or shims after preserving/importing content.
-3. **Legacy cleanup** — may also remove or move old tracking artifacts after
-   migration, but only after a second confirmation that lists exact paths.
+> "This is a healthy Claude-native repo with no `AGENTS.md`. Codex needs a
+> root-readable `AGENTS.md` regardless — how should `CLAUDE.md` relate to it?"
 
-Normalize and record the answer as `cleanup_scope` in the run notes and, for
-bootstrap, in `MIGRATION_REPORT.md`: `preserve-only`, `generated-only`, or
-`legacy-cleanup`. `legacy-cleanup` includes generated cleanup.
+- **Adopt AGENTS-canonical (Recommended)** — migrate `CLAUDE.md` content into a
+  new root `AGENTS.md` (the source of truth), then point `CLAUDE.md` at it via
+  symlink/shim.
+- **Keep CLAUDE.md as the content source** — `CLAUDE.md` stays the file the team
+  edits; create a thin root `AGENTS.md` pointer/shim so Codex can read it.
 
-Even when `cleanup_scope` allows cleanup, every destructive action still needs
-an exact path list in the plan before applying. Prefer `git mv` to a clearly
-named legacy location when the user wants retention; use `git rm` only when the
-user explicitly chose deletion for those paths. Never use broad globs for
-cleanup.
+Record as `entrypoint_model: agents-canonical | claude-source`.
+
+**Deriving the model when not asking** (so it persists across reruns):
+- **Sync / already-converted repo** — if Phase 1.5 found the managed section in
+  `CLAUDE.md`, set `entrypoint_model: claude-source`; if it's in `AGENTS.md`, set
+  `agents-canonical`. Never re-flip a converted repo by defaulting — honor the
+  shape it already has.
+- **Bootstrap, trigger absent** (an `AGENTS.md` already exists, or there's no
+  `CLAUDE.md`) — default silently to `agents-canonical`.
+
+**2. Per-overlap convergence (ask only when Phase 1.7 flagged ≥1 `bespoke`
+overlap OR ≥1 `plugin-mirror-divergent-copy`).** Batch ALL such entries into a
+**single `multiSelect` question** — do not ask one question per skill. For each
+entry, name the artifact, what it mirrors, and the canonical destination from
+the mapping table. Both buckets feed the same `converge` set: `bespoke` entries
+migrate to canonical; `plugin-mirror-divergent-copy` entries get their unique
+content reconciled into `.agents` and the mirror re-established.
+
+> "Found artifacts that should converge to the canonical layout. Which should I
+> converge? (Unselected stay untouched.)"
+>
+> Options (one per detected entry):
+> - `structural-refactor → refactor-conventions (.agents/skills/refactor-conventions/)`
+> - `extract-patterns → gate-patterns (.agents/skills/patterns/)` — **removes the `/extract-patterns` command**
+> - `patterns (drifted copies in .agents + .claude) → reconcile into .agents, re-mirror`
+> - …
+
+Record the chosen set as `converge: [<artifact>, …]`. Converging an artifact
+that backs a user-invocable command means that command goes away — call this out
+explicitly in the option description so the user is opting into losing a slash
+command they type. `canonical`, `plugin-mirror-symlink`, and `unrelated` entries
+are never offered here — they need no convergence.
+
+**3. Cleanup scope (always ask when any legacy/duplicate/overlap candidate
+exists).**
+
+> "Beyond converging the artifacts above, how much cleanup of the *old* files is
+> in scope?"
+
+- **Preserve all (Recommended)** — add/refresh/converge artifacts and import
+  useful legacy content, but do not delete, move, or replace existing legacy
+  files (convergence still writes the new canonical copy; the old file stays).
+- **Generated only** — may replace known generated duplicate/shim/mirror files
+  with current symlinks or shims after preserving/importing content.
+- **Legacy cleanup** — may also remove or move old tracking artifacts and
+  converged-away bespoke skills, but only after a second confirmation listing
+  exact paths.
+
+Record as `cleanup_scope: preserve-only | generated-only | legacy-cleanup`
+(`legacy-cleanup` includes generated cleanup).
+
+**Reference integrity is mandatory regardless of `cleanup_scope`.** Before any
+`git mv` / `git rm` / replace-with-symlink / replace-with-shim, follow the
+reference-integrity-on-move procedure in the reference: grep the repo for
+inbound references (especially `.work/` items and `docs/`), then rewrite them or
+leave a redirect shim, and report which. Never strand a live pointer. Every
+destructive action still needs an exact path list in the plan; prefer `git mv`
+to a clearly named legacy location for retention, `git rm` only for paths the
+user explicitly chose to delete, and never broad globs.
 
 ### Phase 2: Detect project shape
 
@@ -148,28 +241,54 @@ directories. Detect all of these before writing:
 
 - AGENTS candidates: `AGENTS.md`, `.agents/AGENTS.md`, `.claude/AGENTS.md`
 - Claude candidates: `CLAUDE.md`, `.claude/CLAUDE.md`, `.agents/CLAUDE.md`
-- Legacy Claude rules candidates: `.claude/rules/patterns.md`
+- Legacy Claude rules candidates: any `.claude/rules/*.md`
 
-Choose the canonical AGENTS target:
+**The "canonical instruction file" is set by `entrypoint_model` (Phase 1.8).**
+Everywhere this skill says "the selected AGENTS target," read it as "the
+canonical instruction file" resolved here. The managed agile-workflow section,
+the conventions, and all imported content go into the canonical instruction
+file; the *other* entrypoint becomes a pointer to it (Phase 7).
 
-1. If `AGENTS.md` exists at the repo root, use it.
-2. Else if `.agents/AGENTS.md` exists, use it and create `AGENTS.md` as a
-   symlink to `.agents/AGENTS.md` when possible.
-3. Else if `.claude/AGENTS.md` exists, use it and create `AGENTS.md` as a
-   symlink to `.claude/AGENTS.md` when possible.
-4. Else create root `AGENTS.md`.
+- **`entrypoint_model: agents-canonical`** (default) — the canonical instruction
+  file is an AGENTS target, chosen by this precedence:
+  1. If `AGENTS.md` exists at the repo root, use it.
+  2. Else if `.agents/AGENTS.md` exists, use it and create `AGENTS.md` as a
+     symlink to `.agents/AGENTS.md` when possible.
+  3. Else if `.claude/AGENTS.md` exists, use it and create `AGENTS.md` as a
+     symlink to `.claude/AGENTS.md` when possible.
+  4. Else create root `AGENTS.md`.
+- **`entrypoint_model: claude-source`** — the canonical instruction file is the
+  existing root `CLAUDE.md` (the team keeps editing it). Create root `AGENTS.md`
+  as a symlink to `CLAUDE.md` so Codex reads the same content. If symlinks are
+  unavailable, write a root `AGENTS.md` shim that points readers at `CLAUDE.md`.
+  Do NOT migrate `CLAUDE.md` into an AGENTS file or replace it in this mode.
 
-If symlinks are unavailable, keep the existing nested AGENTS file as the content
-source and write a root `AGENTS.md` shim or copy that clearly points to the
-canonical nested file. Codex needs a root-readable `AGENTS.md`; do not leave only
-a nested file unless the project has explicitly configured that fallback.
+If symlinks are unavailable in `agents-canonical` mode, keep the existing nested
+AGENTS file as the content source and write a root `AGENTS.md` shim or copy that
+clearly points to the canonical nested file. Codex needs a root-readable
+`AGENTS.md`; do not leave only a nested file unless the project has explicitly
+configured that fallback.
 
-Legacy `.claude/rules/patterns.md` is not a separate canonical rules target.
-When it exists, preserve its non-duplicate content by importing it into the
-selected AGENTS target. Replace it with a short shim only when
-`cleanup_scope` allows generated cleanup or the user confirms that exact path;
-otherwise leave it in place and report it as legacy content that was imported.
-If it does not exist, do not create it.
+Legacy `.claude/rules/*.md` files (e.g. `patterns.md`) are not separate
+canonical rules targets, and `patterns.md` in particular is **not** a
+single-destination file. When any such file exists, classify its *content* and
+route each part to its canonical owner (per the DIY→canonical mapping in the
+reference):
+
+- **Structural-pattern definitions** (recurring code shapes with examples) →
+  `.agents/skills/patterns/`, deferring to `gate-patterns` Phase 1 for layout.
+  Do not paste these into AGENTS.
+- **Project style / agent-rule prose** → the selected AGENTS target.
+
+Never dump a whole rules file into AGENTS under a generic heading — that
+contradicts the canonical layout convert advertises in Phase 6. Non-pattern
+`.claude/rules/*.md` files are project style/agent rules: route their prose to
+the canonical instruction file. Preserve only non-duplicate content. Replace any
+`.claude/rules/*.md` with a short shim only when `cleanup_scope` allows generated
+cleanup or the user confirms that exact path, and only after the
+reference-integrity check (Phase 1.8) clears the move; otherwise leave it in
+place and report it as legacy content that was imported. Do not create
+`.claude/rules/*.md` files that don't already exist.
 
 ### Phase 3: Conventions interview
 
@@ -234,11 +353,11 @@ git history is the audit trail. Item files are the durable state: update the
 body with implementation discoveries, review findings, blockers, and decisions
 instead of relying on chat history.
 
-Project-level agent rules live in AGENTS.md. Do not create or maintain
-`.claude/rules/patterns.md` as a source of truth; reusable structural patterns
-belong in `.agents/skills/patterns/`.
+Project-level agent rules live in this file (the canonical agent instruction
+file). Do not create or maintain `.claude/rules/*.md` as a source of truth;
+reusable structural patterns belong in `.agents/skills/patterns/`.
 
-Project-specific refactor style conventions belong in AGENTS.md under
+Project-specific refactor style conventions belong in this file under
 `## Refactor Style Conventions`. Detailed refactor convention references belong
 in `.agents/skills/refactor-conventions/` and extend `refactor-design`'s
 defaults; they do not replace the built-in scan and they do not create
@@ -298,12 +417,20 @@ not exist, create it with this section as the whole body.
 
 ### Phase 7: Preserve Claude Code compatibility
 
-The selected AGENTS target is canonical. Claude instruction files are only
-compatibility entrypoints for Claude Code and should not become independent
-copies.
+The canonical instruction file (Phase 2.5) is canonical. The *other* entrypoints
+are compatibility pointers and should not become independent copies.
 
-Handle every detected Claude candidate (`CLAUDE.md`, `.claude/CLAUDE.md`,
-`.agents/CLAUDE.md`) as follows:
+**`entrypoint_model: claude-source` carve-out.** When the user chose to keep
+`CLAUDE.md` as the content source, `CLAUDE.md` IS the canonical instruction file
+and root `AGENTS.md` is its pointer (created in Phase 2.5). In this mode, do NOT
+migrate `CLAUDE.md` into AGENTS, do NOT replace `CLAUDE.md` with a symlink, and
+do NOT import its content elsewhere — the managed section and conventions were
+written into `CLAUDE.md` itself. Still normalize any *nested* Claude duplicates
+(`.claude/CLAUDE.md`, `.agents/CLAUDE.md`) to point at `CLAUDE.md`. Skip the
+rest of this phase's root-`CLAUDE.md` handling.
+
+In the default `agents-canonical` mode, handle every detected Claude candidate
+(`CLAUDE.md`, `.claude/CLAUDE.md`, `.agents/CLAUDE.md`) as follows:
 
 1. If the file is already a symlink to the selected AGENTS target or to root
    `AGENTS.md`, leave it alone.
@@ -328,26 +455,41 @@ Handle every detected Claude candidate (`CLAUDE.md`, `.claude/CLAUDE.md`,
    Canonical agent instructions live in AGENTS.md. Read that file.
    ```
 
-The sync path follows the same rule: refresh `AGENTS.md`, then keep
-Claude entrypoints pointing at it through symlinks or shims.
+The sync path follows the same rule: refresh the canonical instruction file's
+managed section in place, then keep the other entrypoint pointing at it through a
+symlink or shim — in the direction set by `entrypoint_model` (default
+`CLAUDE.md`→`AGENTS.md`; `claude-source` keeps `AGENTS.md`→`CLAUDE.md`). In
+`claude-source`, refreshing `CLAUDE.md`'s managed section in place is expected;
+what never happens is migrating its content out or replacing the file with a
+pointer.
 
-Handle `.claude/rules/patterns.md` as a legacy Claude rules file, not as a
-Claude compatibility entrypoint:
+Handle every legacy `.claude/rules/*.md` file (not just `patterns.md`) as a
+legacy Claude rules file, not a compatibility entrypoint, and **route its
+content by type** (see Phase 2.5 and the DIY→canonical mapping in the
+reference) — do not dump it wholesale into AGENTS:
 
-1. If it exists as a regular file and contains content not already present in
-   the selected AGENTS target, import that content under a short
-   `## Imported Claude Pattern Rules` heading.
-2. Replace `.claude/rules/patterns.md` with this shim only when
-   `cleanup_scope` allows generated cleanup or the user confirms that exact
-   path:
+1. If it exists as a regular file with content not already present at the
+   canonical destination:
+   - **Structural-pattern definitions** (chiefly in `patterns.md`) → write to
+     `.agents/skills/patterns/`, deferring to `gate-patterns` Phase 1 for layout
+     and index.
+   - **Project style / agent-rule prose** (the common case for other rules
+     files) → import into the canonical instruction file under a short
+     `## Imported Claude Pattern Rules` heading.
+2. Replace the rules file with the shim below only when `cleanup_scope` allows
+   generated cleanup or the user confirms that exact path, and only after the
+   reference-integrity check (Phase 1.8) has rewritten or shimmed any inbound
+   references to it:
 
    ```markdown
    # Pattern Rules
 
-   Canonical project rules live in AGENTS.md. Read that file.
+   Canonical project rules live in the canonical agent instruction file;
+   reusable code patterns live in `.agents/skills/patterns/`. Read those.
    ```
 
-3. If the file is already a symlink or shim that points to `AGENTS.md`, leave it
+3. If the file is already a symlink or shim that points to the canonical
+   instruction file, leave it
    alone.
 
 ### Phase 8: Per-shape migration
@@ -457,12 +599,42 @@ something to drain after bootstrap:
    code yet. `implement`'s land mode (Phase 4a) handles validate-commit-advance
    per cluster after bootstrap.
 
+### Phase 8.6: Converge bespoke overlaps
+
+For each artifact in the `converge` set chosen in Phase 1.8, migrate it to its
+canonical destination (DIY→canonical mapping in the reference), deferring to the
+owning skill for layout:
+
+- **Pattern-mirroring skills** (`extract-patterns`, bespoke `patterns`) →
+  fold their pattern definitions into `.agents/skills/patterns/` per
+  `gate-patterns` Phase 1; keep an optional `.claude/skills/patterns/` symlink
+  mirror.
+- **Refactor-mirroring skills** (`structural-refactor`, `stylistic-refactor`,
+  bespoke `refactor-conventions`) → split into AGENTS
+  `## Refactor Style Conventions` (style rules) and
+  `.agents/skills/refactor-conventions/` (detailed references) per
+  `refactor-conventions-creator` Phase 5; drop any standalone-plan-doc
+  instruction.
+- **`plugin-mirror-divergent-copy` entries** → reconcile unique content into
+  the `.agents` canonical, then re-establish the `.claude` mirror as a symlink.
+
+Removing or replacing the bespoke source path is a destructive action: apply the
+reference-integrity-on-move procedure first (grep for inbound references —
+especially `.work/` items and `docs/` — then rewrite or shim), and only remove
+the original when `cleanup_scope` allows it and the exact path is confirmed.
+Otherwise write the canonical copy and leave the bespoke source in place,
+reporting the duplication. If a converged artifact backed a user-invocable
+command, note in `MIGRATION_REPORT.md` that the command is superseded.
+
 ### Phase 9: Write MIGRATION_REPORT.md
 
 Write `MIGRATION_REPORT.md` at the repo root (NOT in `docs/`) per the format in
 MIGRATION.md. Include: source shape, foundation docs detected (preserved), items
-seeded by tier, cleanup scope, files left in place, cleanup actions taken,
-conventions chosen, next steps.
+seeded by tier, the classified artifact inventory from Phase 1.7, entrypoint
+model chosen, bespoke overlaps converged (with their canonical destinations and
+any superseded commands), reference-integrity actions (paths moved/removed,
+references found, rewritten vs shimmed), cleanup scope, files left in place,
+cleanup actions taken, conventions chosen, next steps.
 
 ### Phase 10: Commit
 
@@ -471,7 +643,11 @@ Single git commit:
 ```bash
 git add .work/ AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md MIGRATION_REPORT.md
 # If a legacy rules shim was created or updated:
-git add .claude/rules/patterns.md
+git add .claude/rules/
+# If Phase 8.6 converged bespoke overlaps into the canonical catalogs:
+git add .agents/skills/patterns .claude/skills/patterns .agents/skills/refactor-conventions .claude/skills/refactor-conventions
+# If reference-integrity rewrote inbound references in existing items/docs:
+git add .work/ docs/
 # If cleanup was explicitly confirmed for exact paths:
 git add -A <confirmed-cleanup-paths>
 git commit -m "chore: bootstrap agile-workflow substrate"
@@ -485,20 +661,28 @@ confirmed exact paths.
 
 Entered via auto-detection when `.work/` exists, or explicitly via `--update`.
 Non-destructive by default — refreshes plugin-shipped artifacts and reports
-drift. Cleanup runs only when Phase 1.7 explicitly put it in scope.
+drift. Sync runs the same Phase 1.7 discovery sweep and Phase 1.8 decisions
+checkpoint as bootstrap; convergence and cleanup run only when those steps put
+them in scope.
 
 ### Phase S1: Audit substrate health
 
-Re-use the marker checks from Phase 1.5 plus deeper checks:
+Re-use the marker checks from Phase 1.5 and the **classified artifact
+inventory** from the Phase 1.7 discovery sweep (do not re-derive from a fixed
+path list), plus deeper checks:
 
-- All five markers (`substrate_root`, `conventions`, `agents_md_section`,
-  `claude_compat`, `work_view`) — present or missing
+- All five markers (`substrate_root`, `conventions`, `managed_section`,
+  `entrypoint_compat`, `work_view`) — present or missing
 - Legacy `.claude/rules/patterns.md` — absent, shimmed to AGENTS, or containing
-  importable legacy rules content
-- Optional project skill catalogs — canonical `.agents/skills/patterns/` and
-  `.agents/skills/refactor-conventions/`, plus `.claude/skills/*` compatibility
-  mirrors when present
-- Cleanup candidates and current `cleanup_scope` answer from Phase 1.7
+  importable legacy content (route by content type per Phase 2.5)
+- Every skill-root entry from the Phase 1.7 sweep, carried with its taxonomy
+  bucket (`canonical` / `plugin-mirror-symlink` / `plugin-mirror-divergent-copy`
+  / `bespoke` / `unrelated`). Pay attention to `plugin-mirror-divergent-copy` —
+  drifted duplicates in both `.agents` and `.claude` — and to `bespoke` overlaps
+  that are convergence candidates, not just the canonical `patterns` and
+  `refactor-conventions` catalogs. `unrelated` project skills are left untouched.
+- Cleanup candidates, `entrypoint_model`, `converge` set, and `cleanup_scope`
+  from Phase 1.8
 - For each plugin-shipped artifact that IS present, compare its content against
   the version in the current plugin source:
   - The selected AGENTS target section between `<!-- agile-workflow:start -->` /
@@ -545,19 +729,24 @@ Classify each artifact as one of:
 | `drift_user` | Installed version differs because the user edited it. Ask. |
 | `missing` | Marker absent. Install fresh. |
 
-Heuristic for `drift_plugin` vs `drift_user` on the selected AGENTS section: if
-the installed text matches a known prior plugin release's template
-(recognisable shape, just older content), assume `drift_plugin`. Otherwise
-treat as `drift_user` and ask. If any Claude candidate has legacy content that
-is not yet present in the selected AGENTS target, import it before replacing the
-Claude file with a symlink or shim.
+Heuristic for `drift_plugin` vs `drift_user` on the managed section: if the
+installed text matches a known prior plugin release's template (recognisable
+shape, just older content), assume `drift_plugin`. Otherwise treat as
+`drift_user` and ask. The entrypoint-compatibility heuristic follows the derived
+`entrypoint_model`: in `agents-canonical`, if a Claude candidate has legacy
+content not yet in `AGENTS.md`, import it before replacing the Claude file with a
+symlink/shim; in `claude-source`, `CLAUDE.md` is canonical, so import nothing out
+of it and only verify root `AGENTS.md` points at it.
 
 If `.claude/rules/patterns.md` is absent, treat the legacy-rules state as
-`match` and take no action. If it contains non-shim content that is not yet
-present in the selected AGENTS target, import it before replacing the legacy
-rules file with the AGENTS shim. Treat user-edited or ambiguous content as
-`drift_user` and ask before import; treat old generated pattern-rules content as
-`drift_plugin`.
+`match` and take no action. If it contains non-shim content not yet present at
+its canonical destination, **route by content type per Phase 2.5** before
+replacing the file with the shim: structural-pattern definitions →
+`.agents/skills/patterns/` (defer to `gate-patterns` Phase 1); project
+style/agent-rule prose → the canonical instruction file. Do not import the whole
+file into AGENTS. Treat user-edited or ambiguous content as `drift_user` and ask
+before routing; treat old generated pattern-rules content as `drift_plugin`.
+Apply the same content-routing to any other `.claude/rules/*.md`.
 
 **Refactor-conventions catalog alignment.** This catalog is optional. If absent
 from both `.agents` and `.claude`, treat it as `match` and do not create it.
@@ -606,20 +795,32 @@ confirm before applying.
 
 For each artifact with a non-`match` state:
 
-- Selected AGENTS target section between markers — overwrite with the canonical
-  template from Phase 6. If the file lacks markers, append the section. If the
-  file doesn't exist, create it.
+- Canonical instruction file section between markers — overwrite with the
+  canonical template from Phase 6, in whichever file holds it per the derived
+  `entrypoint_model` (`AGENTS.md` or, for `claude-source`, `CLAUDE.md`). If the
+  file lacks markers, append the section. If it doesn't exist, create it.
 - `.work/bin/work-view` — overwrite with the plugin's current script and
   `chmod +x`
-- Claude compatibility — convert legacy generated content from any detected
-  Claude candidate into the selected AGENTS target, then replace the Claude
-  file with a symlink to that target only when `cleanup_scope` allows generated
-  cleanup or the user confirms that exact path. If symlinks are not available,
-  write the shim from Phase 7 only under the same cleanup authorization.
-- Legacy `.claude/rules/patterns.md` — only when present, import
-  non-duplicate content into the selected AGENTS target, then replace the file
-  with the Pattern Rules shim from Phase 7 only when cleanup is authorized for
-  that exact path.
+- Entrypoint compatibility — refresh the pointer in the direction set by
+  `entrypoint_model`:
+  - `agents-canonical` — import legacy generated content from any detected
+    Claude candidate into `AGENTS.md`, then replace the Claude file with a
+    symlink/shim to it only when `cleanup_scope` allows generated cleanup or the
+    user confirms that exact path.
+  - `claude-source` — `CLAUDE.md` is the canonical instruction file: its managed
+    section between markers IS refreshed in place (handled by the canonical-file
+    step above), but its content is never migrated out and the file is never
+    replaced by a pointer. Here, only ensure root `AGENTS.md` is a symlink/shim
+    pointing at `CLAUDE.md`, and normalize nested Claude duplicates to point at
+    `CLAUDE.md`.
+  If symlinks are unavailable, write the Phase 7 shim under the same cleanup
+  authorization.
+- Legacy `.claude/rules/*.md` — only when present, route non-duplicate content
+  by type per Phase 2.5 (structural patterns → `.agents/skills/patterns/`;
+  style/agent-rule prose → the canonical instruction file), then replace the
+  file with the Phase 7 shim only when cleanup is authorized for that exact path
+  and after the reference-integrity check. Never import the whole file into
+  AGENTS.
 - Optional pattern and refactor-conventions mirrors — align `.claude/skills/*`
   to `.agents/skills/*` when the `.agents` catalog exists and the Claude copy is
   absent, a symlink, or a known generated mirror, and cleanup is in scope for
@@ -649,9 +850,15 @@ For each artifact with a non-`match` state:
 
 For `drift_user` items, only proceed after the user confirms.
 
+For bespoke overlaps in the `converge` set, run Phase 8.6's convergence
+(deferring to the owning skill for layout) — sync converges the same way
+bootstrap does.
+
 For cleanup candidates, only proceed when the candidate class is inside
-`cleanup_scope`, then ask with exact paths before applying any `git mv` or
-`git rm`. If the user declines, leave the files and report them as preserved.
+`cleanup_scope`, then run the reference-integrity-on-move check (grep for
+inbound references, rewrite or shim) and ask with exact paths before applying
+any `git mv` or `git rm`. If the user declines, leave the files and report them
+as preserved.
 
 ### Phase S4: Preserve user state
 
@@ -670,7 +877,8 @@ These are NEVER touched in sync mode:
   content without explicit confirmation.
 - `.agents/skills/patterns/` pattern bodies. Sync may align mirrors, but
   `gate-patterns` owns pattern discovery and updates.
-- AGENTS content outside the agile-workflow markers, except imported legacy
+- Content in the canonical instruction file (`AGENTS.md`, or `CLAUDE.md` in
+  `claude-source`) outside the agile-workflow markers, except imported legacy
   Claude content, imported legacy Claude pattern-rules content, and synthesized
   refactor style convention summaries the user confirms should become canonical
 - `MIGRATION_REPORT.md` (a bootstrap artifact; sync never writes it)
@@ -683,12 +891,14 @@ If any files were rewritten:
 
 ```bash
 git add AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md .work/bin/work-view
-# If a legacy rules shim was created or updated:
-git add .claude/rules/patterns.md
-# If optional project skill catalogs or mirrors were aligned:
+# If any legacy rules shim was created or updated (not just patterns.md):
+git add .claude/rules/
+# If optional project skill catalogs or mirrors were aligned or converged:
 git add .agents/skills/patterns .claude/skills/patterns .agents/skills/refactor-conventions .claude/skills/refactor-conventions
 # If load-bearing CONVENTIONS tag entries were refreshed with user confirmation:
 git add .work/CONVENTIONS.md
+# If reference-integrity rewrote inbound references in existing items/docs:
+git add .work/ docs/
 # If cleanup was explicitly confirmed for exact paths:
 git add -A <confirmed-cleanup-paths>
 git commit -m "chore: agile-workflow sync"
@@ -700,16 +910,18 @@ Skip the commit entirely if Phase S3 produced no file changes.
 
 After bootstrap:
 - Brief summary in conversation: shape detected, items seeded by tier, conventions
-  chosen, cleanup scope, cleanup actions taken or preserved, next-step
-  recommendation.
+  chosen, entrypoint model, bespoke overlaps converged, cleanup scope, cleanup
+  and reference-integrity actions taken or preserved, next-step recommendation.
 - Point at `MIGRATION_REPORT.md` for the full breakdown.
 
 After sync (auto or `--update`):
 - Per-artifact line: `match` / `refreshed (plugin drift)` / `refreshed (user
-  drift, confirmed)` / `installed (was missing)`.
+  drift, confirmed)` / `installed (was missing)` / `converged (bespoke overlap)`.
 - Include optional artifact status for pattern-skill mirrors and
-  refactor-conventions catalog/mirrors when present.
-- Include cleanup scope plus preserved / cleaned exact paths.
+  refactor-conventions catalog/mirrors when present, plus any
+  `plugin-mirror-divergent-copy` reconciliations.
+- Include cleanup scope plus preserved / cleaned exact paths, and any
+  reference-integrity rewrites or shims.
 - If everything matched: one line — "Substrate already up to date. No changes."
 - If anything changed: one line summary plus the commit sha.
 
@@ -725,6 +937,18 @@ After sync (auto or `--update`):
   scope and the exact path appears in the confirmed cleanup plan.
 - Prefer `git mv` for retained legacy artifacts. Use `git rm` only when the user
   explicitly chose deletion for exact paths. Never use broad cleanup globs.
+- **Reference integrity is mandatory before every move/remove, regardless of
+  `cleanup_scope`.** Grep the repo (especially `.work/` items and `docs/`) for
+  inbound references to any path being moved, removed, or replaced; then rewrite
+  them or leave a redirect shim, and report which. Never strand a live pointer.
+- **Discovery over checklist.** Enumerate and classify both skill roots and the
+  rules tree; never assume the only overlaps are the canonical `patterns` and
+  `refactor-conventions` catalogs. Bespoke skills mirroring plugin concepts,
+  plan-doc generators, and superseded commands are convergence candidates.
+- **Defer to the owning skill for canonical locations.** Convert places
+  content; `gate-patterns` and `refactor-conventions-creator` own where it
+  lives. Do not carry a divergent end-state (e.g. never dump pattern content
+  into AGENTS).
 - The conventions interview is mandatory in bootstrap mode. No silent inference
   of release mapping or tag taxonomy.
 - Foundation docs are read-only from convert. They roll forward through `scope`,
