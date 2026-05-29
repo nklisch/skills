@@ -1,13 +1,27 @@
 {
-  "name": "nklisch-skills",
+  "name": "andrewclark88-skills-v2",
   "owner": {
-    "name": "nklisch"
+    "name": "andrewclark88"
   },
   "plugins": [
     {
+      "name": "research-pipeline",
+      "source": "./plugins/research-pipeline",
+      "description": "Research-grounded pipeline plugin — adds the research family (research / deep-research / research-program), architecture phase, blocking briefs, knowledge index, doc-review, and quality-checkpoint on top of the agile-workflow substrate. Companion to agile-workflow; produces research-grounded epic items, runs cascading consistency checks, and orchestrates 7 release-gate skills.",
+      "category": "productivity",
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
+    },
+    {
+      "name": "agile-workflow",
+      "source": "./plugins/agile-workflow",
+      "description": "Markdown-based work-tracking substrate for AI-driven projects. Items as files in .work/, late-binding releases, gates that produce items, goal-backed autopilot queue runner. Extended in skills-v2 with gate-infra (Terraform/CI/secrets safety auditing).",
+      "category": "productivity",
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
+    },
+    {
       "name": "workflow",
       "source": "./plugins/workflow",
-      "description": "Software development workflow skills — ideate projects, design features, implement from plans, profile and optimize performance, refactor codebases with bold architectural reconceptions, extract patterns, design tests, and ship releases.",
+      "description": "Software development workflow skills (legacy, doc-driven; superseded by agile-workflow + research-pipeline) — ideate projects, design features, implement from plans, profile and optimize performance, refactor codebases with bold architectural reconceptions, extract patterns, design tests, and ship releases.",
       "category": "productivity",
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
@@ -15,13 +29,6 @@
       "name": "skill-authoring",
       "source": "./plugins/skill-authoring",
       "description": "Create, evaluate, and refine agent skills — write distributable reference skills for tools, refine skill ideas, and audit skill quality.",
-      "category": "productivity",
-      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
-    },
-    {
-      "name": "agile-workflow",
-      "source": "./plugins/agile-workflow",
-      "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/, late-binding releases, gates that produce items, goal-backed autopilot queue runner.",
       "category": "productivity",
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
