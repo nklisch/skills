@@ -1,0 +1,14 @@
+# Auto-generated knowledge index for the {{PROJECT_NAME}} project.
+# DO NOT EDIT BY HAND. Run /knowledge-index to regenerate from frontmatter.
+# Frontmatter is the source of truth — edit each doc's frontmatter and re-run.
+#
+# schema_version controls lint mode:
+#   1 = grace (missing v2 fields produce warnings, not errors) — for projects mid-migration
+#   2 = enforce (missing v2 fields are errors)
+# New projects start at 2 — every doc emitted from day one should be v2-conformant.
+schema_version: 2
+generated_at: {{DATE}}
+generated_from: frontmatter
+total_docs: 0
+
+documents: []

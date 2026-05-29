@@ -1,0 +1,10 @@
+{
+  "name": "research-pipeline",
+  "description": "Research-grounded pipeline plugin — adds the research family, architecture phase, blocking briefs, knowledge index, doc-review, and quality-checkpoint to projects using the agile-workflow substrate. Companion to nklisch/skills agile-workflow.",
+  "version": "0.1.0",
+  "author": {
+    "name": "andrewclark88"
+  },
+  "repository": "https://github.com/andrewclark88/skills-v2",
+  "license": "MIT"
+}
