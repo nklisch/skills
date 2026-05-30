@@ -108,14 +108,14 @@ directional choice and mock so autopilot runs without guessing.
 |-------|-------------|
 | **implement** | Read item body (design is in there), write code, run build+tests, advance stage implementing → review. Single-stride sequential. |
 | **implement-orchestrator** | For implementation bands: walk depends_on graph, decide bundles/waves/write-scope isolation, and dispatch implementation sub-agents when parallelism is beneficial. |
-| **review** | Structured peer review with five lenses including foundation-doc alignment. Triages findings into items. Accepts `<id>`, `--all` / no arg (drain the review queue), or NL filter. |
+| **review** | Granularity-gated. A **story** fast-advances on the build+tests `implement` already ran — no lens pass, no peer (a second same-context review there rarely finds anything). A **feature/epic** gets a deep lens review run in a **fresh context**: cross-model via `peeragent:peer-review` when a different model class is reachable, otherwise a fresh top-class sub-agent (an Opus host spawns a *new* Opus for fresh perspective). Triages findings into items. Accepts `<id>`, `--all` / no arg (drain the review queue), or NL filter. |
 
 ### Release & autonomous
 
 | Skill | What it does |
 |-------|-------------|
 | **release-deploy** | Bind items to a version, run all configured gates in CONVENTIONS.md order, wait for readiness, ship per release mapping, archive items via git mv. Idempotent. |
-| **autopilot** | Goal-backed queue runner. Picks next ready item respecting depends_on, invokes the right skill, advances stage, repeats until the goal scope is done or blocked. Invokable from goal text such as "Use agile-workflow autopilot to drain --all"; direct `/agile-workflow:autopilot <scope>` still works. Harness goal/continuation owns persistence, not `/loop`. |
+| **autopilot** | Goal-backed queue runner. Picks next ready item respecting depends_on, invokes the right skill, advances stage, repeats until the goal scope is done or blocked — then runs a final cross-model peer-review pass over the whole completion bundle before reporting complete. Invokable from goal text such as "Use agile-workflow autopilot to drain --all"; direct `/agile-workflow:autopilot <scope>` still works. Harness goal/continuation owns persistence, not `/loop`. |
 | **bold-refactor** | Architectural reconception via conceptual lenses. Sweeps a target and produces one or more refactor EPICs with child features tagged [refactor]. User-invocable only — too aggressive for auto-trigger. |
 
 ### Gates (agent picks; produce items, NOT pass/fail reports)

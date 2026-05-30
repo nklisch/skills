@@ -451,9 +451,12 @@ User-invocable-only skills (`convert`, `epicize`, `ideate`, `bold-refactor`,
 Cross-model review is an advisory signal, not a stage transition. Use it only
 when a different model class is available through an installed peer mechanism
 such as `peeragent:peer` or `peeragent:peer-review`. If the peer would be the
-same model class as the host, do not use `peer` or `peer-review`; use a local
-inline sub-agent only as an ordinary fresh-context pass, and do not describe it
-as cross-model review. If the peer's model class is uncertain, skip peeragent.
+same model class as the host, do not use `peer` or `peer-review`; instead spawn a
+**fresh sub-agent at the highest model class available to the host** (a Sonnet host
+spawns a fresh Sonnet reviewer; an **Opus host spawns a new Opus reviewer**) — never
+review inline in the host's own context, which is anchored on the work it just
+produced. Label it a same-class fresh-context pass, not cross-model review. If the
+peer's model class is uncertain, skip peeragent and use the fresh sub-agent.
 
 Explicit user instructions and project-level `AGENTS.md` / `CLAUDE.md` review
 rules override this policy. If they require review, follow them. If they opt out
@@ -467,6 +470,10 @@ Default judgment:
 - Large, risky, or architectural design points under autopilot: use one focused
   `peer` pass when no prior `--only-questions` / `## Design decisions`
   alignment exists.
+- Reviewing a completed **feature or epic** at `stage: review` (the `review`
+  skill's deep lane): run the lens review in a fresh context — a different-class
+  `peer-review` when reachable, otherwise a fresh top-class sub-agent. **Stories
+  skip this** entirely; they fast-advance on `implement`'s verification.
 - End of an autopilot run, after the scoped queue appears drained and before
   reporting `complete`: run a final `peer-review` loop when a different model
   class is available, then fix or file accepted findings before completion.

@@ -137,7 +137,10 @@ Routing:
 - `stage: implementing`, epic -> skip direct implementation; children are the
   work targets
 - `stage: implementing`, non-epic -> `implement-orchestrator <scope>`
-- `stage: review` -> `review <id>`
+- `stage: review` -> `review <id>` (review self-selects its lane: a **story**
+  fast-advances on `implement`'s verification with no peer pass; a **feature** or
+  **epic** gets a fresh-context deep review — cross-model via peeragent when a
+  different class is reachable, else a fresh top-class sub-agent)
 
 The delegated skill owns its internal workflow and stage transition. After it
 returns, rebuild the queue from disk rather than relying on cached state.

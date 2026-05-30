@@ -7,7 +7,10 @@ description: >
   design and implementation notes, runs a code review of the changes, classifies
   findings (blockers / important / nits), triages findings into items in the substrate
   (with appropriate tags), and advances the item to done if approved or back to
-  implementing if changes needed. Autonomous-safe: produces verdicts and files
+  implementing if changes needed. Gates by granularity: stories fast-advance on
+  implement's verification, while feature/epic reviews run in a fresh context —
+  preferring a different model class via peeragent, otherwise a fresh sub-agent at
+  the highest available model class. Autonomous-safe: produces verdicts and files
   findings as items rather than gating on human acknowledgment, so autopilot can call
   this directly to drain stage:review items. Triggers on "review item X", "review
   this", "review <id>", "is this ready", "verdict on <id>".
@@ -21,6 +24,11 @@ whose work is done and ready for evaluation. The review is structured: blockers 
 be fixed before advancing, important issues should be addressed, nits are optional.
 Findings get triaged into the substrate as items with appropriate tags so they don't
 disappear into prose.
+
+Review cost is gated by granularity (see **Review lanes** below): a **story**
+fast-advances on the verification `implement` already produced, while a **feature**
+or **epic** gets a real lens review run in a **fresh context** — by a different model
+class via peeragent when one is reachable, otherwise a fresh top-class sub-agent.
 
 ## Trigger
 
@@ -48,6 +56,53 @@ In batch modes (`--all` / NL filter), loop Phases 1-10 once per matched item in
 sequence. Skip the Phase 1 disambiguation prompt — the matched set is the
 queue. Output a single consolidated summary at the end (verdicts per item plus
 total findings counts).
+
+## Review lanes — gate by granularity
+
+Review cost should match what the granularity can actually surface. Pick the lane
+from the target item's `kind` (known after Phase 2):
+
+| Kind | Lane | What runs |
+|---|---|---|
+| **story** | **Fast** | Confirm the verification evidence `implement` already recorded (build + tests green), then advance and roll up. No lens walk, no diff re-analysis, no peer. A story was just implemented and verified — a second same-context lens pass almost never finds anything and burns tokens. |
+| **feature** / **epic** | **Deep** | Full lens review (Phases 3–10), with the lens evaluation performed by a **fresh-context reviewer** (see below). This is where cross-cutting bugs actually surface. |
+
+### Fast lane (stories)
+
+1. Read the story body. Confirm an implementation/verification record exists — build
+   + tests reported green by `implement`.
+2. **Verification present and green** → advance `review → done`, roll up the parent
+   (Phase 8 rules), append a one-line record (`Verdict: Approve — story verified by
+   implement; fast-lane advance`), commit (Phase 10).
+3. **Verification absent or failing** → this is the one thing the fast lane catches.
+   Either run the build + tests yourself if cheap, or bounce `review → implementing`
+   with a `## Review findings` note ("no green verification evidence"). Do not
+   deep-review a story.
+
+Skip Phases 3–7 for stories. Stories never get a peer pass.
+
+### Deep lane (features / epics) — reviewer selection
+
+The lens evaluation must run in a **fresh context** — not inline in the host's
+working context, which is anchored on the implementation it just produced. Choose
+the reviewer in this order (this is `principles/SKILL.md` Part IV applied to review):
+
+1. **Different model class via peeragent.** If `peeragent:peer-review` is available
+   and resolves to a *different* model class than the host, delegate the deep review
+   to it. True cross-model — the highest-value signal.
+2. **Fresh sub-agent at the highest available model class.** If no different class is
+   reachable, spawn a *new* sub-agent (via `Agent`) to perform the review. Use the
+   highest class available to the host: a **Sonnet host spawns a fresh Sonnet
+   reviewer; an Opus host spawns a new Opus reviewer**. A fresh context reviews more
+   critically than the author-in-context even at the same class. Label it a
+   "same-class fresh-context review," not cross-model.
+
+Never perform the deep lens review inline in the host context — the fresh-context
+boundary is the point. The host orchestrates: it hands the reviewer the diff
+(Phase 3), the grounding (Phase 4), and the lenses (Phase 5), then takes the
+returned findings through Phases 6–10 (classify, triage into items, advance,
+record, commit). Peer/sub-agent failures are non-blocking: if peeragent is missing
+or fails, fall through to the fresh top-class sub-agent (step 2) rather than halting.
 
 ## Workflow
 
@@ -119,6 +174,12 @@ which range to review.
 3. Read foundation docs the change touches: `docs/SPEC.md`, `docs/ARCHITECTURE.md`
 
 ### Phase 5: Apply review lenses
+
+**Deep lane only** (features/epics; stories take the fast lane and skip this). The
+lenses run in the **fresh context** of the reviewer selected under **Review lanes** —
+a different-class peer or a fresh top-class sub-agent — not inline in the host
+context that just produced the work. The host hands the reviewer the diff, the
+grounding, and these lenses, then consumes the returned findings in Phases 6–10.
 
 Walk the change through each lens. Note explicitly which you skip and why.
 
