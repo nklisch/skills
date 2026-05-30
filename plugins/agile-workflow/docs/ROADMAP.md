@@ -18,8 +18,8 @@ when no substrate). Reference skills and `principles` work on any project.
 - Scaffold: `.claude-plugin/plugin.json` (v0.1.0), `README.md`, `CHANGELOG.md`
 - `scripts/work-view.sh` — full flag set per SPEC.md, pure bash with
   optional yq/jq enhancement, exit codes 0/1/2/3
-- `hooks/hooks.json` plus `session-start-snapshot.sh` and
-  `post-tool-use-bump.sh` — both flag-gated by `.work/CONVENTIONS.md`
+- `hooks/hooks.json` plus `prompt-context.py` and `substrate-maintainer.py`
+  — all flag-gated by `.work/CONVENTIONS.md`
 - `skills/principles/` loading both paradigms from PRINCIPLES.md
 - Reference skills carried from `workflow` (mechanical adaptations):
   `research/`, `repo-eval/`, `tool-evaluator/`, `refactor-conventions-creator/`

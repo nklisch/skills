@@ -70,8 +70,9 @@ agile-workflow ships v0.1.0 complete:
   refactor + perf), implementation, review, gates, release, and autopilot
 - A `work-view` bash script for fast queries by stage, tag, kind, parent,
   release binding, and dependency state
-- Two hooks (SessionStart queue snapshot, PostToolUse auto-bump of
-  `updated:`) that make cross-session pickup transparent
+- Shared Codex/Claude command hooks that inject queue/principles context only
+  for actionable workflow prompts, auto-bump `updated:`, and surface cheap
+  substrate validation issues
 - A real project taken end-to-end through ideate → convert → epicize →
   scope → design → implement → review → release-deploy on the substrate
 

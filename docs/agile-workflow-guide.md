@@ -511,37 +511,33 @@ Worth knowing they exist so the items they produce make sense:
 
 ## A typical day
 
-### Session start
+### Actionable prompt context
 
-Open Claude Code in the project. The `SessionStart` hook fires
-`session-start-snapshot.sh` and pipes a queue snapshot **into the agent's
-context** (not your terminal — hook output goes to the agent, not the
+Open Claude Code or Codex in the project. The hook set stays quiet at session
+start; it only injects workflow context when your prompt is an actionable
+workflow move, such as *"what's ready?"*, *"review feature-uploads-retry"*,
+*"drain the auth epic"*, or *"scope the backlog"*.
+In Codex, plugin-bundled hooks must be reviewed and trusted before they run;
+enabling the plugin alone does not auto-trust them.
+
+For those prompts, `prompt-context.py` pipes a compact queue snapshot **into the
+agent's context** (not your terminal — hook output goes to the agent, not the
 human UI). The snapshot looks roughly like this:
 
 ```
-## Substrate snapshot
-
-### Awaiting your review (stage: review)
-- feature-uploads-retry  [content]
-
-### Ready to work (--ready)
-1. story-rate-limits      parent=feature-uploads-retry depends_on=[]
-2. feature-quota-tracking parent=epic-rate-limits
-
-### Blocked (depends_on unmet)
-- story-quota-display  blocked by feature-uploads-retry
-
-### Backlog (top 5 by created)
-- idea-archive-format     2026-04-22
-- idea-quotas-dashboard   2026-04-21
+## Agile Workflow Snapshot
+Ready: 2
+- story-rate-limits (story, parent=feature-uploads-retry)
+- feature-quota-tracking (feature, parent=epic-rate-limits)
+Review: 1
+- feature-uploads-retry (feature)
+Blocked: 1
+- story-quota-display (story, parent=feature-uploads-retry)
 ```
 
-You won't see this directly — but the agent has it loaded. So the moment
-you open a session, you can just ask: *"what's waiting on me?"*, *"what's
-ready to work?"*, *"what's blocked?"*, *"what's in the backlog?"* — and
-get an instant answer with no re-feed. That's the practical effect of the
-hook: zero-overhead context for the agent, so the first question of a
-fresh session is already answerable.
+The same hook may add a small principles capsule once per session when the
+prompt calls for it: code design, dispatch economy, or advisory review. Idle
+chat and explainer prompts get no injected context.
 
 ### Driving work
 
@@ -770,16 +766,15 @@ explicitly — the rest the agent picks for you.
 - **Items at review come back to you.** The agent's autonomous review can
   advance trivial items, but anything with judgment calls lands at
   `stage: review` for your eyes. Walk that queue regularly.
-- **Restart Claude Code after install.** Hooks don't take effect mid-session.
-  After `skilltap install nklisch/agile-workflow`, restart for the
-  `SessionStart` and `PostToolUse` hooks to fire.
+- **Restart Claude Code or Codex after install.** Hooks don't take effect
+  mid-session. After `skilltap install nklisch/agile-workflow`, restart for the
+  prompt-context and PostToolUse hooks to fire.
 - **Don't pre-decompose.** Epicize at bootstrap; let features and stories
   emerge from `scope`, `epic-design`, and `feature-design` as work surfaces.
   The substrate rewards late-binding.
-- **Hooks are inert without a substrate.** Both hooks (`SessionStart` queue
-  snapshot, `PostToolUse` `updated:` auto-bump) check for
-  `.work/CONVENTIONS.md` and exit silently in non-substrate repos. Safe to
-  install globally.
+- **Hooks are inert without a substrate.** The prompt-context and substrate
+  maintainer hooks check for `.work/CONVENTIONS.md` and exit silently in
+  non-substrate repos. Safe to install globally.
 
 ## Where to read more
 

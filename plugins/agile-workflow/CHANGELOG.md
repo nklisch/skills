@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **Dual Codex/Claude hook set** - Replaced the eager SessionStart queue dump
+  with prompt-gated context injection. Actionable workflow prompts can now get a
+  compact queue snapshot plus once-per-session principles capsules; idle chat and
+  explainer prompts stay silent. Capsule state lives in the host plugin data
+  directory when available, with non-worktree fallbacks, so normal project
+  worktrees stay clean.
+- **Substrate maintainer hook** - Expanded the PostToolUse hook from `updated:`
+  bumping to deterministic touched-item validation: required frontmatter, valid
+  kind/stage, filename/id match, parent/dependency existence, and dependency
+  cycles reachable from the touched item.
+
 ## v0.7.7 - Skill metadata hotfix
 
 - **Codex skill loading** - Shortened long agile-workflow skill frontmatter

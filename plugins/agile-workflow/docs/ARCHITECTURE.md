@@ -406,44 +406,57 @@ user-only). Only scopes incremental refactor features.
 
 ## Hook script behavior
 
-### `hooks/scripts/session-start-snapshot.sh`
+### `hooks/scripts/prompt-context.py`
 
-**Activation gate:** exits 0 if no `.work/CONVENTIONS.md` exists in
-`${CLAUDE_PROJECT_DIR}` or any ancestor.
+**Activation gate:** exits 0 if no `.work/CONVENTIONS.md` exists in the hook
+`cwd` or any ancestor.
 
-**Output** (printed to stdout, becomes initial system message context):
+**SessionStart / PostCompact effect:** updates prompt-context state under the
+host-provided plugin data directory (`PLUGIN_DATA` / `CLAUDE_PLUGIN_DATA`),
+falling back to `XDG_STATE_HOME`, `~/.local/state`, or the system temp directory
+only when no plugin data directory is available. Prompt-time principles capsules
+fire at most once per session, and once again after resume/compaction. These
+events do not inject queue context and do not dirty the project worktree.
+
+**UserPromptSubmit effect:** only emits context for actionable workflow prompts:
+queue operations, stage movement, explicit agile-workflow verbs, or a known
+item id. Explainer prompts and idle chat stay silent.
+
+When it fires, the script returns JSON `hookSpecificOutput.additionalContext`
+containing a compact queue snapshot and any principles capsules that have not
+already fired in the current session epoch:
 
 ```
-## Substrate snapshot
+## Agile Workflow Snapshot
+Ready: 2
+- story-rate-limits (story, parent=feature-uploads-retry)
+Review: 1
+- feature-uploads-retry (feature, parent=epic-uploads)
+Blocked: 1
+- story-quota-display (story, parent=feature-uploads-retry)
 
-### Awaiting your review (stage: review)
-- feature-uploads-retry  [content]
-- story-quotas-validation  [security]
-
-### Ready to work (--ready)
-1. feature-uploads-retry  parent=epic-uploads
-2. story-rate-limits      parent=feature-uploads-retry depends_on=[]
-
-### Blocked (depends_on unmet)
-- story-quota-display  blocked by feature-uploads-retry
-
-### Backlog (top 5)
-- idea-archive-format     2026-04-22
-- idea-quotas-dashboard   2026-04-21
+## Agile Workflow Principles
+Code-design capsule:
+- Ports & Adapters: keep domain logic independent of DB/filesystem/HTTP/time/randomness.
+- Single Source of Truth: define growing variant sets once; derive downstream behavior.
 ...
 ```
 
-Implementation: bash + grep over item frontmatter. No LLM.
+Implementation: deterministic Python over `.work/` and `.work/bin/work-view`.
+No LLM.
 
-### `hooks/scripts/post-tool-use-bump.sh`
+### `hooks/scripts/substrate-maintainer.py`
 
-**Activation gate:** exits 0 if the modified path doesn't match
-`.work/active/**.md` or `.work/backlog/**.md`.
+**Activation gate:** exits 0 if the modified path doesn't match a markdown item
+under `.work/active/`, `.work/backlog/`, `.work/releases/`, or `.work/archive/`.
 
-**Effect:** reads the item file, replaces the `updated:` line with today's
-date in local time, writes back. Local rather than UTC so the date matches
-the user's perception of "today" while they're working. Does nothing else —
-doesn't validate other frontmatter, doesn't enforce stage transitions.
+**Effect:** for active/backlog item edits, replaces the `updated:` line in
+frontmatter with today's date in local time. It then validates cheap substrate
+invariants for the touched item(s): required frontmatter, valid kind/stage,
+filename/id match, duplicate id conflicts involving the touched item, existing
+parents and dependencies, and `depends_on` cycles reachable from the touched
+item. Issues are returned as `hookSpecificOutput.additionalContext` so the next
+model turn sees them.
 
 This is a deterministic command hook — no LLM.
 

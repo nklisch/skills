@@ -25,6 +25,11 @@ Auto-discovery picks up:
 - `hooks/hooks.json` — hook configurations
 - `scripts/` — utility scripts (referenced via `${CLAUDE_PLUGIN_ROOT}`)
 
+For hook script paths, use the portable plugin-root form
+`${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}`. Codex sets `PLUGIN_ROOT` /
+`PLUGIN_DATA` and also exports Claude-compatible variables; Claude sets
+`CLAUDE_PLUGIN_ROOT` / `CLAUDE_PLUGIN_DATA`.
+
 ## Frontmatter contract
 
 Every item file in `.work/active/` and `.work/releases/` has YAML
@@ -187,8 +192,8 @@ plugins/agile-workflow/
 ├── hooks/
 │   ├── hooks.json
 │   └── scripts/
-│       ├── session-start-snapshot.sh
-│       └── post-tool-use-bump.sh
+│       ├── prompt-context.py
+│       └── substrate-maintainer.py
 ├── scripts/
 │   ├── work-view.sh
 │   ├── work-board.sh
@@ -358,18 +363,30 @@ corrupt the JSON envelope.
 
 Hooks live in `plugins/agile-workflow/hooks/hooks.json`.
 
-### SessionStart hook
+### SessionStart / PostCompact hooks
 
 ```json
 {
   "SessionStart": [
     {
-      "matcher": "*",
+      "matcher": "startup|resume|clear|compact",
       "hooks": [
         {
           "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/session-start-snapshot.sh",
-          "timeout": 10
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 ${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/prompt-context.py",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "PostCompact": [
+    {
+      "matcher": "manual|auto",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 ${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/prompt-context.py",
+          "timeout": 5
         }
       ]
     }
@@ -380,12 +397,41 @@ Hooks live in `plugins/agile-workflow/hooks/hooks.json`.
 **Activation:** runs only if `${CLAUDE_PROJECT_DIR}/.work/CONVENTIONS.md`
 exists. Otherwise exits 0 with no output.
 
-**Effect:** prints a queue snapshot to stdout (becomes part of the session's
-initial context):
-- Items at `stage: review` (waiting on user attention)
-- Items at `stage: implementing` ordered by `--ready` first (the autopilot
-  queue)
-- Top 5 backlog items by `created` ascending
+**Effect:** updates prompt-context state under the host-provided plugin data
+directory (`PLUGIN_DATA` / `CLAUDE_PLUGIN_DATA`), falling back to
+`XDG_STATE_HOME`, `~/.local/state`, or the system temp directory only when no
+plugin data directory is available. This lets principles capsules fire once per
+session, and once again after resume/compaction, without dirtying normal project
+worktrees. It does not inject queue context at session start.
+
+### UserPromptSubmit hook
+
+```json
+{
+  "UserPromptSubmit": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 ${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/prompt-context.py",
+          "timeout": 10
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Activation:** runs only if a substrate exists and the submitted prompt is an
+actionable agile-workflow move: queue operations, stage movement, explicit
+workflow verbs, or a known item id. Explainer prompts and idle chat exit 0 with
+no output.
+
+**Effect:** returns `hookSpecificOutput.additionalContext` with:
+- A compact queue snapshot only when the prompt benefits from queue state
+  (`ready`, `blocked`, `review`, `autopilot`, `scope`, item ids, etc.).
+- The smallest relevant principles capsule, at most once per session per
+  capsule: code design, dispatch economy, or advisory review.
 
 ### PostToolUse hook
 
@@ -393,11 +439,11 @@ initial context):
 {
   "PostToolUse": [
     {
-      "matcher": "Write|Edit",
+      "matcher": "Write|Edit|apply_patch",
       "hooks": [
         {
           "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/post-tool-use-bump.sh",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 ${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/substrate-maintainer.py",
           "timeout": 5
         }
       ]
@@ -406,19 +452,23 @@ initial context):
 }
 ```
 
-**Activation:** runs only if the modified file path matches
-`.work/active/**.md` or `.work/backlog/**.md`. Otherwise exits 0.
+**Activation:** runs only if the modified file path is under `.work/active/`,
+`.work/backlog/`, `.work/releases/`, or `.work/archive/`. Otherwise exits 0.
 
-**Effect:** auto-bumps the `updated:` frontmatter field of the modified
-item file to today's date in **local time** (the user's "today," not
-UTC's "today" — keeps `updated:` consistent with what the user perceives
-as the current date when they're working).
+**Effect:** auto-bumps the `updated:` frontmatter field of modified active or
+backlog item files to today's date in **local time**. It then validates cheap
+structural invariants for the touched item(s): required frontmatter, valid
+kind/stage, filename/id match, duplicate id conflicts involving the touched
+item, existing parents and dependencies, and `depends_on` cycles reachable from
+the touched item. Validation issues are returned as
+`hookSpecificOutput.additionalContext`; the hook does not invoke a model.
 
 ## Tooling requirements
 
 ### Required
 
-- **bash** ≥ 4.0 — for `work-view` and hook scripts
+- **bash** ≥ 4.0 — for `work-view`
+- **python3** — for plugin hook scripts
 - **grep** — POSIX-compatible
 - **git** — substrate's audit trail; `work-view`'s history queries call `git log`
 

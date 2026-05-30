@@ -207,6 +207,22 @@ Field categories:
   component lives
 - **Interface**: marketplace presentation (`displayName`, icons, screenshots, default prompts)
 
+### Codex plugin hooks
+
+Codex loads plugin lifecycle hooks from the manifest's `hooks` pointer, whose default target is
+`hooks/hooks.json`. Installing or enabling a plugin does **not** automatically trust those hooks:
+Codex skips plugin-bundled hooks until the user reviews and trusts the current hook definition.
+Hook paths follow the same relative, inside-plugin-root path rules as other manifest pointers.
+
+Codex hook commands receive `PLUGIN_ROOT` and `PLUGIN_DATA`; for compatibility with Claude plugin
+hooks, Codex also exports `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PLUGIN_DATA`. Plugin hooks use the same
+event schema as regular Codex hooks. See
+<https://developers.openai.com/codex/plugins/build> and the Codex hooks reference.
+
+Claude Code hooks use the same command-hook structure this repo targets, including matchers,
+`UserPromptSubmit`, `PostToolUse`, `SessionStart`, `PostCompact`, and
+`hookSpecificOutput.additionalContext`; see <https://code.claude.com/docs/en/hooks>.
+
 Comparison to `.claude-plugin/plugin.json` from this repo:
 
 | Field         | Claude         | Codex                      | Note                                |

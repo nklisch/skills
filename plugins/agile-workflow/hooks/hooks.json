@@ -1,25 +1,48 @@
 {
-  "description": "agile-workflow hooks: SessionStart queue snapshot + PostToolUse updated: auto-bump. Both flag-gated by .work/CONVENTIONS.md presence; inert in non-substrate repos.",
+  "description": "agile-workflow hooks: prompt-gated queue/principles context plus PostToolUse substrate maintenance. All hooks are flag-gated by .work/CONVENTIONS.md and use command handlers for Codex/Claude compatibility.",
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "*",
+        "matcher": "startup|resume|clear|compact",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/session-start-snapshot.sh\"",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/prompt-context.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/prompt-context.py\"",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/prompt-context.py\"",
+            "timeout": 5
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|apply_patch",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/post-tool-use-bump.sh\"",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/substrate-maintainer.py\"",
             "timeout": 5
           }
         ]
