@@ -624,6 +624,11 @@
           "description": "Deep multi-angle bug hunt. Fans parallel deep scanner sub-agents across 8 bug domains (concurrency & races, async/promise, state/closures, resource leaks, time/numbers, error handling, data layer, language footguns). Each scanner loads its domain reference, web-searches current pitfalls for the detected stack, and returns severity-classified findings citing file:line. Standalone mode writes a scored report; gate mode binds to a release bundle and produces items with gate_origin:bugs. Sibling to gate-security but for correctness bugs, not vulnerabilities."
         },
         {
+          "name": "perf-scout",
+          "path": "skills/perf-scout",
+          "description": "Cross-domain performance IDEA generator — speculative, not a profiler. Fans parallel highest-thinking-model scout sub-agents across 11 strategy lenses (algorithmic, memory/locality, parallelism/SIMD, GPU & accelerators, caching, I/O, distributed, game-engine, database internals, compiler/runtime, approximation), each loading one lens reference, web-searching current techniques, and borrowing strategies from demanding domains to surface CANDIDATE optimizations as unvalidated hypotheses — never asserting gains are real, each with a validation path. Then runs the whole idea deck past a different model class via peeragent (fallback: a fresh max-effort sub-agent) to prune weak ideas and surface missed angles. Writes a ranked idea-deck report and parks ideas to .work/backlog/ with idea_origin:scout. Standalone only; hand validated ideas to perf-design to measure. Sibling to bug-scan but for speculative perf ideas, not correctness bugs."
+        },
+        {
           "name": "bold-refactor",
           "path": "skills/bold-refactor",
           "description": "Find beautiful code abstractions and cross-cutting simplifications via conceptual lenses (elimination, unification, inversion, algebraic, declarative, domain crystallization). Produces a refactor EPIC with child features tagged [refactor] and depends_on chains. User-invocable only — too aggressive for auto-trigger."
