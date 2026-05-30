@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Review skill progressive disclosure** - Split the review skill into a
+  substrate-first core plus references for target resolution, review lenses,
+  deep-review mechanics, and substrate side effects. The core now explicitly
+  supports standalone branch/PR/commit reviews without `.work` mutations and
+  keeps deep-review mode adaptable across contracts, data, concurrency, release,
+  and product/UX dimensions.
 - **work-view single-pass parsing** - Rewrote `work-view.sh` frontmatter
   parsing to a single `awk` pass over the whole tree instead of spawning an
   `awk` (plus `tr`) per field per file. The old path forked ~4,900 short-lived
