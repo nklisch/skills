@@ -278,17 +278,17 @@ and for project-specific reference skills. They now ship in the standalone
   is source of truth, not docs), proposes scope and structure, writes the skill
   files for others to install. Use when you want to teach other people's agents
   how to use your project.
-- **skill-evaluator** — Evaluate existing skills against type-specific quality
-  rubrics. Classifies the skill type, scores across dimensions, recommends
-  improvements, and generates test scenarios.
-- **tool-evaluator** — Self-evaluate agent tool usage in the current
-  conversation. Analyzes confusion points, inefficiencies, and API surface
-  friction. Produces a report with recommendations for tool authors.
+- **skill-auditor** — Statically audit an existing skill against type-specific,
+  triggering, and emotional-tone rubrics. Classifies the skill type, scores across
+  dimensions, recommends fixes, and produces a trigger-test plan and test scenarios.
+- **agent-reflection** — Reflect on how the agent's own tools and skills served it
+  in the current conversation. Analyzes confusion, inefficiency, friction, and
+  context cost. Produces a report with recommendations for tool and skill authors.
 
 **Typical usage**: research produces a quick internal reference skill for a
 library your project depends on. write-tool-skill creates a distributable
 skill that teaches others how to use your project's own tool/API/library.
-Use skill-evaluator to audit any skill's quality.
+Use skill-auditor to audit any skill's quality.
 
 ## Typical Project Lifecycle
 

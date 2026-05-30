@@ -25,7 +25,7 @@ Available as **Claude Code plugins**, **Codex plugins**, and via
 |---|---|---|
 | **agile-workflow** | Substrate-driven work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, goal-backed autopilot queue runner. | [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md) |
 | **ux-ui-design** | HTML/CSS/JS mockup-first UI design. Throwaway single-file mockups in `.mockups/` for alignment before any production code. Loosely integrated with agile-workflow. | [docs/ux-ui-design-guide.md](docs/ux-ui-design-guide.md) |
-| **nates-toolkit** | Standalone utility skills, no workflow lock-in — explain in plain language, score a codebase, evaluate agent tooling, author and audit skills. |  |
+| **nates-toolkit** | Standalone utility skills, no workflow lock-in — explain in plain language, score a codebase, reflect on tool & skill usage, author and audit skills. |  |
 
 The two big ones — `agile-workflow` + `ux-ui-design` — are designed to work
 together. The killer workflow is to use `ux-ui-design` mocks during
@@ -178,9 +178,9 @@ via `/plugin install nates-toolkit@nklisch-skills`.
 |-------|-------------|
 | **plainspeak** | Re-render the last thing said in vivid plain language — one everyday metaphor, one concrete example, a crisp restatement, at a chosen depth. Manual only (`/plainspeak`). |
 | **repo-eval** | Multi-dimensional codebase audit — calibrated 1–10 scorecard with prioritized recommendations. Files findings as substrate items when an agile-workflow `.work/` exists. |
-| **tool-evaluator** | Self-evaluate agent tool usage in the current conversation. Recommendations for tool authors. |
+| **agent-reflection** | Reflect on how the agent's own tools and skills served it this session — confusion, inefficiency, friction, context cost. Prioritized recommendations for tool and skill authors. |
 | **write-tool-skill** | Create distributable reference skills for a tool, CLI, MCP server, or library. |
-| **skill-evaluator** | Evaluate skills against type-specific quality rubrics. Scored reports with improvements. |
+| **skill-auditor** | Static quality audit of a skill against type-specific, triggering, and emotional-tone rubrics. Scored report with fixes and a trigger-test plan. |
 
 ## Library & Tool References
 
@@ -248,7 +248,7 @@ plugins/agile-workflow/            # agile-workflow plugin (substrate-driven)
 plugins/ux-ui-design/              # ux-ui-design plugin (7 skills, mockup-first)
 ├── skills/                        #   skill source
 └── docs/                          #   plugin design docs
-plugins/nates-toolkit/skills/      # standalone utility skills (plainspeak, repo-eval, tool-evaluator, write-tool-skill, skill-evaluator)
+plugins/nates-toolkit/skills/      # standalone utility skills (plainspeak, repo-eval, agent-reflection, write-tool-skill, skill-auditor)
 plugins/workflow/                  # DEPRECATED — doc-driven, no longer supported
 .agents/skills/                    # reference, principle, and utility skills (skilltap)
 .claude-plugin/                    # Claude Code plugin manifest (root)

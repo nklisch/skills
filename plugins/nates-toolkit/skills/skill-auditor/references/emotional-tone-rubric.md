@@ -5,6 +5,12 @@ the best performance for its task type. Based on Anthropic's "Emotion Concepts a
 Function in a Large Language Model" (2026) which demonstrated that prompt framing causally
 shapes Claude's internal processing and measurably affects output quality and alignment.
 
+## Contents
+- [Background: Why Tone Matters](#background-why-tone-matters)
+- [Task-Type Emotional Profiles](#task-type-emotional-profiles)
+- [Scoring Dimensions](#scoring-dimensions)
+- [Rewrite Guidance](#rewrite-guidance)
+
 ## Background: Why Tone Matters
 
 Claude's internal representations include emotion vectors (valence x arousal) that activate

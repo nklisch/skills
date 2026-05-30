@@ -23,6 +23,8 @@ when no substrate). Reference skills and `principles` work on any project.
 - `skills/principles/` loading both paradigms from PRINCIPLES.md
 - Reference skills carried from `workflow` (mechanical adaptations):
   `research/`, `repo-eval/`, `tool-evaluator/`, `refactor-conventions-creator/`
+  (`repo-eval` and `tool-evaluator` were later extracted to `nates-toolkit`;
+  `tool-evaluator` is now `agent-reflection`)
 - `tap.json` entries for the 5 skills
 
 **Test checkpoint:** `bats tests/work-view.bats` passes — covers each flag

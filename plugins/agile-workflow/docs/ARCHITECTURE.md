@@ -605,7 +605,7 @@ configured in `CONVENTIONS.md` (default: security → tests → cruft → docs
 | `research` | Investigate libraries/APIs | Carried; produces research docs in `docs/research/` (separate from `.work/`) |
 | `refactor-conventions-creator` | Create project-specific refactor conventions skill | Carried |
 
-(`repo-eval` and `tool-evaluator` were originally carried here, then extracted to the standalone `nates-toolkit` plugin since they have no substrate lock-in.)
+(`repo-eval` and `tool-evaluator` were originally carried here, then extracted to the standalone `nates-toolkit` plugin since they have no substrate lock-in; `tool-evaluator` has since been renamed `agent-reflection`.)
 
 ---
 

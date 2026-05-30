@@ -464,7 +464,7 @@
     },
     {
       "name": "nates-toolkit",
-      "description": "Standalone, project-agnostic utility skills with no workflow lock-in — plain-language re-explanation, holistic codebase evaluation, agent-tool self-assessment, and skill authoring + quality auditing.",
+      "description": "Standalone, project-agnostic utility skills with no workflow lock-in — plain-language re-explanation, holistic codebase evaluation, self-reflection on tool & skill usage, and skill authoring + quality auditing.",
       "version": "0.1.0",
       "tags": [
         "utility",
@@ -485,9 +485,9 @@
           "description": "Multi-dimensional codebase evaluation with verified scoring. Launches parallel explore agents, cross-checks findings, produces calibrated 1-10 scorecard across architecture, code quality, testing, documentation, CI/CD, error handling, security, DX, and maintainability with prioritized recommendations."
         },
         {
-          "name": "tool-evaluator",
-          "path": "skills/tool-evaluator",
-          "description": "Structured self-evaluation of agent tool usage in the current conversation. Analyzes confusion points, inefficiencies, missing capabilities, and API surface friction. Produces a prioritized .md report with actionable recommendations for tool authors."
+          "name": "agent-reflection",
+          "path": "skills/agent-reflection",
+          "description": "Retrospective self-evaluation of how the agent's tools and skills served it in the current conversation. Reflects on confusion, retries, inefficiency, missing capabilities, API- and skill-surface friction, error handling, and context cost, then writes a prioritized report with recommendations for tool and skill authors."
         },
         {
           "name": "write-tool-skill",
@@ -495,9 +495,9 @@
           "description": "Write agent skills for external tools, CLIs, MCP servers, and libraries. Interactive workflow with research, structure decisions, and multi-skill breakout advice."
         },
         {
-          "name": "skill-evaluator",
-          "path": "skills/skill-evaluator",
-          "description": "Evaluate agent skills against type-specific quality rubrics and emotional tone alignment. Classifies skills as reference, workflow, interactive, or principle, then scores against universal, type-specific, and emotional tone criteria. Produces scored evaluation reports with prioritized improvements, emotional tone rewrites, and test scenarios."
+          "name": "skill-auditor",
+          "path": "skills/skill-auditor",
+          "description": "Static quality audit of an agent skill's SKILL.md and bundled files. Classifies the skill as reference, workflow, interactive, or principle, then scores it against universal, type-specific, and emotional-tone rubrics. Produces a scored report with prioritized fixes, emotional-tone rewrites, a trigger-test plan, and behavioral test scenarios."
         }
       ]
     },

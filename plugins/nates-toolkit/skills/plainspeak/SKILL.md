@@ -165,11 +165,16 @@ matters. If simplifying would make them believe something false about how the
 system actually behaves, you've failed even if it reads beautifully. Keep the
 real mechanism intact underneath; cut detail, never accuracy.
 
-## A worked example (the shape, condensed)
+## A worked example (deep-dive shape, condensed)
 
-This is the kind of output to produce — note how the metaphor carries the
-structure, there's exactly one grounded example, one everyday analogy, and a
-plain now-vs-later restatement.
+This is the kind of output to produce at **deep-dive** depth — every move in
+play, but each one earning its place. Watch how the metaphor carries the
+structure, the single grounded example does the work of ten, the two options sit
+side by side with ✅ / ❌, the everyday analogy reaches the reader the first
+metaphor didn't, and the now-vs-later restatement reconnects the metaphor to the
+literal decision. A **Standard**-depth answer would keep the same spine and drop
+the side-by-side options and the reasons — metaphor, punchline, the one example,
+the analogy, the restatement, the close.
 
 ---
 
@@ -230,5 +235,8 @@ door open for the fast one, reuse the simple one as the correctness check.
 ---
 
 Notice what that example does *not* do: it doesn't give three game scenarios, it
-doesn't list five reasons, it doesn't re-derive anything. One metaphor, one
-example, one analogy, a plain restatement, a one-line close. That's plainspeak.
+doesn't list five reasons, it doesn't re-derive anything. Even at full depth it
+stays lean — one metaphor, one grounded example, the two kitchens compared, one
+everyday analogy, the plain now-vs-later restatement, the one reason that
+actually drove the call, and a one-line close. That's plainspeak: deeper depth
+raises the *ceiling* on structure, but the lean rule still governs inside it.

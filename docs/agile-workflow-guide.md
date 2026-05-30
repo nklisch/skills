@@ -506,8 +506,8 @@ Worth knowing they exist so the items they produce make sense:
   whether to file the top recommendations as substrate items (backlog or
   active) tagged `[audit]` — so the audit drives action instead of just
   sitting in a report.
-- **`research`**, **`tool-evaluator`**, **`refactor-conventions-creator`** —
-  auto-loading or one-shot helpers.
+- **`research`** and **`refactor-conventions-creator`** — auto-loading or
+  one-shot helpers.
 
 ## A typical day
 
@@ -739,7 +739,7 @@ explicitly — the rest the agent picks for you.
 ### Reference
 - **principles** — code-design + substrate-execution principles
 - **repo-eval** — codebase audit; files top recommendations as substrate items tagged `[audit]` when a substrate exists
-- **research**, **tool-evaluator**, **refactor-conventions-creator** — auto-loading or one-shot helpers
+- **research**, **refactor-conventions-creator** — auto-loading or one-shot helpers
 
 ## Tips for productive collaboration
 
