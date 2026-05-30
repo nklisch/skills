@@ -233,7 +233,11 @@ function processOrder(input: any) {
 
 # Part II — Substrate-Execution Principles
 
-These three principles govern how work moves through the substrate. They shape stage transitions, item bodies, foundation-doc evolution, and release binding. The agent applies these whenever operating on `.work/` or `docs/`.
+These principles govern how work moves through the substrate. They shape stage
+transitions, item bodies, foundation-doc evolution, release binding, and agent
+dispatch. The agent applies these whenever operating on `.work/` or `docs/`,
+and whenever choosing discovery or implementation dispatch during substrate
+work.
 
 ## 5. Item-IS-the-Work
 
@@ -364,6 +368,46 @@ Items advance stages when work actually completes. Releases bind items only when
 - [ ] No `release_binding` set without an active release-deploy
 - [ ] Dependencies expressed via `depends_on`, not by ordering in any external plan
 - [ ] No ROADMAP.md or equivalent that pre-commits work to releases
+
+---
+
+## 8. Agent Dispatch Economy
+
+Sub-agents are for breadth, isolation, independent judgment, or parallel
+implementation with clear write ownership. They are not a replacement for
+reading, and they are not automatically better than local read-oriented tools.
+
+Before spawning read-only Explore/discovery agents, do a local scope-size probe:
+
+- List likely roots with `rg --files`, Glob, manifests, route maps, package
+  metadata, or `.work/bin/work-view`.
+- Search obvious symbols, ids, and terms with `rg`/Grep.
+- Read the item body, relevant foundation docs, `AGENTS.md` / `CLAUDE.md`, and
+  2-5 representative source or test files.
+- Name the unknowns that remain. If you cannot name a distinct unknown, do not
+  spawn an agent just to feel thorough.
+
+For implementation waves, the same sizing note feeds write-ownership and
+dependency-layer decisions before choosing fan-out width.
+
+Choose the lightest mechanism that will produce better evidence:
+
+| Scope signal | Dispatch choice |
+|---|---|
+| Known file(s), one module, or a handful of obvious integration points | Read directly with Read/Grep/Glob; skip Explore. |
+| One bounded area but uncertain patterns or call sites | Use one focused Explore agent, then spot-check key files yourself. |
+| Several independent surfaces with different questions | Use parallel Explore agents, one per surface/question. |
+| Implementation work with independent write ownership | Fan out by ownership and dependency layer; do not use item count alone as the parallelism signal. |
+| Deep audit/review where fresh context is the point | Spawn the dedicated audit/review sub-agent described by that skill. |
+
+Parallel Explore only pays for itself when the prompts are genuinely different.
+Three agents asking the same broad question usually return duplicated shallow
+maps. Prefer one precise prompt or direct reading.
+
+Record the dispatch rationale in run notes or the item body when it affects
+scope, bundling, or wave width: "direct-read only", "one Explore for breadth",
+or "parallel Explore across X/Y/Z surfaces". This makes the orchestration call
+auditable later.
 
 ---
 

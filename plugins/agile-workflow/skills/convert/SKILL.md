@@ -591,11 +591,14 @@ into the bootstrap commit itself).
 Otherwise, capture the in-flight code as substrate items so autopilot has
 something to drain after bootstrap:
 
-1. **Cluster** the changed files via a read-only Explore sub-agent: "Categorize
-   these <N> files into 1-5 coherent feature buckets by path, imports, and
-   diff content. Report each as slug + one-paragraph description + file
-   list." Pass `git status --porcelain` and `git diff --stat` as context;
-   don't read 50 diffs yourself.
+1. **Cluster** the changed files. Start with path grouping plus `git diff
+   --stat`; if the changed set is still small enough to inspect directly, read
+   the relevant diffs yourself. For large or unclear sets, use a read-only
+   Explore sub-agent: "Categorize these <N> files into 1-5 coherent feature
+   buckets by path, imports, and diff content. Report each as slug +
+   one-paragraph description + file list." Pass `git status --porcelain` and
+   `git diff --stat` as the sub-agent's context rather than dumping many full
+   diffs into the prompt.
 2. **Confirm with the user** via AskUserQuestion (groups of 2-4 buckets if
    there are many). Allow merge / split / rename.
 3. **Scope each cluster** as `.work/active/features/feature-<slug>.md` with

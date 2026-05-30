@@ -29,6 +29,12 @@ sub-agents. Do not wait for the user to separately say "use sub-agents" once thi
 skill is active. The user has chosen the orchestrator because the orchestrator is
 the parallelization brain.
 
+Authorization is not a mandate to fan out before sizing the system. Do a
+read-first scope probe before choosing Explore agents, bundle shape, wave width,
+or worktree isolation. Direct reading is often faster and more accurate when the
+work points at a known module, a small file set, or a few obvious integration
+points.
+
 Use sub-agents as the primary scaling mechanism when the work has separable
 ownership. Large write paths may still run in parallel when you assign explicit
 file/module ownership, tell workers they are not alone in the codebase, use
@@ -128,11 +134,27 @@ Then read deeply — the quality of your agent prompts depends on this.
 4. **Principles** — both paradigms via the auto-loaded principles skill
 5. **AGENTS.md / CLAUDE.md** — project conventions, build commands
 6. **Concrete pattern examples** in the codebase — for each type of code the
-   agents will write, find an existing example. Read 3-5 key files yourself;
-   use Explore sub-agents for breadth.
+   agents will write, find an existing example. Read 3-5 key files yourself.
+   Use Explore sub-agents only for breadth you can name after local search.
 7. **Discrepancies between design and repo reality** — for every file the
    designs reference, confirm interfaces match. Note discrepancies for
    inclusion in agent prompts.
+
+### Phase 1.5: Size the system before delegation
+
+Apply the Agent Dispatch Economy principle from `principles/SKILL.md` before
+spawning discovery or implementation agents. Build a quick sizing note:
+
+- likely write roots and known files
+- item count, expected edit size, and dependency layers
+- unknowns that require discovery
+- whether the scope is direct-read, one-Explore, or parallel-Explore sized
+
+If the work set points at a handful of known files, read them directly and skip
+Explore. If one bounded area remains fuzzy, use one focused Explore agent. If
+several independent surfaces remain unknown, use parallel Explore agents with
+different questions. Feed this sizing decision into bundling and wave width; do
+not default to a wide wave because many items are present.
 
 ### Phase 2: Build the dependency graph
 
@@ -510,6 +532,9 @@ In conversation:
 - Ground yourself before spawning agents. Vague prompts produce vague
   implementations. Cross-feature scopes mean more reading, not less — every
   parent in the work set gets the full read.
+- Size the system before dispatch. If local search and direct file reads answer
+  the discovery question, skip Explore and record that choice. Spawn Explore
+  only for named unknowns or genuinely independent surfaces.
 - Decide parallelism deliberately. Three sub-agents per wave is a conservative
   default, not a hard ceiling. Use more only when write ownership is clear,
   dependencies are independent, and verification/reconciliation remains bounded.

@@ -79,9 +79,10 @@ For each feature in the target set:
    `docs/ARCHITECTURE.md`) and `AGENTS.md` / `CLAUDE.md`. Treat AGENTS as
    canonical when both exist. Be efficient: skim, don't exhaustively re-read
    across iterations within one session.
-3. **Map the codebase lightly** — one Task-tool Explore sub-agent is enough
-   to surface the area the feature touches. Skip the full three-agent
-   parallel sweep used in the default mode; you're not designing units.
+3. **Map the codebase lightly** — start with direct Read/Glob/Grep over the
+   obvious area. Use one Task-tool Explore sub-agent only if local reading
+   leaves a real unknown; skip the full three-agent parallel sweep used in
+   the default mode because you're not designing units.
 4. **Run Phase 4.6 (UI surface fallback)** when `ux-ui-design` is installed
    — same rules as default mode (inheritance check, mock only when
    upstream coverage is missing). Most ask-questions runs find the parent
@@ -147,18 +148,36 @@ Read:
 
 ### Phase 3: Map the codebase
 
-Spawn parallel read-only Explore sub-agents. Send all in one message and wait for all.
+Run a read-first scope-size probe before spawning Explore agents:
 
+1. Use Glob/`rg --files` to identify likely directories, entry points, and
+   existing tests.
+2. Use Grep/`rg` for feature terms, route names, exported types, and nearby
+   helpers.
+3. Read 2-5 representative source/test files yourself.
+
+Then choose the dispatch size:
+
+- **Small/bounded feature** — known module or a few obvious files: skip Explore
+  and use direct reading.
+- **Medium/unclear feature** — one area but uncertain patterns: spawn one
+  read-only Explore agent with a combined brief.
+- **Broad/cross-cutting feature** — distinct structure, interface, and test
+  questions across separate areas: spawn parallel read-only Explore sub-agents.
+
+For Explore:
 - **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
   or complex codebases.
 - **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`;
   use `high` for large or complex codebases.
 
+Possible prompts:
 1. **Codebase Structure** — directory layout, modules, entry points, exports
 2. **Interface & Type Inventory** — exported interfaces, types, signatures with file paths
 3. **Test Structure** — test patterns, helpers, fixtures, organization
 
-After results, **read 2-3 key source files yourself** to verify findings.
+After direct reading or Explore results, **read 2-3 key source files yourself**
+to verify findings.
 
 ### Phase 4: Re-align to project standards
 

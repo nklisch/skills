@@ -72,8 +72,10 @@ Do not discard the user's actual rule references.
 
 ## Phase 2: Explore the Codebase
 
-Scan the repo to understand current coding style and organization. Use one
-read-only Explore sub-agent for breadth:
+Scan the repo to understand current coding style and organization. Start with
+direct Read/Glob/Grep over manifests, entry points, representative source
+directories, and existing tests. Use one read-only Explore sub-agent for breadth
+only when the codebase is too broad to characterize from those reads:
 
 - **Claude Code / Anthropic:** Sonnet minimum, Opus for large or complex
   codebases.

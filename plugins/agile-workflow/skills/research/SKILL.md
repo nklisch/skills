@@ -25,8 +25,11 @@ Understand what needs investigating and why.
 
 1. Read **AGENTS.md / CLAUDE.md** and relevant project docs — understand the stack, constraints,
    and what's already in use
-2. Use an Explore sub-agent to find how the project currently handles the area
-   being researched — existing dependencies, imports, patterns.
+2. Map how the project currently handles the area being researched with
+   read-first triage: dependency manifests, imports, config files, existing
+   wrappers, and representative call sites via Read/Glob/Grep. Use an Explore
+   sub-agent only when the integration surface is broad or unclear after that
+   probe.
    - **Claude Code / Anthropic:** Sonnet minimum, Opus for large or complex codebases.
    - **Codex / OpenAI:** `reasoning_effort: medium`; use `high` for large or
      complex codebases.

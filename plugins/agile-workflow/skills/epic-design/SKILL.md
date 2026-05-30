@@ -76,7 +76,8 @@ Use this path when invoked with `--only-questions`. Iterate over the target set
 For each epic:
 1. Read the epic file; skip if `kind` is not `epic` or `stage` is not `drafting`
 2. Ground yourself (Phase 2 below — foundation docs + AGENTS.md / CLAUDE.md + parent if any; AGENTS is canonical)
-3. Map the codebase lightly — one Task Explore over the epic's area
+3. Map the codebase lightly — direct Read/Glob/Grep first; use one Task
+   Explore over the epic's area only when local reading leaves a real unknown
 4. **Run Phase 4.6 (UI surface alignment)** — `--only-questions` is the
    visual alignment gate, not just the textual one. When `ux-ui-design` is
    installed, run the full Phase 4.6 pass; reference resulting paths in
@@ -143,14 +144,30 @@ Read:
 
 ### Phase 3: Map the codebase
 
-Spawn parallel read-only Explore sub-agents. Send all in one message and wait
-for all.
+Run a read-first scope-size probe before spawning Explore agents:
 
+1. Use Glob/`rg --files` to identify likely directories, entry points, active
+   sibling work, and tests.
+2. Use Grep/`rg` for epic terms, capability names, exported types, route names,
+   and shared integration points.
+3. Read 2-5 representative source, test, and sibling item files yourself.
+
+Then choose the dispatch size:
+
+- **Small/bounded epic** — one known subsystem with obvious seams: skip Explore
+  and map it directly.
+- **Medium/unclear epic** — one area but missing ownership or dependency
+  clarity: spawn one read-only Explore agent.
+- **Broad/cross-cutting epic** — several independent surfaces or sibling-work
+  interactions: spawn parallel read-only Explore sub-agents.
+
+For Explore:
 - **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
   or complex codebases.
 - **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`;
   use `high` for large or complex codebases.
 
+Possible prompts:
 1. **Existing surface in this epic's area** — what modules, components, or
    integration points already exist that this epic will extend or touch?
    Report file paths and brief responsibility per finding.
@@ -161,7 +178,8 @@ for all.
    in `.work/active/`. Report any overlap or shared types that imply a
    dependency edge from this epic's children to a sibling epic.
 
-After results, **read 2-3 key source files yourself** to verify findings.
+After direct reading or Explore results, **read 2-3 key source files yourself**
+to verify findings.
 
 ### Phase 4: Identify feature arcs
 

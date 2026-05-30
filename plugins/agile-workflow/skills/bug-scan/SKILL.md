@@ -16,10 +16,12 @@ allowed-tools: Read, Glob, Grep, Bash, Agent, WebSearch, WebFetch, Write, Edit, 
 # Bug-Scan
 
 You orchestrate a deep, multi-angle hunt for hard-to-find correctness bugs. You detect the
-stack, choose relevant bug domains, dispatch **one deep scanner sub-agent per domain in parallel**, and
+stack, choose relevant bug domains, dispatch **one deep scanner sub-agent per selected domain in parallel**, and
 either write a scored report (standalone) or produce items in `.work/active/stories/` (gate
-mode). Each scanner loads only its domain's reference — that's the progressive-disclosure
-move that keeps each scanner focused and the orchestrator's context lean.
+mode). Domain selection is the scope-size gate: do not spawn a scanner for a domain
+just because it exists in the table. Each scanner loads only its domain's reference —
+that's the progressive-disclosure move that keeps each scanner focused and the
+orchestrator's context lean.
 
 Sub-agent strength is explicit:
 - **Claude Code / Anthropic:** spawn one Agent per selected domain with
@@ -96,7 +98,10 @@ Summarize the stack in 4-6 lines.
 ## Phase 2: Domain selection
 
 Map detected stack features to the 8 domains. Mark each as **most relevant**, **relevant**,
-or **skip** based on what's in the code.
+or **skip** based on what's in the code and the concrete scan scope. For a small
+path with no async, no data layer, and no external resources, skip those domains
+instead of launching empty scanners. For a broad release bundle or repo-wide
+audit, include every domain with real evidence in Phase 1.
 
 ### Standalone mode
 **AskUserQuestion checkpoint** (multi-select): show the 8 domains with relevance annotations,
@@ -346,7 +351,9 @@ Then report to the user (same format as gate-security):
 - **The scanning happens in the sub-agents, not here.** Your job is stack discovery, scanner
   dispatch, and result aggregation. Do not re-do a scanner's work in the orchestrator's
   context — that throws away the progressive-disclosure win.
-- **Always fan out.** One scanner per domain, in parallel. Never serialize them.
+- **Fan out selected domains.** Once Phase 2 has selected domains, run one
+  scanner per selected domain in parallel. Do not serialize them, and do not
+  spawn skipped domains.
 - **Always cite file:line.** Findings without locations are not findings.
 - **Don't fabricate.** A scanner returning zero findings for a domain is a valid result. Score
   it honestly (7, not 10 — absence ≠ active hardening).

@@ -105,13 +105,30 @@ The `principles` skill auto-loads. Read:
 
 ### Phase 3: Map the codebase and the testable surface
 
-Spawn parallel read-only Explore sub-agents in one message:
+Run a read-first scope-size probe before spawning Explore agents:
 
+1. Use Glob/`rg --files` to find entry points, existing e2e/integration tests,
+   fixtures, and service-adapter boundaries.
+2. Use Grep/`rg` for route names, CLI commands, exported modules, dependency
+   clients, and mock helpers.
+3. Read 2-5 representative app/test files yourself.
+
+Then choose the dispatch size:
+
+- **Small/bounded surface** — one entry point or obvious journey: skip Explore
+  and map directly.
+- **Medium/unclear surface** — one service but fuzzy dependencies/tests: use one
+  focused Explore agent.
+- **Broad/cross-service surface** — separate journey, dependency, and test
+  infrastructure questions: spawn parallel read-only Explore sub-agents.
+
+For Explore:
 - **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
   or complex codebases.
 - **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`;
   use `high` for large or complex codebases.
 
+Possible prompts:
 1. **Surfaces & journeys** — entry points (CLI, HTTP routes, exported modules),
    primary user journeys traceable from entry to outcome
 2. **External dependencies** — what does this service talk to? (DBs, APIs,
@@ -120,7 +137,8 @@ Spawn parallel read-only Explore sub-agents in one message:
    `tests/e2e/` or equivalent; existing mocks (flag in-process mocks as items
    for audit)
 
-After results, **read 2-3 key files yourself** to verify.
+After direct reading or Explore results, **read 2-3 key files yourself** to
+verify.
 
 ### Phase 4: Re-align to project standards
 
@@ -340,8 +358,9 @@ For projects that have `.work/` but no e2e test epic yet.
 
 ### Phase B2: Discovery
 
-Parallel Task Explore sub-agents (same three as Phase 3 above), but
-project-wide rather than feature-scoped.
+Run the Phase 3 read-first probe project-wide. If the testable surface is small
+or obvious, map it directly. If the project is broad, use the same three Explore
+prompts from Phase 3, project-wide rather than feature-scoped.
 
 ### Phase B3: Strategy checkpoint
 

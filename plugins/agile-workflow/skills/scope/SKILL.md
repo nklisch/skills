@@ -79,11 +79,17 @@ Read `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `.work/CONVENTION
 and `AGENTS.md` / `CLAUDE.md`. One pass, skim — you're orienting, not absorbing every detail.
 You'll re-read selectively for large clusters in Phase B5.
 
-### Phase B3: Map code areas (one Explore agent)
+### Phase B3: Map code areas (read-first, maybe one Explore agent)
 
-Spawn **one** read-only Explore sub-agent (medium breadth). For Claude Code,
-use the Explore/Agent shape. For Codex, use an `explorer` sub-agent with
-`reasoning_effort: medium`.
+Start locally. Use Glob/`rg --files` to identify likely modules, packages, and
+tests, and Grep/`rg` for terms from the targeted backlog ideas. If the ideas
+clearly touch a small set of known areas, build the area-map yourself and skip
+Explore.
+
+Spawn **one** read-only Explore sub-agent only when the batch spans unclear code
+areas or you cannot confidently name the natural seams from direct reading. For
+Claude Code, use the Explore/Agent shape. For Codex, use an `explorer`
+sub-agent with `reasoning_effort: medium`.
 Give it:
 - The list of targeted backlog ideas (id + brief, one per line)
 - A one-paragraph summary of the foundation docs from Phase B2
@@ -461,9 +467,9 @@ In conversation:
 - **Batch mode: one confirmation gate, not many.** Phase B7 is a single
   `AskUserQuestion` call (up to 4 questions). Apply NL adjustments from the
   user's reply and proceed — do not loop on a second confirmation round.
-- **Batch mode: one Explore agent in Phase B3, not three.** A single
-  medium-breadth pass over the backlog list is enough. Don't fan out per
-  cluster.
+- **Batch mode: read-first in Phase B3.** Use direct mapping when the backlog
+  ideas touch obvious areas. If an agent is needed, use one medium-breadth
+  Explore pass over the backlog list, not three; don't fan out per cluster.
 - **Batch mode: leftovers default to staying in backlog.** Forcing leftovers
   into a "miscellaneous" feature dilutes the clustering signal.
 - **Batch mode: lean smaller, but accept natural-grouping epics.** Prefer

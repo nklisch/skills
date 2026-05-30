@@ -72,14 +72,19 @@ Read `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `AGENTS.md` /
 `.agents/skills/refactor-conventions/SKILL.md` plus relevant referenced rule
 files. One pass — orient, don't memorize.
 
-### Phase D3: Code-smell scan via parallel Task agents
+### Phase D3: Code-smell scan
 
-Run the same parallel sub-agent scan as Phase 3 of per-feature mode (Code
-Smells, Missing Abstractions, Pattern Violations & Naming Inconsistencies,
-Dead Weight, and optional Project Refactor Conventions) but scoped to the
-target from Phase D1 instead of one feature's area. The optional conventions
-scan only runs when `.agents/skills/refactor-conventions/` exists. After
-results, read 2-3 key files yourself to verify.
+Run a read-first scope-size probe. If the target is a small file set or one
+obvious module, scan it directly across the Phase 3 lenses and skip sub-agents;
+direct reading usually catches refactor shape better than broad summaries.
+
+For medium or large targets, run the same sub-agent scan as Phase 3 of
+per-feature mode (Code Smells, Missing Abstractions, Pattern Violations &
+Naming Inconsistencies, Dead Weight, and optional Project Refactor Conventions)
+but scoped to the target from Phase D1 instead of one feature's area. The
+optional conventions scan only runs when `.agents/skills/refactor-conventions/`
+exists. After direct or agent scan results, read 2-3 key files yourself to
+verify.
 
 ### Phase D4: Classify each finding
 
@@ -137,8 +142,9 @@ drafting features. Iterate over the target set:
 
 1. Read the feature; skip if not `[refactor]`-tagged or not at `stage: drafting`
 2. Light ground (foundation docs + AGENTS.md / CLAUDE.md)
-3. One Explore sub-agent over the feature's area; include
-   `.agents/skills/refactor-conventions/` as context when present
+3. Read-first map of the feature's area; use one Explore sub-agent only if the
+   area is still unclear. Include `.agents/skills/refactor-conventions/` as
+   context when present.
 4. Surface strategic ambiguities specific to the refactor (e.g., "preserve API
    shape or break consumers?", "in-place or shadow-then-swap?", "rollback
    strategy when atomic?"). Use AskUserQuestion.
@@ -182,10 +188,13 @@ The principles skill auto-loads. Read:
 - The parent epic if `parent` is set
 - The code under refactor — read it thoroughly, don't refactor blind
 
-### Phase 3: Code-smell scan via parallel Task agents
+### Phase 3: Code-smell scan
 
-Spawn parallel read-only Explore sub-agents. Send all in one message; wait for
-all.
+Run a read-first scope-size probe before spawning Explore agents. If the
+refactor target is a bounded module or small file set, inspect it directly
+across the lenses below and skip Explore. If one area is unclear, use one
+focused Explore agent. Use parallel Explore only when the lenses need separate
+attention across a medium/large target.
 
 The first four scan axes are mandatory. Run them even when a project-specific
 refactor-conventions catalog exists. The catalog adds a fifth scan axis; it
@@ -229,7 +238,8 @@ does not narrow or disable the default refactor judgment.
    the rule name, file:line, why it matters, and whether it is small/surgical
    or multi-file."
 
-After results, **read 2-3 key files yourself** to verify findings.
+After direct or agent scan results, **read 2-3 key files yourself** to verify
+findings.
 
 ### Phase 4: Categorize findings
 

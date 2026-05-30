@@ -81,7 +81,20 @@ dep or remove it.
 
 ### Phase 3: Map integration points
 
-Spawn one read-only Explore sub-agent:
+Start with a local scope-size probe using Read/Glob/Grep:
+
+- list the files named by the design
+- search for public exports, shared utilities, type definitions, and module
+  boundaries in the target area
+- search for matching test helpers and fixtures
+- read the 1-3 files most likely to define the integration contract
+
+If this answers the integration question, skip Explore and continue. Inline
+implementation is often chosen because the scope is small enough for direct
+reading.
+
+Spawn one read-only Explore sub-agent only when the integration surface is still
+unclear or broader than a few obvious files:
 - **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
   or complex codebases.
 - **Codex / OpenAI:** `explorer` sub-agent with `reasoning_effort: medium`;
@@ -92,8 +105,8 @@ Brief:
   boundaries that <new code area> must integrate with. Include file paths and
   signatures. Also check for existing test helpers and fixtures."
 
-After results, **spot-check 1-2 key integration points** by reading those files
-yourself.
+After direct reading or Explore results, **spot-check 1-2 key integration
+points** by reading those files yourself.
 
 ### Phase 4: Plan and reconcile design vs reality
 

@@ -99,7 +99,12 @@ it to its logical conclusion.
 If the user provided a target path, focus there. Otherwise, sweep the codebase
 for areas with the highest complexity-to-value ratio.
 
-Spawn parallel Explore sub-agents:
+Run a local scope-size probe first: list likely roots, search for obvious
+entry points and large/hot files, and read a few representative files. If the
+target path is small and the leverage is visible from direct reading, skip
+parallel Explore and proceed with that evidence.
+
+For repo-wide or genuinely broad targets, spawn parallel Explore sub-agents:
 1. **Architecture map** — module structure, dependency graph, entry points, data flow
 2. **Complexity hotspots** — large files, deep nesting, high cyclomatic complexity, god objects
 3. **Hidden assumptions** — implicit conventions, invisible coupling
