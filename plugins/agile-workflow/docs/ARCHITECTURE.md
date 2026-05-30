@@ -603,9 +603,9 @@ configured in `CONVENTIONS.md` (default: security → tests → cruft → docs
 |---|---|---|
 | `principles` | Loads code-design + substrate-execution principles | Code-design (Ports & Adapters, SSOT, Generated Contracts, Fail Fast) carried from workflow; substrate-execution (item-IS-the-work, rolling-foundation, late-binding) added |
 | `research` | Investigate libraries/APIs | Carried; produces research docs in `docs/research/` (separate from `.work/`) |
-| `repo-eval` | Multi-dimensional codebase score | Carried |
-| `tool-evaluator` | Evaluate dev tooling choices | Carried |
 | `refactor-conventions-creator` | Create project-specific refactor conventions skill | Carried |
+
+(`repo-eval` and `tool-evaluator` were originally carried here, then extracted to the standalone `nates-toolkit` plugin since they have no substrate lock-in.)
 
 ---
 

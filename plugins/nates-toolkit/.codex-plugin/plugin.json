@@ -1,0 +1,19 @@
+{
+  "name": "nates-toolkit",
+  "version": "0.1.0",
+  "description": "Standalone, project-agnostic utility skills with no workflow lock-in — plain-language re-explanation (plainspeak), holistic codebase evaluation (repo-eval), agent-tool self-assessment (tool-evaluator), and skill authoring + quality auditing (write-tool-skill, skill-evaluator).",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Nate's Toolkit",
+    "shortDescription": "Standalone utility skills, no workflow lock-in",
+    "longDescription": "A grab-bag of project-agnostic utility skills that stand on their own: plainspeak re-renders the last thing said in vivid plain language; repo-eval scores a codebase across architecture, testing, security, and DX; tool-evaluator audits how agent tooling performed in a session; write-tool-skill authors distributable skills for external tools and CLIs; skill-evaluator audits skill quality against type-specific rubrics.",
+    "developerName": "nklisch",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/nklisch/skills"
+  }
+}

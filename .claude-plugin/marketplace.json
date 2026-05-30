@@ -12,9 +12,9 @@
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
     {
-      "name": "skill-authoring",
-      "source": "./plugins/skill-authoring",
-      "description": "Create, evaluate, and refine agent skills — write distributable reference skills for tools, refine skill ideas, and audit skill quality.",
+      "name": "nates-toolkit",
+      "source": "./plugins/nates-toolkit",
+      "description": "Standalone, project-agnostic utility skills with no workflow lock-in — plainspeak (plain-language re-explanation), repo-eval (codebase scorecard), tool-evaluator (agent-tool self-assessment), write-tool-skill + skill-evaluator (skill authoring and quality auditing).",
       "category": "productivity",
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
@@ -42,6 +42,18 @@
       "description": "Runtime debugging for AI agents — debug 10 languages via DAP, record and control Chrome via CDP.",
       "category": "developer-tools",
       "tags": ["debugging", "dap", "cdp", "mcp", "browser"],
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
+    },
+    {
+      "name": "peeragent",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/nklisch/peeragent",
+        "path": "plugin"
+      },
+      "description": "Delegate arbitrary task work between local coding agents — any host (Claude Code, Codex) can call any peer (Codex, Claude Code, or Gemini through Antigravity). Ships the peer and peer-review skills.",
+      "category": "productivity",
+      "tags": ["peer-review", "delegation", "codex", "gemini", "multi-agent"],
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     }
   ]

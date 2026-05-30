@@ -529,7 +529,7 @@ fits their role rather than inventing a fresh shape.
 
 ## Discovery + emit verbs (scan code, produce items)
 
-`refactor-design`, `perf-design`, `bold-refactor`, `repo-eval`, and the gate
+`refactor-design`, `perf-design`, `bold-refactor`, and the gate
 family (`gate-cruft`, `gate-security`, `gate-tests`, `gate-docs`,
 `gate-patterns`)
 

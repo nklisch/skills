@@ -270,16 +270,14 @@ architectural and coding standards across the pipeline.
 ### Skill Authoring
 
 These skills help you create and maintain agent skills — both for this suite
-and for project-specific reference skills.
+and for project-specific reference skills. They now ship in the standalone
+`nates-toolkit` plugin (`/plugin install nates-toolkit@nklisch-skills`).
 
 - **write-tool-skill** — Create distributable reference skills for the current
   project's tool, CLI, MCP server, or library. Researches the codebase (code
   is source of truth, not docs), proposes scope and structure, writes the skill
   files for others to install. Use when you want to teach other people's agents
   how to use your project.
-- **skill-idea-refiner** — Refine a rough skill idea into a well-designed skill.
-  Guides through ideation, scoping, naming, structure decisions, and progressive
-  disclosure. Produces a design brief, then scaffolds the files.
 - **skill-evaluator** — Evaluate existing skills against type-specific quality
   rubrics. Classifies the skill type, scores across dimensions, recommends
   improvements, and generates test scenarios.

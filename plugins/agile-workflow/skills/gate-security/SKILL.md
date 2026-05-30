@@ -27,7 +27,7 @@ Sub-agent strength is explicit:
   changes, or a large/polyglot release bundle. Use a reviewer/default agent if
   available, otherwise a worker with read-only instructions.
 
-This is NOT a standalone audit (for that, use `/agile-workflow:repo-eval`). This
+This is NOT a standalone audit (for that, use a standalone `repo-eval` skill). This
 is a gate over a specific release bundle, producing items the release-deploy
 flow can drain to `done` before shipping.
 
@@ -254,4 +254,4 @@ In conversation:
 - Idempotent re-runs: pass already-tracked findings into the sub-agent's brief
   so it skips duplicates. Double-check on item-write before creating.
 - Audit only the bundle's changes, not the whole repo. Repo-wide audits are
-  `/agile-workflow:repo-eval`'s job, not a release gate's.
+  a standalone `repo-eval`'s job, not a release gate's.

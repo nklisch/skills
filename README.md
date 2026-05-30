@@ -1,8 +1,8 @@
 # nklisch/skills
 
 A software development workflow suite for Claude Code (and Codex) — work
-tracking, UI/UX design, and skill authoring, designed to tee up autonomous
-agent runs that actually ship the right thing.
+tracking, UI/UX design, and standalone utility skills, designed to tee up
+autonomous agent runs that actually ship the right thing.
 
 Available as **Claude Code plugins**, **Codex plugins**, and via
 **[skilltap](https://github.com/nklisch/skilltap)**.
@@ -16,7 +16,7 @@ Available as **Claude Code plugins**, **Codex plugins**, and via
 # Step 2: Install the plugins you want
 /plugin install agile-workflow@nklisch-skills    # work tracking + autopilot
 /plugin install ux-ui-design@nklisch-skills      # mockup-first UI design
-/plugin install skill-authoring@nklisch-skills   # author your own skills
+/plugin install nates-toolkit@nklisch-skills     # standalone utility skills
 ```
 
 ## The three supported plugins
@@ -25,7 +25,7 @@ Available as **Claude Code plugins**, **Codex plugins**, and via
 |---|---|---|
 | **agile-workflow** | Substrate-driven work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, goal-backed autopilot queue runner. | [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md) |
 | **ux-ui-design** | HTML/CSS/JS mockup-first UI design. Throwaway single-file mockups in `.mockups/` for alignment before any production code. Loosely integrated with agile-workflow. | [docs/ux-ui-design-guide.md](docs/ux-ui-design-guide.md) |
-| **skill-authoring** | Create, evaluate, and refine your own agent skills. |  |
+| **nates-toolkit** | Standalone utility skills, no workflow lock-in — explain in plain language, score a codebase, evaluate agent tooling, author and audit skills. |  |
 
 The two big ones — `agile-workflow` + `ux-ui-design` — are designed to work
 together. The killer workflow is to use `ux-ui-design` mocks during
@@ -137,8 +137,6 @@ order (default: security → tests → cruft → docs → patterns).
 |-------|-------------|
 | **principles** | Code-design (Ports & Adapters, SSOT, Generated Contracts, Fail Fast) + substrate-execution (Item-IS-the-Work, Rolling-Foundation, Late-Binding) principles. Auto-loads. |
 | **research** | Investigate libraries, APIs, SDKs. Produces a research doc and auto-loading reference skill. |
-| **repo-eval** | Multi-dimensional codebase audit. Files top recommendations as substrate items tagged `[audit]` when a substrate exists. |
-| **tool-evaluator** | Self-evaluate agent tool usage in the current conversation. Recommendations for tool authors. |
 | **refactor-conventions-creator** | Interview-based. Generates a project-specific refactor-conventions skill. |
 
 ## ux-ui-design
@@ -171,12 +169,17 @@ This is the killer pairing: do mocks alongside the `--only-questions`
 passes so autopilot inherits visual alignment along with directional
 choices.
 
-## Skill Authoring
+## Nate's Toolkit
+
+Standalone, project-agnostic utility skills with no workflow lock-in. Install
+via `/plugin install nates-toolkit@nklisch-skills`.
 
 | Skill | What it does |
 |-------|-------------|
-| **write-tool-skill** | Create distributable reference skills for your project's tool, CLI, MCP server, or library. |
-| **skill-idea-refiner** | Refine a rough skill idea into a well-designed skill. |
+| **plainspeak** | Re-render the last thing said in vivid plain language — one everyday metaphor, one concrete example, a crisp restatement, at a chosen depth. Manual only (`/plainspeak`). |
+| **repo-eval** | Multi-dimensional codebase audit — calibrated 1–10 scorecard with prioritized recommendations. Files findings as substrate items when an agile-workflow `.work/` exists. |
+| **tool-evaluator** | Self-evaluate agent tool usage in the current conversation. Recommendations for tool authors. |
+| **write-tool-skill** | Create distributable reference skills for a tool, CLI, MCP server, or library. |
 | **skill-evaluator** | Evaluate skills against type-specific quality rubrics. Scored reports with improvements. |
 
 ## Library & Tool References
@@ -245,7 +248,7 @@ plugins/agile-workflow/            # agile-workflow plugin (substrate-driven)
 plugins/ux-ui-design/              # ux-ui-design plugin (7 skills, mockup-first)
 ├── skills/                        #   skill source
 └── docs/                          #   plugin design docs
-plugins/skill-authoring/skills/    # skill-authoring plugin skills
+plugins/nates-toolkit/skills/      # standalone utility skills (plainspeak, repo-eval, tool-evaluator, write-tool-skill, skill-evaluator)
 plugins/workflow/                  # DEPRECATED — doc-driven, no longer supported
 .agents/skills/                    # reference, principle, and utility skills (skilltap)
 .claude-plugin/                    # Claude Code plugin manifest (root)
