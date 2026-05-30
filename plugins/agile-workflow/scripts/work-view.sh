@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # work-view — query items in the agile-workflow substrate.
 #
-# Pure bash + grep + sed + awk. Optional yq enhancement detected at runtime
-# but not required.
+# Pure bash + a single awk pass. Frontmatter for every item is parsed exactly
+# once, in one awk process for the whole tree, instead of spawning an awk per
+# field per file. Optional yq enhancement detected at runtime but not required.
 #
 # Exit codes:
 #   0  success
@@ -90,84 +91,110 @@ find_substrate_root() {
 }
 
 # ============================================================================
-# Frontmatter parsing
+# Frontmatter parser (single awk pass for the whole tree)
 # ============================================================================
+#
+# Reads every item file once and emits one Unit-Separator-delimited record per
+# file:
+#   path \037 id \037 kind \037 stage \037 parent \037 release_binding \037
+#        gate_origin \037 tags \037 depends_on
+#
+# Scalars are whitespace- and one-layer-quote-stripped exactly like the old
+# fm_field. tags/depends_on are normalized from flow style ([a, b, c]) to
+# space-joined tokens exactly like the old fm_array (only flow arrays are
+# supported, matching prior behavior). The Unit Separator (0x1F) never appears
+# in YAML frontmatter, so empty fields survive the round trip.
 
-# Print the value of a scalar frontmatter field, or empty if absent.
-fm_field() {
-  local file="$1" field="$2"
-  awk -v f="$field" '
-    BEGIN { in_fm = 0 }
-    /^---[[:space:]]*$/ {
-      if (in_fm == 0) { in_fm = 1; next }
-      else { exit }
-    }
-    in_fm == 1 {
-      pat = "^" f ":[[:space:]]*"
-      if (match($0, pat)) {
-        val = substr($0, RLENGTH + 1)
-        gsub(/^[[:space:]]+|[[:space:]]+$/, "", val)
-        # Strip surrounding quotes
-        gsub(/^"|"$/, "", val)
-        gsub(/^'\''|'\''$/, "", val)
-        print val
-        exit
-      }
-    }
-  ' "$file"
+read -r -d '' AWK_INDEX <<'AWK' || true
+function strip(v) {
+  sub(/^[[:space:]]+/, "", v)
+  sub(/[[:space:]]+$/, "", v)
+  sub(/^"/, "", v); sub(/"$/, "", v)
+  sub(/^'/, "", v); sub(/'$/, "", v)
+  return v
 }
-
-# Print elements of an array frontmatter field as space-separated tokens.
-# Handles flow style: tags: [a, b, c]
-# Empty array -> no output.
-fm_array() {
-  local file="$1" field="$2" raw
-  raw="$(fm_field "$file" "$field")"
-  if [[ -z "$raw" || "$raw" == "[]" ]]; then
-    return 0
-  fi
-  raw="${raw#[}"
-  raw="${raw%]}"
-  raw="${raw// /}"
-  raw="${raw//,/ }"
-  printf '%s\n' "$raw"
+# Normalize a flow-style scalar ("[a, b]") to space-joined tokens ("a b").
+function narr(v) {
+  if (v == "" || v == "[]") return ""
+  sub(/^\[/, "", v); sub(/\]$/, "", v)
+  gsub(/ /, "", v)
+  gsub(/,/, " ", v)
+  return v
 }
-
-# Convert "null" or empty to empty string; otherwise echo as-is.
-fm_optional() {
-  local v="$1"
-  if [[ -z "$v" || "$v" == "null" ]]; then
-    return 0
-  fi
-  printf '%s\n' "$v"
+function field(line, key,   p) {
+  p = "^" key ":"
+  if (match(line, p)) return strip(substr(line, RLENGTH + 1))
+  return "\001NOMATCH\001"
 }
+function emit() {
+  if (cf == "") return
+  printf "%s\037%s\037%s\037%s\037%s\037%s\037%s\037%s\037%s\n", \
+    cf, id, kind, stage, parent, rel, gate, narr(tags), narr(deps)
+}
+function reset(fname) {
+  cf = fname; in_fm = 0; fm_done = 0
+  id = ""; kind = ""; stage = ""; parent = ""
+  rel = ""; gate = ""; tags = ""; deps = ""
+  delete have
+}
+BEGIN { v = "" }
+FNR == 1 { emit(); reset(FILENAME) }
+{
+  if (fm_done) next
+  if ($0 ~ /^---[[:space:]]*$/) {
+    if (in_fm == 0) { in_fm = 1 } else { fm_done = 1 }
+    next
+  }
+  if (in_fm != 1) next
+  if (!("id" in have))      { v = field($0, "id");              if (v != "\001NOMATCH\001") { id = v;     have["id"] = 1;     next } }
+  if (!("kind" in have))    { v = field($0, "kind");            if (v != "\001NOMATCH\001") { kind = v;   have["kind"] = 1;   next } }
+  if (!("stage" in have))   { v = field($0, "stage");           if (v != "\001NOMATCH\001") { stage = v;  have["stage"] = 1;  next } }
+  if (!("parent" in have))  { v = field($0, "parent");          if (v != "\001NOMATCH\001") { parent = v; have["parent"] = 1; next } }
+  if (!("rel" in have))     { v = field($0, "release_binding"); if (v != "\001NOMATCH\001") { rel = v;    have["rel"] = 1;    next } }
+  if (!("gate" in have))    { v = field($0, "gate_origin");     if (v != "\001NOMATCH\001") { gate = v;   have["gate"] = 1;   next } }
+  if (!("tags" in have))    { v = field($0, "tags");            if (v != "\001NOMATCH\001") { tags = v;   have["tags"] = 1;   next } }
+  if (!("deps" in have))    { v = field($0, "depends_on");      if (v != "\001NOMATCH\001") { deps = v;   have["deps"] = 1;   next } }
+}
+END { emit() }
+AWK
 
 # ============================================================================
 # Item index
 # ============================================================================
-
-# Globals populated by build_index:
-#   ALL_FILES — array of all item file paths
-#   declare -A STAGE_BY_ID, FILE_BY_ID
+#
+# Globals populated by build_index (all keyed by file path unless noted):
+#   ALL_FILES          — array of item file paths, in find traversal order
+#   IDX_ID/KIND/STAGE/PARENT/REL/GATE — scalar fields
+#   IDX_TAGS/IDX_DEPS  — space-joined tokens
+#   FILE_BY_ID/STAGE_BY_ID — keyed by item id (for the dependency graph)
 
 declare -a ALL_FILES=()
-declare -A STAGE_BY_ID
-declare -A FILE_BY_ID
+declare -A IDX_ID IDX_KIND IDX_STAGE IDX_PARENT IDX_REL IDX_GATE IDX_TAGS IDX_DEPS
+declare -A STAGE_BY_ID FILE_BY_ID
 
 build_index() {
   local root="$1"
-  local f id stage
+  local path id kind stage parent rel gate tags deps
   ALL_FILES=()
-  while IFS= read -r -d '' f; do
-    ALL_FILES+=("$f")
-    id="$(fm_field "$f" id)"
-    stage="$(fm_field "$f" stage)"
+  while IFS=$'\037' read -r path id kind stage parent rel gate tags deps; do
+    [[ -n "$path" ]] || continue
+    ALL_FILES+=("$path")
+    IDX_ID["$path"]="$id"
+    IDX_KIND["$path"]="$kind"
+    IDX_STAGE["$path"]="$stage"
+    IDX_PARENT["$path"]="$parent"
+    IDX_REL["$path"]="$rel"
+    IDX_GATE["$path"]="$gate"
+    IDX_TAGS["$path"]="$tags"
+    IDX_DEPS["$path"]="$deps"
     if [[ -n "$id" ]]; then
-      FILE_BY_ID["$id"]="$f"
+      FILE_BY_ID["$id"]="$path"
       STAGE_BY_ID["$id"]="$stage"
     fi
   done < <(find "$root/.work/active" "$root/.work/backlog" "$root/.work/releases" "$root/.work/archive" \
-             -type f -name '*.md' -print0 2>/dev/null || true)
+             -type f -name '*.md' -print0 2>/dev/null \
+           | LC_ALL=C sort -z \
+           | xargs -0 awk "$AWK_INDEX" 2>/dev/null || true)
 }
 
 # True if item id is at stage:done OR lives in releases/ or archive/ (terminal).
@@ -188,7 +215,7 @@ is_done() {
 deps_satisfied() {
   local file="$1"
   local dep
-  for dep in $(fm_array "$file" depends_on); do
+  for dep in ${IDX_DEPS[$file]:-}; do
     if ! is_done "$dep"; then
       return 1
     fi
@@ -255,40 +282,35 @@ declare -a matches=()
 for f in "${ALL_FILES[@]}"; do
   # --kind
   if [[ -n "$want_kind" ]]; then
-    k="$(fm_field "$f" kind)"
-    [[ "$k" == "$want_kind" ]] || continue
+    [[ "${IDX_KIND[$f]}" == "$want_kind" ]] || continue
   fi
 
   # --stage
   if [[ -n "$want_stage" ]]; then
-    s="$(fm_field "$f" stage)"
-    [[ "$s" == "$want_stage" ]] || continue
+    [[ "${IDX_STAGE[$f]}" == "$want_stage" ]] || continue
   fi
 
   # --parent
   if [[ -n "$want_parent" ]]; then
-    p="$(fm_field "$f" parent)"
-    [[ "$p" == "$want_parent" ]] || continue
+    [[ "${IDX_PARENT[$f]}" == "$want_parent" ]] || continue
   fi
 
   # --release
   if [[ -n "$want_release" ]]; then
-    r="$(fm_field "$f" release_binding)"
-    [[ "$r" == "$want_release" ]] || continue
+    [[ "${IDX_REL[$f]}" == "$want_release" ]] || continue
   fi
 
   # --gate
   if [[ -n "$want_gate" ]]; then
-    g="$(fm_field "$f" gate_origin)"
-    [[ "$g" == "$want_gate" ]] || continue
+    [[ "${IDX_GATE[$f]}" == "$want_gate" ]] || continue
   fi
 
   # --tag (AND semantics, repeatable)
   if (( ${#want_tags[@]} > 0 )); then
-    file_tags="$(fm_array "$f" tags || true)"
+    file_tags="${IDX_TAGS[$f]}"
     skip=0
     for t in "${want_tags[@]}"; do
-      if ! echo " $file_tags " | grep -q " $t "; then
+      if [[ " $file_tags " != *" $t "* ]]; then
         skip=1
         break
       fi
@@ -298,16 +320,14 @@ for f in "${ALL_FILES[@]}"; do
 
   # --blocking <id>
   if [[ -n "$want_blocking" ]]; then
-    deps="$(fm_array "$f" depends_on || true)"
-    if ! echo " $deps " | grep -q " $want_blocking "; then
+    if [[ " ${IDX_DEPS[$f]} " != *" $want_blocking "* ]]; then
       continue
     fi
   fi
 
   # --ready / --blocked: only items at stage:implementing
   if [[ $want_ready -eq 1 || $want_blocked -eq 1 ]]; then
-    s="$(fm_field "$f" stage)"
-    [[ "$s" == "implementing" ]] || continue
+    [[ "${IDX_STAGE[$f]}" == "implementing" ]] || continue
     if [[ $want_ready -eq 1 ]]; then
       deps_satisfied "$f" || continue
     else
@@ -353,11 +373,11 @@ case "$output_mode" in
     printf '%-40s  %-8s  %-14s  %-30s  %s\n' "ID" "KIND" "STAGE" "TAGS" "PARENT"
     printf '%-40s  %-8s  %-14s  %-30s  %s\n' "----------------------------------------" "--------" "--------------" "------------------------------" "----------------"
     for f in "${matches[@]}"; do
-      id="$(fm_field "$f" id)"
-      kind="$(fm_field "$f" kind)"
-      stage="$(fm_field "$f" stage)"
-      tags_csv="$(fm_array "$f" tags | tr ' ' ',' || true)"
-      parent="$(fm_field "$f" parent)"
+      id="${IDX_ID[$f]}"
+      kind="${IDX_KIND[$f]}"
+      stage="${IDX_STAGE[$f]}"
+      tags_csv="${IDX_TAGS[$f]// /,}"
+      parent="${IDX_PARENT[$f]}"
       [[ "$parent" == "null" ]] && parent="-"
       printf '%-40s  %-8s  %-14s  %-30s  %s\n' "$id" "$kind" "$stage" "$tags_csv" "$parent"
     done
