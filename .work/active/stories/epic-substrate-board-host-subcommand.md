@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-host-subcommand
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-host
 depends_on: []
@@ -37,11 +37,30 @@ contract.
 
 ## Acceptance Criteria
 
-- [ ] `work-view board --help` and `work-view serve --help` print board help and
+- [x] `work-view board --help` and `work-view serve --help` print board help and
       exit 0.
-- [ ] Existing `work-view --help`, query filters, output modes, and exit codes
+- [x] Existing `work-view --help`, query filters, output modes, and exit codes
       remain unchanged.
-- [ ] Unknown board flags return usage error exit 1.
-- [ ] Board parsing has unit coverage for aliases, missing values, and unknown
+- [x] Unknown board flags return usage error exit 1.
+- [x] Board parsing has unit coverage for aliases, missing values, and unknown
       flags.
 
+## Implementation notes
+
+- Files changed:
+  `plugins/agile-workflow/work-view/crates/cli/src/main.rs`,
+  `plugins/agile-workflow/work-view/crates/cli/src/board/mod.rs`,
+  `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs`.
+- Tests added: board parser unit tests for defaults, aliases, missing/invalid
+  `--port`, unknown flags, help, `--once`, and positionals; integration tests
+  for `board --help`, `serve --help`, unknown board flags, and board no-substrate
+  exit code.
+- Discrepancies from design: none. `run_board` is the designed Unit 1
+  placeholder; it validates substrate root discovery, reports that the server is
+  not implemented yet, and returns nonzero without claiming a server exists.
+- Adjacent issues parked: none.
+- Verification: `cargo test -p work-view-cli` passed. Full workspace
+  `cargo test` passed crate unit/integration tests but failed during unrelated
+  `work-view-core` doctest linking with `ld terminated with signal 7 [Bus
+  error]`; retrying `cargo test -p work-view-core --doc` reproduced the same
+  linker crash before test code ran.

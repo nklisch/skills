@@ -127,10 +127,59 @@ fn exit_0_on_help_short() {
 }
 
 #[test]
+fn exit_0_on_board_help() {
+    let (stdout, stderr, code) = run(&["board", "--help"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("work-view board"),
+        "board help should contain command name; stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("--port <n>"),
+        "board help should contain board options; stdout: {stdout}"
+    );
+    assert_eq!(stderr, "");
+}
+
+#[test]
+fn exit_0_on_serve_help() {
+    let (stdout, stderr, code) = run(&["serve", "--help"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("work-view board"),
+        "serve alias should print board help; stdout: {stdout}"
+    );
+    assert_eq!(stderr, "");
+}
+
+#[test]
 fn exit_1_on_unknown_flag() {
     let (_, stderr, code) = run(&["--unknown-flag"]);
     assert_eq!(code, 1, "unknown flag should exit 1");
     assert!(stderr.contains("unknown flag"), "stderr: {stderr}");
+}
+
+#[test]
+fn exit_1_on_unknown_board_flag() {
+    let (_, stderr, code) = run(&["board", "--unknown-flag"]);
+    assert_eq!(code, 1, "unknown board flag should exit 1");
+    assert!(
+        stderr.contains("unknown board flag"),
+        "stderr should mention board flag parsing; stderr: {stderr}"
+    );
+}
+
+#[test]
+fn board_without_substrate_exits_2() {
+    let out = Command::new(bin!())
+        .args(["board", "--no-open"])
+        .current_dir("/tmp")
+        .output()
+        .expect("failed to run work-view board");
+    let code = out.status.code().unwrap_or(-1);
+    assert_eq!(code, 2, "no-substrate board should exit 2");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("no substrate"), "stderr: {stderr}");
 }
 
 #[test]
@@ -1423,7 +1472,8 @@ fn parity_kind_feature_stage_implementing_paths_matches_bash() {
 
 /// Contents of the committed version stamp, read at compile time.
 /// Written with NO trailing newline, so this is the bare semver.
-const VERSION_STAMP: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/.work-view-version"));
+const VERSION_STAMP: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/.work-view-version"));
 
 #[test]
 fn version_long_prints_stamp_and_exits_zero() {
@@ -1441,8 +1491,14 @@ fn version_short_matches_long() {
     let (long_stdout, _, long_code) = run(&["--version"]);
     let (short_stdout, _, short_code) = run(&["-V"]);
     assert_eq!(short_code, 0, "-V must exit 0");
-    assert_eq!(short_code, long_code, "-V and --version exit codes must match");
-    assert_eq!(short_stdout, long_stdout, "-V and --version stdout must match");
+    assert_eq!(
+        short_code, long_code,
+        "-V and --version exit codes must match"
+    );
+    assert_eq!(
+        short_stdout, long_stdout,
+        "-V and --version stdout must match"
+    );
 }
 
 #[test]
@@ -1462,10 +1518,14 @@ fn version_stamp_equals_plugin_json_version() {
     // The repo keeps the Claude AND Codex manifests in lockstep, so check BOTH —
     // a Codex-only drift must not slip past this test.
     // crates/cli -> ../../../{.claude-plugin,.codex-plugin}/plugin.json
-    const CLAUDE_JSON: &str =
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../.claude-plugin/plugin.json"));
-    const CODEX_JSON: &str =
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../.codex-plugin/plugin.json"));
+    const CLAUDE_JSON: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../.claude-plugin/plugin.json"
+    ));
+    const CODEX_JSON: &str = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../.codex-plugin/plugin.json"
+    ));
 
     // Minimal extraction (no serde dependency in this crate): find the
     // "version": "x.y.z" entry and pull the quoted value.

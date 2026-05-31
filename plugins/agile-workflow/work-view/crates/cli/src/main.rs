@@ -27,6 +27,7 @@
 
 mod actionable;
 mod args;
+mod board;
 mod render;
 
 use std::env;
@@ -37,11 +38,30 @@ use work_view_core::index::{find_substrate_root, Substrate};
 
 use actionable::apply_dependency_view;
 use args::{parse_args, ParseOutcome, HELP};
+use board::{parse_board_args, run_board, BoardParseOutcome, BOARD_HELP};
 use render::render;
 
 fn run() -> u8 {
     // ── 1. Parse argv ────────────────────────────────────────────────────────
     let argv: Vec<String> = env::args().skip(1).collect();
+    if matches!(argv.first().map(String::as_str), Some("board" | "serve")) {
+        let outcome = match parse_board_args(argv.into_iter().skip(1)) {
+            Ok(o) => o,
+            Err(e) => {
+                eprintln!("{e}");
+                return 1;
+            }
+        };
+
+        return match outcome {
+            BoardParseOutcome::Help => {
+                println!("{BOARD_HELP}");
+                0
+            }
+            BoardParseOutcome::Run(opts) => run_board(opts),
+        };
+    }
+
     let outcome = match parse_args(argv.into_iter()) {
         Ok(o) => o,
         Err(e) => {
