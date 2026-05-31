@@ -5,10 +5,10 @@ stage: done
 tags: [tooling]
 parent: epic-substrate-cli
 depends_on: [epic-substrate-cli-query-core]
-release_binding: null
+release_binding: 0.8.6
 gate_origin: null
 created: 2026-05-30
-updated: 2026-05-30
+updated: 2026-05-31
 ---
 
 # Agent-facing CLI surface (work-view parity)

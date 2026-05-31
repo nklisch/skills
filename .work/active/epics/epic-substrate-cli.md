@@ -5,10 +5,10 @@ stage: done
 tags: [tooling]
 parent: null
 depends_on: []
-release_binding: null
+release_binding: 0.8.6
 gate_origin: null
 created: 2026-05-30
-updated: 2026-05-30
+updated: 2026-05-31
 ---
 
 # Substrate CLI — compiled agent surface over `.work/`
