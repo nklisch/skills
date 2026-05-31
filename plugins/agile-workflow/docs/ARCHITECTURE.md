@@ -23,8 +23,8 @@ files:
 │       └── <id>.md           items bound to this release
 ├── archive/               done items not bound to any release
 │   └── <id>.md
-├── bin/                   repo-local scripts copied from plugin
-│   └── work-view
+├── bin/                   platform-matched prebuilt binary (or bash fallback)
+│   └── work-view          installed by install-work-view.sh via convert
 └── CONVENTIONS.md         project-specific overrides
 ```
 

@@ -697,7 +697,11 @@ path list), plus deeper checks:
   the version in the current plugin source:
   - The selected AGENTS target section between `<!-- agile-workflow:start -->` /
     `<!-- agile-workflow:end -->` vs the canonical template in Phase 6
-  - `.work/bin/work-view` vs `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/work-view.sh`
+  - `.work/bin/work-view` — check existence and executability (the `work_view`
+    doctor marker). Do NOT compare bytes against `work-view.sh`; the installed
+    file may be a prebuilt binary placed by `install-work-view.sh`, which is
+    legitimately different from the bash fallback script. If `.work/bin/work-view`
+    is absent or not executable, classify as `missing` and re-run the installer.
   - `CLAUDE.md` compatibility state (symlink/shim/legacy copy)
   - `.claude/rules/patterns.md` state (legacy content vs AGENTS shim)
   - `.work/CONVENTIONS.md` load-bearing tag entries (see below). The rest of

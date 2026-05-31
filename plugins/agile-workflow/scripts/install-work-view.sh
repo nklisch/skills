@@ -63,16 +63,36 @@ mkdir -p .work/bin
 #    Copies src to .work/bin/work-view.tmp, chmod +x, smoke-tests --help.
 #    On success: atomic mv to .work/bin/work-view; returns 0.
 #    On failure: removes .tmp; returns 1.
+#
+#    Robustness notes:
+#    - Called from an if/&& context where set -e is suppressed; every critical
+#      command has an explicit || return 1 so failures surface.
+#    - If .work/bin/work-view already exists as a directory (e.g. from a
+#      previous misinstall), we fail loudly rather than silently moving the
+#      tmp binary inside it.
+#    - After mv, we verify the destination is a regular executable file.
 # ---------------------------------------------------------------------------
 install_and_verify() {
   local src="$1"
+  local dest=".work/bin/work-view"
   local tmp=".work/bin/work-view.tmp"
 
-  cp "$src" "$tmp"
-  chmod +x "$tmp"
+  # Guard: if the destination already exists as a directory, that's an error.
+  if [ -d "$dest" ]; then
+    echo "install-work-view: destination '${dest}' is a directory, not a file — refusing to install" >&2
+    return 1
+  fi
+
+  cp "$src" "$tmp" || return 1
+  chmod +x "$tmp" || { rm -f "$tmp"; return 1; }
 
   if "$tmp" --help >/dev/null 2>&1; then
-    mv "$tmp" .work/bin/work-view
+    mv "$tmp" "$dest" || { rm -f "$tmp"; return 1; }
+    # Verify the final destination is a regular executable file.
+    if [ ! -f "$dest" ] || [ ! -x "$dest" ]; then
+      echo "install-work-view: post-install sanity check failed on '${dest}'" >&2
+      return 1
+    fi
     return 0
   else
     rm -f "$tmp"

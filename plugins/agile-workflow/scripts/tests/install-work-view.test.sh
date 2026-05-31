@@ -328,6 +328,98 @@ assert_true "Darwin arm64 --help works" "'${INSTALL_WORKDIR}/.work/bin/work-view
 rm -rf "$INSTALL_WORKDIR"
 
 # ---------------------------------------------------------------------------
+# Test 8: Destination is a pre-existing DIRECTORY → installer fails, no
+#         bogus install (Finding 3b robustness)
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 8: dest is a pre-existing directory → installer must not succeed ==="
+
+WORKDIR_DIR="$(mktemp -d)"
+mkdir -p "${WORKDIR_DIR}/.work/bin"
+# Create a directory where work-view should be a file
+mkdir -p "${WORKDIR_DIR}/.work/bin/work-view"
+
+DIR_OUT=$(
+  cd "$WORKDIR_DIR" &&
+  PLUGIN_ROOT="$PLUGIN_ROOT_DIR" \
+  WORK_VIEW_UNAME_S="Linux" \
+  WORK_VIEW_UNAME_M="x86_64" \
+  bash "$HELPER" 2>/dev/null
+)
+DIR_RC=$?
+
+# The installer should have exited non-zero OR the destination must now be a
+# regular executable file (not a directory). Both mean no bogus install.
+if [ "$DIR_RC" -ne 0 ]; then
+  echo "  PASS: dest-is-dir: installer correctly exited non-zero ($DIR_RC)"
+  ((PASS++))
+elif [ -f "${WORKDIR_DIR}/.work/bin/work-view" ] && [ -x "${WORKDIR_DIR}/.work/bin/work-view" ]; then
+  # installer recovered: dest is now a real file (it removed the dir and
+  # installed — also acceptable if the helper chooses rm-and-recover)
+  echo "  PASS: dest-is-dir: installer recovered; dest is now a regular executable"
+  ((PASS++))
+else
+  echo "  FAIL: dest-is-dir: installer reported success (rc=$DIR_RC) but dest is still a directory or not executable"
+  ((FAIL++))
+  ERRORS+=("dest-is-dir: installer reported bogus success")
+fi
+
+# No .tmp should be left behind
+assert_false "dest-is-dir: no .tmp left" "[ -f '${WORKDIR_DIR}/.work/bin/work-view.tmp' ]"
+
+rm -rf "$WORKDIR_DIR"
+
+# ---------------------------------------------------------------------------
+# Test 9: cp failure (unreadable source) → installer surfaces failure
+#         (Finding 3a: set -e suppression in if/&& context)
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 9: cp failure (unreadable source) → installer surfaces failure ==="
+
+WORKDIR_CP="$(mktemp -d)"
+# Make a candidate dir/file that exists but is not readable
+UNREADABLE_TRIPLE_DIR="${PLUGIN_ROOT_DIR}/work-view/dist/x86_64-unknown-linux-musl"
+UNREADABLE_CANDIDATE="${UNREADABLE_TRIPLE_DIR}/work-view"
+# Save good stub, replace with unreadable file
+mv "${UNREADABLE_CANDIDATE}" "${UNREADABLE_CANDIDATE}.bak_t9"
+# Create an empty unreadable file
+touch "${UNREADABLE_CANDIDATE}"
+chmod 000 "${UNREADABLE_CANDIDATE}"
+
+CP_OUT=$(
+  cd "$WORKDIR_CP" &&
+  PLUGIN_ROOT="$PLUGIN_ROOT_DIR" \
+  WORK_VIEW_UNAME_S="Linux" \
+  WORK_VIEW_UNAME_M="x86_64" \
+  bash "$HELPER" 2>/dev/null
+)
+CP_RC=$?
+
+# The installer should either:
+# (a) exit non-zero (cp failed → propagated), OR
+# (b) fall back to the bash fallback and succeed with "installed bash fallback"
+# Either way it must NOT report "installed prebuilt ..." with a broken binary.
+if [ "$CP_RC" -ne 0 ]; then
+  echo "  PASS: cp-failure: installer exited non-zero as expected ($CP_RC)"
+  ((PASS++))
+elif [ "$CP_OUT" = "installed bash fallback" ]; then
+  echo "  PASS: cp-failure: installer fell back to bash fallback (acceptable)"
+  ((PASS++))
+else
+  echo "  FAIL: cp-failure: installer reported unexpected success: rc=$CP_RC out=$(printf '%q' "$CP_OUT")"
+  ((FAIL++))
+  ERRORS+=("cp-failure: installer did not surface failure or fall back correctly")
+fi
+
+# No .tmp should be left behind regardless
+assert_false "cp-failure: no .tmp left" "[ -f '${WORKDIR_CP}/.work/bin/work-view.tmp' ]"
+
+# Restore the good stub
+chmod 644 "${UNREADABLE_CANDIDATE}"
+mv "${UNREADABLE_CANDIDATE}.bak_t9" "${UNREADABLE_CANDIDATE}"
+rm -rf "$WORKDIR_CP"
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo ""

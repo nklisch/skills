@@ -4,17 +4,21 @@ on:
   push:
     paths:
       - "plugins/agile-workflow/work-view/**"
+      - "plugins/agile-workflow/scripts/install-work-view.sh"
+      - "plugins/agile-workflow/scripts/tests/**"
       - ".github/workflows/build-work-view.yml"
   pull_request:
     paths:
       - "plugins/agile-workflow/work-view/**"
+      - "plugins/agile-workflow/scripts/install-work-view.sh"
+      - "plugins/agile-workflow/scripts/tests/**"
       - ".github/workflows/build-work-view.yml"
   workflow_dispatch:
     inputs:
       commit_binaries:
         description: "Commit built binaries to dist/ (manual refresh job)"
         required: false
-        default: "true"
+        default: true
         type: boolean
 
 env:
@@ -154,7 +158,7 @@ jobs:
   # -----------------------------------------------------------------------
   commit-dist:
     name: Commit binaries to dist/
-    if: github.event_name == 'workflow_dispatch' && inputs.commit_binaries == 'true'
+    if: github.event_name == 'workflow_dispatch' && inputs.commit_binaries
     needs:
       - build-linux
       - build-macos
