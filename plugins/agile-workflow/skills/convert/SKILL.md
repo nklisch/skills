@@ -353,9 +353,15 @@ git history is the audit trail. Item files are the durable state: update the
 body with implementation discoveries, review findings, blockers, and decisions
 instead of relying on chat history.
 
-Project-level agent rules live in this file (the canonical agent instruction
-file). Do not create or maintain `.claude/rules/*.md` as a source of truth;
-reusable structural patterns belong in `.agents/skills/patterns/`.
+Reusable code patterns live in `.agents/skills/patterns/` (load the `patterns`
+skill for detail). Project agent rules live in `.agents/rules/*.md`
+(plugin-managed rules in `.agents/rules/agile-workflow.md`); do not maintain
+`.claude/rules/*.md` as a source of truth.
+
+**Before designing, implementing, or reviewing, read `.agents/rules/*.md`** —
+the project's force-loaded agent rules (tag semantics, test integrity, review
+policy). The agile-workflow hook auto-loads these at session start and after
+compaction; read them directly when working without the hook.
 
 Project-specific refactor style conventions belong in this file under
 `## Refactor Style Conventions`. Detailed refactor convention references belong
@@ -363,64 +369,98 @@ in `.agents/skills/refactor-conventions/` and extend `refactor-design`'s
 defaults; they do not replace the built-in scan and they do not create
 standalone plan docs.
 
-### Tag semantics
-
-The `tags` field on items routes them to the right design skill. One tag has
-load-bearing semantics — get this one right:
-
-- **`[refactor]`** — behavior-preserving structural change ONLY. Apply the
-  black-box test: would any observable behavior change for a caller of the
-  public surface? If yes, this is NOT a refactor — drop the tag and let the
-  item route through `feature-design`.
-  - Counts as refactor: extract a helper to dedupe, split a god file, rename
-    for clarity, remove dead code, inline a one-call abstraction.
-  - Does NOT count as refactor (even if it feels "structural"): change an API
-    signature, swap a storage backend with different consistency guarantees,
-    replace a silent failure with an explicit error, split a function in a
-    way that changes call-site contracts, "major rework of X."
-- **`[perf]`** — performance work. Routes to `perf-design`.
-
-All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
-affect skill routing.
-
-### Test integrity
-
-When running, writing, or modifying tests:
-
-- **File real production bugs as backlog items.** When a test failure
-  surfaces an actual product bug (not a stale fixture, drifted assertion,
-  or broken mock), park it via `/agile-workflow:park` instead of silently
-  fixing it inline mid-test-pass. The backlog item is the audit trail.
-- **Fix bad tests in-session.** Stale fixtures, drifted assertions, broken
-  mocks, and outdated snapshots are test debt, not product bugs. Repair
-  them as you go so the suite stays meaningful.
-- **Then drain small backlog bugs with a full pass.** Once tests are
-  green again, if a parked production bug is small enough for a single
-  stride, pick it up immediately as `/agile-workflow:scope` → design →
-  implement. Larger bugs stay in backlog for prioritization.
-- **NEVER game a test to make it pass.** A failing test that documents
-  *why* it fails — an inline comment naming the bug, a `skip` linked to a
-  backlog id, an `xfail` with a reason — is more honest than a green test
-  that lies. No `expect(true).toBe(true)`, no asserting on whatever the
-  code happens to return, no deleting a test as "flaky" without
-  root-causing first.
-
-Cross-model advisory review: explicit user/project review instructions
-override agile-workflow defaults. When peeragent is available with a different
-model class, large/risky autopilot design decisions may use one advisory pass;
-small/low-risk work skips it. Autopilot also runs a final peer-review loop
-before reporting completion and fixes or files accepted findings first.
-Same-model peers fall back to local sub-agents instead.
-
-Broad entry points:
-`/agile-workflow:ideate`, `/agile-workflow:epicize`,
-autopilot goals such as "Use agile-workflow autopilot to drain --all",
-and `/agile-workflow:release-deploy`.
 <!-- agile-workflow:end -->
 ```
 
 Preserve all content outside the markers. If the selected AGENTS target does
-not exist, create it with this section as the whole body.
+not exist, create it with this section as the whole body. The dense behavioral
+rules (tag semantics, test integrity, advisory review, entry points) no longer
+live here — Phase 6.5 writes them to `.agents/rules/agile-workflow.md`, and the
+slim section above points agents at `.agents/rules/*.md`.
+
+### Phase 6.5: Write `.agents/rules/agile-workflow.md` (rules-first, then slim)
+
+The dense agile-workflow behavioral rules live in a plugin-managed
+`.agents/rules/agile-workflow.md`, force-loaded into agent context by the
+agile-workflow hook (and read directly by the design/implement/review skills'
+grounding). **Write and verify this file BEFORE writing the slim AGENTS section
+(Phase 6).** The slim section overwrites the managed AGENTS block, so the rules
+must already exist at their new home or the dense content is lost.
+
+1. `mkdir -p .agents/rules` and write `.agents/rules/agile-workflow.md`. Refresh
+   only the content between the markers on sync; preserve anything outside them
+   and every other `.agents/rules/*.md` (user-owned rules):
+
+   ```markdown
+   <!-- agile-workflow:rules:start -->
+   ## Agile-Workflow Rules
+
+   ### Tag semantics
+
+   The `tags` field on items routes them to the right design skill. One tag has
+   load-bearing semantics — get this one right:
+
+   - **`[refactor]`** — behavior-preserving structural change ONLY. Apply the
+     black-box test: would any observable behavior change for a caller of the
+     public surface? If yes, this is NOT a refactor — drop the tag and let the
+     item route through `feature-design`.
+     - Counts as refactor: extract a helper to dedupe, split a god file, rename
+       for clarity, remove dead code, inline a one-call abstraction.
+     - Does NOT count as refactor (even if it feels "structural"): change an API
+       signature, swap a storage backend with different consistency guarantees,
+       replace a silent failure with an explicit error, split a function in a
+       way that changes call-site contracts, "major rework of X."
+   - **`[perf]`** — performance work. Routes to `perf-design`.
+
+   All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
+   affect skill routing.
+
+   ### Test integrity
+
+   When running, writing, or modifying tests:
+
+   - **File real production bugs as backlog items.** When a test failure
+     surfaces an actual product bug (not a stale fixture, drifted assertion,
+     or broken mock), park it via `/agile-workflow:park` instead of silently
+     fixing it inline mid-test-pass. The backlog item is the audit trail.
+   - **Fix bad tests in-session.** Stale fixtures, drifted assertions, broken
+     mocks, and outdated snapshots are test debt, not product bugs. Repair
+     them as you go so the suite stays meaningful.
+   - **Then drain small backlog bugs with a full pass.** Once tests are
+     green again, if a parked production bug is small enough for a single
+     stride, pick it up immediately as `/agile-workflow:scope` → design →
+     implement. Larger bugs stay in backlog for prioritization.
+   - **NEVER game a test to make it pass.** A failing test that documents
+     *why* it fails — an inline comment naming the bug, a `skip` linked to a
+     backlog id, an `xfail` with a reason — is more honest than a green test
+     that lies. No `expect(true).toBe(true)`, no asserting on whatever the
+     code happens to return, no deleting a test as "flaky" without
+     root-causing first.
+
+   Cross-model advisory review: explicit user/project review instructions
+   override agile-workflow defaults. When peeragent is available with a different
+   model class, large/risky autopilot design decisions may use one advisory pass;
+   small/low-risk work skips it. Autopilot also runs a final peer-review loop
+   before reporting completion and fixes or files accepted findings first.
+   Same-model peers fall back to local sub-agents instead.
+
+   Broad entry points:
+   `/agile-workflow:ideate`, `/agile-workflow:epicize`,
+   autopilot goals such as "Use agile-workflow autopilot to drain --all",
+   and `/agile-workflow:release-deploy`.
+   <!-- agile-workflow:rules:end -->
+   ```
+
+2. **Verify before slimming**: confirm `.agents/rules/agile-workflow.md` exists,
+   is non-empty, and contains `<!-- agile-workflow:rules:end -->`. Only then write
+   or refresh the slim AGENTS section (Phase 6). If the verify fails, halt without
+   touching the AGENTS section — the project keeps its current section intact (no
+   data loss).
+
+User-owned and legacy rule prose (e.g. non-pattern `.claude/rules/*` content)
+goes into a separate user-owned `.agents/rules/<name>.md` (e.g. `project.md`),
+never inside the plugin `agile-workflow:rules` markers. The hook injects every
+`.agents/rules/*.md`, so both plugin and user rules reach the agent.
 
 ### Phase 7: Preserve Claude Code compatibility
 
@@ -651,7 +691,7 @@ cleanup actions taken, conventions chosen, next steps.
 Single git commit:
 
 ```bash
-git add .work/ AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md MIGRATION_REPORT.md
+git add .work/ AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md .agents/rules/ MIGRATION_REPORT.md
 # If a legacy rules shim was created or updated:
 git add .claude/rules/
 # If Phase 8.6 converged bespoke overlaps into the canonical catalogs:
@@ -696,7 +736,15 @@ path list), plus deeper checks:
 - For each plugin-shipped artifact that IS present, compare its content against
   the version in the current plugin source:
   - The selected AGENTS target section between `<!-- agile-workflow:start -->` /
-    `<!-- agile-workflow:end -->` vs the canonical template in Phase 6
+    `<!-- agile-workflow:end -->` vs the canonical (slim) template in Phase 6. If
+    the section still carries the OLD dense prose inline (`### Tag semantics`,
+    `### Test integrity`, the advisory-review paragraph), classify it
+    `drift_plugin` "needs extraction" — Phase S3 migrates that prose to
+    `.agents/rules/agile-workflow.md` (rules-first, then slim) without loss.
+  - `.agents/rules/agile-workflow.md` between `<!-- agile-workflow:rules:start -->`
+    / `<!-- agile-workflow:rules:end -->` vs the Phase 6.5 template — `missing`
+    (install), `match` (skip), or `drift_plugin` (refresh the marker block only,
+    preserving out-of-marker and other `.agents/rules/*.md`).
   - `.work/bin/work-view` — check existence and executability (the `work_view`
     doctor marker). Do NOT compare bytes against `work-view.sh`; the installed
     file may be a prebuilt binary placed by `install-work-view.sh`, which is
@@ -809,10 +857,19 @@ confirm before applying.
 
 For each artifact with a non-`match` state:
 
-- Canonical instruction file section between markers — overwrite with the
-  canonical template from Phase 6, in whichever file holds it per the derived
-  `entrypoint_model` (`AGENTS.md` or, for `claude-source`, `CLAUDE.md`). If the
-  file lacks markers, append the section. If it doesn't exist, create it.
+- `.agents/rules/agile-workflow.md` + canonical instruction section
+  (rules-first, then slim) — FIRST write/refresh `.agents/rules/agile-workflow.md`
+  between its `<!-- agile-workflow:rules:start/end -->` markers (Phase 6.5) and
+  verify it exists, is non-empty, and contains the end marker. THEN overwrite the
+  AGENTS managed section with the slim Phase 6 template, in whichever file holds it
+  per the derived `entrypoint_model` (`AGENTS.md` or, for `claude-source`,
+  `CLAUDE.md`). If the file lacks markers, append the section; if it doesn't exist,
+  create it. **Full-AGENTS migration:** when S1 found an AGENTS section that still
+  carries the old dense prose (tag semantics / test integrity / advisory review
+  inline), this IS the extraction migration — the rules-first verify guarantees
+  the dense prose lands in `.agents/rules/agile-workflow.md` before the section is
+  slimmed, so no rule content is lost. If the verify fails, do NOT slim — leave the
+  existing full section intact and report it.
 - `.work/bin/work-view` — reinstall via
   `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/install-work-view.sh"`
   (selects the platform-matched prebuilt binary if available, falls back to the
@@ -893,6 +950,10 @@ These are NEVER touched in sync mode:
   content without explicit confirmation.
 - `.agents/skills/patterns/` pattern bodies. Sync may align mirrors, but
   `gate-patterns` owns pattern discovery and updates.
+- User-authored `.agents/rules/*.md` — every file other than the plugin-managed
+  `agile-workflow.md`, and any content outside `agile-workflow.md`'s
+  `<!-- agile-workflow:rules:start/end -->` markers. Sync refreshes only the
+  plugin block; it never touches user rule files or out-of-marker content.
 - Content in the canonical instruction file (`AGENTS.md`, or `CLAUDE.md` in
   `claude-source`) outside the agile-workflow markers, except imported legacy
   Claude content, imported legacy Claude pattern-rules content, and synthesized
@@ -906,7 +967,7 @@ These are NEVER touched in sync mode:
 If any files were rewritten:
 
 ```bash
-git add AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md .work/bin/work-view
+git add AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.md .agents/CLAUDE.md .agents/rules/ .work/bin/work-view
 # If any legacy rules shim was created or updated (not just patterns.md):
 git add .claude/rules/
 # If optional project skill catalogs or mirrors were aligned or converged:

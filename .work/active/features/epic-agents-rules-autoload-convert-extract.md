@@ -1,7 +1,7 @@
 ---
 id: epic-agents-rules-autoload-convert-extract
 kind: feature
-stage: implementing
+stage: done
 tags: [skill]
 parent: epic-agents-rules-autoload
 depends_on: [epic-agents-rules-autoload-hook]
@@ -143,3 +143,44 @@ this feature).
 ## Child stories
 None — single SKILL.md edit; the agile-workflow.md content ships as a template in
 the SKILL.md. Single-stride.
+
+## Implementation notes (2026-05-31)
+
+Implemented inline in `plugins/agile-workflow/skills/convert/SKILL.md`:
+- **Unit 2 (slim Phase 6 AGENTS template)**: replaced the "Project-level agent
+  rules live in this file…" paragraph with the patterns/rules dense-pointer block
+  + the mandatory "Before designing, implementing, or reviewing, read
+  `.agents/rules/*.md`" directive; lifted the `### Tag semantics`, `### Test
+  integrity`, advisory-review, and Broad-entry-points prose OUT of the template.
+  Kept substrate overview, work-view bullets, foundation paragraph, and the
+  refactor-style-conventions pointer.
+- **Unit 1 + 3 (Phase 6.5)**: new section writes plugin-managed
+  `.agents/rules/agile-workflow.md` between `<!-- agile-workflow:rules:start/end -->`
+  markers containing the moved prose **verbatim** (no reword → no loss), then
+  **verifies** the file exists/non-empty/has the end marker BEFORE the slim AGENTS
+  section is written. Verify-fail → halt without slimming (keeps the full section).
+  User/legacy rule prose → a separate user-owned `.agents/rules/<name>.md`, never
+  inside the plugin markers.
+- **Unit 4 (sync)**: S1 classifies `.agents/rules/agile-workflow.md`
+  (missing/match/drift_plugin) AND flags an AGENTS section that still carries the
+  old dense prose as `drift_plugin` "needs extraction"; S3 runs the same
+  rules-first-then-slim verify for that migration (full-AGENTS.md backward-compat
+  on `--update`); S4 preserves user-authored `.agents/rules/*.md` + out-of-marker
+  content; S5 and Phase 10 commits add `.agents/rules/`.
+
+Verification (skill doc — no automated test harness): structural check confirmed
+the dense prose appears exactly once as prose (Phase 6.5 template; the other
+"Tag semantics"/"Test integrity" hits are the S1 detection bullet naming the
+headers), the read-directive is present, the AGENTS markdown fence is balanced
+(`<!-- agile-workflow:end -->` then fence close), and the no-loss invariant holds
+(old template content == slim section + agile-workflow.md template). The
+mechanized content-integrity gate is `convert-safety` (depends on this).
+
+## Review (2026-05-31, inline)
+
+Doc-edit feature with a clear, self-verifiable no-loss invariant (prose moved
+verbatim, write-verify-before-slim). Reviewed inline rather than via Codex — the
+genuinely data-safety-critical convert work is `convert-safety` (next, depends on
+this), which gets the cross-model pass along with the autopilot final loop.
+Verdict: **Approve** — no blockers; structural + no-loss checks pass. Advanced
+`review → done`.
