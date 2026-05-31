@@ -156,11 +156,21 @@ audit trail IS the git log of the file's path changes.
 
 ## AGENTS.md substrate section
 
-`convert` writes the agile-workflow section into the selected AGENTS target in
-every bootstrapped project. This section is dense pointers — every section is
-something the agent greps or runs as a literal command, not narrative prose.
+`convert` writes a **slim** agile-workflow section into the selected AGENTS
+target in every bootstrapped project. It is dense pointers — substrate
+orientation, `work-view` query patterns, grep-able pointers to the canonical
+rules file `.agents/rules/agile-workflow.md` and the `patterns` skill, and a
+MANDATORY "read `.agents/rules/*.md` before designing/implementing/reviewing"
+read-directive. Every line is something the agent greps or runs as a literal
+command, not narrative prose. The dense behavioral rules (tag semantics, test
+integrity, advisory review, entry points) do not live here — they live in
+`.agents/rules/agile-workflow.md`, which the hook force-loads (see Hook scripts)
+and the design/implement/review skills read in their grounding phase. The
+read-directive is the graceful-degradation guarantee: AGENTS always loads, so
+even when the hook does not fire (no substrate, untrusted hook, non-coding
+session) the agent is told where the rules live.
 
-Full content:
+Navigation reference content:
 
 ````markdown
 ---
@@ -415,13 +425,37 @@ user-only). Only scopes incremental refactor features.
 **SessionStart / PostCompact effect:** updates prompt-context state under the
 host-provided plugin data directory (`PLUGIN_DATA` / `CLAUDE_PLUGIN_DATA`),
 falling back to `XDG_STATE_HOME`, `~/.local/state`, or the system temp directory
-only when no plugin data directory is available. Prompt-time principles capsules
-fire at most once per session, and once again after resume/compaction. These
-events do not inject queue context and do not dirty the project worktree.
+only when no plugin data directory is available. `SessionStart` resets the
+per-session epoch and seen-set; `PostCompact` bumps the epoch. Prompt-time
+principles capsules fire at most once per session, and once again after
+resume/compaction. These events do not inject queue context and do not dirty the
+project worktree. They DO emit the `.agents/rules/` block (below) directly — the
+primary rules firing.
 
-**UserPromptSubmit effect:** only emits context for actionable workflow prompts:
-queue operations, stage movement, explicit agile-workflow verbs, or a known
-item id. Explainer prompts and idle chat stay silent.
+**`.agents/rules/` rules loader:** the script force-loads every
+`<root>/.agents/rules/*.md` file (sorted, concatenated under a
+`## Project Rules (.agents/rules/)` heading) into agent context, so producers
+(`convert` writes `.agents/rules/agile-workflow.md`; `gate-patterns` writes
+`.agents/rules/patterns.md`; the user adds their own) reach the agent reliably
+in both Claude Code and Codex. It is content-agnostic — it injects whatever
+`*.md` files exist. Firing is hybrid: **SessionStart/PostCompact emit
+unconditionally** (mirroring the legacy `.claude/rules/` force-load, and
+guaranteeing re-injection after compaction even with no user prompt), and a
+**UserPromptSubmit coding-prompt fallback** emits once per epoch if the
+session-start emission did not happen. The fallback uses a broad coding-prompt
+detector — wider than the workflow gate, catching "fix failing tests",
+"continue", "debug this build error", or a bare file-path reference. All paths
+share per-epoch + SHA-256 content-hash dedup, so rules load exactly once per
+`(epoch, content)`. `.work/CONVENTIONS.md` may set `rules_context: on|off`
+(default on) and `rules_context_max_bytes: <int>` (default 12000); the byte cap
+truncates with a notice while hashing the untruncated content so any edit
+re-injects.
+
+**UserPromptSubmit effect:** the queue snapshot and principles capsules emit only
+for actionable workflow prompts: queue operations, stage movement, explicit
+agile-workflow verbs, or a known item id. Explainer prompts and idle chat stay
+silent. The `.agents/rules/` fallback uses its own broader coding-prompt gate
+(above), independent of the workflow gate.
 
 When it fires, the script returns JSON `hookSpecificOutput.additionalContext`
 containing a compact queue snapshot and any principles capsules that have not
@@ -478,7 +512,7 @@ and produces new items rather than emitting a pass/fail report:
 | `gate-tests` | Coverage of bound items' acceptance criteria | Items with `gate_origin: tests`, tagged `[testing]` for gaps |
 | `gate-cruft` | Dead code introduced or revealed by the bundle | Items with `gate_origin: cruft`, tagged `[cleanup]` |
 | `gate-docs` | Foundation-doc alignment with the bundle's behavior changes | Items with `gate_origin: docs`, tagged `[documentation]` — enforces rolling-foundation |
-| `gate-patterns` | Reusable patterns that emerged in the bundle | Pattern-skill files in `.agents/skills/patterns/` with optional Claude mirror, plus a tracking item with `gate_origin: patterns` |
+| `gate-patterns` | Reusable patterns that emerged in the bundle | Detailed pattern-skill files in `.agents/skills/patterns/` (single source of truth) with optional Claude mirror, the generated hook-loaded `.agents/rules/patterns.md` digest (slug+one-liner index pointing back at the skill, with banner + source hash), plus a tracking item with `gate_origin: patterns` |
 
 Gate-produced items get `stage: implementing` (high-confidence findings),
 `stage: drafting` (medium-confidence), or land in `.work/backlog/`
@@ -526,16 +560,25 @@ git history is the audit trail. The substrate itself is durable memory: record
 decisions, blockers, implementation discoveries, and review findings in item
 bodies instead of depending on chat history.
 
-Project-level agent rules live in AGENTS.md. Reusable structural patterns live
-in `.agents/skills/patterns/`; do not maintain `.claude/rules/patterns.md` as
-a source of truth.
+Reusable code patterns live in `.agents/skills/patterns/` (load the `patterns`
+skill for detail). Project agent rules live in `.agents/rules/*.md`
+(plugin-managed rules in `.agents/rules/agile-workflow.md`); do not maintain
+`.claude/rules/*.md` as a source of truth.
 
-Broad entry points:
-`/agile-workflow:ideate`, `/agile-workflow:epicize`,
-autopilot goals such as "Use agile-workflow autopilot to drain --all",
-and `/agile-workflow:release-deploy`.
+**Before designing, implementing, or reviewing, read `.agents/rules/*.md`** —
+the project's force-loaded agent rules (tag semantics, test integrity, review
+policy). The agile-workflow hook auto-loads these at session start and after
+compaction; read them directly when working without the hook.
 <!-- agile-workflow:end -->
 ```
+
+The dense behavioral rules referenced by the read-directive live in
+`.agents/rules/agile-workflow.md` (between `<!-- agile-workflow:rules:start/end -->`
+markers), which `convert` writes and verifies BEFORE slimming the managed AGENTS
+section, so the overwrite can never drop rule content. The broad entry points
+(`/agile-workflow:ideate`, `/agile-workflow:epicize`, autopilot goals such as
+"Use agile-workflow autopilot to drain --all", `/agile-workflow:release-deploy`)
+live there alongside tag semantics, test integrity, and advisory-review rules.
 
 ### Idempotency rules
 
@@ -548,9 +591,12 @@ and `/agile-workflow:release-deploy`.
 - `CLAUDE.md`, `.claude/CLAUDE.md`, and `.agents/CLAUDE.md` are maintained only
   as compatibility symlinks to the selected AGENTS target. If symlinks are
   unavailable, each becomes a short shim that points Claude Code at `AGENTS.md`.
-- Legacy `.claude/rules/patterns.md` content is imported into the selected
-  AGENTS target during bootstrap or sync, then replaced with a shim pointing at
-  AGENTS. It is never maintained as a parallel rules file.
+- Legacy `.claude/rules/*.md` content migrates via `convert`'s content-integrity
+  gate during bootstrap or sync: each Markdown-aware block routes to its
+  canonical home (structural patterns → `.agents/skills/patterns/`, rule prose →
+  `.agents/rules/<name>.md`), every block is verified to have landed, then the
+  legacy path is replaced with a shim. It is never maintained as a parallel rules
+  file.
 
 ## Skill catalog
 
@@ -605,7 +651,7 @@ All skills with their roles, invocability, and triggers.
 | `gate-tests` | Test-coverage scan; produces gap items with `gate_origin: tests` |
 | `gate-cruft` | Dead-code scan; produces cleanup items with `gate_origin: cruft` |
 | `gate-docs` | Foundation-doc alignment; enforces rolling-foundation; produces doc-update items |
-| `gate-patterns` | Pattern extraction; writes pattern skills + tracking item with `gate_origin: patterns` |
+| `gate-patterns` | Pattern extraction; writes pattern skills (`.agents/skills/patterns/`), the generated `.agents/rules/patterns.md` digest, + tracking item with `gate_origin: patterns` |
 
 All five fire during `release-deploy`'s `quality-gate` stage in the order
 configured in `CONVENTIONS.md` (default: security → tests → cruft → docs

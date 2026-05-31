@@ -1,7 +1,7 @@
 ---
 id: epic-agents-rules-autoload-state-concurrency
 kind: story
-stage: drafting
+stage: done
 tags: [tooling]
 parent: epic-agents-rules-autoload
 depends_on: []
@@ -53,3 +53,47 @@ a Blocker. But it should be hardened.
   loader — verify both paths after the change.
 - Source: Codex review finding #2 on commit b44d0d2 (recorded in
   `epic-agents-rules-autoload-hook` review record).
+
+## Implementation notes (2026-05-31)
+
+### Design decision: unique-temp + advisory flock with graceful fallback
+
+Chose the **advisory file-lock** path over per-session state files. Rationale:
+the shared-file model is load-bearing elsewhere (MAX_SESSIONS eviction, the
+single-file dedup story already in the suite) and per-session files would
+fragment that and complicate eviction/cleanup. A lock around the existing
+read-modify-write is the smaller, lower-risk change that directly closes the
+whole-file last-writer-wins race while keeping single-writer behavior identical.
+
+Two changes in `hooks/scripts/prompt-context.py`:
+
+1. **Unique temp in `save_state`.** The temp filename now embeds pid +
+   `os.urandom(8).hex()` (`path.with_suffix(f".{pid}.{token}.tmp")`) before the
+   atomic `os.replace`, so overlapping writers never clobber each other's temp.
+   The write is wrapped in a `try/except OSError` that fails open (best-effort
+   `tmp.unlink()` cleanup, no raise) — a failed save must never crash the hook.
+
+2. **`_state_lock(root)` context manager** serializes the full
+   load -> mutate -> save cycle via `fcntl.flock(LOCK_EX)` on a sibling
+   `<state>.lock` file. Used by `bump_epoch`, `unseen_capsules`, and
+   `rules_unseen` (the three read-modify-write call sites). Graceful degradation:
+   `fcntl` is import-guarded at module top (set to `None` where absent, e.g.
+   Windows); when `None` the manager is a no-op yielding the prior best-effort
+   behavior. Any `OSError` acquiring the lock is swallowed and the body proceeds
+   unlocked — the hook stays fail-open and always exits 0. The lock is released
+   (`LOCK_UN`) and the handle closed in a `finally`, both `suppress(OSError)`.
+
+Portability: stdlib only, no new deps. `fcntl` is POSIX (Linux/macOS — Claude
+Code and Codex on those); Windows-class hosts hit the no-op fallback.
+
+### Tests
+
+Added a `StateConcurrencyTest` class to `test_prompt_context.py` (8 tests):
+unique-temp path (no fixed `.json.tmp`, distinct names across two saves, pid
+embedded, no debris), save_state fail-open on OSError, lock acquire/release
+(real flock spy), graceful no-op without fcntl, fail-open on flock OSError,
+bump_epoch works without fcntl, two-session no-loss invariant, and a
+save/load roundtrip. Existing dedup/rules tests unchanged and still green.
+
+Full suite: **28 tests pass** (20 prior + 8 new) via
+`python3 -m unittest test_prompt_context -v`.

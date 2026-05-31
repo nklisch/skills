@@ -325,13 +325,20 @@ plugin-shipped artifacts.
 ### What --update refreshes
 
 - `AGENTS.md` agile-workflow section — overwritten with the current plugin's
-  version between markers
+  slim version between markers, but only after `.agents/rules/agile-workflow.md`
+  is written and verified (the content-integrity gate applies to the slim, so the
+  managed-section overwrite can never drop dense rule content)
+- `.agents/rules/agile-workflow.md` — the plugin-managed dense rules
+  (tag semantics, test integrity, advisory review, entry points), refreshed
+  between `<!-- agile-workflow:rules:start/end -->` markers; other
+  `.agents/rules/*.md` (user-owned and migrated legacy rules) are preserved
 - `.work/bin/work-view` — overwritten with the current plugin's script
 - `CLAUDE.md` compatibility — converted to a symlink to `AGENTS.md`, or to a
   shim if symlinks are unavailable
-- Legacy `.claude/rules/patterns.md` — imported into `AGENTS.md` when it
-  contains non-duplicate rules content, then replaced with a shim pointing at
-  `AGENTS.md`
+- Legacy `.claude/rules/*.md` — migrated via the content-integrity gate: each
+  Markdown-aware block routes to its canonical home (structural patterns →
+  `.agents/skills/patterns/`, rule prose → `.agents/rules/<name>.md`), every
+  block is verified to have landed, then the legacy path is replaced with a shim
 - `hooks/hooks.json` — already in the plugin, but if the plugin's hook
   scripts changed, the user is alerted to restart their agent session
 
@@ -353,10 +360,15 @@ If an existing regular `CLAUDE.md` contains content not yet present in
 `AGENTS.md`, `--update` imports that content into `AGENTS.md` before replacing
 `CLAUDE.md` with the compatibility symlink or shim.
 
-If an older `.claude/rules/patterns.md` contains content not yet present in
-`AGENTS.md`, `--update` imports that content into `AGENTS.md` before replacing
-the legacy rules file with a shim. Ambiguous user-edited content is confirmed
-before import.
+If an older `.claude/rules/*.md` contains content not yet migrated, `--update`
+runs the **content-integrity gate** before any destructive step: it parses the
+file into Markdown-aware blocks, classifies each as a structural pattern (→
+`.agents/skills/patterns/`), rule prose (→ `.agents/rules/<name>.md`), or
+ambiguous, builds a block-level preservation manifest, and verifies every block
+landed at its canonical destination. Only when every block is accounted for is
+the legacy path replaced with a shim; an ambiguous block leaves the source in
+place rather than risk loss. Verify-before-destroy: the replacement must exist
+and hold the content before the source is removed.
 
 If `.work/CONVENTIONS.md` is missing on `--update`, that's a corruption
 signal — `convert --update` halts and instructs the user to either

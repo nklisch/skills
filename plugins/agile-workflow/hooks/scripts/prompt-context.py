@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -12,7 +13,12 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
+
+try:  # POSIX advisory file locking; absent on some platforms (e.g. Windows).
+    import fcntl
+except ImportError:  # pragma: no cover - exercised via monkeypatch in tests.
+    fcntl = None  # type: ignore[assignment]
 
 MAX_ITEMS = 5
 MAX_SESSIONS = 20
@@ -177,11 +183,61 @@ def load_state(root: Path) -> dict[str, Any]:
 def save_state(root: Path, state: dict[str, Any]) -> None:
     path = state_path(root)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".json.tmp")
-    with tmp.open("w", encoding="utf-8") as fh:
-        json.dump(state, fh, indent=2, sort_keys=True)
-        fh.write("\n")
-    tmp.replace(path)
+    # Per-writer unique temp path (pid + random token) so overlapping writers do
+    # not clobber each other's temp before the atomic os.replace. A fixed
+    # ".json.tmp" would race: two processes writing it concurrently could rename
+    # a half-written or interleaved file into place.
+    token = os.urandom(8).hex()
+    tmp = path.with_suffix(f".{os.getpid()}.{token}.tmp")
+    try:
+        with tmp.open("w", encoding="utf-8") as fh:
+            json.dump(state, fh, indent=2, sort_keys=True)
+            fh.write("\n")
+        os.replace(tmp, path)
+    except OSError:
+        # Fail open: a failed save must never crash the hook. Best-effort cleanup
+        # of our uniquely-named temp so we don't leave debris behind.
+        with contextlib.suppress(OSError):
+            tmp.unlink()
+
+
+@contextlib.contextmanager
+def _state_lock(root: Path) -> Iterator[None]:
+    """Serialize the state-file read-modify-write across concurrent hook procs.
+
+    Holds an advisory ``fcntl.flock`` on a sibling ``.lock`` file for the whole
+    load -> mutate -> save cycle so two processes cannot lose each other's
+    session entries (whole-file last-writer-wins). Degrades gracefully:
+
+    - Where ``fcntl`` is unavailable (import-guarded above), this is a no-op and
+      we fall back to the prior best-effort behavior.
+    - Any locking failure (cannot open/create the lock file, flock errors) is
+      swallowed — the hook must stay fail-open and still exit 0. We never block
+      the hook on lock acquisition errors.
+    """
+    if fcntl is None:
+        yield
+        return
+    lock_path = state_path(root).with_suffix(".lock")
+    handle = None
+    try:
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        handle = lock_path.open("a+")
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+    except OSError:
+        # Could not acquire the lock — proceed unlocked rather than block/crash.
+        if handle is not None:
+            with contextlib.suppress(OSError):
+                handle.close()
+        yield
+        return
+    try:
+        yield
+    finally:
+        with contextlib.suppress(OSError):
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        with contextlib.suppress(OSError):
+            handle.close()
 
 
 def session_entry(state: dict[str, Any], session_id: str) -> dict[str, Any]:
@@ -202,15 +258,16 @@ def bump_epoch(root: Path, payload: dict[str, Any]) -> None:
     session_id = str(payload.get("session_id") or "unknown")
     event = str(payload.get("hook_event_name") or "")
     source = str(payload.get("source") or payload.get("trigger") or "")
-    state = load_state(root)
-    entry = session_entry(state, session_id)
-    if event == "SessionStart" and source in {"startup", "clear", ""}:
-        entry["epoch"] = 0
-        entry["seen"] = {}
-    elif event == "PostCompact" or source in {"resume", "compact"}:
-        entry["epoch"] = int(entry.get("epoch") or 0) + 1
-        entry["seen"] = {}
-    save_state(root, state)
+    with _state_lock(root):
+        state = load_state(root)
+        entry = session_entry(state, session_id)
+        if event == "SessionStart" and source in {"startup", "clear", ""}:
+            entry["epoch"] = 0
+            entry["seen"] = {}
+        elif event == "PostCompact" or source in {"resume", "compact"}:
+            entry["epoch"] = int(entry.get("epoch") or 0) + 1
+            entry["seen"] = {}
+        save_state(root, state)
 
 
 def output_context(event_name: str, text: str) -> None:
@@ -416,14 +473,15 @@ def unseen_capsules(root: Path, payload: dict[str, Any], keys: list[str]) -> lis
     if not keys:
         return []
     session_id = str(payload.get("session_id") or "unknown")
-    state = load_state(root)
-    entry = session_entry(state, session_id)
-    epoch = int(entry.get("epoch") or 0)
-    seen = entry.setdefault("seen", {})
-    unseen = [key for key in keys if seen.get(key) != epoch]
-    for key in unseen:
-        seen[key] = epoch
-    save_state(root, state)
+    with _state_lock(root):
+        state = load_state(root)
+        entry = session_entry(state, session_id)
+        epoch = int(entry.get("epoch") or 0)
+        seen = entry.setdefault("seen", {})
+        unseen = [key for key in keys if seen.get(key) != epoch]
+        for key in unseen:
+            seen[key] = epoch
+        save_state(root, state)
     return unseen
 
 
@@ -526,14 +584,15 @@ def rules_unseen(root: Path, payload: dict[str, Any], content_hash: str) -> bool
     changes, but only once per (epoch, content) otherwise.
     """
     session_id = str(payload.get("session_id") or "unknown")
-    state = load_state(root)
-    entry = session_entry(state, session_id)
-    marker = f"{int(entry.get('epoch') or 0)}:{content_hash}"
-    seen = entry.setdefault("seen", {})
-    if seen.get("rules") == marker:
-        return False
-    seen["rules"] = marker
-    save_state(root, state)
+    with _state_lock(root):
+        state = load_state(root)
+        entry = session_entry(state, session_id)
+        marker = f"{int(entry.get('epoch') or 0)}:{content_hash}"
+        seen = entry.setdefault("seen", {})
+        if seen.get("rules") == marker:
+            return False
+        seen["rules"] = marker
+        save_state(root, state)
     return True
 
 

@@ -141,17 +141,36 @@ Work tracked in `.work/` as markdown items with YAML frontmatter
 Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
 `.work/releases/<version>/`, `.work/archive/`.
 
-[full content — see ARCHITECTURE.md]
+[slim dense pointers + work-view query patterns + a MANDATORY
+"read `.agents/rules/*.md` before designing/implementing/reviewing"
+read-directive — see ARCHITECTURE.md]
 <!-- agile-workflow:end -->
 ```
 
-`convert --update` replaces everything between the markers without touching
-the rest of the selected AGENTS target.
+The managed section is **slim**: substrate orientation, `work-view` query
+patterns, and grep-able pointers to the canonical rules file
+`.agents/rules/agile-workflow.md` and the `patterns` skill, plus a mandatory
+read-directive. `convert --update` replaces everything between the markers
+without touching the rest of the selected AGENTS target.
 
-Project-level agent rules and migrated legacy rules live in the selected
-AGENTS target. `.claude/rules/patterns.md` is not a supported canonical rules
-file; when present in older repos, `convert` imports its non-duplicate content
-into AGENTS and replaces it with a short shim that points agents at AGENTS.
+### `.agents/rules/` agent rules
+
+Dense behavioral rules (tag semantics, test integrity, advisory review, entry
+points) live in the plugin-managed `.agents/rules/agile-workflow.md`, delimited
+by `<!-- agile-workflow:rules:start/end -->` markers. The agile-workflow hook
+force-loads every `.agents/rules/*.md` into agent context (see Hook contracts).
+`convert` writes and verifies `.agents/rules/agile-workflow.md` BEFORE slimming
+the AGENTS section, so the managed-section overwrite can never drop dense rule
+content.
+
+User-owned and migrated legacy rule prose lives in separate user-owned
+`.agents/rules/<name>.md` files (e.g. `project.md`), never inside the plugin
+`agile-workflow:rules` markers. When an older repo has `.claude/rules/*.md`,
+`convert`'s content-integrity gate parses each file into Markdown-aware blocks,
+routes structural patterns to `.agents/skills/patterns/` and rule prose to
+`.agents/rules/<name>.md`, verifies every block landed at its canonical home,
+and only then replaces the legacy path with a shim. `.claude/rules/patterns.md`
+is not a supported canonical rules file; its content migrates the same way.
 
 ### CLAUDE.md compatibility
 
@@ -164,8 +183,10 @@ Code to read `AGENTS.md`.
 When migrating an existing regular `CLAUDE.md`, `convert` imports non-duplicate
 content into `AGENTS.md` before replacing it with the symlink or shim.
 
-When migrating an older `.claude/rules/patterns.md`, `convert` follows the same
-preservation rule: import non-duplicate content into AGENTS first, then leave
+When migrating an older `.claude/rules/*.md`, `convert` follows the same
+preservation rule via the content-integrity gate: route each block to its
+canonical home (`.agents/skills/patterns/` for structural patterns,
+`.agents/rules/<name>.md` for rule prose), verify every block landed, then leave
 only a compatibility shim at the legacy path.
 
 ## File and directory layout
@@ -418,9 +439,43 @@ exists. Otherwise exits 0 with no output.
 **Effect:** updates prompt-context state under the host-provided plugin data
 directory (`PLUGIN_DATA` / `CLAUDE_PLUGIN_DATA`), falling back to
 `XDG_STATE_HOME`, `~/.local/state`, or the system temp directory only when no
-plugin data directory is available. This lets principles capsules fire once per
-session, and once again after resume/compaction, without dirtying normal project
-worktrees. It does not inject queue context at session start.
+plugin data directory is available. `SessionStart` resets the per-session epoch
+and seen-set; `PostCompact` bumps the epoch so context re-injects after
+compaction. This lets principles capsules fire once per session, and once again
+after resume/compaction, without dirtying normal project worktrees. It does not
+inject queue context at session start.
+
+These two events are also the **primary firing** of the `.agents/rules/`
+rules-injection contract: each emits the concatenated `.agents/rules/*.md`
+content as `hookSpecificOutput.additionalContext` directly (after the epoch
+reset/bump), unconditionally — no prompt to gate on. This guarantees rules
+reload at session start and after compaction, even during auto-continuation with
+no user prompt, mirroring the legacy Claude-only `.claude/rules/` force-load.
+
+### `.agents/rules/` rules-injection contract
+
+The hook force-loads every `.agents/rules/*.md` file into agent context so
+producers (`convert`, `gate-patterns`, or the user) can drop content-agnostic
+rule files there and have them reliably reach the agent in both Claude Code and
+Codex. The contract:
+
+- **Fires on:** `SessionStart` and `PostCompact` (primary, unconditional); plus
+  a `UserPromptSubmit` coding-prompt fallback (below) that emits once per epoch
+  if the session-start emission did not happen.
+- **Content:** all `<root>/.agents/rules/*.md` files, sorted by name,
+  concatenated under a `## Project Rules (.agents/rules/)` heading.
+- **Dedup:** per-session epoch + SHA-256 content hash. Rules inject exactly once
+  per `(epoch, content-hash)` — re-injecting after a `PostCompact` epoch bump or
+  when any `.agents/rules/*.md` file changes, but not otherwise.
+- **Substrate gate:** only fires when `${CLAUDE_PROJECT_DIR}/.work/CONVENTIONS.md`
+  exists, like all the prompt-context hooks.
+- **CONVENTIONS flag + byte cap:** `.work/CONVENTIONS.md` may set
+  `rules_context: on|off` (default `on`) to disable injection, and
+  `rules_context_max_bytes: <int>` (default 12000) to cap the emitted size. A
+  malformed CONVENTIONS keeps the enabled defaults so rules are never silently
+  dropped; oversized content is truncated with a "read the files for full
+  content" notice (the hash is computed over the untruncated content so any edit
+  re-injects).
 
 ### UserPromptSubmit hook
 
@@ -440,12 +495,20 @@ worktrees. It does not inject queue context at session start.
 }
 ```
 
-**Activation:** runs only if a substrate exists and the submitted prompt is an
-actionable agile-workflow move: queue operations, stage movement, explicit
-workflow verbs, or a known item id. Explainer prompts and idle chat exit 0 with
-no output.
+**Activation:** runs only if a substrate exists. The queue snapshot and
+principles capsules additionally require an actionable agile-workflow move:
+queue operations, stage movement, explicit workflow verbs, or a known item id.
+The `.agents/rules/` fallback uses a separate, broader coding-prompt detector.
 
 **Effect:** returns `hookSpecificOutput.additionalContext` with:
+- The `.agents/rules/*.md` block, as the once-per-epoch fallback to the
+  SessionStart/PostCompact primary firing. This path uses a **broad
+  coding-prompt detector** — deliberately wider than the workflow-snapshot gate
+  — that catches coding work carrying no workflow noun (e.g. "fix failing
+  tests", "continue", "debug this build error", a bare file-path reference).
+  Because the same per-epoch + content-hash dedup applies, it emits only when
+  the session-start emission did not happen (substrate appeared mid-session,
+  host skipped SessionStart, or content changed).
 - A compact queue snapshot only when the prompt benefits from queue state
   (`ready`, `blocked`, `review`, `autopilot`, `scope`, item ids, etc.).
 - The smallest relevant principles capsule, at most once per session per

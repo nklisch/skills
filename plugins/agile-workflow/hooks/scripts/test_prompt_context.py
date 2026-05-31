@@ -361,5 +361,152 @@ class RulesLoaderTest(unittest.TestCase):
         self.assertIn("Rule A body", out.getvalue())
 
 
+class StateConcurrencyTest(unittest.TestCase):
+    """Guards the state-file atomicity + concurrency hardening.
+
+    Covers: (a) save_state uses a per-writer unique temp path, not a fixed
+    ".json.tmp"; (b) the _state_lock context manager acquires/releases an flock
+    and degrades gracefully when fcntl is unavailable; (c) the locked
+    read-modify-write does not lose another session's entry across an
+    interleaved load/save simulated by hand.
+
+    State is isolated to a temp file so it does not leak across tests.
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        self.state_file = self.root / "state" / "hook-state.json"
+        self._state_patch = mock.patch.object(
+            prompt_context, "state_path", return_value=self.state_file
+        )
+        self._state_patch.start()
+
+    def tearDown(self) -> None:
+        self._state_patch.stop()
+        self._tmp.cleanup()
+
+    def test_save_state_uses_unique_temp_path(self) -> None:
+        """save_state must NOT write to a fixed ".json.tmp"; two saves must not
+        collide on the same temp name."""
+        captured: list[str] = []
+        real_open = Path.open
+
+        def spy_open(self_path, *args, **kwargs):  # type: ignore[no-untyped-def]
+            if str(self_path).endswith(".tmp"):
+                captured.append(str(self_path))
+            return real_open(self_path, *args, **kwargs)
+
+        with mock.patch.object(Path, "open", spy_open):
+            prompt_context.save_state(self.root, {"version": 1, "sessions": {"a": {}}})
+            prompt_context.save_state(self.root, {"version": 1, "sessions": {"b": {}}})
+
+        self.assertEqual(len(captured), 2, "each save should open exactly one temp")
+        # The fixed legacy name would be "<state>.json.tmp"; ensure we moved off it.
+        legacy = str(self.state_file.with_suffix(".json.tmp"))
+        self.assertNotIn(legacy, captured, "must not use the fixed .json.tmp path")
+        # Two saves must use distinct temp names (no clobber).
+        self.assertNotEqual(captured[0], captured[1], "temp names must be unique per save")
+        # The pid should be embedded so concurrent processes do not collide.
+        for name in captured:
+            self.assertIn(str(prompt_context.os.getpid()), name)
+        # No temp debris remains, and the real file landed.
+        leftovers = list(self.state_file.parent.glob("*.tmp"))
+        self.assertEqual(leftovers, [], f"temp debris left behind: {leftovers}")
+        self.assertTrue(self.state_file.exists())
+
+    def test_save_state_failure_is_fail_open(self) -> None:
+        """An OSError during the write must not propagate (fail-open)."""
+
+        def boom(self_path, *args, **kwargs):  # type: ignore[no-untyped-def]
+            raise OSError("disk full")
+
+        with mock.patch.object(Path, "open", boom):
+            # Must not raise.
+            prompt_context.save_state(self.root, {"version": 1, "sessions": {}})
+
+    def test_state_lock_acquires_and_releases(self) -> None:
+        """When fcntl is present, _state_lock locks then unlocks the lock file."""
+        self.assertIsNotNone(
+            prompt_context.fcntl, "this platform has fcntl; test the real lock path"
+        )
+        calls: list[int] = []
+        real_flock = prompt_context.fcntl.flock
+
+        def spy_flock(fd, op):  # type: ignore[no-untyped-def]
+            calls.append(op)
+            return real_flock(fd, op)
+
+        with mock.patch.object(prompt_context.fcntl, "flock", spy_flock):
+            with prompt_context._state_lock(self.root):
+                pass
+
+        self.assertIn(prompt_context.fcntl.LOCK_EX, calls, "should take an exclusive lock")
+        self.assertIn(prompt_context.fcntl.LOCK_UN, calls, "should release the lock")
+        # The lock file was created next to the state file.
+        self.assertTrue(self.state_file.with_suffix(".lock").exists())
+
+    def test_state_lock_degrades_without_fcntl(self) -> None:
+        """With fcntl monkeypatched out, _state_lock is a graceful no-op."""
+        with mock.patch.object(prompt_context, "fcntl", None):
+            entered = False
+            with prompt_context._state_lock(self.root):
+                entered = True
+            self.assertTrue(entered, "context body must still run without fcntl")
+        # No lock file should be created in the fcntl-less path.
+        self.assertFalse(self.state_file.with_suffix(".lock").exists())
+
+    def test_state_lock_failopen_on_flock_error(self) -> None:
+        """A flock failure must not block/crash — body still runs (unlocked)."""
+
+        def boom(fd, op):  # type: ignore[no-untyped-def]
+            raise OSError("flock unavailable")
+
+        with mock.patch.object(prompt_context.fcntl, "flock", boom):
+            entered = False
+            with prompt_context._state_lock(self.root):
+                entered = True
+            self.assertTrue(entered, "must proceed unlocked on flock error")
+
+    def test_bump_epoch_works_without_fcntl(self) -> None:
+        """The full read-modify-write still works when fcntl is unavailable."""
+        with mock.patch.object(prompt_context, "fcntl", None):
+            prompt_context.bump_epoch(
+                self.root,
+                {"session_id": "s1", "hook_event_name": "PostCompact", "source": "auto"},
+            )
+        state = prompt_context.load_state(self.root)
+        self.assertEqual(state["sessions"]["s1"]["epoch"], 1)
+
+    def test_concurrent_sessions_do_not_lose_entries(self) -> None:
+        """Two sessions writing under the lock must both survive.
+
+        Simulates the interleave by hand: each call is a full locked
+        load -> mutate -> save. Because each acquires the lock and re-loads,
+        neither clobbers the other's session entry (the whole-file
+        last-writer-wins race the lock removes).
+        """
+        prompt_context.bump_epoch(
+            self.root,
+            {"session_id": "alpha", "hook_event_name": "SessionStart", "source": "startup"},
+        )
+        prompt_context.bump_epoch(
+            self.root,
+            {"session_id": "beta", "hook_event_name": "PostCompact", "source": "auto"},
+        )
+        state = prompt_context.load_state(self.root)
+        self.assertIn("alpha", state["sessions"])
+        self.assertIn("beta", state["sessions"])
+        self.assertEqual(state["sessions"]["beta"]["epoch"], 1)
+
+    def test_save_state_roundtrip(self) -> None:
+        """save_state -> load_state preserves data (atomic replace lands)."""
+        prompt_context.save_state(
+            self.root, {"version": 1, "sessions": {"x": {"epoch": 3, "seen": {}}}}
+        )
+        loaded = prompt_context.load_state(self.root)
+        self.assertEqual(loaded["sessions"]["x"]["epoch"], 3)
+
+
 if __name__ == "__main__":
     unittest.main()

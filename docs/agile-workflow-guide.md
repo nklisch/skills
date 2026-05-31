@@ -72,8 +72,11 @@ this layout appears in the repo:
 ├── archive/<id>.md           done items not bound to a release
 ├── bin/work-view             query script (the agent uses this)
 └── CONVENTIONS.md            project-specific overrides
-AGENTS.md                         canonical agent instructions
+AGENTS.md                         canonical agent instructions (slim: orientation + pointers + read-directive)
 CLAUDE.md -> AGENTS.md            Claude Code compatibility
+.agents/
+├── rules/*.md                    force-loaded agent rules (agile-workflow.md + patterns.md digest + your own; hook-injected)
+└── skills/patterns/              detailed reusable code patterns
 docs/                              foundation docs (VISION, SPEC, ARCHITECTURE)
 ```
 
@@ -513,14 +516,27 @@ Worth knowing they exist so the items they produce make sense:
 
 ### Actionable prompt context
 
-Open Claude Code or Codex in the project. The hook set stays quiet at session
-start; it only injects workflow context when your prompt is an actionable
-workflow move, such as *"what's ready?"*, *"review feature-uploads-retry"*,
-*"drain the auth epic"*, or *"scope the backlog"*.
+Open Claude Code or Codex in the project. At session start (and again after the
+context is compacted), the hook **force-loads your project rules** — every
+`.agents/rules/*.md` file — into the agent's context. That includes the
+plugin-managed `.agents/rules/agile-workflow.md` (tag semantics, test integrity,
+review policy, entry points), the `.agents/rules/patterns.md` digest from
+`gate-patterns`, and any rules you add yourself. This is the reliable,
+cross-vendor replacement for the legacy Claude-only `.claude/rules/`: rules reach
+the agent in both Claude Code and Codex, exactly once per session (re-injected
+after compaction or whenever a rules file changes, via per-epoch + content-hash
+dedup). It is content-agnostic — drop any `*.md` into `.agents/rules/` and it
+loads. A broad coding-prompt fallback re-emits the rules if the session-start
+firing was missed (substrate appeared mid-session, host skipped SessionStart).
+
+You can tune this in `.work/CONVENTIONS.md`: `rules_context: off` disables the
+injection, and `rules_context_max_bytes: <int>` (default 12000) caps the size.
 In Codex, plugin-bundled hooks must be reviewed and trusted before they run;
 enabling the plugin alone does not auto-trust them.
 
-For those prompts, `prompt-context.py` pipes a compact queue snapshot **into the
+For *actionable workflow prompts* — *"what's ready?"*, *"review
+feature-uploads-retry"*, *"drain the auth epic"*, *"scope the backlog"* —
+`prompt-context.py` additionally pipes a compact queue snapshot **into the
 agent's context** (not your terminal — hook output goes to the agent, not the
 human UI). The snapshot looks roughly like this:
 
@@ -537,7 +553,7 @@ Blocked: 1
 
 The same hook may add a small principles capsule once per session when the
 prompt calls for it: code design, dispatch economy, or advisory review. Idle
-chat and explainer prompts get no injected context.
+chat and explainer prompts get no queue snapshot or capsule.
 
 ### Driving work
 

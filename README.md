@@ -207,8 +207,11 @@ Reference skills that auto-load when their library is detected.
 ├── archive/                           ← done items not bound to a release
 ├── bin/work-view                      ← query script (copied by /agile-workflow:convert)
 └── CONVENTIONS.md                     ← project-specific overrides
-AGENTS.md                              ← canonical agent instructions
+AGENTS.md                              ← canonical agent instructions (slim: orientation + pointers + read-directive)
 CLAUDE.md -> AGENTS.md                 ← Claude Code compatibility
+.agents/
+├── rules/*.md                         ← force-loaded agent rules (agile-workflow.md + patterns.md digest + user rules; hook-injected)
+└── skills/patterns/                   ← detailed reusable code patterns (gate-patterns source of truth)
 .mockups/
 ├── design-system/                     ← palette, typography, components, motion + tokens.css/components.css/motion.css
 ├── screens/<feature>/                 ← N option HTMLs + index.html
