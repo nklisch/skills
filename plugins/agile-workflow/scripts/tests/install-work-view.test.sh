@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install-work-view.test.sh — unit tests for install-work-view.sh
 #
-# Self-contained: builds a temp PLUGIN_ROOT with stub binaries and drives the
+# Self-contained: builds a temp PLUGIN_ROOT with stub artifacts and drives the
 # helper with WORK_VIEW_UNAME_S/M overrides and a temp working directory.
 #
 # Runnable locally and from CI. Exits non-zero if any assertion fails.
@@ -10,6 +10,8 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELPER="${SCRIPT_DIR}/../install-work-view.sh"
+TEST_VERSION="9.8.7"
+STATUS_LINE="installed bash entrypoint (work-view ${TEST_VERSION})"
 
 # ---------------------------------------------------------------------------
 # Counters
@@ -68,31 +70,50 @@ PLUGIN_ROOT_DIR="$(mktemp -d)"
 trap 'rm -rf "$PLUGIN_ROOT_DIR"' EXIT
 
 mkdir -p \
+  "${PLUGIN_ROOT_DIR}/.claude-plugin" \
   "${PLUGIN_ROOT_DIR}/scripts" \
   "${PLUGIN_ROOT_DIR}/work-view/dist/x86_64-unknown-linux-musl" \
   "${PLUGIN_ROOT_DIR}/work-view/dist/aarch64-unknown-linux-musl" \
   "${PLUGIN_ROOT_DIR}/work-view/dist/x86_64-apple-darwin" \
   "${PLUGIN_ROOT_DIR}/work-view/dist/aarch64-apple-darwin"
 
-# --- good bash fallback ---
-cat > "${PLUGIN_ROOT_DIR}/scripts/work-view.sh" <<'EOF'
+write_plugin_json() {
+  local version="$1"
+  cat > "${PLUGIN_ROOT_DIR}/.claude-plugin/plugin.json" <<EOF
+{
+  "name": "agile-workflow",
+  "version": "${version}",
+  "description": "fixture"
+}
+EOF
+}
+
+write_bash_stub() {
+  local version="$1"
+  cat > "${PLUGIN_ROOT_DIR}/scripts/work-view.sh" <<EOF
 #!/usr/bin/env bash
-# stub work-view.sh — prints help and exits 0
-if [[ "${1:-}" == "--help" ]]; then
-  echo "work-view (bash stub)"
+if [[ "\${1:-}" == "--version" ]]; then
+  echo "work-view ${version}"
   exit 0
 fi
-echo "work-view (bash stub)"
+if [[ "\${1:-}" == "--help" ]]; then
+  echo "work-view bash stub ${version}"
+  exit 0
+fi
+echo "work-view bash stub ${version}"
 EOF
-chmod +x "${PLUGIN_ROOT_DIR}/scripts/work-view.sh"
+  chmod +x "${PLUGIN_ROOT_DIR}/scripts/work-view.sh"
+}
 
-# --- good prebuilt stubs (print their triple on --help) ---
-make_good_stub() {
+write_prebuilt_stub() {
   local triple="$1"
   local out="${PLUGIN_ROOT_DIR}/work-view/dist/${triple}/work-view"
   cat > "$out" <<EOF
 #!/usr/bin/env bash
-# stub prebuilt for ${triple}
+if [[ "\${1:-}" == "--version" ]]; then
+  echo "work-view ${TEST_VERSION}"
+  exit 0
+fi
 if [[ "\${1:-}" == "--help" ]]; then
   echo "work-view prebuilt stub ${triple}"
   exit 0
@@ -102,322 +123,206 @@ EOF
   chmod +x "$out"
 }
 
-make_good_stub "x86_64-unknown-linux-musl"
-make_good_stub "aarch64-unknown-linux-musl"
-make_good_stub "x86_64-apple-darwin"
-make_good_stub "aarch64-apple-darwin"
-
-# --- broken prebuilt stub (exits non-zero on --help) ---
-BROKEN_TRIPLE="x86_64-unknown-linux-musl"
-BROKEN_STUB="${PLUGIN_ROOT_DIR}/work-view/dist/${BROKEN_TRIPLE}/work-view.broken"
-cat > "$BROKEN_STUB" <<'EOF'
-#!/usr/bin/env bash
-# stub prebuilt that always fails (simulates wrong-arch/bad binary)
-exit 1
-EOF
-chmod +x "$BROKEN_STUB"
+write_plugin_json "$TEST_VERSION"
+write_bash_stub "$TEST_VERSION"
+write_prebuilt_stub "x86_64-unknown-linux-musl"
+write_prebuilt_stub "aarch64-unknown-linux-musl"
+write_prebuilt_stub "x86_64-apple-darwin"
+write_prebuilt_stub "aarch64-apple-darwin"
 
 # ---------------------------------------------------------------------------
 # Helper: run install helper in a fresh temp working dir
-# Returns the stdout output in $INSTALL_OUT and exit code in $INSTALL_RC
+# Returns stdout in $INSTALL_OUT, stderr in $INSTALL_ERR, rc in $INSTALL_RC.
 # ---------------------------------------------------------------------------
 run_install() {
   local uname_s="$1" uname_m="$2"
   local workdir
   workdir="$(mktemp -d)"
-  # shellcheck disable=SC2155
+  INSTALL_ERR="${workdir}/install.err"
   INSTALL_OUT=$(
     cd "$workdir" &&
     PLUGIN_ROOT="$PLUGIN_ROOT_DIR" \
     WORK_VIEW_UNAME_S="$uname_s" \
     WORK_VIEW_UNAME_M="$uname_m" \
-    bash "$HELPER" 2>/dev/null
+    bash "$HELPER" 2>"$INSTALL_ERR"
   )
   INSTALL_RC=$?
   INSTALL_WORKDIR="$workdir"
 }
 
+helper_plugin_version() {
+  PLUGIN_ROOT="$PLUGIN_ROOT_DIR" bash -c 'source "$1"; plugin_version' _ "$HELPER"
+}
+
+helper_candidate_rc() {
+  local candidate="$1"
+  PLUGIN_ROOT="$PLUGIN_ROOT_DIR" bash -c 'source "$1"; candidate_is_current "$2" "$3"' _ "$HELPER" "$candidate" "$TEST_VERSION"
+}
+
+make_candidate() {
+  local body="$1"
+  local candidate
+  candidate="$(mktemp "${PLUGIN_ROOT_DIR}/candidate.XXXXXX")"
+  cat > "$candidate" <<EOF
+#!/usr/bin/env bash
+${body}
+EOF
+  chmod +x "$candidate"
+  echo "$candidate"
+}
+
 # ---------------------------------------------------------------------------
-# Test 1: Linux x86_64 → x86_64-unknown-linux-musl (good stub)
+# Test 1: plugin_version reads plugin.json without jq/yq
 # ---------------------------------------------------------------------------
 echo ""
-echo "=== Test group 1: triple mapping (good stubs) ==="
+echo "=== Test group 1: plugin_version ==="
+
+PV="$(helper_plugin_version)"
+assert_eq "plugin_version extracts fixture version" "$TEST_VERSION" "$PV"
+
+# ---------------------------------------------------------------------------
+# Test 2: candidate_is_current version cases
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 2: candidate_is_current ==="
+
+CURRENT_CANDIDATE="$(make_candidate 'echo "work-view 9.8.7"; exit 0')"
+NONZERO_CANDIDATE="$(make_candidate 'exit 42')"
+EMPTY_CANDIDATE="$(make_candidate 'exit 0')"
+MISMATCH_CANDIDATE="$(make_candidate 'echo "work-view 9.8.6"; exit 0')"
+
+helper_candidate_rc "$CURRENT_CANDIDATE"
+assert_eq "candidate_is_current accepts matching last token" "0" "$?"
+helper_candidate_rc "$NONZERO_CANDIDATE"
+assert_eq "candidate_is_current rejects non-zero --version" "1" "$?"
+helper_candidate_rc "$EMPTY_CANDIDATE"
+assert_eq "candidate_is_current rejects empty --version" "1" "$?"
+helper_candidate_rc "$MISMATCH_CANDIDATE"
+assert_eq "candidate_is_current rejects mismatched semver" "1" "$?"
+
+# ---------------------------------------------------------------------------
+# Test 3: Default install writes bash entrypoint on all tested platforms
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 3: bash entrypoint across platforms ==="
 
 run_install "Linux" "x86_64"
 assert_eq "Linux x86_64 exit 0" "0" "$INSTALL_RC"
-assert_eq "Linux x86_64 output" "installed prebuilt x86_64-unknown-linux-musl" "$INSTALL_OUT"
+assert_eq "Linux x86_64 output" "$STATUS_LINE" "$INSTALL_OUT"
 assert_true "Linux x86_64 work-view exists" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
 assert_true "Linux x86_64 work-view executable" "[ -x '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
 assert_false "Linux x86_64 no .tmp left" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view.tmp' ]"
-assert_true "Linux x86_64 --help works" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help >/dev/null 2>&1"
-assert_true "Linux x86_64 correct stub content" \
-  "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'x86_64-unknown-linux-musl'"
-rm -rf "$INSTALL_WORKDIR"
-
-run_install "Linux" "aarch64"
-assert_eq "Linux aarch64 exit 0" "0" "$INSTALL_RC"
-assert_eq "Linux aarch64 output" "installed prebuilt aarch64-unknown-linux-musl" "$INSTALL_OUT"
-assert_true "Linux aarch64 correct stub content" \
-  "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'aarch64-unknown-linux-musl'"
-rm -rf "$INSTALL_WORKDIR"
-
-run_install "Linux" "arm64"
-assert_eq "Linux arm64 exit 0" "0" "$INSTALL_RC"
-assert_eq "Linux arm64 output" "installed prebuilt aarch64-unknown-linux-musl" "$INSTALL_OUT"
-assert_true "Linux arm64 correct stub content" \
-  "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'aarch64-unknown-linux-musl'"
-rm -rf "$INSTALL_WORKDIR"
-
-run_install "Darwin" "x86_64"
-assert_eq "Darwin x86_64 exit 0" "0" "$INSTALL_RC"
-assert_eq "Darwin x86_64 output" "installed prebuilt x86_64-apple-darwin" "$INSTALL_OUT"
-assert_true "Darwin x86_64 correct stub content" \
-  "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'x86_64-apple-darwin'"
+assert_true "Linux x86_64 --version matches plugin" "[ \"\$('${INSTALL_WORKDIR}/.work/bin/work-view' --version)\" = 'work-view ${TEST_VERSION}' ]"
+assert_true "Linux x86_64 installed bash, not prebuilt" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'bash stub'"
+assert_false "Linux x86_64 prebuilt not installed" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'prebuilt'"
 rm -rf "$INSTALL_WORKDIR"
 
 run_install "Darwin" "arm64"
 assert_eq "Darwin arm64 exit 0" "0" "$INSTALL_RC"
-assert_eq "Darwin arm64 output" "installed prebuilt aarch64-apple-darwin" "$INSTALL_OUT"
-assert_true "Darwin arm64 correct stub content" \
-  "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'aarch64-apple-darwin'"
+assert_eq "Darwin arm64 output" "$STATUS_LINE" "$INSTALL_OUT"
+assert_true "Darwin arm64 installed bash" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'bash stub'"
+assert_false "Darwin arm64 prebuilt not installed" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'prebuilt'"
 rm -rf "$INSTALL_WORKDIR"
-
-# ---------------------------------------------------------------------------
-# Test 2: Unknown platform → bash fallback
-# ---------------------------------------------------------------------------
-echo ""
-echo "=== Test group 2: unknown platform → bash fallback ==="
 
 run_install "FreeBSD" "x86_64"
 assert_eq "FreeBSD x86_64 exit 0" "0" "$INSTALL_RC"
-assert_eq "FreeBSD x86_64 output" "installed bash fallback" "$INSTALL_OUT"
-assert_true "FreeBSD x86_64 work-view exists" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
-assert_true "FreeBSD x86_64 work-view executable" "[ -x '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
-assert_false "FreeBSD x86_64 no .tmp left" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view.tmp' ]"
-assert_true "FreeBSD x86_64 --help works" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help >/dev/null 2>&1"
-rm -rf "$INSTALL_WORKDIR"
-
-run_install "Windows_NT" "AMD64"
-assert_eq "Windows_NT exit 0" "0" "$INSTALL_RC"
-assert_eq "Windows_NT output" "installed bash fallback" "$INSTALL_OUT"
+assert_eq "FreeBSD x86_64 output" "$STATUS_LINE" "$INSTALL_OUT"
+assert_true "FreeBSD x86_64 installed bash" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'bash stub'"
+assert_false "FreeBSD x86_64 prebuilt not installed" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'prebuilt'"
 rm -rf "$INSTALL_WORKDIR"
 
 # ---------------------------------------------------------------------------
-# Test 3: Broken prebuilt (exits non-zero on --help) → falls back to bash
+# Test 4: Fail-fast postcondition catches source-stamp drift
 # ---------------------------------------------------------------------------
 echo ""
-echo "=== Test group 3: broken prebuilt → bash fallback ==="
+echo "=== Test group 4: postcondition failure ==="
 
-# Temporarily replace the good x86_64 linux stub with the broken one
-GOOD_STUB="${PLUGIN_ROOT_DIR}/work-view/dist/x86_64-unknown-linux-musl/work-view"
-mv "$GOOD_STUB" "${GOOD_STUB}.bak"
-cp "$BROKEN_STUB" "$GOOD_STUB"
-# Note: BROKEN_STUB is already chmod +x, but cp may not preserve; ensure executable
-chmod +x "$GOOD_STUB"
-
+write_plugin_json "9.8.8"
+write_bash_stub "$TEST_VERSION"
 run_install "Linux" "x86_64"
-assert_eq "broken prebuilt exit 0" "0" "$INSTALL_RC"
-assert_eq "broken prebuilt falls back" "installed bash fallback" "$INSTALL_OUT"
-assert_true "broken prebuilt work-view exists" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
-assert_true "broken prebuilt work-view executable" "[ -x '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
-assert_false "broken prebuilt no .tmp left" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view.tmp' ]"
-assert_true "broken prebuilt --help works (fallback)" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help >/dev/null 2>&1"
+POST_ERR="$(cat "$INSTALL_ERR" 2>/dev/null || true)"
+assert_eq "postcondition drift exits 1" "1" "$INSTALL_RC"
+assert_eq "postcondition drift prints no success status" "" "$INSTALL_OUT"
+assert_true "postcondition drift reports version mismatch" "printf '%s' \"\$POST_ERR\" | grep -q 'installed copy does not report plugin version 9.8.8'"
+assert_false "postcondition drift no .tmp left" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view.tmp' ]"
 rm -rf "$INSTALL_WORKDIR"
-
-# Restore good stub
-mv "${GOOD_STUB}.bak" "$GOOD_STUB"
-
-# ---------------------------------------------------------------------------
-# Test 4: Empty dist directory → bash fallback
-# ---------------------------------------------------------------------------
-echo ""
-echo "=== Test group 4: empty dist → bash fallback ==="
-
-# Temporarily hide all dist binaries
-DIST_DIR="${PLUGIN_ROOT_DIR}/work-view/dist"
-DIST_BACKUP="$(mktemp -d)"
-for triple_dir in x86_64-unknown-linux-musl aarch64-unknown-linux-musl x86_64-apple-darwin aarch64-apple-darwin; do
-  if [ -f "${DIST_DIR}/${triple_dir}/work-view" ]; then
-    mv "${DIST_DIR}/${triple_dir}/work-view" "${DIST_BACKUP}/${triple_dir}"
-  fi
-done
-
-run_install "Linux" "x86_64"
-assert_eq "empty dist exit 0" "0" "$INSTALL_RC"
-assert_eq "empty dist output" "installed bash fallback" "$INSTALL_OUT"
-assert_true "empty dist work-view exists" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
-assert_false "empty dist no .tmp left" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view.tmp' ]"
-rm -rf "$INSTALL_WORKDIR"
-
-# Restore dist binaries
-for triple_dir in x86_64-unknown-linux-musl aarch64-unknown-linux-musl x86_64-apple-darwin aarch64-apple-darwin; do
-  if [ -f "${DIST_BACKUP}/${triple_dir}" ]; then
-    mv "${DIST_BACKUP}/${triple_dir}" "${DIST_DIR}/${triple_dir}/work-view"
-  fi
-done
-rm -rf "$DIST_BACKUP"
+write_plugin_json "$TEST_VERSION"
+write_bash_stub "$TEST_VERSION"
 
 # ---------------------------------------------------------------------------
-# Test 5: Atomicity — no partial .work/bin/work-view; .tmp always cleaned up
+# Test 5: Atomicity — failing --help leaves no partial install or tmp
 # ---------------------------------------------------------------------------
 echo ""
 echo "=== Test group 5: atomicity ==="
 
-# A broken stub with no matching triple should leave no .tmp
-mv "${PLUGIN_ROOT_DIR}/work-view/dist/x86_64-unknown-linux-musl/work-view" \
-   "${PLUGIN_ROOT_DIR}/work-view/dist/x86_64-unknown-linux-musl/work-view.bak2"
-cp "$BROKEN_STUB" "${PLUGIN_ROOT_DIR}/work-view/dist/x86_64-unknown-linux-musl/work-view"
-chmod +x "${PLUGIN_ROOT_DIR}/work-view/dist/x86_64-unknown-linux-musl/work-view"
+cat > "${PLUGIN_ROOT_DIR}/scripts/work-view.sh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "--version" ]]; then
+  echo "work-view 9.8.7"
+  exit 0
+fi
+exit 1
+EOF
+chmod +x "${PLUGIN_ROOT_DIR}/scripts/work-view.sh"
 
-WORKDIR2="$(mktemp -d)"
-( cd "$WORKDIR2" &&
-  PLUGIN_ROOT="$PLUGIN_ROOT_DIR" \
-  WORK_VIEW_UNAME_S="Linux" \
-  WORK_VIEW_UNAME_M="x86_64" \
-  bash "$HELPER" >/dev/null 2>&1 )
-# Whether it fell back or succeeded, .tmp must be gone
-assert_false "atomicity: no .tmp after broken prebuilt" "[ -f '${WORKDIR2}/.work/bin/work-view.tmp' ]"
-assert_true "atomicity: work-view installed (fallback)" "[ -f '${WORKDIR2}/.work/bin/work-view' ]"
-rm -rf "$WORKDIR2"
-
-mv "${PLUGIN_ROOT_DIR}/work-view/dist/x86_64-unknown-linux-musl/work-view.bak2" \
-   "${PLUGIN_ROOT_DIR}/work-view/dist/x86_64-unknown-linux-musl/work-view"
+run_install "Linux" "x86_64"
+assert_eq "atomicity: failed smoke exits 1" "1" "$INSTALL_RC"
+assert_false "atomicity: no .tmp after failed smoke" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view.tmp' ]"
+assert_false "atomicity: no final work-view after failed smoke" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
+rm -rf "$INSTALL_WORKDIR"
+write_bash_stub "$TEST_VERSION"
 
 # ---------------------------------------------------------------------------
-# Test 6: Update path — second run overwrites cleanly
+# Test 6: Idempotency — second run overwrites cleanly
 # ---------------------------------------------------------------------------
 echo ""
-echo "=== Test group 6: update (run twice) ==="
+echo "=== Test group 6: idempotency ==="
 
-WORKDIR3="$(mktemp -d)"
+WORKDIR_IDEM="$(mktemp -d)"
+mkdir -p "${WORKDIR_IDEM}/.work/bin"
+cat > "${WORKDIR_IDEM}/.work/bin/work-view" <<'EOF'
+#!/usr/bin/env bash
+echo stale
+EOF
+chmod +x "${WORKDIR_IDEM}/.work/bin/work-view"
 
-# First run: installs prebuilt
-(cd "$WORKDIR3" &&
- PLUGIN_ROOT="$PLUGIN_ROOT_DIR" \
- WORK_VIEW_UNAME_S="Linux" \
- WORK_VIEW_UNAME_M="x86_64" \
- bash "$HELPER" >/dev/null 2>&1)
-
-FIRST_INODE=$(stat -c '%i' "${WORKDIR3}/.work/bin/work-view" 2>/dev/null || stat -f '%i' "${WORKDIR3}/.work/bin/work-view")
-
-# Second run: should overwrite cleanly
-OUT2=$(cd "$WORKDIR3" &&
- PLUGIN_ROOT="$PLUGIN_ROOT_DIR" \
- WORK_VIEW_UNAME_S="Linux" \
- WORK_VIEW_UNAME_M="x86_64" \
- bash "$HELPER" 2>/dev/null)
+OUT1=$(cd "$WORKDIR_IDEM" && PLUGIN_ROOT="$PLUGIN_ROOT_DIR" bash "$HELPER" 2>/dev/null)
+RC1=$?
+OUT2=$(cd "$WORKDIR_IDEM" && PLUGIN_ROOT="$PLUGIN_ROOT_DIR" bash "$HELPER" 2>/dev/null)
 RC2=$?
 
-assert_eq "update: second run exit 0" "0" "$RC2"
-assert_eq "update: second run output" "installed prebuilt x86_64-unknown-linux-musl" "$OUT2"
-assert_true "update: work-view still exists" "[ -f '${WORKDIR3}/.work/bin/work-view' ]"
-assert_true "update: work-view still executable" "[ -x '${WORKDIR3}/.work/bin/work-view' ]"
-assert_false "update: no .tmp left" "[ -f '${WORKDIR3}/.work/bin/work-view.tmp' ]"
-assert_true "update: --help works after second run" "'${WORKDIR3}/.work/bin/work-view' --help >/dev/null 2>&1"
-rm -rf "$WORKDIR3"
+assert_eq "idempotency: first run exit 0" "0" "$RC1"
+assert_eq "idempotency: first run output" "$STATUS_LINE" "$OUT1"
+assert_eq "idempotency: second run exit 0" "0" "$RC2"
+assert_eq "idempotency: second run output" "$STATUS_LINE" "$OUT2"
+assert_true "idempotency: work-view still exists" "[ -f '${WORKDIR_IDEM}/.work/bin/work-view' ]"
+assert_true "idempotency: work-view still executable" "[ -x '${WORKDIR_IDEM}/.work/bin/work-view' ]"
+assert_false "idempotency: no .tmp left" "[ -f '${WORKDIR_IDEM}/.work/bin/work-view.tmp' ]"
+assert_true "idempotency: overwritten with bash stub" "'${WORKDIR_IDEM}/.work/bin/work-view' --help 2>/dev/null | grep -q 'bash stub'"
+assert_true "idempotency: --version works after second run" "[ \"\$('${WORKDIR_IDEM}/.work/bin/work-view' --version)\" = 'work-view ${TEST_VERSION}' ]"
+rm -rf "$WORKDIR_IDEM"
 
 # ---------------------------------------------------------------------------
-# Test 7: Darwin arm64 architecture alias coverage
+# Test 7: Destination is a pre-existing directory → installer fails
 # ---------------------------------------------------------------------------
 echo ""
-echo "=== Test group 7: Darwin arm64 → aarch64-apple-darwin ==="
-
-run_install "Darwin" "arm64"
-assert_eq "Darwin arm64 maps to aarch64-apple-darwin" "installed prebuilt aarch64-apple-darwin" "$INSTALL_OUT"
-assert_true "Darwin arm64 --help works" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help >/dev/null 2>&1"
-rm -rf "$INSTALL_WORKDIR"
-
-# ---------------------------------------------------------------------------
-# Test 8: Destination is a pre-existing DIRECTORY → installer fails, no
-#         bogus install (Finding 3b robustness)
-# ---------------------------------------------------------------------------
-echo ""
-echo "=== Test group 8: dest is a pre-existing directory → installer must not succeed ==="
+echo "=== Test group 7: dest is a pre-existing directory ==="
 
 WORKDIR_DIR="$(mktemp -d)"
-mkdir -p "${WORKDIR_DIR}/.work/bin"
-# Create a directory where work-view should be a file
 mkdir -p "${WORKDIR_DIR}/.work/bin/work-view"
 
 DIR_OUT=$(
   cd "$WORKDIR_DIR" &&
   PLUGIN_ROOT="$PLUGIN_ROOT_DIR" \
-  WORK_VIEW_UNAME_S="Linux" \
-  WORK_VIEW_UNAME_M="x86_64" \
   bash "$HELPER" 2>/dev/null
 )
 DIR_RC=$?
 
-# The installer should have exited non-zero OR the destination must now be a
-# regular executable file (not a directory). Both mean no bogus install.
-if [ "$DIR_RC" -ne 0 ]; then
-  echo "  PASS: dest-is-dir: installer correctly exited non-zero ($DIR_RC)"
-  ((PASS++))
-elif [ -f "${WORKDIR_DIR}/.work/bin/work-view" ] && [ -x "${WORKDIR_DIR}/.work/bin/work-view" ]; then
-  # installer recovered: dest is now a real file (it removed the dir and
-  # installed — also acceptable if the helper chooses rm-and-recover)
-  echo "  PASS: dest-is-dir: installer recovered; dest is now a regular executable"
-  ((PASS++))
-else
-  echo "  FAIL: dest-is-dir: installer reported success (rc=$DIR_RC) but dest is still a directory or not executable"
-  ((FAIL++))
-  ERRORS+=("dest-is-dir: installer reported bogus success")
-fi
-
-# No .tmp should be left behind
+assert_eq "dest-is-dir: installer exits 1" "1" "$DIR_RC"
+assert_eq "dest-is-dir: no success output" "" "$DIR_OUT"
+assert_true "dest-is-dir: destination remains directory" "[ -d '${WORKDIR_DIR}/.work/bin/work-view' ]"
 assert_false "dest-is-dir: no .tmp left" "[ -f '${WORKDIR_DIR}/.work/bin/work-view.tmp' ]"
-
 rm -rf "$WORKDIR_DIR"
-
-# ---------------------------------------------------------------------------
-# Test 9: cp failure (unreadable source) → installer surfaces failure
-#         (Finding 3a: set -e suppression in if/&& context)
-# ---------------------------------------------------------------------------
-echo ""
-echo "=== Test group 9: cp failure (unreadable source) → installer surfaces failure ==="
-
-WORKDIR_CP="$(mktemp -d)"
-# Make a candidate dir/file that exists but is not readable
-UNREADABLE_TRIPLE_DIR="${PLUGIN_ROOT_DIR}/work-view/dist/x86_64-unknown-linux-musl"
-UNREADABLE_CANDIDATE="${UNREADABLE_TRIPLE_DIR}/work-view"
-# Save good stub, replace with unreadable file
-mv "${UNREADABLE_CANDIDATE}" "${UNREADABLE_CANDIDATE}.bak_t9"
-# Create an empty unreadable file
-touch "${UNREADABLE_CANDIDATE}"
-chmod 000 "${UNREADABLE_CANDIDATE}"
-
-CP_OUT=$(
-  cd "$WORKDIR_CP" &&
-  PLUGIN_ROOT="$PLUGIN_ROOT_DIR" \
-  WORK_VIEW_UNAME_S="Linux" \
-  WORK_VIEW_UNAME_M="x86_64" \
-  bash "$HELPER" 2>/dev/null
-)
-CP_RC=$?
-
-# The installer should either:
-# (a) exit non-zero (cp failed → propagated), OR
-# (b) fall back to the bash fallback and succeed with "installed bash fallback"
-# Either way it must NOT report "installed prebuilt ..." with a broken binary.
-if [ "$CP_RC" -ne 0 ]; then
-  echo "  PASS: cp-failure: installer exited non-zero as expected ($CP_RC)"
-  ((PASS++))
-elif [ "$CP_OUT" = "installed bash fallback" ]; then
-  echo "  PASS: cp-failure: installer fell back to bash fallback (acceptable)"
-  ((PASS++))
-else
-  echo "  FAIL: cp-failure: installer reported unexpected success: rc=$CP_RC out=$(printf '%q' "$CP_OUT")"
-  ((FAIL++))
-  ERRORS+=("cp-failure: installer did not surface failure or fall back correctly")
-fi
-
-# No .tmp should be left behind regardless
-assert_false "cp-failure: no .tmp left" "[ -f '${WORKDIR_CP}/.work/bin/work-view.tmp' ]"
-
-# Restore the good stub
-chmod 644 "${UNREADABLE_CANDIDATE}"
-mv "${UNREADABLE_CANDIDATE}.bak_t9" "${UNREADABLE_CANDIDATE}"
-rm -rf "$WORKDIR_CP"
 
 # ---------------------------------------------------------------------------
 # Summary

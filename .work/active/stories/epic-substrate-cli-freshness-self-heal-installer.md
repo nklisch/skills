@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-self-heal-installer
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli-freshness-self-heal
 depends_on: []
@@ -56,14 +56,14 @@ removal decision.
 
 ## Acceptance criteria
 
-- [ ] Installs the bash implementation into `.work/bin/work-view` by default —
+- [x] Installs the bash implementation into `.work/bin/work-view` by default —
       not a platform prebuilt — on every tested platform.
-- [ ] Installed `.work/bin/work-view --version` reports `plugin.json`'s version
+- [x] Installed `.work/bin/work-view --version` reports `plugin.json`'s version
       (post-install Fail-Fast postcondition asserted).
-- [ ] `plugin_version` reads the version with no jq/yq dependency.
-- [ ] `candidate_is_current` returns false for non-zero `--version` exit, empty
+- [x] `plugin_version` reads the version with no jq/yq dependency.
+- [x] `candidate_is_current` returns false for non-zero `--version` exit, empty
       output, or a different semver.
-- [ ] Install stays atomic + idempotent (tmp cleanup, dir-guard, clean
+- [x] Install stays atomic + idempotent (tmp cleanup, dir-guard, clean
       overwrite-in-place on a second run).
 
 ## Tests
@@ -75,3 +75,22 @@ prebuilt) across uname overrides; `candidate_is_current` negatives; Fail-Fast
 postcondition; existing atomicity/idempotency still pass (update expected status
 strings). This file already runs in CI (`build-work-view.yml`
 `test-install-helper`).
+
+## Implementation notes
+
+- Files changed: `plugins/agile-workflow/scripts/install-work-view.sh`,
+  `plugins/agile-workflow/scripts/tests/install-work-view.test.sh`.
+- Tests added/updated: install helper fixture now includes
+  `.claude-plugin/plugin.json`; covers `plugin_version`, `candidate_is_current`
+  negative cases, bash-not-prebuilt installs across Linux/Darwin/unknown uname
+  overrides, postcondition failure, atomic smoke failure, idempotency, and
+  destination-directory guard.
+- Discrepancies from design: none. Removed the project-side prebuilt selection
+  rather than keeping an opt-in path; rationale is that the tracked entrypoint is
+  now intentionally bash-only and the shim feature owns any future plugin-side
+  prebuilt deference.
+- Verification: `bash plugins/agile-workflow/scripts/tests/install-work-view.test.sh`
+  (41 passed); real-plugin temp install smoke reported `work-view 0.8.7`;
+  `cargo test version` in `plugins/agile-workflow/work-view` passed 11
+  version-focused tests.
+- Adjacent issues parked: none.
