@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.8.8
+
+### Interactive Substrate Board
+
+- **Live `work-view board` surface** - Added the compiled localhost board host
+  with `/healthz`, `/api/substrate`, embedded assets, loopback Host header
+  hardening, busy-port scanning, and browser-open handling. `work-view serve`
+  aliases the same read-only board server.
+- **Board shell and views** - Added the no-build browser shell with shared
+  filters, auto-hide, safe markdown rendering, shared item cards, diagnostics,
+  theme/accent controls, and detail surface. Delivered kanban stage/swimlane,
+  dependency graph, and sortable/filterable table views over the same substrate
+  feed.
+- **Board skill** - Added the user-invocable `agile-workflow:board` skill for
+  launching `.work/bin/work-view board`, with clear failure handling when a
+  project still has a non-board-capable bash fallback.
+- **Legacy `/board` command removed** - Deleted the Claude-only `/board`
+  command surface. `scripts/work-board.sh` remains only as a compatibility shim
+  that delegates to `.work/bin/work-view board` when the installed binary
+  supports it.
+
+### Documentation
+
+- Rolled forward the agile-workflow SPEC and ARCHITECTURE docs, plus the root
+  substrate-access architecture note, from static generated board language to
+  the live `work-view board` model.
+
 ## v0.8.6
 
 ### Substrate CLI

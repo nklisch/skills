@@ -224,8 +224,9 @@ When this epic ships:
 - Delivered the three board views: kanban stage grid with epic swimlanes,
   dependency graph with trace/collapse controls, and sortable/filterable table.
 - Rolled forward current docs so `plugins/agile-workflow/docs/SPEC.md`,
-  `plugins/agile-workflow/docs/ARCHITECTURE.md`, and `docs/ARCHITECTURE.md`
-  describe the live `work-view board` surface.
+  `plugins/agile-workflow/docs/ARCHITECTURE.md`, `docs/ARCHITECTURE.md`, and
+  `plugins/agile-workflow/CHANGELOG.md` describe the live `work-view board`
+  surface.
 - Final verification passed: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test
   -p work-view-cli`, `TMPDIR=/home/nathan/.cache/silas/tmp cargo build
   --release -p work-view-cli`, and release binary size `697680` bytes.
@@ -245,3 +246,9 @@ When this epic ships:
   accept or reject. Local final audit confirmed the legacy `/board` command file
   is absent, child features are done, docs are current, and only the unrelated
   `.mockups/design-system/components.css` worktree change remains dirty.
+- A continuation retry of the final Opus checkpoint on 2026-05-31 succeeded
+  with the same `opus`/`xhigh` peeragent route and no recursive delegation. It
+  found no blocking completion issue. Accepted finding: add the missing v0.8.8
+  changelog entry. Rejected/deferrable findings: the tracked `.work/bin/work-view`
+  remains the documented bash entrypoint while board-capable prebuilts are CI
+  generated, and the reported `collapsible_if` is cosmetic.
