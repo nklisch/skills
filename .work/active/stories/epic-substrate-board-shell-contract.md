@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-shell-contract
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-shell
 depends_on: [epic-substrate-board-shell-card, epic-substrate-board-shell-filters]
@@ -61,3 +61,22 @@ consume, and wire the shared size-detected item-detail surface.
   `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`, and
   `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p
   work-view-cli`.
+
+## Review
+
+Approved on 2026-05-31 after host review and a three-pass Opus peer-review
+loop.
+
+- Host verification passed: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test
+  -p work-view-cli` and `TMPDIR=/home/nathan/.cache/silas/tmp cargo build
+  --release -p work-view-cli`; release binary size after the functional fixes
+  was 659552 bytes.
+- Accepted Opus findings that matched local judgment: modal/drawer focus
+  management, background inert/ARIA handling, focus restore, Tab trapping,
+  direct `openDetail` rendering, and a mount guard so `selectedItemId` changes
+  do not rebuild the whole view.
+- Accepted the follow-up documentation nit by adding a code comment explaining
+  why selected detail does not key the view remount cache.
+- Rejected narrowing `BoardContext` for this story because the parent feature's
+  public contract intentionally exposes refresh/view/theme/filter mutators to
+  shell consumers.
