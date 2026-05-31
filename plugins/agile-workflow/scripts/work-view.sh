@@ -13,6 +13,24 @@
 
 set -euo pipefail
 
+# Kept in lockstep with plugin.json by scripts/bump-version.sh. Do not hand-edit.
+WORK_VIEW_VERSION="0.8.7"
+
+# ============================================================================
+# Version prelude (POSIX / bash 3.2 safe — runs BEFORE the Bash-4 guard)
+# ============================================================================
+#
+# `--version` must answer correctly even on a host whose only bash is the
+# macOS system 3.2 with no modern bash to re-exec into. If it fell through to
+# the Bash-4 guard below it would print "requires bash 4" and exit 1, and a
+# self-heal staleness probe would read that failure as a broken/stale tool
+# instead of a version. So short-circuit here using only constructs that work
+# in bash 3.2 (printf, simple parameter expansion, case). Output is
+# byte-identical to the Rust binary: `work-view <semver>\n`, exit 0.
+case "${1:-}" in
+  --version|-V) printf 'work-view %s\n' "$WORK_VIEW_VERSION"; exit 0 ;;
+esac
+
 # ============================================================================
 # Bash 4+ required (associative arrays). macOS ships bash 3.2 at /bin/bash,
 # so re-exec under a modern bash if one is available.
@@ -69,6 +87,7 @@ Output (default tabular):
   --count              Match count only
 
 Other:
+  --version            Print the work-view version and exit
   --help               Show this help and exit
 USAGE
 }
@@ -241,6 +260,12 @@ output_mode="table"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help|-h)       usage; exit 0 ;;
+    # Short-circuits before substrate detection (like --help) so --version
+    # works outside a substrate. -V is the short form; lowercase -v is reserved
+    # for a possible future --verbose. The POSIX prelude at the top already
+    # handles --version as the first arg (for bash 3.2); this arm covers it in
+    # any position once running under bash 4+.
+    --version|-V)    printf 'work-view %s\n' "$WORK_VIEW_VERSION"; exit 0 ;;
     --stage)         want_stage="$2"; shift 2 ;;
     --kind)          want_kind="$2"; shift 2 ;;
     --parent)        want_parent="$2"; shift 2 ;;
