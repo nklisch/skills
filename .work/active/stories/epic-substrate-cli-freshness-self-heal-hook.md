@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-self-heal-hook
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli-freshness-self-heal
 depends_on: [epic-substrate-cli-freshness-self-heal-installer]
@@ -48,13 +48,13 @@ See the parent feature body (Unit 2) for the full helper sketches
 
 ## Acceptance criteria
 
-- [ ] SessionStart + stale copy → installer runs; current copy → does not.
-- [ ] SessionStart + missing copy → installs.
-- [ ] UserPromptSubmit + missing → installs; + present → no install AND no
+- [x] SessionStart + stale copy → installer runs; current copy → does not.
+- [x] SessionStart + missing copy → installs.
+- [x] UserPromptSubmit + missing → installs; + present → no install AND no
       `--version` subprocess.
-- [ ] Neither env var set → no-op (no crash, no install attempt).
-- [ ] Installer failure / timeout → hook still exits 0 with normal output.
-- [ ] Existing hook behaviors unchanged (additive).
+- [x] Neither env var set → no-op (no crash, no install attempt).
+- [x] Installer failure / timeout → hook still exits 0 with normal output.
+- [x] Existing hook behaviors unchanged (additive).
 
 ## Tests
 
@@ -70,3 +70,21 @@ should add a small CI step running `python3 -m unittest test_prompt_context`
 (fold into the existing job) so the new tests don't rot — low-cost and in scope.
 If CI changes are kept out of this feature, file a follow-up; tests must at
 minimum be locally runnable per the file's docstring.
+
+## Implementation notes
+
+- Files changed: `plugins/agile-workflow/hooks/scripts/prompt-context.py`,
+  `plugins/agile-workflow/hooks/scripts/test_prompt_context.py`,
+  `.github/workflows/build-work-view.yml`.
+- Tests added: `WorkViewSelfHealTest` covers stale/current/missing
+  SessionStart behavior, UserPromptSubmit missing/present behavior with no
+  per-prompt version subprocess, missing plugin-root env no-op, installed
+  `--version` parsing, installer output suppression, and `main()` fail-open
+  output when installer execution raises.
+- CI: folded `python3 -m unittest test_prompt_context` into the existing
+  work-view install-helper workflow job and added hook-script path filters so
+  hook changes trigger the job.
+- Verification: `cd plugins/agile-workflow/hooks/scripts && python3 -m unittest test_prompt_context -v`;
+  `bash plugins/agile-workflow/scripts/tests/install-work-view.test.sh`.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

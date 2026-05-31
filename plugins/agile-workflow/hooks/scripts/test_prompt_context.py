@@ -146,6 +146,151 @@ class ReviewDedupTest(unittest.TestCase):
         )
 
 
+class WorkViewSelfHealTest(unittest.TestCase):
+    """Guards the hook's fail-open work-view installer self-heal step."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name) / "workspace"
+        self.root.mkdir()
+        (self.root / ".work").mkdir()
+        (self.root / ".work" / "CONVENTIONS.md").write_text("# Conventions\n", encoding="utf-8")
+        self.plugin = Path(self._tmp.name) / "plugin"
+        (self.plugin / ".claude-plugin").mkdir(parents=True)
+        (self.plugin / ".claude-plugin" / "plugin.json").write_text(
+            '{"version": "0.8.7"}\n', encoding="utf-8"
+        )
+        (self.plugin / "scripts").mkdir()
+        (self.plugin / "scripts" / "install-work-view.sh").write_text(
+            "#!/usr/bin/env bash\nexit 0\n", encoding="utf-8"
+        )
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _write_work_view(self) -> Path:
+        work_view = self.root / ".work" / "bin" / "work-view"
+        work_view.parent.mkdir(parents=True, exist_ok=True)
+        work_view.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+        work_view.chmod(0o755)
+        return work_view
+
+    def _env(self):
+        return mock.patch.dict(
+            prompt_context.os.environ,
+            {"PLUGIN_ROOT": str(self.plugin)},
+            clear=True,
+        )
+
+    def test_sessionstart_stale_copy_runs_installer(self) -> None:
+        self._write_work_view()
+        with self._env(), mock.patch.object(
+            prompt_context, "installed_version", return_value="0.8.6"
+        ), mock.patch.object(prompt_context, "run_installer") as run_installer:
+            prompt_context.self_heal_work_view(self.root, "SessionStart")
+
+        run_installer.assert_called_once_with(self.root, self.plugin)
+
+    def test_sessionstart_unrecognized_copy_runs_installer(self) -> None:
+        self._write_work_view()
+        with self._env(), mock.patch.object(
+            prompt_context, "installed_version", return_value=None
+        ), mock.patch.object(prompt_context, "run_installer") as run_installer:
+            prompt_context.self_heal_work_view(self.root, "SessionStart")
+
+        run_installer.assert_called_once_with(self.root, self.plugin)
+
+    def test_sessionstart_current_copy_does_not_install(self) -> None:
+        self._write_work_view()
+        with self._env(), mock.patch.object(
+            prompt_context, "installed_version", return_value="0.8.7"
+        ), mock.patch.object(prompt_context, "run_installer") as run_installer:
+            prompt_context.self_heal_work_view(self.root, "SessionStart")
+
+        run_installer.assert_not_called()
+
+    def test_sessionstart_missing_copy_installs_without_version_probe(self) -> None:
+        with self._env(), mock.patch.object(
+            prompt_context, "installed_version", side_effect=AssertionError("no probe")
+        ), mock.patch.object(prompt_context, "run_installer") as run_installer:
+            prompt_context.self_heal_work_view(self.root, "SessionStart")
+
+        run_installer.assert_called_once_with(self.root, self.plugin)
+
+    def test_userpromptsubmit_missing_installs(self) -> None:
+        with self._env(), mock.patch.object(
+            prompt_context, "installed_version", side_effect=AssertionError("no probe")
+        ), mock.patch.object(prompt_context, "run_installer") as run_installer:
+            prompt_context.self_heal_work_view(self.root, "UserPromptSubmit")
+
+        run_installer.assert_called_once_with(self.root, self.plugin)
+
+    def test_userpromptsubmit_present_does_not_install_or_probe_version(self) -> None:
+        self._write_work_view()
+        with self._env(), mock.patch.object(
+            prompt_context.subprocess, "run", side_effect=AssertionError("no subprocess")
+        ), mock.patch.object(prompt_context, "run_installer") as run_installer:
+            prompt_context.self_heal_work_view(self.root, "UserPromptSubmit")
+
+        run_installer.assert_not_called()
+
+    def test_no_plugin_root_env_is_noop(self) -> None:
+        self._write_work_view()
+        with mock.patch.dict(prompt_context.os.environ, {}, clear=True), mock.patch.object(
+            prompt_context, "run_installer"
+        ) as run_installer:
+            prompt_context.self_heal_work_view(self.root, "SessionStart")
+
+        run_installer.assert_not_called()
+
+    def test_installed_version_uses_last_token(self) -> None:
+        self._write_work_view()
+        completed = mock.Mock(returncode=0, stdout="work-view 0.8.7\n")
+        with mock.patch.object(prompt_context.subprocess, "run", return_value=completed):
+            self.assertEqual(prompt_context.installed_version(self.root), "0.8.7")
+
+    def test_installed_version_rejects_unrecognized_output(self) -> None:
+        self._write_work_view()
+        completed = mock.Mock(returncode=0, stdout="version 0.8.7\n")
+        with mock.patch.object(prompt_context.subprocess, "run", return_value=completed):
+            self.assertIsNone(prompt_context.installed_version(self.root))
+
+    def test_run_installer_suppresses_output(self) -> None:
+        with self._env(), mock.patch.object(prompt_context.subprocess, "run") as run:
+            prompt_context.run_installer(self.root, self.plugin)
+
+        kwargs = run.call_args.kwargs
+        self.assertEqual(kwargs["stdout"], prompt_context.subprocess.DEVNULL)
+        self.assertEqual(kwargs["stderr"], prompt_context.subprocess.DEVNULL)
+        self.assertEqual(kwargs["env"]["PLUGIN_ROOT"], str(self.plugin))
+
+    def test_main_failopens_when_installer_path_raises(self) -> None:
+        rules_dir = self.root / ".agents" / "rules"
+        rules_dir.mkdir(parents=True)
+        (rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
+        state_file = self.root / "hook-state.json"
+        payload = {
+            "session_id": "s1",
+            "hook_event_name": "SessionStart",
+            "source": "startup",
+            "cwd": str(self.root),
+        }
+        out = io.StringIO()
+        with self._env(), mock.patch.object(
+            prompt_context, "state_path", return_value=state_file
+        ), mock.patch.object(
+            prompt_context, "run_installer", side_effect=RuntimeError("installer failed")
+        ), mock.patch.object(
+            prompt_context.sys, "stdin", io.StringIO(json.dumps(payload))
+        ), mock.patch.object(prompt_context.sys, "stdout", out):
+            rc = prompt_context.main()
+
+        self.assertEqual(rc, 0)
+        printed = out.getvalue()
+        self.assertIn("additionalContext", printed)
+        self.assertIn("Rule A body", printed)
+
+
 class RulesLoaderTest(unittest.TestCase):
     """Guards the generic .agents/rules/ hook loader.
 

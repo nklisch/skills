@@ -4,12 +4,14 @@ on:
   push:
     paths:
       - "plugins/agile-workflow/work-view/**"
+      - "plugins/agile-workflow/hooks/scripts/**"
       - "plugins/agile-workflow/scripts/install-work-view.sh"
       - "plugins/agile-workflow/scripts/tests/**"
       - ".github/workflows/build-work-view.yml"
   pull_request:
     paths:
       - "plugins/agile-workflow/work-view/**"
+      - "plugins/agile-workflow/hooks/scripts/**"
       - "plugins/agile-workflow/scripts/install-work-view.sh"
       - "plugins/agile-workflow/scripts/tests/**"
       - ".github/workflows/build-work-view.yml"
@@ -39,6 +41,10 @@ jobs:
 
       - name: Run install-helper tests
         run: bash plugins/agile-workflow/scripts/tests/install-work-view.test.sh
+
+      - name: Run prompt-context tests
+        run: python3 -m unittest test_prompt_context
+        working-directory: plugins/agile-workflow/hooks/scripts
 
   # -----------------------------------------------------------------------
   # Linux musl builds via cargo-zigbuild

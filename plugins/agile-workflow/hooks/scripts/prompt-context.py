@@ -390,6 +390,84 @@ def run_work_view(root: Path, *args: str) -> list[Path]:
     return paths
 
 
+def plugin_root() -> Path | None:
+    pr = os.environ.get("PLUGIN_ROOT") or os.environ.get("CLAUDE_PLUGIN_ROOT")
+    return Path(pr) if pr else None
+
+
+def plugin_version(pr: Path) -> str | None:
+    try:
+        data = json.loads((pr / ".claude-plugin" / "plugin.json").read_text("utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    version = data.get("version")
+    return version if isinstance(version, str) and version else None
+
+
+def installed_version(root: Path) -> str | None:
+    work_view = root / ".work" / "bin" / "work-view"
+    if not work_view.is_file() or not os.access(work_view, os.X_OK):
+        return None
+    try:
+        result = subprocess.run(
+            [str(work_view), "--version"],
+            cwd=str(root),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    out = result.stdout.strip()
+    return out.split()[-1] if out.startswith("work-view ") else None
+
+
+def run_installer(root: Path, pr: Path) -> None:
+    installer = pr / "scripts" / "install-work-view.sh"
+    if not installer.is_file():
+        return
+    with contextlib.suppress(OSError, subprocess.TimeoutExpired):
+        subprocess.run(
+            ["bash", str(installer)],
+            cwd=str(root),
+            env={**os.environ, "PLUGIN_ROOT": str(pr)},
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=20,
+            check=False,
+        )
+
+
+def self_heal_work_view(root: Path, event: str) -> None:
+    try:
+        pr = plugin_root()
+        if pr is None:
+            return
+        work_view = root / ".work" / "bin" / "work-view"
+        present = work_view.is_file() and os.access(work_view, os.X_OK)
+        if event == "UserPromptSubmit":
+            if not present:
+                run_installer(root, pr)
+            return
+
+        if not present:
+            run_installer(root, pr)
+            return
+        want = plugin_version(pr)
+        if want is None:
+            return
+        if installed_version(root) != want:
+            run_installer(root, pr)
+    except Exception:
+        return
+
+
 def summarize_paths(paths: list[Path], limit: int = MAX_ITEMS) -> tuple[list[str], int]:
     items: list[str] = []
     for path in paths[:limit]:
@@ -629,6 +707,7 @@ def main() -> int:
     # after compaction — even during auto-continuation with no user prompt.
     if event in {"SessionStart", "PostCompact"}:
         bump_epoch(root, payload)
+        self_heal_work_view(root, event)
         output_context(event, emit_rules(root, payload, require_coding=False))
         return 0
 
@@ -636,6 +715,7 @@ def main() -> int:
         return 0
 
     prompt = str(payload.get("prompt") or "")
+    self_heal_work_view(root, event)
 
     parts: list[str] = []
     # Rules fallback: independent of the workflow gate, so it catches coding
