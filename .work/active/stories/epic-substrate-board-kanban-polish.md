@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-kanban-polish
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-kanban
 depends_on: [epic-substrate-board-kanban-swimlanes]
@@ -41,3 +41,12 @@ integration coverage for the shipped assets.
   empty-column minimum height, and mobile single-column stacking.
 - Extended integration static checks for kanban CSS primitives in addition to
   the existing `/assets/kanban.js` and raw HTML sink guards.
+
+## Review Notes
+
+- Local review approved the polish diff. The CSS changes are scoped to the
+  kanban surface and keep scrolling inside the board/lane surfaces rather than
+  shifting shell chrome.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`;
+  `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`;
+  release binary `670864` bytes.
