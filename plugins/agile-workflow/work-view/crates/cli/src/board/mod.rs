@@ -1,13 +1,12 @@
 //! Board subcommand parsing and dispatch.
-//!
-//! Unit 1 wires the `work-view board` / `work-view serve` entry point and keeps
-//! the server itself as an explicit placeholder for later host stories.
 
 use std::env;
 
 use work_view_core::index::find_substrate_root;
 
 use crate::args::UsageError;
+
+mod server;
 
 pub(crate) const BOARD_HELP: &str = "\
 work-view board - serve the agile-workflow substrate board
@@ -117,14 +116,13 @@ pub(crate) fn run_board(opts: BoardOptions) -> u8 {
         }
     };
 
-    eprintln!(
-        "work-view board: server not implemented yet (substrate: {}, requested port: {}, no-open: {}, once: {})",
-        root.display(),
-        opts.port,
-        opts.no_open,
-        opts.once
-    );
-    1
+    match server::serve_board(root, opts) {
+        Ok(_) => 0,
+        Err(e) => {
+            eprintln!("work-view board: {e}");
+            3
+        }
+    }
 }
 
 #[cfg(test)]

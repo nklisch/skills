@@ -3,8 +3,13 @@
 //! Drives the binary via `std::process::Command` using `CARGO_BIN_EXE_work-view`.
 //! Exercises exit codes, output modes, filter flags, table format, and BrokenPipe.
 
+use std::io::{BufRead, BufReader, Read, Write};
+use std::net::{Ipv4Addr, SocketAddr, TcpListener, TcpStream};
 use std::path::Path;
-use std::process::Command;
+use std::process::{Child, Command, Stdio};
+use std::sync::mpsc::{self, Receiver};
+use std::thread;
+use std::time::{Duration, Instant};
 
 /// Absolute path to the compiled `work-view` binary.
 macro_rules! bin {
@@ -88,6 +93,122 @@ fn run_ready_drafting(args: &[&str]) -> (String, String, i32) {
         String::from_utf8_lossy(&out.stderr).into_owned(),
         out.status.code().unwrap_or(-1),
     )
+}
+
+fn unused_local_port() -> u16 {
+    let listener =
+        TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).expect("failed to reserve local port");
+    listener
+        .local_addr()
+        .expect("failed to read reserved local port")
+        .port()
+}
+
+fn busy_local_port_below_max() -> TcpListener {
+    for _ in 0..32 {
+        let listener =
+            TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).expect("failed to reserve busy port");
+        let port = listener
+            .local_addr()
+            .expect("failed to read busy port")
+            .port();
+        if port < u16::MAX {
+            return listener;
+        }
+    }
+    panic!("failed to reserve a busy port below u16::MAX");
+}
+
+fn spawn_board_once_with_args(args: &[&str]) -> (Child, Receiver<String>) {
+    let mut child = Command::new(bin!())
+        .args(args)
+        .current_dir(fixture_root())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("failed to spawn work-view board");
+
+    let stdout = child.stdout.take().expect("board stdout should be piped");
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(move || {
+        let mut reader = BufReader::new(stdout);
+        let mut line = String::new();
+        let message = match reader.read_line(&mut line) {
+            Ok(_) => line,
+            Err(e) => format!("stdout read error: {e}"),
+        };
+        let _ = tx.send(message);
+    });
+
+    (child, rx)
+}
+
+fn spawn_board_once(port: u16) -> (Child, Receiver<String>) {
+    let port_arg = port.to_string();
+    spawn_board_once_with_args(&["board", "--once", "--no-open", "--port", port_arg.as_str()])
+}
+
+fn read_bound_line(rx: Receiver<String>) -> String {
+    let line = rx
+        .recv_timeout(Duration::from_secs(3))
+        .expect("board did not print a bound URL before the timeout");
+    assert!(!line.trim().is_empty(), "board printed no bound URL");
+    line
+}
+
+fn parse_bound_port(line: &str) -> u16 {
+    line.split_whitespace()
+        .find_map(|token| {
+            token
+                .strip_prefix("http://127.0.0.1:")
+                .and_then(|rest| rest.trim_end_matches('/').parse::<u16>().ok())
+        })
+        .unwrap_or_else(|| panic!("could not parse localhost URL from line: {line:?}"))
+}
+
+fn http_get(port: u16, path: &str) -> String {
+    let addr = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
+    let deadline = Instant::now() + Duration::from_secs(3);
+
+    loop {
+        match TcpStream::connect(addr) {
+            Ok(mut stream) => {
+                let request =
+                    format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n");
+                stream
+                    .write_all(request.as_bytes())
+                    .expect("failed to write HTTP request");
+                let mut response = String::new();
+                stream
+                    .read_to_string(&mut response)
+                    .expect("failed to read HTTP response");
+                return response;
+            }
+            Err(e) if Instant::now() < deadline => {
+                let _ = e;
+                thread::sleep(Duration::from_millis(20));
+            }
+            Err(e) => panic!("failed to connect to board server on {addr}: {e}"),
+        }
+    }
+}
+
+fn wait_for_success(child: &mut Child) {
+    let deadline = Instant::now() + Duration::from_secs(3);
+    loop {
+        match child.try_wait().expect("failed to poll board process") {
+            Some(status) => {
+                assert!(status.success(), "board exited with status {status}");
+                return;
+            }
+            None if Instant::now() < deadline => thread::sleep(Duration::from_millis(20)),
+            None => {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!("board process did not exit after --once request");
+            }
+        }
+    }
 }
 
 /// Extract the item IDs from a table-mode output.
@@ -180,6 +301,99 @@ fn board_without_substrate_exits_2() {
     assert_eq!(code, 2, "no-substrate board should exit 2");
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(stderr.contains("no substrate"), "stderr: {stderr}");
+}
+
+#[test]
+fn board_healthz_binds_localhost_and_exits_after_once() {
+    let (mut child, rx) = spawn_board_once(unused_local_port());
+    let line = read_bound_line(rx);
+    assert!(
+        line.contains("http://127.0.0.1:"),
+        "board should print a localhost URL; line: {line}"
+    );
+    assert!(
+        !line.contains("0.0.0.0"),
+        "board must not bind or print a wildcard address; line: {line}"
+    );
+
+    let port = parse_bound_port(&line);
+    let response = http_get(port, "/healthz");
+    assert!(
+        response.starts_with("HTTP/1.1 200 OK"),
+        "healthz should return 200; response: {response}"
+    );
+    assert!(
+        response.contains("Content-Type: text/plain; charset=utf-8"),
+        "healthz should return text/plain; response: {response}"
+    );
+    assert!(
+        response.ends_with("ok\n"),
+        "healthz body mismatch: {response}"
+    );
+    wait_for_success(&mut child);
+}
+
+#[test]
+fn board_unknown_route_returns_404() {
+    let (mut child, rx) = spawn_board_once(unused_local_port());
+    let port = parse_bound_port(&read_bound_line(rx));
+
+    let response = http_get(port, "/missing");
+    assert!(
+        response.starts_with("HTTP/1.1 404 Not Found"),
+        "unknown route should return 404; response: {response}"
+    );
+    wait_for_success(&mut child);
+}
+
+#[test]
+fn board_busy_default_port_scans_upward_and_prints_bound_url() {
+    let busy = match TcpListener::bind((Ipv4Addr::LOCALHOST, 8181)) {
+        Ok(listener) => Some(listener),
+        Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => None,
+        Err(e) => panic!("failed to reserve default board port 8181: {e}"),
+    };
+
+    let (mut child, rx) = spawn_board_once_with_args(&["board", "--once", "--no-open"]);
+    let line = read_bound_line(rx);
+    let bound_port = parse_bound_port(&line);
+    assert!(
+        bound_port > 8181,
+        "busy default port should scan upward from 8181; line: {line}"
+    );
+
+    let response = http_get(bound_port, "/healthz");
+    assert!(
+        response.starts_with("HTTP/1.1 200 OK"),
+        "scanned port should serve requests; response: {response}"
+    );
+    wait_for_success(&mut child);
+    drop(busy);
+}
+
+#[test]
+fn board_busy_requested_port_scans_upward_and_prints_bound_url() {
+    let busy = busy_local_port_below_max();
+    let busy_port = busy
+        .local_addr()
+        .expect("failed to read busy listener port")
+        .port();
+
+    let (mut child, rx) = spawn_board_once(busy_port);
+    let line = read_bound_line(rx);
+    let bound_port = parse_bound_port(&line);
+    assert!(
+        bound_port > busy_port,
+        "busy requested port should scan upward; requested {busy_port}, line: {line}"
+    );
+
+    let response = http_get(bound_port, "/healthz");
+    assert!(
+        response.starts_with("HTTP/1.1 200 OK"),
+        "scanned port should serve requests; response: {response}"
+    );
+    wait_for_success(&mut child);
+    drop(busy);
 }
 
 #[test]
