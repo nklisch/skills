@@ -1,0 +1,97 @@
+<!doctype html>
+<!--
+  board-views flow · hub-and-spoke peer page 3 of 3.
+  Chosen table direction: .mockups/screens/epic-substrate-board-table/option-1.html
+  (flat sortable grid, signed off 2026-05-31). Re-rendered here in the flow with
+  shared nav + persisted theme/filters + size-detected detail overlay.
+-->
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>board-views — Table</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 60; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 11px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .tabs a { text-decoration: none; } .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 9px 18px; border-bottom: 1px solid var(--color-border); } .filters .right { margin-left: auto; }
+  .tablewrap { padding: 14px 18px 40px; }
+  table.table thead tr.cols th { position: sticky; top: 49px; background: var(--color-bg-secondary); z-index: 6; }
+  table.table thead tr.filterrow th { position: sticky; top: 82px; background: var(--color-bg-secondary); z-index: 5; padding: 4px 10px 8px; }
+  table.table thead tr.filterrow .input { padding: 4px 7px; font-size: 11px; }
+  tbody tr { cursor: pointer; }
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 40; }
+  .detail-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 50; border-radius: 0; overflow-y: auto; } .detail-drawer.dw-narrow { width: 380px; } .detail-drawer.dw-wide { width: 560px; }
+  .item-modal { position: relative; z-index: 50; width: min(720px,92vw); max-height: 86vh; display: flex; flex-direction: column; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); box-shadow: 0 24px 80px -24px rgba(0,0,0,.7); overflow: hidden; }
+  .item-modal .m-head { display: flex; gap: 8px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--color-border); } .item-modal .m-id { font: 600 var(--font-size-lg)/1.2 var(--font-mono); } .item-modal .m-scroll { overflow-y: auto; padding: 18px; }
+  .md .reading { max-width: 64ch; } .md p { font-size: var(--font-size-sm); line-height: 1.6; color: var(--color-text-secondary); margin: 0 0 10px; } .md code { font-family: var(--font-mono); background: var(--color-bg-tertiary); padding: 1px 5px; border-radius: 3px; color: var(--color-text-primary); }
+  .md .fm { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font: var(--font-size-xs)/1.6 var(--font-mono); margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); } .md .fm dt { color: var(--color-text-tertiary); } .md .fm dd { margin: 0; }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px">
+    <a href="01-kanban.html"><button class="tab">Kanban</button></a>
+    <a href="02-dependency.html"><button class="tab">Dependency</button></a>
+    <a href="03-table.html"><button class="tab" aria-selected="true">Table</button></a>
+  </div>
+  <div class="right">
+    <a href="index.html" style="color:var(--color-text-link);text-decoration:none;font:600 12px/1 var(--font-mono)">overview ↗</a>
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+<div class="filters">
+  <div class="filter-bar"><button class="filter-chip" data-f="kind:epic">kind:epic</button><button class="filter-chip" data-f="kind:feature">kind:feature</button><button class="filter-chip" data-f="kind:story">kind:story</button><button class="filter-chip" data-f="tag:tooling">tag:tooling</button><button class="filter-chip" data-f="tag:skill">tag:skill</button></div>
+  <div class="right"><button class="toggle" id="autohide"><span class="track"></span> hide released/archived</button><span class="count" id="count"></span></div>
+</div>
+
+<div class="tablewrap">
+  <table class="table" id="t">
+    <thead>
+      <tr class="cols"><th data-k="id">id</th><th data-k="kind">kind</th><th data-k="stage">stage</th><th data-k="status">status</th><th data-k="parent">parent</th><th data-k="deps">depends_on</th><th data-k="updated">updated</th></tr>
+      <tr class="filterrow"><th><input class="input" data-f="id" placeholder="filter id"></th><th><input class="input" data-f="kind" placeholder="kind"></th><th><input class="input" data-f="stage" placeholder="stage"></th><th colspan="4"></th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<script src="board-state.js"></script>
+<script>
+  // page-specific: sortable rows (hand-rolled, no lib). Rows carry data-* so the
+  // shared detail overlay (board-state.js) opens on row click.
+  const DATA = [
+    {id:'epic-substrate-board',kind:'epic',stage:'implementing',status:'',parent:'—',deps:'substrate-cli',updated:'05-31',body:'Interactive human surface over .work/ — kanban, dependency, table. The human twin of the work-view CLI.'},
+    {id:'board-host',kind:'feature',stage:'drafting',status:'ready',parent:'substrate-board',deps:'—',updated:'05-31',body:'Live local server + JSON substrate feed off the work-view binary. Read-only.'},
+    {id:'board-shell',kind:'feature',stage:'drafting',status:'blocked',parent:'substrate-board',deps:'board-host',updated:'05-31',body:'Shared frontend foundation: app frame, item-card, filters, auto-hide, filter-state store. The critical-path hinge.'},
+    {id:'board-kanban',kind:'feature',stage:'drafting',status:'blocked',parent:'substrate-board',deps:'board-shell',updated:'05-31',body:'Columns by stage. Selected: hybrid (left rail + epic swimlanes).'},
+    {id:'board-dependency',kind:'feature',stage:'drafting',status:'blocked',parent:'substrate-board',deps:'board-shell',updated:'05-31',body:'depends_on chains + blockers. Selected: graph canvas.'},
+    {id:'board-table',kind:'feature',stage:'drafting',status:'blocked',parent:'substrate-board',deps:'board-shell',updated:'05-31',body:'Sortable / per-column filterable grid (this view).'},
+    {id:'epic-substrate-cli',kind:'epic',stage:'done',status:'done',parent:'—',deps:'—',updated:'05-31',body:'Compiled work-view binary + shared query core. The engine this board reuses. 5 children done.'},
+  ];
+  let sortK='stage', dir=1; const filt={};
+  const chip = k => `<span class="chip chip--${k}">${k}</span>`;
+  const badge = s => s ? `<span class="badge badge--${s}">${s}</span>` : '<span style="color:var(--color-text-tertiary)">—</span>';
+  function render(){
+    const rows=DATA
+      .filter(d=>Object.entries(filt).every(([k,v])=>!v || (d[k]||'').toLowerCase().includes(v.toLowerCase())))
+      .sort((a,b)=>(a[sortK]>b[sortK]?1:a[sortK]<b[sortK]?-1:0)*dir);
+    document.getElementById('rows').innerHTML = rows.map(d=>`<tr data-id="${d.id}" data-kind="${d.kind}" data-stage="${d.stage}" data-deps="[${d.deps}]" data-body="${d.body}">
+      <td class="mono">${d.id}</td><td>${chip(d.kind)}</td><td>${d.stage}</td><td>${badge(d.status)}</td><td class="mono">${d.parent}</td><td class="mono">${d.deps}</td><td class="mono">${d.updated}</td></tr>`).join('');
+    document.getElementById('count').textContent = rows.length+' shown';
+    document.querySelectorAll('#t thead tr.cols th').forEach(th=>{ th.querySelector('.sort')?.remove(); if(th.dataset.k===sortK){ const s=document.createElement('span'); s.className='sort'; s.textContent=dir>0?'▾':'▴'; th.appendChild(s);} });
+  }
+  document.querySelectorAll('#t thead tr.cols th[data-k]').forEach(th=>th.onclick=()=>{ if(sortK===th.dataset.k)dir*=-1; else {sortK=th.dataset.k;dir=1;} render(); });
+  document.querySelectorAll('#t thead tr.filterrow .input').forEach(inp=>inp.oninput=()=>{ filt[inp.dataset.f]=inp.value; render(); });
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!doctype html>
+<!--
+  board-views flow · hub-and-spoke peer page 2 of 3.
+  Chosen dependency direction: .mockups/screens/epic-substrate-board-dependency/option-4.html
+  (graph canvas, hand-rolled SVG, signed off 2026-05-31). Re-rendered here in the
+  flow with shared nav + persisted theme/filters + size-detected detail overlay.
+-->
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>board-views — Dependency</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 60; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 11px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .tabs a { text-decoration: none; } .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 9px 18px; border-bottom: 1px solid var(--color-border); }
+  .legend { padding: 8px 18px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: center; font: 11.5px/1 var(--font-mono); color: var(--color-text-tertiary); }
+  .legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 5px; }
+  .canvaswrap { padding: 18px; overflow: auto; }
+  .canvas { position: relative; width: 760px; height: 400px; margin: 0 auto; }
+  svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .gnode { position: absolute; transform: translate(-50%, -50%); z-index: 2; transition: opacity var(--dur-instant) var(--motion-standard); }
+  .gnode .item-card { padding: 7px 10px; min-width: 150px; cursor: pointer; } .gnode .item-card .ic-head { margin-bottom: 0; gap: 6px; } .gnode .ic-id { font-size: 11.5px; }
+  .canvas.focusing .gnode:not(.hot) { opacity: .28; } .canvas.focusing path:not(.hot) { opacity: .12 !important; }
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 40; }
+  .detail-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 50; border-radius: 0; overflow-y: auto; } .detail-drawer.dw-narrow { width: 380px; } .detail-drawer.dw-wide { width: 560px; }
+  .item-modal { position: relative; z-index: 50; width: min(720px,92vw); max-height: 86vh; display: flex; flex-direction: column; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); box-shadow: 0 24px 80px -24px rgba(0,0,0,.7); overflow: hidden; }
+  .item-modal .m-head { display: flex; gap: 8px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--color-border); } .item-modal .m-id { font: 600 var(--font-size-lg)/1.2 var(--font-mono); } .item-modal .m-scroll { overflow-y: auto; padding: 18px; }
+  .md .reading { max-width: 64ch; } .md p { font-size: var(--font-size-sm); line-height: 1.6; color: var(--color-text-secondary); margin: 0 0 10px; } .md code { font-family: var(--font-mono); background: var(--color-bg-tertiary); padding: 1px 5px; border-radius: 3px; color: var(--color-text-primary); }
+  .md .fm { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font: var(--font-size-xs)/1.6 var(--font-mono); margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); } .md .fm dt { color: var(--color-text-tertiary); } .md .fm dd { margin: 0; }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px">
+    <a href="01-kanban.html"><button class="tab">Kanban</button></a>
+    <a href="02-dependency.html"><button class="tab" aria-selected="true">Dependency</button></a>
+    <a href="03-table.html"><button class="tab">Table</button></a>
+  </div>
+  <div class="right">
+    <a href="index.html" style="color:var(--color-text-link);text-decoration:none;font:600 12px/1 var(--font-mono)">overview ↗</a>
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+<div class="filters">
+  <div class="filter-bar"><button class="filter-chip" data-f="kind:epic">kind:epic</button><button class="filter-chip" data-f="kind:feature">kind:feature</button><button class="filter-chip" data-f="kind:story">kind:story</button><button class="filter-chip" data-f="tag:tooling">tag:tooling</button><button class="filter-chip" data-f="tag:skill">tag:skill</button></div>
+  <button class="toggle" id="autohide"><span class="track"></span> hide released/archived</button>
+</div>
+<div class="legend"><span><i style="border-color:var(--status-ready)"></i>satisfied</span><span><i style="border-color:var(--status-blocked)"></i>unmet</span><span>hover a node to trace its chain · click for detail</span></div>
+
+<div class="canvaswrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+    <div class="gnode" data-id="epic-substrate-cli" data-kind="epic" data-stage="done" data-deps="[]" data-body="Compiled work-view binary + shared query core. The engine this board reuses." style="left:13%;top:18%"><div class="item-card item-card--epic"><div class="ic-head"><span class="chip chip--epic">epic</span><span class="ic-id">substrate-cli</span><span class="badge badge--done">done</span></div></div></div>
+    <div class="gnode" data-id="epic-substrate-board" data-kind="epic" data-stage="implementing" data-deps="[epic-substrate-cli]" data-body="Interactive human surface over .work/ — kanban, dependency, table." style="left:45%;top:18%"><div class="item-card item-card--epic"><div class="ic-head"><span class="chip chip--epic">epic</span><span class="ic-id">substrate-board</span></div></div></div>
+    <div class="gnode" data-id="board-host" data-kind="feature" data-stage="drafting" data-deps="[]" data-body="Live local server + JSON feed off the work-view binary. Read-only." style="left:13%;top:55%"><div class="item-card item-card--feature"><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-host</span><span class="badge badge--ready">rdy</span></div></div></div>
+    <div class="gnode" data-id="board-shell" data-kind="feature" data-stage="drafting" data-deps="[board-host]" data-body="Shared app frame, item-card, filters, auto-hide, filter-state store. Critical-path hinge." style="left:45%;top:55%"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-shell</span><span class="badge badge--blocked">blk</span></div></div></div>
+    <div class="gnode" data-id="board-kanban" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="Columns by stage. Selected: hybrid (left rail + epic swimlanes)." style="left:80%;top:30%"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-kanban</span></div></div></div>
+    <div class="gnode" data-id="board-dependency" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="depends_on chains + blockers. Selected: graph canvas." style="left:80%;top:55%"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-dependency</span></div></div></div>
+    <div class="gnode" data-id="board-table" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="Sortable / filterable grid. Selected: flat sortable grid." style="left:80%;top:80%"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-table</span></div></div></div>
+  </div>
+</div>
+
+<script src="board-state.js"></script>
+<script>
+  // page-specific: hand-rolled graph wires + hover-trace (no lib)
+  const root = document.documentElement, canvas = document.getElementById('canvas'), svg = document.getElementById('wires');
+  const edges = [['epic-substrate-cli','epic-substrate-board','satisfied'],['board-host','board-shell','unmet'],['board-shell','board-kanban','unmet'],['board-shell','board-dependency','unmet'],['board-shell','board-table','unmet']];
+  const C = id => { const n = document.querySelector(`.gnode[data-id="${id}"]`), nr = n.getBoundingClientRect(), cr = canvas.getBoundingClientRect(); return { x: nr.left+nr.width/2-cr.left, y: nr.top+nr.height/2-cr.top, w: nr.width }; };
+  function draw(){ const col = getComputedStyle(root), ready = col.getPropertyValue('--status-ready').trim(), blocked = col.getPropertyValue('--status-blocked').trim(); svg.innerHTML='';
+    for (const [a,b,k] of edges){ const A=C(a),B=C(b),x1=A.x+A.w/2,y1=A.y,x2=B.x-B.w/2,y2=B.y,mx=(x1+x2)/2; const p=document.createElementNS('http://www.w3.org/2000/svg','path'); p.setAttribute('d',`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`); p.setAttribute('fill','none'); p.setAttribute('stroke', k==='unmet'?blocked:ready); p.setAttribute('stroke-width','2'); p.setAttribute('opacity','.8'); if(k==='unmet')p.setAttribute('stroke-dasharray','5 4'); p.dataset.a=a; p.dataset.b=b; svg.appendChild(p); } }
+  draw(); addEventListener('resize', draw);
+  document.getElementById('accent').addEventListener('change', () => setTimeout(draw,40));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.addEventListener('click', () => setTimeout(draw,40)));
+  document.querySelectorAll('.gnode').forEach(n => {
+    n.addEventListener('mouseenter', () => { const id=n.dataset.id; canvas.classList.add('focusing'); n.classList.add('hot'); svg.querySelectorAll('path').forEach(p=>{ if(p.dataset.a===id||p.dataset.b===id){ p.classList.add('hot'); p.setAttribute('stroke-width','3'); const o=p.dataset.a===id?p.dataset.b:p.dataset.a; document.querySelector(`.gnode[data-id="${o}"]`)?.classList.add('hot'); } }); });
+    n.addEventListener('mouseleave', () => { canvas.classList.remove('focusing'); document.querySelectorAll('.gnode.hot').forEach(x=>x.classList.remove('hot')); svg.querySelectorAll('path').forEach(p=>{ p.classList.remove('hot'); p.setAttribute('stroke-width','2'); }); });
+  });
+</script>
+</body>
+</html>

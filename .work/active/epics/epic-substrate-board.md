@@ -177,11 +177,24 @@ palette:
   editorial, vaporwave, aurora glass; and the single-lock terminal-teal /
   IBM Plex iteration that preceded the multi-theme system.
 
-Remaining ux-ui pipeline, still gated before the UI features implement
-(palette ✓, components ✓, motion ✓): `screens` (one per
-`epic-substrate-board-kanban`, `-dependency`, `-table`) → `flows` (cross-view
-navigation). The `-host` feature has no UI surface. Each UI feature gets its own
-`## Mockups` link as `screens` / `flows` run.
+- **Screens** (locked 2026-05-31), one per UI view, each recorded on its feature:
+  - `epic-substrate-board-kanban` → **hybrid** (left rail + epic swimlanes) +
+    size-detected item-detail surface.
+  - `epic-substrate-board-dependency` → **graph canvas** (hand-rolled SVG, no
+    lib) — resolved the epic's open list/tree-vs-graph choice.
+  - `epic-substrate-board-table` → **flat sortable grid** (sort + per-column
+    free-text filter row + global filter chips).
+- **Flow** (locked 2026-05-31): `.mockups/flows/board-views/` — hub-and-spoke
+  cross-view journey. Three peer pages (Kanban / Dependency / Table) sharing the
+  view-switcher as nav; **theme + filter state persist across the switch**
+  (localStorage, via shared `board-state.js`); the **size-detected item-detail
+  overlay** opens from any view. Index navigator visualizes the topology. This is
+  the connective behavior the `shell` feature owns.
+
+**ux-ui gate SATISFIED** (palette ✓ · components ✓ · motion ✓ · screens ✓ ·
+flows ✓). The epic's UI features (`shell`, `kanban`, `dependency`, `table`) are
+unblocked to implement against the locked design system + mocks; `-host` has no
+UI surface.
 
 ## Foundation docs to roll forward
 

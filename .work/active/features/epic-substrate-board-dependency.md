@@ -64,6 +64,8 @@ Inherits the locked design system + shared board frame established by
   absolute-positioned nodes, ~70 lines), hover a node to trace its in/out edges
   and dim the rest. Edges colored by satisfied (`--status-ready`) vs unmet
   (`--status-blocked`, dashed).
+- **Flow**: `.mockups/flows/board-views/` — hub-and-spoke; this view is
+  `02-dependency.html`.
 - Explorations (in folder / git history): `option-1` traversable list/tree,
   `option-2` blocked-first/actionable, `option-3` topological layers.
 

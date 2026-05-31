@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>board-views — flow overview</title>
+<style>
+  body { margin: 0; font: 14px/1.5 system-ui, sans-serif; background: #0d1117; color: #c9d1d9; }
+  header { padding: 22px 28px 6px; } header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; color: #fff; }
+  header p { margin: 0; color: #8b949e; }
+  .topo { margin: 14px 28px; padding: 14px 18px; border: 1px dashed #30363d; border-radius: 8px; color: #8b949e; font: 12.5px/1.6 ui-monospace, monospace; }
+  .topo b { color: #5EEAD4; }
+  .ribbon { display: flex; gap: 10px; padding: 8px 28px 4px; }
+  .ribbon a { padding: 8px 14px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; color: #5EEAD4; text-decoration: none; font-weight: 600; }
+  .ribbon a:hover { background: #1c2230; }
+  .peers { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); padding: 16px 28px 40px; }
+  .peer { background: #fff; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+  .peer .lbl { padding: 10px 14px; border-bottom: 1px solid #30363d; background: #161b22; display: flex; justify-content: space-between; align-items: center; }
+  .peer .lbl strong { color: #fff; } .peer .lbl .nav-hint { color: #8b949e; font: 11px/1 ui-monospace, monospace; }
+  .peer .lbl a { color: #5EEAD4; text-decoration: none; font-size: 12px; }
+  .peer iframe { border: 0; width: 100%; height: 280px; background: #0B0E14; }
+</style>
+</head>
+<body>
+<header>
+  <h1>board-views — cross-view flow</h1>
+  <p>Hub-and-spoke: three peer views sharing one nav. No fixed order; the size-detected detail overlay floats over any view.</p>
+</header>
+
+<div class="topo">
+  topology · <b>hub-and-spoke</b><br>
+  &nbsp;&nbsp;[ Kanban ] ⇄ [ Dependency ] ⇄ [ Table ] &nbsp;— shared view-switcher tabs (any → any)<br>
+  &nbsp;&nbsp;shared state ······ <b>theme</b> (accent + light/dark) + <b>filters</b> persist across the switch (localStorage)<br>
+  &nbsp;&nbsp;overlay layer ····· <b>item-detail</b> (size-detected: slide-over / wide-drawer / modal) opens from any view, closes back to it
+</div>
+
+<div class="ribbon">
+  <a href="01-kanban.html">▶ enter the board (Kanban)</a>
+  <a href="01-kanban.html" target="_blank">▶ enter in new tab</a>
+</div>
+
+<div class="peers">
+  <div class="peer"><div class="lbl"><strong>Kanban</strong><span class="nav-hint">entry · rail + swimlanes</span><a href="01-kanban.html" target="_blank">open ↗</a></div><iframe src="01-kanban.html"></iframe></div>
+  <div class="peer"><div class="lbl"><strong>Dependency</strong><span class="nav-hint">graph canvas</span><a href="02-dependency.html" target="_blank">open ↗</a></div><iframe src="02-dependency.html"></iframe></div>
+  <div class="peer"><div class="lbl"><strong>Table</strong><span class="nav-hint">flat sortable grid</span><a href="03-table.html" target="_blank">open ↗</a></div><iframe src="03-table.html"></iframe></div>
+</div>
+</body>
+</html>

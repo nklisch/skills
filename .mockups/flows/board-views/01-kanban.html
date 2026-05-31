@@ -1,0 +1,93 @@
+<!doctype html>
+<!--
+  board-views flow · hub-and-spoke peer page 1 of 3.
+  Chosen kanban direction: .mockups/screens/epic-substrate-board-kanban/option-hybrid.html
+  (left rail + epic swimlanes, signed off 2026-05-31). Re-rendered compact here
+  to demonstrate cross-view navigation, persisted theme+filter state, and the
+  size-detected detail overlay. Shared state lives in localStorage 'board-views-state'.
+-->
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>board-views — Kanban</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 60; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 11px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .tabs a { text-decoration: none; }
+  .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .shell { display: grid; grid-template-columns: 210px 1fr; min-height: calc(100vh - 92px); }
+  @media (max-width: 860px) { .shell { grid-template-columns: 1fr; } .rail { display: none; } }
+  .rail { border-right: 1px solid var(--color-border); padding: 14px; display: grid; gap: 16px; align-content: start; background: var(--color-bg-secondary); }
+  .rail h3 { margin: 0 0 6px; font: 600 11px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-tertiary); }
+  .rail .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rail .toggle { white-space: normal; align-items: flex-start; } .rail .toggle .track { margin-top: 1px; }
+  .mainwrap { padding: 14px 18px 40px; overflow-x: auto; }
+  .lanes { display: grid; grid-template-columns: 150px repeat(4, minmax(130px,1fr)); gap: 8px; min-width: 720px; }
+  .hrow { display: grid; grid-template-columns: 150px repeat(4, minmax(130px,1fr)); gap: 8px; border-bottom: 1px solid var(--color-border); padding-bottom: 6px; margin-bottom: 4px; }
+  .hrow .h { font: 600 11px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-tertiary); padding: 6px 4px; }
+  .lane-label { display: grid; gap: 4px; align-content: start; padding: 10px 8px 10px 0; border-top: 1px solid var(--color-border); }
+  .lane-label .nm { font: 600 12px/1.2 var(--font-mono); color: var(--kind-epic); } .lane-label .nm.done { color: var(--color-text-tertiary); }
+  .lane-label .prog { height: 4px; border-radius: var(--radius-full); background: var(--color-bg-tertiary); overflow: hidden; } .lane-label .prog>i { display: block; height: 100%; background: var(--status-ready); }
+  .cell { border-top: 1px solid var(--color-border); padding: 8px 4px; display: grid; gap: 6px; align-content: start; min-height: 44px; }
+  .cell .item-card { padding: 6px 9px; cursor: pointer; } .cell .item-card .ic-head { margin-bottom: 0; gap: 6px; } .cell .ic-id { font-size: 11px; }
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 40; }
+  .detail-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 50; border-radius: 0; overflow-y: auto; }
+  .detail-drawer.dw-narrow { width: 380px; } .detail-drawer.dw-wide { width: 560px; }
+  .item-modal { position: relative; z-index: 50; width: min(720px,92vw); max-height: 86vh; display: flex; flex-direction: column; background: var(--color-bg-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); box-shadow: 0 24px 80px -24px rgba(0,0,0,.7); overflow: hidden; }
+  .item-modal .m-head { display: flex; gap: 8px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--color-border); } .item-modal .m-id { font: 600 var(--font-size-lg)/1.2 var(--font-mono); }
+  .item-modal .m-scroll { overflow-y: auto; padding: 18px; }
+  .md .reading { max-width: 64ch; } .md p { font-size: var(--font-size-sm); line-height: 1.6; color: var(--color-text-secondary); margin: 0 0 10px; } .md code { font-family: var(--font-mono); background: var(--color-bg-tertiary); padding: 1px 5px; border-radius: 3px; color: var(--color-text-primary); }
+  .md .fm { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font: var(--font-size-xs)/1.6 var(--font-mono); margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); } .md .fm dt { color: var(--color-text-tertiary); } .md .fm dd { margin: 0; }
+  .pillbar { padding: 7px 18px; border-bottom: 1px solid var(--color-border); font: 11px/1.4 var(--font-mono); color: var(--color-text-tertiary); display: flex; gap: 10px; align-items: center; }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px">
+    <a href="01-kanban.html"><button class="tab" aria-selected="true">Kanban</button></a>
+    <a href="02-dependency.html"><button class="tab">Dependency</button></a>
+    <a href="03-table.html"><button class="tab">Table</button></a>
+  </div>
+  <div class="right">
+    <a href="index.html" style="color:var(--color-text-link);text-decoration:none;font:600 12px/1 var(--font-mono)">overview ↗</a>
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+<div class="pillbar"><span>shared state →</span> theme + filters persist across views (localStorage). Switch tabs: the same filter stays active.</div>
+
+<div class="shell">
+  <aside class="rail">
+    <div><h3>Kind</h3><div class="opts"><button class="filter-chip" data-f="kind:epic">epic</button><button class="filter-chip" data-f="kind:feature">feature</button><button class="filter-chip" data-f="kind:story">story</button></div></div>
+    <div><h3>Tag</h3><div class="opts"><button class="filter-chip" data-f="tag:tooling">tooling</button><button class="filter-chip" data-f="tag:skill">skill</button></div></div>
+    <div><h3>Show</h3><button class="toggle" id="autohide" aria-pressed="true"><span class="track"></span> hide released/archived</button></div>
+  </aside>
+  <div class="mainwrap">
+    <div class="hrow"><span class="h">epic / stage</span><span class="h">Drafting</span><span class="h">Implementing</span><span class="h">Review</span><span class="h">Done</span></div>
+    <div class="lanes">
+      <div class="lane-label"><span class="nm">substrate-board</span><div class="prog"><i style="width:0%"></i></div></div>
+      <div class="cell">
+        <div class="item-card item-card--feature" data-id="board-host" data-kind="feature" data-stage="drafting" data-deps="[]" data-body="Live local server + JSON substrate feed off the work-view binary. Surfaces LoadReport diagnostics. Read-only this epic."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-host</span><span class="badge badge--ready">rdy</span></div></div>
+        <div class="item-card item-card--feature is-blocked" data-id="board-shell" data-kind="feature" data-stage="drafting" data-deps="[board-host]" data-body="Shared frontend foundation: app frame, item-card, markdown body, global filters, auto-hide, and the filter-state store the views read. The critical-path hinge — pin its contract first."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-shell</span><span class="badge badge--blocked">blk</span></div></div>
+        <div class="item-card item-card--feature is-blocked" data-id="board-kanban" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="Columns by stage. Selected layout: hybrid (left rail + epic swimlanes)."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-kanban</span><span class="badge badge--blocked">blk</span></div></div>
+      </div>
+      <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+      <div class="lane-label"><span class="nm done">substrate-cli</span><div class="prog"><i style="width:100%"></i></div></div>
+      <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+      <div class="cell"><div class="item-card item-card--epic" data-id="epic-substrate-cli" data-kind="epic" data-stage="done" data-deps="[]" data-body="Compiled work-view binary + shared query core. The engine this board reuses. 5 children done."><div class="ic-head"><span class="chip chip--epic">epic</span><span class="ic-id">substrate-cli</span><span class="badge badge--done">done</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="board-state.js"></script>
+</body>
+</html>

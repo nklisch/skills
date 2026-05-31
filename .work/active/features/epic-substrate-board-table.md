@@ -59,6 +59,8 @@ component and links `tokens.css` + `components.css` + `motion.css`.
   click a row → the size-detected item-detail surface. Columns: id · kind ·
   stage · status · parent · depends_on · updated (mirrors the CLI's tabular
   output for parity).
+- **Flow**: `.mockups/flows/board-views/` — hub-and-spoke; this view is
+  `03-table.html`.
 - Explorations (in folder / git history): `option-2` grouped-by-epic
   (collapsible groups + progress), `option-3` master-detail two-pane,
   `option-4` spreadsheet-dense / terminal.

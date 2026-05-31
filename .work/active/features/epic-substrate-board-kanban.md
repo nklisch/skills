@@ -61,6 +61,8 @@ Inherits the locked design system (`tokens.css` + `components.css` +
   slide-over (380), medium → wide drawer (560), long body or narrow viewport →
   modal (760, prose capped ~68ch). Resolves the "large markdown needs room"
   problem without a manual choice.
+- **Flow**: `.mockups/flows/board-views/` — hub-and-spoke; this view is the
+  flow's entry page (`01-kanban.html`).
 - Explorations (in folder / git history): `option-1` classic columns,
   `option-2` compact rows, `option-3` left rail, `option-4` epic swimlanes.
 
