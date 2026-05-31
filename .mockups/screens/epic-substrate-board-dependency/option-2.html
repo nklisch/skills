@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-dependency — Option 2: Blocked-first / actionable</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+  .mock-meta strong { font-weight: 600; } .mock-meta span { color: #8b949e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 18px; display: grid; gap: 22px; }
+  .sec h2 { font: 600 12px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; margin: 0 0 10px; display: flex; gap: 8px; align-items: center; }
+  .sec.ready h2 { color: var(--status-ready); } .sec.blocked h2 { color: var(--status-blocked); }
+  .sec h2 .count { color: var(--color-text-secondary); }
+  .stack { display: grid; gap: 10px; }
+  .chain { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font: 11.5px/1.5 var(--font-mono); margin-top: 7px; color: var(--color-text-secondary); }
+  .chain .pill { border: 1px solid var(--color-border-strong); border-radius: var(--radius-full); padding: 2px 8px; }
+  .chain .pill.blk { border-color: color-mix(in srgb, var(--status-blocked) 55%, var(--color-border)); color: var(--color-text-primary); }
+  .chain .pill.rdy { border-color: var(--status-ready); color: var(--color-text-primary); }
+  .chain .arr { color: var(--color-text-tertiary); }
+  .frees { font: 11.5px/1.5 var(--font-mono); margin-top: 5px; color: var(--color-text-tertiary); }
+  .frees b { color: var(--color-accent); }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 2 — Blocked-first / actionable</strong><span>Answers "what can I start" and "why can't this start". Ready items up top; each blocked item shows its blocking chain and what finishing it frees.</span></header>
+
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px"><button class="tab">Kanban</button><button class="tab" aria-selected="true">Dependency</button><button class="tab">Table</button></div>
+  <div class="right">
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="sec ready">
+    <h2>● Ready to pick up <span class="count">1</span></h2>
+    <div class="stack">
+      <div class="item-card item-card--feature">
+        <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-host</span><span class="badge badge--ready" style="margin-left:auto">ready</span></div>
+        <div class="ic-body">No unmet dependencies — start here.</div>
+        <div class="frees">finishing this unblocks → <b>board-shell</b> (and transitively the 3 views)</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec blocked">
+    <h2>● Blocked <span class="count">4</span></h2>
+    <div class="stack">
+      <div class="item-card item-card--feature is-blocked">
+        <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-shell</span><span class="badge badge--blocked" style="margin-left:auto">blocked</span></div>
+        <div class="chain"><span class="pill blk">board-shell</span><span class="arr">← waiting on ←</span><span class="pill rdy">board-host · ready</span></div>
+        <div class="frees">1 hop from unblocked · finishing it frees <b>board-kanban, board-dependency, board-table</b></div>
+      </div>
+      <div class="item-card item-card--feature is-blocked">
+        <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-kanban</span><span class="badge badge--blocked" style="margin-left:auto">blocked</span></div>
+        <div class="chain"><span class="pill blk">board-kanban</span><span class="arr">←</span><span class="pill blk">board-shell</span><span class="arr">←</span><span class="pill rdy">board-host · ready</span></div>
+        <div class="frees">2 hops deep · critical path: host → shell → kanban</div>
+      </div>
+      <div class="item-card item-card--feature is-blocked">
+        <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-dependency</span><span class="badge badge--blocked" style="margin-left:auto">blocked</span></div>
+        <div class="chain"><span class="pill blk">board-dependency</span><span class="arr">←</span><span class="pill blk">board-shell</span><span class="arr">←</span><span class="pill rdy">board-host · ready</span></div>
+        <div class="frees">2 hops deep</div>
+      </div>
+      <div class="item-card item-card--feature is-blocked">
+        <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-table</span><span class="badge badge--blocked" style="margin-left:auto">blocked</span></div>
+        <div class="chain"><span class="pill blk">board-table</span><span class="arr">←</span><span class="pill blk">board-shell</span><span class="arr">←</span><span class="pill rdy">board-host · ready</span></div>
+        <div class="frees">2 hops deep</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const r = document.documentElement;
+  document.getElementById('accent').addEventListener('change', e => r.setAttribute('data-accent', e.target.value));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.onclick = () => {
+    b.dataset.mode === 'system' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', b.dataset.mode);
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => { document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); });
+</script>
+</body>
+</html>

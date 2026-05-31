@@ -52,18 +52,39 @@ enhancement. This feature is independent of the kanban and table views.
   `--ready` semantics this mirrors for humans (one substrate, two adapters).
 
 ## Mockups
-<!-- Mockups pending — see parent epic's UI gate. The dependency view is a
-"screens"-tier mock (and possibly a "flows" traversal) produced by the parent
-epic's ux-ui pass against this feature id. The list/tree-vs-graph-canvas choice
-above should be resolved in that mock pass. feature-design falls back to its own
-mockup phase only if the parent pass has not run. -->
-- Pending — `.mockups/screens/epic-substrate-board-dependency/` once the parent
-  epic's ux-ui pass runs; inherits `.mockups/design-system/`.
+
+Screens designed and direction selected (`/ux-ui-design:screens`, 2026-05-31).
+Inherits the locked design system + shared board frame established by
+`epic-substrate-board-kanban`; links `tokens.css` + `components.css` +
+`motion.css` and reuses the `.dep-node` component.
+
+- **Navigator**: `.mockups/screens/epic-substrate-board-dependency/index.html`
+- **Selected**: `option-4.html` — **graph canvas**. Node-and-edge graph with a
+  hand-rolled layered layout (no D3 / no external layout lib — SVG paths +
+  absolute-positioned nodes, ~70 lines), hover a node to trace its in/out edges
+  and dim the rest. Edges colored by satisfied (`--status-ready`) vs unmet
+  (`--status-blocked`, dashed).
+- Explorations (in folder / git history): `option-1` traversable list/tree,
+  `option-2` blocked-first/actionable, `option-3` topological layers.
 
 ## Design decisions (inherited from parent epic)
-- **Vanilla HTML/CSS/JS, no build** — constrains the dependency-rendering choice
-  (favors list/tree over a graph-layout library); resolve in feature-design/mocks.
+- **Vanilla HTML/CSS/JS, no build** — SATISFIED: the chosen graph canvas is
+  hand-rolled SVG with no layout library, so it stays within the no-build rule.
 - **Read-only this epic** — traverse and inspect edges; no editing dependencies.
+
+## Resolved: rendering choice (2026-05-31)
+The epic's open **list/tree vs graph-canvas** choice is resolved to
+**graph-canvas** (user pick over the lean recommendation). Implications
+feature-design must handle:
+- **Scalability** is the main risk — a free node-edge graph gets tangled on a
+  large substrate. Mitigations to design in: the layered layout (x by
+  dependency depth) tames it; scope the graph to the active filter / a focused
+  epic subgraph rather than the whole substrate at once; collapse done/terminal
+  branches by default; consider a list/tree fallback (option-1) for very large
+  or filtered-wide sets. The core `graph` module supplies adjacency + depth.
+- Keep the hand-rolled SVG approach (no layout lib) per the no-build decision;
+  if a layered layout proves insufficient, prefer a tiny hand-rolled force/Sugiyama
+  pass over pulling in D3.
 
 <!-- feature-design fills in: list/tree vs graph-canvas (per the open choice
 above), traversal/interaction model, and blocked/ready visual treatment. -->

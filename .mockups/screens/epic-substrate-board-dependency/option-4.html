@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-dependency — Option 4: Graph canvas</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+  .mock-meta strong { font-weight: 600; } .mock-meta span { color: #8b949e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .legend { padding: 9px 18px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: center; font: 11.5px/1 var(--font-mono); color: var(--color-text-tertiary); }
+  .legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 5px; }
+  .canvaswrap { padding: 18px; overflow: auto; }
+  .canvas { position: relative; width: 760px; height: 420px; margin: 0 auto; }
+  svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .gnode { position: absolute; transform: translate(-50%, -50%); z-index: 2; transition: opacity var(--dur-instant) var(--motion-standard); }
+  .gnode .item-card { padding: 7px 10px; min-width: 150px; cursor: pointer; }
+  .gnode .item-card .ic-head { margin-bottom: 0; gap: 6px; } .gnode .ic-id { font-size: 11.5px; }
+  .canvas.focusing .gnode:not(.hot) { opacity: .28; }
+  .canvas.focusing path:not(.hot) { opacity: .12 !important; }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 4 — Graph canvas</strong><span>Node-and-edge graph, hand-rolled layered layout (no D3 / no lib). Hover a node to highlight its in/out edges and neighbours.</span></header>
+
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px"><button class="tab">Kanban</button><button class="tab" aria-selected="true">Dependency</button><button class="tab">Table</button></div>
+  <div class="right">
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+<div class="legend"><span><i style="border-color:var(--status-ready)"></i>satisfied</span><span><i style="border-color:var(--status-blocked)"></i>unmet</span><span>hover a node to trace its chain · ~70 lines of hand-rolled layout</span></div>
+
+<div class="canvaswrap">
+  <div class="canvas" id="canvas">
+    <svg class="wires" id="wires"></svg>
+    <!-- nodes positioned by layer (x) and spread (y); coords are % of canvas -->
+    <div class="gnode" data-id="cli"        style="left:13%;top:16%"><div class="item-card item-card--epic"><div class="ic-head"><span class="chip chip--epic">epic</span><span class="ic-id">substrate-cli</span><span class="badge badge--done">done</span></div></div></div>
+    <div class="gnode" data-id="board"      style="left:45%;top:16%"><div class="item-card item-card--epic"><div class="ic-head"><span class="chip chip--epic">epic</span><span class="ic-id">substrate-board</span></div></div></div>
+    <div class="gnode" data-id="host"       style="left:13%;top:52%"><div class="item-card item-card--feature"><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-host</span><span class="badge badge--ready">rdy</span></div></div></div>
+    <div class="gnode" data-id="shell"      style="left:45%;top:52%"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-shell</span><span class="badge badge--blocked">blk</span></div></div></div>
+    <div class="gnode" data-id="kanban"     style="left:80%;top:30%"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-kanban</span></div></div></div>
+    <div class="gnode" data-id="dependency" style="left:80%;top:55%"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-dependency</span></div></div></div>
+    <div class="gnode" data-id="table"      style="left:80%;top:80%"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-table</span></div></div></div>
+  </div>
+</div>
+
+<script>
+  const r = document.documentElement;
+  document.getElementById('accent').addEventListener('change', e => { r.setAttribute('data-accent', e.target.value); setTimeout(draw,30); });
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.onclick = () => {
+    b.dataset.mode === 'system' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', b.dataset.mode);
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute('aria-pressed', x === b)); setTimeout(draw,30); });
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => { document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); });
+
+  // edges: [from(dependency target), to(dependent), kind] — arrow points from dep -> dependent
+  const edges = [
+    ['cli','board','satisfied'],
+    ['host','shell','unmet'],
+    ['shell','kanban','unmet'], ['shell','dependency','unmet'], ['shell','table','unmet']
+  ];
+  const canvas = document.getElementById('canvas'), svg = document.getElementById('wires');
+  function center(id){ const n=document.querySelector(`.gnode[data-id="${id}"]`); const nr=n.getBoundingClientRect(), cr=canvas.getBoundingClientRect(); return { x:nr.left+nr.width/2-cr.left, y:nr.top+nr.height/2-cr.top, w:nr.width, h:nr.height }; }
+  function draw(){
+    const col = getComputedStyle(r), ready = col.getPropertyValue('--status-ready').trim(), blocked = col.getPropertyValue('--status-blocked').trim();
+    svg.innerHTML = '';
+    for (const [a,b,kind] of edges){
+      const A=center(a), B=center(b);
+      const x1=A.x+A.w/2, y1=A.y, x2=B.x-B.w/2, y2=B.y, mx=(x1+x2)/2;
+      const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+      p.setAttribute('d',`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`);
+      p.setAttribute('fill','none'); p.setAttribute('stroke', kind==='unmet'?blocked:ready);
+      p.setAttribute('stroke-width','2'); p.setAttribute('opacity','0.8');
+      if (kind==='unmet') p.setAttribute('stroke-dasharray','5 4');
+      p.dataset.a=a; p.dataset.b=b; svg.appendChild(p);
+    }
+  }
+  draw(); addEventListener('resize', draw);
+  // hover highlight: thicken edges touching the node, dim the rest
+  document.querySelectorAll('.gnode').forEach(n => {
+    n.addEventListener('mouseenter', () => {
+      const id=n.dataset.id; canvas.classList.add('focusing'); n.classList.add('hot');
+      svg.querySelectorAll('path').forEach(p => { if(p.dataset.a===id||p.dataset.b===id){ p.classList.add('hot'); p.setAttribute('stroke-width','3'); const other=p.dataset.a===id?p.dataset.b:p.dataset.a; document.querySelector(`.gnode[data-id="${other}"]`)?.classList.add('hot'); } });
+    });
+    n.addEventListener('mouseleave', () => {
+      canvas.classList.remove('focusing');
+      document.querySelectorAll('.gnode.hot').forEach(x=>x.classList.remove('hot'));
+      svg.querySelectorAll('path').forEach(p => { p.classList.remove('hot'); p.setAttribute('stroke-width','2'); });
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-dependency — Option 1: Traversable list/tree</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+  .mock-meta strong { font-weight: 600; } .mock-meta span { color: #8b949e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 9px 18px; border-bottom: 1px solid var(--color-border); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 18px; display: grid; gap: 10px; }
+  .lede { color: var(--color-text-tertiary); font: 12.5px/1.5 var(--font-mono); }
+  .dep-node { scroll-margin-top: 110px; }
+  .dep-node .dn-head .ic-id { font: var(--font-weight-semibold) 13px/1.3 var(--font-mono); color: var(--color-text-primary); }
+  .dep-node .edge a { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; cursor: pointer; }
+  .dep-node .edge a:hover { color: var(--color-text-primary); }
+  .dep-node.flash { animation: flash var(--dur-ambient) var(--motion-standard); }
+  @keyframes flash { 0% { box-shadow: 0 0 0 2px var(--color-accent); } 100% { box-shadow: none; } }
+  .dep-node .why { font: 11px/1.4 var(--font-mono); color: var(--color-text-tertiary); margin-top: 2px; }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 1 — Traversable list/tree</strong><span>Each item shows ↳ depends_on (satisfied/unmet) and ↱ unblocks. Click any edge id to jump to that item. Pure DOM, no graph lib.</span></header>
+
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px"><button class="tab">Kanban</button><button class="tab" aria-selected="true">Dependency</button><button class="tab">Table</button></div>
+  <div class="right">
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+<div class="filters">
+  <span class="input-search" style="flex:0 0 220px"><input class="input" placeholder="filter… (id)"></span>
+  <div class="filter-bar"><button class="filter-chip" aria-pressed="true">blocked only</button><button class="filter-chip">ready only</button></div>
+</div>
+
+<main class="wrap">
+  <div class="lede">// the substrate-board epic's dependency chain, top-down</div>
+
+  <div class="dep-node" id="n-board-host">
+    <div class="dn-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-host</span><span class="badge badge--ready" style="margin-left:auto">ready</span></div>
+    <div class="edges">
+      <div class="edge"><span class="up">↳ depends_on</span> <span class="met">none — root</span></div>
+      <div class="edge"><span class="down">↱ unblocks</span> <a data-go="n-board-shell">board-shell</a></div>
+    </div>
+    <div class="why">actionable now: no unmet dependencies</div>
+  </div>
+
+  <div class="dep-node is-blocked" id="n-board-shell">
+    <div class="dn-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-shell</span><span class="badge badge--blocked" style="margin-left:auto">blocked</span></div>
+    <div class="edges">
+      <div class="edge"><span class="up">↳ depends_on</span> <a data-go="n-board-host" class="unmet">board-host (unmet)</a></div>
+      <div class="edge"><span class="down">↱ unblocks</span> <a data-go="n-board-kanban">board-kanban</a>, <a data-go="n-board-dependency">board-dependency</a>, <a data-go="n-board-table">board-table</a></div>
+    </div>
+    <div class="why">blocked by board-host · finishing it frees 3 views</div>
+  </div>
+
+  <div class="dep-node is-blocked" id="n-board-kanban">
+    <div class="dn-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-kanban</span><span class="badge badge--blocked" style="margin-left:auto">blocked</span></div>
+    <div class="edges">
+      <div class="edge"><span class="up">↳ depends_on</span> <a data-go="n-board-shell" class="unmet">board-shell (unmet)</a></div>
+      <div class="edge"><span class="down">↱ unblocks</span> <span style="color:var(--color-text-tertiary)">nothing</span></div>
+    </div>
+  </div>
+
+  <div class="dep-node is-blocked" id="n-board-dependency">
+    <div class="dn-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-dependency</span><span class="badge badge--blocked" style="margin-left:auto">blocked</span></div>
+    <div class="edges">
+      <div class="edge"><span class="up">↳ depends_on</span> <a data-go="n-board-shell" class="unmet">board-shell (unmet)</a></div>
+      <div class="edge"><span class="down">↱ unblocks</span> <span style="color:var(--color-text-tertiary)">nothing</span></div>
+    </div>
+  </div>
+
+  <div class="dep-node is-blocked" id="n-board-table">
+    <div class="dn-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-table</span><span class="badge badge--blocked" style="margin-left:auto">blocked</span></div>
+    <div class="edges">
+      <div class="edge"><span class="up">↳ depends_on</span> <a data-go="n-board-shell" class="unmet">board-shell (unmet)</a></div>
+      <div class="edge"><span class="down">↱ unblocks</span> <span style="color:var(--color-text-tertiary)">nothing</span></div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const r = document.documentElement;
+  document.getElementById('accent').addEventListener('change', e => r.setAttribute('data-accent', e.target.value));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.onclick = () => {
+    b.dataset.mode === 'system' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', b.dataset.mode);
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => { document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); });
+  document.querySelectorAll('.filter-chip').forEach(c => c.onclick = () => c.setAttribute('aria-pressed', c.getAttribute('aria-pressed')!=='true'));
+  // traverse: click an edge id -> scroll + flash target
+  document.querySelectorAll('[data-go]').forEach(a => a.addEventListener('click', () => {
+    const t = document.getElementById(a.dataset.go); if(!t) return;
+    t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash');
+  }));
+</script>
+</body>
+</html>

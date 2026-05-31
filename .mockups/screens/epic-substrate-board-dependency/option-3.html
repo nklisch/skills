@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-dependency — Option 3: Topological layers</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+  .mock-meta strong { font-weight: 600; } .mock-meta span { color: #8b949e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .legend { padding: 9px 18px; border-bottom: 1px solid var(--color-border); display: flex; gap: 16px; align-items: center; font: 11.5px/1 var(--font-mono); color: var(--color-text-tertiary); }
+  .legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 5px; }
+  .graph { position: relative; padding: 24px 18px 40px; overflow-x: auto; }
+  .layers { position: relative; display: grid; grid-template-columns: repeat(3, minmax(190px, 1fr)); gap: 64px; min-width: 760px; align-items: start; z-index: 1; }
+  .layer { display: grid; gap: 36px; align-content: start; }
+  .layer > .lbl { font: 600 11px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-tertiary); }
+  .node { position: relative; z-index: 2; }
+  svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: visible; }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 3 — Topological layers</strong><span>Items in columns by dependency depth (roots → dependents); hand-drawn connectors between layers. Pipeline-shaped; no graph library.</span></header>
+
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px"><button class="tab">Kanban</button><button class="tab" aria-selected="true">Dependency</button><button class="tab">Table</button></div>
+  <div class="right">
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+<div class="legend"><span><i style="border-color:var(--status-ready)"></i>satisfied dep</span><span><i style="border-color:var(--status-blocked)"></i>unmet dep (blocks)</span><span>flow: depends_on points left → right toward dependents</span></div>
+
+<div class="graph">
+  <div class="layers" id="layers">
+    <svg class="wires" id="wires"></svg>
+    <div class="layer">
+      <span class="lbl">Layer 0 · roots</span>
+      <div class="node" id="g-host"><div class="item-card item-card--feature"><div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-host</span><span class="badge badge--ready" style="margin-left:auto">ready</span></div></div></div>
+    </div>
+    <div class="layer">
+      <span class="lbl">Layer 1</span>
+      <div class="node" id="g-shell"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-shell</span><span class="badge badge--blocked" style="margin-left:auto">blocked</span></div></div></div>
+    </div>
+    <div class="layer">
+      <span class="lbl">Layer 2 · dependents</span>
+      <div class="node" id="g-kanban"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-kanban</span><span class="badge badge--blocked" style="margin-left:auto">blk</span></div></div></div>
+      <div class="node" id="g-dependency"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-dependency</span><span class="badge badge--blocked" style="margin-left:auto">blk</span></div></div></div>
+      <div class="node" id="g-table"><div class="item-card item-card--feature is-blocked"><div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-table</span><span class="badge badge--blocked" style="margin-left:auto">blk</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const r = document.documentElement;
+  document.getElementById('accent').addEventListener('change', e => r.setAttribute('data-accent', e.target.value));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.onclick = () => {
+    b.dataset.mode === 'system' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', b.dataset.mode);
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => { document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); });
+
+  // hand-drawn connectors (no lib): elbow paths from source right-edge to target left-edge
+  const edges = [
+    ['g-host','g-shell','unmet'],
+    ['g-shell','g-kanban','unmet'], ['g-shell','g-dependency','unmet'], ['g-shell','g-table','unmet']
+  ];
+  function draw(){
+    const svg = document.getElementById('wires'), box = document.getElementById('layers').getBoundingClientRect();
+    const col = getComputedStyle(r);
+    const ready = col.getPropertyValue('--status-ready').trim(), blocked = col.getPropertyValue('--status-blocked').trim();
+    svg.innerHTML = '';
+    for (const [a,b,kind] of edges){
+      const ra = document.getElementById(a).getBoundingClientRect(), rb = document.getElementById(b).getBoundingClientRect();
+      const x1 = ra.right - box.left, y1 = ra.top + ra.height/2 - box.top;
+      const x2 = rb.left - box.left,  y2 = rb.top + rb.height/2 - box.top;
+      const mx = (x1 + x2) / 2;
+      const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+      p.setAttribute('d', `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`);
+      p.setAttribute('fill','none');
+      p.setAttribute('stroke', kind==='unmet'?blocked:ready);
+      p.setAttribute('stroke-width','2');
+      p.setAttribute('stroke-dasharray', kind==='unmet'?'5 4':'0');
+      p.setAttribute('opacity','0.8');
+      svg.appendChild(p);
+    }
+  }
+  draw(); addEventListener('resize', draw);
+  document.getElementById('accent').addEventListener('change', () => setTimeout(draw, 30));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.addEventListener('click', () => setTimeout(draw, 30)));
+</script>
+</body>
+</html>
