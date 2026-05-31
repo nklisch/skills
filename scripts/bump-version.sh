@@ -92,7 +92,51 @@ bump_json() {
 bump_json "$claude_json"
 [[ -f "$codex_json" ]] && bump_json "$codex_json"
 
+# Keep work-view's self-reported version in lockstep with the plugin version.
+# Only the agile-workflow plugin ships work-view (a Rust binary + a bash
+# fallback that both report `work-view <semver>` via --version). The semver
+# lives canonically in plugin.json; project it into both implementations here so
+# a single string compare answers "is this installed copy current?".
+if [[ "$plugin" == "agile-workflow" ]]; then
+  ver_file="plugins/agile-workflow/work-view/crates/cli/.work-view-version"
+  bash_script="plugins/agile-workflow/scripts/work-view.sh"
+
+  # Rust stamp: written with NO trailing newline so the binary's raw
+  # include_str! yields the bare semver (byte-parity with the bash fallback).
+  printf '%s' "$new" > "$ver_file"
+  git add "$ver_file"
+
+  # Bash fallback: update the WORK_VIEW_VERSION="x.y.z" literal in place.
+  # sed -i.bak ... && rm .bak is portable across GNU and BSD/macOS sed.
+  sed -i.bak -E 's/^WORK_VIEW_VERSION="[^"]*"/WORK_VIEW_VERSION="'"$new"'"/' "$bash_script"
+  rm -f "${bash_script}.bak"
+  git add "$bash_script"
+fi
+
 echo "$plugin: v$current -> v$new"
 
 git commit -m "Bump $plugin plugin to v$new"
+
+# Remind the operator that the 4 cross-compiled dist binaries are NOT rebuilt by
+# this script. CORRECTED ORDERING: the version stamp is written into source BY
+# THIS SCRIPT and CI builds the dist binaries FROM that source, so the rebuild
+# must run on the POST-bump commit. A pre-bump CI run would compile the OLD
+# stamp and ship version-mismatched binaries.
+if [[ "$plugin" == "agile-workflow" ]]; then
+  {
+    echo ""
+    echo "NOTE: work-view dist binaries are NOT rebuilt by this script."
+    echo "      They are compiled FROM the version stamp this script just wrote,"
+    echo "      so rebuild them on the POST-bump commit (not before it):"
+    echo "      after this bump is pushed, trigger the 'Build work-view binaries'"
+    echo "      workflow (workflow_dispatch, commit_binaries=true) against the"
+    echo "      bumped commit so dist/<triple>/work-view self-reports v$new."
+    echo "      Until that CI run lands, the committed dist binaries lag the"
+    echo "      stamped version — acceptable because the project entrypoint is the"
+    echo "      source-stamped bash implementation and install selection is"
+    echo "      version-aware; a prebuilt is never trusted when its --version"
+    echo "      mismatches the plugin."
+  } >&2
+fi
+
 git push

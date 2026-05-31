@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-versioning-bump-lockstep
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli-freshness-versioning
 depends_on: [epic-substrate-cli-freshness-versioning-rust-version, epic-substrate-cli-freshness-versioning-bash-version]
@@ -58,15 +58,18 @@ are refreshed by CI (not by this script).
 
 ## Acceptance criteria
 
-- [ ] After `./scripts/bump-version.sh agile-workflow patch`,
+- [x] After `./scripts/bump-version.sh agile-workflow patch`,
       `.work-view-version` holds the new semver (no trailing newline), staged
-      and committed.
-- [ ] `work-view.sh`'s `WORK_VIEW_VERSION` literal equals the new semver, staged
-      and committed.
-- [ ] The final commit includes both work-view files plus both `plugin.json`s.
-- [ ] The dist-refresh NOTE prints only for `agile-workflow` and states the
+      and committed. (Validated via scratch-copy dry run, NOT a live bump.)
+- [x] `work-view.sh`'s `WORK_VIEW_VERSION` literal equals the new semver, staged
+      and committed. (Scratch-copy dry run; surgical anchored sed.)
+- [x] The final commit includes both work-view files plus both `plugin.json`s.
+      (`git add` of both work-view paths precedes the existing unrestricted
+      `git commit` at line 118.)
+- [x] The dist-refresh NOTE prints only for `agile-workflow` and states the
       POST-bump rebuild ordering (rebuild from the bumped commit, not before it).
-- [ ] Bumping a different plugin leaves work-view files untouched.
+- [x] Bumping a different plugin leaves work-view files untouched. (Both the
+      projection and the NOTE are guarded by `[[ "$plugin" == "agile-workflow" ]]`.)
 
 ## Notes
 
@@ -76,3 +79,49 @@ are refreshed by CI (not by this script).
   exercise it.
 - Verify `sed -i.bak` behavior on the implementing platform (GNU vs BSD sed);
   the `-i.bak ... && rm .bak` form is portable across both.
+
+## Implementation notes
+
+- **Files changed**: `scripts/bump-version.sh` (repo root) only.
+  - After the existing `bump_json` calls (and before the `echo` summary), added a
+    `[[ "$plugin" == "agile-workflow" ]]`-guarded projection block:
+    `printf '%s' "$new" > .../crates/cli/.work-view-version` (NO trailing
+    newline) + `git add`; then a surgical anchored
+    `sed -i.bak -E 's/^WORK_VIEW_VERSION="[^"]*"/WORK_VIEW_VERSION="'"$new"'"/'`
+    on `scripts/work-view.sh` + `rm -f` the `.bak` + `git add`.
+  - After the existing `git commit` and before `git push`, added a second
+    `agile-workflow`-guarded stderr NOTE stating the **POST-bump** dist-rebuild
+    ordering (cross-model review P0#2): the stamp is written into source by this
+    script, CI builds dist binaries FROM that source, so the
+    `workflow_dispatch`/`commit_binaries=true` rebuild must run on the bumped
+    commit — never before it. The NOTE explains the interim lag window is
+    acceptable because the project entrypoint is the source-stamped bash impl and
+    install selection is version-aware.
+- **Tests added**: none (shell script; no unit harness). Validated by:
+  - `bash -n scripts/bump-version.sh` — syntax OK.
+  - **Scratch-copy dry run** (never ran the live script — it commits + pushes):
+    seeded copies of `.work-view-version` (`0.8.7`) and `work-view.sh`, ran the
+    exact `printf`/`sed` block with `new=0.8.8`. Result: `.work-view-version` =
+    bare `0.8.8` (5 bytes, no newline, `xxd`-confirmed); `WORK_VIEW_VERSION="0.8.8"`
+    in the scratch bash script; `.bak` removed; scratch script `--version`
+    reports `0.8.8`.
+  - `sed` surgicality: `diff` shows ONLY the anchored assignment line (17)
+    changes; the two `"$WORK_VIEW_VERSION"` printf-arm usages (lines 31, 268) are
+    untouched.
+  - Guard logic: both the projection and the NOTE sit inside
+    `[[ "$plugin" == "agile-workflow" ]]` (2 such guards in the script); a
+    non-agile-workflow bump touches no work-view files and prints no NOTE.
+  - Commit capture: the existing `git commit` (line 118) has no path restriction
+    and follows all four `git add`s (2x plugin.json via `bump_json`, plus the two
+    work-view paths), so the single bump commit captures everything.
+  - The pre-existing dirty-plugin-dir guard (checks `plugins/$plugin/` BEFORE any
+    write) still protects these paths since they live under
+    `plugins/agile-workflow/`.
+- **Discrepancies from design**: none of substance. The story/feature snippet
+  put the NOTE "before/around git push"; implemented it AFTER the commit and
+  BEFORE the push, which matches the "after the bump" intent and the corrected
+  POST-bump ordering. `sed -i.bak ... && rm` verified portable on this GNU-sed
+  host; the `-i.bak` form also satisfies BSD/macOS sed.
+- **Adjacent issues parked**: none.
+- **Scope discipline**: did NOT change the install path or entrypoint shape
+  (self-heal feature's job). bump-version.sh was NOT run live; no push.
