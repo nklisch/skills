@@ -56,7 +56,4 @@ Extracted from agentskills.io/specification and platform.claude.com best practic
 ```bash
 # Vercel skills CLI (most common for external tools)
 npx skills add owner/repo --skill skill-name
-
-# skilltap
-skilltap install skill-name
 ```

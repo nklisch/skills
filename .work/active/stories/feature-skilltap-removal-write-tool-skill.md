@@ -1,7 +1,7 @@
 ---
 id: feature-skilltap-removal-write-tool-skill
 kind: story
-stage: implementing
+stage: review
 tags: [plugin]
 parent: feature-skilltap-removal
 depends_on: []
@@ -27,10 +27,19 @@ authoring only.
   — remove tap.json references.
 
 ## Acceptance
-- [ ] `rg -i 'skilltap|tap\.json' plugins/nates-toolkit/skills/write-tool-skill/`
+- [x] `rg -i 'skilltap|tap\.json' plugins/nates-toolkit/skills/write-tool-skill/`
       → no matches.
-- [ ] Phase numbering is contiguous and the workflow reads coherently without
+- [x] Phase numbering is contiguous and the workflow reads coherently without
       the removed phase.
+
+## Implementation notes
+- `SKILL.md`: removed "Phase 6: Generate tap.json entry" entirely; renamed the
+  old Phase 7 → Phase 6 (Final review); dropped "and tap.json entries" from the
+  frontmatter description and the "tap.json entry" bullet in the final-review
+  list. Phases now run 1-6 contiguously.
+- `references/spec-quick-ref.md`: removed the "# skilltap / skilltap install"
+  lines from the Installation methods block (the `npx skills` CLI remains).
+- Verified: `rg -i 'skilltap|tap\.json'` over the skill dir returns nothing.
 
 ## Notes
 This is a behavior change to a product skill (a capability is removed), so it

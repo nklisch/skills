@@ -3,8 +3,8 @@ name: write-tool-skill
 description: >
   Write agent skills for external tools, CLIs, MCP servers, and libraries. Use when creating
   a skill that teaches agents how to use a specific tool — covers research, structure decisions,
-  description writing, progressive disclosure, reference splitting, multi-skill breakouts, and
-  tap.json entries. Interactive workflow with user checkpoints at each phase.
+  description writing, progressive disclosure, reference splitting, and multi-skill
+  breakouts. Interactive workflow with user checkpoints at each phase.
 user-invocable: true
 allowed-tools: Read, Write, Glob, Grep, WebSearch, WebFetch, AskUserQuestion
 ---
@@ -128,30 +128,12 @@ For each reference file in the plan:
 - Use compact command/API reference format — not prose
 - Don't duplicate content between references and SKILL.md
 
-### Phase 6: Generate tap.json entry
-
-If the skills are going into a tap repository, generate the tap.json entry:
-
-```json
-{
-  "name": "skill-name",
-  "description": "Same as SKILL.md description, shortened if needed",
-  "repo": "{owner}/{repo}",
-  "tags": ["relevant", "tags", "for", "discovery"]
-}
-```
-
-Tags should include: the tool name, its category (cli, mcp, library), key concepts it covers.
-
-Present the entry to the user for confirmation.
-
-### Phase 7: Final review
+### Phase 6: Final review
 
 Ask the user to review the complete output:
 - Skill directory structure
 - SKILL.md content
 - Reference files
-- tap.json entry
 
 ## Quality checklist
 
