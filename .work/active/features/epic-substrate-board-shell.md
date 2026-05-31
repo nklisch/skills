@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-shell
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board
 depends_on: [epic-substrate-board-host]
@@ -429,3 +429,31 @@ export function detectDetailPresentation(item, viewportWidth) {}
 - **Mockup CSS drift**: `.mockups/` is not a shipped source tree. The shell story
   must explicitly copy and adapt the committed design-system files into the
   embedded asset directory.
+
+## Implementation Summary
+
+Completed on 2026-05-31 through child stories:
+
+- `epic-substrate-board-shell-frame` shipped the app frame, local no-CDN design
+  assets, theme controls, filter container, diagnostics area, and embedded asset
+  routes.
+- `epic-substrate-board-shell-data` shipped the in-browser substrate snapshot
+  store, manual refresh, diagnostics rendering, localStorage persistence for
+  view/theme/filter state, and feed error/empty/loading states.
+- `epic-substrate-board-shell-card` shipped safe markdown rendering and the
+  shared keyboard-accessible item card.
+- `epic-substrate-board-shell-filters` shipped `filters.js`, the global filter
+  controls, null-sentinel handling, OR/AND/tag semantics, tier-based auto-hide,
+  and a three-pass Opus review loop for the filter boundary.
+- `epic-substrate-board-shell-contract` shipped `views.js`, `detail.js`, the
+  downstream `BoardContext`/`BoardView` surface, placeholder views, id-sourced
+  full-body safe detail rendering, focus-managed modal/drawer behavior, and a
+  three-pass Opus review loop for the shell capstone.
+
+Verification:
+
+- `cargo fmt -p work-view-cli`
+- `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`
+- `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`
+
+Last verified release binary size: 659552 bytes.
