@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-install-path
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli
 depends_on: [epic-substrate-cli-adapter, epic-substrate-cli-next-actionable]
@@ -292,3 +292,39 @@ specified. The `set -e` pitfall with `((PASS++))` on zero was addressed in the
 test file by using `set -uo pipefail` (omitting `-e`) since bash arithmetic
 `((n++))` on `n=0` returns exit 1 under `set -e`; all assertion helpers use
 explicit `if/else` branching so the counter increments are side-effect-free.
+
+## Review (2026-05-30)
+
+**Verdict**: Approve
+
+Reviewed via a 2-pass cross-model peer-review (Codex through peeragent; host
+Claude weighed + applied fixes). Commits in scope: `9cf3792` (implement),
+`b541f32` (pass-1 fixes), plus a pass-2 `.gitattributes` nit.
+
+**Pass 1 (Request changes — all resolved)**:
+- **Blocker**: the CI `commit-dist` job gated on `inputs.commit_binaries ==
+  'true'`, but GitHub boolean `workflow_dispatch` inputs are real booleans and
+  `true == 'true'` coerces to false — the binary-refresh job would NEVER run.
+  Fixed to `if: ... && inputs.commit_binaries`.
+- **Important**: `dist/.gitattributes` used a repo-root path pattern from inside
+  `dist/` so it matched nothing (`git check-attr` confirmed); `install_and_verify`
+  swallowed `cp`/`mv` failures (errexit suppressed in `if`/`&&` context) and a
+  pre-existing directory at `.work/bin/work-view` produced a false success
+  (mv-into-dir); CI path filters skipped the installer + its tests; the
+  `convert --update` audit byte-compared the installed `work-view` against
+  `work-view.sh` (would flag a prebuilt binary as drift forever). All fixed:
+  explicit failure checks + dir-guard + post-install `[ -f ] && [ -x ]`
+  validation in the helper (+ 4 new edge-case tests), corrected gitattributes,
+  added path filters, audit changed to existence+executability, docs corrected.
+
+**Pass 2 (Approve)**: all 6 findings confirmed resolved (Codex re-ran the suite
+and replayed the dir/failure edge cases); one nit — `** binary -diff` also
+marked `dist/README.md` as binary — fixed to `*/work-view binary -diff` (binary
+path still `binary: set`; README now diffable).
+
+**Notes**: install helper test suite 51/51 green; `actionlint` clean on the
+workflow; cargo suite (230) unaffected. The four prebuilt binaries are
+CI-produced (`build-work-view.yml`); `dist/` ships empty and the helper falls
+back to `work-view.sh` until CI's manual refresh job populates it — accepted
+limitation, zero regression. Advanced review → done; stays in `active/features/`
+(active parent epic, no release binding).
