@@ -244,13 +244,32 @@ lockstep. No separate npm package, no separate registry.
 - Promote to v1.0.0 when the substrate has carried 2+ projects through a
   complete release cycle without contract changes.
 
-## work-view script
+## work-view binary
 
-Lives at `plugins/agile-workflow/scripts/work-view.sh`. Copied to
-`.work/bin/work-view` by `convert`.
+`convert` installs `work-view` into `.work/bin/work-view` via
+`plugins/agile-workflow/scripts/install-work-view.sh`. The helper selects the
+platform-matched prebuilt static binary from
+`plugins/agile-workflow/work-view/dist/<target-triple>/work-view` when one is
+present and passes a smoke-test (`--help` exits 0). If no prebuilt matches
+(unsupported platform, or `dist/` not yet populated by CI), it falls back to the
+pure-bash implementation at `plugins/agile-workflow/scripts/work-view.sh`.
 
-Pure bash. Optional enhancement via `yq` if installed; falls back to
-`grep`+`sed` otherwise.
+Supported prebuilt target triples:
+
+| Triple | Platform |
+|---|---|
+| `x86_64-unknown-linux-musl` | Linux x86_64 (static) |
+| `aarch64-unknown-linux-musl` | Linux aarch64 / ARM64 (static) |
+| `x86_64-apple-darwin` | macOS Intel |
+| `aarch64-apple-darwin` | macOS Apple Silicon (M1/M2/M3) |
+
+Prebuilt binaries are produced by `.github/workflows/build-work-view.yml` and
+committed to `dist/` via the manual refresh job before each `bump-version.sh`
+call. Users need no Rust toolchain — only CI does.
+
+The bash fallback (`work-view.sh`) is pure bash, optional enhancement via `yq`
+if installed, falls back to `grep`+`sed` otherwise. It is the default until CI
+populates `dist/`.
 
 ### Flag set
 

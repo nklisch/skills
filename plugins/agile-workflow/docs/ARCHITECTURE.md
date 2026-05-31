@@ -560,7 +560,7 @@ All skills with their roles, invocability, and triggers.
 | Skill | Role | Trigger |
 |---|---|---|
 | `ideate` | Foundation-docs workshop. Produces VISION.md, SPEC.md, ARCHITECTURE.md, optionally PRINCIPLES.md / MIGRATION.md. No substrate dependency. | User-invoked |
-| `convert` | Bootstraps `.work/` substrate. Reads existing project shape, writes AGENTS.md section, creates CLAUDE.md compatibility symlink/shim, writes CONVENTIONS.md, copies work-view, seeds initial items. Idempotent via `--update`. | User-invoked, depends on ideate having run |
+| `convert` | Bootstraps `.work/` substrate. Reads existing project shape, writes AGENTS.md section, creates CLAUDE.md compatibility symlink/shim, writes CONVENTIONS.md, installs the platform-matched prebuilt `work-view` binary via `install-work-view.sh` (falling back to `work-view.sh`), seeds initial items. Idempotent via `--update`. | User-invoked, depends on ideate having run |
 | `epicize` | Reads foundation docs. Produces multiple epics in `.work/active/epics/` at `stage: drafting`, with declared dependencies. | User-invoked, depends on convert having run |
 
 ### Capture & promotion (model-invocable)

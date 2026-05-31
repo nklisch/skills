@@ -312,11 +312,11 @@ mkdir -p .work/active/epics .work/active/features .work/active/stories
 mkdir -p .work/backlog .work/releases .work/archive .work/bin
 ```
 
-Copy `work-view` from the plugin to the project:
+Install `work-view` from the plugin to the project (selects the platform-matched
+prebuilt binary if available, falls back to the bash script):
 
 ```bash
-cp "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/scripts/work-view.sh" .work/bin/work-view
-chmod +x .work/bin/work-view
+bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/install-work-view.sh"
 ```
 
 (If neither `PLUGIN_ROOT` nor `CLAUDE_PLUGIN_ROOT` is exposed in the agent's shell
@@ -809,8 +809,10 @@ For each artifact with a non-`match` state:
   canonical template from Phase 6, in whichever file holds it per the derived
   `entrypoint_model` (`AGENTS.md` or, for `claude-source`, `CLAUDE.md`). If the
   file lacks markers, append the section. If it doesn't exist, create it.
-- `.work/bin/work-view` — overwrite with the plugin's current script and
-  `chmod +x`
+- `.work/bin/work-view` — reinstall via
+  `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/install-work-view.sh"`
+  (selects the platform-matched prebuilt binary if available, falls back to the
+  bash script)
 - Entrypoint compatibility — refresh the pointer in the direction set by
   `entrypoint_model`:
   - `agents-canonical` — import legacy generated content from any detected

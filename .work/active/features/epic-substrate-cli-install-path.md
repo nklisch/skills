@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-install-path
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli
 depends_on: [epic-substrate-cli-adapter, epic-substrate-cli-next-actionable]
@@ -9,6 +9,7 @@ release_binding: null
 gate_origin: null
 created: 2026-05-30
 updated: 2026-05-30
+implemented: 2026-05-30
 ---
 
 # Ship & install the compiled binary
@@ -221,3 +222,73 @@ no LFS, commit-on-release-only churn control; `WORK_VIEW_UNAME_S/M` override for
 testable platform mapping; stub-binary testing. Footguns flagged and addressed:
 stale-binary shadowing, version skew, bootstrap/update drift (same helper), CI
 auto-commit loops (manual refresh job). No blockers raised.
+
+## Implementation notes
+
+### What landed (2026-05-30)
+
+**Unit 1 — `plugins/agile-workflow/scripts/install-work-view.sh`**
+POSIX-bash helper. Resolves `PLUGIN_ROOT` (falls back to `CLAUDE_PLUGIN_ROOT`),
+maps `(uname_s, uname_m)` → triple (Linux x86_64/aarch64/arm64 → musl triples;
+Darwin x86_64/arm64 → darwin triples; else no triple). Smoke-test + atomic
+install: copies candidate to `.work/bin/work-view.tmp`, `chmod +x`, runs `--help`;
+on pass `mv` into place; on fail `rm -f` tmp and falls back to bash script. Never
+leaves a `.tmp` or a broken binary.
+
+**Unit 2 — `plugins/agile-workflow/skills/convert/SKILL.md`**
+Two surgical edits:
+- Phase 4 bootstrap: replaced `cp work-view.sh + chmod` with
+  `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/install-work-view.sh"`.
+- Phase S3 sync refresh: replaced inline `chmod +x` overwrite note with the same
+  helper call. Doctor check (`work_view` marker) and `git add .work/bin/work-view`
+  are unchanged.
+
+**Unit 3 — `.github/workflows/build-work-view.yml`**
+Matrix: Linux x86_64+aarch64 musl via `cargo-zigbuild` on `ubuntu-latest`;
+macOS x86_64+arm64 via `cargo build --release --target` on `macos-latest`.
+PR/push: build all four, upload artifacts, size guard (8 MB). `workflow_dispatch`
+with `commit_binaries=true`: build + commit to `dist/` with `[skip ci]`.
+Install-helper bash tests run as a separate job on every trigger.
+
+**Unit 4 — `plugins/agile-workflow/work-view/dist/.gitattributes` + `dist/README.md`**
+Scaffold only — no real binaries committed. `.gitattributes` marks
+`plugins/agile-workflow/work-view/dist/** binary -diff`. README describes the
+four triples, CI workflow, and the "do not hand-edit" rule.
+
+**Unit 5 — docs rollforward**
+- `ARCHITECTURE.md`: `convert` skill-table row updated to describe
+  `install-work-view.sh` + fallback.
+- `SPEC.md`: "work-view script" section expanded to "work-view binary" — lists
+  all four triples, describes the install selection logic, states users need no
+  Rust toolchain (only CI does), and preserves the bash-fallback description.
+
+### Behavior on this machine (Linux x86_64, empty dist/)
+
+`dist/` ships without real binaries (CI-produced, not hand-built). Running the
+helper with `PLUGIN_ROOT=plugins/agile-workflow` against an empty `dist/` falls
+back to `work-view.sh` exactly as today — zero regression. Output: "installed
+bash fallback". The binary path activates when the CI refresh job populates
+`dist/` before a version bump.
+
+### Test results
+
+`plugins/agile-workflow/scripts/tests/install-work-view.test.sh`
+Run on 2026-05-30: **47 passed, 0 failed**
+
+Test groups covered:
+1. All 4 `(os,arch)` → triple mappings with good stub binaries
+2. Unknown platform (FreeBSD, Windows_NT) → bash fallback
+3. Broken prebuilt (exits non-zero on `--help`) → bash fallback, no broken install
+4. Empty `dist/` → bash fallback
+5. Atomicity: no leftover `.tmp`, installed binary always valid + executable
+6. Update path: second run overwrites cleanly, stays executable
+7. Darwin arm64 alias coverage
+
+### Deviations from design
+
+None. The design was followed exactly as written. The `dist/` `.gitattributes`
+path is root-relative inside the `dist/` directory (covers the subtree) as
+specified. The `set -e` pitfall with `((PASS++))` on zero was addressed in the
+test file by using `set -uo pipefail` (omitting `-e`) since bash arithmetic
+`((n++))` on `n=0` returns exit 1 under `set -e`; all assertion helpers use
+explicit `if/else` branching so the counter increments are side-effect-free.

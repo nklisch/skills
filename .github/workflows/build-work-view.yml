@@ -1,0 +1,205 @@
+name: Build work-view binaries
+
+on:
+  push:
+    paths:
+      - "plugins/agile-workflow/work-view/**"
+      - ".github/workflows/build-work-view.yml"
+  pull_request:
+    paths:
+      - "plugins/agile-workflow/work-view/**"
+      - ".github/workflows/build-work-view.yml"
+  workflow_dispatch:
+    inputs:
+      commit_binaries:
+        description: "Commit built binaries to dist/ (manual refresh job)"
+        required: false
+        default: "true"
+        type: boolean
+
+env:
+  CARGO_TERM_COLOR: always
+  # Maximum allowed binary size in bytes (8 MB)
+  SIZE_BUDGET_BYTES: 8388608
+
+jobs:
+  # -----------------------------------------------------------------------
+  # Install-helper bash test (runs on every trigger)
+  # -----------------------------------------------------------------------
+  test-install-helper:
+    name: Test install-work-view.sh
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run install-helper tests
+        run: bash plugins/agile-workflow/scripts/tests/install-work-view.test.sh
+
+  # -----------------------------------------------------------------------
+  # Linux musl builds via cargo-zigbuild
+  # -----------------------------------------------------------------------
+  build-linux:
+    name: Build Linux (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo registry + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            plugins/agile-workflow/work-view/target
+          key: cargo-linux-${{ matrix.target }}-${{ hashFiles('plugins/agile-workflow/work-view/Cargo.lock') }}
+          restore-keys: |
+            cargo-linux-${{ matrix.target }}-
+
+      - name: Install cargo-zigbuild
+        run: pip install ziglang && cargo install cargo-zigbuild --locked
+
+      - name: Build
+        run: |
+          cd plugins/agile-workflow/work-view
+          cargo zigbuild --release --target ${{ matrix.target }}
+
+      - name: Size guard
+        run: |
+          binary="plugins/agile-workflow/work-view/target/${{ matrix.target }}/release/work-view"
+          size=$(stat -c '%s' "$binary")
+          echo "Binary size: ${size} bytes"
+          if [ "$size" -gt "$SIZE_BUDGET_BYTES" ]; then
+            echo "ERROR: binary exceeds size budget of ${SIZE_BUDGET_BYTES} bytes (got ${size})"
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: work-view-${{ matrix.target }}
+          path: plugins/agile-workflow/work-view/target/${{ matrix.target }}/release/work-view
+          if-no-files-found: error
+
+  # -----------------------------------------------------------------------
+  # macOS builds (native cross-compile per arch)
+  # -----------------------------------------------------------------------
+  build-macos:
+    name: Build macOS (${{ matrix.target }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo registry + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            plugins/agile-workflow/work-view/target
+          key: cargo-macos-${{ matrix.target }}-${{ hashFiles('plugins/agile-workflow/work-view/Cargo.lock') }}
+          restore-keys: |
+            cargo-macos-${{ matrix.target }}-
+
+      - name: Build
+        run: |
+          cd plugins/agile-workflow/work-view
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Size guard
+        run: |
+          binary="plugins/agile-workflow/work-view/target/${{ matrix.target }}/release/work-view"
+          size=$(stat -f '%z' "$binary")
+          echo "Binary size: ${size} bytes"
+          if [ "$size" -gt "$SIZE_BUDGET_BYTES" ]; then
+            echo "ERROR: binary exceeds size budget of ${SIZE_BUDGET_BYTES} bytes (got ${size})"
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: work-view-${{ matrix.target }}
+          path: plugins/agile-workflow/work-view/target/${{ matrix.target }}/release/work-view
+          if-no-files-found: error
+
+  # -----------------------------------------------------------------------
+  # Manual refresh: commit built binaries to dist/ (workflow_dispatch only)
+  # -----------------------------------------------------------------------
+  commit-dist:
+    name: Commit binaries to dist/
+    if: github.event_name == 'workflow_dispatch' && inputs.commit_binaries == 'true'
+    needs:
+      - build-linux
+      - build-macos
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Need full history to push back
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Place binaries into dist/
+        run: |
+          for triple in \
+            x86_64-unknown-linux-musl \
+            aarch64-unknown-linux-musl \
+            x86_64-apple-darwin \
+            aarch64-apple-darwin
+          do
+            dest="plugins/agile-workflow/work-view/dist/${triple}"
+            mkdir -p "$dest"
+            cp "artifacts/work-view-${triple}/work-view" "${dest}/work-view"
+            chmod +x "${dest}/work-view"
+          done
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push
+        run: |
+          git add plugins/agile-workflow/work-view/dist/
+          if git diff --cached --quiet; then
+            echo "No binary changes to commit."
+          else
+            git commit -m "chore: refresh work-view prebuilt binaries [skip ci]"
+            git push
+          fi
