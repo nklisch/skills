@@ -6,30 +6,11 @@ use std::net::{Ipv4Addr, TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use super::{feed, BoardOptions};
+use super::{assets, feed, BoardOptions};
 
 const MAX_REQUEST_HEADER_BYTES: usize = 8192;
 const READ_TIMEOUT: Duration = Duration::from_secs(2);
 
-const INDEX_HTML: &[u8] = br#"<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>agile-workflow board</title>
-  <link rel="stylesheet" href="/assets/board.css">
-</head>
-<body>
-  <main>
-    <h1>agile-workflow board</h1>
-    <p>The board shell and live substrate feed will load here.</p>
-  </main>
-  <script src="/assets/board.js"></script>
-</body>
-</html>
-"#;
-const BOARD_CSS: &[u8] = br#"body{margin:0;font-family:system-ui,sans-serif;background:#f6f7f9;color:#1f2328}main{max-width:760px;margin:10vh auto;padding:0 24px}h1{font-size:28px;margin:0 0 12px}p{margin:0;color:#57606a}"#;
-const BOARD_JS: &[u8] = br#"console.info("agile-workflow board placeholder loaded");"#;
 const HEALTHZ: &[u8] = b"ok\n";
 const NOT_FOUND: &[u8] = b"not found\n";
 const BAD_REQUEST: &[u8] = b"bad request\n";
@@ -227,7 +208,6 @@ struct Response {
 
 fn route_request(request: &Request, root: &Path) -> Response {
     match request.path.as_str() {
-        "/" | "/index.html" => ok_response("text/html; charset=utf-8", INDEX_HTML),
         "/healthz" => ok_response("text/plain; charset=utf-8", HEALTHZ),
         "/api/substrate" => match feed::build_feed(root) {
             Ok(json) => ok_response("application/json; charset=utf-8", json.into_bytes()),
@@ -236,9 +216,10 @@ fn route_request(request: &Request, root: &Path) -> Response {
                 internal_error_response()
             }
         },
-        "/assets/board.css" => ok_response("text/css; charset=utf-8", BOARD_CSS),
-        "/assets/board.js" => ok_response("text/javascript; charset=utf-8", BOARD_JS),
-        _ => not_found_response(),
+        path => match assets::asset_for_path(path) {
+            Some(asset) => ok_response(asset.content_type, asset.bytes),
+            None => not_found_response(),
+        },
     }
 }
 

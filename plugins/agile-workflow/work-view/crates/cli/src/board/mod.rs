@@ -6,6 +6,7 @@ use work_view_core::index::find_substrate_root;
 
 use crate::args::UsageError;
 
+mod assets;
 mod feed;
 mod server;
 

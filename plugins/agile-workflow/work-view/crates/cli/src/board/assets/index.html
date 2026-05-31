@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>agile-workflow board</title>
+  <link rel="stylesheet" href="/assets/board.css">
+  <script src="/assets/board.js" defer></script>
+</head>
+<body>
+  <main class="board-shell" aria-live="polite">
+    <header class="board-header">
+      <p class="eyebrow">agile-workflow</p>
+      <h1 id="project-name">Board</h1>
+    </header>
+
+    <section class="metrics" aria-label="Substrate counts">
+      <div class="metric">
+        <span class="metric-label">Items</span>
+        <strong id="item-count">-</strong>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Ready</span>
+        <strong id="ready-count">-</strong>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Blocked</span>
+        <strong id="blocked-count">-</strong>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Diagnostics</span>
+        <strong id="diagnostic-count">-</strong>
+      </div>
+    </section>
+
+    <section class="status-panel">
+      <h2>Substrate</h2>
+      <p id="status-text">Loading substrate...</p>
+      <dl id="tier-counts" class="tier-counts"></dl>
+    </section>
+  </main>
+</body>
+</html>

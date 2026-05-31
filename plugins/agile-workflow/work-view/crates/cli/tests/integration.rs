@@ -207,6 +207,14 @@ fn http_get(port: u16, path: &str) -> String {
     }
 }
 
+fn board_response_once(path: &str) -> String {
+    let (mut child, rx) = spawn_board_once(unused_local_port());
+    let port = parse_bound_port(&read_bound_line(rx));
+    let response = http_get(port, path);
+    wait_for_success(&mut child);
+    response
+}
+
 fn wait_for_success(child: &mut Child) {
     let deadline = Instant::now() + Duration::from_secs(3);
     loop {
@@ -380,6 +388,55 @@ fn board_unknown_route_returns_404() {
         "unknown route should return 404; response: {response}"
     );
     wait_for_success(&mut child);
+}
+
+#[test]
+fn board_embedded_assets_return_expected_content_types() {
+    for path in ["/", "/index.html"] {
+        let response = board_response_once(path);
+        assert!(
+            response.starts_with("HTTP/1.1 200 OK"),
+            "{path} should return 200; response: {response}"
+        );
+        assert!(
+            response.contains("Content-Type: text/html; charset=utf-8"),
+            "{path} should return HTML; response: {response}"
+        );
+        let body = http_body(&response);
+        assert!(
+            body.contains("item-count") && body.contains("/assets/board.js"),
+            "{path} should return the embedded stub HTML; body: {body}"
+        );
+    }
+
+    let css = board_response_once("/assets/board.css");
+    assert!(
+        css.starts_with("HTTP/1.1 200 OK"),
+        "CSS should return 200; response: {css}"
+    );
+    assert!(
+        css.contains("Content-Type: text/css; charset=utf-8"),
+        "CSS should return text/css; response: {css}"
+    );
+    assert!(
+        http_body(&css).contains(".metrics"),
+        "CSS body should be the embedded board stylesheet; response: {css}"
+    );
+
+    let js = board_response_once("/assets/board.js");
+    assert!(
+        js.starts_with("HTTP/1.1 200 OK"),
+        "JS should return 200; response: {js}"
+    );
+    assert!(
+        js.contains("Content-Type: text/javascript; charset=utf-8"),
+        "JS should return text/javascript; response: {js}"
+    );
+    let js_body = http_body(&js);
+    assert!(
+        js_body.contains("fetch(\"/api/substrate\"") && js_body.contains("item-count"),
+        "JS should fetch the feed and render visible counts; body: {js_body}"
+    );
 }
 
 #[test]

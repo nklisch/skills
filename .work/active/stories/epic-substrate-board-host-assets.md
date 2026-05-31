@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-host-assets
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-host
 depends_on: [epic-substrate-board-host-server]
@@ -34,10 +34,27 @@ system.
 
 ## Acceptance Criteria
 
-- [ ] `GET /` and `GET /index.html` return embedded HTML.
-- [ ] CSS and JS routes return correct content types.
-- [ ] The stub fetches `/api/substrate` and renders a visible count without a
+- [x] `GET /` and `GET /index.html` return embedded HTML.
+- [x] CSS and JS routes return correct content types.
+- [x] The stub fetches `/api/substrate` and renders a visible count without a
       build step.
-- [ ] Copying only the compiled `work-view` binary to `.work/bin/` is enough for
+- [x] Copying only the compiled `work-view` binary to `.work/bin/` is enough for
       the stub board to load.
 
+## Implementation Notes
+
+- Added `board::assets` with an embedded route table for `/`, `/index.html`,
+  `/assets/board.css`, and `/assets/board.js`.
+- Moved the placeholder HTML/CSS/JS out of `server.rs`; asset routes now resolve
+  through `assets::asset_for_path`.
+- Added no-build stub assets under `board/assets/`. The stub fetches
+  `/api/substrate` and renders project, item, ready, blocked, diagnostic, and
+  tier counts using system fonts and local assets only.
+- Added unit coverage for the asset route table and integration coverage for
+  served content types and stub feed-fetch behavior.
+
+Verification:
+- `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`
+- `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`
+- Release binary size: `515448` bytes (`504K`) at
+  `/home/nathan/.cache/silas/target/release/work-view`
