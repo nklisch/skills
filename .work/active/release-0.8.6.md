@@ -45,6 +45,13 @@ items, not pass/fail. Findings recorded below as gates run.
   - `gate-tests-exit3-fatal-io` (medium, drafting)
   - `gate-tests-ci-actionlint` (low, backlog)
   - `gate-tests-parity-empty-results` (low, backlog)
+- **gate-cruft** (2026-05-31) — 3 findings (0 high, 3 medium, 0 low). Near-clean as
+  expected: cargo build / clippy `-D warnings` / test all confirmed clean by the
+  sub-agent; ruff/shellcheck unavailable (Python hook + bash read manually). All 3 are
+  small surgical removals bound to 0.8.6 (drafting):
+  - `gate-cruft-unused-report-param` (medium) — dead `_report` param on `collect_sorted_paths`
+  - `gate-cruft-dead-loaderror-from-impl` (medium) — unused `From<io::Error> for LoadError`
+  - `gate-cruft-vestigial-tier-dir-noop` (medium) — dead `let _ = tier_dir;` no-op in test helper
 
 ## Distribution caveat (carried from epic review)
 
