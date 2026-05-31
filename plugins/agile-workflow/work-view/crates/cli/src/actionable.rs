@@ -399,6 +399,23 @@ mod tests {
     }
 
     #[test]
+    fn blocked_includes_review_with_unmet_dep() {
+        // Decision-table cell: stage==review ∧ ¬deps_satisfied → --blocked.
+        // A review item whose dependency regressed (here: still implementing,
+        // non-terminal) must report blocked, mirroring the conservative
+        // deps_satisfied-uniform-across-stages invariant.
+        let (path_unmet, content_unmet) =
+            item_md("unmet-dep", "active/features", "implementing", &[]);
+        let (path_a, content_a) = item_md("a", "active/features", "review", &["unmet-dep"]);
+        let (_tmp, sub) = setup_substrate(&[(path_unmet, &content_unmet), (path_a, &content_a)]);
+        let ids = run(&sub, DependencyView::Blocked);
+        assert!(
+            ids.contains(&"a".to_string()),
+            "review item with unmet dep should be blocked"
+        );
+    }
+
+    #[test]
     fn blocked_excludes_implementing_with_satisfied_deps() {
         let (path_done, content_done) = item_md("dep-done", "active/features", "done", &[]);
         let (path_a, content_a) = item_md("a", "active/features", "implementing", &["dep-done"]);

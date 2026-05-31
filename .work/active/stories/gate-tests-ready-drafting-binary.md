@@ -1,7 +1,7 @@
 ---
 id: gate-tests-ready-drafting-binary
 kind: story
-stage: implementing
+stage: done
 tags: [testing]
 parent: null
 depends_on: []

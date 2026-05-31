@@ -1,7 +1,7 @@
 ---
 id: gate-tests-ci-actionlint
 kind: story
-stage: drafting
+stage: done
 tags: [testing, tooling]
 parent: null
 depends_on: []

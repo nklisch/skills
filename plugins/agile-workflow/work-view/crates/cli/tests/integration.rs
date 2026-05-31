@@ -61,6 +61,35 @@ fn run_malformed(args: &[&str]) -> (String, String, i32) {
     )
 }
 
+/// Absolute path to the ready-drafting fixture substrate root.
+///
+/// This dedicated fixture has a drafting item (`feat-design-ready`) whose only
+/// dependency (`feat-dep-done`) is terminal — the headline `--ready` case that
+/// the golden fixture cannot express (its only drafting item, feat-b, has a
+/// non-terminal dep). Also carries one implementing-ready and one review-ready
+/// item so `--ready --stage drafting` filtering is exercised.
+fn ready_drafting_root() -> &'static Path {
+    Path::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/ready-drafting"
+    ))
+}
+
+/// Run the binary with the given args, cwd = ready-drafting fixture root.
+/// Returns `(stdout, stderr, exit_code)`.
+fn run_ready_drafting(args: &[&str]) -> (String, String, i32) {
+    let out = Command::new(bin!())
+        .args(args)
+        .current_dir(ready_drafting_root())
+        .output()
+        .expect("failed to run work-view in ready-drafting fixture");
+    (
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+        out.status.code().unwrap_or(-1),
+    )
+}
+
 /// Extract the item IDs from a table-mode output.
 /// Returns only the IDs from data rows (skips header and separator lines).
 /// The ID is the first column: chars 0..40 trimmed.
@@ -136,6 +165,61 @@ fn exit_2_when_no_substrate() {
     assert_eq!(code, 2, "no-substrate should exit 2");
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(stderr.contains("no substrate"), "stderr: {stderr}");
+}
+
+#[test]
+fn exit_3_on_unreadable_substrate_traversal() {
+    // A valid .work/CONVENTIONS.md but an UNREADABLE tier dir (.work/active,
+    // chmod 000) must yield a fatal LoadError::Io → exit code 3.
+    //
+    // Built at runtime in a TempDir (a chmod-000 dir cannot be committed as a
+    // fixture). Skipped when running as root, since root bypasses permission
+    // bits and the dir stays readable — detected by reading after chmod.
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+    use tempfile::TempDir;
+
+    let tmp = TempDir::new().expect("failed to create tempdir");
+    let root = tmp.path();
+    let work = root.join(".work");
+    let active = work.join("active");
+    fs::create_dir_all(&active).expect("failed to create .work/active");
+    fs::write(work.join("CONVENTIONS.md"), "# Conventions\n").expect("failed to write conventions");
+
+    // Make the active tier dir unreadable.
+    fs::set_permissions(&active, fs::Permissions::from_mode(0o000))
+        .expect("failed to chmod active dir to 000");
+
+    // Skip guard: if the dir is still readable (running as root / perms bypassed),
+    // restore perms and bail cleanly rather than asserting a behavior we can't reach.
+    if fs::read_dir(&active).is_ok() {
+        let _ = fs::set_permissions(&active, fs::Permissions::from_mode(0o755));
+        eprintln!(
+            "skipping exit_3_on_unreadable_substrate_traversal: chmod 000 was bypassed \
+             (likely running as root); cannot make the tier dir unreadable"
+        );
+        return;
+    }
+
+    let out = Command::new(bin!())
+        .current_dir(root)
+        .output()
+        .expect("failed to run work-view");
+    let code = out.status.code().unwrap_or(-1);
+    let stderr = String::from_utf8_lossy(&out.stderr).into_owned();
+
+    // Restore perms BEFORE the TempDir drops so cleanup does not fail.
+    fs::set_permissions(&active, fs::Permissions::from_mode(0o755))
+        .expect("failed to restore active dir perms");
+
+    assert_eq!(
+        code, 3,
+        "unreadable tier dir under a valid CONVENTIONS.md should exit 3; stderr: {stderr}"
+    );
+    assert!(
+        stderr.contains("I/O error"),
+        "stderr should mention the I/O failure; stderr: {stderr}"
+    );
 }
 
 // ── Intentional tightening over bash: --/missing-value ────────────────────────
@@ -788,6 +872,64 @@ fn ready_and_blocked_counts_are_consistent() {
     );
 }
 
+// ── Headline fix at the binary level: drafting + satisfied deps ───────────────
+//
+// The golden fixture's only drafting item (feat-b) has a non-terminal dep, so it
+// can only prove the *blocked* path. These tests run against the dedicated
+// `ready-drafting` fixture, where `feat-design-ready` is drafting with a single
+// terminal (done) dep — the central positive case for the epic's reason-for-being.
+//
+// ready-drafting fixture recap:
+//   feat-dep-done       Active  done          deps:[]              → excluded (terminal)
+//   feat-design-ready   Active  drafting      deps:[feat-dep-done] → READY (headline fix)
+//   feat-impl-ready     Active  implementing  deps:[]              → READY
+//   story-review-ready  Active  review        deps:[]              → READY
+
+#[test]
+fn ready_surfaces_drafting_item_with_satisfied_deps() {
+    // Headline fix: a drafting active item whose deps are ALL terminal MUST
+    // surface in --ready, proven through the compiled binary (not just in-memory).
+    let (stdout, _, code) = run_ready_drafting(&["--ready", "--paths"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("feat-design-ready"),
+        "a drafting item with satisfied deps MUST surface in --ready (headline fix); stdout: {stdout}"
+    );
+    // The terminal dep itself (done) must NOT surface.
+    assert!(
+        !stdout.contains("feat-dep-done"),
+        "the done dependency should NOT be ready (terminal stage); stdout: {stdout}"
+    );
+}
+
+#[test]
+fn ready_stage_drafting_returns_design_ready_items() {
+    // --ready --stage drafting = design-ready only: contains the drafting item,
+    // excludes the implementing-ready and review-ready items (the --stage filter
+    // composes by AND with the dependency view).
+    let (stdout, _, code) = run_ready_drafting(&["--ready", "--stage", "drafting", "--paths"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("feat-design-ready"),
+        "--ready --stage drafting MUST contain the design-ready item; stdout: {stdout}"
+    );
+    assert!(
+        !stdout.contains("feat-impl-ready"),
+        "--ready --stage drafting must EXCLUDE the implementing-ready item; stdout: {stdout}"
+    );
+    assert!(
+        !stdout.contains("story-review-ready"),
+        "--ready --stage drafting must EXCLUDE the review-ready item; stdout: {stdout}"
+    );
+    // Exactly one design-ready item in this fixture.
+    let paths: Vec<&str> = stdout.lines().collect();
+    assert_eq!(
+        paths.len(),
+        1,
+        "expected exactly 1 design-ready item, got: {paths:?}"
+    );
+}
+
 // ── --help text content ───────────────────────────────────────────────────────
 //
 // Assert that the Rust --help matches the bash --help wording for the stage-
@@ -1184,6 +1326,58 @@ fn parity_blocking_feat_a_paths_matches_bash() {
     assert_eq!(
         bin_stdout, bash_stdout,
         "--blocking feat-a --paths mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+}
+
+// ── Parity: empty-result partition for --parent / --blocking ──────────────────
+//
+// The non-empty --parent / --blocking parity is covered above. These cover the
+// empty-result partition at the parity level: an id with no children, and an id
+// nothing depends on. Both must produce identical (empty) stdout + exit codes.
+
+#[test]
+fn parity_parent_with_no_children_empty_matches_bash() {
+    // story-alpha-1 is a leaf in the golden fixture (no item has parent:
+    // story-alpha-1), so --parent story-alpha-1 returns empty for both.
+    let (bin_stdout, _, bin_code) = run(&["--parent", "story-alpha-1", "--paths"]);
+    let Some((bash_stdout, bash_code)) = bash_run(&["--parent", "story-alpha-1", "--paths"]) else {
+        eprintln!("skipping bash parity: bash unavailable on this platform");
+        return;
+    };
+    assert_eq!(
+        bin_code, bash_code,
+        "exit codes differ for --parent story-alpha-1 (empty)"
+    );
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "--parent story-alpha-1 (empty) stdout mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+    assert!(
+        bin_stdout.is_empty(),
+        "--parent of a leaf id should be empty; stdout: {bin_stdout:?}"
+    );
+}
+
+#[test]
+fn parity_blocking_with_no_dependents_empty_matches_bash() {
+    // Nothing in the golden fixture depends_on feat-b, so --blocking feat-b
+    // returns empty for both binary and bash.
+    let (bin_stdout, _, bin_code) = run(&["--blocking", "feat-b", "--paths"]);
+    let Some((bash_stdout, bash_code)) = bash_run(&["--blocking", "feat-b", "--paths"]) else {
+        eprintln!("skipping bash parity: bash unavailable on this platform");
+        return;
+    };
+    assert_eq!(
+        bin_code, bash_code,
+        "exit codes differ for --blocking feat-b (empty)"
+    );
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "--blocking feat-b (empty) stdout mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+    assert!(
+        bin_stdout.is_empty(),
+        "--blocking an id with no dependents should be empty; stdout: {bin_stdout:?}"
     );
 }
 

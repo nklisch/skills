@@ -1,0 +1,6 @@
+# Python bytecode (e.g. from running hook script tests)
+__pycache__/
+*.pyc
+
+# peeragent per-repo job store (local cross-model delegation cache)
+.peeragent/

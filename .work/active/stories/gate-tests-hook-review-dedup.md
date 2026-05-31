@@ -1,7 +1,7 @@
 ---
 id: gate-tests-hook-review-dedup
 kind: story
-stage: implementing
+stage: done
 tags: [testing]
 parent: null
 depends_on: []

@@ -72,6 +72,31 @@ items, not pass/fail. Findings recorded below as gates run.
   - `subprocess-cli-harness` — real-binary subprocess + bash parity graceful skip
   - `cargo-manifest-fixture-root` — `CARGO_MANIFEST_DIR` fixture-root resolver
 
+## Drain (autopilot, 2026-05-31)
+
+User ran `/agile-workflow:autopilot` to drain all gate-produced items (and scope the 2
+Low backlog items in). All 14 follow-up items driven to `stage: done`. Two genuine
+design questions resolved via cross-model consult (Codex via peeragent). Test work
+delegated to two parallel sub-agents with non-overlapping write ownership (Rust vs
+non-Rust artifacts). Final verification: `cargo fmt`/`clippy -D warnings` clean, 237
+cargo tests (was 230, +7), Python hook test 2/2, convert-routing test 9/9, install test
+51/51 (no regression).
+
+- **cruft (3):** dropped unused `_report` param; removed dead `From<io::Error>`;
+  deleted vestigial `let _ = tier_dir;`.
+- **docs (4):** VISION/SPEC/ARCHITECTURE rolled forward (bash-script→binary,
+  stage-aware `--ready`/`--blocked`). README + guide intentionally NOT rolled (dist/
+  empty → "script" language accurate until binaries ship).
+- **tests (5 + 2 scoped-in):**
+  - `ready_surfaces_drafting_item_with_satisfied_deps` + `ready_stage_drafting_returns_design_ready_items` (new `ready-drafting` fixture; headline fix proven at binary level)
+  - `blocked_includes_review_with_unmet_dep` (actionable.rs)
+  - `load_unreadable_tier_dir_returns_io_error` (core) + `exit_3_on_unreadable_substrate_traversal` (cli; root-guarded)
+  - `test_prompt_context.py` (hook review-dedup; stdlib unittest)
+  - `convert-install-routing.test.sh` (SKILL.md Phase 4 + S3 route through install-work-view.sh; negative-control verified)
+  - `.github/workflows/lint-github-actions.yml` (actionlint on workflow changes — CI-only, YAML-validated locally)
+  - `parity_parent_with_no_children_empty_matches_bash` + `parity_blocking_with_no_dependents_empty_matches_bash`
+- Added root `.gitignore` (`__pycache__/`, `*.pyc`, `.peeragent/`).
+
 ## Distribution caveat (carried from epic review)
 
 The four prebuilt binaries are CI-produced; `dist/` ships empty until the manual

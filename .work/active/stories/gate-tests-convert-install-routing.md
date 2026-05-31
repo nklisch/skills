@@ -1,7 +1,7 @@
 ---
 id: gate-tests-convert-install-routing
 kind: story
-stage: drafting
+stage: done
 tags: [testing]
 parent: null
 depends_on: []

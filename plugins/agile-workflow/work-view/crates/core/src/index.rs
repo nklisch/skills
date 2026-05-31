@@ -346,6 +346,45 @@ mod tests {
     }
 
     #[test]
+    fn load_unreadable_tier_dir_returns_io_error() {
+        // A root-level traversal I/O failure (an unreadable tier dir) is the only
+        // fatal load condition: Substrate::load must return Err(LoadError::Io).
+        //
+        // Skipped when running as root, since root bypasses permission bits and
+        // the dir stays readable — detected by reading after chmod.
+        use std::os::unix::fs::PermissionsExt;
+
+        let tmp = TempDir::new().unwrap();
+        let root = create_substrate(&tmp);
+        let active = root.join(".work/active");
+        fs::create_dir_all(&active).unwrap();
+
+        // Make the active tier dir unreadable.
+        fs::set_permissions(&active, fs::Permissions::from_mode(0o000)).unwrap();
+
+        // Skip guard: if still readable (root / perms bypassed), restore and bail.
+        if fs::read_dir(&active).is_ok() {
+            let _ = fs::set_permissions(&active, fs::Permissions::from_mode(0o755));
+            eprintln!(
+                "skipping load_unreadable_tier_dir_returns_io_error: chmod 000 was bypassed \
+                 (likely running as root); cannot make the tier dir unreadable"
+            );
+            return;
+        }
+
+        let result = Substrate::load(&root);
+
+        // Restore perms BEFORE the TempDir drops so cleanup does not fail.
+        fs::set_permissions(&active, fs::Permissions::from_mode(0o755)).unwrap();
+
+        assert!(
+            matches!(result, Err(LoadError::Io(_))),
+            "unreadable tier dir should yield Err(LoadError::Io), got: {:?}",
+            result.map(|(s, _)| s.items().len())
+        );
+    }
+
+    #[test]
     fn load_items_from_four_tiers() {
         let tmp = TempDir::new().unwrap();
         let root = create_substrate(&tmp);
