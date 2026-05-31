@@ -52,6 +52,16 @@ items, not pass/fail. Findings recorded below as gates run.
   - `gate-cruft-unused-report-param` (medium) — dead `_report` param on `collect_sorted_paths`
   - `gate-cruft-dead-loaderror-from-impl` (medium) — unused `From<io::Error> for LoadError`
   - `gate-cruft-vestigial-tier-dir-noop` (medium) — dead `let _ = tier_dir;` no-op in test helper
+- **gate-docs** (2026-05-31) — 4 findings (3 high, 1 medium), all foundation-doc-assertion.
+  Sub-agent verified the `dist/`-empty distinction: `dist/` ships only README + .gitattributes
+  (no binaries), so README.md + agile-workflow-guide.md "script"/"copied by convert" language
+  is ACCURATE and was correctly NOT flagged (rolls forward only once CI populates binaries).
+  ROADMAP.md (transient build-plan) and repo-root docs/ARCHITECTURE.md need no change;
+  substrate-binary SKILL.md core-vs-CLI correction confirmed accurate. 4 items bound to 0.8.6:
+  - `gate-docs-vision-bash-to-binary` (high, implementing) — VISION.md "bash script" → binary
+  - `gate-docs-spec-ready-blocked-semantic` (high, implementing) — SPEC.md `--ready`/`--blocked` rows
+  - `gate-docs-architecture-ready-rule` (high, implementing) — ARCHITECTURE.md ready-rule + AGENTS embed
+  - `gate-docs-spec-bash-tooling-line` (medium, drafting) — SPEC.md "bash for work-view" → fallback framing
 
 ## Distribution caveat (carried from epic review)
 
