@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-runtime-research
 kind: feature
-stage: drafting
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli
 depends_on: []
@@ -46,3 +46,31 @@ core/adapter/install features build on.
   manifests) the binary must ship within.
 - `plugins/agile-workflow/docs/ARCHITECTURE.md` — current `convert` install path
   that copies `work-view.sh`.
+
+## Decision (2026-05-30)
+
+**Rust** — confirmed by the user after research reversed the initial Bun lean.
+Distribution is decisive: the plugin is a git tree, so binary size = repo size.
+Rust musl binaries (~2–5 MB) are committable; Bun's (51–105 MB) are not, and
+Bun's `--compile` asset embedding is "work in progress" while the runtime is
+mid Zig→Rust rewrite.
+
+- **Distribution**: commit prebuilt per-platform binaries (`linux-x64-musl`,
+  `linux-arm64-musl`, `darwin-arm64`, `darwin-x64`); `convert` selects by
+  `uname` and places one at `.work/bin/work-view`. Keep `work-view.sh` as the
+  fallback for unsupported platforms.
+- **Architecture**: one Rust core crate (parse + dependency graph + filter +
+  next-actionable), two entry points — a CLI adapter and an `axum` board server
+  embedding web assets via `rust-embed`. Cross-compile with `cargo-zigbuild`
+  (Linux musl) + a macOS runner (darwin).
+- **Core-reuse form**: a shared library crate both surfaces import (not
+  subprocess).
+- **Revisit trigger**: a Bun `--compile` release under ~10 MB with stable asset
+  embedding.
+
+Full analysis: `docs/research/substrate-binary-runtime.md`. Auto-loading
+reference for the build features: `.agents/skills/substrate-binary/`.
+
+Research spike complete — the deliverable (decision + research doc + reference
+skill) is produced and user-approved. Advanced to `done`; unblocks
+`epic-substrate-cli-query-core`.
