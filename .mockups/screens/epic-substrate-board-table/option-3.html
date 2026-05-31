@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-table — Option 3: Master-detail</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+  .mock-meta strong { font-weight: 600; } .mock-meta span { color: #8b949e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .split { display: grid; grid-template-columns: minmax(360px, 1fr) 440px; min-height: calc(100vh - 50px); }
+  @media (max-width: 900px) { .split { grid-template-columns: 1fr; } .detail { display: none; } }
+  .master { overflow: auto; border-right: 1px solid var(--color-border); }
+  .master table.table thead th { position: sticky; top: 0; background: var(--color-bg-secondary); z-index: 5; }
+  tbody tr { cursor: pointer; }
+  tbody tr.sel { background: var(--color-accent-muted); box-shadow: inset 3px 0 0 var(--color-accent); }
+  .detail { padding: 18px; overflow-y: auto; background: var(--color-bg-secondary); }
+  .detail .dhead { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); }
+  .detail .did { font: var(--font-weight-semibold) var(--font-size-base)/1.2 var(--font-mono); }
+  .fm { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font: var(--font-size-xs)/1.6 var(--font-mono); margin: 0 0 14px; }
+  .fm dt { color: var(--color-text-tertiary); } .fm dd { margin: 0; }
+  .dmd h2 { font: var(--font-weight-semibold) var(--font-size-sm)/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-tertiary); margin: 14px 0 6px; }
+  .dmd p { margin: 0 0 10px; font-size: var(--font-size-sm); line-height: 1.6; color: var(--color-text-secondary); }
+  .dmd code { font-family: var(--font-mono); font-size: .85em; background: var(--color-bg-tertiary); padding: 1px 5px; border-radius: var(--radius-sm); color: var(--color-text-primary); }
+  .hintbar { padding: 6px 18px; border-bottom: 1px solid var(--color-border); font: 11.5px/1.4 var(--font-mono); color: var(--color-text-tertiary); }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 3 — Master-detail two-pane</strong><span>Narrow sortable table left; selected row's full frontmatter + markdown body in a persistent right pane. Read while you scan; arrow keys to move.</span></header>
+
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px"><button class="tab">Kanban</button><button class="tab">Dependency</button><button class="tab" aria-selected="true">Table</button></div>
+  <div class="right">
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+<div class="hintbar">↑/↓ to move selection · the detail pane follows the highlighted row</div>
+
+<div class="split">
+  <div class="master">
+    <table class="table"><thead><tr><th>id</th><th>kind</th><th>stage</th><th>status</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <aside class="detail" id="detail"></aside>
+</div>
+
+<script>
+  const r = document.documentElement;
+  document.getElementById('accent').addEventListener('change', e => r.setAttribute('data-accent', e.target.value));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.onclick = () => {
+    b.dataset.mode === 'system' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', b.dataset.mode);
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => { document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); });
+
+  const DATA = [
+    {id:'epic-substrate-board',kind:'epic',stage:'implementing',status:'',fm:{tags:'[tooling]',depends_on:'[epic-substrate-cli]'},md:'<h2>Brief</h2><p>Interactive human surface over <code>.work/</code> — kanban, dependency, table. The human twin of the terse <code>work-view</code> CLI.</p><h2>Decomposition</h2><p>Host → shell → {kanban, dependency, table}. 5 child features.</p>'},
+    {id:'board-host',kind:'feature',stage:'drafting',status:'ready',fm:{tags:'[tooling]',parent:'epic-substrate-board',depends_on:'[]'},md:'<h2>Brief</h2><p>Live local server + JSON substrate feed off the <code>work-view</code> binary. Surfaces <code>LoadReport</code> diagnostics. Read-only.</p>'},
+    {id:'board-shell',kind:'feature',stage:'drafting',status:'blocked',fm:{tags:'[tooling]',parent:'epic-substrate-board',depends_on:'[board-host]'},md:'<h2>Brief</h2><p>Shared frontend foundation: app frame, item-card, markdown body, global filters, auto-hide, filter-state store. The critical-path hinge.</p>'},
+    {id:'board-kanban',kind:'feature',stage:'drafting',status:'blocked',fm:{parent:'epic-substrate-board',depends_on:'[board-shell]'},md:'<h2>Brief</h2><p>Columns by stage. Selected: hybrid (left rail + epic swimlanes).</p>'},
+    {id:'board-dependency',kind:'feature',stage:'drafting',status:'blocked',fm:{parent:'epic-substrate-board',depends_on:'[board-shell]'},md:'<h2>Brief</h2><p>depends_on chains + blockers. Selected: graph canvas (hand-rolled SVG).</p>'},
+    {id:'board-table',kind:'feature',stage:'drafting',status:'blocked',fm:{parent:'epic-substrate-board',depends_on:'[board-shell]'},md:'<h2>Brief</h2><p>Sortable / per-column filterable grid (this view).</p>'},
+    {id:'epic-substrate-cli',kind:'epic',stage:'done',status:'done',fm:{tags:'[tooling]',depends_on:'[]'},md:'<h2>Brief</h2><p>Compiled <code>work-view</code> binary + shared query core. 5 children done. The engine this board reuses.</p>'},
+  ];
+  const chip = k => `<span class="chip chip--${k}">${k}</span>`;
+  const badge = s => s ? `<span class="badge badge--${s}">${s}</span>` : '<span style="color:var(--color-text-tertiary)">—</span>';
+  document.getElementById('rows').innerHTML = DATA.map((d,i)=>`<tr data-i="${i}"><td class="mono">${d.id}</td><td>${chip(d.kind)}</td><td>${d.stage}</td><td>${badge(d.status)}</td></tr>`).join('');
+  let sel = 0;
+  function select(i){
+    sel = (i+DATA.length)%DATA.length;
+    document.querySelectorAll('#rows tr').forEach((tr,j)=>tr.classList.toggle('sel', j===sel));
+    const d = DATA[sel];
+    document.getElementById('detail').innerHTML = `<div class="dhead">${chip(d.kind)}<span class="did">${d.id}</span><span style="margin-left:auto">${badge(d.status)}</span></div>
+      <dl class="fm"><dt>stage</dt><dd>${d.stage}</dd>${Object.entries(d.fm).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+      <div class="dmd u-view-enter">${d.md}</div>`;
+    document.querySelector(`#rows tr[data-i="${sel}"]`)?.scrollIntoView({block:'nearest'});
+  }
+  document.querySelectorAll('#rows tr').forEach(tr => tr.onclick = () => select(+tr.dataset.i));
+  addEventListener('keydown', e => { if(e.key==='ArrowDown'){e.preventDefault();select(sel+1);} if(e.key==='ArrowUp'){e.preventDefault();select(sel-1);} });
+  select(0);
+</script>
+</body>
+</html>

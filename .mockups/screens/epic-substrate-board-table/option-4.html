@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-table — Option 4: Spreadsheet-dense</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+  .mock-meta strong { font-weight: 600; } .mock-meta span { color: #8b949e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 30; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 10px 16px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .gridwrap { overflow: auto; max-height: calc(100vh - 50px); }
+  /* dense terminal grid — overrides .table for max density (layout/density axis) */
+  table.dense { width: 100%; border-collapse: separate; border-spacing: 0; font: 11.5px/1.4 var(--font-mono); }
+  table.dense th, table.dense td { padding: 3px 8px; border-bottom: 1px solid var(--color-border); white-space: nowrap; text-align: left; }
+  table.dense thead th { position: sticky; top: 0; z-index: 6; background: var(--color-bg-secondary); color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; cursor: pointer; border-bottom: 1px solid var(--color-border-strong); }
+  table.dense td.id, table.dense th.id { position: sticky; left: 0; z-index: 4; background: var(--color-bg-primary); color: var(--color-text-primary); font-weight: 600; }
+  table.dense thead th.id { z-index: 7; background: var(--color-bg-secondary); }
+  table.dense tbody tr:hover td { background: var(--color-bg-tertiary); }
+  table.dense tbody tr:hover td.id { background: var(--color-bg-tertiary); }
+  .k { font-weight: 700; } .k.epic{color:var(--kind-epic)} .k.feature{color:var(--kind-feature)} .k.story{color:var(--kind-story)}
+  .s.ready{color:var(--status-ready)} .s.blocked{color:var(--status-blocked)} .s.done{color:var(--color-text-tertiary)}
+  .dim { color: var(--color-text-tertiary); }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 4 — Spreadsheet-dense / terminal</strong><span>Maximum density: tiny mono rows, sticky header + sticky id column, every column tight. For power users scanning a large substrate. EVE-overview energy.</span></header>
+
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px"><button class="tab">Kanban</button><button class="tab">Dependency</button><button class="tab" aria-selected="true">Table</button></div>
+  <div class="right">
+    <span class="count" id="count"></span>
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+
+<div class="gridwrap">
+  <table class="dense" id="t">
+    <thead><tr>
+      <th class="id" data-k="id">id</th><th data-k="kind">kind</th><th data-k="stage">stage</th><th data-k="status">st</th>
+      <th data-k="parent">parent</th><th data-k="deps">depends_on</th><th data-k="tags">tags</th><th data-k="created">created</th><th data-k="updated">updated</th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<script>
+  const r = document.documentElement;
+  document.getElementById('accent').addEventListener('change', e => r.setAttribute('data-accent', e.target.value));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.onclick = () => {
+    b.dataset.mode === 'system' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', b.dataset.mode);
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => { document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); });
+
+  const D = [
+    ['epic-substrate-board','epic','implementing','','—','substrate-cli','tooling','05-30','05-31'],
+    ['board-host','feature','drafting','ready','substrate-board','—','tooling','05-31','05-31'],
+    ['board-shell','feature','drafting','blocked','substrate-board','board-host','tooling','05-31','05-31'],
+    ['board-kanban','feature','drafting','blocked','substrate-board','board-shell','tooling','05-31','05-31'],
+    ['board-dependency','feature','drafting','blocked','substrate-board','board-shell','tooling','05-31','05-31'],
+    ['board-table','feature','drafting','blocked','substrate-board','board-shell','tooling','05-31','05-31'],
+    ['epic-agents-rules-autoload','epic','implementing','','—','—','tooling,skill','05-31','05-31'],
+    ['convert-extract','feature','drafting','ready','agents-rules','—','skill','05-31','05-31'],
+    ['autoload-hook','feature','done','done','agents-rules','—','tooling','05-31','05-31'],
+    ['convert-safety','feature','done','done','agents-rules','—','skill','05-30','05-30'],
+    ['skill-grounding','feature','done','done','agents-rules','—','skill','05-30','05-30'],
+    ['patterns-digest','feature','done','done','agents-rules','—','skill','05-30','05-30'],
+    ['state-concurrency','story','done','done','agents-rules','—','tooling','05-30','05-30'],
+    ['epic-substrate-cli','epic','done','done','—','—','tooling','05-30','05-31'],
+  ];
+  const COLS = ['id','kind','stage','status','parent','deps','tags','created','updated'];
+  let sortI = 2, dir = 1;
+  function render(){
+    const rows = [...D].sort((a,b)=>(a[sortI]>b[sortI]?1:a[sortI]<b[sortI]?-1:0)*dir);
+    document.getElementById('rows').innerHTML = rows.map(d=>`<tr>
+      <td class="id">${d[0]}</td>
+      <td><span class="k ${d[1]}">${d[1]}</span></td>
+      <td>${d[2]}</td>
+      <td><span class="s ${d[3]||'dim'}">${d[3]||'·'}</span></td>
+      <td class="dim">${d[4]}</td><td class="dim">${d[5]}</td><td class="dim">${d[6]}</td><td class="dim">${d[7]}</td><td class="dim">${d[8]}</td>
+    </tr>`).join('');
+    document.getElementById('count').textContent = D.length + ' items';
+    document.querySelectorAll('#t thead th').forEach((th,i)=>{ th.textContent = th.textContent.replace(/[▾▴]\s*$/,''); if(i===sortI) th.textContent += dir>0?' ▾':' ▴'; });
+  }
+  document.querySelectorAll('#t thead th').forEach((th,i)=> th.onclick = () => { if(sortI===i) dir*=-1; else { sortI=i; dir=1; } render(); });
+  render();
+</script>
+</body>
+</html>

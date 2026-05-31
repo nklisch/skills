@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-table — Option 2: Grouped by epic</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+  .mock-meta strong { font-weight: 600; } .mock-meta span { color: #8b949e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .tablewrap { padding: 14px 18px 40px; }
+  table.table thead th { position: sticky; top: 49px; background: var(--color-bg-secondary); z-index: 5; }
+  tr.group td { background: var(--color-bg-tertiary); cursor: pointer; padding: 9px 10px; border-top: 2px solid var(--color-border-strong); }
+  tr.group .gname { font: var(--font-weight-semibold) 13px/1.2 var(--font-mono); color: var(--kind-epic); }
+  tr.group .twirl { display: inline-block; width: 12px; color: var(--color-text-tertiary); }
+  tr.group .prog { display: inline-block; width: 90px; height: 5px; border-radius: var(--radius-full); background: var(--color-bg-primary); overflow: hidden; vertical-align: middle; margin-left: 8px; }
+  tr.group .prog > i { display: block; height: 100%; background: var(--status-ready); }
+  tr.group .gmeta { color: var(--color-text-tertiary); font: 11px/1.4 var(--font-mono); margin-left: 8px; }
+  tr.child td:first-child { padding-left: 26px; }
+  tr.child.hidden { display: none; }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 2 — Grouped by epic</strong><span>Collapsible epic group rows with progress; child items nested beneath. The swimlane mental model in tabular form.</span></header>
+
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px"><button class="tab">Kanban</button><button class="tab">Dependency</button><button class="tab" aria-selected="true">Table</button></div>
+  <div class="right">
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+
+<div class="tablewrap">
+  <table class="table">
+    <thead><tr><th>id</th><th>kind</th><th>stage</th><th>status</th><th>depends_on</th><th>updated</th></tr></thead>
+    <tbody>
+      <tr class="group" data-g="board"><td colspan="6"><span class="twirl">▾</span><span class="gname">epic-substrate-board</span><span class="prog"><i style="width:0%"></i></span><span class="gmeta">implementing · 0/5 done</span></td></tr>
+      <tr class="child" data-g="board"><td class="mono">board-host</td><td><span class="chip chip--feature">feature</span></td><td>drafting</td><td><span class="badge badge--ready">ready</span></td><td class="mono">—</td><td class="mono">05-31</td></tr>
+      <tr class="child" data-g="board"><td class="mono">board-shell</td><td><span class="chip chip--feature">feature</span></td><td>drafting</td><td><span class="badge badge--blocked">blocked</span></td><td class="mono">board-host</td><td class="mono">05-31</td></tr>
+      <tr class="child" data-g="board"><td class="mono">board-kanban</td><td><span class="chip chip--feature">feature</span></td><td>drafting</td><td><span class="badge badge--blocked">blocked</span></td><td class="mono">board-shell</td><td class="mono">05-31</td></tr>
+      <tr class="child" data-g="board"><td class="mono">board-dependency</td><td><span class="chip chip--feature">feature</span></td><td>drafting</td><td><span class="badge badge--blocked">blocked</span></td><td class="mono">board-shell</td><td class="mono">05-31</td></tr>
+      <tr class="child" data-g="board"><td class="mono">board-table</td><td><span class="chip chip--feature">feature</span></td><td>drafting</td><td><span class="badge badge--blocked">blocked</span></td><td class="mono">board-shell</td><td class="mono">05-31</td></tr>
+
+      <tr class="group" data-g="rules"><td colspan="6"><span class="twirl">▾</span><span class="gname">epic-agents-rules-autoload</span><span class="prog"><i style="width:86%"></i></span><span class="gmeta">implementing · 6/7 done</span></td></tr>
+      <tr class="child" data-g="rules"><td class="mono">convert-extract</td><td><span class="chip chip--feature">feature</span></td><td>drafting</td><td><span class="badge badge--ready">ready</span></td><td class="mono">—</td><td class="mono">05-31</td></tr>
+      <tr class="child" data-g="rules"><td class="mono">autoload-hook</td><td><span class="chip chip--feature">feature</span></td><td>done</td><td><span class="badge badge--done">done</span></td><td class="mono">—</td><td class="mono">05-31</td></tr>
+      <tr class="child" data-g="rules"><td class="mono">convert-safety</td><td><span class="chip chip--feature">feature</span></td><td>done</td><td><span class="badge badge--done">done</span></td><td class="mono">—</td><td class="mono">05-30</td></tr>
+      <tr class="child" data-g="rules"><td class="mono">skill-grounding</td><td><span class="chip chip--feature">feature</span></td><td>done</td><td><span class="badge badge--done">done</span></td><td class="mono">—</td><td class="mono">05-30</td></tr>
+      <tr class="child" data-g="rules"><td class="mono">state-concurrency</td><td><span class="chip chip--story">story</span></td><td>done</td><td><span class="badge badge--done">done</span></td><td class="mono">—</td><td class="mono">05-30</td></tr>
+
+      <tr class="group" data-g="cli"><td colspan="6"><span class="twirl">▾</span><span class="gname" style="color:var(--color-text-tertiary)">epic-substrate-cli</span><span class="prog"><i style="width:100%"></i></span><span class="gmeta">done · 5/5 · shipped</span></td></tr>
+      <tr class="child" data-g="cli"><td class="mono">query-core</td><td><span class="chip chip--feature">feature</span></td><td>done</td><td><span class="badge badge--done">done</span></td><td class="mono">—</td><td class="mono">05-30</td></tr>
+      <tr class="child" data-g="cli"><td class="mono">adapter</td><td><span class="chip chip--feature">feature</span></td><td>done</td><td><span class="badge badge--done">done</span></td><td class="mono">—</td><td class="mono">05-30</td></tr>
+      <tr class="child" data-g="cli"><td class="mono">next-actionable</td><td><span class="chip chip--feature">feature</span></td><td>done</td><td><span class="badge badge--done">done</span></td><td class="mono">—</td><td class="mono">05-30</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const r = document.documentElement;
+  document.getElementById('accent').addEventListener('change', e => r.setAttribute('data-accent', e.target.value));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.onclick = () => {
+    b.dataset.mode === 'system' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', b.dataset.mode);
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => { document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); });
+  document.querySelectorAll('tr.group').forEach(g => g.onclick = () => {
+    const open = g.querySelector('.twirl').textContent === '▾';
+    g.querySelector('.twirl').textContent = open ? '▸' : '▾';
+    document.querySelectorAll(`tr.child[data-g="${g.dataset.g}"]`).forEach(c => c.classList.toggle('hidden', open));
+  });
+</script>
+</body>
+</html>

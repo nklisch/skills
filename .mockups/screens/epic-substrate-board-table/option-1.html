@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-table — Option 1: Flat sortable grid</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+  .mock-meta strong { font-weight: 600; } .mock-meta span { color: #8b949e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 9px 18px; border-bottom: 1px solid var(--color-border); }
+  .filters .right { margin-left: auto; }
+  .tablewrap { padding: 14px 18px 40px; }
+  table.table thead th { position: sticky; top: 49px; background: var(--color-bg-secondary); z-index: 5; }
+  .filterrow th { position: sticky; top: 86px; background: var(--color-bg-secondary); z-index: 5; padding: 4px 10px 8px; }
+  .filterrow .input { padding: 4px 7px; font-size: 11px; }
+  tbody tr { cursor: pointer; }
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 40; }
+  .detail-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 420px; z-index: 50; border-radius: 0; overflow-y: auto; }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 1 — Flat sortable grid</strong><span>One row per item over all active work. Click headers to sort; per-column filter row; click a row for the size-detected detail. The workhorse.</span></header>
+
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px"><button class="tab">Kanban</button><button class="tab">Dependency</button><button class="tab" aria-selected="true">Table</button></div>
+  <div class="right">
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+<div class="filters">
+  <div class="filter-bar"><button class="filter-chip" aria-pressed="true">tag:tooling</button><button class="filter-chip">kind:feature</button></div>
+  <div class="right"><span class="count" id="count">— shown</span></div>
+</div>
+
+<div class="tablewrap">
+  <table class="table" id="t">
+    <thead>
+      <tr>
+        <th data-k="id">id</th><th data-k="kind">kind</th><th data-k="stage">stage</th>
+        <th data-k="status">status</th><th data-k="parent">parent</th><th data-k="deps">depends_on</th><th data-k="updated">updated</th>
+      </tr>
+      <tr class="filterrow">
+        <th><input class="input" data-f="id" placeholder="filter id"></th>
+        <th><input class="input" data-f="kind" placeholder="kind"></th>
+        <th><input class="input" data-f="stage" placeholder="stage"></th>
+        <th colspan="4"></th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<script>
+  const r = document.documentElement;
+  document.getElementById('accent').addEventListener('change', e => r.setAttribute('data-accent', e.target.value));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.onclick = () => {
+    b.dataset.mode === 'system' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', b.dataset.mode);
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => { document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); });
+  document.querySelectorAll('.filter-chip').forEach(c => c.onclick = () => c.setAttribute('aria-pressed', c.getAttribute('aria-pressed')!=='true'));
+
+  const DATA = [
+    {id:'epic-substrate-board',kind:'epic',stage:'implementing',status:'',parent:'—',deps:'substrate-cli',updated:'05-31'},
+    {id:'board-host',kind:'feature',stage:'drafting',status:'ready',parent:'substrate-board',deps:'—',updated:'05-31'},
+    {id:'board-shell',kind:'feature',stage:'drafting',status:'blocked',parent:'substrate-board',deps:'board-host',updated:'05-31'},
+    {id:'board-kanban',kind:'feature',stage:'drafting',status:'blocked',parent:'substrate-board',deps:'board-shell',updated:'05-31'},
+    {id:'board-dependency',kind:'feature',stage:'drafting',status:'blocked',parent:'substrate-board',deps:'board-shell',updated:'05-31'},
+    {id:'board-table',kind:'feature',stage:'drafting',status:'blocked',parent:'substrate-board',deps:'board-shell',updated:'05-31'},
+    {id:'epic-agents-rules-autoload',kind:'epic',stage:'implementing',status:'',parent:'—',deps:'—',updated:'05-31'},
+    {id:'convert-extract',kind:'feature',stage:'drafting',status:'ready',parent:'agents-rules',deps:'—',updated:'05-31'},
+    {id:'autoload-hook',kind:'feature',stage:'done',status:'done',parent:'agents-rules',deps:'—',updated:'05-31'},
+    {id:'convert-safety',kind:'feature',stage:'done',status:'done',parent:'agents-rules',deps:'—',updated:'05-30'},
+    {id:'skill-grounding',kind:'feature',stage:'done',status:'done',parent:'agents-rules',deps:'—',updated:'05-30'},
+    {id:'state-concurrency',kind:'story',stage:'done',status:'done',parent:'agents-rules',deps:'—',updated:'05-30'},
+    {id:'epic-substrate-cli',kind:'epic',stage:'done',status:'done',parent:'—',deps:'—',updated:'05-31'},
+  ];
+  let sortK = 'stage', sortDir = 1, filt = {};
+  const chip = k => `<span class="chip chip--${k}">${k}</span>`;
+  const badge = s => s ? `<span class="badge badge--${s}">${s}</span>` : '<span style="color:var(--color-text-tertiary)">—</span>';
+  function render(){
+    let rows = DATA.filter(d => Object.entries(filt).every(([k,v]) => !v || (d[k]||'').toLowerCase().includes(v.toLowerCase())));
+    rows.sort((a,b)=> (a[sortK]>b[sortK]?1:a[sortK]<b[sortK]?-1:0)*sortDir);
+    document.getElementById('rows').innerHTML = rows.map(d=>`<tr>
+      <td class="mono">${d.id}</td><td>${chip(d.kind)}</td><td>${d.stage}</td><td>${badge(d.status)}</td>
+      <td class="mono">${d.parent}</td><td class="mono">${d.deps}</td><td class="mono">${d.updated}</td></tr>`).join('');
+    document.getElementById('count').textContent = rows.length + ' shown';
+    document.querySelectorAll('#t thead th[data-k]').forEach(th=>{
+      th.querySelector('.sort')?.remove();
+      if(th.dataset.k===sortK){ const s=document.createElement('span'); s.className='sort'; s.textContent=sortDir>0?'▾':'▴'; th.appendChild(s); }
+    });
+  }
+  document.querySelectorAll('#t thead th[data-k]').forEach(th => th.onclick = () => {
+    if(sortK===th.dataset.k) sortDir*=-1; else { sortK=th.dataset.k; sortDir=1; } render();
+  });
+  document.querySelectorAll('.filterrow .input').forEach(inp => inp.oninput = () => { filt[inp.dataset.f]=inp.value; render(); });
+  render();
+</script>
+</body>
+</html>

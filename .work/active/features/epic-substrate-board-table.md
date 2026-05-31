@@ -47,12 +47,25 @@ kanban and dependency views and can be built in parallel with them.
   filter model the table's per-column filtering composes with.
 
 ## Mockups
-<!-- Mockups pending — see parent epic's UI gate. The table view is a
-"screens"-tier mock produced by the parent epic's ux-ui pass against this feature
-id. feature-design falls back to its own mockup phase only if that pass has not
-run. -->
-- Pending — `.mockups/screens/epic-substrate-board-table/` once the parent epic's
-  ux-ui pass runs; inherits `.mockups/design-system/`.
+
+Screens designed and direction selected (`/ux-ui-design:screens`, 2026-05-31).
+Inherits the locked design system + shared board frame; reuses the `.table`
+component and links `tokens.css` + `components.css` + `motion.css`.
+
+- **Navigator**: `.mockups/screens/epic-substrate-board-table/index.html`
+- **Selected**: `option-1.html` — **flat sortable grid**. One row per item over
+  all active work; click any header to sort (asc/desc), a per-column filter row
+  under the headers (layered on the shell's global filter bar), sticky header;
+  click a row → the size-detected item-detail surface. Columns: id · kind ·
+  stage · status · parent · depends_on · updated (mirrors the CLI's tabular
+  output for parity).
+- Explorations (in folder / git history): `option-2` grouped-by-epic
+  (collapsible groups + progress), `option-3` master-detail two-pane,
+  `option-4` spreadsheet-dense / terminal.
+
+## Design decisions (inherited from parent epic)
+- **Vanilla HTML/CSS/JS, no build** — hand-rolled sort/filter, no table library.
+- **Read-only this epic** — sort/filter/inspect; no inline cell editing.
 
 ## Design decisions (inherited from parent epic)
 - **Vanilla HTML/CSS/JS, no build** — hand-rolled sort/filter, no table library

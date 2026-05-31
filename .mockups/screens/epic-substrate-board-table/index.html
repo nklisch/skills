@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-table — pick a direction</title>
+<style>
+  body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+  h1 { padding: 14px 24px 2px; margin: 0; font-weight: 600; font-size: 18px; }
+  p.sub { padding: 0 24px 12px; margin: 0; color: #8b949e; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; padding: 8px; height: calc(100vh - 84px); box-sizing: border-box; }
+  .cell { background: #fff; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+  .cell h2 { margin: 0; padding: 8px 12px; font-size: 13px; font-weight: 600; background: #1c1c22; color: #eee; display: flex; justify-content: space-between; gap: 8px; }
+  .cell h2 .tag { color: #8b949e; font-weight: 400; }
+  .cell.pick { outline: 2px solid #2DD4BF; }
+  .cell h2 .badge { color: #06201C; background: #2DD4BF; border-radius: 4px; padding: 1px 7px; font: 700 10px/1.6 ui-monospace, monospace; text-transform: uppercase; }
+  .cell iframe { border: 0; flex: 1; width: 100%; background: #0B0E14; }
+  .cell a { color: #5EEAD4; text-decoration: none; }
+</style>
+</head>
+<body>
+<h1>epic-substrate-board-table — pick a direction</h1>
+<p class="sub">Same locked design system; four takes on the dense grid. Open one full-screen to sort, filter, group, or select rows.</p>
+<div class="grid">
+  <div class="cell pick"><h2><span>Option 1 — Flat sortable grid <span class="badge">selected</span> <span class="tag">sort + per-column filter</span></span><a href="option-1.html" target="_blank">open ↗</a></h2><iframe src="option-1.html"></iframe></div>
+  <div class="cell"><h2><span>Option 2 — Grouped by epic <span class="tag">collapsible groups + progress</span></span><a href="option-2.html" target="_blank">open ↗</a></h2><iframe src="option-2.html"></iframe></div>
+  <div class="cell"><h2><span>Option 3 — Master-detail <span class="tag">table + persistent detail pane</span></span><a href="option-3.html" target="_blank">open ↗</a></h2><iframe src="option-3.html"></iframe></div>
+  <div class="cell"><h2><span>Option 4 — Spreadsheet-dense <span class="tag">terminal density, sticky id col</span></span><a href="option-4.html" target="_blank">open ↗</a></h2><iframe src="option-4.html"></iframe></div>
+</div>
+</body>
+</html>
