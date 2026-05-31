@@ -9,6 +9,7 @@ release_binding: null
 gate_origin: null
 created: 2026-05-30
 updated: 2026-05-30
+---
 
 # Agent-facing CLI surface (work-view parity)
 
