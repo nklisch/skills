@@ -258,7 +258,7 @@ coverageReporter = ["text", "lcov"]
 coverageDir = "coverage"
 ```
 
-## Pattern: skilltap Integration Tests
+## Pattern: mycli Integration Tests
 
 ```typescript
 import { describe, test, expect, beforeAll, afterAll } from "bun:test"
@@ -273,7 +273,7 @@ describe("git.clone", () => {
 
   beforeAll(async () => {
     // Create temp dir
-    tmpDir = await mkdtemp(join(tmpdir(), "skilltap-test-"))
+    tmpDir = await mkdtemp(join(tmpdir(), "mycli-test-"))
 
     // Create a fixture git repo
     fixtureRepo = join(tmpDir, "fixture")

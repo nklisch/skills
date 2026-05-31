@@ -169,7 +169,7 @@ lt.isLocalTime()     // true
 lt.toString()        // "07:32:00"
 ```
 
-## Pattern: skilltap Config Read/Write
+## Pattern: mycli Config Read/Write
 
 ```typescript
 import { parse, stringify, TomlError } from "smol-toml"

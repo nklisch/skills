@@ -2,8 +2,7 @@
 name: claude-code-marketplace
 description: "Research findings on Claude Code marketplace, plugin structure, and distribution. Auto-loads
   when working with marketplace.json, plugin.json, plugin distribution, Claude Code plugin format,
-  SKILL.md frontmatter, tap.json integration, npm skill packages, agentskills.io standard,
-  /plugin install, or designing how skilltap interacts with the Claude Code plugin ecosystem."
+  SKILL.md frontmatter, npm skill packages, agentskills.io standard, or /plugin install."
 user-invocable: false
 ---
 
@@ -11,11 +10,12 @@ user-invocable: false
 
 See [findings.md](findings.md) for the complete analysis.
 
-## Key Recommendation
+## Key Takeaway
 
-Keep skilltap's SKILL.md + tap.json format as the primary mechanism but add marketplace.json as a
-recognized tap format so skilltap can discover and install skills from native Claude Code marketplaces.
-Do not adopt the heavier plugin/package structure — skilltap's value is agent-agnostic portability.
+SKILL.md is the open standard shared across agents; the Claude Code plugin format adds packaging
+(MCP, LSP, hooks, namespacing) on top of it. Prefer SKILL.md-only distribution when cross-agent
+portability matters; use the full plugin format when Claude Code-specific features (hooks, MCP
+servers, namespaced commands) are required.
 
 ## Quick Reference
 
@@ -23,6 +23,5 @@ Do not adopt the heavier plugin/package structure — skilltap's value is agent-
 - **Plugin** = Claude Code-specific packaging (skills + MCP + LSP + hooks + agents); defined by `plugin.json`
 - **Marketplace** = git repo with `.claude-plugin/marketplace.json`; Claude Code native installer uses `/plugin install`
 - **Plugin sources in marketplace.json**: relative path, `github`, `url` (git), `git-subdir`, `npm`
-- **skilltap installs**: SKILL.md content only; skip MCP/LSP/hooks (Claude Code-specific); warn user
-- **Namespace difference**: native plugins install as `/plugin-name:skill-name`; skilltap installs as `/skill-name`
-- **tap.json vs marketplace.json**: parallel concepts; skilltap should parse both when resolving taps
+- **Namespace**: native plugins install as `/plugin-name:skill-name`; bare SKILL.md installs as `/skill-name`
+- **Cross-agent installers**: install SKILL.md content only; skip MCP/LSP/hooks (Claude Code-specific)

@@ -36,7 +36,7 @@ if (isCancel(name)) {
 ```typescript
 import { intro, outro, cancel } from "@clack/prompts"
 
-intro("skilltap")           // Header bar at start
+intro("mycli")              // Header bar at start
 // ... prompts ...
 outro("Done!")              // Footer bar at end
 
@@ -278,7 +278,7 @@ await tasks([
 Clack renders a connected vertical-bar UI:
 
 ```
-┌  skilltap
+┌  mycli
 │
 ◆  Install to:
 │  ● Global (~/.agents/skills/)
@@ -312,7 +312,7 @@ await text({
 log.info(color.green("All checks passed!"))
 ```
 
-## Pattern: skilltap Prompt Wrappers
+## Pattern: mycli Prompt Wrappers
 
 The project wraps clack prompts in `packages/cli/src/ui/prompts.ts` for consistent behavior:
 

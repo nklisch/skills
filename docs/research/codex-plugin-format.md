@@ -7,11 +7,10 @@ Agent Skills spec version surveyed: agentskills.io as of May 2026
 
 ## Context
 
-This repo (`nklisch/skills`) distributes agent skills and plugins for Claude Code via two channels:
-the Claude Code plugin marketplace (`.claude-plugin/marketplace.json`) and skilltap
-(`tap.json`). OpenAI Codex CLI has its own first-party plugin and skill format, and the open
-**Agent Skills** standard (originated by Anthropic, hosted at agentskills.io) is now adopted by
-both vendors plus 30+ other agent products.
+This repo (`nklisch/skills`) distributes agent skills and plugins for Claude Code via the Claude
+Code plugin marketplace (`.claude-plugin/marketplace.json`). OpenAI Codex CLI has its own
+first-party plugin and skill format, and the open **Agent Skills** standard (originated by
+Anthropic, hosted at agentskills.io) is now adopted by both vendors plus 30+ other agent products.
 
 The question is: what does Codex's plugin/skill format look like, what is shared vs. divergent
 from Claude Code's, and how should this repo adapt to be installable in Codex with minimum
@@ -49,7 +48,7 @@ Maintain a second repo with `.codex-plugin/plugin.json` manifests and Codex-flav
 files.
 
 - **Pros**: Clean separation; per-vendor optimization possible
-- **Cons**: 2× maintenance; drift inevitable; skilltap loses the single source of truth
+- **Cons**: 2× maintenance; drift inevitable; single source of truth is lost
 
 ### Option B — Dual manifests, shared skills
 
@@ -62,15 +61,14 @@ documents this as an "alternative Claude format" — see references).
 - **Cons**: Two manifests per plugin; per-skill `agents/openai.yaml` needed if you want
   Codex-specific marketplace polish
 
-### Option C — Skilltap-only, no native plugin support
+### Option C — No native plugin support
 
 Skip the Codex plugin manifest entirely. Rely on Codex's ability to install skills directly via
-its skill installer from a GitHub directory URL, and let users add this tap to skilltap for
-unified install.
+its skill installer from a GitHub directory URL.
 
 - **Pros**: Zero new files in this repo
 - **Cons**: No native Codex `/plugins` discovery; users must know URLs; loses the marketplace
-  shop-window for non-skilltap users
+  shop-window
 
 ## Recommendation
 

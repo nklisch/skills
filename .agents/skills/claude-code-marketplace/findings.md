@@ -2,26 +2,25 @@
 
 ## Context
 
-skilltap installs SKILL.md-format agent skills from git repositories. As the Claude Code ecosystem matures,
-Anthropic has built out a full plugin/marketplace system that overlaps with skilltap's domain. This research
-maps the current state of that ecosystem (as of March 2026) and evaluates its implications for skilltap's
-design.
+This research maps the Claude Code plugin and marketplace ecosystem as of March 2026 — covering
+the three layers of the stack (SKILL.md open standard, plugin packaging format, marketplace
+distribution format), third-party distribution tools, and guidance for tool authors and plugin
+maintainers who need to interoperate with or distribute through this ecosystem.
 
 ## Questions
 
 1. What is the current Claude Code skill/plugin format (SKILL.md, plugin.json, directory structure)?
-2. Does Anthropic provide or plan an official marketplace? What is the tap/marketplace format?
+2. Does Anthropic provide or plan an official marketplace? What is the marketplace format?
 3. How do skills get distributed in the wild (git repos, npm packages, third-party marketplaces)?
-4. How does skilltap's current design (SKILL.md + tap.json) relate to Claude Code's native formats?
-5. What opportunities exist for skilltap to integrate with or complement the native ecosystem?
+4. What are the trade-offs between SKILL.md-only distribution and full plugin packaging?
+5. What should custom skill installers or cross-agent tools know about this ecosystem?
 
 ## Current Claude Code Ecosystem (March 2026)
 
 ### Layer 1: SKILL.md — the open standard
 
 Skills use a `SKILL.md` file with YAML frontmatter + markdown content, defined at [agentskills.io](https://agentskills.io)
-as an open standard adopted by Claude Code, OpenAI Codex CLI, Cursor, and others. This is exactly what
-skilltap installs.
+as an open standard adopted by Claude Code, OpenAI Codex CLI, Cursor, and others.
 
 **Frontmatter fields (Claude Code extensions beyond the base standard):**
 
@@ -147,175 +146,72 @@ installed via the plugin marketplace (`/plugin marketplace add anthropics/skills
 | [numman-ali/openskills](https://github.com/numman-ali/openskills) | `npx openskills` CLI | Universal loader from GitHub/local/private repos |
 | Claude Code native | `/plugin install` | First-class marketplace support built into Claude Code |
 
-## Options Evaluated
+## Distribution Trade-offs
 
-### Option A: Align skilltap with Claude Code's marketplace.json format
+### SKILL.md-only vs full plugin packaging
 
-Adopt `marketplace.json` as the tap format and the plugin directory structure as the skill package format.
-Make skilltap an alternative installer for native Claude Code plugins.
+| Approach | Install path | Cross-agent | MCP/hooks | Namespace |
+|---|---|---|---|---|
+| Bare SKILL.md (git dir) | `.agents/skills/<name>/` | Yes (Claude Code, Cursor, Codex, Gemini CLI) | No | `/skill-name` |
+| Full Claude Code plugin | `~/.claude/plugins/cache/` | Claude Code only | Yes | `/plugin-name:skill-name` |
+| npm-published plugin | (via marketplace `npm` source) | Claude Code only | Yes | `/plugin-name:skill-name` |
 
-**Pros:**
-- Full interoperability: skills installed by skilltap work identically to natively installed plugins
-- No conversion step required
-- Users can switch between `skilltap install` and `/plugin install` seamlessly
+**Choose bare SKILL.md** when portability across agents matters or when no Claude Code-specific
+extensions (MCP servers, hooks, LSP) are needed.
 
-**Cons:**
-- Plugin format is Claude Code-specific — loses agent-agnostic portability (Cursor, Gemini CLI, etc.)
-- Plugin namespacing (`/plugin-name:skill-name`) is intrusive; standalone SKILL.md installs as `/skill-name`
-- Claude Code's native installer is already excellent; duplicate effort
-- marketplace.json is more complex than skilltap's tap.json needs to be
-- Prevents skilltap from being a lightweight alternative
+**Choose the full plugin format** when you need to bundle MCP servers, hook event handlers, LSP
+configs, or custom agents alongside skills, and Claude Code is the primary target.
 
-**Maturity:** Active and production-quality (Anthropic-maintained)
+### npm as a distribution layer
 
-### Option B: Keep skilltap's SKILL.md + tap.json format, add bridges to native ecosystem
+Claude Code's native marketplace supports `{ "source": "npm", "package": "@org/plugin", "version": "..." }`.
+This means npm-published plugins install via the native `/plugin install` command.
 
-Keep the current approach (SKILL.md files, tap.json index) but add:
-- Ability to install from Claude Code marketplaces (parse marketplace.json)
-- npm source support (already partially implemented)
-- Documentation on how skilltap-installed skills compare to natively-installed plugins
+**Pros:** universal registry with versioning, search, and provenance; familiar to most developers.
 
-**Pros:**
-- Stays agent-agnostic — skills install to `.agents/skills/` and symlink to all configured agents
-- tap.json is simpler than marketplace.json for the common case
-- skilltap provides value that native `/plugin install` doesn't: cross-agent portability
-- Can read marketplace.json as a source format without adopting the full plugin structure
+**Cons:** Claude Code-specific; not usable from Cursor/Gemini natively; adds npm complexity for
+simple SKILL.md packages.
 
-**Cons:**
-- Users who want MCP servers, LSP servers, or hooks must use native plugin install anyway
-- Maintaining a parallel format creates divergence risk over time
+**Maturity:** Nascent community adoption (antfu/skills-npm proposal).
 
-**Maturity:** Active (this project)
+### Building a cross-agent skill installer
 
-### Option C: Focus on npm as the universal distribution layer
+Custom skill installers that want to read Claude Code marketplaces should:
 
-Shift skilltap's primary distribution model to npm packages: publish skills as npm packages, use npm as the
-registry. Benefits from Claude Code's first-class `{ "source": "npm" }` support.
-
-**Pros:**
-- npm is a universal, mature registry with versioning, search, and provenance
-- Claude Code natively supports npm plugin sources — no conversion needed
-- Familiar workflow for most developers
-
-**Cons:**
-- npm packages are not agent-agnostic (they work with Claude Code's marketplace, not Cursor/Gemini natively)
-- Adds npm as a hard dependency for skill authors
-- Overkill for simple SKILL.md files — npm packages bring package.json, node_modules complexity
-
-**Maturity:** Nascent community adoption (antfu/skills-npm proposal)
-
-### Option D: skilltap as a thin adapter that reads both tap.json and marketplace.json
-
-Allow `skilltap tap add` to work with both tap.json-indexed taps AND Claude Code marketplace repos.
-When a repo has `.claude-plugin/marketplace.json`, parse it as a tap. When a repo has a SKILL.md, install
-it as-is. Be a universal skill installer regardless of which format the source uses.
-
-**Pros:**
-- Users can point skilltap at any skill source — native marketplace, tap, or bare SKILL.md repo
-- Extends tap discovery to the entire Claude Code marketplace ecosystem
-- Minimal new complexity; mostly additive parsing logic
-
-**Cons:**
-- marketplace.json plugins (with MCP servers, hooks, LSP) can't be fully installed by skilltap
-- Must clearly communicate what skilltap installs (SKILL.md content only) vs what native install does
-- Potential confusion when marketplace plugin features don't work after skilltap install
-
-**Maturity:** Conceptual — would need implementation
-
-## Recommendation
-
-**Option D (multi-format tap reader) with elements of Option B (bridges), skipping Option A (full alignment).**
-
-### Rationale
-
-The core insight is that **SKILL.md is the open standard; plugins are Claude Code-specific packaging.**
-skilltap's value proposition — agent-agnostic, git-based, security-scanned skill installation — remains
-distinct and complementary to the native plugin system.
-
-However, skilltap should not be isolated from the growing Claude Code ecosystem. The pragmatic move is:
-
-1. **Keep tap.json as the primary tap format.** It is simpler and more portable than marketplace.json.
-   There is no reason to force skill authors to adopt the heavier plugin/marketplace format just to be
-   discoverable via skilltap.
-
-2. **Add marketplace.json as a recognized tap format.** When `skilltap tap add owner/repo` encounters
-   a repo with `.claude-plugin/marketplace.json`, parse it and surface the skills listed there.
-   Install only the SKILL.md content (skip MCP/LSP/hooks — those require native plugin install).
-   This lets users discover and install skills from any Claude Code marketplace through skilltap.
-
-3. **Add npm source support** (already partially in scope per SPEC.md). Claude Code's native marketplace
-   uses npm sources; skilltap should match this capability so npm-published skills are installable.
-
-4. **Document the division of responsibility clearly:**
-   - skilltap installs SKILL.md content across all agents (Claude Code, Cursor, Gemini CLI, etc.)
-   - Native `/plugin install` installs full Claude Code plugins (MCP, LSP, hooks, namespaced skills)
-   - They are complementary, not competing
-
-### What NOT to do
-
-- Do not adopt the `plugin.json` + plugin directory structure as a new package format
-- Do not add MCP/LSP/hooks installation to skilltap — that belongs in the native installer
-- Do not try to publish to the official Anthropic marketplace (reserved names, review process, Claude-specific)
+1. Check for `.claude-plugin/marketplace.json` when resolving a repo as a skill source.
+2. Install only the SKILL.md content from each listed plugin; skip `mcpServers` / `.mcp.json`,
+   `lspServers` / `.lsp.json`, `hooks/hooks.json`, `agents/`, and `settings.json` — those require
+   Claude Code's native plugin system.
+3. Warn users when a plugin includes MCP servers or hooks that were not installed.
+4. Resolve plugin namespacing: skills installed outside the native system install as `/skill-name`
+   (no namespace), not `/plugin-name:skill-name`.
 
 ## Implementation Notes
 
-### Reading marketplace.json in tap resolution
-
-When `skilltap tap add <repo>` or tap search runs, check for `.claude-plugin/marketplace.json`:
-
-```typescript
-// In taps.ts — tap resolution order
-async function resolveTap(repoPath: string): Promise<TapIndex> {
-  // 1. Try tap.json (canonical format)
-  const tapJson = await tryParseTapJson(repoPath);
-  if (tapJson) return tapJson;
-
-  // 2. Try .claude-plugin/marketplace.json (Claude Code format)
-  const marketplace = await tryParseMarketplaceJson(repoPath);
-  if (marketplace) return adaptMarketplaceToTap(marketplace);
-
-  // 3. Treat repo itself as a single-skill source
-  return inferTapFromRepo(repoPath);
-}
-```
-
-When adapting marketplace.json:
-- Map `plugins[].name` → skill name
-- Map `plugins[].description` → skill description
-- Map `plugins[].source` → repo/path for installation
-- Warn if source is `npm` type (not yet supported) or contains MCP/LSP components
-
-### npm source type
-
-Claude Code marketplace uses `{ "source": "npm", "package": "@org/plugin", "version": "..." }`. The npm
-adapter in skilltap should resolve this to the package's `skills/` directory after `npm install`. Reference
-`DESIGN-NPM-ADAPTER.md` for the current design.
-
 ### Skill namespace consideration
 
-Claude Code plugins install skills under a namespace (`/plugin-name:skill-name`). When skilltap installs
-from a plugin source, skills install as `/skill-name` (no namespace). This is a feature — it makes skills
-usable from other agents that don't understand namespacing. Document this trade-off explicitly.
+Claude Code plugins install skills under a namespace (`/plugin-name:skill-name`). Bare SKILL.md
+installs use `/skill-name` (no namespace). Both forms work in Claude Code and they do not
+conflict — a skill installed both ways is accessible under both paths.
 
-### What marketplace.json fields to skip
+### What marketplace.json fields to skip in a custom installer
 
-Skip during skilltap install:
 - `mcpServers` / `.mcp.json` — requires Claude Code's plugin system
 - `lspServers` / `.lsp.json` — Claude Code-specific
 - `hooks/hooks.json` — Claude Code event system
 - `agents/` directory — Claude Code subagent definitions
 - `settings.json` — Claude Code settings
 
-Warn the user: "This plugin includes MCP servers and hooks that require Claude Code's native `/plugin install`.
-Only the SKILL.md content has been installed."
+Warn the user: "This plugin includes MCP servers and hooks that require Claude Code's native
+`/plugin install`. Only the SKILL.md content has been installed."
 
 ## Common Pitfalls
 
-- **Namespace confusion:** Skills installed via skilltap use `/skill-name`; the same skill installed
+- **Namespace confusion:** A bare-SKILL.md install uses `/skill-name`; the same skill installed
   natively as a plugin uses `/plugin-name:skill-name`. Both work but they don't conflict.
 - **Plugin caching paths:** Claude Code copies plugins to `~/.claude/plugins/cache/`. `${CLAUDE_PLUGIN_ROOT}`
-  in hook scripts references the cached path — irrelevant for skilltap installs.
-- **Reserved marketplace names:** Don't create a tap called `agent-skills` or any other reserved name.
+  in hook scripts references the cached path — only meaningful for natively installed plugins.
+- **Reserved marketplace names:** Don't create a marketplace called `agent-skills` or any other reserved name.
 - **`strict: false` mode:** marketplace.json plugins with `strict: false` have no `plugin.json`; the
   marketplace entry IS the definition. Handle this gracefully (don't expect `plugin.json` to exist).
 

@@ -102,7 +102,7 @@ To pass raw (unescaped) strings:
 await $`echo ${{ raw: "$(date)" }}`  // Executes command substitution
 ```
 
-### Pattern: skilltap git.ts module
+### Pattern: mycli git.ts module
 
 ```typescript
 import { $ } from "bun"
@@ -275,7 +275,7 @@ Bun uses the standard `package.json` `workspaces` field. Same as npm/yarn.
 ```json
 // Root package.json
 {
-  "name": "skilltap-monorepo",
+  "name": "mycli-monorepo",
   "private": true,
   "workspaces": ["packages/*"]
 }
@@ -286,12 +286,12 @@ Reference workspace packages with `workspace:*`:
 ```json
 // packages/cli/package.json
 {
-  "name": "skilltap",
+  "name": "mycli",
   "dependencies": {
-    "@skilltap/core": "workspace:*"
+    "@mycli/core": "workspace:*"
   },
   "devDependencies": {
-    "@skilltap/test-utils": "workspace:*"
+    "@mycli/test-utils": "workspace:*"
   }
 }
 ```
@@ -299,7 +299,7 @@ Reference workspace packages with `workspace:*`:
 Import workspace packages normally:
 
 ```typescript
-import { installSkill } from "@skilltap/core"
+import { installSkill } from "@mycli/core"
 ```
 
 ### bunfig.toml
@@ -323,7 +323,7 @@ timeout = 10000
 Compile to a standalone binary with no runtime dependency:
 
 ```bash
-bun build --compile packages/cli/src/index.ts --outfile skilltap
+bun build --compile packages/cli/src/index.ts --outfile mycli
 ```
 
 The binary includes the Bun runtime — runs on machines without Bun installed.
@@ -331,8 +331,8 @@ The binary includes the Bun runtime — runs on machines without Bun installed.
 ### Cross-compile targets
 
 ```bash
-bun build --compile --target=bun-linux-x64 packages/cli/src/index.ts --outfile skilltap-linux
-bun build --compile --target=bun-darwin-arm64 packages/cli/src/index.ts --outfile skilltap-macos
+bun build --compile --target=bun-linux-x64 packages/cli/src/index.ts --outfile mycli-linux
+bun build --compile --target=bun-darwin-arm64 packages/cli/src/index.ts --outfile mycli-macos
 ```
 
 ## Other Bun APIs

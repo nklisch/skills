@@ -24,7 +24,7 @@ import { defineCommand, runMain } from "citty"
 
 const main = defineCommand({
   meta: {
-    name: "skilltap",
+    name: "mycli",
     version: "0.1.0",
     description: "Install agent skills from any git host",
   },
@@ -81,7 +81,7 @@ args: {
     required: true,
   },
 }
-// Usage: skilltap install https://example.com/repo
+// Usage: mycli install https://example.com/repo
 // args.source === "https://example.com/repo"
 ```
 
@@ -99,7 +99,7 @@ args: {
     description: "Auto-accept prompts",
   },
 }
-// Usage: skilltap install foo --project -y
+// Usage: mycli install foo --project -y
 // args.project === true, args.yes === true
 ```
 
@@ -116,7 +116,7 @@ args: {
     valueHint: "ref",
   },
 }
-// Usage: skilltap install foo --also claude-code --ref v1.2.0
+// Usage: mycli install foo --also claude-code --ref v1.2.0
 // args.also === "claude-code", args.ref === "v1.2.0"
 ```
 
@@ -245,14 +245,14 @@ const cmd = defineCommand({
 | `--help` | `-h` | Prints formatted usage, exits 0 |
 | `--version` | `-V` | Prints `meta.version`, exits 0 |
 
-## Pattern: skilltap Command Structure
+## Pattern: mycli Command Structure
 
 This is the pattern used in this project for `packages/cli/src/commands/`:
 
 ```typescript
 // packages/cli/src/commands/install.ts
 import { defineCommand } from "citty"
-import { installSkill } from "@skilltap/core"
+import { installSkill } from "@mycli/core"
 
 export default defineCommand({
   meta: {
