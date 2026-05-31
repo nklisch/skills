@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness
 kind: epic
-stage: review
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
@@ -244,3 +244,19 @@ word-splitting nit in the installer. Verification after fixes:
   (12 passed)
 - `cd plugins/agile-workflow/hooks/scripts && python3 -m unittest test_prompt_context -v`
   (39 passed)
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: convert quick-reference marker summary lagged the detailed
+version-aware doctor prose; fixed in commit `7732692`.
+
+**Notes**: Deep epic review used Claude Opus through peeragent. The reviewer
+independently checked all child features, the key artifacts, state consistency,
+and reran the three focused test suites with `TMPDIR` redirected because system
+`/tmp` is full. Result: versioning, discovery RULE-OUT, self-heal, docs/CI, and
+shim rule-out all satisfy the epic acceptance shape. No blockers or important
+findings remained after the marker-summary nit fix.
