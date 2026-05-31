@@ -16,12 +16,14 @@ updated: 2026-05-31
 ## Brief
 
 Update the `convert` skill so the managed `<!-- agile-workflow:start -->` section
-of AGENTS.md is slimmed to *orientation* (what the substrate is, `work-view` query
-patterns, the item-is-state / rolling-foundation rule) plus a MANDATORY directive:
-"Before designing/implementing/reviewing, read `.agents/rules/*.md`." The dense
-behavioral rules (tag semantics, test integrity, advisory-review policy,
-refactor-conventions pointer) move into a new plugin-managed
-`.agents/rules/agile-workflow.md`. Update Phase 6 (the canonical template), the
+of AGENTS.md stays in its **dense-pointer** style but carries pointers, not the
+dense rule prose: substrate orientation (what the substrate is, `work-view` query
+patterns, item-is-state / rolling-foundation), grep-able pointers to the canonical
+rules file `.agents/rules/agile-workflow.md` and the patterns skill, and a
+MANDATORY directive "Before designing/implementing/reviewing, read
+`.agents/rules/*.md`." The dense behavioral rule prose (tag semantics, test
+integrity, advisory-review policy, refactor-conventions pointer) moves into a new
+plugin-managed `.agents/rules/agile-workflow.md`. Update Phase 6 (the canonical template), the
 Phase 2.5/7 routing, and the sync path (S1/S3) + commit file lists accordingly.
 
 Per the Codex review, the slim is itself a data-loss vector: `convert --update`
