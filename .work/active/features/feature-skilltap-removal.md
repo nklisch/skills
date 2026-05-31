@@ -1,7 +1,7 @@
 ---
 id: feature-skilltap-removal
 kind: feature
-stage: implementing
+stage: review
 tags: [plugin]
 parent: null
 depends_on: []
@@ -198,3 +198,29 @@ No code under test — verification is grep + coherence review:
 - **Missed references.** 143 occurrences repo-wide. Mitigation: the feature-level
   `rg` gate is the backstop.
 - **History boundary.** Stories must not touch CHANGELOGs or `.work/archive/`.
+
+## Implementation summary
+
+All four child stories implemented and at `stage: review`. Skilltap is removed as
+a referenced channel across the repo; the literal-total-scrub decision was
+honored with history (CHANGELOGs, `.work/archive/`) preserved.
+
+- **feature-skilltap-removal-repo** — deleted `tap.json`; scrubbed `AGENTS.md`,
+  `README.md`, `docs/ARCHITECTURE.md`, `docs/agile-workflow-guide.md`.
+- **feature-skilltap-removal-write-tool-skill** — removed the tap.json-generation
+  phase; phases renumbered 1-6.
+- **feature-skilltap-removal-plugin-docs** — marketplace-rewrote agile-workflow
+  VISION/SPEC/ROADMAP + agile-workflow & ux-ui-design READMEs.
+- **feature-skilltap-removal-ref-skills** (delegated to a Sonnet worker, verified)
+  — genericized the bun/citty/clack/smol-toml teaching examples to `mycli`;
+  rewrote claude-code-marketplace (SKILL + findings) and `codex-plugin-format`
+  research vendor-neutral. Retire valve not needed.
+
+**Verification:** `rg -i 'skilltap|tap\.json'` over all real content (hidden dirs
+included; excluding `.git/`, the `.work/` removal work-items, and history) returns
+only `MIGRATION_REPORT.md`'s task-description lines — no live channel reference
+remains. The tree now matches `docs/SPEC.md` ("exactly two channels … no third").
+
+**Release follow-ups (not blockers):** agile-workflow + ux-ui-design may take
+patch bumps (doc edits); nates-toolkit bumps for the write-tool-skill capability
+removal — handled at release via `bump-version.sh`.
