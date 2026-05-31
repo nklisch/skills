@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-dependency
 kind: feature
-stage: implementing
+stage: done
 tags: [tooling]
 parent: epic-substrate-board
 depends_on: [epic-substrate-board-shell]
@@ -134,7 +134,7 @@ ship a precomputed graph depth.
 
 - Hover/focus a node to highlight inbound and outbound edges and dim unrelated
   nodes.
-- Keep focused-node, focused-lane, and collapsed-terminal state in module scope
+- Keep focused-node, render-mode, and collapsed-terminal state in module scope
   so it can be re-applied after shell remounts.
 - Collapse done/terminal branches by default when the visible graph is large,
   with a local toggle to expand them. This state does not mutate global filters.
@@ -179,3 +179,18 @@ Story: `epic-substrate-board-dependency-interactions`
 1. `epic-substrate-board-dependency-model`
 2. `epic-substrate-board-dependency-canvas`
 3. `epic-substrate-board-dependency-interactions`
+
+## Implementation Summary
+
+- Delivered `/assets/dependency.js` as the real dependency view, replacing the
+  shell placeholder while leaving the table placeholder intact.
+- Implemented visible dependency graph modeling, external dependency stubs,
+  cycle-safe layering, a layered-list fallback, hand-rolled SVG canvas edges,
+  edge status styling, node tracing, large/narrow fallback, and local terminal
+  collapse.
+- The view remains read-only and uses shared `ctx.openDetail(id)` for item
+  inspection.
+- Static checks cover the embedded dependency asset and raw HTML sink guard.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`;
+  `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`;
+  release binary `687008` bytes.
