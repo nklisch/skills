@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-self-heal
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli-freshness
 depends_on: [epic-substrate-cli-freshness-versioning]
@@ -638,3 +638,22 @@ Verification reported across the stories:
 - `cd plugins/agile-workflow/hooks/scripts && python3 -m unittest test_prompt_context -v`
 - `bash plugins/agile-workflow/scripts/tests/convert-install-routing.test.sh`
 - Docs grep checks for stale prebuilt-entrypoint and pre-bump ordering assertions
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none blocking.
+
+**Notes**: Deep feature review used a three-pass cross-model peer-review loop
+with Claude Opus. Pass 1 found no blockers and validated the self-heal floor,
+but flagged that the convert structural guard was not in CI; fixed in commit
+`e7f52db` by adding the workflow path filters and test step. The same commit
+also strengthened the UserPromptSubmit no-version-probe test and replaced the
+installer last-token shell word split with parameter expansion. Passes 2 and 3
+confirmed convergence with no blockers or important findings. Focused
+verification after fixes: install helper 41 passed with `TMPDIR` redirected
+because system `/tmp` is full; convert routing 12 passed; prompt-context
+unittest 39 passed.

@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-discovery
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli-freshness
 depends_on: []
@@ -297,3 +297,18 @@ Verification reported by the story:
   cache-layout evidence
 - RULE-OUT verdict mirrored into this feature's `## Spike verdict`
 - No launcher/shim code created and no throwaway probe artifacts left behind
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: Shim disposition remains to be made explicit after this feature and
+self-heal are terminal.
+
+**Notes**: Deep feature review used a three-pass cross-model peer-review loop
+with Claude Opus. Pass 1 found no blockers and validated the RULE-OUT verdict,
+but flagged trailing tool-scaffolding lines in
+`docs/research/plugin-root-discovery.md`; fixed in commit `e7f52db`. Passes 2
+and 3 confirmed convergence with no blockers or important findings.
