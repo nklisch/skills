@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-discovery
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli-freshness
 depends_on: []
@@ -285,3 +285,15 @@ The verdict's correctness is confirmed at the feature's `stage: review`.
   finding is recorded as RULE-OUT, not a fragile PASS.
 - **Spike scope creep into building the shim.** Mitigation: the scope boundary
   is restated in the acceptance criteria — no launcher code, doc + verdict only.
+
+## Children complete (2026-05-31)
+
+Child story `epic-substrate-cli-freshness-discovery-investigate` reached
+`stage: done`.
+
+Verification reported by the story:
+
+- `docs/research/plugin-root-discovery.md` created with verified env-var and
+  cache-layout evidence
+- RULE-OUT verdict mirrored into this feature's `## Spike verdict`
+- No launcher/shim code created and no throwaway probe artifacts left behind

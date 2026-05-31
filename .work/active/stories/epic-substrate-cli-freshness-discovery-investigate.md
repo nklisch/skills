@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-discovery-investigate
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli-freshness-discovery
 depends_on: []
@@ -139,3 +139,16 @@ plugin-root var (so re-install belongs in the hook context, where it is set).
   documentation-status.
 - `git status --porcelain` → confirmed the only changes are the three
   deliverables (plus pre-existing/concurrent work I did not touch).
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes include the RULE-OUT
+verdict, the verified env/cache-layout evidence, the new research doc, and the
+mirrored parent-feature spike verdict. No launcher code or probe artifacts were
+created.
