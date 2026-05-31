@@ -91,8 +91,8 @@ Filters (compose with AND semantics):
   --parent <id>        Direct children of the given item
   --release <version>  Items with release_binding: <version>
   --gate <name>        Items with gate_origin: <name>
-  --ready              Items at an actionable stage with all depends_on done
-  --blocked            Items at an actionable stage with unmet dependencies
+  --ready              Active items at drafting/implementing/review with all depends_on done
+  --blocked            Active items at drafting/implementing/review with unmet dependencies
   --blocking <id>      Items that depend on <id>
 
 Output (default tabular):

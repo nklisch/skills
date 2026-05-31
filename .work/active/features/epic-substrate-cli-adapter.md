@@ -236,6 +236,18 @@ one-feature work set.
   cosmetic table-only difference for backlog items, which are rarely table-
   queried and whose columns no skill parses (skills use `--paths`/`--count`).
   Documented, not worth recovering the distinction from `raw_text`.
+- **`--X null` (IsNull) matches missing-field / backlog items; bash does not.**
+  Rust `--parent null` / `--release null` / `--gate null` map to
+  `Match::IsNull`. The core normalises explicit YAML `null`, the literal string
+  `"null"`, AND a missing field all to `None`, so `IsNull` matches all three.
+  Bash stores the raw extracted string and compares `== "null"`, so it matches
+  items with an explicit `null` value but NOT items whose field is absent
+  entirely (e.g. a backlog item with no `gate_origin:` line). This is an
+  intentional improvement in the Rust binary: the cleaner "field unset"
+  semantic. The binary supersedes the bash; no current skill consumer uses
+  `--parent null`, `--release null`, or `--gate null`. These three flag values
+  are therefore excluded from the bash-equality parity matrix; they are covered
+  by explicit `is_null_*` integration tests asserting the Rust intended behavior.
 - **Binary size** — zero new deps beyond the core; hand-rolled parser keeps the
   CLI's own contribution negligible.
 
