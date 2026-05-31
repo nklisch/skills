@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-shim
 kind: feature
-stage: drafting
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli-freshness
 depends_on: [epic-substrate-cli-freshness-versioning, epic-substrate-cli-freshness-discovery, epic-substrate-cli-freshness-self-heal]
@@ -64,3 +64,25 @@ prefer the plugin's current prebuilt binary (via verified discovery, with
 version-aware selection) and fall back to the already-portable bash floor. The
 shim is therefore strictly additive and lower-risk than originally framed; if
 discovery is ruled out, nothing is lost beyond the optimization.
+
+## Rule-out decision (2026-05-31)
+
+**Verdict**: Ruled out by dependency result. No launcher/shim code will be
+designed or implemented for this epic.
+
+The discovery spike reached a reviewed **RULE-OUT** verdict:
+env-var-free, version-correct plugin-root discovery is not reliable across both
+Claude Code and Codex. Claude Code's only unambiguous resolver is an
+undocumented, internally-versioned `installed_plugins.json`; documented-surface
+alternatives are version-ambiguous or context-limited. That fails this feature's
+own condition for proceeding.
+
+The self-heal feature already installs the portable, source-stamped bash
+entrypoint and keeps it fresh from hook contexts where
+`PLUGIN_ROOT`/`CLAUDE_PLUGIN_ROOT` are available. The shim would only have been a
+plugin-binary speed/freshness optimization for env-var-absent contexts; without a
+reliable discovery procedure in those contexts, building it would reintroduce the
+fragility this epic exists to remove.
+
+Acceptance for this conditional feature is therefore the explicit rule-out
+record above, not child stories or implementation.
