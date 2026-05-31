@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-shell-data
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-shell
 depends_on: [epic-substrate-board-shell-frame]
@@ -50,3 +50,15 @@ and surfaces diagnostics without giving individual views their own data model.
   `localStorage`; the substrate snapshot remains in memory only.
 - Added the `/assets/state.js` embedded route and integration assertions for
   the new JS asset and store bootstrap.
+
+## Review
+
+Approved on 2026-05-31 after host review.
+
+- Confirmed the store exposes the designed contract and keeps the substrate
+  snapshot in memory while persisting only view/theme/filter preferences.
+- Confirmed diagnostics, loading, empty, refresh, and failed-request states are
+  wired through `board.js`.
+- Verification passed: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p
+  work-view-cli` and `TMPDIR=/home/nathan/.cache/silas/tmp cargo build
+  --release -p work-view-cli`.
