@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-table-filters
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-table
 depends_on: [epic-substrate-board-table-sort]
@@ -43,3 +43,17 @@ registered sorted table.
   and restore focus/caret after each render.
 - Added sticky header and minimum-width table CSS inside a horizontally
   scrollable wrapper.
+
+## Review Notes
+
+- Approved local review on 2026-05-31.
+- Confirmed `/assets/table.js` keeps column filters in module scope, applies
+  them after `ctx.visibleItems()`, does not call `ctx.setFilter`, and preserves
+  focus/caret across filter re-renders.
+- Confirmed table rows still open the shared detail panel via click and
+  Enter/Space key handling after filter/sort composition.
+- Added static asset coverage for `.table-wrap`, sticky table headers, and the
+  `820px` minimum table width.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p
+  work-view-cli` and `TMPDIR=/home/nathan/.cache/silas/tmp cargo build
+  --release -p work-view-cli` passed.
