@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion — Substrate Board</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="motion.css">
+<style>
+  /* showcase layout only */
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  header.top { position: sticky; top: 0; z-index: 30; display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+    padding: 12px 20px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  header .brand { font-weight: 700; letter-spacing: -.02em; } header .brand .d { color: var(--color-accent); }
+  header nav { display: flex; gap: 12px; flex-wrap: wrap; }
+  header nav a { color: var(--color-text-secondary); text-decoration: none; font: 600 12px/1 var(--font-mono); }
+  header .picker { margin-left: auto; }
+  main { padding: 24px 20px 70px; max-width: 1000px; margin: 0 auto; }
+  section.cat { margin: 0 0 38px; }
+  section.cat > h2 { font: 600 13px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .1em; color: var(--color-text-tertiary);
+    border-bottom: 1px solid var(--color-border); padding-bottom: 8px; margin: 26px 0 14px; }
+  .note { color: var(--color-text-tertiary); font: 13px/1.5 var(--font-sans); margin: 0 0 16px; max-width: 76ch; }
+  .row { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; }
+  .row .meta { flex: 0 0 230px; }
+  .row .name { font: 600 13px/1.3 var(--font-mono); color: var(--color-text-primary); }
+  .row .sub { font: 11px/1.4 var(--font-mono); color: var(--color-text-tertiary); }
+  .gate { display: inline-block; font: 600 9px/1.4 var(--font-mono); text-transform: uppercase; padding: 1px 6px; border-radius: var(--radius-sm); }
+  .gate.input { background: var(--color-accent-muted); color: var(--color-text-primary); border: 1px solid var(--color-accent); }
+  .gate.ambient { background: var(--color-bg-tertiary); color: var(--color-text-tertiary); border: 1px solid var(--color-border); }
+  .track { flex: 1 1 280px; height: 40px; background: var(--color-bg-tertiary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); position: relative; overflow: hidden; }
+  .dot { position: absolute; top: 6px; left: 6px; width: 26px; height: 26px; border-radius: var(--radius-sm); background: var(--color-accent); }
+  .panel { background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 16px; }
+  .demo-grid { display: grid; gap: 10px; }
+  .stagger-list { display: grid; gap: 8px; }
+  .drawer-stage { position: relative; height: 340px; border: 1px dashed var(--color-border); border-radius: var(--radius-md); overflow: hidden; background: var(--color-bg-primary); }
+  .drawer-stage .detail-drawer { position: absolute; top: 8px; right: 8px; bottom: 8px; width: 300px; overflow-y: auto; }
+  .views-stage .vpanel { display: none; } .views-stage .vpanel.on { display: block; }
+  .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .focusring { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">substrate<span class="d">/</span>board — motion</span>
+  <nav><a href="#ease">easings</a><a href="#dur">durations</a><a href="#board">board motions</a><a href="#rm">reduced-motion</a></nav>
+  <div class="picker theme-picker">
+    <span class="lbl">accent</span>
+    <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+    <div class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></div>
+  </div>
+</header>
+
+<main>
+  <p class="note">Attitude: <b>restrained + productive</b>. Nothing that gates input exceeds <b>180ms</b>. No springs (read-only / no gestures), no overshoot. Flip accent + mode to see motion in any theme; toggle reduced-motion at the bottom.</p>
+
+  <!-- EASINGS -->
+  <section class="cat" id="ease"><h2>Easing curves</h2>
+    <p class="note">Click any track to play; click again to reset. Each name carries an attitude, not just coefficients.</p>
+    <div id="easings">
+      <div class="row" data-ease="var(--motion-standard)" data-dur="var(--dur-quick)"><div class="meta"><div class="name">--motion-standard</div><div class="sub">cubic-bezier(.4,0,.2,1) · workhorse</div></div><div class="track"><div class="dot"></div></div></div>
+      <div class="row" data-ease="var(--motion-productive)" data-dur="var(--dur-quick)"><div class="meta"><div class="name">--motion-productive</div><div class="sub">cubic-bezier(0,0,.2,1) · snap-to-final</div></div><div class="track"><div class="dot"></div></div></div>
+      <div class="row" data-ease="var(--motion-emphasized)" data-dur="var(--dur-quick)"><div class="meta"><div class="name">--motion-emphasized</div><div class="sub">cubic-bezier(.2,0,0,1) · drawer entry</div></div><div class="track"><div class="dot"></div></div></div>
+      <div class="row" data-ease="var(--motion-linear)" data-dur="var(--dur-ambient)"><div class="meta"><div class="name">--motion-linear</div><div class="sub">linear · spinners only</div></div><div class="track"><div class="dot"></div></div></div>
+    </div>
+  </section>
+
+  <!-- DURATIONS -->
+  <section class="cat" id="dur"><h2>Durations (Doherty-coupled)</h2>
+    <div id="durs">
+      <div class="row" data-ease="var(--motion-standard)" data-dur="var(--dur-instant)"><div class="meta"><div class="name">--dur-instant · 100ms</div><div class="sub"><span class="gate input">input-gating</span> hover / pressed</div></div><div class="track"><div class="dot"></div></div></div>
+      <div class="row" data-ease="var(--motion-standard)" data-dur="var(--dur-theme)"><div class="meta"><div class="name">--dur-theme · 140ms</div><div class="sub"><span class="gate input">input-gating</span> color crossfade</div></div><div class="track"><div class="dot"></div></div></div>
+      <div class="row" data-ease="var(--motion-standard)" data-dur="var(--dur-quick)"><div class="meta"><div class="name">--dur-quick · 180ms</div><div class="sub"><span class="gate input">input-gating</span> default transition</div></div><div class="track"><div class="dot"></div></div></div>
+      <div class="row" data-ease="var(--motion-linear)" data-dur="var(--dur-ambient)"><div class="meta"><div class="name">--dur-ambient · 600ms</div><div class="sub"><span class="gate ambient">ambient</span> spinner only, never gates input</div></div><div class="track"><div class="dot"></div></div></div>
+    </div>
+  </section>
+
+  <!-- BOARD MOTIONS -->
+  <section class="cat" id="board"><h2>Board motions</h2>
+
+    <p class="note"><b>Theme swap</b> — flip accent/mode in the top bar. Surfaces carry <code>.u-theme-anim</code>: color/border/shadow crossfade over 140ms, zero layout shift.</p>
+
+    <p class="note"><b>Item-card hover / selected</b> — hover or focus a card (state change, 100ms).</p>
+    <div class="panel u-theme-anim" style="margin-bottom:18px">
+      <div class="item-card item-card--feature u-state" tabindex="0"><div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-shell</span><span class="badge badge--blocked">blocked</span></div><div class="ic-body">Hover or tab to me — border + shadow ease in over 100ms.</div></div>
+    </div>
+
+    <p class="note"><b>Filter reflow</b> — cards enter the visible set with a minimal stagger (productive curve, capped at 8).</p>
+    <div class="panel" style="margin-bottom:18px">
+      <div class="toolbar"><button class="btn btn-primary u-press" id="reflow">Apply filter</button><span class="sub" style="color:var(--color-text-tertiary);font:12px/1 var(--font-mono)">.u-card-enter + .u-stagger</span></div>
+      <div class="stagger-list u-stagger" id="reflowList"></div>
+    </div>
+
+    <p class="note"><b>View-switch</b> — Kanban / Dependency / Table crossfade (180ms, standard).</p>
+    <div class="panel views-stage" style="margin-bottom:18px">
+      <div class="tabs" id="vtabs"><button class="tab" aria-selected="true" data-v="0">Kanban</button><button class="tab" data-v="1">Dependency</button><button class="tab" data-v="2">Table</button></div>
+      <div style="margin-top:12px">
+        <div class="vpanel on" data-v="0"><div class="item-card item-card--feature"><div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-host</span><span class="badge badge--ready">ready</span></div><div class="ic-body">Kanban column view.</div></div></div>
+        <div class="vpanel" data-v="1"><div class="dep-node is-blocked"><div class="dn-head"><span class="chip chip--feature">feature</span><span class="ic-id" style="font:600 12.5px/1.3 var(--font-mono)">board-shell</span></div><div class="edges"><div class="edge"><span class="up">↳ depends_on</span> <span class="unmet">board-host</span></div></div></div></div>
+        <div class="vpanel" data-v="2"><table class="table"><thead><tr><th>id</th><th>stage</th><th>status</th></tr></thead><tbody><tr><td class="mono">board-host</td><td>drafting</td><td><span class="badge badge--ready">ready</span></td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <p class="note"><b>Detail-drawer</b> — read-only item detail slides in from the right (emphasized, 180ms), then a 120ms <code>--hold-beat</code> before the focus ring lands.</p>
+    <div class="panel" style="margin-bottom:18px">
+      <div class="toolbar"><button class="btn btn-primary u-press" id="openDrawer">Open item</button></div>
+      <div class="drawer-stage" id="drawerStage"></div>
+    </div>
+
+    <p class="note"><b>Feed spinner</b> — indeterminate load (linear, ambient). <span class="spinner u-spin"></span> &nbsp; <b>Primary glow</b> — hover: <button class="btn btn-primary u-press">Filter</button></p>
+  </section>
+
+  <!-- REDUCED MOTION -->
+  <section class="cat" id="rm"><h2>Reduced motion</h2>
+    <p class="note">Required. Toggling simulates <code>prefers-reduced-motion: reduce</code>: transforms/translations are cut, opacity + color kept. Replay the board motions above with it on — everything stays usable, nothing slides.</p>
+    <button class="btn u-press" id="rmToggle" aria-pressed="false">Simulate reduced-motion: OFF</button>
+  </section>
+</main>
+
+<script>
+  const root = document.documentElement, KEY = "substrate-motion-theme";
+  const s = JSON.parse(localStorage.getItem(KEY) || '{"accent":"teal","mode":"system"}');
+  const setA = a => root.setAttribute("data-accent", a);
+  const setM = m => m === "system" ? root.removeAttribute("data-theme") : root.setAttribute("data-theme", m);
+  const save = () => localStorage.setItem(KEY, JSON.stringify(s));
+  document.getElementById("accent").value = s.accent; setA(s.accent); setM(s.mode);
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === s.mode)));
+  document.getElementById("accent").addEventListener("change", e => { s.accent = e.target.value; setA(s.accent); save(); });
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.addEventListener("click", () => {
+    s.mode = b.dataset.mode; setM(s.mode); save();
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute("aria-pressed", String(x === b))); }));
+
+  // easing + duration tracks: click to play/reset
+  document.querySelectorAll('#easings .row, #durs .row').forEach(row => {
+    const dot = row.querySelector('.dot'); let on = false;
+    row.querySelector('.track').addEventListener('click', () => {
+      on = !on;
+      dot.style.transition = `transform ${row.dataset.dur} ${row.dataset.ease}`;
+      dot.style.transform = on ? `translateX(${row.querySelector('.track').clientWidth - 38}px)` : 'none';
+    });
+  });
+
+  // filter reflow
+  const items = [
+    ['board-host','ready'],['board-shell','blocked'],['board-kanban','blocked'],
+    ['board-dependency','blocked'],['board-table','blocked']
+  ];
+  const list = document.getElementById('reflowList');
+  function renderReflow(){
+    list.innerHTML = '';
+    items.forEach((it, i) => {
+      const el = document.createElement('div');
+      el.className = 'item-card item-card--feature u-card-enter';
+      el.style.setProperty('--i', i);
+      el.innerHTML = `<div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">${it[0]}</span><span class="badge badge--${it[1]}">${it[1]}</span></div>`;
+      list.appendChild(el);
+    });
+  }
+  document.getElementById('reflow').addEventListener('click', renderReflow);
+  renderReflow();
+
+  // view switch
+  document.querySelectorAll('#vtabs .tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('#vtabs .tab').forEach(x => x.setAttribute('aria-selected','false'));
+    t.setAttribute('aria-selected','true');
+    document.querySelectorAll('.views-stage .vpanel').forEach(p => {
+      const on = p.dataset.v === t.dataset.v;
+      p.classList.toggle('on', on);
+      if (on) { p.classList.remove('u-view-enter'); void p.offsetWidth; p.classList.add('u-view-enter'); }
+    });
+  }));
+
+  // detail drawer with hold-beat focus
+  const stage = document.getElementById('drawerStage');
+  document.getElementById('openDrawer').addEventListener('click', () => {
+    if (stage.querySelector('.detail-drawer')) return;
+    const d = document.createElement('div');
+    d.className = 'detail-drawer u-drawer-in u-theme-anim';
+    d.innerHTML = `<div class="dd-head"><span class="chip chip--feature">feature</span><span class="dd-id">board-shell</span><button class="btn btn-ghost btn--sm u-press" id="closeD">esc ✕</button></div>
+      <dl class="dd-frontmatter"><dt>stage</dt><dd>drafting</dd><dt>depends_on</dt><dd>[board-host]</dd></dl>
+      <div class="dd-md"><p>Shared frontend foundation. Read-only this epic.</p></div>
+      <input class="input" id="ddFocus" placeholder="(first focusable)" style="margin-top:10px">`;
+    stage.appendChild(d);
+    // hold-beat: wait after slide-in, then land focus ring
+    const ms = parseFloat(getComputedStyle(root).getPropertyValue('--dur-quick')) || 180;
+    const beat = parseFloat(getComputedStyle(root).getPropertyValue('--hold-beat')) || 120;
+    setTimeout(() => stage.querySelector('#ddFocus')?.classList.add('focusring'), ms + beat);
+    d.querySelector('#closeD').addEventListener('click', () => {
+      d.classList.remove('u-drawer-in'); d.classList.add('u-drawer-out');
+      d.addEventListener('animationend', () => d.remove(), { once: true });
+    });
+  });
+
+  // reduced-motion simulation
+  const rm = document.getElementById('rmToggle');
+  rm.addEventListener('click', () => {
+    const on = root.getAttribute('data-simulate-rm') !== 'on';
+    root.setAttribute('data-simulate-rm', on ? 'on' : 'off');
+    rm.setAttribute('aria-pressed', String(on));
+    rm.textContent = 'Simulate reduced-motion: ' + (on ? 'ON' : 'OFF');
+  });
+</script>
+</body>
+</html>

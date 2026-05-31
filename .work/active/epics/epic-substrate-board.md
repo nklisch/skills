@@ -161,13 +161,24 @@ palette:
   `.item-card` (variants + states, rendered md body), `.kanban-col-head`,
   `.dep-node` (dependency edges), `.detail-drawer` (read-only item detail).
   Screens/flows link both `tokens.css` and `components.css`.
+- **Motion** (locked 2026-05-31): `.mockups/design-system/motion.css` +
+  `motion.html` showcase. Attitude **restrained + productive**; token-only,
+  compositor-cheap (transform/opacity only). Named easings (`--motion-standard`
+  / `-productive` / `-emphasized` / `-linear`; overshoot deliberately omitted),
+  Doherty-coupled durations (`--dur-instant` 100 / `--dur-theme` 140 /
+  `--dur-quick` 180 input-gating, `--dur-ambient` 600 background-only),
+  `--hold-beat` 120ms (drawer→focus). Board motions: theme crossfade
+  (no layout shift), card hover/selected, filter reflow (capped stagger),
+  view-switch crossfade, detail-drawer slide, feed spinner. No springs
+  (read-only, no gestures). **prefers-reduced-motion required** (transforms cut,
+  opacity/color kept). Screens/flows link `motion.css` as the third stylesheet.
 - Explored and set aside (recoverable from git history): neubrutalist
   (highlighter / risograph / acid), Swiss/typographic, cassette futurism,
   editorial, vaporwave, aurora glass; and the single-lock terminal-teal /
   IBM Plex iteration that preceded the multi-theme system.
 
 Remaining ux-ui pipeline, still gated before the UI features implement
-(palette ✓, components ✓): `motion` → `screens` (one per
+(palette ✓, components ✓, motion ✓): `screens` (one per
 `epic-substrate-board-kanban`, `-dependency`, `-table`) → `flows` (cross-view
 navigation). The `-host` feature has no UI surface. Each UI feature gets its own
 `## Mockups` link as `screens` / `flows` run.
