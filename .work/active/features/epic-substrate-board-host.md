@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-host
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board
 depends_on: []
@@ -198,12 +198,12 @@ pub(crate) fn run_board(opts: BoardOptions) -> u8;
   `--no-open`, `--once` test mode that serves one request then returns.
 
 **Acceptance Criteria**:
-- [ ] `work-view board --help` and `work-view serve --help` print board help and
+- [x] `work-view board --help` and `work-view serve --help` print board help and
       exit 0.
-- [ ] Existing `work-view --help`, query filters, output modes, and exit codes
+- [x] Existing `work-view --help`, query filters, output modes, and exit codes
       remain unchanged.
-- [ ] Unknown board flags return usage error exit 1.
-- [ ] `--once` is test-only-visible help text or documented as internal, and is
+- [x] Unknown board flags return usage error exit 1.
+- [x] `--once` is test-only-visible help text or documented as internal, and is
       used only by integration tests.
 
 ### Unit 2: Localhost HTTP server
@@ -236,11 +236,11 @@ pub(crate) fn serve_board(
   500 while keeping the server alive where possible.
 
 **Acceptance Criteria**:
-- [ ] Server binds to `127.0.0.1`, never `0.0.0.0`.
-- [ ] `GET /healthz` returns 200.
-- [ ] Unknown route returns 404.
-- [ ] Busy default port scans upward and prints the actual bound URL.
-- [ ] Existing cargo tests pass; first implementation run records binary-size
+- [x] Server binds to `127.0.0.1`, never `0.0.0.0`.
+- [x] `GET /healthz` returns 200.
+- [x] Unknown route returns 404.
+- [x] Busy default port scans upward and prints the actual bound URL.
+- [x] Existing cargo tests pass; first implementation run records binary-size
       impact and confirms the CI size guard still has room.
 
 ### Unit 3: Live substrate JSON feed
@@ -299,15 +299,15 @@ pub(crate) fn build_feed(root: &std::path::Path) -> Result<String, FeedError>;
 - Do not serialize absolute `path` or `raw_text`.
 
 **Acceptance Criteria**:
-- [ ] `GET /api/substrate` returns 200 JSON with items, diagnostics, and
+- [x] `GET /api/substrate` returns 200 JSON with items, diagnostics, and
       `work_view_version`.
-- [ ] A malformed item file appears in `diagnostics.parse_errors` while valid
+- [x] A malformed item file appears in `diagnostics.parse_errors` while valid
       siblings remain in `items`.
-- [ ] Feed ready/blocked ids match `work-view --ready` and `work-view --blocked`
+- [x] Feed ready/blocked ids match `work-view --ready` and `work-view --blocked`
       over the same fixture.
-- [ ] Feed includes `body`, `rel_path`, `tier`, `unmet_deps`, `dependents`, and
+- [x] Feed includes `body`, `rel_path`, `tier`, `unmet_deps`, `dependents`, and
       `children`.
-- [ ] Feed excludes absolute `path` and `raw_text`.
+- [x] Feed excludes absolute `path` and `raw_text`.
 
 ### Unit 4: Embedded assets and stub board
 **Files**:
@@ -337,11 +337,11 @@ pub(crate) fn asset_for_path(path: &str) -> Option<Asset>;
   release path must be embedded.
 
 **Acceptance Criteria**:
-- [ ] `GET /` and `GET /index.html` return the embedded stub HTML.
-- [ ] CSS and JS routes return correct content types.
-- [ ] The stub fetches `/api/substrate` and renders a visible count without a
+- [x] `GET /` and `GET /index.html` return the embedded stub HTML.
+- [x] CSS and JS routes return correct content types.
+- [x] The stub fetches `/api/substrate` and renders a visible count without a
       build step.
-- [ ] Copying only the compiled `work-view` binary to `.work/bin/` is enough for
+- [x] Copying only the compiled `work-view` binary to `.work/bin/` is enough for
       the stub board to load.
 
 ### Unit 5: Human surface, board skill, and legacy retirement
@@ -384,15 +384,15 @@ allowed-tools: Bash
   git history carries the old static-board behavior.
 
 **Acceptance Criteria**:
-- [ ] `plugins/agile-workflow/skills/board/SKILL.md` exists and launches the
+- [x] `plugins/agile-workflow/skills/board/SKILL.md` exists and launches the
       live board.
-- [ ] `plugins/agile-workflow/commands/board.md` is removed.
-- [ ] `work-board.template.html` is removed.
-- [ ] `work-board.sh` no longer renders static HTML; it only shims or reports
+- [x] `plugins/agile-workflow/commands/board.md` is removed.
+- [x] `work-board.template.html` is removed.
+- [x] `work-board.sh` no longer renders static HTML; it only shims or reports
       the compiled-board requirement.
-- [ ] README and foundation docs describe the live local board, not a one-shot
+- [x] README and foundation docs describe the live local board, not a one-shot
       generated page.
-- [ ] Headless use prints the URL; desktop use attempts browser open after the
+- [x] Headless use prints the URL; desktop use attempts browser open after the
       server binds.
 
 ## Implementation Order
@@ -424,6 +424,30 @@ allowed-tools: Bash
 - Run the board in this repo and open the printed localhost URL.
 - Confirm refresh sees a changed `.work/` item without restarting the server.
 - Confirm the binary still fits the existing dist size guard after new deps.
+
+## Implementation Summary
+
+All five child stories reached `done`:
+
+- `epic-substrate-board-host-subcommand` added `work-view board` / `serve`
+  dispatch while preserving existing query behavior.
+- `epic-substrate-board-host-server` added the localhost HTTP server, port
+  scanning, health route, and non-panicking request handling.
+- `epic-substrate-board-host-feed` added `GET /api/substrate` from
+  `Substrate::load`, including diagnostics and dependency graph fields without
+  absolute paths or raw frontmatter text.
+- `epic-substrate-board-host-assets` embedded no-build HTML/CSS/JS stub assets
+  into the binary.
+- `epic-substrate-board-host-surface` added the cross-vendor board skill,
+  removed the Claude-only `/board` command and static template, replaced
+  `work-board.sh` with a shim, added post-bind browser launching, and rolled
+  docs forward.
+
+Verification:
+- `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`
+- `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`
+- Release binary size: 551,592 bytes.
+- `bash -n plugins/agile-workflow/scripts/work-board.sh`
 
 ## Risks
 
