@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Palette — Substrate Board (LOCKED: Data-dense terminal)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 'IBM Plex Sans', system-ui, sans-serif; color: #111; background: #e9e9ec; }
+  nav.toc { position: sticky; top: 0; z-index: 10; padding: 14px 24px; background: #0B0E14; color: #C8D3E0;
+            display: flex; gap: 14px; align-items: center; flex-wrap: wrap; border-bottom: 2px solid #2DD4BF; }
+  nav.toc strong { font-weight: 700; color: #fff; }
+  nav.toc .lock { background: #2DD4BF; color: #06201C; padding: 3px 9px; border-radius: 3px; font: 700 11px/1.3 'JetBrains Mono', monospace; text-transform: uppercase; }
+  nav.toc .note { margin-left: auto; color: #5C6675; font: 400 12px/1.4 'JetBrains Mono', monospace; }
+  section.option { padding: 30px 24px; }
+  h2 { margin: 0 0 4px; font-weight: 700; font-size: 24px; }
+  p.rationale { margin: 0 0 6px; color: #444; max-width: 76ch; }
+  p.typenote { margin: 0 0 18px; color: #666; font: 12px/1.5 'JetBrains Mono', monospace; }
+  .swatches { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); margin: 14px 0 22px; }
+  .swatch { border: 1px solid #ccc; border-radius: 4px; overflow: hidden; background: #fff; }
+  .swatch .color { height: 46px; }
+  .swatch .meta { padding: 6px 8px; font: 12px/1.4 'JetBrains Mono', monospace; }
+  .swatch .meta .name { display: block; font-weight: 600; }
+  .swatch .meta .hex { color: #888; }
+  .demo { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 760px) { .demo { grid-template-columns: 1fr; } }
+
+  .pane { background: var(--bg); color: var(--text); border: 1px solid var(--border-strong); border-radius: 4px; padding: 18px; position: relative; font-family: 'IBM Plex Sans', sans-serif; }
+  .mode-tag { font: 600 11px/1 'JetBrains Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 14px; display: block; }
+  .board-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .board-head .title { font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
+  .board-head .toggle { margin-left: auto; font: 600 11px/1 'JetBrains Mono', monospace; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); padding: 5px 9px; border-radius: 3px; }
+  .icard { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 4px; padding: 12px; margin-bottom: 10px; }
+  .icard .row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  .chip { font: 600 10px/1.4 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 3px; border: 1.5px solid var(--kfeature); color: var(--kfeature); }
+  .chip.epic { border-color: var(--kepic); color: var(--kepic); }
+  .badge { font: 600 10px/1.4 'JetBrains Mono', monospace; text-transform: uppercase; padding: 2px 7px; margin-left: auto; border-radius: 3px; color: #fff; }
+  .badge.ready { background: var(--ready); } .badge.blocked { background: var(--blocked); }
+  .icard .id { font: 600 13px/1.3 'JetBrains Mono', monospace; letter-spacing: -0.02em; }
+  .icard .body { color: var(--text2); font-size: 12.5px; margin-top: 4px; }
+  .icard .meta { color: var(--text3); font: 11px/1.4 'JetBrains Mono', monospace; margin-top: 6px; }
+  .controls { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+  .btn { font: 600 13px/1 'IBM Plex Sans', sans-serif; padding: 8px 14px; border: 1px solid var(--border-strong); border-radius: 4px; cursor: pointer; }
+  .btn.primary { background: var(--accent); color: var(--tinv); border-color: var(--accent); }
+  .pane.dark .btn.primary { box-shadow: 0 0 0 1px var(--accent), 0 0 12px -2px var(--accent); }
+  .btn.ghost { background: var(--surface); color: var(--text); }
+  a.demolink { color: var(--link); font-weight: 600; text-decoration: underline; }
+  .codeblock { margin-top: 12px; background: var(--surface2); color: var(--text2); padding: 9px 11px; font: 12px/1.5 'JetBrains Mono', monospace; border-radius: 4px; border: 1px solid var(--border); }
+  .codeblock .k { color: var(--link); }
+  .contrast { margin-top: 16px; font: 12px/1.7 'JetBrains Mono', monospace; background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 12px; }
+  .contrast b { display: block; margin-bottom: 4px; }
+  .contrast .pass { color: #15803d; font-weight: 700; }
+  .contrast .muted { color: #888; }
+</style>
+</head>
+<body>
+<nav class="toc">
+  <strong>SUBSTRATE BOARD — palette</strong>
+  <span class="lock">LOCKED</span>
+  <span>Data-dense terminal</span>
+  <span class="note">values mirror tokens.css · WCAG AA verified · other explored worlds in git history</span>
+</nav>
+
+<section class="option">
+  <h2>Data-dense terminal</h2>
+  <p class="rationale">Deep navy-black canvas, a teal accent kept distinct from the green "ready" state, red for "blocked". Thin borders, an accent rail down each card, a faint glow on the primary action. The board as the richer, human-cognition twin of the terse work-view CLI. Dark is primary; an explicit <code>[data-theme="light"]</code> toggle switches to the light readout.</p>
+  <p class="typenote">type: IBM Plex Sans (chrome) + JetBrains Mono (ids / data) · see typography.html</p>
+  <div class="swatches">
+    <div class="swatch"><div class="color" style="background:#0B0E14"></div><div class="meta"><span class="name">bg-primary</span><span class="hex">#0B0E14</span></div></div>
+    <div class="swatch"><div class="color" style="background:#121826"></div><div class="meta"><span class="name">bg-secondary</span><span class="hex">#121826</span></div></div>
+    <div class="swatch"><div class="color" style="background:#C8D3E0"></div><div class="meta"><span class="name">text-primary</span><span class="hex">#C8D3E0</span></div></div>
+    <div class="swatch"><div class="color" style="background:#2DD4BF"></div><div class="meta"><span class="name">accent</span><span class="hex">#2DD4BF</span></div></div>
+    <div class="swatch"><div class="color" style="background:#A78BFA"></div><div class="meta"><span class="name">kind-epic</span><span class="hex">#A78BFA</span></div></div>
+    <div class="swatch"><div class="color" style="background:#38BDF8"></div><div class="meta"><span class="name">kind-feature</span><span class="hex">#38BDF8</span></div></div>
+    <div class="swatch"><div class="color" style="background:#34D399"></div><div class="meta"><span class="name">story / ready</span><span class="hex">#34D399</span></div></div>
+    <div class="swatch"><div class="color" style="background:#FB923C"></div><div class="meta"><span class="name">kind-release</span><span class="hex">#FB923C</span></div></div>
+    <div class="swatch"><div class="color" style="background:#F2495C"></div><div class="meta"><span class="name">blocked / danger</span><span class="hex">#F2495C</span></div></div>
+  </div>
+  <div class="demo">
+    <div class="pane dark" style="--bg:#0B0E14;--surface:#121826;--surface2:#0E1422;--text:#C8D3E0;--text2:#8A97A8;--text3:#5C6675;--tinv:#06201C;--link:#5EEAD4;--border:#1E2A3C;--border-strong:#2E3D52;--accent:#2DD4BF;--ready:#34D399;--blocked:#F2495C;--kfeature:#38BDF8;--kepic:#A78BFA;">
+      <span class="mode-tag">Dark — primary (:root)</span>
+      <div class="board-head"><span class="title">.work / active</span><span class="toggle">◑ theme</span></div>
+      <div class="icard"><div class="row1"><span class="chip epic">epic</span><span class="id">substrate-board</span><span class="badge ready">ready</span></div><div class="body">Interactive human surface over .work/ — kanban, dependency, table.</div><div class="meta">5 child features</div></div>
+      <div class="icard"><div class="row1"><span class="chip">feature</span><span class="id">board-shell</span><span class="badge blocked">blocked</span></div><div class="body">Shared app frame, item-card, markdown body, global filters, auto-hide.</div><div class="meta">depends_on: board-host</div></div>
+      <div class="controls"><button class="btn primary">Filter</button><button class="btn ghost">Reset</button><a class="demolink" href="#">open item ↗</a></div>
+      <div class="codeblock"><span class="k">stage</span>: implementing · <span class="k">tags</span>: [tooling]</div>
+    </div>
+    <div class="pane light" style="--bg:#F5F7FA;--surface:#FFFFFF;--surface2:#EAEEF3;--text:#0E1726;--text2:#475569;--text3:#7A8699;--tinv:#FFFFFF;--link:#0E7490;--border:#D5DCE5;--border-strong:#B4BFCC;--accent:#0F766E;--ready:#15803D;--blocked:#DC2626;--kfeature:#0284C7;--kepic:#7C3AED;">
+      <span class="mode-tag">Light ([data-theme="light"])</span>
+      <div class="board-head"><span class="title">.work / active</span><span class="toggle">◐ theme</span></div>
+      <div class="icard"><div class="row1"><span class="chip epic">epic</span><span class="id">substrate-board</span><span class="badge ready">ready</span></div><div class="body">Interactive human surface over .work/ — kanban, dependency, table.</div><div class="meta">5 child features</div></div>
+      <div class="icard"><div class="row1"><span class="chip">feature</span><span class="id">board-shell</span><span class="badge blocked">blocked</span></div><div class="body">Shared app frame, item-card, markdown body, global filters, auto-hide.</div><div class="meta">depends_on: board-host</div></div>
+      <div class="controls"><button class="btn primary">Filter</button><button class="btn ghost">Reset</button><a class="demolink" href="#">open item ↗</a></div>
+      <div class="codeblock"><span class="k">stage</span>: implementing · <span class="k">tags</span>: [tooling]</div>
+    </div>
+  </div>
+  <div class="contrast">
+    <b>WCAG AA — verified (4.5:1 body / 3.0:1 large)</b>
+    dark: text/bg <span class="pass">12.7 ✓</span> · muted/bg <span class="pass">6.5 ✓</span> · white-fill text-on-accent <span class="pass">9.2 ✓</span> · link/bg <span class="pass">13.1 ✓</span><br>
+    light: text/bg <span class="pass">16.7 ✓</span> · muted/bg <span class="pass">7.1 ✓</span> · text-on-accent <span class="pass">5.5 ✓</span> · link/bg <span class="pass">5.0 ✓</span><br>
+    <span class="muted">accent is a fill token (text-inverse on it); links use --color-text-link.</span>
+  </div>
+</section>
+</body>
+</html>

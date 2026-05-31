@@ -1,7 +1,7 @@
 ---
 id: epic-agents-rules-autoload
 kind: epic
-stage: implementing
+stage: done
 tags: [tooling, skill]
 parent: null
 depends_on: []
@@ -113,8 +113,10 @@ findings, folded into the decisions above and the decomposition below:
   generated digest with banner + hash (patterns-digest feature).
 - Convert needs a block-level preservation manifest for split files: classify each
   source block, route+hash-verify or preserve-in-place as ambiguous, before any
-  shim/removal (convert-safety feature). Note: the prose half of a legacy
-  `patterns.md` now routes to `.agents/rules/agile-workflow.md`, not only AGENTS.
+  shim/removal (convert-safety feature). Note: legacy non-pattern rule prose
+  routes to a user-owned `.agents/rules/<name>.md` (default `project.md`) — NEVER
+  `patterns.md` (reserved for the generated digest) or `agile-workflow.md`
+  (plugin-managed).
 
 ## Decomposition
 
@@ -241,7 +243,34 @@ Hybrid firing, mirroring legacy `.claude/rules/`:
 
 (Supersedes the earlier first-coding-prompt-only decision.)
 
-## Next
+## Completion (autopilot, 2026-05-31)
 
-`/agile-workflow:epic-design` decomposes this into the child features above with
-finalized `depends_on` chains, then `feature-design` per feature.
+All 6 child features + the filed follow-up story reached `stage: done`:
+- `…-hook` — generic `.agents/rules/*.md` loader (SessionStart/PostCompact emit +
+  coding-prompt UPS fallback, per-epoch+content-hash dedup, `rules_context` flag +
+  byte cap, unique-temp + flock state hardening). 28 stdlib tests pass.
+- `…-convert-extract` — slim dense-pointer AGENTS + Phase 6.5 `.agents/rules/agile-workflow.md`
+  (rules-first, content-verify before slim) + sync migration.
+- `…-convert-safety` — Phase 1.8 content-integrity gate (source-eliminating vs
+  regenerable-copy ops; recompute-hash provenance), block-level manifest,
+  convert-owned verbatim legacy-pattern importer, carve-outs.
+- `…-patterns-digest` — gate-patterns emits `.agents/rules/patterns.md` (banner +
+  `src-sha256`); patterns skill stays the detailed source.
+- `…-skill-grounding` — 9 design/implement/review-family skills ground on
+  `.agents/rules/*.md`.
+- `…-docs` — SPEC/ARCHITECTURE/MIGRATION/README/guide rolled forward.
+- `…-state-concurrency` — hook state-file unique-temp + advisory flock.
+
+**Cross-model review (Codex via peeragent):** epic-decomposition advisory; hook
+implementation review (5 findings, 4 fixed inline + 1 filed); convert-safety design
+advisory + implementation review (Block → 2 blockers + 2 important fixed inline);
+**Phase-8 final bundle review** (Block → fixed inline): legacy-prose route
+collision carve-out (`.agents/rules/<name>.md`, never `patterns.md`/`agile-workflow.md`),
+strengthened rules-first verify to content-check (Phase 6.5 + sync S3), SPEC
+hook-activation drift, README hook list. 28 tests green after all fixes.
+
+**Publication:** committed locally on `main`, unpushed (autopilot never pushes);
+ships in the next minor release per the user. The hook *implementation* shipped in
+0.8.6 (cut concurrently, user-approved); the review fixes and the rest land next.
+
+Outcome: **complete**.

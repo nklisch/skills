@@ -433,8 +433,10 @@ Hooks live in `plugins/agile-workflow/hooks/hooks.json`.
 }
 ```
 
-**Activation:** runs only if `${CLAUDE_PROJECT_DIR}/.work/CONVENTIONS.md`
-exists. Otherwise exits 0 with no output.
+**Activation:** resolves the substrate root by walking up from the hook payload's
+`cwd` (then `CLAUDE_PROJECT_DIR`, then the process working directory) until a
+`.work/CONVENTIONS.md` is found; runs only if one exists, otherwise exits 0 with
+no output.
 
 **Effect:** updates prompt-context state under the host-provided plugin data
 directory (`PLUGIN_DATA` / `CLAUDE_PLUGIN_DATA`), falling back to

@@ -577,13 +577,16 @@ must already exist at their new home or the dense content is lost.
    <!-- agile-workflow:rules:end -->
    ```
 
-2. **Verify before slimming** (this IS the content-integrity gate, Phase 1.8,
-   specialized to the managed-section overwrite): confirm
-   `.agents/rules/agile-workflow.md` exists, is non-empty, and contains
-   `<!-- agile-workflow:rules:end -->`. Only then write or refresh the slim AGENTS
-   section (Phase 6) — overwriting the managed AGENTS block. If the verify fails,
-   halt without touching the AGENTS section — the project keeps its current
-   section intact (no data loss).
+2. **Verify before slimming** (the content-integrity gate, Phase 1.8, applied to
+   this managed-section overwrite — content verification, NOT just a non-empty +
+   end-marker check): confirm `.agents/rules/agile-workflow.md` exists AND that the
+   dense rule content the slim removes from AGENTS actually landed there — each
+   section is present (`### Tag semantics`, `### Test integrity`, the
+   advisory-review paragraph, and Broad entry points), or recompute per the Phase
+   1.8 provenance check. Only when the content is verified present do you write or
+   refresh the slim AGENTS section (Phase 6), overwriting the managed AGENTS block.
+   If verification fails, halt without touching the AGENTS section — the project
+   keeps its current (full) section intact (no data loss).
 
 User-owned and legacy rule prose (e.g. non-pattern `.claude/rules/*` content)
 goes into a separate user-owned `.agents/rules/<name>.md` (e.g. `project.md`),
@@ -653,7 +656,9 @@ wholesale into AGENTS:
      **convert-owned verbatim legacy-pattern importer** below. State after this
      step: `landed_this_run`.
    - **Rule-prose blocks** (the common case for other rules files) → write to
-     `.agents/rules/<name>.md` (e.g. `project.md`) as user-owned rules the hook
+     `.agents/rules/<name>.md` (default `project.md`; NEVER `patterns.md`, which is
+     reserved for gate-patterns' generated digest, and NEVER `agile-workflow.md`,
+     which is plugin-managed) as user-owned rules the hook
      force-loads — under a short `## Imported Claude Rules` heading, OUTSIDE the
      plugin `agile-workflow:rules` markers. NOT the AGENTS canonical file.
    - **Ambiguous blocks** → `preserved_in_place`; leave them in the source.
@@ -1037,7 +1042,8 @@ For each artifact with a non-`match` state:
 - `.agents/rules/agile-workflow.md` + canonical instruction section
   (rules-first, then slim) — FIRST write/refresh `.agents/rules/agile-workflow.md`
   between its `<!-- agile-workflow:rules:start/end -->` markers (Phase 6.5) and
-  verify it exists, is non-empty, and contains the end marker. THEN overwrite the
+  verify per the Phase 6.5 content check (the dense rule sections actually landed,
+  not merely non-empty + end marker). THEN overwrite the
   AGENTS managed section with the slim Phase 6 template, in whichever file holds it
   per the derived `entrypoint_model` (`AGENTS.md` or, for `claude-source`,
   `CLAUDE.md`). If the file lacks markers, append the section; if it doesn't exist,

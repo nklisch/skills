@@ -130,6 +130,29 @@ once the shell lands.
   removes write-collisions, and the core's `LoadReport`/`Diagnostic` already
   degrades per-item gracefully — the host must surface diagnostics, not crash.
 
+## Mockups
+
+Design system locked via `/ux-ui-design:palette` (2026-05-31):
+
+- **Tokens**: `.mockups/design-system/tokens.css` — **Data-dense terminal**
+  palette (deep navy `#0B0E14`, teal accent `#2DD4BF` kept distinct from the
+  green "ready" state, red "blocked"), **IBM Plex Sans + JetBrains Mono** type.
+  Dark is primary; explicit `[data-theme="light"]` toggle for the light readout
+  (matches the epic's "both, explicit toggle" mode decision). Includes
+  categorical `--kind-*` and `--status-*` tokens for the board's kind/stage/
+  dependency encoding. WCAG AA verified in both modes.
+- **Palette preview**: `.mockups/design-system/palette.html`
+- **Typography preview**: `.mockups/design-system/typography.html`
+- Explored and set aside (recoverable from git history): neubrutalist
+  (highlighter / risograph / acid), Swiss/typographic, cassette futurism,
+  editorial, vaporwave, aurora glass.
+
+Remaining ux-ui pipeline, still gated before the UI features implement:
+`components` → `motion` → `screens` (one per `epic-substrate-board-kanban`,
+`-dependency`, `-table`) → `flows` (cross-view navigation). The `-host` feature
+has no UI surface. Each UI feature gets its own `## Mockups` link as `screens` /
+`flows` run.
+
 ## Foundation docs to roll forward
 
 When this epic ships:

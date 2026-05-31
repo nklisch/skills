@@ -231,7 +231,7 @@ the item body. See the guides for the full conventions.
 plugins/agile-workflow/            # agile-workflow plugin (substrate-driven)
 ├── skills/                        #   skill source
 ├── docs/                          #   foundation docs (VISION, SPEC, ARCHITECTURE, PRINCIPLES, MIGRATION)
-├── hooks/                         #   SessionStart + PostToolUse hook scripts
+├── hooks/                         #   SessionStart/UserPromptSubmit/PostCompact + PostToolUse hook scripts
 ├── scripts/work-view.sh           #   substrate query CLI (copied by /convert into target repos)
 └── .claude-plugin/plugin.json
 plugins/ux-ui-design/              # ux-ui-design plugin (7 skills, mockup-first)
