@@ -41,9 +41,10 @@ dependency and table views and can be built in parallel with them.
 ## Foundation references
 - `plugins/agile-workflow/work-view/crates/core/src/model.rs` — `Item.stage`
   (the column key) and the stage vocabulary.
-- `plugins/agile-workflow/scripts/work-board.template.html` — the legacy static
-  kanban this replaces, for reference on column layout (the interactive version
-  supersedes it; do not extend the template).
+- `plugins/agile-workflow/work-view/crates/cli/src/board/assets/` — the current
+  embedded board asset location. The host stub is intentionally minimal; use the
+  selected mockups below and git history for any old static-board layout
+  reference.
 
 ## Mockups
 

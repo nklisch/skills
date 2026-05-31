@@ -446,8 +446,34 @@ All five child stories reached `done`:
 Verification:
 - `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`
 - `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`
-- Release binary size: 551,592 bytes.
+- Release binary size: 568,400 bytes.
 - `bash -n plugins/agile-workflow/scripts/work-board.sh`
+
+## Peer Review
+
+Claude Opus xhigh reviewed the host feature after implementation. Accepted and
+fixed findings:
+
+- Added loopback `Host` validation for all board HTTP requests to close the
+  DNS-rebinding privacy gap against `/api/substrate`.
+- Added tests for non-loopback Host rejection, missing Host rejection, HEAD
+  responses without bodies, and unsupported methods returning `405` with
+  `Allow: GET, HEAD`.
+- Added top-level `work-view --help` discovery for the `board` / `serve`
+  subcommands.
+- Updated the blocked kanban feature's foundation references so it no longer
+  points at the deleted `work-board.template.html`.
+- Cleaned up two low-risk nits: `handle_connection` now takes `&Path`, and the
+  browser opener child process is waited in a background thread.
+
+Rejected or deferred peer points:
+
+- IPv6 bind support remains out of scope for this feature because the served
+  URL is intentionally `127.0.0.1` and the design only committed to localhost
+  IPv4 binding.
+- The single-threaded server and whole-substrate reserialization remain accepted
+  tradeoffs for a first local-only board host; performance work can be scoped
+  after real project-size usage exposes a bottleneck.
 
 ## Risks
 

@@ -181,14 +181,19 @@ fn parse_bound_port(line: &str) -> u16 {
 }
 
 fn http_get(port: u16, path: &str) -> String {
+    http_request(
+        port,
+        &format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"),
+    )
+}
+
+fn http_request(port: u16, request: &str) -> String {
     let addr = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
     let deadline = Instant::now() + Duration::from_secs(3);
 
     loop {
         match TcpStream::connect(addr) {
             Ok(mut stream) => {
-                let request =
-                    format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n");
                 stream
                     .write_all(request.as_bytes())
                     .expect("failed to write HTTP request");
@@ -282,6 +287,21 @@ fn exit_0_on_help() {
     assert!(
         stdout.contains("work-view"),
         "help should contain 'work-view'"
+    );
+}
+
+#[test]
+fn top_level_help_mentions_board_subcommand() {
+    let (stdout, stderr, code) = run(&["--help"]);
+    assert_eq!(code, 0);
+    assert_eq!(stderr, "");
+    assert!(
+        stdout.contains("work-view board [OPTIONS]"),
+        "top-level help should mention board subcommand; stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("Serve the live substrate board"),
+        "top-level help should describe board subcommand; stdout: {stdout}"
     );
 }
 
@@ -386,6 +406,79 @@ fn board_unknown_route_returns_404() {
     assert!(
         response.starts_with("HTTP/1.1 404 Not Found"),
         "unknown route should return 404; response: {response}"
+    );
+    wait_for_success(&mut child);
+}
+
+#[test]
+fn board_head_request_returns_headers_without_body() {
+    let (mut child, rx) = spawn_board_once(unused_local_port());
+    let port = parse_bound_port(&read_bound_line(rx));
+
+    let response = http_request(
+        port,
+        "HEAD /healthz HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    );
+    assert!(
+        response.starts_with("HTTP/1.1 200 OK"),
+        "HEAD healthz should return 200; response: {response}"
+    );
+    assert!(
+        response.contains("Content-Length: 3"),
+        "HEAD healthz should retain the GET content length; response: {response}"
+    );
+    assert!(
+        response.ends_with("\r\n\r\n"),
+        "HEAD response should not include a body; response: {response:?}"
+    );
+    wait_for_success(&mut child);
+}
+
+#[test]
+fn board_rejects_non_loopback_host_header() {
+    let (mut child, rx) = spawn_board_once(unused_local_port());
+    let port = parse_bound_port(&read_bound_line(rx));
+
+    let response = http_request(
+        port,
+        "GET /api/substrate HTTP/1.1\r\nHost: attacker.example\r\nConnection: close\r\n\r\n",
+    );
+    assert!(
+        response.starts_with("HTTP/1.1 403 Forbidden"),
+        "non-loopback Host should be rejected; response: {response}"
+    );
+    wait_for_success(&mut child);
+}
+
+#[test]
+fn board_rejects_missing_host_header() {
+    let (mut child, rx) = spawn_board_once(unused_local_port());
+    let port = parse_bound_port(&read_bound_line(rx));
+
+    let response = http_request(port, "GET /healthz HTTP/1.1\r\nConnection: close\r\n\r\n");
+    assert!(
+        response.starts_with("HTTP/1.1 403 Forbidden"),
+        "missing Host should be rejected; response: {response}"
+    );
+    wait_for_success(&mut child);
+}
+
+#[test]
+fn board_rejects_unsupported_method_with_allow_header() {
+    let (mut child, rx) = spawn_board_once(unused_local_port());
+    let port = parse_bound_port(&read_bound_line(rx));
+
+    let response = http_request(
+        port,
+        "POST /api/substrate HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    );
+    assert!(
+        response.starts_with("HTTP/1.1 405 Method Not Allowed"),
+        "unsupported method should return 405; response: {response}"
+    );
+    assert!(
+        response.contains("Allow: GET, HEAD"),
+        "405 should include Allow header; response: {response}"
     );
     wait_for_success(&mut child);
 }

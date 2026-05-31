@@ -4,6 +4,7 @@ use std::env;
 use std::fs;
 use std::io;
 use std::process::Command;
+use std::thread;
 
 use super::BoardOptions;
 
@@ -26,7 +27,10 @@ pub(crate) fn open_after_bind(url: &str, opts: &BoardOptions) -> BrowserOpenStat
 
     for opener in ["xdg-open", "open", "wslview"] {
         match Command::new(opener).arg(url).spawn() {
-            Ok(_) => {
+            Ok(mut child) => {
+                thread::spawn(move || {
+                    let _ = child.wait();
+                });
                 println!("work-view board: opened browser with {opener}");
                 return BrowserOpenStatus::Spawned(opener);
             }

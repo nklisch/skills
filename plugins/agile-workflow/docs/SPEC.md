@@ -370,7 +370,9 @@ the compiled `work-view board` subcommand. It serves a live localhost view of
 the `.work/` substrate, backed by the Rust query core and embedded assets. The
 server binds `127.0.0.1`, scans upward from the requested port when that port is
 busy, and never exposes the user's absolute paths or raw item frontmatter in the
-browser API.
+browser API. Requests must carry a loopback `Host` authority (`127.0.0.1`,
+`localhost`, or `[::1]`) so a page on a non-local origin cannot use DNS
+rebinding to read the board feed.
 
 `plugins/agile-workflow/scripts/work-board.sh` remains only as a compatibility
 shim for older invocations. It does not render HTML. It checks for a

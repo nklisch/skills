@@ -100,6 +100,11 @@ pub const HELP: &str = "\
 work-view — query items in the agile-workflow substrate
 
 Usage: work-view [FILTERS...] [OUTPUT]
+       work-view board [OPTIONS]
+       work-view serve [OPTIONS]
+
+Subcommands:
+  board, serve         Serve the live substrate board (see `work-view board --help`)
 
 Filters (compose with AND semantics):
   --stage <stage>      Items at the given stage

@@ -14,6 +14,8 @@ const READ_TIMEOUT: Duration = Duration::from_secs(2);
 const HEALTHZ: &[u8] = b"ok\n";
 const NOT_FOUND: &[u8] = b"not found\n";
 const BAD_REQUEST: &[u8] = b"bad request\n";
+const FORBIDDEN: &[u8] = b"forbidden\n";
+const METHOD_NOT_ALLOWED: &[u8] = b"method not allowed\n";
 const INTERNAL_ERROR: &[u8] = b"internal server error\n";
 
 pub(crate) struct BoundBoard {
@@ -100,11 +102,17 @@ fn bind_localhost(start: u16) -> Result<TcpListener, BoardServerError> {
     })
 }
 
-fn handle_connection(mut stream: TcpStream, root: &PathBuf) -> io::Result<()> {
+fn handle_connection(mut stream: TcpStream, root: &Path) -> io::Result<()> {
     let request = match read_request(&mut stream) {
         Ok(request) => request,
         Err(ReadRequestError::BadRequest) => {
             return write_response(&mut stream, Method::Get, bad_request_response());
+        }
+        Err(ReadRequestError::Forbidden) => {
+            return write_response(&mut stream, Method::Get, forbidden_response());
+        }
+        Err(ReadRequestError::MethodNotAllowed) => {
+            return write_response(&mut stream, Method::Get, method_not_allowed_response());
         }
         Err(ReadRequestError::Io) => {
             return write_response(&mut stream, Method::Get, internal_error_response());
@@ -128,6 +136,8 @@ struct Request {
 
 enum ReadRequestError {
     BadRequest,
+    Forbidden,
+    MethodNotAllowed,
     Io,
 }
 
@@ -166,7 +176,7 @@ fn read_request(stream: &mut TcpStream) -> Result<Request, ReadRequestError> {
     let method = match parts.next() {
         Some("GET") => Method::Get,
         Some("HEAD") => Method::Head,
-        Some(_) => return Err(ReadRequestError::BadRequest),
+        Some(_) => return Err(ReadRequestError::MethodNotAllowed),
         None => return Err(ReadRequestError::BadRequest),
     };
     let target = parts.next().ok_or(ReadRequestError::BadRequest)?;
@@ -183,10 +193,64 @@ fn read_request(stream: &mut TcpStream) -> Result<Request, ReadRequestError> {
         return Err(ReadRequestError::BadRequest);
     }
 
+    validate_host_header(text)?;
+
     Ok(Request {
         method,
         path: path.to_string(),
     })
+}
+
+fn validate_host_header(header_text: &str) -> Result<(), ReadRequestError> {
+    let mut host = None;
+
+    for line in header_text.lines().skip(1) {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let Some((name, value)) = line.split_once(':') else {
+            return Err(ReadRequestError::BadRequest);
+        };
+        if name.eq_ignore_ascii_case("host") {
+            if host.replace(value.trim()).is_some() {
+                return Err(ReadRequestError::Forbidden);
+            }
+        }
+    }
+
+    match host {
+        Some(value) if host_is_loopback(value) => Ok(()),
+        _ => Err(ReadRequestError::Forbidden),
+    }
+}
+
+fn host_is_loopback(raw: &str) -> bool {
+    let authority = raw.trim().trim_end_matches('.').to_ascii_lowercase();
+    if matches!(authority.as_str(), "localhost" | "127.0.0.1" | "::1") {
+        return true;
+    }
+
+    if let Some(bracketed) = authority.strip_prefix('[') {
+        let Some((host, rest)) = bracketed.split_once(']') else {
+            return false;
+        };
+        return host == "::1" && valid_optional_port(rest);
+    }
+
+    let Some((host, port)) = authority.rsplit_once(':') else {
+        return false;
+    };
+    !host.contains(':')
+        && !port.is_empty()
+        && port.chars().all(|c| c.is_ascii_digit())
+        && matches!(host, "localhost" | "127.0.0.1")
+}
+
+fn valid_optional_port(rest: &str) -> bool {
+    rest.is_empty()
+        || rest
+            .strip_prefix(':')
+            .is_some_and(|port| !port.is_empty() && port.chars().all(|c| c.is_ascii_digit()))
 }
 
 fn header_len(bytes: &[u8]) -> Option<usize> {
@@ -254,6 +318,26 @@ fn bad_request_response() -> Response {
     }
 }
 
+fn forbidden_response() -> Response {
+    Response {
+        status: 403,
+        reason: "Forbidden",
+        content_type: "text/plain; charset=utf-8",
+        body: FORBIDDEN.to_vec(),
+        allow: None,
+    }
+}
+
+fn method_not_allowed_response() -> Response {
+    Response {
+        status: 405,
+        reason: "Method Not Allowed",
+        content_type: "text/plain; charset=utf-8",
+        body: METHOD_NOT_ALLOWED.to_vec(),
+        allow: Some("GET, HEAD"),
+    }
+}
+
 fn internal_error_response() -> Response {
     Response {
         status: 500,
@@ -261,6 +345,42 @@ fn internal_error_response() -> Response {
         content_type: "text/plain; charset=utf-8",
         body: INTERNAL_ERROR.to_vec(),
         allow: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn loopback_hosts_are_allowed() {
+        for host in [
+            "127.0.0.1",
+            "127.0.0.1:8181",
+            "localhost",
+            "LOCALHOST:8181",
+            "[::1]",
+            "[::1]:8181",
+            "::1",
+        ] {
+            assert!(host_is_loopback(host), "expected loopback host: {host}");
+        }
+    }
+
+    #[test]
+    fn non_loopback_hosts_are_rejected() {
+        for host in [
+            "",
+            "example.com",
+            "example.com:8181",
+            "127.0.0.2",
+            "0.0.0.0",
+            "[2001:db8::1]:8181",
+            "localhost:abc",
+            "[::1]:abc",
+        ] {
+            assert!(!host_is_loopback(host), "expected rejected host: {host}");
+        }
     }
 }
 
