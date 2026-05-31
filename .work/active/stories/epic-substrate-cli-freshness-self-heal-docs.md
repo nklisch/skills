@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-self-heal-docs
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli-freshness-self-heal
 depends_on: [epic-substrate-cli-freshness-self-heal-installer, epic-substrate-cli-freshness-self-heal-convert]
@@ -49,15 +49,15 @@ the audit trail).
 
 ## Acceptance criteria
 
-- [ ] ARCHITECTURE.md `bin/` description names the portable source-stamped bash
+- [x] ARCHITECTURE.md `bin/` description names the portable source-stamped bash
       entrypoint kept fresh by the hook with convert backstop.
-- [ ] SPEC.md "## work-view binary" no longer says convert installs a
+- [x] SPEC.md "## work-view binary" no longer says convert installs a
       platform-matched prebuilt into the project entrypoint; it distinguishes the
       bash entrypoint from the plugin-side prebuilt.
-- [ ] SPEC.md "## work-view binary" states the POST-bump dist ordering,
+- [x] SPEC.md "## work-view binary" states the POST-bump dist ordering,
       consistent with the lockstep subsection — the "before each bump-version.sh"
       contradiction is removed.
-- [ ] No remaining doc asserts the prebuilt is the project-side tracked
+- [x] No remaining doc asserts the prebuilt is the project-side tracked
       entrypoint or the pre-bump dist ordering.
 
 ## Tests
@@ -65,3 +65,17 @@ the audit trail).
 Prose — no automated test. Verify via the acceptance criteria plus `grep -n`:
 the "before each `bump-version.sh`" phrasing no longer appears, and the
 ARCHITECTURE `bin/` line names the bash entrypoint. A review-time grep suffices.
+
+## Implementation notes
+
+- Files changed: `plugins/agile-workflow/docs/ARCHITECTURE.md`,
+  `plugins/agile-workflow/docs/SPEC.md`.
+- Tests added: none; docs-only story.
+- Verification: `rg` confirmed no stale docs assertion remains that a
+  platform-matched prebuilt is installed as the project-side tracked entrypoint,
+  and SPEC now states the post-bump dist refresh ordering.
+- Rationale: updated ARCHITECTURE in both the `.work/bin/` layout and convert
+  skill catalog because the latter also asserted the obsolete project-side
+  prebuilt install behavior.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

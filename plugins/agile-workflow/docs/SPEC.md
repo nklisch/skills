@@ -298,13 +298,17 @@ be checked against the plugin with a single string compare:
 ## work-view binary
 
 `convert` installs `work-view` into `.work/bin/work-view` via
-`plugins/agile-workflow/scripts/install-work-view.sh`. The helper selects the
-platform-matched prebuilt static binary from
-`plugins/agile-workflow/work-view/dist/<target-triple>/work-view` when one is
-present and passes a smoke-test (`--help` exits 0). If no prebuilt matches
-(unsupported platform, or `dist/` not yet populated by CI), it falls back to the
-pure-bash implementation at `plugins/agile-workflow/scripts/work-view.sh`.
+`plugins/agile-workflow/scripts/install-work-view.sh`. The project-side tracked
+entrypoint is the portable, source-stamped bash implementation from
+`plugins/agile-workflow/scripts/work-view.sh`; it is kept fresh by the session
+hook self-heal step, with convert using the same installer as a backstop. The
+entrypoint is git-tracked, not gitignored, and its `--version` stamp is compared
+to the plugin version when hook or convert freshness checks run.
 
+Prebuilt Rust binaries remain plugin-side artifacts under
+`plugins/agile-workflow/work-view/dist/<target-triple>/work-view`. They are not
+installed into `.work/bin/work-view`; the board and the optional shim can defer
+to them from the plugin tree when a matching, version-current binary is present.
 Supported prebuilt target triples:
 
 | Triple | Platform |
@@ -315,12 +319,13 @@ Supported prebuilt target triples:
 | `aarch64-apple-darwin` | macOS Apple Silicon (M1/M2/M3) |
 
 Prebuilt binaries are produced by `.github/workflows/build-work-view.yml` and
-committed to `dist/` via the manual refresh job before each `bump-version.sh`
-call. Users need no Rust toolchain — only CI does.
+committed to `dist/` via the manual refresh job after `bump-version.sh` commits
+and pushes the version bump, so CI builds from the bumped source stamp. Users
+need no Rust toolchain — only CI does.
 
-The bash fallback (`work-view.sh`) is pure bash, optional enhancement via `yq`
-if installed, falls back to `grep`+`sed` otherwise. It is the default until CI
-populates `dist/`.
+The bash entrypoint (`work-view.sh`) is pure bash, optional enhancement via `yq`
+if installed, falls back to `grep`+`sed` otherwise. It remains the portable
+project-side entrypoint even when `dist/` is populated.
 
 ### Flag set
 
