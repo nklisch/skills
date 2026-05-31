@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-kanban-stage-grid
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-kanban
 depends_on: []
@@ -46,3 +46,15 @@ that groups `ctx.visibleItems()` into workflow-stage columns.
 - Embedded `/assets/kanban.js` in the Rust board asset router.
 - Added focused integration/static assertions for the kanban asset and raw HTML
   sink guard.
+
+## Review Notes
+
+- Local review approved the story. The view uses DOM text APIs, the shared
+  `ctx.renderCard`/detail path, and an explicit `kanbanView` import rather than
+  a circular registration side effect.
+- Stage ordering is derived from `deriveFilterOptions(snapshot).stages`; the
+  `(none)` column is then placed last to preserve the feature's null-stage
+  presentation rule.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`.
+- Opus review was attempted for this checkpoint, but the peeragent process
+  stalled without output or worktree changes and was terminated.
