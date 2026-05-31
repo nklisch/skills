@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness
 kind: epic
-stage: drafting
+stage: implementing
 tags: [tooling]
 parent: null
 depends_on: []
@@ -89,41 +89,60 @@ that; it owns the **project-side install/refresh lifecycle** only.
   - Note the synergy: the launcher *is* the natural answer to "tracked +
     overwrite-in-place" — portable text, stable, agent-visible, clean overwrites.
 
-## Anticipated decomposition (for epic-design to realize)
+## Decomposition
 
-Sketch only — `epic-design` owns the final feature boundaries and `depends_on`.
+Split by capability, not by layer: versioning is the shared contract, the
+discovery spike is an independent research gate, self-heal is the reliable
+always-works refresh floor, and the shim is the elegant end-state gated on the
+spike. The shim depends on self-heal (not merely parallel to it) because both
+modify the shared `install-work-view.sh` + tracked entrypoint, and self-heal
+establishes the install/version path the shim then refines — sequencing avoids
+churn. F2 (discovery) is the only parallel branch, joining at the shim.
 
-- **F1 — work-view self-versioning** `[tooling]` *(foundational)*
-  `--version` in the Rust CLI (build-time stamp from the plugin version) and in
-  `scripts/work-view.sh` (literal kept in lockstep). Extend `bump-version.sh` to
-  update the work-view version alongside `plugin.json`. Rebuild the 4
-  `work-view/dist/<triple>/` binaries. Rolls SPEC.md "Version strategy" forward.
-  *No deps.*
+### Child features
 
-- **F2 — plugin-discovery research spike** `[tooling]` *(gates F4)*
-  Verify how an arbitrary shell can locate the installed agile-workflow plugin
-  root for **both** Claude Code and Codex marketplaces (env vars present/absent
-  per invocation context, install-dir layouts). Output a reference doc /
-  auto-loading skill. If discovery proves unreliable, this spike is what
-  explicitly rules the shim out. *No deps.*
+- `epic-substrate-cli-freshness-versioning` — `--version` on both
+  implementations (plugin-version stamp) + `bump-version.sh` lockstep + rebuilt
+  dist binaries — depends on: `[]`
+- `epic-substrate-cli-freshness-discovery` — research spike verifying plugin-root
+  discovery for Claude Code + Codex; gates the shim — depends on: `[]`
+- `epic-substrate-cli-freshness-self-heal` — hook (`prompt-context.py`) +
+  `convert` reinstall-if-stale / install-if-missing using the version check;
+  one-time migration (tracked, not gitignored) — depends on:
+  `[epic-substrate-cli-freshness-versioning]`
+- `epic-substrate-cli-freshness-shim` — tracked portable launcher that defers to
+  the plugin's current binary, bash fallback; conditional on the discovery
+  spike — depends on: `[epic-substrate-cli-freshness-versioning,
+  epic-substrate-cli-freshness-discovery, epic-substrate-cli-freshness-self-heal]`
 
-- **F3 — hook + convert freshness self-heal** `[tooling]`
-  `prompt-context.py`: reinstall-if-stale on SessionStart, install-if-missing on
-  UserPromptSubmit, using `${PLUGIN_ROOT}` + the F1 `--version` check; keep cost
-  trivial and guarded. `convert`: same `--version` check replaces/augments the
-  existence-only doctor marker, plus the one-time migration (ensure tracked, not
-  gitignored; replace any pre-versioning copy). `install-work-view.sh`
-  adjustments as needed. Rolls ARCHITECTURE.md `bin/` description forward.
-  *depends_on: F1.*
+## Design decisions
 
-- **F4 — shim launcher entrypoint** `[tooling]`
-  Replace the frozen-copy entrypoint with a tracked, portable launcher that
-  defers to the plugin's current binary (via F2's verified discovery) and falls
-  back to a tracked portable bash implementation. Satisfies the
-  tracked-and-overwrite-in-place constraint by construction. *depends_on: F1, F2.*
+No *new* epic-level directional ambiguities surfaced in this pass — every
+framing choice was pinned during scope (see `## Strategic decisions` above:
+detection placement, tracked-not-gitignored, plugin-version stamp, shim-in-scope-
+gated). Two remaining choices are feature-design-level and are deliberately
+deferred to the child design passes, where the discovery spike's results inform
+them:
+- **How the Rust binary learns the plugin version at build time** — logged in
+  the versioning feature (lean: build-time env stamp).
+- **Launcher prefers a local prebuilt sidecar vs. plugin-binary-first with a
+  bash-only fallback** — logged in the shim feature; resolve from the discovery
+  spike's findings.
 
-Dependency shape: F1 foundational → F3 (F1) and F4 (F1 + F2); F2 independent and
-gates F4.
+## Decomposition risks
+
+- **The shim is conditional.** It proceeds only if the discovery spike confirms
+  reliable plugin-root discovery. If not, the shim is explicitly ruled out and
+  the epic completes on the self-heal floor alone — that ruled-out decision is a
+  valid completion, not a failure.
+- **Shared-surface coupling.** Self-heal and the shim both touch
+  `install-work-view.sh` and the tracked `.work/bin/work-view` entrypoint. The
+  shim's `depends_on: [...self-heal]` sequences them to avoid rework on those
+  shared paths.
+- **Mostly-linear critical path** (versioning → self-heal → shim, with discovery
+  parallel) is honest given the real coupling on the install path and entrypoint
+  — not artificial slicing. With only four features, autopilot still parallelizes
+  versioning ∥ discovery up front.
 
 ## Foundation-doc roll-forward
 
