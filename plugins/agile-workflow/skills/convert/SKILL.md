@@ -91,7 +91,7 @@ Compute substrate health by checking these markers:
 | `conventions` | `.work/CONVENTIONS.md` exists |
 | `managed_section` | Some root instruction file (`AGENTS.md` or `CLAUDE.md`) contains `<!-- agile-workflow:start -->`. Whichever holds it is the detected canonical instruction file for this repo — direction-agnostic, since `entrypoint_model` isn't decided until Phase 1.8 |
 | `entrypoint_compat` | The *other* root entrypoint (the one without the managed section) is a symlink/shim to the canonical instruction file, OR itself contains the section for legacy installs |
-| `work_view` | `.work/bin/work-view` exists and is executable |
+| `work_view` | `.work/bin/work-view` exists, is executable, and reports the current plugin version via `--version` |
 
 Route on the result:
 
