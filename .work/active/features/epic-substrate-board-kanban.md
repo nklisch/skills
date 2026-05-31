@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-kanban
 kind: feature
-stage: implementing
+stage: done
 tags: [tooling]
 parent: epic-substrate-board
 depends_on: [epic-substrate-board-shell]
@@ -84,9 +84,6 @@ feature's own scope is the kanban arrangement (swimlane grid + columns) on top.
 - **Read-only this epic** — no drag-to-restage; columns are a view, not an editor.
 - **Vanilla HTML/CSS/JS, no build** — over the shell's card + filter state.
 
-<!-- feature-design fills in: column source/ordering, count + empty-state
-rendering, and how the view subscribes to the shell's filter-state store. -->
-
 ## Feature Design
 
 The kanban view replaces the shell's `kanban` placeholder with a registered
@@ -98,9 +95,9 @@ activation through `ctx.renderCard(item, { context: ctx })`.
 ### View Contract
 
 - New asset: `plugins/agile-workflow/work-view/crates/cli/src/board/assets/kanban.js`
-- Registration: `views.js` imports `registerKanbanView(ctx?)` or imports the
-  module for side-effect registration, while keeping `registerView(view)` as the
-  extension point.
+- Registration: `views.js` imports the exported `kanbanView` object and calls
+  `registerView(kanbanView)`, keeping `registerView(view)` as the extension
+  point without adding a side-effect registration cycle.
 - Mount input: `ctx.visibleItems()` is the only item source. The shell remounts
   the view when snapshot/view/filter state changes.
 - Detail input: cards open via `ctx.openDetail(id)` through the shared card
@@ -167,3 +164,18 @@ Story: `epic-substrate-board-kanban-polish`
 1. `epic-substrate-board-kanban-stage-grid`
 2. `epic-substrate-board-kanban-swimlanes`
 3. `epic-substrate-board-kanban-polish`
+
+## Implementation Summary
+
+- Delivered `/assets/kanban.js` as the real kanban view, replacing the shell
+  placeholder while leaving dependency/table placeholders intact.
+- Implemented stage columns, parent/epic swimlanes, lane focus with focus
+  restoration, lane progress, stable empty states, and responsive/mobile CSS.
+- Static checks cover the embedded kanban asset, kanban CSS primitives, no
+  remote CSS, and raw HTML sink guards.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`;
+  `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`;
+  release binary `670864` bytes.
+- Opus contributed to the view design checkpoint. Later scoped Opus peeragent
+  calls for this kanban review stalled without output, so review completion used
+  local review and the passing verification above.
