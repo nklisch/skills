@@ -65,19 +65,23 @@ CODING_PROMPT_RE = re.compile(
     r"test|tests|testing|failing|fails|build|builds|compile|compiles|"
     r"error|errors|lint|type[- ]?check|typecheck|stack ?trace|"
     r"add|change|update|rename|extract|inline|migrate|write|edit|wire|"
+    r"remove|delete|create|move|rework|clean ?up|"
     r"continue|keep going|proceed|next step|finish|"
     r"function|class|method|module|import|api|endpoint|schema"
     r")\b",
     re.IGNORECASE,
 )
-# A file/path reference is also a strong coding signal. Match filenames with a
-# code-ish extension, or a multi-segment path (2+ slashes) to avoid prose like
-# "and/or".
+# A file/path reference is also a strong coding signal. Matched per whitespace
+# token (anchored, via re.match) to stay linear — a single scan over the whole
+# prompt with a leading `[\w./+-]*` is quadratic on long no-dot pastes. Match a
+# filename with a code-ish extension, or a multi-segment path (2+ slashes, which
+# avoids prose like "and/or").
 FILE_REF_RE = re.compile(
-    r"[\w./+-]*\.(?:py|rs|ts|tsx|js|jsx|go|rb|java|kt|swift|c|cc|cpp|h|hpp|cs|"
+    r"^[\w.+-]+\.(?:py|rs|ts|tsx|js|jsx|go|rb|java|kt|swift|c|cc|cpp|h|hpp|cs|"
     r"php|sh|bash|md|json|ya?ml|toml|sql|html|css|scss|cfg|ini)\b"
-    r"|(?:[\w.+-]+/){2,}[\w.+-]+"
+    r"|^(?:[\w.+-]+/){2,}[\w.+-]+"
 )
+_TOKEN_PUNCT = "\"'`.,;:!?()[]{}<>"
 
 CAPSULES = {
     "code_design": {
@@ -444,11 +448,14 @@ def is_coding_prompt(prompt: str) -> bool:
     """
     if not prompt.strip():
         return False
-    if SLASH_RE.search(prompt) or SKILL_MENTION_RE.search(prompt):
+    # Cap the scan so a pathological paste can't stall the hook.
+    head = prompt[:4000]
+    if SLASH_RE.search(head) or SKILL_MENTION_RE.search(head):
         return True
-    if CODING_PROMPT_RE.search(prompt):
+    if CODING_PROMPT_RE.search(head):
         return True
-    return bool(FILE_REF_RE.search(prompt))
+    # File/path reference: match per whitespace token (anchored) to stay linear.
+    return any(FILE_REF_RE.match(tok.strip(_TOKEN_PUNCT)) for tok in head.split())
 
 
 def rules_config(root: Path) -> tuple[bool, int]:
@@ -462,17 +469,23 @@ def rules_config(root: Path) -> tuple[bool, int]:
     max_bytes = DEFAULT_RULES_MAX_BYTES
     try:
         text = (root / ".work" / "CONVENTIONS.md").read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return enabled, max_bytes
     for raw in text.splitlines():
         line = raw.strip().lstrip("-").strip()
-        flag = re.match(r"rules_context\s*:\s*(\S+)", line, re.IGNORECASE)
+        # Anchor the value so prose like "rules_context: off disables injection"
+        # in a CONVENTIONS example does not silently flip the flag.
+        flag = re.match(
+            r"rules_context\s*:\s*(on|off|true|false|yes|no|0|1)\s*$", line, re.IGNORECASE
+        )
         if flag:
-            enabled = flag.group(1).strip().lower() not in {"off", "false", "no", "0"}
+            enabled = flag.group(1).lower() not in {"off", "false", "no", "0"}
             continue
-        cap = re.match(r"rules_context_max_bytes\s*:\s*(\d+)", line, re.IGNORECASE)
+        cap = re.match(r"rules_context_max_bytes\s*:\s*(\d+)\s*$", line, re.IGNORECASE)
         if cap:
-            max_bytes = max(0, int(cap.group(1)))
+            value = int(cap.group(1))
+            if value > 0:  # 0/invalid keeps the default; use `rules_context: off` to disable
+                max_bytes = value
     return enabled, max_bytes
 
 

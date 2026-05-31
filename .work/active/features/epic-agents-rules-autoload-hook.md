@@ -1,7 +1,7 @@
 ---
 id: epic-agents-rules-autoload-hook
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-agents-rules-autoload
 depends_on: []
@@ -281,3 +281,27 @@ green — the `main()` rewire preserves snapshot/capsule behavior).
 
 Note: this repo has no `.agents/rules/` yet (produced by the convert-extract and
 patterns-digest features), so the hook is a correct no-op here until those land.
+
+## Review (2026-05-31, deep lane, cross-model via Codex/peeragent)
+
+Verdict: **Approve with comments**. Codex (effort high) reviewed commit `b44d0d2`.
+No blockers. Five findings — 4 fixed inline, 1 filed:
+- **FILE_REF_RE quadratic backtracking** on long pastes (could approach the hook
+  timeout) → fixed: anchored per-token match + 4000-char scan cap.
+- **`rules_context_max_bytes: 0`** disabled truncation instead of capping → fixed:
+  non-positive caps are ignored (keep the default); `rules_context: off` is the
+  documented disable.
+- **`rules_config` matched prose** (`- rules_context: off disables…`) and did not
+  catch invalid UTF-8 → fixed: value regex anchored to a closed enum + end, and
+  `UnicodeDecodeError` is now caught alongside `OSError`.
+- **detector missed `remove`/`delete`/`create`/`move`** → fixed: verbs added.
+- **FILED (Important):** shared hook state-file concurrency/atomicity
+  (`bump_epoch`+`rules_unseen` non-atomic; shared `.json.tmp` path) → story
+  `epic-agents-rules-autoload-state-concurrency` (pre-existing shared machinery,
+  scoped separately).
+
+Re-verified: **20 tests pass** (6 added for the fixes + the coverage gaps Codex
+flagged — regex long-input, `max_bytes:0`, config prose, invalid UTF-8,
+fallback-suppressed-after-SessionStart, PostCompact main wiring). The `main()`
+rewire preserves the snapshot/capsule behavior (`ReviewDedupTest` green).
+Advanced `review → done`.

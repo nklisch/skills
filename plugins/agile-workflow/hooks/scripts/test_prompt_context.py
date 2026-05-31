@@ -298,6 +298,68 @@ class RulesLoaderTest(unittest.TestCase):
         self.assertIn("additionalContext", printed)
         self.assertIn("Rule A body", printed)
 
+    def test_detector_verbs_and_long_input(self) -> None:
+        self.assertTrue(prompt_context.is_coding_prompt("remove unused code"))
+        self.assertTrue(prompt_context.is_coding_prompt("delete the old module"))
+        self.assertTrue(prompt_context.is_coding_prompt("create a new endpoint"))
+        # A pathological long no-dot token must not hang (linear per-token match).
+        self.assertIsInstance(prompt_context.is_coding_prompt("a" * 50000), bool)
+
+    def test_config_prose_does_not_disable(self) -> None:
+        self._write_conventions(
+            "# Conventions\n- rules_context: off disables injection\n"
+        )
+        enabled, _ = prompt_context.rules_config(self.root)
+        self.assertTrue(enabled, "prose example must not flip the flag")
+
+    def test_config_invalid_utf8_defaults(self) -> None:
+        (self.root / ".work" / "CONVENTIONS.md").write_bytes(
+            b"\xff\xfe rules_context: off\n"
+        )
+        enabled, max_bytes = prompt_context.rules_config(self.root)
+        self.assertTrue(enabled)
+        self.assertEqual(max_bytes, prompt_context.DEFAULT_RULES_MAX_BYTES)
+
+    def test_max_bytes_zero_ignored(self) -> None:
+        self._write_conventions("rules_context_max_bytes: 0\n")
+        _, max_bytes = prompt_context.rules_config(self.root)
+        self.assertEqual(max_bytes, prompt_context.DEFAULT_RULES_MAX_BYTES)
+        (self.rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
+        text, _ = prompt_context.read_rules_dir(self.root, max_bytes)
+        self.assertIn("Rule A body", text)
+        self.assertNotIn("truncated", text)
+
+    def test_fallback_suppressed_after_sessionstart(self) -> None:
+        (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
+        prompt_context.bump_epoch(
+            self.root,
+            {"session_id": "s1", "hook_event_name": "SessionStart", "source": "startup"},
+        )
+        first = prompt_context.emit_rules(
+            self.root, {"session_id": "s1"}, require_coding=False
+        )
+        self.assertIn("Rule A", first)
+        second = prompt_context.emit_rules(
+            self.root, {"session_id": "s1"}, require_coding=True, prompt="fix the bug"
+        )
+        self.assertEqual(second, "", "UPS fallback must be suppressed after SessionStart emit")
+
+    def test_main_postcompact_emits(self) -> None:
+        (self.rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
+        payload = {
+            "session_id": "s3",
+            "hook_event_name": "PostCompact",
+            "source": "auto",
+            "cwd": str(self.root),
+        }
+        out = io.StringIO()
+        with mock.patch.object(
+            prompt_context.sys, "stdin", io.StringIO(json.dumps(payload))
+        ), mock.patch.object(prompt_context.sys, "stdout", out):
+            rc = prompt_context.main()
+        self.assertEqual(rc, 0)
+        self.assertIn("Rule A body", out.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()
