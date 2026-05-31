@@ -46,12 +46,36 @@ dependency and table views and can be built in parallel with them.
   supersedes it; do not extend the template).
 
 ## Mockups
-<!-- Mockups pending — see parent epic's UI gate. The kanban screen is a
-"screens"-tier mock produced by the parent epic's ux-ui pass (against this
-feature id). feature-design falls back to its own mockup phase only if that pass
-has not run. -->
-- Pending — `.mockups/screens/epic-substrate-board-kanban/` once the parent
-  epic's ux-ui pass runs; inherits `.mockups/design-system/` tokens + components.
+
+Screens designed and direction selected (`/ux-ui-design:screens`, 2026-05-31).
+Inherits the locked design system (`tokens.css` + `components.css` +
+`motion.css`); links all three.
+
+- **Navigator**: `.mockups/screens/epic-substrate-board-kanban/index.html`
+- **Selected**: `option-hybrid.html` — **left rail + epic swimlanes**. A
+  persistent left rail (search, kind/tag filters, epic focus-nav, auto-hide
+  toggle) drives a swimlane grid (rows = parent epic, columns by stage, with
+  per-epic progress bars). Clicking an epic in the rail focuses its lane.
+- **Item-detail surface**: `item-detail.html` — **size-detected presentation**.
+  One surface, three forms, auto-chosen by body length + viewport: short →
+  slide-over (380), medium → wide drawer (560), long body or narrow viewport →
+  modal (760, prose capped ~68ch). Resolves the "large markdown needs room"
+  problem without a manual choice.
+- Explorations (in folder / git history): `option-1` classic columns,
+  `option-2` compact rows, `option-3` left rail, `option-4` epic swimlanes.
+
+This screen establishes the **shared board frame** (app bar + view-switcher
+tabs + theme-picker + filter bar), so several pieces here are really
+`epic-substrate-board-shell`'s to own and the kanban view consumes:
+
+- the **theme-picker** control (accent `[data-accent]` + Sys/Light/Dark
+  `[data-theme]`) and its persistence (localStorage / board config);
+- the global **filter-state store** + filter bar / auto-hide;
+- the **item-detail `detect()`** logic that picks slide-over / wide-drawer /
+  modal by size (the shell owns the shared item-detail surface).
+
+feature-design on `board-shell` should pull these frame concerns up; this
+feature's own scope is the kanban arrangement (swimlane grid + columns) on top.
 
 ## Design decisions (inherited from parent epic)
 - **Read-only this epic** — no drag-to-restage; columns are a view, not an editor.

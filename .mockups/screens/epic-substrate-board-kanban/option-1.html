@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-kanban — Option 1: Classic columns</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+  .mock-meta strong { font-weight: 600; } .mock-meta span { color: #8b949e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  /* layout only — components style themselves */
+  .appbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 20px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .crumb { font: 500 12px/1 var(--font-mono); color: var(--color-text-tertiary); }
+  .appbar .right { margin-left: auto; display: flex; gap: 14px; align-items: center; }
+  .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 20px; border-bottom: 1px solid var(--color-border); }
+  .filters .grow { flex: 0 0 230px; }
+  .filters .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 18px 20px 40px; align-items: start; }
+  @media (max-width: 980px) { .board { grid-template-columns: 1fr 1fr; } }
+  .col { display: grid; gap: 10px; align-content: start; }
+  .col .stack { display: grid; gap: 10px; }
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40; }
+  .detail-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 50; border-radius: 0; overflow-y: auto; }
+  .item-card[data-id] { cursor: pointer; }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 1 — Classic columns</strong><span>Canonical kanban: top filter bar, comfortable cards with body + dependency meta. The safe, legible default.</span></header>
+
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <span class="crumb">.work / active</span>
+  <div class="tabs" style="margin-left:8px"><button class="tab" aria-selected="true">Kanban</button><button class="tab">Dependency</button><button class="tab">Table</button></div>
+  <div class="right">
+    <span class="spinner u-spin" title="reading .work/"></span>
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+
+<div class="filters">
+  <span class="input-search grow"><input class="input" placeholder="filter… (id, body)"></span>
+  <div class="filter-bar">
+    <button class="filter-chip" aria-pressed="true">tag:tooling</button>
+    <button class="filter-chip">kind:feature</button>
+    <button class="filter-chip">parent:substrate-board</button>
+  </div>
+  <div class="right">
+    <button class="toggle" aria-pressed="true"><span class="track"></span> hide released/archived</button>
+    <span class="count">9 shown</span>
+  </div>
+</div>
+
+<main class="board">
+  <section class="col">
+    <div class="kanban-col-head"><span class="title">Drafting</span><span class="count">5</span></div>
+    <div class="stack">
+      <div class="item-card item-card--feature" data-id="epic-substrate-board-host" data-kind="feature" data-stage="drafting" data-deps="—" data-body="Live local server + JSON substrate feed off the work-view binary. Serves the asset bundle; surfaces LoadReport diagnostics.">
+        <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-host</span><span class="badge badge--ready">ready</span></div>
+        <div class="ic-body">Live local server + JSON substrate feed off the <code>work-view</code> binary.</div>
+        <div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: —</span></div>
+      </div>
+      <div class="item-card item-card--feature is-blocked" data-id="epic-substrate-board-shell" data-kind="feature" data-stage="drafting" data-deps="[board-host]" data-body="Shared frontend foundation: app frame, item-card, markdown body, global filters, auto-hide, and the filter-state store the views read.">
+        <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-shell</span><span class="badge badge--blocked">blocked</span></div>
+        <div class="ic-body">App frame, item-card, <strong>markdown body</strong>, global filters, auto-hide.</div>
+        <div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: board-host</span></div>
+      </div>
+      <div class="item-card item-card--feature is-blocked" data-id="epic-substrate-board-kanban" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="Columns by stage; shell cards in columns. Read-only this epic.">
+        <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-kanban</span><span class="badge badge--blocked">blocked</span></div>
+        <div class="ic-body">Columns by stage.</div>
+        <div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: board-shell</span></div>
+      </div>
+      <div class="item-card item-card--feature is-blocked" data-id="epic-substrate-board-dependency" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="depends_on chains, blockers, and what each item unblocks, over work-view-core::graph.">
+        <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-dependency</span><span class="badge badge--blocked">blocked</span></div>
+        <div class="ic-body"><code>depends_on</code> chains + blockers.</div>
+        <div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: board-shell</span></div>
+      </div>
+      <div class="item-card item-card--feature is-blocked" data-id="epic-substrate-board-table" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="Sortable columns + per-column filtering layered on the shell's global filter set.">
+        <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-table</span><span class="badge badge--blocked">blocked</span></div>
+        <div class="ic-body">Sortable / filterable grid.</div>
+        <div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: board-shell</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="col">
+    <div class="kanban-col-head"><span class="title">Implementing</span><span class="count">2</span></div>
+    <div class="stack">
+      <div class="item-card item-card--epic" data-id="epic-substrate-board" data-kind="epic" data-stage="implementing" data-deps="[epic-substrate-cli]" data-body="Interactive human surface over .work/ — kanban, dependency, table. The human twin of the work-view CLI.">
+        <div class="ic-head"><span class="chip chip--epic">epic</span><span class="ic-id">substrate-board</span></div>
+        <div class="ic-body">Interactive human surface over <code>.work/</code>.</div>
+        <div class="ic-meta">5 child features · 1 ready</div>
+      </div>
+      <div class="item-card item-card--epic" data-id="epic-agents-rules-autoload" data-kind="epic" data-stage="implementing" data-deps="—" data-body="Cross-vendor .agents/rules/ auto-load mechanism — reliably force-feed agent rules + patterns into every session.">
+        <div class="ic-head"><span class="chip chip--epic">epic</span><span class="ic-id">agents-rules-autoload</span></div>
+        <div class="ic-body">Cross-vendor <code>.agents/rules/</code> auto-load.</div>
+        <div class="ic-meta">7 children · 6 done</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="col">
+    <div class="kanban-col-head"><span class="title">Review</span><span class="count">0</span></div>
+    <div class="stack"><div class="empty"><span class="glyph">∅</span>Nothing in review</div></div>
+  </section>
+
+  <section class="col">
+    <div class="kanban-col-head"><span class="title">Done</span><span class="count">2</span></div>
+    <div class="stack">
+      <div class="item-card item-card--epic" data-id="epic-substrate-cli" data-kind="epic" data-stage="done" data-deps="—" data-body="Compiled work-view binary + shared query core (the engine this board reuses). 5 children done.">
+        <div class="ic-head"><span class="chip chip--epic">epic</span><span class="ic-id">substrate-cli</span><span class="badge badge--done">done</span></div>
+        <div class="ic-body">Compiled <code>work-view</code> binary + query core.</div>
+        <div class="ic-meta">5 child features</div>
+      </div>
+      <div class="item-card item-card--feature" data-id="epic-agents-rules-autoload-hook" data-kind="feature" data-stage="done" data-deps="—" data-body="Generic .agents/rules/ loader hook. SessionStart/PostCompact + UPS fallback. 20 tests.">
+        <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">…autoload-hook</span><span class="badge badge--done">done</span></div>
+        <div class="ic-body">Generic rules loader hook · 20 tests.</div>
+        <div class="ic-meta">parent: agents-rules-autoload</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const r = document.documentElement;
+  document.getElementById('accent').addEventListener('change', e => r.setAttribute('data-accent', e.target.value));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.onclick = () => {
+    b.dataset.mode === 'system' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', b.dataset.mode);
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  document.querySelectorAll('.appbar .tab').forEach(t => t.onclick = () => {
+    document.querySelectorAll('.appbar .tab').forEach(x => x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); });
+  document.querySelectorAll('.filter-chip,.toggle').forEach(c => c.onclick = () => c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') !== 'true'));
+  // read-only detail drawer
+  function closeDrawer(){ const d=document.getElementById('dd'), s=document.getElementById('scrim'); if(s)s.remove(); if(d){ d.classList.add('u-drawer-out'); d.addEventListener('animationend',()=>d.remove(),{once:true}); } }
+  window.closeDrawer = closeDrawer;
+  document.addEventListener('click', e => {
+    const c = e.target.closest('.item-card[data-id]'); if(!c) return;
+    closeDrawer();
+    const s=document.createElement('div'); s.id='scrim'; s.onclick=closeDrawer; document.body.appendChild(s);
+    const d=document.createElement('div'); d.id='dd'; d.className='detail-drawer u-drawer-in u-theme-anim';
+    d.innerHTML=`<div class="dd-head"><span class="chip chip--${c.dataset.kind}">${c.dataset.kind}</span><span class="dd-id">${c.dataset.id}</span><button class="btn btn-ghost btn--sm" onclick="closeDrawer()">esc ✕</button></div>
+      <dl class="dd-frontmatter"><dt>stage</dt><dd>${c.dataset.stage}</dd><dt>depends_on</dt><dd>${c.dataset.deps}</dd></dl>
+      <div class="dd-md"><p>${c.dataset.body}</p></div>`;
+    document.body.appendChild(d);
+  });
+</script>
+</body>
+</html>

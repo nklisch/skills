@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-kanban — Option 3: Left rail</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+  .mock-meta strong { font-weight: 600; } .mock-meta span { color: #8b949e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 14px; align-items: center; padding: 10px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .shell { display: grid; grid-template-columns: 232px 1fr; min-height: calc(100vh - 90px); }
+  @media (max-width: 860px) { .shell { grid-template-columns: 1fr; } .rail { display: none; } }
+  /* left rail */
+  .rail { border-right: 1px solid var(--color-border); padding: 16px 14px; display: grid; gap: 18px; align-content: start; background: var(--color-bg-secondary); }
+  .rail .group { display: grid; gap: 8px; }
+  .rail .group h3 { margin: 0; font: 600 11px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-tertiary); }
+  .rail .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rail .nav-item { display: flex; align-items: center; gap: 8px; font: 12.5px/1.3 var(--font-mono); color: var(--color-text-secondary); padding: 4px 6px; border-radius: var(--radius-sm); cursor: pointer; }
+  .rail .nav-item:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+  .rail .nav-item.on { color: var(--color-text-primary); }
+  .rail .nav-item .dot { width: 8px; height: 8px; border-radius: 2px; }
+  .rail .foot { margin-top: auto; }
+  /* board */
+  .boardwrap { padding: 16px 18px 40px; display: grid; gap: 12px; align-content: start; }
+  .boardwrap .topline { display: flex; align-items: center; gap: 12px; }
+  .boardwrap .topline .count { margin-left: auto; }
+  .board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: start; }
+  @media (max-width: 1180px) { .board { grid-template-columns: 1fr 1fr; } }
+  .col { display: grid; gap: 9px; align-content: start; }
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40; }
+  .detail-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 50; border-radius: 0; overflow-y: auto; }
+  .item-card[data-id] { cursor: pointer; }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 3 — Left rail</strong><span>Persistent filter + epic-nav sidebar; the board owns the rest. App-like; filters always visible instead of a top bar.</span></header>
+
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px"><button class="tab" aria-selected="true">Kanban</button><button class="tab">Dependency</button><button class="tab">Table</button></div>
+  <div class="right">
+    <span class="spinner u-spin" title="reading .work/"></span>
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="group"><h3>Search</h3><span class="input-search"><input class="input" placeholder="id, body…"></span></div>
+    <div class="group"><h3>Kind</h3><div class="opts">
+      <button class="filter-chip" aria-pressed="true">epic</button><button class="filter-chip" aria-pressed="true">feature</button><button class="filter-chip">story</button><button class="filter-chip">release</button>
+    </div></div>
+    <div class="group"><h3>Tag</h3><div class="opts">
+      <button class="filter-chip" aria-pressed="true">tooling</button><button class="filter-chip">skill</button><button class="filter-chip">docs</button>
+    </div></div>
+    <div class="group"><h3>Epics</h3>
+      <div class="nav-item on"><span class="dot" style="background:var(--kind-epic)"></span> substrate-board</div>
+      <div class="nav-item"><span class="dot" style="background:var(--kind-epic)"></span> agents-rules-autoload</div>
+      <div class="nav-item"><span class="dot" style="background:var(--color-text-tertiary)"></span> substrate-cli <span style="opacity:.6">done</span></div>
+    </div>
+    <div class="group foot"><button class="toggle" aria-pressed="true"><span class="track"></span> hide released/archived</button></div>
+  </aside>
+
+  <div class="boardwrap">
+    <div class="topline"><span class="crumb" style="font:500 12px/1 var(--font-mono);color:var(--color-text-tertiary)">.work / active · parent: substrate-board</span><span class="count">5 shown</span></div>
+    <main class="board">
+      <section class="col">
+        <div class="kanban-col-head"><span class="title">Drafting</span><span class="count">5</span></div>
+        <div class="item-card item-card--feature" data-id="board-host" data-kind="feature" data-stage="drafting" data-deps="—" data-body="Live local server + JSON substrate feed off the work-view binary.">
+          <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-host</span><span class="badge badge--ready">ready</span></div>
+          <div class="ic-body">Live local server + JSON feed off the binary.</div>
+          <div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: —</span></div>
+        </div>
+        <div class="item-card item-card--feature is-blocked" data-id="board-shell" data-kind="feature" data-stage="drafting" data-deps="[board-host]" data-body="Shared app frame, item-card, markdown body, global filters, auto-hide.">
+          <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-shell</span><span class="badge badge--blocked">blocked</span></div>
+          <div class="ic-body">App frame, card, filters, auto-hide.</div>
+          <div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: board-host</span></div>
+        </div>
+        <div class="item-card item-card--feature is-blocked" data-id="board-kanban" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="Columns by stage.">
+          <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-kanban</span><span class="badge badge--blocked">blocked</span></div>
+          <div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: board-shell</span></div>
+        </div>
+        <div class="item-card item-card--feature is-blocked" data-id="board-dependency" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="depends_on chains + blockers.">
+          <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-dependency</span><span class="badge badge--blocked">blocked</span></div>
+          <div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: board-shell</span></div>
+        </div>
+        <div class="item-card item-card--feature is-blocked" data-id="board-table" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="Sortable / filterable grid.">
+          <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-table</span><span class="badge badge--blocked">blocked</span></div>
+          <div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: board-shell</span></div>
+        </div>
+      </section>
+      <section class="col">
+        <div class="kanban-col-head"><span class="title">Implementing</span><span class="count">1</span></div>
+        <div class="item-card item-card--epic" data-id="substrate-board" data-kind="epic" data-stage="implementing" data-deps="[substrate-cli]" data-body="Interactive human surface over .work/ — kanban, dependency, table.">
+          <div class="ic-head"><span class="chip chip--epic">epic</span><span class="ic-id">substrate-board</span></div>
+          <div class="ic-body">Interactive human surface over <code>.work/</code>.</div>
+          <div class="ic-meta">5 children · 1 ready</div>
+        </div>
+      </section>
+      <section class="col">
+        <div class="kanban-col-head"><span class="title">Review</span><span class="count">0</span></div>
+        <div class="empty"><span class="glyph">∅</span>Nothing in review</div>
+      </section>
+      <section class="col">
+        <div class="kanban-col-head"><span class="title">Done</span><span class="count">0</span></div>
+        <div class="empty"><span class="glyph">·</span>Filtered to substrate-board's open work</div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+  const r = document.documentElement;
+  document.getElementById('accent').addEventListener('change', e => r.setAttribute('data-accent', e.target.value));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.onclick = () => {
+    b.dataset.mode === 'system' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', b.dataset.mode);
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  document.querySelectorAll('.appbar .tab').forEach(t => t.onclick = () => {
+    document.querySelectorAll('.appbar .tab').forEach(x => x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); });
+  document.querySelectorAll('.filter-chip,.toggle').forEach(c => c.onclick = () => c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') !== 'true'));
+  document.querySelectorAll('.nav-item').forEach(n => n.onclick = () => { document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('on')); n.classList.add('on'); });
+  function closeDrawer(){ const d=document.getElementById('dd'), s=document.getElementById('scrim'); if(s)s.remove(); if(d){ d.classList.add('u-drawer-out'); d.addEventListener('animationend',()=>d.remove(),{once:true}); } }
+  window.closeDrawer = closeDrawer;
+  document.addEventListener('click', e => {
+    const c = e.target.closest('.item-card[data-id]'); if(!c) return; closeDrawer();
+    const s=document.createElement('div'); s.id='scrim'; s.onclick=closeDrawer; document.body.appendChild(s);
+    const d=document.createElement('div'); d.id='dd'; d.className='detail-drawer u-drawer-in u-theme-anim';
+    d.innerHTML=`<div class="dd-head"><span class="chip chip--${c.dataset.kind}">${c.dataset.kind}</span><span class="dd-id">${c.dataset.id}</span><button class="btn btn-ghost btn--sm" onclick="closeDrawer()">esc ✕</button></div>
+      <dl class="dd-frontmatter"><dt>stage</dt><dd>${c.dataset.stage}</dd><dt>depends_on</dt><dd>${c.dataset.deps}</dd></dl>
+      <div class="dd-md"><p>${c.dataset.body}</p></div>`;
+    document.body.appendChild(d);
+  });
+</script>
+</body>
+</html>

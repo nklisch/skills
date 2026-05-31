@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-kanban — screens</title>
+<style>
+  body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+  h1 { padding: 14px 24px 2px; margin: 0; font-weight: 600; font-size: 18px; }
+  p.sub { padding: 0 24px 10px; margin: 0; color: #8b949e; font-size: 13px; }
+  .band { padding: 6px 16px; }
+  .band h2 { font: 600 11px/1 ui-monospace, monospace; text-transform: uppercase; letter-spacing: .1em; color: #8b949e; margin: 12px 8px 8px; }
+  .grid { display: grid; gap: 8px; }
+  .sel { grid-template-columns: 1.4fr 1fr; }
+  .explore { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 1100px) { .explore { grid-template-columns: 1fr 1fr; } .sel { grid-template-columns: 1fr; } }
+  .cell { background: #fff; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+  .cell.pick { outline: 2px solid #2DD4BF; }
+  .cell h3 { margin: 0; padding: 8px 12px; font-size: 13px; font-weight: 600; background: #1c1c22; color: #eee; display: flex; justify-content: space-between; gap: 8px; }
+  .cell h3 .tag { color: #8b949e; font-weight: 400; }
+  .cell h3 .badge { color: #06201C; background: #2DD4BF; border-radius: 4px; padding: 1px 7px; font: 700 10px/1.6 ui-monospace, monospace; text-transform: uppercase; }
+  .cell iframe { border: 0; flex: 1; width: 100%; background: #0B0E14; }
+  .sel .cell iframe { height: 420px; }
+  .explore .cell iframe { height: 240px; }
+  .cell a { color: #5EEAD4; text-decoration: none; }
+</style>
+</head>
+<body>
+<h1>epic-substrate-board-kanban — screens</h1>
+<p class="sub">Locked design system across all; selected direction outlined in teal. Open full-screen to interact (theme-picker, focus an epic, open an item).</p>
+
+<div class="band"><h2>Selected</h2>
+  <div class="grid sel">
+    <div class="cell pick"><h3><span>Hybrid — left rail + epic swimlanes <span class="badge">selected</span></span><a href="option-hybrid.html" target="_blank">open ↗</a></h3><iframe src="option-hybrid.html"></iframe></div>
+    <div class="cell pick"><h3><span>Item detail — size-detected <span class="badge">selected</span></span><a href="item-detail.html" target="_blank">open ↗</a></h3><iframe src="item-detail.html"></iframe></div>
+  </div>
+</div>
+
+<div class="band"><h2>Explorations</h2>
+  <div class="grid explore">
+    <div class="cell"><h3><span>1 — Classic columns</span><a href="option-1.html" target="_blank">↗</a></h3><iframe src="option-1.html"></iframe></div>
+    <div class="cell"><h3><span>2 — Compact rows</span><a href="option-2.html" target="_blank">↗</a></h3><iframe src="option-2.html"></iframe></div>
+    <div class="cell"><h3><span>3 — Left rail</span><a href="option-3.html" target="_blank">↗</a></h3><iframe src="option-3.html"></iframe></div>
+    <div class="cell"><h3><span>4 — Epic swimlanes</span><a href="option-4.html" target="_blank">↗</a></h3><iframe src="option-4.html"></iframe></div>
+  </div>
+</div>
+</body>
+</html>

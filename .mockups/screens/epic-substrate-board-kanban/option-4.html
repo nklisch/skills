@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epic-substrate-board-kanban — Option 4: Epic swimlanes</title>
+<link rel="stylesheet" href="../../design-system/tokens.css">
+<link rel="stylesheet" href="../../design-system/components.css">
+<link rel="stylesheet" href="../../design-system/motion.css">
+<style>
+  .mock-meta { padding: 8px 16px; background: #0d1117; color: #c9d1d9; display: flex; gap: 16px; align-items: baseline; font: 13px/1.4 system-ui, sans-serif; border-bottom: 1px solid #30363d; }
+  .mock-meta strong { font-weight: 600; } .mock-meta span { color: #8b949e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  .appbar { position: sticky; top: 0; z-index: 20; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 10px 18px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  .appbar .brand { font-weight: 700; letter-spacing: -.02em; } .appbar .brand .d { color: var(--color-accent); }
+  .appbar .right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 8px 18px; border-bottom: 1px solid var(--color-border); }
+  .filters .right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  /* swimlane grid: left epic label + 4 stage columns */
+  .lanes { padding: 14px 18px 40px; display: grid; grid-template-columns: 190px repeat(4, 1fr); gap: 8px; align-items: start; }
+  .lanes .hcell { position: sticky; top: 58px; font: 600 11px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-tertiary); padding: 8px 4px; display: flex; gap: 8px; align-items: center; }
+  .lanes .hcorner { color: var(--color-text-secondary); }
+  .lane-label { display: grid; gap: 5px; align-content: start; padding: 10px 10px 10px 0; border-top: 1px solid var(--color-border); }
+  .lane-label .nm { font: 600 13px/1.2 var(--font-mono); letter-spacing: -.02em; }
+  .lane-label .nm.epic { color: var(--kind-epic); }
+  .lane-label .prog { height: 5px; border-radius: var(--radius-full); background: var(--color-bg-tertiary); overflow: hidden; }
+  .lane-label .prog > i { display: block; height: 100%; background: var(--status-ready); }
+  .lane-label .meta { font: 10.5px/1.3 var(--font-mono); color: var(--color-text-tertiary); }
+  .cell { border-top: 1px solid var(--color-border); padding: 10px 4px; display: grid; gap: 6px; align-content: start; min-height: 48px; }
+  .cell .item-card { padding: 6px 9px; }
+  .cell .item-card .ic-head { margin-bottom: 0; gap: 6px; } .cell .item-card .ic-id { font-size: 11px; }
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40; }
+  .detail-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 50; border-radius: 0; overflow-y: auto; }
+  .item-card[data-id] { cursor: pointer; }
+</style>
+</head>
+<body>
+<header class="mock-meta"><strong>Option 4 — Epic swimlanes</strong><span>Rows by parent epic, columns by stage. Per-epic progress at a glance: see which epic is early vs nearly done.</span></header>
+
+<header class="appbar">
+  <span class="brand">substrate<span class="d">/</span>board</span>
+  <div class="tabs" style="margin-left:6px"><button class="tab" aria-selected="true">Kanban</button><button class="tab">Dependency</button><button class="tab">Table</button></div>
+  <div class="right">
+    <span class="theme-picker"><span class="lbl">accent</span>
+      <select class="select" id="accent"><option>teal</option><option>amber</option><option>violet</option><option>azure</option><option>lime</option><option>candy</option></select>
+      <span class="seg" id="mode"><button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button><button class="seg-btn" data-mode="light">Light</button><button class="seg-btn" data-mode="dark">Dark</button></span>
+    </span>
+  </div>
+</header>
+
+<div class="filters">
+  <span class="input-search" style="flex:0 0 220px"><input class="input" placeholder="filter…"></span>
+  <div class="filter-bar"><button class="filter-chip" aria-pressed="true">group: parent epic</button><button class="filter-chip">tag:tooling</button></div>
+  <div class="right"><button class="toggle" aria-pressed="true"><span class="track"></span> hide released/archived</button></div>
+</div>
+
+<main class="lanes">
+  <!-- header row -->
+  <div class="hcell hcorner">epic ↓ / stage →</div>
+  <div class="hcell">Drafting</div>
+  <div class="hcell">Implementing</div>
+  <div class="hcell">Review</div>
+  <div class="hcell">Done</div>
+
+  <!-- lane: substrate-board -->
+  <div class="lane-label"><span class="nm epic">substrate-board</span><div class="prog"><i style="width:0%"></i></div><span class="meta">0/5 done · early</span></div>
+  <div class="cell">
+    <div class="item-card item-card--feature" data-id="board-host" data-kind="feature" data-stage="drafting" data-deps="—" data-body="Live local server + JSON feed."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-host</span><span class="badge badge--ready">rdy</span></div></div>
+    <div class="item-card item-card--feature is-blocked" data-id="board-shell" data-kind="feature" data-stage="drafting" data-deps="[board-host]" data-body="Shared frame + card + filters."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-shell</span><span class="badge badge--blocked">blk</span></div></div>
+    <div class="item-card item-card--feature is-blocked" data-id="board-kanban" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="Columns by stage."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-kanban</span><span class="badge badge--blocked">blk</span></div></div>
+    <div class="item-card item-card--feature is-blocked" data-id="board-dependency" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="Dependency chains + blockers."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-dependency</span><span class="badge badge--blocked">blk</span></div></div>
+    <div class="item-card item-card--feature is-blocked" data-id="board-table" data-kind="feature" data-stage="drafting" data-deps="[board-shell]" data-body="Sortable grid."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">board-table</span><span class="badge badge--blocked">blk</span></div></div>
+  </div>
+  <div class="cell"></div>
+  <div class="cell"></div>
+  <div class="cell"></div>
+
+  <!-- lane: agents-rules-autoload -->
+  <div class="lane-label"><span class="nm epic">agents-rules-autoload</span><div class="prog"><i style="width:86%"></i></div><span class="meta">6/7 done</span></div>
+  <div class="cell">
+    <div class="item-card item-card--feature" data-id="convert-extract" data-kind="feature" data-stage="drafting" data-deps="—" data-body="Extract rules during convert."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">convert-extract</span><span class="badge badge--ready">rdy</span></div></div>
+  </div>
+  <div class="cell"></div>
+  <div class="cell"></div>
+  <div class="cell">
+    <div class="item-card item-card--feature" data-id="autoload-hook" data-kind="feature" data-stage="done" data-deps="—" data-body="Generic rules loader hook · 20 tests."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">autoload-hook</span><span class="badge badge--done">done</span></div></div>
+    <div class="item-card item-card--feature" data-id="convert-safety" data-kind="feature" data-stage="done" data-deps="—" data-body="Content-integrity gate."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">convert-safety</span><span class="badge badge--done">done</span></div></div>
+    <div class="item-card item-card--feature" data-id="skill-grounding" data-kind="feature" data-stage="done" data-deps="—" data-body="9 family skills ground on rules."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">skill-grounding</span><span class="badge badge--done">done</span></div></div>
+    <div class="item-card item-card--story" data-id="state-concurrency" data-kind="story" data-stage="done" data-deps="—" data-body="Unique-temp + flock."><div class="ic-head"><span class="chip chip--story">story</span><span class="ic-id">state-concurrency</span><span class="badge badge--done">done</span></div></div>
+  </div>
+
+  <!-- lane: substrate-cli -->
+  <div class="lane-label"><span class="nm epic" style="color:var(--color-text-tertiary)">substrate-cli</span><div class="prog"><i style="width:100%"></i></div><span class="meta">5/5 done · shipped</span></div>
+  <div class="cell"></div>
+  <div class="cell"></div>
+  <div class="cell"></div>
+  <div class="cell">
+    <div class="item-card item-card--feature" data-id="cli-query-core" data-kind="feature" data-stage="done" data-deps="—" data-body="work-view-core lib crate. 93 tests."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">query-core</span><span class="badge badge--done">done</span></div></div>
+    <div class="item-card item-card--feature" data-id="cli-adapter" data-kind="feature" data-stage="done" data-deps="—" data-body="work-view binary, full flag parity."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">adapter</span><span class="badge badge--done">done</span></div></div>
+    <div class="item-card item-card--feature" data-id="cli-next-actionable" data-kind="feature" data-stage="done" data-deps="—" data-body="Stage-aware --ready/--blocked."><div class="ic-head"><span class="chip chip--feature">feat</span><span class="ic-id">next-actionable</span><span class="badge badge--done">done</span></div></div>
+  </div>
+</main>
+
+<script>
+  const r = document.documentElement;
+  document.getElementById('accent').addEventListener('change', e => r.setAttribute('data-accent', e.target.value));
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.onclick = () => {
+    b.dataset.mode === 'system' ? r.removeAttribute('data-theme') : r.setAttribute('data-theme', b.dataset.mode);
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  document.querySelectorAll('.appbar .tab').forEach(t => t.onclick = () => {
+    document.querySelectorAll('.appbar .tab').forEach(x => x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); });
+  document.querySelectorAll('.filter-chip,.toggle').forEach(c => c.onclick = () => c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') !== 'true'));
+  function closeDrawer(){ const d=document.getElementById('dd'), s=document.getElementById('scrim'); if(s)s.remove(); if(d){ d.classList.add('u-drawer-out'); d.addEventListener('animationend',()=>d.remove(),{once:true}); } }
+  window.closeDrawer = closeDrawer;
+  document.addEventListener('click', e => {
+    const c = e.target.closest('.item-card[data-id]'); if(!c) return; closeDrawer();
+    const s=document.createElement('div'); s.id='scrim'; s.onclick=closeDrawer; document.body.appendChild(s);
+    const d=document.createElement('div'); d.id='dd'; d.className='detail-drawer u-drawer-in u-theme-anim';
+    d.innerHTML=`<div class="dd-head"><span class="chip chip--${c.dataset.kind}">${c.dataset.kind}</span><span class="dd-id">${c.dataset.id}</span><button class="btn btn-ghost btn--sm" onclick="closeDrawer()">esc ✕</button></div>
+      <dl class="dd-frontmatter"><dt>stage</dt><dd>${c.dataset.stage}</dd><dt>depends_on</dt><dd>${c.dataset.deps}</dd></dl>
+      <div class="dd-md"><p>${c.dataset.body}</p></div>`;
+    document.body.appendChild(d);
+  });
+</script>
+</body>
+</html>
