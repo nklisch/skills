@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-self-heal-convert
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli-freshness-self-heal
 depends_on: [epic-substrate-cli-freshness-self-heal-installer]
@@ -48,13 +48,13 @@ executing convert will follow.
 
 ## Acceptance criteria
 
-- [ ] Doctor marker compares `--version` to the plugin version (not bytes, not
+- [x] Doctor marker compares `--version` to the plugin version (not bytes, not
       existence-only) and classifies missing/drift_plugin/match.
-- [ ] Migration ensures `.work/bin/work-view` is tracked and surfaces a gitignore
+- [x] Migration ensures `.work/bin/work-view` is tracked and surfaces a gitignore
       match for removal/negation (preserve-by-default).
-- [ ] Both convert install blocks still route through `install-work-view.sh`
+- [x] Both convert install blocks still route through `install-work-view.sh`
       with no raw `cp` — `convert-install-routing.test.sh` passes.
-- [ ] Phase 4 + sync install-step prose reflects "installs the source-stamped
+- [x] Phase 4 + sync install-step prose reflects "installs the source-stamped
       bash entrypoint" rather than "selects the platform-matched prebuilt."
 
 ## Tests
@@ -65,3 +65,15 @@ no raw `cp`). OPTIONAL: extend it with a structural assertion that the
 `work_view` doctor marker block references `--version` (guards against a revert
 to existence-only), consistent with the file's prose-pattern style. Do NOT
 introduce a raw `cp` into convert — the installer is the only sanctioned path.
+
+## Implementation notes
+
+- Files changed: `plugins/agile-workflow/skills/convert/SKILL.md`,
+  `plugins/agile-workflow/scripts/tests/convert-install-routing.test.sh`.
+- Tests added: extended `convert-install-routing.test.sh` with a prose-pattern
+  assertion that the `work_view` doctor marker references `--version` and
+  `drift_plugin`.
+- Verification: `bash plugins/agile-workflow/scripts/tests/convert-install-routing.test.sh`
+  passed, 12 assertions.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

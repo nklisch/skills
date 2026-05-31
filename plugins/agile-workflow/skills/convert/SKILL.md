@@ -438,8 +438,8 @@ mkdir -p .work/active/epics .work/active/features .work/active/stories
 mkdir -p .work/backlog .work/releases .work/archive .work/bin
 ```
 
-Install `work-view` from the plugin to the project (selects the platform-matched
-prebuilt binary if available, falls back to the bash script):
+Install `work-view` from the plugin to the project (installs the
+source-stamped bash entrypoint: portable, tracked, and version-stamped):
 
 ```bash
 bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/install-work-view.sh"
@@ -924,11 +924,17 @@ path list), plus deeper checks:
     / `<!-- agile-workflow:rules:end -->` vs the Phase 6.5 template — `missing`
     (install), `match` (skip), or `drift_plugin` (refresh the marker block only,
     preserving out-of-marker and other `.agents/rules/*.md`).
-  - `.work/bin/work-view` — check existence and executability (the `work_view`
-    doctor marker). Do NOT compare bytes against `work-view.sh`; the installed
-    file may be a prebuilt binary placed by `install-work-view.sh`, which is
-    legitimately different from the bash fallback script. If `.work/bin/work-view`
-    is absent or not executable, classify as `missing` and re-run the installer.
+  - `.work/bin/work-view` — check existence and executability first (the
+    `work_view` doctor marker). If `.work/bin/work-view` is absent or not
+    executable, classify as `missing` and re-run the installer. If it exists and
+    is executable, run `.work/bin/work-view --version` and compare its last token
+    to the plugin version from
+    `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/.claude-plugin/plugin.json`. If
+    `--version` is unrecognized, empty, non-zero, or reports a different
+    version, classify as `drift_plugin` and re-run the installer (this catches
+    pre-versioning and stale plugin copies). If `--version` matches the plugin
+    version, classify as `match`. Compare `--version`, never bytes; the
+    source-stamped version is the freshness signal.
   - `CLAUDE.md` compatibility state (symlink/shim/legacy copy)
   - `.claude/rules/patterns.md` state (legacy content vs AGENTS shim)
   - `.work/CONVENTIONS.md` load-bearing tag entries (see below). The rest of
@@ -1055,8 +1061,13 @@ For each artifact with a non-`match` state:
   existing full section intact and report it.
 - `.work/bin/work-view` — reinstall via
   `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/install-work-view.sh"`
-  (selects the platform-matched prebuilt binary if available, falls back to the
-  bash script)
+  (installs the source-stamped bash entrypoint: portable, tracked, and
+  version-stamped). This replaces any pre-versioning copy in place. After
+  reinstalling, ensure `.work/bin/work-view` is tracked and agent-visible: run
+  `git check-ignore .work/bin/work-view`; if it reports a matching ignore rule,
+  surface that rule for removal or a negation entry under convert's
+  preserve-by-default cleanup policy rather than silently editing ignore files.
+  Ensure `.work/bin/work-view` is included in the Phase S5 `git add`.
 - Entrypoint compatibility — refresh the pointer in the direction set by
   `entrypoint_model`:
   - `agents-canonical` — import legacy generated content from any detected

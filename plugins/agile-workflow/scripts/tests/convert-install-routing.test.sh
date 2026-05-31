@@ -5,7 +5,7 @@
 # BOTH the bootstrap branch (Phase 4: Create substrate skeleton) and the sync
 # branch (Phase S3: Apply refreshes). A future edit that reverts either block to
 # a raw `cp .../work-view.sh .work/bin/work-view` would silently bypass the
-# prebuilt-binary selection + bash fallback the installer provides, and pass the
+# source-stamped bash entrypoint the installer provides, and pass the
 # existing install-work-view.test.sh (which tests the helper directly, not the
 # seam).
 #
@@ -14,6 +14,7 @@
 # It extracts the bounded Phase 4 and Phase S3 blocks and asserts:
 #   1. each block references install-work-view.sh
 #   2. neither block contains a raw `cp ... work-view.sh ... .work/bin/work-view`
+#   3. the work_view doctor marker references --version and drift_plugin
 #
 # Runnable locally and from CI. Exits non-zero if any assertion fails.
 
@@ -88,6 +89,11 @@ fi
 # ---------------------------------------------------------------------------
 PHASE4_BLOCK="$(extract_block "### Phase 4: Create substrate skeleton" "### Phase 5: Write CONVENTIONS.md")"
 PHASES3_BLOCK="$(extract_block "### Phase S3: Apply refreshes" "### Phase S4: Preserve user state")"
+DOCTOR_BLOCK="$(awk '
+  /\.work\/bin\/work-view` —/ { collecting = 1 }
+  collecting && /^  - `CLAUDE\.md` compatibility state/ { collecting = 0 }
+  collecting { print }
+' "$SKILL_MD")"
 
 # A raw fallback copy regression looks like:
 #   cp "${PLUGIN_ROOT}/scripts/work-view.sh" .work/bin/work-view
@@ -105,6 +111,7 @@ assert_true "Phase 4 block starts at its heading" \
 assert_true "Phase S3 block is non-empty" "[ -n \"\$PHASES3_BLOCK\" ]"
 assert_true "Phase S3 block starts at its heading" \
   "printf '%s' \"\$PHASES3_BLOCK\" | head -n1 | grep -q '^### Phase S3: Apply refreshes$'"
+assert_true "work_view doctor marker block is non-empty" "[ -n \"\$DOCTOR_BLOCK\" ]"
 
 # ---------------------------------------------------------------------------
 # Test group 2: both blocks route through install-work-view.sh
@@ -125,6 +132,16 @@ assert_false "Phase 4 has no raw cp fallback" \
   "printf '%s' \"\$PHASE4_BLOCK\" | grep -Eq '$RAW_CP_RE'"
 assert_false "Phase S3 has no raw cp fallback" \
   "printf '%s' \"\$PHASES3_BLOCK\" | grep -Eq '$RAW_CP_RE'"
+
+# ---------------------------------------------------------------------------
+# Test group 4: doctor marker stays version-aware
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 4: work_view doctor marker is version-aware ==="
+assert_true "work_view doctor marker references --version" \
+  "printf '%s' \"\$DOCTOR_BLOCK\" | grep -q -- '--version'"
+assert_true "work_view doctor marker classifies drift_plugin" \
+  "printf '%s' \"\$DOCTOR_BLOCK\" | grep -q 'drift_plugin'"
 
 # ---------------------------------------------------------------------------
 # Summary
