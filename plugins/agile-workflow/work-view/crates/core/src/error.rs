@@ -59,9 +59,3 @@ impl std::error::Error for LoadError {
         }
     }
 }
-
-impl From<std::io::Error> for LoadError {
-    fn from(e: std::io::Error) -> Self {
-        LoadError::Io(e)
-    }
-}

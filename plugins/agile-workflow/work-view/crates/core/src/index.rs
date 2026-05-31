@@ -95,7 +95,7 @@ impl Substrate {
         let mut report = LoadReport::default();
 
         // Collect and byte-sort all *.md paths across the four tier dirs.
-        let paths = collect_sorted_paths(root, &mut report)?;
+        let paths = collect_sorted_paths(root)?;
 
         // Parse every file in sorted order, collecting errors non-fatally.
         let mut items: Vec<Item> = Vec::with_capacity(paths.len());
@@ -225,10 +225,7 @@ const TIER_DIRS: [(&str, Tier); 4] = [
 ///
 /// Returns `(absolute_path, tier)` pairs. Returns `LoadError` if a tier
 /// directory exists but cannot be read (its read-dir call fails).
-fn collect_sorted_paths(
-    root: &Path,
-    _report: &mut LoadReport,
-) -> Result<Vec<(PathBuf, Tier)>, LoadError> {
+fn collect_sorted_paths(root: &Path) -> Result<Vec<(PathBuf, Tier)>, LoadError> {
     let work = root.join(".work");
 
     let mut all: Vec<(PathBuf, Tier)> = Vec::new();

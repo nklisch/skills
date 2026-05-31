@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-unused-report-param
 kind: story
-stage: drafting
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -40,3 +40,8 @@ and update the single caller at `index.rs:98` from
 `collect_sorted_paths(root, &mut report)?` to `collect_sorted_paths(root)?`.
 `report` is still used afterward by the caller, so no other change is needed.
 Vestige of an earlier design where path collection emitted diagnostics.
+
+## Done (2026-05-31)
+Removed the `_report` parameter; `collect_sorted_paths(root)` now takes only `root`,
+caller updated at `index.rs:98`. `report` still mutated later (parse_errors), so `let
+mut` stays valid. clippy `-D warnings` clean, all 230 tests pass.

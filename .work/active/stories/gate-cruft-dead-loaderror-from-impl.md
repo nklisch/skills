@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-dead-loaderror-from-impl
 kind: story
-stage: drafting
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -41,3 +41,8 @@ explicitly and matched in `main.rs:80`. Public impl on a public type (hence Medi
 not High), but `work-view-core` is plugin-internal (not a published crate), so
 removing the unused impl is safe — keep the removal clean per the no-compat-shim
 convention.
+
+## Done (2026-05-31)
+Removed the `impl From<std::io::Error> for LoadError` block from `error.rs`.
+`LoadError::Io` is still constructed explicitly via `.map_err(LoadError::Io)` and
+matched in `main.rs`. clippy clean, all 230 tests pass.

@@ -104,7 +104,6 @@ mod tests {
         depends_on: &[&str],
     ) -> (&'static str, String) {
         // caller provides tier_dir like "active/features", "archive", etc.
-        let _ = tier_dir; // used in test calls below as the path prefix
         let deps = if depends_on.is_empty() {
             "[]".to_string()
         } else {

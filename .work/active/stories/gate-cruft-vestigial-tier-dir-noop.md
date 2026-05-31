@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-vestigial-tier-dir-noop
 kind: story
-stage: drafting
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -37,3 +37,8 @@ fn item_md(id: &str, tier_dir: &str, stage: &str, depends_on: &[&str]) -> (&'sta
 test calls below") is self-contradictory — it suppresses nothing. Delete line 107
 (and the now-orphaned comment on line 106). Test code only; no behavior change.
 Leftover from a refactor where `tier_dir` was temporarily unused.
+
+## Done (2026-05-31)
+Deleted the `let _ = tier_dir;` no-op line in `actionable.rs::item_md`; kept the
+explanatory comment (still accurate — `tier_dir` is used at the `format!` on the path).
+clippy clean, all tests pass.
