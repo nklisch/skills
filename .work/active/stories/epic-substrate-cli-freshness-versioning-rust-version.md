@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-versioning-rust-version
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli-freshness-versioning
 depends_on: []

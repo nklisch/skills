@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-versioning-bump-lockstep
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli-freshness-versioning
 depends_on: [epic-substrate-cli-freshness-versioning-rust-version, epic-substrate-cli-freshness-versioning-bash-version]
