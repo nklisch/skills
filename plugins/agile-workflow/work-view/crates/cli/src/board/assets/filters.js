@@ -77,9 +77,6 @@ export function normalizeFilters(raw) {
       filters[key] = normalizeFilterValue(key, raw[key]);
     }
   }
-  if (!Object.prototype.hasOwnProperty.call(raw, "autoHideReleased")) {
-    filters.autoHideReleased = true;
-  }
   return filters;
 }
 
@@ -90,7 +87,6 @@ function valueOrNone(value) {
 function searchText(item) {
   return [
     item?.id,
-    item?.title,
     item?.kind,
     item?.stage,
     item?.parent,
@@ -163,8 +159,14 @@ export function deriveFilterOptions(snapshot) {
     }
   }
   return {
-    kinds: orderedValues(new Set([...PREFERRED_KINDS, ...optionSet(items, (item) => item.kind)]), PREFERRED_KINDS),
-    stages: orderedValues(new Set([...PREFERRED_STAGES, ...optionSet(items, (item) => item.stage)]), PREFERRED_STAGES),
+    kinds: orderedValues(
+      new Set([...PREFERRED_KINDS, ...optionSet(items, (item) => item.kind)]),
+      PREFERRED_KINDS,
+    ),
+    stages: orderedValues(
+      new Set([...PREFERRED_STAGES, ...optionSet(items, (item) => item.stage)]),
+      PREFERRED_STAGES,
+    ),
     parents: orderedValues(optionSet(items, (item) => item.parent)),
     releases: orderedValues(optionSet(items, (item) => item.release_binding)),
     tags: orderedValues(tags),
@@ -192,27 +194,33 @@ function buttonFor(value, pressed, onClick) {
   button.className = "filter-chip";
   button.type = "button";
   button.textContent = value;
+  button.dataset.filterValue = value;
   button.setAttribute("aria-pressed", String(pressed));
   button.addEventListener("click", onClick);
   return button;
 }
 
 function syncChipGroup(group, key, values, selected, ctx) {
-  group.replaceChildren();
-  if (values.length === 0) {
-    group.append(textElement("span", "filter-empty", "No values"));
-    return;
+  const signature = values.join("\u0000");
+  if (group.dataset.values !== signature) {
+    group.dataset.values = signature;
+    if (values.length === 0) {
+      group.replaceChildren(textElement("span", "filter-empty", "No values"));
+    } else {
+      const buttons = values.map((value) => buttonFor(value, false, () => {
+        const next = new Set(ctx.getState().filters[key]);
+        if (next.has(value)) {
+          next.delete(value);
+        } else {
+          next.add(value);
+        }
+        ctx.setFilter(key, next);
+      }));
+      group.replaceChildren(...buttons);
+    }
   }
-  for (const value of values) {
-    group.append(buttonFor(value, selected.has(value), () => {
-      const next = new Set(ctx.getState().filters[key]);
-      if (next.has(value)) {
-        next.delete(value);
-      } else {
-        next.add(value);
-      }
-      ctx.setFilter(key, next);
-    }));
+  for (const button of group.querySelectorAll(".filter-chip")) {
+    button.setAttribute("aria-pressed", String(selected.has(button.dataset.filterValue)));
   }
 }
 
@@ -221,7 +229,7 @@ export function renderFilterBar(root, ctx) {
   search.className = "input";
   search.id = "filter-search";
   search.type = "search";
-  search.placeholder = "id, title, body";
+  search.placeholder = "id, body, metadata";
   search.addEventListener("input", (event) => {
     ctx.setFilter("search", event.target.value);
   });
@@ -273,11 +281,22 @@ export function renderFilterBar(root, ctx) {
     autoHide,
   );
 
+  let previousSnapshot = undefined;
+  let previousOptions = deriveFilterOptions(null);
+
+  function optionsFor(snapshot) {
+    if (snapshot !== previousSnapshot) {
+      previousSnapshot = snapshot;
+      previousOptions = deriveFilterOptions(snapshot);
+    }
+    return previousOptions;
+  }
+
   function sync(state) {
     if (document.activeElement !== search && search.value !== state.filters.search) {
       search.value = state.filters.search;
     }
-    const options = deriveFilterOptions(state.snapshot);
+    const options = optionsFor(state.snapshot);
     syncChipGroup(kindOptions, "kinds", options.kinds, state.filters.kinds, ctx);
     syncChipGroup(stageOptions, "stages", options.stages, state.filters.stages, ctx);
     syncChipGroup(parentOptions, "parents", options.parents, state.filters.parents, ctx);
