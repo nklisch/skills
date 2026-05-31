@@ -1,4 +1,5 @@
 const EXTERNAL_PREFIX = "external:";
+const KIND_CLASSES = new Set(["epic", "feature", "story", "release", "backlog"]);
 
 function textElement(tag, className, text) {
   const element = document.createElement(tag);
@@ -26,7 +27,14 @@ function externalId(id) {
 }
 
 function itemLabel(node) {
+  if (!node) {
+    return "(missing)";
+  }
   return node.external ? node.id.slice(EXTERNAL_PREFIX.length) : node.id;
+}
+
+function kindClass(kind) {
+  return KIND_CLASSES.has(kind) ? kind : "backlog";
 }
 
 export function buildDependencyModel(items) {
@@ -149,7 +157,7 @@ function renderNode(node, model, ctx) {
   head.className = "dn-head";
   const kind = node.external ? "external" : String(node.item?.kind || "item");
   head.append(
-    textElement("span", `chip chip--${kind}`, kind),
+    textElement("span", `chip chip--${kindClass(kind)}`, kind),
     textElement("span", "ic-id", itemLabel(node)),
   );
   if (node.item?.blocked) {
