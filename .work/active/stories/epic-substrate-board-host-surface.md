@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-host-surface
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-host
 depends_on: [epic-substrate-board-host-feed, epic-substrate-board-host-assets]
@@ -72,3 +72,16 @@ legacy Claude slash command, and retire the static one-shot board generator.
 - Confirmed `plugins/agile-workflow/commands/board.md` and
   `plugins/agile-workflow/scripts/work-board.template.html` are absent, and
   `plugins/agile-workflow/skills/board/SKILL.md` exists.
+
+## Review
+
+Approved fast-lane review.
+
+- Verification is green for `work-view-cli` unit and integration tests.
+- Release binary remains well under the 8 MB guardrail at 551,592 bytes.
+- The active `/board` command and static template are gone; the remaining
+  `work-board.sh` path is a delegation/error shim only.
+- The new browser-open behavior runs after localhost bind and has headless and
+  opener-selection unit coverage.
+- Foundation docs and the skill catalog now describe the live `work-view board`
+  surface.
