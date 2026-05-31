@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board
 kind: epic
-stage: implementing
+stage: done
 tags: [tooling]
 parent: null
 depends_on: [epic-substrate-cli]
@@ -208,3 +208,40 @@ When this epic ships:
   board rather than generating a one-shot page.
 
 <!-- The design pass on each child feature will fill in real specifics. -->
+
+## Completion Summary
+
+- Delivered `work-view board` / `work-view serve` as the live localhost board
+  host with `/healthz`, `/api/substrate`, embedded assets, loopback Host header
+  hardening, busy-port scanning, and browser-open handling.
+- Replaced the static board generator path with a compatibility
+  `work-board.sh` shim that delegates to `.work/bin/work-view board`.
+- Added the user-invocable `agile-workflow:board` skill and removed the legacy
+  Claude `/board` command file from `plugins/agile-workflow/commands/`.
+- Delivered the shared board shell: app frame, view switching, filter state,
+  auto-hide for terminal work, safe markdown rendering, shared cards, shared
+  detail surface, diagnostics, theme/accent controls, and static asset checks.
+- Delivered the three board views: kanban stage grid with epic swimlanes,
+  dependency graph with trace/collapse controls, and sortable/filterable table.
+- Rolled forward current docs so `plugins/agile-workflow/docs/SPEC.md`,
+  `plugins/agile-workflow/docs/ARCHITECTURE.md`, and `docs/ARCHITECTURE.md`
+  describe the live `work-view board` surface.
+- Final verification passed: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test
+  -p work-view-cli`, `TMPDIR=/home/nathan/.cache/silas/tmp cargo build
+  --release -p work-view-cli`, and release binary size `697680` bytes.
+
+## Peer Review Notes
+
+- Opus design advisory was used during view design and accepted where it matched
+  local judgment: stage ordering comes from shared filter options, view-local
+  state stays module-scoped, and the three views reuse shell cards/filters/detail
+  instead of reimplementing them. A suggested extra shared prep story was
+  rejected because the registration stories already sequenced that integration.
+- Scoped Opus implementation/review attempts during the work stalled without
+  output or worktree changes, so those item reviews used local audit instead.
+- Final Opus checkpoint on 2026-05-31 was invoked through peeragent with
+  `--agent claude --model opus --effort xhigh` and recursion disabled. It
+  timed out after five minutes with no output, so there were no peer findings to
+  accept or reject. Local final audit confirmed the legacy `/board` command file
+  is absent, child features are done, docs are current, and only the unrelated
+  `.mockups/design-system/components.css` worktree change remains dirty.
