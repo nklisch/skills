@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-shell
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board
 depends_on: [epic-substrate-board-host]
@@ -457,3 +457,18 @@ Verification:
 - `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`
 
 Last verified release binary size: 659552 bytes.
+
+## Review
+
+Approved on 2026-05-31.
+
+- All child stories reached `stage: done`.
+- Host review confirmed the shell owns state, filtering, cards, detail, and
+  placeholder view mounting without implementing the downstream view layouts.
+- Opus peer-review loops were run on the filter boundary and shell capstone.
+  Accepted findings were fixed and committed; remaining items were either
+  deliberate contract choices or deferred low-priority polish.
+- Verification remained green after the accepted fixes:
+  `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli` and
+  `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p
+  work-view-cli`.
