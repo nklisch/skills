@@ -47,6 +47,10 @@ function kindClass(kind) {
   return KIND_CLASSES.has(kind) ? kind : "backlog";
 }
 
+function isTerminalItem(item) {
+  return Boolean(item?.is_terminal || item?.stage === "done" || item?.stage === "released");
+}
+
 export function buildDependencyModel(items) {
   const nodes = new Map();
   const edges = [];
@@ -374,7 +378,7 @@ function graphItems(items) {
   if (items.length <= LARGE_GRAPH_THRESHOLD || showTerminalBranches) {
     return items;
   }
-  const active = items.filter((item) => !item?.is_terminal);
+  const active = items.filter((item) => !isTerminalItem(item));
   return active.length > 0 ? active : items;
 }
 
