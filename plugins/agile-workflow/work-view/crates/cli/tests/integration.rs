@@ -535,8 +535,11 @@ fn board_embedded_assets_return_expected_content_types() {
             && board_css_body.contains(".kanban-lane")
             && board_css_body.contains(".kanban-column")
             && board_css_body.contains("grid-auto-flow: row")
-            && board_css_body.contains("scroll-snap-type"),
-        "board CSS should ship responsive kanban layout primitives; body: {board_css_body}"
+            && board_css_body.contains("scroll-snap-type")
+            && board_css_body.contains(".table-wrap")
+            && board_css_body.contains("position: sticky")
+            && board_css_body.contains("min-width: 820px"),
+        "board CSS should ship responsive board view layout primitives; body: {board_css_body}"
     );
 
     for path in [
