@@ -39,8 +39,10 @@ Ports & Adapters / Single-Source-of-Truth. One library crate; two entry points.
 ```
 crates/
   core/    # parse .work/ items (YAML frontmatter + body), build depends_on/parent
-           # graph, filter, and the stage-aware "next actionable" logic
-  cli/     # work-view CLI adapter (terse, parseable) -> imports core
+           # graph, filter, and the dependency-graph PRIMITIVES (deps_satisfied,
+           # unmet_deps) that the stage-aware "next actionable" view builds on
+  cli/     # work-view CLI adapter (terse, parseable) -> imports core; owns the
+           # stage-aware --ready/--blocked post-filter (actionable) over those primitives
   board/   # axum web server (human board) -> imports core, embeds web assets
 ```
 

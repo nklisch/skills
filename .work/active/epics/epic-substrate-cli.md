@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli
 kind: epic
-stage: review
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
@@ -112,8 +112,49 @@ same work (the `docs` gate enforces this at release):
   description and the `convert` copy/install step.
 - `docs/ARCHITECTURE.md` (this repo) — the agent-surface half of the
   substrate-access model.
+- `README.md` (repo root) + `docs/agile-workflow-guide.md` — both still call
+  `.work/bin/work-view` a "query script" / "copied by convert" (epic-review
+  finding). Accurate TODAY (convert installs the bash fallback until CI ships
+  binaries); roll forward to "platform-matched binary installed by
+  `install-work-view.sh`, bash fallback" when `dist/` is populated at release.
+
+(`.agents/skills/substrate-binary/SKILL.md`'s core-vs-cli sketch was corrected
+during epic review — next-actionable lives in the CLI post-filter, not core.)
 
 <!-- The design pass on each child feature will fill in real specifics. -->
+
+## Review (2026-05-30)
+
+**Verdict**: Approve with comments (no blockers) — epic-level aggregate review +
+autopilot final completion check, one cross-model pass (Codex xhigh via
+peeragent).
+
+**Capability**: delivered end-to-end. Rust core + `work-view` CLI with full
+bash parity, the stage-aware `--ready`/`--blocked` fix (binary + bash fallback
+in lockstep, verified by real binary-vs-bash parity tests), the
+platform-selecting install path + CI workflow, on a shared core the board epic
+reuses. Substrate consistent (5/5 children done; downstream `epic-substrate-board`
+correctly blocked on this epic).
+
+**Findings**: no blockers. Two Important (both doc-drift): the
+`substrate-binary` reference skill mis-stated that next-actionable lives in
+`core` — FIXED (it's the CLI post-filter over core primitives); `README.md` +
+`docs/agile-workflow-guide.md` still call work-view a "script" — TRACKED on the
+roll-forward list above (accurate until binaries ship; the `docs` gate rolls it
+forward at release). The VISION/SPEC/ARCHITECTURE/ROADMAP "bash → binary"
+assertions remain tracked-deferred (no release binding yet).
+
+**Verification (peer re-ran)**: cargo 230 tests, clippy `-D warnings`, fmt all
+clean; `install-work-view.test.sh` 51; hook snapshot sane.
+
+**Stage**: advanced review → done. Left in `active/epics/` (not archived): this
+project archives via `release-deploy`, which the user runs to bind the epic +
+children to a version, run the gates, and `git mv` them to `releases/<version>/`.
+Autopilot does not release.
+
+**Next**: `/agile-workflow:release-deploy` to bind this epic (+ its 5 children)
+to a version — the `docs` gate there rolls the tracked foundation docs forward
+and the binary-refresh CI job populates `dist/` before the version bump.
 
 ## Children complete (2026-05-30)
 
