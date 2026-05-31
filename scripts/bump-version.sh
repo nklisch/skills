@@ -110,6 +110,16 @@ if [[ "$plugin" == "agile-workflow" ]]; then
   # sed -i.bak ... && rm .bak is portable across GNU and BSD/macOS sed.
   sed -i.bak -E 's/^WORK_VIEW_VERSION="[^"]*"/WORK_VIEW_VERSION="'"$new"'"/' "$bash_script"
   rm -f "${bash_script}.bak"
+  # Fail Fast: sed exits 0 even when nothing matched, so verify the projection
+  # actually landed. A future refactor of the literal (added indentation,
+  # `readonly`, a rename) would otherwise silently ship a stale bash --version
+  # while the manifests and .work-view-version advance.
+  if ! grep -q "^WORK_VIEW_VERSION=\"${new}\"" "$bash_script"; then
+    echo "bump-version: failed to project version into ${bash_script}" >&2
+    echo "  expected line: WORK_VIEW_VERSION=\"${new}\"" >&2
+    echo "  the anchored sed pattern no longer matches — fix the projection block." >&2
+    exit 1
+  fi
   git add "$bash_script"
 fi
 

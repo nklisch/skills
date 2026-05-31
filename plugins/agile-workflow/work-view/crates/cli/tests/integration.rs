@@ -1459,24 +1459,39 @@ fn version_stamp_has_no_trailing_newline() {
 fn version_stamp_equals_plugin_json_version() {
     // The version stamp is projected from plugin.json by bump-version.sh. If a
     // hand-edit or a bump-script regression drifts them, fail loudly here.
-    // crates/cli -> ../../../.claude-plugin/plugin.json
-    const PLUGIN_JSON: &str =
+    // The repo keeps the Claude AND Codex manifests in lockstep, so check BOTH —
+    // a Codex-only drift must not slip past this test.
+    // crates/cli -> ../../../{.claude-plugin,.codex-plugin}/plugin.json
+    const CLAUDE_JSON: &str =
         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../.claude-plugin/plugin.json"));
+    const CODEX_JSON: &str =
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../.codex-plugin/plugin.json"));
+
     // Minimal extraction (no serde dependency in this crate): find the
     // "version": "x.y.z" entry and pull the quoted value.
-    let marker = "\"version\":";
-    let after = PLUGIN_JSON
-        .find(marker)
-        .map(|i| &PLUGIN_JSON[i + marker.len()..])
-        .expect("plugin.json must contain a \"version\" key");
-    let open = after.find('"').expect("version value must be quoted") + 1;
-    let rest = &after[open..];
-    let close = rest.find('"').expect("version value must be closed");
-    let plugin_version = &rest[..close];
+    fn extract_version(json: &str) -> &str {
+        let marker = "\"version\":";
+        let after = json
+            .find(marker)
+            .map(|i| &json[i + marker.len()..])
+            .expect("plugin.json must contain a \"version\" key");
+        let open = after.find('"').expect("version value must be quoted") + 1;
+        let rest = &after[open..];
+        let close = rest.find('"').expect("version value must be closed");
+        &rest[..close]
+    }
+
+    let claude_version = extract_version(CLAUDE_JSON);
+    let codex_version = extract_version(CODEX_JSON);
     assert_eq!(
-        VERSION_STAMP, plugin_version,
-        ".work-view-version ({VERSION_STAMP:?}) must equal plugin.json version ({plugin_version:?}); \
-         run scripts/bump-version.sh to re-project the stamp in lockstep"
+        VERSION_STAMP, claude_version,
+        ".work-view-version ({VERSION_STAMP:?}) must equal .claude-plugin/plugin.json version \
+         ({claude_version:?}); run scripts/bump-version.sh to re-project the stamp in lockstep"
+    );
+    assert_eq!(
+        VERSION_STAMP, codex_version,
+        ".work-view-version ({VERSION_STAMP:?}) must equal .codex-plugin/plugin.json version \
+         ({codex_version:?}); the Claude and Codex manifests must stay in lockstep"
     );
 }
 
