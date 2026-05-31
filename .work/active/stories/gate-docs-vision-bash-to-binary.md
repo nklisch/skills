@@ -1,7 +1,7 @@
 ---
 id: gate-docs-vision-bash-to-binary
 kind: story
-stage: implementing
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -37,3 +37,7 @@ pure-bash fallback)" for the same queries. Line 57: change "a small bash script"
 small compiled binary with a bash fallback" (the "git, plain markdown, no
 MCP/auth/daemon" portability claim stays true). Rolling-foundation: replace in place,
 no "previously" prose.
+
+## Done (2026-05-31)
+VISION.md line 71 → "A compiled `work-view` CLI (with a pure-bash fallback)"; line 57 →
+"a small compiled binary with a bash fallback". Replaced in place.

@@ -1,7 +1,7 @@
 ---
 id: gate-docs-spec-bash-tooling-line
 kind: story
-stage: drafting
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -38,3 +38,8 @@ asserts bash is *the* work-view runtime, which is no longer the contract.
 Line 488 → `- **bash** ≥ 4.0 — for the `work-view` bash fallback (`work-view.sh`), the
 install helper, and `work-board.sh`.` Leave the optional `yq`/`jq`/`gh` entries; they
 still apply to the bash fallback. Replace in place.
+
+## Done (2026-05-31)
+SPEC.md line 488 → "for the `work-view` bash fallback (`work-view.sh`), the install
+helper (`install-work-view.sh`), and `work-board.sh`" (verified work-board.sh exists).
+Replaced in place.

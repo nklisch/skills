@@ -111,8 +111,9 @@ distinct from `parent` (which is **hierarchy**).
 
 ### Rules
 
-- An item is **ready** when its `stage` is `implementing` AND every
-  `depends_on` entry is at `stage: done`.
+- An item is **ready** when it is in the active tier, its `stage` is
+  `drafting`, `implementing`, or `review`, AND every `depends_on` entry is
+  terminal (`stage: done`/`released`, or resident in `releases/`/`archive/`).
 - Dependencies must form a DAG. Cycles are invalid; skills that produce
   items must validate no cycle is introduced before writing.
 - Cross-tier dependencies are allowed (a feature can depend on an epic;
@@ -206,8 +207,8 @@ freely. Run `--help` for the authoritative flag list.
 --parent <id>        direct children of given item
 --release <version>  items with release_binding: <version>
 --gate <name>        items produced by gate <name>
---ready              stage:implementing AND all depends_on done
---blocked            stage:implementing AND unmet dependencies
+--ready              active-tier drafting/implementing/review, all depends_on done
+--blocked            active-tier drafting/implementing/review, unmet dependencies
 --blocking <id>      items that depend on <id>
 
 ### Output modes

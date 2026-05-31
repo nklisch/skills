@@ -281,8 +281,8 @@ populates `dist/`.
 | `--parent` | `<id>` | Filter to direct children of the given item |
 | `--release` | `<version>` | Filter by `release_binding` |
 | `--gate` | `<gate>` | Filter by `gate_origin` |
-| `--ready` | (none) | Items at `stage: implementing` with all `depends_on` at `stage: done` |
-| `--blocked` | (none) | Items waiting on unresolved dependencies (annotates which) |
+| `--ready` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with all `depends_on` at `stage: done` |
+| `--blocked` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with at least one unresolved dependency (annotates which) |
 | `--blocking` | `<id>` | Reverse lookup: items that depend on `<id>` |
 | `--paths` | (none) | Output only file paths (grep-pipe-friendly) |
 | `--cat` | (none) | Output full bodies of matching items |
@@ -485,7 +485,7 @@ the touched item. Validation issues are returned as
 
 ### Required
 
-- **bash** ≥ 4.0 — for `work-view`
+- **bash** ≥ 4.0 — for the `work-view` bash fallback (`work-view.sh`), the install helper (`install-work-view.sh`), and `work-board.sh`
 - **python3** — for plugin hook scripts
 - **grep** — POSIX-compatible
 - **git** — substrate's audit trail; `work-view`'s history queries call `git log`

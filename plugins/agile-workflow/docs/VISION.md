@@ -54,8 +54,8 @@ Project owners running AI-driven development who want:
 - Cross-session continuity without manually re-feeding context to the agent
 - A pattern that scales from solo single-project to long-running
   maintenance loops
-- Tooling-portable substrate (git, plain markdown, a small bash script —
-  no MCP, no auth, no daemon)
+- Tooling-portable substrate (git, plain markdown, a small compiled binary
+  with a bash fallback — no MCP, no auth, no daemon)
 
 This is a sibling pattern to the existing `workflow` plugin. Both ship from
 the same repo. Pick agile-workflow for projects where the substrate's
@@ -68,8 +68,8 @@ agile-workflow ships v0.1.0 complete:
 
 - 25 skills covering ideation, conversion, scoping, design (greenfield +
   refactor + perf), implementation, review, gates, release, and autopilot
-- A `work-view` bash script for fast queries by stage, tag, kind, parent,
-  release binding, and dependency state
+- A compiled `work-view` CLI (with a pure-bash fallback) for fast queries by
+  stage, tag, kind, parent, release binding, and dependency state
 - Shared Codex/Claude command hooks that inject queue/principles context only
   for actionable workflow prompts, auto-bump `updated:`, and surface cheap
   substrate validation issues

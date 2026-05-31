@@ -1,7 +1,7 @@
 ---
 id: gate-docs-architecture-ready-rule
 kind: story
-stage: implementing
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -42,3 +42,8 @@ Lines 209-210 → `--ready  active-tier items at drafting/implementing/review wi
 depends_on done` and `--blocked  active-tier items at drafting/implementing/review
 with unmet dependencies`. This embed is the canonical AGENTS.md content `convert`
 writes, so it must match the live semantic. Replace in place.
+
+## Done (2026-05-31)
+ARCHITECTURE.md ready-rule (114-115) rewritten to active-tier
+drafting/implementing/review with terminal deps; the embedded AGENTS cheatsheet
+(`--ready`/`--blocked` lines) updated to match. Replaced in place.

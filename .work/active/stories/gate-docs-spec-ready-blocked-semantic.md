@@ -1,7 +1,7 @@
 ---
 id: gate-docs-spec-ready-blocked-semantic
 kind: story
-stage: implementing
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -38,3 +38,7 @@ Line 284 → `--ready` | (none) | Active-tier items at `stage: drafting`,
 Line 285 → `--blocked` | (none) | Active-tier items at `stage: drafting`,
 `implementing`, or `review` with at least one unresolved dependency (annotates which).
 Replace in place, no version-history prose.
+
+## Done (2026-05-31)
+SPEC.md lines 284-285 rewritten to the stage-aware definition (active-tier
+drafting/implementing/review). Replaced in place.
