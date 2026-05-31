@@ -265,6 +265,36 @@ lockstep. No separate npm package, no separate registry.
 - Promote to v1.0.0 when the substrate has carried 2+ projects through a
   complete release cycle without contract changes.
 
+### work-view `--version` lockstep
+
+Both work-view implementations report the plugin semver so a deployed copy can
+be checked against the plugin with a single string compare:
+
+- The Rust CLI and the bash fallback (`scripts/work-view.sh`) each accept
+  `--version` / `-V` and print `work-view <semver>\n` (exit 0). The reported
+  `<semver>` is the agile-workflow **plugin** version from `plugin.json`, not the
+  crate version. Output is byte-identical across both implementations (a parity
+  test enforces this). The bash `--version` answer is emitted by a POSIX-safe
+  prelude that runs before the Bash-4 guard, so it works even on macOS system
+  bash 3.2.
+- `plugin.json` is the single source of truth for the version.
+  `bump-version.sh` projects it, in lockstep, into the Rust stamp file
+  `work-view/crates/cli/.work-view-version` (compiled in via `include_str!`, no
+  trailing newline) and the `WORK_VIEW_VERSION` literal in
+  `scripts/work-view.sh`. A `cargo test` assertion fails loudly if the stamp
+  drifts from `plugin.json`.
+- The four prebuilt `dist/<triple>/work-view` binaries are compiled by CI **from
+  the stamped source**, so they must be rebuilt on the **post-bump** commit:
+  after `bump-version.sh` commits and pushes the bump, trigger the "Build
+  work-view binaries" workflow (`workflow_dispatch`, `commit_binaries=true`)
+  against the bumped commit so the shipped binaries self-report the new semver.
+  Rebuilding before the bump would compile the old stamp and ship
+  version-mismatched binaries. There is an unavoidable lag window between the
+  bump commit and the CI binary commit; it is acceptable because the
+  project-side entrypoint is the source-stamped bash implementation and install
+  selection does not blindly trust a prebuilt whose `--version` mismatches the
+  plugin.
+
 ## work-view binary
 
 `convert` installs `work-view` into `.work/bin/work-view` via

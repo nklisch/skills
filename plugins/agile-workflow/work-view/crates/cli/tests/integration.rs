@@ -1410,3 +1410,100 @@ fn parity_kind_feature_stage_implementing_paths_matches_bash() {
     assert_eq!(bin_code, bash_code);
     assert_eq!(bin_stdout, bash_stdout, "--kind feature --stage implementing --paths mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}");
 }
+
+// ── --version flag (integration + parity) ─────────────────────────────────────
+//
+// The version stamp lives in `crates/cli/.work-view-version` (written with no
+// trailing newline by bump-version.sh). Both the Rust binary and the bash
+// fallback report `work-view <semver>\n` via --version, and bump-version.sh
+// keeps the two in lockstep with plugin.json. These tests pin the output shape,
+// the file<->binary equality, and bash<->Rust byte-parity. --version is
+// substrate-independent (short-circuits before substrate detection), so the
+// fixture cwd is irrelevant here.
+
+/// Contents of the committed version stamp, read at compile time.
+/// Written with NO trailing newline, so this is the bare semver.
+const VERSION_STAMP: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/.work-view-version"));
+
+#[test]
+fn version_long_prints_stamp_and_exits_zero() {
+    let (stdout, _, code) = run(&["--version"]);
+    assert_eq!(code, 0, "--version must exit 0");
+    assert_eq!(
+        stdout,
+        format!("work-view {VERSION_STAMP}\n"),
+        "--version stdout must be `work-view <semver>\\n` with a single trailing newline"
+    );
+}
+
+#[test]
+fn version_short_matches_long() {
+    let (long_stdout, _, long_code) = run(&["--version"]);
+    let (short_stdout, _, short_code) = run(&["-V"]);
+    assert_eq!(short_code, 0, "-V must exit 0");
+    assert_eq!(short_code, long_code, "-V and --version exit codes must match");
+    assert_eq!(short_stdout, long_stdout, "-V and --version stdout must match");
+}
+
+#[test]
+fn version_stamp_has_no_trailing_newline() {
+    // Pins the no-newline write contract: a stray newline would print a blank
+    // line after the semver and break byte-parity with the bash fallback.
+    assert!(
+        !VERSION_STAMP.ends_with('\n'),
+        ".work-view-version must not end with a newline; got {VERSION_STAMP:?}"
+    );
+}
+
+#[test]
+fn version_stamp_equals_plugin_json_version() {
+    // The version stamp is projected from plugin.json by bump-version.sh. If a
+    // hand-edit or a bump-script regression drifts them, fail loudly here.
+    // crates/cli -> ../../../.claude-plugin/plugin.json
+    const PLUGIN_JSON: &str =
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../.claude-plugin/plugin.json"));
+    // Minimal extraction (no serde dependency in this crate): find the
+    // "version": "x.y.z" entry and pull the quoted value.
+    let marker = "\"version\":";
+    let after = PLUGIN_JSON
+        .find(marker)
+        .map(|i| &PLUGIN_JSON[i + marker.len()..])
+        .expect("plugin.json must contain a \"version\" key");
+    let open = after.find('"').expect("version value must be quoted") + 1;
+    let rest = &after[open..];
+    let close = rest.find('"').expect("version value must be closed");
+    let plugin_version = &rest[..close];
+    assert_eq!(
+        VERSION_STAMP, plugin_version,
+        ".work-view-version ({VERSION_STAMP:?}) must equal plugin.json version ({plugin_version:?}); \
+         run scripts/bump-version.sh to re-project the stamp in lockstep"
+    );
+}
+
+#[test]
+fn parity_version_matches_bash() {
+    let (bin_stdout, _, bin_code) = run(&["--version"]);
+    let Some((bash_stdout, bash_code)) = bash_run(&["--version"]) else {
+        eprintln!("skipping bash parity: bash unavailable on this platform");
+        return;
+    };
+    assert_eq!(bin_code, bash_code, "exit codes differ for --version");
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "--version stdout mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+}
+
+#[test]
+fn parity_version_short_matches_bash() {
+    let (bin_stdout, _, bin_code) = run(&["-V"]);
+    let Some((bash_stdout, bash_code)) = bash_run(&["-V"]) else {
+        eprintln!("skipping bash parity: bash unavailable on this platform");
+        return;
+    };
+    assert_eq!(bin_code, bash_code, "exit codes differ for -V");
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "-V stdout mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+}
