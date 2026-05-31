@@ -1,7 +1,7 @@
 ---
 id: epic-agents-rules-autoload-convert-safety
 kind: feature
-stage: review
+stage: done
 tags: [skill]
 parent: epic-agents-rules-autoload
 depends_on: [epic-agents-rules-autoload-convert-extract]
@@ -266,3 +266,34 @@ to the AGENTS slim — convert-extract's work, now cross-referenced not duplicat
 - **(e) convert-extract work intact** — Phase 6.5 (rules-first-then-slim), the
   `agile-workflow:rules:start/end` markers, the slim AGENTS template, and the
   verify-before-slimming step are all present and unbroken.
+
+## Review (2026-05-31, deep lane, cross-model via Codex/peeragent)
+
+Codex (effort high) reviewed implementation commit `abaf56e`. Verdict: **Block** —
+2 blockers + 2 important. All fixed inline (small, clear, safe corrections mapping
+1:1 to the findings), then re-verified:
+- **Blocker — `preserved_in_place` could still be destroyed.** The gate conflated
+  *content-safe* with *source-removable*. Fixed: the gate now splits into
+  **source-eliminating ops** (delete/move/shim/symlink — permitted ONLY when every
+  user block is `landed_*`; any `preserved_in_place`/`ambiguous` block keeps the
+  source) vs **regenerable-copy ops** (managed-section overwrite, mirror replace —
+  only after the canonical home is verified). Phase 7's shim condition and the
+  `preserved_in_place` manifest note updated to match.
+- **Blocker — provenance could false-positive "preserved".** Replaced "digest
+  present + semantic anchors" with **recompute-and-compare**: normalize the
+  destination region (excluding the marker), hash it, and require equality with the
+  recorded `src-sha256`; a marker/anchor alone is never sufficient. Mismatch (or no
+  locatable region) → `preserved_in_place`, keep source. The verbatim importer
+  hash-matches by construction.
+- **Important — ungated destructive sites.** Added the content-integrity gate to
+  nested-Claude-duplicate normalization (claude-source carve-out + sync) and
+  `.claude/skills/*` mirror replacement.
+- **Important — Phase 2.5 routing contradiction.** "all imported content → canonical
+  instruction file" now carves out legacy rule-prose → `.agents/rules/<name>.md`.
+
+Re-verification greps: "Source-eliminating ops" + "every user block is landed"
+present; "Verify by recomputing" present; old weak-anchor language gone (0); 14
+content-integrity references; Phase 2.5 carve-out present; hook script still parses.
+Bounce count: 1 (fixed inline, not re-queued). Verdict after fixes: **Approve** —
+advanced `review → done`. The autopilot Phase 8 final loop will re-review the full
+bundle as backstop.

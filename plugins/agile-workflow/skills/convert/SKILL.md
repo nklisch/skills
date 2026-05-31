@@ -229,13 +229,22 @@ integrity closes that hole.
 > overwrite (rewriting content between `<!-- ...:start/end -->` markers), or
 > mirror replacement (overwriting/symlinking a `.claude` mirror). Before
 > performing a destructive op on a legacy artifact, build the **block-level
-> preservation manifest** (below) for that artifact and confirm **every** block
-> is in a terminal state — `landed_existing`, `landed_this_run`, or
-> `preserved_in_place`. If **any** block is `ambiguous` or otherwise
-> unaccounted-for, **do NOT perform the destructive op**: leave the artifact
-> exactly where it is and report it as preserved-pending-review. The gate is a
-> hard precondition, not advice — a destructive op whose manifest is not fully
-> terminal does not run.
+> preservation manifest** (below), then apply the rule for the op's kind:
+> - **Source-eliminating ops** (delete, move, replace-with-shim,
+>   replace-with-symlink — anything that removes the legacy file as a place its
+>   content lives): permitted ONLY when **every** user block is `landed_existing`
+>   or `landed_this_run`. A block still `preserved_in_place` means the source file
+>   is its ONLY home, so the op **does NOT run** — leave the artifact exactly where
+>   it is. `ambiguous` likewise blocks.
+> - **Regenerable-copy ops** (managed-section overwrite of plugin markers, or
+>   `.claude` mirror replacement where the `.agents` canonical is the home):
+>   permitted only after the manifest confirms the canonical home already holds the
+>   content — never overwrite the copy while the home is unverified.
+>
+> The gate is a hard precondition, not advice. `preserved_in_place` satisfies the
+> *content-safety* check (the content still exists, in the source) but NEVER
+> licenses removing that source. A manifest with any unaccounted-for block runs no
+> destructive op; the artifact is reported as preserved-pending-review.
 
 **Content inside plugin-managed markers is NEVER counted as preserved
 user-content.** Blocks between `<!-- agile-workflow:start/end -->` or
@@ -274,29 +283,35 @@ Before touching any legacy or split-destination artifact (notably a
      canonical destination (a prior run, or the user, put it there). No write.
    - `landed_this_run` — convert wrote it to the destination this run.
    - `preserved_in_place` — intentionally kept in the source file (ambiguous
-     blocks, or blocks the user chose not to migrate). The source is therefore
-     NOT a candidate for deletion.
+     blocks, or blocks the user chose not to migrate). This block is content-safe
+     (it still exists in the source) but pins the source in place: it makes the
+     source NOT a candidate for any source-eliminating op (delete / move / shim /
+     symlink), which require **every** block `landed_*`.
    - `ambiguous` — not yet resolved; blocks the destructive op until it becomes
      `preserved_in_place` or lands.
-5. **Provenance verification (NOT byte-hash).** Destinations legitimately
-   reformat imported content (heading levels change, prose is rewrapped), so a
-   byte-for-byte hash of the destination is too strict and produces false
-   data-loss alarms. Instead, per source block:
+5. **Provenance verification (content-equality, not weak anchors).** A digest
+   comment plus a matching heading does NOT prove the block's body landed — a
+   destination could carry the marker and the slug while dropping the rationale,
+   examples, or prose. Verification must prove the *content* is present while
+   still tolerating pure *layout* reformatting. Per source block:
    - Compute `sha256` of the **normalized** source block (trim trailing
-     whitespace per line, collapse runs of blank lines to one, strip the
-     trailing newline) and write it into the destination as a trailing HTML
-     comment / metadata marker, e.g.
-     `<!-- agile-workflow:provenance src-sha256=<digest> -->`.
-   - Verify the block landed by confirming **both** (a) the provenance digest is
-     present at the destination, and (b) the destination contains the block's
-     **required semantic anchors** — its pattern name / slug for a
-     `structural-pattern`, or its heading text and any fenced-code payload for
-     `rule-prose`.
-   - If no trustworthy provenance can be written (the destination format has
-     nowhere to carry the comment, or the anchors can't be confirmed), the block
-     does **not** count as landed — mark it `preserved_in_place` and keep the
-     source. Keeping a duplicate is always preferable to a deletion you cannot
-     prove safe.
+     whitespace per line, collapse runs of blank lines to one, strip the trailing
+     newline). Write it into the destination region that holds the block as a
+     trailing marker, e.g. `<!-- agile-workflow:provenance src-sha256=<digest> -->`.
+     Locate that region by the block's semantic anchors (pattern name / slug, or
+     heading text + fenced payload).
+   - **Verify by recomputing**: normalize the destination region the same way
+     (excluding the provenance marker) and confirm its `sha256` **equals** the
+     recorded `src-sha256`. Presence of the marker or an anchor alone is never
+     sufficient — the recomputed destination hash must match.
+   - If the hashes cannot be made equal (the destination genuinely reworded the
+     content rather than just re-laying-it-out), or no trustworthy region can be
+     located, the block does **not** count as landed — mark it `preserved_in_place`
+     and keep the source. The convert-owned importer (Phase 7) writes blocks
+     **verbatim**, so its imports hash-match and become `landed_this_run`; only a
+     pre-existing hand-edited destination risks a mismatch, and there the safe
+     answer is to keep the source. Keeping a duplicate is always preferable to a
+     deletion you cannot prove safe.
 
 **Reference integrity is mandatory regardless of `cleanup_scope`, and runs
 AFTER content integrity passes.** Before any `git mv` / `git rm` /
@@ -348,8 +363,11 @@ directories. Detect all of these before writing:
 **The "canonical instruction file" is set by `entrypoint_model` (Phase 1.8).**
 Everywhere this skill says "the selected AGENTS target," read it as "the
 canonical instruction file" resolved here. The managed agile-workflow section,
-the conventions, and all imported content go into the canonical instruction
-file; the *other* entrypoint becomes a pointer to it (Phase 7).
+the conventions, and imported content go into the canonical instruction file —
+**except** legacy rule-prose blocks, which route to `.agents/rules/<name>.md`
+(e.g. `project.md`) per the Phase 1.8 content-integrity routing, never into the
+canonical instruction file. The *other* entrypoint becomes a pointer to it
+(Phase 7).
 
 - **`entrypoint_model: agents-canonical`** (default) — the canonical instruction
   file is an AGENTS target, chosen by this precedence:
@@ -583,8 +601,10 @@ and root `AGENTS.md` is its pointer (created in Phase 2.5). In this mode, do NOT
 migrate `CLAUDE.md` into AGENTS, do NOT replace `CLAUDE.md` with a symlink, and
 do NOT import its content elsewhere — the managed section and conventions were
 written into `CLAUDE.md` itself. Still normalize any *nested* Claude duplicates
-(`.claude/CLAUDE.md`, `.agents/CLAUDE.md`) to point at `CLAUDE.md`. Skip the
-rest of this phase's root-`CLAUDE.md` handling.
+(`.claude/CLAUDE.md`, `.agents/CLAUDE.md`) to point at `CLAUDE.md` —
+content-integrity gate first, so a nested duplicate carrying unique content not
+already in `CLAUDE.md` is preserved, not replaced. Skip the rest of this phase's
+root-`CLAUDE.md` handling.
 
 In the default `agents-canonical` mode, handle every detected Claude candidate
 (`CLAUDE.md`, `.claude/CLAUDE.md`, `.agents/CLAUDE.md`) as follows:
@@ -659,11 +679,12 @@ wholesale into AGENTS:
      entry already indexed.
    - gate-patterns remains the discovery writer for NEW patterns found in
      release bundles; convert owns lossless import of EXISTING legacy ones.
-2. **Content-integrity gate before any shim/removal.** Replace the rules file
-   with the shim below only after the content-integrity gate (Phase 1.8) confirms
-   every block is terminal (`landed_*` or `preserved_in_place`), AND
-   `cleanup_scope` allows generated cleanup or the user confirms that exact path,
-   AND the reference-integrity check (Phase 1.8) has rewritten or shimmed any
+2. **Content-integrity gate before any shim/removal.** Replacing the rules file
+   with the shim below is a source-eliminating op, so the content-integrity gate
+   (Phase 1.8) permits it only when **every** user block is `landed_*` (any
+   `preserved_in_place` or `ambiguous` block keeps the file in place, unshimmed),
+   AND `cleanup_scope` allows generated cleanup or the user confirms that exact
+   path, AND the reference-integrity check (Phase 1.8) has rewritten or shimmed any
    inbound references. **`patterns.md` carve-out:** `patterns.md` is NEVER
    treated as "generated cleanup" — its content is user/legacy data, so the
    `generated-only` shortcut does NOT authorize shimming it. Shim `patterns.md`
@@ -1042,7 +1063,8 @@ For each artifact with a non-`match` state:
     step above), but its content is never migrated out and the file is never
     replaced by a pointer. Here, only ensure root `AGENTS.md` is a symlink/shim
     pointing at `CLAUDE.md`, and normalize nested Claude duplicates to point at
-    `CLAUDE.md`.
+    `CLAUDE.md` — content-integrity gate first, so a nested duplicate with unique
+    content not already in `CLAUDE.md` is preserved, not replaced.
   If symlinks are unavailable, write the Phase 7 shim under the same cleanup
   authorization.
 - Legacy `.claude/rules/*.md` — only when present, build the Phase 1.8
@@ -1058,11 +1080,13 @@ For each artifact with a non-`match` state:
   replace the file with the Phase 7 shim. `patterns.md` is never "generated
   cleanup"; shim it only under explicit per-path confirmation after the gate
   passes. Never import the whole file into AGENTS.
-- Optional pattern and refactor-conventions mirrors — align `.claude/skills/*`
-  to `.agents/skills/*` when the `.agents` catalog exists and the Claude copy is
-  absent, a symlink, or a known generated mirror, and cleanup is in scope for
-  generated mirrors. If the Claude copy contains unique user content, ask before
-  import or replacement.
+- Optional pattern and refactor-conventions mirrors — `.claude/skills/*` mirror
+  replacement is a destructive op, so the content-integrity gate runs first: align
+  `.claude/skills/*` to `.agents/skills/*` only when the `.agents` catalog exists
+  (the verified home) and the Claude copy is absent, a symlink, or a known
+  generated mirror, and cleanup is in scope for generated mirrors. If the Claude
+  copy contains unique user content, the gate keeps it — reconcile that content
+  into `.agents` first, then re-mirror; never overwrite it unverified.
 - Refactor-conventions wrapper — when `.agents/skills/refactor-conventions/`
   exists and its `SKILL.md` is a known old generated template, rewrite only
   `SKILL.md` to the current catalog/index shape. Preserve all rule reference
