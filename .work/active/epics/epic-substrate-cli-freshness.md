@@ -205,3 +205,16 @@ under-delivered on the epic's own content-portable-entrypoint decision. The
 consolidated resolution (bash as the project-side entrypoint; the Rust prebuilt
 reserved for the plugin-side board and the shim's optional deference) is the
 host's call, not a verbatim adoption of Codex's either/or framing.
+
+A second focused Codex pass reviewed the versioning **implementation** (the code
+diff, not the design) as the feature's deep-review lane. Accepted and fixed in
+commit `0002486`:
+- **`bump-version.sh` silent-projection risk**: `sed` exits 0 on no-match, so a
+  future refactor of the `WORK_VIEW_VERSION` literal could ship a stale bash
+  `--version` while manifests advance. Added a Fail-Fast postcondition assert.
+- **Drift test only checked the Claude manifest**: now asserts the stamp equals
+  BOTH the Claude and Codex `plugin.json` versions (repo lockstep invariant).
+- **Deferred (documented, low severity)**: the bash `--version` POSIX prelude
+  handles arg position 1 only on bash 3.2; the contract-critical uses (self-heal
+  probe, humans) pass `--version` alone. Independently verified 247 tests green;
+  both implementations report `work-view 0.8.7` byte-identically.

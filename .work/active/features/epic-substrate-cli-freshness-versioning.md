@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-versioning
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli-freshness
 depends_on: []
