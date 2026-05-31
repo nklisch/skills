@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-dependency-interactions
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-dependency
 depends_on: [epic-substrate-board-dependency-canvas]
@@ -46,3 +46,12 @@ filtered sets usable.
   scope so state is re-applied after shell remounts.
 - Added large-graph and narrow-viewport fallback to the D1 layered list, plus a
   local terminal-branch toggle for large graphs.
+
+## Review Notes
+
+- Local review approved after fixing the canvas/list toggle to use explicit
+  render-mode state and broadening terminal collapse to include `done` and
+  `released` stages when `is_terminal` is absent.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`;
+  `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`;
+  release binary `687008` bytes.
