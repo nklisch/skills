@@ -207,8 +207,8 @@ freely. Run `--help` for the authoritative flag list.
 --parent <id>        direct children of given item
 --release <version>  items with release_binding: <version>
 --gate <name>        items produced by gate <name>
---ready              active-tier drafting/implementing/review, all depends_on done
---blocked            active-tier drafting/implementing/review, unmet dependencies
+--ready              active-tier drafting/implementing/review, all depends_on terminal
+--blocked            active-tier drafting/implementing/review, >=1 non-terminal dep
 --blocking <id>      items that depend on <id>
 
 ### Output modes

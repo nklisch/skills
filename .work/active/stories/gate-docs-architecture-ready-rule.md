@@ -47,3 +47,8 @@ writes, so it must match the live semantic. Replace in place.
 ARCHITECTURE.md ready-rule (114-115) rewritten to active-tier
 drafting/implementing/review with terminal deps; the embedded AGENTS cheatsheet
 (`--ready`/`--blocked` lines) updated to match. Replaced in place.
+
+## Final review refinement (cross-model, Codex via peeragent, 2026-05-31)
+Cheatsheet lines 209-210 tightened for accuracy: "all depends_on done" → "all
+depends_on terminal"; "unmet dependencies" → ">=1 non-terminal dep". The prose
+ready-rule (114-115) already used the precise "terminal" wording.

@@ -42,3 +42,13 @@ Replace in place, no version-history prose.
 ## Done (2026-05-31)
 SPEC.md lines 284-285 rewritten to the stage-aware definition (active-tier
 drafting/implementing/review). Replaced in place.
+
+## Final review refinement (cross-model, Codex via peeragent, 2026-05-31)
+Two accepted findings, both fixed in place:
+- `--ready` "all `depends_on` at `stage: done`" was too narrow — the impl's
+  `deps_satisfied` treats `released` and `releases/`/`archive/`-tier deps as terminal
+  too. Now reads "all `depends_on` terminal (`done`/`released`, or in
+  `releases/`/`archive/`)".
+- `--blocked` "(annotates which)" was inaccurate — `unmet_deps` exists in core but is
+  NOT wired to CLI output, and bash `--blocked` also only filters. Removed the phrase;
+  now "at least one non-terminal dependency".

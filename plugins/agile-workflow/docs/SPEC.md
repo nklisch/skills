@@ -281,8 +281,8 @@ populates `dist/`.
 | `--parent` | `<id>` | Filter to direct children of the given item |
 | `--release` | `<version>` | Filter by `release_binding` |
 | `--gate` | `<gate>` | Filter by `gate_origin` |
-| `--ready` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with all `depends_on` at `stage: done` |
-| `--blocked` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with at least one unresolved dependency (annotates which) |
+| `--ready` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with all `depends_on` terminal (`done`/`released`, or resident in `releases/`/`archive/`) |
+| `--blocked` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with at least one non-terminal dependency |
 | `--blocking` | `<id>` | Reverse lookup: items that depend on `<id>` |
 | `--paths` | (none) | Output only file paths (grep-pipe-friendly) |
 | `--cat` | (none) | Output full bodies of matching items |

@@ -97,6 +97,20 @@ cargo tests (was 230, +7), Python hook test 2/2, convert-routing test 9/9, insta
   - `parity_parent_with_no_children_empty_matches_bash` + `parity_blocking_with_no_dependents_empty_matches_bash`
 - Added root `.gitignore` (`__pycache__/`, `*.pyc`, `.peeragent/`).
 
+### Final completion peer-review (cross-model, Codex via peeragent, 2026-05-31)
+Reviewed the drain implementation diff (range `d22b745..HEAD`). Verdict: clean except 2
+doc-precision findings, both FIXED in place (no new items needed):
+- **important** — `--ready` doc said "all depends_on done"; impl's `deps_satisfied`
+  also treats `released`/releases/archive deps as terminal. Fixed in SPEC.md +
+  ARCHITECTURE.md cheatsheet.
+- **minor** — `--blocked` "(annotates which)" inaccurate (CLI/bash only filter;
+  `unmet_deps` core method is not rendered). Phrase removed.
+Reviewer confirmed clean: cruft removals safe (`LoadError::Io` still constructed/
+reachable); the 7 tests non-tautological (exit-3 root-guard skips correctly; parity
+tests assert both parity and emptiness); leaving README/guide unchanged correct given
+empty `dist/`; actionlint workflow valid YAML (not runnable locally). No bugs, no
+substrate inconsistencies, no missed acceptance criteria. Completion not premature.
+
 ## Distribution caveat (carried from epic review)
 
 The four prebuilt binaries are CI-produced; `dist/` ships empty until the manual
