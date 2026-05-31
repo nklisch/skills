@@ -1,7 +1,7 @@
 ---
 id: epic-agents-rules-autoload-skill-grounding
 kind: feature
-stage: drafting
+stage: implementing
 tags: [skill]
 parent: epic-agents-rules-autoload
 depends_on: [epic-agents-rules-autoload-hook]
@@ -42,3 +42,37 @@ grounding reads.
 - `plugins/agile-workflow/skills/*/SKILL.md` — grounding phases of the
   design/implement/review family
 - Parent epic body — graceful-degradation decision (Codex finding 2)
+
+## Architectural choice
+
+A one-line addition to each design/implement/review-family skill's grounding step:
+read `.agents/rules/*.md` (if present) alongside the foundation docs / AGENTS,
+mirroring the existing "read `.agents/skills/patterns/`" line several already have.
+This is the belt to the suspenders of the mandatory read-directive convert-extract
+put in the always-loaded slim AGENTS block — so load-bearing rules reach skills even
+when the hook does not fire.
+
+## Implementation Units
+
+One Unit: add the grounding line to each skill's ground/re-align phase. Enumerate
+the agile-workflow family (re-grep each for its grounding anchor — many already
+read AGENTS/CLAUDE and/or `.agents/skills/patterns/`, which is the insertion point):
+- `feature-design` (Phase 2 + Phase 4 re-align), `epic-design` (Phase 2),
+  `refactor-design`, `perf-design`, `implement` (Phase 1 ground),
+  `implement-orchestrator` (Phase 1 + Phase 4 re-align), `review` (Phase 2 gather
+  context), `fix`, `e2e-test-design`.
+- Wording: "Read `.agents/rules/*.md` (if present) — the project's force-loaded
+  agent rules (tag semantics, test integrity, review policy)." Place it next to the
+  existing AGENTS/patterns grounding line; do not duplicate if a skill already reads
+  `.agents/rules/`.
+
+## Testing
+Skill docs — read-through: confirm each enumerated skill's grounding phase now
+reads `.agents/rules/*.md`, and none was missed (grep the family for the line).
+
+## Risks
+- Missing a skill in the family — mitigated by grepping all
+  `plugins/agile-workflow/skills/*/SKILL.md` grounding phases and listing coverage.
+
+## Child stories
+None — a one-line grounding addition across the family. Single-stride.
