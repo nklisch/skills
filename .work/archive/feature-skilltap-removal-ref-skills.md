@@ -1,7 +1,7 @@
 ---
 id: feature-skilltap-removal-ref-skills
 kind: story
-stage: review
+stage: done
 tags: [plugin]
 parent: feature-skilltap-removal
 depends_on: []

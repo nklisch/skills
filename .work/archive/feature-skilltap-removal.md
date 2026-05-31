@@ -1,7 +1,7 @@
 ---
 id: feature-skilltap-removal
 kind: feature
-stage: review
+stage: done
 tags: [plugin]
 parent: null
 depends_on: []
@@ -224,3 +224,21 @@ remains. The tree now matches `docs/SPEC.md` ("exactly two channels … no third
 **Release follow-ups (not blockers):** agile-workflow + ux-ui-design may take
 patch bumps (doc edits); nates-toolkit bumps for the write-tool-skill capability
 removal — handled at release via `bump-version.sh`.
+
+## Review (2026-05-30)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: `docs/research/codex-plugin-format.md` Context line reads "…for Claude
+Code via the Claude Code plugin marketplace" then discusses Codex — mildly narrow
+framing, cosmetic. Left as-is (optional polish).
+
+**Notes**: Substrate mode, deep lane. Reviewed by a fresh-context Opus sub-agent
+(single quick pass, no cross-model peer loop). Verified the `rg` gate (no live
+channel references in real content; history + `MIGRATION_REPORT.md` task-lines
+excluded), teaching-example renames (pure identifier swaps, idiomatic),
+`claude-code-marketplace` + `findings.md` coherence (retire valve not needed),
+and `docs/SPEC.md` two-channel alignment. All four child stories were reviewed
+as part of the bundle and advanced to `done` together.
