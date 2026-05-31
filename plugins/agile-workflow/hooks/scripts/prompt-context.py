@@ -350,8 +350,12 @@ def needs_snapshot(prompt: str, matched_ids: set[str]) -> bool:
 
 def build_snapshot(root: Path, prompt: str) -> str:
     review = run_work_view(root, "--stage", "review")
-    ready = run_work_view(root, "--ready")
+    ready_raw = run_work_view(root, "--ready")
     blocked = run_work_view(root, "--blocked")
+    # --ready now includes stage:review items (stage-aware semantics).
+    # Exclude them from the Ready section so they appear only under Review.
+    review_paths = set(review)
+    ready = [p for p in ready_raw if p not in review_paths]
     lines = ["## Agile Workflow Snapshot"]
     lines.extend(format_section("Ready", ready))
     lines.extend(format_section("Review", review))

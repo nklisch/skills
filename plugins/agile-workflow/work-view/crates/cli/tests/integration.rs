@@ -467,3 +467,296 @@ fn table_row_format_for_known_item() {
     );
     assert_eq!(row, expected, "table row format mismatch");
 }
+
+// ── --ready / --blocked (item 2: next-actionable) ─────────────────────────────
+//
+// Fixture recap (for --ready/--blocked tests):
+//   epic-alpha   Active  implementing  deps:[]       → READY
+//   feat-a       Active  implementing  deps:[]       → READY
+//   feat-b       Active  drafting      deps:[feat-a] → BLOCKED (feat-a not done)
+//   story-alpha-1 Active review        deps:[]       → READY
+//   idea-backlog  Backlog  (no stage)                → excluded (tier gate)
+//   release-v1.0  Releases released                  → excluded (tier gate)
+//   feat-done     Archive  done                      → excluded (tier gate + stage)
+
+#[test]
+fn ready_returns_items_with_satisfied_deps_across_stages() {
+    let (stdout, _, code) = run(&["--ready", "--paths"]);
+    assert_eq!(code, 0);
+    let paths: Vec<&str> = stdout.lines().collect();
+    // Exactly 3 ready items: epic-alpha, feat-a, story-alpha-1
+    assert_eq!(paths.len(), 3, "expected 3 ready items, got: {paths:?}");
+    assert!(
+        paths.iter().any(|p| p.contains("epic-alpha")),
+        "epic-alpha should be ready"
+    );
+    assert!(
+        paths.iter().any(|p| p.contains("feat-a")),
+        "feat-a should be ready"
+    );
+    assert!(
+        paths.iter().any(|p| p.contains("story-alpha-1")),
+        "story-alpha-1 (review) should be ready (stage-aware)"
+    );
+}
+
+#[test]
+fn ready_excludes_items_with_unmet_deps() {
+    let (stdout, _, code) = run(&["--ready", "--paths"]);
+    assert_eq!(code, 0);
+    assert!(
+        !stdout.contains("feat-b"),
+        "feat-b should NOT be ready (blocked by feat-a)"
+    );
+}
+
+#[test]
+fn ready_excludes_non_active_tier_items() {
+    let (stdout, _, code) = run(&["--ready", "--paths"]);
+    assert_eq!(code, 0);
+    assert!(
+        !stdout.contains("idea-backlog"),
+        "backlog item should NOT be ready"
+    );
+    assert!(
+        !stdout.contains("feat-done"),
+        "archive item should NOT be ready"
+    );
+    assert!(
+        !stdout.contains("release-v1.0"),
+        "releases item should NOT be ready"
+    );
+}
+
+#[test]
+fn blocked_returns_items_with_unmet_deps() {
+    let (stdout, _, code) = run(&["--blocked", "--paths"]);
+    assert_eq!(code, 0);
+    let paths: Vec<&str> = stdout.lines().collect();
+    // Exactly 1 blocked item: feat-b (drafting, dep feat-a is implementing)
+    assert_eq!(paths.len(), 1, "expected 1 blocked item, got: {paths:?}");
+    assert!(
+        paths[0].contains("feat-b"),
+        "feat-b should be blocked: {paths:?}"
+    );
+}
+
+#[test]
+fn blocked_excludes_non_active_tier_items() {
+    let (stdout, _, code) = run(&["--blocked", "--paths"]);
+    assert_eq!(code, 0);
+    assert!(
+        !stdout.contains("idea-backlog"),
+        "backlog item should NOT be blocked"
+    );
+    assert!(
+        !stdout.contains("feat-done"),
+        "archive item should NOT be blocked"
+    );
+}
+
+#[test]
+fn ready_stage_implementing_reproduces_old_narrow_set() {
+    // --ready --stage implementing should reproduce the OLD behavior:
+    // only implementing items with satisfied deps.
+    // In fixture: epic-alpha (implementing, ready) + feat-a (implementing, ready) = 2 items.
+    // story-alpha-1 (review) is excluded by the --stage filter.
+    let (stdout, _, code) = run(&["--ready", "--stage", "implementing", "--paths"]);
+    assert_eq!(code, 0);
+    let paths: Vec<&str> = stdout.lines().collect();
+    assert_eq!(
+        paths.len(),
+        2,
+        "expected 2 items for --ready --stage implementing, got: {paths:?}"
+    );
+    assert!(
+        paths.iter().any(|p| p.contains("epic-alpha")),
+        "epic-alpha should be in implementing-only set"
+    );
+    assert!(
+        paths.iter().any(|p| p.contains("feat-a")),
+        "feat-a should be in implementing-only set"
+    );
+    assert!(
+        !paths.iter().any(|p| p.contains("story-alpha-1")),
+        "story-alpha-1 should NOT be in implementing-only set"
+    );
+}
+
+#[test]
+fn ready_stage_drafting_returns_only_drafting_ready_items() {
+    // --ready --stage drafting: only feat-b would qualify if its deps were met.
+    // feat-b depends on feat-a (implementing) → not ready.
+    // So result should be empty.
+    let (stdout, _, code) = run(&["--ready", "--stage", "drafting", "--count"]);
+    assert_eq!(code, 0);
+    assert_eq!(
+        stdout.trim(),
+        "0",
+        "--ready --stage drafting should return 0 (feat-b is blocked)"
+    );
+}
+
+#[test]
+fn ready_and_blocked_counts_are_consistent() {
+    let (ready_out, _, _) = run(&["--ready", "--count"]);
+    let (blocked_out, _, _) = run(&["--blocked", "--count"]);
+    let ready_n: usize = ready_out.trim().parse().unwrap();
+    let blocked_n: usize = blocked_out.trim().parse().unwrap();
+    // All active movable items = ready + blocked
+    // Active movable: epic-alpha, feat-a, feat-b, story-alpha-1 = 4
+    assert_eq!(
+        ready_n + blocked_n,
+        4,
+        "ready + blocked should account for all active movable items"
+    );
+}
+
+// ── Bash parity (item 2) ───────────────────────────────────────────────────────
+//
+// Assert that the binary and bash work-view.sh produce identical stdout + exit code
+// for --ready, --blocked, and --ready --stage implementing over the same fixture.
+//
+// Table mode is excluded from parity: there is a known, accepted cosmetic diff
+// for backlog items (bash stores empty string for missing parent; Rust renders
+// None→"-"). This is documented in the adapter design's Risks section.
+//
+// Guard: skip if bash is not available (should not happen on this platform).
+
+const BASH_SCRIPT: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../../../scripts/work-view.sh"
+);
+
+fn bash_run(args: &[&str]) -> Option<(String, i32)> {
+    let bash = std::process::Command::new("bash")
+        .arg("--version")
+        .output()
+        .ok()?;
+    if !bash.status.success() {
+        return None;
+    }
+    let script = std::path::Path::new(BASH_SCRIPT);
+    if !script.is_file() {
+        return None;
+    }
+    let out = std::process::Command::new("bash")
+        .arg(script)
+        .args(args)
+        .current_dir(fixture_root())
+        .output()
+        .ok()?;
+    Some((
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        out.status.code().unwrap_or(-1),
+    ))
+}
+
+#[test]
+fn parity_ready_paths_matches_bash() {
+    let (bin_stdout, _, bin_code) = run(&["--ready", "--paths"]);
+    let Some((bash_stdout, bash_code)) = bash_run(&["--ready", "--paths"]) else {
+        eprintln!("skipping bash parity: bash unavailable");
+        return;
+    };
+    assert_eq!(bin_code, bash_code, "exit codes differ for --ready --paths");
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "--ready --paths stdout mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+}
+
+#[test]
+fn parity_blocked_paths_matches_bash() {
+    let (bin_stdout, _, bin_code) = run(&["--blocked", "--paths"]);
+    let Some((bash_stdout, bash_code)) = bash_run(&["--blocked", "--paths"]) else {
+        eprintln!("skipping bash parity: bash unavailable");
+        return;
+    };
+    assert_eq!(
+        bin_code, bash_code,
+        "exit codes differ for --blocked --paths"
+    );
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "--blocked --paths stdout mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+}
+
+#[test]
+fn parity_ready_stage_implementing_matches_bash() {
+    let (bin_stdout, _, bin_code) = run(&["--ready", "--stage", "implementing", "--paths"]);
+    let Some((bash_stdout, bash_code)) =
+        bash_run(&["--ready", "--stage", "implementing", "--paths"])
+    else {
+        eprintln!("skipping bash parity: bash unavailable");
+        return;
+    };
+    assert_eq!(
+        bin_code, bash_code,
+        "exit codes differ for --ready --stage implementing"
+    );
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "--ready --stage implementing paths mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+}
+
+#[test]
+fn parity_count_matches_bash() {
+    let (bin_stdout, _, bin_code) = run(&["--count"]);
+    let Some((bash_stdout, bash_code)) = bash_run(&["--count"]) else {
+        eprintln!("skipping bash parity: bash unavailable");
+        return;
+    };
+    assert_eq!(bin_code, bash_code, "exit codes differ for --count");
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "--count stdout mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+}
+
+#[test]
+fn parity_paths_matches_bash() {
+    let (bin_stdout, _, bin_code) = run(&["--paths"]);
+    let Some((bash_stdout, bash_code)) = bash_run(&["--paths"]) else {
+        eprintln!("skipping bash parity: bash unavailable");
+        return;
+    };
+    assert_eq!(bin_code, bash_code, "exit codes differ for --paths");
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "--paths stdout mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+}
+
+#[test]
+fn parity_ready_count_matches_bash() {
+    let (bin_stdout, _, bin_code) = run(&["--ready", "--count"]);
+    let Some((bash_stdout, bash_code)) = bash_run(&["--ready", "--count"]) else {
+        eprintln!("skipping bash parity: bash unavailable");
+        return;
+    };
+    assert_eq!(bin_code, bash_code, "exit codes differ for --ready --count");
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "--ready --count mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+}
+
+#[test]
+fn parity_blocked_count_matches_bash() {
+    let (bin_stdout, _, bin_code) = run(&["--blocked", "--count"]);
+    let Some((bash_stdout, bash_code)) = bash_run(&["--blocked", "--count"]) else {
+        eprintln!("skipping bash parity: bash unavailable");
+        return;
+    };
+    assert_eq!(
+        bin_code, bash_code,
+        "exit codes differ for --blocked --count"
+    );
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "--blocked --count mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+}

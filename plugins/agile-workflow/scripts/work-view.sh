@@ -59,8 +59,8 @@ Filters (compose with AND semantics):
   --parent <id>        Direct children of the given item
   --release <version>  Items with release_binding: <version>
   --gate <name>        Items with gate_origin: <name>
-  --ready              Items at stage:implementing with all depends_on done
-  --blocked            Items at stage:implementing with unmet dependencies
+  --ready              Active items at drafting/implementing/review with all depends_on done
+  --blocked            Active items at drafting/implementing/review with unmet dependencies
   --blocking <id>      Items that depend on <id>
 
 Output (default tabular):
@@ -325,9 +325,12 @@ for f in "${ALL_FILES[@]}"; do
     fi
   fi
 
-  # --ready / --blocked: only items at stage:implementing
+  # --ready / --blocked: active-tier items at a movable stage
   if [[ $want_ready -eq 1 || $want_blocked -eq 1 ]]; then
-    [[ "${IDX_STAGE[$f]}" == "implementing" ]] || continue
+    # only active-tier items are actionable candidates
+    case "$f" in */.work/active/*) ;; *) continue ;; esac
+    # stage must be one of: drafting, implementing, review
+    case "${IDX_STAGE[$f]}" in drafting|implementing|review) ;; *) continue ;; esac
     if [[ $want_ready -eq 1 ]]; then
       deps_satisfied "$f" || continue
     else

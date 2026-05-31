@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-next-actionable
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli
 depends_on: [epic-substrate-cli-query-core]
@@ -220,3 +220,51 @@ no output annotation; explicit `{drafting, implementing, review}` allowlist
 excluding releases; **bash-fallback lockstep** (Unit 3) and **hook
 reconciliation** (Unit 4) to prevent surface drift / double-listing; post-filter
 correctness (deps evaluated over the whole substrate). No blockers raised.
+
+## Implementation notes
+
+### What was built
+
+Four units, all delivered:
+
+**Unit 1 — `crates/cli/src/actionable.rs`** (replaced the adapter stub):
+- `is_actionable_candidate(item)`: `tier == Active && stage ∈ {drafting, implementing, review}`
+- `apply_dependency_view(sub, items, view)`: `All`→passthrough; `Ready`→candidate && `deps_satisfied`; `Blocked`→candidate && `!deps_satisfied`. Preserves input order.
+
+**Unit 2 — `crates/cli/src/args.rs`**: No changes needed — `DependencyView::Ready`/`Blocked` and `--ready`/`--blocked` arms were already declared in item 1 (the adapter). `main.rs` already calls `apply_dependency_view` with `opts.dependency_view`. The `HELP` text already includes `--ready`/`--blocked` with stage-aware wording.
+
+**Unit 3 — `plugins/agile-workflow/scripts/work-view.sh`**: `--ready`/`--blocked` block updated from `stage == implementing` only to active-tier gate (`case "$f" in */.work/active/*`) + stage allowlist (`case "${IDX_STAGE[$f]}" in drafting|implementing|review`). Help text updated. `.work/bin/work-view` (a tracked copy, not a symlink) synced via `install`.
+
+**Unit 4 — `plugins/agile-workflow/hooks/scripts/prompt-context.py`**: `build_snapshot` now excludes `stage: review` paths from the `Ready` section (those are already in `Review`). Implemented by path-set exclusion: `ready = [p for p in ready_raw if p not in review_paths]`.
+
+### Parity verification
+
+Six bash-parity integration tests (`parity_*`) run the binary and bash against
+the same fixture and assert identical stdout + exit code:
+- `parity_ready_paths_matches_bash` — PASS
+- `parity_ready_count_matches_bash` — PASS
+- `parity_blocked_paths_matches_bash` — PASS
+- `parity_blocked_count_matches_bash` — PASS
+- `parity_ready_stage_implementing_matches_bash` — PASS (old narrow set reproduced)
+- `parity_paths_matches_bash` / `parity_count_matches_bash` — PASS
+
+Known and accepted table-mode cosmetic diff (documented in adapter Risks): bash
+renders missing `parent` field as `""` while Rust renders `None`→`"-"` for
+backlog items. Excluded from parity assertions per spec.
+
+### Verification
+
+`cargo build && cargo test && cargo clippy --all-targets -- -D warnings && cargo fmt --check`
+all pass from `plugins/agile-workflow/work-view/`.
+
+Test counts: 70 unit tests (actionable: 24, args: 33, render: 13) + 45 integration
+= 115 CLI tests; plus 58 core unit + 31 core integration + 4 doc tests = 208 total.
+
+### `.work/bin/work-view` status
+Was a tracked copy (not a symlink). Synced with `install` to reflect the updated
+stage-aware `--ready`/`--blocked` logic.
+
+### Deviations from spec
+None. `DependencyView::Ready`/`Blocked` were declared in item 1 rather than item 2,
+making this item's arg-wiring a no-op (the seam was already filled by the adapter).
+This is a benign ordering difference within the bundle, not a spec deviation.
