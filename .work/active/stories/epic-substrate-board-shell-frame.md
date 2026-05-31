@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-shell-frame
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-shell
 depends_on: []
@@ -68,4 +68,17 @@ dependency.
 - `cargo fmt -p work-view-cli`
 - `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`
 - `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`
-  produced `/home/nathan/.cache/silas/target/release/work-view` at 603K.
+  produced `/home/nathan/.cache/silas/target/release/work-view` at 616,704
+  bytes on host re-verification.
+
+## Review
+
+Approved fast-lane review.
+
+- Re-ran `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`:
+  104 unit tests and 95 integration tests passed.
+- Re-ran the release build; binary remains well under the 8 MB size guard.
+- Confirmed shipped board CSS contains no `@import url`, `fonts.googleapis`, or
+  `https://` references.
+- The app frame replaces the old metrics stub and exposes stable routes for the
+  shell's CSS and JS assets.
