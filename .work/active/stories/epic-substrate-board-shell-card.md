@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-shell-card
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-shell
 depends_on: [epic-substrate-board-shell-frame]
@@ -33,9 +33,23 @@ uses for item summaries and detail content.
 
 ## Acceptance Criteria
 
-- [ ] Item bodies containing `<script>`, event attributes, or `javascript:`
+- [x] Item bodies containing `<script>`, event attributes, or `javascript:`
       links do not execute and render as safe text.
-- [ ] Cards render kind/status chips and dependency metadata from real feed
+- [x] Cards render kind/status chips and dependency metadata from real feed
       fields.
-- [ ] Cards are keyboard-focusable and can open detail via Enter/Space.
-- [ ] Compact card mode fits kanban/dependency nodes without layout shift.
+- [x] Cards are keyboard-focusable and can open detail via Enter/Space.
+- [x] Compact card mode fits kanban/dependency nodes without layout shift.
+
+## Implementation notes
+
+- Added `assets/markdown.js` with DOM-built rendering for headings,
+  paragraphs, unordered lists, blockquotes, fenced and inline code, strong text,
+  and safe `http`/`https`/`mailto` links. Unsafe links are emitted as text.
+- Added `assets/card.js` with `renderCard(item, options)`, stable
+  `item-card`/`ic-*` classes, frontmatter metadata, status badges, dependency
+  counts, compact summaries, and click/Enter/Space activation through
+  `onOpen(id)` or a context `openDetail(id)` hook.
+- Wired the shell preview to render real compact cards from `visibleItems()` so
+  the shared card component is exercised before the dedicated view stories.
+- Added embedded routes and integration/static checks for the new JS assets and
+  unsafe rendering patterns.

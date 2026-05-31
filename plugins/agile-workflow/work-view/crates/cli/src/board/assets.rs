@@ -12,6 +12,8 @@ const MOTION_CSS: &[u8] = include_bytes!("assets/motion.css");
 const BOARD_CSS: &[u8] = include_bytes!("assets/board.css");
 const BOARD_JS: &[u8] = include_bytes!("assets/board.js");
 const STATE_JS: &[u8] = include_bytes!("assets/state.js");
+const MARKDOWN_JS: &[u8] = include_bytes!("assets/markdown.js");
+const CARD_JS: &[u8] = include_bytes!("assets/card.js");
 
 pub(crate) fn asset_for_path(path: &str) -> Option<Asset> {
     match path {
@@ -43,6 +45,14 @@ pub(crate) fn asset_for_path(path: &str) -> Option<Asset> {
             bytes: STATE_JS,
             content_type: "text/javascript; charset=utf-8",
         }),
+        "/assets/markdown.js" => Some(Asset {
+            bytes: MARKDOWN_JS,
+            content_type: "text/javascript; charset=utf-8",
+        }),
+        "/assets/card.js" => Some(Asset {
+            bytes: CARD_JS,
+            content_type: "text/javascript; charset=utf-8",
+        }),
         _ => None,
     }
 }
@@ -72,7 +82,12 @@ mod tests {
             assert_eq!(css.content_type, "text/css; charset=utf-8");
             assert!(!css.bytes.is_empty());
         }
-        for path in ["/assets/board.js", "/assets/state.js"] {
+        for path in [
+            "/assets/board.js",
+            "/assets/state.js",
+            "/assets/markdown.js",
+            "/assets/card.js",
+        ] {
             let js = asset_for_path(path).expect("expected JS asset");
             assert_eq!(js.content_type, "text/javascript; charset=utf-8");
             assert!(!js.bytes.is_empty());

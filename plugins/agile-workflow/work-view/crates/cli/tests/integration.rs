@@ -529,7 +529,12 @@ fn board_embedded_assets_return_expected_content_types() {
         );
     }
 
-    for path in ["/assets/board.js", "/assets/state.js"] {
+    for path in [
+        "/assets/board.js",
+        "/assets/state.js",
+        "/assets/markdown.js",
+        "/assets/card.js",
+    ] {
         let js = board_response_once(path);
         assert!(
             js.starts_with("HTTP/1.1 200 OK"),
@@ -554,6 +559,46 @@ fn board_embedded_assets_return_expected_content_types() {
             && state_body.contains("localStorage"),
         "state JS should export the board store and fetch the substrate feed; body: {state_body}"
     );
+    let markdown_js = board_response_once("/assets/markdown.js");
+    let markdown_body = http_body(&markdown_js);
+    assert!(
+        markdown_body.contains("export function renderMarkdown")
+            && markdown_body.contains("export function markdownSummary"),
+        "markdown JS should export renderer helpers; body: {markdown_body}"
+    );
+    let card_js = board_response_once("/assets/card.js");
+    let card_body = http_body(&card_js);
+    assert!(
+        card_body.contains("export function renderCard")
+            && card_body.contains("addEventListener(\"keydown\""),
+        "card JS should export keyboard-accessible cards; body: {card_body}"
+    );
+}
+
+#[test]
+fn board_renderer_assets_do_not_ship_raw_html_injection_patterns() {
+    for path in ["/assets/markdown.js", "/assets/card.js"] {
+        let response = board_response_once(path);
+        let body = http_body(&response);
+        for forbidden in [
+            "innerHTML",
+            "outerHTML",
+            "insertAdjacentHTML",
+            "<script",
+            " onerror=",
+            " onclick=",
+            "javascript:",
+        ] {
+            assert!(
+                !body.contains(forbidden),
+                "{path} should not ship raw HTML injection pattern {forbidden:?}; body: {body}"
+            );
+        }
+        assert!(
+            body.contains("createTextNode") || body.contains("textContent"),
+            "{path} should build escaped text through DOM text APIs; body: {body}"
+        );
+    }
 }
 
 #[test]

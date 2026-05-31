@@ -1,4 +1,5 @@
 import { createBoardStore } from "/assets/state.js";
+import { renderCard } from "/assets/card.js";
 
 const root = document.documentElement;
 const accentPicker = document.getElementById("theme-accent");
@@ -199,9 +200,25 @@ function renderView(state) {
     return;
   }
 
-  const placeholder = emptyState("::", `${state.view} view pending`, `${visible.length} visible items are ready for the ${state.view} view story.`);
-  placeholder.append(textElement("p", "view-digest", visible.slice(0, 6).map((item) => item.id).join(" / ")));
-  viewRoot.replaceChildren(placeholder);
+  const panel = document.createElement("div");
+  panel.className = "view-preview";
+  panel.append(textElement("h1", "", `${state.view} view pending`));
+  panel.append(textElement("p", "view-digest", `${visible.length} visible items are ready for the ${state.view} view story.`));
+  const stack = document.createElement("div");
+  stack.className = "card-stack";
+  for (const item of visible.slice(0, 8)) {
+    stack.append(renderCard(item, {
+      compact: true,
+      onOpen: (id) => {
+        const selected = store.getItemById(id);
+        if (statusText && selected) {
+          statusText.textContent = `Selected ${selected.id}`;
+        }
+      },
+    }));
+  }
+  panel.append(stack);
+  viewRoot.replaceChildren(panel);
 }
 
 function render(state) {
