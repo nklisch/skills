@@ -549,6 +549,7 @@ fn board_embedded_assets_return_expected_content_types() {
         "/assets/views.js",
         "/assets/kanban.js",
         "/assets/dependency.js",
+        "/assets/table.js",
     ] {
         let js = board_response_once(path);
         assert!(
@@ -627,8 +628,8 @@ fn board_embedded_assets_return_expected_content_types() {
             && views_body.contains("ctx.visibleItems()")
             && views_body.contains("kanbanView")
             && views_body.contains("dependencyView")
-            && views_body.contains("table"),
-        "views JS should export the BoardView registry and register real kanban plus downstream placeholders; body: {views_body}"
+            && views_body.contains("tableView"),
+        "views JS should export the BoardView registry and register real view modules; body: {views_body}"
     );
     let kanban_js = board_response_once("/assets/kanban.js");
     let kanban_body = http_body(&kanban_js);
@@ -665,6 +666,16 @@ fn board_embedded_assets_return_expected_content_types() {
             && dependency_body.contains("ctx.openDetail(node.id)"),
         "dependency JS should provide the layered graph-model view; body: {dependency_body}"
     );
+    let table_js = board_response_once("/assets/table.js");
+    let table_body = http_body(&table_js);
+    assert!(
+        table_body.contains("export const tableView")
+            && table_body.contains("tableValue")
+            && table_body.contains("ctx.visibleItems()")
+            && table_body.contains("ctx.openDetail(item.id)")
+            && table_body.contains("addEventListener(\"keydown\""),
+        "table JS should provide the registered dense table view; body: {table_body}"
+    );
 }
 
 #[test]
@@ -676,6 +687,7 @@ fn board_renderer_assets_do_not_ship_raw_html_injection_patterns() {
         "/assets/views.js",
         "/assets/kanban.js",
         "/assets/dependency.js",
+        "/assets/table.js",
     ] {
         let response = board_response_once(path);
         let body = http_body(&response);

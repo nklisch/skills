@@ -523,6 +523,43 @@ button.dep-node:focus-visible {
   opacity: .34;
 }
 
+.table-view {
+  display: grid;
+  gap: var(--space-4);
+  min-height: inherit;
+  padding: var(--space-4);
+}
+
+.table-view__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.table-view__header h1 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font: var(--font-weight-semibold) var(--font-size-lg)/var(--line-height-tight) var(--font-sans);
+  letter-spacing: 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+}
+
+.board-table tbody tr {
+  cursor: pointer;
+}
+
+.board-table tbody tr:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
 @media (max-width: 980px) {
   .appbar {
     grid-template-columns: 1fr;

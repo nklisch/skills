@@ -1,5 +1,6 @@
 import { kanbanView } from "/assets/kanban.js";
 import { dependencyView } from "/assets/dependency.js";
+import { tableView } from "/assets/table.js";
 
 const registry = new Map();
 
@@ -66,8 +67,4 @@ registerView(kanbanView);
 
 registerView(dependencyView);
 
-registerView(placeholderView(
-  "table",
-  "Table view",
-  "Sortable table layout lands in its dedicated feature; this placeholder proves the same context contract.",
-));
+registerView(tableView);

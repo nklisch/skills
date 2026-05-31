@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-table-render
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-table
 depends_on: []
@@ -32,7 +32,16 @@ selected dense column set over the shell's filtered item set.
 
 ## Acceptance Criteria
 
-- [ ] Selecting the Table tab mounts the table module, not the placeholder.
-- [ ] One row renders per `ctx.visibleItems()` item.
-- [ ] The selected column set renders without raw HTML sinks.
-- [ ] Row activation opens shared detail through `ctx.openDetail(id)`.
+- [x] Selecting the Table tab mounts the table module, not the placeholder.
+- [x] One row renders per `ctx.visibleItems()` item.
+- [x] The selected column set renders without raw HTML sinks.
+- [x] Row activation opens shared detail through `ctx.openDetail(id)`.
+
+## Implementation Notes
+
+- Added `assets/table.js` with the selected dense column set and row rendering
+  from `ctx.visibleItems()`.
+- Replaced the table placeholder with explicit `tableView` registration in
+  `views.js`.
+- Rows are click and keyboard activatable and call shared `ctx.openDetail(id)`.
+- Embedded `/assets/table.js` and extended static/raw HTML sink coverage.
