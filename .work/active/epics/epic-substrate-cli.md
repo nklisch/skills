@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli
 kind: epic
-stage: implementing
+stage: review
 tags: [tooling]
 parent: null
 depends_on: []
@@ -114,3 +114,35 @@ same work (the `docs` gate enforces this at release):
   substrate-access model.
 
 <!-- The design pass on each child feature will fill in real specifics. -->
+
+## Children complete (2026-05-30)
+
+All five child features are at `stage: done`:
+- `epic-substrate-cli-runtime-research` — Rust decided (committed prebuilt musl
+  binaries + bash fallback; one core crate, two adapters).
+- `epic-substrate-cli-query-core` — `work-view-core` lib crate (parse, model,
+  index, graph, filter, tier-aware diagnostics). 93 tests.
+- `epic-substrate-cli-adapter` — `work-view` binary: full work-view flag/output
+  parity over the core, hand-rolled parser, exit-code contract, BrokenPipe→0.
+- `epic-substrate-cli-next-actionable` — stage-aware `--ready`/`--blocked`
+  (the headline fix: `tier==Active` ∧ stage ∈ {drafting,implementing,review} ∧
+  `deps_satisfied`), in lockstep across the binary + bash fallback; hook
+  reconciled. 230 CLI+core tests incl. real binary-vs-bash parity.
+- `epic-substrate-cli-install-path` — `install-work-view.sh` platform selector
+  (uname→triple, smoke-test, atomic install, bash fallback) wired into
+  `convert`; CI cross-compile workflow; `dist/` layout; docs rolled forward.
+
+**Capability delivered**: a compiled agent CLI over `.work/` that answers "what
+can I pick up next, at any stage?" correctly (the old `--ready` implementing-only
+gate is fixed), shipped per-platform with a bash fallback, and built on a shared
+query core the future `epic-substrate-board` reuses.
+
+**Distribution caveat (carried to release)**: the four prebuilt binaries are
+CI-produced; `dist/` ships empty until the manual refresh job runs, so installs
+fall back to `work-view.sh` until then — no regression. The "foundation docs to
+roll forward" (VISION/SPEC/ARCHITECTURE/ROADMAP "bash script" → "binary") are
+partially done (install-path-specific assertions) and otherwise enforced by the
+`docs` gate at release-deploy.
+
+Each child passed cross-model peer review (Codex via peeragent). Advancing
+`implementing → review`.
