@@ -36,8 +36,7 @@ candidate_is_current() {
   [ -n "$want" ] || return 1
   out="$("$cand" --version 2>/dev/null)" || return 1
   [ -n "$out" ] || return 1
-  set -- $out
-  tok="${!#}"
+  tok="${out##* }"
   [ -n "$tok" ] && [ "$tok" = "$want" ]
 }
 

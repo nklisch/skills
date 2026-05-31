@@ -228,10 +228,13 @@ class WorkViewSelfHealTest(unittest.TestCase):
     def test_userpromptsubmit_present_does_not_install_or_probe_version(self) -> None:
         self._write_work_view()
         with self._env(), mock.patch.object(
+            prompt_context, "installed_version", side_effect=AssertionError("no version probe")
+        ) as installed_version, mock.patch.object(
             prompt_context.subprocess, "run", side_effect=AssertionError("no subprocess")
         ), mock.patch.object(prompt_context, "run_installer") as run_installer:
             prompt_context.self_heal_work_view(self.root, "UserPromptSubmit")
 
+        installed_version.assert_not_called()
         run_installer.assert_not_called()
 
     def test_no_plugin_root_env_is_noop(self) -> None:

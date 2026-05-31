@@ -305,5 +305,3 @@ here so the design pass inherits the full picture rather than re-discovering it.
   `~/.codex/plugins/cache/`, `~/.codex/config.toml`.
 - Companion docs: `docs/research/substrate-binary-runtime.md` (binary
   distribution), `docs/research/codex-plugin-format.md` (Codex manifest format).
-</content>
-</invoke>
