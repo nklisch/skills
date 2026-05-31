@@ -189,13 +189,12 @@ function filterGroup(title, child) {
   return group;
 }
 
-function buttonFor(value, pressed, onClick) {
+function buttonFor(value, onClick) {
   const button = document.createElement("button");
   button.className = "filter-chip";
   button.type = "button";
   button.textContent = value;
   button.dataset.filterValue = value;
-  button.setAttribute("aria-pressed", String(pressed));
   button.addEventListener("click", onClick);
   return button;
 }
@@ -207,7 +206,7 @@ function syncChipGroup(group, key, values, selected, ctx) {
     if (values.length === 0) {
       group.replaceChildren(textElement("span", "filter-empty", "No values"));
     } else {
-      const buttons = values.map((value) => buttonFor(value, false, () => {
+      const buttons = values.map((value) => buttonFor(value, () => {
         const next = new Set(ctx.getState().filters[key]);
         if (next.has(value)) {
           next.delete(value);
@@ -281,7 +280,7 @@ export function renderFilterBar(root, ctx) {
     autoHide,
   );
 
-  let previousSnapshot = undefined;
+  let previousSnapshot = null;
   let previousOptions = deriveFilterOptions(null);
 
   function optionsFor(snapshot) {
