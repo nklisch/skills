@@ -1,32 +1,66 @@
 # Changelog
 
-## Unreleased
+## v0.8.6
+
+### Substrate CLI
+
+- **Compiled `work-view` CLI** - The `.work/` query tool is now a compiled Rust
+  binary (`work-view-core` library + `work-view` CLI) with full flag/output
+  parity over the bash script, on a shared query core (frontmatter parsing, the
+  item model, dependency-graph evaluation, composable filters) that the
+  forthcoming web board reuses. Ships per-platform with a pure-bash fallback.
+- **Stage-aware `--ready` / `--blocked`** - `--ready` no longer hides
+  design-ready (`drafting`) and review-ready items whose dependencies are
+  satisfied; it surfaces any active-tier item at `drafting`, `implementing`, or
+  `review` with all `depends_on` terminal (and `--blocked` the inverse). The
+  prompt-context hook no longer double-lists a `review` item under both Ready
+  and Review.
+- **Platform install path** - `install-work-view.sh` selects the matching
+  prebuilt binary (uname → target triple, smoke-test, atomic install), wired
+  into `/agile-workflow:convert`, with the bash fallback when no binary matches.
+  Added a CI cross-compile workflow and the `dist/` layout. Binaries are
+  CI-produced; until the manual refresh job populates `dist/`, installs use the
+  bash fallback (no regression).
+
+### Also in this release (previously unreleased)
 
 - **Review skill progressive disclosure** - Split the review skill into a
   substrate-first core plus references for target resolution, review lenses,
-  deep-review mechanics, and substrate side effects. The core now explicitly
-  supports standalone branch/PR/commit reviews without `.work` mutations and
-  keeps deep-review mode adaptable across contracts, data, concurrency, release,
-  and product/UX dimensions.
+  deep-review mechanics, and substrate side effects. Supports standalone
+  branch/PR/commit reviews without `.work` mutations and keeps deep-review mode
+  adaptable across contracts, data, concurrency, release, and product/UX
+  dimensions.
 - **work-view single-pass parsing** - Rewrote `work-view.sh` frontmatter
   parsing to a single `awk` pass over the whole tree instead of spawning an
-  `awk` (plus `tr`) per field per file. The old path forked ~4,900 short-lived
-  processes for a default table view of a 617-item substrate; the rewrite forks
-  ~3. Measured on a 617-item repo: default table view drops from ~7.9s to
-  ~0.12s (66x), and `--count`/`--ready`/filtered views all drop to ~0.1s. The
-  `sys`-time-dominated profile (process fork/exec + redundant file reads)
-  collapses accordingly. Output is now deterministically sorted by path; all
-  filters and output modes are otherwise byte-for-byte identical to before.
+  `awk` (plus `tr`) per field per file. Measured on a 617-item repo: default
+  table view drops from ~7.9s to ~0.12s (66x); output is now deterministically
+  sorted by path, otherwise byte-for-byte identical to before.
 - **Dual Codex/Claude hook set** - Replaced the eager SessionStart queue dump
-  with prompt-gated context injection. Actionable workflow prompts can now get a
-  compact queue snapshot plus once-per-session principles capsules; idle chat and
+  with prompt-gated context injection. Actionable workflow prompts get a compact
+  queue snapshot plus once-per-session principles capsules; idle chat and
   explainer prompts stay silent. Capsule state lives in the host plugin data
-  directory when available, with non-worktree fallbacks, so normal project
-  worktrees stay clean.
+  directory when available, with non-worktree fallbacks.
 - **Substrate maintainer hook** - Expanded the PostToolUse hook from `updated:`
   bumping to deterministic touched-item validation: required frontmatter, valid
   kind/stage, filename/id match, parent/dependency existence, and dependency
   cycles reachable from the touched item.
+
+### Documentation
+
+- Foundation docs (VISION, SPEC, ARCHITECTURE) rolled forward: work-view bash
+  script → compiled binary + fallback, and the stage-aware ready/blocked
+  semantic.
+
+### Internal
+
+- First project pattern catalog under `.agents/skills/patterns/` (5 patterns
+  extracted from the CLI work).
+- Expanded test coverage: binary-level proof of the `--ready` drafting fix,
+  exit-3 fatal-IO, the `--blocked` review case, the hook review-dedup, a
+  `convert` install-routing guard, and bash-parity empty-result tests.
+- Added an `actionlint` CI workflow for GitHub Actions files; removed dead code
+  (unused `From<io::Error>` impl, an unused parameter, a vestigial no-op); added
+  a root `.gitignore`.
 
 ## v0.7.7 - Skill metadata hotfix
 

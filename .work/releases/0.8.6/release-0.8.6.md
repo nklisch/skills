@@ -1,7 +1,7 @@
 ---
 id: release-0.8.6
 kind: release
-stage: quality-gate
+stage: released
 tags: []
 parent: null
 depends_on: []
@@ -118,3 +118,20 @@ refresh job runs, so installs fall back to `work-view.sh` until then (no regress
 Mapping is `none`: release-deploy binds, gates, and archives — it does NOT tag/bump.
 Publishing is the separate `bump-version.sh agile-workflow` step, run after `dist/`
 is populated.
+
+## Shipped (2026-05-31)
+
+- **Mapping**: `none` — no git tag/branch. release-deploy bound, gated, drained, and
+  archived; publishing is the separate `bump-version.sh agile-workflow patch` step
+  (0.8.5 → 0.8.6), to be run after the CI refresh populates `dist/` with binaries.
+- **Items shipped**: 21 — the `epic-substrate-cli` epic + 5 features, plus 15
+  gate-produced stories (7 tests, 3 cruft, 4 docs, 1 patterns).
+- **Gate finding totals**: tests 8 (5 bound + 2 scoped-in from backlog + 1 folded),
+  cruft 3, docs 4, patterns 5 (catalog). All driven to `stage: done` via autopilot,
+  with a cross-model final completion review (2 doc-precision findings fixed).
+- **CHANGELOG**: `plugins/agile-workflow/CHANGELOG.md` → `## v0.8.6` (folded the prior
+  Unreleased section in, per user confirmation).
+- **Remaining publish steps (user-owned)**: (1) run the CI binary-refresh job to
+  populate `plugins/agile-workflow/work-view/dist/`; (2) run
+  `./scripts/bump-version.sh agile-workflow patch` to bump 0.8.5 → 0.8.6 and push.
+  Until (1), installs use the bash fallback (no regression).
