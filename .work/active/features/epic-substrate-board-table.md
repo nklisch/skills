@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-table
 kind: feature
-stage: drafting
+stage: implementing
 tags: [tooling]
 parent: epic-substrate-board
 depends_on: [epic-substrate-board-shell]
@@ -66,14 +66,92 @@ component and links `tokens.css` + `components.css` + `motion.css`.
   `option-4` spreadsheet-dense / terminal.
 
 ## Design decisions (inherited from parent epic)
-- **Vanilla HTML/CSS/JS, no build** — hand-rolled sort/filter, no table library.
-- **Read-only this epic** — sort/filter/inspect; no inline cell editing.
-
-## Design decisions (inherited from parent epic)
 - **Vanilla HTML/CSS/JS, no build** — hand-rolled sort/filter, no table library
   unless feature-design justifies one against the no-build constraint.
 - **Read-only this epic** — sort/filter/inspect; no inline cell editing.
 
-<!-- feature-design fills in: column set + default sort, per-column filter
-mechanics, row-expand-to-card behavior, and sort interaction with the global
-filter state. -->
+## Feature Design
+
+The table view replaces the shell's `table` placeholder with a registered
+`BoardView` module. It renders a dense grid over `ctx.visibleItems()`, then
+applies table-local sorting and column filters in module scope. Rows open the
+shared size-detected detail surface; the table does not build a bespoke row
+expander.
+
+### View Contract
+
+- New asset: `plugins/agile-workflow/work-view/crates/cli/src/board/assets/table.js`
+- Registration: import the module from `views.js` and replace the table
+  placeholder with the real view registration.
+- Item source: `ctx.visibleItems()` after shell/global filters.
+- Detail input: row activation calls `ctx.openDetail(id)`.
+- Local state: sort and column-filter state live in module scope and are
+  re-applied on each mount because the shell remounts views after
+  snapshot/filter changes.
+
+### Columns
+
+The selected column set mirrors the useful CLI table fields:
+
+- `id` — item id, text comparator, default ascending tie-breaker.
+- `kind` — item kind.
+- `stage` — stage label; sort order comes from
+  `deriveFilterOptions(ctx.getState().snapshot).stages`.
+- `status` — ready / blocked / terminal, derived from feed booleans.
+- `parent` — parent id or `(none)`.
+- `depends_on` — unmet count / total dependency count.
+- `updated` — ISO date string, sorted as date when parseable.
+
+### Sort and Filters
+
+- Default sort: blocked/ready status first, then stage order, then updated
+  descending, then id.
+- Header buttons toggle ascending/descending for one active sort column.
+- Per-column text filters render in a filter row below headers and apply after
+  global filters. They never call `ctx.setFilter`.
+- Filtering and sorting are stable and deterministic so row order does not
+  flicker across remounts.
+
+### Accessibility and Layout
+
+- Header buttons expose `aria-sort` and visible sort direction affordances.
+- Rows are keyboard activatable and open shared detail with Enter/Space.
+- The table uses a sticky header and horizontal scroll on narrow widths rather
+  than shrinking text until it overlaps.
+
+## Implementation Units
+
+### Unit 1: Registered table render
+
+Story: `epic-substrate-board-table-render`
+
+- Add `table.js`, register it in `views.js`, and remove only the table
+  placeholder.
+- Render the selected column set from `ctx.visibleItems()`.
+- Add row click/keyboard activation through `ctx.openDetail(id)`.
+- Embed `/assets/table.js` and add integration assertions for the asset and
+  registration.
+
+### Unit 2: Sort model and header controls
+
+Story: `epic-substrate-board-table-sort`
+
+- Implement stable comparators for the selected columns.
+- Reuse `deriveFilterOptions(snapshot).stages` for stage sorting.
+- Add header controls with `aria-sort`, toggle direction, and module-scoped sort
+  state re-applied on mount.
+
+### Unit 3: Per-column filters, responsive polish, and verification
+
+Story: `epic-substrate-board-table-filters`
+
+- Add the filter row with table-local text filters applied after global filters.
+- Keep filter state in module scope and avoid `ctx.setFilter`.
+- Add responsive table CSS and static checks.
+- Run `cargo test -p work-view-cli` and the release build.
+
+## Story Dependencies
+
+1. `epic-substrate-board-table-render`
+2. `epic-substrate-board-table-sort`
+3. `epic-substrate-board-table-filters`
