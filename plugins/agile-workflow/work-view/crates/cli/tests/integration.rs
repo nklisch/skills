@@ -629,6 +629,8 @@ fn board_embedded_assets_return_expected_content_types() {
             && kanban_body.contains("groupItemsByStage")
             && kanban_body.contains("groupItemsByLane")
             && kanban_body.contains("focusedLane")
+            && kanban_body.contains("pendingFocusLane")
+            && kanban_body.contains("focus({ preventScroll: true })")
             && !kanban_body.contains("ctx.setFilter"),
         "kanban JS should register the stage-grid view through shared shell contracts; body: {kanban_body}"
     );

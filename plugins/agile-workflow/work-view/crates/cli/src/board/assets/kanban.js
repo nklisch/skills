@@ -3,6 +3,7 @@ import { NULL_SENTINEL, deriveFilterOptions } from "/assets/filters.js";
 const NO_PARENT_LANE = "(no parent)";
 
 let focusedLane = null;
+let pendingFocusLane = undefined;
 
 function textElement(tag, className, text) {
   const element = document.createElement(tag);
@@ -113,9 +114,11 @@ function renderFocusStrip(laneIds, activeLane, root, ctx) {
   allButton.className = "filter-chip kanban-lane-chip";
   allButton.type = "button";
   allButton.textContent = "All lanes";
+  allButton.dataset.laneAll = "true";
   allButton.setAttribute("aria-pressed", String(activeLane == null));
   allButton.addEventListener("click", () => {
     focusedLane = null;
+    pendingFocusLane = null;
     kanbanView.mount(root, ctx);
   });
   strip.append(allButton);
@@ -129,6 +132,7 @@ function renderFocusStrip(laneIds, activeLane, root, ctx) {
     button.setAttribute("aria-pressed", String(activeLane === laneId));
     button.addEventListener("click", () => {
       focusedLane = laneId;
+      pendingFocusLane = laneId;
       kanbanView.mount(root, ctx);
     });
     strip.append(button);
@@ -175,6 +179,20 @@ function renderLane(laneId, items, stages, ctx, laneIndex) {
   return lane;
 }
 
+function restoreLaneFocus(root) {
+  if (pendingFocusLane === undefined) {
+    return;
+  }
+  const focusLane = pendingFocusLane;
+  pendingFocusLane = undefined;
+  for (const button of root.querySelectorAll(".kanban-lane-chip")) {
+    if ((focusLane == null && button.dataset.laneAll === "true") || button.dataset.lane === focusLane) {
+      button.focus({ preventScroll: true });
+      return;
+    }
+  }
+}
+
 export const kanbanView = {
   id: "kanban",
   label: "Kanban",
@@ -207,5 +225,6 @@ export const kanbanView = {
 
     view.append(header, renderFocusStrip(laneIds, activeLane, root, ctx), lanesRoot);
     root.replaceChildren(view);
+    restoreLaneFocus(root);
   },
 };
