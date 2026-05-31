@@ -170,3 +170,38 @@ reasoning above.)
 - Shares the `work-view` core crate with `epic-substrate-board`; no hard
   dependency, but F1's rebuild of the dist binaries should be coordinated with
   any board-driven crate changes in flight.
+
+## Other agent review
+
+One focused cross-model pass (Codex, via `peeragent`, at the user's direction)
+reviewed the foundation — the decomposition plus the completed versioning design
+— before implementation. Codex broadly validated the shape (versioning
+foundation, discovery independent, self-heal after versioning, shim gated on
+discovery; plugin-semver as the stale predicate is right). Accepted, substantive
+findings and where they were folded:
+
+- **P0 — stale-prebuilt reinstall loop** + **P1 — entrypoint not actually
+  portable** (consolidated): the installer copies a platform prebuilt into the
+  tracked entrypoint and the decomposition never assigned the "make it portable"
+  work. **Folded into the self-heal feature** as a binding constraint — it
+  installs the source-stamped **bash** implementation as the portable tracked
+  entrypoint and makes `install-work-view.sh` version-aware. This makes
+  self-heal-only a coherent end state and reassigns ownership of the
+  content-portable entrypoint from the (conditional) shim to self-heal.
+- **P0 — CI/bump ordering can't stamp binaries**: the "refresh dist before bump"
+  guidance was backwards (pre-bump CI compiles the old stamp). **Folded into the
+  versioning bump-lockstep + tests-docs stories**: bump stamps source → CI
+  rebuilds from the bumped commit → CI commits binaries; the lag window is
+  acceptable only because the entrypoint is the source-current bash.
+- **P2 — version-file read ambiguity** (`.trim()` vs raw `include_str!`): pinned
+  to no-trailing-newline write + raw include + a test. **Folded into the
+  versioning rust-version story.**
+- **P2 — bash `--version` blocked by the Bash-4 guard on macOS 3.2**: now
+  load-bearing since bash is the portable entrypoint. **Folded into the
+  versioning bash-version story** as a POSIX-safe prelude before the guard.
+
+Nothing was rejected as wrong; the review mainly caught that the decomposition
+under-delivered on the epic's own content-portable-entrypoint decision. The
+consolidated resolution (bash as the project-side entrypoint; the Rust prebuilt
+reserved for the plugin-side board and the shim's optional deference) is the
+host's call, not a verbatim adoption of Codex's either/or framing.

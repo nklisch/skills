@@ -40,7 +40,9 @@ contract.
   document that both work-view implementations report the plugin semver via
   `--version`; that `bump-version.sh` projects `plugin.json`'s version into
   `.work-view-version` and the `work-view.sh` literal in lockstep; and that dist
-  binaries are refreshed by CI before the bump so shipped artifacts self-report.
+  binaries are rebuilt by CI from the bumped source AFTER the bump (not before —
+  see the bump-lockstep story's P0#2 ordering correction) so shipped artifacts
+  self-report the new version.
 
 ## Acceptance criteria
 

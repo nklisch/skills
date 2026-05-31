@@ -56,3 +56,42 @@ guarantees no-drift independent of the entrypoint's shape.
 ## Coordination
 - Shares `install-work-view.sh` and the tracked entrypoint with the shim
   feature; the shim depends on this feature to avoid churn on those shared paths.
+
+## Cross-model review findings (Codex, pre-implementation) — design constraints
+
+A focused cross-model review of the foundation surfaced two interlocking gaps
+that this feature must close. They are accepted and become binding design
+constraints for this feature's own design pass:
+
+- **P0 — the stale-prebuilt reinstall loop.** Today `install-work-view.sh`
+  prefers the platform prebuilt `dist/<triple>/work-view` and only smoke-tests
+  `--help`. If the installed copy is stale AND the plugin's prebuilt is also
+  stale (which is the *normal* state during the post-bump → CI-rebuild window —
+  see the versioning feature's P0#2 ordering), then "unknown/old `--version` ⇒
+  reinstall" reinstalls the *same* stale prebuilt forever. So the staleness
+  predicate is only sound if installation is **version-aware**.
+- **P1 — the tracked entrypoint isn't actually portable.** The epic's locked
+  decision says `.work/bin/work-view` must be git-tracked AND content-portable
+  (so overwrite-in-place yields clean, portable diffs). But the current
+  installer writes a *platform-specific binary* into that tracked file →
+  cross-platform churn (a teammate on another OS gets a dirty tree / wrong
+  binary). The decomposition never assigned the "make it portable" work: versioning
+  doesn't, this feature originally said it doesn't, and only the *conditional*
+  shim did — so if discovery rules the shim out, the locked decision is never
+  realized.
+
+**Resolution (binding):** this feature **installs the portable bash
+implementation as the project-side tracked entrypoint** — not the platform
+prebuilt. The bash script is source-stamped (`WORK_VIEW_VERSION`, kept current
+by `bump-version.sh` the instant a bump runs), so it is *always* version-current,
+has no binary-staleness window, and produces clean portable diffs on
+overwrite-in-place. `install-work-view.sh` additionally becomes **version-aware**
+as defense in depth (compare a candidate's `--version` to the plugin before
+trusting it). The Rust prebuilt's speed is NOT used for the project-side
+entrypoint; it returns only via the shim feature deferring to the *plugin-side*
+binary (which lives outside the project tree) with version-aware selection.
+
+Consequence: **self-heal-only becomes a coherent, portable, churn-free end
+state** — so if the discovery spike rules the shim out, the epic still fully
+satisfies its locked entrypoint decision on this feature alone. This also means
+this feature, not the shim, owns realizing the content-portable entrypoint.

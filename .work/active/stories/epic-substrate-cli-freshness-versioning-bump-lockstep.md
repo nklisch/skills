@@ -37,10 +37,20 @@ are refreshed by CI (not by this script).
   - `sed -i.bak -E 's/^WORK_VIEW_VERSION="[^"]*"/WORK_VIEW_VERSION="'"$new"'"/'`
     on `plugins/agile-workflow/scripts/work-view.sh`, `rm -f` the `.bak`,
     `git add` the script.
-- Add a stderr NOTE (also guarded to `agile-workflow`) that the
-  `dist/<triple>/work-view` binaries are refreshed by the "Build work-view
-  binaries" workflow (`workflow_dispatch`, `commit_binaries=true`), ideally run
-  BEFORE the bump so refresh + bump land together.
+- Add a stderr NOTE (also guarded to `agile-workflow`) about dist-binary
+  ordering. **CORRECTED ORDERING (cross-model review finding P0#2):** the
+  version stamp is written into source BY THIS SCRIPT, and CI builds the dist
+  binaries FROM source — so the dist rebuild must run on the **POST-bump**
+  commit, not before it. A pre-bump CI run compiles the OLD `.work-view-version`
+  and ships version-mismatched binaries. The NOTE must therefore instruct: let
+  this script stamp + commit + push the bump, THEN trigger the "Build work-view
+  binaries" workflow (`workflow_dispatch`, `commit_binaries=true`) against the
+  bumped commit so rebuilt binaries self-report the new semver. There is an
+  unavoidable window between the bump commit and the CI binary commit where the
+  committed dist binaries lag the stamped version — acceptable ONLY because the
+  project-side entrypoint is the source-stamped bash implementation (see the
+  self-heal feature) and install selection is version-aware; the prebuilt is
+  never blindly trusted when its `--version` mismatches the plugin.
 - The existing single `git commit` at the end captures the staged files
   alongside the two `plugin.json`s (the script already relies on staged-then-
   commit for `bump_json`). The existing dirty-plugin-dir guard already covers
@@ -54,7 +64,8 @@ are refreshed by CI (not by this script).
 - [ ] `work-view.sh`'s `WORK_VIEW_VERSION` literal equals the new semver, staged
       and committed.
 - [ ] The final commit includes both work-view files plus both `plugin.json`s.
-- [ ] The dist-refresh NOTE prints only for `agile-workflow`.
+- [ ] The dist-refresh NOTE prints only for `agile-workflow` and states the
+      POST-bump rebuild ordering (rebuild from the bumped commit, not before it).
 - [ ] Bumping a different plugin leaves work-view files untouched.
 
 ## Notes

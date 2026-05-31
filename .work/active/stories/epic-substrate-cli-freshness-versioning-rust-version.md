@@ -51,6 +51,11 @@ local `cargo test`) gets the right value with no env wiring.
 - [ ] `--version` no longer returns exit 1 / "unknown flag".
 - [ ] `--help` / `-h` unchanged; HELP lists `--version`.
 - [ ] `cargo test -p work-view-cli` passes (new arg unit tests included).
+- [ ] `.work-view-version` contains the bare semver with NO trailing newline; a
+      test asserts `!include_str!("../.work-view-version").ends_with('\n')`. This
+      pins the single approach (raw `include_str!`, no `.trim()`) and resolves
+      the cross-model review's P2#1 (the feature body's `.trim()`-vs-raw
+      ambiguity) — the no-newline write contract makes `.trim()` unnecessary.
 
 ## Notes
 

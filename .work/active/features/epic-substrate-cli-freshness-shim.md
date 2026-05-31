@@ -53,3 +53,14 @@ Scope boundary: does NOT revisit plugin-side distribution (settled by
   plugin binary with a bash-only fallback (simplicity, no extra artifact). Lean:
   decide from the spike's findings — if discovery is reliable, plugin-binary-first
   with a bash fallback and no sidecar; revisit only if discovery is shaky.
+
+## Note (cross-model review)
+
+Per the self-heal feature's accepted findings, the project-side tracked
+entrypoint is now the portable, source-current bash implementation — so a
+content-portable, version-current **floor already exists** before this feature
+runs. That sharpens the shim's role to a pure *speed/freshness optimization*:
+prefer the plugin's current prebuilt binary (via verified discovery, with
+version-aware selection) and fall back to the already-portable bash floor. The
+shim is therefore strictly additive and lower-risk than originally framed; if
+discovery is ruled out, nothing is lost beyond the optimization.
