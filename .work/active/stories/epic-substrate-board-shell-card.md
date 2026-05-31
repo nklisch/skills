@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-shell-card
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-shell
 depends_on: [epic-substrate-board-shell-frame]
@@ -53,3 +53,16 @@ uses for item summaries and detail content.
   the shared card component is exercised before the dedicated view stories.
 - Added embedded routes and integration/static checks for the new JS assets and
   unsafe rendering patterns.
+
+## Review
+
+Approved on 2026-05-31 after host review.
+
+- Confirmed markdown rendering builds DOM nodes with text APIs and does not
+  ship raw HTML insertion sinks for substrate body content.
+- Confirmed `renderCard(item, options)` renders feed metadata, compact cards,
+  and keyboard activation through item-id callbacks rather than reading details
+  back from DOM attributes.
+- Verification passed: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p
+  work-view-cli` and `TMPDIR=/home/nathan/.cache/silas/tmp cargo build
+  --release -p work-view-cli`.
