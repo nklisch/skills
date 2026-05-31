@@ -151,16 +151,26 @@ palette:
 - **Interactive preview**: `.mockups/design-system/palette.html` — live accent
   dropdown + Sys/Light/Dark toggle over a realistic board, reading `tokens.css`.
 - **Typography preview**: `.mockups/design-system/typography.html` (Geist, locked).
+- **Components** (locked 2026-05-31): `.mockups/design-system/components.css` +
+  `components.html` showcase. Token-only (themes across all 6 accents × modes
+  automatically). Covers: `.btn` (primary/ghost), `.input`/`.input-search`,
+  `.select`, `.tabs` (view-switcher), `.seg` (mode toggle), `.filter-bar`/
+  `.filter-chip`, `.toggle` (auto-hide), `.theme-picker` (composite shipped
+  control), `.chip` (kind, outline ×5), `.badge` (status ×3), `.count`,
+  `.table`, `.alert` (diagnostics), `.empty`, `.spinner`, and the project-unique
+  `.item-card` (variants + states, rendered md body), `.kanban-col-head`,
+  `.dep-node` (dependency edges), `.detail-drawer` (read-only item detail).
+  Screens/flows link both `tokens.css` and `components.css`.
 - Explored and set aside (recoverable from git history): neubrutalist
   (highlighter / risograph / acid), Swiss/typographic, cassette futurism,
   editorial, vaporwave, aurora glass; and the single-lock terminal-teal /
   IBM Plex iteration that preceded the multi-theme system.
 
-Remaining ux-ui pipeline, still gated before the UI features implement:
-`components` → `motion` → `screens` (one per `epic-substrate-board-kanban`,
-`-dependency`, `-table`) → `flows` (cross-view navigation). The `-host` feature
-has no UI surface. Each UI feature gets its own `## Mockups` link as `screens` /
-`flows` run.
+Remaining ux-ui pipeline, still gated before the UI features implement
+(palette ✓, components ✓): `motion` → `screens` (one per
+`epic-substrate-board-kanban`, `-dependency`, `-table`) → `flows` (cross-view
+navigation). The `-host` feature has no UI surface. Each UI feature gets its own
+`## Mockups` link as `screens` / `flows` run.
 
 ## Foundation docs to roll forward
 

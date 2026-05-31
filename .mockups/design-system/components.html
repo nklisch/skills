@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en" data-accent="teal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Components — Substrate Board</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  /* showcase layout ONLY — components themselves come from components.css */
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--color-bg-primary); color: var(--color-text-primary); font: var(--font-size-base)/var(--line-height-base) var(--font-sans); }
+  header.top { position: sticky; top: 0; z-index: 30; display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+    padding: 12px 20px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); }
+  header .brand { font-weight: 700; letter-spacing: -.02em; }
+  header .brand .d { color: var(--color-accent); }
+  header nav { display: flex; gap: 12px; flex-wrap: wrap; }
+  header nav a { color: var(--color-text-secondary); text-decoration: none; font: 600 12px/1 var(--font-mono); }
+  header nav a:hover { color: var(--color-text-primary); }
+  header .picker { margin-left: auto; }
+  main { padding: 24px 20px 60px; max-width: 1080px; margin: 0 auto; }
+  section.cat { margin: 0 0 40px; }
+  section.cat > h2 { font: 600 13px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .1em; color: var(--color-text-tertiary);
+    border-bottom: 1px solid var(--color-border); padding-bottom: 8px; margin: 28px 0 16px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); align-items: start; }
+  .cell { border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; background: var(--color-bg-secondary); }
+  .cell.wide { grid-column: span 2; }
+  @media (max-width: 560px) { .cell.wide { grid-column: span 1; } }
+  .cell .render { padding: 24px 22px; min-height: 78px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; background: var(--color-bg-primary); }
+  .cell .label { font: 600 11px/1.4 var(--font-mono); color: var(--color-text-tertiary); padding: 6px 10px; border-top: 1px solid var(--color-border); }
+  pre.snip { margin: 0; padding: 10px 12px; background: var(--color-bg-tertiary); color: var(--color-text-secondary);
+    font: 11px/1.5 var(--font-mono); overflow-x: auto; border-top: 1px solid var(--color-border); white-space: pre; }
+  .stack { display: grid; gap: 10px; }
+  .note { color: var(--color-text-tertiary); font: 12px/1.5 var(--font-sans); margin: -6px 0 14px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">substrate<span class="d">/</span>board — components</span>
+  <nav>
+    <a href="#actions">actions</a><a href="#forms">forms</a><a href="#nav">nav</a>
+    <a href="#data">data</a><a href="#feedback">feedback</a><a href="#unique">unique</a>
+  </nav>
+  <div class="picker theme-picker">
+    <span class="lbl">accent</span>
+    <select class="select" id="accent">
+      <option value="teal">teal</option><option value="amber">amber</option><option value="violet">violet</option>
+      <option value="azure">azure</option><option value="lime">lime</option><option value="candy">candy</option>
+    </select>
+    <div class="seg" id="mode">
+      <button class="seg-btn" data-mode="system" aria-pressed="true">Sys</button>
+      <button class="seg-btn" data-mode="light">Light</button>
+      <button class="seg-btn" data-mode="dark">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <p class="note">Every component is driven entirely by <code>tokens.css</code> — flip the accent and mode above to verify all six themes in light and dark. Read-only board: no destructive controls.</p>
+
+  <!-- ACTIONS -->
+  <section class="cat" id="actions"><h2>Actions</h2>
+    <div class="grid">
+      <div class="cell"><div class="render"><button class="btn btn-primary">Filter</button><button class="btn btn-primary btn--sm">Apply</button></div><div class="label">.btn-primary (+ --sm) · glow on hover</div></div>
+      <div class="cell"><div class="render"><button class="btn btn-ghost">Reset</button><button class="btn">Default</button></div><div class="label">.btn-ghost · .btn</div></div>
+      <div class="cell"><div class="render"><button class="btn btn-primary" disabled>Disabled</button><button class="btn" disabled>Disabled</button></div><div class="label">[disabled]</div></div>
+      <div class="cell"><pre class="snip">&lt;button class="btn btn-primary"&gt;Filter&lt;/button&gt;
+&lt;button class="btn btn-ghost"&gt;Reset&lt;/button&gt;</pre></div>
+    </div>
+  </section>
+
+  <!-- FORMS -->
+  <section class="cat" id="forms"><h2>Forms</h2>
+    <div class="grid">
+      <div class="cell"><div class="render"><span class="input-search"><input class="input" placeholder="filter… (id, body)"></span></div><div class="label">.input-search</div></div>
+      <div class="cell"><div class="render"><input class="input" value="board-shell"></div><div class="label">.input (focus = accent ring)</div></div>
+      <div class="cell"><div class="render"><select class="select"><option>stage: all</option><option>drafting</option></select></div><div class="label">.select</div></div>
+      <div class="cell"><pre class="snip">&lt;span class="input-search"&gt;
+  &lt;input class="input" placeholder="filter…"&gt;
+&lt;/span&gt;</pre></div>
+    </div>
+  </section>
+
+  <!-- NAVIGATION -->
+  <section class="cat" id="nav"><h2>Navigation &amp; controls</h2>
+    <div class="grid">
+      <div class="cell"><div class="render"><div class="tabs"><button class="tab" aria-selected="true">Kanban</button><button class="tab">Dependency</button><button class="tab">Table</button></div></div><div class="label">.tabs — view-switcher</div></div>
+      <div class="cell"><div class="render"><div class="seg"><button class="seg-btn" aria-pressed="true">Sys</button><button class="seg-btn">Light</button><button class="seg-btn">Dark</button></div></div><div class="label">.seg — mode toggle</div></div>
+      <div class="cell"><div class="render filter-bar"><button class="filter-chip" aria-pressed="true">tag:tooling<span class="x">×</span></button><button class="filter-chip">kind:feature</button><button class="filter-chip">stage:drafting</button></div><div class="label">.filter-bar / .filter-chip (pressed = active)</div></div>
+      <div class="cell wide"><div class="render"><button class="toggle" aria-pressed="true"><span class="track"></span> hide released/archived</button></div><div class="label">.toggle — auto-hide</div></div>
+      <div class="cell wide"><div class="render"><span class="theme-picker"><span class="lbl">accent</span><select class="select"><option>teal</option></select><span class="seg"><button class="seg-btn" aria-pressed="true">Sys</button><button class="seg-btn">Light</button><button class="seg-btn">Dark</button></span></span></div><div class="label">.theme-picker — shipped, persisted control</div></div>
+      <div class="cell"><pre class="snip">&lt;div class="tabs"&gt;
+  &lt;button class="tab" aria-selected="true"&gt;Kanban&lt;/button&gt;
+  &lt;button class="tab"&gt;Dependency&lt;/button&gt;
+&lt;/div&gt;</pre></div>
+    </div>
+  </section>
+
+  <!-- DATA DISPLAY -->
+  <section class="cat" id="data"><h2>Data display</h2>
+    <div class="grid">
+      <div class="cell"><div class="render"><span class="chip chip--epic">epic</span><span class="chip chip--feature">feature</span><span class="chip chip--story">story</span><span class="chip chip--release">release</span><span class="chip chip--backlog">backlog</span></div><div class="label">.chip — kind (outline, --kind-*)</div></div>
+      <div class="cell"><div class="render"><span class="badge badge--ready">ready</span><span class="badge badge--blocked">blocked</span><span class="badge badge--done">done</span></div><div class="label">.badge — status (filled, --status-*)</div></div>
+      <div class="cell"><div class="render">Drafting <span class="count">5</span> &nbsp; Review <span class="count">0</span></div><div class="label">.count — pill</div></div>
+      <div class="cell" style="grid-column: 1 / -1;"><div class="render" style="display:block;">
+        <table class="table"><thead><tr><th>id</th><th>kind</th><th>stage</th><th>status <span class="sort">▾</span></th><th>depends_on</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">board-host</td><td><span class="chip chip--feature">feature</span></td><td>drafting</td><td><span class="badge badge--ready">ready</span></td><td class="mono">—</td></tr>
+          <tr><td class="mono">board-shell</td><td><span class="chip chip--feature">feature</span></td><td>drafting</td><td><span class="badge badge--blocked">blocked</span></td><td class="mono">board-host</td></tr>
+        </tbody></table>
+      </div><div class="label">.table — table view (sortable headers)</div></div>
+    </div>
+  </section>
+
+  <!-- FEEDBACK -->
+  <section class="cat" id="feedback"><h2>Feedback</h2>
+    <div class="grid">
+      <div class="cell"><div class="render" style="display:block;"><div class="alert alert--warning"><span class="ico">!</span><span class="body">3 items skipped while re-reading<small>parse error in .work/active/stories/foo.md — mid-write</small></span></div></div><div class="label">.alert--warning — diagnostics (LoadReport)</div></div>
+      <div class="cell"><div class="render" style="display:block;"><div class="alert alert--info"><span class="ico">i</span><span class="body">Showing 6 of 12 — released/archived hidden.</span></div></div><div class="label">.alert--info</div></div>
+      <div class="cell"><div class="render" style="display:block;"><div class="empty"><span class="glyph">∅</span>No items in Review</div></div><div class="label">.empty — empty column / no results</div></div>
+      <div class="cell"><div class="render"><span class="spinner"></span> &nbsp;<span style="color:var(--color-text-secondary);font:13px/1 var(--font-mono)">reading .work/…</span></div><div class="label">.spinner — feed loading</div></div>
+    </div>
+  </section>
+
+  <!-- PROJECT-UNIQUE -->
+  <section class="cat" id="unique"><h2>Project-unique</h2>
+    <div class="grid">
+      <div class="cell"><div class="render" style="display:block;">
+        <div class="item-card item-card--feature is-blocked">
+          <div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-shell</span><span class="badge badge--blocked">blocked</span></div>
+          <div class="ic-body">Shared app frame, item-card, <strong>markdown body</strong>, global filters, auto-hide. Owns <code>filter-state</code>.</div>
+          <div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: board-host</span></div>
+        </div></div><div class="label">.item-card--feature.is-blocked (rendered md body)</div></div>
+      <div class="cell"><div class="render" style="display:block;">
+        <div class="item-card item-card--epic is-selected">
+          <div class="ic-head"><span class="chip chip--epic">epic</span><span class="ic-id">substrate-board</span></div>
+          <div class="ic-body">Interactive human surface over <code>.work/</code> — kanban, dependency, table.</div>
+          <div class="ic-meta">5 child features</div>
+        </div></div><div class="label">.item-card--epic.is-selected</div></div>
+      <div class="cell"><div class="render" style="display:block;">
+        <div class="kanban-col-head"><span class="title">Drafting</span><span class="count">5</span></div>
+        <div class="item-card item-card--feature"><div class="ic-head"><span class="chip chip--feature">feature</span><span class="ic-id">board-host</span><span class="badge badge--ready">ready</span></div><div class="ic-meta"><span class="dep"><span class="arrow">↳</span> depends_on: —</span></div></div>
+      </div><div class="label">.kanban-col-head + card</div></div>
+      <div class="cell"><div class="render" style="display:block;">
+        <div class="dep-node is-blocked">
+          <div class="dn-head"><span class="chip chip--feature">feature</span><span class="ic-id" style="font:600 12.5px/1.3 var(--font-mono)">board-shell</span><span class="badge badge--blocked">blocked</span></div>
+          <div class="edges">
+            <div class="edge"><span class="up">↳ depends_on</span> <span class="unmet">board-host (unmet)</span></div>
+            <div class="edge"><span class="down">↱ unblocks</span> board-kanban, board-table, board-dependency</div>
+          </div>
+        </div></div><div class="label">.dep-node — dependency view (edges)</div></div>
+      <div class="cell" style="grid-column: 1 / -1;"><div class="render" style="display:block;">
+        <div class="detail-drawer">
+          <div class="dd-head"><span class="chip chip--feature">feature</span><span class="dd-id">board-shell</span><button class="btn btn-ghost btn--sm dd-close">esc ✕</button></div>
+          <dl class="dd-frontmatter"><dt>stage</dt><dd>drafting</dd><dt>tags</dt><dd>[tooling]</dd><dt>parent</dt><dd>epic-substrate-board</dd><dt>depends_on</dt><dd>[board-host]</dd></dl>
+          <div class="dd-md"><p>Shared frontend foundation: app frame, view-switcher, the shared item-card, markdown body rendering, and the global filter bar.</p><h4>Brief</h4><p>Lands once so the three views don't re-invent the card. Read-only this epic.</p></div>
+        </div></div><div class="label">.detail-drawer — read-only item detail (full md body)</div></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const root = document.documentElement, KEY = "substrate-components-theme";
+  const s = JSON.parse(localStorage.getItem(KEY) || '{"accent":"teal","mode":"system"}');
+  const setA = a => root.setAttribute("data-accent", a);
+  const setM = m => m === "system" ? root.removeAttribute("data-theme") : root.setAttribute("data-theme", m);
+  const save = () => localStorage.setItem(KEY, JSON.stringify(s));
+  document.getElementById("accent").value = s.accent; setA(s.accent); setM(s.mode);
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === s.mode)));
+  document.getElementById("accent").addEventListener("change", e => { s.accent = e.target.value; setA(s.accent); save(); });
+  document.querySelectorAll('#mode .seg-btn').forEach(b => b.addEventListener("click", () => {
+    s.mode = b.dataset.mode; setM(s.mode); save();
+    document.querySelectorAll('#mode .seg-btn').forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  }));
+  // demo-only toggles
+  document.querySelectorAll('.cat .tab').forEach(t => t.addEventListener('click', () => {
+    t.parentElement.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected','false')); t.setAttribute('aria-selected','true'); }));
+  document.querySelectorAll('.cat .filter-chip, .cat .toggle').forEach(c => c.addEventListener('click', () => {
+    const p = c.getAttribute('aria-pressed') === 'true'; c.setAttribute('aria-pressed', String(!p)); }));
+</script>
+</body>
+</html>
