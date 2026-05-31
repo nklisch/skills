@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-table-sort
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-table
 depends_on: [epic-substrate-board-table-render]
@@ -42,3 +42,9 @@ shell global filters.
 - Header cells now render native buttons, expose `aria-sort`, and re-render the
   local table view without mutating shell filters.
 - Default ordering remains deterministic before a user selects a sort column.
+
+## Review Notes
+
+- Local review approved after adding header-focus restoration across local
+  re-renders so keyboard sorting does not lose focus.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`.
