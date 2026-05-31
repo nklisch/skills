@@ -6,7 +6,7 @@ tags: [tooling]
 parent: feat-a
 depends_on: []
 release_binding: null
-gate_origin: null
+gate_origin: tests
 created: 2026-01-04
 updated: 2026-05-30
 ---

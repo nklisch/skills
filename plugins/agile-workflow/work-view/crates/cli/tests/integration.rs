@@ -600,10 +600,9 @@ fn broken_pipe_exits_zero() {
     assert_eq!(code, 0, "broken pipe should produce exit 0, got {code}");
 }
 
-// ── Parity with bash (item 1 — against expected literals) ────────────────────
-// A full bash-parity test (asserting binary stdout == bash stdout byte-for-byte)
-// is added in item 2 after the bash script is in its final stage-aware state.
-// Here we assert against known expected literals from the fixture.
+// ── Output-mode checks against expected literals from the fixture ────────────
+// These assert known expected literals; the live binary-vs-bash byte-parity
+// matrix is in the "Expanded parity matrix" section below.
 
 #[test]
 fn paths_output_contains_known_fixture_paths() {
@@ -998,11 +997,35 @@ fn parity_blocked_count_matches_bash() {
 // ── Expanded parity matrix: full flag surface ─────────────────────────────────
 //
 // Covers: --stage, --tag (single), --tag (AND), --kind, --parent (non-null),
-// --release (non-null), --blocking, --cat, combined filters.
+// --release (non-null), --gate (non-null), --blocking, --cat, combined filters.
 //
 // --parent null / --release null / --gate null are intentionally excluded:
 // they diverge from bash due to IsNull matching missing-field items.
 // See is_null_* tests and adapter design Risks section.
+
+#[test]
+fn parity_gate_tests_paths_matches_bash() {
+    // --gate <name>: non-null gate filter. story-alpha-1 has gate_origin: tests.
+    // Gate skills (gate-tests, gate-security) shell out with `--gate <name> --paths`,
+    // so this path must match the bash fallback exactly.
+    let (bin_stdout, _, bin_code) = run(&["--gate", "tests", "--paths"]);
+    let Some((bash_stdout, bash_code)) = bash_run(&["--gate", "tests", "--paths"]) else {
+        eprintln!("skipping bash parity: bash unavailable on this platform");
+        return;
+    };
+    assert_eq!(
+        bin_code, bash_code,
+        "exit codes differ for --gate tests --paths"
+    );
+    assert_eq!(
+        bin_stdout, bash_stdout,
+        "--gate tests --paths mismatch\nbinary:\n{bin_stdout}\nbash:\n{bash_stdout}"
+    );
+    assert!(
+        bin_stdout.contains("story-alpha-1"),
+        "--gate tests should match the gate-produced item; stdout: {bin_stdout}"
+    );
+}
 
 #[test]
 fn parity_stage_implementing_paths_matches_bash() {
