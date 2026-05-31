@@ -43,6 +43,14 @@ itself.
 - `plugins/agile-workflow/docs/ARCHITECTURE.md` — current board behavior and the
   `work-board` script + template it replaces.
 
+## Design decisions
+- **UI gating** — UI-bearing features under this epic are gated on a full
+  `ux-ui-design` pass before implementation: `palette → components → motion →
+  screens → flows` (ux-ui-principles dependency order). `adopt` is N/A (net-new
+  surface); `ux-ui-principles` is the always-on reference, not a step. Mocks are
+  deferred for now — run the pass at this epic's `epic-design` (or
+  `epic-design --only-questions`) before its UI features implement.
+
 ## Anticipated child features
 
 Provisional — real decomposition happens at `epic-design` / `feature-design`:
