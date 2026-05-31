@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-host-assets
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-host
 depends_on: [epic-substrate-board-host-server]
@@ -58,3 +58,17 @@ Verification:
 - `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`
 - Release binary size: `515448` bytes (`504K`) at
   `/home/nathan/.cache/silas/target/release/work-view`
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review under autopilot. Implementation notes recorded
+green scoped verification; host reran
+`TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli` successfully.
+Host also reran the release build and confirmed the binary remained 515,448
+bytes, below the 8,388,608 byte CI guard.
