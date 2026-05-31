@@ -100,9 +100,6 @@ Path resolution falls back to kebab-case slugs.
 ```bash
 # Via marketplace
 claude /plugin install ux-ui-design --from nklisch/skills
-
-# Via skilltap CLI
-skilltap install ux-ui-design
 ```
 
 ### Codex CLI

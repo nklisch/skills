@@ -225,11 +225,10 @@ After `convert` runs in a project repo:
 
 ## Distribution
 
-Each agile-workflow skill registers as a `tap.json` entry following the
-existing skills repo convention. The plugin distributes via skilltap.
-
-Tap entries follow the existing `skilltap-author` shape, added to `tap.json`
-at the repo root. No separate npm package, no separate registry.
+The plugin distributes through the Claude Code and OpenAI Codex marketplaces via
+the repo-root `.claude-plugin/marketplace.json`, with parallel
+`.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` manifests kept in
+lockstep. No separate npm package, no separate registry.
 
 ## Version strategy
 

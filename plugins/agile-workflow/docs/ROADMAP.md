@@ -11,7 +11,7 @@ Built solo + autopilot via `/workflow`. Each phase is one
 
 ## Phase 1: Plugin foundation + tooling
 
-**Goal:** Plugin installs via skilltap. Scripts run. Hooks fire (silently
+**Goal:** Plugin installs via the marketplace. Scripts run. Hooks fire (silently
 when no substrate). Reference skills and `principles` work on any project.
 
 **Build:**
@@ -25,7 +25,7 @@ when no substrate). Reference skills and `principles` work on any project.
   `research/`, `repo-eval/`, `tool-evaluator/`, `refactor-conventions-creator/`
   (`repo-eval` and `tool-evaluator` were later extracted to `nates-toolkit`;
   `tool-evaluator` is now `agent-reflection`)
-- `tap.json` entries for the 5 skills
+- Plugin manifests covering the 5 skills
 
 **Test checkpoint:** `bats tests/work-view.bats` passes — covers each flag
 combination, exit codes, and --help. (work-view is the only artifact in
@@ -49,7 +49,7 @@ end to end. Self-dogfooding moment: bootstrap agile-workflow's own
   tag-routed; descriptions cross-reference each other
 - Production + review: `implement/`, `implement-orchestrator/` (respects
   `depends_on`), `review/`
-- `tap.json` entries for all 12 skills
+- Plugin manifests covering all 12 skills
 - Bootstrap `plugins/agile-workflow/.work/` using the new `convert` skill
 
 **Test checkpoint:** Take a fresh test repo through the full cycle by hand:
@@ -71,7 +71,7 @@ epics on user request.
   `gate-patterns/` — each with reference file
 - `autopilot/` (+ queue-algorithm and harness-goal references)
 - `bold-refactor/` (+ architectural-shifts reference) — user-invocable only
-- `tap.json` entries for all 8 skills
+- Plugin manifests covering all 8 skills
 
 **Test checkpoint:** In the test repo from Phase 2, cut a fake release end
 to end with `release-deploy` — gates run, items advance, release ships.
@@ -87,9 +87,9 @@ cycle and is published.
 
 **Build:**
 - Pick a real target project; run the full workflow on it
-- Bump plugin to v0.1.0 (if not already); publish via skilltap
+- Bump plugin to v0.1.0 (if not already); publish via the marketplace
 - Delete `plugins/agile-workflow/docs/ROADMAP.md`
 
 **Test checkpoint:** Target project shipped its own release via
 `/agile-workflow:release-deploy`. Plugin manifest reports v0.1.0. Fresh
-`skilltap install nklisch/agile-workflow` works. ROADMAP.md is gone.
+`/plugin install agile-workflow@nklisch-skills` works. ROADMAP.md is gone.

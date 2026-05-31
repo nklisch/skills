@@ -85,8 +85,8 @@ still describe the present without legacy comments.
 ## Relationship to workflow
 
 `agile-workflow` does not replace `workflow`. Both ship from this repo and
-stay supported. They distribute the same way (skilltap), version
-independently, and never share skills.
+stay supported. They distribute the same way (the Claude Code and OpenAI Codex
+marketplaces), version independently, and never share skills.
 
 - Choose **`workflow`** when the project wants design docs as artifacts,
   roadmaps with phases, a stable doc-driven cycle, and minimal change to

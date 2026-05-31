@@ -21,8 +21,9 @@ tracking fits.
 ## Quick start
 
 ```bash
-# Install via skilltap
-skilltap install nklisch/agile-workflow
+# Install via the Claude Code marketplace
+/plugin marketplace add nklisch/skills
+/plugin install agile-workflow@nklisch-skills
 
 # In a target project:
 /agile-workflow:ideate            # produce foundation docs (greenfield)
