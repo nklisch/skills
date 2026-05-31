@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-table
 kind: feature
-stage: implementing
+stage: done
 tags: [tooling]
 parent: epic-substrate-board
 depends_on: [epic-substrate-board-shell]
@@ -155,3 +155,20 @@ Story: `epic-substrate-board-table-filters`
 1. `epic-substrate-board-table-render`
 2. `epic-substrate-board-table-sort`
 3. `epic-substrate-board-table-filters`
+
+## Implementation Summary
+
+- Delivered the registered `/assets/table.js` view and wired it through the
+  shared view registry.
+- Rendered dense rows over `ctx.visibleItems()` with id, kind, stage, status,
+  parent, dependency count, and updated columns.
+- Added click and Enter/Space activation through the shared detail panel.
+- Added stable table-local sorting with header buttons, `aria-sort`, focus
+  restoration, and stage ordering derived from the shared filter options.
+- Added table-local per-column filters that compose after global filters and do
+  not mutate shell/global filter state.
+- Added responsive table CSS with horizontal scrolling, sticky headers, and
+  static embedded-asset coverage for the table layout primitives.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p
+  work-view-cli` and `TMPDIR=/home/nathan/.cache/silas/tmp cargo build
+  --release -p work-view-cli` passed.
