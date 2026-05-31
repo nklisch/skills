@@ -27,6 +27,10 @@ const context = {
 const filtersUi = filterRoot ? renderFilterBar(filterRoot, context) : null;
 window.boardContext = context;
 
+let mountedSnapshot = null;
+let mountedView = null;
+let mountedFilters = "";
+
 function replaceChildren(node, children) {
   if (!node) {
     return;
@@ -152,6 +156,25 @@ function updateStatus(state, visibleCount) {
   statusText.textContent = "Waiting for substrate data";
 }
 
+function filterSignature(filters) {
+  const setValues = (set) => Array.from(set).sort().join("\u0000");
+  return [
+    filters.search,
+    setValues(filters.kinds),
+    setValues(filters.stages),
+    setValues(filters.parents),
+    setValues(filters.releases),
+    setValues(filters.tags),
+    String(filters.autoHideReleased),
+  ].join("\u0001");
+}
+
+function resetMountedView() {
+  mountedSnapshot = null;
+  mountedView = null;
+  mountedFilters = "";
+}
+
 function renderDiagnostics(state) {
   const diagnostics = diagnosticsFor(state.snapshot);
   diagnosticsSummary?.replaceChildren(textElement("span", "count", `${diagnostics.length} diagnostics`));
@@ -167,29 +190,40 @@ function renderView(state) {
     return;
   }
   if (state.loading && !state.snapshot) {
+    resetMountedView();
     viewRoot.replaceChildren(emptyState("::", "Loading substrate data", "Fetching /api/substrate from the local board host."));
     return;
   }
   if (state.error && !state.snapshot) {
+    resetMountedView();
     viewRoot.replaceChildren(emptyState("!", "Feed unavailable", "The board shell is still usable; refresh when the substrate feed is available."));
     return;
   }
   if (!state.snapshot) {
+    resetMountedView();
     viewRoot.replaceChildren(emptyState("::", "Board shell ready", "Kanban, dependency, and table views mount here as their stories land."));
     return;
   }
 
   const visible = context.visibleItems();
   if (state.snapshot.items.length === 0) {
+    resetMountedView();
     viewRoot.replaceChildren(emptyState("0", "No substrate items", "The feed loaded successfully, but it did not contain any items."));
     return;
   }
   if (visible.length === 0) {
+    resetMountedView();
     viewRoot.replaceChildren(emptyState("0", "No matching items", "Adjust filters or show released and archived items to widen the view."));
     return;
   }
 
-  mountCurrentView(viewRoot, context);
+  const filters = filterSignature(state.filters);
+  if (mountedSnapshot !== state.snapshot || mountedView !== state.view || mountedFilters !== filters) {
+    mountedSnapshot = state.snapshot;
+    mountedView = state.view;
+    mountedFilters = filters;
+    mountCurrentView(viewRoot, context);
+  }
 }
 
 function render(state) {

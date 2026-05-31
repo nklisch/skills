@@ -1,6 +1,7 @@
 import { renderMarkdown } from "/assets/markdown.js";
 
 let activeDetail = null;
+let returnFocus = null;
 
 function textElement(tag, className, text) {
   const element = document.createElement(tag);
@@ -67,6 +68,12 @@ function closeButton(ctx) {
   return button;
 }
 
+function detailTitle(item) {
+  const title = textElement("span", "dd-id", valueOrNone(item.id));
+  title.id = "item-detail-title";
+  return title;
+}
+
 function drawer(item, ctx, presentation) {
   const article = document.createElement("article");
   article.className = [
@@ -74,11 +81,15 @@ function drawer(item, ctx, presentation) {
     "as-drawer",
     presentation === "drawer-wide" ? "w-wide" : "w-narrow",
   ].join(" ");
+  article.tabIndex = -1;
+  article.setAttribute("role", "dialog");
+  article.setAttribute("aria-modal", "true");
+  article.setAttribute("aria-labelledby", "item-detail-title");
   const head = document.createElement("div");
   head.className = "dd-head";
   head.append(
     textElement("span", "chip", valueOrNone(item.kind)),
-    textElement("span", "dd-id", valueOrNone(item.id)),
+    detailTitle(item),
     closeButton(ctx),
   );
   const body = document.createElement("div");
@@ -93,13 +104,14 @@ function modal(item, ctx) {
   scrim.className = "detail-scrim";
   const article = document.createElement("article");
   article.className = "item-modal";
+  article.tabIndex = -1;
   article.setAttribute("role", "dialog");
   article.setAttribute("aria-modal", "true");
   article.setAttribute("aria-labelledby", "item-detail-title");
   const head = document.createElement("div");
   head.className = "m-head";
-  const title = textElement("span", "m-id", valueOrNone(item.id));
-  title.id = "item-detail-title";
+  const title = detailTitle(item);
+  title.className = "m-id";
   head.append(
     textElement("span", "chip", valueOrNone(item.kind)),
     title,
@@ -118,6 +130,67 @@ function modal(item, ctx) {
   return scrim;
 }
 
+function setBackgroundInert(active) {
+  const shell = document.querySelector(".app-shell");
+  if (!shell) {
+    return;
+  }
+  if (active) {
+    shell.setAttribute("aria-hidden", "true");
+    shell.inert = true;
+  } else {
+    shell.removeAttribute("aria-hidden");
+    shell.inert = false;
+  }
+}
+
+function rememberReturnFocus() {
+  const element = document.activeElement;
+  if (element && element !== document.body && typeof element.focus === "function") {
+    returnFocus = element;
+  }
+}
+
+function restoreReturnFocus() {
+  const element = returnFocus;
+  returnFocus = null;
+  if (element?.isConnected && typeof element.focus === "function") {
+    element.focus({ preventScroll: true });
+  }
+}
+
+function focusDetail(node) {
+  const target = node.querySelector(".dd-close") || node.querySelector("[role='dialog']") || node;
+  target.focus({ preventScroll: true });
+}
+
+function focusableNodes() {
+  if (!activeDetail) {
+    return [];
+  }
+  return Array.from(activeDetail.node.querySelectorAll(
+    "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
+  )).filter((node) => !node.disabled && node.getAttribute("aria-hidden") !== "true");
+}
+
+function trapFocus(event) {
+  const focusable = focusableNodes();
+  if (focusable.length === 0) {
+    event.preventDefault();
+    activeDetail?.node.focus?.({ preventScroll: true });
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus({ preventScroll: true });
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus({ preventScroll: true });
+  }
+}
+
 function renderDetail(item, ctx) {
   const presentation = detectDetailPresentation(item, window.innerWidth);
   if (
@@ -129,18 +202,27 @@ function renderDetail(item, ctx) {
   }
   const node = presentation === "modal" ? modal(item, ctx) : drawer(item, ctx, presentation);
   activeDetail?.node.remove();
+  setBackgroundInert(true);
   document.body.append(node);
   activeDetail = { id: item.id, item, presentation, node, ctx };
+  focusDetail(node);
 }
 
 function closeActive() {
   activeDetail?.node.remove();
   activeDetail = null;
+  setBackgroundInert(false);
+  restoreReturnFocus();
 }
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && activeDetail) {
+  if (!activeDetail) {
+    return;
+  }
+  if (event.key === "Escape") {
     closeDetail(activeDetail.ctx);
+  } else if (event.key === "Tab") {
+    trapFocus(event);
   }
 });
 
@@ -150,11 +232,9 @@ export function openDetail(id, ctx) {
     closeDetail(ctx);
     return;
   }
-  const wasSelected = ctx.getState().selectedItemId === item.id;
+  rememberReturnFocus();
   ctx.setSelectedItem?.(item.id);
-  if (wasSelected || typeof ctx.setSelectedItem !== "function") {
-    renderDetail(item, ctx);
-  }
+  renderDetail(item, ctx);
 }
 
 export function closeDetail(ctx = null) {

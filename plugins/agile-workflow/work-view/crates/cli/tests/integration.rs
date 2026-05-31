@@ -553,6 +553,7 @@ fn board_embedded_assets_return_expected_content_types() {
     assert!(
         board_body.contains("createBoardStore")
             && board_body.contains("renderFilterBar")
+            && board_body.contains("filterSignature")
             && board_body.contains("context.refresh()"),
         "board JS should bootstrap the store, filters, and initial refresh; body: {board_body}"
     );
@@ -600,6 +601,9 @@ fn board_embedded_assets_return_expected_content_types() {
             && detail_body.contains("export function closeDetail")
             && detail_body.contains("export function detectDetailPresentation")
             && detail_body.contains("ctx.getItemById(id)")
+            && detail_body.contains("focus({ preventScroll: true })")
+            && detail_body.contains("aria-modal")
+            && detail_body.contains("shell.inert = true")
             && detail_body.contains("renderMarkdown"),
         "detail JS should export id-based detail helpers using safe markdown; body: {detail_body}"
     );
