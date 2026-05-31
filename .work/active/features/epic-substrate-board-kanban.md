@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-kanban
 kind: feature
-stage: drafting
+stage: implementing
 tags: [tooling]
 parent: epic-substrate-board
 depends_on: [epic-substrate-board-shell]
@@ -86,3 +86,84 @@ feature's own scope is the kanban arrangement (swimlane grid + columns) on top.
 
 <!-- feature-design fills in: column source/ordering, count + empty-state
 rendering, and how the view subscribes to the shell's filter-state store. -->
+
+## Feature Design
+
+The kanban view replaces the shell's `kanban` placeholder with a registered
+`BoardView` module that lays the current `ctx.visibleItems()` set into
+workflow-stage columns. It does not own filters, cards, markdown, selected item
+state, or detail; those stay in the shell. The view is read-only and uses card
+activation through `ctx.renderCard(item, { context: ctx })`.
+
+### View Contract
+
+- New asset: `plugins/agile-workflow/work-view/crates/cli/src/board/assets/kanban.js`
+- Registration: `views.js` imports `registerKanbanView(ctx?)` or imports the
+  module for side-effect registration, while keeping `registerView(view)` as the
+  extension point.
+- Mount input: `ctx.visibleItems()` is the only item source. The shell remounts
+  the view when snapshot/view/filter state changes.
+- Detail input: cards open via `ctx.openDetail(id)` through the shared card
+  context.
+
+### Layout Decisions
+
+- Stage order reuses the shell's `deriveFilterOptions(snapshot).stages` so
+  kanban columns stay in lockstep with the global stage vocabulary and any
+  feed-reported extra stages.
+- Items with missing/empty stage render in a stable `(none)` column at the end.
+- Rows are parent/epic swimlanes:
+  - A top-level epic's own id labels its lane.
+  - A feature/story with `parent` uses that parent id as the lane.
+  - Missing parent uses `(no parent)`.
+- Each lane displays a compact progress summary: done count / total visible
+  items in the lane. Progress is purely visual and derived from the filtered set.
+- A kanban-local focus strip lists lane ids and lets the user narrow the rendered
+  lanes to one lane without mutating shell filters. This is module-scoped
+  view-local state so it can be re-applied when the shell remounts the view
+  after filter/snapshot changes; cross-session persistence is not required in
+  this epic.
+
+### Acceptance Detail
+
+- Empty visible set remains the shell's explicit empty state.
+- Empty columns inside a non-empty lane show a compact "empty" affordance so the
+  grid does not collapse.
+- Keyboard users can tab through focus-strip buttons and cards; detail focus is
+  handled by the shell.
+- The view never uses drag/drop or writes back to `.work/`.
+
+## Implementation Units
+
+### Unit 1: Stage grouping and registered kanban module
+
+Story: `epic-substrate-board-kanban-stage-grid`
+
+- Add `kanban.js`, register it in `views.js`, and expose pure helpers for
+  stage grouping while deriving order from `deriveFilterOptions(snapshot)`.
+- Render canonical stage columns with per-column counts and empty-column states.
+- Add integration assertions that `/assets/kanban.js` is embedded and the view
+  registry imports/registers it.
+
+### Unit 2: Epic swimlanes and focus strip
+
+Story: `epic-substrate-board-kanban-swimlanes`
+
+- Group the filtered set by parent/epic lane.
+- Render lane headers, lane progress summaries, and a view-local focus strip.
+- Ensure focusing one lane scopes only the kanban render, not shell filters.
+
+### Unit 3: Responsive kanban polish and tests
+
+Story: `epic-substrate-board-kanban-polish`
+
+- Add stable CSS for horizontal column scrolling, lane minimum widths, compact
+  empty states, and mobile stacking.
+- Extend static asset tests for no raw HTML sinks and no remote assets.
+- Verify `cargo test -p work-view-cli` and release build size.
+
+## Story Dependencies
+
+1. `epic-substrate-board-kanban-stage-grid`
+2. `epic-substrate-board-kanban-swimlanes`
+3. `epic-substrate-board-kanban-polish`
