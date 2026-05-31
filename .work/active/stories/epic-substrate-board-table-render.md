@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-table-render
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-table
 depends_on: []
@@ -45,3 +45,10 @@ selected dense column set over the shell's filtered item set.
   `views.js`.
 - Rows are click and keyboard activatable and call shared `ctx.openDetail(id)`.
 - Embedded `/assets/table.js` and extended static/raw HTML sink coverage.
+
+## Review Notes
+
+- Local review approved the table render. It uses DOM text APIs only, guards
+  missing ids before opening detail, and leaves sort/filter behavior for the
+  follow-up stories.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`.
