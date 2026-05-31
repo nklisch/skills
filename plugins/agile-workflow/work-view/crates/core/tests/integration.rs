@@ -20,6 +20,17 @@ fn golden_root() -> &'static Path {
     ))
 }
 
+/// Path to the precedence fixture substrate root.
+///
+/// Holds the same id (`dup-item`) in BOTH `releases/` and `archive/` — the one
+/// duplicate pairing where byte-sorted load order and tier precedence disagree.
+fn precedence_root() -> &'static Path {
+    Path::new(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/precedence"
+    ))
+}
+
 // ── Golden fixture: full pipeline ─────────────────────────────────────────────
 
 #[test]
@@ -415,6 +426,65 @@ fn golden_filter_release_is_null() {
         "only the archive copy of feat-parser (null release_binding) should match"
     );
     assert_eq!(feat_parser_matches[0].tier, Tier::Archive);
+}
+
+// ── Duplicate-id precedence: releases vs archive (load order disagrees) ───────
+
+#[test]
+fn precedence_releases_wins_over_archive_despite_load_order() {
+    // `dup-item` exists in BOTH releases/ and archive/. In byte-sorted load
+    // order `.work/archive/...` sorts BEFORE `.work/releases/...` ('a' < 'r'),
+    // so the archive copy is encountered FIRST. Tier precedence (releases=1 >
+    // archive=2) must still win — proving `by_id` resolves by precedence, NOT
+    // by load order. This is the single pairing the golden fixture can't prove
+    // (active-vs-archive, where load order and precedence happen to agree).
+    let (sub, report) = Substrate::load(precedence_root()).unwrap();
+
+    // Sanity: both copies stay in items(), and the archive copy really does
+    // sort before the releases copy in load order.
+    use std::os::unix::ffi::OsStrExt;
+    let order: Vec<&std::path::Path> = sub
+        .items()
+        .iter()
+        .filter(|i| i.id == "dup-item")
+        .map(|i| i.path.as_path())
+        .collect();
+    assert_eq!(order.len(), 2, "both copies must remain in items()");
+    assert!(
+        order[0].as_os_str().as_bytes() < order[1].as_os_str().as_bytes(),
+        "load order must be byte-sorted"
+    );
+    assert!(
+        order[0].to_str().unwrap().contains("/archive/"),
+        "the archive copy must be FIRST in load order (it sorts before releases)"
+    );
+
+    // by_id must return the RELEASES copy (precedence 1), not the
+    // load-order-first archive copy (precedence 2).
+    let canonical = sub.by_id("dup-item").unwrap();
+    assert_eq!(
+        canonical.tier,
+        Tier::Releases,
+        "releases (precedence 1) must win over archive (precedence 2), even \
+         though archive sorts first in load order"
+    );
+
+    // The duplicate diagnostic is filed against the non-canonical (archive) copy.
+    let dups: Vec<_> = report
+        .duplicate_ids
+        .iter()
+        .filter(|d| d.id.as_deref() == Some("dup-item"))
+        .collect();
+    assert_eq!(
+        dups.len(),
+        1,
+        "exactly one duplicate diagnostic, for the non-canonical copy"
+    );
+    assert_eq!(
+        dups[0].tier,
+        Tier::Archive,
+        "the diagnostic must point at the archive (loser) copy"
+    );
 }
 
 // ── find_substrate_root integration ──────────────────────────────────────────

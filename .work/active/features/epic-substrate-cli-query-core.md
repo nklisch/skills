@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-query-core
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli
 depends_on: [epic-substrate-cli-runtime-research]
@@ -440,3 +440,50 @@ parse_item(path: &Path, rel: &Path, tier: Tier, text: &str) -> Result<Item, Pars
   `CONVENTIONS.md` will return `None`. This matches the bash behavior.
 - **Missing tier dirs**: if `.work/active/`, `.work/backlog/`, etc. don't
   exist (new or partial substrate), the loader silently skips them — no error.
+
+## Review (2026-05-30)
+
+**Verdict**: Approve with comments
+
+**Reviewer**: fresh-context deep review via Opus sub-agent (deep lane, feature
+item). Independently re-ran build/test/clippy/fmt and verified edge cases
+(CRLF, body `---` thematic breaks, nested substrate roots, missing dirs,
+same-tier duplicate determinism, releases-over-archive precedence) via an
+out-of-tree probe crate.
+
+**Blockers**: none.
+
+**Important**: one — *the tier-precedence invariant was under-tested*. The
+deliberate `active > releases > archive > backlog` resolution (the highest-risk
+behavioral promise, a departure from bash last-wins) was only covered for the
+`active`-vs-`archive` pair, where byte-sorted load order and precedence happen
+to agree. ADDRESSED INLINE during review: added
+`precedence_releases_wins_over_archive_despite_load_order` plus a
+`tests/fixtures/precedence/` substrate (same id in `releases/` + `archive/`,
+the one pairing where load order and precedence disagree). Production code was
+already correct; this closes the test gap so a future "first-wins"
+simplification can't regress silently.
+
+**Nits** (not filed as items): `LoadReport.duplicate_ids` ordering is
+nondeterministic across multiple distinct duplicate ids (HashMap iteration) —
+sort by path if a consumer ever prints them or asserts on more than one;
+`collect_sorted_paths` carries an unused `_report: &mut LoadReport` param (dead
+surface); the `required_fields: &[(&str, bool)]` validation shape is slightly
+awkward. All optional polish for a follow-up touch.
+
+**Notes**: Verification after the added test — `cargo build` clean, `cargo
+test` 93 passed (58 unit + 31 integration + 4 doc), `cargo clippy --all-targets
+-- -D warnings` clean, `cargo fmt --check` clean. No scope creep (no
+`--ready`/`--blocked`, arg parsing, output formatting, or exit codes — those
+stay with `next-actionable`/`adapter`). No `unsafe`; the sole production
+`.expect()` is provably unreachable; malformed input never panics (becomes
+`ParseError`). YAML via `serde_yaml_ng` v0.10 (maintained `serde_yaml`
+successor, pure-Rust → safe for the downstream musl binary). No foundation-doc
+drift (the bash `work-view` is still the installed tool; docs roll forward at
+release). Public API carries the forward-compat additions (`tier`, `rel_path`,
+`unmet_deps`, `dependents_of`, `children_of`, `raw_text`/`body`, `Match::IsNull`)
+that keep the future adapter/board/next-actionable consumers from forcing a
+breaking change. Advanced `review → done`; stays in `active/features/` (active
+parent epic, no release binding). Parent epic `epic-substrate-cli` remains at
+`implementing` — siblings `adapter`, `next-actionable`, `install-path` are
+still at `drafting`.
