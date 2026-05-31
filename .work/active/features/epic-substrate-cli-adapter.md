@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-adapter
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli
 depends_on: [epic-substrate-cli-query-core]
@@ -335,3 +335,38 @@ Deviations from spec: none.  `DependencyView::Ready`/`Blocked` were declared in
 item 1 (the design called for them to be added in item 2, but declaring them
 upfront avoids touching args.rs at all in item 2 — only `actionable.rs` needs
 replacing).  This is a strictly additive deviation that makes item 2 cleaner.
+
+## Review (2026-05-30)
+
+**Verdict**: Approve
+
+Reviewed jointly with `epic-substrate-cli-next-actionable` (one CLI artifact) via
+a 3-pass cross-model peer-review loop (Codex xhigh through peeragent); host
+(Claude) weighed findings and applied fixes between passes. Commits in scope:
+`6dfc567`, `f6673be`, `cad37a1`, `f80c733`, `1158180`.
+
+**Blockers (pass 1, resolved)**: (1) the bash-parity test suite was a FALSE
+PASS — `BASH_SCRIPT` resolved one directory too high, so every parity test
+silently skipped via the `is_file()` guard while cargo reported green and did
+zero binary-vs-bash diffing. Fixed: corrected path + a hard `assert!` so a
+future path regression panics rather than skips. (2) Parity matrix too thin
+(only paths/count/ready/blocked). Fixed: expanded to the full standard surface
+(--stage/--tag/--kind/--parent/--release/--gate/--blocking/--cat + combos), all
+real diffs against the bash.
+
+**Important (resolved)**: non-null `--gate <name>` had no parity coverage
+(consumer: gate-* skills); the `--X null` IsNull-vs-bash divergence was
+undocumented; a hollow warning test (no malformed item); a weak `--cat`
+separator test; `--help` wording drift. All fixed with real tests; the `--X
+null` divergence is documented in Risks as an intentional improvement.
+
+**Nits**: stale parity comment (fixed); full `--help` byte-parity (declined —
+help is not a machine-parsed surface; peer concurred).
+
+**Notes**: Production code (hand-rolled parser, exit-code contract,
+BrokenPipe→exit 0 under `panic=abort`) confirmed correct in pass 1. The
+corruption fix `cad37a1` (a lost closing frontmatter `---`, caught by the new
+binary's strict parser — exactly the "surface what bash hid" improvement) is
+included. Final: build / 230 tests / clippy `-D warnings` / fmt all green;
+parity tests confirmed to actually exec bash. Advanced review → done; stays in
+`active/features/` (active parent epic, no release binding).

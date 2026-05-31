@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-next-actionable
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli
 depends_on: [epic-substrate-cli-query-core]
@@ -268,3 +268,20 @@ stage-aware `--ready`/`--blocked` logic.
 None. `DependencyView::Ready`/`Blocked` were declared in item 1 rather than item 2,
 making this item's arg-wiring a no-op (the seam was already filled by the adapter).
 This is a benign ordering difference within the bundle, not a spec deviation.
+
+## Review (2026-05-30)
+
+**Verdict**: Approve
+
+Reviewed jointly with `epic-substrate-cli-adapter` (one CLI artifact) via a
+3-pass cross-model peer-review loop (Codex xhigh through peeragent). Full
+findings + resolution are recorded in the adapter item's `## Review` section.
+Items relevant to this feature: the stage-aware `--ready`/`--blocked` actionable
+predicate (`tier == Active` ∧ stage ∈ {drafting,implementing,review} ∧
+`deps_satisfied`) was confirmed correct; the bash fallback (`work-view.sh`) was
+verified in lockstep with the binary via the now-real parity tests (incl.
+`--ready --stage implementing` reproducing the old narrow set); non-null
+`--gate` parity coverage was added (gate-* skills consume `--gate`); the
+`--X null` IsNull divergence is documented as intentional. Final: build / 230
+tests / clippy `-D warnings` / fmt all green. Advanced review → done; stays in
+`active/features/` (active parent epic, no release binding).
