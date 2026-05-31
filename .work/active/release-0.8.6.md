@@ -31,7 +31,20 @@ with a bash fallback.
 Gate order (CONVENTIONS.md): tests → cruft → docs → patterns. Each gate produces
 items, not pass/fail. Findings recorded below as gates run.
 
-<!-- populated in Phase 4 -->
+- **gate-tests** (2026-05-31) — 8 findings (0 critical, 2 high, 4 medium, 2 low);
+  0 tautological tests, 0 test-integrity violations. ~286 existing tests confirmed.
+  6 items: 5 bound to 0.8.6 (2 implementing, 3 drafting), 2 low → backlog (unbound).
+  Gaps cluster on (1) the headline `--ready` drafting-fix proven only in-memory, not
+  through the binary; (2) the two non-Rust surfaces (prompt-context.py hook dedup,
+  convert install routing) lacking automated guards; plus exit-3 and `--blocked`
+  review decision-table cells.
+  - `gate-tests-ready-drafting-binary` (high, implementing)
+  - `gate-tests-hook-review-dedup` (high, implementing)
+  - `gate-tests-blocked-review-unmet-dep` (medium, drafting)
+  - `gate-tests-convert-install-routing` (medium, drafting)
+  - `gate-tests-exit3-fatal-io` (medium, drafting)
+  - `gate-tests-ci-actionlint` (low, backlog)
+  - `gate-tests-parity-empty-results` (low, backlog)
 
 ## Distribution caveat (carried from epic review)
 
