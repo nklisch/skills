@@ -497,24 +497,37 @@ fn board_embedded_assets_return_expected_content_types() {
         );
         let body = http_body(&response);
         assert!(
-            body.contains("item-count") && body.contains("/assets/board.js"),
-            "{path} should return the embedded stub HTML; body: {body}"
+            body.contains("global-filter-container")
+                && body.contains("id=\"view-root\"")
+                && body.contains("/assets/tokens.css")
+                && body.contains("/assets/board.js"),
+            "{path} should return the embedded shell frame HTML; body: {body}"
         );
     }
 
-    let css = board_response_once("/assets/board.css");
-    assert!(
-        css.starts_with("HTTP/1.1 200 OK"),
-        "CSS should return 200; response: {css}"
-    );
-    assert!(
-        css.contains("Content-Type: text/css; charset=utf-8"),
-        "CSS should return text/css; response: {css}"
-    );
-    assert!(
-        http_body(&css).contains(".metrics"),
-        "CSS body should be the embedded board stylesheet; response: {css}"
-    );
+    for path in [
+        "/assets/tokens.css",
+        "/assets/components.css",
+        "/assets/motion.css",
+        "/assets/board.css",
+    ] {
+        let css = board_response_once(path);
+        assert!(
+            css.starts_with("HTTP/1.1 200 OK"),
+            "{path} should return 200; response: {css}"
+        );
+        assert!(
+            css.contains("Content-Type: text/css; charset=utf-8"),
+            "{path} should return text/css; response: {css}"
+        );
+        let body = http_body(&css);
+        assert!(
+            !body.contains("@import url")
+                && !body.contains("fonts.googleapis")
+                && !body.contains("https://"),
+            "{path} should not contain remote asset references; response: {css}"
+        );
+    }
 
     let js = board_response_once("/assets/board.js");
     assert!(
@@ -527,8 +540,8 @@ fn board_embedded_assets_return_expected_content_types() {
     );
     let js_body = http_body(&js);
     assert!(
-        js_body.contains("fetch(\"/api/substrate\"") && js_body.contains("item-count"),
-        "JS should fetch the feed and render visible counts; body: {js_body}"
+        js_body.contains("setMode(\"system\")") && js_body.contains("setView(\"kanban\")"),
+        "JS should bootstrap the shell controls; body: {js_body}"
     );
 }
 

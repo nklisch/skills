@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-shell-frame
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-shell
 depends_on: []
@@ -36,9 +36,36 @@ dependency.
 
 ## Acceptance Criteria
 
-- [ ] `/`, `/index.html`, local CSS assets, JS module assets, and any font assets
+- [x] `/`, `/index.html`, local CSS assets, JS module assets, and any font assets
       return correct content types.
-- [ ] Shipped CSS contains no remote `@import`, no `fonts.googleapis`, and no
+- [x] Shipped CSS contains no remote `@import`, no `fonts.googleapis`, and no
       `https://` asset references.
-- [ ] The first viewport shows the board app frame, not the old metrics stub.
-- [ ] Theme picker controls are present and use the locked accent/mode tokens.
+- [x] The first viewport shows the board app frame, not the old metrics stub.
+- [x] Theme picker controls are present and use the locked accent/mode tokens.
+
+## Implementation notes
+
+- Files changed: `plugins/agile-workflow/work-view/crates/cli/src/board/assets.rs`,
+  `plugins/agile-workflow/work-view/crates/cli/src/board/assets/index.html`,
+  `plugins/agile-workflow/work-view/crates/cli/src/board/assets/tokens.css`,
+  `plugins/agile-workflow/work-view/crates/cli/src/board/assets/components.css`,
+  `plugins/agile-workflow/work-view/crates/cli/src/board/assets/motion.css`,
+  `plugins/agile-workflow/work-view/crates/cli/src/board/assets/board.css`,
+  `plugins/agile-workflow/work-view/crates/cli/src/board/assets/board.js`,
+  `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs`.
+- Tests added: `board::assets::tests::shipped_css_has_no_remote_dependencies`;
+  expanded `board::assets::tests::css_and_js_return_expected_types` and
+  `board_embedded_assets_return_expected_content_types` to cover the new CSS
+  asset routes and app shell HTML.
+- Discrepancies from design: no font routes were added because no local font
+  files with license provenance are present; shipped tokens use system font
+  fallbacks instead. `board.js` is intentionally only a shell control bootstrap;
+  feed refresh/status wiring remains in the Unit 2 story.
+- Adjacent issues parked: none.
+
+## Verification
+
+- `cargo fmt -p work-view-cli`
+- `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`
+- `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p work-view-cli`
+  produced `/home/nathan/.cache/silas/target/release/work-view` at 603K.

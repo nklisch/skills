@@ -1,0 +1,131 @@
+/* ============================================================
+ * motion.css — Substrate Board (epic-substrate-board) motion system
+ *
+ * Generated: 2026-05-31 by /ux-ui-design:motion
+ * Depends on: tokens.css (link first), composed against components.css
+ *
+ * Attitude (locked):
+ *   - Primary:   restrained  (motion appears only when it aids clarity)
+ *   - Secondary: productive  (efficient, decelerate-fast, stays out of the way)
+ *   The board is the human twin of a terse CLI — kinetics reinforce speed and
+ *   clarity, never spectacle.
+ *
+ * Doherty coupling (locked):
+ *   --dur-instant 100ms / --dur-quick 180ms / --dur-theme 140ms gate input.
+ *   --dur-ambient 600ms is BACKGROUND ONLY (spinner). Nothing that gates
+ *   input exceeds 180ms here — well under the 400ms Doherty threshold.
+ *
+ * Easing curves (locked):
+ *   --motion-standard, --motion-productive, --motion-emphasized, --motion-linear
+ *   (deliberately omitted: --motion-expressive / overshoot — banned for a
+ *    restrained data tool.)
+ *
+ * Disney principles: ALL omitted (squash, anticipation, follow-through,
+ *   secondary). A dense read-only board doesn't bounce. Slow-in/slow-out is
+ *   carried implicitly by --motion-standard.
+ *
+ * Optional channels:
+ *   Springs:  omitted (desktop/cursor, read-only — no gestures to honor).
+ *   Hold beat: --hold-beat 120ms (drawer entry → focus settle).
+ *   Stepped:  omitted (slick digital aesthetic).
+ *
+ * Reduced-motion: REQUIRED. Every transform/translation is cut under
+ *   prefers-reduced-motion; opacity + color transitions are kept.
+ *
+ * Edit by re-running /ux-ui-design:motion (it preserves this header).
+ * ============================================================ */
+
+:root {
+  /* ---- named easing curves (attitude-carrying) ---- */
+  --motion-standard:   cubic-bezier(0.4, 0, 0.2, 1);   /* workhorse: accel from rest, decel to rest */
+  --motion-productive: cubic-bezier(0,   0, 0.2, 1);   /* decel-only snap-to-final; state changes */
+  --motion-emphasized: cubic-bezier(0.2, 0, 0,   1);   /* strong decelerate; drawer / overlay entry */
+  --motion-linear:     linear;                          /* spinners, physics-defying loops */
+
+  /* ---- Doherty-coupled durations ---- */
+  --dur-instant: 100ms;  /* hover / pressed / selected state changes */
+  --dur-theme:   140ms;  /* accent + light/dark color crossfade (color only, no layout) */
+  --dur-quick:   180ms;  /* default for input-gating transitions; 300ms ceiling, we sit well under */
+  --dur-ambient: 600ms;  /* BACKGROUND ONLY — spinner cycle, never gates input */
+
+  /* ---- designed pause ---- */
+  --hold-beat: 120ms;    /* stillness between drawer arrival and focus-ring appearing */
+
+  /* ---- minimal stagger (filter reflow) ---- */
+  --stagger-step: 22ms;  /* per-item enter delay; cap application at ~8 items (see .u-stagger) */
+
+  /* ---- press affordance (restrained — a nudge, not a squash) ---- */
+  --press-nudge: translateY(0.5px);
+}
+
+/* ============================================================ KEYFRAMES
+ * Compositor-cheap only: transform + opacity. No layout properties. */
+@keyframes mo-fade-in   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mo-fade-out  { from { opacity: 1; } to { opacity: 0; } }
+@keyframes mo-card-enter{ from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes mo-card-exit { from { opacity: 1; transform: none; }          to { opacity: 0; transform: translateY(2px); } }
+@keyframes mo-view-enter{ from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@keyframes mo-drawer-in { from { transform: translateX(100%); }           to { transform: translateX(0); } }
+@keyframes mo-drawer-out{ from { transform: translateX(0); }              to { transform: translateX(100%); } }
+@keyframes mo-spin      { to   { transform: rotate(360deg); } }
+
+/* ============================================================ UTILITY CLASSES
+ * Screens/flows apply these; they reference the tokens above so the kinetic
+ * voice stays consistent. */
+
+/* theme swap — color/border/shadow only, no layout shift. Put on themed surfaces. */
+.u-theme-anim {
+  transition:
+    background-color var(--dur-theme) var(--motion-standard),
+    border-color     var(--dur-theme) var(--motion-standard),
+    color            var(--dur-theme) var(--motion-standard),
+    box-shadow       var(--dur-theme) var(--motion-standard),
+    fill             var(--dur-theme) var(--motion-standard);
+}
+
+/* item-card hover / selected (state change — instant class) */
+.u-state { transition: border-color var(--dur-instant) var(--motion-standard),
+                       box-shadow   var(--dur-instant) var(--motion-standard),
+                       opacity      var(--dur-instant) var(--motion-standard); }
+
+/* filter reflow — cards entering the visible set */
+.u-card-enter { animation: mo-card-enter var(--dur-quick) var(--motion-productive) both; }
+.u-card-exit  { animation: mo-card-exit  var(--dur-instant) var(--motion-standard) both; }
+/* minimal stagger: set style="--i:N" per card; cap N at 8 so long lists don't lag */
+.u-stagger > * { animation-delay: calc(min(var(--i, 0), 8) * var(--stagger-step)); }
+
+/* view-switch crossfade (Kanban / Dependency / Table) */
+.u-view-enter { animation: mo-view-enter var(--dur-quick) var(--motion-standard) both; }
+
+/* read-only detail-drawer slide from the right */
+.u-drawer-in  { animation: mo-drawer-in  var(--dur-quick) var(--motion-emphasized) both; }
+.u-drawer-out { animation: mo-drawer-out var(--dur-quick) var(--motion-emphasized) both; }
+
+/* press nudge (restrained) */
+.u-press:active { transform: var(--press-nudge); }
+
+/* spinner timing (indeterminate feed load — allowed infinite loop) */
+.u-spin { animation: mo-spin var(--dur-ambient) var(--motion-linear) infinite; }
+
+/* ============================================================ REDUCED MOTION
+ * Cut every transform/translation; keep opacity + color. */
+@media (prefers-reduced-motion: reduce) {
+  .u-card-enter,
+  .u-view-enter,
+  .u-drawer-in   { animation: mo-fade-in  var(--dur-instant) var(--motion-linear) both; }
+  .u-card-exit,
+  .u-drawer-out  { animation: mo-fade-out var(--dur-instant) var(--motion-linear) both; }
+  .u-stagger > * { animation-delay: 0ms; }
+  .u-press:active { transform: none; }
+  .u-spin { animation-duration: 1.8s; }  /* slow, low-vestibular; or swap to determinate */
+}
+
+/* Showcase-only simulation hook (mirrors the media query for the preview toggle). */
+[data-simulate-rm="on"] .u-card-enter,
+[data-simulate-rm="on"] .u-view-enter,
+[data-simulate-rm="on"] .u-drawer-in  { animation: mo-fade-in var(--dur-instant) var(--motion-linear) both; }
+[data-simulate-rm="on"] .u-card-exit,
+[data-simulate-rm="on"] .u-drawer-out { animation: mo-fade-out var(--dur-instant) var(--motion-linear) both; }
+[data-simulate-rm="on"] .u-stagger > * { animation-delay: 0ms; }
+[data-simulate-rm="on"] .u-press:active { transform: none; }
+[data-simulate-rm="on"] .u-spin { animation-duration: 1.8s; }

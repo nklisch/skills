@@ -1,76 +1,43 @@
-(function () {
-  const text = (id, value) => {
-    const node = document.getElementById(id);
-    if (node) {
-      node.textContent = value;
-    }
-  };
+const root = document.documentElement;
+const accentPicker = document.getElementById("theme-accent");
+const modeButtons = Array.from(document.querySelectorAll("[data-mode]"));
+const viewTabs = Array.from(document.querySelectorAll("[data-view]"));
+const statusText = document.querySelector("#status-region .status-text");
 
-  const diagnosticCount = (diagnostics) => {
-    if (!diagnostics || typeof diagnostics !== "object") {
-      return 0;
-    }
-    return ["parse_errors", "validation_warnings", "duplicate_ids"].reduce(
-      (total, key) => total + (Array.isArray(diagnostics[key]) ? diagnostics[key].length : 0),
-      0,
-    );
-  };
+const setMode = (mode) => {
+  if (mode === "system") {
+    root.removeAttribute("data-theme");
+  } else {
+    root.dataset.theme = mode;
+  }
+  for (const button of modeButtons) {
+    button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
+  }
+};
 
-  const tierCounts = (items) => {
-    return items.reduce((counts, item) => {
-      const tier = item && item.tier ? item.tier : "unknown";
-      counts[tier] = (counts[tier] || 0) + 1;
-      return counts;
-    }, {});
-  };
+const setView = (view) => {
+  for (const tab of viewTabs) {
+    tab.setAttribute("aria-selected", String(tab.dataset.view === view));
+  }
+};
 
-  const renderTierCounts = (counts) => {
-    const list = document.getElementById("tier-counts");
-    if (!list) {
-      return;
-    }
-    list.replaceChildren();
-    for (const tier of Object.keys(counts).sort()) {
-      const row = document.createElement("div");
-      const term = document.createElement("dt");
-      const value = document.createElement("dd");
-      term.textContent = tier;
-      value.textContent = String(counts[tier]);
-      row.append(term, value);
-      list.append(row);
-    }
-  };
+accentPicker?.addEventListener("change", (event) => {
+  root.dataset.accent = event.target.value;
+});
 
-  const render = (snapshot) => {
-    const items = Array.isArray(snapshot.items) ? snapshot.items : [];
-    const diagnostics = diagnosticCount(snapshot.diagnostics);
-    text("project-name", snapshot.project || "Board");
-    text("item-count", String(items.length));
-    text("ready-count", String(items.filter((item) => item.ready).length));
-    text("blocked-count", String(items.filter((item) => item.blocked).length));
-    text("diagnostic-count", String(diagnostics));
-    text(
-      "status-text",
-      `${items.length} items loaded from ${snapshot.root_rel || "."} with ${diagnostics} diagnostics.`,
-    );
-    renderTierCounts(tierCounts(items));
-  };
+for (const button of modeButtons) {
+  button.addEventListener("click", () => setMode(button.dataset.mode || "system"));
+}
 
-  const renderError = (error) => {
-    const status = document.getElementById("status-text");
-    if (status) {
-      status.dataset.state = "error";
-      status.textContent = `Could not load substrate: ${error.message}`;
-    }
-  };
+for (const tab of viewTabs) {
+  tab.addEventListener("click", () => setView(tab.dataset.view || "kanban"));
+}
 
-  fetch("/api/substrate", { headers: { Accept: "application/json" } })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(render)
-    .catch(renderError);
-})();
+document.getElementById("refresh-button")?.addEventListener("click", () => {
+  if (statusText) {
+    statusText.textContent = "Refresh wiring lands with the snapshot store";
+  }
+});
+
+setMode("system");
+setView("kanban");
