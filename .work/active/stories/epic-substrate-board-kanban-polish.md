@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-kanban-polish
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-kanban
 depends_on: [epic-substrate-board-kanban-swimlanes]
@@ -30,7 +30,14 @@ integration coverage for the shipped assets.
 
 ## Acceptance Criteria
 
-- [ ] Kanban remains readable on narrow and desktop widths.
-- [ ] Empty columns and lanes preserve stable dimensions.
-- [ ] Static asset tests cover the kanban module and raw HTML sink guard.
-- [ ] `cargo test -p work-view-cli` and release build pass.
+- [x] Kanban remains readable on narrow and desktop widths.
+- [x] Empty columns and lanes preserve stable dimensions.
+- [x] Static asset tests cover the kanban module and raw HTML sink guard.
+- [x] `cargo test -p work-view-cli` and release build pass.
+
+## Implementation Notes
+
+- Added overflow boundaries, scroll snapping, fixed column/card constraints,
+  empty-column minimum height, and mobile single-column stacking.
+- Extended integration static checks for kanban CSS primitives in addition to
+  the existing `/assets/kanban.js` and raw HTML sink guards.

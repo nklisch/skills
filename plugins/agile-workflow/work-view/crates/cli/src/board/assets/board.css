@@ -234,6 +234,7 @@ select {
   gap: var(--space-4);
   min-height: inherit;
   padding: var(--space-4);
+  overflow: hidden;
 }
 
 .kanban-view__header {
@@ -271,12 +272,14 @@ select {
 .kanban-lanes {
   display: grid;
   gap: var(--space-4);
+  min-width: 0;
 }
 
 .kanban-lane {
   display: grid;
   gap: var(--space-3);
   min-width: 0;
+  padding-bottom: var(--space-2);
 }
 
 .kanban-lane__header {
@@ -324,17 +327,23 @@ select {
   grid-auto-flow: column;
   grid-auto-columns: minmax(240px, 300px);
   gap: var(--space-3);
+  min-width: 0;
   overflow-x: auto;
   padding-bottom: var(--space-2);
+  scroll-snap-type: x proximity;
 }
 
 .kanban-column {
   display: grid;
   grid-template-rows: auto 1fr;
+  min-width: 0;
   min-height: 320px;
+  max-height: min(680px, calc(100vh - 260px));
+  overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-primary);
+  scroll-snap-align: start;
 }
 
 .kanban-column__header {
@@ -370,11 +379,17 @@ select {
   align-content: start;
   gap: var(--space-2);
   min-height: 0;
+  overflow-y: auto;
   padding: var(--space-2);
+}
+
+.kanban-column__cards > .item-card {
+  min-width: 0;
 }
 
 .kanban-empty {
   margin: 0;
+  min-height: 74px;
   padding: var(--space-3);
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-sm);
@@ -413,7 +428,16 @@ select {
   }
 
   .kanban-board {
-    grid-auto-columns: minmax(220px, 84vw);
+    grid-auto-flow: row;
+    grid-auto-columns: unset;
+    grid-template-columns: 1fr;
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+
+  .kanban-column {
+    min-height: 220px;
+    max-height: none;
   }
 
   .kanban-lane__header {

@@ -528,6 +528,16 @@ fn board_embedded_assets_return_expected_content_types() {
             "{path} should not contain remote asset references; response: {css}"
         );
     }
+    let board_css = board_response_once("/assets/board.css");
+    let board_css_body = http_body(&board_css);
+    assert!(
+        board_css_body.contains(".kanban-board")
+            && board_css_body.contains(".kanban-lane")
+            && board_css_body.contains(".kanban-column")
+            && board_css_body.contains("grid-auto-flow: row")
+            && board_css_body.contains("scroll-snap-type"),
+        "board CSS should ship responsive kanban layout primitives; body: {board_css_body}"
+    );
 
     for path in [
         "/assets/board.js",
