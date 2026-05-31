@@ -62,6 +62,15 @@ items, not pass/fail. Findings recorded below as gates run.
   - `gate-docs-spec-ready-blocked-semantic` (high, implementing) — SPEC.md `--ready`/`--blocked` rows
   - `gate-docs-architecture-ready-rule` (high, implementing) — ARCHITECTURE.md ready-rule + AGENTS embed
   - `gate-docs-spec-bash-tooling-line` (medium, drafting) — SPEC.md "bash for work-view" → fallback framing
+- **gate-patterns** (2026-05-31) — 5 patterns extracted (3+ occurrences each), 0
+  inconsistencies. First pattern catalog in the repo (`.agents/skills/patterns/`). All
+  net-new; 6 candidates rejected as idiomatic/style/single-use. Tracking item
+  `gate-patterns-0.8.6` at stage:done (the gate's deliverable IS the pattern files).
+  - `substrate-borrowing-query` — core read-API shape the board reuses
+  - `substrate-test-fixture-builder` — `setup_substrate(&[..]) -> (TempDir, Substrate)`
+  - `test-item-builders` — positional frontmatter-string + struct item builders
+  - `subprocess-cli-harness` — real-binary subprocess + bash parity graceful skip
+  - `cargo-manifest-fixture-root` — `CARGO_MANIFEST_DIR` fixture-root resolver
 
 ## Distribution caveat (carried from epic review)
 
