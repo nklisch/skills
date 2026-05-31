@@ -79,9 +79,13 @@ select {
 
 .status-line .status-text {
   overflow: hidden;
-  max-width: 22ch;
+  max-width: 34ch;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.status-line .spinner[hidden] {
+  display: none;
 }
 
 .shell-grid {
@@ -157,6 +161,10 @@ select {
   margin-bottom: var(--space-3);
 }
 
+#diagnostics-region:empty {
+  display: none;
+}
+
 #view-root {
   min-height: min(680px, calc(100vh - 146px));
   border: 1px solid var(--color-border);
@@ -185,6 +193,11 @@ select {
 .view-placeholder p {
   margin: 0;
   max-width: 54ch;
+}
+
+.view-digest {
+  color: var(--color-text-tertiary);
+  font: var(--font-weight-medium) var(--font-size-xs)/1.5 var(--font-mono);
 }
 
 @media (max-width: 980px) {

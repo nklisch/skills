@@ -529,19 +529,30 @@ fn board_embedded_assets_return_expected_content_types() {
         );
     }
 
-    let js = board_response_once("/assets/board.js");
+    for path in ["/assets/board.js", "/assets/state.js"] {
+        let js = board_response_once(path);
+        assert!(
+            js.starts_with("HTTP/1.1 200 OK"),
+            "{path} should return 200; response: {js}"
+        );
+        assert!(
+            js.contains("Content-Type: text/javascript; charset=utf-8"),
+            "{path} should return text/javascript; response: {js}"
+        );
+    }
+    let board_js = board_response_once("/assets/board.js");
+    let board_body = http_body(&board_js);
     assert!(
-        js.starts_with("HTTP/1.1 200 OK"),
-        "JS should return 200; response: {js}"
+        board_body.contains("createBoardStore") && board_body.contains("store.refresh()"),
+        "board JS should bootstrap the store and initial refresh; body: {board_body}"
     );
+    let state_js = board_response_once("/assets/state.js");
+    let state_body = http_body(&state_js);
     assert!(
-        js.contains("Content-Type: text/javascript; charset=utf-8"),
-        "JS should return text/javascript; response: {js}"
-    );
-    let js_body = http_body(&js);
-    assert!(
-        js_body.contains("setMode(\"system\")") && js_body.contains("setView(\"kanban\")"),
-        "JS should bootstrap the shell controls; body: {js_body}"
+        state_body.contains("export function createBoardStore")
+            && state_body.contains("\"/api/substrate\"")
+            && state_body.contains("localStorage"),
+        "state JS should export the board store and fetch the substrate feed; body: {state_body}"
     );
 }
 
