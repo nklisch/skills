@@ -5,6 +5,11 @@ const NODE_HEIGHT = 132;
 const LAYER_GAP = 110;
 const ROW_GAP = 28;
 const CANVAS_PADDING = 24;
+const LARGE_GRAPH_THRESHOLD = 48;
+
+let focusedNode = null;
+let preferredRenderMode = null;
+let showTerminalBranches = false;
 
 function textElement(tag, className, text) {
   const element = document.createElement(tag);
@@ -210,6 +215,15 @@ function renderLayer(layer, nodes, model, ctx) {
   return section;
 }
 
+function renderLayeredList(model, ctx) {
+  const layers = document.createElement("div");
+  layers.className = "dependency-layers";
+  for (const [layer, nodes] of model.layers) {
+    layers.append(renderLayer(layer, nodes, model, ctx));
+  }
+  return layers;
+}
+
 function layoutGraph(model) {
   const positions = new Map();
   let maxRows = 1;
@@ -277,14 +291,122 @@ function renderGraphCanvas(model, ctx) {
     }
     const wrapper = document.createElement("div");
     wrapper.className = "dependency-graph-node";
+    wrapper.dataset.nodeId = node.id;
     wrapper.style.left = `${position.x}px`;
     wrapper.style.top = `${position.y}px`;
     wrapper.append(renderNode(node, model, ctx));
     canvas.append(wrapper);
   }
 
+  wireTraceInteractions(canvas, model);
   viewport.append(canvas);
   return viewport;
+}
+
+function connectedIds(model, nodeId) {
+  const ids = new Set([nodeId]);
+  for (const edge of model.edges) {
+    if (edge.from === nodeId) {
+      ids.add(edge.to);
+    }
+    if (edge.to === nodeId) {
+      ids.add(edge.from);
+    }
+  }
+  return ids;
+}
+
+function applyTrace(canvas, model, nodeId) {
+  const active = nodeId && model.nodes.has(nodeId) ? connectedIds(model, nodeId) : null;
+  for (const node of canvas.querySelectorAll(".dependency-graph-node")) {
+    const isActive = active == null || active.has(node.dataset.nodeId);
+    node.classList.toggle("is-dimmed", !isActive);
+  }
+  for (const edge of canvas.querySelectorAll(".dependency-edge")) {
+    const isTraced = active != null && (edge.dataset.from === nodeId || edge.dataset.to === nodeId);
+    const isDimmed = active != null && !isTraced;
+    edge.classList.toggle("is-traced", isTraced);
+    edge.classList.toggle("is-dimmed", isDimmed);
+  }
+}
+
+function wireTraceInteractions(canvas, model) {
+  for (const wrapper of canvas.querySelectorAll(".dependency-graph-node")) {
+    const nodeId = wrapper.dataset.nodeId;
+    wrapper.addEventListener("pointerenter", () => {
+      focusedNode = nodeId;
+      applyTrace(canvas, model, focusedNode);
+    });
+    wrapper.addEventListener("pointerleave", () => {
+      if (!wrapper.contains(document.activeElement)) {
+        focusedNode = null;
+        applyTrace(canvas, model, null);
+      }
+    });
+    wrapper.addEventListener("focusin", () => {
+      focusedNode = nodeId;
+      applyTrace(canvas, model, focusedNode);
+    });
+    wrapper.addEventListener("focusout", (event) => {
+      if (!canvas.contains(event.relatedTarget)) {
+        focusedNode = null;
+        applyTrace(canvas, model, null);
+      }
+    });
+  }
+  applyTrace(canvas, model, focusedNode);
+}
+
+function shouldUseListFallback(items) {
+  const narrow = typeof window !== "undefined"
+    && typeof window.matchMedia === "function"
+    && window.matchMedia("(max-width: 720px)").matches;
+  if (preferredRenderMode === "canvas") {
+    return false;
+  }
+  if (preferredRenderMode === "list") {
+    return true;
+  }
+  return items.length > LARGE_GRAPH_THRESHOLD || narrow;
+}
+
+function graphItems(items) {
+  if (items.length <= LARGE_GRAPH_THRESHOLD || showTerminalBranches) {
+    return items;
+  }
+  const active = items.filter((item) => !item?.is_terminal);
+  return active.length > 0 ? active : items;
+}
+
+function renderGraphToolbar(root, ctx, items, useListFallback) {
+  const toolbar = document.createElement("div");
+  toolbar.className = "dependency-toolbar";
+
+  const modeButton = document.createElement("button");
+  modeButton.className = "filter-chip dependency-toolbar__button";
+  modeButton.type = "button";
+  modeButton.textContent = useListFallback ? "Show canvas" : "Show list";
+  modeButton.setAttribute("aria-pressed", String(!useListFallback));
+  modeButton.addEventListener("click", () => {
+    preferredRenderMode = useListFallback ? "canvas" : "list";
+    dependencyView.mount(root, ctx);
+  });
+  toolbar.append(modeButton);
+
+  if (items.length > LARGE_GRAPH_THRESHOLD) {
+    const terminalButton = document.createElement("button");
+    terminalButton.className = "filter-chip dependency-toolbar__button";
+    terminalButton.type = "button";
+    terminalButton.textContent = showTerminalBranches ? "Collapse terminal" : "Show terminal";
+    terminalButton.setAttribute("aria-pressed", String(showTerminalBranches));
+    terminalButton.addEventListener("click", () => {
+      showTerminalBranches = !showTerminalBranches;
+      dependencyView.mount(root, ctx);
+    });
+    toolbar.append(terminalButton);
+  }
+
+  return toolbar;
 }
 
 export const dependencyView = {
@@ -292,7 +414,8 @@ export const dependencyView = {
   label: "Dependency",
   mount(root, ctx) {
     const items = ctx.visibleItems();
-    const model = buildDependencyModel(items);
+    const useListFallback = shouldUseListFallback(items);
+    const model = buildDependencyModel(graphItems(items));
 
     const view = document.createElement("div");
     view.className = "dependency-view";
@@ -309,7 +432,8 @@ export const dependencyView = {
       view.append(warning);
     }
 
-    view.append(renderGraphCanvas(model, ctx));
+    view.append(renderGraphToolbar(root, ctx, items, useListFallback));
+    view.append(useListFallback ? renderLayeredList(model, ctx) : renderGraphCanvas(model, ctx));
     root.replaceChildren(view);
   },
 };

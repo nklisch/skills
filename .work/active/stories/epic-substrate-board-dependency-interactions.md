@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-dependency-interactions
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-dependency
 depends_on: [epic-substrate-board-dependency-canvas]
@@ -32,8 +32,17 @@ filtered sets usable.
 
 ## Acceptance Criteria
 
-- [ ] Hovering or focusing a node highlights its dependency chain and dims
+- [x] Hovering or focusing a node highlights its dependency chain and dims
       unrelated nodes.
-- [ ] Local graph state survives shell remounts during the current page session.
-- [ ] Large or narrow renders remain usable through the layered-list fallback.
-- [ ] No interaction mutates global filters or writes to `.work/`.
+- [x] Local graph state survives shell remounts during the current page session.
+- [x] Large or narrow renders remain usable through the layered-list fallback.
+- [x] No interaction mutates global filters or writes to `.work/`.
+
+## Implementation Notes
+
+- Added hover/focus tracing that marks connected nodes/edges and dims unrelated
+  graph elements.
+- Kept focused-node, canvas/list mode, and terminal-collapse state in module
+  scope so state is re-applied after shell remounts.
+- Added large-graph and narrow-viewport fallback to the D1 layered list, plus a
+  local terminal-branch toggle for large graphs.
