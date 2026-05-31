@@ -1,3 +1,16 @@
+---
+id: feature-workflow-suite-improvements-design
+kind: feature
+stage: done
+tags: [plugin]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
+created: 2026-05-08
+updated: 2026-05-30
+---
+
 # Design: Workflow Suite Improvements
 
 ## Overview
