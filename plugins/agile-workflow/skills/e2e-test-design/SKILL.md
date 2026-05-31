@@ -100,6 +100,8 @@ The body should already have a brief. Use it as the seed.
 The `principles` skill auto-loads. Read:
 1. `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`
 2. `AGENTS.md` / `CLAUDE.md` (root, `.agents/`, or `.claude/`; AGENTS is canonical)
+2a. `.agents/rules/*.md` (if present) — the project's force-loaded agent rules
+   (tag semantics, test integrity, review policy)
 3. Parent epic body at `.work/active/epics/<parent>.md` if `parent` is set
 4. Foundation docs and existing test infrastructure docs in `docs/research/` if present
 
@@ -143,8 +145,9 @@ verify.
 ### Phase 4: Re-align to project standards
 
 Re-read `AGENTS.md` / `CLAUDE.md` if present at root, `.agents/`, or
-`.claude/`. Treat AGENTS as canonical when they disagree. Recency improves
-adherence.
+`.claude/`, plus `.agents/rules/*.md` (if present) — the project's force-loaded
+agent rules (tag semantics, test integrity, review policy). Treat AGENTS as
+canonical when they disagree. Recency improves adherence.
 
 ### Phase 4.5: Surface ambiguities
 

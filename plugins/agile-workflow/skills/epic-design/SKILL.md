@@ -135,6 +135,8 @@ Read:
 1. `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md` — foundation that
    constrains this epic
 2. `AGENTS.md` / `CLAUDE.md` (project conventions; AGENTS is canonical)
+2a. `.agents/rules/*.md` (if present) — the project's force-loaded agent rules
+   (tag semantics, test integrity, review policy)
 3. `docs/PRINCIPLES.md` if it exists
 4. The epic's parent if `parent` is set (rare — epics usually top-level)
 5. Sibling epics in `.work/active/epics/` — to see what they cover and avoid

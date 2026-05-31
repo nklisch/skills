@@ -68,9 +68,10 @@ them.
 ### Phase D2: Ground yourself
 
 Read `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `AGENTS.md` /
-`CLAUDE.md`, `.work/CONVENTIONS.md`, and, if present,
-`.agents/skills/refactor-conventions/SKILL.md` plus relevant referenced rule
-files. One pass — orient, don't memorize.
+`CLAUDE.md`, `.agents/rules/*.md` (if present) — the project's force-loaded
+agent rules (tag semantics, test integrity, review policy) — `.work/CONVENTIONS.md`,
+and, if present, `.agents/skills/refactor-conventions/SKILL.md` plus relevant
+referenced rule files. One pass — orient, don't memorize.
 
 ### Phase D3: Code-smell scan
 
@@ -182,6 +183,8 @@ The principles skill auto-loads. Read:
 - `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md` (refactor must not
   violate spec constraints)
 - `AGENTS.md` / `CLAUDE.md`
+- `.agents/rules/*.md` (if present) — the project's force-loaded agent rules
+  (tag semantics, test integrity, review policy)
 - `.agents/skills/refactor-conventions/SKILL.md` and relevant referenced rule
   files, if present. Treat these as project-specific extension lenses, not as
   replacements for the defaults below.

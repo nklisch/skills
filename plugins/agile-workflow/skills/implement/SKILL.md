@@ -55,6 +55,8 @@ Read:
 3. **Foundation docs** referenced by the design: `docs/SPEC.md`, `docs/ARCHITECTURE.md`
 4. `AGENTS.md` and `CLAUDE.md` (root, `.agents/`, or `.claude/`) for project
    conventions. Treat AGENTS as canonical if they disagree.
+4a. `.agents/rules/*.md` (if present) — the project's force-loaded agent rules
+   (tag semantics, test integrity, review policy)
 5. **Research docs** referenced by the design: `docs/research/<topic>.md` if any
 6. **Existing source code** the design references — verify interfaces, signatures,
    module paths
@@ -139,8 +141,9 @@ In land mode:
 ### Phase 5: Re-align to project standards
 
 Re-read `AGENTS.md` and `CLAUDE.md` if present at root, `.agents/`, or
-`.claude/`. Treat AGENTS as canonical when they disagree. Recency improves
-adherence.
+`.claude/`, plus `.agents/rules/*.md` (if present) — the project's force-loaded
+agent rules (tag semantics, test integrity, review policy). Treat AGENTS as
+canonical when they disagree. Recency improves adherence.
 
 ### Phase 6: Implement
 

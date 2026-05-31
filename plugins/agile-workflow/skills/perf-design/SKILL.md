@@ -188,6 +188,8 @@ The brief should describe the perf problem and target. If it's vague:
 The principles skill auto-loads. Read:
 - `docs/VISION.md`, `docs/SPEC.md` (perf targets may be specified)
 - `AGENTS.md` / `CLAUDE.md`
+- `.agents/rules/*.md` (if present) — the project's force-loaded agent rules
+  (tag semantics, test integrity, review policy)
 - Existing benchmarks (search for benchmark files, perf tests, load tests)
 - Existing test suite (so benchmarks follow the same patterns)
 - Source code under investigation — read the target code thoroughly before profiling

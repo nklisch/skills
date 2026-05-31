@@ -43,7 +43,9 @@ A bug you can't reproduce can't be reliably fixed.
 1. Get the symptom from the user's input — error message, stack trace, failing test,
    exact steps. If anything critical is missing (steps, environment, inputs), ask
    the user.
-2. Read `AGENTS.md` / `CLAUDE.md` for build and test commands.
+2. Read `AGENTS.md` / `CLAUDE.md` for build and test commands, plus
+   `.agents/rules/*.md` (if present) — the project's force-loaded agent rules
+   (tag semantics, test integrity, review policy).
 3. Reproduce locally. Capture the error verbatim.
 
 If you can't reproduce, halt and ask the user for more specific reproduction steps.

@@ -141,6 +141,8 @@ Read:
 1. `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md` (foundation docs that
    constrain this feature)
 2. `AGENTS.md` / `CLAUDE.md` (project conventions; AGENTS is canonical)
+2a. `.agents/rules/*.md` (if present) — the project's force-loaded agent rules
+   (tag semantics, test integrity, review policy)
 3. The parent epic if `parent` is set — read `.work/active/epics/<parent>.md`
 4. Existing source code in the area the feature touches
 5. Research docs in `docs/research/` if the feature uses libraries you haven't
@@ -182,8 +184,10 @@ to verify findings.
 ### Phase 4: Re-align to project standards
 
 Re-read `AGENTS.md` and `CLAUDE.md` if present at root, `.agents/`, or
-`.claude/`. Treat AGENTS as canonical if they disagree. Recency improves
-adherence. Confirm your approach aligns with project conventions.
+`.claude/`, plus `.agents/rules/*.md` (if present) — the project's force-loaded
+agent rules (tag semantics, test integrity, review policy). Treat AGENTS as
+canonical if they disagree. Recency improves adherence. Confirm your approach
+aligns with project conventions.
 
 ### Phase 4.5: Surface ambiguities
 

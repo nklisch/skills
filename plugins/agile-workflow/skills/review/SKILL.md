@@ -143,6 +143,8 @@ Standalone mode:
 
 All modes:
 - Read `AGENTS.md` / `CLAUDE.md` for conventions when present.
+- Read `.agents/rules/*.md` (if present) — the project's force-loaded agent
+  rules (tag semantics, test integrity, review policy).
 - Read foundation docs the change touches, such as `docs/SPEC.md` or
   `docs/ARCHITECTURE.md`.
 

@@ -1,7 +1,7 @@
 ---
 id: epic-agents-rules-autoload-skill-grounding
 kind: feature
-stage: implementing
+stage: done
 tags: [skill]
 parent: epic-agents-rules-autoload
 depends_on: [epic-agents-rules-autoload-hook]
@@ -76,3 +76,35 @@ reads `.agents/rules/*.md`, and none was missed (grep the family for the line).
 
 ## Child stories
 None — a one-line grounding addition across the family. Single-stride.
+
+## Implementation notes (2026-05-31)
+
+Added a one-line `.agents/rules/*.md` (if present) read to each agile-workflow
+design/implement/review-family skill's grounding (and re-align, where present)
+phase, mirroring the existing AGENTS/CLAUDE/patterns grounding lines. Wording:
+"`.agents/rules/*.md` (if present) — the project's force-loaded agent rules
+(tag semantics, test integrity, review policy)."
+
+Skills edited (9 of 9 enumerated; none skipped):
+- `feature-design` — Phase 2 ground (list item 2a) + Phase 4 re-align
+- `epic-design` — Phase 2 ground (list item 2a)
+- `refactor-design` — Phase D2 ground + Phase 2 ground
+- `perf-design` — Phase 2 ground
+- `implement` — Phase 1 ground (list item 4a) + Phase 5 re-align
+- `implement-orchestrator` — Phase 1 ground (list item 5a) + Phase 4 re-align
+- `review` — Phase 2 gather context (all-modes list)
+- `fix` — Phase 1 reproduce (build/test-command read line; test-integrity rule
+  is the relevant force-loaded rule for bug-fix work)
+- `e2e-test-design` — Phase 2 ground (list item 2a) + Phase 4 re-align
+
+No family skill was intentionally skipped. Per the delegation, `convert`,
+`gate-patterns`, the hooks, and the deprecated `plugins/workflow/` plugin were
+left untouched (owned by sibling features / out of scope).
+
+Verification grep (all 9 now match):
+```
+rg -l "agents/rules" plugins/agile-workflow/skills/{feature-design,epic-design,\
+refactor-design,perf-design,implement,implement-orchestrator,review,fix,\
+e2e-test-design}/SKILL.md
+```
+→ all 9 SKILL.md files listed.
