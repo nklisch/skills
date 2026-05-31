@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-dependency-model
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-dependency
 depends_on: []
@@ -48,3 +48,9 @@ against the shell contract before adding SVG canvas risk.
 - Replaced the dependency placeholder with explicit `dependencyView`
   registration in `views.js`.
 - Embedded `/assets/dependency.js` and extended static/raw HTML sink coverage.
+
+## Review Notes
+
+- Local review approved after hardening endpoint labels and kind-derived CSS
+  classes so malformed edge data cannot throw or create arbitrary class names.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`.
