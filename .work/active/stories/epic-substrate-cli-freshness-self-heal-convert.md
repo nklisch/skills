@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-self-heal-convert
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli-freshness-self-heal
 depends_on: [epic-substrate-cli-freshness-self-heal-installer]
@@ -77,3 +77,15 @@ introduce a raw `cp` into convert — the installer is the only sanctioned path.
   passed, 12 assertions.
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes include green
+verification for the convert install-routing structural test, including the new
+doctor-marker version-check assertion.
