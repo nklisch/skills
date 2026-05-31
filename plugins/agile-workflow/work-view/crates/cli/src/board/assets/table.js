@@ -1,3 +1,5 @@
+import { deriveFilterOptions } from "/assets/filters.js";
+
 const COLUMNS = [
   { id: "id", label: "id", className: "mono" },
   { id: "kind", label: "kind" },
@@ -7,6 +9,9 @@ const COLUMNS = [
   { id: "depends_on", label: "depends_on", className: "mono" },
   { id: "updated", label: "updated", className: "mono" },
 ];
+const STATUS_ORDER = ["blocked", "ready", "active", "done"];
+
+let sortState = null;
 
 function textElement(tag, className, text) {
   const element = document.createElement(tag);
@@ -34,6 +39,29 @@ function statusFor(item) {
   return "active";
 }
 
+function compareText(left, right) {
+  return String(left || "").localeCompare(String(right || ""));
+}
+
+function compareNumber(left, right) {
+  return left === right ? 0 : left < right ? -1 : 1;
+}
+
+function updatedTime(item) {
+  const time = Date.parse(item?.updated || "");
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function dependencySortValue(item) {
+  return arrayCount(item?.unmet_deps) * 10000 + arrayCount(item?.depends_on);
+}
+
+function stageIndex(snapshot, stage) {
+  const stages = deriveFilterOptions(snapshot).stages;
+  const index = stages.indexOf(stage || "");
+  return index === -1 ? stages.length : index;
+}
+
 export function tableValue(item, columnId) {
   switch (columnId) {
     case "id":
@@ -58,11 +86,70 @@ export function tableValue(item, columnId) {
   }
 }
 
-function renderHeader() {
+export function compareRows(left, right, columnId, snapshot) {
+  switch (columnId) {
+    case "status":
+      return compareNumber(STATUS_ORDER.indexOf(statusFor(left)), STATUS_ORDER.indexOf(statusFor(right)));
+    case "stage":
+      return compareNumber(stageIndex(snapshot, left?.stage), stageIndex(snapshot, right?.stage));
+    case "depends_on":
+      return compareNumber(dependencySortValue(left), dependencySortValue(right));
+    case "updated":
+      return compareNumber(updatedTime(left), updatedTime(right));
+    default:
+      return compareText(tableValue(left, columnId), tableValue(right, columnId));
+  }
+}
+
+function defaultCompare(left, right, snapshot) {
+  return compareRows(left, right, "status", snapshot)
+    || compareRows(left, right, "stage", snapshot)
+    || -compareRows(left, right, "updated", snapshot)
+    || compareRows(left, right, "id", snapshot);
+}
+
+function sortedItems(items, snapshot) {
+  const indexed = items.map((item, index) => ({ item, index }));
+  indexed.sort((left, right) => {
+    if (!sortState) {
+      return defaultCompare(left.item, right.item, snapshot) || compareNumber(left.index, right.index);
+    }
+    const direction = sortState.dir === "desc" ? -1 : 1;
+    return direction * compareRows(left.item, right.item, sortState.column, snapshot)
+      || compareRows(left.item, right.item, "id", snapshot)
+      || compareNumber(left.index, right.index);
+  });
+  return indexed.map(({ item }) => item);
+}
+
+function toggleSort(columnId) {
+  if (sortState?.column === columnId) {
+    sortState = { column: columnId, dir: sortState.dir === "asc" ? "desc" : "asc" };
+  } else {
+    sortState = { column: columnId, dir: "asc" };
+  }
+}
+
+function renderHeader(root, ctx) {
   const thead = document.createElement("thead");
   const row = document.createElement("tr");
   for (const column of COLUMNS) {
-    row.append(textElement("th", "", column.label));
+    const th = document.createElement("th");
+    const active = sortState?.column === column.id;
+    th.setAttribute("aria-sort", active ? (sortState.dir === "asc" ? "ascending" : "descending") : "none");
+    const button = document.createElement("button");
+    button.className = "table-sort-button";
+    button.type = "button";
+    button.textContent = column.label;
+    button.addEventListener("click", () => {
+      toggleSort(column.id);
+      tableView.mount(root, ctx);
+    });
+    th.append(button);
+    if (active) {
+      th.append(textElement("span", "sort", sortState.dir === "asc" ? "↑" : "↓"));
+    }
+    row.append(th);
   }
   thead.append(row);
   return thead;
@@ -109,14 +196,14 @@ function renderRow(item, ctx) {
   return row;
 }
 
-function renderTable(items, ctx) {
+function renderTable(items, ctx, root) {
   const table = document.createElement("table");
   table.className = "table board-table";
   const tbody = document.createElement("tbody");
   for (const item of items) {
     tbody.append(renderRow(item, ctx));
   }
-  table.append(renderHeader(), tbody);
+  table.append(renderHeader(root, ctx), tbody);
   return table;
 }
 
@@ -124,7 +211,8 @@ export const tableView = {
   id: "table",
   label: "Table",
   mount(root, ctx) {
-    const items = ctx.visibleItems();
+    const state = ctx.getState();
+    const items = sortedItems(ctx.visibleItems(), state.snapshot);
     const view = document.createElement("div");
     view.className = "table-view";
     const header = document.createElement("header");
@@ -135,7 +223,7 @@ export const tableView = {
     );
     const tableWrap = document.createElement("div");
     tableWrap.className = "table-wrap";
-    tableWrap.append(renderTable(items, ctx));
+    tableWrap.append(renderTable(items, ctx, root));
     view.append(header, tableWrap);
     root.replaceChildren(view);
   },

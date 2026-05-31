@@ -671,6 +671,10 @@ fn board_embedded_assets_return_expected_content_types() {
     assert!(
         table_body.contains("export const tableView")
             && table_body.contains("tableValue")
+            && table_body.contains("compareRows")
+            && table_body.contains("deriveFilterOptions")
+            && table_body.contains("sortState")
+            && table_body.contains("aria-sort")
             && table_body.contains("ctx.visibleItems()")
             && table_body.contains("ctx.openDetail(item.id)")
             && table_body.contains("addEventListener(\"keydown\""),

@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-table-sort
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-table
 depends_on: [epic-substrate-board-table-render]
@@ -30,7 +30,15 @@ shell global filters.
 
 ## Acceptance Criteria
 
-- [ ] Header controls sort rows deterministically.
-- [ ] Stage sorting follows the shell-derived stage vocabulary.
-- [ ] Sort direction is visible and exposed through `aria-sort`.
-- [ ] Sort state survives shell remounts during the current page session.
+- [x] Header controls sort rows deterministically.
+- [x] Stage sorting follows the shell-derived stage vocabulary.
+- [x] Sort direction is visible and exposed through `aria-sort`.
+- [x] Sort state survives shell remounts during the current page session.
+
+## Implementation Notes
+
+- Added module-scoped sort state and deterministic comparators for text,
+  status, dependency counts, dates, and shell-derived stage order.
+- Header cells now render native buttons, expose `aria-sort`, and re-render the
+  local table view without mutating shell filters.
+- Default ordering remains deterministic before a user selects a sort column.

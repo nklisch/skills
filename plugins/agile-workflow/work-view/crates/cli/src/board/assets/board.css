@@ -560,6 +560,22 @@ button.dep-node:focus-visible {
   outline-offset: -2px;
 }
 
+.table-sort-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.table-sort-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 @media (max-width: 980px) {
   .appbar {
     grid-template-columns: 1fr;
