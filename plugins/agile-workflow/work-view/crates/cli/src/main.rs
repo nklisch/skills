@@ -4,6 +4,7 @@
 //! ```text
 //! parse_args(argv)
 //!   -> Help: print HELP to stdout, exit 0
+//!   -> Version: print `work-view <semver>` to stdout, exit 0
 //!   -> UsageError: print to stderr, exit 1
 //! find_substrate_root(cwd)
 //!   -> None: print to stderr, exit 2
@@ -52,6 +53,10 @@ fn run() -> u8 {
     let opts = match outcome {
         ParseOutcome::Help => {
             println!("{HELP}");
+            return 0;
+        }
+        ParseOutcome::Version => {
+            println!("work-view {}", args::WORK_VIEW_VERSION);
             return 0;
         }
         ParseOutcome::Run(o) => o,

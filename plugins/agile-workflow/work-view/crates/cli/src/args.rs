@@ -8,6 +8,20 @@
 
 use work_view_core::filter::{Filter, Match};
 
+// ── Version stamp ───────────────────────────────────────────────────────────────
+
+/// The agile-workflow **plugin** version, compiled in from a committed generated
+/// file. `bump-version.sh` projects `plugin.json`'s version into
+/// `crates/cli/.work-view-version` (and the bash fallback's literal) in lockstep,
+/// so every build path — CI cross-build and local `cargo test` — bakes the right
+/// value with no env wiring.
+///
+/// The file is written with NO trailing newline (`printf '%s'`), so the raw
+/// `include_str!` yields the bare semver; no `.trim()` is needed (and a `const`
+/// can't call `.trim()` on a non-const-fn path cleanly). The relative path steps
+/// up from `src/args.rs` to the crate root where the file lives.
+pub const WORK_VIEW_VERSION: &str = include_str!("../.work-view-version");
+
 // ── Output mode ───────────────────────────────────────────────────────────────
 
 /// How to present matching items on stdout.
@@ -61,6 +75,9 @@ pub struct CliOptions {
 pub enum ParseOutcome {
     /// `--help` / `-h` was passed; caller should print `HELP` and exit 0.
     Help,
+    /// `--version` / `-V` was passed; caller should print the version line
+    /// (`work-view <semver>`) and exit 0.
+    Version,
     /// A valid `CliOptions` was produced; caller should run the query.
     Run(CliOptions),
 }
@@ -101,6 +118,7 @@ Output (default tabular):
   --count              Match count only
 
 Other:
+  --version            Print the work-view version and exit
   --help               Show this help and exit\
 ";
 
@@ -155,6 +173,7 @@ fn next_value<I: Iterator<Item = String>>(
 /// - `--blocked`                     → `dependency_view = DependencyView::Blocked`
 /// - `--ready` AND `--blocked` both present → `UsageError` (mutually exclusive)
 /// - `--help|-h`                     → `ParseOutcome::Help`
+/// - `--version|-V`                  → `ParseOutcome::Version`
 /// - `--`                            → stop flag parsing; subsequent positionals → `UsageError`
 /// - unknown flag / positional / missing value → `UsageError`
 pub fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<ParseOutcome, UsageError> {
@@ -175,6 +194,13 @@ pub fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<ParseOutcome, U
             }
             "--help" | "-h" => {
                 return Ok(ParseOutcome::Help);
+            }
+            // `-V` (uppercase) is the conventional short form for --version.
+            // Lowercase `-v` is deliberately NOT used — reserve it for a
+            // possible future `--verbose`. Placed before the generic
+            // `flag.starts_with('-')` arm so --version is not "unknown flag".
+            "--version" | "-V" => {
+                return Ok(ParseOutcome::Version);
             }
             "--stage" => {
                 let v = next_value("--stage", &mut iter)?;
@@ -254,6 +280,7 @@ mod tests {
         match parse(args).expect("expected Ok") {
             ParseOutcome::Run(opts) => opts,
             ParseOutcome::Help => panic!("expected Run, got Help"),
+            ParseOutcome::Version => panic!("expected Run, got Version"),
         }
     }
 
@@ -392,6 +419,41 @@ mod tests {
     #[test]
     fn help_short_returns_help_outcome() {
         assert!(matches!(parse(&["-h"]).unwrap(), ParseOutcome::Help));
+    }
+
+    // ── --version flag ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn version_long_returns_version_outcome() {
+        assert!(matches!(
+            parse(&["--version"]).unwrap(),
+            ParseOutcome::Version
+        ));
+    }
+
+    #[test]
+    fn version_short_returns_version_outcome() {
+        assert!(matches!(parse(&["-V"]).unwrap(), ParseOutcome::Version));
+    }
+
+    #[test]
+    fn version_is_not_a_usage_error() {
+        // Regression guard: --version used to fall through to the generic
+        // "unknown flag" arm and produce a UsageError (exit 1).
+        assert!(parse(&["--version"]).is_ok(), "--version must parse Ok");
+        assert!(parse(&["-V"]).is_ok(), "-V must parse Ok");
+    }
+
+    #[test]
+    fn version_stamp_has_no_trailing_newline() {
+        // Pins the single approach: .work-view-version is written with no
+        // trailing newline and consumed via raw include_str! (no .trim()).
+        // A stray newline would print a blank line after the semver and break
+        // byte-parity with the bash fallback.
+        assert!(
+            !WORK_VIEW_VERSION.ends_with('\n'),
+            "WORK_VIEW_VERSION must not end with a newline; got {WORK_VIEW_VERSION:?}"
+        );
     }
 
     #[test]
