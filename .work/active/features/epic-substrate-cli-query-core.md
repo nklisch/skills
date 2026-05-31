@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-query-core
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli
 depends_on: [epic-substrate-cli-runtime-research]
@@ -335,3 +335,108 @@ Adopted across the loop (passes 2-3):
 
 Ran a 3-pass cross-model loop (Codex); converged on pass 3 — no blockers, the
 architecture is coherent, remaining items were cleanups (all folded in above).
+
+## Implementation notes
+
+### What was built
+
+Cargo workspace at `plugins/agile-workflow/work-view/` with a single library
+crate `work-view-core` (edition 2021). Six source modules as designed:
+
+- `src/error.rs` — `ParseError` (non-fatal per-item) and `LoadError` (fatal
+  traversal I/O). No process exit calls; exit-code ownership stays in the adapter.
+- `src/model.rs` — `Tier` enum (Active/Releases/Archive/Backlog) with
+  `precedence()` for duplicate resolution; `Item` struct with all fields;
+  `Item::is_terminal()` using tier + stage, no path string-matching.
+- `src/parse.rs` — `parse_item()`: splits frontmatter via byte-scan for
+  `\n---`, deserializes via serde + `serde_yaml_ng`, normalizes all optional
+  scalars (None for missing / YAML null / `"null"` string / empty/whitespace).
+- `src/index.rs` — `find_substrate_root()` (walk up to `.work/CONVENTIONS.md`);
+  `Substrate::load()` (four-dir scan, global byte-sort via
+  `OsStrExt::as_bytes()`, tier-aware duplicate-id resolution, tier-aware
+  validation warnings for active/releases items missing kind/stage).
+- `src/graph.rs` — `deps_satisfied`, `unmet_deps`, `dependents_of`,
+  `children_of` as `impl Substrate` methods.
+- `src/filter.rs` — `Match { Any, Equals, IsNull }` (derive Default with
+  `#[default]` on `Any`); `Filter` struct; `Substrate::query()`.
+
+### YAML crate chosen
+
+**`serde_yaml_ng` v0.10.0** — the maintained continuation of dtolnay's
+archived `serde_yaml`, with an identical `from_str::<T>()` API. It resolved
+cleanly, compiled in ~3s, and handles both flow (`[a, b]`) and block YAML
+arrays natively via serde. `serde_yaml` was rejected (archived 2024).
+`serde_yml` was rejected (governance/quality concerns). `serde_norway` v0.9.42
+was the ready fallback but was not needed.
+
+### Deviations from design
+
+None. All signatures, invariants, and behavioral specs implemented as written.
+One minor implementation detail not constrained by the design: the
+`split_frontmatter` function uses byte-scan for `\n---` rather than
+line-by-line iteration, which is both simpler and handles CRLF line endings.
+
+### Validation scope
+
+The design says to warn on active/releases items "missing a SPEC-required
+field". The SPEC lists kind/stage as required without a null carve-out for
+active items, but parent/release_binding/gate_origin explicitly allow null.
+Implemented warnings for kind and stage only (the two fields with no null
+carve-out). depends_on and created/updated are structural (empty/null is
+valid), so they're not warned on — consistent with the SPEC semantics.
+
+### Verification results
+
+All four checks pass from `plugins/agile-workflow/work-view/`:
+
+```
+cargo build     ✓  (0 warnings)
+cargo test      ✓  92 tests: 58 unit + 30 integration + 4 doc-tests, 0 failed
+cargo clippy    ✓  no warnings (-D warnings)
+cargo fmt       ✓  (checked, no diffs)
+```
+
+### Public API surface exported from `lib.rs`
+
+```rust
+// Types
+work_view_core::model::{Item, Tier}
+work_view_core::error::{ParseError, LoadError}
+work_view_core::index::{Substrate, LoadReport, Diagnostic, find_substrate_root}
+work_view_core::filter::{Filter, Match}
+
+// Key methods on Substrate
+Substrate::load(root: &Path) -> Result<(Substrate, LoadReport), LoadError>
+Substrate::items(&self) -> &[Item]
+Substrate::by_id(&self, id: &str) -> Option<&Item>
+Substrate::deps_satisfied(&self, item: &Item) -> bool
+Substrate::unmet_deps<'a>(&'a self, item: &'a Item) -> Vec<&'a str>
+Substrate::dependents_of<'a>(&'a self, id: &str) -> Vec<&'a Item>
+Substrate::children_of<'a>(&'a self, id: &str) -> Vec<&'a Item>
+Substrate::query<'a>(&'a self, f: &Filter) -> Vec<&'a Item>
+
+// Standalone
+find_substrate_root(start: &Path) -> Option<PathBuf>
+parse_item(path: &Path, rel: &Path, tier: Tier, text: &str) -> Result<Item, ParseError>
+```
+
+### Notes for reviewer and downstream features
+
+- **Adapter** (`epic-substrate-cli-adapter`): add `crates/cli` to workspace
+  members. Import `work-view-core` as a path dep. Map `find_substrate_root →
+  None` to exit 2; `LoadError::Io` to exit 3. `--cat` → `item.raw_text`;
+  `--paths` → `item.path`. `--ready`/`--blocked` build on `deps_satisfied`.
+  The core intentionally does NOT implement `--ready`/`--blocked` (that's
+  `epic-substrate-cli-next-actionable`).
+- **Board** (`epic-substrate-board`): `item.tier` maps directly to the bucket
+  field in the board's data shape. `item.rel_path` is the board-relative path.
+  `item.body` is the markdown for rendering. `Match::IsNull` enables filtering
+  unbound items (e.g. `release: Match::IsNull`).
+- **`next-actionable`**: build `--ready` as `stage == "implementing" &&
+  deps_satisfied(item)` and `--blocked` as the negation, both as a thin
+  `query()` post-filter.
+- **CONVENTIONS.md traversal**: `find_substrate_root` requires exactly
+  `.work/CONVENTIONS.md` to exist — not just `.work/`. Projects without
+  `CONVENTIONS.md` will return `None`. This matches the bash behavior.
+- **Missing tier dirs**: if `.work/active/`, `.work/backlog/`, etc. don't
+  exist (new or partial substrate), the loader silently skips them — no error.

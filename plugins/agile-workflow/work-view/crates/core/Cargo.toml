@@ -1,0 +1,13 @@
+[package]
+name = "work-view-core"
+version = "0.1.0"
+edition = "2021"
+description = "Shared .work/ query and domain core for the agile-workflow substrate"
+license = "MIT"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_yaml_ng = "0.10"
+
+[dev-dependencies]
+tempfile = "3"
