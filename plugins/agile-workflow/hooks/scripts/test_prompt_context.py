@@ -15,6 +15,10 @@ Pure stdlib (unittest + unittest.mock) — does NOT depend on pytest. Run with:
 from __future__ import annotations
 
 import importlib.util
+import io
+import json
+import shutil
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -140,6 +144,159 @@ class ReviewDedupTest(unittest.TestCase):
             snapshot,
             msg=f"Review count should be 1.\nSnapshot:\n{snapshot}",
         )
+
+
+class RulesLoaderTest(unittest.TestCase):
+    """Guards the generic .agents/rules/ hook loader.
+
+    Covers the broad coding-prompt detector, the reader + hash, the CONVENTIONS
+    flag/byte-cap, per-epoch + content-hash dedup, and the SessionStart wiring.
+    State is isolated to a temp file so dedup does not leak across tests.
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        (self.root / ".work").mkdir()
+        self._write_conventions("# Conventions\n")
+        self.rules_dir = self.root / ".agents" / "rules"
+        self.rules_dir.mkdir(parents=True)
+        self.state_file = self.root / "hook-state.json"
+        self._state_patch = mock.patch.object(
+            prompt_context, "state_path", return_value=self.state_file
+        )
+        self._state_patch.start()
+
+    def tearDown(self) -> None:
+        self._state_patch.stop()
+        self._tmp.cleanup()
+
+    def _write_conventions(self, text: str) -> None:
+        (self.root / ".work" / "CONVENTIONS.md").write_text(text, encoding="utf-8")
+
+    def _payload(self, **kw):
+        base = {"session_id": "s1", "hook_event_name": "UserPromptSubmit"}
+        base.update(kw)
+        return base
+
+    def test_coding_prompt_detector(self) -> None:
+        coding = [
+            "fix the failing tests",
+            "continue",
+            "debug this build error",
+            "implement the loader",
+            "edit src/foo.rs",
+            "refactor the parser",
+            "/agile-workflow:review hook",
+        ]
+        for p in coding:
+            self.assertTrue(prompt_context.is_coding_prompt(p), msg=p)
+        non_coding = [
+            "what is the capital of France",
+            "explain this concept to me",
+            "thanks!",
+            "who are you",
+        ]
+        for p in non_coding:
+            self.assertFalse(prompt_context.is_coding_prompt(p), msg=p)
+
+    def test_reads_and_hashes(self) -> None:
+        (self.rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
+        (self.rules_dir / "b.md").write_text("Rule B body", encoding="utf-8")
+        text, digest = prompt_context.read_rules_dir(self.root, 12000)
+        self.assertIn("## Project Rules", text)
+        self.assertIn("Rule A body", text)
+        self.assertIn("Rule B body", text)
+        self.assertTrue(digest)
+
+    def test_absent_dir_returns_empty(self) -> None:
+        shutil.rmtree(self.rules_dir)
+        self.assertEqual(prompt_context.read_rules_dir(self.root, 12000), ("", ""))
+
+    def test_empty_dir_returns_empty(self) -> None:
+        self.assertEqual(prompt_context.read_rules_dir(self.root, 12000), ("", ""))
+
+    def test_byte_cap_truncates(self) -> None:
+        (self.rules_dir / "big.md").write_text("x" * 5000, encoding="utf-8")
+        text, _ = prompt_context.read_rules_dir(self.root, 1000)
+        self.assertIn("truncated", text)
+        self.assertLess(len(text.encode("utf-8")), 2000)
+
+    def test_flag_off(self) -> None:
+        self._write_conventions("# Conventions\nrules_context: off\n")
+        enabled, _ = prompt_context.rules_config(self.root)
+        self.assertFalse(enabled)
+
+    def test_flag_default_on_and_max_bytes(self) -> None:
+        self._write_conventions("rules_context_max_bytes: 2048\n")
+        enabled, max_bytes = prompt_context.rules_config(self.root)
+        self.assertTrue(enabled)
+        self.assertEqual(max_bytes, 2048)
+
+    def test_emit_dedup_per_epoch(self) -> None:
+        (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
+        payload = self._payload()
+        first = prompt_context.emit_rules(self.root, payload, require_coding=False)
+        self.assertIn("Rule A", first)
+        second = prompt_context.emit_rules(self.root, payload, require_coding=False)
+        self.assertEqual(second, "")
+
+    def test_emit_reinject_on_content_change(self) -> None:
+        (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
+        payload = self._payload()
+        self.assertIn(
+            "Rule A", prompt_context.emit_rules(self.root, payload, require_coding=False)
+        )
+        (self.rules_dir / "a.md").write_text("Rule A v2", encoding="utf-8")
+        self.assertIn(
+            "Rule A v2",
+            prompt_context.emit_rules(self.root, payload, require_coding=False),
+        )
+
+    def test_emit_off_when_flag_off(self) -> None:
+        (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
+        self._write_conventions("rules_context: off\n")
+        self.assertEqual(
+            prompt_context.emit_rules(self.root, self._payload(), require_coding=False),
+            "",
+        )
+
+    def test_fallback_requires_coding_prompt(self) -> None:
+        (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
+        payload = self._payload()
+        # Non-coding prompt: fallback suppressed and dedup NOT marked.
+        self.assertEqual(
+            prompt_context.emit_rules(
+                self.root, payload, require_coding=True, prompt="what is this"
+            ),
+            "",
+        )
+        # Coding prompt in the same epoch then emits (proves the prior call did
+        # not consume the once-per-epoch slot).
+        self.assertIn(
+            "Rule A",
+            prompt_context.emit_rules(
+                self.root, payload, require_coding=True, prompt="fix the bug"
+            ),
+        )
+
+    def test_main_sessionstart_emits_rules(self) -> None:
+        (self.rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
+        payload = {
+            "session_id": "s2",
+            "hook_event_name": "SessionStart",
+            "source": "startup",
+            "cwd": str(self.root),
+        }
+        out = io.StringIO()
+        with mock.patch.object(
+            prompt_context.sys, "stdin", io.StringIO(json.dumps(payload))
+        ), mock.patch.object(prompt_context.sys, "stdout", out):
+            rc = prompt_context.main()
+        self.assertEqual(rc, 0)
+        printed = out.getvalue()
+        self.assertIn("additionalContext", printed)
+        self.assertIn("Rule A body", printed)
 
 
 if __name__ == "__main__":

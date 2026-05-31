@@ -52,6 +52,33 @@ QUEUE_QUERY_RE = re.compile(
     re.IGNORECASE,
 )
 
+DEFAULT_RULES_MAX_BYTES = 12000
+
+# Broad coding/dev-work detector for the .agents/rules/ UserPromptSubmit fallback.
+# Deliberately wider than the workflow-snapshot gate (cheap_action_candidate /
+# is_actionable): it must catch coding prompts that carry no workflow noun, e.g.
+# "fix failing tests", "continue", "debug this build error", or a bare file edit.
+CODING_PROMPT_RE = re.compile(
+    r"\b("
+    r"implement|implementation|fix|fixes|fixing|patch|bug|debug|"
+    r"refactor|perf|optimi[sz]e|optimi[sz]ation|design|review|verdict|"
+    r"test|tests|testing|failing|fails|build|builds|compile|compiles|"
+    r"error|errors|lint|type[- ]?check|typecheck|stack ?trace|"
+    r"add|change|update|rename|extract|inline|migrate|write|edit|wire|"
+    r"continue|keep going|proceed|next step|finish|"
+    r"function|class|method|module|import|api|endpoint|schema"
+    r")\b",
+    re.IGNORECASE,
+)
+# A file/path reference is also a strong coding signal. Match filenames with a
+# code-ish extension, or a multi-segment path (2+ slashes) to avoid prose like
+# "and/or".
+FILE_REF_RE = re.compile(
+    r"[\w./+-]*\.(?:py|rs|ts|tsx|js|jsx|go|rb|java|kt|swift|c|cc|cpp|h|hpp|cs|"
+    r"php|sh|bash|md|json|ya?ml|toml|sql|html|css|scss|cfg|ini)\b"
+    r"|(?:[\w.+-]+/){2,}[\w.+-]+"
+)
+
 CAPSULES = {
     "code_design": {
         "title": "Code-design capsule",
@@ -407,6 +434,117 @@ def format_capsules(keys: list[str]) -> str:
     return "\n".join(lines)
 
 
+def is_coding_prompt(prompt: str) -> bool:
+    """Broad detector for coding/dev work, independent of the workflow gate.
+
+    Catches "fix failing tests", "continue", "debug this build error", and
+    file-specific edits that carry no workflow noun. Errs toward inclusion —
+    over-firing is bounded by the per-epoch dedup and the byte cap, and rules
+    usually load at SessionStart anyway, so this fallback rarely fires.
+    """
+    if not prompt.strip():
+        return False
+    if SLASH_RE.search(prompt) or SKILL_MENTION_RE.search(prompt):
+        return True
+    if CODING_PROMPT_RE.search(prompt):
+        return True
+    return bool(FILE_REF_RE.search(prompt))
+
+
+def rules_config(root: Path) -> tuple[bool, int]:
+    """Parse `.work/CONVENTIONS.md` for the rules-loader knobs.
+
+    `rules_context: on|off` (default on) and `rules_context_max_bytes: <int>`
+    (default DEFAULT_RULES_MAX_BYTES). Tolerant: any read/parse failure returns
+    the enabled defaults so a malformed CONVENTIONS never silences rules.
+    """
+    enabled = True
+    max_bytes = DEFAULT_RULES_MAX_BYTES
+    try:
+        text = (root / ".work" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    except OSError:
+        return enabled, max_bytes
+    for raw in text.splitlines():
+        line = raw.strip().lstrip("-").strip()
+        flag = re.match(r"rules_context\s*:\s*(\S+)", line, re.IGNORECASE)
+        if flag:
+            enabled = flag.group(1).strip().lower() not in {"off", "false", "no", "0"}
+            continue
+        cap = re.match(r"rules_context_max_bytes\s*:\s*(\d+)", line, re.IGNORECASE)
+        if cap:
+            max_bytes = max(0, int(cap.group(1)))
+    return enabled, max_bytes
+
+
+def read_rules_dir(root: Path, max_bytes: int) -> tuple[str, str]:
+    """Read `<root>/.agents/rules/*.md` (sorted) into one injectable block.
+
+    Returns ``(text, sha256)`` where the hash is over the UNtruncated
+    concatenation so any edit re-injects. Truncates the emitted text at
+    ``max_bytes`` with a notice. Returns ``("", "")`` when the dir is absent or
+    has no readable markdown content.
+    """
+    rules_dir = root / ".agents" / "rules"
+    if not rules_dir.is_dir():
+        return "", ""
+    chunks: list[str] = []
+    for path in sorted(rules_dir.glob("*.md")):
+        try:
+            body = path.read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+        if body:
+            chunks.append(body)
+    if not chunks:
+        return "", ""
+    body = "\n\n".join(chunks)
+    digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
+    if max_bytes and len(body.encode("utf-8")) > max_bytes:
+        clipped = body.encode("utf-8")[:max_bytes].decode("utf-8", "ignore").rstrip()
+        body = clipped + "\n\n(.agents/rules truncated — read the files for full content)"
+    return "## Project Rules (.agents/rules/)\n" + body, digest
+
+
+def rules_unseen(root: Path, payload: dict[str, Any], content_hash: str) -> bool:
+    """True iff (epoch, content_hash) has not yet been injected this session.
+
+    Reuses the epoch state; stores ``seen['rules'] = f'{epoch}:{hash}'`` so rules
+    re-inject after a PostCompact epoch bump or when `.agents/rules/` content
+    changes, but only once per (epoch, content) otherwise.
+    """
+    session_id = str(payload.get("session_id") or "unknown")
+    state = load_state(root)
+    entry = session_entry(state, session_id)
+    marker = f"{int(entry.get('epoch') or 0)}:{content_hash}"
+    seen = entry.setdefault("seen", {})
+    if seen.get("rules") == marker:
+        return False
+    seen["rules"] = marker
+    save_state(root, state)
+    return True
+
+
+def emit_rules(
+    root: Path, payload: dict[str, Any], *, require_coding: bool, prompt: str = ""
+) -> str:
+    """Return `.agents/rules/` context to inject, or "".
+
+    Shared by the SessionStart/PostCompact path (``require_coding=False`` — load
+    unconditionally, mirroring legacy `.claude/rules/`) and the UserPromptSubmit
+    fallback (``require_coding=True`` — only on a coding prompt). Dedups once per
+    epoch via ``rules_unseen``.
+    """
+    if require_coding and not is_coding_prompt(prompt):
+        return ""
+    enabled, max_bytes = rules_config(root)
+    if not enabled:
+        return ""
+    text, digest = read_rules_dir(root, max_bytes)
+    if not text or not rules_unseen(root, payload, digest):
+        return ""
+    return text
+
+
 def main() -> int:
     payload = load_payload()
     event = str(payload.get("hook_event_name") or "")
@@ -414,33 +552,41 @@ def main() -> int:
     if root is None:
         return 0
 
+    # Primary rules firing: SessionStart / PostCompact emit `.agents/rules/`
+    # directly (after the epoch reset/bump) so rules reload at session start and
+    # after compaction — even during auto-continuation with no user prompt.
     if event in {"SessionStart", "PostCompact"}:
         bump_epoch(root, payload)
+        output_context(event, emit_rules(root, payload, require_coding=False))
         return 0
 
     if event != "UserPromptSubmit":
         return 0
 
     prompt = str(payload.get("prompt") or "")
-    if not cheap_action_candidate(prompt):
-        return 0
-
-    index = item_index(root)
-    matched = matched_item_ids(prompt, set(index))
-    if not is_actionable(prompt, matched):
-        return 0
 
     parts: list[str] = []
-    if needs_snapshot(prompt, matched):
-        parts.append(build_snapshot(root, prompt))
+    # Rules fallback: independent of the workflow gate, so it catches coding
+    # prompts (e.g. "fix failing tests") that carry no workflow noun. Deduped per
+    # epoch, so this only fires when the SessionStart emission did not happen.
+    rules = emit_rules(root, payload, require_coding=True, prompt=prompt)
+    if rules:
+        parts.append(rules)
 
-    selected = capsule_keys(prompt, matched, index)
-    selected = unseen_capsules(root, payload, selected)
-    capsule_text = format_capsules(selected)
-    if capsule_text:
-        parts.append(capsule_text)
+    # Workflow snapshot + principles capsules keep their stricter gate.
+    if cheap_action_candidate(prompt):
+        index = item_index(root)
+        matched = matched_item_ids(prompt, set(index))
+        if is_actionable(prompt, matched):
+            if needs_snapshot(prompt, matched):
+                parts.append(build_snapshot(root, prompt))
+            capsule_text = format_capsules(
+                unseen_capsules(root, payload, capsule_keys(prompt, matched, index))
+            )
+            if capsule_text:
+                parts.append(capsule_text)
 
-    output_context(event, "\n\n".join(parts))
+    output_context(event, "\n\n".join(p for p in parts if p))
     return 0
 
 

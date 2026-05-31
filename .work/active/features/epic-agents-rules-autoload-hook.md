@@ -1,7 +1,7 @@
 ---
 id: epic-agents-rules-autoload-hook
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-agents-rules-autoload
 depends_on: []
@@ -244,3 +244,40 @@ isolated; create a real temp `.agents/rules/` tree for reader tests.
 None — single-stride, tightly-cohesive change to one script + its test file. The
 feature is the implementation unit. Routed to implement-orchestrator/implement at
 `stage: implementing`.
+
+## Implementation notes (2026-05-31)
+
+Implemented inline (single-item bundle, one wave — no sub-agent, per dispatch
+economy). All in `hooks/scripts/prompt-context.py`:
+- `DEFAULT_RULES_MAX_BYTES = 12000`; `CODING_PROMPT_RE`, `FILE_REF_RE`.
+- `is_coding_prompt`, `rules_config`, `read_rules_dir`, `rules_unseen`,
+  `emit_rules` (the five Units).
+- `main()` rewired: `SessionStart`/`PostCompact` call `bump_epoch` then
+  `output_context(event, emit_rules(..., require_coding=False))` (primary firing);
+  `UserPromptSubmit` prepends the `require_coding=True` fallback, independent of the
+  `cheap_action_candidate`/`is_actionable` workflow gate, which still guards the
+  snapshot + capsules.
+
+Notes / decisions made during implementation:
+- Heading is generic (`## Project Rules (.agents/rules/)`); the "load the patterns
+  skill for detail" pointer lives inside `.agents/rules/patterns.md` (patterns-digest
+  feature), keeping the hook content-agnostic.
+- `seen["rules"]` stores `"<epoch>:<hash>"` (str) alongside capsule `int` markers —
+  no key collision (capsule keys are `code_design`/`dispatch_economy`/`advisory_review`).
+- `FILE_REF_RE` requires a code extension OR a 2+-segment path to avoid prose
+  false-positives like "and/or".
+- `emit_rules` short-circuits before `rules_unseen` when the rules text is empty, so
+  an empty/absent `.agents/rules/` does NOT consume the once-per-epoch dedup slot —
+  rules still inject when the dir is populated later in the session.
+
+Tests: added `RulesLoaderTest` (12 tests) to `hooks/scripts/test_prompt_context.py`,
+covering the detector, reader + hash, byte cap, flag on/off + max-bytes, per-epoch
+dedup, content-change re-injection, the coding-prompt fallback gate, and the
+`SessionStart` main() wiring.
+
+Verification: `cd plugins/agile-workflow/hooks/scripts && python3 -m unittest
+test_prompt_context -v` → **OK, 14 tests** (2 pre-existing `ReviewDedupTest` still
+green — the `main()` rewire preserves snapshot/capsule behavior).
+
+Note: this repo has no `.agents/rules/` yet (produced by the convert-extract and
+patterns-digest features), so the hook is a correct no-op here until those land.
