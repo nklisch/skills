@@ -218,6 +218,8 @@ function renderView(state) {
   }
 
   const filters = filterSignature(state.filters);
+  // Detail selection intentionally does not remount views; otherwise opening a
+  // card destroys the trigger element before focus can be restored on close.
   if (mountedSnapshot !== state.snapshot || mountedView !== state.view || mountedFilters !== filters) {
     mountedSnapshot = state.snapshot;
     mountedView = state.view;
