@@ -1,4 +1,5 @@
 import { kanbanView } from "/assets/kanban.js";
+import { dependencyView } from "/assets/dependency.js";
 
 const registry = new Map();
 
@@ -63,11 +64,7 @@ export function registeredViews() {
 
 registerView(kanbanView);
 
-registerView(placeholderView(
-  "dependency",
-  "Dependency view",
-  "Dependency graph layout lands in its dedicated feature; this placeholder proves the same filtered item set.",
-));
+registerView(dependencyView);
 
 registerView(placeholderView(
   "table",

@@ -548,6 +548,7 @@ fn board_embedded_assets_return_expected_content_types() {
         "/assets/detail.js",
         "/assets/views.js",
         "/assets/kanban.js",
+        "/assets/dependency.js",
     ] {
         let js = board_response_once(path);
         assert!(
@@ -625,7 +626,7 @@ fn board_embedded_assets_return_expected_content_types() {
             && views_body.contains("export function mountCurrentView")
             && views_body.contains("ctx.visibleItems()")
             && views_body.contains("kanbanView")
-            && views_body.contains("dependency")
+            && views_body.contains("dependencyView")
             && views_body.contains("table"),
         "views JS should export the BoardView registry and register real kanban plus downstream placeholders; body: {views_body}"
     );
@@ -644,6 +645,16 @@ fn board_embedded_assets_return_expected_content_types() {
             && !kanban_body.contains("ctx.setFilter"),
         "kanban JS should register the stage-grid view through shared shell contracts; body: {kanban_body}"
     );
+    let dependency_js = board_response_once("/assets/dependency.js");
+    let dependency_body = http_body(&dependency_js);
+    assert!(
+        dependency_body.contains("export const dependencyView")
+            && dependency_body.contains("buildDependencyModel")
+            && dependency_body.contains("layerGraph")
+            && dependency_body.contains("cycleIds")
+            && dependency_body.contains("ctx.openDetail(node.id)"),
+        "dependency JS should provide the layered graph-model view; body: {dependency_body}"
+    );
 }
 
 #[test]
@@ -654,6 +665,7 @@ fn board_renderer_assets_do_not_ship_raw_html_injection_patterns() {
         "/assets/detail.js",
         "/assets/views.js",
         "/assets/kanban.js",
+        "/assets/dependency.js",
     ] {
         let response = board_response_once(path);
         let body = http_body(&response);

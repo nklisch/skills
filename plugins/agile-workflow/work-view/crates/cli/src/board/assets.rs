@@ -18,6 +18,7 @@ const CARD_JS: &[u8] = include_bytes!("assets/card.js");
 const DETAIL_JS: &[u8] = include_bytes!("assets/detail.js");
 const VIEWS_JS: &[u8] = include_bytes!("assets/views.js");
 const KANBAN_JS: &[u8] = include_bytes!("assets/kanban.js");
+const DEPENDENCY_JS: &[u8] = include_bytes!("assets/dependency.js");
 
 pub(crate) fn asset_for_path(path: &str) -> Option<Asset> {
     match path {
@@ -73,6 +74,10 @@ pub(crate) fn asset_for_path(path: &str) -> Option<Asset> {
             bytes: KANBAN_JS,
             content_type: "text/javascript; charset=utf-8",
         }),
+        "/assets/dependency.js" => Some(Asset {
+            bytes: DEPENDENCY_JS,
+            content_type: "text/javascript; charset=utf-8",
+        }),
         _ => None,
     }
 }
@@ -111,6 +116,7 @@ mod tests {
             "/assets/detail.js",
             "/assets/views.js",
             "/assets/kanban.js",
+            "/assets/dependency.js",
         ] {
             let js = asset_for_path(path).expect("expected JS asset");
             assert_eq!(js.content_type, "text/javascript; charset=utf-8");

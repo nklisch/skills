@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-dependency-model
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-dependency
 depends_on: []
@@ -34,9 +34,17 @@ against the shell contract before adding SVG canvas risk.
 
 ## Acceptance Criteria
 
-- [ ] Selecting the Dependency tab mounts the dependency module, not the
+- [x] Selecting the Dependency tab mounts the dependency module, not the
       placeholder.
-- [ ] Visible `depends_on` relationships are represented in a layered list.
-- [ ] Missing or filtered-out dependencies are shown without crashing render.
-- [ ] Cycles cannot hang the board and are surfaced with a compact warning.
-- [ ] Node activation opens shared detail through `ctx.openDetail(id)`.
+- [x] Visible `depends_on` relationships are represented in a layered list.
+- [x] Missing or filtered-out dependencies are shown without crashing render.
+- [x] Cycles cannot hang the board and are surfaced with a compact warning.
+- [x] Node activation opens shared detail through `ctx.openDetail(id)`.
+
+## Implementation Notes
+
+- Added `assets/dependency.js` with pure graph-model helpers for visible nodes,
+  external dependency stubs, edges, guarded layering, and cycle reporting.
+- Replaced the dependency placeholder with explicit `dependencyView`
+  registration in `views.js`.
+- Embedded `/assets/dependency.js` and extended static/raw HTML sink coverage.
