@@ -1,3 +1,5 @@
+import { kanbanView } from "/assets/kanban.js";
+
 const registry = new Map();
 
 function textElement(tag, className, text) {
@@ -59,11 +61,7 @@ export function registeredViews() {
   return Array.from(registry.values());
 }
 
-registerView(placeholderView(
-  "kanban",
-  "Kanban view",
-  "Kanban columns land in the dedicated kanban feature; this placeholder proves filtered card consumption.",
-));
+registerView(kanbanView);
 
 registerView(placeholderView(
   "dependency",

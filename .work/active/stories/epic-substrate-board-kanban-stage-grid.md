@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-kanban-stage-grid
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-kanban
 depends_on: []
@@ -33,8 +33,16 @@ that groups `ctx.visibleItems()` into workflow-stage columns.
 
 ## Acceptance Criteria
 
-- [ ] Selecting the Kanban tab mounts the kanban module, not the placeholder.
-- [ ] Items render in columns keyed by `stage` from the filtered item set.
-- [ ] Stage ordering matches `deriveFilterOptions(snapshot).stages` and unknown
+- [x] Selecting the Kanban tab mounts the kanban module, not the placeholder.
+- [x] Items render in columns keyed by `stage` from the filtered item set.
+- [x] Stage ordering matches `deriveFilterOptions(snapshot).stages` and unknown
       stages do not disappear.
-- [ ] Cards open shared detail through `ctx.openDetail(id)`.
+- [x] Cards open shared detail through `ctx.openDetail(id)`.
+
+## Implementation Notes
+
+- Added `assets/kanban.js` as a real `kanbanView` exported into the existing
+  registry instead of using a side-effect registration cycle.
+- Embedded `/assets/kanban.js` in the Rust board asset router.
+- Added focused integration/static assertions for the kanban asset and raw HTML
+  sink guard.

@@ -537,6 +537,7 @@ fn board_embedded_assets_return_expected_content_types() {
         "/assets/card.js",
         "/assets/detail.js",
         "/assets/views.js",
+        "/assets/kanban.js",
     ] {
         let js = board_response_once(path);
         assert!(
@@ -613,10 +614,20 @@ fn board_embedded_assets_return_expected_content_types() {
         views_body.contains("export function registerView")
             && views_body.contains("export function mountCurrentView")
             && views_body.contains("ctx.visibleItems()")
-            && views_body.contains("kanban")
+            && views_body.contains("kanbanView")
             && views_body.contains("dependency")
             && views_body.contains("table"),
-        "views JS should export the downstream BoardView registry and placeholders; body: {views_body}"
+        "views JS should export the BoardView registry and register real kanban plus downstream placeholders; body: {views_body}"
+    );
+    let kanban_js = board_response_once("/assets/kanban.js");
+    let kanban_body = http_body(&kanban_js);
+    assert!(
+        kanban_body.contains("export const kanbanView")
+            && kanban_body.contains("deriveFilterOptions")
+            && kanban_body.contains("ctx.visibleItems()")
+            && kanban_body.contains("ctx.renderCard(item, { compact: true, context: ctx })")
+            && kanban_body.contains("groupItemsByStage"),
+        "kanban JS should register the stage-grid view through shared shell contracts; body: {kanban_body}"
     );
 }
 
@@ -627,6 +638,7 @@ fn board_renderer_assets_do_not_ship_raw_html_injection_patterns() {
         "/assets/card.js",
         "/assets/detail.js",
         "/assets/views.js",
+        "/assets/kanban.js",
     ] {
         let response = board_response_once(path);
         let body = http_body(&response);
