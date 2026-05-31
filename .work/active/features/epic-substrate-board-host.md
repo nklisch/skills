@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-host
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board
 depends_on: []
@@ -474,6 +474,18 @@ Rejected or deferred peer points:
 - The single-threaded server and whole-substrate reserialization remain accepted
   tradeoffs for a first local-only board host; performance work can be scoped
   after real project-size usage exposes a bottleneck.
+
+## Review Result
+
+Approved after three Claude Opus xhigh peer-review passes.
+
+- Pass 1 found the Host-header/DNS-rebinding gap and an orphaned kanban
+  reference. Both were fixed, with additional HEAD/405 coverage and top-level
+  help discovery.
+- Pass 2 confirmed the accepted fixes were correct and left only non-blocking
+  nits.
+- Pass 3 found no remaining substantive blocker, no lying docs, and no unmet
+  acceptance criteria.
 
 ## Risks
 
