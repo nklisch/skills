@@ -49,11 +49,14 @@ Convert distinguishes **alignment** from **cleanup**:
   generated plan files. Cleanup is opt-in and path-specific.
 
 **Convert places content; the owning skill defines where it lives.** For any
-plugin-owned concept, defer to its owner's canonical location instead of
-carrying a divergent rule: reusable patterns → `gate-patterns` Phase 1
-(`.agents/skills/patterns/`); refactor conventions →
-`refactor-conventions-creator` Phase 1/5 (AGENTS style section +
-`.agents/skills/refactor-conventions/`). See the single-owner deferral table in
+plugin-owned concept, defer to its owner's canonical *location and format*
+instead of carrying a divergent rule: reusable patterns live in
+`.agents/skills/patterns/` in the `gate-patterns` file/index format; refactor
+conventions → `refactor-conventions-creator` Phase 1/5 (AGENTS style section +
+`.agents/skills/refactor-conventions/`). One nuance for patterns: convert
+*imports* existing legacy patterns there **verbatim and losslessly** (Phase 7),
+whereas `gate-patterns` *discovers* new ones with its 3+-occurrence filter — same
+location and format, different entry path. See the single-owner deferral table in
 the reference.
 
 ## Arguments
@@ -212,14 +215,113 @@ exists).**
 Record as `cleanup_scope: preserve-only | generated-only | legacy-cleanup`
 (`legacy-cleanup` includes generated cleanup).
 
-**Reference integrity is mandatory regardless of `cleanup_scope`.** Before any
-`git mv` / `git rm` / replace-with-symlink / replace-with-shim, follow the
+**Content integrity is mandatory regardless of `cleanup_scope` — and runs
+BEFORE reference integrity.** This is the central data-loss gate. It is
+*distinct* from reference integrity: reference integrity preserves *pointers*
+(no inbound link dangles); content integrity preserves *content* (no block of a
+legacy artifact disappears without a verified home). A pointer can be cleanly
+repointed while the content it pointed at is silently dropped — content
+integrity closes that hole.
+
+> **Content-integrity gate (before any destructive op).** A *destructive op* is
+> any of: `git rm` / delete, `git mv` / move, replace-with-symlink,
+> replace-with-shim, copy-over (overwriting a file's bytes), managed-section
+> overwrite (rewriting content between `<!-- ...:start/end -->` markers), or
+> mirror replacement (overwriting/symlinking a `.claude` mirror). Before
+> performing a destructive op on a legacy artifact, build the **block-level
+> preservation manifest** (below) for that artifact and confirm **every** block
+> is in a terminal state — `landed_existing`, `landed_this_run`, or
+> `preserved_in_place`. If **any** block is `ambiguous` or otherwise
+> unaccounted-for, **do NOT perform the destructive op**: leave the artifact
+> exactly where it is and report it as preserved-pending-review. The gate is a
+> hard precondition, not advice — a destructive op whose manifest is not fully
+> terminal does not run.
+
+**Content inside plugin-managed markers is NEVER counted as preserved
+user-content.** Blocks between `<!-- agile-workflow:start/end -->` or
+`<!-- agile-workflow:rules:start/end -->` are plugin-owned and regenerated from
+the template; they neither need preservation nor satisfy the gate for any
+*user* block. Only user/legacy content blocks are subjects of the manifest.
+
+#### Block-level preservation manifest
+
+Before touching any legacy or split-destination artifact (notably a
+`.claude/rules/*.md` that mixes structural patterns and prose), parse it into
+**Markdown-aware blocks** and classify, route, and verify each:
+
+1. **Block boundaries** (so a block is never split mid-thought):
+   - YAML frontmatter, if present, is one block.
+   - Each Markdown heading starts a new block; a heading section runs to the
+     next heading of the same or higher level.
+   - Fenced code blocks, tables, and lists are **atomic** — never split one
+     across blocks; keep an introductory sentence with the fence/table/list it
+     introduces.
+   - HTML marker regions (`<!-- x:start -->` … `<!-- x:end -->`) are atomic.
+   - If the file has no headings at all, group by blank-line-separated
+     paragraphs, again keeping an intro line attached to a fence it introduces.
+2. **Classify** each block as exactly one of:
+   - `structural-pattern` — a reusable code shape with concrete examples
+     (routes to `.agents/skills/patterns/`, see Phase 7's verbatim importer).
+   - `rule-prose` — project style or agent-rule prose (routes to
+     `.agents/rules/<name>.md`, e.g. `project.md`).
+   - `ambiguous` — cannot be confidently classified, or has no trustworthy
+     destination (preserve in place; never destroy).
+3. **Route** per classification (patterns → `.agents/skills/patterns/`;
+   rule-prose → `.agents/rules/<name>.md`; ambiguous → leave in source).
+4. **Record a terminal state** per block, idempotently — re-running convert
+   must never duplicate a block already landed:
+   - `landed_existing` — the block's content is already present at its
+     canonical destination (a prior run, or the user, put it there). No write.
+   - `landed_this_run` — convert wrote it to the destination this run.
+   - `preserved_in_place` — intentionally kept in the source file (ambiguous
+     blocks, or blocks the user chose not to migrate). The source is therefore
+     NOT a candidate for deletion.
+   - `ambiguous` — not yet resolved; blocks the destructive op until it becomes
+     `preserved_in_place` or lands.
+5. **Provenance verification (NOT byte-hash).** Destinations legitimately
+   reformat imported content (heading levels change, prose is rewrapped), so a
+   byte-for-byte hash of the destination is too strict and produces false
+   data-loss alarms. Instead, per source block:
+   - Compute `sha256` of the **normalized** source block (trim trailing
+     whitespace per line, collapse runs of blank lines to one, strip the
+     trailing newline) and write it into the destination as a trailing HTML
+     comment / metadata marker, e.g.
+     `<!-- agile-workflow:provenance src-sha256=<digest> -->`.
+   - Verify the block landed by confirming **both** (a) the provenance digest is
+     present at the destination, and (b) the destination contains the block's
+     **required semantic anchors** — its pattern name / slug for a
+     `structural-pattern`, or its heading text and any fenced-code payload for
+     `rule-prose`.
+   - If no trustworthy provenance can be written (the destination format has
+     nowhere to carry the comment, or the anchors can't be confirmed), the block
+     does **not** count as landed — mark it `preserved_in_place` and keep the
+     source. Keeping a duplicate is always preferable to a deletion you cannot
+     prove safe.
+
+**Reference integrity is mandatory regardless of `cleanup_scope`, and runs
+AFTER content integrity passes.** Before any `git mv` / `git rm` /
+replace-with-symlink / replace-with-shim, follow the
 reference-integrity-on-move procedure in the reference: grep the repo for
 inbound references (especially `.work/` items and `docs/`), then rewrite them or
 leave a redirect shim, and report which. Never strand a live pointer. Every
 destructive action still needs an exact path list in the plan; prefer `git mv`
 to a clearly named legacy location for retention, `git rm` only for paths the
 user explicitly chose to delete, and never broad globs.
+
+#### Manifest edge cases
+
+- **Empty file** — manifest state `empty`. Still run reference integrity and
+  confirm (no inbound references would dangle), but there is no content to
+  migrate; a shim/removal is safe once references are handled.
+- **Already-shimmed file** — if the file is already a redirect shim/symlink to
+  the canonical destination, verify the target exists and is non-dangling, then
+  leave it; do NOT treat the shim's own pointer text as content to migrate.
+- **Symlink loop / dangling symlink** — classify `unsafe` and leave it in
+  place; never follow into a loop or migrate a dangling target. Report it.
+- **Partial prior migration** — some blocks already landed (a previous
+  interrupted run): the manifest is idempotent, so already-present blocks are
+  `landed_existing` and are not rewritten or duplicated; only unaccounted blocks
+  are routed this run.
 
 ### Phase 2: Detect project shape
 
@@ -271,24 +373,30 @@ configured that fallback.
 
 Legacy `.claude/rules/*.md` files (e.g. `patterns.md`) are not separate
 canonical rules targets, and `patterns.md` in particular is **not** a
-single-destination file. When any such file exists, classify its *content* and
-route each part to its canonical owner (per the DIY→canonical mapping in the
-reference):
+single-destination file. When any such file exists, build the **Phase 1.8
+block-level preservation manifest** for it and route each block to its canonical
+owner (per the DIY→canonical mapping in the reference):
 
-- **Structural-pattern definitions** (recurring code shapes with examples) →
-  `.agents/skills/patterns/`, deferring to `gate-patterns` Phase 1 for layout.
-  Do not paste these into AGENTS.
-- **Project style / agent-rule prose** → the selected AGENTS target.
+- **Structural-pattern blocks** (recurring code shapes with examples) →
+  `.agents/skills/patterns/`, via convert's **verbatim legacy-pattern importer**
+  (Phase 7) — every legacy pattern lands losslessly, with NO 3+-occurrence
+  discovery filter. `gate-patterns` Phase 4-5 defines the file/index *format*;
+  convert does the importing. Do not paste these into AGENTS.
+- **Rule-prose blocks** (project style / agent-rule prose) →
+  `.agents/rules/<name>.md` (e.g. `project.md`), the user-owned rules file the
+  hook force-loads — NOT the AGENTS canonical file and NOT inside the plugin
+  `agile-workflow:rules` markers.
+- **Ambiguous blocks** → preserve in place; never destroy.
 
 Never dump a whole rules file into AGENTS under a generic heading — that
-contradicts the canonical layout convert advertises in Phase 6. Non-pattern
-`.claude/rules/*.md` files are project style/agent rules: route their prose to
-the canonical instruction file. Preserve only non-duplicate content. Replace any
-`.claude/rules/*.md` with a short shim only when `cleanup_scope` allows generated
-cleanup or the user confirms that exact path, and only after the
-reference-integrity check (Phase 1.8) clears the move; otherwise leave it in
-place and report it as legacy content that was imported. Do not create
-`.claude/rules/*.md` files that don't already exist.
+contradicts the canonical layout convert advertises in Phase 6, and rule prose's
+canonical home is now `.agents/rules/<name>.md`. Preserve only non-duplicate
+content (idempotent per the manifest). Replace any `.claude/rules/*.md` with a
+short shim only when `cleanup_scope` allows generated cleanup or the user
+confirms that exact path, and only after the **content-integrity gate** passes
+(every block terminal) AND the reference-integrity check (both Phase 1.8) clears
+the move; otherwise leave it in place and report it as legacy content that was
+imported. Do not create `.claude/rules/*.md` files that don't already exist.
 
 ### Phase 3: Conventions interview
 
@@ -451,11 +559,13 @@ must already exist at their new home or the dense content is lost.
    <!-- agile-workflow:rules:end -->
    ```
 
-2. **Verify before slimming**: confirm `.agents/rules/agile-workflow.md` exists,
-   is non-empty, and contains `<!-- agile-workflow:rules:end -->`. Only then write
-   or refresh the slim AGENTS section (Phase 6). If the verify fails, halt without
-   touching the AGENTS section — the project keeps its current section intact (no
-   data loss).
+2. **Verify before slimming** (this IS the content-integrity gate, Phase 1.8,
+   specialized to the managed-section overwrite): confirm
+   `.agents/rules/agile-workflow.md` exists, is non-empty, and contains
+   `<!-- agile-workflow:rules:end -->`. Only then write or refresh the slim AGENTS
+   section (Phase 6) — overwriting the managed AGENTS block. If the verify fails,
+   halt without touching the AGENTS section — the project keeps its current
+   section intact (no data loss).
 
 User-owned and legacy rule prose (e.g. non-pattern `.claude/rules/*` content)
 goes into a separate user-owned `.agents/rules/<name>.md` (e.g. `project.md`),
@@ -490,8 +600,9 @@ In the default `agents-canonical` mode, handle every detected Claude candidate
      unless the same content is already present.
    - After import, replace the Claude file with a symlink to the selected
      AGENTS target only when `cleanup_scope` allows generated cleanup or the
-     user confirms that exact path. Otherwise leave it in place and report the
-     duplicate entrypoint.
+     user confirms that exact path, **and only after the content-integrity gate
+     (Phase 1.8) confirms every imported block landed** (presence + provenance +
+     anchors). Otherwise leave it in place and report the duplicate entrypoint.
 3. If symlink creation is unavailable or unsafe in the environment, write this
    shim instead only when the same cleanup authorization exists. Otherwise leave
    the file in place and report it as a duplicate entrypoint:
@@ -511,33 +622,66 @@ what never happens is migrating its content out or replacing the file with a
 pointer.
 
 Handle every legacy `.claude/rules/*.md` file (not just `patterns.md`) as a
-legacy Claude rules file, not a compatibility entrypoint, and **route its
-content by type** (see Phase 2.5 and the DIY→canonical mapping in the
-reference) — do not dump it wholesale into AGENTS:
+legacy Claude rules file, not a compatibility entrypoint. Build the **Phase 1.8
+block-level preservation manifest** for it and route each block by classification
+(see Phase 2.5 and the DIY→canonical mapping in the reference) — do not dump it
+wholesale into AGENTS:
 
-1. If it exists as a regular file with content not already present at the
-   canonical destination:
-   - **Structural-pattern definitions** (chiefly in `patterns.md`) → write to
-     `.agents/skills/patterns/`, deferring to `gate-patterns` Phase 1 for layout
-     and index.
-   - **Project style / agent-rule prose** (the common case for other rules
-     files) → import into the canonical instruction file under a short
-     `## Imported Claude Pattern Rules` heading.
-2. Replace the rules file with the shim below only when `cleanup_scope` allows
-   generated cleanup or the user confirms that exact path, and only after the
-   reference-integrity check (Phase 1.8) has rewritten or shimmed any inbound
-   references to it:
+1. For each block of a regular-file rules file not already present at its
+   canonical destination (`landed_existing`):
+   - **Structural-pattern blocks** (chiefly in `patterns.md`) → import via the
+     **convert-owned verbatim legacy-pattern importer** below. State after this
+     step: `landed_this_run`.
+   - **Rule-prose blocks** (the common case for other rules files) → write to
+     `.agents/rules/<name>.md` (e.g. `project.md`) as user-owned rules the hook
+     force-loads — under a short `## Imported Claude Rules` heading, OUTSIDE the
+     plugin `agile-workflow:rules` markers. NOT the AGENTS canonical file.
+   - **Ambiguous blocks** → `preserved_in_place`; leave them in the source.
+
+   **Convert-owned verbatim legacy-pattern importer (NO discovery filter).**
+   `gate-patterns` is a *discovery* writer: its sub-agent only emits patterns
+   that recur 3+ times in the bundle, and it explicitly says legacy
+   `.claude/rules/patterns.md` is convert's job — so routing legacy patterns
+   "through gate-patterns Phase 1" would silently drop single-use and two-use
+   legacy patterns. Convert therefore owns the lossless *import* of existing
+   patterns, reusing only gate-patterns' file/index **format**:
+   - For each structural-pattern block, write
+     `.agents/skills/patterns/<slug>.md` verbatim in the gate-patterns
+     Phase 4 file format (the pattern body — name, rationale, examples, when to
+     use / not use, common violations — everything except the `Index entry`
+     line). Apply **no 3+-occurrence filter**: every legacy pattern is imported,
+     regardless of how many times it occurs.
+   - Append the source-block provenance comment
+     (`<!-- agile-workflow:provenance src-sha256=<digest> -->`) so the
+     content-integrity gate can verify the import landed.
+   - Update `.agents/skills/patterns/SKILL.md` (the index) per gate-patterns
+     Phase 5, merging the new entries with any existing ones; never duplicate an
+     entry already indexed.
+   - gate-patterns remains the discovery writer for NEW patterns found in
+     release bundles; convert owns lossless import of EXISTING legacy ones.
+2. **Content-integrity gate before any shim/removal.** Replace the rules file
+   with the shim below only after the content-integrity gate (Phase 1.8) confirms
+   every block is terminal (`landed_*` or `preserved_in_place`), AND
+   `cleanup_scope` allows generated cleanup or the user confirms that exact path,
+   AND the reference-integrity check (Phase 1.8) has rewritten or shimmed any
+   inbound references. **`patterns.md` carve-out:** `patterns.md` is NEVER
+   treated as "generated cleanup" — its content is user/legacy data, so the
+   `generated-only` shortcut does NOT authorize shimming it. Shim `patterns.md`
+   only under explicit per-path user confirmation, AFTER the content-integrity
+   gate passes. If any block is `ambiguous`/`unsafe`, leave the whole file in
+   place and report it.
 
    ```markdown
    # Pattern Rules
 
-   Canonical project rules live in the canonical agent instruction file;
-   reusable code patterns live in `.agents/skills/patterns/`. Read those.
+   Reusable code patterns now live in `.agents/skills/patterns/` (load the
+   `patterns` skill for detail). Project agent rules live in
+   `.agents/rules/*.md`. Read those.
    ```
 
 3. If the file is already a symlink or shim that points to the canonical
-   instruction file, leave it
-   alone.
+   destinations, verify the target exists and is non-dangling, then leave it
+   alone (do not re-migrate the shim's pointer text as content).
 
 ### Phase 8: Per-shape migration
 
@@ -593,9 +737,11 @@ creation:
 
 1. List the exact legacy paths that are fully represented in `.work/`.
 2. Ask the user whether to keep, move, or delete them.
-3. Apply only the confirmed path actions. Prefer `git mv` when the user wants a
-   retained legacy copy; use `git rm` only for paths explicitly chosen for
-   deletion.
+3. Apply only the confirmed path actions, and only after the content-integrity
+   gate (Phase 1.8) confirms each path's content is preserved at its destination
+   (the seeded `.work/` items here) and the reference-integrity check clears the
+   move. Prefer `git mv` when the user wants a retained legacy copy; use
+   `git rm` only for paths explicitly chosen for deletion.
 
 #### Path B — ad-hoc
 
@@ -656,9 +802,12 @@ canonical destination (DIY→canonical mapping in the reference), deferring to t
 owning skill for layout:
 
 - **Pattern-mirroring skills** (`extract-patterns`, bespoke `patterns`) →
-  fold their pattern definitions into `.agents/skills/patterns/` per
-  `gate-patterns` Phase 1; keep an optional `.claude/skills/patterns/` symlink
-  mirror.
+  import their pattern definitions into `.agents/skills/patterns/` via the
+  **convert-owned verbatim legacy-pattern importer** (Phase 7) — verbatim, in
+  the gate-patterns file/index format, with NO 3+-occurrence discovery filter.
+  Do NOT route them "through gate-patterns Phase 1" (its discovery filter would
+  drop legacy single-use patterns). Keep an optional `.claude/skills/patterns/`
+  symlink mirror.
 - **Refactor-mirroring skills** (`structural-refactor`, `stylistic-refactor`,
   bespoke `refactor-conventions`) → split into AGENTS
   `## Refactor Style Conventions` (style rules) and
@@ -668,11 +817,15 @@ owning skill for layout:
 - **`plugin-mirror-divergent-copy` entries** → reconcile unique content into
   the `.agents` canonical, then re-establish the `.claude` mirror as a symlink.
 
-Removing or replacing the bespoke source path is a destructive action: apply the
-reference-integrity-on-move procedure first (grep for inbound references —
-especially `.work/` items and `docs/` — then rewrite or shim), and only remove
-the original when `cleanup_scope` allows it and the exact path is confirmed.
-Otherwise write the canonical copy and leave the bespoke source in place,
+Removing or replacing the bespoke source path is a destructive action governed
+by the **content-integrity gate (Phase 1.8)**: build the block-level manifest
+for the source, import its content, then **verify the import actually landed**
+(presence + provenance digest + semantic anchors per the block-level
+preservation manifest) BEFORE removing the source. Only after the gate passes, apply the reference-integrity-on-move
+procedure (grep for inbound references — especially `.work/` items and `docs/` —
+then rewrite or shim), and only then remove the original when `cleanup_scope`
+allows it and the exact path is confirmed. If verification fails or any block is
+ambiguous, write the canonical copy and leave the bespoke source in place,
 reporting the duplication. If a converged artifact backed a user-invocable
 command, note in `MIGRATION_REPORT.md` that the command is superseded.
 
@@ -796,16 +949,19 @@ installed text matches a known prior plugin release's template (recognisable
 shape, just older content), assume `drift_plugin`. Otherwise treat as
 `drift_user` and ask. The entrypoint-compatibility heuristic follows the derived
 `entrypoint_model`: in `agents-canonical`, if a Claude candidate has legacy
-content not yet in `AGENTS.md`, import it before replacing the Claude file with a
-symlink/shim; in `claude-source`, `CLAUDE.md` is canonical, so import nothing out
-of it and only verify root `AGENTS.md` points at it.
+content not yet in `AGENTS.md`, import it and let the content-integrity gate
+(Phase 1.8) verify it landed before replacing the Claude file with a
+symlink/shim (S3); in `claude-source`, `CLAUDE.md` is canonical, so import
+nothing out of it and only verify root `AGENTS.md` points at it.
 
 If `.claude/rules/patterns.md` is absent, treat the legacy-rules state as
 `match` and take no action. If it contains non-shim content not yet present at
-its canonical destination, **route by content type per Phase 2.5** before
-replacing the file with the shim: structural-pattern definitions →
-`.agents/skills/patterns/` (defer to `gate-patterns` Phase 1); project
-style/agent-rule prose → the canonical instruction file. Do not import the whole
+its canonical destination, build the **Phase 1.8 block-level preservation
+manifest** and route each block by classification before any shim: structural-
+pattern blocks → `.agents/skills/patterns/` via convert's **verbatim
+legacy-pattern importer** (Phase 7 — verbatim, no 3+-occurrence filter);
+rule-prose blocks → `.agents/rules/<name>.md` (e.g. `project.md`), NOT the AGENTS
+canonical file; ambiguous blocks → preserve in place. Do not import the whole
 file into AGENTS. Treat user-edited or ambiguous content as `drift_user` and ask
 before routing; treat old generated pattern-rules content as `drift_plugin`.
 Apply the same content-routing to any other `.claude/rules/*.md`.
@@ -878,8 +1034,9 @@ For each artifact with a non-`match` state:
   `entrypoint_model`:
   - `agents-canonical` — import legacy generated content from any detected
     Claude candidate into `AGENTS.md`, then replace the Claude file with a
-    symlink/shim to it only when `cleanup_scope` allows generated cleanup or the
-    user confirms that exact path.
+    symlink/shim to it only after the content-integrity gate (Phase 1.8)
+    confirms every imported block landed, AND `cleanup_scope` allows generated
+    cleanup or the user confirms that exact path.
   - `claude-source` — `CLAUDE.md` is the canonical instruction file: its managed
     section between markers IS refreshed in place (handled by the canonical-file
     step above), but its content is never migrated out and the file is never
@@ -888,12 +1045,19 @@ For each artifact with a non-`match` state:
     `CLAUDE.md`.
   If symlinks are unavailable, write the Phase 7 shim under the same cleanup
   authorization.
-- Legacy `.claude/rules/*.md` — only when present, route non-duplicate content
-  by type per Phase 2.5 (structural patterns → `.agents/skills/patterns/`;
-  style/agent-rule prose → the canonical instruction file), then replace the
-  file with the Phase 7 shim only when cleanup is authorized for that exact path
-  and after the reference-integrity check. Never import the whole file into
-  AGENTS.
+- Legacy `.claude/rules/*.md` — only when present, build the Phase 1.8
+  block-level manifest and route non-duplicate blocks by classification
+  (structural-pattern blocks → `.agents/skills/patterns/` via convert's verbatim
+  legacy-pattern importer, NO discovery filter; rule-prose blocks →
+  `.agents/rules/<name>.md`, NOT the AGENTS canonical file; ambiguous → preserve
+  in place). The **`drift_user` / ambiguous atomic sequence** is
+  **confirm → import → verify → shim** (never shim before a verified import):
+  confirm with the user, import the blocks, run the content-integrity gate to
+  verify they landed (presence + provenance + anchors), THEN — only when cleanup
+  is authorized for that exact path and after the reference-integrity check —
+  replace the file with the Phase 7 shim. `patterns.md` is never "generated
+  cleanup"; shim it only under explicit per-path confirmation after the gate
+  passes. Never import the whole file into AGENTS.
 - Optional pattern and refactor-conventions mirrors — align `.claude/skills/*`
   to `.agents/skills/*` when the `.agents` catalog exists and the Claude copy is
   absent, a symlink, or a known generated mirror, and cleanup is in scope for
@@ -928,10 +1092,12 @@ For bespoke overlaps in the `converge` set, run Phase 8.6's convergence
 bootstrap does.
 
 For cleanup candidates, only proceed when the candidate class is inside
-`cleanup_scope`, then run the reference-integrity-on-move check (grep for
-inbound references, rewrite or shim) and ask with exact paths before applying
-any `git mv` or `git rm`. If the user declines, leave the files and report them
-as preserved.
+`cleanup_scope`, the content-integrity gate (Phase 1.8) has confirmed each
+candidate's content is preserved at its destination, and the
+reference-integrity-on-move check (grep for inbound references, rewrite or shim)
+clears the move — then ask with exact paths before applying any `git mv` or
+`git rm`. If the user declines, or the content-integrity gate finds an
+unaccounted block, leave the files and report them as preserved.
 
 ### Phase S4: Preserve user state
 
@@ -948,16 +1114,19 @@ These are NEVER touched in sync mode:
   Sync may refresh the generated `SKILL.md` wrapper when it matches a known old
   template, but it must not rewrite rule bodies, examples, exceptions, or scope
   content without explicit confirmation.
-- `.agents/skills/patterns/` pattern bodies. Sync may align mirrors, but
-  `gate-patterns` owns pattern discovery and updates.
+- `.agents/skills/patterns/` pattern bodies. Sync may align mirrors and import
+  verbatim legacy patterns (Phase 7), but `gate-patterns` owns pattern
+  *discovery*; sync never rewrites an existing pattern body without confirmation.
 - User-authored `.agents/rules/*.md` — every file other than the plugin-managed
   `agile-workflow.md`, and any content outside `agile-workflow.md`'s
   `<!-- agile-workflow:rules:start/end -->` markers. Sync refreshes only the
   plugin block; it never touches user rule files or out-of-marker content.
 - Content in the canonical instruction file (`AGENTS.md`, or `CLAUDE.md` in
   `claude-source`) outside the agile-workflow markers, except imported legacy
-  Claude content, imported legacy Claude pattern-rules content, and synthesized
-  refactor style convention summaries the user confirms should become canonical
+  Claude *entrypoint* content (under `## Imported Claude Code Instructions`) and
+  synthesized refactor style convention summaries the user confirms should become
+  canonical. (Legacy `.claude/rules/*.md` rule prose is NOT imported here — it
+  goes to `.agents/rules/<name>.md`.)
 - `MIGRATION_REPORT.md` (a bootstrap artifact; sync never writes it)
 - Any cleanup candidate outside the chosen `cleanup_scope`
 - Any cleanup candidate not listed by exact path in the confirmed cleanup plan
@@ -1014,10 +1183,27 @@ After sync (auto or `--update`):
   scope and the exact path appears in the confirmed cleanup plan.
 - Prefer `git mv` for retained legacy artifacts. Use `git rm` only when the user
   explicitly chose deletion for exact paths. Never use broad cleanup globs.
+- **Content integrity is mandatory before every destructive op, and runs first
+  (Phase 1.8).** Before any delete / move / symlink / shim / copy-over /
+  managed-section overwrite / mirror replacement of a legacy artifact, build the
+  block-level preservation manifest and confirm every block is terminal
+  (`landed_existing` / `landed_this_run` / `preserved_in_place`) — present at its
+  canonical destination with provenance + semantic anchors, or kept in place. If
+  any block is unaccounted-for, do NOT perform the op; leave the artifact and
+  report. Content inside plugin-managed markers never counts as preserved
+  user-content. This preserves *content*; reference integrity preserves
+  *pointers* — both are required.
 - **Reference integrity is mandatory before every move/remove, regardless of
-  `cleanup_scope`.** Grep the repo (especially `.work/` items and `docs/`) for
-  inbound references to any path being moved, removed, or replaced; then rewrite
-  them or leave a redirect shim, and report which. Never strand a live pointer.
+  `cleanup_scope`, and runs after content integrity.** Grep the repo (especially
+  `.work/` items and `docs/`) for inbound references to any path being moved,
+  removed, or replaced; then rewrite them or leave a redirect shim, and report
+  which. Never strand a live pointer.
+- **Legacy patterns are imported verbatim, never discovered.** Convert owns the
+  lossless import of existing legacy structural patterns into
+  `.agents/skills/patterns/` (gate-patterns file/index format, NO 3+-occurrence
+  filter). `gate-patterns` remains the discovery writer for NEW patterns in
+  release bundles. Never route legacy pattern content through gate-patterns'
+  discovery filter — it would drop single-use legacy patterns.
 - **Discovery over checklist.** Enumerate and classify both skill roots and the
   rules tree; never assume the only overlaps are the canonical `patterns` and
   `refactor-conventions` catalogs. Bespoke skills mirroring plugin concepts,
@@ -1025,7 +1211,8 @@ After sync (auto or `--update`):
 - **Defer to the owning skill for canonical locations.** Convert places
   content; `gate-patterns` and `refactor-conventions-creator` own where it
   lives. Do not carry a divergent end-state (e.g. never dump pattern content
-  into AGENTS).
+  into AGENTS, and route legacy rule prose to `.agents/rules/<name>.md`, not
+  AGENTS).
 - The conventions interview is mandatory in bootstrap mode. No silent inference
   of release mapping or tag taxonomy.
 - Foundation docs are read-only from convert. They roll forward through `scope`,

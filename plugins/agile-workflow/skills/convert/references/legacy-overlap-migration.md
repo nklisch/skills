@@ -38,20 +38,35 @@ any of these hold:
 
 | Bespoke artifact shapes (examples) | Plugin concept | Canonical owner | Canonical destination |
 |---|---|---|---|
-| `extract-patterns`, bespoke `patterns` skill, structural-pattern content inside `.claude/rules/patterns.md` | reusable code patterns | `gate-patterns` (Phase 1, 4-7) | `.agents/skills/patterns/` (+ optional `.claude/skills/patterns/` symlink mirror) |
+| `extract-patterns`, bespoke `patterns` skill, structural-pattern content inside `.claude/rules/patterns.md` | reusable code patterns | `gate-patterns` (file/index *format*, Phase 4-5) — but convert *imports* verbatim, see below | `.agents/skills/patterns/` (+ optional `.claude/skills/patterns/` symlink mirror) |
 | `structural-refactor`, `stylistic-refactor`, bespoke `refactor-conventions`, any refactor-rule skill or `*-refactor-plan.md` generator | refactor conventions | `refactor-conventions-creator` (Phase 1, 5) | style rules → canonical instruction file `## Refactor Style Conventions`; detailed references → `.agents/skills/refactor-conventions/` (+ optional Claude mirror) |
-| project style / agent-rule prose in `.claude/rules/*` or a hand-rolled CLAUDE.md section | project agent rules | convert owns | the canonical instruction file |
+| project style / agent-rule prose in `.claude/rules/*` or a hand-rolled CLAUDE.md section | project agent rules | convert owns | `.agents/rules/<name>.md` (e.g. `project.md`) — a user-owned rules file the hook force-loads, OUTSIDE the plugin `agile-workflow:rules` markers; NOT the canonical instruction file |
 
 > **"Canonical instruction file"** throughout this reference = `AGENTS.md` in
 > the default `agents-canonical` model, or `CLAUDE.md` in a `claude-source`
 > repo. Convert resolves it in Phase 2.5 from `entrypoint_model`; never assume
-> it is literally `AGENTS.md`.
+> it is literally `AGENTS.md`. **Legacy non-pattern rule prose does NOT route
+> here** — it routes to `.agents/rules/<name>.md`. The canonical instruction
+> file receives only the slim plugin-managed section, imported legacy Claude
+> *entrypoint* instructions, and confirmed refactor-style summaries.
 
-`.claude/rules/patterns.md` is **not** a single-destination file — classify its
-*content*: structural-pattern definitions go to `.agents/skills/patterns/`
-(defer to `gate-patterns`), project style/rule prose goes to the canonical
-instruction file. Never dump the whole file there; that contradicts the layout convert itself
-advertises.
+**Verbatim legacy-pattern import (convert-owned, NO discovery filter).**
+`gate-patterns` is a *discovery* writer: its sub-agent only emits patterns that
+recur 3+ times and explicitly defers legacy `.claude/rules/patterns.md` to
+convert. Routing legacy patterns "through gate-patterns Phase 1" would therefore
+silently drop single-use and two-use legacy patterns. Convert owns the lossless
+*import*: write each legacy structural-pattern block to
+`.agents/skills/patterns/<slug>.md` **verbatim**, in the gate-patterns Phase 4
+file format and Phase 5 index format, applying **no occurrence filter**.
+gate-patterns stays the discovery writer for NEW patterns in release bundles;
+convert imports EXISTING legacy ones.
+
+`.claude/rules/patterns.md` is **not** a single-destination file — build the
+block-level preservation manifest and classify its *content*: structural-pattern
+blocks go to `.agents/skills/patterns/` (via the verbatim importer above),
+rule-prose blocks go to `.agents/rules/<name>.md`, ambiguous blocks are preserved
+in place. Never dump the whole file into the canonical instruction file; that
+contradicts the layout convert itself advertises.
 
 ## Classification taxonomy
 
@@ -80,10 +95,50 @@ This repo's real-world shape included duplicated copies in **both** `.agents`
 and `.claude` (the `plugin-mirror-divergent-copy` case) — a fixed-path audit
 never looks for that. Diff actual contents; do not assume a single location.
 
-## Reference integrity on move (mandatory)
+## Content integrity on move (mandatory, runs first)
+
+Reference integrity preserves *pointers*; content integrity preserves *content*.
+A path can be cleanly repointed (no dangling link) while the content it held is
+silently dropped — content integrity closes that hole, and it runs BEFORE
+reference integrity. Before ANY destructive op on a legacy artifact `P` —
+`git rm` / delete, `git mv` / move, replace-with-symlink, replace-with-shim,
+copy-over (overwriting bytes), managed-section overwrite (rewriting content
+between `<!-- ...:start/end -->` markers), or mirror replacement (overwriting or
+symlinking a `.claude` mirror):
+
+1. **Build the block-level preservation manifest** for `P` (Markdown-aware
+   blocks; see the convert SKILL Phase 1.8 manifest):
+   - YAML frontmatter is one block; each heading section is one block; fenced
+     code, tables, and lists are atomic (keep an intro line with the fence it
+     introduces); HTML marker regions are atomic; with no headings, group by
+     blank-line-separated paragraphs.
+2. **Classify and route each block:** `structural-pattern` →
+   `.agents/skills/patterns/` (verbatim importer, no filter); `rule-prose` →
+   `.agents/rules/<name>.md`; `ambiguous` → preserve in place.
+3. **Verify by provenance, not byte-hash** (destinations legitimately
+   reformat): write `sha256(normalized source block)` into the destination as a
+   trailing HTML comment (`<!-- agile-workflow:provenance src-sha256=<digest> -->`)
+   and confirm the destination holds (a) that digest and (b) the block's required
+   semantic anchors (pattern name/slug, or heading text + fenced payload). If no
+   trustworthy provenance can be written, the block is NOT landed — keep `P`.
+4. **Record a terminal state per block** — `landed_existing`,
+   `landed_this_run`, or `preserved_in_place` — idempotently; re-running convert
+   must never duplicate an already-landed block. `empty` files migrate nothing;
+   already-shimmed files are verified non-dangling and left; symlink loops /
+   dangling targets are `unsafe` and left in place.
+5. **Gate:** if any block is `ambiguous` / `unsafe` / unaccounted-for, do NOT
+   perform the destructive op — leave `P` and report it preserved-pending-review.
+   Content inside plugin-managed markers never counts as preserved user-content.
+6. **Atomic ordering** for `drift_user` / ambiguous content: **confirm → import
+   → verify → shim**. Never shim before a verified import.
+
+Only once content integrity passes do you proceed to reference integrity.
+
+## Reference integrity on move (mandatory, runs after content integrity)
 
 Relocating or removing a path dangles every inbound reference to it. Before ANY
-`git mv`, `git rm`, replace-with-symlink, or replace-with-shim of a path `P`:
+`git mv`, `git rm`, replace-with-symlink, or replace-with-shim of a path `P`
+(and after the content-integrity gate above has passed):
 
 1. **Grep the repo for inbound references:**
    ```bash
@@ -116,9 +171,9 @@ divergent copy of the rule, so the layout has one source of truth.
 
 | Concept | Owner (read its phase) | Convert's job |
 |---|---|---|
-| reusable code patterns | `gate-patterns` Phase 1 | place imported structural-pattern content into `.agents/skills/patterns/`; never invent a divergent location |
+| reusable code patterns | `gate-patterns` (file/index *format*, Phase 4-5) | import legacy structural-pattern content verbatim into `.agents/skills/patterns/` (no occurrence filter); never invent a divergent location. gate-patterns discovers NEW patterns; convert imports EXISTING ones |
 | refactor conventions | `refactor-conventions-creator` Phase 1 & 5 | style rules → canonical instruction file `## Refactor Style Conventions`; detailed refs → `.agents/skills/refactor-conventions/` |
-| project agent rules | convert owns | the canonical instruction file |
+| project agent rules | convert owns | `.agents/rules/<name>.md` (e.g. `project.md`), OUTSIDE the plugin `agile-workflow:rules` markers — NOT the canonical instruction file |
 
 When in doubt about a destination for a plugin-owned concept, defer to the
 owner's Phase 1 / "existing artifacts" section rather than convert's own prose.

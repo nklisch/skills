@@ -1,7 +1,7 @@
 ---
 id: epic-agents-rules-autoload-convert-safety
 kind: feature
-stage: implementing
+stage: review
 tags: [skill]
 parent: epic-agents-rules-autoload
 depends_on: [epic-agents-rules-autoload-convert-extract]
@@ -164,3 +164,105 @@ the test.
 ## Child stories
 None — one cohesive gate across convert. Large but single-concern; splitting would
 fragment the gate definition.
+
+## Implementation notes (2026-05-31)
+
+Implemented all six units in `convert/SKILL.md` and reconciled
+`references/legacy-overlap-migration.md`. Re-read the post-`convert-extract`
+file first (line numbers had shifted); built on Phase 6.5, the slim AGENTS
+template, and the `agile-workflow:rules` marker convention without contradicting
+them.
+
+**Unit 1 — Content-integrity gate.** Added a single mandatory
+"Content-integrity gate (before any destructive op)" rule as a blockquote in
+Phase 1.8, sited immediately above the existing reference-integrity rule and
+declared to run FIRST. Scope = ALL destructive overwrites (delete / move /
+symlink / shim / copy-over / managed-section overwrite / mirror replacement).
+Defined as a hard precondition: every block must be terminal or the op does not
+run. Referenced (not re-defined) from every destructive site. Added an explicit
+"plugin-managed-marker content never counts as preserved user-content" rule.
+
+**Unit 2 — Block-level preservation manifest.** Added a `#### Block-level
+preservation manifest` subsection: Markdown-aware block boundaries (frontmatter,
+heading sections, atomic fences/tables/lists, atomic HTML marker regions,
+blank-line paragraph groups when no headings); per-block classify
+(`structural-pattern` | `rule-prose` | `ambiguous`) → route → terminal state
+(`landed_existing` | `landed_this_run` | `preserved_in_place` | `ambiguous`,
+idempotent); provenance verification via `sha256(normalized source block)`
+written as a trailing `<!-- agile-workflow:provenance src-sha256=... -->` comment
++ required semantic anchors, NOT byte-hash; keep-source-if-no-trustworthy-
+provenance. Added a `#### Manifest edge cases` subsection covering empty,
+already-shimmed, symlink-loop/dangling (`unsafe`), and partial-prior-migration.
+
+**Unit 3 — convert-owned verbatim legacy-pattern importer.** Replaced every
+"fold/defer per gate-patterns Phase 1" instruction (Phase 7 legacy
+`.claude/rules/patterns.md` handling AND Phase 8.6 bespoke convergence) with a
+convert-owned importer that writes each legacy structural-pattern block to
+`.agents/skills/patterns/<slug>.md` in the gate-patterns Phase 4 file format +
+Phase 5 index format, VERBATIM with NO 3+-occurrence discovery filter, then
+updates the index idempotently. Stated the discovery-vs-import ownership split
+in three places (Phase 7 importer block, Phase 8.6, Guardrails). Confirmed for
+myself that gate-patterns Phase 1 only reads existing patterns and Phase 3
+enforces the 3+ filter — so it is a discovery writer, never a lossless importer.
+
+**Unit 4 — canonical-destination reconciliation.** Routed legacy NON-pattern
+rule prose to `.agents/rules/<name>.md` (e.g. `project.md`) consistently in
+Phase 2.5, Phase 7, Sync S1, and Sync S3 — never the AGENTS canonical file.
+Grepped all prose-routing sites; the Codex pass named two (Phase 7, S3) but I
+found and fixed more: Phase 2.5 ("→ the selected AGENTS target"), the Phase 7
+`## Imported Claude Pattern Rules` heading + shim text, S1's `.claude/rules`
+routing summary, and a stale S4 preservation exception that listed "imported
+legacy Claude pattern-rules content" as living in AGENTS-outside-markers (now
+corrected to entrypoint-only). Added the plugin-managed-marker exclusion. Also
+reconciled the reference's DIY→canonical mapping table, the single-owner deferral
+table, and the patterns.md split note.
+
+**Unit 5 — carve-outs + verified delegation + drift_user atomicity.**
+`patterns.md` carve-out: it is NEVER "generated cleanup", so the `generated-only`
+shortcut does not authorize shimming it — shim only under explicit per-path
+confirmation AFTER the content-integrity gate passes (stated in Phase 7 and S3).
+Phase 8.6 now verifies imported patterns landed (presence + provenance + anchors)
+BEFORE removing the bespoke source. S3 drift_user/ambiguous sequence is now
+**confirm → import → verify → shim** (never shim before a verified import),
+stated in both S3 and the reference.
+
+**Unit 6 — edge cases.** Covered in the `#### Manifest edge cases` subsection
+(Unit 2) and the reference's content-integrity-on-move procedure: empty file →
+`empty` (still confirm + reference-integrity, no migration); already-shimmed →
+verify target non-dangling, don't migrate shim text; symlink loop/dangling →
+`unsafe`, leave in place; partial prior migration → idempotent manifest, no
+duplication.
+
+Also added: a content-integrity-on-move procedure to
+`references/legacy-overlap-migration.md` (sited above reference-integrity-on-move,
+declared to run first), and tied the Phase 6.5 "verify before slimming" step to
+the content-integrity gate (the managed-section-overwrite is the gate specialized
+to the AGENTS slim — convert-extract's work, now cross-referenced not duplicated).
+
+### Design judgments logged
+- Kept the gate defined ONCE (Phase 1.8 blockquote) and referenced from 14 sites
+  rather than copying the full text — per the "define once, reference" constraint
+  and the largest-blast-radius risk note.
+- Cited gate-patterns Phase 4 (file format) + Phase 5 (index format) for the
+  importer, not Phase 1 (which only reads existing) — Phase 1 mentions remaining
+  in the doc explicitly say "defines the file/index format", no discovery routing.
+- Provenance comment uses the existing `agile-workflow:` HTML-comment marker
+  namespace for consistency with the plugin's marker convention.
+
+### Verification grep results (read-through is the test)
+- **(a) every destructive site references the content-integrity gate** — 14
+  `content-integrity`/`content integrity` references: gate definition (Phase
+  1.8), Phase 2.5 shim, Phase 6.5 slim/managed-section overwrite, Phase 7
+  Claude-file replace + legacy-rules shim (×2), Phase 8 legacy-cleanup git mv/rm,
+  Phase 8.6 bespoke-source removal, Sync S1 entrypoint heuristic, Sync S3
+  entrypoint replace + legacy-rules shim + cleanup candidates (×2), Guardrails.
+- **(c) routing consistent** — `grep -nE '(rule[ -]?prose|style.*prose|agent-rule
+  prose).*(canonical instruction file|AGENTS target|into AGENTS)'` returns NONE.
+  All rule-prose destinations are `.agents/rules/<name>.md`.
+- **(d) verbatim import does not invoke discovery** — `grep` for "fold/defer per
+  gate-patterns Phase 1" returns NONE; the only remaining `gate-patterns Phase 1`
+  mention explicitly scopes it to file/index *format*. Seven "NO 3+-occurrence /
+  no discovery filter" statements present.
+- **(e) convert-extract work intact** — Phase 6.5 (rules-first-then-slim), the
+  `agile-workflow:rules:start/end` markers, the slim AGENTS template, and the
+  verify-before-slimming step are all present and unbroken.
