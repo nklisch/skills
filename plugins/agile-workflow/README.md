@@ -60,17 +60,17 @@ instead of N pauses scattered through the run.
 ├── backlog/                          parked, unscoped
 ├── releases/<version>/               shipped bundles
 ├── archive/                          done items not bound to a release
-├── bin/work-view                     navigation script
+├── bin/work-view                     navigation CLI
 └── CONVENTIONS.md                    project-specific overrides
 ```
 
 ## Human-facing tools
 
-- **`/agile-workflow:board`** — render `.work/` as a self-contained HTML
-  kanban board (Backlog → Drafting → In Progress → Review → Done) with a
-  Releases section. Pure bash + a single template, no toolchain. Auto-opens
-  in your default browser. Re-run to refresh. Supports `--print`,
-  `--out <path>`, and `--serve [port]`.
+- **`$agile-workflow:board` / `work-view board`** — serve `.work/` as a live
+  localhost board backed by the same substrate query model as the CLI. It binds
+  to `127.0.0.1`, scans upward when the requested port is busy, opens a browser
+  after binding when a desktop session is available, and prints the URL in
+  headless sessions. Supports `--port <n>`, `--no-open`, and `--print`.
 
 Every item is a markdown file with structured frontmatter
 (`id, kind, stage, tags, parent, depends_on, release_binding, gate_origin, created, updated`).

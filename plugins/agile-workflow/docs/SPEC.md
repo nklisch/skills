@@ -208,17 +208,15 @@ plugins/agile-workflow/
 ├── skills/<skill-name>/
 │   ├── SKILL.md
 │   └── references/<topic>.md
-├── commands/
-│   └── board.md
 ├── hooks/
 │   ├── hooks.json
 │   └── scripts/
 │       ├── prompt-context.py
 │       └── substrate-maintainer.py
 ├── scripts/
+│   ├── install-work-view.sh
 │   ├── work-view.sh
-│   ├── work-board.sh
-│   └── work-board.template.html
+│   └── work-board.sh
 ├── CHANGELOG.md
 └── README.md
 ```
@@ -306,10 +304,12 @@ entrypoint is git-tracked, not gitignored, and its `--version` stamp is compared
 to the plugin version when hook or convert freshness checks run.
 
 Prebuilt Rust binaries remain plugin-side artifacts under
-`plugins/agile-workflow/work-view/dist/<target-triple>/work-view`. They are not
-installed into `.work/bin/work-view`; the board and the optional shim can defer
-to them from the plugin tree when a matching, version-current binary is present.
-Supported prebuilt target triples:
+`plugins/agile-workflow/work-view/dist/<target-triple>/work-view`. The standard
+query filters continue to work through the portable bash entrypoint. The
+interactive board is a compiled `work-view` capability; when a project still has
+the bash fallback at `.work/bin/work-view`, the board skill and compatibility
+shim report the compiled-binary requirement instead of attempting to serve a
+static fallback. Supported prebuilt target triples:
 
 | Triple | Platform |
 |---|---|
@@ -363,24 +363,27 @@ Multiple filters compose with AND semantics.
 | `2` | Substrate not found (no `.work/CONVENTIONS.md` in CWD or ancestor) |
 | `3` | Internal error (corrupted item file, etc.) |
 
-## work-board script
+## Interactive board
 
-Lives at `plugins/agile-workflow/scripts/work-board.sh` with a paired
-template at `plugins/agile-workflow/scripts/work-board.template.html`.
-Read-only; emits a self-contained HTML kanban view of the substrate and
-nothing else. Invoked via the slash command `/agile-workflow:board`.
+The human board surface is `plugins/agile-workflow/skills/board/SKILL.md` and
+the compiled `work-view board` subcommand. It serves a live localhost view of
+the `.work/` substrate, backed by the Rust query core and embedded assets. The
+server binds `127.0.0.1`, scans upward from the requested port when that port is
+busy, and never exposes the user's absolute paths or raw item frontmatter in the
+browser API.
 
-Pure bash + awk + `base64`. Optional: `python3` only used by `--serve`.
+`plugins/agile-workflow/scripts/work-board.sh` remains only as a compatibility
+shim for older invocations. It does not render HTML. It checks for a
+board-capable `.work/bin/work-view`, execs `.work/bin/work-view board "$@"` when
+available, and otherwise prints an actionable compiled-binary requirement.
 
 ### Flag set
 
 | Flag | Argument | Effect |
 |---|---|---|
-| `--out` | `<path>` | Write HTML to this path (default: temp file) |
-| `--print` | (none) | Print the output path; skip auto-opening a browser |
-| `--no-open` | (none) | Alias for `--print` |
-| `--serve` | `[port]` | Serve via `python3 -m http.server`, default `8181` |
-| `--port` | `<port>` | Override the `--serve` port |
+| `--port` | `<port>` | Bind localhost starting at this port, default `8181` |
+| `--no-open` | (none) | Do not launch a browser after binding |
+| `--print` | (none) | Alias for `--no-open` |
 | `--help` | (none) | Show usage and exit |
 
 ### Stage → column mapping
@@ -393,44 +396,63 @@ Review        — stage: review (also: stage: quality-gate for releases)
 Done          — stage: done | released, items in .work/archive/, items in .work/releases/
 ```
 
-### Embedded data shape
+### Browser API shape
 
-The renderer emits a `<script type="application/json" id="items-data">`
-block whose contents are a JSON array of item objects:
+`GET /api/substrate` returns JSON with project metadata, diagnostics, and an
+array of item objects:
 
 ```ts
 {
-  id: string;
-  kind: 'epic' | 'feature' | 'story' | 'release' | '';
-  stage: string;
-  parent: string | null;
-  release_binding: string | null;
-  gate_origin: string | null;
-  created: string;
-  updated: string;
-  tags: string[];
-  depends_on: string[];
-  unmet_deps: string[];          // computed
-  bucket: 'active' | 'backlog' | 'releases' | 'archive' | 'other';
-  release_dir: string | null;    // version slug from .work/releases/<v>/...
-  ready: boolean;                // implementing AND all deps done
-  blocked: boolean;              // implementing AND ≥1 unmet dep
-  title_b64: string;             // base64-encoded body title
-  excerpt_b64: string;           // base64-encoded first paragraph
-  path_b64: string;              // base64-encoded path relative to repo root
+  work_view_version: string;
+  project: string;
+  root_rel: string;
+  diagnostics: {
+    parse_errors: Array<{ rel_path: string; reason: string }>;
+    validation_warnings: Array<ItemDiagnostic>;
+    duplicate_ids: Array<ItemDiagnostic>;
+  };
+  items: Array<{
+    id: string;
+    kind: 'epic' | 'feature' | 'story' | 'release' | null;
+    tier: 'active' | 'backlog' | 'releases' | 'archive';
+    stage: string | null;
+    parent: string | null;
+    release_binding: string | null;
+    gate_origin: string | null;
+    created: string | null;
+    updated: string | null;
+    tags: string[];
+    depends_on: string[];
+    unmet_deps: string[];
+    dependents: string[];
+    children: string[];
+    ready: boolean;
+    blocked: boolean;
+    is_terminal: boolean;
+    body: string;
+    rel_path: string;
+  }>;
 }
+
+type ItemDiagnostic = {
+  rel_path: string;
+  tier: 'active' | 'backlog' | 'releases' | 'archive';
+  id: string | null;
+  field: string | null;
+  reason: string;
+};
 ```
 
-Item title and excerpt are base64-encoded so that quotes, backticks,
-backslashes, and embedded `</script>` sequences in markdown bodies do not
-corrupt the JSON envelope.
+The API intentionally omits absolute filesystem paths and the raw item text
+envelope. Markdown body content is returned for display, while frontmatter is
+represented by parsed fields.
 
 ### Exit codes
 
 | Code | Meaning |
 |---|---|
 | `0` | Success |
-| `1` | Usage error (bad flag) or template missing |
+| `1` | Usage error (bad flag) |
 | `2` | Substrate not found |
 
 ## Hook contracts
@@ -585,7 +607,7 @@ the touched item. Validation issues are returned as
 
 ### Required
 
-- **bash** ≥ 4.0 — for the `work-view` bash fallback (`work-view.sh`), the install helper (`install-work-view.sh`), and `work-board.sh`
+- **bash** ≥ 4.0 — for the `work-view` bash fallback (`work-view.sh`) and the install helper (`install-work-view.sh`)
 - **python3** — for plugin hook scripts
 - **grep** — POSIX-compatible
 - **git** — substrate's audit trail; `work-view`'s history queries call `git log`

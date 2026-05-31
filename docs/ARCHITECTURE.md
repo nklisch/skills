@@ -74,8 +74,9 @@ substrate, each tuned for a different consumer:
 - **Agent surface — the `work-view` CLI.** Built for agent ergonomics: terse,
   parseable, scriptable output, and dependency-aware filtering. This is what the
   design, implement, review, and autopilot skills call to decide what to act on.
-- **Human surface — the `work-board` web view.** A browser-rendered board for
-  people to see the substrate at a glance.
+- **Human surface — the `work-view board` web view.** A live localhost board
+  for people to see the substrate at a glance, served by the compiled
+  `work-view` adapter over the same `.work/` files.
 
 The shape is deliberate: one substrate, two adapters, distinct ergonomics for
 distinct consumers — the Ports & Adapters and Single-Source-of-Truth principles

@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-host-surface
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-host
 depends_on: [epic-substrate-board-host-feed, epic-substrate-board-host-assets]
@@ -38,14 +38,37 @@ legacy Claude slash command, and retire the static one-shot board generator.
 
 ## Acceptance Criteria
 
-- [ ] `plugins/agile-workflow/skills/board/SKILL.md` exists and launches the
+- [x] `plugins/agile-workflow/skills/board/SKILL.md` exists and launches the
       live board.
-- [ ] `plugins/agile-workflow/commands/board.md` is removed.
-- [ ] `work-board.template.html` is removed.
-- [ ] `work-board.sh` no longer renders static HTML; it only shims or reports
+- [x] `plugins/agile-workflow/commands/board.md` is removed.
+- [x] `work-board.template.html` is removed.
+- [x] `work-board.sh` no longer renders static HTML; it only shims or reports
       the compiled-board requirement.
-- [ ] README and foundation docs describe the live local board, not a one-shot
+- [x] README and foundation docs describe the live local board, not a one-shot
       generated page.
-- [ ] Headless use prints the URL; desktop use attempts browser open after the
+- [x] Headless use prints the URL; desktop use attempts browser open after the
       server binds.
 
+## Implementation Notes
+
+- Added the cross-vendor `board` skill with explicit `$board`/`work-view board`
+  launch instructions and Codex explicit-invocation metadata.
+- Deleted the Claude-only `/board` command and the static HTML template.
+- Replaced `scripts/work-board.sh` with a compatibility shim that delegates to
+  `.work/bin/work-view board` only when that entrypoint supports the board
+  subcommand; otherwise it reports the compiled-binary requirement.
+- Added Rust browser-open handling after successful bind: `xdg-open`, `open`,
+  then `wslview`; headless sessions print the bound URL and keep serving.
+- Rolled README, SPEC, architecture docs, and the agile-workflow skill catalog
+  forward to describe the live localhost board.
+
+## Verification
+
+- `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`
+- `bash -n plugins/agile-workflow/scripts/work-board.sh`
+- `plugins/agile-workflow/scripts/work-board.sh --help`
+- `plugins/agile-workflow/scripts/work-board.sh --no-open` reports the
+  compiled-board requirement against the current bash fallback.
+- Confirmed `plugins/agile-workflow/commands/board.md` and
+  `plugins/agile-workflow/scripts/work-board.template.html` are absent, and
+  `plugins/agile-workflow/skills/board/SKILL.md` exists.

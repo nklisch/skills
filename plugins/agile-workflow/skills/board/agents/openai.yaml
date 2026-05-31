@@ -1,0 +1,6 @@
+interface:
+  display_name: "Board"
+  short_description: "Launch the agile-workflow board"
+  default_prompt: "Use $board to open the live agile-workflow board for this project."
+policy:
+  allow_implicit_invocation: false

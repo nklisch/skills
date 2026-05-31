@@ -6,7 +6,7 @@ use std::net::{Ipv4Addr, TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use super::{assets, feed, BoardOptions};
+use super::{assets, feed, open, BoardOptions};
 
 const MAX_REQUEST_HEADER_BYTES: usize = 8192;
 const READ_TIMEOUT: Duration = Duration::from_secs(2);
@@ -61,6 +61,7 @@ pub(crate) fn serve_board(
         bound.url, bound.port
     );
     io::stdout().flush().map_err(BoardServerError::Serve)?;
+    open::open_after_bind(&bound.url, &opts);
 
     let mut served = 0usize;
     loop {

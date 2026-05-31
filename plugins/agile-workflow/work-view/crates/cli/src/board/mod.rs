@@ -8,6 +8,7 @@ use crate::args::UsageError;
 
 mod assets;
 mod feed;
+mod open;
 mod server;
 
 pub(crate) const BOARD_HELP: &str = "\

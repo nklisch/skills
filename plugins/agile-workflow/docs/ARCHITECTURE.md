@@ -639,6 +639,7 @@ All skills with their roles, invocability, and triggers.
 | Skill | Invocability | Role | Trigger |
 |---|---|---|---|
 | `review` | model-invocable | Code review of changes for an item. Triages findings into items with proper tags. Advances to done if approved. | item at `stage: review` |
+| `board` | user-invocable | Launch the live localhost substrate board through `work-view board`. Opens a browser after binding when a desktop session is available; prints the URL in headless sessions. | User-invoked when the user wants to inspect active work visually |
 | `release-deploy` | user-invocable | Bind items to release, run gates, ship, archive. Idempotent. | User-invoked when ready to cut a version |
 | `bold-refactor` | user-invocable | Multi-feature architectural refactor. Scopes a refactor epic with child features. Aggressive — only on user request. | User-invoked |
 | `autopilot` | model- and user-invocable | Goal-backed queue runner. Drains an epic or all active work using the harness goal/continuation feature. | Goal text like "Use agile-workflow autopilot to drain <epic>" or direct `/agile-workflow:autopilot --all` |
