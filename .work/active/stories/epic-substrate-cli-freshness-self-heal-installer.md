@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-self-heal-installer
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli-freshness-self-heal
 depends_on: []
@@ -94,3 +94,15 @@ strings). This file already runs in CI (`build-work-view.yml`
   `cargo test version` in `plugins/agile-workflow/work-view` passed 11
   version-focused tests.
 - Adjacent issues parked: none.
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes include green focused
+verification from the implement worker, including the install helper suite,
+real-plugin temp install smoke, and version-focused Rust tests.
