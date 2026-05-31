@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-shell-filters
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-shell
 depends_on: [epic-substrate-board-shell-data]
@@ -56,3 +56,21 @@ through `visibleItems()` / `matches(item)`.
   `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`, and
   `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p
   work-view-cli`.
+
+## Review
+
+Approved on 2026-05-31 after host review and a three-pass Opus peer-review
+loop.
+
+- Host verification passed after implementation and after follow-up fixes:
+  `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli` and
+  `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p
+  work-view-cli`.
+- Accepted Opus findings that matched local judgment:
+  preserving keyboard focus by avoiding chip DOM rebuilds when option sets do
+  not change, removing the nonexistent `title` search affordance, deleting a
+  redundant default branch, memoizing options by snapshot identity, and cleaning
+  up the follow-up nits.
+- Rejected/deferred only non-blocking scope notes: behavioral JS tests need a
+  broader harness decision for the epic, and small DOM utility deduplication is
+  not worth expanding this story.
