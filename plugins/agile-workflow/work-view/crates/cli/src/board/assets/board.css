@@ -251,6 +251,74 @@ select {
   letter-spacing: 0;
 }
 
+.kanban-lane-strip {
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.kanban-lane-chip {
+  white-space: nowrap;
+}
+
+.kanban-lane-chip[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.kanban-lanes {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.kanban-lane {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.kanban-lane__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(120px, 180px);
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 34px;
+}
+
+.kanban-lane__header h2 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--font-weight-semibold) var(--font-size-base)/1.2 var(--font-sans);
+  letter-spacing: 0;
+}
+
+.kanban-progress {
+  color: var(--color-text-secondary);
+  font: var(--font-weight-semibold) var(--font-size-xs)/1 var(--font-mono);
+}
+
+.kanban-progressbar {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-tertiary);
+}
+
+.kanban-progressbar::after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--lane-progress);
+  border-radius: inherit;
+  background: var(--color-accent);
+  content: "";
+}
+
 .kanban-board {
   display: grid;
   grid-auto-flow: column;
@@ -346,6 +414,11 @@ select {
 
   .kanban-board {
     grid-auto-columns: minmax(220px, 84vw);
+  }
+
+  .kanban-lane__header {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
   }
 
   .appbar-actions,

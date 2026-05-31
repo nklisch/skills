@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-kanban-swimlanes
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-kanban
 depends_on: [epic-substrate-board-kanban-stage-grid]
@@ -33,10 +33,19 @@ swimlanes with a view-local focus strip.
 
 ## Acceptance Criteria
 
-- [ ] Visible items are grouped into parent/epic swimlanes.
-- [ ] Each lane shows total/done progress derived from the filtered set.
-- [ ] Lane focus changes only the kanban render and does not alter
+- [x] Visible items are grouped into parent/epic swimlanes.
+- [x] Each lane shows total/done progress derived from the filtered set.
+- [x] Lane focus changes only the kanban render and does not alter
       `ctx.getState().filters`.
-- [ ] Clearing lane focus restores all lanes.
-- [ ] Lane focus survives shell remounts caused by filter/snapshot changes
+- [x] Clearing lane focus restores all lanes.
+- [x] Lane focus survives shell remounts caused by filter/snapshot changes
       during the current page session.
+
+## Implementation Notes
+
+- Added parent/epic lane grouping helpers and lane progress summaries to
+  `assets/kanban.js`.
+- Added a native-button lane focus strip with module-scoped `focusedLane`, so
+  focus is re-applied when the shell remounts the view.
+- Focus changes re-render the local kanban view only and do not call
+  `ctx.setFilter`.
