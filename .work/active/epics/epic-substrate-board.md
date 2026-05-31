@@ -1,14 +1,14 @@
 ---
 id: epic-substrate-board
 kind: epic
-stage: drafting
+stage: implementing
 tags: [tooling]
 parent: null
 depends_on: [epic-substrate-cli]
 release_binding: null
 gate_origin: null
 created: 2026-05-30
-updated: 2026-05-30
+updated: 2026-05-31
 ---
 
 # Substrate Board — interactive human surface over `.work/`
@@ -50,20 +50,85 @@ itself.
   surface); `ux-ui-principles` is the always-on reference, not a step. Mocks are
   deferred for now — run the pass at this epic's `epic-design` (or
   `epic-design --only-questions`) before its UI features implement.
+- **Data freshness — live local server** (epic-design 2026-05-31): the board
+  runs as a live local server off the `work-view` binary and re-reads `.work/`
+  on refresh, not a one-shot static snapshot. A steering surface must not go
+  stale the moment the agent edits an item. Shapes `epic-substrate-board-host`.
+- **Mutation — read-only this epic** (epic-design 2026-05-31): the board is
+  view/filter/explore only. Write-back (drag-to-restage, inline edit) is a
+  future epic — kept out to avoid concurrent-edit collisions with the agent and
+  the `updated:` auto-bump hook, and to hold this epic to its six listed view
+  capabilities. Every child is designed as read-only.
+- **Frontend tech — vanilla HTML/CSS/JS, no build** (epic-design 2026-05-31):
+  hand-written assets served/embedded by the binary, no framework or bundler.
+  Preserves the single-static-binary distribution from `epic-substrate-cli`
+  (musl-static, `opt-level=z`, bash fallback) and matches the single-file format
+  the `ux-ui-design` mocks produce. Constrains the dependency view away from a
+  heavy graph-layout library (see `epic-substrate-board-dependency`).
+- **ux-ui pass timing — dedicated session after decomposition** (epic-design
+  2026-05-31): the full `palette → components → motion → screens → flows`
+  pipeline runs in a dedicated session against the now-created feature ids
+  (`epic-substrate-board-{shell,kanban,dependency,table}`), before those UI
+  features implement. This epic-design pass stays focused on structure. The UI
+  gate from the first decision still holds — mocks land before implementation.
 
-## Anticipated child features
+## Decomposition
 
-Provisional — real decomposition happens at `epic-design` / `feature-design`:
+Split into one backend foundation, one shared frontend foundation, and three
+parallel views — capability shapes, not layers. The pure "split by layer" trap
+(backend / API / UI as three sibling features) is avoided: the **host** is a
+genuine independent deliverable (the data feed + live server the whole surface
+needs), and the **shell** is the shared substrate-presentation layer (item-card,
+markdown body, filters, auto-hide) that exists so the three views don't each
+re-invent it. The two provisional capabilities that were really cross-cutting
+properties — **card-body rendering** and **filters + auto-hide** — fold into the
+shell rather than standing as thin features. With the shell carrying the shared
+card + filter-state store, the three views (**kanban**, **dependency**, **table**)
+are genuinely independent and parallelize after it.
 
-- **Web host off the binary** — serve the interactive board from the compiled
-  binary, reading the shared `.work/` core.
-- **Kanban view** — columns by stage, items as cards.
-- **Dependency view** — visualize `depends_on` chains, blockers, and what each
-  item unblocks.
-- **Table view** — sortable, filterable columns over the item set.
-- **Card-body rendering** — render the markdown item body, not just frontmatter.
-- **Filters + auto-hide** — composable tag/kind/parent/stage/release knobs;
-  released/archived hidden by default.
+Critical path: `host → shell → {any view}`. The three views fan out in parallel
+once the shell lands.
+
+### Child features
+
+- `epic-substrate-board-host` — backend: a `board`/`serve` entry on the
+  `work-view` binary, a live local HTTP server + JSON substrate-feed over
+  `work-view-core`, static-asset serving, root detection, browser-open, and
+  retiring the legacy `work-board.sh`. Read-only. — depends on: `[]`
+- `epic-substrate-board-shell` — shared frontend foundation: app frame +
+  view-switcher, the shared item-card, markdown body rendering, the composable
+  global filter bar (tag/kind/parent/stage/release), auto-hide of
+  released/archived, and the client-side filter-state store the views read.
+  Home of the ux-ui "components" tier. — depends on: `[epic-substrate-board-host]`
+- `epic-substrate-board-kanban` — kanban view: columns by stage, shell cards in
+  columns. — depends on: `[epic-substrate-board-shell]`
+- `epic-substrate-board-dependency` — dependency view: `depends_on` chains,
+  blockers, and what each item unblocks, over `work-view-core::graph`. Carries
+  an open list/tree-vs-graph-canvas choice constrained by the no-build decision.
+  — depends on: `[epic-substrate-board-shell]`
+- `epic-substrate-board-table` — table view: sortable columns + per-column
+  filtering layered on the shell's global filter set. — depends on:
+  `[epic-substrate-board-shell]`
+
+### Decomposition risks
+
+- **The shell is the critical-path hinge.** All three views and the
+  card/filter/auto-hide capabilities sit behind it; if its filter-state store
+  contract or card API is wrong, all three views churn. Mitigation:
+  feature-design the shell first and pin the filter-state shape + card contract
+  as the explicit interface the views consume before any view is designed.
+- **Host/shell ownership of the frontend entry.** To avoid a tug-of-war over
+  `index.html`, host owns zero real UI — it serves whatever asset bundle the
+  shell produces (plus a stub entry just to prove the feed end-to-end); the
+  shell owns all human-visible frontend. feature-design should encode this split.
+- **The dependency view could pull a heavy graph-layout library**, which fights
+  the vanilla/no-build decision. Constrain it to the core's adjacency rendered
+  with hand-rolled DOM/SVG (list/tree first); a graph canvas is a later
+  enhancement, not in-scope assumption.
+- **Live-server staleness while the agent writes.** The feed re-reads a substrate
+  the agent may be mid-write on; a half-written file can fail to parse. Read-only
+  removes write-collisions, and the core's `LoadReport`/`Diagnostic` already
+  degrades per-item gracefully — the host must surface diagnostics, not crash.
 
 ## Foundation docs to roll forward
 
