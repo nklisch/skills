@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-kanban-swimlanes
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-kanban
 depends_on: [epic-substrate-board-kanban-stage-grid]
@@ -49,3 +49,11 @@ swimlanes with a view-local focus strip.
   focus is re-applied when the shell remounts the view.
 - Focus changes re-render the local kanban view only and do not call
   `ctx.setFilter`.
+
+## Review Notes
+
+- Local review approved after a focus-preservation fix: lane chip activation
+  now restores focus to the active chip after the local kanban re-render.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`.
+- Opus review is deferred to the kanban feature checkpoint because two scoped
+  Opus peeragent calls stalled without output in this workspace.
