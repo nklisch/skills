@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-self-heal-hook
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-cli-freshness-self-heal
 depends_on: [epic-substrate-cli-freshness-self-heal-installer]
@@ -88,3 +88,14 @@ minimum be locally runnable per the file's docstring.
   `bash plugins/agile-workflow/scripts/tests/install-work-view.test.sh`.
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes include green hook
+unittest coverage and the install-helper regression suite.

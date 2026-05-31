@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-self-heal
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli-freshness
 depends_on: [epic-substrate-cli-freshness-versioning]
@@ -622,3 +622,19 @@ Extend the stdlib `unittest` suite (import by path, `mock` + `tempfile`):
 - **convert gitignore migration could surprise a user who intentionally ignored
   `.work/bin/`.** Mitigation: preserve-by-default — surface the match and suggest
   a negation rather than silently editing `.gitignore`, per convert's own rule.
+
+## Children complete (2026-05-31)
+
+All child stories reached `stage: done`:
+
+- `epic-substrate-cli-freshness-self-heal-installer`
+- `epic-substrate-cli-freshness-self-heal-hook`
+- `epic-substrate-cli-freshness-self-heal-convert`
+- `epic-substrate-cli-freshness-self-heal-docs`
+
+Verification reported across the stories:
+
+- `bash plugins/agile-workflow/scripts/tests/install-work-view.test.sh`
+- `cd plugins/agile-workflow/hooks/scripts && python3 -m unittest test_prompt_context -v`
+- `bash plugins/agile-workflow/scripts/tests/convert-install-routing.test.sh`
+- Docs grep checks for stale prebuilt-entrypoint and pre-bump ordering assertions
