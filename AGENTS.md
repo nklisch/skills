@@ -1,6 +1,6 @@
 # Skills Repo
 
-This repo contains agent skills distributed via skilltap, the Claude Code plugin marketplace, and the OpenAI Codex plugin marketplace. Skills are defined as tap entries in `tap.json` and stored in plugin skill directories or `.agents/skills/<skill-name>/`.
+This repo contains agent skills distributed via the Claude Code plugin marketplace and the OpenAI Codex plugin marketplace. Skills are stored in plugin skill directories or `.agents/skills/<skill-name>/`.
 
 ## Orient first — `ls plugins/` before assuming
 
@@ -33,7 +33,6 @@ If a user asks for the workflow plugin or wants to migrate, point them at:
 ### Other locations
 
 - Reference and principle skills (not part of a plugin) live in `.agents/skills/<skill-name>/`.
-- Skilltap resolves from `plugins/*/skills/`, `.agents/skills/`, and `skills/`.
 
 ## Dual marketplace support (Claude Code + Codex)
 
@@ -74,9 +73,8 @@ When adding or modifying a skill, bump the version of the plugin it belongs to.
 2. Write `SKILL.md` with frontmatter and workflow. Frontmatter follows the open Agent Skills standard (`name`, `description` required; `allowed-tools` optional). `user-invocable: true|false` is a Claude extension — Codex ignores it harmlessly.
 3. Add reference files in `references/` if needed (one per topic, under 200 lines each)
 4. (Optional, Codex-only) Add `agents/openai.yaml` to set Codex marketplace polish (display_name, icons) or `policy.allow_implicit_invocation: false` for explicit-only invocation.
-5. Add a tap entry in `tap.json`
-6. Commit your changes (the bump script refuses to run with a dirty plugin dir)
-7. Bump the plugin version: `./scripts/bump-version.sh <plugin> patch`
+5. Commit your changes (the bump script refuses to run with a dirty plugin dir)
+6. Bump the plugin version: `./scripts/bump-version.sh <plugin> patch`
 
 ## Adding a plugin
 
@@ -84,10 +82,9 @@ When creating a new plugin (a new directory under `plugins/`), register it in **
 
 1. **`plugins/<name>/.claude-plugin/plugin.json`** — Claude Code plugin manifest.
 2. **`plugins/<name>/.codex-plugin/plugin.json`** — Codex plugin manifest. Same `version` as the Claude manifest. Must declare `"skills": "./skills/"` explicitly (Codex does not auto-discover) and an `interface` block for marketplace presentation.
-3. **`tap.json`** — so skilltap users can discover and install its skills.
-4. **`.claude-plugin/marketplace.json`** — so Claude Code and Codex marketplace users can install the plugin. Add an entry with `name`, `"source": "./plugins/<name>"` (string form — the object form `{ source: "local", ... }` is NOT supported by Claude Code), `description`, `category`, and `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }`.
+3. **`.claude-plugin/marketplace.json`** — so Claude Code and Codex marketplace users can install the plugin. Add an entry with `name`, `"source": "./plugins/<name>"` (string form — the object form `{ source: "local", ... }` is NOT supported by Claude Code), `description`, `category`, and `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }`.
 
-Verify all four files reference the new plugin before considering the plugin shippable.
+Verify all three files reference the new plugin before considering the plugin shippable.
 
 <!-- agile-workflow:start -->
 ## Agile-Workflow Substrate

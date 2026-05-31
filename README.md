@@ -4,8 +4,7 @@ A software development workflow suite for Claude Code (and Codex) — work
 tracking, UI/UX design, and standalone utility skills, designed to tee up
 autonomous agent runs that actually ship the right thing.
 
-Available as **Claude Code plugins**, **Codex plugins**, and via
-**[skilltap](https://github.com/nklisch/skilltap)**.
+Available as **Claude Code plugins** and **Codex plugins**.
 
 ## Install
 
@@ -40,18 +39,6 @@ the agile-workflow guide for the full rhythm.
 > `/agile-workflow:convert` — it detects the legacy layout and migrates
 > automatically. The old guide at [docs/workflow-guide.md](docs/workflow-guide.md)
 > remains for reference.
-
-### Via Skilltap
-
-```bash
-# Add this tap
-skilltap tap add nklisch https://github.com/nklisch/skills
-
-# Install individual skills
-skilltap install scope
-skilltap install epic-design
-skilltap install screens
-```
 
 ## agile-workflow
 
@@ -184,8 +171,7 @@ via `/plugin install nates-toolkit@nklisch-skills`.
 
 ## Library & Tool References
 
-Reference skills that auto-load when their library is detected. Installed
-individually via skilltap.
+Reference skills that auto-load when their library is detected.
 
 | Skill | Library |
 |-------|---------|
@@ -250,10 +236,9 @@ plugins/ux-ui-design/              # ux-ui-design plugin (7 skills, mockup-first
 └── docs/                          #   plugin design docs
 plugins/nates-toolkit/skills/      # standalone utility skills (plainspeak, repo-eval, agent-reflection, write-tool-skill, skill-auditor)
 plugins/workflow/                  # DEPRECATED — doc-driven, no longer supported
-.agents/skills/                    # reference, principle, and utility skills (skilltap)
+.agents/skills/                    # reference, principle, and utility skills
 .claude-plugin/                    # Claude Code plugin manifest (root)
 docs/                              # human-facing guides — agile-workflow-guide.md, ux-ui-design-guide.md, workflow-guide.md (deprecated)
-tap.json                           # skilltap registry
 ```
 
 ## Requirements

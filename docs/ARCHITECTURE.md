@@ -20,8 +20,7 @@ lives in each plugin's own `docs/ARCHITECTURE.md`.
 │   └── bump-version.sh      # the version gate (bumps both manifests together)
 ├── docs/                    # this meta layer (VISION, SPEC, ARCHITECTURE)
 ├── .claude/                 # repo-level Claude config + instructions
-├── README.md
-└── tap.json                 # legacy skilltap index (slated for removal)
+└── README.md
 ```
 
 `.agents/skills/` holds the curated reference library — library references

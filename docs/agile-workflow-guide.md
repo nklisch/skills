@@ -767,7 +767,7 @@ explicitly — the rest the agent picks for you.
   advance trivial items, but anything with judgment calls lands at
   `stage: review` for your eyes. Walk that queue regularly.
 - **Restart Claude Code or Codex after install.** Hooks don't take effect
-  mid-session. After `skilltap install nklisch/agile-workflow`, restart for the
+  mid-session. After installing the plugin (`/plugin install agile-workflow@nklisch-skills`), restart for the
   prompt-context and PostToolUse hooks to fire.
 - **Don't pre-decompose.** Epicize at bootstrap; let features and stories
   emerge from `scope`, `epic-design`, and `feature-design` as work surfaces.
