@@ -11,6 +11,8 @@ use std::sync::mpsc::{self, Receiver};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use serde_json::Value;
+
 /// Absolute path to the compiled `work-view` binary.
 macro_rules! bin {
     () => {
@@ -119,10 +121,10 @@ fn busy_local_port_below_max() -> TcpListener {
     panic!("failed to reserve a busy port below u16::MAX");
 }
 
-fn spawn_board_once_with_args(args: &[&str]) -> (Child, Receiver<String>) {
+fn spawn_board_once_with_args_in(root: &Path, args: &[&str]) -> (Child, Receiver<String>) {
     let mut child = Command::new(bin!())
         .args(args)
-        .current_dir(fixture_root())
+        .current_dir(root)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -143,9 +145,21 @@ fn spawn_board_once_with_args(args: &[&str]) -> (Child, Receiver<String>) {
     (child, rx)
 }
 
+fn spawn_board_once_with_args(args: &[&str]) -> (Child, Receiver<String>) {
+    spawn_board_once_with_args_in(fixture_root(), args)
+}
+
 fn spawn_board_once(port: u16) -> (Child, Receiver<String>) {
     let port_arg = port.to_string();
     spawn_board_once_with_args(&["board", "--once", "--no-open", "--port", port_arg.as_str()])
+}
+
+fn spawn_board_once_in(root: &Path, port: u16) -> (Child, Receiver<String>) {
+    let port_arg = port.to_string();
+    spawn_board_once_with_args_in(
+        root,
+        &["board", "--once", "--no-open", "--port", port_arg.as_str()],
+    )
 }
 
 fn read_bound_line(rx: Receiver<String>) -> String {
@@ -209,6 +223,28 @@ fn wait_for_success(child: &mut Child) {
             }
         }
     }
+}
+
+fn http_body(response: &str) -> &str {
+    response
+        .split_once("\r\n\r\n")
+        .map(|(_, body)| body)
+        .unwrap_or("")
+}
+
+fn json_body(response: &str) -> Value {
+    serde_json::from_str(http_body(response)).expect("response body should be valid JSON")
+}
+
+fn ids_from_paths(stdout: &str) -> Vec<String> {
+    stdout
+        .lines()
+        .filter_map(|line| {
+            Path::new(line)
+                .file_stem()
+                .map(|stem| stem.to_string_lossy().into_owned())
+        })
+        .collect()
 }
 
 /// Extract the item IDs from a table-mode output.
@@ -342,6 +378,159 @@ fn board_unknown_route_returns_404() {
     assert!(
         response.starts_with("HTTP/1.1 404 Not Found"),
         "unknown route should return 404; response: {response}"
+    );
+    wait_for_success(&mut child);
+}
+
+#[test]
+fn board_substrate_feed_returns_json_shape_without_private_fields() {
+    let (mut child, rx) = spawn_board_once(unused_local_port());
+    let port = parse_bound_port(&read_bound_line(rx));
+
+    let response = http_get(port, "/api/substrate");
+    assert!(
+        response.starts_with("HTTP/1.1 200 OK"),
+        "feed should return 200; response: {response}"
+    );
+    assert!(
+        response.contains("Content-Type: application/json; charset=utf-8"),
+        "feed should return JSON; response: {response}"
+    );
+    let body = http_body(&response);
+    let json = json_body(&response);
+
+    assert!(
+        json.get("work_view_version")
+            .and_then(Value::as_str)
+            .is_some_and(|version| !version.is_empty()),
+        "feed should include work_view_version; json: {json}"
+    );
+    assert!(
+        json.get("diagnostics").is_some(),
+        "feed should include diagnostics; json: {json}"
+    );
+
+    let items = json
+        .get("items")
+        .and_then(Value::as_array)
+        .expect("feed items should be an array");
+    let feat_b = items
+        .iter()
+        .find(|item| item.get("id").and_then(Value::as_str) == Some("feat-b"))
+        .expect("feed should include feat-b");
+    let feat_b_obj = feat_b.as_object().expect("feed item should be an object");
+    for field in [
+        "body",
+        "rel_path",
+        "tier",
+        "unmet_deps",
+        "dependents",
+        "children",
+    ] {
+        assert!(
+            feat_b_obj.contains_key(field),
+            "feed item should include {field}; item: {feat_b}"
+        );
+    }
+    assert!(
+        !feat_b_obj.contains_key("path"),
+        "feed item should not expose absolute path; item: {feat_b}"
+    );
+    assert!(
+        !feat_b_obj.contains_key("raw_text"),
+        "feed item should not expose raw_text; item: {feat_b}"
+    );
+    assert!(
+        !body.contains(&fixture_root().display().to_string()),
+        "feed should not leak absolute fixture paths; body: {body}"
+    );
+    wait_for_success(&mut child);
+}
+
+#[test]
+fn board_substrate_feed_reports_parse_errors_and_keeps_valid_siblings() {
+    let (mut child, rx) = spawn_board_once_in(malformed_fixture_root(), unused_local_port());
+    let port = parse_bound_port(&read_bound_line(rx));
+
+    let response = http_get(port, "/api/substrate");
+    assert!(
+        response.starts_with("HTTP/1.1 200 OK"),
+        "malformed feed should still return 200; response: {response}"
+    );
+    let body = http_body(&response);
+    let json = json_body(&response);
+    let items = json
+        .get("items")
+        .and_then(Value::as_array)
+        .expect("feed items should be an array");
+    assert!(
+        items
+            .iter()
+            .any(|item| item.get("id").and_then(Value::as_str) == Some("good-item")),
+        "valid sibling should remain in feed; json: {json}"
+    );
+
+    let parse_errors = json
+        .get("diagnostics")
+        .and_then(|diagnostics| diagnostics.get("parse_errors"))
+        .and_then(Value::as_array)
+        .expect("parse_errors should be an array");
+    assert_eq!(
+        parse_errors.len(),
+        1,
+        "malformed fixture should produce one parse error; json: {json}"
+    );
+    assert!(
+        parse_errors[0]
+            .get("rel_path")
+            .and_then(Value::as_str)
+            .is_some_and(|path| path.ends_with("malformed-no-closing-fence.md")),
+        "parse error should include relative path; json: {json}"
+    );
+    assert!(
+        !body.contains(&malformed_fixture_root().display().to_string()),
+        "diagnostics should not leak absolute paths; body: {body}"
+    );
+    wait_for_success(&mut child);
+}
+
+#[test]
+fn board_substrate_feed_ready_and_blocked_match_cli() {
+    let (ready_stdout, _, ready_code) = run(&["--ready", "--paths"]);
+    assert_eq!(ready_code, 0);
+    let (blocked_stdout, _, blocked_code) = run(&["--blocked", "--paths"]);
+    assert_eq!(blocked_code, 0);
+
+    let (mut child, rx) = spawn_board_once(unused_local_port());
+    let port = parse_bound_port(&read_bound_line(rx));
+    let response = http_get(port, "/api/substrate");
+    let json = json_body(&response);
+    let items = json
+        .get("items")
+        .and_then(Value::as_array)
+        .expect("feed items should be an array");
+
+    let mut feed_ready: Vec<String> = items
+        .iter()
+        .filter(|item| item.get("ready").and_then(Value::as_bool) == Some(true))
+        .filter_map(|item| item.get("id").and_then(Value::as_str).map(str::to_string))
+        .collect();
+    let mut feed_blocked: Vec<String> = items
+        .iter()
+        .filter(|item| item.get("blocked").and_then(Value::as_bool) == Some(true))
+        .filter_map(|item| item.get("id").and_then(Value::as_str).map(str::to_string))
+        .collect();
+    let mut cli_ready = ids_from_paths(&ready_stdout);
+    let mut cli_blocked = ids_from_paths(&blocked_stdout);
+    feed_ready.sort();
+    feed_blocked.sort();
+    cli_ready.sort();
+    cli_blocked.sort();
+
+    assert_eq!(feed_ready, cli_ready, "feed ready ids should match CLI");
+    assert_eq!(
+        feed_blocked, cli_blocked,
+        "feed blocked ids should match CLI"
     );
     wait_for_success(&mut child);
 }

@@ -6,6 +6,7 @@ use work_view_core::index::find_substrate_root;
 
 use crate::args::UsageError;
 
+mod feed;
 mod server;
 
 pub(crate) const BOARD_HELP: &str = "\

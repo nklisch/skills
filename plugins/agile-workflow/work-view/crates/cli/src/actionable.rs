@@ -37,6 +37,14 @@ fn is_actionable_candidate(item: &Item) -> bool {
         )
 }
 
+/// Return the CLI-equivalent ready/blocked booleans for a single item.
+pub(crate) fn dependency_status(sub: &Substrate, item: &Item) -> (bool, bool) {
+    let actionable = is_actionable_candidate(item);
+    let ready = actionable && sub.deps_satisfied(item);
+    let blocked = actionable && !sub.deps_satisfied(item);
+    (ready, blocked)
+}
+
 // ── Public post-filter ────────────────────────────────────────────────────────
 
 /// Post-filter over `query()` results; preserves input (load) order.
@@ -57,11 +65,11 @@ pub fn apply_dependency_view<'a>(
         DependencyView::All => items,
         DependencyView::Ready => items
             .into_iter()
-            .filter(|i| is_actionable_candidate(i) && sub.deps_satisfied(i))
+            .filter(|i| dependency_status(sub, i).0)
             .collect(),
         DependencyView::Blocked => items
             .into_iter()
-            .filter(|i| is_actionable_candidate(i) && !sub.deps_satisfied(i))
+            .filter(|i| dependency_status(sub, i).1)
             .collect(),
     }
 }

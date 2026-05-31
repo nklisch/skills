@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-host-feed
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-host
 depends_on: [epic-substrate-board-host-server]
@@ -37,13 +37,28 @@ without crashing the server.
 
 ## Acceptance Criteria
 
-- [ ] `GET /api/substrate` returns 200 JSON with items, diagnostics, and
+- [x] `GET /api/substrate` returns 200 JSON with items, diagnostics, and
       `work_view_version`.
-- [ ] A malformed item file appears in `diagnostics.parse_errors` while valid
+- [x] A malformed item file appears in `diagnostics.parse_errors` while valid
       siblings remain in `items`.
-- [ ] Feed ready/blocked ids match `work-view --ready` and `work-view --blocked`
+- [x] Feed ready/blocked ids match `work-view --ready` and `work-view --blocked`
       over the same fixture.
-- [ ] Feed includes `body`, `rel_path`, `tier`, `unmet_deps`, `dependents`, and
+- [x] Feed includes `body`, `rel_path`, `tier`, `unmet_deps`, `dependents`, and
       `children`.
-- [ ] Feed excludes absolute `path` and `raw_text`.
+- [x] Feed excludes absolute `path` and `raw_text`.
 
+## Implementation Notes
+
+- Added CLI-crate `serde`/`serde_json` dependencies and kept serialization in
+  adapter DTOs under `board::feed`.
+- `/api/substrate` now reloads `Substrate::load(root)` on every request and
+  returns structured `items`, `diagnostics`, and `work_view_version`.
+- Exposed `actionable::dependency_status` so the feed and CLI share ready /
+  blocked semantics.
+- Feed diagnostics use `rel_path` only; item DTOs intentionally omit absolute
+  `path` and `raw_text`.
+- Added integration coverage for JSON shape, malformed-item diagnostics,
+  ready/blocked parity with CLI output, and private-field/path leakage.
+
+Verification:
+- `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`

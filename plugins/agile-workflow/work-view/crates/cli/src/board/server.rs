@@ -3,10 +3,10 @@
 use std::fmt;
 use std::io::{self, Read, Write};
 use std::net::{Ipv4Addr, TcpListener, TcpStream};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use super::BoardOptions;
+use super::{feed, BoardOptions};
 
 const MAX_REQUEST_HEADER_BYTES: usize = 8192;
 const READ_TIMEOUT: Duration = Duration::from_secs(2);
@@ -31,8 +31,6 @@ const INDEX_HTML: &[u8] = br#"<!doctype html>
 const BOARD_CSS: &[u8] = br#"body{margin:0;font-family:system-ui,sans-serif;background:#f6f7f9;color:#1f2328}main{max-width:760px;margin:10vh auto;padding:0 24px}h1{font-size:28px;margin:0 0 12px}p{margin:0;color:#57606a}"#;
 const BOARD_JS: &[u8] = br#"console.info("agile-workflow board placeholder loaded");"#;
 const HEALTHZ: &[u8] = b"ok\n";
-const SUBSTRATE_PLACEHOLDER: &[u8] =
-    br#"{"version":1,"items":[],"diagnostics":[],"placeholder":true}"#;
 const NOT_FOUND: &[u8] = b"not found\n";
 const BAD_REQUEST: &[u8] = b"bad request\n";
 const INTERNAL_ERROR: &[u8] = b"internal server error\n";
@@ -121,7 +119,6 @@ fn bind_localhost(start: u16) -> Result<TcpListener, BoardServerError> {
 }
 
 fn handle_connection(mut stream: TcpStream, root: &PathBuf) -> io::Result<()> {
-    let _ = root;
     let request = match read_request(&mut stream) {
         Ok(request) => request,
         Err(ReadRequestError::BadRequest) => {
@@ -132,7 +129,7 @@ fn handle_connection(mut stream: TcpStream, root: &PathBuf) -> io::Result<()> {
         }
     };
 
-    let response = route_request(&request);
+    let response = route_request(&request, root);
     write_response(&mut stream, request.method, response)
 }
 
@@ -224,27 +221,33 @@ struct Response {
     status: u16,
     reason: &'static str,
     content_type: &'static str,
-    body: &'static [u8],
+    body: Vec<u8>,
     allow: Option<&'static str>,
 }
 
-fn route_request(request: &Request) -> Response {
+fn route_request(request: &Request, root: &Path) -> Response {
     match request.path.as_str() {
         "/" | "/index.html" => ok_response("text/html; charset=utf-8", INDEX_HTML),
         "/healthz" => ok_response("text/plain; charset=utf-8", HEALTHZ),
-        "/api/substrate" => ok_response("application/json; charset=utf-8", SUBSTRATE_PLACEHOLDER),
+        "/api/substrate" => match feed::build_feed(root) {
+            Ok(json) => ok_response("application/json; charset=utf-8", json.into_bytes()),
+            Err(e) => {
+                eprintln!("work-view board: feed error: {e}");
+                internal_error_response()
+            }
+        },
         "/assets/board.css" => ok_response("text/css; charset=utf-8", BOARD_CSS),
         "/assets/board.js" => ok_response("text/javascript; charset=utf-8", BOARD_JS),
         _ => not_found_response(),
     }
 }
 
-fn ok_response(content_type: &'static str, body: &'static [u8]) -> Response {
+fn ok_response<B: Into<Vec<u8>>>(content_type: &'static str, body: B) -> Response {
     Response {
         status: 200,
         reason: "OK",
         content_type,
-        body,
+        body: body.into(),
         allow: None,
     }
 }
@@ -254,7 +257,7 @@ fn not_found_response() -> Response {
         status: 404,
         reason: "Not Found",
         content_type: "text/plain; charset=utf-8",
-        body: NOT_FOUND,
+        body: NOT_FOUND.to_vec(),
         allow: None,
     }
 }
@@ -264,7 +267,7 @@ fn bad_request_response() -> Response {
         status: 400,
         reason: "Bad Request",
         content_type: "text/plain; charset=utf-8",
-        body: BAD_REQUEST,
+        body: BAD_REQUEST.to_vec(),
         allow: None,
     }
 }
@@ -274,7 +277,7 @@ fn internal_error_response() -> Response {
         status: 500,
         reason: "Internal Server Error",
         content_type: "text/plain; charset=utf-8",
-        body: INTERNAL_ERROR,
+        body: INTERNAL_ERROR.to_vec(),
         allow: None,
     }
 }
@@ -296,7 +299,7 @@ fn write_response(stream: &mut TcpStream, method: Method, response: Response) ->
 
     stream.write_all(headers.as_bytes())?;
     if matches!(method, Method::Get) {
-        stream.write_all(response.body)?;
+        stream.write_all(&response.body)?;
     }
     stream.flush()
 }
