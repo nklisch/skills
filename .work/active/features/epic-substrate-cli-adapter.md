@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-adapter
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli
 depends_on: [epic-substrate-cli-query-core]
@@ -9,7 +9,6 @@ release_binding: null
 gate_origin: null
 created: 2026-05-30
 updated: 2026-05-30
----
 
 # Agent-facing CLI surface (work-view parity)
 
@@ -261,3 +260,65 @@ don't rewrite `filter.stage`; the `parse -> root -> load -> query ->
 apply_dependency_view -> render` pipeline shape; explicit decisions on
 `--flag=value` (unsupported, matching bash), last-wins repeats, `--` terminator,
 missing-value handling, and stdout/stderr discipline. No blockers raised.
+
+## Implementation notes
+
+### What was built
+
+`crates/cli/` created as a binary crate in the existing workspace.  Four source
+files:
+
+- **`src/args.rs`**: `OutputMode`, `DependencyView` (with `All`, `Ready`,
+  `Blocked` — all three declared now so item 2 only needs to fill in
+  `actionable.rs`), `CliOptions`, `ParseOutcome`, `UsageError`, `HELP`,
+  `parse_args`.  `DependencyView::Ready`/`Blocked` are wired through `parse_args`
+  (the seam), but `actionable.rs` is currently a stub that passes all items
+  through unchanged for `Ready`/`Blocked` until item 2 replaces it.
+- **`src/render.rs`**: `render(&[&Item], OutputMode, &mut impl Write) -> io::Result<()>`.
+  Table format `%-40s  %-8s  %-14s  %-30s  %s` matches bash exactly (two-space
+  column gaps, fixed-width dash separator, comma-joined tags, `None`→`"-"`).
+- **`src/actionable.rs`**: STUB — `apply_dependency_view` returns items
+  unchanged for all three variants.  Item 2 replaces this with the real
+  stage-aware predicate.
+- **`src/main.rs`**: six-step pipeline matching the design exactly; maps
+  `BrokenPipe`→exit 0, `UsageError`→exit 1, no-root→exit 2, `LoadError::Io`→exit 3.
+
+### Public API surface
+
+```rust
+// args.rs
+pub enum OutputMode { Table, Paths, Cat, Count }
+pub enum DependencyView { All, Ready, Blocked }
+pub struct CliOptions { filter: Filter, output: OutputMode, dependency_view: DependencyView }
+pub enum ParseOutcome { Help, Run(CliOptions) }
+pub struct UsageError(pub String);
+pub const HELP: &str;
+pub fn parse_args<I: Iterator<Item=String>>(args: I) -> Result<ParseOutcome, UsageError>;
+
+// render.rs
+pub fn render(items: &[&Item], mode: OutputMode, out: &mut impl Write) -> io::Result<()>;
+
+// actionable.rs (stub for item 2)
+pub fn apply_dependency_view<'a>(sub: &Substrate, items: Vec<&'a Item>, view: DependencyView) -> Vec<&'a Item>;
+```
+
+### Seam left for item 2
+
+`actionable.rs` stub passes all items through for `Ready`/`Blocked`.  Item 2
+replaces it with `is_actionable_candidate` (active tier + stage ∈
+{drafting, implementing, review}) + real `deps_satisfied` / `!deps_satisfied`
+filter.  No other file needs to change for the item 2 wiring.
+
+### Verification
+
+`cargo build && cargo test && cargo clippy --all-targets -- -D warnings && cargo fmt --check`
+all pass from `plugins/agile-workflow/work-view/`.
+
+Test counts: 46 unit tests (args: 33, render: 13) + 30 integration tests =
+76 CLI tests; plus 58 core unit tests + 31 core integration tests + 4 doc tests
+= 169 total.
+
+Deviations from spec: none.  `DependencyView::Ready`/`Blocked` were declared in
+item 1 (the design called for them to be added in item 2, but declaring them
+upfront avoids touching args.rs at all in item 2 — only `actionable.rs` needs
+replacing).  This is a strictly additive deviation that makes item 2 cleaner.
