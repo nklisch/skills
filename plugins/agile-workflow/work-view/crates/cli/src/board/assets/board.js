@@ -1,6 +1,8 @@
 import { createBoardStore } from "/assets/state.js";
+import { openDetail, closeDetail, syncDetail } from "/assets/detail.js";
 import { renderCard } from "/assets/card.js";
 import { renderFilterBar } from "/assets/filters.js";
+import { mountCurrentView } from "/assets/views.js";
 
 const root = document.documentElement;
 const accentPicker = document.getElementById("theme-accent");
@@ -16,8 +18,14 @@ const refreshButton = document.getElementById("refresh-button");
 const filterRoot = document.getElementById("global-filter-container");
 
 const store = createBoardStore({ storage: window.localStorage, root: document });
-const filtersUi = filterRoot ? renderFilterBar(filterRoot, store) : null;
-window.boardContext = store;
+const context = {
+  ...store,
+  renderCard: (item, options = {}) => renderCard(item, { ...options, context }),
+  openDetail: (id) => openDetail(id, context),
+  closeDetail: () => closeDetail(context),
+};
+const filtersUi = filterRoot ? renderFilterBar(filterRoot, context) : null;
+window.boardContext = context;
 
 function replaceChildren(node, children) {
   if (!node) {
@@ -171,7 +179,7 @@ function renderView(state) {
     return;
   }
 
-  const visible = store.visibleItems();
+  const visible = context.visibleItems();
   if (state.snapshot.items.length === 0) {
     viewRoot.replaceChildren(emptyState("0", "No substrate items", "The feed loaded successfully, but it did not contain any items."));
     return;
@@ -181,53 +189,36 @@ function renderView(state) {
     return;
   }
 
-  const panel = document.createElement("div");
-  panel.className = "view-preview";
-  panel.append(textElement("h1", "", `${state.view} view pending`));
-  panel.append(textElement("p", "view-digest", `${visible.length} visible items are ready for the ${state.view} view story.`));
-  const stack = document.createElement("div");
-  stack.className = "card-stack";
-  for (const item of visible.slice(0, 8)) {
-    stack.append(renderCard(item, {
-      compact: true,
-      onOpen: (id) => {
-        const selected = store.getItemById(id);
-        if (statusText && selected) {
-          statusText.textContent = `Selected ${selected.id}`;
-        }
-      },
-    }));
-  }
-  panel.append(stack);
-  viewRoot.replaceChildren(panel);
+  mountCurrentView(viewRoot, context);
 }
 
 function render(state) {
-  const visibleCount = store.visibleItems().length;
+  const visibleCount = context.visibleItems().length;
   applyTheme(state.theme);
   applyView(state.view);
   filtersUi?.sync(state);
   updateStatus(state, visibleCount);
   renderDiagnostics(state);
   renderView(state);
+  syncDetail(context);
 }
 
 accentPicker?.addEventListener("change", (event) => {
-  store.setTheme({ accent: event.target.value });
+  context.setTheme({ accent: event.target.value });
 });
 
 for (const button of modeButtons) {
-  button.addEventListener("click", () => store.setTheme({ mode: button.dataset.mode || "system" }));
+  button.addEventListener("click", () => context.setTheme({ mode: button.dataset.mode || "system" }));
 }
 
 for (const tab of viewTabs) {
-  tab.addEventListener("click", () => store.setView(tab.dataset.view || "kanban"));
+  tab.addEventListener("click", () => context.setView(tab.dataset.view || "kanban"));
 }
 
 refreshButton?.addEventListener("click", () => {
-  void store.refresh();
+  void context.refresh();
 });
 
-store.subscribe(render);
-render(store.getState());
-void store.refresh();
+context.subscribe(render);
+render(context.getState());
+void context.refresh();

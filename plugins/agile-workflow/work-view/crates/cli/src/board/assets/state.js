@@ -198,6 +198,17 @@ export function createBoardStore({ storage = globalThis.localStorage, fetchJson,
     notify();
   }
 
+  function setSelectedItem(id) {
+    const selectedItemId = id && state.snapshot?.items.some((item) => item.id === id)
+      ? String(id)
+      : null;
+    if (state.selectedItemId === selectedItemId) {
+      return;
+    }
+    state = { ...state, selectedItemId };
+    notify();
+  }
+
   function matches(item) {
     return matchesFilters(item, state.filters);
   }
@@ -226,6 +237,7 @@ export function createBoardStore({ storage = globalThis.localStorage, fetchJson,
     setView,
     setTheme,
     setFilter,
+    setSelectedItem,
     visibleItems,
     matches,
     getItemById,

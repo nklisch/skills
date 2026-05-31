@@ -535,6 +535,8 @@ fn board_embedded_assets_return_expected_content_types() {
         "/assets/filters.js",
         "/assets/markdown.js",
         "/assets/card.js",
+        "/assets/detail.js",
+        "/assets/views.js",
     ] {
         let js = board_response_once(path);
         assert!(
@@ -551,7 +553,7 @@ fn board_embedded_assets_return_expected_content_types() {
     assert!(
         board_body.contains("createBoardStore")
             && board_body.contains("renderFilterBar")
-            && board_body.contains("store.refresh()"),
+            && board_body.contains("context.refresh()"),
         "board JS should bootstrap the store, filters, and initial refresh; body: {board_body}"
     );
     let state_js = board_response_once("/assets/state.js");
@@ -591,11 +593,37 @@ fn board_embedded_assets_return_expected_content_types() {
             && card_body.contains("addEventListener(\"keydown\""),
         "card JS should export keyboard-accessible cards; body: {card_body}"
     );
+    let detail_js = board_response_once("/assets/detail.js");
+    let detail_body = http_body(&detail_js);
+    assert!(
+        detail_body.contains("export function openDetail")
+            && detail_body.contains("export function closeDetail")
+            && detail_body.contains("export function detectDetailPresentation")
+            && detail_body.contains("ctx.getItemById(id)")
+            && detail_body.contains("renderMarkdown"),
+        "detail JS should export id-based detail helpers using safe markdown; body: {detail_body}"
+    );
+    let views_js = board_response_once("/assets/views.js");
+    let views_body = http_body(&views_js);
+    assert!(
+        views_body.contains("export function registerView")
+            && views_body.contains("export function mountCurrentView")
+            && views_body.contains("ctx.visibleItems()")
+            && views_body.contains("kanban")
+            && views_body.contains("dependency")
+            && views_body.contains("table"),
+        "views JS should export the downstream BoardView registry and placeholders; body: {views_body}"
+    );
 }
 
 #[test]
 fn board_renderer_assets_do_not_ship_raw_html_injection_patterns() {
-    for path in ["/assets/markdown.js", "/assets/card.js"] {
+    for path in [
+        "/assets/markdown.js",
+        "/assets/card.js",
+        "/assets/detail.js",
+        "/assets/views.js",
+    ] {
         let response = board_response_once(path);
         let body = http_body(&response);
         for forbidden in [
