@@ -132,20 +132,29 @@ once the shell lands.
 
 ## Mockups
 
-Design system locked via `/ux-ui-design:palette` (2026-05-31):
+Design system locked via `/ux-ui-design:palette` (2026-05-31). Style:
+**data-dense terminal**. Delivered as a **multi-theme system**, not a single
+palette:
 
-- **Tokens**: `.mockups/design-system/tokens.css` — **Data-dense terminal**
-  palette (deep navy `#0B0E14`, teal accent `#2DD4BF` kept distinct from the
-  green "ready" state, red "blocked"), **IBM Plex Sans + JetBrains Mono** type.
-  Dark is primary; explicit `[data-theme="light"]` toggle for the light readout
-  (matches the epic's "both, explicit toggle" mode decision). Includes
-  categorical `--kind-*` and `--status-*` tokens for the board's kind/stage/
-  dependency encoding. WCAG AA verified in both modes.
-- **Palette preview**: `.mockups/design-system/palette.html`
-- **Typography preview**: `.mockups/design-system/typography.html`
+- **Tokens**: `.mockups/design-system/tokens.css` — base (type/space/radius) +
+  **six swappable accent themes** (`teal` default, `amber`, `violet`, `azure`,
+  `lime`, `candy`) selected via `[data-accent]` on `<html>`, each fully
+  designed in light **and** dark. Mode **follows system preference** by default
+  with an explicit `[data-theme="light"|"dark"]` override (wins over the media
+  query). `candy` is a multi-color theme (hot-pink primary + rainbow kind
+  chips); the other five share categorical `--kind-*` / `--status-*` palettes.
+  Every accent × mode pairing is WCAG AA verified (text, muted, on-accent,
+  link). Type: **Geist + Geist Mono**.
+- **Theme selector is a shipped board control**: the board sets `data-accent` +
+  `data-theme` and persists them (localStorage, mirrored to board config). The
+  shell feature owns the selector UI + persistence; the host serves `tokens.css`.
+- **Interactive preview**: `.mockups/design-system/palette.html` — live accent
+  dropdown + Sys/Light/Dark toggle over a realistic board, reading `tokens.css`.
+- **Typography preview**: `.mockups/design-system/typography.html` (Geist, locked).
 - Explored and set aside (recoverable from git history): neubrutalist
   (highlighter / risograph / acid), Swiss/typographic, cassette futurism,
-  editorial, vaporwave, aurora glass.
+  editorial, vaporwave, aurora glass; and the single-lock terminal-teal /
+  IBM Plex iteration that preceded the multi-theme system.
 
 Remaining ux-ui pipeline, still gated before the UI features implement:
 `components` → `motion` → `screens` (one per `epic-substrate-board-kanban`,
