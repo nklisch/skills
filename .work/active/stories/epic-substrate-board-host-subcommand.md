@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-host-subcommand
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-host
 depends_on: []
@@ -64,3 +64,16 @@ contract.
   `work-view-core` doctest linking with `ld terminated with signal 7 [Bus
   error]`; retrying `cargo test -p work-view-core --doc` reproduced the same
   linker crash before test code ran.
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review under autopilot. Implementation notes recorded
+green scoped verification (`cargo test -p work-view-cli`); host reran the same
+scoped command successfully. Full workspace doctest linker crash is unrelated to
+this story and was not treated as a blocker for the subcommand slice.
