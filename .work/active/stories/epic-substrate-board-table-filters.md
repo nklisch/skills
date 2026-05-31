@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-table-filters
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-table
 depends_on: [epic-substrate-board-table-sort]
@@ -30,7 +30,16 @@ registered sorted table.
 
 ## Acceptance Criteria
 
-- [ ] Per-column filters narrow only the table render.
-- [ ] Column filters do not mutate `ctx.getState().filters`.
-- [ ] The table remains readable at narrow and desktop widths.
-- [ ] Static checks, tests, and release build pass.
+- [x] Per-column filters narrow only the table render.
+- [x] Column filters do not mutate `ctx.getState().filters`.
+- [x] The table remains readable at narrow and desktop widths.
+- [x] Static checks, tests, and release build pass.
+
+## Implementation Notes
+
+- Added module-scoped table-local column filters applied after
+  `ctx.visibleItems()` and before sorting.
+- Filter inputs re-render the local table view without calling `ctx.setFilter`
+  and restore focus/caret after each render.
+- Added sticky header and minimum-width table CSS inside a horizontally
+  scrollable wrapper.

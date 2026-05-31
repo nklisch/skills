@@ -13,6 +13,8 @@ const STATUS_ORDER = ["blocked", "ready", "active", "done"];
 
 let sortState = null;
 let pendingHeaderFocus = null;
+let pendingFilterFocus = null;
+const columnFilters = new Map();
 
 function textElement(tag, className, text) {
   const element = document.createElement(tag);
@@ -123,12 +125,48 @@ function sortedItems(items, snapshot) {
   return indexed.map(({ item }) => item);
 }
 
+function filterItems(items) {
+  const filters = Array.from(columnFilters.entries()).filter(([, value]) => value.trim() !== "");
+  if (filters.length === 0) {
+    return items;
+  }
+  return items.filter((item) => filters.every(([columnId, needle]) => (
+    tableValue(item, columnId).toLowerCase().includes(needle.trim().toLowerCase())
+  )));
+}
+
 function toggleSort(columnId) {
   if (sortState?.column === columnId) {
     sortState = { column: columnId, dir: sortState.dir === "asc" ? "desc" : "asc" };
   } else {
     sortState = { column: columnId, dir: "asc" };
   }
+}
+
+function renderFilterRow(root, ctx) {
+  const row = document.createElement("tr");
+  row.className = "table-filter-row";
+  for (const column of COLUMNS) {
+    const th = document.createElement("th");
+    const input = document.createElement("input");
+    input.type = "search";
+    input.value = columnFilters.get(column.id) || "";
+    input.placeholder = column.label;
+    input.dataset.column = column.id;
+    input.setAttribute("aria-label", `Filter ${column.label}`);
+    input.addEventListener("input", () => {
+      if (input.value.trim() === "") {
+        columnFilters.delete(column.id);
+      } else {
+        columnFilters.set(column.id, input.value);
+      }
+      pendingFilterFocus = column.id;
+      tableView.mount(root, ctx);
+    });
+    th.append(input);
+    row.append(th);
+  }
+  return row;
 }
 
 function renderHeader(root, ctx) {
@@ -154,7 +192,7 @@ function renderHeader(root, ctx) {
     }
     row.append(th);
   }
-  thead.append(row);
+  thead.append(row, renderFilterRow(root, ctx));
   return thead;
 }
 
@@ -224,12 +262,29 @@ function restoreHeaderFocus(root) {
   }
 }
 
+function restoreFilterFocus(root) {
+  if (!pendingFilterFocus) {
+    return;
+  }
+  const focusColumn = pendingFilterFocus;
+  pendingFilterFocus = null;
+  for (const input of root.querySelectorAll(".table-filter-row input")) {
+    if (input.dataset.column === focusColumn) {
+      input.focus({ preventScroll: true });
+      if (typeof input.setSelectionRange === "function") {
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
+      return;
+    }
+  }
+}
+
 export const tableView = {
   id: "table",
   label: "Table",
   mount(root, ctx) {
     const state = ctx.getState();
-    const items = sortedItems(ctx.visibleItems(), state.snapshot);
+    const items = sortedItems(filterItems(ctx.visibleItems()), state.snapshot);
     const view = document.createElement("div");
     view.className = "table-view";
     const header = document.createElement("header");
@@ -244,5 +299,6 @@ export const tableView = {
     view.append(header, tableWrap);
     root.replaceChildren(view);
     restoreHeaderFocus(root);
+    restoreFilterFocus(root);
   },
 };

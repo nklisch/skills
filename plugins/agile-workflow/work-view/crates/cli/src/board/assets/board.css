@@ -546,9 +546,32 @@ button.dep-node:focus-visible {
 
 .table-wrap {
   overflow-x: auto;
+  max-width: 100%;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-primary);
+}
+
+.board-table {
+  min-width: 820px;
+}
+
+.board-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-bg-primary);
+}
+
+.table-filter-row input {
+  width: 100%;
+  min-width: 72px;
+  padding: 5px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font: var(--font-weight-regular) var(--font-size-xs)/1.2 var(--font-mono);
 }
 
 .board-table tbody tr {
