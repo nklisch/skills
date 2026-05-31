@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-shell-filters
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-shell
 depends_on: [epic-substrate-board-shell-data]
@@ -32,8 +32,27 @@ through `visibleItems()` / `matches(item)`.
 
 ## Acceptance Criteria
 
-- [ ] `visibleItems()` changes consistently when any filter control changes.
-- [ ] Auto-hide true hides only releases/archive tier items, not active
+- [x] `visibleItems()` changes consistently when any filter control changes.
+- [x] Auto-hide true hides only releases/archive tier items, not active
       `stage: done` items.
-- [ ] Filter state persists across reload and view switches.
-- [ ] Empty filter results render an explicit empty state.
+- [x] Filter state persists across reload and view switches.
+- [x] Empty filter results render an explicit empty state.
+
+## Implementation notes
+
+- Added `assets/filters.js` as the owner of default filter state, persistence
+  normalization, null-sentinel handling, derived option sets, matching
+  semantics, and global filter control rendering.
+- Refactored `assets/state.js` so `visibleItems()` / `matches(item)` delegate
+  through the shared `matchesFilters(item, filters)` contract instead of
+  keeping a second evaluator in the store.
+- Refactored `assets/board.js` and `index.html` so the filter UI is rendered by
+  `renderFilterBar(root, ctx)`, covering search, kind, stage, parent, release,
+  tag, and auto-hide controls.
+- Added `/assets/filters.js` to the embedded route table and integration
+  assertions, including a static guard that auto-hide keys off `tier:
+  releases/archive` and not `is_terminal`.
+- Verification passed: `cargo fmt -p work-view-cli`,
+  `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`, and
+  `TMPDIR=/home/nathan/.cache/silas/tmp cargo build --release -p
+  work-view-cli`.

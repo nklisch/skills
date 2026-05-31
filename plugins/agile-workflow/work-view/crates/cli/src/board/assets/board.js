@@ -1,5 +1,6 @@
 import { createBoardStore } from "/assets/state.js";
 import { renderCard } from "/assets/card.js";
+import { renderFilterBar } from "/assets/filters.js";
 
 const root = document.documentElement;
 const accentPicker = document.getElementById("theme-accent");
@@ -12,18 +13,11 @@ const diagnosticsSummary = document.getElementById("diagnostics-summary");
 const diagnosticsRegion = document.getElementById("diagnostics-region");
 const viewRoot = document.getElementById("view-root");
 const refreshButton = document.getElementById("refresh-button");
-const searchInput = document.getElementById("filter-search");
-const autoHideButton = document.getElementById("auto-hide-released");
-const kindButtons = filterButtons("Kind filters");
-const stageButtons = filterButtons("Stage filters");
+const filterRoot = document.getElementById("global-filter-container");
 
 const store = createBoardStore({ storage: window.localStorage, root: document });
+const filtersUi = filterRoot ? renderFilterBar(filterRoot, store) : null;
 window.boardContext = store;
-
-function filterButtons(label) {
-  const group = document.querySelector(`[aria-label="${label}"]`);
-  return Array.from(group?.querySelectorAll(".filter-chip") || []);
-}
 
 function replaceChildren(node, children) {
   if (!node) {
@@ -122,19 +116,6 @@ function applyView(view) {
   }
 }
 
-function syncFilterControls(filters) {
-  if (searchInput && searchInput.value !== filters.search) {
-    searchInput.value = filters.search;
-  }
-  for (const button of kindButtons) {
-    button.setAttribute("aria-pressed", String(filters.kinds.has(button.textContent.trim())));
-  }
-  for (const button of stageButtons) {
-    button.setAttribute("aria-pressed", String(filters.stages.has(button.textContent.trim())));
-  }
-  autoHideButton?.setAttribute("aria-pressed", String(filters.autoHideReleased));
-}
-
 function updateStatus(state, visibleCount) {
   if (statusSpinner) {
     statusSpinner.hidden = !state.loading;
@@ -225,7 +206,7 @@ function render(state) {
   const visibleCount = store.visibleItems().length;
   applyTheme(state.theme);
   applyView(state.view);
-  syncFilterControls(state.filters);
+  filtersUi?.sync(state);
   updateStatus(state, visibleCount);
   renderDiagnostics(state);
   renderView(state);
@@ -242,42 +223,6 @@ for (const button of modeButtons) {
 for (const tab of viewTabs) {
   tab.addEventListener("click", () => store.setView(tab.dataset.view || "kanban"));
 }
-
-for (const button of kindButtons) {
-  button.addEventListener("click", () => {
-    const filters = store.getState().filters;
-    const value = button.textContent.trim();
-    const next = new Set(filters.kinds);
-    if (next.has(value)) {
-      next.delete(value);
-    } else {
-      next.add(value);
-    }
-    store.setFilter("kinds", next);
-  });
-}
-
-for (const button of stageButtons) {
-  button.addEventListener("click", () => {
-    const filters = store.getState().filters;
-    const value = button.textContent.trim();
-    const next = new Set(filters.stages);
-    if (next.has(value)) {
-      next.delete(value);
-    } else {
-      next.add(value);
-    }
-    store.setFilter("stages", next);
-  });
-}
-
-searchInput?.addEventListener("input", (event) => {
-  store.setFilter("search", event.target.value);
-});
-
-autoHideButton?.addEventListener("click", () => {
-  store.setFilter("autoHideReleased", !store.getState().filters.autoHideReleased);
-});
 
 refreshButton?.addEventListener("click", () => {
   void store.refresh();

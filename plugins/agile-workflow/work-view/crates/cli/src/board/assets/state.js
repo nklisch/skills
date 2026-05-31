@@ -1,80 +1,21 @@
+import {
+  cloneFilters,
+  matchesFilters,
+  normalizeFilterValue,
+  normalizeFilters,
+  serializeFilters,
+} from "/assets/filters.js";
+
 const STORAGE_KEY = "agile-workflow-board:v1";
 const VIEWS = new Set(["kanban", "dependency", "table"]);
 const ACCENTS = new Set(["teal", "amber", "violet", "azure", "lime", "candy"]);
 const MODES = new Set(["system", "light", "dark"]);
-const FILTER_KEYS = new Set(["search", "kinds", "stages", "parents", "releases", "tags", "autoHideReleased"]);
-const SET_FILTERS = new Set(["kinds", "stages", "parents", "releases", "tags"]);
-const NULL_SENTINEL = "(none)";
-
-function defaultFilters() {
-  return {
-    search: "",
-    kinds: new Set(),
-    stages: new Set(),
-    parents: new Set(),
-    releases: new Set(),
-    tags: new Set(),
-    autoHideReleased: true,
-  };
-}
 
 function defaultTheme() {
   return {
     accent: "teal",
     mode: "system",
   };
-}
-
-function cloneFilters(filters) {
-  return {
-    search: filters.search,
-    kinds: new Set(filters.kinds),
-    stages: new Set(filters.stages),
-    parents: new Set(filters.parents),
-    releases: new Set(filters.releases),
-    tags: new Set(filters.tags),
-    autoHideReleased: filters.autoHideReleased,
-  };
-}
-
-function serializeFilters(filters) {
-  return {
-    search: filters.search,
-    kinds: Array.from(filters.kinds),
-    stages: Array.from(filters.stages),
-    parents: Array.from(filters.parents),
-    releases: Array.from(filters.releases),
-    tags: Array.from(filters.tags),
-    autoHideReleased: filters.autoHideReleased,
-  };
-}
-
-function normalizeSet(value) {
-  if (value instanceof Set) {
-    return new Set(Array.from(value).map(String).filter(Boolean));
-  }
-  if (Array.isArray(value)) {
-    return new Set(value.map(String).filter(Boolean));
-  }
-  if (typeof value === "string" && value !== "") {
-    return new Set([value]);
-  }
-  return new Set();
-}
-
-function normalizeFilters(raw) {
-  const filters = defaultFilters();
-  if (!raw || typeof raw !== "object") {
-    return filters;
-  }
-  filters.search = typeof raw.search === "string" ? raw.search : "";
-  filters.kinds = normalizeSet(raw.kinds);
-  filters.stages = normalizeSet(raw.stages);
-  filters.parents = normalizeSet(raw.parents);
-  filters.releases = normalizeSet(raw.releases);
-  filters.tags = normalizeSet(raw.tags);
-  filters.autoHideReleased = raw.autoHideReleased !== false;
-  return filters;
 }
 
 function loadPersisted(storage) {
@@ -153,46 +94,6 @@ function duplicateIds(items) {
     seen.add(item.id);
   }
   return Array.from(duplicates).sort();
-}
-
-function itemField(item, key) {
-  const value = item?.[key];
-  return value == null || value === "" ? NULL_SENTINEL : String(value);
-}
-
-function includesText(item, needle) {
-  if (!needle) {
-    return true;
-  }
-  const haystack = [
-    item?.id,
-    item?.kind,
-    item?.stage,
-    item?.parent,
-    item?.release_binding,
-    item?.gate_origin,
-    item?.rel_path,
-    item?.body,
-    ...(Array.isArray(item?.tags) ? item.tags : []),
-  ].filter(Boolean).join(" ").toLowerCase();
-  return haystack.includes(needle.toLowerCase());
-}
-
-function filterSetAllows(values, actual) {
-  return values.size === 0 || values.has(actual);
-}
-
-function tagsAllow(selectedTags, itemTags) {
-  if (selectedTags.size === 0) {
-    return true;
-  }
-  const tags = new Set(Array.isArray(itemTags) ? itemTags.map(String) : []);
-  for (const tag of selectedTags) {
-    if (!tags.has(tag)) {
-      return false;
-    }
-  }
-  return true;
 }
 
 export function createBoardStore({ storage = globalThis.localStorage, fetchJson, root = document } = {}) {
@@ -290,36 +191,15 @@ export function createBoardStore({ storage = globalThis.localStorage, fetchJson,
   }
 
   function setFilter(key, value) {
-    if (!FILTER_KEYS.has(key)) {
-      throw new Error(`Unknown board filter: ${key}`);
-    }
     const filters = cloneFilters(state.filters);
-    if (SET_FILTERS.has(key)) {
-      filters[key] = normalizeSet(value);
-    } else if (key === "search") {
-      filters.search = typeof value === "string" ? value : "";
-    } else if (key === "autoHideReleased") {
-      filters.autoHideReleased = Boolean(value);
-    }
+    filters[key] = normalizeFilterValue(key, value);
     state = { ...state, filters };
     persist();
     notify();
   }
 
   function matches(item) {
-    const filters = state.filters;
-    if (!item || typeof item !== "object") {
-      return false;
-    }
-    if (filters.autoHideReleased && (item.tier === "releases" || item.tier === "archive")) {
-      return false;
-    }
-    return filterSetAllows(filters.kinds, itemField(item, "kind"))
-      && filterSetAllows(filters.stages, itemField(item, "stage"))
-      && filterSetAllows(filters.parents, itemField(item, "parent"))
-      && filterSetAllows(filters.releases, itemField(item, "release_binding"))
-      && tagsAllow(filters.tags, item.tags)
-      && includesText(item, filters.search.trim());
+    return matchesFilters(item, state.filters);
   }
 
   function visibleItems() {

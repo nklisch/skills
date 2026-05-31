@@ -127,6 +127,16 @@ select {
   gap: 6px;
 }
 
+.filter-options--scroll {
+  max-height: 116px;
+  overflow-y: auto;
+}
+
+.filter-empty {
+  color: var(--color-text-tertiary);
+  font: var(--font-weight-medium) var(--font-size-xs)/1.4 var(--font-mono);
+}
+
 .content-wrap {
   min-width: 0;
   padding: 14px 18px 40px;

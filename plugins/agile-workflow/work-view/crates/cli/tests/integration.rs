@@ -532,6 +532,7 @@ fn board_embedded_assets_return_expected_content_types() {
     for path in [
         "/assets/board.js",
         "/assets/state.js",
+        "/assets/filters.js",
         "/assets/markdown.js",
         "/assets/card.js",
     ] {
@@ -548,16 +549,33 @@ fn board_embedded_assets_return_expected_content_types() {
     let board_js = board_response_once("/assets/board.js");
     let board_body = http_body(&board_js);
     assert!(
-        board_body.contains("createBoardStore") && board_body.contains("store.refresh()"),
-        "board JS should bootstrap the store and initial refresh; body: {board_body}"
+        board_body.contains("createBoardStore")
+            && board_body.contains("renderFilterBar")
+            && board_body.contains("store.refresh()"),
+        "board JS should bootstrap the store, filters, and initial refresh; body: {board_body}"
     );
     let state_js = board_response_once("/assets/state.js");
     let state_body = http_body(&state_js);
     assert!(
         state_body.contains("export function createBoardStore")
             && state_body.contains("\"/api/substrate\"")
+            && state_body.contains("matchesFilters")
             && state_body.contains("localStorage"),
         "state JS should export the board store and fetch the substrate feed; body: {state_body}"
+    );
+    let filters_js = board_response_once("/assets/filters.js");
+    let filters_body = http_body(&filters_js);
+    assert!(
+        filters_body.contains("export function createDefaultFilters")
+            && filters_body.contains("export function matchesFilters")
+            && filters_body.contains("export function renderFilterBar")
+            && filters_body.contains("NULL_SENTINEL"),
+        "filters JS should own filter defaults, matching, null sentinel, and controls; body: {filters_body}"
+    );
+    assert!(
+        filters_body.contains("item.tier === \"releases\" || item.tier === \"archive\"")
+            && !filters_body.contains("is_terminal"),
+        "auto-hide should key off tier, not terminal stage; body: {filters_body}"
     );
     let markdown_js = board_response_once("/assets/markdown.js");
     let markdown_body = http_body(&markdown_js);

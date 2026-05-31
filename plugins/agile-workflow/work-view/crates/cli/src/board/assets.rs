@@ -12,6 +12,7 @@ const MOTION_CSS: &[u8] = include_bytes!("assets/motion.css");
 const BOARD_CSS: &[u8] = include_bytes!("assets/board.css");
 const BOARD_JS: &[u8] = include_bytes!("assets/board.js");
 const STATE_JS: &[u8] = include_bytes!("assets/state.js");
+const FILTERS_JS: &[u8] = include_bytes!("assets/filters.js");
 const MARKDOWN_JS: &[u8] = include_bytes!("assets/markdown.js");
 const CARD_JS: &[u8] = include_bytes!("assets/card.js");
 
@@ -43,6 +44,10 @@ pub(crate) fn asset_for_path(path: &str) -> Option<Asset> {
         }),
         "/assets/state.js" => Some(Asset {
             bytes: STATE_JS,
+            content_type: "text/javascript; charset=utf-8",
+        }),
+        "/assets/filters.js" => Some(Asset {
+            bytes: FILTERS_JS,
             content_type: "text/javascript; charset=utf-8",
         }),
         "/assets/markdown.js" => Some(Asset {
@@ -85,6 +90,7 @@ mod tests {
         for path in [
             "/assets/board.js",
             "/assets/state.js",
+            "/assets/filters.js",
             "/assets/markdown.js",
             "/assets/card.js",
         ] {
