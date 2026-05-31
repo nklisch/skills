@@ -651,6 +651,9 @@ fn board_embedded_assets_return_expected_content_types() {
         dependency_body.contains("export const dependencyView")
             && dependency_body.contains("buildDependencyModel")
             && dependency_body.contains("layerGraph")
+            && dependency_body.contains("renderGraphCanvas")
+            && dependency_body.contains("createElementNS")
+            && dependency_body.contains("dependency-edge--unmet")
             && dependency_body.contains("cycleIds")
             && dependency_body.contains("ctx.openDetail(node.id)"),
         "dependency JS should provide the layered graph-model view; body: {dependency_body}"

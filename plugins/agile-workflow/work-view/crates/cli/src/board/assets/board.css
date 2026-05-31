@@ -465,6 +465,46 @@ button.dep-node:focus-visible {
   color: var(--color-text-secondary);
 }
 
+.dependency-canvas-viewport {
+  min-height: 520px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+}
+
+.dependency-canvas {
+  position: relative;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.dependency-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.dependency-edge {
+  fill: none;
+  stroke: var(--status-ready);
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.dependency-edge--unmet {
+  stroke: var(--status-blocked);
+  stroke-dasharray: 7 6;
+}
+
+.dependency-graph-node {
+  position: absolute;
+  width: 280px;
+}
+
 @media (max-width: 980px) {
   .appbar {
     grid-template-columns: 1fr;

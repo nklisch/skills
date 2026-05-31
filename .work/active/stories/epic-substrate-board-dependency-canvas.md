@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-dependency-canvas
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-board-dependency
 depends_on: [epic-substrate-board-dependency-model]
@@ -31,8 +31,17 @@ SVG and positioned DOM nodes.
 
 ## Acceptance Criteria
 
-- [ ] The graph canvas renders nodes and edges from the D1 model.
-- [ ] Edge visual status matches satisfied vs unmet dependency state.
-- [ ] The implementation stays vanilla HTML/CSS/JS with no external graph
+- [x] The graph canvas renders nodes and edges from the D1 model.
+- [x] Edge visual status matches satisfied vs unmet dependency state.
+- [x] The implementation stays vanilla HTML/CSS/JS with no external graph
       library.
-- [ ] Canvas layout does not replace shared detail/card behavior.
+- [x] Canvas layout does not replace shared detail/card behavior.
+
+## Implementation Notes
+
+- Added a hand-rolled SVG edge layer and absolute-positioned node canvas over
+  the existing D1 graph model.
+- Edge paths are styled as ready/met or blocked/unmet based on the model's
+  `edge.unmet` flag derived from `item.unmet_deps`.
+- Nodes reuse the D1 `renderNode` path, so shared `ctx.openDetail(id)` behavior
+  remains unchanged.

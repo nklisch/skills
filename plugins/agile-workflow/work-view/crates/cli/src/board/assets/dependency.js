@@ -1,5 +1,10 @@
 const EXTERNAL_PREFIX = "external:";
 const KIND_CLASSES = new Set(["epic", "feature", "story", "release", "backlog"]);
+const NODE_WIDTH = 280;
+const NODE_HEIGHT = 132;
+const LAYER_GAP = 110;
+const ROW_GAP = 28;
+const CANVAS_PADDING = 24;
 
 function textElement(tag, className, text) {
   const element = document.createElement(tag);
@@ -205,6 +210,83 @@ function renderLayer(layer, nodes, model, ctx) {
   return section;
 }
 
+function layoutGraph(model) {
+  const positions = new Map();
+  let maxRows = 1;
+  model.layers.forEach(([, nodes], layerIndex) => {
+    maxRows = Math.max(maxRows, nodes.length);
+    nodes.forEach((node, rowIndex) => {
+      positions.set(node.id, {
+        x: CANVAS_PADDING + layerIndex * (NODE_WIDTH + LAYER_GAP),
+        y: CANVAS_PADDING + rowIndex * (NODE_HEIGHT + ROW_GAP),
+      });
+    });
+  });
+  return {
+    positions,
+    width: CANVAS_PADDING * 2 + model.layers.length * NODE_WIDTH + Math.max(0, model.layers.length - 1) * LAYER_GAP,
+    height: CANVAS_PADDING * 2 + maxRows * NODE_HEIGHT + Math.max(0, maxRows - 1) * ROW_GAP,
+  };
+}
+
+function edgePath(from, to) {
+  const x1 = from.x + NODE_WIDTH;
+  const y1 = from.y + NODE_HEIGHT / 2;
+  const x2 = to.x;
+  const y2 = to.y + NODE_HEIGHT / 2;
+  const control = Math.max(48, (x2 - x1) / 2);
+  return `M ${x1} ${y1} C ${x1 + control} ${y1}, ${x2 - control} ${y2}, ${x2} ${y2}`;
+}
+
+function renderEdges(model, layout) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.classList.add("dependency-edges");
+  svg.setAttribute("viewBox", `0 0 ${layout.width} ${layout.height}`);
+  svg.setAttribute("aria-hidden", "true");
+  for (const edge of model.edges) {
+    const from = layout.positions.get(edge.from);
+    const to = layout.positions.get(edge.to);
+    if (!from || !to) {
+      continue;
+    }
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.classList.add("dependency-edge", edge.unmet ? "dependency-edge--unmet" : "dependency-edge--met");
+    path.setAttribute("d", edgePath(from, to));
+    path.dataset.from = edge.from;
+    path.dataset.to = edge.to;
+    svg.append(path);
+  }
+  return svg;
+}
+
+function renderGraphCanvas(model, ctx) {
+  const layout = layoutGraph(model);
+  const viewport = document.createElement("div");
+  viewport.className = "dependency-canvas-viewport";
+
+  const canvas = document.createElement("div");
+  canvas.className = "dependency-canvas";
+  canvas.style.width = `${layout.width}px`;
+  canvas.style.height = `${layout.height}px`;
+  canvas.append(renderEdges(model, layout));
+
+  for (const node of model.nodes.values()) {
+    const position = layout.positions.get(node.id);
+    if (!position) {
+      continue;
+    }
+    const wrapper = document.createElement("div");
+    wrapper.className = "dependency-graph-node";
+    wrapper.style.left = `${position.x}px`;
+    wrapper.style.top = `${position.y}px`;
+    wrapper.append(renderNode(node, model, ctx));
+    canvas.append(wrapper);
+  }
+
+  viewport.append(canvas);
+  return viewport;
+}
+
 export const dependencyView = {
   id: "dependency",
   label: "Dependency",
@@ -227,12 +309,7 @@ export const dependencyView = {
       view.append(warning);
     }
 
-    const layers = document.createElement("div");
-    layers.className = "dependency-layers";
-    for (const [layer, nodes] of model.layers) {
-      layers.append(renderLayer(layer, nodes, model, ctx));
-    }
-    view.append(layers);
+    view.append(renderGraphCanvas(model, ctx));
     root.replaceChildren(view);
   },
 };
