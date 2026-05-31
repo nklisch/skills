@@ -1,9 +1,14 @@
 ---
 id: gate-tests-ci-actionlint
 kind: story
+stage: drafting
 tags: [testing, tooling]
+parent: null
+depends_on: []
+release_binding: 0.8.6
 gate_origin: tests
 created: 2026-05-31
+updated: 2026-05-31
 ---
 
 # Add `actionlint` guard for build-work-view.yml CI logic
@@ -25,3 +30,20 @@ what an `actionlint` step catches on every push. The size guard
 load-bearing and currently unguarded against regression. CI behavior is genuinely hard
 to unit-test, so the honest output is: add an `actionlint` step (meta-CI or
 pre-commit), or document that workflow logic is review-gated only.
+
+## Scoped into 0.8.6 (2026-05-31)
+Promoted from backlog at user request ("scope those needing scoping") and bound to
+0.8.6.
+
+## Design decision (cross-model consult, Codex via peeragent, 2026-05-31)
+Recommendation **(a)**: add actionlint. Documenting "review-gated only" preserves the
+exact failure mode that already shipped. Lowest-friction useful shape is a DEDICATED
+workflow-lint CI so any workflow edit gets checked (not only build-work-view.yml):
+- New file `.github/workflows/lint-github-actions.yml`.
+- Triggers: `pull_request` + `push` with `paths: [".github/workflows/**"]`, plus
+  `workflow_dispatch`.
+- Job: Ubuntu, checkout, `rhysd/actionlint@v1`.
+- Catches expression/type mistakes like comparing a boolean `workflow_dispatch` input
+  to the string `'true'` (the bug that shipped).
+Local verification limited to YAML validity (actionlint not installed locally; the
+action runs in CI).

@@ -1,9 +1,14 @@
 ---
 id: gate-tests-parity-empty-results
 kind: story
+stage: drafting
 tags: [testing]
+parent: null
+depends_on: []
+release_binding: 0.8.6
 gate_origin: tests
 created: 2026-05-31
+updated: 2026-05-31
 ---
 
 # Bash-parity tests for empty `--parent` / `--blocking` results

@@ -42,3 +42,15 @@ level.
 `plugins/agile-workflow/scripts/tests/` (new convert-routing assertion). Note: this
 story may resolve as a [documentation] decision (markdown-skill test strategy) rather
 than a pure test addition — settle that during design.
+
+## Design decision (cross-model consult, Codex via peeragent, 2026-05-31)
+Recommendation **A**: a structural regression test on `convert/SKILL.md`. For a
+markdown skill, guard the instructions as written; extracting a sourced shell function
+is more invasive and can still drift from the agent-readable prose. Codex confirmed the
+current convert skill already routes through `install-work-view.sh` in BOTH places, so
+the test guards the existing-correct routing. Concrete:
+- New `plugins/agile-workflow/scripts/tests/convert-install-routing.test.sh`.
+- Extract bounded blocks: Phase 4 (substrate skeleton) and Phase S3 (apply refreshes).
+- Assert each block references `install-work-view.sh` (the installer routing).
+- Assert NEITHER block contains a raw fallback `cp ... work-view.sh ... .work/bin/work-view`.
+- Wire into CI beside `install-work-view.test.sh`.
