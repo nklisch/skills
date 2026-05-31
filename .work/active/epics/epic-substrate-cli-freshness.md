@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness
 kind: epic
-stage: implementing
+stage: review
 tags: [tooling]
 parent: null
 depends_on: []
@@ -218,3 +218,29 @@ commit `0002486`:
   handles arg position 1 only on bash 3.2; the contract-critical uses (self-heal
   probe, humans) pass `--version` alone. Independently verified 247 tests green;
   both implementations report `work-view 0.8.7` byte-identically.
+
+## Children complete (2026-05-31)
+
+All child features reached `stage: done`:
+
+- `epic-substrate-cli-freshness-versioning` — work-view `--version` lockstep,
+  bump-script projection, and version tests.
+- `epic-substrate-cli-freshness-discovery` — plugin-root discovery spike reached
+  a reviewed **RULE-OUT** verdict for env-var-free discovery.
+- `epic-substrate-cli-freshness-self-heal` — installer, hook, convert, CI, and
+  foundation docs deliver the portable bash self-heal floor.
+- `epic-substrate-cli-freshness-shim` — explicitly ruled out because the
+  discovery dependency failed the feature's own proceed condition.
+
+Feature-level review included a three-pass Claude Opus peer-review loop for
+discovery + self-heal. Accepted findings were fixed in commit `e7f52db`: removed
+stray scaffolding from the discovery doc, wired convert-routing checks into CI,
+strengthened the UserPromptSubmit no-version-probe test, and removed a shell
+word-splitting nit in the installer. Verification after fixes:
+
+- `TMPDIR=/home/nathan/dev/skills/.tmp-autopilot bash plugins/agile-workflow/scripts/tests/install-work-view.test.sh`
+  (41 passed; system `/tmp` is full)
+- `bash plugins/agile-workflow/scripts/tests/convert-install-routing.test.sh`
+  (12 passed)
+- `cd plugins/agile-workflow/hooks/scripts && python3 -m unittest test_prompt_context -v`
+  (39 passed)
