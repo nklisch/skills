@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-cli-freshness-discovery-investigate
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-substrate-cli-freshness-discovery
 depends_on: []
@@ -68,18 +68,74 @@ feature's Design decisions). Mirror the verdict into the parent feature body's
 
 ## Acceptance criteria
 
-- [ ] `docs/research/plugin-root-discovery.md` exists and answers BOTH gating
+- [x] `docs/research/plugin-root-discovery.md` exists and answers BOTH gating
       questions (env-var matrix across 3 contexts; install-dir layout per
       marketplace).
-- [ ] Every harness env-var / cache-layout claim is tagged verified-empirically
+- [x] Every harness env-var / cache-layout claim is tagged verified-empirically
       or verified-by-docs — no unmarked from-memory claims.
-- [ ] The doc states a clear PASS (exact env-var-free discovery procedure +
+- [x] The doc states a clear PASS (exact env-var-free discovery procedure +
       per-marketplace confidence) or RULE-OUT (evidence + failing marketplace).
-- [ ] The verdict is mirrored into the parent feature's `## Spike verdict`.
-- [ ] No launcher/shim code is created; no throwaway probe artifacts remain in
+      → **RULE-OUT**, with per-marketplace evidence and the failing marketplace
+      (Claude Code) named.
+- [x] The verdict is mirrored into the parent feature's `## Spike verdict`.
+- [x] No launcher/shim code is created; no throwaway probe artifacts remain in
       the tree.
 
 ## Notes
 
 - This is a gate, not a build. If discovery is RULE-OUT, that is a valid epic
   completion path (the epic finishes on the self-heal floor), not a failure.
+
+## Implementation notes (2026-05-31)
+
+**Outcome: RULE-OUT.** Env-var-free, version-correct plugin-root discovery is not
+reliable across both marketplaces. Doc: `docs/research/plugin-root-discovery.md`;
+verdict mirrored into the parent feature's `## Spike verdict`.
+
+**Method.** Conducted the investigation directly (autopilot delegation; no
+`/agile-workflow:research` sub-invocation, no peeragent — per the delegation
+note). Doc-only deliverable, no reference skill (per the parent's Design
+decisions — the finding lands once in the shim design, it is not a runtime
+contract needing force-load). Empirical probes were read-only (`env`, `find`,
+`ls`, `cat` of `~/.claude` + `~/.codex`); official docs fetched for the
+documentation-status determination. **No files were written outside the three
+deliverables; no throwaway hook/probe artifacts were created** (the repo tree's
+other modified/untracked paths are concurrent agents' work, left untouched).
+
+**Key evidence (full tags in the doc):**
+- Env-var matrix confirmed the prior hypothesis: plugin-root var present **only**
+  in the hook context; absent in agent-Bash (`[verified-empirically]` this
+  session) and plain human terminal (`[verified-empirically]` — no shell-rc
+  export, absent in current shell). Claude hook sets `CLAUDE_PLUGIN_ROOT`
+  (`[verified-by-docs]` + the `UserPromptSubmit` hook firing this session
+  corroborates); Codex hook sets `PLUGIN_ROOT`+legacy `CLAUDE_PLUGIN_ROOT`
+  (`[verified-by-docs]`).
+- Claude Code cache: `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`
+  (root `[verified-by-docs]`, sub-layout `[verified-empirically]`); **18 versions
+  coexisting** (docs: stale dirs linger ~7 days); **no `latest`/symlink**;
+  `.in_use/` is a PID-refcount GC dir, not a pointer; the only reliable
+  active-version pointer is the **undocumented** `installed_plugins.json`;
+  per-project pins are real (`skills`→0.8.7 vs `praxis`→0.7.0).
+- Codex cache: `~/.codex/plugins/cache/$MARKETPLACE/$PLUGIN/$VERSION/` —
+  **officially documented** *and* `[verified-empirically]`; one version cached;
+  `config.toml` records enabled-state only; no registry/symlink.
+
+**Why RULE-OUT (against the parent's PASS bar).** Claude Code's only unambiguous
+env-var-free resolver is a churn-prone undocumented internal; documented-surface
+resolvers are version-ambiguous (7-day window + per-project pins) or
+context-limited (PATH injection never reaches a human terminal). Codex alone is a
+low-confidence pass but the bar requires both marketplaces. → Shim ruled out; epic
+completes on self-heal. Consistent with `install-work-view.sh` requiring the
+plugin-root var (so re-install belongs in the hook context, where it is set).
+
+**Verification run (read-only, no artifacts):**
+- `env | grep -iE 'PLUGIN_ROOT|CLAUDE'` in agent-Bash → neither var set.
+- `.work/bin/work-view --help` → exit 0 with both vars unset (binary needs no
+  plugin-root var to *run*; only to *install*).
+- `find`/`ls` of `~/.claude/plugins/{cache,installed_plugins.json,known_marketplaces.json}`
+  and `~/.codex/plugins/{cache,data}` + `~/.codex/config.toml`.
+- `grep` of shell rc files → no `PLUGIN_ROOT`/`CLAUDE_PLUGIN_ROOT` export.
+- WebFetch of the Claude Code plugins reference + Codex build docs for
+  documentation-status.
+- `git status --porcelain` → confirmed the only changes are the three
+  deliverables (plus pre-existing/concurrent work I did not touch).

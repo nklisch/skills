@@ -223,10 +223,48 @@ The story conducts and documents:
 
 ## Spike verdict
 
-(To be filled in by the investigate story with **PASS** + procedure, or
-**RULE-OUT** + evidence. The shim feature reads this section to decide whether to
-proceed or be explicitly ruled out — and the epic reads it to decide whether it
-completes on self-heal alone.)
+**RULE-OUT.** Env-var-free, version-correct plugin-root discovery is **not
+reliable** across both marketplaces. Full evidence + procedure analysis:
+`docs/research/plugin-root-discovery.md`.
+
+**Env-var matrix (Q1) — hypothesis confirmed.** The plugin-root var is present
+only in the hook context, absent in the two contexts the shim must serve:
+
+| Context | `PLUGIN_ROOT` | `CLAUDE_PLUGIN_ROOT` | Tag |
+|---|---|---|---|
+| Hook — Claude Code | unset | set | docs + empirical |
+| Hook — Codex | set | set (alias) | docs |
+| Agent Bash running `.work/bin/work-view` | unset | unset | empirical |
+| Plain human terminal | unset | unset | empirical |
+
+**Layout (Q2).**
+- **Claude Code:** `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`
+  (cache root documented; sub-layout empirical). **Many versions coexist** (~7
+  days post-update, documented) — observed 18. **No `latest`/symlink**; `.in_use/`
+  is a GC refcount dir, not a pointer. The *only* reliable active-version pointer
+  is `installed_plugins.json` (full `installPath` per scope/project) — but it is
+  **undocumented and internally versioned** (`"version": 2`). Per-project pins are
+  real (this machine: `skills`→0.8.7 vs `praxis`→0.7.0), so "newest cached" is
+  provably wrong for some projects.
+- **Codex:** `~/.codex/plugins/cache/$MARKETPLACE/$PLUGIN/$VERSION/` — **officially
+  documented** and observed. Only one version cached (no documented retention
+  guarantee); `config.toml` records enabled-state, **not** a resolved path/version;
+  no registry/symlink.
+
+**Why RULE-OUT.** Claude Code's only unambiguous resolver is a churn-prone
+undocumented internal; every documented-surface resolver is version-ambiguous (the
+7-day window + per-project pins) or context-limited (PATH injection never reaches a
+human terminal). Codex alone is a low-confidence pass (documented path, currently
+single-version) but cannot carry a bar that requires *both* marketplaces to resolve
+reliably from non-fragile, documented surface in both env-var-absent contexts.
+
+**Consequence for the epic.** The shim launcher
+(`epic-substrate-cli-freshness-shim`) is **ruled out** — a valid completion path,
+not a failure. The epic completes on the **self-heal** floor. This is consistent:
+`install-work-view.sh` itself hard-requires `PLUGIN_ROOT`/`CLAUDE_PLUGIN_ROOT`, so
+re-install must run in the hook context — exactly where the matrix shows the var
+*is* set. The shim would have needed the var where it is absent; that gap is
+unbridgeable on documented surface.
 
 ## Testing
 
