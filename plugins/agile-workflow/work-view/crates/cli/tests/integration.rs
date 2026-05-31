@@ -674,6 +674,8 @@ fn board_embedded_assets_return_expected_content_types() {
             && table_body.contains("compareRows")
             && table_body.contains("deriveFilterOptions")
             && table_body.contains("sortState")
+            && table_body.contains("pendingHeaderFocus")
+            && table_body.contains("focus({ preventScroll: true })")
             && table_body.contains("aria-sort")
             && table_body.contains("ctx.visibleItems()")
             && table_body.contains("ctx.openDetail(item.id)")

@@ -12,6 +12,7 @@ const COLUMNS = [
 const STATUS_ORDER = ["blocked", "ready", "active", "done"];
 
 let sortState = null;
+let pendingHeaderFocus = null;
 
 function textElement(tag, className, text) {
   const element = document.createElement(tag);
@@ -140,9 +141,11 @@ function renderHeader(root, ctx) {
     const button = document.createElement("button");
     button.className = "table-sort-button";
     button.type = "button";
+    button.dataset.column = column.id;
     button.textContent = column.label;
     button.addEventListener("click", () => {
       toggleSort(column.id);
+      pendingHeaderFocus = column.id;
       tableView.mount(root, ctx);
     });
     th.append(button);
@@ -207,6 +210,20 @@ function renderTable(items, ctx, root) {
   return table;
 }
 
+function restoreHeaderFocus(root) {
+  if (!pendingHeaderFocus) {
+    return;
+  }
+  const focusColumn = pendingHeaderFocus;
+  pendingHeaderFocus = null;
+  for (const button of root.querySelectorAll(".table-sort-button")) {
+    if (button.dataset.column === focusColumn) {
+      button.focus({ preventScroll: true });
+      return;
+    }
+  }
+}
+
 export const tableView = {
   id: "table",
   label: "Table",
@@ -226,5 +243,6 @@ export const tableView = {
     tableWrap.append(renderTable(items, ctx, root));
     view.append(header, tableWrap);
     root.replaceChildren(view);
+    restoreHeaderFocus(root);
   },
 };
