@@ -1,7 +1,7 @@
 ---
 id: epic-substrate-board-dependency-canvas
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-substrate-board-dependency
 depends_on: [epic-substrate-board-dependency-model]
@@ -45,3 +45,9 @@ SVG and positioned DOM nodes.
   `edge.unmet` flag derived from `item.unmet_deps`.
 - Nodes reuse the D1 `renderNode` path, so shared `ctx.openDetail(id)` behavior
   remains unchanged.
+
+## Review Notes
+
+- Local review approved the canvas diff. The layout code consumes the existing
+  D1 model and keeps rendering concerns isolated from graph construction.
+- Verification: `TMPDIR=/home/nathan/.cache/silas/tmp cargo test -p work-view-cli`.
