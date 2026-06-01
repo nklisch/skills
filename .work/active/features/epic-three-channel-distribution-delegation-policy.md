@@ -1,14 +1,14 @@
 ---
 id: epic-three-channel-distribution-delegation-policy
 kind: feature
-stage: implementing
+stage: review
 tags: [skill, plugin]
 parent: epic-three-channel-distribution
 depends_on: [epic-three-channel-distribution-package-metadata]
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 ---
 
 # Pi Delegation And Subagent Policy
@@ -107,10 +107,10 @@ evaluation when peeragent is not providing a different model class.
 ```
 
 **Acceptance Criteria**:
-- [ ] Core policy distinguishes same-harness Pi subagents from cross-model
+- [x] Core policy distinguishes same-harness Pi subagents from cross-model
   peeragent review.
-- [ ] Final autopilot completion still requires a successful final review path.
-- [ ] Stories still fast-advance without peer or deep review.
+- [x] Final autopilot completion still requires a successful final review path.
+- [x] Stories still fast-advance without peer or deep review.
 
 ### Unit 2: Implementation routing
 
@@ -133,9 +133,9 @@ evaluation when peeragent is not providing a different model class.
 ```
 
 **Acceptance Criteria**:
-- [ ] Implementation worker fanout prefers Pi-native workers under Pi.
-- [ ] Peeragent is not used for routine implementation workers.
-- [ ] Existing dispatch-economy guidance still requires direct local probing
+- [x] Implementation worker fanout prefers Pi-native workers under Pi.
+- [x] Peeragent is not used for routine implementation workers.
+- [x] Existing dispatch-economy guidance still requires direct local probing
   before spawning agents.
 
 ### Unit 3: Runtime-path sweep
@@ -156,9 +156,9 @@ evaluation when peeragent is not providing a different model class.
   not imply Pi same-harness subagents are cross-model.
 
 **Acceptance Criteria**:
-- [ ] Every runtime bullet that names Claude and Codex either includes a Pi path
+- [x] Every runtime bullet that names Claude and Codex either includes a Pi path
   or has a one-line reason Pi does not apply.
-- [ ] The sweep is mechanical and does not rewrite the substantive workflows.
+- [x] The sweep is mechanical and does not rewrite the substantive workflows.
 
 ## Implementation Order
 
@@ -190,3 +190,22 @@ evaluation when peeragent is not providing a different model class.
   conceptual roles (`worker`, `scout`, `reviewer`, `oracle`) and keep exact
   command syntax out of shared skills unless verified in the Pi extension
   feature.
+
+## Implementation Summary
+
+- `epic-three-channel-distribution-delegation-policy-core`: done. Added Pi
+  same-harness delegation policy to principles, autopilot, and deep-review
+  routing while preserving peeragent for cross-model/cross-harness review.
+- `epic-three-channel-distribution-delegation-policy-implementation-routing`:
+  done. Added Pi worker/scout/context-builder/reviewer routing to implementation
+  skills and explicitly kept peeragent out of routine implementation-worker
+  fanout.
+- `epic-three-channel-distribution-delegation-policy-skill-sweep`: done. Swept
+  design, gate, bug-scan, perf-scout, scope, and refactor-convention routing
+  blocks so Pi has a same-harness subagent path where Claude/Codex paths already
+  existed.
+
+## Verification
+
+- `rg -n "Pi path|Pi-native|pi-subagents|scout|context-builder|reviewer|oracle" plugins/agile-workflow/skills`
+- `git diff --check -- plugins/agile-workflow/skills/principles/SKILL.md plugins/agile-workflow/skills/autopilot/SKILL.md plugins/agile-workflow/skills/review/references/deep-review.md plugins/agile-workflow/skills/implement-orchestrator/SKILL.md plugins/agile-workflow/skills/implement/SKILL.md`
