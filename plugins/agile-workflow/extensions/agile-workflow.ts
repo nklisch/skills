@@ -11,6 +11,10 @@ type PiApi = {
     args: string[],
     options?: { signal?: AbortSignal; timeout?: number },
   ) => Promise<{ stdout?: string; stderr?: string; code?: number | null; killed?: boolean }>;
+  sendUserMessage?: (
+    content: string,
+    options?: { deliverAs?: "followUp" | "steer" | "immediate" },
+  ) => void | Promise<void>;
   registerCommand: (
     name: string,
     options: { description: string; handler: (args: string | undefined, ctx: PiContext) => Promise<string> },
@@ -75,6 +79,15 @@ export default function agileWorkflowExtension(pi: PiApi) {
             return show(ctx, await runIdFilter(pi, ctx, substrate, "--parent", rest));
           case "blocking":
             return show(ctx, await runIdFilter(pi, ctx, substrate, "--blocking", rest));
+          case "board":
+            return show(ctx, await queueSkillHandoff(pi, "$agile-workflow:board"));
+          case "autopilot":
+            return show(ctx, await queueSkillHandoff(pi, `$agile-workflow:autopilot ${rest || "--all"}`));
+          case "scope":
+            if (!rest) {
+              return show(ctx, "Expected an idea or item id for /aw scope.\n\n" + helpText(), "warning");
+            }
+            return show(ctx, await queueSkillHandoff(pi, `$agile-workflow:scope ${rest}`));
           default:
             return show(
               ctx,
@@ -140,6 +153,15 @@ async function runIdFilter(
   return runWorkView(pi, ctx, substrate, [flag, trimmed]);
 }
 
+async function queueSkillHandoff(pi: PiApi, invocation: string): Promise<string> {
+  if (pi.sendUserMessage) {
+    await pi.sendUserMessage(invocation, { deliverAs: "followUp" });
+    return `Queued follow-up: ${invocation}`;
+  }
+
+  return `Pi follow-up messages are unavailable in this runtime. Run: ${invocation}`;
+}
+
 async function queueSnapshot(pi: PiApi, ctx: PiContext, substrate: Substrate): Promise<string> {
   const ready = await runWorkView(pi, ctx, substrate, ["--ready"]);
   const review = await runWorkView(pi, ctx, substrate, ["--stage", "review"]);
@@ -196,7 +218,10 @@ function helpText(): string {
     "  /aw review            List items at stage:review",
     "  /aw parent <id>       List direct children",
     "  /aw blocking <id>     List items waiting on an item",
+    "  /aw board             Open the agile-workflow board via the shared skill",
+    "  /aw autopilot [scope] Queue the shared autopilot skill (defaults to --all)",
+    "  /aw scope <idea>      Queue the shared scope skill",
     "",
-    "Workflow shortcuts land in the next extension story.",
+    "Long-running workflow actions are handed to shared agile-workflow skills.",
   ].join("\n");
 }

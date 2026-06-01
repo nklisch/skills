@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-pi-agile-extension-workflow-shortcuts
 kind: story
-stage: implementing
+stage: review
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution-pi-agile-extension
 depends_on: [epic-three-channel-distribution-pi-agile-extension-queue-commands]
@@ -21,13 +21,27 @@ off to the existing agile-workflow skills.
 
 ## Acceptance Criteria
 
-- [ ] `/aw board` routes the user to `$agile-workflow:board` instead of starting
+- [x] `/aw board` routes the user to `$agile-workflow:board` instead of starting
   the long-running board server inline.
-- [ ] `/aw autopilot [scope]` routes to `$agile-workflow:autopilot <scope>`,
+- [x] `/aw autopilot [scope]` routes to `$agile-workflow:autopilot <scope>`,
   defaulting to the current active scope or `--all` when no scope is supplied.
-- [ ] `/aw scope <idea>` routes to `$agile-workflow:scope <idea>`.
-- [ ] Handoffs use Pi follow-up user messages where supported, with a
+- [x] `/aw scope <idea>` routes to `$agile-workflow:scope <idea>`.
+- [x] Handoffs use Pi follow-up user messages where supported, with a
   notification/text fallback.
-- [ ] `/aw help` lists both queue inspection commands and workflow handoffs.
-- [ ] The extension remains independent of `pi-subagents`; subagent behavior is
+- [x] `/aw help` lists both queue inspection commands and workflow handoffs.
+- [x] The extension remains independent of `pi-subagents`; subagent behavior is
   provided by the shared skills.
+
+## Implementation Notes
+
+- Added `/aw board`, `/aw autopilot [scope]`, and `/aw scope <idea>` as
+  follow-up message handoffs to the shared agile-workflow skills.
+- Defaulted `/aw autopilot` to `--all` when no scope is supplied because the
+  extension does not own a durable active-scope model.
+- Kept board/autopilot lifecycle outside the extension and left subagent policy
+  in shared skills; the extension has no dependency on `pi-subagents`.
+
+## Verification
+
+- `rg -n "sendUserMessage|board|autopilot|scope|pi-subagents|follow-up|help" plugins/agile-workflow/extensions/agile-workflow.ts .work/active/stories/epic-three-channel-distribution-pi-agile-extension-workflow-shortcuts.md`
+- `git diff --check -- plugins/agile-workflow/extensions/agile-workflow.ts .work/active/stories/epic-three-channel-distribution-pi-agile-extension-workflow-shortcuts.md`
