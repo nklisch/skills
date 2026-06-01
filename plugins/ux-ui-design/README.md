@@ -98,8 +98,8 @@ Path resolution falls back to kebab-case slugs.
 ### Claude Code
 
 ```bash
-# Via marketplace
-claude /plugin install ux-ui-design --from nklisch/skills
+/plugin marketplace add nklisch/skills
+/plugin install ux-ui-design@nklisch-skills
 ```
 
 ### Codex CLI
