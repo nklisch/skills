@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-docs-install-plugin-readmes
 kind: story
-stage: review
+stage: done
 tags: [docs, plugin]
 parent: epic-three-channel-distribution-docs-install
 depends_on: [epic-three-channel-distribution-docs-install-root-guides]
@@ -49,3 +49,9 @@ new-work sibling.
 
 - `rg -n "Claude Code|OpenAI Codex|Pi|pi install|/aw|deprecated|workflow" plugins/agile-workflow/README.md plugins/ux-ui-design/README.md plugins/nates-toolkit/README.md plugins/agile-workflow/docs/VISION.md`
 - `git diff --check -- plugins/agile-workflow/README.md plugins/ux-ui-design/README.md plugins/nates-toolkit/README.md plugins/agile-workflow/docs/VISION.md .work/active/stories/epic-three-channel-distribution-docs-install-plugin-readmes.md`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: Plugin-local docs now cover Claude Code, Codex, and Pi, and
+  agile-workflow no longer presents deprecated `workflow` as a new-work choice.

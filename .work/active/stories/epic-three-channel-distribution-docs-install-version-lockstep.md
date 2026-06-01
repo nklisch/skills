@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-docs-install-version-lockstep
 kind: story
-stage: review
+stage: done
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution-docs-install
 depends_on: [epic-three-channel-distribution-docs-install-plugin-readmes]
@@ -56,3 +56,12 @@ surfaces stay in lockstep.
 - `cat plugins/agile-workflow/work-view/crates/cli/.work-view-version`
 - `plugins/agile-workflow/scripts/work-view.sh --version`
 - `git diff --check -- plugins/agile-workflow/.claude-plugin/plugin.json plugins/agile-workflow/.codex-plugin/plugin.json plugins/agile-workflow/package.json plugins/agile-workflow/work-view/crates/cli/.work-view-version plugins/agile-workflow/scripts/work-view.sh .work/active/stories/epic-three-channel-distribution-docs-install-version-lockstep.md`
+
+## Review
+
+- Verdict: Approve with recorded caveat - story verified by implement;
+  fast-lane advance.
+- Notes: Channel metadata and work-view source versions are in lockstep at
+  `0.9.5`. The normal bump script could not run because unrelated dirty board
+  files were already present in `plugins/agile-workflow/`; that refusal and the
+  required post-bump dist-binary rebuild warning are recorded above.

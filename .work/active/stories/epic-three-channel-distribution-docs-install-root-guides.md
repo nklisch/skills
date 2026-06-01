@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-docs-install-root-guides
 kind: story
-stage: review
+stage: done
 tags: [docs, plugin]
 parent: epic-three-channel-distribution-docs-install
 depends_on: []
@@ -49,3 +49,9 @@ harness-native conveniences only where they differ.
 
 - `rg -n "Claude Code|OpenAI Codex|Pi|pi install|/aw status|/aw autopilot" README.md docs/agile-workflow-guide.md docs/ux-ui-design-guide.md`
 - `git diff --check -- README.md docs/agile-workflow-guide.md docs/ux-ui-design-guide.md .work/active/stories/epic-three-channel-distribution-docs-install-root-guides.md`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: Public guides now show all three install channels and Pi `/aw`
+  convenience commands without changing the shared workflow descriptions.
