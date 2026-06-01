@@ -1,7 +1,7 @@
 ---
 id: story-dependency-canvas-layout-buttons
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
@@ -30,3 +30,10 @@ Remove the list/canvas mode toggle, keep the dependency canvas as the only depen
 - Added regression coverage in `integration.rs` for canvas-only behavior, layout buttons, and the three relationship organizations.
 - Verification passed with `cargo test` in `plugins/agile-workflow/work-view`.
 - Rebuilt the release binary, restarted `../silas` on `http://127.0.0.1:8181/`, and verified with Krometrail screenshot `1780294486650.jpg`; Flow, Stage, and Kind all rendered labels, `Show canvas` / `Show list` were absent, and edge mismatch stayed at `0`.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story includes regression coverage, green `cargo test` verification,
+  rebuilt work-view binary evidence, and browser verification for the canvas-only
+  layout controls.
