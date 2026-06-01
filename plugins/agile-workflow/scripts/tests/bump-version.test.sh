@@ -237,6 +237,10 @@ assert_eq "package.json bumped" "1.2.4" \
   "$(jq -r '.version' "${REPO1}/plugins/agile-workflow/package.json")"
 
 # Both work-view files are git-staged.
+assert_true "claude plugin.json is staged" \
+  "is_staged '$REPO1' 'plugins/agile-workflow/.claude-plugin/plugin.json'"
+assert_true "codex plugin.json is staged" \
+  "is_staged '$REPO1' 'plugins/agile-workflow/.codex-plugin/plugin.json'"
 assert_true ".work-view-version is staged" "is_staged '$REPO1' '$VER_REL'"
 assert_true "work-view.sh is staged" "is_staged '$REPO1' '$WV_REL'"
 assert_true "agile-workflow package.json is staged" \
@@ -266,6 +270,10 @@ assert_eq "work-view.sh unchanged after non-aw bump" "$WV_BEFORE" \
   "$(cat "${REPO2}/${WV_REL}")"
 assert_false ".work-view-version NOT staged after non-aw bump" "is_staged '$REPO2' '$VER_REL'"
 assert_false "work-view.sh NOT staged after non-aw bump" "is_staged '$REPO2' '$WV_REL'"
+assert_true "non-aw claude plugin.json is staged" \
+  "is_staged '$REPO2' 'plugins/ux-ui-design/.claude-plugin/plugin.json'"
+assert_true "non-aw codex plugin.json is staged" \
+  "is_staged '$REPO2' 'plugins/ux-ui-design/.codex-plugin/plugin.json'"
 assert_true "non-aw package.json is staged" \
   "is_staged '$REPO2' 'plugins/ux-ui-design/package.json'"
 
@@ -347,6 +355,12 @@ assert_eq "package manifest remains mismatched after failed bump" "9.9.9" \
   "$(jq -r '.version' "${REPO6}/plugins/agile-workflow/package.json")"
 assert_eq ".work-view-version unchanged after package mismatch" "1.2.3" \
   "$(cat "${REPO6}/${VER_REL}")"
+assert_false "claude plugin.json NOT staged after package mismatch" \
+  "is_staged '$REPO6' 'plugins/agile-workflow/.claude-plugin/plugin.json'"
+assert_false "codex plugin.json NOT staged after package mismatch" \
+  "is_staged '$REPO6' 'plugins/agile-workflow/.codex-plugin/plugin.json'"
+assert_false "package.json NOT staged after package mismatch" \
+  "is_staged '$REPO6' 'plugins/agile-workflow/package.json'"
 
 rm -rf "$REPO6"
 
