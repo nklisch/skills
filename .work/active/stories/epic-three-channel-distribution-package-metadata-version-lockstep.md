@@ -41,13 +41,13 @@ not have Pi package metadata.
 - Reused the existing `bump_json` projection so package metadata is updated and
   staged with the Claude/Codex manifests.
 - Expanded the bump-version shell test fixtures and assertions to cover package
-  version updates for agile-workflow and a non-agile-workflow plugin, plus a
-  package mismatch failure case.
+  version updates for agile-workflow and a non-agile-workflow plugin, a package
+  mismatch failure case, and a no-package plugin compatibility path.
 
 ## Verification
 
 - `bash plugins/agile-workflow/scripts/tests/bump-version.test.sh` passed:
-  35 assertions, 0 failures.
+  39 assertions, 0 failures.
 
 ## Review (2026-06-01)
 

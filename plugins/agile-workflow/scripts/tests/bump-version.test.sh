@@ -351,6 +351,28 @@ assert_eq ".work-view-version unchanged after package mismatch" "1.2.3" \
 rm -rf "$REPO6"
 
 # ---------------------------------------------------------------------------
+# Test group 6: plugin without package.json still bumps Claude/Codex metadata
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 6: missing package.json remains supported ==="
+
+REPO7="$(new_scratch_repo "1.2.3" "workflow")"
+rm "${REPO7}/plugins/workflow/package.json"
+( cd "$REPO7" && "$REAL_GIT" add -A && "$REAL_GIT" commit -q -m "remove package metadata" >/dev/null 2>&1 )
+
+run_bump "$REPO7" workflow patch
+
+assert_eq "no-package plugin bump exits 0" "0" "$BUMP_RC"
+assert_eq "no-package claude plugin.json bumped" "1.2.4" \
+  "$(jq -r '.version' "${REPO7}/plugins/workflow/.claude-plugin/plugin.json")"
+assert_eq "no-package codex plugin.json bumped" "1.2.4" \
+  "$(jq -r '.version' "${REPO7}/plugins/workflow/.codex-plugin/plugin.json")"
+assert_false "no-package plugin does not create package.json" \
+  "[ -f '${REPO7}/plugins/workflow/package.json' ]"
+
+rm -rf "$REPO7"
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo ""

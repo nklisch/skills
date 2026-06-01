@@ -256,4 +256,4 @@ Verification:
 - Package versions match each plugin's Claude and Codex manifest versions.
 - `plugins/workflow/package.json` is absent.
 - `bash plugins/agile-workflow/scripts/tests/bump-version.test.sh` passed with
-  35 assertions and 0 failures.
+  39 assertions and 0 failures.
