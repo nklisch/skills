@@ -76,8 +76,16 @@ offer to do it first.
 You don't need any other plugin. The whole loop:
 
 ```bash
-# Install
+# Claude Code
 /plugin install ux-ui-design@nklisch-skills
+
+# OpenAI Codex
+codex plugin install ux-ui-design
+
+# Pi
+pi install npm:@nklisch/pi-ux-ui-design
+# or, from a local checkout:
+pi install -l ./plugins/ux-ui-design
 
 # Pick a visual identity
 /ux-ui-design:palette

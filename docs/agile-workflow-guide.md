@@ -120,31 +120,48 @@ The agent reads and writes them as part of normal conversation.
 
 ## Quick start (greenfield)
 
-```bash
-# 1. Install the plugins
-/plugin install agile-workflow@nklisch-skills
-/plugin install ux-ui-design@nklisch-skills    # for UI mocks (recommended)
+Install `agile-workflow` through the channel you are using:
 
-# 2. Foundation docs
+```bash
+# Claude Code
+/plugin marketplace add nklisch/skills
+/plugin install agile-workflow@nklisch-skills
+
+# OpenAI Codex
+codex plugin marketplace add https://github.com/nklisch/skills
+codex plugin install agile-workflow
+
+# Pi
+pi install npm:@nklisch/pi-agile-workflow
+# or, from a local checkout:
+pi install -l ./plugins/agile-workflow
+```
+
+The substrate skills are shared across all three. Pi also loads the package's
+native extension, which gives you `/aw status`, `/aw ready`, and `/aw autopilot`
+shortcuts around the same `.work/` queue.
+
+```bash
+# 1. Foundation docs
 /agile-workflow:ideate
 
-# 3. Visual identity — palette + components — so every later mock inherits
+# 2. Visual identity — palette + components — so every later mock inherits
 /ux-ui-design:palette
 /ux-ui-design:components
 
-# 4. Bootstrap the substrate
+# 3. Bootstrap the substrate
 /agile-workflow:convert
 
-# 5. Decompose foundation docs into epics
+# 4. Decompose foundation docs into epics
 /agile-workflow:epicize
 
-# 6. Lock in directional choices and mock big surfaces across every drafting epic
+# 5. Lock in directional choices and mock big surfaces across every drafting epic
 /agile-workflow:epic-design --only-questions --all
 
-# 7. Drill in per feature — scope + remaining mocks before autopilot starts
+# 6. Drill in per feature — scope + remaining mocks before autopilot starts
 /agile-workflow:feature-design --only-questions --all
 
-# 8. Drain with a harness goal
+# 7. Drain with a harness goal
 Goal: Use agile-workflow autopilot to drain --all
 ```
 
@@ -154,27 +171,27 @@ for why this sequence matters.
 ## Quick start (existing repo)
 
 ```bash
-# 1. Install the plugins
-/plugin install agile-workflow@nklisch-skills
-/plugin install ux-ui-design@nklisch-skills
-
-# 2. Bootstrap the substrate (detects existing project shape)
+# 1. Bootstrap the substrate (detects existing project shape)
 /agile-workflow:convert
 
-# 3. (Optional) Audit + mirror existing UI into mocks
+# 2. (Optional) Audit + mirror existing UI into mocks
 /ux-ui-design:adopt
 
-# 4. Cluster your backlog or fresh ideas into structured work
+# 3. Cluster your backlog or fresh ideas into structured work
 /agile-workflow:scope    # batch mode — clusters everything in backlog
 # or scope individual items: /agile-workflow:scope <id>
 
-# 5. Same alignment one-two before autopilot
+# 4. Same alignment one-two before autopilot
 /agile-workflow:epic-design --only-questions --all
 /agile-workflow:feature-design --only-questions --all
 
-# 6. Drain with a harness goal
+# 5. Drain with a harness goal
 Goal: Use agile-workflow autopilot to drain --all
 ```
+
+In Pi, `/aw status` shows the ready/review/blocked snapshot, `/aw ready` lists
+ready items, and `/aw autopilot <scope>` queues the shared
+`$agile-workflow:autopilot` skill.
 
 ## Killer workflows (the rhythm that makes this click)
 

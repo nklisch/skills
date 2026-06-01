@@ -8,15 +8,44 @@ Available as **Claude Code plugins**, **Codex plugins**, and **Pi packages**.
 
 ## Install
 
-```bash
-# Step 1: Add the marketplace
-/plugin marketplace add nklisch/skills
+All supported plugins ship through three channels. The shared `skills/`
+directory is the portable surface; each harness adds only its native metadata or
+ergonomics.
 
-# Step 2: Install the plugins you want
+### Claude Code
+
+```bash
+/plugin marketplace add nklisch/skills
 /plugin install agile-workflow@nklisch-skills    # work tracking + autopilot
 /plugin install ux-ui-design@nklisch-skills      # mockup-first UI design
 /plugin install nates-toolkit@nklisch-skills     # standalone utility skills
 ```
+
+### OpenAI Codex
+
+```bash
+codex plugin marketplace add https://github.com/nklisch/skills
+codex plugin install agile-workflow
+codex plugin install ux-ui-design
+codex plugin install nates-toolkit
+```
+
+### Pi
+
+```bash
+pi install npm:@nklisch/pi-agile-workflow
+pi install npm:@nklisch/pi-ux-ui-design
+pi install npm:@nklisch/pi-nates-toolkit
+
+# Local checkout/development installs
+pi install -l ./plugins/agile-workflow
+pi install -l ./plugins/ux-ui-design
+pi install -l ./plugins/nates-toolkit
+```
+
+Pi packages can load executable extensions in addition to shared skills. Install
+from trusted sources; `agile-workflow` includes a Pi-native `/aw` command for
+queue inspection and workflow handoffs.
 
 ## The three supported plugins
 
