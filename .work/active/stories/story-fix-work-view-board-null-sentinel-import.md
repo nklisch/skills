@@ -1,14 +1,14 @@
 ---
 id: story-fix-work-view-board-null-sentinel-import
 kind: story
-stage: review
+stage: done
 tags: [bug, tooling]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 ---
 
 # Fix work-view board module import failure
@@ -36,3 +36,9 @@ Keep the null-stage display sentinel local to the Kanban view and import only th
 - Rebuilt and refreshed the Linux x86_64 `work-view` prebuilt at `plugins/agile-workflow/work-view/dist/x86_64-unknown-linux-musl/work-view`.
 - Refreshed this repo's `.work/bin/work-view` and copied the rebuilt binary into `../silas/.work/bin/work-view` for the reported local reproduction.
 - Verified the browser boot path in `../silas`: `window.boardContext` exists, `/api/substrate` is fetched, loading is false, error is null, and the spinner is hidden.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story includes a named-import regression guard, rebuilt work-view
+  binaries, and browser boot verification showing the board module graph loads.
