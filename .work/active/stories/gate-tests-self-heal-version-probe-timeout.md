@@ -1,7 +1,7 @@
 ---
 id: gate-tests-self-heal-version-probe-timeout
 kind: story
-stage: implementing
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -44,3 +44,39 @@ fail open. No test forces the *version-probe* subprocess to time out / raise
 ## Test location (suggested)
 `plugins/agile-workflow/hooks/scripts/test_prompt_context.py`
 (`WorkViewSelfHealTest`)
+
+## Implementation notes
+
+Edited file: `plugins/agile-workflow/hooks/scripts/test_prompt_context.py`
+(added 3 tests to `WorkViewSelfHealTest`, matching the existing
+`mock.patch.object(prompt_context.subprocess, "run", ...)` style). The
+`TimeoutExpired` is constructed as
+`prompt_context.subprocess.TimeoutExpired(cmd="work-view --version", timeout=5)`
+(the test module imports the hook by path as `prompt_context` and does not import
+`subprocess` directly).
+
+Behavior confirmed (the code already handles this correctly): `installed_version`
+catches `subprocess.TimeoutExpired` and returns `None`; `self_heal_work_view`
+then sees `None != want` and runs the installer (copy treated as stale/unknown);
+`main()` exits 0 with normal `.agents/rules/` context (fails open).
+
+New tests:
+- `test_installed_version_returns_none_on_probe_timeout` — the version probe's
+  `subprocess.run` raises `TimeoutExpired`; `installed_version` returns `None`.
+- `test_sessionstart_version_probe_timeout_installs` — SessionStart with the
+  probe timing out: `self_heal_work_view` does not raise and invokes
+  `run_installer(root, plugin)` (stale treatment).
+- `test_main_failopens_when_version_probe_times_out` — end-to-end through
+  `main()` with the REAL `installed_version` (only its `subprocess.run` mocked to
+  raise `TimeoutExpired`): rc == 0, output contains `additionalContext` and the
+  injected rule body, and `run_installer` is invoked once. `run_installer` is
+  stubbed to keep the test hermetic.
+
+Run output: `python3 -m unittest test_prompt_context` -> `Ran 42 tests ... OK`
+(was 39 before; +3 new). The full existing suite still passes.
+
+No production bugs discovered; the hook already fails open on a version-probe
+timeout exactly as the acceptance criterion requires.
+
+## Review (2026-05-31)
+Verified by re-running the suite in the release-deploy drain: passes green, no gaming patterns, bump-version isolation confirmed not to touch real manifests. Advanced review -> done.

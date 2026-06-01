@@ -1,7 +1,7 @@
 ---
 id: gate-tests-bump-version-lockstep
 kind: story
-stage: implementing
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -48,3 +48,40 @@ bash projection has a Fail-Fast `grep` postcondition (line 117) but the
 ## Test location (suggested)
 new `plugins/agile-workflow/scripts/tests/bump-version.test.sh` (wire into
 `build-work-view.yml` alongside the install/convert suites)
+
+## Implementation notes
+
+Test file: `plugins/agile-workflow/scripts/tests/bump-version.test.sh` (new).
+
+Approach: the test exercises the REAL `scripts/bump-version.sh` projection block
+(not a reimplementation) by running the whole script inside a throwaway
+`git init` scratch repo whose tree mirrors the paths the script touches
+(`plugins/agile-workflow/.claude-plugin/plugin.json`, `.codex-plugin/plugin.json`,
+`work-view/crates/cli/.work-view-version`, `scripts/work-view.sh`). To stop the
+script's trailing `git commit` / `git push` from escaping, a fake `git` shim is
+placed first on PATH that forwards safe subcommands (init/config/add/diff/status)
+to the real git but turns `commit`/`push` into no-ops. This still exercises the
+real projection AND the real `git add` staging.
+
+Assertions (25, exit 0):
+- patch bump: `.work-view-version` == new semver, exactly 5 bytes, last byte is
+  NOT 0x0a (no trailing newline); `work-view.sh` `WORK_VIEW_VERSION` literal ==
+  new and old literal gone; claude plugin.json bumped; both work-view files
+  git-staged.
+- non-agile-workflow plugin bump (ux-ui-design): work-view files unchanged AND
+  not staged (the `if plugin == agile-workflow` guard is skipped).
+- Fail-Fast postcondition: an indented `WORK_VIEW_VERSION` literal makes the
+  anchored sed no-op, and the `grep` postcondition exits 1 with
+  "failed to project version into"; the literal is not rewritten.
+- minor/major bumps project lockstep (1.3.0 / 2.0.0).
+
+Run output: `bump-version.test.sh: Results: 25 passed, 0 failed`, exit 0.
+
+No production bugs discovered; the projection block behaves as documented. (The
+item noted the `printf` for `.work-view-version` has no Fail-Fast postcondition
+like the bash literal does — that remains true, but it is a pre-existing design
+asymmetry, not a bug surfaced by these tests; the printf cannot silently no-op
+the way the anchored sed can.)
+
+## Review (2026-05-31)
+Verified by re-running the suite in the release-deploy drain: passes green, no gaming patterns, bump-version isolation confirmed not to touch real manifests. Advanced review -> done.

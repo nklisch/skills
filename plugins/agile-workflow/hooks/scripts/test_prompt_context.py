@@ -258,6 +258,75 @@ class WorkViewSelfHealTest(unittest.TestCase):
         with mock.patch.object(prompt_context.subprocess, "run", return_value=completed):
             self.assertIsNone(prompt_context.installed_version(self.root))
 
+    def test_installed_version_returns_none_on_probe_timeout(self) -> None:
+        """A --version probe that times out yields an unknown (None) version.
+
+        Guards the distinct failure from a broken installer: the probe itself
+        runs a subprocess on a possibly-broken work-view (corrupt binary, bash
+        entrypoint stuck on a prompt). If that subprocess raises TimeoutExpired,
+        installed_version must swallow it and report None so the copy is treated
+        as stale/unknown rather than crashing the hook.
+        """
+        self._write_work_view()
+        timeout = prompt_context.subprocess.TimeoutExpired(cmd="work-view --version", timeout=5)
+        with mock.patch.object(prompt_context.subprocess, "run", side_effect=timeout):
+            self.assertIsNone(prompt_context.installed_version(self.root))
+
+    def test_sessionstart_version_probe_timeout_installs(self) -> None:
+        """SessionStart + a hung/timed-out --version probe -> treat as stale.
+
+        The probe subprocess raises TimeoutExpired. self_heal_work_view must not
+        raise, and because the version is now unknown (None != want) it must run
+        the installer to repair the broken copy.
+        """
+        self._write_work_view()
+        timeout = prompt_context.subprocess.TimeoutExpired(cmd="work-view --version", timeout=5)
+        with self._env(), mock.patch.object(
+            prompt_context.subprocess, "run", side_effect=timeout
+        ), mock.patch.object(prompt_context, "run_installer") as run_installer:
+            # Must complete without raising even though the probe times out.
+            prompt_context.self_heal_work_view(self.root, "SessionStart")
+
+        run_installer.assert_called_once_with(self.root, self.plugin)
+
+    def test_main_failopens_when_version_probe_times_out(self) -> None:
+        """SessionStart hook stays fail-open when the --version probe times out.
+
+        End-to-end through main(): the real installed_version runs but its
+        subprocess.run raises TimeoutExpired. The hook must still exit 0 and emit
+        its normal .agents/rules/ context. run_installer is stubbed (the copy is
+        treated as stale, so it would be invoked) to keep the test hermetic.
+        """
+        rules_dir = self.root / ".agents" / "rules"
+        rules_dir.mkdir(parents=True)
+        (rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
+        state_file = self.root / "hook-state.json"
+        self._write_work_view()
+        payload = {
+            "session_id": "s1",
+            "hook_event_name": "SessionStart",
+            "source": "startup",
+            "cwd": str(self.root),
+        }
+        timeout = prompt_context.subprocess.TimeoutExpired(cmd="work-view --version", timeout=5)
+        out = io.StringIO()
+        with self._env(), mock.patch.object(
+            prompt_context, "state_path", return_value=state_file
+        ), mock.patch.object(
+            prompt_context.subprocess, "run", side_effect=timeout
+        ), mock.patch.object(prompt_context, "run_installer") as run_installer, mock.patch.object(
+            prompt_context.sys, "stdin", io.StringIO(json.dumps(payload))
+        ), mock.patch.object(prompt_context.sys, "stdout", out):
+            rc = prompt_context.main()
+
+        self.assertEqual(rc, 0)
+        printed = out.getvalue()
+        self.assertIn("additionalContext", printed)
+        self.assertIn("Rule A body", printed)
+        # Probe timed out -> version unknown -> copy treated as stale -> installer
+        # invoked. The hook never raised.
+        run_installer.assert_called_once_with(self.root, self.plugin)
+
     def test_run_installer_suppresses_output(self) -> None:
         with self._env(), mock.patch.object(prompt_context.subprocess, "run") as run:
             prompt_context.run_installer(self.root, self.plugin)

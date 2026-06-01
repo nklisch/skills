@@ -47,6 +47,15 @@ jobs:
       - name: Run convert install-routing tests
         run: bash plugins/agile-workflow/scripts/tests/convert-install-routing.test.sh
 
+      - name: Run bump-version lockstep tests
+        run: bash plugins/agile-workflow/scripts/tests/bump-version.test.sh
+
+      - name: Run work-board shim routing tests
+        run: bash plugins/agile-workflow/scripts/tests/work-board-shim.test.sh
+
+      - name: Run convert content-integrity guard tests
+        run: bash plugins/agile-workflow/scripts/tests/convert-content-integrity.test.sh
+
       - name: Run prompt-context tests
         run: python3 -m unittest test_prompt_context
         working-directory: plugins/agile-workflow/hooks/scripts
