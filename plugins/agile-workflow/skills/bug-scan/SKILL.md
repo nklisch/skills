@@ -30,6 +30,9 @@ Sub-agent strength is explicit:
   `reasoning_effort: high`; use `xhigh` only for concurrency/data-layer/time
   bugs in high-risk domains, very large scopes, or repeat scans that previously
   missed issues. These are read-only scanner agents, not fixers.
+- **Pi path:** use native Pi `reviewer` or `oracle` subagents for read-only
+  domain scanners when hosted in Pi and available; otherwise use the same-host
+  read-only analysis fallback.
 
 This skill hunts **correctness** bugs, not vulnerabilities, not perf, not style. Use the
 sibling skills for those.
@@ -121,6 +124,9 @@ message** so they run concurrently.
 - Codex / OpenAI: use an analysis sub-agent with `reasoning_effort: high`;
   escalate to `xhigh` only for high-risk domains, very large scopes, or repeat
   scans that previously missed issues.
+- Pi path: use a native `reviewer` or `oracle` subagent for each read-only
+  scanner when available; otherwise use the same-host read-only analysis
+  fallback.
 
 ### Scope (passed into every scanner)
 

@@ -26,6 +26,9 @@ Sub-agent strength is explicit:
   high`; use `xhigh` only for auth/crypto/data-loss surfaces, broad public API
   changes, or a large/polyglot release bundle. Use a reviewer/default agent if
   available, otherwise a worker with read-only instructions.
+- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the deep
+  security audit when hosted in Pi and available; otherwise use the same-host
+  read-only analysis fallback.
 
 This is NOT a standalone audit (for that, use a standalone `repo-eval` skill). This
 is a gate over a specific release bundle, producing items the release-deploy
@@ -74,7 +77,9 @@ sub-agent can be told to skip duplicates.
 Spawn ONE deep audit sub-agent with the full audit brief. For Claude Code, this
 is `Agent(subagent_type=general-purpose, model=opus)`. For Codex, use
 `reasoning_effort: high`, escalating to `xhigh` for auth/crypto/data-loss
-surfaces, broad public API changes, or large/polyglot bundles. The sub-agent does all of the analysis end-to-end —
+surfaces, broad public API changes, or large/polyglot bundles. For Pi, use a
+native `reviewer` or `oracle` subagent when available; otherwise use the
+same-host read-only analysis fallback. The sub-agent does all of the analysis end-to-end —
 stack discovery, domain selection, parallel domain audits, severity
 classification — and returns structured findings.
 

@@ -65,6 +65,10 @@ tokens for insight. Run **every** sub-agent at maximum:
   downgrades anywhere in this skill — not for "simple" lenses, not for research.
 - **Codex / OpenAI:** every scout uses an analysis sub-agent with
   `reasoning_effort: xhigh` (not `high`). These are read-only ideation agents.
+- **Pi path:** use native Pi `scout` or `context-builder` subagents for scout
+  fanout and a `reviewer` or `oracle` subagent for same-harness fallback review
+  when hosted in Pi and available. This does not replace the peeragent
+  cross-model pass.
 - **Peer pass:** the cross-model reviewer runs at the deepest effort its agent
   supports (see Phase 5). If this launches Claude Opus through peeragent, a
   large deck review can take 10 to 30 minutes; do not assume a quiet process has
@@ -149,7 +153,9 @@ relevant to nearly all code.
 
 For each selected lens, spawn **one parallel scout sub-agent in a single message**
 so they run concurrently. Claude → `Agent(subagent_type=general-purpose,
-model=opus)`. Codex → analysis sub-agent at `reasoning_effort: xhigh`.
+model=opus)`. Codex → analysis sub-agent at `reasoning_effort: xhigh`. Pi →
+native `scout` or `context-builder` subagent when available, otherwise
+same-host read-only ideation fallback.
 
 ### Scope (passed into every scout)
 
@@ -287,7 +293,8 @@ full mechanics. In brief:
    that case use the fallback. When the peer is Claude Opus, expect 10 to 30
    minutes for a large deck review; no return after a few minutes is not a hang.
 2. **Fallback** when peeragent is unavailable, fails, or would be same-class:
-   spawn a **fresh max-effort sub-agent** (Claude → `Agent(model=opus)`) that
+   spawn a **fresh max-effort sub-agent** (Pi → native `reviewer` or `oracle`
+   when available; Claude → `Agent(model=opus)`) that
    sees only the codebase, the lens catalog, and the idea deck — NOT your scouts'
    reasoning — so it reviews with independent context. This is the "max compute
    and quality subagent" fallback.

@@ -33,6 +33,9 @@ Understand what needs investigating and why.
    - **Claude Code / Anthropic:** Sonnet minimum, Opus for large or complex codebases.
    - **Codex / OpenAI:** `reasoning_effort: medium`; use `high` for large or
      complex codebases.
+   - **Pi path:** use a native Pi `scout` or `context-builder` subagent for
+     broad integration mapping when hosted in Pi and available; otherwise keep
+     direct host-local research.
 3. Define research questions:
    - What specific problem does this technology need to solve for the project?
    - What constraints must it satisfy? (bundle size, license, runtime, compatibility)

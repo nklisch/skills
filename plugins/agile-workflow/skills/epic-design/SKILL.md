@@ -168,6 +168,9 @@ For Explore:
   or complex codebases.
 - **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`;
   use `high` for large or complex codebases.
+- **Pi path:** use native Pi `scout` or `context-builder` subagents for
+  read-only mapping when hosted in Pi and available; otherwise keep direct
+  host-local mapping.
 
 Possible prompts:
 1. **Existing surface in this epic's area** — what modules, components, or

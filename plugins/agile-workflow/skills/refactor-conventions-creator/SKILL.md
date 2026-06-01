@@ -81,6 +81,9 @@ only when the codebase is too broad to characterize from those reads:
   codebases.
 - **Codex / OpenAI:** `reasoning_effort: medium`; use `high` for large or
   complex codebases.
+- **Pi path:** use a native Pi `scout` or `context-builder` subagent for
+  read-only style and structure mapping when hosted in Pi and available;
+  otherwise keep direct host-local scanning.
 
 Look for both dimensions.
 

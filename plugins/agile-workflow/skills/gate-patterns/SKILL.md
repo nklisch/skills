@@ -27,6 +27,9 @@ Sub-agent strength is explicit:
 - **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
   high`; use `xhigh` only for large/polyglot bundles, architecture-wide pattern
   extraction, or conflicting pattern catalogs.
+- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for deep pattern
+  discovery when hosted in Pi and available; otherwise use the same-host
+  read-only analysis fallback.
 
 This is NOT about coding style or naming conventions (that's `AGENTS.md` /
 `CLAUDE.md`'s job). This is about identifying structural patterns for
@@ -85,7 +88,9 @@ done | sort -u > /tmp/bundle-files-<version>.txt
 Spawn ONE deep pattern-discovery sub-agent with the full discovery brief. For
 Claude Code, this is `Agent(subagent_type=general-purpose, model=opus)`. For
 Codex, use `reasoning_effort: high`, escalating to `xhigh` for large/polyglot
-bundles, architecture-wide pattern extraction, or conflicting catalogs. The sub-agent runs parallel pattern searches, filters to
+bundles, architecture-wide pattern extraction, or conflicting catalogs. For Pi,
+use a native `reviewer` or `oracle` subagent when available; otherwise use the
+same-host read-only analysis fallback. The sub-agent runs parallel pattern searches, filters to
 genuine 3+ occurrences, drafts pattern documentation, and returns
 structured output.
 

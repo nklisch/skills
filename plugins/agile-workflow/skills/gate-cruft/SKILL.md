@@ -24,6 +24,9 @@ Sub-agent strength is explicit:
   `subagent_type: "general-purpose"`.
 - **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
   high`; use `xhigh` for large or polyglot release bundles.
+- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the deep
+  cleanup audit when hosted in Pi and available; otherwise use the same-host
+  read-only analysis fallback.
 
 ## Trigger
 
@@ -58,7 +61,9 @@ into the sub-agent's brief.
 
 Spawn ONE deep cleanup-audit sub-agent with the full scan brief. For Claude
 Code, this is `Agent(subagent_type=general-purpose, model=opus)`. For Codex,
-use `reasoning_effort: high`, or `xhigh` for large/polyglot bundles. The
+use `reasoning_effort: high`, or `xhigh` for large/polyglot bundles. For Pi,
+use a native `reviewer` or `oracle` subagent when available; otherwise use the
+same-host read-only analysis fallback. The
 sub-agent does ecosystem detection, runs language-aware
 tools, applies heuristic pattern-matching, triages confidence, and returns
 structured findings.

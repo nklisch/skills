@@ -208,6 +208,9 @@ does not narrow or disable the default refactor judgment.
 - **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`
   for focused scans, `high` for normal refactor discovery, and `xhigh` only for
   large or architecture-heavy refactors.
+- **Pi path:** use native Pi `scout` or `context-builder` subagents for
+  read-only refactor discovery when hosted in Pi and available; otherwise keep
+  host-local scan fallback.
 
 1. **Code Smells** — "Find code that smells off in <area>. Look for: duplicated
    logic across files; long files (>500 lines); deep nesting (>4 levels); god

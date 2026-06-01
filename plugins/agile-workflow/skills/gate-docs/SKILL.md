@@ -28,6 +28,9 @@ Sub-agent strength is explicit:
   `subagent_type: "general-purpose"`.
 - **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
   high`; use `xhigh` for large documentation surfaces or broad API drift.
+- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the deep
+  documentation audit when hosted in Pi and available; otherwise use the
+  same-host read-only analysis fallback.
 
 ## Trigger
 
@@ -61,7 +64,8 @@ Capture the set of `(doc-file:line, drift-category)` already-tracked findings.
 Spawn ONE deep documentation-audit sub-agent with the full drift-detection
 brief. For Claude Code, this is `Agent(subagent_type=general-purpose,
 model=opus)`. For Codex, use `reasoning_effort: high`, or `xhigh` for large
-documentation surfaces. The sub-agent maps the doc structure, classifies the
+documentation surfaces. For Pi, use a native `reviewer` or `oracle` subagent
+when available; otherwise use the same-host read-only analysis fallback. The sub-agent maps the doc structure, classifies the
 bundle's changes, runs parallel drift checks, and returns structured
 findings.
 

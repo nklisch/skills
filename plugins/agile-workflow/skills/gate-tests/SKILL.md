@@ -25,6 +25,9 @@ Sub-agent strength is explicit:
   machines, concurrency-heavy behavior, or repeated test-quality misses. Use a
   reviewer/default agent if available, otherwise a worker with read-only
   instructions.
+- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the deep test
+  analysis when hosted in Pi and available; otherwise use the same-host
+  read-only analysis fallback.
 
 ## Core principle
 
@@ -77,7 +80,8 @@ Spawn ONE deep analysis sub-agent with the full analysis brief. For Claude Code,
 this is `Agent(subagent_type=general-purpose, model=opus)`. For Codex, use
 `reasoning_effort: high`, escalating to `xhigh` for broad cross-feature
 releases, complex state machines, concurrency-heavy behavior, or repeated
-test-quality misses. The sub-agent extracts behavioral contracts from item
+test-quality misses. For Pi, use a native `reviewer` or `oracle` subagent when
+available; otherwise use the same-host read-only analysis fallback. The sub-agent extracts behavioral contracts from item
 bodies, maps existing tests, applies test-design techniques to find gaps,
 and returns structured findings.
 

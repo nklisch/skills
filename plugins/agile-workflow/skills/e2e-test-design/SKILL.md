@@ -129,6 +129,9 @@ For Explore:
   or complex codebases.
 - **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`;
   use `high` for large or complex codebases.
+- **Pi path:** use native Pi `scout` or `context-builder` subagents for
+  read-only suite and journey mapping when hosted in Pi and available;
+  otherwise keep direct host-local mapping.
 
 Possible prompts:
 1. **Surfaces & journeys** — entry points (CLI, HTTP routes, exported modules),
@@ -417,6 +420,9 @@ Spawn ONE deep audit sub-agent with the audit brief.
 - **Codex / OpenAI:** analysis sub-agent with `reasoning_effort: high`; use
   `xhigh` only for large suites, complex mock-boundary audits, or repeated
   escaped tautologies.
+- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the
+  mock-boundary audit when hosted in Pi and available; otherwise use the
+  same-host read-only analysis fallback.
 
 The sub-agent reads test files (NOT implementation
 code — that's how tautologies hide), maps the suite against the four
