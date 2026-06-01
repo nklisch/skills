@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-package-metadata-pi-manifests
 kind: story
-stage: review
+stage: done
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution-package-metadata
 depends_on: []
@@ -49,3 +49,14 @@ that matches the plugin's Claude/Codex identity.
 - Checked each package version against the corresponding Claude and Codex
   manifest version.
 - Confirmed `plugins/workflow/package.json` does not exist.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation verification is present and
+green; story verified by implement and advanced to `stage: done`.
