@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-docs-install
 kind: feature
-stage: review
+stage: done
 tags: [docs, plugin]
 parent: epic-three-channel-distribution
 depends_on: [epic-three-channel-distribution-package-metadata, epic-three-channel-distribution-pi-agile-extension, epic-three-channel-distribution-delegation-policy]
@@ -185,3 +185,19 @@ a version bump before shipping.
 - `jq -r .version plugins/agile-workflow/.claude-plugin/plugin.json plugins/agile-workflow/.codex-plugin/plugin.json plugins/agile-workflow/package.json`
 - `plugins/agile-workflow/scripts/work-view.sh --version`
 - `cat plugins/agile-workflow/work-view/crates/cli/.work-view-version`
+
+## Review
+
+- Verdict: Approve after fixes - cross-model feature review found one blocker
+  and one important issue, both resolved in `370ef60 review-fix: docs install
+  peer findings`.
+- Reviewer: Claude Sonnet via peeragent (`--effort high`).
+- Fixed findings:
+  - Replaced the invalid Claude Code install command in
+    `plugins/ux-ui-design/README.md` with the marketplace-add/install pattern
+    used elsewhere.
+  - Removed stale "Sibling to workflow" wording from agile-workflow Claude and
+    Codex marketplace metadata.
+- Notes: Version metadata remains in lockstep at `0.9.5`. The recorded caveat
+  about rebuilding prebuilt work-view dist binaries before publishing still
+  applies.
