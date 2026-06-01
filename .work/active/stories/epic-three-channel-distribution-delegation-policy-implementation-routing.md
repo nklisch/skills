@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-delegation-policy-implementation-routing
 kind: story
-stage: review
+stage: done
 tags: [skill, plugin]
 parent: epic-three-channel-distribution-delegation-policy
 depends_on: [epic-three-channel-distribution-delegation-policy-core]
@@ -46,3 +46,10 @@ when they are absent.
 
 - `rg -n "Pi path|Pi \`worker\`|scout|context-builder|peeragent" plugins/agile-workflow/skills/implement-orchestrator/SKILL.md plugins/agile-workflow/skills/implement/SKILL.md`
 - `git diff --check -- plugins/agile-workflow/skills/implement-orchestrator/SKILL.md plugins/agile-workflow/skills/implement/SKILL.md .work/active/stories/epic-three-channel-distribution-delegation-policy-implementation-routing.md`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The implementation adds a Pi runtime path without changing Claude Code
+  or Codex routing, and explicitly keeps peeragent out of routine implementation
+  worker fanout.

@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-delegation-policy-skill-sweep
 kind: story
-stage: review
+stage: done
 tags: [skill, plugin]
 parent: epic-three-channel-distribution-delegation-policy
 depends_on: [epic-three-channel-distribution-delegation-policy-core]
@@ -53,3 +53,10 @@ mechanical and policy-consistent; do not redesign the skills.
 
 - `rg -n "Claude Code / Anthropic|Codex / OpenAI|Pi path|Pi-native|pi-subagents|scout|context-builder|reviewer|oracle" plugins/agile-workflow/skills -g 'SKILL.md' -g '*.md'`
 - `git diff --check -- plugins/agile-workflow/skills/epic-design/SKILL.md plugins/agile-workflow/skills/feature-design/SKILL.md plugins/agile-workflow/skills/perf-design/SKILL.md plugins/agile-workflow/skills/refactor-design/SKILL.md plugins/agile-workflow/skills/e2e-test-design/SKILL.md plugins/agile-workflow/skills/research/SKILL.md plugins/agile-workflow/skills/bug-scan/SKILL.md plugins/agile-workflow/skills/perf-scout/SKILL.md plugins/agile-workflow/skills/gate-security/SKILL.md plugins/agile-workflow/skills/gate-tests/SKILL.md plugins/agile-workflow/skills/gate-cruft/SKILL.md plugins/agile-workflow/skills/gate-docs/SKILL.md plugins/agile-workflow/skills/gate-patterns/SKILL.md plugins/agile-workflow/skills/scope/SKILL.md plugins/agile-workflow/skills/refactor-conventions-creator/SKILL.md .work/active/stories/epic-three-channel-distribution-delegation-policy-skill-sweep.md`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The sweep is mechanical, adds Pi same-harness delegation only where
+  equivalent worker/scout/reviewer paths exist, and preserves peeragent as the
+  cross-model review route.
