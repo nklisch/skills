@@ -1,7 +1,7 @@
 ---
 id: release-0.9.0
 kind: release
-stage: quality-gate
+stage: released
 tags: []
 parent: null
 depends_on: []
@@ -120,3 +120,16 @@ items, not pass/fail. Findings recorded below as gates run.
   - `board-view-module-contract`, `dom-text-element-builder`,
     `fail-open-subprocess-probe`, `manual-error-display`
   - Index regenerated to 9 patterns; digest src-sha256 stamped.
+
+## Ship summary
+
+- **Shipped**: 2026-05-31
+- **Mapping**: `none` (per CONVENTIONS.md) — release-deploy ran gates + archived
+  bound items; publishing handled by `scripts/bump-version.sh agile-workflow minor`
+  (0.8.9 → 0.9.0, auto-commit + push). No tag/branch.
+- **Items shipped**: 57 (3 epics, 15 features, 39 stories — incl. 10 gate-produced)
+- **Gate finding totals**: gate-tests 12 (5 bound+drained, 2 backlog), gate-cruft 3
+  (1 consolidated, drained), gate-docs 7 (3 items, drained), gate-patterns 4 new
+  patterns (0 inconsistencies). All bound gate items driven to done before ship.
+- **Deferred (unbound, backlog)**: `gate-tests-board-js-harness` (board JS test
+  harness + 6 view suites), `gate-tests-hook-concurrency-interleave`.

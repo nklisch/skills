@@ -1,5 +1,53 @@
 # Changelog
 
+## v0.9.0
+
+### Cross-vendor `.agents/rules/` auto-load
+
+- **Generic rules loader** - A hook now injects `.agents/rules/*.md` into agent
+  context in both Claude Code and Codex, so dense project rules and the pattern
+  digest load automatically without per-tool wiring. Hook state-file writes are
+  concurrency-hardened (unique temp names, fail-open on error, `fcntl` locking
+  when available).
+- **`convert` extracts rules** - `convert` lifts the dense agent-instruction
+  block into `.agents/rules/agile-workflow.md`, guarded by a content-integrity
+  gate that verifies content exists at its canonical replacement before any
+  destructive op.
+- **`gate-patterns` writes the digest** - The patterns gate emits a generated,
+  hook-loaded `.agents/rules/patterns.md` digest (slug + one-liner index with a
+  drift-detecting `src-sha256`) alongside the canonical pattern skills.
+- **Skills ground on `.agents/rules/`** - The design/implement/review-family
+  skills read `.agents/rules/*.md` during grounding.
+
+### work-view freshness & anti-drift lifecycle
+
+- **`work-view --version`** - Both the Rust binary and the bash fallback report
+  the plugin version (`work-view <semver>`), kept in lockstep with `plugin.json`
+  by `bump-version.sh`, so a single string compare answers "is this installed
+  copy current?".
+- **Self-heal install lifecycle** - The SessionStart hook and `convert` detect a
+  missing or stale `.work/bin/work-view` and reinstall the version-stamped
+  entrypoint; the probe fails open (never blocks the session) on timeout or
+  error.
+
+### Documentation
+
+- Rolled the SPEC forward: the kanban surface is documented as parent swimlanes
+  with verbatim per-stage columns (not a fixed 5-column collapse), and the plugin
+  source layout now includes the `work-view/` Rust workspace.
+- Refreshed pattern-skill example `file:line` references after board modules
+  shifted positions.
+
+### Internal
+
+- New test coverage: `bump-version.sh` lockstep projection, `work-board.sh` shim
+  routing, `convert` content-integrity structural guard, self-heal version-probe
+  timeout fail-open, and a `$TMPDIR`-invariant substrate-root test.
+- Codified 4 new code patterns (board view-module contract, local DOM
+  text-element builder, fail-open subprocess probe, hand-written error `Display`).
+- Removed dead board-view scaffolding (`placeholderView`, `registeredViews`, and
+  orphaned CSS).
+
 ## v0.8.9
 
 ### Board UI polish
