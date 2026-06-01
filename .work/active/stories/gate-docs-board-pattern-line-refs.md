@@ -1,7 +1,7 @@
 ---
 id: gate-docs-board-pattern-line-refs
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -30,3 +30,9 @@ The dependency canvas work moved `dependencyView` and several helper examples.
 ## Required edit
 Refresh pattern skill file:line references against the current board assets; do
 not add historical notes.
+
+## Implementation notes
+- Files changed: `.agents/skills/patterns/board-view-module-contract.md`, `.agents/skills/patterns/dom-text-element-builder.md`
+- Tests added: none; pattern-doc reference refresh.
+- Discrepancies from design: the new patterns gate also updated `.agents/skills/patterns/SKILL.md` and `.agents/rules/patterns.md`.
+- Adjacent issues parked: none.

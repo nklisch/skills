@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.9.5
+
+### Three-channel distribution
+
+- **Pi package channel** - Added Pi package metadata for supported plugins, kept
+  package versions in lockstep with Claude/Codex metadata, and documented the
+  three-channel distribution model across root and plugin guides.
+- **Pi extension surface** - Added the agile-workflow Pi extension shell with
+  `/aw` queue snapshots, parent/blocking lookups, and handoffs to shared board,
+  autopilot, and scope skills.
+- **Delegation policy** - Updated agile-workflow skills so worker/scout/reviewer
+  routing names Pi-native subagents where available while preserving the shared
+  skill contracts.
+
+### Board and dependency view
+
+- **Expanded browsing** - Added expandable epic and tag groups to the board
+  sidebar without changing filter semantics.
+- **Dependency canvas polish** - Added zoom, hand-pan, layout controls, compact
+  web layout nodes, ephemeral dragging, clearer impact counts, and fixes for
+  resize edge drift, node click jitter, Hand-mode detail opening, clipping, and
+  the null-sentinel module import failure.
+
+### Tests and release gates
+
+- **Board JS behavior harness** - Added a no-build ES-module test harness plus
+  coverage for markdown safety, filter composition, dependency/table behavior,
+  kanban/detail behavior, and expanded browsing.
+- **Hook concurrency and PostCompact audit** - Added deterministic coverage for
+  hook state-file interleaving and verified Codex PostCompact output behavior.
+- **Release-gate follow-ups** - Added Pi package metadata tests, Pi extension
+  command tests, filtered dependency stub coverage, keyboard reachability
+  coverage for tag expansion, and removed dead board-test harness cleanup code.
+
 ## v0.9.0
 
 ### Cross-vendor `.agents/rules/` auto-load

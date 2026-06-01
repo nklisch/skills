@@ -1,7 +1,7 @@
 ---
 id: gate-docs-agile-workflow-spec-version-example
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -30,3 +30,9 @@ Claude, Codex, Pi package metadata, and the `work-view` source stamp now report
 ## Required edit
 Roll the manifest example forward to the current manifest shape/version or use
 a clearly active placeholder instead of a stale concrete version.
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/docs/SPEC.md`
+- Tests added: none; documentation-only change.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

@@ -1,7 +1,7 @@
 ---
 id: gate-docs-agile-workflow-vision-current-state
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -31,3 +31,9 @@ and `perf-scout`, and has 28 `SKILL.md` files.
 ## Required edit
 Replace the v0.1.0 success section with the current intended success/state of
 agile-workflow, including the current skill surface.
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/docs/VISION.md`
+- Tests added: none; documentation-only change.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

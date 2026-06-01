@@ -1,7 +1,7 @@
 ---
 id: gate-docs-changelog-0-9-5
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -28,3 +28,9 @@ Release `0.9.5` has bound items but no `## v0.9.5` changelog entry.
 ## Required edit
 Prepend a `## v0.9.5` entry summarizing three-channel distribution, the Pi
 extension, board browsing/canvas changes, tests, fixes, and audit work.
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/CHANGELOG.md`
+- Tests added: none; documentation-only change.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

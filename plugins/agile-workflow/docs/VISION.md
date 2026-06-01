@@ -62,26 +62,35 @@ This is the supported workflow pattern for new projects in this repo. The older
 `workflow` plugin still ships only so existing installs do not break; migrate old
 projects with `/agile-workflow:convert`.
 
-## What success looks like for v0.1.0
+## What success looks like now
 
-agile-workflow ships v0.1.0 complete:
+agile-workflow is complete enough to operate as the supported workflow engine:
 
-- 25 skills covering ideation, conversion, scoping, design (greenfield +
-  refactor + perf), implementation, review, gates, release, and autopilot
-- A compiled `work-view` CLI (with a pure-bash fallback) for fast queries by
-  stage, tag, kind, parent, release binding, and dependency state
+- 28 skills covering ideation, conversion, scoping, epic/feature design,
+  refactor/perf/e2e design, implementation orchestration, review, bug fixing,
+  board launch, bug scanning, release gates, release-deploy, and goal-backed
+  autopilot.
+- A compiled `work-view` CLI (with a pure-bash fallback on unsupported
+  platforms) for fast queries by stage, tag, kind, parent, release binding,
+  gate origin, and dependency state.
+- An interactive `work-view board` surface over the same substrate feed, with
+  kanban, dependency, table, detail, filter, and browsing views for humans.
 - Shared Claude/Codex/Pi substrate context injection that surfaces
-  queue/principles context only for actionable workflow prompts, auto-bumps
-  `updated:` where the harness supports it, and reports cheap substrate
-  validation issues
-- A real project taken end-to-end through ideate → convert → epicize →
-  scope → design → implement → review → release-deploy on the substrate
+  queue/principles/rules context only for actionable workflow prompts,
+  auto-bumps `updated:` where the harness supports it, and reports cheap
+  substrate validation issues.
+- Three-channel plugin distribution metadata: Claude Code marketplace, OpenAI
+  Codex marketplace, and Pi packages share the same `skills/` source while
+  each channel carries native metadata and ergonomics.
+- Real releases move through scope → design → implement → review →
+  release-deploy on the substrate; gates produce items, and the release ships
+  only after every bound item is terminal.
 
-The pattern proves itself when a fresh session in a substrate-bootstrapped
-repo picks up active work without re-feed, when an autopilot run drains an
-epic to done autonomously across compaction events while respecting the
-declared dependency graph, and when foundation docs five features later
-still describe the present without legacy comments.
+The pattern proves itself when a fresh session in a substrate-bootstrapped repo
+picks up active work without re-feed, when an autopilot run drains an epic to
+done autonomously across compaction events while respecting the declared
+dependency graph, and when foundation docs five features later still describe
+the present without legacy comments.
 
 ## Relationship to workflow
 

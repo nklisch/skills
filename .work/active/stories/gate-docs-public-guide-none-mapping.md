@@ -1,7 +1,7 @@
 ---
 id: gate-docs-public-guide-none-mapping
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -30,3 +30,9 @@ publishing delegated to `scripts/bump-version.sh`.
 ## Required edit
 Add `none` as a supported mapping and describe it as gate/archive-only with no
 tag or branch shipping.
+
+## Implementation notes
+- Files changed: `docs/agile-workflow-guide.md`
+- Tests added: none; documentation-only change.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

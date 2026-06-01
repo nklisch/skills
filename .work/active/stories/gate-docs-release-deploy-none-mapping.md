@@ -1,7 +1,7 @@
 ---
 id: gate-docs-release-deploy-none-mapping
 kind: story
-stage: implementing
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
@@ -32,3 +32,9 @@ archives while publishing remains with `scripts/bump-version.sh`.
 Update the skill contract so `none` means a gate/archive-only release flow with
 no tag or branch shipping, and state that publishing/version bumping is
 external.
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/skills/release-deploy/SKILL.md`
+- Tests added: none; skill-contract documentation change.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

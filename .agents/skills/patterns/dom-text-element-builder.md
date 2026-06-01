@@ -59,8 +59,8 @@ function textElement(tag, className, text) {
 }
 ```
 
-Also appears in `board.js:41`, `dependency.js:14`, `detail.js:6`,
-`filters.js:171`, and `views.js` — 8 occurrences total. `markdown.js:3` defines a
+Also appears in `board.js:41`, `dependency.js:44`, `detail.js:6`,
+`filters.js:217`, and `views.js:7` — 8 occurrences total. `markdown.js:3` defines a
 2-arg `el(tag, className)` variant that omits text because it builds
 inline-markdown trees node-by-node.
 

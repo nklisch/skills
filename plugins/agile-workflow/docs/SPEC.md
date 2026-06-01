@@ -11,8 +11,8 @@ Located at `plugins/agile-workflow/.claude-plugin/plugin.json`:
 ```json
 {
   "name": "agile-workflow",
-  "version": "0.1.0",
-  "description": "Markdown-based work-tracking substrate for AI-driven projects",
+  "description": "Markdown-based work-tracking substrate for AI-driven projects. Items as files in .work/, late-binding releases, gates that produce items, goal-backed autopilot queue runner. See docs/VISION.md.",
+  "version": "0.9.5",
   "author": { "name": "nklisch" },
   "repository": "https://github.com/nklisch/skills",
   "license": "MIT"

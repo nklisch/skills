@@ -5,7 +5,7 @@ description: >
   version, advances the release stage planned -> quality-gate, runs all configured
   gates in CONVENTIONS.md order (default: security -> tests -> cruft -> docs ->
   patterns), waits until all bound items + gate-produced items reach stage:done,
-  ships per release mapping (tag-based / branch-held / release-branch), archives
+  ships per release mapping (tag-based / branch-held / release-branch / none), archives
   bound items via git mv to releases/<version>/, advances release to released.
   Idempotent — safe to re-run after fixing gate findings.
 user-invocable: true
@@ -35,9 +35,12 @@ Read `.work/CONVENTIONS.md`:
 - Release mapping: `branch-held | tag-based | release-branch | none`
 - Gate config: `gates_for_release: [...]` (default if absent: `[security, tests, cruft, docs, patterns]`)
 
-If the mapping is `none`, halt: "Release mapping is `none`. This project doesn't
-ship versioned releases. Update CONVENTIONS.md or use `/agile-workflow:review`
-to mark items done without a release bundle."
+If the mapping is `none`, continue with a gate/archive-only release flow:
+release-deploy binds items, runs gates, waits for every bound item to reach
+`done`, drafts the changelog, and archives the bundle under
+`.work/releases/<version>/`. It does **not** tag, branch, merge, push, or bump
+versions. Publishing/version bumping is external to release-deploy and must be
+handled by the project-specific release mechanism.
 
 ### Phase 2: Locate or create the release file
 
@@ -203,6 +206,12 @@ git checkout main && git merge next --ff-only
 git tag <version> && git push origin main <version>
 ```
 
+#### Mapping: `none`
+
+No tag, branch, merge, push, or version bump happens inside release-deploy.
+Proceed directly to archiving after readiness and changelog confirmation.
+Record the external publishing mechanism in the release summary.
+
 If the mapping requires user action (CI credentials, manual confirmation), pause
 and prompt.
 
@@ -246,7 +255,7 @@ In conversation:
 - **Release**: `<version>` shipped
 - **Items**: count, listed
 - **Gates run**: list with finding counts per gate
-- **Mapping**: tag-based / branch-held / release-branch
+- **Mapping**: tag-based / branch-held / release-branch / none
 - **Next**: items now in `.work/releases/<version>/` as the historical record
 
 If the run halted at readiness (pending items), output the pending list and the
@@ -263,7 +272,8 @@ re-run instruction.
   to skip.
 - Don't ship if any bound item is not `done`. Halt and surface the pending list.
 - Tag-based and release-branch mappings rely on the project's existing release
-  script. branch-held requires `gh` CLI for PR merges.
+  script. branch-held requires `gh` CLI for PR merges. none performs no
+  publishing action inside release-deploy.
 - The release file moves to `releases/<version>/` ONLY when the release is
   actually shipped. Until then it stays in `.work/active/`.
 - Stage transitions: `planned → quality-gate` happens at bind. `quality-gate →

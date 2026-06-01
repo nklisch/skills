@@ -38,7 +38,7 @@ registerView(tableView);
 ```
 
 ### Example 2: kanbanView — read from ctx, build subtree, commit once
-**File**: `plugins/agile-workflow/work-view/crates/cli/src/board/assets/kanban.js:196`
+**File**: `plugins/agile-workflow/work-view/crates/cli/src/board/assets/kanban.js:197`
 ```js
 export const kanbanView = {
   id: "kanban",
@@ -68,7 +68,7 @@ export const tableView = {
 };
 ```
 
-Also `dependencyView` at `dependency.js:416`. The `ctx` capability object is
+Also `dependencyView` at `dependency.js:1166`. The `ctx` capability object is
 assembled once in `board.js` by spreading the store and adding
 `renderCard`/`openDetail`/`closeDetail`; views consume only `ctx.*`.
 

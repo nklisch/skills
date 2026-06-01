@@ -411,7 +411,9 @@ item cleanly, commits, and stops. No special halt command.
    `release_binding: <version>` is at `stage: done`. If items remain,
    `release-deploy` halts with the pending list.
 4. **Ship** — per the project's release mapping (chosen at convert time:
-   tag-based, branch-held, or release-branch).
+   tag-based, branch-held, release-branch, or none). `none` means
+   release-deploy only gates and archives the bundle; publishing/version
+   bumping stays with the project's external release mechanism.
 5. **Archive** — bound items move via `git mv` from `.work/active/` to
    `.work/releases/<version>/`. The release file flips to `stage: released`.
 
