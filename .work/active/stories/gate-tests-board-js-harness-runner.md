@@ -1,7 +1,7 @@
 ---
 id: gate-tests-board-js-harness-runner
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: gate-tests-board-js-harness
 depends_on: []
@@ -29,3 +29,17 @@ into the work-view CI job.
 - [ ] `.github/workflows/build-work-view.yml` runs
   `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`.
 
+## Implementation notes
+
+- Files changed:
+  - `plugins/agile-workflow/work-view/crates/cli/tests/board-js/harness.mjs`
+  - `plugins/agile-workflow/work-view/crates/cli/tests/board-js/harness-smoke.test.mjs`
+  - `.github/workflows/build-work-view.yml`
+- Tests added:
+  - `board asset modules load through the no-build harness`
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
+
+## Verification
+
+- `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`

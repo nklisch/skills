@@ -66,6 +66,9 @@ jobs:
         run: python3 -m unittest test_prompt_context
         working-directory: plugins/agile-workflow/hooks/scripts
 
+      - name: Run board JS asset tests
+        run: node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs
+
   # -----------------------------------------------------------------------
   # Linux musl builds via cargo-zigbuild
   # -----------------------------------------------------------------------
