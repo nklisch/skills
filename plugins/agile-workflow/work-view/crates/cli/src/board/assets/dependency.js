@@ -9,6 +9,7 @@ const LARGE_GRAPH_THRESHOLD = 48;
 const ID_CHARS_PER_LINE = 25;
 const EDGE_CHARS_PER_LINE = 22;
 const NODE_HEIGHT_BUFFER = 10;
+const DRAG_THRESHOLD_PX = 4;
 
 let focusedNode = null;
 let preferredRenderMode = null;
@@ -342,6 +343,88 @@ function syncEdgeGeometry(canvas, model) {
   applyTrace(canvas, model, focusedNode);
 }
 
+function positionValue(value) {
+  const number = Number.parseFloat(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function expandCanvasForNode(canvas, wrapper) {
+  const left = positionValue(wrapper.style.left);
+  const top = positionValue(wrapper.style.top);
+  const width = Math.max(canvas.offsetWidth, canvas.scrollWidth, left + wrapper.offsetWidth + CANVAS_PADDING);
+  const height = Math.max(canvas.offsetHeight, canvas.scrollHeight, top + wrapper.offsetHeight + CANVAS_PADDING);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+}
+
+function installNodeDragging(canvas, wrapper, model) {
+  let drag = null;
+  let suppressClick = false;
+
+  wrapper.addEventListener("click", (event) => {
+    if (!suppressClick) {
+      return;
+    }
+    suppressClick = false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+
+  wrapper.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+    drag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startLeft: positionValue(wrapper.style.left),
+      startTop: positionValue(wrapper.style.top),
+      moved: false,
+    };
+    wrapper.setPointerCapture(event.pointerId);
+  });
+
+  wrapper.addEventListener("pointermove", (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) {
+      return;
+    }
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    if (!drag.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD_PX) {
+      return;
+    }
+    drag.moved = true;
+    suppressClick = true;
+    wrapper.classList.add("is-dragging");
+    wrapper.style.left = `${Math.max(CANVAS_PADDING, drag.startLeft + deltaX)}px`;
+    wrapper.style.top = `${Math.max(CANVAS_PADDING, drag.startTop + deltaY)}px`;
+    expandCanvasForNode(canvas, wrapper);
+    syncEdgeGeometry(canvas, model);
+    event.preventDefault();
+  });
+
+  const endDrag = (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) {
+      return;
+    }
+    const didMove = drag.moved;
+    if (wrapper.hasPointerCapture(event.pointerId)) {
+      wrapper.releasePointerCapture(event.pointerId);
+    }
+    wrapper.classList.remove("is-dragging");
+    if (didMove) {
+      event.preventDefault();
+      window.setTimeout(() => {
+        suppressClick = false;
+      }, 0);
+    }
+    drag = null;
+  };
+  wrapper.addEventListener("pointerup", endDrag);
+  wrapper.addEventListener("pointercancel", endDrag);
+}
+
 function cleanupEdgeGeometrySync() {
   if (activeEdgeGeometryCleanup) {
     activeEdgeGeometryCleanup();
@@ -412,6 +495,7 @@ function renderGraphCanvas(model, ctx) {
     wrapper.style.top = `${position.y}px`;
     wrapper.style.minHeight = `${position.height}px`;
     wrapper.append(renderNode(node, model, ctx));
+    installNodeDragging(canvas, wrapper, model);
     canvas.append(wrapper);
   }
 

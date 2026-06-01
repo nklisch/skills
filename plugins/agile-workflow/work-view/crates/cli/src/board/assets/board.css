@@ -500,7 +500,19 @@ button.dep-node:focus-visible {
 
 .dependency-graph-node {
   position: absolute;
+  touch-action: none;
   width: 280px;
+}
+
+.dependency-graph-node > .dep-node {
+  cursor: grab;
+  user-select: none;
+}
+
+.dependency-graph-node.is-dragging,
+.dependency-graph-node.is-dragging > .dep-node {
+  z-index: 3;
+  cursor: grabbing;
 }
 
 .dependency-graph-node.is-dimmed {

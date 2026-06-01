@@ -866,6 +866,36 @@ fn dependency_canvas_edges_resync_from_measured_nodes_on_resize() {
 }
 
 #[test]
+fn dependency_canvas_nodes_can_be_dragged_ephemerally() {
+    let dependency_js = board_response_once("/assets/dependency.js");
+    let body = http_body(&dependency_js);
+    let board_css = board_response_once("/assets/board.css");
+    let css = http_body(&board_css);
+    let node_rule = css_rule_body(css, ".dependency-graph-node");
+    let dragging_rule = css_rule_body(css, ".dependency-graph-node.is-dragging");
+
+    assert!(
+        body.contains("function installNodeDragging")
+            && body.contains("pointerdown")
+            && body.contains("setPointerCapture")
+            && body.contains("wrapper.style.left")
+            && body.contains("wrapper.style.top")
+            && body.contains("suppressClick")
+            && body.contains("syncEdgeGeometry(canvas, model)")
+            && body.contains("installNodeDragging(canvas, wrapper, model)"),
+        "dependency canvas should support session-only pointer dragging with edge resync; body: {body}"
+    );
+    assert!(
+        node_rule.contains("touch-action: none"),
+        "dependency graph nodes should opt out of touch panning while dragging; rule: {node_rule}"
+    );
+    assert!(
+        dragging_rule.contains("z-index") && dragging_rule.contains("grabbing"),
+        "dragging nodes should rise above peers and show drag affordance; rule: {dragging_rule}"
+    );
+}
+
+#[test]
 fn board_asset_named_imports_are_satisfied_by_shipped_modules() {
     let modules = board_asset_modules();
     for (importer_path, importer_body) in modules {
