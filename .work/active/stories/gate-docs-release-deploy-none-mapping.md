@@ -1,7 +1,7 @@
 ---
 id: gate-docs-release-deploy-none-mapping
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []

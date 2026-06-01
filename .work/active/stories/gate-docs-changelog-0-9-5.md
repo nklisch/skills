@@ -1,7 +1,7 @@
 ---
 id: gate-docs-changelog-0-9-5
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []

@@ -1,7 +1,7 @@
 ---
 id: gate-tests-filtered-dependency-stubs
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []

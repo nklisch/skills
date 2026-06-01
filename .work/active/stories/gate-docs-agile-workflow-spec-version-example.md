@@ -1,7 +1,7 @@
 ---
 id: gate-docs-agile-workflow-spec-version-example
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []

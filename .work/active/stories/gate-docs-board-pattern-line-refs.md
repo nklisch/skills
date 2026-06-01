@@ -1,7 +1,7 @@
 ---
 id: gate-docs-board-pattern-line-refs
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []

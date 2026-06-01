@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-board-js-cleanup-module-graph
 kind: story
-stage: review
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
