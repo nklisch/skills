@@ -1,7 +1,7 @@
 ---
 id: story-fix-dependency-node-click-jitter-swallow
 kind: story
-stage: review
+stage: done
 tags: [bug]
 parent: null
 depends_on: []
@@ -40,3 +40,10 @@ Verification:
 - Krometrail on `http://127.0.0.1:8181/`: with Hand active, clicking a node opened details; a quick pointer-move sequence no longer prevented the detail click.
 - Krometrail marker inspection around the user's mark showed repeated real click events landing on `#view-root`, confirming pointer capture/retargeting was the live failure mode.
 - Krometrail after the deferred-capture fix: quick pointer movement before click opened the item detail modal, and no new page errors were recorded.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story includes a before-fix failing regression assertion, targeted
+  dependency canvas tests, full cargo verification, release build verification,
+  and browser evidence for the real click-jitter failure mode and fix.
