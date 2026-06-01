@@ -19,10 +19,10 @@ because the artifacts have drifted from reality.
 
 The substrate pattern collapses this. The item file *is* the work. Stage
 advances as work happens. Foundation docs roll forward — they describe the
-system as it is *now*, never as it was. Git carries history; the present is
-what's in the file. An agent picking up a fresh session reads
-`.work/active/`, runs the prescribed grep primitives, and knows what's in
-flight without being re-fed.
+system as it is now or as it is intended to become, never as it was. Git
+carries history; the active truth is what's in the file. An agent picking up a
+fresh session reads `.work/active/`, runs the prescribed grep primitives, and
+knows what's in flight without being re-fed.
 
 ## Substrate philosophy
 
@@ -33,9 +33,9 @@ The plugin enforces three execution principles:
   review findings — all accumulate in the item's body as stages advance.
   Reading the file IS reading the state of work.
 - **Foundation docs roll forward.** `docs/VISION.md`, `docs/SPEC.md`,
-  `docs/ARCHITECTURE.md` describe the system as it is now. When
-  implementation changes what those docs assert, the docs update to match
-  the new present. No "previously this worked differently." No legacy
+  `docs/ARCHITECTURE.md` describe current truth or intended future state.
+  When implementation changes what those docs assert, the docs update to
+  match the new truth. No "previously this worked differently." No legacy
   comments. Git is the audit trail.
 - **Late-bind everything.** No upfront roadmap. No pre-populated stages.
   No pre-tagged release bindings. Items advance stages when work actually

@@ -42,8 +42,9 @@ building itself, that is a signal worth catching before an adopter hits it.
   a running service.
 - **Not a monolith.** The plugins version independently; skill names overlap
   across them by design, and the plugin a skill lives in sets its meaning.
-- **Not a roadmap repository.** Foundation docs describe the system as it is
-  now. Time-bound commitments live as items in `.work/`, never as doc prose.
+- **Not a roadmap repository.** Foundation docs describe current truth or
+  intended future state, never past state. Time-bound commitments live as items
+  in `.work/`, never as doc prose.
 
 ## What success looks like
 

@@ -101,10 +101,10 @@ parent, and dependency. Common patterns:
 - `work-view --parent <id>` / `--blocking <id>` — hierarchy / sequencing
 - `work-view --help` for the full flag set
 
-Foundation docs in `docs/` describe the system NOW — never add legacy notes;
-git history is the audit trail. Item files are the durable state: update the
-body with implementation discoveries, review findings, blockers, and decisions
-instead of relying on chat history.
+Foundation docs in `docs/` describe the system's current state or intended
+future state, never the past; git history is the audit trail. Item files are
+the durable state: update the body with implementation discoveries, review
+findings, blockers, and decisions instead of relying on chat history.
 
 Project-level agent rules live in this file (the canonical agent instruction
 file). Do not create or maintain `.claude/rules/*.md` as a source of truth;

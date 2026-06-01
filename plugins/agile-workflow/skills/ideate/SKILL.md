@@ -19,9 +19,9 @@ foundation documents that define the project. This skill produces docs only; it 
 not bootstrap the substrate (that's `/agile-workflow:convert`'s job).
 
 The foundation docs you produce will be subject to the **rolling-foundation principle**:
-they describe the system as it is NOW, and they roll forward in place as the project
-evolves. Encode that intent — write docs that read as present-tense truth, with no
-"future plans" prose or migration notes.
+they describe current truth or intended future state, never past state, and they
+roll forward in place as the project evolves. Encode that intent — write docs
+as declarative truth, with no historical prose or migration notes.
 
 ## Workflow
 

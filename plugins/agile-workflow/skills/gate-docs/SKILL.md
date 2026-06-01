@@ -14,8 +14,10 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 # Gate-Docs
 
 You orchestrate a documentation gate that enforces the **rolling-foundation
-principle**: foundation docs in `docs/` describe the system as it is NOW.
-After implementation work, foundation-doc assertions can drift from reality.
+principle**: foundation docs in `docs/` describe current truth or intended
+future state, never past state. After implementation work, foundation-doc
+assertions can drift from reality or from the intended state they are meant to
+describe.
 
 The actual drift detection runs inside a **deep documentation-audit sub-agent**;
 your role is to prepare the bundle context, dispatch the sub-agent, and convert
@@ -66,10 +68,11 @@ findings.
 **Brief template**:
 
 > You are conducting a documentation drift audit for release `<version>`.
-> The principle: docs in `docs/` describe the system as it is NOW. Drift =
-> doc says X, code now does Y. You have access to Read, Write, Edit, Glob,
-> Grep, Bash, Task. You may spawn parallel sub-tasks for the different
-> drift categories.
+> The principle: docs in `docs/` describe current truth or intended future
+> state, never past state. Drift = doc says X, but the completed bundle now
+> does Y or the intended future state has changed to Y. You have access to
+> Read, Write, Edit, Glob, Grep, Bash, Task. You may spawn parallel sub-tasks
+> for the different drift categories.
 >
 > **Bundle scope** (the changes that may have caused drift):
 > ```
@@ -146,7 +149,7 @@ findings.
 > - **Current doc text**:
 >   > <quote — what the doc currently says>
 > - **Reality**: <what the code now does, post-bundle>
-> - **Required edit**: <roll the doc forward to match the new present.
+> - **Required edit**: <roll the doc forward to match the new active truth.
 >   Apply rolling-foundation: no "previously" prose, no "in v1.x" notes.
 >   Replace the assertion in place. For generated files, give the
 >   regeneration command.>
@@ -170,7 +173,7 @@ findings.
 > - Cite file:line for every finding.
 > - Required edits ENFORCE rolling-foundation: replace stale assertions in
 >   place. Do NOT propose adding "previously" or "in v1.x" prose. Git is the
->   audit trail; the doc is the present.
+>   audit trail; the doc carries the active truth.
 > - For generated files, the required edit is the regeneration command, not
 >   a manual edit.
 > - Skip already-tracked findings.
@@ -211,7 +214,7 @@ updated: YYYY-MM-DD
 <what the code now does, post-bundle>
 
 ## Required edit
-<roll the doc forward to match the new present. Apply rolling-foundation:
+<roll the doc forward to match the new active truth. Apply rolling-foundation:
 no "previously" prose, no "in v1.x" notes. Replace the assertion in place.>
 ```
 
@@ -232,8 +235,9 @@ In conversation:
 - **Drift found**: count by category
 - **Items created**: count, with new ids
 - **Generated files needing regen**: list (if any)
-- **Goal reminder**: rolling-foundation enforces docs describing NOW. Findings
-  here become items the release flow drains to `done` before shipping.
+- **Goal reminder**: rolling-foundation enforces docs describing current truth
+  or intended future state, never past state. Findings here become items the
+  release flow drains to `done` before shipping.
 
 ## Guardrails
 

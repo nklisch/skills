@@ -641,7 +641,7 @@ The plugin enforces the **rolling-foundation principle**: foundation docs in
 and current intent — what is true now, OR what will be true once in-flight
 design lands. They roll forward in place. Never carry "previously" /
 "in v1.x" / migration prose. Git is the audit trail; the doc carries the
-present.
+active truth.
 
 Two timing styles for SPEC and ARCHITECTURE — both legitimate:
 
@@ -660,9 +660,9 @@ reality regardless of style.
 VISION.md is always future-looking. It rolls forward as the project's
 direction evolves.
 
-If you spot a doc that's lying about current state — disagrees with the
-code, references a removed feature, repeats a since-revised assertion —
-just say so. The agent will refresh it.
+If you spot a doc that's lying about current or intended state — disagrees
+with the code, references a removed feature, or repeats a since-revised
+assertion — just say so. The agent will refresh it.
 
 ## Reading the substrate yourself (rare)
 

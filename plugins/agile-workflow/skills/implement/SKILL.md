@@ -116,7 +116,7 @@ For each file the design says to modify or depend on:
 - Confirm the file exists at the path the design specifies
 - Confirm interfaces, types, signatures match the design's expectations
 - Note any discrepancies — the design captured intent at design time; the repo is
-  ground truth NOW
+  current ground truth
 
 Reconcile silently if changes are minor and obvious. Surface significant discrepancies
 in the implementation notes you'll write in Phase 7.

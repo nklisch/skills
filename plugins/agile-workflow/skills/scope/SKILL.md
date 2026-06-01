@@ -367,7 +367,8 @@ Then identify which foundation docs need updating:
 
 For each affected doc:
 1. Read the current version in full
-2. Edit the relevant sections to reflect the **new present** — extend, replace, restructure as needed
+2. Edit the relevant sections to reflect the **current or intended future
+   state** — extend, replace, restructure as needed
 3. **Do NOT add "previously" notes, "in v1.x", or migration prose.** Git carries
    history; the doc carries truth (rolling-foundation principle)
 

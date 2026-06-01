@@ -279,10 +279,10 @@ git log --since='1 day ago' -- .work/
 
 ## Foundation docs (rolling-forward principle)
 docs/ holds standing context: VISION.md, SPEC.md, ARCHITECTURE.md, etc.
-- Foundation docs describe the system as it is NOW
+- Foundation docs describe the system's current state or intended future state
 - Never add "previously this was…" or "note: in v1.2 we…"
 - When implementation changes a foundation-doc assertion, update the doc
-- Git history is the audit trail; the doc is the present
+- Git history is the audit trail; the doc carries the active truth
 ````
 
 The agent loads this automatically when working in `.work/` or `docs/`. The
@@ -555,10 +555,11 @@ parent, and dependency. Common patterns:
 - `work-view --parent <id>` / `--blocking <id>` — hierarchy / sequencing
 - `work-view --help` for the full flag set
 
-Foundation docs in `docs/` describe the system NOW — never add legacy notes;
-git history is the audit trail. The substrate itself is durable memory: record
-decisions, blockers, implementation discoveries, and review findings in item
-bodies instead of depending on chat history.
+Foundation docs in `docs/` describe the system's current state or intended
+future state, never the past; git history is the audit trail. The substrate
+itself is durable memory: record decisions, blockers, implementation
+discoveries, and review findings in item bodies instead of depending on chat
+history.
 
 Reusable code patterns live in `.agents/skills/patterns/` (load the `patterns`
 skill for detail). Project agent rules live in `.agents/rules/*.md`
