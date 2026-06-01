@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-package-metadata-version-lockstep
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-three-channel-distribution-package-metadata
 depends_on: [epic-three-channel-distribution-package-metadata-pi-manifests]
@@ -48,3 +48,14 @@ not have Pi package metadata.
 
 - `bash plugins/agile-workflow/scripts/tests/bump-version.test.sh` passed:
   35 assertions, 0 failures.
+
+## Review (2026-06-01)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation verification is present and
+green; story verified by implement and advanced to `stage: done`.

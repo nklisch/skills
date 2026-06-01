@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-package-metadata
 kind: feature
-stage: implementing
+stage: review
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution
 depends_on: []
@@ -239,3 +239,21 @@ and pushes.
   so new package assertions cannot accidentally publish.
 - Pi package docs allow conventional directories, but this repo should use
   explicit `pi.skills` entries to make future extension additions deliberate.
+
+## Implementation summary
+
+All child stories are complete:
+
+- `epic-three-channel-distribution-package-metadata-pi-manifests` — added Pi
+  package manifests for `agile-workflow`, `ux-ui-design`, and `nates-toolkit`.
+- `epic-three-channel-distribution-package-metadata-version-lockstep` —
+  extended `bump-version.sh` and its regression test so existing package
+  metadata stays in version lockstep.
+
+Verification:
+
+- `jq` parsed all new package manifests.
+- Package versions match each plugin's Claude and Codex manifest versions.
+- `plugins/workflow/package.json` is absent.
+- `bash plugins/agile-workflow/scripts/tests/bump-version.test.sh` passed with
+  35 assertions and 0 failures.
