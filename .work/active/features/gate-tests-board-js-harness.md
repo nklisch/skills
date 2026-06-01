@@ -1,7 +1,7 @@
 ---
 id: gate-tests-board-js-harness
 kind: feature
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -247,3 +247,15 @@ test("detail presentation boundaries and refresh survival are deterministic", ()
 ## Verification
 
 - `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
+
+## Review
+
+- Verdict: Approve - cross-model feature review found no blockers or important
+  issues.
+- Reviewer: Claude Sonnet via peeragent (`--effort xhigh`).
+- Notes: The review confirmed CI wiring, module isolation, markdown safety,
+  filter composition, dependency/table behavior, kanban/detail behavior, and all
+  child story acceptance criteria. It raised one minor non-blocking nit that the
+  exported `cleanupModuleGraph` helper is not called by tests; rejected as not
+  worth a follow-up because the temp directory is process-scoped test debris and
+  does not affect CI correctness or isolation.
