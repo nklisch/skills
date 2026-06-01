@@ -848,6 +848,24 @@ fn dependency_canvas_layout_accounts_for_variable_node_heights() {
 }
 
 #[test]
+fn dependency_canvas_edges_resync_from_measured_nodes_on_resize() {
+    let dependency_js = board_response_once("/assets/dependency.js");
+    let body = http_body(&dependency_js);
+
+    assert!(
+        body.contains("function syncEdgeGeometry")
+            && body.contains("getBoundingClientRect")
+            && body.contains("ResizeObserver")
+            && body.contains("requestAnimationFrame")
+            && body.contains("path.setAttribute(\"d\", edgePath(from, to))")
+            && body.contains("svg.setAttribute(\"viewBox\"")
+            && body.contains("observe(wrapper)")
+            && !body.contains("canvas.append(renderEdges(model, layout));"),
+        "dependency canvas edges should be redrawn from measured rendered nodes after resize; body: {body}"
+    );
+}
+
+#[test]
 fn board_asset_named_imports_are_satisfied_by_shipped_modules() {
     let modules = board_asset_modules();
     for (importer_path, importer_body) in modules {

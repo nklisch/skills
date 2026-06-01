@@ -13,6 +13,7 @@ const NODE_HEIGHT_BUFFER = 10;
 let focusedNode = null;
 let preferredRenderMode = null;
 let showTerminalBranches = false;
+let activeEdgeGeometryCleanup = null;
 
 function textElement(tag, className, text) {
   const element = document.createElement(tag);
@@ -264,6 +265,7 @@ function layoutGraph(model) {
       positions.set(node.id, {
         x: CANVAS_PADDING + layerIndex * (NODE_WIDTH + LAYER_GAP),
         y,
+        width: NODE_WIDTH,
         height,
       });
       y += height + ROW_GAP;
@@ -278,7 +280,7 @@ function layoutGraph(model) {
 }
 
 function edgePath(from, to) {
-  const x1 = from.x + NODE_WIDTH;
+  const x1 = from.x + from.width;
   const y1 = from.y + from.height / 2;
   const x2 = to.x;
   const y2 = to.y + to.height / 2;
@@ -286,25 +288,105 @@ function edgePath(from, to) {
   return `M ${x1} ${y1} C ${x1 + control} ${y1}, ${x2 - control} ${y2}, ${x2} ${y2}`;
 }
 
-function renderEdges(model, layout) {
+function renderEdges(model) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.classList.add("dependency-edges");
-  svg.setAttribute("viewBox", `0 0 ${layout.width} ${layout.height}`);
   svg.setAttribute("aria-hidden", "true");
   for (const edge of model.edges) {
-    const from = layout.positions.get(edge.from);
-    const to = layout.positions.get(edge.to);
-    if (!from || !to) {
-      continue;
-    }
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.classList.add("dependency-edge", edge.unmet ? "dependency-edge--unmet" : "dependency-edge--met");
-    path.setAttribute("d", edgePath(from, to));
     path.dataset.from = edge.from;
     path.dataset.to = edge.to;
     svg.append(path);
   }
   return svg;
+}
+
+function measuredNodeBounds(canvas) {
+  const canvasRect = canvas.getBoundingClientRect();
+  const bounds = new Map();
+  for (const wrapper of canvas.querySelectorAll(".dependency-graph-node")) {
+    const rect = wrapper.getBoundingClientRect();
+    bounds.set(wrapper.dataset.nodeId, {
+      x: rect.left - canvasRect.left,
+      y: rect.top - canvasRect.top,
+      width: rect.width,
+      height: rect.height,
+    });
+  }
+  return bounds;
+}
+
+function syncEdgeGeometry(canvas, model) {
+  const svg = canvas.querySelector(".dependency-edges");
+  if (!svg) {
+    return;
+  }
+  const width = Math.max(1, canvas.scrollWidth, canvas.offsetWidth);
+  const height = Math.max(1, canvas.scrollHeight, canvas.offsetHeight);
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.style.width = `${width}px`;
+  svg.style.height = `${height}px`;
+
+  const bounds = measuredNodeBounds(canvas);
+  for (const path of svg.querySelectorAll(".dependency-edge")) {
+    const from = bounds.get(path.dataset.from);
+    const to = bounds.get(path.dataset.to);
+    if (!from || !to) {
+      path.hidden = true;
+      continue;
+    }
+    path.hidden = false;
+    path.setAttribute("d", edgePath(from, to));
+  }
+  applyTrace(canvas, model, focusedNode);
+}
+
+function cleanupEdgeGeometrySync() {
+  if (activeEdgeGeometryCleanup) {
+    activeEdgeGeometryCleanup();
+    activeEdgeGeometryCleanup = null;
+  }
+}
+
+function installEdgeGeometrySync(canvas, model) {
+  cleanupEdgeGeometrySync();
+  const cleanups = [];
+  let frame = 0;
+  const schedule = () => {
+    if (frame !== 0) {
+      return;
+    }
+    frame = window.requestAnimationFrame(() => {
+      frame = 0;
+      if (canvas.isConnected) {
+        syncEdgeGeometry(canvas, model);
+      }
+    });
+  };
+
+  if (typeof ResizeObserver === "function") {
+    const observer = new ResizeObserver(schedule);
+    observer.observe(canvas);
+    for (const wrapper of canvas.querySelectorAll(".dependency-graph-node")) {
+      observer.observe(wrapper);
+    }
+    cleanups.push(() => observer.disconnect());
+  } else {
+    window.addEventListener("resize", schedule);
+    cleanups.push(() => window.removeEventListener("resize", schedule));
+  }
+
+  schedule();
+  activeEdgeGeometryCleanup = () => {
+    if (frame !== 0) {
+      window.cancelAnimationFrame(frame);
+      frame = 0;
+    }
+    for (const cleanup of cleanups) {
+      cleanup();
+    }
+  };
 }
 
 function renderGraphCanvas(model, ctx) {
@@ -316,7 +398,7 @@ function renderGraphCanvas(model, ctx) {
   canvas.className = "dependency-canvas";
   canvas.style.width = `${layout.width}px`;
   canvas.style.height = `${layout.height}px`;
-  canvas.append(renderEdges(model, layout));
+  canvas.append(renderEdges(model));
 
   for (const node of model.nodes.values()) {
     const position = layout.positions.get(node.id);
@@ -334,6 +416,7 @@ function renderGraphCanvas(model, ctx) {
   }
 
   wireTraceInteractions(canvas, model);
+  installEdgeGeometrySync(canvas, model);
   viewport.append(canvas);
   return viewport;
 }
@@ -448,6 +531,7 @@ export const dependencyView = {
   id: "dependency",
   label: "Dependency",
   mount(root, ctx) {
+    cleanupEdgeGeometrySync();
     const items = ctx.visibleItems();
     const useListFallback = shouldUseListFallback(items);
     const model = buildDependencyModel(graphItems(items));
