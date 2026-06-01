@@ -1,7 +1,7 @@
 ---
 id: feature-work-view-board-expanded-browsing
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: null
 depends_on: []
@@ -149,3 +149,16 @@ function expandableFilterGroup(title, child, options) { /* local expanded state 
   epic match.
 - Sidebar expansion can make mobile layouts cramped. Keep responsive CSS that
   collapses the sidebar above the board as it does today.
+
+## Implementation summary
+
+- `feature-work-view-board-expanded-browsing-epic-sidebar`: added an
+  ancestor-aware `epics` filter set, Epic sidebar group, state-store matching
+  integration, and tests for descendant matching.
+- `feature-work-view-board-expanded-browsing-tags`: added reusable expandable
+  sidebar groups and applied them to Tags with dense scrollable expanded CSS.
+
+## Verification
+
+- `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
+- `cargo test board_embedded_assets_return_expected_content_types --test integration`
