@@ -1,7 +1,7 @@
 {
   "name": "agile-workflow",
   "description": "Markdown-based work-tracking substrate for AI-driven projects. Sibling to workflow — items as files in .work/, late-binding releases, gates that produce items, goal-backed autopilot queue runner. See docs/VISION.md.",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "author": {
     "name": "nklisch"
   },
