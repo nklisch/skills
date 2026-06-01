@@ -381,9 +381,12 @@ select {
 
 .dependency-view {
   display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: var(--space-4);
   min-width: 0;
   min-height: inherit;
+  height: calc(100vh - 146px);
+  overflow: hidden;
   padding: var(--space-4);
 }
 
@@ -416,6 +419,24 @@ select {
   display: inline-flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+.dependency-interaction-controls,
+.dependency-tool-buttons,
+.dependency-zoom-buttons {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dependency-toolbar__button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.dependency-toolbar__zoom-label {
+  min-width: 54px;
+  text-align: center;
 }
 
 .dependency-layer {
@@ -462,17 +483,34 @@ button.dep-node:focus-visible {
 .dependency-canvas-viewport {
   min-width: 0;
   max-width: 100%;
-  min-height: 520px;
+  height: auto;
+  min-height: 0;
   overflow: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-primary);
 }
 
-.dependency-canvas {
+.dependency-canvas-viewport[data-tool="pan"] {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.dependency-canvas-viewport.is-panning {
+  cursor: grabbing;
+}
+
+.dependency-canvas-surface {
   position: relative;
   min-width: 100%;
   min-height: 100%;
+  overflow: hidden;
+}
+
+.dependency-canvas {
+  position: relative;
+  transform-origin: top left;
 }
 
 .dependency-edges {

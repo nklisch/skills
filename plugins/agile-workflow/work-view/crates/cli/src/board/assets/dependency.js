@@ -15,17 +15,27 @@ const DRAG_THRESHOLD_PX = 4;
 const GROUP_LABEL_HEIGHT = 24;
 const GROUP_LABEL_GAP = 14;
 const WEB_RING_RADIUS = 240;
+const MIN_GRAPH_ZOOM = 0.5;
+const MAX_GRAPH_ZOOM = 2;
+const GRAPH_ZOOM_STEP = 0.25;
+const DEFAULT_GRAPH_ZOOM = 0.75;
 const GRAPH_LAYOUTS = [
   { id: "flow", label: "Flow" },
   { id: "stage", label: "Stage" },
   { id: "kind", label: "Kind" },
   { id: "web", label: "Web" },
 ];
+const GRAPH_TOOLS = [
+  { id: "select", label: "Select" },
+  { id: "pan", label: "Hand" },
+];
 const STAGE_LAYOUT_ORDER = ["drafting", "implementing", "review", "done", "released", "backlog", "unstaged", "external"];
 const KIND_LAYOUT_ORDER = ["epic", "feature", "story", "release", "backlog", "idea", "item", "external"];
 
 let focusedNode = null;
 let activeLayoutId = GRAPH_LAYOUTS[0].id;
+let activeGraphTool = GRAPH_TOOLS[0].id;
+let activeGraphZoom = DEFAULT_GRAPH_ZOOM;
 let showTerminalBranches = false;
 let activeEdgeGeometryCleanup = null;
 
@@ -36,6 +46,41 @@ function textElement(tag, className, text) {
   }
   element.textContent = text;
   return element;
+}
+
+function clampGraphZoom(value) {
+  const rounded = Math.round(Number(value) * 100) / 100;
+  return Math.min(MAX_GRAPH_ZOOM, Math.max(MIN_GRAPH_ZOOM, rounded));
+}
+
+function setGraphZoom(value) {
+  activeGraphZoom = clampGraphZoom(value);
+}
+
+function graphZoomLabel() {
+  return `${Math.round(activeGraphZoom * 100)}%`;
+}
+
+function updateGraphZoomControls() {
+  for (const button of document.querySelectorAll("[data-zoom-action]")) {
+    if (button.dataset.zoomAction === "reset") {
+      button.textContent = graphZoomLabel();
+    }
+    if (button.dataset.zoomAction === "out") {
+      button.disabled = activeGraphZoom <= MIN_GRAPH_ZOOM;
+    }
+    if (button.dataset.zoomAction === "in") {
+      button.disabled = activeGraphZoom >= MAX_GRAPH_ZOOM;
+    }
+  }
+}
+
+function applyGraphZoom(viewport, surface, canvas, layout) {
+  viewport.dataset.zoom = String(activeGraphZoom);
+  surface.style.width = `${Math.ceil(layout.width * activeGraphZoom)}px`;
+  surface.style.height = `${Math.ceil(layout.height * activeGraphZoom)}px`;
+  canvas.style.transform = `scale(${activeGraphZoom})`;
+  updateGraphZoomControls();
 }
 
 function arrayOfStrings(value) {
@@ -182,7 +227,11 @@ function renderNode(node, model, ctx) {
   }
   if (!node.external) {
     nodeElement.type = "button";
-    nodeElement.addEventListener("click", () => ctx.openDetail(node.id));
+    nodeElement.addEventListener("click", () => {
+      if (activeGraphTool === "select") {
+        ctx.openDetail(node.id);
+      }
+    });
   }
 
   const head = document.createElement("div");
@@ -223,7 +272,11 @@ function renderWebNode(node, model, ctx) {
   }
   if (!node.external) {
     nodeElement.type = "button";
-    nodeElement.addEventListener("click", () => ctx.openDetail(node.id));
+    nodeElement.addEventListener("click", () => {
+      if (activeGraphTool === "select") {
+        ctx.openDetail(node.id);
+      }
+    });
   }
 
   const head = document.createElement("div");
@@ -492,14 +545,15 @@ function renderLayoutLabels(layout) {
 
 function measuredNodeBounds(canvas) {
   const canvasRect = canvas.getBoundingClientRect();
+  const scale = activeGraphZoom || 1;
   const bounds = new Map();
   for (const wrapper of canvas.querySelectorAll(".dependency-graph-node")) {
     const rect = wrapper.getBoundingClientRect();
     bounds.set(wrapper.dataset.nodeId, {
-      x: rect.left - canvasRect.left,
-      y: rect.top - canvasRect.top,
-      width: rect.width,
-      height: rect.height,
+      x: (rect.left - canvasRect.left) / scale,
+      y: (rect.top - canvasRect.top) / scale,
+      width: rect.width / scale,
+      height: rect.height / scale,
     });
   }
   return bounds;
@@ -576,11 +630,13 @@ function installNodeDragging(canvas, wrapper, model) {
     if (!drag || event.pointerId !== drag.pointerId) {
       return;
     }
-    const deltaX = event.clientX - drag.startX;
-    const deltaY = event.clientY - drag.startY;
-    if (!drag.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD_PX) {
+    const rawDeltaX = event.clientX - drag.startX;
+    const rawDeltaY = event.clientY - drag.startY;
+    if (!drag.moved && Math.hypot(rawDeltaX, rawDeltaY) < DRAG_THRESHOLD_PX) {
       return;
     }
+    const deltaX = rawDeltaX / activeGraphZoom;
+    const deltaY = rawDeltaY / activeGraphZoom;
     drag.moved = true;
     suppressClick = true;
     wrapper.classList.add("is-dragging");
@@ -659,15 +715,113 @@ function installEdgeGeometrySync(canvas, model) {
   };
 }
 
+function installViewportPanning(viewport) {
+  let pan = null;
+  let suppressClick = false;
+
+  viewport.addEventListener("click", (event) => {
+    if (!suppressClick) {
+      return;
+    }
+    suppressClick = false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+
+  viewport.addEventListener("pointerdown", (event) => {
+    if (event.target.closest(".dependency-graph-node")) {
+      return;
+    }
+    const isMiddlePan = event.button === 1;
+    if (activeGraphTool !== "pan" && !isMiddlePan) {
+      return;
+    }
+    if (event.button !== 0 && !isMiddlePan) {
+      return;
+    }
+    pan = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startLeft: viewport.scrollLeft,
+      startTop: viewport.scrollTop,
+      moved: false,
+    };
+    viewport.setPointerCapture(event.pointerId);
+    viewport.classList.add("is-panning");
+    event.preventDefault();
+  });
+
+  viewport.addEventListener("pointermove", (event) => {
+    if (!pan || event.pointerId !== pan.pointerId) {
+      return;
+    }
+    const deltaX = event.clientX - pan.startX;
+    const deltaY = event.clientY - pan.startY;
+    if (!pan.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD_PX) {
+      return;
+    }
+    pan.moved = true;
+    suppressClick = true;
+    viewport.scrollLeft = pan.startLeft - deltaX;
+    viewport.scrollTop = pan.startTop - deltaY;
+    event.preventDefault();
+  });
+
+  const endPan = (event) => {
+    if (!pan || event.pointerId !== pan.pointerId) {
+      return;
+    }
+    if (viewport.hasPointerCapture(event.pointerId)) {
+      viewport.releasePointerCapture(event.pointerId);
+    }
+    viewport.classList.remove("is-panning");
+    pan = null;
+  };
+  viewport.addEventListener("pointerup", endPan);
+  viewport.addEventListener("pointercancel", endPan);
+}
+
+function installWheelZoom(viewport, surface, canvas, layout, model) {
+  viewport.addEventListener("wheel", (event) => {
+    if (event.deltaY === 0) {
+      return;
+    }
+    const nextZoom = clampGraphZoom(activeGraphZoom + (event.deltaY < 0 ? GRAPH_ZOOM_STEP : -GRAPH_ZOOM_STEP));
+    if (nextZoom === activeGraphZoom) {
+      return;
+    }
+    event.preventDefault();
+    const previousZoom = activeGraphZoom;
+    const viewportRect = viewport.getBoundingClientRect();
+    const pointerX = event.clientX - viewportRect.left;
+    const pointerY = event.clientY - viewportRect.top;
+    const graphX = (viewport.scrollLeft + pointerX) / previousZoom;
+    const graphY = (viewport.scrollTop + pointerY) / previousZoom;
+
+    setGraphZoom(nextZoom);
+    applyGraphZoom(viewport, surface, canvas, layout);
+    viewport.scrollLeft = graphX * activeGraphZoom - pointerX;
+    viewport.scrollTop = graphY * activeGraphZoom - pointerY;
+    syncEdgeGeometry(canvas, model);
+  }, { passive: false });
+}
+
 function renderGraphCanvas(model, ctx) {
   const layout = layoutGraph(model, activeLayoutId);
   const viewport = document.createElement("div");
   viewport.className = "dependency-canvas-viewport";
+  viewport.dataset.tool = activeGraphTool;
+  viewport.dataset.zoom = String(activeGraphZoom);
+
+  const surface = document.createElement("div");
+  surface.className = "dependency-canvas-surface";
 
   const canvas = document.createElement("div");
   canvas.className = "dependency-canvas";
   canvas.style.width = `${layout.width}px`;
   canvas.style.height = `${layout.height}px`;
+  applyGraphZoom(viewport, surface, canvas, layout);
   canvas.append(renderEdges(model));
   canvas.append(renderLayoutLabels(layout));
 
@@ -690,7 +844,10 @@ function renderGraphCanvas(model, ctx) {
 
   wireTraceInteractions(canvas, model);
   installEdgeGeometrySync(canvas, model);
-  viewport.append(canvas);
+  installViewportPanning(viewport);
+  installWheelZoom(viewport, surface, canvas, layout, model);
+  surface.append(canvas);
+  viewport.append(surface);
   return viewport;
 }
 
@@ -776,10 +933,74 @@ function renderLayoutButtons(root, ctx) {
   return group;
 }
 
+function renderGraphInteractionControls(root, ctx) {
+  const controls = document.createElement("div");
+  controls.className = "dependency-interaction-controls";
+
+  const toolGroup = document.createElement("div");
+  toolGroup.className = "dependency-tool-buttons";
+  toolGroup.setAttribute("role", "group");
+  for (const tool of GRAPH_TOOLS) {
+    const button = document.createElement("button");
+    button.className = "filter-chip dependency-toolbar__button";
+    button.type = "button";
+    button.dataset.toolId = tool.id;
+    button.textContent = tool.label;
+    button.setAttribute("aria-pressed", String(activeGraphTool === tool.id));
+    button.addEventListener("click", () => {
+      activeGraphTool = tool.id;
+      dependencyView.mount(root, ctx);
+    });
+    toolGroup.append(button);
+  }
+
+  const zoomGroup = document.createElement("div");
+  zoomGroup.className = "dependency-zoom-buttons";
+  zoomGroup.setAttribute("role", "group");
+  const zoomOut = document.createElement("button");
+  zoomOut.className = "filter-chip dependency-toolbar__button";
+  zoomOut.type = "button";
+  zoomOut.dataset.zoomAction = "out";
+  zoomOut.textContent = "-";
+  zoomOut.setAttribute("aria-label", "Zoom out");
+  zoomOut.disabled = activeGraphZoom <= MIN_GRAPH_ZOOM;
+  zoomOut.addEventListener("click", () => {
+    setGraphZoom(activeGraphZoom - GRAPH_ZOOM_STEP);
+    dependencyView.mount(root, ctx);
+  });
+
+  const zoomReset = document.createElement("button");
+  zoomReset.className = "filter-chip dependency-toolbar__button dependency-toolbar__zoom-label";
+  zoomReset.type = "button";
+  zoomReset.dataset.zoomAction = "reset";
+  zoomReset.textContent = graphZoomLabel();
+  zoomReset.setAttribute("aria-label", "Reset zoom");
+  zoomReset.addEventListener("click", () => {
+    setGraphZoom(1);
+    dependencyView.mount(root, ctx);
+  });
+
+  const zoomIn = document.createElement("button");
+  zoomIn.className = "filter-chip dependency-toolbar__button";
+  zoomIn.type = "button";
+  zoomIn.dataset.zoomAction = "in";
+  zoomIn.textContent = "+";
+  zoomIn.setAttribute("aria-label", "Zoom in");
+  zoomIn.disabled = activeGraphZoom >= MAX_GRAPH_ZOOM;
+  zoomIn.addEventListener("click", () => {
+    setGraphZoom(activeGraphZoom + GRAPH_ZOOM_STEP);
+    dependencyView.mount(root, ctx);
+  });
+
+  zoomGroup.append(zoomOut, zoomReset, zoomIn);
+  controls.append(toolGroup, zoomGroup);
+  return controls;
+}
+
 function renderGraphToolbar(root, ctx, items) {
   const toolbar = document.createElement("div");
   toolbar.className = "dependency-toolbar";
-  toolbar.append(renderLayoutButtons(root, ctx));
+  toolbar.append(renderLayoutButtons(root, ctx), renderGraphInteractionControls(root, ctx));
 
   if (items.length > LARGE_GRAPH_THRESHOLD) {
     const terminalButton = document.createElement("button");

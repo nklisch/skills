@@ -907,6 +907,12 @@ fn dependency_canvas_viewport_constrains_oversized_graph_to_scroll_container() {
         "dependency view grid item must be allowed to shrink inside the board shell; rule: {view_rule}"
     );
     assert!(
+        view_rule.contains("grid-template-rows: auto auto minmax(0, 1fr)")
+            && view_rule.contains("height: calc(100vh - 146px)")
+            && view_rule.contains("overflow: hidden"),
+        "dependency view should dedicate remaining viewport space to the canvas instead of leaving dead space; rule: {view_rule}"
+    );
+    assert!(
         viewport_rule.contains("min-width: 0"),
         "dependency canvas viewport must not use graph min-content width as panel width; rule: {viewport_rule}"
     );
@@ -917,6 +923,10 @@ fn dependency_canvas_viewport_constrains_oversized_graph_to_scroll_container() {
     assert!(
         viewport_rule.contains("overflow: auto"),
         "dependency canvas viewport should provide internal scrolling for wide graphs; rule: {viewport_rule}"
+    );
+    assert!(
+        viewport_rule.contains("height: auto") && viewport_rule.contains("min-height: 0"),
+        "dependency canvas viewport should fill its grid track rather than use a fixed clamp; rule: {viewport_rule}"
     );
 }
 
@@ -949,6 +959,61 @@ fn dependency_canvas_edges_resync_from_measured_nodes_on_resize() {
             && body.contains("observe(wrapper)")
             && !body.contains("canvas.append(renderEdges(model, layout));"),
         "dependency canvas edges should be redrawn from measured rendered nodes after resize; body: {body}"
+    );
+}
+
+#[test]
+fn dependency_canvas_has_zoom_and_hand_pan_tools() {
+    let dependency_js = board_response_once("/assets/dependency.js");
+    let body = http_body(&dependency_js);
+    let board_css = board_response_once("/assets/board.css");
+    let css = http_body(&board_css);
+    let surface_rule = css_rule_body(css, ".dependency-canvas-surface");
+    let pan_rule = css_rule_body(css, ".dependency-canvas-viewport[data-tool=\"pan\"]");
+    let canvas_rule = css_rule_body(css, ".dependency-canvas {");
+
+    assert!(
+        body.contains("const MIN_GRAPH_ZOOM")
+            && body.contains("const MAX_GRAPH_ZOOM")
+            && body.contains("const DEFAULT_GRAPH_ZOOM")
+            && body.contains("const GRAPH_TOOLS")
+            && body.contains("let activeGraphTool")
+            && body.contains("let activeGraphZoom = DEFAULT_GRAPH_ZOOM")
+            && body.contains("function renderGraphInteractionControls")
+            && body.contains("function applyGraphZoom")
+            && body.contains("button.dataset.toolId = tool.id")
+            && body.contains("zoomOut.dataset.zoomAction = \"out\"")
+            && body.contains("zoomReset.dataset.zoomAction = \"reset\"")
+            && body.contains("zoomIn.dataset.zoomAction = \"in\"")
+            && body.contains("function installViewportPanning")
+            && body.contains("function installWheelZoom")
+            && body.contains("addEventListener(\"wheel\"")
+            && body.contains("event.preventDefault()")
+            && body.contains("graphX * activeGraphZoom")
+            && body.contains("viewport.scrollLeft = pan.startLeft - deltaX")
+            && body.contains("viewport.dataset.tool = activeGraphTool")
+            && body.contains("viewport.dataset.zoom = String(activeGraphZoom)")
+            && body.contains("surface.style.width")
+            && body.contains("canvas.style.transform"),
+        "dependency canvas should expose select/hand tools plus zoom controls over a scaled surface; body: {body}"
+    );
+    assert!(
+        body.contains("rect.width / scale")
+            && body.contains("rawDeltaX / activeGraphZoom")
+            && body.contains("event.target.closest(\".dependency-graph-node\")"),
+        "dependency canvas geometry should be zoom-aware, and hand panning should not intercept node dragging; body: {body}"
+    );
+    assert!(
+        surface_rule.contains("overflow: hidden") && surface_rule.contains("min-width: 100%"),
+        "scaled dependency canvas should live inside a clipped surface whose dimensions drive scrolling; rule: {surface_rule}"
+    );
+    assert!(
+        pan_rule.contains("cursor: grab") && pan_rule.contains("touch-action: none"),
+        "hand tool should expose a pan cursor and own touch movement; rule: {pan_rule}"
+    );
+    assert!(
+        canvas_rule.contains("transform-origin: top left"),
+        "zoomed canvas should scale from the scroll origin; rule: {canvas_rule}"
     );
 }
 
