@@ -114,7 +114,7 @@
 .filter-chip .x { opacity: .6; margin-left: 4px; }
 
 /* auto-hide toggle (released/archived) */
-.toggle { display: inline-flex; align-items: center; gap: var(--space-2); cursor: pointer; font: var(--font-weight-medium) var(--font-size-xs)/1 var(--font-mono); color: var(--color-text-secondary); white-space: nowrap; }
+.toggle { display: inline-flex; align-items: center; gap: var(--space-2); cursor: pointer; font: var(--font-weight-medium) var(--font-size-xs)/1.3 var(--font-mono); color: var(--color-text-secondary); white-space: nowrap; background: transparent; border: 0; padding: 0; text-align: left; }
 .toggle .track { flex: 0 0 auto; }
 .toggle .track { width: 30px; height: 16px; border-radius: var(--radius-full); background: var(--color-border-strong); position: relative; transition: background .14s; }
 .toggle .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--color-bg-secondary); transition: left .14s; }
