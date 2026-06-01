@@ -1,0 +1,24 @@
+{
+  "name": "@nklisch/pi-agile-workflow",
+  "version": "0.9.3",
+  "description": "Markdown-based work-tracking substrate for AI-driven projects.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nklisch/skills.git",
+    "directory": "plugins/agile-workflow"
+  },
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "agile-workflow"
+  ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  }
+}

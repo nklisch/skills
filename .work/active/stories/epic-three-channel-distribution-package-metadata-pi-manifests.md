@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-package-metadata-pi-manifests
 kind: story
-stage: implementing
+stage: review
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution-package-metadata
 depends_on: []
@@ -22,14 +22,30 @@ that matches the plugin's Claude/Codex identity.
 
 ## Acceptance criteria
 
-- [ ] `plugins/agile-workflow/package.json` exists with name
+- [x] `plugins/agile-workflow/package.json` exists with name
   `@nklisch/pi-agile-workflow`, version `0.9.3`, `keywords` including
   `pi-package`, and `pi.skills: ["./skills"]`.
-- [ ] `plugins/ux-ui-design/package.json` exists with name
+- [x] `plugins/ux-ui-design/package.json` exists with name
   `@nklisch/pi-ux-ui-design`, version `0.4.1`, `keywords` including
   `pi-package`, and `pi.skills: ["./skills"]`.
-- [ ] `plugins/nates-toolkit/package.json` exists with name
+- [x] `plugins/nates-toolkit/package.json` exists with name
   `@nklisch/pi-nates-toolkit`, version `0.1.1`, `keywords` including
   `pi-package`, and `pi.skills: ["./skills"]`.
-- [ ] Deprecated `plugins/workflow/` is not given a Pi package in this story.
+- [x] Deprecated `plugins/workflow/` is not given a Pi package in this story.
   It remains present only for existing Claude/Codex installs.
+
+## Implementation notes
+
+- Added Pi package manifests for the three supported plugins only.
+- Each manifest uses the scoped package name `@nklisch/pi-<plugin>`, mirrors the
+  plugin version, declares `pi-package`, and exposes the shared `./skills`
+  directory.
+- Left `plugins/workflow/` without Pi package metadata because the plugin is
+  deprecated and frozen.
+
+## Verification
+
+- Parsed all three package manifests with `jq`.
+- Checked each package version against the corresponding Claude and Codex
+  manifest version.
+- Confirmed `plugins/workflow/package.json` does not exist.

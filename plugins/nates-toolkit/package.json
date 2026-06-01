@@ -1,0 +1,24 @@
+{
+  "name": "@nklisch/pi-nates-toolkit",
+  "version": "0.1.1",
+  "description": "Standalone project-agnostic utility skills with no workflow lock-in.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nklisch/skills.git",
+    "directory": "plugins/nates-toolkit"
+  },
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "nates-toolkit"
+  ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  }
+}

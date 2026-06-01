@@ -1,0 +1,24 @@
+{
+  "name": "@nklisch/pi-ux-ui-design",
+  "version": "0.4.1",
+  "description": "HTML/CSS/JS mockup-first UI/UX design.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nklisch/skills.git",
+    "directory": "plugins/ux-ui-design"
+  },
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "ux-ui-design"
+  ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  }
+}
