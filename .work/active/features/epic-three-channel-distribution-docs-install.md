@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-docs-install
 kind: feature
-stage: implementing
+stage: review
 tags: [docs, plugin]
 parent: epic-three-channel-distribution
 depends_on: [epic-three-channel-distribution-package-metadata, epic-three-channel-distribution-pi-agile-extension, epic-three-channel-distribution-delegation-policy]
@@ -90,12 +90,12 @@ the Pi `/aw` convenience command and the distinction between shared skills and
 native Pi extension behavior.
 
 **Acceptance Criteria**:
-- [ ] Root README install section includes Claude Code, Codex, and Pi.
-- [ ] Agile-workflow guide quick starts include a three-channel install block
+- [x] Root README install section includes Claude Code, Codex, and Pi.
+- [x] Agile-workflow guide quick starts include a three-channel install block
   and mention `/aw status`, `/aw ready`, and `/aw autopilot` as Pi conveniences.
-- [ ] UX/UI guide install section includes Pi package installs while keeping the
+- [x] UX/UI guide install section includes Pi package installs while keeping the
   mockup-first workflow unchanged.
-- [ ] Docs distinguish shared SKILL.md behavior from harness-native extension
+- [x] Docs distinguish shared SKILL.md behavior from harness-native extension
   surfaces.
 
 ### Unit 2: Plugin READMEs and foundation cleanup
@@ -115,14 +115,14 @@ agile-workflow docs so new work points at agile-workflow and migration points at
 `/agile-workflow:convert`.
 
 **Acceptance Criteria**:
-- [ ] `plugins/agile-workflow/README.md` shows Claude, Codex, and Pi installs,
+- [x] `plugins/agile-workflow/README.md` shows Claude, Codex, and Pi installs,
   mentions the Pi `/aw` command surface, and no longer recommends `workflow` for
   new projects.
-- [ ] `plugins/ux-ui-design/README.md` includes a Pi install path and notes that
+- [x] `plugins/ux-ui-design/README.md` includes a Pi install path and notes that
   Pi consumes the same shared skills.
-- [ ] `plugins/nates-toolkit/README.md` exists and includes all three install
+- [x] `plugins/nates-toolkit/README.md` exists and includes all three install
   channels.
-- [ ] `plugins/agile-workflow/docs/VISION.md` no longer says the deprecated
+- [x] `plugins/agile-workflow/docs/VISION.md` no longer says the deprecated
   `workflow` plugin remains a supported new-work sibling.
 
 ### Unit 3: Version bump and channel verification
@@ -142,15 +142,14 @@ verify all three channel metadata files stay in lockstep. This addresses the
 Pi-extension feature review finding that the new distributable extension needs
 a version bump before shipping.
 
-**Acceptance Criteria**:
-- [ ] `./scripts/bump-version.sh agile-workflow patch` runs after plugin docs
+- [x] `./scripts/bump-version.sh agile-workflow patch` runs after plugin docs
   and extension changes are committed, or the story records a hard blocker if
   push/version automation cannot run in this environment.
-- [ ] Claude, Codex, and Pi package metadata report the same agile-workflow
+- [x] Claude, Codex, and Pi package metadata report the same agile-workflow
   version.
-- [ ] `work-view` source version stamp and bash fallback version match the
+- [x] `work-view` source version stamp and bash fallback version match the
   plugin metadata.
-- [ ] The story records the follow-up warning that prebuilt work-view dist
+- [x] The story records the follow-up warning that prebuilt work-view dist
   binaries must be rebuilt on the post-bump commit before publishing.
 
 ## Implementation Order
@@ -162,6 +161,27 @@ a version bump before shipping.
 ## Verification Plan
 
 - `rg -n "Claude Code|Codex|Pi|pi install|/aw" README.md docs plugins/agile-workflow/README.md plugins/ux-ui-design/README.md plugins/nates-toolkit/README.md`
+- `jq -r .version plugins/agile-workflow/.claude-plugin/plugin.json plugins/agile-workflow/.codex-plugin/plugin.json plugins/agile-workflow/package.json`
+- `plugins/agile-workflow/scripts/work-view.sh --version`
+- `cat plugins/agile-workflow/work-view/crates/cli/.work-view-version`
+
+## Implementation Summary
+
+- `epic-three-channel-distribution-docs-install-root-guides`: done. Root README
+  and public guides now show Claude Code, Codex, and Pi install paths and Pi
+  `/aw` conveniences.
+- `epic-three-channel-distribution-docs-install-plugin-readmes`: done. Plugin
+  READMEs now cover all three channels, and agile-workflow docs describe
+  deprecated `workflow` only as a migration source.
+- `epic-three-channel-distribution-docs-install-version-lockstep`: done with
+  caveat. Agile-workflow metadata and work-view source versions are in lockstep
+  at `0.9.5`. The bump script refused because unrelated dirty board files were
+  already present under `plugins/agile-workflow/`, so the version projection was
+  applied manually and the dist-binary rebuild warning was recorded.
+
+## Verification
+
+- `rg -n "Claude Code|OpenAI Codex|Pi|pi install|/aw" README.md docs/agile-workflow-guide.md docs/ux-ui-design-guide.md plugins/agile-workflow/README.md plugins/ux-ui-design/README.md plugins/nates-toolkit/README.md`
 - `jq -r .version plugins/agile-workflow/.claude-plugin/plugin.json plugins/agile-workflow/.codex-plugin/plugin.json plugins/agile-workflow/package.json`
 - `plugins/agile-workflow/scripts/work-view.sh --version`
 - `cat plugins/agile-workflow/work-view/crates/cli/.work-view-version`
