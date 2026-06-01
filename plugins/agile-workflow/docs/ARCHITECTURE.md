@@ -429,8 +429,11 @@ only when no plugin data directory is available. `SessionStart` resets the
 per-session epoch and seen-set; `PostCompact` bumps the epoch. Prompt-time
 principles capsules fire at most once per session, and once again after
 resume/compaction. These events do not inject queue context and do not dirty the
-project worktree. They DO emit the `.agents/rules/` block (below) directly — the
-primary rules firing.
+project worktree. Where the host supports hook-specific context, they emit the
+`.agents/rules/` block (below) directly as the primary rules firing. Codex
+`PostCompact` is side-effect-only because Codex rejects `hookSpecificOutput` on
+that event; Codex rules context flows through `SessionStart` with `source:
+compact` or the prompt fallback.
 
 **`.agents/rules/` rules loader:** the script force-loads every
 `<root>/.agents/rules/*.md` file (sorted, concatenated under a
@@ -438,12 +441,14 @@ primary rules firing.
 (`convert` writes `.agents/rules/agile-workflow.md`; `gate-patterns` writes
 `.agents/rules/patterns.md`; the user adds their own) reach the agent reliably
 in both Claude Code and Codex. It is content-agnostic — it injects whatever
-`*.md` files exist. Firing is hybrid: **SessionStart/PostCompact emit
-unconditionally** (mirroring the legacy `.claude/rules/` force-load, and
-guaranteeing re-injection after compaction even with no user prompt), and a
-**UserPromptSubmit coding-prompt fallback** emits once per epoch if the
-session-start emission did not happen. The fallback uses a broad coding-prompt
-detector — wider than the workflow gate, catching "fix failing tests",
+`*.md` files exist. Firing is hybrid: **SessionStart and host-supported
+PostCompact context output emit unconditionally** (mirroring the legacy
+`.claude/rules/` force-load, and guaranteeing re-injection after compaction even
+with no user prompt), and a **UserPromptSubmit coding-prompt fallback** emits
+once per epoch if the session-start emission did not happen. Codex uses
+`SessionStart` with `source: compact` or the fallback instead of emitting
+context from `PostCompact`. The fallback uses a broad coding-prompt detector —
+wider than the workflow gate, catching "fix failing tests",
 "continue", "debug this build error", or a bare file-path reference. All paths
 share per-epoch + SHA-256 content-hash dedup, so rules load exactly once per
 `(epoch, content)`. `.work/CONVENTIONS.md` may set `rules_context: on|off`

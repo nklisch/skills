@@ -527,12 +527,17 @@ compaction. This lets principles capsules fire once per session, and once again
 after resume/compaction, without dirtying normal project worktrees. It does not
 inject queue context at session start.
 
-These two events are also the **primary firing** of the `.agents/rules/`
-rules-injection contract: each emits the concatenated `.agents/rules/*.md`
-content as `hookSpecificOutput.additionalContext` directly (after the epoch
-reset/bump), unconditionally — no prompt to gate on. This guarantees rules
-reload at session start and after compaction, even during auto-continuation with
-no user prompt, mirroring the legacy Claude-only `.claude/rules/` force-load.
+These events are also the **primary firing** of the `.agents/rules/`
+rules-injection contract where the host accepts hook-specific context. They emit
+the concatenated `.agents/rules/*.md` content as
+`hookSpecificOutput.additionalContext` directly (after the epoch reset/bump),
+unconditionally — no prompt to gate on. Codex is the exception for
+`PostCompact`: Codex's `PostCompact` output schema does not allow
+`hookSpecificOutput`, so that event only bumps the epoch and leaves context
+reload to `SessionStart` with `source: compact` or the prompt fallback. This
+keeps rules reloading at session start and after compaction, even during
+auto-continuation with no user prompt, mirroring the legacy Claude-only
+`.claude/rules/` force-load.
 
 ### `.agents/rules/` rules-injection contract
 
@@ -541,9 +546,12 @@ producers (`convert`, `gate-patterns`, or the user) can drop content-agnostic
 rule files there and have them reliably reach the agent in both Claude Code and
 Codex. The contract:
 
-- **Fires on:** `SessionStart` and `PostCompact` (primary, unconditional); plus
-  a `UserPromptSubmit` coding-prompt fallback (below) that emits once per epoch
-  if the session-start emission did not happen.
+- **Fires on:** `SessionStart` and host-supported `PostCompact` context output
+  (primary, unconditional); plus a `UserPromptSubmit` coding-prompt fallback
+  (below) that emits once per epoch if the session-start emission did not
+  happen. On Codex, `PostCompact` is side-effect-only because its output schema
+  does not allow `hookSpecificOutput`; `SessionStart` with `source: compact`
+  and the fallback carry the context.
 - **Content:** all `<root>/.agents/rules/*.md` files, sorted by name,
   concatenated under a `## Project Rules (.agents/rules/)` heading.
 - **Dedup:** per-session epoch + SHA-256 content hash. Rules inject exactly once

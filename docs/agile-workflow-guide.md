@@ -526,8 +526,11 @@ cross-vendor replacement for the legacy Claude-only `.claude/rules/`: rules reac
 the agent in both Claude Code and Codex, exactly once per session (re-injected
 after compaction or whenever a rules file changes, via per-epoch + content-hash
 dedup). It is content-agnostic — drop any `*.md` into `.agents/rules/` and it
-loads. A broad coding-prompt fallback re-emits the rules if the session-start
-firing was missed (substrate appeared mid-session, host skipped SessionStart).
+loads. In Codex, `PostCompact` itself is side-effect-only because Codex does not
+accept `additionalContext` on that event; rules reload through `SessionStart`
+with `source: compact` or the fallback. A broad coding-prompt fallback re-emits
+the rules if the session-start firing was missed (substrate appeared
+mid-session, host skipped SessionStart).
 
 You can tune this in `.work/CONVENTIONS.md`: `rules_context: off` disables the
 injection, and `rules_context_max_bytes: <int>` (default 12000) caps the size.

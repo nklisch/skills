@@ -395,6 +395,10 @@ def plugin_root() -> Path | None:
     return Path(pr) if pr else None
 
 
+def is_codex_hook_environment() -> bool:
+    return bool(os.environ.get("PLUGIN_ROOT") or os.environ.get("PLUGIN_DATA"))
+
+
 def plugin_version(pr: Path) -> str | None:
     try:
         data = json.loads((pr / ".claude-plugin" / "plugin.json").read_text("utf-8"))
@@ -703,11 +707,15 @@ def main() -> int:
         return 0
 
     # Primary rules firing: SessionStart / PostCompact emit `.agents/rules/`
-    # directly (after the epoch reset/bump) so rules reload at session start and
-    # after compaction — even during auto-continuation with no user prompt.
+    # directly where the host supports hook-specific context. Codex accepts
+    # context on SessionStart but not PostCompact, so Codex PostCompact only
+    # bumps the epoch and leaves context injection to SessionStart compact or
+    # the prompt fallback.
     if event in {"SessionStart", "PostCompact"}:
         bump_epoch(root, payload)
         self_heal_work_view(root, event)
+        if event == "PostCompact" and is_codex_hook_environment():
+            return 0
         output_context(event, emit_rules(root, payload, require_coding=False))
         return 0
 

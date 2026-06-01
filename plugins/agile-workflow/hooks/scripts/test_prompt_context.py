@@ -577,6 +577,54 @@ class RulesLoaderTest(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("Rule A body", out.getvalue())
 
+    def test_main_codex_postcompact_suppresses_unsupported_context_output(self) -> None:
+        (self.rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
+        payload = {
+            "session_id": "codex-s1",
+            "hook_event_name": "PostCompact",
+            "trigger": "auto",
+            "cwd": str(self.root),
+        }
+        out = io.StringIO()
+        with mock.patch.dict(
+            prompt_context.os.environ,
+            {"PLUGIN_ROOT": "/tmp/agile-workflow-plugin"},
+            clear=True,
+        ), mock.patch.object(
+            prompt_context.sys, "stdin", io.StringIO(json.dumps(payload))
+        ), mock.patch.object(prompt_context.sys, "stdout", out):
+            rc = prompt_context.main()
+
+        self.assertEqual(rc, 0)
+        self.assertEqual(out.getvalue(), "")
+        state = prompt_context.load_state(self.root)
+        session = state["sessions"]["codex-s1"]
+        self.assertEqual(session["epoch"], 1)
+        self.assertNotIn("rules", session["seen"])
+
+    def test_main_codex_sessionstart_compact_emits_rules(self) -> None:
+        (self.rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
+        payload = {
+            "session_id": "codex-s2",
+            "hook_event_name": "SessionStart",
+            "source": "compact",
+            "cwd": str(self.root),
+        }
+        out = io.StringIO()
+        with mock.patch.dict(
+            prompt_context.os.environ,
+            {"PLUGIN_ROOT": "/tmp/agile-workflow-plugin"},
+            clear=True,
+        ), mock.patch.object(
+            prompt_context.sys, "stdin", io.StringIO(json.dumps(payload))
+        ), mock.patch.object(prompt_context.sys, "stdout", out):
+            rc = prompt_context.main()
+
+        self.assertEqual(rc, 0)
+        printed = out.getvalue()
+        self.assertIn("additionalContext", printed)
+        self.assertIn("Rule A body", printed)
+
 
 class StateConcurrencyTest(unittest.TestCase):
     """Guards the state-file atomicity + concurrency hardening.
