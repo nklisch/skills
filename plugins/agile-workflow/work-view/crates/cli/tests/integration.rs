@@ -841,17 +841,37 @@ fn dependency_canvas_layout_buttons_offer_relationship_organizations() {
         body.contains("id: \"flow\"")
             && body.contains("id: \"stage\"")
             && body.contains("id: \"kind\"")
+            && body.contains("id: \"impact\"")
             && body.contains("id: \"web\"")
             && body.contains("function groupNodesByStage")
             && body.contains("function groupNodesByKind")
+            && body.contains("function groupNodesByImpact")
             && body.contains("function layoutWebGraph")
             && body.contains("function renderLayoutLabels")
             && body.contains("layout.groups"),
-        "dependency canvas should expose flow, stage, kind, and web organizations over the same edge graph; body: {body}"
+        "dependency canvas should expose flow, stage, kind, impact, and web organizations over the same edge graph; body: {body}"
     );
     assert!(
         label_rule.contains("position: absolute") && label_rule.contains("text-transform: uppercase"),
         "canvas layout columns should have compact labels; rule: {label_rule}"
+    );
+}
+
+#[test]
+fn dependency_canvas_impact_layout_surfaces_high_unlock_items() {
+    let dependency_js = board_response_once("/assets/dependency.js");
+    let body = http_body(&dependency_js);
+
+    assert!(
+        body.contains("function unlockImpactCounts")
+            && body.contains("const reachable = new Set")
+            && body.contains("stack.push(child)")
+            && body.contains("counts.set(id, reachable.size)")
+            && body.contains("function groupNodesByImpact")
+            && body.contains("label: count === 0 ? \"No Visible Unlocks\" : `Unlocks ${count}`")
+            && body.contains(".sort(([a], [b]) => b - a)")
+            && body.contains("layoutId === \"impact\""),
+        "impact layout should group visible graph nodes by transitive downstream unlock count; body: {body}"
     );
 }
 
@@ -971,12 +991,21 @@ fn dependency_canvas_has_zoom_and_hand_pan_tools() {
     let surface_rule = css_rule_body(css, ".dependency-canvas-surface");
     let pan_rule = css_rule_body(css, ".dependency-canvas-viewport[data-tool=\"pan\"]");
     let canvas_rule = css_rule_body(css, ".dependency-canvas {");
+    let tool_button_rule = css_rule_body(css, ".dependency-tool-buttons .dependency-toolbar__button");
+    let icon_rule = css_rule_body(css, ".dependency-toolbar__icon");
 
     assert!(
         body.contains("const MIN_GRAPH_ZOOM")
             && body.contains("const MAX_GRAPH_ZOOM")
             && body.contains("const DEFAULT_GRAPH_ZOOM")
             && body.contains("const GRAPH_TOOLS")
+            && body.contains("{ id: \"inspect\", label: \"Inspect\", icon: \"inspect\"")
+            && body.contains("{ id: \"pan\", label: \"Hand\", icon: \"pan\"")
+            && body.contains("Inspect items; drag nodes to rearrange")
+            && body.contains("Pan empty canvas; drag nodes to rearrange")
+            && body.contains("function svgIcon")
+            && body.contains("button.append(svgIcon(tool.icon), textElement(\"span\", \"dependency-tool-label\", tool.label))")
+            && body.contains("button.setAttribute(\"aria-label\", tool.title)")
             && body.contains("let activeGraphTool")
             && body.contains("let activeGraphZoom = DEFAULT_GRAPH_ZOOM")
             && body.contains("function renderGraphInteractionControls")
@@ -994,8 +1023,10 @@ fn dependency_canvas_has_zoom_and_hand_pan_tools() {
             && body.contains("viewport.dataset.tool = activeGraphTool")
             && body.contains("viewport.dataset.zoom = String(activeGraphZoom)")
             && body.contains("surface.style.width")
-            && body.contains("canvas.style.transform"),
-        "dependency canvas should expose select/hand tools plus zoom controls over a scaled surface; body: {body}"
+            && body.contains("canvas.style.transform")
+            && body.contains("activeGraphTool === \"inspect\"")
+            && !body.contains("label: \"Select\""),
+        "dependency canvas should expose icon-backed inspect/pan tools plus zoom controls over a scaled surface; body: {body}"
     );
     assert!(
         body.contains("rect.width / scale")
@@ -1014,6 +1045,14 @@ fn dependency_canvas_has_zoom_and_hand_pan_tools() {
     assert!(
         canvas_rule.contains("transform-origin: top left"),
         "zoomed canvas should scale from the scroll origin; rule: {canvas_rule}"
+    );
+    assert!(
+        tool_button_rule.contains("inline-flex") && tool_button_rule.contains("align-items: center"),
+        "graph tool buttons should visually pair icon and label; rule: {tool_button_rule}"
+    );
+    assert!(
+        icon_rule.contains("width: 14px") && icon_rule.contains("height: 14px"),
+        "graph tool icons should have stable compact dimensions; rule: {icon_rule}"
     );
 }
 

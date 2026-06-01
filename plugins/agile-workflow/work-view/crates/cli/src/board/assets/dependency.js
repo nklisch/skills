@@ -23,11 +23,12 @@ const GRAPH_LAYOUTS = [
   { id: "flow", label: "Flow" },
   { id: "stage", label: "Stage" },
   { id: "kind", label: "Kind" },
+  { id: "impact", label: "Impact" },
   { id: "web", label: "Web" },
 ];
 const GRAPH_TOOLS = [
-  { id: "select", label: "Select" },
-  { id: "pan", label: "Hand" },
+  { id: "inspect", label: "Inspect", icon: "inspect", title: "Inspect items; drag nodes to rearrange" },
+  { id: "pan", label: "Hand", icon: "pan", title: "Pan empty canvas; drag nodes to rearrange" },
 ];
 const STAGE_LAYOUT_ORDER = ["drafting", "implementing", "review", "done", "released", "backlog", "unstaged", "external"];
 const KIND_LAYOUT_ORDER = ["epic", "feature", "story", "release", "backlog", "idea", "item", "external"];
@@ -46,6 +47,26 @@ function textElement(tag, className, text) {
   }
   element.textContent = text;
   return element;
+}
+
+function svgIcon(name) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.classList.add("dependency-toolbar__icon");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke", "currentColor");
+  path.setAttribute("stroke-linecap", "round");
+  path.setAttribute("stroke-linejoin", "round");
+  path.setAttribute("stroke-width", "1.6");
+  if (name === "pan") {
+    path.setAttribute("d", "M5.3 7.2V4.4a1 1 0 0 1 2 0v2.4M7.3 6.6V3.5a1 1 0 0 1 2 0v3.3M9.3 6.8V4.7a1 1 0 0 1 2 0v3.5M5.3 7.2 4.2 6.1a1.1 1.1 0 0 0-1.6 1.5l2.8 3.6c.8 1 1.9 1.6 3.2 1.6h1.2c2 0 3.2-1.3 3.2-3.4V7a1 1 0 0 0-2 0");
+  } else {
+    path.setAttribute("d", "M4.3 2.7 12.2 8l-3.5.8 2 3.9-1.8.9-2-3.9-2.4 2.6-.2-9.6Z");
+  }
+  svg.append(path);
+  return svg;
 }
 
 function clampGraphZoom(value) {
@@ -228,7 +249,7 @@ function renderNode(node, model, ctx) {
   if (!node.external) {
     nodeElement.type = "button";
     nodeElement.addEventListener("click", () => {
-      if (activeGraphTool === "select") {
+      if (activeGraphTool === "inspect") {
         ctx.openDetail(node.id);
       }
     });
@@ -273,7 +294,7 @@ function renderWebNode(node, model, ctx) {
   if (!node.external) {
     nodeElement.type = "button";
     nodeElement.addEventListener("click", () => {
-      if (activeGraphTool === "select") {
+      if (activeGraphTool === "inspect") {
         ctx.openDetail(node.id);
       }
     });
@@ -400,12 +421,63 @@ function groupNodesByKind(model) {
   }, KIND_LAYOUT_ORDER);
 }
 
+function unlockImpactCounts(model) {
+  const outgoing = new Map();
+  for (const id of model.nodes.keys()) {
+    outgoing.set(id, []);
+  }
+  for (const edge of model.edges) {
+    outgoing.get(edge.from)?.push(edge.to);
+  }
+
+  const counts = new Map();
+  for (const id of model.nodes.keys()) {
+    const reachable = new Set();
+    const stack = [...(outgoing.get(id) || [])];
+    while (stack.length > 0) {
+      const next = stack.pop();
+      if (!next || next === id || reachable.has(next)) {
+        continue;
+      }
+      reachable.add(next);
+      for (const child of outgoing.get(next) || []) {
+        stack.push(child);
+      }
+    }
+    counts.set(id, reachable.size);
+  }
+  return counts;
+}
+
+function groupNodesByImpact(model) {
+  const counts = unlockImpactCounts(model);
+  const groups = new Map();
+  for (const node of model.nodes.values()) {
+    const count = counts.get(node.id) || 0;
+    if (!groups.has(count)) {
+      groups.set(count, []);
+    }
+    groups.get(count).push(node);
+  }
+
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => b - a)
+    .map(([count, nodes]) => ({
+      id: `impact-${count}`,
+      label: count === 0 ? "No Visible Unlocks" : `Unlocks ${count}`,
+      nodes: sortNodesByLabel(nodes),
+    }));
+}
+
 function groupsForLayout(model, layoutId) {
   if (layoutId === "stage") {
     return groupNodesByStage(model);
   }
   if (layoutId === "kind") {
     return groupNodesByKind(model);
+  }
+  if (layoutId === "impact") {
+    return groupNodesByImpact(model);
   }
   return groupNodesByFlow(model);
 }
@@ -945,7 +1017,9 @@ function renderGraphInteractionControls(root, ctx) {
     button.className = "filter-chip dependency-toolbar__button";
     button.type = "button";
     button.dataset.toolId = tool.id;
-    button.textContent = tool.label;
+    button.setAttribute("aria-label", tool.title);
+    button.title = tool.title;
+    button.append(svgIcon(tool.icon), textElement("span", "dependency-tool-label", tool.label));
     button.setAttribute("aria-pressed", String(activeGraphTool === tool.id));
     button.addEventListener("click", () => {
       activeGraphTool = tool.id;
