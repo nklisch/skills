@@ -194,9 +194,15 @@ function show(
 }
 
 function countRows(output: string): number {
-  const lines = output.trim().split(/\r?\n/).filter(Boolean);
-  if (lines.length <= 2 || output === "(no matching items)") return 0;
-  return lines.slice(2).length;
+  if (output === "(no matching items)") return 0;
+
+  return output
+    .trim()
+    .split(/\r?\n/)
+    .filter((line) => line.trim())
+    .filter((line) => !/^ID\s+KIND\s+STAGE\s+TAGS\s+PARENT/.test(line))
+    .filter((line) => !/^-+\s+-+\s+-+\s+-+\s+-+$/.test(line.trim()))
+    .length;
 }
 
 function formatSection(title: string, output: string): string {
