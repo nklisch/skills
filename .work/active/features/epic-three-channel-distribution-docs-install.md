@@ -5,7 +5,7 @@ stage: done
 tags: [docs, plugin]
 parent: epic-three-channel-distribution
 depends_on: [epic-three-channel-distribution-package-metadata, epic-three-channel-distribution-pi-agile-extension, epic-three-channel-distribution-delegation-policy]
-release_binding: null
+release_binding: 0.9.5
 gate_origin: null
 created: 2026-06-01
 updated: 2026-06-01

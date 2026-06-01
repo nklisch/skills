@@ -5,10 +5,10 @@ stage: done
 tags: [tooling]
 parent: epic-three-channel-distribution-package-metadata
 depends_on: [epic-three-channel-distribution-package-metadata-pi-manifests]
-release_binding: null
+release_binding: 0.9.5
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 ---
 
 # Extend Version Lockstep To Pi Packages

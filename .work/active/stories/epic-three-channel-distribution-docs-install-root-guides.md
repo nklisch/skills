@@ -5,7 +5,7 @@ stage: done
 tags: [docs, plugin]
 parent: epic-three-channel-distribution-docs-install
 depends_on: []
-release_binding: null
+release_binding: 0.9.5
 gate_origin: null
 created: 2026-06-01
 updated: 2026-06-01

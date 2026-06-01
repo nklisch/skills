@@ -5,7 +5,7 @@ stage: done
 tags: [tooling]
 parent: feature-work-view-board-expanded-browsing
 depends_on: []
-release_binding: null
+release_binding: 0.9.5
 gate_origin: null
 created: 2026-06-01
 updated: 2026-06-01

@@ -5,7 +5,7 @@ stage: done
 tags: [testing]
 parent: gate-tests-board-js-harness
 depends_on: []
-release_binding: null
+release_binding: 0.9.5
 gate_origin: tests
 created: 2026-06-01
 updated: 2026-06-01
