@@ -5,10 +5,9 @@ plain markdown files in `.work/` with structured frontmatter; skills operate
 as verbs over those files; cross-session continuity comes from the
 substrate, not from re-feeding context.
 
-Sibling plugin to [`workflow`](../workflow/). Both ship from this repo.
-Choose `agile-workflow` for projects where item-as-state tracking and
-late-binding releases fit; choose `workflow` for projects where doc-as-artifact
-tracking fits.
+New projects should use `agile-workflow`. The older [`workflow`](../workflow/)
+plugin remains in the repo only so existing installs do not break; migrate old
+projects with `/agile-workflow:convert`.
 
 ## Foundation docs
 
@@ -20,11 +19,31 @@ tracking fits.
 
 ## Quick start
 
+### Install
+
 ```bash
-# Install via the Claude Code marketplace
+# Claude Code
 /plugin marketplace add nklisch/skills
 /plugin install agile-workflow@nklisch-skills
 
+# OpenAI Codex
+codex plugin marketplace add https://github.com/nklisch/skills
+codex plugin install agile-workflow
+
+# Pi
+pi install npm:@nklisch/pi-agile-workflow
+# or, from this repository:
+pi install -l ./plugins/agile-workflow
+```
+
+Pi loads the same shared skills plus a native `/aw` extension command for queue
+snapshots (`/aw status`, `/aw ready`) and workflow handoffs (`/aw autopilot`,
+`/aw board`). Pi packages can execute extension code, so install from sources you
+trust.
+
+### Bootstrap
+
+```bash
 # In a target project:
 /agile-workflow:ideate            # produce foundation docs (greenfield)
 /agile-workflow:convert           # bootstrap .work/ substrate

@@ -58,10 +58,9 @@ Project owners running AI-driven development who want:
 - Tooling-portable substrate (git, plain markdown, a small compiled binary
   with a bash fallback — no MCP, no auth, no daemon)
 
-This is a sibling pattern to the existing `workflow` plugin. Both ship from
-the same repo. Pick agile-workflow for projects where the substrate's
-continuity and item-as-state model fits; pick `workflow` for projects where
-doc-as-artifact tracking suits better.
+This is the supported workflow pattern for new projects in this repo. The older
+`workflow` plugin still ships only so existing installs do not break; migrate old
+projects with `/agile-workflow:convert`.
 
 ## What success looks like for v0.1.0
 
@@ -86,16 +85,11 @@ still describe the present without legacy comments.
 
 ## Relationship to workflow
 
-`agile-workflow` does not replace `workflow`. Both ship from this repo and stay
-supported. Supported channels are Claude Code, OpenAI Codex, and Pi; each plugin
-versions independently and never shares skills with another plugin.
-
-- Choose **`workflow`** when the project wants design docs as artifacts,
-  roadmaps with phases, a stable doc-driven cycle, and minimal change to
-  existing development habits.
-- Choose **`agile-workflow`** when the project wants the item-as-state
-  substrate, late-binding releases, gates that produce items, and the
-  cross-session continuity that comes from the substrate's discipline.
+`workflow` is deprecated and retained only for compatibility with existing
+installs. New work should use `agile-workflow`; existing `workflow` projects
+migrate via `/agile-workflow:convert`. Supported agile-workflow channels are
+Claude Code, OpenAI Codex, and Pi; each channel adds native ergonomics around
+shared skill content rather than forking the workflow model.
 
 For depth on the principles, see [PRINCIPLES.md](./PRINCIPLES.md).
 For the technical contracts, see [SPEC.md](./SPEC.md).

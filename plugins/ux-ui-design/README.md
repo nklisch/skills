@@ -1,8 +1,8 @@
 # ux-ui-design
 
-HTML/CSS/JS mockup-first UI/UX design for Claude Code and Codex.
+HTML/CSS/JS mockup-first UI/UX design for Claude Code, OpenAI Codex, and Pi.
 
-This plugin makes Claude Code generate **standalone single-file HTML mockups** in
+This plugin makes agents generate **standalone single-file HTML mockups** in
 `.mockups/` before any UI code is written. Mockups are throwaway artifacts —
 they exist for **alignment**, not deployment. You compare options, walk through
 flows, and lock in a design direction; then the implementer translates the
@@ -10,8 +10,8 @@ chosen mock into your real stack later.
 
 ## What's in the box
 
-Four skills, all installable in either Claude Code or Codex (open Agent Skills
-standard):
+Skills, all installable in Claude Code, OpenAI Codex, and Pi through the shared
+`skills/` directory:
 
 | Skill | Trigger | What it does |
 |---|---|---|
@@ -109,8 +109,18 @@ codex plugin marketplace add https://github.com/nklisch/skills
 codex plugin install ux-ui-design
 ```
 
-Both install the four SKILL.md files; Codex sees skills only (no commands or
-agents — none defined here).
+### Pi
+
+```bash
+pi install npm:@nklisch/pi-ux-ui-design
+
+# Local checkout/development install
+pi install -l ./plugins/ux-ui-design
+```
+
+All three channels consume the same shared `skills/` directory. This plugin has
+no Pi-only executable extension; Pi receives the same mockup-first skills as
+Claude Code and Codex.
 
 ### Bootstrap a project
 
