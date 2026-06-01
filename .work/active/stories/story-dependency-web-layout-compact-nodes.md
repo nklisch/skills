@@ -1,7 +1,7 @@
 ---
 id: story-dependency-web-layout-compact-nodes
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
@@ -35,3 +35,10 @@ Verification:
 - `cargo test`
 - `cargo build -p work-view-cli --release`
 - Krometrail on `http://127.0.0.1:8181/`: Web button active, 73 `.dep-node--web` nodes, 0 embedded card edge lists inside Web nodes, 29 dependency edges with 0px max endpoint mismatch. Screenshot: `/home/nathan/.krometrail/browser/recordings/1970-01-01_00-00-00_127-0-0-1-8181/screenshots/1780295236662.jpg`.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story includes dependency canvas regression coverage, full cargo
+  verification, release build verification, and browser evidence for compact Web
+  nodes and center-anchored edge sync.
