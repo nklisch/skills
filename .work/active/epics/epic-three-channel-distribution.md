@@ -1,14 +1,14 @@
 ---
 id: epic-three-channel-distribution
 kind: epic
-stage: implementing
+stage: review
 tags: [plugin, tooling, docs]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 ---
 
 # Three-channel distribution
@@ -96,3 +96,39 @@ behavior rather than planned behavior.
 - `bump-version.sh` currently auto-commits and pushes. Any package-version
   lockstep changes need tests that exercise failure modes without triggering
   real pushes.
+
+## Implementation Summary
+
+- `epic-three-channel-distribution-package-metadata`: done. Added Pi package
+  manifests for `agile-workflow`, `ux-ui-design`, and `nates-toolkit`, and
+  extended version lockstep tooling/tests to include Pi package metadata.
+- `epic-three-channel-distribution-delegation-policy`: done. Updated
+  agile-workflow principles, autopilot, review, implementation, design, gate,
+  and scout routing so Pi-native subagents are same-harness delegation adapters
+  while peeragent remains the cross-model/cross-harness path.
+- `epic-three-channel-distribution-pi-agile-extension`: done. Added the
+  agile-workflow Pi extension manifest and `/aw` command surface for
+  queue/status inspection plus board/autopilot/scope handoffs.
+- `epic-three-channel-distribution-docs-install`: done. Updated public docs and
+  plugin READMEs for Claude Code, OpenAI Codex, and Pi parity, removed stale
+  workflow-sibling wording, and brought agile-workflow metadata/work-view source
+  versions to `0.9.5`.
+
+## Verification
+
+- `bash plugins/agile-workflow/scripts/tests/bump-version.test.sh`
+- `bun build plugins/agile-workflow/extensions/agile-workflow.ts --outfile /tmp/agile-workflow-pi-extension.js`
+- `jq -r .version plugins/agile-workflow/.claude-plugin/plugin.json plugins/agile-workflow/.codex-plugin/plugin.json plugins/agile-workflow/package.json`
+- `plugins/agile-workflow/scripts/work-view.sh --version`
+- Cross-model feature reviews passed for package metadata, delegation policy,
+  Pi extension, and docs/install after accepted findings were fixed or recorded.
+
+## Notes
+
+- `./scripts/bump-version.sh agile-workflow patch` could not run directly during
+  the final version story because unrelated dirty work-view board files already
+  existed inside `plugins/agile-workflow/`. The equivalent metadata/source
+  version projection was applied manually and the reason is recorded in the
+  version-lockstep story.
+- Prebuilt work-view dist binaries still need to be rebuilt from the post-bump
+  commit before publishing `agile-workflow` `0.9.5`.
