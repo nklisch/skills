@@ -1,7 +1,7 @@
 ---
 id: gate-tests-board-js-harness-dependency-table
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: gate-tests-board-js-harness
 depends_on: [gate-tests-board-js-harness-runner]
@@ -42,3 +42,9 @@ directly.
 ## Verification
 
 - `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The dependency model and table comparator behavioral tests are present,
+  the pure `sortedItems` helper export is minimal, and the board JS suite passes.
