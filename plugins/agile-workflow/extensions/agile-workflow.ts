@@ -2,6 +2,8 @@ import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 const STATUS_KEY = "agile-workflow";
+const MAX_OUTPUT_CHARS = 6_000;
+const ITEM_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 
 type PiApi = {
   exec: (
@@ -36,6 +38,7 @@ export default function agileWorkflowExtension(pi: PiApi) {
     handler: async (args, ctx) => {
       const input = (args ?? "").trim();
       const [command] = input.split(/\s+/, 1);
+      const rest = command ? input.slice(command.length).trim() : "";
 
       if (!command || command === "help" || command === "-h" || command === "--help") {
         return show(ctx, helpText());
@@ -58,11 +61,31 @@ export default function agileWorkflowExtension(pi: PiApi) {
         );
       }
 
-      return show(
-        ctx,
-        `Unknown /aw subcommand: ${command}\n\n${helpText()}`,
-        "warning",
-      );
+      try {
+        switch (command) {
+          case "status":
+            return show(ctx, await queueSnapshot(pi, ctx, substrate));
+          case "ready":
+            return show(ctx, await runWorkView(pi, ctx, substrate, ["--ready"]));
+          case "blocked":
+            return show(ctx, await runWorkView(pi, ctx, substrate, ["--blocked"]));
+          case "review":
+            return show(ctx, await runWorkView(pi, ctx, substrate, ["--stage", "review"]));
+          case "parent":
+            return show(ctx, await runIdFilter(pi, ctx, substrate, "--parent", rest));
+          case "blocking":
+            return show(ctx, await runIdFilter(pi, ctx, substrate, "--blocking", rest));
+          default:
+            return show(
+              ctx,
+              `Unknown /aw subcommand: ${command}\n\n${helpText()}`,
+              "warning",
+            );
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return show(ctx, `agile-workflow command failed: ${message}`, "error");
+      }
     },
   });
 }
@@ -103,20 +126,77 @@ async function runWorkView(pi: PiApi, ctx: PiContext, substrate: Substrate, args
   return (result.stdout || "").trim() || "(no matching items)";
 }
 
+async function runIdFilter(
+  pi: PiApi,
+  ctx: PiContext,
+  substrate: Substrate,
+  flag: "--parent" | "--blocking",
+  id: string,
+): Promise<string> {
+  const trimmed = id.trim();
+  if (!ITEM_ID_RE.test(trimmed)) {
+    return `Expected an item id for ${flag}.\n\n${helpText()}`;
+  }
+  return runWorkView(pi, ctx, substrate, [flag, trimmed]);
+}
+
+async function queueSnapshot(pi: PiApi, ctx: PiContext, substrate: Substrate): Promise<string> {
+  const ready = await runWorkView(pi, ctx, substrate, ["--ready"]);
+  const review = await runWorkView(pi, ctx, substrate, ["--stage", "review"]);
+  const blocked = await runWorkView(pi, ctx, substrate, ["--blocked"]);
+  const summary = `${countRows(ready)} ready | ${countRows(review)} review | ${countRows(blocked)} blocked`;
+
+  ctx.ui?.setStatus?.(STATUS_KEY, summary);
+  ctx.ui?.setWidget?.(STATUS_KEY, [
+    "agile-workflow",
+    summary,
+    `root: ${substrate.root}`,
+  ]);
+
+  return [
+    `agile-workflow: ${summary}`,
+    formatSection("Ready", ready),
+    formatSection("Review", review),
+    formatSection("Blocked", blocked),
+  ].join("\n\n");
+}
+
 function show(
   ctx: PiContext,
   message: string,
   level: "info" | "warning" | "error" | "success" = "info",
 ): string {
-  ctx.ui?.notify?.(message, level);
-  return message;
+  const clipped = truncate(message);
+  ctx.ui?.notify?.(clipped, level);
+  return clipped;
+}
+
+function countRows(output: string): number {
+  const lines = output.trim().split(/\r?\n/).filter(Boolean);
+  if (lines.length <= 2 || output === "(no matching items)") return 0;
+  return lines.slice(2).length;
+}
+
+function formatSection(title: string, output: string): string {
+  return `## ${title}\n${output}`;
+}
+
+function truncate(output: string): string {
+  if (output.length <= MAX_OUTPUT_CHARS) return output;
+  return `${output.slice(0, MAX_OUTPUT_CHARS)}\n\n[truncated ${output.length - MAX_OUTPUT_CHARS} chars]`;
 }
 
 function helpText(): string {
   return [
     "agile-workflow commands:",
     "  /aw help              Show this help",
+    "  /aw status            Show ready/review/blocked queue snapshot",
+    "  /aw ready             List ready active items",
+    "  /aw blocked           List blocked active items",
+    "  /aw review            List items at stage:review",
+    "  /aw parent <id>       List direct children",
+    "  /aw blocking <id>     List items waiting on an item",
     "",
-    "Queue commands land in the next extension story.",
+    "Workflow shortcuts land in the next extension story.",
   ].join("\n");
 }

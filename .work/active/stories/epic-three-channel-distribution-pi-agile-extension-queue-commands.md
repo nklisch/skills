@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-pi-agile-extension-queue-commands
 kind: story
-stage: implementing
+stage: review
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution-pi-agile-extension
 depends_on: [epic-three-channel-distribution-pi-agile-extension-manifest-shell]
@@ -21,17 +21,31 @@ CLI flag.
 
 ## Acceptance Criteria
 
-- [ ] `/aw status` produces a compact ready/review/blocked snapshot by composing
+- [x] `/aw status` produces a compact ready/review/blocked snapshot by composing
   `.work/bin/work-view --ready`, `--stage review`, and `--blocked`.
-- [ ] `/aw ready`, `/aw blocked`, and `/aw review` map to the matching
+- [x] `/aw ready`, `/aw blocked`, and `/aw review` map to the matching
   `work-view` filters.
-- [ ] `/aw parent <id>` and `/aw blocking <id>` validate the id shape and pass it
+- [x] `/aw parent <id>` and `/aw blocking <id>` validate the id shape and pass it
   as an argument array to `work-view`.
-- [ ] When `ctx.ui` is available, `status` updates a small status/widget summary;
+- [x] When `ctx.ui` is available, `status` updates a small status/widget summary;
   otherwise it returns plain text only.
-- [ ] Large command output is bounded or truncated with a clear marker.
+- [x] Large command output is bounded or truncated with a clear marker.
 
 ## Notes
 
 - Keep all work-view invocations allowlisted. Do not add a generic "pass any
   args to work-view" mode.
+
+## Implementation Notes
+
+- Added `/aw status`, `ready`, `blocked`, `review`, `parent <id>`, and
+  `blocking <id>` command handling.
+- Composed `status` from allowlisted `work-view` calls and updated Pi
+  status/widget UI when present.
+- Added item id validation and output truncation so user input cannot become a
+  generic shell or unbounded session dump.
+
+## Verification
+
+- `rg -n "status|ready|blocked|review|parent|blocking|ITEM_ID_RE|truncate|setWidget|setStatus" plugins/agile-workflow/extensions/agile-workflow.ts`
+- `git diff --check -- plugins/agile-workflow/extensions/agile-workflow.ts .work/active/stories/epic-three-channel-distribution-pi-agile-extension-queue-commands.md`
