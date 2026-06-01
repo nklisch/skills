@@ -113,3 +113,10 @@ items, not pass/fail. Findings recorded below as gates run.
     drifted `file:line` examples (board work shifted positions in integration.rs/actionable.rs)
   - `gate-docs-spec-plugin-layout-work-view` (medium, drafting) — SPEC source-layout
     tree omits the `work-view/` crate tree
+- **gate-patterns** (2026-05-31) — 4 new patterns extracted (3+ occurrences each),
+  0 inconsistencies. First emission of `.agents/rules/patterns.md` in this repo
+  (exercises the new patterns-digest capability shipping in 0.9.0). Tracking item
+  `gate-patterns-0.9.0` at stage:done (the gate's deliverable IS the pattern files).
+  - `board-view-module-contract`, `dom-text-element-builder`,
+    `fail-open-subprocess-probe`, `manual-error-display`
+  - Index regenerated to 9 patterns; digest src-sha256 stamped.
