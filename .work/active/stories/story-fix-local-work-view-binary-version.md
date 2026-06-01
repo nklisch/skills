@@ -1,7 +1,7 @@
 ---
 id: story-fix-local-work-view-binary-version
 kind: story
-stage: review
+stage: done
 tags: [bug]
 parent: null
 depends_on: []
