@@ -2,6 +2,8 @@ const EXTERNAL_PREFIX = "external:";
 const KIND_CLASSES = new Set(["epic", "feature", "story", "release", "backlog"]);
 const NODE_WIDTH = 280;
 const MIN_NODE_HEIGHT = 132;
+const NODE_WEB_WIDTH = 168;
+const NODE_WEB_HEIGHT = 76;
 const LAYER_GAP = 110;
 const ROW_GAP = 28;
 const CANVAS_PADDING = 24;
@@ -12,10 +14,12 @@ const NODE_HEIGHT_BUFFER = 10;
 const DRAG_THRESHOLD_PX = 4;
 const GROUP_LABEL_HEIGHT = 24;
 const GROUP_LABEL_GAP = 14;
+const WEB_RING_RADIUS = 240;
 const GRAPH_LAYOUTS = [
   { id: "flow", label: "Flow" },
   { id: "stage", label: "Stage" },
   { id: "kind", label: "Kind" },
+  { id: "web", label: "Web" },
 ];
 const STAGE_LAYOUT_ORDER = ["drafting", "implementing", "review", "done", "released", "backlog", "unstaged", "external"];
 const KIND_LAYOUT_ORDER = ["epic", "feature", "story", "release", "backlog", "idea", "item", "external"];
@@ -207,6 +211,37 @@ function renderNode(node, model, ctx) {
   return nodeElement;
 }
 
+function renderWebNode(node, model, ctx) {
+  const nodeElement = node.external ? document.createElement("div") : document.createElement("button");
+  const kind = node.external ? "external" : String(node.item?.kind || "item");
+  nodeElement.className = `dep-node dep-node--web dep-node--${kindClass(kind)}`;
+  if (node.external) {
+    nodeElement.classList.add("dep-node--external");
+  }
+  if (node.item?.blocked) {
+    nodeElement.classList.add("is-blocked");
+  }
+  if (!node.external) {
+    nodeElement.type = "button";
+    nodeElement.addEventListener("click", () => ctx.openDetail(node.id));
+  }
+
+  const head = document.createElement("div");
+  head.className = "dn-head";
+  head.append(textElement("span", `chip chip--${kindClass(kind)}`, kind));
+  if (node.item?.blocked) {
+    head.append(textElement("span", "badge badge--blocked", "blocked"));
+  } else if (node.item?.ready) {
+    head.append(textElement("span", "badge badge--ready", "ready"));
+  }
+
+  nodeElement.append(head, textElement("span", "ic-id", itemLabel(node)));
+  if (!node.external && node.item?.stage) {
+    nodeElement.append(textElement("span", "dn-web-meta", String(node.item.stage)));
+  }
+  return nodeElement;
+}
+
 function renderCycleWarning(model) {
   if (model.cycleIds.length === 0) {
     return null;
@@ -322,7 +357,58 @@ function groupsForLayout(model, layoutId) {
   return groupNodesByFlow(model);
 }
 
+function layoutWebGraph(model) {
+  const rings = new Map();
+  for (const [id, node] of model.nodes) {
+    const depth = model.depth.get(id) || 0;
+    if (!rings.has(depth)) {
+      rings.set(depth, []);
+    }
+    rings.get(depth).push(node);
+  }
+
+  const ringLayouts = Array.from(rings.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([depth, nodes]) => {
+      const sortedNodes = sortNodesByLabel(nodes);
+      const neededRadius = sortedNodes.length * (NODE_WEB_WIDTH + 42) / (2 * Math.PI);
+      return {
+        depth,
+        nodes: sortedNodes,
+        radius: Math.max((depth + 1) * WEB_RING_RADIUS, neededRadius),
+      };
+    });
+  const maxRadius = Math.max(WEB_RING_RADIUS, ...ringLayouts.map((ring) => ring.radius));
+  const center = CANVAS_PADDING + maxRadius + NODE_WEB_WIDTH;
+  const positions = new Map();
+
+  for (const ring of ringLayouts) {
+    ring.nodes.forEach((node, index) => {
+      const angleOffset = ring.depth % 2 === 0 ? 0 : Math.PI / Math.max(1, ring.nodes.length);
+      const angle = ring.nodes.length === 1
+        ? -Math.PI / 2
+        : (index / ring.nodes.length) * 2 * Math.PI - Math.PI / 2 + angleOffset;
+      positions.set(node.id, {
+        x: Math.round(center + ring.radius * Math.cos(angle) - NODE_WEB_WIDTH / 2),
+        y: Math.round(center + ring.radius * Math.sin(angle) - NODE_WEB_HEIGHT / 2),
+        width: NODE_WEB_WIDTH,
+        height: NODE_WEB_HEIGHT,
+      });
+    });
+  }
+
+  return {
+    positions,
+    groups: [],
+    width: Math.ceil(center * 2),
+    height: Math.ceil(center * 2),
+  };
+}
+
 function layoutGraph(model, layoutId) {
+  if (layoutId === "web") {
+    return layoutWebGraph(model);
+  }
   const groups = groupsForLayout(model, layoutId);
   const positions = new Map();
   const laidOutGroups = [];
@@ -351,7 +437,26 @@ function layoutGraph(model, layoutId) {
   };
 }
 
+function webEdgePath(from, to) {
+  const x1 = from.x + from.width / 2;
+  const y1 = from.y + from.height / 2;
+  const x2 = to.x + to.width / 2;
+  const y2 = to.y + to.height / 2;
+  const midX = (x1 + x2) / 2;
+  const midY = (y1 + y2) / 2;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const length = Math.hypot(dx, dy) || 1;
+  const nudge = 10;
+  const controlX = midX - dy / length * nudge;
+  const controlY = midY + dx / length * nudge;
+  return `M ${x1} ${y1} Q ${controlX} ${controlY}, ${x2} ${y2}`;
+}
+
 function edgePath(from, to) {
+  if (activeLayoutId === "web") {
+    return webEdgePath(from, to);
+  }
   const x1 = from.x + from.width;
   const y1 = from.y + from.height / 2;
   const x2 = to.x;
@@ -576,8 +681,9 @@ function renderGraphCanvas(model, ctx) {
     wrapper.dataset.nodeId = node.id;
     wrapper.style.left = `${position.x}px`;
     wrapper.style.top = `${position.y}px`;
+    wrapper.style.width = `${position.width}px`;
     wrapper.style.minHeight = `${position.height}px`;
-    wrapper.append(renderNode(node, model, ctx));
+    wrapper.append(activeLayoutId === "web" ? renderWebNode(node, model, ctx) : renderNode(node, model, ctx));
     installNodeDragging(canvas, wrapper, model);
     canvas.append(wrapper);
   }

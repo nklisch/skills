@@ -529,6 +529,57 @@ button.dep-node:focus-visible {
   user-select: none;
 }
 
+.dep-node--web {
+  --node-kind-color: var(--kind-backlog);
+  width: 100%;
+  min-height: 76px;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 13px;
+  border-color: color-mix(in srgb, var(--node-kind-color) 70%, var(--color-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--node-kind-color) 8%, var(--color-bg-secondary));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--node-kind-color) 20%, transparent);
+}
+
+.dep-node--web.dep-node--epic { --node-kind-color: var(--kind-epic); }
+.dep-node--web.dep-node--feature { --node-kind-color: var(--kind-feature); }
+.dep-node--web.dep-node--story { --node-kind-color: var(--kind-story); }
+.dep-node--web.dep-node--release { --node-kind-color: var(--kind-release); }
+.dep-node--web.dep-node--backlog { --node-kind-color: var(--kind-backlog); }
+
+.dep-node--web .dn-head {
+  justify-content: center;
+  gap: 5px;
+}
+
+.dep-node--web .chip,
+.dep-node--web .badge {
+  font-size: 9px;
+}
+
+.dep-node--web .ic-id {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--font-weight-semibold) 11.5px/1.25 var(--font-mono);
+}
+
+.dn-web-meta {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--font-weight-medium) 10.5px/1.2 var(--font-mono);
+}
+
 .dependency-graph-node.is-dragging,
 .dependency-graph-node.is-dragging > .dep-node {
   z-index: 3;

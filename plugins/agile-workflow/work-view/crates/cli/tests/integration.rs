@@ -841,15 +841,57 @@ fn dependency_canvas_layout_buttons_offer_relationship_organizations() {
         body.contains("id: \"flow\"")
             && body.contains("id: \"stage\"")
             && body.contains("id: \"kind\"")
+            && body.contains("id: \"web\"")
             && body.contains("function groupNodesByStage")
             && body.contains("function groupNodesByKind")
+            && body.contains("function layoutWebGraph")
             && body.contains("function renderLayoutLabels")
             && body.contains("layout.groups"),
-        "dependency canvas should expose flow, stage, and kind organizations over the same edge graph; body: {body}"
+        "dependency canvas should expose flow, stage, kind, and web organizations over the same edge graph; body: {body}"
     );
     assert!(
         label_rule.contains("position: absolute") && label_rule.contains("text-transform: uppercase"),
         "canvas layout columns should have compact labels; rule: {label_rule}"
+    );
+}
+
+#[test]
+fn dependency_canvas_web_layout_uses_compact_non_card_nodes() {
+    let dependency_js = board_response_once("/assets/dependency.js");
+    let body = http_body(&dependency_js);
+    let board_css = board_response_once("/assets/board.css");
+    let css = http_body(&board_css);
+    let web_rule = css_rule_body(css, ".dep-node--web");
+    let web_id_rule = css_rule_body(css, ".dep-node--web .ic-id");
+    let web_meta_rule = css_rule_body(css, ".dn-web-meta");
+
+    assert!(
+        body.contains("NODE_WEB_WIDTH")
+            && body.contains("NODE_WEB_HEIGHT")
+            && body.contains("WEB_RING_RADIUS")
+            && body.contains("function layoutWebGraph")
+            && body.contains("function renderWebNode")
+            && body.contains("function webEdgePath")
+            && body.contains("activeLayoutId === \"web\"")
+            && body.contains("renderWebNode(node, model, ctx)")
+            && body.contains("webEdgePath(from, to)"),
+        "web layout should have its own compact node renderer and center-anchored edge path; body: {body}"
+    );
+    assert!(
+        web_rule.contains("border-radius: 999px")
+            && web_rule.contains("width: 100%")
+            && web_rule.contains("min-height"),
+        "web dependency nodes should render as compact graph tokens, not full cards; rule: {web_rule}"
+    );
+    assert!(
+        web_id_rule.contains("text-overflow: ellipsis")
+            && web_id_rule.contains("white-space: nowrap"),
+        "web node ids should be compact and truncating; rule: {web_id_rule}"
+    );
+    assert!(
+        web_meta_rule.contains("text-overflow: ellipsis")
+            && web_meta_rule.contains("var(--font-mono)"),
+        "web node metadata should fit compact node geometry; rule: {web_meta_rule}"
     );
 }
 
