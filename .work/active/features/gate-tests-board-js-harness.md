@@ -1,10 +1,14 @@
 ---
 id: gate-tests-board-js-harness
 kind: feature
+stage: drafting
 tags: [testing]
+parent: null
+depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-31
+updated: 2026-06-01
 ---
 
 # Board-asset behavioral JS test harness + view suites
@@ -54,3 +58,10 @@ without a bundler.
 ## Scope on pickup
 Stand up the harness (the blocker), then implement the six suites as child
 stories. Sized as a feature, not a single story.
+
+## Scope record
+
+- Promoted from backlog during batch scope for found release/test-gate work.
+- Size: medium feature; design should choose the no-build DOM-capable harness
+  and split the behavioral suites into implementable child stories.
+- Dependencies: none.
