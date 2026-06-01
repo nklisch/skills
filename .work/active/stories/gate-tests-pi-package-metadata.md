@@ -1,7 +1,7 @@
 ---
 id: gate-tests-pi-package-metadata
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -31,3 +31,9 @@ asserts package name/version/keywords/Pi skills, and asserts deprecated
 
 ## Test location
 `plugins/agile-workflow/scripts/tests/pi-package-metadata.test.sh`
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/scripts/tests/pi-package-metadata.test.sh`, `.github/workflows/build-work-view.yml`
+- Tests added: Pi package metadata shell guard for supported plugin package manifests.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

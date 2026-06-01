@@ -62,9 +62,12 @@ test("tag and epic groups expand in the sidebar without changing filter semantic
     .find((button) => button.dataset.expandKey === "tags");
   assert.ok(tagOptions);
   assert.ok(tagToggle);
+  assert.equal(tagToggle.tagName, "BUTTON");
+  assert.notEqual(tagToggle.getAttribute("tabindex"), "-1");
   assert.equal(tagOptions.dataset.expanded, "false");
+  assert.equal(tagToggle.getAttribute("aria-expanded"), "false");
 
-  tagToggle.dispatchEvent(new TestEvent("click", { cancelable: true }));
+  tagToggle.dispatchEvent(new TestEvent("keydown", { key: "Enter", cancelable: true }));
   assert.equal(tagOptions.dataset.expanded, "true");
   assert.equal(tagToggle.getAttribute("aria-expanded"), "true");
 

@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-board-js-cleanup-module-graph
 kind: story
-stage: implementing
+stage: review
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -29,3 +29,9 @@ dead function
 ## Removal
 Remove `cleanupModuleGraph()` and drop `rm` from the `node:fs/promises` import,
 unless the tests are changed to call it explicitly.
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/work-view/crates/cli/tests/board-js/harness.mjs`
+- Tests added: none; existing board JS harness tests cover module loading after removal.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

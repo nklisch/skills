@@ -1,7 +1,7 @@
 ---
 id: gate-tests-pi-extension-queue-wrappers
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -32,3 +32,9 @@ and long output includes the truncation marker.
 
 ## Test location
 `plugins/agile-workflow/extensions/agile-workflow.test.ts`
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/extensions/agile-workflow.test.ts`, `.github/workflows/build-work-view.yml`
+- Tests added: `/aw status`, id validation, valid id pass-through, UI status/widget update, and truncation coverage.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

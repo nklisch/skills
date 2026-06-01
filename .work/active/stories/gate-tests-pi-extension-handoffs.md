@@ -1,7 +1,7 @@
 ---
 id: gate-tests-pi-extension-handoffs
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -33,3 +33,9 @@ requires text, and help lists queue plus handoff commands.
 
 ## Test location
 `plugins/agile-workflow/extensions/agile-workflow.test.ts`
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/extensions/agile-workflow.test.ts`, `.github/workflows/build-work-view.yml`
+- Tests added: `/aw board`, `/aw autopilot`, `/aw scope`, missing scope text, and no-follow-up fallback coverage.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

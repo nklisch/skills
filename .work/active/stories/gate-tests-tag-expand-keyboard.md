@@ -1,7 +1,7 @@
 ---
 id: gate-tests-tag-expand-keyboard
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -31,3 +31,9 @@ activated through keyboard-style event dispatch.
 
 ## Test location
 `plugins/agile-workflow/work-view/crates/cli/tests/board-js/expanded-browsing.test.mjs`
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/work-view/crates/cli/tests/board-js/expanded-browsing.test.mjs`, `plugins/agile-workflow/work-view/crates/cli/tests/board-js/harness.mjs`
+- Tests added: tag expand control is a real keyboard-reachable button and updates `aria-expanded` through keyboard-style dispatch.
+- Discrepancies from design: the no-browser DOM harness now emulates native button Enter/Space activation for this assertion target.
+- Adjacent issues parked: none.

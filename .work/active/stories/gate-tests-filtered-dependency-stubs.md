@@ -1,7 +1,7 @@
 ---
 id: gate-tests-filtered-dependency-stubs
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -32,3 +32,9 @@ external/filtered stub edge instead of throwing or omitting the relationship.
 
 ## Test location
 `plugins/agile-workflow/work-view/crates/cli/tests/board-js/dependency-table.test.mjs`
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/work-view/crates/cli/tests/board-js/dependency-table.test.mjs`
+- Tests added: filtered dependency represented as unmet external stub.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

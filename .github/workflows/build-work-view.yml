@@ -5,6 +5,10 @@ on:
     paths:
       - "plugins/agile-workflow/work-view/**"
       - "plugins/agile-workflow/hooks/scripts/**"
+      - "plugins/agile-workflow/extensions/**"
+      - "plugins/agile-workflow/package.json"
+      - "plugins/nates-toolkit/package.json"
+      - "plugins/ux-ui-design/package.json"
       - "plugins/agile-workflow/skills/convert/**"
       - "plugins/agile-workflow/scripts/install-work-view.sh"
       - "plugins/agile-workflow/scripts/tests/**"
@@ -14,6 +18,10 @@ on:
     paths:
       - "plugins/agile-workflow/work-view/**"
       - "plugins/agile-workflow/hooks/scripts/**"
+      - "plugins/agile-workflow/extensions/**"
+      - "plugins/agile-workflow/package.json"
+      - "plugins/nates-toolkit/package.json"
+      - "plugins/ux-ui-design/package.json"
       - "plugins/agile-workflow/skills/convert/**"
       - "plugins/agile-workflow/scripts/install-work-view.sh"
       - "plugins/agile-workflow/scripts/tests/**"
@@ -51,6 +59,15 @@ jobs:
 
       - name: Run bump-version lockstep tests
         run: bash plugins/agile-workflow/scripts/tests/bump-version.test.sh
+
+      - name: Run Pi package metadata tests
+        run: bash plugins/agile-workflow/scripts/tests/pi-package-metadata.test.sh
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Run Pi extension tests
+        run: bun test plugins/agile-workflow/extensions/agile-workflow.test.ts
 
       - name: Run work-board shim routing tests
         run: bash plugins/agile-workflow/scripts/tests/work-board-shim.test.sh

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -213,6 +213,18 @@ class TestElement extends TestNode {
         break;
       }
     }
+    if (
+      event.type === "keydown"
+      && this.tagName === "BUTTON"
+      && !event.defaultPrevented
+      && (event.key === "Enter" || event.key === " " || event.key === "Space")
+    ) {
+      const click = new TestEvent("click", { cancelable: true });
+      this.dispatchEvent(click);
+      if (click.defaultPrevented && event.cancelable) {
+        event.preventDefault();
+      }
+    }
     return !event.defaultPrevented;
   }
 
@@ -379,14 +391,6 @@ async function ensureModuleGraph() {
     await writeFile(join(moduleGraphDir, file), rewritten, "utf8");
   }));
   return moduleGraphDir;
-}
-
-export async function cleanupModuleGraph() {
-  if (!moduleGraphDir) {
-    return;
-  }
-  await rm(moduleGraphDir, { recursive: true, force: true });
-  moduleGraphDir = null;
 }
 
 function dataKey(name) {

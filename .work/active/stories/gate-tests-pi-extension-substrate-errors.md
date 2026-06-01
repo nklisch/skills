@@ -1,7 +1,7 @@
 ---
 id: gate-tests-pi-extension-substrate-errors
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -32,3 +32,9 @@ substrate, substrate without `work-view`, upward discovery, `/aw help`, and
 
 ## Test location
 `plugins/agile-workflow/extensions/agile-workflow.test.ts`
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/extensions/agile-workflow.test.ts`, `.github/workflows/build-work-view.yml`
+- Tests added: `/aw` help, no-substrate, missing-work-view, upward discovery, and argument-array execution cases.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

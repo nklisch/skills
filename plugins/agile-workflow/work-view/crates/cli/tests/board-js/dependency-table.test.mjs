@@ -21,6 +21,26 @@ test("dependency model reports cycles and missing dependency stubs", async () =>
   );
 });
 
+test("dependency model represents filtered dependencies as unmet external stubs", async () => {
+  installDomGlobals();
+  const { buildDependencyModel } = await loadBoardModule("dependency.js");
+  const model = buildDependencyModel([
+    makeItem({ id: "visible-story", depends_on: ["filtered-story"], unmet_deps: ["filtered-story"] }),
+  ]);
+
+  assert.equal(model.nodes.has("external:filtered-story"), true);
+  assert.equal(model.nodes.get("external:filtered-story").external, true);
+  assert.equal(
+    model.edges.some((edge) => (
+      edge.from === "external:filtered-story"
+      && edge.to === "visible-story"
+      && edge.external
+      && edge.unmet
+    )),
+    true,
+  );
+});
+
 test("table comparators are deterministic, stage-aware, and tolerate missing updated", async () => {
   installDomGlobals();
   const { compareRows, sortedItems } = await loadBoardModule("table.js");
