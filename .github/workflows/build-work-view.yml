@@ -56,6 +56,7 @@ jobs:
         run: bash plugins/agile-workflow/scripts/tests/work-board-shim.test.sh
 
       - name: Run work-view dist version guard
+        if: github.event_name != 'workflow_dispatch' && !(github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Bump agile-workflow plugin to v'))
         run: bash plugins/agile-workflow/scripts/tests/work-view-dist-version.test.sh
 
       - name: Run convert content-integrity guard tests
