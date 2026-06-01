@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # Kept in lockstep with plugin.json by scripts/bump-version.sh. Do not hand-edit.
-WORK_VIEW_VERSION="0.9.3"
+WORK_VIEW_VERSION="0.9.4"
 
 # ============================================================================
 # Version prelude (POSIX / bash 3.2 safe — runs BEFORE the Bash-4 guard)
