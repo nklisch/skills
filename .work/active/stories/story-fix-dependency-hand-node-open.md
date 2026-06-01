@@ -1,7 +1,7 @@
 ---
 id: story-fix-dependency-hand-node-open
 kind: story
-stage: review
+stage: done
 tags: [bug]
 parent: null
 depends_on: []
@@ -37,3 +37,10 @@ Verification:
 - `cargo test`
 - `cargo build -p work-view-cli --release`
 - Krometrail on `http://127.0.0.1:8181/`: selected Hand, clicked a dependency node, and the item detail modal opened.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story includes a before-fix failing regression assertion, targeted
+  dependency canvas tests, full cargo verification, release build verification,
+  and browser confirmation that Hand mode still opens node details.
