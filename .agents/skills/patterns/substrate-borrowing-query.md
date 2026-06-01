@@ -46,7 +46,7 @@ pub fn children_of<'a>(&'a self, id: &str) -> Vec<&'a Item> {
 
 `unmet_deps` at `graph.rs:33` follows the same shape returning `Vec<&'a str>`;
 `deps_satisfied` at `graph.rs:21` is the boolean sibling. The CLI's
-`apply_dependency_view` at `actionable.rs:51` is the adapter-side post-filter built in
+`apply_dependency_view` at `actionable.rs:59` is the adapter-side post-filter built in
 the same borrow-preserving, order-preserving shape over a `Vec<&'a Item>`.
 
 ## When to Use

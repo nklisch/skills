@@ -1,7 +1,7 @@
 ---
 id: gate-docs-spec-plugin-layout-work-view
 kind: story
-stage: drafting
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -41,3 +41,6 @@ node with `crates/core/`, `crates/cli/` (noting `src/board/` + embedded
 `assets/` for the board host and the `.work-view-version` stamp), and
 `dist/<target-triple>/work-view` prebuilts. Replace in place; no version-tagged
 prose.
+
+## Implementation notes (2026-05-31)
+- Added the `work-view/` Cargo workspace to the SPEC Plugin source layout tree: `crates/core/`, `crates/cli/` (noting `src/board/` + embedded `assets/` and the `.work-view-version` stamp), and `dist/<target-triple>/work-view` prebuilts.

@@ -1,7 +1,7 @@
 ---
 id: gate-docs-spec-kanban-column-model
 kind: story
-stage: implementing
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -53,3 +53,6 @@ appending any other stages found (e.g. `planned`, `quality-gate`) and a trailing
 null-stage column. State that stages are shown verbatim (not collapsed or
 renamed) and that backlog is surfaced via the kind filter, not a dedicated
 column. Rolling-foundation: replace in place, no "previously" prose.
+
+## Implementation notes (2026-05-31)
+- Replaced SPEC `### Stage → column mapping` with `### Swimlanes and stage columns`: parent swimlanes (parent id → owning epic → `(no parent)`), verbatim per-stage columns in preferred order drafting→implementing→review→done→released, other stages appended, trailing null-stage column, backlog surfaced via the kind filter. Matches `kanban.js`/`filters.js`.

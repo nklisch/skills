@@ -22,7 +22,7 @@ views from the store internals.
 ## Examples
 
 ### Example 1: The contract and its enforcing registrar
-**File**: `plugins/agile-workflow/work-view/crates/cli/src/board/assets/views.js:41`
+**File**: `plugins/agile-workflow/work-view/crates/cli/src/board/assets/views.js:16`
 ```js
 export function registerView(view) {
   if (!view || typeof view.id !== "string" || typeof view.mount !== "function") {

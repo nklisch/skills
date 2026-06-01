@@ -32,14 +32,14 @@ fn precedence_root() -> &'static Path {
 ```
 
 ### Example 3: bash script path for parity suite (cli integration)
-**File**: `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs:844`
+**File**: `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs:1787`
 ```rust
 const BASH_SCRIPT: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/../../../scripts/work-view.sh");
 ```
 
-Also `fixture_root()` at `crates/cli/tests/integration.rs:17` and
-`malformed_fixture_root()` at `:28` — five occurrences total.
+Also `fixture_root()` at `crates/cli/tests/integration.rs:24` and
+`malformed_fixture_root()` at `:35` — five occurrences total.
 
 ## When to Use
 - Any integration test (or the future board adapter's tests) that reads a committed

@@ -1,7 +1,7 @@
 ---
 id: gate-tests-tmpdir-root-isolation
 kind: story
-stage: implementing
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -41,3 +41,7 @@ ceiling, so the assertion is invariant to `$TMPDIR`.
 
 ## Test location (suggested)
 `plugins/agile-workflow/work-view/crates/core/src/index.rs` (existing test)
+
+## Implementation notes (2026-05-31)
+- Hardened `find_root_returns_none_when_absent` to be invariant to `$TMPDIR`: an independent `ancestors()` walk detects whether the tempdir has a real substrate ancestor; asserts `is_none()` when none (normal case), else asserts the function returns exactly that ancestor. No production-code change.
+- Verified: `cargo test` green (294) with `TMPDIR` both outside and (manually) inside a substrate.

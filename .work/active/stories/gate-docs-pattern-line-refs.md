@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-line-refs
 kind: story
-stage: implementing
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -43,3 +43,8 @@ must be left as-is.
 ## Verification
 After editing, re-resolve each cited line against the named symbol (`grep -n`)
 to confirm the symbol sits at the new line.
+
+## Implementation notes (2026-05-31)
+- Updated drifted `file:line` refs in all 5 pattern skills.
+- IMPORTANT: my own cruft edit removed 1 line from `integration.rs`, shifting post-line-636 refs by -1 vs the finding's pre-edit estimates. Used grep-verified ACTUAL lines: `bash_run` :1796, `BASH_SCRIPT` :1787, parity matrix :1832–:2325 (not :1797/:1788/:1833–:2326).
+- Re-verified all 26 pattern refs (existing + 4 new) resolve to their named symbols.

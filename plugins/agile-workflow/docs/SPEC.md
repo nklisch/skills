@@ -217,6 +217,13 @@ plugins/agile-workflow/
 │   ├── install-work-view.sh
 │   ├── work-view.sh
 │   └── work-board.sh
+├── work-view/                            # Rust workspace: compiled work-view binary + board host
+│   ├── crates/
+│   │   ├── core/                         # work-view-core: parse, model, index, graph, filter
+│   │   └── cli/                          # work-view binary (CLI + board host)
+│   │       ├── src/board/                # board subcommand: server, feed, assets + embedded assets/
+│   │       └── .work-view-version        # plugin-version stamp (lockstep with plugin.json)
+│   └── dist/<target-triple>/work-view    # prebuilt per-platform binaries
 ├── CHANGELOG.md
 └── README.md
 ```
@@ -388,15 +395,21 @@ available, and otherwise prints an actionable compiled-binary requirement.
 | `--print` | (none) | Alias for `--no-open` |
 | `--help` | (none) | Show usage and exit |
 
-### Stage → column mapping
+### Swimlanes and stage columns
+
+The kanban view groups items into **swimlanes by parent** — the item's `parent`
+id, else its owning epic id, else a `(no parent)` lane. Within each lane it
+renders one **column per distinct stage value**, in preferred order:
 
 ```
-Backlog       — items in .work/backlog/
-Drafting      — stage: drafting (also: stage: planned for releases)
-In Progress   — stage: implementing
-Review        — stage: review (also: stage: quality-gate for releases)
-Done          — stage: done | released, items in .work/archive/, items in .work/releases/
+drafting → implementing → review → done → released
 ```
+
+Any other stage values present in the items (e.g. `planned`, `quality-gate`)
+follow as their own columns after the preferred order, with a trailing column
+for items that have no stage. Stages are shown **verbatim** — the board does not
+collapse or rename them. Backlog items are surfaced through the kind filter
+(`backlog` is a selectable kind), not a dedicated column.
 
 ### Browser API shape
 

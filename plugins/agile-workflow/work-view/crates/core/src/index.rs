@@ -312,8 +312,24 @@ mod tests {
 
     #[test]
     fn find_root_returns_none_when_absent() {
+        // Robust to $TMPDIR placement: TempDir honors $TMPDIR, which can itself
+        // sit inside a substrate tree (e.g. a repo-local tmp dir). There,
+        // find_substrate_root *correctly* walks up and finds that ancestor, so a
+        // bare `.is_none()` would spuriously fail. Detect a real substrate
+        // ancestor with an independent walk (std `ancestors()`, distinct from the
+        // production `.parent()` loop) and assert the true contract either way.
         let tmp = TempDir::new().unwrap();
-        assert!(find_substrate_root(tmp.path()).is_none());
+        let canon = tmp.path().canonicalize().unwrap();
+        let ancestor_with_substrate = canon
+            .ancestors()
+            .find(|d| d.join(".work").join("CONVENTIONS.md").is_file());
+        match ancestor_with_substrate {
+            None => assert!(find_substrate_root(tmp.path()).is_none()),
+            Some(expected) => assert_eq!(
+                find_substrate_root(tmp.path()).unwrap().canonicalize().unwrap(),
+                expected.canonicalize().unwrap(),
+            ),
+        }
     }
 
     #[test]

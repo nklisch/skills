@@ -50,7 +50,7 @@ fn setup_substrate(items: &[(&str, &str)]) -> (TempDir, Substrate) {
 ```
 
 ### Example 3: actionable.rs test module (CLI crate)
-**File**: `plugins/agile-workflow/work-view/crates/cli/src/actionable.rs:84`
+**File**: `plugins/agile-workflow/work-view/crates/cli/src/actionable.rs:92`
 ```rust
 fn setup_substrate(items: &[(&str, &str)]) -> (TempDir, Substrate) {
     let tmp = TempDir::new().unwrap();

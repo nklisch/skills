@@ -18,7 +18,7 @@ skip — while still hard-failing if bash exists but the script path regressed.
 ## Examples
 
 ### Example 1: primary binary runner
-**File**: `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs:37`
+**File**: `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs:44`
 ```rust
 fn run(args: &[&str]) -> (String, String, i32) {
     let out = Command::new(bin!()).args(args).current_dir(fixture_root())
@@ -30,7 +30,7 @@ fn run(args: &[&str]) -> (String, String, i32) {
 ```
 
 ### Example 2: second runner for a different fixture (same tuple shape)
-**File**: `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs:51`
+**File**: `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs:58`
 ```rust
 fn run_malformed(args: &[&str]) -> (String, String, i32) {
     let out = Command::new(bin!()).args(args).current_dir(malformed_fixture_root())
@@ -40,7 +40,7 @@ fn run_malformed(args: &[&str]) -> (String, String, i32) {
 ```
 
 ### Example 3: bash reference runner with graceful skip + hard-fail-on-regression
-**File**: `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs:853`
+**File**: `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs:1796`
 ```rust
 fn bash_run(args: &[&str]) -> Option<(String, i32)> {
     let bash_check = std::process::Command::new("bash").arg("--version").output().ok()?;
@@ -62,7 +62,7 @@ let Some((bash_stdout, bash_code)) = bash_run(&["--ready", "--paths"]) else {
 assert_eq!(bin_code, bash_code, ...);
 assert_eq!(bin_stdout, bash_stdout, ...);
 ```
-(See `parity_ready_paths_matches_bash` and the full parity matrix at `:889`–`:1218`.)
+(See `parity_ready_paths_matches_bash` and the full parity matrix at `:1832`–`:2325`.)
 
 ## When to Use
 - Testing the CLI's exit codes, stdout/stderr separation, BrokenPipe handling, or any

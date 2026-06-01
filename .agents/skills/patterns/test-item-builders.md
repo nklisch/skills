@@ -56,9 +56,9 @@ fn make_item(id: &str, kind: Option<&str>, stage: Option<&str>, tags: &[&str],
 }
 ```
 
-Sibling occurrences: `item_md` at `crates/cli/src/actionable.rs:100` (string builder);
+Sibling occurrences: `item_md` at `crates/cli/src/actionable.rs:108` (string builder);
 `make_item` at `crates/core/src/model.rs:128` and `make_item_direct` at
-`crates/cli/src/actionable.rs:142` (struct builders). Six builders total across the two
+`crates/cli/src/actionable.rs:149` (struct builders). Six builders total across the two
 shapes.
 
 ## When to Use

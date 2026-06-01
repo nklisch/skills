@@ -1,7 +1,7 @@
 ---
 id: gate-cruft-dead-board-view-scaffolding
 kind: story
-stage: implementing
+stage: done
 tags: [cleanup]
 parent: null
 depends_on: []
@@ -60,3 +60,9 @@ asserts the three real views register; never references the removed symbols).
 - `work-board.template.html` — a clean *deletion* in the bundle, no live refs.
 - Clippy `collapsible_if` (server.rs:214) and `items_after_test_module`
   (server.rs:387) — cosmetic style lints, not AI-debris.
+
+## Implementation notes (2026-05-31)
+- Removed `placeholderView` and the dead `registeredViews()` export from `views.js`; kept `textElement` (still used by `mountCurrentView`).
+- Removed `.view-preview`, `.view-preview h1`, AND `.card-stack` from `board.css`. `.card-stack` was also orphaned (placeholderView was its only consumer); the cruft scan had traced only `.view-preview`. Kept live `.view-digest`.
+- Fixed a drifted assertion in `integration.rs` (`board_embedded_assets_return_expected_content_types` asserted `views.js` contains `ctx.visibleItems()`, a string that lived only inside the removed `placeholderView`). That contract is still covered for the live views (kanban asserts `ctx.visibleItems()` at integration.rs:647).
+- Verified: `cargo test` green — cli 104 unit + 96 integration, core 59 lib + 31 integration + 4 doctests.

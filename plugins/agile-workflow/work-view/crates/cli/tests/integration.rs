@@ -633,7 +633,6 @@ fn board_embedded_assets_return_expected_content_types() {
     assert!(
         views_body.contains("export function registerView")
             && views_body.contains("export function mountCurrentView")
-            && views_body.contains("ctx.visibleItems()")
             && views_body.contains("kanbanView")
             && views_body.contains("dependencyView")
             && views_body.contains("tableView"),
