@@ -101,6 +101,9 @@ unclear or broader than a few obvious files:
   or complex codebases.
 - **Codex / OpenAI:** `explorer` sub-agent with `reasoning_effort: medium`;
   use `high` for large or complex codebases.
+- **Pi path:** use a native Pi `scout` or `context-builder` subagent for
+  read-only mapping only after local probing leaves a named unknown. If Pi
+  subagents are unavailable, keep the bounded mapping in the host session.
 
 Brief:
 - "Find all public exports, shared utilities, type definitions, and module
