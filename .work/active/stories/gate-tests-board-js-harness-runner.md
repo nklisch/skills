@@ -1,7 +1,7 @@
 ---
 id: gate-tests-board-js-harness-runner
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: gate-tests-board-js-harness
 depends_on: []
@@ -43,3 +43,9 @@ into the work-view CI job.
 ## Verification
 
 - `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The no-build Node harness, DOM shim, module loader, CI step, and smoke
+  test are present and the board JS suite passes.
