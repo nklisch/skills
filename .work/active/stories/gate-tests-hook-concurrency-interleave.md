@@ -1,7 +1,7 @@
 ---
 id: gate-tests-hook-concurrency-interleave
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -62,3 +62,9 @@ end-to-end interleave.
 ## Verification
 
 - `python3 -m unittest test_prompt_context.StateConcurrencyTest.test_process_interleave_does_not_clobber_postcompact_epoch -v`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story added a real inter-process fcntl-lock regression and the
+  targeted test passes.
