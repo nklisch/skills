@@ -1,14 +1,14 @@
 ---
 id: story-fix-work-view-dependency-canvas-clipping
 kind: story
-stage: review
+stage: done
 tags: [bug, tooling]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 ---
 
 # Fix dependency canvas clipping in work-view board
@@ -31,3 +31,10 @@ Constrain the dependency view grid item and canvas viewport with `min-width: 0` 
 - Added regression coverage in `integration.rs` for viewport containment and variable-height canvas layout.
 - Rebuilt `work-view`, restarted `../silas` on `http://127.0.0.1:8181/`, and verified with Krometrail screenshot `1780292598484.jpg`; DOM layout metrics reported `overlapCount: 0`.
 - Full verification passed with `cargo test` in `plugins/agile-workflow/work-view`.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story includes regression coverage for scroll containment and
+  variable-height canvas layout, full cargo verification, rebuilt work-view
+  evidence, and browser layout metrics with no node overlap.
