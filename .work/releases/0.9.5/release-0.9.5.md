@@ -1,7 +1,7 @@
 ---
 id: release-0.9.5
 kind: release
-stage: quality-gate
+stage: released
 tags: []
 parent: null
 depends_on: []
@@ -72,3 +72,46 @@ and the Codex PostCompact hook audit.
 
 Gate order (CONVENTIONS.md): tests -> cruft -> docs -> patterns. Each gate
 produces items, not pass/fail. Findings recorded below as gates run.
+
+- **gate-tests** (2026-06-01) — 7 findings (6 critical, 0 high, 1 medium, 0 low).
+  Six came from the release test-quality audit and one was reproduced locally by
+  the dist-version guard. All were bound and drained:
+  - `gate-tests-pi-package-metadata` — real Pi package manifest metadata coverage
+  - `gate-tests-pi-extension-substrate-errors` — `/aw` substrate discovery/error tests
+  - `gate-tests-pi-extension-queue-wrappers` — `/aw` status/parent/blocking/truncation tests
+  - `gate-tests-pi-extension-handoffs` — board/autopilot/scope handoff tests
+  - `gate-tests-filtered-dependency-stubs` — filtered dependency stub JS coverage
+  - `gate-tests-tag-expand-keyboard` — keyboard reachability for tag expansion
+  - `gate-tests-work-view-dist-version-refresh` — generated `work-view` dist binaries refreshed by GitHub Actions run `26743675062`
+- **gate-cruft** (2026-06-01) — 1 high-confidence finding, drained:
+  - `gate-cruft-board-js-cleanup-module-graph` — removed unused board JS harness cleanup helper
+- **gate-docs** (2026-06-01) — 7 findings. Six produced docs items and were
+  drained; the generated-binary finding was consolidated into
+  `gate-tests-work-view-dist-version-refresh` because it required the same
+  CI artifact refresh:
+  - `gate-docs-changelog-0-9-5`
+  - `gate-docs-agile-workflow-spec-version-example`
+  - `gate-docs-agile-workflow-vision-current-state`
+  - `gate-docs-release-deploy-none-mapping`
+  - `gate-docs-public-guide-none-mapping`
+  - `gate-docs-board-pattern-line-refs`
+- **gate-patterns** (2026-06-01) — 3 new patterns, 0 inconsistencies. Tracking
+  item `gate-patterns-0.9.5` is done:
+  - `no-build-board-asset-test-harness`
+  - `view-local-control-state-full-remount`
+  - `pending-focus-restore-after-remount`
+
+## Ship summary
+
+- **Shipped**: 2026-06-01
+- **Mapping**: `none` (per CONVENTIONS.md) — release-deploy ran gates and
+  archived bound items; publishing/version bumping remains external to
+  release-deploy. No tag/branch shipping was performed by release-deploy.
+- **Items shipped**: 52 (1 epic, 6 features, 45 stories — including 15
+  gate-produced stories).
+- **Gate finding totals**: gate-tests 7 (all drained), gate-cruft 1 (drained),
+  gate-docs 7 (6 docs items drained + 1 generated-binary finding consolidated
+  with gate-tests), gate-patterns 3 new patterns (0 inconsistencies).
+- **Verification**: local shell, Bun, Node, Python, and Rust test suites passed;
+  GitHub Actions run `26743675062` built and committed the refreshed 0.9.5
+  prebuilt `work-view` binaries.
