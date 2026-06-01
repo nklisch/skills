@@ -1,0 +1,41 @@
+---
+id: gate-tests-hook-concurrency-interleave
+kind: story
+tags: [testing]
+release_binding: null
+gate_origin: tests
+created: 2026-05-31
+---
+
+# Truly-concurrent interleave test for hook state-file (epoch-bump not clobbered)
+
+Deferred from the **gate-tests 0.9.0** run (Finding 10, Medium). Unbound — does
+not block 0.9.0; sequential coverage already exists.
+
+`epic-agents-rules-autoload-state-concurrency` added 8 `StateConcurrencyTest`
+tests (unique-temp naming, fail-open on OSError, lock acquire/release with
+`fcntl` mocked, graceful no-op without `fcntl`, and a two-session no-loss check).
+But the no-loss invariant is exercised **sequentially** (one save then another),
+not with overlapping writers. The race the story exists to close is an
+*interleaving* hazard: a UserPromptSubmit process that loads state before a
+PostCompact epoch bump and saves after it, clobbering the bump. A sequential
+test cannot exercise the read-modify-write interleave that `_state_lock`
+serializes.
+
+## Why deferred
+Deterministic concurrency testing is genuinely hard. Needs either a
+spawn-two-processes harness or a monkeypatched barrier injected between
+`load_state` and `save_state` to force the adversarial ordering. The existing
+`fcntl`-lock coverage already guards the mechanism; this closes the behavioral
+end-to-end interleave.
+
+## Suggested test
+```python
+# test_concurrent_epoch_bump_not_clobbered
+# two workers (processes, or threads with a barrier between load_state and save_state):
+#   P1 = UserPromptSubmit rules emit (loads old epoch); P2 = PostCompact bump_epoch
+# force P1 to save AFTER P2's bump; assert final epoch reflects the bump (not clobbered)
+```
+
+## Test location (suggested)
+`plugins/agile-workflow/hooks/scripts/test_prompt_context.py`

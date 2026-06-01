@@ -78,4 +78,21 @@ Board over `.work/`, and the work-view freshness / anti-drift install lifecycle.
 Gate order (CONVENTIONS.md): tests → cruft → docs → patterns. Each gate produces
 items, not pass/fail. Findings recorded below as gates run.
 
-<!-- populated in Phase 4 -->
+- **gate-tests** (2026-05-31) — 12 findings (2 critical, 3 high, 5 medium, 2 low)
+  over a green ~386-test baseline (Rust 294, bash install 41, bash convert 12,
+  python 39). 1 tautological test flagged. Two systemic gaps: (1) no behavioral
+  JS test harness for ~70KB of board frontend logic (explicitly deferred during
+  the shell-filters review) underlies 6 findings; (2) `bump-version.sh`'s
+  lockstep projection — load-bearing for the freshness epic — has no test.
+  Disposition: 5 bound to 0.9.0 (drain now, existing harnesses); JS-harness
+  cluster (6 findings) + concurrency interleave → backlog (unbound).
+  Bound (implementing):
+  - `gate-tests-bump-version-lockstep` (critical) — bash test for the projection block
+  - `gate-tests-work-board-shim-routing` (medium) — shim routing branches
+  - `gate-tests-self-heal-version-probe-timeout` (medium) — version-probe timeout fail-open
+  - `gate-tests-tmpdir-root-isolation` (low/integrity) — make find-root test $TMPDIR-invariant
+  - `gate-tests-convert-content-integrity-guard` (low) — structural grep guard
+  Backlog (unbound):
+  - `gate-tests-board-js-harness` (feature) — harness + 6 deferred board-view suites
+    (Critical XSS control verified SOUND during gate — test-only gap)
+  - `gate-tests-hook-concurrency-interleave` (medium) — deterministic interleave test
