@@ -18,7 +18,10 @@ import importlib.util
 import io
 import json
 import shutil
+import subprocess
+import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -763,6 +766,121 @@ class StateConcurrencyTest(unittest.TestCase):
         self.assertIn("alpha", state["sessions"])
         self.assertIn("beta", state["sessions"])
         self.assertEqual(state["sessions"]["beta"]["epoch"], 1)
+
+    def test_process_interleave_does_not_clobber_postcompact_epoch(self) -> None:
+        """A stale UserPromptSubmit writer cannot overwrite a PostCompact bump.
+
+        This uses two real Python processes so the fcntl lock is exercised as an
+        inter-process lock. P1 enters the UserPromptSubmit read-modify-write and
+        pauses immediately after `load_state` while still holding the lock. P2
+        attempts the PostCompact epoch bump and must wait. When P1 is released,
+        P2 loads the post-P1 state and bumps the epoch, so the final state keeps
+        the PostCompact epoch instead of being clobbered by P1's stale save.
+        """
+        if prompt_context.fcntl is None:
+            self.skipTest("requires fcntl for an inter-process lock")
+
+        conventions = self.root / ".work" / "CONVENTIONS.md"
+        conventions.parent.mkdir(parents=True)
+        conventions.write_text("# Conventions\n", encoding="utf-8")
+        rules_dir = self.root / ".agents" / "rules"
+        rules_dir.mkdir(parents=True)
+        (rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
+
+        loaded_signal = self.root / "loaded.signal"
+        release_signal = self.root / "release.signal"
+        module_path = str(_MODULE_PATH)
+        root_path = str(self.root)
+        state_path = str(self.state_file)
+
+        user_prompt_worker = f"""
+import importlib.util
+import time
+from pathlib import Path
+
+module_path = Path({module_path!r})
+root = Path({root_path!r})
+state_file = Path({state_path!r})
+loaded_signal = Path({str(loaded_signal)!r})
+release_signal = Path({str(release_signal)!r})
+
+spec = importlib.util.spec_from_file_location("prompt_context_worker", module_path)
+prompt_context = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(prompt_context)
+prompt_context.state_path = lambda _root: state_file
+real_load_state = prompt_context.load_state
+
+def paused_load_state(load_root):
+    state = real_load_state(load_root)
+    loaded_signal.write_text("loaded", encoding="utf-8")
+    deadline = time.monotonic() + 5
+    while not release_signal.exists():
+        if time.monotonic() > deadline:
+            raise TimeoutError("release signal was not written")
+        time.sleep(0.02)
+    return state
+
+prompt_context.load_state = paused_load_state
+prompt_context.emit_rules(root, {{"session_id": "race"}}, require_coding=True, prompt="fix bug")
+"""
+
+        postcompact_worker = f"""
+import importlib.util
+from pathlib import Path
+
+module_path = Path({module_path!r})
+root = Path({root_path!r})
+state_file = Path({state_path!r})
+
+spec = importlib.util.spec_from_file_location("prompt_context_worker", module_path)
+prompt_context = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(prompt_context)
+prompt_context.state_path = lambda _root: state_file
+prompt_context.bump_epoch(root, {{"session_id": "race", "hook_event_name": "PostCompact", "source": "auto"}})
+"""
+
+        p1 = subprocess.Popen(
+            [sys.executable, "-c", user_prompt_worker],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        try:
+            deadline = time.monotonic() + 5
+            while not loaded_signal.exists():
+                if p1.poll() is not None:
+                    self.fail(f"UserPromptSubmit worker exited early with {p1.returncode}")
+                if time.monotonic() > deadline:
+                    self.fail("UserPromptSubmit worker did not reach the load barrier")
+                time.sleep(0.02)
+
+            p2 = subprocess.Popen(
+                [sys.executable, "-c", postcompact_worker],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            try:
+                time.sleep(0.15)
+                self.assertIsNone(
+                    p2.poll(),
+                    "PostCompact worker should be blocked on the state lock until P1 saves",
+                )
+                release_signal.write_text("release", encoding="utf-8")
+                self.assertEqual(p1.wait(timeout=5), 0)
+                self.assertEqual(p2.wait(timeout=5), 0)
+            finally:
+                if p2.poll() is None:
+                    p2.kill()
+                    p2.wait()
+        finally:
+            if p1.poll() is None:
+                release_signal.write_text("release", encoding="utf-8")
+                p1.kill()
+                p1.wait()
+
+        state = prompt_context.load_state(self.root)
+        session = state["sessions"]["race"]
+        self.assertEqual(session["epoch"], 1)
+        self.assertEqual(session["seen"], {})
 
     def test_save_state_roundtrip(self) -> None:
         """save_state -> load_state preserves data (atomic replace lands)."""

@@ -1,7 +1,7 @@
 ---
 id: gate-tests-hook-concurrency-interleave
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -49,3 +49,16 @@ end-to-end interleave.
 - Promoted from backlog during batch scope for found release/test-gate work.
 - Size: small story; implement directly with a deterministic interleave test.
 - Dependencies: none.
+
+## Implementation notes
+
+- Files changed:
+  - `plugins/agile-workflow/hooks/scripts/test_prompt_context.py`
+- Tests added:
+  - `StateConcurrencyTest.test_process_interleave_does_not_clobber_postcompact_epoch`
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
+
+## Verification
+
+- `python3 -m unittest test_prompt_context.StateConcurrencyTest.test_process_interleave_does_not_clobber_postcompact_epoch -v`
