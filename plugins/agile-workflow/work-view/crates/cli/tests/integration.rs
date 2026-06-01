@@ -771,13 +771,12 @@ fn board_embedded_assets_return_expected_content_types() {
             && dependency_body.contains("buildDependencyModel")
             && dependency_body.contains("layerGraph")
             && dependency_body.contains("renderGraphCanvas")
-            && dependency_body.contains("renderLayeredList")
             && dependency_body.contains("createElementNS")
             && dependency_body.contains("dependency-edge--unmet")
             && dependency_body.contains("focusedNode")
-            && dependency_body.contains("preferredRenderMode")
+            && dependency_body.contains("activeLayoutId")
+            && dependency_body.contains("GRAPH_LAYOUTS")
             && dependency_body.contains("showTerminalBranches")
-            && dependency_body.contains("matchMedia")
             && dependency_body.contains("is-traced")
             && !dependency_body.contains("ctx.setFilter")
             && dependency_body.contains("cycleIds")
@@ -805,6 +804,52 @@ fn board_embedded_assets_return_expected_content_types() {
             && table_body.contains("ctx.openDetail(item.id)")
             && table_body.contains("addEventListener(\"keydown\""),
         "table JS should provide the registered dense table view; body: {table_body}"
+    );
+}
+
+#[test]
+fn dependency_canvas_is_canvas_only_with_layout_buttons() {
+    let dependency_js = board_response_once("/assets/dependency.js");
+    let body = http_body(&dependency_js);
+
+    assert!(
+        body.contains("GRAPH_LAYOUTS")
+            && body.contains("activeLayoutId")
+            && body.contains("renderLayoutButtons")
+            && body.contains("layoutGraph(model, activeLayoutId)")
+            && body.contains("button.dataset.layoutId = layout.id")
+            && body.contains("button.setAttribute(\"aria-pressed\"")
+            && body.contains("renderGraphCanvas(model, ctx)")
+            && !body.contains("Show canvas")
+            && !body.contains("Show list")
+            && !body.contains("renderLayeredList")
+            && !body.contains("preferredRenderMode")
+            && !body.contains("matchMedia"),
+        "dependency view should be canvas-only with layout selector buttons; body: {body}"
+    );
+}
+
+#[test]
+fn dependency_canvas_layout_buttons_offer_relationship_organizations() {
+    let dependency_js = board_response_once("/assets/dependency.js");
+    let body = http_body(&dependency_js);
+    let board_css = board_response_once("/assets/board.css");
+    let css = http_body(&board_css);
+    let label_rule = css_rule_body(css, ".dependency-layout-label");
+
+    assert!(
+        body.contains("id: \"flow\"")
+            && body.contains("id: \"stage\"")
+            && body.contains("id: \"kind\"")
+            && body.contains("function groupNodesByStage")
+            && body.contains("function groupNodesByKind")
+            && body.contains("function renderLayoutLabels")
+            && body.contains("layout.groups"),
+        "dependency canvas should expose flow, stage, and kind organizations over the same edge graph; body: {body}"
+    );
+    assert!(
+        label_rule.contains("position: absolute") && label_rule.contains("text-transform: uppercase"),
+        "canvas layout columns should have compact labels; rule: {label_rule}"
     );
 }
 

@@ -412,6 +412,12 @@ select {
   gap: var(--space-2);
 }
 
+.dependency-layout-buttons {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .dependency-layer {
   display: grid;
   gap: var(--space-2);
@@ -496,6 +502,20 @@ button.dep-node:focus-visible {
 
 .dependency-edge.is-dimmed {
   opacity: .2;
+}
+
+.dependency-layout-label {
+  position: absolute;
+  z-index: 1;
+  width: 280px;
+  overflow: hidden;
+  color: var(--color-text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--font-weight-semibold) 11px/1 var(--font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  pointer-events: none;
 }
 
 .dependency-graph-node {

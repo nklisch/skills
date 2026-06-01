@@ -10,9 +10,18 @@ const ID_CHARS_PER_LINE = 25;
 const EDGE_CHARS_PER_LINE = 22;
 const NODE_HEIGHT_BUFFER = 10;
 const DRAG_THRESHOLD_PX = 4;
+const GROUP_LABEL_HEIGHT = 24;
+const GROUP_LABEL_GAP = 14;
+const GRAPH_LAYOUTS = [
+  { id: "flow", label: "Flow" },
+  { id: "stage", label: "Stage" },
+  { id: "kind", label: "Kind" },
+];
+const STAGE_LAYOUT_ORDER = ["drafting", "implementing", "review", "done", "released", "backlog", "unstaged", "external"];
+const KIND_LAYOUT_ORDER = ["epic", "feature", "story", "release", "backlog", "idea", "item", "external"];
 
 let focusedNode = null;
-let preferredRenderMode = null;
+let activeLayoutId = GRAPH_LAYOUTS[0].id;
 let showTerminalBranches = false;
 let activeEdgeGeometryCleanup = null;
 
@@ -211,28 +220,6 @@ function renderCycleWarning(model) {
   return warning;
 }
 
-function renderLayer(layer, nodes, model, ctx) {
-  const section = document.createElement("section");
-  section.className = "dependency-layer";
-  section.append(textElement("h2", "", `Layer ${layer}`));
-  const stack = document.createElement("div");
-  stack.className = "dependency-layer__nodes";
-  for (const node of nodes) {
-    stack.append(renderNode(node, model, ctx));
-  }
-  section.append(stack);
-  return section;
-}
-
-function renderLayeredList(model, ctx) {
-  const layers = document.createElement("div");
-  layers.className = "dependency-layers";
-  for (const [layer, nodes] of model.layers) {
-    layers.append(renderLayer(layer, nodes, model, ctx));
-  }
-  return layers;
-}
-
 function wrappedLineCount(text, charsPerLine) {
   const length = String(text || "").length;
   return Math.max(1, Math.ceil(length / charsPerLine));
@@ -256,15 +243,98 @@ function estimatedNodeHeight(node, model) {
   return Math.max(MIN_NODE_HEIGHT, 42 + headerHeight + edgesHeight + NODE_HEIGHT_BUFFER);
 }
 
-function layoutGraph(model) {
+function titleLabel(value) {
+  return String(value || "unknown")
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function compareKeysByOrder(a, b, order) {
+  const aIndex = order.indexOf(a);
+  const bIndex = order.indexOf(b);
+  if (aIndex !== -1 || bIndex !== -1) {
+    if (aIndex === -1) {
+      return 1;
+    }
+    if (bIndex === -1) {
+      return -1;
+    }
+    return aIndex - bIndex;
+  }
+  return a.localeCompare(b);
+}
+
+function sortNodesByLabel(nodes) {
+  return [...nodes].sort((a, b) => itemLabel(a).localeCompare(itemLabel(b)));
+}
+
+function groupedBy(model, groupForNode, order) {
+  const groups = new Map();
+  for (const node of model.nodes.values()) {
+    const key = groupForNode(node);
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+    groups.get(key).push(node);
+  }
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => compareKeysByOrder(a, b, order))
+    .map(([key, nodes]) => ({
+      id: key,
+      label: titleLabel(key),
+      nodes: sortNodesByLabel(nodes),
+    }));
+}
+
+function groupNodesByFlow(model) {
+  return model.layers.map(([layer, nodes]) => ({
+    id: `flow-${layer}`,
+    label: `Depth ${layer}`,
+    nodes,
+  }));
+}
+
+function groupNodesByStage(model) {
+  return groupedBy(model, (node) => {
+    if (node.external) {
+      return "external";
+    }
+    return String(node.item?.stage || "unstaged");
+  }, STAGE_LAYOUT_ORDER);
+}
+
+function groupNodesByKind(model) {
+  return groupedBy(model, (node) => {
+    if (node.external) {
+      return "external";
+    }
+    return String(node.item?.kind || "item");
+  }, KIND_LAYOUT_ORDER);
+}
+
+function groupsForLayout(model, layoutId) {
+  if (layoutId === "stage") {
+    return groupNodesByStage(model);
+  }
+  if (layoutId === "kind") {
+    return groupNodesByKind(model);
+  }
+  return groupNodesByFlow(model);
+}
+
+function layoutGraph(model, layoutId) {
+  const groups = groupsForLayout(model, layoutId);
   const positions = new Map();
+  const laidOutGroups = [];
   let maxLayerHeight = MIN_NODE_HEIGHT;
-  model.layers.forEach(([, nodes], layerIndex) => {
-    let y = CANVAS_PADDING;
-    for (const node of nodes) {
+  groups.forEach((group, layerIndex) => {
+    const x = CANVAS_PADDING + layerIndex * (NODE_WIDTH + LAYER_GAP);
+    let y = CANVAS_PADDING + GROUP_LABEL_HEIGHT + GROUP_LABEL_GAP;
+    laidOutGroups.push({ ...group, x });
+    for (const node of group.nodes) {
       const height = estimatedNodeHeight(node, model);
       positions.set(node.id, {
-        x: CANVAS_PADDING + layerIndex * (NODE_WIDTH + LAYER_GAP),
+        x,
         y,
         width: NODE_WIDTH,
         height,
@@ -275,7 +345,8 @@ function layoutGraph(model) {
   });
   return {
     positions,
-    width: CANVAS_PADDING * 2 + model.layers.length * NODE_WIDTH + Math.max(0, model.layers.length - 1) * LAYER_GAP,
+    groups: laidOutGroups,
+    width: CANVAS_PADDING * 2 + groups.length * NODE_WIDTH + Math.max(0, groups.length - 1) * LAYER_GAP,
     height: maxLayerHeight + CANVAS_PADDING,
   };
 }
@@ -301,6 +372,17 @@ function renderEdges(model) {
     svg.append(path);
   }
   return svg;
+}
+
+function renderLayoutLabels(layout) {
+  const fragment = document.createDocumentFragment();
+  for (const group of layout.groups) {
+    const label = textElement("div", "dependency-layout-label", group.label);
+    label.style.left = `${group.x}px`;
+    label.style.top = `${CANVAS_PADDING}px`;
+    fragment.append(label);
+  }
+  return fragment;
 }
 
 function measuredNodeBounds(canvas) {
@@ -473,7 +555,7 @@ function installEdgeGeometrySync(canvas, model) {
 }
 
 function renderGraphCanvas(model, ctx) {
-  const layout = layoutGraph(model);
+  const layout = layoutGraph(model, activeLayoutId);
   const viewport = document.createElement("div");
   viewport.className = "dependency-canvas-viewport";
 
@@ -482,6 +564,7 @@ function renderGraphCanvas(model, ctx) {
   canvas.style.width = `${layout.width}px`;
   canvas.style.height = `${layout.height}px`;
   canvas.append(renderEdges(model));
+  canvas.append(renderLayoutLabels(layout));
 
   for (const node of model.nodes.values()) {
     const position = layout.positions.get(node.id);
@@ -559,19 +642,6 @@ function wireTraceInteractions(canvas, model) {
   applyTrace(canvas, model, focusedNode);
 }
 
-function shouldUseListFallback(items) {
-  const narrow = typeof window !== "undefined"
-    && typeof window.matchMedia === "function"
-    && window.matchMedia("(max-width: 720px)").matches;
-  if (preferredRenderMode === "canvas") {
-    return false;
-  }
-  if (preferredRenderMode === "list") {
-    return true;
-  }
-  return items.length > LARGE_GRAPH_THRESHOLD || narrow;
-}
-
 function graphItems(items) {
   if (items.length <= LARGE_GRAPH_THRESHOLD || showTerminalBranches) {
     return items;
@@ -580,20 +650,30 @@ function graphItems(items) {
   return active.length > 0 ? active : items;
 }
 
-function renderGraphToolbar(root, ctx, items, useListFallback) {
+function renderLayoutButtons(root, ctx) {
+  const group = document.createElement("div");
+  group.className = "dependency-layout-buttons";
+  group.setAttribute("role", "group");
+  for (const layout of GRAPH_LAYOUTS) {
+    const button = document.createElement("button");
+    button.className = "filter-chip dependency-toolbar__button";
+    button.type = "button";
+    button.dataset.layoutId = layout.id;
+    button.textContent = layout.label;
+    button.setAttribute("aria-pressed", String(activeLayoutId === layout.id));
+    button.addEventListener("click", () => {
+      activeLayoutId = layout.id;
+      dependencyView.mount(root, ctx);
+    });
+    group.append(button);
+  }
+  return group;
+}
+
+function renderGraphToolbar(root, ctx, items) {
   const toolbar = document.createElement("div");
   toolbar.className = "dependency-toolbar";
-
-  const modeButton = document.createElement("button");
-  modeButton.className = "filter-chip dependency-toolbar__button";
-  modeButton.type = "button";
-  modeButton.textContent = useListFallback ? "Show canvas" : "Show list";
-  modeButton.setAttribute("aria-pressed", String(!useListFallback));
-  modeButton.addEventListener("click", () => {
-    preferredRenderMode = useListFallback ? "canvas" : "list";
-    dependencyView.mount(root, ctx);
-  });
-  toolbar.append(modeButton);
+  toolbar.append(renderLayoutButtons(root, ctx));
 
   if (items.length > LARGE_GRAPH_THRESHOLD) {
     const terminalButton = document.createElement("button");
@@ -617,7 +697,6 @@ export const dependencyView = {
   mount(root, ctx) {
     cleanupEdgeGeometrySync();
     const items = ctx.visibleItems();
-    const useListFallback = shouldUseListFallback(items);
     const model = buildDependencyModel(graphItems(items));
 
     const view = document.createElement("div");
@@ -635,8 +714,8 @@ export const dependencyView = {
       view.append(warning);
     }
 
-    view.append(renderGraphToolbar(root, ctx, items, useListFallback));
-    view.append(useListFallback ? renderLayeredList(model, ctx) : renderGraphCanvas(model, ctx));
+    view.append(renderGraphToolbar(root, ctx, items));
+    view.append(renderGraphCanvas(model, ctx));
     root.replaceChildren(view);
   },
 };
