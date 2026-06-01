@@ -1,12 +1,13 @@
 # Vision: agile-workflow
 
-**agile-workflow** is a Claude Code plugin that ships a markdown-based
-work-tracking substrate for AI-driven software projects. Work lives as plain
-markdown items in a `.work/` directory inside the repo. Each item is a single
-file with structured frontmatter — its body accumulates the brief, the design,
-the implementation notes, and the review findings as work progresses. Skills
-operate as verbs over those files. There are no parallel design docs, no
-separate progress trackers, no tracking-board dependencies. The repo is the
+**agile-workflow** is a portable agent workflow plugin/package that ships a
+markdown-based work-tracking substrate for AI-driven software projects. Work
+lives as plain markdown items in a `.work/` directory inside the repo. Each item
+is a single file with structured frontmatter — its body accumulates the brief,
+the design, the implementation notes, and the review findings as work
+progresses. Skills operate as verbs over those files, while each harness can add
+native ergonomics around the same substrate. There are no parallel design docs,
+no separate progress trackers, no tracking-board dependencies. The repo is the
 system of record.
 
 ## Why this exists
@@ -70,9 +71,10 @@ agile-workflow ships v0.1.0 complete:
   refactor + perf), implementation, review, gates, release, and autopilot
 - A compiled `work-view` CLI (with a pure-bash fallback) for fast queries by
   stage, tag, kind, parent, release binding, and dependency state
-- Shared Codex/Claude command hooks that inject queue/principles context only
-  for actionable workflow prompts, auto-bump `updated:`, and surface cheap
-  substrate validation issues
+- Shared Claude/Codex/Pi substrate context injection that surfaces
+  queue/principles context only for actionable workflow prompts, auto-bumps
+  `updated:` where the harness supports it, and reports cheap substrate
+  validation issues
 - A real project taken end-to-end through ideate → convert → epicize →
   scope → design → implement → review → release-deploy on the substrate
 
@@ -84,9 +86,9 @@ still describe the present without legacy comments.
 
 ## Relationship to workflow
 
-`agile-workflow` does not replace `workflow`. Both ship from this repo and
-stay supported. They distribute the same way (the Claude Code and OpenAI Codex
-marketplaces), version independently, and never share skills.
+`agile-workflow` does not replace `workflow`. Both ship from this repo and stay
+supported. Supported channels are Claude Code, OpenAI Codex, and Pi; each plugin
+versions independently and never shares skills with another plugin.
 
 - Choose **`workflow`** when the project wants design docs as artifacts,
   roadmaps with phases, a stable doc-driven cycle, and minimal change to

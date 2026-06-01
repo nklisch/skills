@@ -1,10 +1,10 @@
 # nklisch/skills
 
-A software development workflow suite for Claude Code (and Codex) — work
-tracking, UI/UX design, and standalone utility skills, designed to tee up
+A software development workflow suite for Claude Code, OpenAI Codex, and Pi —
+work tracking, UI/UX design, and standalone utility skills, designed to tee up
 autonomous agent runs that actually ship the right thing.
 
-Available as **Claude Code plugins** and **Codex plugins**.
+Available as **Claude Code plugins**, **Codex plugins**, and **Pi packages**.
 
 ## Install
 

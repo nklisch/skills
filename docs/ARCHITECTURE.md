@@ -1,8 +1,8 @@
 # Architecture
 
 How this repo is organized and how one git tree resolves into installable
-plugins for two vendors. This is the meta map; plugin-internal architecture
-lives in each plugin's own `docs/ARCHITECTURE.md`.
+plugins and packages for three agent harnesses. This is the meta map;
+plugin-internal architecture lives in each plugin's own `docs/ARCHITECTURE.md`.
 
 ## Repo layout
 
@@ -15,9 +15,9 @@ lives in each plugin's own `docs/ARCHITECTURE.md`.
 │   └── workflow/             # DEPRECATED, frozen, kept for existing installs
 ├── .agents/skills/          # standalone reference-skill library (non-plugin)
 ├── .claude-plugin/
-│   └── marketplace.json     # install index for both vendors
+│   └── marketplace.json     # install index for Claude Code and Codex
 ├── scripts/
-│   └── bump-version.sh      # the version gate (bumps both manifests together)
+│   └── bump-version.sh      # the version gate (bumps channel metadata together)
 ├── docs/                    # this meta layer (VISION, SPEC, ARCHITECTURE)
 ├── .claude/                 # repo-level Claude config + instructions
 └── README.md
@@ -32,28 +32,31 @@ auto-load on relevant context and are not part of any plugin.
 
 ## Plugin anatomy
 
-Each `plugins/<name>/` directory carries both vendor manifests and a mix of
-cross-vendor and Claude-only components:
+Each `plugins/<name>/` directory carries channel metadata and a mix of shared
+and harness-specific components:
 
 ```
 plugins/<name>/
-├── .claude-plugin/plugin.json   # Claude Code manifest        ┐ dual manifests,
-├── .codex-plugin/plugin.json    # Codex manifest              ┘ same version
-├── skills/                      # SKILL.md units  — cross-vendor
-├── commands/                    # slash commands  — Claude-only
-├── hooks/                       # event hooks     — Claude-only
+├── .claude-plugin/plugin.json   # Claude Code manifest
+├── .codex-plugin/plugin.json    # Codex manifest
+├── package.json                 # Pi package metadata
+├── skills/                      # SKILL.md units  — shared
+├── commands/                    # slash commands  — Claude-specific
+├── hooks/                       # event hooks     — harness-specific
+├── extensions/                  # Pi extensions   — Pi-specific, when needed
+├── prompts/                     # Pi prompt templates, when needed
 ├── docs/                        # plugin foundation docs (optional)
 ├── CHANGELOG.md
 └── README.md
 ```
 
-The cross-vendor/Claude-only split is the rule from `docs/SPEC.md`: skills cross
-both vendors; `commands/`, `hooks/`, and any `agents/` definitions are
-Claude-only and simply absent under Codex.
+The shared/harness-specific split is the rule from `docs/SPEC.md`: skills cross
+all three harnesses; command, hook, extension, prompt, theme, and agent surfaces
+are exposed only where the target harness supports them.
 
 ## Distribution wiring
 
-A single index drives both marketplaces:
+A single index drives the Claude Code and Codex marketplaces:
 
 - **Local plugins** are listed in `.claude-plugin/marketplace.json` with a
   string-path source (`"./plugins/<name>"`). Claude Code reads this directly;
@@ -62,8 +65,13 @@ A single index drives both marketplaces:
   `git-subdir` sources pointing at their own repos, so the marketplace can offer
   plugins that do not live in this tree.
 - **Version integrity** flows through `scripts/bump-version.sh`, which keeps a
-  plugin's two manifests in lockstep and refuses to act on a dirty plugin
+  plugin's channel metadata in lockstep and refuses to act on a dirty plugin
   directory.
+
+Pi distribution is package-native. A plugin's Pi package metadata lives beside
+the Claude and Codex manifests in that plugin directory, points at the same
+`skills/` tree, and adds Pi-native extensions or prompt templates only when they
+improve the user experience beyond raw skill loading.
 
 ## The substrate-access model
 

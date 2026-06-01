@@ -1,37 +1,44 @@
 # Specification
 
 Repo-level distribution constraints and the decisions that keep one git tree
-shippable to two vendors. Plugin internals are out of scope here — each plugin's
-own `docs/` owns those (see "Where internals live").
+shippable to three agent harnesses. Plugin internals are out of scope here —
+each plugin's own `docs/` owns those (see "Where internals live").
 
 ## Distribution channels
 
-The catalog ships through exactly two channels, both resolving from this git
-tree:
+The catalog ships through exactly three first-class channels, all resolving from
+this git tree:
 
 - **Claude Code marketplace** — `/plugin install` against
   `.claude-plugin/marketplace.json`.
 - **OpenAI Codex marketplace** — `codex plugin marketplace add` reads the same
   `.claude-plugin/marketplace.json`.
+- **Pi packages** — `pi install` from npm, git, or local paths against package
+  roots that declare Pi resources in `package.json` under the `pi` key.
 
-There is no third channel. Skills are authored to the open Agent Skills standard
-(agentskills.io) so a `SKILL.md` works unchanged in either vendor.
+No channel is secondary. Skills are authored to the open Agent Skills standard
+(agentskills.io) so a `SKILL.md` works unchanged across Claude Code, Codex, and
+Pi.
 
-## Plugin manifests — dual and in lockstep
+## Plugin manifests and package metadata
 
-Every plugin ships two parallel manifests under `plugins/<name>/`:
+Every supported plugin ships channel metadata under `plugins/<name>/`:
 
 - `.claude-plugin/plugin.json` — Claude Code.
 - `.codex-plugin/plugin.json` — Codex. Must declare `"skills": "./skills/"`
   explicitly (Codex does not auto-discover) and an `interface` block for
   marketplace presentation.
+- `package.json` — Pi. Must include `keywords: ["pi-package"]` and a `pi`
+  manifest that exposes the same shared `skills/` directory plus any Pi-native
+  extensions, prompt templates, or themes.
 
-Both carry the **same `version`**. They must never disagree about a plugin's
-identity. This is the load-bearing invariant of the whole repo.
+All three carry the **same `version`**. They must never disagree about a
+plugin's identity. This is the load-bearing invariant of the whole repo.
 
 ## Marketplace registration
 
-`.claude-plugin/marketplace.json` is the install index for both vendors:
+`.claude-plugin/marketplace.json` is the install index for Claude Code and
+Codex:
 
 - **Local plugins** use the string-path source form: `"source":
   "./plugins/<name>"`. Claude Code does **not** support the object form
@@ -41,26 +48,35 @@ identity. This is the load-bearing invariant of the whole repo.
   (currently `krometrail` and `peeragent`), so the marketplace can offer plugins
   that do not live in this tree.
 
-## Cross-vendor surface
+Pi distribution is package-native rather than marketplace-index-native in this
+repo: each shippable plugin directory owns its Pi `package.json`, and published
+Pi packages use npm metadata plus the `pi-package` keyword for gallery
+discovery. Git and local-path installs use the same package roots.
 
-What crosses vendors and what does not is a hard boundary, not a preference:
+## Shared and harness-specific surfaces
 
-- **Cross-vendor (both):** `SKILL.md` files, the `skills/` directory, and
-  `marketplace.json` entries. This is the bulk of every plugin's value.
-- **Claude-only (intentionally not exposed to Codex):**
+What crosses harnesses and what does not is a hard boundary, not a preference:
+
+- **Shared across all three:** `SKILL.md` files and the `skills/` directory.
+  This is the bulk of every plugin's durable value.
+- **Claude-specific:**
   - `commands/<name>.md` — the Codex manifest has no `commands` field.
-  - `hooks/hooks.json` — references `${CLAUDE_PLUGIN_ROOT}`, a Claude-specific
-    variable.
-  - `agents/<name>.md` subagent definitions — the Codex manifest has no
-    `agents` field.
+  - Claude hook behavior and compatibility shims.
+  - `agents/<name>.md` subagent definitions when a plugin needs them.
+- **Codex-specific:**
+  - `.codex-plugin/plugin.json` interface metadata.
+  - `agents/openai.yaml` skill polish and invocation policy.
+- **Pi-specific:**
+  - `package.json` `pi` resource declarations.
+  - Pi extensions for native commands, tools, widgets, and TUI surfaces.
+  - Pi prompt templates or themes where the package benefits from them.
 
-Codex users get the skills; the Claude-only surface degrades to absent, never to
-broken.
+Harness-specific surfaces degrade to absent in other harnesses, never to broken.
 
 ## Versioning
 
-`scripts/bump-version.sh <plugin> <major|minor|patch>` bumps both manifests at
-once and refuses to run if their versions are already out of sync.
+`scripts/bump-version.sh <plugin> <major|minor|patch>` bumps every channel's
+metadata at once and refuses to run if versions are already out of sync.
 
 - **Order matters:** commit feature changes *before* bumping. The script
   auto-commits and pushes the bump on its own and refuses to run with a dirty
@@ -86,9 +102,9 @@ published; a reference skill that needs distribution is folded into a plugin.
 
 The single-source-of-truth rules that keep the catalog coherent:
 
-- A plugin's two manifests agree on identity and version (enforced by
-  `bump-version.sh`).
-- Registering a new plugin touches both manifests **and**
+- A plugin's Claude manifest, Codex manifest, and Pi package metadata agree on
+  identity and version (enforced by `bump-version.sh`).
+- Registering a new plugin touches all channel metadata **and**
   `.claude-plugin/marketplace.json`. Missing any one breaks distribution.
 - Skill names may repeat across plugins by design; the owning plugin sets a
   skill's semantics. Orient to which plugin a skill lives in before reasoning

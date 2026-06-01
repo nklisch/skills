@@ -251,10 +251,19 @@ After `convert` runs in a project repo:
 
 ## Distribution
 
-The plugin distributes through the Claude Code and OpenAI Codex marketplaces via
-the repo-root `.claude-plugin/marketplace.json`, with parallel
-`.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` manifests kept in
-lockstep. No separate npm package, no separate registry.
+The plugin distributes through three equal channels:
+
+- Claude Code via the repo-root `.claude-plugin/marketplace.json` and
+  `plugins/agile-workflow/.claude-plugin/plugin.json`.
+- OpenAI Codex via the same marketplace index and
+  `plugins/agile-workflow/.codex-plugin/plugin.json`.
+- Pi via package metadata in the plugin root, with the same `skills/` directory
+  plus Pi-native extensions or prompt templates where they improve substrate
+  ergonomics.
+
+The three channel metadata files stay in lockstep on name, version,
+description, repository, and license. Pi-specific runtime surfaces wrap the same
+`.work/` substrate; they do not fork the workflow model.
 
 ## Version strategy
 

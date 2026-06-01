@@ -12,15 +12,17 @@ gap: it packages durable agent capability — work tracking, design workflows, U
 mockup generation, library references, skill-authoring tooling — as installable
 skills and plugins, authored to a bar a thoughtful peer would defend.
 
-The audience is people building with Claude Code and OpenAI Codex who want their
-agents to arrive already knowing how to work.
+The audience is people building with Claude Code, OpenAI Codex, and Pi who want
+their agents to arrive already knowing how to work.
 
 ## What this is
 
-A single git tree that authors and distributes agent skills and plugins through
-two channels: the **Claude Code marketplace** and the **OpenAI Codex
-marketplace**. Every plugin ships to both; skills follow the open Agent Skills
-standard so they cross vendors unchanged.
+A single git tree that authors and distributes agent skills, plugins, and
+packages through three equal channels: the **Claude Code marketplace**, the
+**OpenAI Codex marketplace**, and **Pi packages**. Every supported plugin ships
+to all three. Skills follow the open Agent Skills standard so the durable
+procedural knowledge crosses harnesses unchanged; each harness can add native
+ergonomics around that shared core.
 
 The catalog is anchored by a flagship — **agile-workflow** — a substrate where a
 project's work lives as markdown files with structured frontmatter, and the
@@ -48,15 +50,16 @@ building itself, that is a signal worth catching before an adopter hits it.
 
 ## What success looks like
 
-- **Vendor parity** — every plugin installs and behaves in both Claude Code and
-  Codex.
+- **Channel parity** — every supported plugin installs and behaves in Claude
+  Code, Codex, and Pi, with harness-native ergonomics where each environment
+  supports them.
 - **Skills that trigger on intent** — they fire when they should and stay silent
   when they should not.
 - **A trustworthy substrate** — `.work/` is the single source of truth for this
   repo's work, and the agent-facing tooling answers "what can I do next?"
   correctly at any stage, not just one.
-- **Lockstep manifests** — a plugin's parallel manifests never disagree about
-  what it is.
+- **Lockstep metadata** — a plugin's Claude manifest, Codex manifest, and Pi
+  package metadata never disagree about what it is.
 
 ## Where the details live
 

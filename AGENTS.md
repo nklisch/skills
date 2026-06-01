@@ -1,6 +1,6 @@
 # Skills Repo
 
-This repo contains agent skills distributed via the Claude Code plugin marketplace and the OpenAI Codex plugin marketplace. Skills are stored in plugin skill directories or `.agents/skills/<skill-name>/`.
+This repo contains agent skills distributed via the Claude Code plugin marketplace, the OpenAI Codex plugin marketplace, and Pi packages. Skills are stored in plugin skill directories or `.agents/skills/<skill-name>/`.
 
 ## Orient first — `ls plugins/` before assuming
 
@@ -34,29 +34,30 @@ If a user asks for the workflow plugin or wants to migrate, point them at:
 
 - Reference and principle skills (not part of a plugin) live in `.agents/skills/<skill-name>/`.
 
-## Dual marketplace support (Claude Code + Codex)
+## Three-channel distribution support (Claude Code + Codex + Pi)
 
-Each plugin ships **two parallel manifests**, kept in lockstep:
+Each supported plugin ships channel metadata, kept in lockstep:
 
 - `plugins/<name>/.claude-plugin/plugin.json` — for Claude Code (`/plugin install`).
 - `plugins/<name>/.codex-plugin/plugin.json` — for OpenAI Codex CLI (`codex plugin marketplace add`).
+- `plugins/<name>/package.json` — for Pi packages (`pi install` from npm, git, or local paths). The `pi` manifest points at the same shared `skills/` directory and any Pi-native extensions, prompt templates, or themes.
 
-The root `.claude-plugin/marketplace.json` uses the legacy string-path shape for local plugins (`"source": "./plugins/<name>"`) plus `policy` + `category`. Claude Code does NOT support the object shape `{ "source": "local", "path": "..." }` — only `github`, `url`, `git-subdir`, and `npm` are valid object-form source types. Codex reads this file as an alternative marketplace location, so both ecosystems install from the same git tree.
+The root `.claude-plugin/marketplace.json` uses the legacy string-path shape for local plugins (`"source": "./plugins/<name>"`) plus `policy` + `category`. Claude Code does NOT support the object shape `{ "source": "local", "path": "..." }` — only `github`, `url`, `git-subdir`, and `npm` are valid object-form source types. Codex reads this file as an alternative marketplace location, so both ecosystems install from the same git tree. Pi distribution is package-native: each plugin's `package.json` is the install/package root for npm, git, or local-path installs.
 
-**Cross-vendor surface (works in both):** SKILL.md files (open Agent Skills standard at agentskills.io), `skills/` directory, marketplace.json entries.
+**Shared surface (works in all three):** SKILL.md files (open Agent Skills standard at agentskills.io) and each plugin's `skills/` directory.
 
-**Claude-only surface (intentionally not exposed in Codex):**
-- `commands/<name>.md` — Codex plugin manifest has no `commands` field.
-- `hooks/hooks.json` referencing `${CLAUDE_PLUGIN_ROOT}` — variable is Claude-specific. Hooks could be added to the Codex manifest once a portable plugin-root variable is verified.
-- `agents/<name>.md` (subagent definitions) — Codex plugin manifest has no `agents` field.
+**Harness-specific surface:**
+- Claude Code: `commands/<name>.md`, Claude hook behavior, and Claude agent definitions where present.
+- Codex: `.codex-plugin/plugin.json` interface metadata and `agents/openai.yaml` skill polish/invocation policy.
+- Pi: package `extensions/`, prompt templates, themes, tools, commands, widgets, and TUI components where they improve ergonomics.
 
-These work as before in Claude Code. Codex users get the skills only — that's the bulk of each plugin's value.
+Harness-specific surfaces must degrade to absent in other harnesses, never to broken. Do not fork SKILL.md content just to mention a harness; keep portable workflow knowledge shared and put native ergonomics in that harness's metadata or extension layer.
 
-For full background on the Codex format, see `docs/research/codex-plugin-format.md` and the auto-loading `.agents/skills/codex-plugin-format/` reference skill.
+For full background on the Codex format, see `docs/research/codex-plugin-format.md` and the auto-loading `.agents/skills/codex-plugin-format/` reference skill. Pi package notes live in `docs/research/pi-package-format.md`.
 
 ## Versioning
 
-Each plugin has matching `version` fields in both `plugin.json` manifests. `bump-version.sh` bumps both at once and refuses to run if they're out of sync.
+Each plugin has matching `version` fields across its channel metadata. `bump-version.sh` bumps all channel metadata at once and refuses to run if they're out of sync.
 
 **Commit your feature changes BEFORE bumping.** `bump-version.sh` auto-commits and pushes the version bump on its own — if you run it with pending changes in the plugin dir, the published bump commit won't contain them. The script refuses to run if `plugins/<plugin>/` has uncommitted changes.
 
@@ -82,9 +83,10 @@ When creating a new plugin (a new directory under `plugins/`), register it in **
 
 1. **`plugins/<name>/.claude-plugin/plugin.json`** — Claude Code plugin manifest.
 2. **`plugins/<name>/.codex-plugin/plugin.json`** — Codex plugin manifest. Same `version` as the Claude manifest. Must declare `"skills": "./skills/"` explicitly (Codex does not auto-discover) and an `interface` block for marketplace presentation.
-3. **`.claude-plugin/marketplace.json`** — so Claude Code and Codex marketplace users can install the plugin. Add an entry with `name`, `"source": "./plugins/<name>"` (string form — the object form `{ source: "local", ... }` is NOT supported by Claude Code), `description`, `category`, and `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }`.
+3. **`plugins/<name>/package.json`** — Pi package metadata. Must include `keywords: ["pi-package"]` and a `pi` manifest that points at `./skills/` plus any Pi-native package resources.
+4. **`.claude-plugin/marketplace.json`** — so Claude Code and Codex marketplace users can install the plugin. Add an entry with `name`, `"source": "./plugins/<name>"` (string form — the object form `{ source: "local", ... }` is NOT supported by Claude Code), `description`, `category`, and `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }`.
 
-Verify all three files reference the new plugin before considering the plugin shippable.
+Verify all channel metadata references the new plugin before considering the plugin shippable.
 
 <!-- agile-workflow:start -->
 ## Agile-Workflow Substrate
