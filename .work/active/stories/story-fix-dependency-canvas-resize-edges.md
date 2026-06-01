@@ -1,7 +1,7 @@
 ---
 id: story-fix-dependency-canvas-resize-edges
 kind: story
-stage: review
+stage: done
 tags: [bug, tooling]
 parent: null
 depends_on: []
@@ -31,3 +31,10 @@ Measure rendered dependency node boxes in canvas coordinates, redraw SVG paths f
 - Added regression coverage in `integration.rs` for measured bounds, resize observation, and removal of the old `renderEdges(model, layout)` one-shot path draw.
 - Verification passed with `cargo test` in `plugins/agile-workflow/work-view`.
 - Rebuilt the release binary, restarted `../silas` on `http://127.0.0.1:8181/`, and verified with Krometrail screenshot `1780293701724.jpg`; screen-space edge mismatch stayed `0` before and after a forced canvas resize from `2059px` to `2299px`.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story includes regression coverage, green `cargo test` verification,
+  rebuilt work-view binary evidence, and browser verification of edge resync
+  before and after resize.
