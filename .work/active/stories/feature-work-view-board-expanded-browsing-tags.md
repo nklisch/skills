@@ -1,7 +1,7 @@
 ---
 id: feature-work-view-board-expanded-browsing-tags
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: feature-work-view-board-expanded-browsing
 depends_on: [feature-work-view-board-expanded-browsing-epic-sidebar]
@@ -46,3 +46,9 @@ can be scanned and selected without losing the compact default layout.
 
 - `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
 - `cargo test board_embedded_assets_return_expected_content_types --test integration`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The expandable Tag sidebar behavior is covered by Node behavior tests
+  plus Rust asset-contract checks.
