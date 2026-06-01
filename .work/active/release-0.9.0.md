@@ -103,3 +103,13 @@ items, not pass/fail. Findings recorded below as gates run.
   scaffolding removal, consolidated into a single surgical cleanup story:
   - `gate-cruft-dead-board-view-scaffolding` (high, implementing) — drop
     `placeholderView`, dead `registeredViews()` export, and orphaned `.view-preview` CSS
+- **gate-docs** (2026-05-31) — 7 findings (6 high, 1 medium). Board API JSON
+  shape, server flags/port/loopback guard, `--version` lockstep+parity, shim
+  behavior, and `.agents/rules/` injection contract all verified ACCURATE
+  (several items had already rolled docs forward). Remaining drift in 3 items:
+  - `gate-docs-spec-kanban-column-model` (high, implementing) — SPEC stage→column
+    mapping describes a fixed 5-column collapse; board uses raw-stage columns + parent swimlanes
+  - `gate-docs-pattern-line-refs` (high, implementing) — 5 pattern skills cite
+    drifted `file:line` examples (board work shifted positions in integration.rs/actionable.rs)
+  - `gate-docs-spec-plugin-layout-work-view` (medium, drafting) — SPEC source-layout
+    tree omits the `work-view/` crate tree
