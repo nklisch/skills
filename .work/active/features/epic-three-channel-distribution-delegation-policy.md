@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-delegation-policy
 kind: feature
-stage: review
+stage: done
 tags: [skill, plugin]
 parent: epic-three-channel-distribution
 depends_on: [epic-three-channel-distribution-package-metadata]
@@ -209,3 +209,13 @@ evaluation when peeragent is not providing a different model class.
 
 - `rg -n "Pi path|Pi-native|pi-subagents|scout|context-builder|reviewer|oracle" plugins/agile-workflow/skills`
 - `git diff --check -- plugins/agile-workflow/skills/principles/SKILL.md plugins/agile-workflow/skills/autopilot/SKILL.md plugins/agile-workflow/skills/review/references/deep-review.md plugins/agile-workflow/skills/implement-orchestrator/SKILL.md plugins/agile-workflow/skills/implement/SKILL.md`
+
+## Review
+
+- Verdict: Approve - cross-model feature review found no blockers or important
+  issues.
+- Reviewer: Claude Sonnet via peeragent (`--effort high`).
+- Notes: The review confirmed Pi subagents are framed as same-harness
+  delegation rather than cross-model evidence, existing Claude Code and Codex
+  behavior is preserved, all three child stories are `done`, and the referenced
+  Pi research doc exists.
