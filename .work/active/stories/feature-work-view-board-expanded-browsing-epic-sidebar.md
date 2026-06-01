@@ -1,7 +1,7 @@
 ---
 id: feature-work-view-board-expanded-browsing-epic-sidebar
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: feature-work-view-board-expanded-browsing
 depends_on: []
@@ -49,3 +49,9 @@ filter continues to mean exact direct parent.
 
 - `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
 - `cargo test board_embedded_assets_return_expected_content_types --test integration`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The ancestor-aware Epic filter and sidebar group are covered by Node
+  behavior tests plus Rust asset-contract checks.
