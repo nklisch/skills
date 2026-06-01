@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# bump-version.test.sh — unit tests for the work-view lockstep projection in
-# scripts/bump-version.sh (repo-root script).
+# bump-version.test.sh — unit tests for channel-metadata lockstep and the
+# work-view projection in scripts/bump-version.sh (repo-root script).
 #
 # The load-bearing mechanism under test is the projection block
 # (scripts/bump-version.sh, the `if [[ "$plugin" == "agile-workflow" ]]` block):
@@ -139,6 +139,8 @@ new_scratch_repo() {
     > "${repo}/plugins/agile-workflow/.claude-plugin/plugin.json"
   printf '{\n  "name": "agile-workflow",\n  "version": "%s"\n}\n' "$aw_version" \
     > "${repo}/plugins/agile-workflow/.codex-plugin/plugin.json"
+  printf '{\n  "name": "@nklisch/pi-agile-workflow",\n  "version": "%s",\n  "keywords": ["pi-package"],\n  "pi": { "skills": ["./skills"] }\n}\n' "$aw_version" \
+    > "${repo}/plugins/agile-workflow/package.json"
 
   # Rust stamp — start with a placeholder, no trailing newline (mirrors prod).
   printf '%s' "$aw_version" \
@@ -158,6 +160,8 @@ EOF
       > "${repo}/plugins/${extra_plugin}/.claude-plugin/plugin.json"
     printf '{\n  "name": "%s",\n  "version": "%s"\n}\n' "$extra_plugin" "$aw_version" \
       > "${repo}/plugins/${extra_plugin}/.codex-plugin/plugin.json"
+    printf '{\n  "name": "@nklisch/pi-%s",\n  "version": "%s",\n  "keywords": ["pi-package"],\n  "pi": { "skills": ["./skills"] }\n}\n' "$extra_plugin" "$aw_version" \
+      > "${repo}/plugins/${extra_plugin}/package.json"
   fi
 
   # Initialize a clean git repo (real git; commit happens via real git here,
@@ -223,13 +227,20 @@ assert_true "work-view.sh WORK_VIEW_VERSION literal == new" \
 assert_false "old WORK_VIEW_VERSION literal is gone" \
   "grep -q '^WORK_VIEW_VERSION=\"1.2.3\"\$' '${REPO1}/${WV_REL}'"
 
-# plugin.json manifests advanced too (sanity that this was a real bump).
+# plugin.json manifests and package metadata advanced too (sanity that this was
+# a real bump).
 assert_eq "claude plugin.json bumped" "1.2.4" \
   "$(jq -r '.version' "${REPO1}/plugins/agile-workflow/.claude-plugin/plugin.json")"
+assert_eq "codex plugin.json bumped" "1.2.4" \
+  "$(jq -r '.version' "${REPO1}/plugins/agile-workflow/.codex-plugin/plugin.json")"
+assert_eq "package.json bumped" "1.2.4" \
+  "$(jq -r '.version' "${REPO1}/plugins/agile-workflow/package.json")"
 
 # Both work-view files are git-staged.
 assert_true ".work-view-version is staged" "is_staged '$REPO1' '$VER_REL'"
 assert_true "work-view.sh is staged" "is_staged '$REPO1' '$WV_REL'"
+assert_true "agile-workflow package.json is staged" \
+  "is_staged '$REPO1' 'plugins/agile-workflow/package.json'"
 
 rm -rf "$REPO1"
 
@@ -247,12 +258,16 @@ run_bump "$REPO2" ux-ui-design patch
 assert_eq "non-aw bump exits 0" "0" "$BUMP_RC"
 assert_eq "non-aw plugin.json bumped" "1.2.4" \
   "$(jq -r '.version' "${REPO2}/plugins/ux-ui-design/.claude-plugin/plugin.json")"
+assert_eq "non-aw package.json bumped" "1.2.4" \
+  "$(jq -r '.version' "${REPO2}/plugins/ux-ui-design/package.json")"
 assert_eq ".work-view-version unchanged after non-aw bump" "$VER_BEFORE" \
   "$(cat "${REPO2}/${VER_REL}")"
 assert_eq "work-view.sh unchanged after non-aw bump" "$WV_BEFORE" \
   "$(cat "${REPO2}/${WV_REL}")"
 assert_false ".work-view-version NOT staged after non-aw bump" "is_staged '$REPO2' '$VER_REL'"
 assert_false "work-view.sh NOT staged after non-aw bump" "is_staged '$REPO2' '$WV_REL'"
+assert_true "non-aw package.json is staged" \
+  "is_staged '$REPO2' 'plugins/ux-ui-design/package.json'"
 
 rm -rf "$REPO2"
 
@@ -306,6 +321,34 @@ assert_eq "major .work-view-version == 2.0.0" "2.0.0" "$(cat "${REPO5}/${VER_REL
 assert_true "major work-view.sh literal == 2.0.0" \
   "grep -q '^WORK_VIEW_VERSION=\"2.0.0\"\$' '${REPO5}/${WV_REL}'"
 rm -rf "$REPO5"
+
+# ---------------------------------------------------------------------------
+# Test group 5: package.json mismatch fails before projection
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 5: package.json mismatch fails before projection ==="
+
+REPO6="$(new_scratch_repo "1.2.3")"
+jq '.version = "9.9.9"' "${REPO6}/plugins/agile-workflow/package.json" \
+  > "${REPO6}/plugins/agile-workflow/package.json.tmp"
+mv "${REPO6}/plugins/agile-workflow/package.json.tmp" \
+  "${REPO6}/plugins/agile-workflow/package.json"
+( cd "$REPO6" && "$REAL_GIT" add -A && "$REAL_GIT" commit -q -m "mismatch package version" >/dev/null 2>&1 )
+
+run_bump "$REPO6" agile-workflow patch
+
+assert_eq "package-mismatch bump exits 1" "1" "$BUMP_RC"
+MISMATCH_ERR="$(cat "$BUMP_ERR" 2>/dev/null || true)"
+assert_true "package mismatch reports channel metadata mismatch" \
+  "printf '%s' \"\$MISMATCH_ERR\" | grep -q 'version mismatch between channel metadata'"
+assert_eq "claude manifest remains old after package mismatch" "1.2.3" \
+  "$(jq -r '.version' "${REPO6}/plugins/agile-workflow/.claude-plugin/plugin.json")"
+assert_eq "package manifest remains mismatched after failed bump" "9.9.9" \
+  "$(jq -r '.version' "${REPO6}/plugins/agile-workflow/package.json")"
+assert_eq ".work-view-version unchanged after package mismatch" "1.2.3" \
+  "$(cat "${REPO6}/${VER_REL}")"
+
+rm -rf "$REPO6"
 
 # ---------------------------------------------------------------------------
 # Summary

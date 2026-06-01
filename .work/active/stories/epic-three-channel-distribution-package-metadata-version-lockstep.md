@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-package-metadata-version-lockstep
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-three-channel-distribution-package-metadata
 depends_on: [epic-three-channel-distribution-package-metadata-pi-manifests]
@@ -22,12 +22,29 @@ not have Pi package metadata.
 
 ## Acceptance criteria
 
-- [ ] `scripts/bump-version.sh` refuses to bump a plugin when its existing
+- [x] `scripts/bump-version.sh` refuses to bump a plugin when its existing
   `package.json` version differs from `.claude-plugin/plugin.json`.
-- [ ] `scripts/bump-version.sh` updates and stages `plugins/<plugin>/package.json`
+- [x] `scripts/bump-version.sh` updates and stages `plugins/<plugin>/package.json`
   when it exists.
-- [ ] Existing agile-workflow work-view version projection behavior remains
+- [x] Existing agile-workflow work-view version projection behavior remains
   unchanged.
-- [ ] `plugins/agile-workflow/scripts/tests/bump-version.test.sh` covers package
+- [x] `plugins/agile-workflow/scripts/tests/bump-version.test.sh` covers package
   version bumping for agile-workflow and a non-agile-workflow plugin.
-- [ ] The bump-version shell test passes locally.
+- [x] The bump-version shell test passes locally.
+
+## Implementation notes
+
+- Extended `scripts/bump-version.sh` to treat `plugins/<plugin>/package.json`
+  as lockstep channel metadata when it exists.
+- Added a pre-bump package version mismatch guard before any metadata is
+  modified.
+- Reused the existing `bump_json` projection so package metadata is updated and
+  staged with the Claude/Codex manifests.
+- Expanded the bump-version shell test fixtures and assertions to cover package
+  version updates for agile-workflow and a non-agile-workflow plugin, plus a
+  package mismatch failure case.
+
+## Verification
+
+- `bash plugins/agile-workflow/scripts/tests/bump-version.test.sh` passed:
+  35 assertions, 0 failures.

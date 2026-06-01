@@ -4,9 +4,9 @@ set -euo pipefail
 usage() {
   echo "Usage: $0 <plugin> <major|minor|patch>"
   echo ""
-  echo "Bump the semantic version of a plugin's plugin.json manifests."
-  echo "Each plugin has parallel Claude and Codex manifests; both are bumped"
-  echo "in lockstep so the marketplaces report the same version."
+  echo "Bump the semantic version of a plugin's channel metadata."
+  echo "Each plugin has parallel Claude/Codex manifests and may have Pi"
+  echo "package metadata; all present metadata is bumped in lockstep."
   echo ""
   echo "Plugins:"
   for dir in plugins/*/; do
@@ -26,6 +26,7 @@ plugin="$1"
 bump="$2"
 claude_json="plugins/$plugin/.claude-plugin/plugin.json"
 codex_json="plugins/$plugin/.codex-plugin/plugin.json"
+package_json="plugins/$plugin/package.json"
 
 if [[ ! -f "$claude_json" ]]; then
   echo "Error: $claude_json not found"
@@ -73,6 +74,20 @@ if [[ -f "$codex_json" ]]; then
   fi
 fi
 
+if [[ -f "$package_json" ]]; then
+  package_current=$(jq -r '.version' "$package_json")
+  if [[ "$current" != "$package_current" ]]; then
+    {
+      echo "Error: version mismatch between channel metadata for $plugin."
+      echo "  $claude_json:  $current"
+      echo "  $package_json: $package_current"
+      echo ""
+      echo "Reconcile the metadata before bumping."
+    } >&2
+    exit 1
+  fi
+fi
+
 IFS='.' read -r major minor patch <<< "$current"
 
 case "$bump" in
@@ -91,6 +106,7 @@ bump_json() {
 
 bump_json "$claude_json"
 [[ -f "$codex_json" ]] && bump_json "$codex_json"
+[[ -f "$package_json" ]] && bump_json "$package_json"
 
 # Keep work-view's self-reported version in lockstep with the plugin version.
 # Only the agile-workflow plugin ships work-view (a Rust binary + a bash
