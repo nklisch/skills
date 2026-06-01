@@ -1002,7 +1002,7 @@ fn dependency_canvas_has_zoom_and_hand_pan_tools() {
             && body.contains("{ id: \"inspect\", label: \"Inspect\", icon: \"inspect\"")
             && body.contains("{ id: \"pan\", label: \"Hand\", icon: \"pan\"")
             && body.contains("Inspect items; drag nodes to rearrange")
-            && body.contains("Pan empty canvas; drag nodes to rearrange")
+            && body.contains("Pan empty canvas; click nodes for details; drag nodes to rearrange")
             && body.contains("function svgIcon")
             && body.contains("button.append(svgIcon(tool.icon), textElement(\"span\", \"dependency-tool-label\", tool.label))")
             && body.contains("button.setAttribute(\"aria-label\", tool.title)")
@@ -1024,7 +1024,8 @@ fn dependency_canvas_has_zoom_and_hand_pan_tools() {
             && body.contains("viewport.dataset.zoom = String(activeGraphZoom)")
             && body.contains("surface.style.width")
             && body.contains("canvas.style.transform")
-            && body.contains("activeGraphTool === \"inspect\"")
+            && !body.contains("activeGraphTool === \"inspect\"")
+            && body.contains("ctx.openDetail(node.id);")
             && !body.contains("label: \"Select\""),
         "dependency canvas should expose icon-backed inspect/pan tools plus zoom controls over a scaled surface; body: {body}"
     );

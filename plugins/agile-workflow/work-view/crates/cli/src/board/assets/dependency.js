@@ -28,7 +28,7 @@ const GRAPH_LAYOUTS = [
 ];
 const GRAPH_TOOLS = [
   { id: "inspect", label: "Inspect", icon: "inspect", title: "Inspect items; drag nodes to rearrange" },
-  { id: "pan", label: "Hand", icon: "pan", title: "Pan empty canvas; drag nodes to rearrange" },
+  { id: "pan", label: "Hand", icon: "pan", title: "Pan empty canvas; click nodes for details; drag nodes to rearrange" },
 ];
 const STAGE_LAYOUT_ORDER = ["drafting", "implementing", "review", "done", "released", "backlog", "unstaged", "external"];
 const KIND_LAYOUT_ORDER = ["epic", "feature", "story", "release", "backlog", "idea", "item", "external"];
@@ -249,9 +249,7 @@ function renderNode(node, model, ctx) {
   if (!node.external) {
     nodeElement.type = "button";
     nodeElement.addEventListener("click", () => {
-      if (activeGraphTool === "inspect") {
-        ctx.openDetail(node.id);
-      }
+      ctx.openDetail(node.id);
     });
   }
 
@@ -294,9 +292,7 @@ function renderWebNode(node, model, ctx) {
   if (!node.external) {
     nodeElement.type = "button";
     nodeElement.addEventListener("click", () => {
-      if (activeGraphTool === "inspect") {
-        ctx.openDetail(node.id);
-      }
+      ctx.openDetail(node.id);
     });
   }
 
