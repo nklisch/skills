@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-pi-agile-extension
 kind: feature
-stage: implementing
+stage: review
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution
 depends_on: [epic-three-channel-distribution-package-metadata]
@@ -91,9 +91,9 @@ root by walking upward from `ctx.cwd`, validate that `.work/CONVENTIONS.md` and
 through `pi.exec`.
 
 **Acceptance Criteria**:
-- [ ] `package.json` Pi manifest includes both `./skills` and `./extensions`.
-- [ ] The extension registers `/aw` with help text and a no-substrate fallback.
-- [ ] Work-view execution is centralized and uses structured args, not shell
+- [x] `package.json` Pi manifest includes both `./skills` and `./extensions`.
+- [x] The extension registers `/aw` with help text and a no-substrate fallback.
+- [x] Work-view execution is centralized and uses structured args, not shell
   string concatenation.
 
 ### Unit 2: Queue snapshot and work-view commands
@@ -111,10 +111,10 @@ by composing `work-view --ready`, `work-view --stage review`, and `work-view
 plain text when it is not.
 
 **Acceptance Criteria**:
-- [ ] Queue subcommands wrap the existing `.work/bin/work-view` filters.
-- [ ] `status` produces a compact ready/review/blocked snapshot.
-- [ ] Invalid subcommands and missing required ids return actionable help.
-- [ ] Output is bounded/truncated so a large substrate cannot flood the session.
+- [x] Queue subcommands wrap the existing `.work/bin/work-view` filters.
+- [x] `status` produces a compact ready/review/blocked snapshot.
+- [x] Invalid subcommands and missing required ids return actionable help.
+- [x] Output is bounded/truncated so a large substrate cannot flood the session.
 
 ### Unit 3: Workflow handoff shortcuts
 
@@ -131,12 +131,12 @@ via Pi follow-up messages where the API supports it, with notification fallback
 if direct follow-up injection is unavailable.
 
 **Acceptance Criteria**:
-- [ ] Board and autopilot shortcuts do not reimplement board server or queue
+- [x] Board and autopilot shortcuts do not reimplement board server or queue
   drain logic.
-- [ ] Follow-up messages use the existing agile-workflow skill invocations.
-- [ ] Help output lists queue commands and workflow shortcuts in one compact
+- [x] Follow-up messages use the existing agile-workflow skill invocations.
+- [x] Help output lists queue commands and workflow shortcuts in one compact
   place.
-- [ ] The command remains useful without `pi-subagents`; subagent policy lives
+- [x] The command remains useful without `pi-subagents`; subagent policy lives
   in the shared skills, not this extension.
 
 ## Implementation Order
@@ -163,3 +163,22 @@ if direct follow-up injection is unavailable.
   in the wrong lifecycle. Route to `$agile-workflow:board` instead.
 - A command wrapper can accidentally become a shell-injection surface. Build
   argument arrays and validate ids before passing them to `pi.exec`.
+
+## Implementation Summary
+
+- `epic-three-channel-distribution-pi-agile-extension-manifest-shell`: done.
+  Added `pi.extensions` to the package manifest and created the `/aw` extension
+  shell with substrate discovery and centralized `work-view` execution.
+- `epic-three-channel-distribution-pi-agile-extension-queue-commands`: done.
+  Added safe `/aw status`, `ready`, `blocked`, `review`, `parent`, and
+  `blocking` wrappers around existing `work-view` filters.
+- `epic-three-channel-distribution-pi-agile-extension-workflow-shortcuts`: done.
+  Added `/aw board`, `/aw autopilot`, and `/aw scope` handoffs to the shared
+  agile-workflow skills instead of reimplementing those workflows in the
+  extension.
+
+## Verification
+
+- `python3 -m json.tool plugins/agile-workflow/package.json`
+- `bun build plugins/agile-workflow/extensions/agile-workflow.ts --outfile /tmp/agile-workflow-pi-extension.js`
+- `rg -n "registerCommand\\(\"aw\"|pi.exec|sendUserMessage|setWidget|setStatus" plugins/agile-workflow/extensions/agile-workflow.ts`
