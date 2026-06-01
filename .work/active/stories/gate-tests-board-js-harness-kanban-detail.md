@@ -1,7 +1,7 @@
 ---
 id: gate-tests-board-js-harness-kanban-detail
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: gate-tests-board-js-harness
 depends_on: [gate-tests-board-js-harness-runner]
@@ -40,3 +40,9 @@ boundaries, and selected item refresh survival.
 ## Verification
 
 - `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The kanban lane/detail/store refresh behavioral tests are present and
+  the board JS suite passes.
