@@ -1,10 +1,14 @@
 ---
 id: gate-tests-hook-concurrency-interleave
 kind: story
+stage: implementing
 tags: [testing]
+parent: null
+depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-05-31
+updated: 2026-06-01
 ---
 
 # Truly-concurrent interleave test for hook state-file (epoch-bump not clobbered)
@@ -39,3 +43,9 @@ end-to-end interleave.
 
 ## Test location (suggested)
 `plugins/agile-workflow/hooks/scripts/test_prompt_context.py`
+
+## Scope record
+
+- Promoted from backlog during batch scope for found release/test-gate work.
+- Size: small story; implement directly with a deterministic interleave test.
+- Dependencies: none.
