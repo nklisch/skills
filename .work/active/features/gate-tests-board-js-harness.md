@@ -1,7 +1,7 @@
 ---
 id: gate-tests-board-js-harness
 kind: feature
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -231,3 +231,19 @@ test("detail presentation boundaries and refresh survival are deterministic", ()
 - Exporting helper functions for tests can leak module internals. Prefer pure
   helper exports that are already stable board contracts, and keep DOM view
   modules self-registered through the existing `registerView` path.
+
+## Implementation summary
+
+- `gate-tests-board-js-harness-runner`: implemented the Node no-build module
+  loader, minimal DOM shim, smoke test, and CI workflow step.
+- `gate-tests-board-js-harness-markdown-filter`: implemented behavioral
+  markdown safety and filter composition tests.
+- `gate-tests-board-js-harness-dependency-table`: implemented dependency model
+  and table comparator behavior tests; exported the existing pure
+  `sortedItems` helper for direct testing.
+- `gate-tests-board-js-harness-kanban-detail`: implemented kanban lane/detail
+  presentation/store refresh behavior tests.
+
+## Verification
+
+- `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
