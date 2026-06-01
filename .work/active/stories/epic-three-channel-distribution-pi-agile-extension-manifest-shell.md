@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-pi-agile-extension-manifest-shell
 kind: story
-stage: implementing
+stage: review
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution-pi-agile-extension
 depends_on: []
@@ -21,18 +21,33 @@ extension file and the safe helper layer that later stories extend.
 
 ## Acceptance Criteria
 
-- [ ] `plugins/agile-workflow/package.json` declares `pi.extensions` alongside
+- [x] `plugins/agile-workflow/package.json` declares `pi.extensions` alongside
   the existing `pi.skills`.
-- [ ] `plugins/agile-workflow/extensions/agile-workflow.ts` registers an `/aw`
+- [x] `plugins/agile-workflow/extensions/agile-workflow.ts` registers an `/aw`
   command with concise help output.
-- [ ] The extension detects the nearest `.work/CONVENTIONS.md` substrate from
+- [x] The extension detects the nearest `.work/CONVENTIONS.md` substrate from
   `ctx.cwd` by walking upward.
-- [ ] Missing substrate or missing `.work/bin/work-view` returns an actionable
+- [x] Missing substrate or missing `.work/bin/work-view` returns an actionable
   message that points to `$agile-workflow:convert`.
-- [ ] The helper for `work-view` execution uses `pi.exec(command, args, options)`
+- [x] The helper for `work-view` execution uses `pi.exec(command, args, options)`
   with an argument array, not shell string concatenation.
 
 ## Notes
 
 - Keep the file dependency-free unless a verified Pi API requires otherwise.
 - Do not implement queue subcommands here beyond enough structure for `/aw help`.
+
+## Implementation Notes
+
+- Added `./extensions` to the Pi package manifest.
+- Created `plugins/agile-workflow/extensions/agile-workflow.ts` with a single
+  `/aw` command, substrate discovery from `ctx.cwd`, no-substrate and no-binary
+  fallbacks, and a centralized `runWorkView()` helper using `pi.exec()` with an
+  argument array.
+- Kept the first shell dependency-free; no Pi subagent package is required.
+
+## Verification
+
+- `python3 -m json.tool plugins/agile-workflow/package.json`
+- `rg -n "registerCommand\\(\"aw\"|pi.exec|shell|CONVENTIONS.md|work-view" plugins/agile-workflow/extensions/agile-workflow.ts plugins/agile-workflow/package.json`
+- `git diff --check -- plugins/agile-workflow/package.json plugins/agile-workflow/extensions/agile-workflow.ts .work/active/stories/epic-three-channel-distribution-pi-agile-extension-manifest-shell.md`

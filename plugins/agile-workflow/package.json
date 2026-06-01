@@ -17,6 +17,9 @@
     "agile-workflow"
   ],
   "pi": {
+    "extensions": [
+      "./extensions"
+    ],
     "skills": [
       "./skills"
     ]
