@@ -1,14 +1,14 @@
 ---
 id: epic-three-channel-distribution-delegation-policy-core
 kind: story
-stage: review
+stage: done
 tags: [skill, plugin]
 parent: epic-three-channel-distribution-delegation-policy
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-01
-updated: 2026-05-31
+updated: 2026-06-01
 ---
 
 # Add Pi Delegation Core Policy
@@ -46,3 +46,10 @@ execution when neither delegation adapter is available.
 
 - `rg -n "Pi|pi-subagents|reviewer/oracle" plugins/agile-workflow/skills/principles/SKILL.md plugins/agile-workflow/skills/autopilot/SKILL.md plugins/agile-workflow/skills/review/references/deep-review.md`
 - `git diff --check -- plugins/agile-workflow/skills/principles/SKILL.md plugins/agile-workflow/skills/autopilot/SKILL.md plugins/agile-workflow/skills/review/references/deep-review.md .work/active/stories/epic-three-channel-distribution-delegation-policy-core.md`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The policy additions preserve the existing Claude Code and Codex paths
+  by making Pi-native subagents conditional on a Pi host and keeping peeragent as
+  the different-model/cross-harness route.
