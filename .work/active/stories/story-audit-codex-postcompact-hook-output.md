@@ -1,7 +1,7 @@
 ---
 id: story-audit-codex-postcompact-hook-output
 kind: story
-stage: implementing
+stage: review
 tags: [bug, tooling]
 parent: null
 depends_on: []
@@ -27,3 +27,22 @@ gap if the archived fix is incomplete or has drifted.
 - Size: small audit story; implement directly by checking the existing fix,
   running the relevant regression tests, and making only necessary drift fixes.
 - Dependencies: none.
+
+## Implementation notes
+
+- Files changed: none; the archived fix remains current.
+- Tests added: none.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
+
+## Audit result
+
+- Confirmed archived `story-fix-codex-postcompact-hook-output` already fixed
+  the reported Codex `PostCompact` invalid JSON output by suppressing
+  unsupported context output in Codex hook environments.
+- Confirmed `prompt-context.py` still returns before `output_context` for Codex
+  `PostCompact` while retaining the `SessionStart source: compact` fallback.
+
+## Verification
+
+- `python3 -m unittest test_prompt_context.RulesLoaderTest.test_main_codex_postcompact_suppresses_unsupported_context_output test_prompt_context.RulesLoaderTest.test_main_codex_sessionstart_compact_emits_rules -v`
