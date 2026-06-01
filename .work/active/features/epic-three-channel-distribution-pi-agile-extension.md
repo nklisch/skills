@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-pi-agile-extension
 kind: feature
-stage: review
+stage: done
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution
 depends_on: [epic-three-channel-distribution-package-metadata]
@@ -182,3 +182,18 @@ if direct follow-up injection is unavailable.
 - `python3 -m json.tool plugins/agile-workflow/package.json`
 - `bun build plugins/agile-workflow/extensions/agile-workflow.ts --outfile /tmp/agile-workflow-pi-extension.js`
 - `rg -n "registerCommand\\(\"aw\"|pi.exec|sendUserMessage|setWidget|setStatus" plugins/agile-workflow/extensions/agile-workflow.ts`
+
+## Review
+
+- Verdict: Approve - cross-model feature review found no blockers.
+- Reviewer: Claude Sonnet via peeragent (`--effort high`).
+- Accepted findings:
+  - Fixed the advisory `countRows` fragility by filtering table header and
+    separator rows instead of assuming a fixed two-line header
+    (`941d346 review-fix: robust Pi queue row counts`).
+  - Deferred the plugin version bump until the remaining docs/install feature
+    lands, so the final bump covers the complete agile-workflow plugin change
+    set instead of becoming stale immediately.
+- Notes: The review confirmed command execution uses structured argument arrays,
+  package metadata is valid, child story stages are consistent, and the extension
+  wraps `work-view` plus shared skills rather than replacing them.
