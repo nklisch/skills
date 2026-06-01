@@ -111,7 +111,7 @@ function defaultCompare(left, right, snapshot) {
     || compareRows(left, right, "id", snapshot);
 }
 
-function sortedItems(items, snapshot) {
+export function sortedItems(items, snapshot) {
   const indexed = items.map((item, index) => ({ item, index }));
   indexed.sort((left, right) => {
     if (!sortState) {
