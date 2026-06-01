@@ -710,6 +710,33 @@ fn board_embedded_assets_return_expected_content_types() {
             && !filters_body.contains("is_terminal"),
         "auto-hide should key off tier, not terminal stage; body: {filters_body}"
     );
+    assert!(
+        filters_body.contains("new Set([\"kinds\", \"stages\", \"parents\", \"tags\", \"epics\"]")
+            && filters_body.contains("epics: new Set()")
+            && filters_body.contains("export function epicIdForItem")
+            && filters_body.contains("function epicsAllow")
+            && filters_body.contains("matchesFilters(item, filters, snapshot = null)")
+            && filters_body.contains("filterGroup(\"Epic\", epicOptions")
+            && filters_body.contains("filterGroup(\"Tags\", tagOptions, { expandKey: \"tags\" })"),
+        "filters JS should ship ancestor-aware epic filtering and expandable sidebar groups; body: {filters_body}"
+    );
+    let filter_header_rule = css_rule_body(board_css_body, ".filter-group__header");
+    let expand_toggle_rule = css_rule_body(board_css_body, ".filter-expand-toggle");
+    let expanded_filter_rule = css_rule_body(board_css_body, ".filter-options[data-expanded=\"true\"]");
+    assert!(
+        filter_header_rule.contains("justify-content: space-between"),
+        "filter group headers should align titles and expansion controls; rule: {filter_header_rule}"
+    );
+    assert!(
+        expand_toggle_rule.contains("min-height: 22px") && expand_toggle_rule.contains("cursor: pointer"),
+        "filter expansion control should be compact and interactive; rule: {expand_toggle_rule}"
+    );
+    assert!(
+        expanded_filter_rule.contains("grid-template-columns")
+            && expanded_filter_rule.contains("max-height: min(46vh, 360px)")
+            && expanded_filter_rule.contains("overflow-y: auto"),
+        "expanded filter groups should stay dense and internally scrollable; rule: {expanded_filter_rule}"
+    );
     let markdown_js = board_response_once("/assets/markdown.js");
     let markdown_body = http_body(&markdown_js);
     assert!(

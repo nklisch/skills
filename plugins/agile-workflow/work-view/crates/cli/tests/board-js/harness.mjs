@@ -37,6 +37,16 @@ class ClassList {
     this.element.className = this.values().filter((name) => !remove.has(name)).join(" ");
   }
 
+  toggle(name, force = undefined) {
+    const shouldAdd = force === undefined ? !this.contains(name) : Boolean(force);
+    if (shouldAdd) {
+      this.add(name);
+    } else {
+      this.remove(name);
+    }
+    return shouldAdd;
+  }
+
   contains(name) {
     return this.values().includes(String(name));
   }
@@ -400,6 +410,10 @@ function walkElements(root, visit) {
 }
 
 function matchesSelector(element, selector) {
+  const attrMatch = selector.match(/^(.+)(\[.+\])$/);
+  if (attrMatch) {
+    return matchesSelector(element, attrMatch[1]) && matchesSelector(element, attrMatch[2]);
+  }
   const notTabIndex = selector.match(/^(.*):not\(\[tabindex=['"]?-1['"]?\]\)$/);
   if (notTabIndex) {
     return matchesSelector(element, notTabIndex[1]) && element.getAttribute("tabindex") !== "-1";

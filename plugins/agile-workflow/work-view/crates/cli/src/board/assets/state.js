@@ -210,7 +210,7 @@ export function createBoardStore({ storage = globalThis.localStorage, fetchJson,
   }
 
   function matches(item) {
-    return matchesFilters(item, state.filters);
+    return matchesFilters(item, state.filters, state.snapshot);
   }
 
   function visibleItems() {

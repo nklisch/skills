@@ -1,7 +1,9 @@
-const SET_FILTERS = new Set(["kinds", "stages", "parents", "tags"]);
+const SET_FILTERS = new Set(["kinds", "stages", "parents", "tags", "epics"]);
 const FILTER_KEYS = new Set(["search", ...SET_FILTERS, "autoHideReleased"]);
 const PREFERRED_KINDS = ["epic", "feature", "story", "release", "backlog"];
 const PREFERRED_STAGES = ["drafting", "implementing", "review", "done", "released"];
+const EXPAND_THRESHOLD = 12;
+const expandedGroups = new Set();
 
 export function createDefaultFilters() {
   return {
@@ -10,6 +12,7 @@ export function createDefaultFilters() {
     stages: new Set(),
     parents: new Set(),
     tags: new Set(),
+    epics: new Set(),
     autoHideReleased: true,
   };
 }
@@ -21,6 +24,7 @@ export function cloneFilters(filters) {
     stages: new Set(filters.stages),
     parents: new Set(filters.parents),
     tags: new Set(filters.tags),
+    epics: new Set(filters.epics),
     autoHideReleased: filters.autoHideReleased,
   };
 }
@@ -32,6 +36,7 @@ export function serializeFilters(filters) {
     stages: Array.from(filters.stages),
     parents: Array.from(filters.parents),
     tags: Array.from(filters.tags),
+    epics: Array.from(filters.epics),
     autoHideReleased: filters.autoHideReleased,
   };
 }
@@ -109,7 +114,40 @@ function tagsAllow(selectedTags, itemTags) {
   return true;
 }
 
-export function matchesFilters(item, filters) {
+function itemsByIdFrom(snapshot) {
+  const items = Array.isArray(snapshot) ? snapshot : Array.isArray(snapshot?.items) ? snapshot.items : [];
+  return new Map(items.filter((item) => item?.id).map((item) => [String(item.id), item]));
+}
+
+export function epicIdForItem(item, itemsById = new Map()) {
+  if (!item?.id) {
+    return "";
+  }
+  let current = item;
+  const seen = new Set();
+  while (current?.id && !seen.has(String(current.id))) {
+    const currentId = String(current.id);
+    seen.add(currentId);
+    if (current.kind === "epic") {
+      return currentId;
+    }
+    const parentId = filterValue(current.parent);
+    if (!parentId) {
+      return "";
+    }
+    current = itemsById.get(parentId);
+  }
+  return "";
+}
+
+function epicsAllow(selectedEpics, item, snapshot) {
+  if (selectedEpics.size === 0) {
+    return true;
+  }
+  return selectedEpics.has(epicIdForItem(item, itemsByIdFrom(snapshot)));
+}
+
+export function matchesFilters(item, filters, snapshot = null) {
   if (!item || typeof item !== "object") {
     return false;
   }
@@ -121,6 +159,7 @@ export function matchesFilters(item, filters) {
     && filterSetAllows(filters.stages, filterValue(item.stage))
     && filterSetAllows(filters.parents, filterValue(item.parent))
     && tagsAllow(filters.tags, item.tags)
+    && epicsAllow(filters.epics, item, snapshot)
     && (needle === "" || searchText(item).includes(needle));
 }
 
@@ -149,9 +188,15 @@ function optionSet(items, getter) {
 export function deriveFilterOptions(snapshot) {
   const items = Array.isArray(snapshot?.items) ? snapshot.items : [];
   const tags = new Set();
+  const epics = new Set();
+  const itemsById = itemsByIdFrom(items);
   for (const item of items) {
     for (const tag of Array.isArray(item?.tags) ? item.tags : []) {
       tags.add(String(tag));
+    }
+    const epicId = epicIdForItem(item, itemsById);
+    if (epicId) {
+      epics.add(epicId);
     }
   }
   return {
@@ -165,6 +210,7 @@ export function deriveFilterOptions(snapshot) {
     ),
     parents: orderedValues(optionSet(items, (item) => item.parent)),
     tags: orderedValues(tags),
+    epics: orderedValues(epics),
   };
 }
 
@@ -177,11 +223,45 @@ function textElement(tag, className, text) {
   return element;
 }
 
-function filterGroup(title, child) {
+function filterGroup(title, child, options = {}) {
   const group = document.createElement("div");
   group.className = "filter-group";
-  group.append(textElement("h2", "", title), child);
+  const header = document.createElement("div");
+  header.className = "filter-group__header";
+  header.append(textElement("h2", "", title));
+  if (options.expandKey) {
+    const button = document.createElement("button");
+    button.className = "filter-expand-toggle";
+    button.type = "button";
+    button.dataset.expandKey = options.expandKey;
+    button.setAttribute("data-expand-key", options.expandKey);
+    button.addEventListener("click", () => {
+      if (expandedGroups.has(options.expandKey)) {
+        expandedGroups.delete(options.expandKey);
+      } else {
+        expandedGroups.add(options.expandKey);
+      }
+      syncExpandableGroup(child, button, options.expandKey, Number(button.dataset.optionCount || "0"));
+    });
+    header.append(button);
+  }
+  group.append(header, child);
   return group;
+}
+
+function syncExpandableGroup(optionsElement, button, key, count) {
+  if (!button) {
+    return;
+  }
+  button.dataset.optionCount = String(count);
+  const expandable = count > EXPAND_THRESHOLD;
+  const expanded = expandable && expandedGroups.has(key);
+  button.hidden = !expandable;
+  button.textContent = expanded ? "Less" : `All ${count}`;
+  button.setAttribute("aria-expanded", String(expanded));
+  optionsElement.dataset.expanded = String(expanded);
+  optionsElement.classList.remove("filter-options--expanded", "filter-options--compact");
+  optionsElement.classList.add(expanded ? "filter-options--expanded" : "filter-options--compact");
 }
 
 function buttonFor(value, onClick) {
@@ -196,6 +276,7 @@ function buttonFor(value, onClick) {
 
 function syncChipGroup(group, key, values, selected, ctx) {
   const signature = values.join("\u0000");
+  group.dataset.filterKey = key;
   if (group.dataset.values !== signature) {
     group.dataset.values = signature;
     if (values.length === 0) {
@@ -244,6 +325,10 @@ export function renderFilterBar(root, ctx) {
   parentOptions.className = "filter-options filter-options--scroll";
   parentOptions.setAttribute("aria-label", "Parent filters");
 
+  const epicOptions = document.createElement("div");
+  epicOptions.className = "filter-options filter-options--scroll";
+  epicOptions.setAttribute("aria-label", "Epic filters");
+
   const tagOptions = document.createElement("div");
   tagOptions.className = "filter-options filter-options--scroll";
   tagOptions.setAttribute("aria-label", "Tag filters");
@@ -265,10 +350,13 @@ export function renderFilterBar(root, ctx) {
     filterGroup("Search", searchWrap),
     filterGroup("Kind", kindOptions),
     filterGroup("Stage", stageOptions),
+    filterGroup("Epic", epicOptions, { expandKey: "epics" }),
     filterGroup("Parent", parentOptions),
-    filterGroup("Tags", tagOptions),
+    filterGroup("Tags", tagOptions, { expandKey: "tags" }),
     autoHide,
   );
+  const epicExpand = root.querySelector("[data-expand-key='epics']");
+  const tagExpand = root.querySelector("[data-expand-key='tags']");
 
   let previousSnapshot = null;
   let previousOptions = deriveFilterOptions(null);
@@ -288,8 +376,11 @@ export function renderFilterBar(root, ctx) {
     const options = optionsFor(state.snapshot);
     syncChipGroup(kindOptions, "kinds", options.kinds, state.filters.kinds, ctx);
     syncChipGroup(stageOptions, "stages", options.stages, state.filters.stages, ctx);
+    syncChipGroup(epicOptions, "epics", options.epics, state.filters.epics, ctx);
     syncChipGroup(parentOptions, "parents", options.parents, state.filters.parents, ctx);
     syncChipGroup(tagOptions, "tags", options.tags, state.filters.tags, ctx);
+    syncExpandableGroup(epicOptions, epicExpand, "epics", options.epics.length);
+    syncExpandableGroup(tagOptions, tagExpand, "tags", options.tags.length);
     autoHide.setAttribute("aria-pressed", String(state.filters.autoHideReleased));
   }
 

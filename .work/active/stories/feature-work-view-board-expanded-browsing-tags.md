@@ -1,7 +1,7 @@
 ---
 id: feature-work-view-board-expanded-browsing-tags
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: feature-work-view-board-expanded-browsing
 depends_on: [feature-work-view-board-expanded-browsing-epic-sidebar]
@@ -25,3 +25,24 @@ can be scanned and selected without losing the compact default layout.
 - [ ] Compact and expanded tag layouts have stable CSS constraints and do not
   resize board content incoherently.
 - [ ] Asset-contract tests cover the shipped tag expansion controls and CSS.
+
+## Implementation notes
+
+- Files changed:
+  - `plugins/agile-workflow/work-view/crates/cli/src/board/assets/filters.js`
+  - `plugins/agile-workflow/work-view/crates/cli/src/board/assets/board.css`
+  - `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs`
+  - `plugins/agile-workflow/work-view/crates/cli/tests/board-js/expanded-browsing.test.mjs`
+  - `plugins/agile-workflow/work-view/crates/cli/tests/board-js/harness.mjs`
+- Tests added:
+  - `tag and epic groups expand in the sidebar without changing filter semantics`
+  - Rust asset-contract assertions for the expandable Tags group and dense
+    scrollable expanded CSS.
+- Discrepancies from design: implemented with the Epic sidebar story in one
+  shared filter/sidebar change because both stories own the same rendering path.
+- Adjacent issues parked: none.
+
+## Verification
+
+- `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
+- `cargo test board_embedded_assets_return_expected_content_types --test integration`

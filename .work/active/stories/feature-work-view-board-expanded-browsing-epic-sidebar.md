@@ -1,7 +1,7 @@
 ---
 id: feature-work-view-board-expanded-browsing-epic-sidebar
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: feature-work-view-board-expanded-browsing
 depends_on: []
@@ -28,3 +28,24 @@ filter continues to mean exact direct parent.
 - [ ] Rust asset-contract tests cover the shipped Epic filter contract and CSS
   sizing constraints.
 
+## Implementation notes
+
+- Files changed:
+  - `plugins/agile-workflow/work-view/crates/cli/src/board/assets/filters.js`
+  - `plugins/agile-workflow/work-view/crates/cli/src/board/assets/state.js`
+  - `plugins/agile-workflow/work-view/crates/cli/src/board/assets/board.css`
+  - `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs`
+  - `plugins/agile-workflow/work-view/crates/cli/tests/board-js/expanded-browsing.test.mjs`
+  - `plugins/agile-workflow/work-view/crates/cli/tests/board-js/harness.mjs`
+- Tests added:
+  - `epic filters match an epic and all descendants through parent chains`
+  - Rust asset-contract assertions for shipped Epic filter code and expandable
+    sidebar CSS.
+- Discrepancies from design: implemented with the tag expansion story in one
+  shared filter/sidebar change because both stories own the same rendering path.
+- Adjacent issues parked: none.
+
+## Verification
+
+- `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
+- `cargo test board_embedded_assets_return_expected_content_types --test integration`
