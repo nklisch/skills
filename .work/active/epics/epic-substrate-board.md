@@ -27,8 +27,8 @@ Scope is the rich exploration surface the current board lacks: an interactive
 blockers visible, a **table view** with sortable/filterable columns, **better
 rendering of item card bodies** (the markdown body, not just frontmatter),
 automatic **hiding of released/archived items** so active work stays in focus,
-and **filter knobs** (by tag, kind, parent, stage, release) that compose the way
-the CLI's flags do. It reads the same substrate the CLI reads — one source of
+and **filter knobs** (by tag, kind, parent, and stage) that compose with the
+interactive views. It reads the same substrate the CLI reads — one source of
 truth, two adapters.
 
 This epic depends on `epic-substrate-cli` because the shared query core and the
@@ -97,7 +97,7 @@ once the shell lands.
   retiring the legacy `work-board.sh`. Read-only. — depends on: `[]`
 - `epic-substrate-board-shell` — shared frontend foundation: app frame +
   view-switcher, the shared item-card, markdown body rendering, the composable
-  global filter bar (tag/kind/parent/stage/release), auto-hide of
+  global filter bar (tag/kind/parent/stage), auto-hide of
   released/archived, and the client-side filter-state store the views read.
   Home of the ux-ui "components" tier. — depends on: `[epic-substrate-board-host]`
 - `epic-substrate-board-kanban` — kanban view: columns by stage, shell cards in

@@ -1,6 +1,4 @@
-export const NULL_SENTINEL = "(none)";
-
-const SET_FILTERS = new Set(["kinds", "stages", "parents", "releases", "tags"]);
+const SET_FILTERS = new Set(["kinds", "stages", "parents", "tags"]);
 const FILTER_KEYS = new Set(["search", ...SET_FILTERS, "autoHideReleased"]);
 const PREFERRED_KINDS = ["epic", "feature", "story", "release", "backlog"];
 const PREFERRED_STAGES = ["drafting", "implementing", "review", "done", "released"];
@@ -11,7 +9,6 @@ export function createDefaultFilters() {
     kinds: new Set(),
     stages: new Set(),
     parents: new Set(),
-    releases: new Set(),
     tags: new Set(),
     autoHideReleased: true,
   };
@@ -23,7 +20,6 @@ export function cloneFilters(filters) {
     kinds: new Set(filters.kinds),
     stages: new Set(filters.stages),
     parents: new Set(filters.parents),
-    releases: new Set(filters.releases),
     tags: new Set(filters.tags),
     autoHideReleased: filters.autoHideReleased,
   };
@@ -35,7 +31,6 @@ export function serializeFilters(filters) {
     kinds: Array.from(filters.kinds),
     stages: Array.from(filters.stages),
     parents: Array.from(filters.parents),
-    releases: Array.from(filters.releases),
     tags: Array.from(filters.tags),
     autoHideReleased: filters.autoHideReleased,
   };
@@ -80,8 +75,8 @@ export function normalizeFilters(raw) {
   return filters;
 }
 
-function valueOrNone(value) {
-  return value == null || value === "" ? NULL_SENTINEL : String(value);
+function filterValue(value) {
+  return value == null || value === "" ? "" : String(value);
 }
 
 function searchText(item) {
@@ -90,7 +85,6 @@ function searchText(item) {
     item?.kind,
     item?.stage,
     item?.parent,
-    item?.release_binding,
     item?.gate_origin,
     item?.rel_path,
     item?.body,
@@ -123,10 +117,9 @@ export function matchesFilters(item, filters) {
     return false;
   }
   const needle = filters.search.trim().toLowerCase();
-  return filterSetAllows(filters.kinds, valueOrNone(item.kind))
-    && filterSetAllows(filters.stages, valueOrNone(item.stage))
-    && filterSetAllows(filters.parents, valueOrNone(item.parent))
-    && filterSetAllows(filters.releases, valueOrNone(item.release_binding))
+  return filterSetAllows(filters.kinds, filterValue(item.kind))
+    && filterSetAllows(filters.stages, filterValue(item.stage))
+    && filterSetAllows(filters.parents, filterValue(item.parent))
     && tagsAllow(filters.tags, item.tags)
     && (needle === "" || searchText(item).includes(needle));
 }
@@ -145,7 +138,10 @@ function orderedValues(values, preferred = []) {
 function optionSet(items, getter) {
   const values = new Set();
   for (const item of items) {
-    values.add(valueOrNone(getter(item)));
+    const value = filterValue(getter(item));
+    if (value !== "") {
+      values.add(value);
+    }
   }
   return values;
 }
@@ -168,7 +164,6 @@ export function deriveFilterOptions(snapshot) {
       PREFERRED_STAGES,
     ),
     parents: orderedValues(optionSet(items, (item) => item.parent)),
-    releases: orderedValues(optionSet(items, (item) => item.release_binding)),
     tags: orderedValues(tags),
   };
 }
@@ -249,10 +244,6 @@ export function renderFilterBar(root, ctx) {
   parentOptions.className = "filter-options filter-options--scroll";
   parentOptions.setAttribute("aria-label", "Parent filters");
 
-  const releaseOptions = document.createElement("div");
-  releaseOptions.className = "filter-options filter-options--scroll";
-  releaseOptions.setAttribute("aria-label", "Release filters");
-
   const tagOptions = document.createElement("div");
   tagOptions.className = "filter-options filter-options--scroll";
   tagOptions.setAttribute("aria-label", "Tag filters");
@@ -275,7 +266,6 @@ export function renderFilterBar(root, ctx) {
     filterGroup("Kind", kindOptions),
     filterGroup("Stage", stageOptions),
     filterGroup("Parent", parentOptions),
-    filterGroup("Release", releaseOptions),
     filterGroup("Tags", tagOptions),
     autoHide,
   );
@@ -299,7 +289,6 @@ export function renderFilterBar(root, ctx) {
     syncChipGroup(kindOptions, "kinds", options.kinds, state.filters.kinds, ctx);
     syncChipGroup(stageOptions, "stages", options.stages, state.filters.stages, ctx);
     syncChipGroup(parentOptions, "parents", options.parents, state.filters.parents, ctx);
-    syncChipGroup(releaseOptions, "releases", options.releases, state.filters.releases, ctx);
     syncChipGroup(tagOptions, "tags", options.tags, state.filters.tags, ctx);
     autoHide.setAttribute("aria-pressed", String(state.filters.autoHideReleased));
   }

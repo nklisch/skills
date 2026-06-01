@@ -163,7 +163,6 @@ function filterSignature(filters) {
     setValues(filters.kinds),
     setValues(filters.stages),
     setValues(filters.parents),
-    setValues(filters.releases),
     setValues(filters.tags),
     String(filters.autoHideReleased),
   ].join("\u0001");

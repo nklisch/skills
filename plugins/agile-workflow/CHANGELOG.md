@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.8.9
+
+### Board UI polish
+
+- **Mock-aligned board filters and metadata** - Removed the interactive board's
+  Release filter section and release-binding metadata from cards, details, and
+  the table surface. Missing values now render with the mock's dash treatment
+  instead of a visible `(none)` sentinel, and null parent/release values are not
+  exposed as filter chips.
+
 ## v0.8.8
 
 ### Interactive Substrate Board

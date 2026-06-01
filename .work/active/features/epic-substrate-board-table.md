@@ -16,9 +16,9 @@ updated: 2026-05-31
 ## Brief
 
 Deliver the table view: the substrate as a dense, scannable grid with one row per
-item and columns for the item's fields (id, kind, stage, tags, parent, release
-binding, created/updated, dependency status). This is the "show me everything in
-one sortable list" surface — the view that trades the kanban's spatial layout for
+item and columns for the mock-approved fields: id, kind, stage, status, parent,
+dependency state, and updated date. This is the "show me everything in one
+sortable list" surface — the view that trades the kanban's spatial layout for
 information density and ordering control.
 
 Columns are **sortable** (click a header to sort; ascending/descending), and the
@@ -98,7 +98,7 @@ The selected column set mirrors the useful CLI table fields:
 - `stage` — stage label; sort order comes from
   `deriveFilterOptions(ctx.getState().snapshot).stages`.
 - `status` — ready / blocked / terminal, derived from feed booleans.
-- `parent` — parent id or `(none)`.
+- `parent` — parent id or `—`.
 - `depends_on` — unmet count / total dependency count.
 - `updated` — ISO date string, sorted as date when parseable.
 

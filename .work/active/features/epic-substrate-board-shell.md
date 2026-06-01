@@ -22,11 +22,11 @@ the visible set is scoped — so it lands once, here, and the views consume it.
 
 This feature owns: the app layout/chrome and a **view-switcher** (tabs between
 kanban / dependency / table); the shared **item-card** component (frontmatter
-chips — id, kind, stage, tags, parent, release binding — plus the dependency
-signals from the feed); **card-body rendering** that renders an item's markdown
+chips — id, kind, stage, tags, and parent — plus the dependency signals from the
+feed); **card-body rendering** that renders an item's markdown
 `body` (the core already exposes `Item.body` separately from frontmatter), not
 just its metadata; the composable **global filter bar** with knobs for tag,
-kind, parent, stage, and release that compose the way the CLI's flags do; and
+kind, parent, and stage that compose with the active substrate view; and
 **auto-hide of released/archived items** by default (driven by the feed's
 `tier`/bucket, with a toggle to reveal them) so active work stays in focus. It
 also defines the **client-side filter-state store** that the three views read,
@@ -55,8 +55,9 @@ the card, the filtered item set, and the frame to mount in.
   (markdown after the frontmatter, for card-body rendering), `Tier` (auto-hide
   bucketing), and the frontmatter fields the card chips render.
 - `plugins/agile-workflow/work-view/crates/core/src/filter.rs` — the CLI's
-  composable `Filter`/`Match` model; the board's filter bar should mirror its
-  knobs (tag/kind/parent/stage/release) so the two adapters feel like one tool.
+  composable `Filter`/`Match` model; the board's filter bar mirrors the knobs
+  that are useful in the mock-approved interactive surface (tag/kind/parent/stage)
+  while release binding remains a CLI/release workflow concern.
 
 ## Mockups
 
@@ -153,7 +154,6 @@ type BoardState = {
     kinds: Set<string>,
     stages: Set<string>,
     parents: Set<string>,
-    releases: Set<string>,
     tags: Set<string>,
     autoHideReleased: boolean,
   },
@@ -307,8 +307,8 @@ export function renderCard(item, options = {}) {}
   pass raw item `body` to `innerHTML`.
 - Card summary uses the first body paragraph with inline code/strong rendered
   safely or as escaped text. Full markdown is reserved for detail.
-- Card shows id, kind, stage, tags, parent, release binding, ready/blocked/done
-  badge, dependency counts, and a compact body summary.
+- Card shows id, kind, stage, tags, parent, ready/blocked/done badge,
+  dependency counts, and a compact body summary.
 - Card click/keyboard activation calls `openDetail(item.id)` through context.
 
 **Acceptance Criteria**:
@@ -335,11 +335,11 @@ export function renderFilterBar(root, ctx) {}
 ```
 
 **Implementation Notes**:
-- Global controls cover search, tag, kind, parent, stage, release, and auto-hide.
+- Global controls cover search, tag, kind, parent, stage, and auto-hide.
 - Values OR within scalar knobs and AND across knobs. Tags are AND to preserve
   CLI repeat-`--tag` semantics.
-- Parent/release controls derive option sets from the loaded snapshot; use a
-  stable `"(none)"` sentinel for null values.
+- Parent controls derive option sets from real loaded parent ids only; null
+  values are not exposed as a `(none)` filter chip.
 - Auto-hide default is true and filters only `tier: releases` / `archive`.
 
 **Acceptance Criteria**:

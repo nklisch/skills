@@ -10,7 +10,7 @@ function text(tag, className, value) {
 }
 
 function valueOrNone(value) {
-  return value == null || value === "" ? "(none)" : String(value);
+  return value == null || value === "" ? "—" : String(value);
 }
 
 function countOf(value) {
@@ -117,7 +117,6 @@ export function renderCard(item, options = {}) {
   metaRow.append(
     meta("stage", item?.stage, "ic-stage"),
     meta("parent", item?.parent, "ic-parent"),
-    meta("release", item?.release_binding, "ic-release"),
     dependencyMeta(item || {}),
   );
 

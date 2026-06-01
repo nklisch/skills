@@ -76,7 +76,7 @@ export function tableValue(item, columnId) {
     case "status":
       return statusFor(item);
     case "parent":
-      return item?.parent || "(none)";
+      return item?.parent || "—";
     case "depends_on": {
       const total = arrayCount(item?.depends_on);
       const unmet = arrayCount(item?.unmet_deps);

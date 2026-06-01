@@ -570,7 +570,8 @@ fn board_embedded_assets_return_expected_content_types() {
         board_body.contains("createBoardStore")
             && board_body.contains("renderFilterBar")
             && board_body.contains("filterSignature")
-            && board_body.contains("context.refresh()"),
+            && board_body.contains("context.refresh()")
+            && !board_body.contains("filters.releases"),
         "board JS should bootstrap the store, filters, and initial refresh; body: {board_body}"
     );
     let state_js = board_response_once("/assets/state.js");
@@ -588,8 +589,10 @@ fn board_embedded_assets_return_expected_content_types() {
         filters_body.contains("export function createDefaultFilters")
             && filters_body.contains("export function matchesFilters")
             && filters_body.contains("export function renderFilterBar")
-            && filters_body.contains("NULL_SENTINEL"),
-        "filters JS should own filter defaults, matching, null sentinel, and controls; body: {filters_body}"
+            && !filters_body.contains("Release filters")
+            && !filters_body.contains("item?.release_binding")
+            && !filters_body.contains("(none)"),
+        "filters JS should own filter defaults, matching, and controls without release/none filter chips; body: {filters_body}"
     );
     assert!(
         filters_body.contains("item.tier === \"releases\" || item.tier === \"archive\"")
@@ -607,7 +610,8 @@ fn board_embedded_assets_return_expected_content_types() {
     let card_body = http_body(&card_js);
     assert!(
         card_body.contains("export function renderCard")
-            && card_body.contains("addEventListener(\"keydown\""),
+            && card_body.contains("addEventListener(\"keydown\"")
+            && !card_body.contains("release_binding"),
         "card JS should export keyboard-accessible cards; body: {card_body}"
     );
     let detail_js = board_response_once("/assets/detail.js");
@@ -620,7 +624,8 @@ fn board_embedded_assets_return_expected_content_types() {
             && detail_body.contains("focus({ preventScroll: true })")
             && detail_body.contains("aria-modal")
             && detail_body.contains("shell.inert = true")
-            && detail_body.contains("renderMarkdown"),
+            && detail_body.contains("renderMarkdown")
+            && !detail_body.contains("release_binding"),
         "detail JS should export id-based detail helpers using safe markdown; body: {detail_body}"
     );
     let views_js = board_response_once("/assets/views.js");
@@ -684,6 +689,8 @@ fn board_embedded_assets_return_expected_content_types() {
             && table_body.contains("focus({ preventScroll: true })")
             && table_body.contains("aria-sort")
             && !table_body.contains("ctx.setFilter")
+            && !table_body.contains("release_binding")
+            && !table_body.contains("(none)")
             && table_body.contains("ctx.visibleItems()")
             && table_body.contains("ctx.openDetail(item.id)")
             && table_body.contains("addEventListener(\"keydown\""),

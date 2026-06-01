@@ -13,7 +13,7 @@ function textElement(tag, className, text) {
 }
 
 function valueOrNone(value) {
-  return value == null || value === "" ? "(none)" : String(value);
+  return value == null || value === "" ? "—" : String(value);
 }
 
 function bodyLength(item) {
@@ -39,7 +39,6 @@ function frontmatter(item) {
     ["kind", item.kind],
     ["stage", item.stage],
     ["parent", item.parent],
-    ["release", item.release_binding],
     ["tags", Array.isArray(item.tags) && item.tags.length > 0 ? item.tags.join(", ") : null],
     ["depends_on", Array.isArray(item.depends_on) ? item.depends_on.length : 0],
     ["unmet", Array.isArray(item.unmet_deps) ? item.unmet_deps.length : 0],
