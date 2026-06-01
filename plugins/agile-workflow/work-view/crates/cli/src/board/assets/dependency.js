@@ -446,6 +446,11 @@ function unlockImpactCounts(model) {
   return counts;
 }
 
+function impactGroupLabel(count) {
+  const noun = count === 1 ? "Item" : "Items";
+  return `Unblocks ${count} Downstream ${noun}`;
+}
+
 function groupNodesByImpact(model) {
   const counts = unlockImpactCounts(model);
   const groups = new Map();
@@ -461,7 +466,7 @@ function groupNodesByImpact(model) {
     .sort(([a], [b]) => b - a)
     .map(([count, nodes]) => ({
       id: `impact-${count}`,
-      label: count === 0 ? "No Visible Unlocks" : `Unlocks ${count}`,
+      label: impactGroupLabel(count),
       nodes: sortNodesByLabel(nodes),
     }));
 }
@@ -677,6 +682,20 @@ function installNodeDragging(canvas, wrapper, model) {
     }
   };
 
+  const detachNodeDragListeners = (dragState) => {
+    if (!dragState) {
+      return;
+    }
+    window.removeEventListener("pointermove", dragState.onPointerMove, true);
+    window.removeEventListener("pointerup", dragState.onPointerEnd, true);
+    window.removeEventListener("pointercancel", dragState.onPointerEnd, true);
+  };
+
+  const cleanupNodeDrag = (dragState) => {
+    clearNodeDragHold(dragState);
+    detachNodeDragListeners(dragState);
+  };
+
   wrapper.addEventListener("click", (event) => {
     if (!suppressClick) {
       return;
@@ -686,30 +705,7 @@ function installNodeDragging(canvas, wrapper, model) {
     event.stopImmediatePropagation();
   }, true);
 
-  wrapper.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0) {
-      return;
-    }
-    const pointerId = event.pointerId;
-    drag = {
-      pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      startLeft: positionValue(wrapper.style.left),
-      startTop: positionValue(wrapper.style.top),
-      moved: false,
-      ready: false,
-      holdTimer: 0,
-    };
-    drag.holdTimer = window.setTimeout(() => {
-      if (drag?.pointerId === pointerId) {
-        drag.ready = true;
-      }
-    }, NODE_DRAG_HOLD_MS);
-    wrapper.setPointerCapture(pointerId);
-  });
-
-  wrapper.addEventListener("pointermove", (event) => {
+  const moveNodeDrag = (event) => {
     if (!drag || event.pointerId !== drag.pointerId) {
       return;
     }
@@ -721,6 +717,14 @@ function installNodeDragging(canvas, wrapper, model) {
     if (!drag.ready) {
       return;
     }
+    if (!drag.captured) {
+      try {
+        wrapper.setPointerCapture(event.pointerId);
+        drag.captured = true;
+      } catch {
+        drag.captured = false;
+      }
+    }
     const deltaX = rawDeltaX / activeGraphZoom;
     const deltaY = rawDeltaY / activeGraphZoom;
     drag.moved = true;
@@ -731,14 +735,14 @@ function installNodeDragging(canvas, wrapper, model) {
     expandCanvasForNode(canvas, wrapper);
     syncEdgeGeometry(canvas, model);
     event.preventDefault();
-  });
+  };
 
   const endDrag = (event) => {
     if (!drag || event.pointerId !== drag.pointerId) {
       return;
     }
     const didMove = drag.moved;
-    clearNodeDragHold(drag);
+    cleanupNodeDrag(drag);
     if (wrapper.hasPointerCapture(event.pointerId)) {
       wrapper.releasePointerCapture(event.pointerId);
     }
@@ -751,8 +755,39 @@ function installNodeDragging(canvas, wrapper, model) {
     }
     drag = null;
   };
-  wrapper.addEventListener("pointerup", endDrag);
-  wrapper.addEventListener("pointercancel", endDrag);
+
+  wrapper.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+    if (drag) {
+      cleanupNodeDrag(drag);
+    }
+    const pointerId = event.pointerId;
+    const onPointerMove = (moveEvent) => moveNodeDrag(moveEvent);
+    const onPointerEnd = (endEvent) => endDrag(endEvent);
+    drag = {
+      pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startLeft: positionValue(wrapper.style.left),
+      startTop: positionValue(wrapper.style.top),
+      moved: false,
+      ready: false,
+      captured: false,
+      holdTimer: 0,
+      onPointerMove,
+      onPointerEnd,
+    };
+    drag.holdTimer = window.setTimeout(() => {
+      if (drag?.pointerId === pointerId) {
+        drag.ready = true;
+      }
+    }, NODE_DRAG_HOLD_MS);
+    window.addEventListener("pointermove", onPointerMove, true);
+    window.addEventListener("pointerup", onPointerEnd, true);
+    window.addEventListener("pointercancel", onPointerEnd, true);
+  });
 }
 
 function cleanupEdgeGeometrySync() {
@@ -1086,6 +1121,26 @@ function renderGraphInteractionControls(root, ctx) {
   return controls;
 }
 
+function renderEdgeLegendItem(className, label) {
+  const item = document.createElement("span");
+  item.className = "dependency-edge-legend__item";
+  const line = document.createElement("span");
+  line.className = `dependency-edge-legend__line ${className}`;
+  item.append(line, textElement("span", "", label));
+  return item;
+}
+
+function renderEdgeLegend() {
+  const legend = document.createElement("div");
+  legend.className = "dependency-edge-legend";
+  legend.setAttribute("aria-label", "Dependency edge legend");
+  legend.append(
+    renderEdgeLegendItem("dependency-edge-legend__line--met", "Satisfied dependency"),
+    renderEdgeLegendItem("dependency-edge-legend__line--unmet", "Unmet dependency"),
+  );
+  return legend;
+}
+
 function renderGraphToolbar(root, ctx, items) {
   const toolbar = document.createElement("div");
   toolbar.className = "dependency-toolbar";
@@ -1104,6 +1159,7 @@ function renderGraphToolbar(root, ctx, items) {
     toolbar.append(terminalButton);
   }
 
+  toolbar.append(renderEdgeLegend());
   return toolbar;
 }
 

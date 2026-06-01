@@ -867,11 +867,43 @@ fn dependency_canvas_impact_layout_surfaces_high_unlock_items() {
             && body.contains("const reachable = new Set")
             && body.contains("stack.push(child)")
             && body.contains("counts.set(id, reachable.size)")
+            && body.contains("function impactGroupLabel")
             && body.contains("function groupNodesByImpact")
-            && body.contains("label: count === 0 ? \"No Visible Unlocks\" : `Unlocks ${count}`")
+            && body.contains("`Unblocks ${count} Downstream ${noun}`")
             && body.contains(".sort(([a], [b]) => b - a)")
             && body.contains("layoutId === \"impact\""),
         "impact layout should group visible graph nodes by transitive downstream unlock count; body: {body}"
+    );
+}
+
+#[test]
+fn dependency_canvas_explains_impact_and_edge_color_semantics() {
+    let dependency_js = board_response_once("/assets/dependency.js");
+    let body = http_body(&dependency_js);
+    let board_css = board_response_once("/assets/board.css");
+    let css = http_body(&board_css);
+    let legend_rule = css_rule_body(css, ".dependency-edge-legend");
+    let met_line_rule = css_rule_body(css, ".dependency-edge-legend__line--met");
+    let unmet_line_rule = css_rule_body(css, ".dependency-edge-legend__line--unmet");
+
+    assert!(
+        body.contains("function renderEdgeLegend")
+            && body.contains("Satisfied dependency")
+            && body.contains("Unmet dependency")
+            && body.contains("dependency-edge-legend__line--met")
+            && body.contains("dependency-edge-legend__line--unmet")
+            && body.contains("Unblocks ${count} Downstream"),
+        "dependency canvas should explain downstream impact counts and edge color semantics; body: {body}"
+    );
+    assert!(
+        legend_rule.contains("inline-flex") && legend_rule.contains("align-items: center"),
+        "edge legend should be compact and aligned with the toolbar; rule: {legend_rule}"
+    );
+    assert!(
+        met_line_rule.contains("var(--status-ready)")
+            && unmet_line_rule.contains("var(--status-blocked)")
+            && unmet_line_rule.contains("dashed"),
+        "edge legend lines should match met/unmet edge colors and dash semantics; met: {met_line_rule}; unmet: {unmet_line_rule}"
     );
 }
 
@@ -1072,14 +1104,19 @@ fn dependency_canvas_nodes_can_be_dragged_ephemerally() {
             && body.contains("pointerdown")
             && body.contains("setPointerCapture")
             && body.contains("holdTimer")
+            && body.contains("window.addEventListener(\"pointermove\", onPointerMove, true)")
+            && body.contains("window.removeEventListener(\"pointermove\", dragState.onPointerMove, true)")
             && body.contains("ready: false")
             && body.contains("drag.ready = true")
             && body.contains("if (!drag.ready) {")
+            && body.contains("if (!drag.captured) {")
+            && body.contains("drag.captured = true")
             && body.contains("wrapper.style.left")
             && body.contains("wrapper.style.top")
             && body.contains("suppressClick")
             && body.contains("syncEdgeGeometry(canvas, model)")
-            && body.contains("installNodeDragging(canvas, wrapper, model)"),
+            && body.contains("installNodeDragging(canvas, wrapper, model)")
+            && !body.contains("wrapper.setPointerCapture(pointerId);"),
         "dependency canvas should support session-only pointer dragging with edge resync; body: {body}"
     );
     assert!(
