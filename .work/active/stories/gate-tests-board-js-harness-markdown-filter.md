@@ -1,7 +1,7 @@
 ---
 id: gate-tests-board-js-harness-markdown-filter
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: gate-tests-board-js-harness
 depends_on: [gate-tests-board-js-harness-runner]
@@ -27,3 +27,16 @@ with executed module behavior instead of Rust static-grep proxies.
   tier-based auto-hide behavior.
 - [ ] The new suites pass under `node --test`.
 
+## Implementation notes
+
+- Files changed:
+  - `plugins/agile-workflow/work-view/crates/cli/tests/board-js/markdown-filter.test.mjs`
+- Tests added:
+  - `markdown renderer keeps adversarial HTML inert`
+  - `filters compose scalar ORs, group ANDs, tag ANDs, search, null parent, and tier hide`
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
+
+## Verification
+
+- `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
