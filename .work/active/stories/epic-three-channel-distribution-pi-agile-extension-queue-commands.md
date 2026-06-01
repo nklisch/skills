@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-pi-agile-extension-queue-commands
 kind: story
-stage: review
+stage: done
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution-pi-agile-extension
 depends_on: [epic-three-channel-distribution-pi-agile-extension-manifest-shell]
@@ -49,3 +49,9 @@ CLI flag.
 
 - `rg -n "status|ready|blocked|review|parent|blocking|ITEM_ID_RE|truncate|setWidget|setStatus" plugins/agile-workflow/extensions/agile-workflow.ts`
 - `git diff --check -- plugins/agile-workflow/extensions/agile-workflow.ts .work/active/stories/epic-three-channel-distribution-pi-agile-extension-queue-commands.md`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: Queue commands are allowlisted `work-view` wrappers with id validation,
+  UI status/widget updates, and bounded output.

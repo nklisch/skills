@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-pi-agile-extension-manifest-shell
 kind: story
-stage: review
+stage: done
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution-pi-agile-extension
 depends_on: []
@@ -51,3 +51,9 @@ extension file and the safe helper layer that later stories extend.
 - `python3 -m json.tool plugins/agile-workflow/package.json`
 - `rg -n "registerCommand\\(\"aw\"|pi.exec|shell|CONVENTIONS.md|work-view" plugins/agile-workflow/extensions/agile-workflow.ts plugins/agile-workflow/package.json`
 - `git diff --check -- plugins/agile-workflow/package.json plugins/agile-workflow/extensions/agile-workflow.ts .work/active/stories/epic-three-channel-distribution-pi-agile-extension-manifest-shell.md`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The manifest and shell establish the Pi extension entry without adding
+  runtime dependencies or arbitrary shell execution.

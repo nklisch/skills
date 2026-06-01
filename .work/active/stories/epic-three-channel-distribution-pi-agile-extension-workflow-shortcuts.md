@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution-pi-agile-extension-workflow-shortcuts
 kind: story
-stage: review
+stage: done
 tags: [plugin, tooling]
 parent: epic-three-channel-distribution-pi-agile-extension
 depends_on: [epic-three-channel-distribution-pi-agile-extension-queue-commands]
@@ -45,3 +45,10 @@ off to the existing agile-workflow skills.
 
 - `rg -n "sendUserMessage|board|autopilot|scope|pi-subagents|follow-up|help" plugins/agile-workflow/extensions/agile-workflow.ts .work/active/stories/epic-three-channel-distribution-pi-agile-extension-workflow-shortcuts.md`
 - `git diff --check -- plugins/agile-workflow/extensions/agile-workflow.ts .work/active/stories/epic-three-channel-distribution-pi-agile-extension-workflow-shortcuts.md`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: Board, autopilot, and scope paths hand off to shared agile-workflow
+  skills, preserving the extension as a small command surface rather than a
+  workflow reimplementation.
