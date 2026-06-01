@@ -246,6 +246,20 @@ fn http_body(response: &str) -> &str {
         .unwrap_or("")
 }
 
+fn css_rule_body<'a>(css: &'a str, selector: &str) -> &'a str {
+    let start = css
+        .find(selector)
+        .unwrap_or_else(|| panic!("missing CSS selector {selector:?}; css: {css}"));
+    let body_start = css[start..]
+        .find('{')
+        .unwrap_or_else(|| panic!("missing rule body for CSS selector {selector:?}; css: {css}"));
+    let body_offset = start + body_start + 1;
+    let body_end = css[body_offset..]
+        .find('}')
+        .unwrap_or_else(|| panic!("missing rule close for CSS selector {selector:?}; css: {css}"));
+    &css[body_offset..body_offset + body_end]
+}
+
 fn json_body(response: &str) -> Value {
     serde_json::from_str(http_body(response)).expect("response body should be valid JSON")
 }
@@ -791,6 +805,45 @@ fn board_embedded_assets_return_expected_content_types() {
             && table_body.contains("ctx.openDetail(item.id)")
             && table_body.contains("addEventListener(\"keydown\""),
         "table JS should provide the registered dense table view; body: {table_body}"
+    );
+}
+
+#[test]
+fn dependency_canvas_viewport_constrains_oversized_graph_to_scroll_container() {
+    let board_css = board_response_once("/assets/board.css");
+    let css = http_body(&board_css);
+    let view_rule = css_rule_body(css, ".dependency-view");
+    let viewport_rule = css_rule_body(css, ".dependency-canvas-viewport");
+
+    assert!(
+        view_rule.contains("min-width: 0"),
+        "dependency view grid item must be allowed to shrink inside the board shell; rule: {view_rule}"
+    );
+    assert!(
+        viewport_rule.contains("min-width: 0"),
+        "dependency canvas viewport must not use graph min-content width as panel width; rule: {viewport_rule}"
+    );
+    assert!(
+        viewport_rule.contains("max-width: 100%"),
+        "dependency canvas viewport should clip to the board panel and expose internal scroll; rule: {viewport_rule}"
+    );
+    assert!(
+        viewport_rule.contains("overflow: auto"),
+        "dependency canvas viewport should provide internal scrolling for wide graphs; rule: {viewport_rule}"
+    );
+}
+
+#[test]
+fn dependency_canvas_layout_accounts_for_variable_node_heights() {
+    let dependency_js = board_response_once("/assets/dependency.js");
+    let body = http_body(&dependency_js);
+
+    assert!(
+        body.contains("estimatedNodeHeight")
+            && body.contains("position.height")
+            && body.contains("edgePath(from, to)")
+            && !body.contains("rowIndex * (NODE_HEIGHT + ROW_GAP)"),
+        "dependency canvas layout should reserve per-node heights instead of fixed rows; body: {body}"
     );
 }
 

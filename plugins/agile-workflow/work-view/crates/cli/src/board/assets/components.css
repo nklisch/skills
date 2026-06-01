@@ -231,8 +231,10 @@
 }
 .dep-node.is-blocked { border-color: color-mix(in srgb, var(--status-blocked) 50%, var(--color-border)); }
 .dep-node .dn-head { display: flex; align-items: center; gap: var(--space-2); }
+.dep-node .ic-id { min-width: 0; overflow-wrap: anywhere; }
 .dep-node .edges { display: grid; gap: 3px; font: 11px/1.4 var(--font-mono); }
 .dep-node .edge { display: flex; gap: 6px; align-items: center; color: var(--color-text-secondary); }
+.dep-node .edge span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .dep-node .edge .up   { color: var(--color-text-tertiary); }   /* depends_on (upstream) */
 .dep-node .edge .down { color: var(--color-accent); }          /* unblocks (downstream) */
 .dep-node .edge .met  { color: var(--status-ready); }

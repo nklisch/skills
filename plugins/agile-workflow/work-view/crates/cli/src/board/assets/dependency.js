@@ -1,11 +1,14 @@
 const EXTERNAL_PREFIX = "external:";
 const KIND_CLASSES = new Set(["epic", "feature", "story", "release", "backlog"]);
 const NODE_WIDTH = 280;
-const NODE_HEIGHT = 132;
+const MIN_NODE_HEIGHT = 132;
 const LAYER_GAP = 110;
 const ROW_GAP = 28;
 const CANVAS_PADDING = 24;
 const LARGE_GRAPH_THRESHOLD = 48;
+const ID_CHARS_PER_LINE = 25;
+const EDGE_CHARS_PER_LINE = 22;
+const NODE_HEIGHT_BUFFER = 10;
 
 let focusedNode = null;
 let preferredRenderMode = null;
@@ -228,30 +231,57 @@ function renderLayeredList(model, ctx) {
   return layers;
 }
 
+function wrappedLineCount(text, charsPerLine) {
+  const length = String(text || "").length;
+  return Math.max(1, Math.ceil(length / charsPerLine));
+}
+
+function edgeLabels(model, nodeId, direction) {
+  return edgesFor(model, nodeId, direction).map((edge) => itemLabel(model.nodes.get(direction === "in" ? edge.from : edge.to)));
+}
+
+function edgeTextLineCount(labels) {
+  const text = labels.length === 0 ? "none" : labels.join(", ");
+  return wrappedLineCount(text, EDGE_CHARS_PER_LINE);
+}
+
+function estimatedNodeHeight(node, model) {
+  const labelLines = wrappedLineCount(itemLabel(node), ID_CHARS_PER_LINE);
+  const incomingLines = edgeTextLineCount(edgeLabels(model, node.id, "in"));
+  const outgoingLines = edgeTextLineCount(edgeLabels(model, node.id, "out"));
+  const headerHeight = Math.max(30, labelLines * 24);
+  const edgesHeight = (incomingLines + outgoingLines) * 17;
+  return Math.max(MIN_NODE_HEIGHT, 42 + headerHeight + edgesHeight + NODE_HEIGHT_BUFFER);
+}
+
 function layoutGraph(model) {
   const positions = new Map();
-  let maxRows = 1;
+  let maxLayerHeight = MIN_NODE_HEIGHT;
   model.layers.forEach(([, nodes], layerIndex) => {
-    maxRows = Math.max(maxRows, nodes.length);
-    nodes.forEach((node, rowIndex) => {
+    let y = CANVAS_PADDING;
+    for (const node of nodes) {
+      const height = estimatedNodeHeight(node, model);
       positions.set(node.id, {
         x: CANVAS_PADDING + layerIndex * (NODE_WIDTH + LAYER_GAP),
-        y: CANVAS_PADDING + rowIndex * (NODE_HEIGHT + ROW_GAP),
+        y,
+        height,
       });
-    });
+      y += height + ROW_GAP;
+    }
+    maxLayerHeight = Math.max(maxLayerHeight, y - ROW_GAP);
   });
   return {
     positions,
     width: CANVAS_PADDING * 2 + model.layers.length * NODE_WIDTH + Math.max(0, model.layers.length - 1) * LAYER_GAP,
-    height: CANVAS_PADDING * 2 + maxRows * NODE_HEIGHT + Math.max(0, maxRows - 1) * ROW_GAP,
+    height: maxLayerHeight + CANVAS_PADDING,
   };
 }
 
 function edgePath(from, to) {
   const x1 = from.x + NODE_WIDTH;
-  const y1 = from.y + NODE_HEIGHT / 2;
+  const y1 = from.y + from.height / 2;
   const x2 = to.x;
-  const y2 = to.y + NODE_HEIGHT / 2;
+  const y2 = to.y + to.height / 2;
   const control = Math.max(48, (x2 - x1) / 2);
   return `M ${x1} ${y1} C ${x1 + control} ${y1}, ${x2 - control} ${y2}, ${x2} ${y2}`;
 }
@@ -298,6 +328,7 @@ function renderGraphCanvas(model, ctx) {
     wrapper.dataset.nodeId = node.id;
     wrapper.style.left = `${position.x}px`;
     wrapper.style.top = `${position.y}px`;
+    wrapper.style.minHeight = `${position.height}px`;
     wrapper.append(renderNode(node, model, ctx));
     canvas.append(wrapper);
   }

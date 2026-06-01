@@ -382,6 +382,7 @@ select {
 .dependency-view {
   display: grid;
   gap: var(--space-4);
+  min-width: 0;
   min-height: inherit;
   padding: var(--space-4);
 }
@@ -453,6 +454,8 @@ button.dep-node:focus-visible {
 }
 
 .dependency-canvas-viewport {
+  min-width: 0;
+  max-width: 100%;
   min-height: 520px;
   overflow: auto;
   border: 1px solid var(--color-border);
