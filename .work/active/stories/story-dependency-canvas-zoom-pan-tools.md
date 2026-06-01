@@ -1,7 +1,7 @@
 ---
 id: story-dependency-canvas-zoom-pan-tools
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
@@ -34,3 +34,10 @@ Verification:
 - `cargo test`
 - `cargo build -p work-view-cli --release`
 - Krometrail on `http://127.0.0.1:8181/`: Web layout starts at 75%, wheel zoom changes it to 100%, 25 visible dependency edges report 0px max endpoint mismatch after zoom, and the graph viewport measured 1031px tall with only the expected 16px panel padding below it. Screenshot: `/home/nathan/.krometrail/browser/recordings/1970-01-01_00-00-00_127-0-0-1-8181/screenshots/1780296298725.jpg`.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story includes targeted dependency canvas tests, full cargo
+  verification, release build verification, and browser evidence for zoom, pan,
+  viewport sizing, and edge geometry.
