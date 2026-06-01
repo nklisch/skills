@@ -82,6 +82,16 @@ else
 fi
 
 echo ""
+echo "=== Test group 3: repo dogfood work-view install matches plugin ==="
+DOGFOOD_BIN="${PLUGIN_ROOT}/../../.work/bin/work-view"
+if [ -e "$DOGFOOD_BIN" ]; then
+  assert_true "dogfood work-view executable" "[ -x '$DOGFOOD_BIN' ]"
+  assert_eq "dogfood --version matches plugin" "work-view ${VERSION}" "$("$DOGFOOD_BIN" --version)"
+else
+  echo "  SKIP: no repo dogfood .work/bin/work-view install present"
+fi
+
+echo ""
 echo "============================================================"
 echo "Results: ${PASS} passed, ${FAIL} failed"
 if [ ${#ERRORS[@]} -gt 0 ]; then
