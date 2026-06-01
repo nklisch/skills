@@ -144,6 +144,27 @@ EOF
   chmod +x "$out"
 }
 
+write_no_board_prebuilt_stub() {
+  local triple="$1"
+  local out="${PLUGIN_ROOT_DIR}/work-view/dist/${triple}/work-view"
+  cat > "$out" <<EOF
+#!/usr/bin/env bash
+if [[ "\${1:-}" == "--version" ]]; then
+  echo "work-view ${TEST_VERSION}"
+  exit 0
+fi
+if [[ "\${1:-}" == "--help" ]]; then
+  echo "work-view prebuilt stub ${triple}"
+  exit 0
+fi
+if [[ "\${1:-}" == "board" ]]; then
+  exit 1
+fi
+echo "work-view prebuilt stub ${triple}"
+EOF
+  chmod +x "$out"
+}
+
 write_plugin_json "$TEST_VERSION"
 write_bash_stub "$TEST_VERSION"
 write_prebuilt_stub "x86_64-unknown-linux-musl"
@@ -289,10 +310,43 @@ rm -rf "$INSTALL_WORKDIR"
 write_prebuilt_stub "x86_64-unknown-linux-musl"
 
 # ---------------------------------------------------------------------------
-# Test 6: Idempotency — second run overwrites cleanly
+# Test 6: Prebuilt without board support is rejected before replacing existing
+# work-view.
 # ---------------------------------------------------------------------------
 echo ""
-echo "=== Test group 6: idempotency ==="
+echo "=== Test group 6: prebuilt board smoke ==="
+
+write_no_board_prebuilt_stub "x86_64-unknown-linux-musl"
+WORKDIR_BOARD="$(mktemp -d)"
+mkdir -p "${WORKDIR_BOARD}/.work/bin"
+cat > "${WORKDIR_BOARD}/.work/bin/work-view" <<'EOF'
+#!/usr/bin/env bash
+echo existing
+EOF
+chmod +x "${WORKDIR_BOARD}/.work/bin/work-view"
+
+BOARD_OUT=$(
+  cd "$WORKDIR_BOARD" &&
+  PLUGIN_ROOT="$PLUGIN_ROOT_DIR" \
+  WORK_VIEW_UNAME_S=Linux \
+  WORK_VIEW_UNAME_M=x86_64 \
+  bash "$HELPER" 2>/dev/null
+)
+BOARD_RC=$?
+
+assert_eq "board-smoke: installer exits 1" "1" "$BOARD_RC"
+assert_eq "board-smoke: no success output" "" "$BOARD_OUT"
+assert_false "board-smoke: no .tmp left" "[ -f '${WORKDIR_BOARD}/.work/bin/work-view.tmp' ]"
+assert_true "board-smoke: existing work-view preserved" \
+  "[ \"\$('${WORKDIR_BOARD}/.work/bin/work-view')\" = 'existing' ]"
+rm -rf "$WORKDIR_BOARD"
+write_prebuilt_stub "x86_64-unknown-linux-musl"
+
+# ---------------------------------------------------------------------------
+# Test 7: Idempotency — second run overwrites cleanly
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 7: idempotency ==="
 
 WORKDIR_IDEM="$(mktemp -d)"
 mkdir -p "${WORKDIR_IDEM}/.work/bin"
@@ -319,10 +373,10 @@ assert_true "idempotency: --version works after second run" "[ \"\$('${WORKDIR_I
 rm -rf "$WORKDIR_IDEM"
 
 # ---------------------------------------------------------------------------
-# Test 7: Destination is a pre-existing directory → installer fails
+# Test 8: Destination is a pre-existing directory → installer fails
 # ---------------------------------------------------------------------------
 echo ""
-echo "=== Test group 7: dest is a pre-existing directory ==="
+echo "=== Test group 8: dest is a pre-existing directory ==="
 
 WORKDIR_DIR="$(mktemp -d)"
 mkdir -p "${WORKDIR_DIR}/.work/bin/work-view"

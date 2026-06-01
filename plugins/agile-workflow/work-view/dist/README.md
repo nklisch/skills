@@ -19,9 +19,10 @@ Binaries are built and committed by the CI workflow at
   and runs a size guard (fails if any binary exceeds 8 MB). Does NOT commit
   binaries to the tree.
 - **Manual refresh (`workflow_dispatch`)** — builds all four targets and commits
-  the binaries under `dist/<triple>/work-view`. Run this job before
-  `./scripts/bump-version.sh agile-workflow <level>` to keep distributed
-  binaries in sync with the release.
+  the binaries under `dist/<triple>/work-view`. Run this job after
+  `./scripts/bump-version.sh agile-workflow <level>` has committed and pushed
+  the new source stamp; a pre-bump refresh compiles the old version into the
+  binaries.
 
 ## Do not hand-edit
 

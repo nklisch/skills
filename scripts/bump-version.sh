@@ -141,11 +141,9 @@ if [[ "$plugin" == "agile-workflow" ]]; then
     echo "      after this bump is pushed, trigger the 'Build work-view binaries'"
     echo "      workflow (workflow_dispatch, commit_binaries=true) against the"
     echo "      bumped commit so dist/<triple>/work-view self-reports v$new."
-    echo "      Until that CI run lands, the committed dist binaries lag the"
-    echo "      stamped version — acceptable because the project entrypoint is the"
-    echo "      source-stamped bash implementation and install selection is"
-    echo "      version-aware; a prebuilt is never trusted when its --version"
-    echo "      mismatches the plugin."
+    echo "      Until that CI run lands, the supported-platform dist binaries"
+    echo "      intentionally fail the installer version check; do not publish"
+    echo "      or cut a release until the binary refresh commit lands."
   } >&2
 fi
 

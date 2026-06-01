@@ -64,12 +64,13 @@ target_triple() {
   esac
 }
 
-# install_and_verify <src> <want>
+# install_and_verify <src> <want> [require_board]
 # Copies src to .work/bin/work-view.tmp, chmod +x, smoke-tests --help, verifies
 # the candidate reports the plugin version, then atomically moves it into place.
 install_and_verify() {
   local src="$1"
   local want="$2"
+  local require_board="${3:-no}"
   local dest=".work/bin/work-view"
   local tmp=".work/bin/work-view.tmp"
 
@@ -100,6 +101,12 @@ install_and_verify() {
     return 1
   fi
 
+  if [ "$require_board" = "yes" ] && ! "$tmp" board --help >/dev/null 2>&1; then
+    echo "install-work-view: candidate '${src}' does not support work-view board" >&2
+    rm -f "$tmp"
+    return 1
+  fi
+
   mv "$tmp" "$dest" || { rm -f "$tmp"; return 1; }
   if [ ! -f "$dest" ] || [ ! -x "$dest" ]; then
     echo "install-work-view: post-install sanity check failed on '${dest}'" >&2
@@ -126,7 +133,7 @@ main() {
 
   if triple="$(target_triple)"; then
     prebuilt="${PLUGIN_ROOT}/work-view/dist/${triple}/work-view"
-    if ! install_and_verify "$prebuilt" "$want"; then
+    if ! install_and_verify "$prebuilt" "$want" yes; then
       echo "install-work-view: failed to install prebuilt work-view for ${triple} from ${prebuilt}" >&2
       return 1
     fi
