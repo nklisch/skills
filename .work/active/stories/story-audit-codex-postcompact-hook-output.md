@@ -1,7 +1,7 @@
 ---
 id: story-audit-codex-postcompact-hook-output
 kind: story
-stage: review
+stage: done
 tags: [bug, tooling]
 parent: null
 depends_on: []
@@ -46,3 +46,9 @@ gap if the archived fix is incomplete or has drifted.
 ## Verification
 
 - `python3 -m unittest test_prompt_context.RulesLoaderTest.test_main_codex_postcompact_suppresses_unsupported_context_output test_prompt_context.RulesLoaderTest.test_main_codex_sessionstart_compact_emits_rules -v`
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The audit confirmed the archived Codex PostCompact fix remains current
+  and the Codex-specific regression tests pass.
