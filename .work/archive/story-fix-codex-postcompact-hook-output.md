@@ -1,7 +1,7 @@
 ---
 id: story-fix-codex-postcompact-hook-output
 kind: story
-stage: review
+stage: done
 tags: [bug, plugin]
 parent: null
 depends_on: []
@@ -62,3 +62,18 @@ event.
   plugins/agile-workflow/hooks/scripts/test_prompt_context.py`, direct Codex
   `PostCompact` and `SessionStart source: compact` reproductions, and
   `git diff --check`.
+
+## Review (2026-05-31)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. The implementation record had green
+verification from the fix pass. Rechecked the Codex-specific hook regression
+tests and the cached `0.9.4` `PostCompact` repro; both pass. Local
+`work-view-dist-version.test.sh` still fails on this divergent branch because it
+does not include remote binary refresh commit `263dc54`, which was verified on
+`origin/main`; not a blocker for this story.
