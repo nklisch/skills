@@ -377,6 +377,13 @@ Sub-agents are for breadth, isolation, independent judgment, or parallel
 implementation with clear write ownership. They are not a replacement for
 reading, and they are not automatically better than local read-oriented tools.
 
+When hosted in Pi, native Pi subagents are the preferred same-harness adapter for
+worker, scout, reviewer, and oracle-style fanout when the Pi runtime or an
+installed package such as `pi-subagents` exposes them. Treat those runs as
+fresh-context same-harness delegation, not as cross-model evidence. Keep
+`peeragent` for cross-model or cross-harness advisory/review paths, and fall
+back to direct single-agent execution when neither adapter is available.
+
 Before spawning read-only Explore/discovery agents, do a local scope-size probe:
 
 - List likely roots with `rg --files`, Glob, manifests, route maps, package
@@ -398,7 +405,7 @@ Choose the lightest mechanism that will produce better evidence:
 | One bounded area but uncertain patterns or call sites | Use one focused Explore agent, then spot-check key files yourself. |
 | Several independent surfaces with different questions | Use parallel Explore agents, one per surface/question. |
 | Implementation work with independent write ownership | Fan out by ownership and dependency layer; do not use item count alone as the parallelism signal. |
-| Deep audit/review where fresh context is the point | Spawn the dedicated audit/review sub-agent described by that skill. |
+| Deep audit/review where fresh context is the point | Spawn the dedicated audit/review sub-agent described by that skill; in Pi, prefer native reviewer/oracle subagents before same-class inline fallback. |
 
 Parallel Explore only pays for itself when the prompts are genuinely different.
 Three agents asking the same broad question usually return duplicated shallow
@@ -499,7 +506,9 @@ same model class as the host, do not use `peer` or `peer-review`; instead spawn 
 **fresh sub-agent at the highest model class available to the host** (a Sonnet host
 spawns a fresh Sonnet reviewer; an **Opus host spawns a new Opus reviewer**) — never
 review inline in the host's own context, which is anchored on the work it just
-produced. Label it a same-class fresh-context pass, not cross-model review. If the
+produced. Under Pi, native reviewer/oracle subagents count as this same-harness
+fresh-context fallback when no different-model peer is available. Label it a
+same-class or same-harness fresh-context pass, not cross-model review. If the
 peer's model class is uncertain, skip peeragent and use the fresh sub-agent.
 
 Explicit user instructions and project-level `AGENTS.md` / `CLAUDE.md` review
@@ -524,11 +533,14 @@ Default judgment:
   alignment exists.
 - Reviewing a completed **feature or epic** at `stage: review` (the `review`
   skill's deep lane): run the lens review in a fresh context — a different-class
-  `peer-review` when reachable, otherwise a fresh top-class sub-agent. **Stories
-  skip this** entirely; they fast-advance on `implement`'s verification.
+  `peer-review` when reachable, otherwise a native Pi reviewer/oracle subagent
+  when hosted in Pi and available, otherwise a fresh top-class sub-agent.
+  **Stories skip this** entirely; they fast-advance on `implement`'s
+  verification.
 - End of an autopilot run, after the scoped queue appears drained and before
   reporting `complete`: run a final `peer-review` loop when a different model
-  class is available, then fix or file accepted findings before completion.
+  class is available; otherwise use the same-harness fresh-context fallback
+  above, then fix or file accepted findings before completion.
 - Completed substantial artifacts, or explicit user requests for review: use
   `peer-review` only when the full iterative loop is appropriate.
 
@@ -545,9 +557,10 @@ and log the reason briefly. A peeragent Opus call still running after only a few
 minutes is not a failure. Do not halt the queue for an advisory review failure.
 
 The final autopilot completion review is stricter: it must succeed through a
-different-model `peer-review` loop or a same-model local fallback before the
-run reports `complete`. If the selected final-review path fails, the run is
-blocked on final review rather than complete.
+different-model `peer-review` loop or a same-harness fresh-context fallback
+(native Pi reviewer/oracle when hosted in Pi and available, otherwise local)
+before the run reports `complete`. If the selected final-review path fails, the
+run is blocked on final review rather than complete.
 
 When invoked, summarize the result in the item body without dumping transcripts:
 

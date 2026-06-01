@@ -10,9 +10,12 @@ Prefer a fresh-context reviewer for deep mode:
 
 1. Use a different model class through peeragent when available and appropriate.
    Do not use peeragent when it would be the same model class as the host.
-2. Otherwise, use a fresh local sub-agent at the highest available model class
+2. When hosted in Pi and a native Pi subagent adapter is available, use a
+   reviewer or oracle subagent as the same-harness fresh-context fallback.
+   Record that it was not cross-model.
+3. Otherwise, use a fresh local sub-agent at the highest available model class
    when the environment provides one.
-3. If no fresh-context mechanism is available, continue inline as a degraded
+4. If no fresh-context mechanism is available, continue inline as a degraded
    deep review and record that limitation in `Notes`.
 
 Peer or sub-agent failures are non-blocking. Fall back to the next option rather
