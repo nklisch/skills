@@ -1,7 +1,7 @@
 ---
 id: story-dependency-impact-edge-legend-clarity
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
@@ -35,3 +35,10 @@ Verification:
 - `cargo test`
 - `cargo build -p work-view-cli --release`
 - Krometrail on `http://127.0.0.1:8181/`: Impact labels rendered as `Unblocks 9 Downstream Items`, `Unblocks 8 Downstream Items`, etc.; the toolbar legend rendered `Satisfied dependency` and `Unmet dependency`.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story includes targeted regression coverage, full cargo
+  verification, release build verification, and browser evidence for downstream
+  impact labels plus edge legend semantics.
