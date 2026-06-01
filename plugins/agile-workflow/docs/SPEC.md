@@ -294,29 +294,28 @@ be checked against the plugin with a single string compare:
   work-view binaries" workflow (`workflow_dispatch`, `commit_binaries=true`)
   against the bumped commit so the shipped binaries self-report the new semver.
   Rebuilding before the bump would compile the old stamp and ship
-  version-mismatched binaries. There is an unavoidable lag window between the
-  bump commit and the CI binary commit; it is acceptable because the
-  project-side entrypoint is the source-stamped bash implementation and install
-  selection does not blindly trust a prebuilt whose `--version` mismatches the
-  plugin.
+  version-mismatched binaries. The installer rejects supported-platform
+  prebuilts whose `--version` mismatches the plugin instead of silently
+  downgrading to the Bash fallback, so the CI binary refresh must land before a
+  bumped plugin is considered publishable.
 
 ## work-view binary
 
 `convert` installs `work-view` into `.work/bin/work-view` via
 `plugins/agile-workflow/scripts/install-work-view.sh`. The project-side tracked
-entrypoint is the portable, source-stamped bash implementation from
-`plugins/agile-workflow/scripts/work-view.sh`; it is kept fresh by the session
-hook self-heal step, with convert using the same installer as a backstop. The
-entrypoint is git-tracked, not gitignored, and its `--version` stamp is compared
-to the plugin version when hook or convert freshness checks run.
+entrypoint is the installed `work-view` artifact: a version-verified prebuilt
+Rust binary on supported platforms, or the version-stamped Bash fallback only on
+unsupported platforms. The entrypoint is kept fresh by the session hook
+self-heal step, with convert using the same installer as a backstop. It is
+git-tracked, not gitignored, and its `--version` stamp is compared to the plugin
+version when hook or convert freshness checks run.
 
-Prebuilt Rust binaries remain plugin-side artifacts under
-`plugins/agile-workflow/work-view/dist/<target-triple>/work-view`. The standard
-query filters continue to work through the portable bash entrypoint. The
-interactive board is a compiled `work-view` capability; when a project still has
-the bash fallback at `.work/bin/work-view`, the board skill and compatibility
-shim report the compiled-binary requirement instead of attempting to serve a
-static fallback. Supported prebuilt target triples:
+Prebuilt Rust binaries live under
+`plugins/agile-workflow/work-view/dist/<target-triple>/work-view` and are the
+standard install path. The compiled binary provides both the query filters and
+`work-view board`. The Bash fallback (`scripts/work-view.sh`) is a degraded CLI
+fallback for unsupported platforms only; it does not support the interactive
+board. Supported prebuilt target triples:
 
 | Triple | Platform |
 |---|---|
@@ -330,9 +329,9 @@ committed to `dist/` via the manual refresh job after `bump-version.sh` commits
 and pushes the version bump, so CI builds from the bumped source stamp. Users
 need no Rust toolchain — only CI does.
 
-The bash entrypoint (`work-view.sh`) is pure bash, optional enhancement via `yq`
-if installed, falls back to `grep`+`sed` otherwise. It remains the portable
-project-side entrypoint even when `dist/` is populated.
+The Bash fallback (`work-view.sh`) is pure bash, optional enhancement via `yq`
+if installed, falls back to `grep`+`sed` otherwise, and preserves the query CLI
+surface for platforms without a shipped prebuilt binary.
 
 ### Flag set
 

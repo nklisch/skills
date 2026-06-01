@@ -11,7 +11,9 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELPER="${SCRIPT_DIR}/../install-work-view.sh"
 TEST_VERSION="9.8.7"
-STATUS_LINE="installed bash entrypoint (work-view ${TEST_VERSION})"
+STATUS_PREBUILT_X64="installed prebuilt x86_64-unknown-linux-musl (work-view ${TEST_VERSION})"
+STATUS_PREBUILT_DARWIN_ARM64="installed prebuilt aarch64-apple-darwin (work-view ${TEST_VERSION})"
+STATUS_FALLBACK="installed bash fallback (work-view ${TEST_VERSION})"
 
 # ---------------------------------------------------------------------------
 # Counters
@@ -107,6 +109,29 @@ EOF
 
 write_prebuilt_stub() {
   local triple="$1"
+  local version="${2:-$TEST_VERSION}"
+  local out="${PLUGIN_ROOT_DIR}/work-view/dist/${triple}/work-view"
+  cat > "$out" <<EOF
+#!/usr/bin/env bash
+if [[ "\${1:-}" == "--version" ]]; then
+  echo "work-view ${version}"
+  exit 0
+fi
+if [[ "\${1:-}" == "--help" ]]; then
+  echo "work-view prebuilt stub ${triple}"
+  exit 0
+fi
+if [[ "\${1:-}" == "board" ]]; then
+  echo "work-view board prebuilt stub ${triple}"
+  exit 0
+fi
+echo "work-view prebuilt stub ${triple}"
+EOF
+  chmod +x "$out"
+}
+
+write_bad_prebuilt_stub() {
+  local triple="$1"
   local out="${PLUGIN_ROOT_DIR}/work-view/dist/${triple}/work-view"
   cat > "$out" <<EOF
 #!/usr/bin/env bash
@@ -114,11 +139,7 @@ if [[ "\${1:-}" == "--version" ]]; then
   echo "work-view ${TEST_VERSION}"
   exit 0
 fi
-if [[ "\${1:-}" == "--help" ]]; then
-  echo "work-view prebuilt stub ${triple}"
-  exit 0
-fi
-echo "work-view prebuilt stub ${triple}"
+exit 1
 EOF
   chmod +x "$out"
 }
@@ -201,33 +222,35 @@ helper_candidate_rc "$MISMATCH_CANDIDATE"
 assert_eq "candidate_is_current rejects mismatched semver" "1" "$?"
 
 # ---------------------------------------------------------------------------
-# Test 3: Default install writes bash entrypoint on all tested platforms
+# Test 3: Default install writes prebuilt binaries on supported platforms,
+# falling back to bash only for unsupported platforms.
 # ---------------------------------------------------------------------------
 echo ""
-echo "=== Test group 3: bash entrypoint across platforms ==="
+echo "=== Test group 3: prebuilt first, bash fallback only when unsupported ==="
 
 run_install "Linux" "x86_64"
 assert_eq "Linux x86_64 exit 0" "0" "$INSTALL_RC"
-assert_eq "Linux x86_64 output" "$STATUS_LINE" "$INSTALL_OUT"
+assert_eq "Linux x86_64 output" "$STATUS_PREBUILT_X64" "$INSTALL_OUT"
 assert_true "Linux x86_64 work-view exists" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
 assert_true "Linux x86_64 work-view executable" "[ -x '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
 assert_false "Linux x86_64 no .tmp left" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view.tmp' ]"
 assert_true "Linux x86_64 --version matches plugin" "[ \"\$('${INSTALL_WORKDIR}/.work/bin/work-view' --version)\" = 'work-view ${TEST_VERSION}' ]"
-assert_true "Linux x86_64 installed bash, not prebuilt" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'bash stub'"
-assert_false "Linux x86_64 prebuilt not installed" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'prebuilt'"
+assert_true "Linux x86_64 installed prebuilt" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'prebuilt'"
+assert_true "Linux x86_64 board-capable command installed" "'${INSTALL_WORKDIR}/.work/bin/work-view' board --help 2>/dev/null | grep -q 'board prebuilt'"
+assert_false "Linux x86_64 did not install bash fallback" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'bash stub'"
 rm -rf "$INSTALL_WORKDIR"
 
 run_install "Darwin" "arm64"
 assert_eq "Darwin arm64 exit 0" "0" "$INSTALL_RC"
-assert_eq "Darwin arm64 output" "$STATUS_LINE" "$INSTALL_OUT"
-assert_true "Darwin arm64 installed bash" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'bash stub'"
-assert_false "Darwin arm64 prebuilt not installed" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'prebuilt'"
+assert_eq "Darwin arm64 output" "$STATUS_PREBUILT_DARWIN_ARM64" "$INSTALL_OUT"
+assert_true "Darwin arm64 installed prebuilt" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'prebuilt'"
+assert_false "Darwin arm64 did not install bash fallback" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'bash stub'"
 rm -rf "$INSTALL_WORKDIR"
 
 run_install "FreeBSD" "x86_64"
 assert_eq "FreeBSD x86_64 exit 0" "0" "$INSTALL_RC"
-assert_eq "FreeBSD x86_64 output" "$STATUS_LINE" "$INSTALL_OUT"
-assert_true "FreeBSD x86_64 installed bash" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'bash stub'"
+assert_eq "FreeBSD x86_64 output" "$STATUS_FALLBACK" "$INSTALL_OUT"
+assert_true "FreeBSD x86_64 installed bash fallback" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'bash stub'"
 assert_false "FreeBSD x86_64 prebuilt not installed" "'${INSTALL_WORKDIR}/.work/bin/work-view' --help 2>/dev/null | grep -q 'prebuilt'"
 rm -rf "$INSTALL_WORKDIR"
 
@@ -243,8 +266,9 @@ run_install "Linux" "x86_64"
 POST_ERR="$(cat "$INSTALL_ERR" 2>/dev/null || true)"
 assert_eq "postcondition drift exits 1" "1" "$INSTALL_RC"
 assert_eq "postcondition drift prints no success status" "" "$INSTALL_OUT"
-assert_true "postcondition drift reports version mismatch" "printf '%s' \"\$POST_ERR\" | grep -q 'installed copy does not report plugin version 9.8.8'"
+assert_true "postcondition drift reports version mismatch" "printf '%s' \"\$POST_ERR\" | grep -q 'does not report plugin version 9.8.8'"
 assert_false "postcondition drift no .tmp left" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view.tmp' ]"
+assert_false "postcondition drift no final work-view" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
 rm -rf "$INSTALL_WORKDIR"
 write_plugin_json "$TEST_VERSION"
 write_bash_stub "$TEST_VERSION"
@@ -255,22 +279,14 @@ write_bash_stub "$TEST_VERSION"
 echo ""
 echo "=== Test group 5: atomicity ==="
 
-cat > "${PLUGIN_ROOT_DIR}/scripts/work-view.sh" <<'EOF'
-#!/usr/bin/env bash
-if [[ "${1:-}" == "--version" ]]; then
-  echo "work-view 9.8.7"
-  exit 0
-fi
-exit 1
-EOF
-chmod +x "${PLUGIN_ROOT_DIR}/scripts/work-view.sh"
+write_bad_prebuilt_stub "x86_64-unknown-linux-musl"
 
 run_install "Linux" "x86_64"
 assert_eq "atomicity: failed smoke exits 1" "1" "$INSTALL_RC"
 assert_false "atomicity: no .tmp after failed smoke" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view.tmp' ]"
 assert_false "atomicity: no final work-view after failed smoke" "[ -f '${INSTALL_WORKDIR}/.work/bin/work-view' ]"
 rm -rf "$INSTALL_WORKDIR"
-write_bash_stub "$TEST_VERSION"
+write_prebuilt_stub "x86_64-unknown-linux-musl"
 
 # ---------------------------------------------------------------------------
 # Test 6: Idempotency — second run overwrites cleanly
@@ -286,19 +302,19 @@ echo stale
 EOF
 chmod +x "${WORKDIR_IDEM}/.work/bin/work-view"
 
-OUT1=$(cd "$WORKDIR_IDEM" && PLUGIN_ROOT="$PLUGIN_ROOT_DIR" bash "$HELPER" 2>/dev/null)
+OUT1=$(cd "$WORKDIR_IDEM" && PLUGIN_ROOT="$PLUGIN_ROOT_DIR" WORK_VIEW_UNAME_S=Linux WORK_VIEW_UNAME_M=x86_64 bash "$HELPER" 2>/dev/null)
 RC1=$?
-OUT2=$(cd "$WORKDIR_IDEM" && PLUGIN_ROOT="$PLUGIN_ROOT_DIR" bash "$HELPER" 2>/dev/null)
+OUT2=$(cd "$WORKDIR_IDEM" && PLUGIN_ROOT="$PLUGIN_ROOT_DIR" WORK_VIEW_UNAME_S=Linux WORK_VIEW_UNAME_M=x86_64 bash "$HELPER" 2>/dev/null)
 RC2=$?
 
 assert_eq "idempotency: first run exit 0" "0" "$RC1"
-assert_eq "idempotency: first run output" "$STATUS_LINE" "$OUT1"
+assert_eq "idempotency: first run output" "$STATUS_PREBUILT_X64" "$OUT1"
 assert_eq "idempotency: second run exit 0" "0" "$RC2"
-assert_eq "idempotency: second run output" "$STATUS_LINE" "$OUT2"
+assert_eq "idempotency: second run output" "$STATUS_PREBUILT_X64" "$OUT2"
 assert_true "idempotency: work-view still exists" "[ -f '${WORKDIR_IDEM}/.work/bin/work-view' ]"
 assert_true "idempotency: work-view still executable" "[ -x '${WORKDIR_IDEM}/.work/bin/work-view' ]"
 assert_false "idempotency: no .tmp left" "[ -f '${WORKDIR_IDEM}/.work/bin/work-view.tmp' ]"
-assert_true "idempotency: overwritten with bash stub" "'${WORKDIR_IDEM}/.work/bin/work-view' --help 2>/dev/null | grep -q 'bash stub'"
+assert_true "idempotency: overwritten with prebuilt stub" "'${WORKDIR_IDEM}/.work/bin/work-view' --help 2>/dev/null | grep -q 'prebuilt'"
 assert_true "idempotency: --version works after second run" "[ \"\$('${WORKDIR_IDEM}/.work/bin/work-view' --version)\" = 'work-view ${TEST_VERSION}' ]"
 rm -rf "$WORKDIR_IDEM"
 

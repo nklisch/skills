@@ -5,9 +5,8 @@
 # BOTH the bootstrap branch (Phase 4: Create substrate skeleton) and the sync
 # branch (Phase S3: Apply refreshes). A future edit that reverts either block to
 # a raw `cp .../work-view.sh .work/bin/work-view` would silently bypass the
-# source-stamped bash entrypoint the installer provides, and pass the
-# existing install-work-view.test.sh (which tests the helper directly, not the
-# seam).
+# platform-aware prebuilt selector the installer provides, and pass the direct
+# installer tests while breaking the convert seam.
 #
 # This is a structural test on the SKILL.md prose (Recommendation A from the
 # cross-model consult): for a markdown skill, guard the instructions as written.

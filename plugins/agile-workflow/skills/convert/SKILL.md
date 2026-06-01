@@ -438,8 +438,9 @@ mkdir -p .work/active/epics .work/active/features .work/active/stories
 mkdir -p .work/backlog .work/releases .work/archive .work/bin
 ```
 
-Install `work-view` from the plugin to the project (installs the
-source-stamped bash entrypoint: portable, tracked, and version-stamped):
+Install `work-view` from the plugin to the project. On supported platforms this
+installs the version-verified prebuilt Rust binary, including `work-view board`;
+only unsupported platforms receive the version-stamped Bash fallback:
 
 ```bash
 bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/install-work-view.sh"
@@ -1063,8 +1064,9 @@ For each artifact with a non-`match` state:
   existing full section intact and report it.
 - `.work/bin/work-view` — reinstall via
   `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/install-work-view.sh"`
-  (installs the source-stamped bash entrypoint: portable, tracked, and
-  version-stamped). This replaces any pre-versioning copy in place. After
+  (installs the version-verified prebuilt Rust binary on supported platforms,
+  with the Bash fallback only on unsupported platforms). This replaces any
+  pre-versioning copy in place. After
   reinstalling, ensure `.work/bin/work-view` is tracked and agent-visible: run
   `git check-ignore .work/bin/work-view`; if it reports a matching ignore rule,
   surface that rule for removal or a negation entry under convert's

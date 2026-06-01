@@ -23,8 +23,8 @@ files:
 │       └── <id>.md           items bound to this release
 ├── archive/               done items not bound to any release
 │   └── <id>.md
-├── bin/                   git-tracked, not-gitignored portable bash entrypoint
-│   └── work-view          source/version-stamped; hook self-heal, convert backstop
+├── bin/                   git-tracked, not-gitignored installed entrypoint
+│   └── work-view          prebuilt binary where supported; bash fallback otherwise
 └── CONVENTIONS.md         project-specific overrides
 ```
 
@@ -608,7 +608,7 @@ All skills with their roles, invocability, and triggers.
 | Skill | Role | Trigger |
 |---|---|---|
 | `ideate` | Foundation-docs workshop. Produces VISION.md, SPEC.md, ARCHITECTURE.md, optionally PRINCIPLES.md / MIGRATION.md. No substrate dependency. | User-invoked |
-| `convert` | Bootstraps `.work/` substrate. Reads existing project shape, writes AGENTS.md section, creates CLAUDE.md compatibility symlink/shim, writes CONVENTIONS.md, installs the git-tracked, source-stamped bash `work-view` entrypoint via `install-work-view.sh` as a backstop to session hook self-heal, seeds initial items. Idempotent via `--update`. | User-invoked, depends on ideate having run |
+| `convert` | Bootstraps `.work/` substrate. Reads existing project shape, writes AGENTS.md section, creates CLAUDE.md compatibility symlink/shim, writes CONVENTIONS.md, installs the git-tracked `work-view` entrypoint via `install-work-view.sh` as a backstop to session hook self-heal (prebuilt binary on supported platforms, Bash fallback only otherwise), seeds initial items. Idempotent via `--update`. | User-invoked, depends on ideate having run |
 | `epicize` | Reads foundation docs. Produces multiple epics in `.work/active/epics/` at `stage: drafting`, with declared dependencies. | User-invoked, depends on convert having run |
 
 ### Capture & promotion (model-invocable)

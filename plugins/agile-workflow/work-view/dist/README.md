@@ -31,7 +31,11 @@ overwritten and will not be reproducible.
 
 ## Fallback behaviour
 
-If no prebuilt binary is present for the current platform (or the binary fails
-its smoke-test), `install-work-view.sh` automatically falls back to
-`scripts/work-view.sh` (the pure-bash implementation). This directory ships
-empty until CI populates it; the bash fallback is the default until then.
+`install-work-view.sh` installs a matching prebuilt binary for supported
+platforms. If that binary is missing, fails its smoke test, or reports a stale
+version, installation fails loudly because the interactive board depends on the
+compiled binary.
+
+Only unsupported platforms fall back to `scripts/work-view.sh` (the pure-bash
+CLI implementation). That fallback keeps agent query workflows working, but it
+does not support `work-view board`.
