@@ -568,7 +568,9 @@ must already exist at their new home or the dense content is lost.
    model class, large/risky autopilot design decisions may use one advisory pass;
    small/low-risk work skips it. Autopilot also runs a final peer-review loop
    before reporting completion and fixes or files accepted findings first.
-   Same-model peers fall back to local sub-agents instead.
+   Same-model peers fall back to local sub-agents instead. Claude Opus peeragent
+   calls can take 10 to 30 minutes on large reviews; no return after a few minutes
+   is not evidence that the call has hung.
 
    Broad entry points:
    `/agile-workflow:ideate`, `/agile-workflow:epicize`,

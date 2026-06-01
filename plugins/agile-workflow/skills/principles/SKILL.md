@@ -506,6 +506,14 @@ Explicit user instructions and project-level `AGENTS.md` / `CLAUDE.md` review
 rules override this policy. If they require review, follow them. If they opt out
 or restrict external model egress, do not invoke peeragent.
 
+Opus latency expectation: when peeragent targets Claude Opus, especially from a
+Codex host with `--agent claude --model opus`, large reviews commonly take 10 to
+30 minutes. A long quiet period or lack of intermediate output is normal. Do not
+treat "it has not returned in a few minutes" as a hang, and do not fall back,
+mark the peer attempt failed, or block the run unless the process exits with an
+error, reports failure, or exceeds a timeout that is long enough for Opus-scale
+review work.
+
 Default judgment:
 
 - Small, low-risk work: skip cross-model review.
@@ -533,8 +541,8 @@ foundation docs and code, and records the rationale.
 Design-time advisory peer failures are non-blocking under autopilot. If the
 peer wrapper is missing, the executable cannot be resolved, the invocation
 fails, or the call would use the same model class, continue with host judgment
-and log the reason briefly. Do not halt the queue for an advisory review
-failure.
+and log the reason briefly. A peeragent Opus call still running after only a few
+minutes is not a failure. Do not halt the queue for an advisory review failure.
 
 The final autopilot completion review is stricter: it must succeed through a
 different-model `peer-review` loop or a same-model local fallback before the

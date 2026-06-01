@@ -221,6 +221,8 @@ this feature's design — not for a final verdict. Do not run the multi-pass
 `peer-review` loop during routine autopilot design. If peeragent is
 unavailable, the peer would use the same model class, or the invocation fails,
 continue with host judgment and note that the advisory pass was skipped.
+If the peeragent target is Claude Opus, allow 10 to 30 minutes for a large
+review; no return after a few minutes is not evidence that it has hung.
 
 Summarize the useful output under `## Other agent review` in the feature body
 and fold accepted questions/risks into the decisions you log. Do not paste the

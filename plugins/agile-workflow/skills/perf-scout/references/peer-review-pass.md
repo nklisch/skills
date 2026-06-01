@@ -39,6 +39,12 @@ Run the wrapper in the host harness's outside-sandbox command mode so the peer
 CLI inherits normal network/auth/process env. Do **not** pass `--full-access` —
 review never needs it.
 
+When the target is Claude Opus (`--agent claude --model opus`), budget real wall
+time. Large deck reviews commonly take 10 to 30 minutes, and the wrapper may be
+quiet for most of that time. Do not treat "no response after a few minutes" as a
+hang, and do not switch to the fallback unless the process exits, reports
+failure, or exceeds a timeout chosen for Opus-scale review work.
+
 **Fallback — fresh max-effort sub-agent.** Use this when peeragent is
 unavailable, the wrapper returns `failed`/`blocked`, or the only peer would be the
 same model class. Spawn one in-harness agent at the highest model

@@ -126,7 +126,9 @@ this caller note in every delegated prompt:
 > strategic questions unless a hard halt condition applies. For large or risky
 > design decisions, use the cross-model advisory review policy from
 > `principles/SKILL.md` only when a different model class is available; peer
-> failures are non-blocking.
+> failures are non-blocking. If that policy launches Claude Opus through
+> peeragent, allow 10 to 30 minutes for large reviews; lack of output after a few
+> minutes does not mean it has hung.
 
 Routing:
 
@@ -214,7 +216,10 @@ When the scoped queue appears drained:
 2. If `peer-review` is available with a different model class, run one
    cross-model peer-review loop over that completion bundle. Ask for bugs,
    missed acceptance criteria, unreviewed risks, foundation-doc drift, and
-   substrate-state inconsistencies that would make "complete" premature.
+   substrate-state inconsistencies that would make "complete" premature. When
+   the peer is Claude Opus via peeragent, expect large completion reviews to
+   take 10 to 30 minutes; do not classify a quiet, still-running process as
+   hung after only a few minutes.
 3. If peeragent would use the same model class, do not use `peer-review`; use a
    local inline review sub-agent as a fresh-context completion check and record
    that it was not cross-model.

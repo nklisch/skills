@@ -18,6 +18,11 @@ Prefer a fresh-context reviewer for deep mode:
 Peer or sub-agent failures are non-blocking. Fall back to the next option rather
 than halting the review.
 
+If peeragent launches Claude Opus, especially for a large feature, epic, or
+out-of-band review, expect 10 to 30 minutes before it returns. A quiet process
+that has not returned after a few minutes is still normal Opus review latency,
+not a hang.
+
 ## Reviewer Packet
 
 Give the fresh reviewer enough context to judge without bloating the task:

@@ -66,7 +66,9 @@ tokens for insight. Run **every** sub-agent at maximum:
 - **Codex / OpenAI:** every scout uses an analysis sub-agent with
   `reasoning_effort: xhigh` (not `high`). These are read-only ideation agents.
 - **Peer pass:** the cross-model reviewer runs at the deepest effort its agent
-  supports (see Phase 5).
+  supports (see Phase 5). If this launches Claude Opus through peeragent, a
+  large deck review can take 10 to 30 minutes; do not assume a quiet process has
+  hung after only a few minutes.
 
 If you ever feel tempted to save tokens by downgrading a model here, don't — that
 trade is the opposite of what this skill is for.
@@ -282,7 +284,8 @@ full mechanics. In brief:
    (resolve the wrapper from the peeragent plugin location — never assume it's on
    PATH). Host is Claude → `--agent codex --effort xhigh`. Host is Codex →
    `--agent claude --model opus --effort xhigh`. Same-class peers add little; in
-   that case use the fallback.
+   that case use the fallback. When the peer is Claude Opus, expect 10 to 30
+   minutes for a large deck review; no return after a few minutes is not a hang.
 2. **Fallback** when peeragent is unavailable, fails, or would be same-class:
    spawn a **fresh max-effort sub-agent** (Claude → `Agent(model=opus)`) that
    sees only the codebase, the lens catalog, and the idea deck — NOT your scouts'
