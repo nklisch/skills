@@ -96,3 +96,10 @@ items, not pass/fail. Findings recorded below as gates run.
   - `gate-tests-board-js-harness` (feature) — harness + 6 deferred board-view suites
     (Critical XSS control verified SOUND during gate — test-only gap)
   - `gate-tests-hook-concurrency-interleave` (medium) — deterministic interleave test
+- **gate-cruft** (2026-05-31) — 3 findings (3 high, 0 medium, 0 low), near-clean
+  as expected. `cargo build` clean; clippy exit 0 (2 cosmetic style lints, NOT
+  debris); python unittest 39 pass + AST unused check clean; bash read manually
+  (shellcheck/ruff/vulture unavailable). All 3 are one coherent dead-board-view
+  scaffolding removal, consolidated into a single surgical cleanup story:
+  - `gate-cruft-dead-board-view-scaffolding` (high, implementing) — drop
+    `placeholderView`, dead `registeredViews()` export, and orphaned `.view-preview` CSS
