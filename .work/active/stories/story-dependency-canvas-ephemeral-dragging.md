@@ -1,7 +1,7 @@
 ---
 id: story-dependency-canvas-ephemeral-dragging
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
@@ -28,3 +28,10 @@ Add pointer dragging to canvas graph nodes, suppress accidental detail-open clic
 - Added regression coverage in `integration.rs` for pointer handlers, click suppression, edge resync during drag, and drag affordance CSS.
 - Verification passed with `cargo test` in `plugins/agile-workflow/work-view`.
 - Rebuilt the release binary, restarted `../silas` on `http://127.0.0.1:8181/`, and verified with Krometrail screenshot `1780294019257.jpg`; a node moved `140px` by `70px` and edge mismatch stayed `0`.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story includes regression coverage, green `cargo test` verification,
+  rebuilt work-view binary evidence, and browser verification of node movement
+  plus edge resync.
