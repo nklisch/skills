@@ -1,7 +1,7 @@
 ---
 id: gate-tests-work-view-dist-version-refresh
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
@@ -49,4 +49,10 @@ Do not hand-edit the binary artifacts. The release is not ready until
 
 ## Verification
 
-- [ ] `bash plugins/agile-workflow/scripts/tests/work-view-dist-version.test.sh`
+- [x] `bash plugins/agile-workflow/scripts/tests/work-view-dist-version.test.sh`
+
+## Implementation notes
+- Files changed: `plugins/agile-workflow/work-view/dist/<triple>/work-view` refreshed by GitHub Actions run `26743675062`.
+- Tests added: none; existing dist-version guard now passes against refreshed generated artifacts.
+- Discrepancies from design: followed the documented CI `workflow_dispatch` refresh path instead of hand-editing binaries.
+- Adjacent issues parked: none.
