@@ -5,7 +5,7 @@ stage: done
 tags: [tooling]
 parent: null
 depends_on: [epic-substrate-cli]
-release_binding: null
+release_binding: 0.9.0
 gate_origin: null
 created: 2026-05-30
 updated: 2026-05-31

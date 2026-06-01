@@ -5,7 +5,7 @@ stage: done
 tags: [tooling]
 parent: epic-substrate-cli-freshness-self-heal
 depends_on: [epic-substrate-cli-freshness-self-heal-installer]
-release_binding: null
+release_binding: 0.9.0
 gate_origin: null
 created: 2026-05-31
 updated: 2026-05-31
