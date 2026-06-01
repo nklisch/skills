@@ -12,6 +12,7 @@ const ID_CHARS_PER_LINE = 25;
 const EDGE_CHARS_PER_LINE = 22;
 const NODE_HEIGHT_BUFFER = 10;
 const DRAG_THRESHOLD_PX = 4;
+const NODE_DRAG_HOLD_MS = 160;
 const GROUP_LABEL_HEIGHT = 24;
 const GROUP_LABEL_GAP = 14;
 const WEB_RING_RADIUS = 240;
@@ -27,8 +28,8 @@ const GRAPH_LAYOUTS = [
   { id: "web", label: "Web" },
 ];
 const GRAPH_TOOLS = [
-  { id: "inspect", label: "Inspect", icon: "inspect", title: "Inspect items; drag nodes to rearrange" },
-  { id: "pan", label: "Hand", icon: "pan", title: "Pan empty canvas; click nodes for details; drag nodes to rearrange" },
+  { id: "inspect", label: "Inspect", icon: "inspect", title: "Inspect items; hold and drag nodes to rearrange" },
+  { id: "pan", label: "Hand", icon: "pan", title: "Pan empty canvas; click nodes for details; hold and drag nodes to rearrange" },
 ];
 const STAGE_LAYOUT_ORDER = ["drafting", "implementing", "review", "done", "released", "backlog", "unstaged", "external"];
 const KIND_LAYOUT_ORDER = ["epic", "feature", "story", "release", "backlog", "idea", "item", "external"];
@@ -670,6 +671,12 @@ function installNodeDragging(canvas, wrapper, model) {
   let drag = null;
   let suppressClick = false;
 
+  const clearNodeDragHold = (dragState) => {
+    if (dragState?.holdTimer) {
+      window.clearTimeout(dragState.holdTimer);
+    }
+  };
+
   wrapper.addEventListener("click", (event) => {
     if (!suppressClick) {
       return;
@@ -683,15 +690,23 @@ function installNodeDragging(canvas, wrapper, model) {
     if (event.button !== 0) {
       return;
     }
+    const pointerId = event.pointerId;
     drag = {
-      pointerId: event.pointerId,
+      pointerId,
       startX: event.clientX,
       startY: event.clientY,
       startLeft: positionValue(wrapper.style.left),
       startTop: positionValue(wrapper.style.top),
       moved: false,
+      ready: false,
+      holdTimer: 0,
     };
-    wrapper.setPointerCapture(event.pointerId);
+    drag.holdTimer = window.setTimeout(() => {
+      if (drag?.pointerId === pointerId) {
+        drag.ready = true;
+      }
+    }, NODE_DRAG_HOLD_MS);
+    wrapper.setPointerCapture(pointerId);
   });
 
   wrapper.addEventListener("pointermove", (event) => {
@@ -701,6 +716,9 @@ function installNodeDragging(canvas, wrapper, model) {
     const rawDeltaX = event.clientX - drag.startX;
     const rawDeltaY = event.clientY - drag.startY;
     if (!drag.moved && Math.hypot(rawDeltaX, rawDeltaY) < DRAG_THRESHOLD_PX) {
+      return;
+    }
+    if (!drag.ready) {
       return;
     }
     const deltaX = rawDeltaX / activeGraphZoom;
@@ -720,6 +738,7 @@ function installNodeDragging(canvas, wrapper, model) {
       return;
     }
     const didMove = drag.moved;
+    clearNodeDragHold(drag);
     if (wrapper.hasPointerCapture(event.pointerId)) {
       wrapper.releasePointerCapture(event.pointerId);
     }
