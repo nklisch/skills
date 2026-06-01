@@ -1,7 +1,7 @@
 ---
 id: epic-three-channel-distribution
 kind: epic
-stage: review
+stage: done
 tags: [plugin, tooling, docs]
 parent: null
 depends_on: []
@@ -132,3 +132,16 @@ behavior rather than planned behavior.
   version-lockstep story.
 - Prebuilt work-view dist binaries still need to be rebuilt from the post-bump
   commit before publishing `agile-workflow` `0.9.5`.
+
+## Review
+
+- Verdict: Approve after fixes - cross-model epic review found one blocker,
+  fixed in `4e6f612 review-fix: remove stale agile-workflow marketplace wording`.
+- Reviewer: Claude Sonnet via peeragent (`--effort high`).
+- Fixed finding: removed stale "Sibling to workflow" wording from the root
+  `.claude-plugin/marketplace.json` agile-workflow description so marketplace
+  listings match the updated plugin manifests and VISION.
+- Notes: The review confirmed version lockstep across all three channel
+  metadata files, safe Pi extension behavior, all child features/stories at
+  `done`, and no remaining accepted peer findings except the documented
+  pre-publish work-view dist rebuild.
