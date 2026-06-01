@@ -3,6 +3,7 @@
 //! Drives the binary via `std::process::Command` using `CARGO_BIN_EXE_work-view`.
 //! Exercises exit codes, output modes, filter flags, table format, and BrokenPipe.
 
+use std::collections::BTreeSet;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, TcpListener, TcpStream};
 use std::path::Path;
@@ -258,6 +259,102 @@ fn ids_from_paths(stdout: &str) -> Vec<String> {
                 .map(|stem| stem.to_string_lossy().into_owned())
         })
         .collect()
+}
+
+fn board_asset_modules() -> [(&'static str, &'static str); 9] {
+    [
+        (
+            "/assets/state.js",
+            include_str!("../src/board/assets/state.js"),
+        ),
+        (
+            "/assets/filters.js",
+            include_str!("../src/board/assets/filters.js"),
+        ),
+        (
+            "/assets/markdown.js",
+            include_str!("../src/board/assets/markdown.js"),
+        ),
+        (
+            "/assets/card.js",
+            include_str!("../src/board/assets/card.js"),
+        ),
+        (
+            "/assets/detail.js",
+            include_str!("../src/board/assets/detail.js"),
+        ),
+        (
+            "/assets/views.js",
+            include_str!("../src/board/assets/views.js"),
+        ),
+        (
+            "/assets/kanban.js",
+            include_str!("../src/board/assets/kanban.js"),
+        ),
+        (
+            "/assets/dependency.js",
+            include_str!("../src/board/assets/dependency.js"),
+        ),
+        (
+            "/assets/table.js",
+            include_str!("../src/board/assets/table.js"),
+        ),
+    ]
+}
+
+fn exported_names(body: &str) -> BTreeSet<String> {
+    body.lines()
+        .filter_map(|line| {
+            let trimmed = line.trim_start();
+            let rest = trimmed
+                .strip_prefix("export function ")
+                .or_else(|| trimmed.strip_prefix("export const "))?;
+            let name = rest
+                .split(|c: char| !(c == '_' || c == '-' || c.is_ascii_alphanumeric()))
+                .next()
+                .filter(|name| !name.is_empty())?;
+            Some(name.to_string())
+        })
+        .collect()
+}
+
+fn named_imports_from(body: &str, source: &str) -> Vec<String> {
+    let mut imports = Vec::new();
+    let mut pending = String::new();
+    let mut collecting = false;
+
+    for line in body.lines() {
+        let trimmed = line.trim();
+        if !collecting && trimmed.starts_with("import {") {
+            collecting = true;
+            pending.clear();
+        }
+        if collecting {
+            pending.push_str(trimmed);
+            pending.push('\n');
+            if trimmed.contains("} from ") {
+                if pending.contains(&format!("from \"{source}\""))
+                    || pending.contains(&format!("from '{source}'"))
+                {
+                    if let Some((_, rest)) = pending.split_once('{') {
+                        if let Some((names, _)) = rest.split_once('}') {
+                            imports.extend(names.split(',').filter_map(|name| {
+                                let imported = name
+                                    .trim()
+                                    .split_once(" as ")
+                                    .map_or_else(|| name.trim(), |(actual, _)| actual.trim());
+                                (!imported.is_empty()).then(|| imported.to_string())
+                            }));
+                        }
+                    }
+                }
+                collecting = false;
+                pending.clear();
+            }
+        }
+    }
+
+    imports
 }
 
 /// Extract the item IDs from a table-mode output.
@@ -695,6 +792,26 @@ fn board_embedded_assets_return_expected_content_types() {
             && table_body.contains("addEventListener(\"keydown\""),
         "table JS should provide the registered dense table view; body: {table_body}"
     );
+}
+
+#[test]
+fn board_asset_named_imports_are_satisfied_by_shipped_modules() {
+    let modules = board_asset_modules();
+    for (importer_path, importer_body) in modules {
+        for (source_path, source_body) in modules {
+            let imports = named_imports_from(importer_body, source_path);
+            if imports.is_empty() {
+                continue;
+            }
+            let exports = exported_names(source_body);
+            for imported in imports {
+                assert!(
+                    exports.contains(&imported),
+                    "{importer_path} imports {imported} from {source_path}, but {source_path} does not export it; exports: {exports:?}"
+                );
+            }
+        }
+    }
 }
 
 #[test]

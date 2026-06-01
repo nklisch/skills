@@ -1,6 +1,7 @@
-import { NULL_SENTINEL, deriveFilterOptions } from "/assets/filters.js";
+import { deriveFilterOptions } from "/assets/filters.js";
 
 const NO_PARENT_LANE = "(no parent)";
+const NULL_SENTINEL = "unassigned";
 
 let focusedLane = null;
 let pendingFocusLane = undefined;
