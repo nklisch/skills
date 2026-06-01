@@ -1,7 +1,7 @@
 ---
 id: story-dependency-canvas-tool-icons-impact-layout
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
@@ -32,3 +32,9 @@ Verification:
 - `cargo test`
 - `cargo build -p work-view-cli --release`
 - Krometrail browser check on `http://127.0.0.1:8181/`: toolbar showed Inspect/Hand with icons and no Select label; Impact layout showed unlock groups such as `Unlocks 9`, `Unlocks 8`, `Unlocks 7`, and `Unlocks 3`.
+
+## Review
+
+- Verdict: Approve - story verified by implement; fast-lane advance.
+- Notes: The story includes targeted and full cargo verification plus browser
+  evidence for icon-backed tools and the Impact layout.
