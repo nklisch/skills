@@ -1,7 +1,7 @@
 ---
 id: gate-tests-board-js-harness-kanban-detail
 kind: story
-stage: implementing
+stage: review
 tags: [testing]
 parent: gate-tests-board-js-harness
 depends_on: [gate-tests-board-js-harness-runner]
@@ -26,3 +26,17 @@ boundaries, and selected item refresh survival.
 - [ ] Detail tests cover modal/narrow/wide presentation boundaries.
 - [ ] Store refresh tests prove selected id survives only when the refreshed
   snapshot still contains the item.
+
+## Implementation notes
+
+- Files changed:
+  - `plugins/agile-workflow/work-view/crates/cli/tests/board-js/kanban-detail.test.mjs`
+- Tests added:
+  - `kanban lanes group by parent and lane focus does not mutate global filters`
+  - `detail presentation and selected id refresh behavior are deterministic`
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
+
+## Verification
+
+- `node --test plugins/agile-workflow/work-view/crates/cli/tests/board-js/*.test.mjs`
