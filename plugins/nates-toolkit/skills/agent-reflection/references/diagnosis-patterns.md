@@ -8,6 +8,7 @@ guidance (sources at the bottom).
 ## Contents
 
 - [Tool usage signals](#tool-usage-signals)
+- [Context and repo workflow signals](#context-and-repo-workflow-signals)
 - [Context-cost remedy classes](#context-cost-remedy-classes)
 - [Description quality bar](#description-quality-bar)
 - [Skill usage signals](#skill-usage-signals)
@@ -26,6 +27,21 @@ guidance (sources at the bottom).
 | Reaching for Bash where a precise tool exists | The precise tool is missing, undiscoverable, or awkward | Add/expose the specific tool; improve its description so it's found |
 | Sequential calls with no data dependency | No signal that calls are parallel-safe | Document independence; or provide a batch/multi tool |
 | Exploratory "list/what-can-this-do" calls | Capabilities are unknown up front | Better descriptions, or a discovery/tool-search surface |
+
+## Context and repo workflow signals
+
+| Signal in the transcript | Likely cause | Recommendation to the author |
+|---|---|---|
+| Agent followed a doc, generated rule, or AGENTS.md statement that contradicted code | Stale or over-authoritative context; missing source-of-truth marker | Correct or remove the stale claim; add "source of truth" pointers and freshness notes |
+| Agent treated comments, tests, or prior summaries as canonical without checking code | Secondary context looked more authoritative than it was | Mark generated/summary context as non-canonical; update misleading comments or tests; add verification reminders |
+| Agent picked the wrong plugin, package, or skill family first | Namespace collision or sibling surface ambiguity | Add an orienting guard such as "run `ls plugins/` first"; sharpen skill descriptions with plugin-specific semantics |
+| Agent answered from memory in a fast-moving or repo-specific domain | Missing verification trigger, or the lookup felt too expensive | Add instruction/skill wording that requires local or official-source lookup; create a dense repo/API entry point |
+| Agent used broad sequential file reads to learn repo shape | No concise orientation map, or failure to use repo-search primitives | Add a repo map, "start here" section, or shortcut command; prefer `rg --files`/`rg` and parallel independent reads |
+| Agent missed a structural code-search opportunity | Text search guidance was present but not operationalized | Add concrete ast-grep examples or a repo-specific structural-search skill/reference |
+| Agent repeatedly rediscovered the same project facts across the session | Missing high-signal index or durable session handoff | Add `.agents/index.md`, `/repo-orient`, `make agent-map`, or a tool that returns canonical repo context |
+| Agent over-read long docs to answer a narrow question | Docs lack navigable summaries or task-scoped references | Add a table of contents, split references by task, or create a high-signal summary with links to details |
+| Agent drifted because instructions conflicted or had no priority rule | Instruction hierarchy was implicit or locally contradictory | Clarify precedence in AGENTS.md or the relevant skill; name exceptions explicitly |
+| Session exposed a repeatable routine with no skill, command, or tool | Missing reusable entry point | Create a focused skill, slash command, script, or MCP tool with a concrete trigger and output contract |
 
 ## Context-cost remedy classes
 

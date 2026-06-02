@@ -1,6 +1,6 @@
 {
   "name": "@nklisch/pi-nates-toolkit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Standalone project-agnostic utility skills with no workflow lock-in.",
   "author": {
     "name": "nklisch"
