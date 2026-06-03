@@ -215,9 +215,10 @@ No unit-test framework here — verification is structural/static:
   source form; AGENTS.md FOUR→FIVE + the `experimental` row is table-consistent and
   self-documenting; README scaffold-appropriate; author/scope split (Kevoun author /
   nklisch publisher) applied uniformly; `skills/.gitkeep` correct.
-- **Nit (non-blocking, not actioned)**: the new manifests use compact single-line
-  JSON objects while sibling plugins use the multi-line expanded form. Cosmetic,
-  valid either way, matches the design spec. Optional house-style polish.
+- **Nit (non-blocking, addressed post-review)**: the new manifests originally used
+  compact single-line JSON objects while sibling plugins use the multi-line expanded
+  form. Canonicalized to the house style (jq-canonical, matching the siblings) as a
+  follow-up polish — no semantic change.
 - **Verification**: static checks + live install both green (agentic-research@0.1.0
   installed by the harness on reload, pinned to bf2741e, no rejection).
 - Advanced `review → done`. Unblocks engagement-engine, substrate-tier, foundation-docs.
