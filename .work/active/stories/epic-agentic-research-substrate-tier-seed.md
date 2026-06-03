@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-substrate-tier-seed
 kind: story
-stage: implementing
+stage: review
 tags: [docs]
 parent: epic-agentic-research-substrate-tier
 depends_on: [epic-agentic-research-substrate-tier-definition, epic-agentic-research-substrate-tier-lint]
@@ -37,3 +37,25 @@ directory-source marketplace model, or ARD's operational/research substrate clea
 - [ ] `lint-citations.py .research/analysis/positions/ --exit-code-on high` exits 0.
 - [ ] NO fabrication: every attributed claim traces to a `>` quote/anchor in its
   attestation. A failing lint is a real defect — fix the work, never game the check.
+
+## Implementation notes
+- **Subject** (chosen via a repo scan): "Rust prebuilt binaries are a viable
+  distribution choice for research-view" — a real, quantitative claim that feeds the
+  `research-view` feature.
+- **Sources (3, real)**: `work-view-dist` (local precedent — the four committed
+  work-view binaries, byte sizes measured in place), `min-sized-rust` and
+  `cargo-profiles` (both fetched live via WebFetch; verbatim quotes with anchors).
+- **Files created**: `.research/reference/rust-binary-size/INDEX.md`;
+  `.research/attestation/{work-view-dist,min-sized-rust,cargo-profiles}.md`;
+  `.research/analysis/positions/rust-binary-distribution-viable.md`; +3 numbered
+  entries in `.research/references.md`.
+- **Verification**: `lint-citations.py .research/analysis/positions/ --exit-code-on
+  high` (URL-check ON) → exit 0; 10 citations resolved, 0 broken, 0 thin. One
+  `version-number` warn on `~2.65 MiB` — cited inline with `[work-view-dist]{1}`,
+  human-spot-checked. Every handle → real attestation with matching `source_handle`;
+  local `source_path` exists.
+- **Honesty**: the position rests on the verifiable local precedent
+  (`[work-view-dist]{1}`); the aggressive KB figures from `min-sized-rust` are
+  explicitly disconfirmed as not like-for-like. `temporal_contract:
+  extend-on-source-rev` — revisit with research-view's own measured size once built.
+- **Discrepancies from design**: none. **Adjacent issues parked**: none.
