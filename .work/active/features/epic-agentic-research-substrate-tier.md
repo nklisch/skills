@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-substrate-tier
 kind: feature
-stage: implementing
+stage: done
 tags: [docs, tooling]
 parent: epic-agentic-research
 depends_on: [epic-agentic-research-scaffold]
@@ -182,3 +182,11 @@ directory-marketplace model, or ARD's substrate cleavage).
 - **Two meanings of `.research/`** — ARD's repo uses `.research/` for a curated
   *defensibility trace* (positions only); ours is the *full live substrate*. The
   README must say which this is to avoid confusing a reader who knows ARD.
+
+## Completion
+All three child stories done and reviewed (`-definition` / `-lint` fast-lane on green
+verification; `-seed` via an independent adversarial-read → approve). The `.research/`
+tier is live at the repo root, documented (README + CONVENTIONS), enforced (ported
+`lint-citations.py`, smoke-tested 3/3), and dogfooded (a real, source-grounded,
+lint-passing position grounding the research-view binary-size question). Feature
+advanced implementing → done — unblocks `research-view` and `work-handoff`.

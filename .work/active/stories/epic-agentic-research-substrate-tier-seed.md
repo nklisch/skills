@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-substrate-tier-seed
 kind: story
-stage: review
+stage: done
 tags: [docs]
 parent: epic-agentic-research-substrate-tier
 depends_on: [epic-agentic-research-substrate-tier-definition, epic-agentic-research-substrate-tier-lint]
@@ -59,3 +59,13 @@ directory-source marketplace model, or ARD's operational/research substrate clea
   explicitly disconfirmed as not like-for-like. `temporal_contract:
   extend-on-source-rev` — revisit with research-view's own measured size once built.
 - **Discrepancies from design**: none. **Adjacent issues parked**: none.
+
+## Review (approve · adversarial)
+Verdict: Approve — an independent fresh-context adversarial reader re-derived every
+claim rather than trusting the attestations: re-measured the four binaries (exact
+byte match, all committed), re-fetched both web sources (quotes verbatim, anchors
+correct), found no overclaiming (the disconfirming analysis honestly demotes the
+non-comparable KB figures), and ran the lint (exit 0 / 0 broken / 0 thin). Nits
+(non-actioned): the informational `version-number` warn on `~2.65 MiB`; min-sized-rust
+quote #1 stitches two adjacent verbatim clauses — reviewer judged acceptable.
+Advanced review → done.
