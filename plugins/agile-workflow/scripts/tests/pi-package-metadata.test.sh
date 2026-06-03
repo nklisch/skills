@@ -42,7 +42,7 @@ json_value() {
 }
 
 assert_package() {
-  local plugin="$1" expected_name="$2" expected_version="$3" expect_extensions="$4"
+  local plugin="$1" expected_name="$2" expect_extensions="$3"
   local package_json="${REPO_ROOT}/plugins/${plugin}/package.json"
   local claude_json="${REPO_ROOT}/plugins/${plugin}/.claude-plugin/plugin.json"
   local codex_json="${REPO_ROOT}/plugins/${plugin}/.codex-plugin/plugin.json"
@@ -59,7 +59,13 @@ assert_package() {
   codex_version="$(json_value '.version' "$codex_json")"
 
   assert_eq "${plugin} package name" "$expected_name" "$(json_value '.name' "$package_json")"
-  assert_eq "${plugin} package version" "$expected_version" "$package_version"
+  # Version is NOT pinned to a literal here: bump-version.sh advances all three
+  # manifests in lockstep, so a hardcoded expected version just goes stale on
+  # every bump (and bump-version.sh does not edit this test). Instead assert the
+  # version is present + a valid semver, and let the lockstep checks below
+  # enforce that the three channel manifests agree — the real invariant.
+  assert_true "${plugin} package version is non-empty semver" \
+    "printf '%s' '$package_version' | grep -Eq '^[0-9]+[.][0-9]+[.][0-9]+([-+][0-9A-Za-z.-]+)?\$'"
   assert_eq "${plugin} claude/package version lockstep" "$claude_version" "$package_version"
   assert_eq "${plugin} codex/package version lockstep" "$codex_version" "$package_version"
   assert_true "${plugin} has pi-package keyword" \
@@ -77,9 +83,9 @@ echo ""
 echo "=== Preflight: jq and plugin package metadata ==="
 assert_true "jq is available" "command -v jq >/dev/null 2>&1"
 
-assert_package "agile-workflow" "@nklisch/pi-agile-workflow" "0.9.5" "yes"
-assert_package "nates-toolkit" "@nklisch/pi-nates-toolkit" "0.1.1" "no"
-assert_package "ux-ui-design" "@nklisch/pi-ux-ui-design" "0.4.1" "no"
+assert_package "agile-workflow" "@nklisch/pi-agile-workflow" "yes"
+assert_package "nates-toolkit" "@nklisch/pi-nates-toolkit" "no"
+assert_package "ux-ui-design" "@nklisch/pi-ux-ui-design" "no"
 
 echo ""
 echo "=== Deprecated workflow plugin ==="
