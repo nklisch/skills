@@ -36,7 +36,10 @@ floor belongs to substrate-tier).
   ergonomics-parity deliverable. Parallel with `work-handoff`.
 
 ## Foundation references
-- `.work/bin/work-view` — the parallel query tool to mirror
+- `plugins/agile-workflow/work-view/` (Rust crate + `Cargo.toml` + `dist/`) and
+  `plugins/agile-workflow/scripts/{install-work-view,work-view}.sh` — the binary +
+  cross-compiled dist + bash-fallback pattern to mirror; `.work/bin/work-view` is
+  the installed result
 - `.agents/skills/substrate-binary/` — build/dist + version-freshness pattern
 - `epic-agentic-research-substrate-tier` — the schema/layout it queries
 

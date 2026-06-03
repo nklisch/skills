@@ -45,4 +45,6 @@ Does NOT cover: the `.research/` substrate definition or its lint floor
 - `/tmp/ARD/example/agents/` — `research-specialist.md`, `adversarial-reader.md`, `evaluator.md`
 - `/tmp/ARD/example/templates/dispatch.md` — engagement-registration template
 - `AGENTS.md` — "Adding a skill"; harness-specific-surface degradation rules
-- `plugins/nates-toolkit/skills/` — SKILL.md structure reference
+- `plugins/agile-workflow/skills/` — richer SKILL.md reference: per-skill
+  `agents/openai.yaml` Codex polish + the Claude sub-agent pattern this feature
+  needs (nates-toolkit's simpler skills are a fallback for plain SKILL.md shape)

@@ -49,11 +49,11 @@ the adapted foundation docs, or the `research-view` binary.
   add the agentic-research row with status `experimental` and bump the "FOUR
   distinct plugins" framing to FIVE. Signals a fresh, under-evaluation adoption;
   the new status value is itself part of what nklisch reviews.
-- **Manifest `author`**: defaulted to `nklisch` for repo consistency (every
-  sibling manifest uses it; it names the publisher/maintainer of the marketplace),
-  with ARD's upstream authorship credited in the README + foundation docs (Kevoun,
-  https://code.s-nc.org/Kevoun/ARD). Flip to `Kevoun` if you'd rather the manifest
-  credit the framework author directly.
+- **Manifest `author`**: `Kevoun` — the framework author, credited directly in the
+  manifests (you're driving the designs). Publisher-scoped artifacts stay `nklisch`:
+  the `repository` URL, the `@nklisch/pi-…` npm package scope, and the
+  `nklisch-skills` marketplace. README + foundation docs credit the ARD upstream
+  (https://code.s-nc.org/Kevoun/ARD).
 - **Version baseline**: all three manifests start at `0.1.0`; "adopts ARD v0.1" is
   recorded in the README and the Codex `longDescription`. (bump-version.sh requires
   the three manifest versions to match, so they must move in lockstep.)
@@ -62,7 +62,12 @@ the adapted foundation docs, or the `research-view` binary.
 ## Architectural choice
 Mirror the `nates-toolkit` standalone-plugin template verbatim — three channel
 manifests + `skills/` + README — then add the `marketplace.json` entry and the
-AGENTS.md plugin-map row. Rejected alternatives: (a) a richer scaffold that also
+AGENTS.md plugin-map row. nates-toolkit is the right *minimal* mirror for the
+scaffold specifically — the Claude manifest shape is identical across all plugins,
+and agile-workflow's manifests only add optional `hooks` / `pi.extensions` keys
+this shell has nothing to fill yet. The substrate / binary / docs / agents
+complexity is mirrored from agile-workflow in the sibling features (see the epic's
+structural-reference decision). Rejected alternatives: (a) a richer scaffold that also
 stubs `docs/` and skill subdirs now — those belong to sibling features
 (foundation-docs, engagement-engine); keeping this lean unblocks the other five
 fastest. (b) Claude-only first, Codex/Pi later — violates the VISION channel-parity
@@ -79,7 +84,7 @@ not parallelizable).
   "name": "agentic-research",
   "description": "Agentic Research Discipline (ARD) — a framework for grounded, verifiable AI research: a non-erodable anti-fabrication floor, selectable verification gates, and a .research/ substrate tier of attestations and syntheses that parallels .work/. Adopts ARD v0.1.",
   "version": "0.1.0",
-  "author": { "name": "nklisch" },
+  "author": { "name": "Kevoun" },
   "repository": "https://github.com/nklisch/skills",
   "license": "MIT"
 }
@@ -93,7 +98,7 @@ Adds the explicit `"skills": "./skills/"` (Codex does not auto-discover) and the
   "name": "agentic-research",
   "version": "0.1.0",
   "description": "Agentic Research Discipline (ARD) — grounded, verifiable AI research with a non-erodable anti-fabrication floor, selectable verification gates, and a .research/ substrate tier paralleling .work/. Adopts ARD v0.1.",
-  "author": { "name": "nklisch" },
+  "author": { "name": "Kevoun" },
   "repository": "https://github.com/nklisch/skills",
   "license": "MIT",
   "skills": "./skills/",
@@ -101,7 +106,7 @@ Adds the explicit `"skills": "./skills/"` (Codex does not auto-discover) and the
     "displayName": "Agentic Research Discipline",
     "shortDescription": "Grounded, verifiable AI research discipline",
     "longDescription": "ARD makes AI research grounded and verifiable: a non-erodable anti-fabrication floor, a per-engagement control-space of selectable verification gates, and a .research/ substrate tier (attestations, precis, analytical syntheses) paralleling the operational .work/ tier. Citations use the [handle]{N} convention with per-source attestations, enforced by a citation-chain lint. Adopts ARD v0.1 (https://code.s-nc.org/Kevoun/ARD).",
-    "developerName": "nklisch",
+    "developerName": "Kevoun",
     "category": "Productivity",
     "websiteURL": "https://github.com/nklisch/skills"
   }
@@ -114,7 +119,7 @@ Adds the explicit `"skills": "./skills/"` (Codex does not auto-discover) and the
   "name": "@nklisch/pi-agentic-research",
   "version": "0.1.0",
   "description": "Agentic Research Discipline (ARD) — grounded, verifiable AI research with a .research/ substrate tier. Adopts ARD v0.1.",
-  "author": { "name": "nklisch" },
+  "author": { "name": "Kevoun" },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nklisch/skills.git",

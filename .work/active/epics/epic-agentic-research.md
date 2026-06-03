@@ -78,6 +78,14 @@ revisit any of these in review.
 - **Cross-harness degradation**: the lint floor and the `research-view` binary are
   cross-harness (CLI); the three Claude sub-agents are Claude-only and degrade to
   absent — never broken — on Codex/Pi, per the repo's harness-surface rule.
+- **Structural reference**: `agile-workflow` is the primary structural mirror — the
+  only existing plugin with agentic-research's shape (a substrate tier, a versioned
+  Rust query binary, plugin-local docs, hooks, per-skill agent polish). `nates-toolkit`
+  is only the minimal three-manifest template for the lean scaffold. Feature → mirror
+  map: `research-view` ↔ `plugins/agile-workflow/work-view/` +
+  `scripts/{install-work-view,work-view}.sh`; `foundation-docs` ↔
+  `plugins/agile-workflow/docs/`; `substrate-tier` ↔ `.work/` + `.work/CONVENTIONS.md`
+  + `work-view`; `engagement-engine` ↔ `plugins/agile-workflow/skills/*/agents/openai.yaml`.
 
 ## Source
 ARD upstream: https://code.s-nc.org/Kevoun/ARD (authored by Kevoun). Cloned
