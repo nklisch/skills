@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-scaffold
 kind: feature
-stage: review
+stage: done
 tags: [plugin]
 parent: epic-agentic-research
 depends_on: []
@@ -206,3 +206,18 @@ No unit-test framework here — verification is structural/static:
 - **Live-load**: the plugin surfaces in the local `nklisch-skills` marketplace on
   the next session reload (the reconciler runs at startup). It has zero skills until
   engagement-engine lands — expected for the scaffold.
+
+## Review (approve)
+- **Verdict**: Approve — deep lane, fresh-context independent reviewer.
+- **Findings**: none above nit. Independently verified — all 4 "Adding a plugin"
+  registrations present and consistent; 3 manifests version-locked at `0.1.0`
+  (bump-version.sh parity OK); marketplace entry uses the supported string-path
+  source form; AGENTS.md FOUR→FIVE + the `experimental` row is table-consistent and
+  self-documenting; README scaffold-appropriate; author/scope split (Kevoun author /
+  nklisch publisher) applied uniformly; `skills/.gitkeep` correct.
+- **Nit (non-blocking, not actioned)**: the new manifests use compact single-line
+  JSON objects while sibling plugins use the multi-line expanded form. Cosmetic,
+  valid either way, matches the design spec. Optional house-style polish.
+- **Verification**: static checks + live install both green (agentic-research@0.1.0
+  installed by the harness on reload, pinned to bf2741e, no rejection).
+- Advanced `review → done`. Unblocks engagement-engine, substrate-tier, foundation-docs.
