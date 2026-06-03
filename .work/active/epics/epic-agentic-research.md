@@ -111,7 +111,8 @@ Key pieces:
   (not a query tool).
 
 ## Decomposition
-Split by capability into six child features. The scaffold is the dependency root
+Split by capability into seven child features (the seventh, `ard-sync`, scoped later
+as upstream-maintenance after the ARD v0.2 bump surfaced the need). The scaffold is the dependency root
 (the plugin shell everything lives in); the substrate-tier is the conceptual
 lynchpin (the query binary and the handoff both build on its schema). ARD's two
 skills and three agents are merged into one **engagement-engine** feature — they
@@ -128,6 +129,7 @@ tier schema is fixed.
 - `epic-agentic-research-foundation-docs` `[docs]` — SPEC/CATALOGS/ADOPTING/VERSIONING adaptation + versioning reconciliation — depends on: `[epic-agentic-research-scaffold]`
 - `epic-agentic-research-research-view` `[tooling]` — Rust prebuilt query binary (work-view parity) — depends on: `[epic-agentic-research-substrate-tier]`
 - `epic-agentic-research-work-handoff` `[docs]` — designed + documented research→work handoff (not live) — depends on: `[epic-agentic-research-substrate-tier]`
+- `epic-agentic-research-ard-sync` `[tooling]` — repeatable ARD upstream-version sync (single-source provenance record + drift tool); follow-on maintenance, surfaced by the ARD v0.2 bump — depends on: `[epic-agentic-research-foundation-docs]`
 
 ### Decomposition risks
 - **substrate-tier is the lynchpin.** research-view and work-handoff both inherit

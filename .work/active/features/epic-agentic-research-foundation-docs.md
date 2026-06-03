@@ -40,3 +40,11 @@ Does NOT cover: the skills/agents (engagement-engine), the substrate mechanics
 - `AGENTS.md` — "Versioning" section + `scripts/bump-version.sh` semantics
 - `docs/VISION.md` — plugin-local-docs convention ("stays thin and defers")
 - `plugins/agile-workflow/docs/` — plugin-local foundation-docs precedent
+
+## Design inputs (carried forward)
+- **This feature owns the ARD-sync *policy***: the ARD-axis → plugin-action mapping
+  (ARD PATCH → plugin patch; ARD MINOR → re-sync catalogs/ports, plugin minor/patch;
+  ARD MAJOR → migration, plugin major), the decoupled-semver rule (the plugin's semver
+  is independent of the adopted ARD version), and the single-source provenance-record
+  design. The `epic-agentic-research-ard-sync` feature implements the *tooling* that
+  enforces this policy. The v0.1 → v0.2 re-pin on this branch is the worked example.
