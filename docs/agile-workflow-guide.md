@@ -700,6 +700,8 @@ For queries beyond reading a single file, the agent uses
 .work/bin/work-view --ready             # items ready to work
 .work/bin/work-view --stage review      # items waiting on you
 .work/bin/work-view --parent <epic-id>  # children of an epic
+.work/bin/work-view --scope all         # include shipped/archived history
+                                        # (default: active + backlog only)
 ```
 
 The agent runs this internally on every session start (via the hook) and

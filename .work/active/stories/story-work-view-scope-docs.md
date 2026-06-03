@@ -2,7 +2,7 @@
 id: story-work-view-scope-docs
 kind: story
 tags: [tooling, docs]
-stage: drafting
+stage: review
 parent: feature-work-view-scope
 depends_on: [story-work-view-scope-cli]
 release_binding: null
@@ -39,3 +39,14 @@ binary stays the single source of truth for the default.
 - No config key added to CONVENTIONS.md (descriptive only).
 - Wording matches the `--help` text intent (active+backlog default; opt-in for
   history).
+
+## Implementation notes (done — at review)
+
+- `convert/SKILL.md` query-patterns template gained a `--scope all` bullet
+  (the block convert writes into project AGENTS files).
+- This repo's `AGENTS.md` substrate block mirrored the same bullet;
+  `.claude/CLAUDE.md` is a symlink to `AGENTS.md`, so it inherits automatically.
+- `docs/agile-workflow-guide.md` work-view flag listing gained a `--scope all`
+  row noting the active+backlog default.
+- Descriptive only — no CONVENTIONS.md config key; binary stays the single
+  source of truth for the default.

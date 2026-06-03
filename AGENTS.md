@@ -101,6 +101,9 @@ parent, and dependency. Common patterns:
 - `work-view --ready` — items ready to work (deps satisfied)
 - `work-view --stage review` — items waiting on user
 - `work-view --parent <id>` / `--blocking <id>` — hierarchy / sequencing
+- `work-view --scope all` — include shipped/abandoned history (releases +
+  archive). Default shows only active + backlog; `--release` / `--gate`
+  auto-widen to all tiers.
 - `work-view --help` for the full flag set
 
 Foundation docs in `docs/` describe the system's current state or intended
