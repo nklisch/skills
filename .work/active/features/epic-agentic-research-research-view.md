@@ -1,0 +1,41 @@
+---
+id: epic-agentic-research-research-view
+kind: feature
+stage: drafting
+tags: [tooling]
+parent: epic-agentic-research
+depends_on: [epic-agentic-research-substrate-tier]
+release_binding: null
+gate_origin: null
+created: 2026-06-03
+updated: 2026-06-03
+---
+
+# `research-view` query binary
+
+## Brief
+Build `research-view`, a thin read-only query tool over the `.research/` tier —
+the research-tier analog of `.work/bin/work-view`. Per the epic's design
+decision, it ships as a **Rust prebuilt binary** following the `substrate-binary`
+reference-skill pattern (Rust source + prebuilt dist binaries + checksum +
+version-freshness gating). It offers read-only queries over the tier — by
+`source_handle`, `status`, `temporal_contract`, corpus, and `provenance`; list
+attestations / positions / campaigns — and deliberately imposes NO stages on
+items (the tier has none), surfacing ARD's native lifecycle fields instead.
+
+It mirrors work-view's build/distribution machinery; the recent work-view
+version-freshness story is the precedent for keeping the tracked binary in
+lockstep with plugin metadata. As a CLI binary it works in all three channels.
+
+Does NOT cover: any write/mutation of the substrate, or citation linting (that
+floor belongs to substrate-tier).
+
+## Epic context
+- Parent epic: `epic-agentic-research`
+- Position in epic: consumer of `epic-agentic-research-substrate-tier`; the
+  ergonomics-parity deliverable. Parallel with `work-handoff`.
+
+## Foundation references
+- `.work/bin/work-view` — the parallel query tool to mirror
+- `.agents/skills/substrate-binary/` — build/dist + version-freshness pattern
+- `epic-agentic-research-substrate-tier` — the schema/layout it queries

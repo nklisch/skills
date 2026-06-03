@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research
 kind: epic
-stage: drafting
+stage: implementing
 tags: [plugin]
 parent: null
 depends_on: []
@@ -62,6 +62,23 @@ research→work handoff that makes the two tiers pair.
   files `.work/` items only when a substrate exists) is designed and documented,
   not implemented live.
 
+## Design decisions
+Resolved during epic-design (the epic's open questions, now closed). nklisch may
+revisit any of these in review.
+- **research-view form**: Rust prebuilt binary — parity with `.work/bin/work-view`,
+  following the `substrate-binary` pattern (Rust source + prebuilt dist binaries +
+  checksum + version-freshness). Chosen for cross-tier ergonomic consistency over a
+  lighter zero-dep script.
+- **Doc home**: plugin-local (`plugins/agentic-research/docs/`) — per `docs/VISION.md`
+  ("the repo stays thin and defers; each plugin carries its own foundation docs");
+  matches `plugins/agile-workflow/docs/`.
+- **Versioning**: the plugin gets its own semver starting `0.1.0`, recording "adopts
+  ARD v0.1"; the foundation-docs feature reconciles ARD's spec-bundle-as-unit model
+  with per-plugin `bump-version.sh`.
+- **Cross-harness degradation**: the lint floor and the `research-view` binary are
+  cross-harness (CLI); the three Claude sub-agents are Claude-only and degrade to
+  absent — never broken — on Codex/Pi, per the repo's harness-surface rule.
+
 ## Source
 ARD upstream: https://code.s-nc.org/Kevoun/ARD (authored by Kevoun). Cloned
 read-only during scoping. Currently a doc/spec framework with **no** plugin channel
@@ -85,33 +102,36 @@ Key pieces:
 - **Tooling**: `lint-citations.py` — zero-dependency citation-chain *validator*
   (not a query tool).
 
-## Decomposition sketch (design input for epic-design)
-Anticipated child features — `epic-design` owns the final cut and the real
-`depends_on` chains. Slugs follow the `feature-agentic-research-*` convention.
+## Decomposition
+Split by capability into six child features. The scaffold is the dependency root
+(the plugin shell everything lives in); the substrate-tier is the conceptual
+lynchpin (the query binary and the handoff both build on its schema). ARD's two
+skills and three agents are merged into one **engagement-engine** feature — they
+are a single coupled capability (the orchestrator dispatches the agents; the
+discipline bundle injects into them), so splitting them would slice a layer, not a
+capability. After scaffold lands, engagement-engine / substrate-tier /
+foundation-docs run in parallel; research-view and work-handoff open up once the
+tier schema is fixed.
 
-1. **feature-agentic-research-scaffold** `[plugin]` — plugin dir + three-channel
-   metadata (`.claude-plugin`, `.codex-plugin`, `package.json`) + `marketplace.json`
-   entry + README + AGENTS.md plugin-map registration (per the "Adding a plugin"
-   checklist). Foundation of everything else.
-2. **feature-agentic-research-skills** `[skill]` — port `research-orchestrator` +
-   `research-discipline` as `SKILL.md`, namespaced; templates (dispatch / attestation
-   / precis / INDEX) as `references/`. depends_on: scaffold.
-3. **feature-agentic-research-agents** `[skill]` — port `research-specialist`,
-   `adversarial-reader`, `evaluator` as Claude-native agent defs (harness-specific
-   surface; degrade-to-absent on Codex/Pi). depends_on: scaffold.
-4. **feature-agentic-research-substrate-tier** `[docs]` — define the `.research/`
-   tier (layout, frontmatter contracts, `[handle]{N}` + `references.md`,
-   `temporal_contract`/`status` lifecycle, corrections-vs-reversals); wire
-   `lint-citations.py` as the floor; seed one worked example. depends_on: scaffold.
-5. **feature-agentic-research-research-view** `[tooling]` — thin read-only
-   `research-view` (query attestations / positions / campaigns by handle / status /
-   temporal_contract / corpus). No stages. depends_on: substrate-tier.
-6. **feature-agentic-research-foundation-docs** `[docs]` — adapt SPEC / CATALOGS /
-   ADOPTING / VERSIONING into the repo's doc conventions; reconcile ARD's
-   spec-bundle-as-unit versioning with per-plugin `bump-version.sh`. depends_on: scaffold.
-7. **feature-agentic-research-work-handoff** `[docs]` — design + document the
-   research→work handoff (a campaign emits `.work/` items, gate-style, graceful when
-   the work substrate is absent). Design only this PR. depends_on: substrate-tier.
+### Child features
+- `epic-agentic-research-scaffold` `[plugin]` — plugin shell + three-channel metadata + marketplace/AGENTS registration + 0.1.0 baseline — depends on: `[]`
+- `epic-agentic-research-engagement-engine` `[skill]` — the 2 skills + 3 Claude agents + dispatch template — depends on: `[epic-agentic-research-scaffold]`
+- `epic-agentic-research-substrate-tier` `[docs, tooling]` — `.research/` tier definition + lint floor + seed example — depends on: `[epic-agentic-research-scaffold]`
+- `epic-agentic-research-foundation-docs` `[docs]` — SPEC/CATALOGS/ADOPTING/VERSIONING adaptation + versioning reconciliation — depends on: `[epic-agentic-research-scaffold]`
+- `epic-agentic-research-research-view` `[tooling]` — Rust prebuilt query binary (work-view parity) — depends on: `[epic-agentic-research-substrate-tier]`
+- `epic-agentic-research-work-handoff` `[docs]` — designed + documented research→work handoff (not live) — depends on: `[epic-agentic-research-substrate-tier]`
+
+### Decomposition risks
+- **substrate-tier is the lynchpin.** research-view and work-handoff both inherit
+  its frontmatter contracts and tier semantics; an error there propagates. Design
+  it before its dependents are picked up.
+- **Template ownership is split.** The `dispatch.md` template (engagement
+  registration) lives with engagement-engine; the `attestation.md` / `precis.md` /
+  `INDEX.md` templates (substrate artifacts) live with substrate-tier. feature-design
+  should confirm this split when each is picked up.
+- **engagement-engine spans the portability boundary** (portable skills + Claude-only
+  agents in one feature). Acceptable — its design pass documents per-surface
+  degradation — but watch its size and split it if it overflows one feature-design pass.
 
 ## Foundation impact (applied during implementation, not at scope time)
 No foundation-doc roll-forward happens at scope time: the `plugins/agentic-research/`
@@ -122,18 +142,3 @@ registration per the "Adding a plugin" checklist (AGENTS.md plugin map +1 row,
 `marketplace.json`, three channel manifests). The two-substrate architecture note
 (operational `.work/` + research `.research/`) lands in `docs/` during the
 foundation-docs feature.
-
-## Open questions for epic-design / nklisch
-- **Doc home**: adapted SPEC/CATALOGS under `plugins/agentic-research/docs/`
-  (plugin-local, like `agile-workflow/docs/`) vs the repo-level `docs/`?
-  Leaning plugin-local.
-- **research-view form**: prebuilt binary (Rust, parity with `work-view`) vs a
-  zero-dep script (Python, parity with `lint-citations.py`)? Affects the
-  `substrate-binary` reference-skill story.
-- **Versioning reconciliation**: ARD's "spec bundle versions as a unit" vs the
-  repo's per-plugin semver — start the plugin at its own `0.1.0` and record
-  "adopts ARD v0.1" in the manifest/README?
-- **Cross-harness degradation**: the `lint` floor ports everywhere, but the
-  sub-agent verification gates (`adversarial-reader`, `evaluator`) are Claude-only.
-  Confirm "degrade to absent, never broken" is acceptable for the rigor controls
-  on Codex/Pi.
