@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-substrate-tier-lint
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-agentic-research-substrate-tier
 depends_on: []
@@ -47,3 +47,7 @@ lint-wiring decision).
   `--format json` confirmed working.
 - **Discrepancies from design**: none (verbatim port).
 - **Adjacent issues parked**: none.
+
+## Review (approve · fast-lane)
+Verdict: Approve — story verified by implement (smoke test 3/3 green in notes above);
+fast-lane advance to done.

@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-substrate-tier-definition
 kind: story
-stage: review
+stage: done
 tags: [docs]
 parent: epic-agentic-research-substrate-tier
 depends_on: []
@@ -48,3 +48,7 @@ parent feature body's "Tier specification" section — implement to that contrac
   layout / 3 frontmatter contracts / `[handle]{N}` + append-only / lifecycle /
   down-gradient; `git check-ignore` confirms `raw/` fetches are excluded.
 - **Adjacent issues parked**: none.
+
+## Review (approve · fast-lane)
+Verdict: Approve — story verified by implement (verification green in notes above);
+fast-lane advance to done.
