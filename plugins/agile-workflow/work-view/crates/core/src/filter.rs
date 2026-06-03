@@ -7,8 +7,9 @@
 //! - `Equals(s)`    — field must equal `s` exactly (case-sensitive).
 //! - `IsNull`       — field must be `None` (missing/null in frontmatter).
 //!
-//! The CLI adapter uses only `Any` and `Equals` (parity with `work-view.sh`).
-//! The board can use `IsNull` to filter unbound items (e.g. `release_binding == null`).
+//! The CLI adapter uses `Any` and `Equals` (and `IsNull` via the `null` literal
+//! on `--parent`/`--release`/`--gate`). The board can use `IsNull` to filter
+//! unbound items (e.g. `release_binding == null`).
 //!
 //! `Filter.tags` is AND semantics (item must have ALL listed tags).
 //! `Filter.blocking` selects items whose `depends_on` contains the given id.

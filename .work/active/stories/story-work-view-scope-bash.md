@@ -1,7 +1,7 @@
 ---
 id: story-work-view-scope-bash
 kind: story
-stage: drafting
+stage: review
 tags: [tooling]
 parent: feature-work-view-scope
 depends_on: [story-work-view-scope-cli]
@@ -11,34 +11,38 @@ created: 2026-06-03
 updated: 2026-06-03
 ---
 
-# Bash parity: mirror `--scope` + implicit-widen into work-view.sh
+# Rust-only: drop bash parity coupling (work-view.sh frozen as degraded fallback)
 
-## Scope
+## Scope (repurposed mid-feature)
 
-Keep `scripts/work-view.sh` byte-parity with the Rust binary for `--scope`. Bash
-already tier-classifies items (`*/.work/active/*` cases at lines 228, 356), so
-this reuses that pattern.
+Original plan was to mirror `--scope` into `scripts/work-view.sh` and keep
+byte-parity. **User decision:** stop maintaining bash parity and use this as the
+point to make the Rust binary the sole canonical work-view. `--scope` is
+Rust-only; `work-view.sh` stays as a frozen, degraded install fallback (no
+`--scope`, no board) for platforms without a prebuilt binary.
 
-## Changes
+Full retirement of the bash fallback (delete the script, redesign the
+install-work-view.sh fallback, drop the bump-version.sh version projection,
+rewrite foundation docs) is **out of scope here** — parked as its own designed
+epic (`epic-retire-bash-work-view`).
 
-- `scripts/work-view.sh`:
-  - `want_scope=""` var; parse `--scope) want_scope="$2"; shift 2`.
-  - Validate against `active|backlog|releases|archive|all`; unknown → exit 1.
-  - Implicit-widen: after arg loop, if `want_scope` empty and
-    (`want_release` or `want_gate` non-empty), set `want_scope=all`.
-  - In the match loop, add a tier gate derived from the file path
-    (`*/.work/releases/*` / `*/.work/archive/*` = terminal; else non-terminal):
-    default (empty `want_scope`) keeps non-terminal; `active`/`backlog`/
-    `releases`/`archive` keep only that tier; `all` keeps everything.
-  - Add `--scope` to `usage()` so `--help` matches the Rust `HELP`.
+## Changes (done — at review)
+
+- Removed the entire bash-parity test surface from
+  `crates/cli/tests/integration.rs`: the `bash_run` helper, `BASH_SCRIPT`
+  const, the core/expanded/empty-partition/cat parity matrix, and the two
+  `parity_version_*_matches_bash` tests (~479 lines). The Rust-only `--version`
+  shape tests and the `.work-view-version`<->plugin.json lockstep test remain.
+- Softened the `--version` test-section comment to drop the byte-parity claim
+  and point at the parked retirement epic.
+- Softened source doc-comments that claimed enforced parity: `args.rs` module
+  header and `filter.rs` `Match` doc.
+- Added a `FROZEN DEGRADED FALLBACK` banner to `work-view.sh`'s header stating it
+  lacks `--scope`/board and that parity is no longer enforced.
 
 ## Acceptance criteria
 
-- `diff <(work-view ...) <(work-view.sh ...)` identical for: default,
-  `--scope all`, `--scope archive`, `--release X`, `--gate Y` (paths + count
-  modes; table excluded per existing parity note).
-- New parity test cases in `crates/cli/tests/integration.rs` covering
-  default-excludes-terminal, `--scope all`, and implicit-widen, following the
-  existing `parity_*_matches_bash` harness (skip-if-bash-absent, hard-fail on
-  path regression).
-- `usage()` and Rust `HELP` `--scope` lines are byte-identical.
+- `rg "bash_run|BASH_SCRIPT|parity_.*_matches_bash" integration.rs` → none.
+- Full `cargo test` green without the parity matrix (300 tests).
+- `work-view.sh` left functional (frozen), with an honest degraded-fallback note.
+- A parked epic captures the full bash retirement.

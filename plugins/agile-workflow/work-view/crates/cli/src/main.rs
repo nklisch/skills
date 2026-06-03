@@ -12,6 +12,7 @@
 //!   -> Err(Io): print to stderr, exit 3
 //! emit parse_errors / validation_warnings / duplicate_ids to stderr
 //! items = substrate.query(&opts.filter)
+//! items = apply_scope(items, opts.scope)            // default: non-terminal tiers
 //! items = apply_dependency_view(&sub, items, opts.dependency_view)
 //! render(items, opts.output, stdout)
 //!   -> Ok: exit 0
@@ -29,6 +30,7 @@ mod actionable;
 mod args;
 mod board;
 mod render;
+mod scope;
 
 use std::env;
 use std::io::{self, ErrorKind};
@@ -40,6 +42,7 @@ use actionable::apply_dependency_view;
 use args::{parse_args, ParseOutcome, HELP};
 use board::{parse_board_args, run_board, BoardParseOutcome, BOARD_HELP};
 use render::render;
+use scope::apply_scope;
 
 fn run() -> u8 {
     // ── 1. Parse argv ────────────────────────────────────────────────────────
@@ -133,8 +136,9 @@ fn run() -> u8 {
         );
     }
 
-    // ── 5. Query + post-filter ───────────────────────────────────────────────
+    // ── 5. Query + post-filters ──────────────────────────────────────────────
     let items = sub.query(&opts.filter);
+    let items = apply_scope(items, opts.scope);
     let items = apply_dependency_view(&sub, items, opts.dependency_view);
 
     // ── 6. Render ────────────────────────────────────────────────────────────

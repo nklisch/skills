@@ -1,7 +1,7 @@
 ---
 id: story-work-view-scope-cli
 kind: story
-stage: drafting
+stage: review
 tags: [tooling]
 parent: feature-work-view-scope
 depends_on: []
@@ -52,3 +52,25 @@ locked decisions and overall design.
 - Unit tests in `scope.rs` (membership + post-filter, mirroring
   `actionable.rs` tests) and `args.rs` (parse + implicit-widen precedence).
 - `cargo test` green; `cargo clippy` clean.
+
+## Implementation notes (done — at review)
+
+- `args.rs`: added `TierScope { NonTerminal(default), Active, Backlog, Releases,
+  Archive, All }` + `includes(tier)`; `CliOptions.scope`; `--scope` parse arm
+  (unknown → UsageError); `saw_scope` tracking; post-loop implicit-widen
+  (`!saw_scope && (release != Any || gate != Any)` → `All`); HELP `Scope`
+  section; contract doc-comment lines.
+- `scope.rs` (new): `apply_scope(items, scope)` post-filter, `All` short-circuits,
+  load order preserved. 9 unit tests (includes + membership + post-filter).
+- `main.rs`: `mod scope;`, `use scope::apply_scope;`, inserted between `query`
+  and `apply_dependency_view`; pipeline doc-comment updated.
+- 11 new `args.rs` tests (parse tokens, invalid/missing value, last-wins,
+  release/gate widen, gate-null widen, explicit-over-implicit precedence,
+  plain-filters-do-not-widen).
+- Suite green: 124 lib + 82+59+31+4 integration = 300 tests pass; clippy 0
+  (fixed a `needless_lifetimes` on `apply_scope`).
+- Smoke-tested on this repo's substrate: default `--kind feature` 31→1;
+  `--scope all` restores 148; `--release 0.9.0` widens to 58 with no `--scope`;
+  `--release 0.9.0 --scope active` = 0 (explicit wins); `--scope bogus` exit 1.
+- Verified board path untouched (`board/feed.rs` reads `.items()` directly,
+  separate `board`/`serve` subcommand, never hits `parse_args`/`apply_scope`).

@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # work-view — query items in the agile-workflow substrate.
 #
+# FROZEN DEGRADED FALLBACK. The canonical work-view is the Rust binary
+# (crates/, installed to .work/bin/work-view). This script is only the
+# install fallback for platforms without a prebuilt binary. It deliberately
+# LACKS newer features: no `--scope` tier filtering (it always queries all
+# tiers) and no `work-view board`. bash<->Rust byte-parity is no longer
+# enforced. Full retirement is tracked as a parked epic; until then this stays
+# as a best-effort degraded fallback.
+#
 # Pure bash + a single awk pass. Frontmatter for every item is parsed exactly
 # once, in one awk process for the whole tree, instead of spawning an awk per
 # field per file. Optional yq enhancement detected at runtime but not required.

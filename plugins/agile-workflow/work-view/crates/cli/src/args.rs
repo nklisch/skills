@@ -1,12 +1,15 @@
 //! Arg parsing for the work-view CLI.
 //!
 //! Hand-rolled to preserve binary-size goals and full exit-code control.
-//! Mirrors `work-view.sh`'s arg loop exactly, with one intentional tightening:
-//! a missing flag value (e.g. `--stage` at end of args, or `--stage --other`)
-//! is a `UsageError`, where bash's blind `shift 2` would silently consume the
-//! next flag as the value.
+//! Originally mirrored `work-view.sh`'s arg loop, with one intentional
+//! tightening: a missing flag value (e.g. `--stage` at end of args, or
+//! `--stage --other`) is a `UsageError`, where bash's blind `shift 2` would
+//! silently consume the next flag as the value. The Rust binary is now the
+//! canonical work-view — bash<->Rust byte-parity is no longer enforced, and
+//! `--scope` is Rust-only (the bash script is a frozen degraded fallback).
 
 use work_view_core::filter::{Filter, Match};
+use work_view_core::model::Tier;
 
 // ── Version stamp ───────────────────────────────────────────────────────────────
 
@@ -55,6 +58,49 @@ pub enum DependencyView {
     Blocked,
 }
 
+// ── Tier scope ──────────────────────────────────────────────────────────────
+
+/// Which substrate tiers a query surfaces.
+///
+/// Applied as a CLI-layer post-filter (see `scope.rs`), parallel to
+/// `DependencyView`.  The core `query()` and the board stay scope-agnostic — the
+/// board must keep rendering every tier, so the default lives here, not in core.
+///
+/// The default (`NonTerminal`) hides the terminal tiers (`Releases` + `Archive`),
+/// which grow without bound, while keeping the live working set (`Active` +
+/// `Backlog`).  This reuses the `is_terminal`-by-tier line from the model.
+#[derive(Debug, PartialEq, Eq, Default, Clone, Copy)]
+pub enum TierScope {
+    /// Default: non-terminal tiers only (`Active` + `Backlog`).  There is no
+    /// user-facing token for this set — it is the absence of `--scope`.
+    #[default]
+    NonTerminal,
+    /// `Active` tier only.
+    Active,
+    /// `Backlog` tier only.
+    Backlog,
+    /// `Releases` tier only.
+    Releases,
+    /// `Archive` tier only.
+    Archive,
+    /// Every tier — reproduces the pre-`--scope` all-tier behavior.
+    All,
+}
+
+impl TierScope {
+    /// Returns `true` if `tier` is included in this scope.
+    pub fn includes(self, tier: Tier) -> bool {
+        match self {
+            TierScope::NonTerminal => matches!(tier, Tier::Active | Tier::Backlog),
+            TierScope::Active => tier == Tier::Active,
+            TierScope::Backlog => tier == Tier::Backlog,
+            TierScope::Releases => tier == Tier::Releases,
+            TierScope::Archive => tier == Tier::Archive,
+            TierScope::All => true,
+        }
+    }
+}
+
 // ── Options ───────────────────────────────────────────────────────────────────
 
 /// Fully-parsed options for a single work-view invocation.
@@ -66,6 +112,8 @@ pub struct CliOptions {
     pub output: OutputMode,
     /// Dependency-view post-filter (extended by `next-actionable`).
     pub dependency_view: DependencyView,
+    /// Tier-scope post-filter (default: non-terminal tiers).
+    pub scope: TierScope,
 }
 
 // ── Outcome ───────────────────────────────────────────────────────────────────
@@ -116,6 +164,10 @@ Filters (compose with AND semantics):
   --ready              Active items at drafting/implementing/review with all depends_on done
   --blocked            Active items at drafting/implementing/review with unmet dependencies
   --blocking <id>      Items that depend on <id>
+
+Scope (default: active + backlog; terminal tiers hidden):
+  --scope <scope>      Tiers to include: active|backlog|releases|archive|all
+                       (--release/--gate widen to all unless --scope is set)
 
 Output (default tabular):
   --paths              One file path per line
@@ -177,6 +229,8 @@ fn next_value<I: Iterator<Item = String>>(
 /// - `--ready`                       → `dependency_view = DependencyView::Ready`
 /// - `--blocked`                     → `dependency_view = DependencyView::Blocked`
 /// - `--ready` AND `--blocked` both present → `UsageError` (mutually exclusive)
+/// - `--scope <active|backlog|releases|archive|all>` → `scope`; unknown → `UsageError`
+/// - `--release`/`--gate` set without explicit `--scope` → `scope = All` (implicit-widen)
 /// - `--help|-h`                     → `ParseOutcome::Help`
 /// - `--version|-V`                  → `ParseOutcome::Version`
 /// - `--`                            → stop flag parsing; subsequent positionals → `UsageError`
@@ -187,6 +241,7 @@ pub fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<ParseOutcome, U
     let mut flags_done = false;
     let mut saw_ready = false;
     let mut saw_blocked = false;
+    let mut saw_scope = false;
 
     while let Some(arg) = iter.next() {
         if flags_done {
@@ -243,6 +298,23 @@ pub fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<ParseOutcome, U
                 saw_blocked = true;
                 opts.dependency_view = DependencyView::Blocked;
             }
+            "--scope" => {
+                let v = next_value("--scope", &mut iter)?;
+                opts.scope = match v.as_str() {
+                    "active" => TierScope::Active,
+                    "backlog" => TierScope::Backlog,
+                    "releases" => TierScope::Releases,
+                    "archive" => TierScope::Archive,
+                    "all" => TierScope::All,
+                    other => {
+                        return Err(UsageError(format!(
+                            "invalid --scope value: {other} \
+                             (expected active|backlog|releases|archive|all)"
+                        )));
+                    }
+                };
+                saw_scope = true;
+            }
             "--paths" => {
                 opts.output = OutputMode::Paths;
             }
@@ -265,6 +337,15 @@ pub fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<ParseOutcome, U
         return Err(UsageError(
             "--ready and --blocked are mutually exclusive".to_string(),
         ));
+    }
+
+    // Implicit-widen: `--release` / `--gate` are lifecycle-spanning selectors.
+    // A query keyed on `release_binding` or `gate_origin` is inherently a
+    // lifetime query — release-deploy `git mv`s bound items into the terminal
+    // `releases/` tier on ship — so widen scope to `All` unless the user set
+    // `--scope` explicitly.  Explicit `--scope` always wins.
+    if !saw_scope && (opts.filter.release != Match::Any || opts.filter.gate != Match::Any) {
+        opts.scope = TierScope::All;
     }
 
     Ok(ParseOutcome::Run(opts))
@@ -304,6 +385,86 @@ mod tests {
         assert_eq!(opts.filter.kind, Match::Any);
         assert_eq!(opts.output, OutputMode::Table);
         assert_eq!(opts.dependency_view, DependencyView::All);
+        assert_eq!(opts.scope, TierScope::NonTerminal);
+    }
+
+    // ── --scope flag + implicit-widen ──────────────────────────────────────────
+
+    #[test]
+    fn scope_active_sets_active() {
+        assert_eq!(run(&["--scope", "active"]).scope, TierScope::Active);
+    }
+
+    #[test]
+    fn scope_all_sets_all() {
+        assert_eq!(run(&["--scope", "all"]).scope, TierScope::All);
+    }
+
+    #[test]
+    fn scope_each_tier_token_maps() {
+        assert_eq!(run(&["--scope", "backlog"]).scope, TierScope::Backlog);
+        assert_eq!(run(&["--scope", "releases"]).scope, TierScope::Releases);
+        assert_eq!(run(&["--scope", "archive"]).scope, TierScope::Archive);
+    }
+
+    #[test]
+    fn scope_invalid_value_is_usage_error() {
+        let msg = err(&["--scope", "bogus"]);
+        assert!(msg.contains("invalid --scope value"), "got: {msg}");
+        assert!(msg.contains("bogus"), "got: {msg}");
+    }
+
+    #[test]
+    fn scope_missing_value_is_usage_error() {
+        let msg = err(&["--scope"]);
+        assert!(msg.contains("missing value"), "got: {msg}");
+        assert!(msg.contains("--scope"), "got: {msg}");
+    }
+
+    #[test]
+    fn scope_last_wins() {
+        assert_eq!(
+            run(&["--scope", "archive", "--scope", "all"]).scope,
+            TierScope::All
+        );
+    }
+
+    #[test]
+    fn release_without_scope_implicit_widens_to_all() {
+        let opts = run(&["--release", "v1.0.0"]);
+        assert_eq!(opts.scope, TierScope::All);
+    }
+
+    #[test]
+    fn gate_without_scope_implicit_widens_to_all() {
+        let opts = run(&["--gate", "security"]);
+        assert_eq!(opts.scope, TierScope::All);
+    }
+
+    #[test]
+    fn gate_null_implicit_widens_to_all() {
+        // `--gate null` sets Match::IsNull (still "given") → widens.
+        let opts = run(&["--gate", "null"]);
+        assert_eq!(opts.scope, TierScope::All);
+    }
+
+    #[test]
+    fn explicit_scope_overrides_implicit_widen() {
+        // Explicit --scope always wins over the --release/--gate widen.
+        let opts = run(&["--release", "v1.0.0", "--scope", "active"]);
+        assert_eq!(opts.scope, TierScope::Active);
+        // Order-independent.
+        let opts = run(&["--scope", "active", "--gate", "tests"]);
+        assert_eq!(opts.scope, TierScope::Active);
+    }
+
+    #[test]
+    fn plain_filters_do_not_widen() {
+        // Only --release/--gate widen; --stage/--kind/--tag/--parent do not.
+        assert_eq!(run(&["--stage", "done"]).scope, TierScope::NonTerminal);
+        assert_eq!(run(&["--kind", "feature"]).scope, TierScope::NonTerminal);
+        assert_eq!(run(&["--tag", "tooling"]).scope, TierScope::NonTerminal);
+        assert_eq!(run(&["--parent", "epic-x"]).scope, TierScope::NonTerminal);
     }
 
     #[test]
