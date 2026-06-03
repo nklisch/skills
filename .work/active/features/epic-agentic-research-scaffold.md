@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-scaffold
 kind: feature
-stage: implementing
+stage: review
 tags: [plugin]
 parent: epic-agentic-research
 depends_on: []
@@ -188,3 +188,21 @@ No unit-test framework here — verification is structural/static:
 - **Empty `skills/`.** A harness could warn on a skills dir with no SKILL.md;
   low risk (the dir is a valid, tracked placeholder) and resolved the moment
   engagement-engine lands.
+
+## Implementation notes
+- **Files created**: `plugins/agentic-research/` — `.claude-plugin/plugin.json`,
+  `.codex-plugin/plugin.json`, `package.json`, `skills/.gitkeep`, `README.md`.
+- **Files edited**: `.claude-plugin/marketplace.json` (+agentic-research entry,
+  string-path source, after ux-ui-design); `AGENTS.md` (FOUR→FIVE + `experimental`
+  plugin-map row after nates-toolkit).
+- **Tests added**: none — no test framework for plugin metadata. Static verification
+  per the Testing section all passed: 3 manifests valid JSON at `0.1.0` lockstep
+  (bump-version.sh parity gate OK), codex `skills`+`interface`, pi
+  `keywords`⊇`pi-package` + `pi.skills`, marketplace parses with the entry, AGENTS.md
+  shows FIVE + the experimental row, `skills/` tracked via `.gitkeep`.
+- **Discrepancies from design**: none — implemented verbatim, author `Kevoun`.
+- **Adjacent issues parked**: none. (The bump-version.sh binary-stamping gap is
+  already recorded as a carry-forward note on `epic-agentic-research-research-view`.)
+- **Live-load**: the plugin surfaces in the local `nklisch-skills` marketplace on
+  the next session reload (the reconciler runs at startup). It has zero skills until
+  engagement-engine lands — expected for the scaffold.

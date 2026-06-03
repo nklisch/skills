@@ -1,0 +1,14 @@
+{
+  "name": "@nklisch/pi-agentic-research",
+  "version": "0.1.0",
+  "description": "Agentic Research Discipline (ARD) — grounded, verifiable AI research with a .research/ substrate tier. Adopts ARD v0.1.",
+  "author": { "name": "Kevoun" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nklisch/skills.git",
+    "directory": "plugins/agentic-research"
+  },
+  "license": "MIT",
+  "keywords": ["pi-package", "agent-skills", "agentic-research"],
+  "pi": { "skills": ["./skills"] }
+}
