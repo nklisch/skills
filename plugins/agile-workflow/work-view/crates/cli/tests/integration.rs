@@ -1807,6 +1807,158 @@ fn is_null_matches_missing_and_explicit_null_parent() {
     );
 }
 
+// ── --scope flag (binary-level pipeline wiring) ───────────────────────────────
+//
+// Run the COMPILED binary against the golden fixture so these guard the
+// `apply_scope` wiring in main.rs — parser/unit tests alone would still pass if
+// apply_scope were dropped from the pipeline. Golden fixture tiers:
+//   non-terminal (5): epic-alpha, feat-a, feat-b, story-alpha-1 (active) + idea-backlog (backlog)
+//   terminal     (3): feat-done, feat-shipped (archive) + release-v1.0 (releases)
+// feat-shipped carries release_binding: v1.0.0 and gate_origin: tests in a
+// terminal tier, so it proves --release/--gate implicit-widen and --scope
+// precedence end-to-end.
+
+/// Parse a `--count` invocation's integer output (asserts exit 0).
+fn count_of(args: &[&str]) -> usize {
+    let (stdout, _, code) = run(args);
+    assert_eq!(code, 0, "args {args:?} should exit 0");
+    stdout
+        .trim()
+        .parse()
+        .unwrap_or_else(|_| panic!("count not an integer for {args:?}: {stdout:?}"))
+}
+
+#[test]
+fn scope_default_excludes_terminal_tiers() {
+    // Use table mode (real ids): the release item's file is v1.0.md, so a
+    // --paths substring check for "release-v1.0" would falsely pass.
+    let (out, _, code) = run(&[]);
+    assert_eq!(code, 0);
+    let ids = table_ids(&out);
+    for id in ["epic-alpha", "feat-a", "feat-b", "story-alpha-1", "idea-backlog"] {
+        assert!(
+            ids.contains(&id),
+            "default scope should include non-terminal {id}; ids: {ids:?}"
+        );
+    }
+    for id in ["feat-done", "feat-shipped", "release-v1.0"] {
+        assert!(
+            !ids.contains(&id),
+            "default scope must hide terminal {id}; ids: {ids:?}"
+        );
+    }
+    assert_eq!(count_of(&["--count"]), 5, "default = 5 non-terminal items");
+}
+
+#[test]
+fn scope_all_includes_every_tier() {
+    let (out, _, code) = run(&["--scope", "all"]);
+    assert_eq!(code, 0);
+    let ids = table_ids(&out);
+    for id in [
+        "epic-alpha",
+        "feat-a",
+        "feat-b",
+        "story-alpha-1",
+        "idea-backlog",
+        "feat-done",
+        "feat-shipped",
+        "release-v1.0",
+    ] {
+        assert!(
+            ids.contains(&id),
+            "--scope all should include {id}; ids: {ids:?}"
+        );
+    }
+    assert_eq!(count_of(&["--scope", "all", "--count"]), 8);
+}
+
+#[test]
+fn scope_archive_only_returns_archive_tier() {
+    let (out, _, _) = run(&["--scope", "archive"]);
+    let ids = table_ids(&out);
+    assert!(ids.contains(&"feat-done"), "ids: {ids:?}");
+    assert!(ids.contains(&"feat-shipped"), "ids: {ids:?}");
+    assert!(!ids.contains(&"epic-alpha"), "ids: {ids:?}");
+    assert!(!ids.contains(&"release-v1.0"), "ids: {ids:?}");
+}
+
+#[test]
+fn scope_releases_only_returns_release_tier() {
+    let (out, _, _) = run(&["--scope", "releases"]);
+    let ids = table_ids(&out);
+    assert_eq!(ids, vec!["release-v1.0"], "ids: {ids:?}");
+}
+
+#[test]
+fn scope_active_excludes_backlog() {
+    let (out, _, _) = run(&["--scope", "active"]);
+    let ids = table_ids(&out);
+    assert!(ids.contains(&"epic-alpha"), "ids: {ids:?}");
+    assert!(
+        !ids.contains(&"idea-backlog"),
+        "--scope active must exclude backlog; ids: {ids:?}"
+    );
+    assert!(!ids.contains(&"feat-done"), "ids: {ids:?}");
+}
+
+#[test]
+fn scope_backlog_only_returns_backlog_tier() {
+    let (out, _, _) = run(&["--scope", "backlog"]);
+    let ids = table_ids(&out);
+    assert_eq!(ids, vec!["idea-backlog"], "ids: {ids:?}");
+}
+
+#[test]
+fn scope_invalid_value_exits_1() {
+    let (_, stderr, code) = run(&["--scope", "bogus"]);
+    assert_eq!(code, 1, "invalid --scope value should exit 1");
+    assert!(
+        stderr.contains("invalid --scope value"),
+        "stderr should explain the bad value; got: {stderr}"
+    );
+}
+
+#[test]
+fn implicit_widen_release_reaches_terminal_tier() {
+    // feat-shipped (archive) has release_binding v1.0.0. With no --scope, the
+    // --release filter must widen to all tiers and surface it.
+    let (out, _, _) = run(&["--release", "v1.0.0"]);
+    let ids = table_ids(&out);
+    assert!(ids.contains(&"feat-a"), "active v1.0.0 item; ids: {ids:?}");
+    assert!(
+        ids.contains(&"feat-shipped"),
+        "archived v1.0.0 item must surface via implicit-widen; ids: {ids:?}"
+    );
+    // Explicit --scope active overrides the widen.
+    let (out, _, _) = run(&["--release", "v1.0.0", "--scope", "active"]);
+    let ids = table_ids(&out);
+    assert!(ids.contains(&"feat-a"), "ids: {ids:?}");
+    assert!(
+        !ids.contains(&"feat-shipped"),
+        "explicit --scope active must beat implicit-widen; ids: {ids:?}"
+    );
+}
+
+#[test]
+fn implicit_widen_gate_reaches_terminal_tier() {
+    // feat-shipped (archive) has gate_origin tests; story-alpha-1 (active) too.
+    let (out, _, _) = run(&["--gate", "tests"]);
+    let ids = table_ids(&out);
+    assert!(ids.contains(&"story-alpha-1"), "ids: {ids:?}");
+    assert!(
+        ids.contains(&"feat-shipped"),
+        "archived gate item must surface via implicit-widen; ids: {ids:?}"
+    );
+    // Explicit --scope active overrides the gate widen.
+    let (out, _, _) = run(&["--gate", "tests", "--scope", "active"]);
+    let ids = table_ids(&out);
+    assert!(
+        !ids.contains(&"feat-shipped"),
+        "explicit --scope active must beat gate widen; ids: {ids:?}"
+    );
+}
+
 // ── Output modes ──────────────────────────────────────────────────────────────
 
 #[test]

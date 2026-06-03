@@ -339,8 +339,12 @@ and pushes the version bump, so CI builds from the bumped source stamp. Users
 need no Rust toolchain — only CI does.
 
 The Bash fallback (`work-view.sh`) is pure bash, optional enhancement via `yq`
-if installed, falls back to `grep`+`sed` otherwise, and preserves the query CLI
-surface for platforms without a shipped prebuilt binary.
+if installed, falls back to `grep`+`sed` otherwise. It is a **frozen, degraded
+fallback** for platforms without a shipped prebuilt binary: it preserves the
+core filter surface but intentionally does **not** implement newer Rust-only
+features — no `--scope` (it always queries all tiers, the pre-scope default) and
+no `work-view board`. bash<->Rust byte-parity is no longer enforced. Full
+retirement of the Bash fallback (Rust-only) is tracked as a parked epic.
 
 ### Flag set
 
@@ -355,12 +359,19 @@ surface for platforms without a shipped prebuilt binary.
 | `--ready` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with all `depends_on` terminal (`done`/`released`, or resident in `releases/`/`archive/`) |
 | `--blocked` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with at least one non-terminal dependency |
 | `--blocking` | `<id>` | Reverse lookup: items that depend on `<id>` |
+| `--scope` | `<active\|backlog\|releases\|archive\|all>` | Tiers to surface. Default (flag absent) = **active + backlog** (non-terminal); terminal tiers (`releases`/`archive`) are hidden unless requested. `--release`/`--gate` auto-widen to `all` unless `--scope` is set explicitly |
 | `--paths` | (none) | Output only file paths (grep-pipe-friendly) |
 | `--cat` | (none) | Output full bodies of matching items |
 | `--count` | (none) | Output only the match count |
 | `--help` | (none) | Show usage and exit |
 
-Multiple filters compose with AND semantics.
+Multiple filters compose with AND semantics. By default `work-view` surfaces only
+the non-terminal tiers (active + backlog); the unbounded `releases/`/`archive/`
+history is opt-in via `--scope`. Because release-bound and gate-origin items
+migrate into the terminal `releases/` tier when a release ships, `--release` and
+`--gate` are treated as lifecycle queries and auto-widen to all tiers unless an
+explicit `--scope` overrides them. `--scope` is a Rust-binary feature; the frozen
+Bash fallback does not implement it (see below).
 
 ### Output modes
 
