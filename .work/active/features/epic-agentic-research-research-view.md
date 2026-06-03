@@ -39,3 +39,11 @@ floor belongs to substrate-tier).
 - `.work/bin/work-view` — the parallel query tool to mirror
 - `.agents/skills/substrate-binary/` — build/dist + version-freshness pattern
 - `epic-agentic-research-substrate-tier` — the schema/layout it queries
+
+## Design inputs (carried forward)
+- **Extend `scripts/bump-version.sh` for this binary.** Its version-projection
+  block is hardcoded `if [[ "$plugin" == "agile-workflow" ]]` — it stamps the
+  semver into work-view's Rust `.work-view-version` + bash fallback. This binary
+  needs an analogous block, or its self-reported version will drift from the
+  plugin manifests (the failure the work-view freshness story fixed). Surfaced
+  during `epic-agentic-research-scaffold` design.
