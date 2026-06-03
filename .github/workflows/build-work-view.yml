@@ -232,6 +232,10 @@ jobs:
     name: Commit binaries to dist/
     if: github.event_name == 'workflow_dispatch' && inputs.commit_binaries
     needs:
+      # Gate on the test job too: never commit prebuilt binaries from a run
+      # whose checks are red. (Previously this only needed the build jobs, so a
+      # dispatch with failing tests still pushed binaries to main.)
+      - test-install-helper
       - build-linux
       - build-macos
     runs-on: ubuntu-latest
