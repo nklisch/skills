@@ -1,7 +1,7 @@
 ---
 id: feature-work-view-scope
 kind: feature
-stage: drafting
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
@@ -96,4 +96,29 @@ post-filter) → `apply_dependency_view` → `render` (`main.rs:137-138`).
 - `--release <v>` / `--gate <n>` still find bound/gate items after they archive,
   with no explicit `--scope`.
 - `--scope active` + explicit-over-implicit precedence covered by tests.
-- Board output unchanged. Rust+bash parity green. Minor version bump.
+- Board output unchanged. Minor version bump.
+
+## Review outcome (done)
+
+Cross-model review via **Codex** (peeragent, effort high). Verdict: no runtime
+correctness blocker in the scope logic; two **should-fix** findings, both fixed:
+
+1. SPEC.md was stale — bash fallback claimed to "preserve the query CLI surface"
+   and the flag table omitted `--scope`. Fixed: added `--scope` + default-scope
+   docs to the flag table and marked the bash fallback frozen/degraded.
+2. No binary-level `--scope` tests — unit tests would still pass if `main.rs`
+   stopped wiring `apply_scope`. Fixed: added 9 compiled-binary integration
+   tests (default-exclude, `--scope all`, per-tier singletons, invalid-value
+   exit 1, `--release`/`--gate` implicit-widen + explicit precedence), backed by
+   a new `archive/feat-shipped.md` fixture item.
+
+Codex confirmed: implicit-widen detection is correct/consistent; scope-before-
+dependency-view ordering is safe; cut-on-tier keeps active `stage: done` visible;
+the `implement` skill's `--stage done` usage is intended live-tier behavior (not
+a regression); no other code-path bug.
+
+Also surfaced + parked (pre-existing, not this feature): release-deploy's
+`--release ""` unbound-query bug (`bug-release-deploy-unbound-query-empty-string`).
+
+Final: suite 309 green, clippy clean. Rust binary is now canonical work-view;
+bash parity retired (full bash retirement parked as `epic-retire-bash-work-view`).

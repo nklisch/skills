@@ -2,7 +2,7 @@
 id: story-work-view-scope-docs
 kind: story
 tags: [tooling, docs]
-stage: review
+stage: done
 parent: feature-work-view-scope
 depends_on: [story-work-view-scope-cli]
 release_binding: null

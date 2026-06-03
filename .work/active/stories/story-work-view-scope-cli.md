@@ -1,7 +1,7 @@
 ---
 id: story-work-view-scope-cli
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: feature-work-view-scope
 depends_on: []
