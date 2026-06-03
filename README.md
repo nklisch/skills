@@ -33,19 +33,25 @@ codex plugin install nates-toolkit
 ### Pi
 
 ```bash
+# Install all supported Pi packages from the Git repo root
+pi install git:github.com/nklisch/skills
+
+# Or install individual published packages
 pi install npm:@nklisch/pi-agile-workflow
 pi install npm:@nklisch/pi-ux-ui-design
 pi install npm:@nklisch/pi-nates-toolkit
 
 # Local checkout/development installs
+pi install -l .
 pi install -l ./plugins/agile-workflow
 pi install -l ./plugins/ux-ui-design
 pi install -l ./plugins/nates-toolkit
 ```
 
-Pi packages can load executable extensions in addition to shared skills. Install
-from trusted sources; `agile-workflow` includes a Pi-native `/aw` command for
-queue inspection and workflow handoffs.
+Pi packages can load executable extensions in addition to shared skills. The root
+Git install loads all supported plugins; the deprecated `workflow` plugin is not
+included. Install from trusted sources; `agile-workflow` includes a Pi-native
+`/aw` command for queue inspection and workflow handoffs.
 
 ## The three supported plugins
 

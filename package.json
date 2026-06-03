@@ -1,0 +1,31 @@
+{
+  "name": "nklisch-skills",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Root Pi package manifest for the nklisch skills monorepo.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nklisch/skills.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "agile-workflow",
+    "ux-ui-design",
+    "nates-toolkit"
+  ],
+  "pi": {
+    "extensions": [
+      "./plugins/agile-workflow/extensions/agile-workflow.ts"
+    ],
+    "skills": [
+      "./plugins/agile-workflow/skills",
+      "./plugins/ux-ui-design/skills",
+      "./plugins/nates-toolkit/skills"
+    ]
+  }
+}
