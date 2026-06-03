@@ -7,7 +7,7 @@ control-space of selectable verification gates, and a `.research/` substrate tie
 `agile-workflow`'s operational `.work/` tier. Citations use the `[handle]{N}`
 convention backed by per-source attestations, enforced by a citation-chain lint.
 
-Adopts **ARD v0.1**. Upstream framework by Kevoun:
+Adopts **ARD v0.2**. Upstream framework by Kevoun:
 <https://code.s-nc.org/Kevoun/ARD>.
 
 > **Scaffold status.** This is the plugin shell. The skills, the `.research/` tier

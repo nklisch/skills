@@ -73,7 +73,7 @@ revisit any of these in review.
   ("the repo stays thin and defers; each plugin carries its own foundation docs");
   matches `plugins/agile-workflow/docs/`.
 - **Versioning**: the plugin gets its own semver starting `0.1.0`, recording "adopts
-  ARD v0.1"; the foundation-docs feature reconciles ARD's spec-bundle-as-unit model
+  ARD v0.2"; the foundation-docs feature reconciles ARD's spec-bundle-as-unit model
   with per-plugin `bump-version.sh`.
 - **Cross-harness degradation**: the lint floor and the `research-view` binary are
   cross-harness (CLI); the three Claude sub-agents are Claude-only and degrade to
@@ -92,9 +92,9 @@ ARD upstream: https://code.s-nc.org/Kevoun/ARD (authored by Kevoun). Cloned
 read-only during scoping. Currently a doc/spec framework with **no** plugin channel
 metadata (`.claude-plugin` / `.codex-plugin` / `package.json` are net-new work).
 Key pieces:
-- **Docs**: SPEC.md (invariant architecture), CATALOGS.md (extensible v0.1
+- **Docs**: SPEC.md (invariant architecture), CATALOGS.md (extensible v0.2
   baseline), ADOPTING.md (4-tier manual copy-and-adapt adoption, no install
-  script), VERSIONING.md (SemVer; spec bundle versions as a unit; currently v0.1).
+  script), VERSIONING.md (SemVer; spec bundle versions as a unit; currently v0.2).
 - **`.research/` substrate** (4-tier, read down-gradient only):
   `reference/<corpus>/` (raw fetches, gitignored) → `attestation/<handle>.md`
   (per-source citation anchor) → `precis/<slug>.md` → `analysis/{positions,briefs,
