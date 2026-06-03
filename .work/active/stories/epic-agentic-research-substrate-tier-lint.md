@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-substrate-tier-lint
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-agentic-research-substrate-tier
 depends_on: []
@@ -34,3 +34,16 @@ lint-wiring decision).
 - [ ] `--format markdown|json` and `--exit-code-on high|medium|low|none` behave as upstream.
 - [ ] Smoke test: a known-good fixture passes; a known-bad fixture (broken handle +
   thin attestation) is flagged with the right statuses.
+
+## Implementation notes
+- **Files created**: `plugins/agentic-research/scripts/lint-citations.py` (byte-identical
+  port — `diff` clean against `/tmp/ARD/example/lint-citations.py`; defaults already
+  `.research/`-relative, no edits needed); `scripts/tests/test_lint.py` + `fixtures/`
+  (good / bad / thin cases).
+- **Tests added**: `test_lint.py` — launches the real script via subprocess
+  (`subprocess-cli-harness` pattern) and asserts: clean chain → exit 0; unresolved
+  handle → exit 1 with `unresolved-handle`; thin attestation → flagged + exit 0 (low).
+- **Verification**: `python3 test_lint.py` → "3/3 cases passed". `--help` and
+  `--format json` confirmed working.
+- **Discrepancies from design**: none (verbatim port).
+- **Adjacent issues parked**: none.
