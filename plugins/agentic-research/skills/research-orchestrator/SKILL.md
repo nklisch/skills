@@ -38,9 +38,10 @@ you compose its prompt through **one mandatory step**:
 >   `adversarial-reader.md` / `evaluator.md`).
 > - **engagement params** — the facet/seed/paths/rigor for this specific dispatch.
 
-On the **light path** (no fan-out) you author inline in your own context; the discipline
-auto-loads via the `research-discipline` skill, so no inlining is needed. **Never author or
-dispatch authoring without the discipline present** — that is the §5 fence.
+On the **light path** (no fan-out) you author inline in your own context, with the discipline
+already present (you read it at engagement start; on Claude the `research-discipline` skill also
+auto-loads), so no separate inlining is needed. **Never author or dispatch authoring without the
+discipline present** — that is the §5 fence.
 
 ## Reading the dials (ARD SPEC §8)
 
@@ -122,8 +123,10 @@ A subset-select gate catalog with a hard-floor core, not a monolithic switch:
 - **`evaluate`** — dispatch the [evaluator](references/evaluator.md) brief with **isolated context: ONLY the synthesis output + the seed.** Do not pass briefs, attestations, or the decomposition rationale — the isolation is the FR.1 fence, enforced by what you hand it.
 - **`spot-check`** — you (lead, full substrate access) sample across all lint pattern categories + load-bearing semantic claims, consuming lint + adversarial + evaluator findings. Corrections in place.
 
-A `NEEDS-REVISION` from either gate triggers a revision pass at the indicated scope; a
-second-pass `NEEDS-REVISION` is surfaced to the user, not looped silently.
+A `NEEDS-REVISION` from either gate triggers a revision pass at the indicated scope — a revision
+dispatched to a sub-agent is composed per **Dispatch composition** (the discipline is inlined
+again, never skipped on a re-author). A second-pass `NEEDS-REVISION` is surfaced to the user, not
+looped silently.
 
 ## Fan-out (the scale control)
 

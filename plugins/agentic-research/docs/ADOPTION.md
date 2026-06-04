@@ -25,7 +25,7 @@ Each kernel artifact carries a **vendor-mode** (from upstream `ard.json`):
 
 | Mode | Meaning | Our artifacts |
 |---|---|---|
-| `verbatim` | copy unaltered; never re-narrate | `scripts/lint-citations.py`, `scripts/schema/`, `templates/`, *(pending)* the discipline bundle |
+| `verbatim` | copy unaltered; never re-narrate | `scripts/lint-citations.py`, `scripts/schema/`, `templates/`, the discipline bundle (`skills/research-discipline/SKILL.md` body) |
 | `data` | consume as structured data; tooling + docs read it | `scripts/catalogs.json` |
 | `verify` | run to validate the vendored copy; not shipped as product | `scripts/conformance/` |
 
@@ -76,9 +76,11 @@ source. This is the drift fence: the bundle travels verbatim, never paraphrased 
 
 ## Cross-harness degradation
 
-The lint and the forthcoming `research-view` binary are cross-harness (CLI). The three Claude
-research sub-agents are a Claude-only surface that degrades to *absent* — never broken — on
-Codex/Pi, per the repo's harness-surface rule. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
+The lint and the forthcoming `research-view` binary are cross-harness (CLI). The two skills are
+portable (the open Agent Skills standard). The `research-orchestrator`'s **fan-out** uses the
+host's sub-agent tool (the Agent/Task tool on Claude) and degrades to inline-in-main-context
+where a host has none — never broken; the discipline travels by inlining either way, and the
+plugin ships **no** committed agent files. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
 two-substrate picture.
 
 ## A note on ARD's portability shape

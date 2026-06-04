@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-engagement-engine
 kind: feature
-stage: review
+stage: done
 tags: [skill]
 parent: epic-agentic-research
 depends_on: [epic-agentic-research-scaffold]
@@ -228,3 +228,27 @@ Both child stories are `done`:
 Feature work complete → advance `implementing → review` for the feature-level deep review
 (the substantial authored skill surface — orchestrator + briefs + discipline wrapper —
 gets its fresh-context quality pass there).
+
+## Review (approve with comments · deep · fresh-context)
+Verdict: **Approve with comments**. Independent fresh-context audit against ground truth (ARD
+SPEC/CATALOGS, `kernel/discipline.md`, the live E2E source). **All 8 checks PASS**: discipline
+body byte-verbatim; the §5 inline-dispatch fence real; orchestrator SPEC-faithful (§10.1 walk,
+§7 stack incl. evaluate reachability-prune, §8 dials, §9 registration); role briefs match
+CATALOGS §4 (8 jobs) / §5 (5 components) with the evaluator's FR.1 context-isolation enforced;
+the **E2E legitimate** (attestation passages match live semver.org items 4–5 byte-for-byte,
+chain resolves 3/3 · 0 broken · exit 0 — not rigged); vendor map 1:1; portable surface
+degrades-not-breaks. No blockers, no fabrication, no SPEC-invariant violation.
+
+Findings **fixed inline** (foundation-doc drift is blocking per the repo rule; small → fixed,
+not bounced):
+- **ADOPTION.md cross-harness section** described the *abandoned* committed-agents design ("three
+  Claude sub-agents degrade to absent") → rewritten to the inline-dispatch reality (portable
+  skills; fan-out via the host sub-agent tool, degrading to inline-in-main-context; no committed
+  agent files) — was self-contradicting the same doc's "ships no agent files" line.
+- **ADOPTION.md vendor-mode table** dropped the stale `*(pending)*` discipline-bundle marker (now vendored).
+- **§5 hardening**: the revision-pass authoring path is now explicitly routed through Dispatch
+  composition (discipline re-inlined on re-author) — closes the one backstop-dependent path.
+- **Nit**: tightened the light-path "auto-loads" phrasing (a Claude convenience, not the sole mechanism).
+
+Re-verified after fixes: vendor map 1:1 (9/9), conformance 15/15, E2E lint exit 0, drift gone.
+No remaining blockers → advance review → done.
