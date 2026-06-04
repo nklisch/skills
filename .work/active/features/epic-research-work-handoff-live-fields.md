@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live-fields
 kind: feature
-stage: drafting
+stage: implementing
 tags: [tooling, docs]
 parent: epic-research-work-handoff-live
 depends_on: [epic-agentic-research-substrate-tier]
@@ -79,9 +79,159 @@ agentic-research-owned).
   `cli/src/render.rs`, `cli/src/board/feed.rs` + `board/assets/filters.js`, and
   the integration tests in both crates.
 
-<!-- The design pass on this feature (/agile-workflow:feature-design) will fill
-in interfaces, signatures, field cardinality, and the test approach. Note for
-that pass: research_refs is plural per HANDOFF ("handles or analysis slugs") so
-it is likely a list/sequence — unlike gate_origin's single Option<String> — which
-changes parse (YAML sequence vs scalar), filter (membership vs equality), and the
-flag's match semantics. Do not blind-copy the gate_origin shape. -->
+## Architectural choice
+**Faithful mirror of the `gate_origin` vertical slice**, with one deliberate
+asymmetry for the list field. Both fields are added the way `gate_origin` already
+threads through the stack, so the change is mechanical and pattern-consistent:
+
+- **`research_origin: Option<String>`** — single scalar, an exact `gate_origin`
+  twin: `normalize_optional` on parse, a `Match` filter field, a `--research-origin`
+  flag via `nullable_match` (so `--research-origin null` → `IsNull`).
+- **`research_refs: Vec<String>`** — a list (HANDOFF frames it as "handles or
+  analysis slugs", plural). Stored like `tags`/`depends_on` (`#[serde(default)]`
+  Vec + `normalize_vec`); **queried by single-slug membership** like the existing
+  `blocking` reverse-dep filter (`--research-refs <slug>` → items whose
+  `research_refs` contains `<slug>`). This answers "what work tracks research X?".
+
+Both fields are **optional** — missing → `None`/`[]`, with **no** addition to
+`index.rs`'s required-field validation (which warns only on `kind`/`stage`;
+`gate_origin` et al. are explicitly exempt there). Inert when unset, exactly like
+`gate_origin` on user-scoped items.
+
+Rejected alternatives: (a) `research_refs` as repeatable AND-semantics like
+`--tag` — over-built for the "tracks research X" query and asymmetric with the
+single-slug `--research-origin`; single-slug membership mirrors `--blocking`,
+the established reverse-membership precedent. (b) a single combined field — loses
+the directional distinction (coordination vs grounding) the whole contract rests on.
+
+## Implementation Units
+
+### Unit 1: core model — the two `Item` fields
+**File**: `crates/core/src/model.rs` · **Story**: `…-fields-core`
+```rust
+pub struct Item {
+    // … after gate_origin:
+    /// Research artifact(s) this work item tracks/consumes (Arrow 1, coordination).
+    pub research_refs: Vec<String>,
+    /// Research artifact that spawned this work item (Arrow 2, grounding).
+    pub research_origin: Option<String>,
+}
+```
+- Update the struct doc comment (the "normalized optional scalar" list gains
+  `research_origin`; the "always a `Vec<String>`" list gains `research_refs`).
+- **Update every in-memory `Item { … }` literal** or it won't compile:
+  `model.rs` `make_item` (~L128), `actionable.rs` `make_item_direct` (~L149),
+  `render.rs` test fixture (~L166). Add `research_refs: vec![]` /
+  `research_origin: None`.
+**Acceptance**: crate compiles; `Item` carries both fields; defaults are `[]`/`None`.
+
+### Unit 2: parse — frontmatter → fields
+**File**: `crates/core/src/parse.rs` · **Story**: `…-fields-core`
+```rust
+struct RawFrontmatter {
+    // …
+    #[serde(default)] research_refs: Vec<String>,
+    #[serde(default)] research_origin: Option<String>,
+}
+// in parse_item():
+research_refs: normalize_vec(raw.research_refs),
+research_origin: normalize_optional(raw.research_origin),
+```
+**Acceptance**: flow + block YAML lists parse for `research_refs`; literal
+`"null"`/`""`/missing `research_origin` → `None`; missing `research_refs` → `[]`.
+
+### Unit 3: filter — query the fields
+**File**: `crates/core/src/filter.rs` · **Story**: `…-fields-core`
+```rust
+pub struct Filter {
+    // …
+    /// Filter on `item.research_origin` (mirror of `gate`).
+    pub research: Match,
+    /// Membership: select items whose `research_refs` contains this id (mirror of `blocking`).
+    pub research_refs: Option<String>,
+}
+// in item_matches():
+if !f.research.matches_opt(&item.research_origin) { return false; }
+if let Some(ref_id) = &f.research_refs {
+    if !item.research_refs.iter().any(|r| r == ref_id) { return false; }
+}
+```
+- Extend the `filter.rs` `full_item` test helper (and the `graph.rs`/`index.rs`/
+  `actionable.rs` frontmatter-string fixtures) to emit the two new lines so
+  fixtures stay representative (optional for parse, but keeps them faithful).
+**Acceptance**: `research: Equals/IsNull` filters by origin; `research_refs:
+Some(x)` selects items whose refs contain `x`; both AND-compose with existing filters.
+
+### Unit 4: CLI flags + HELP
+**File**: `crates/cli/src/args.rs` · **Story**: `…-fields-cli`
+```rust
+"--research-origin" => { let v = next_value("--research-origin", &mut iter)?; opts.filter.research = nullable_match(v); }
+"--research-refs"   => { let v = next_value("--research-refs",   &mut iter)?; opts.filter.research_refs = Some(v); }
+```
+- Add two HELP lines under the filters block:
+  `--research-origin <s>  Items with research_origin: <s>` and
+  `--research-refs <s>    Items whose research_refs contains <s>`.
+**Acceptance**: flags map to the right `Filter` fields; `--research-origin null`
+→ `IsNull`; missing values → `UsageError` (via `next_value`).
+
+### Unit 5: board feed DTO (+ optional filter chip)
+**File**: `crates/cli/src/board/feed.rs` (+ `board/assets/filters.js`) · **Story**: `…-fields-cli`
+- Add `research_refs: Vec<String>` and `research_origin: Option<String>` to the
+  board JSON DTO (~L47) and clone them through (~L110), mirroring `gate_origin`.
+- Optional parity: surface `research_origin` alongside `item?.gate_origin` in
+  `filters.js` (~L93) if a chip is wanted; not required for this feature.
+**Acceptance**: board JSON includes both fields; existing no-build board module
+tests still pass (extend the DTO assertion if one exists).
+
+### Unit 6: docs roll-forward (presence-based)
+**Files**: `plugins/agile-workflow/docs/SPEC.md`, `.work/CONVENTIONS.md`,
+`AGENTS.md`, `plugins/agile-workflow/docs/ARCHITECTURE.md` · **Story**: `…-fields-docs`
+- **SPEC.md**: frontmatter block (~L47) gains `research_refs: [...]  # optional`
+  and `research_origin: <slug>|null  # optional`; field-semantics table (~L64)
+  gains both rows; the flag table (~L354) gains `--research-origin` /
+  `--research-refs`; the TS envelope (~L444) gains `research_origin: string |
+  null;` and `research_refs: string[];`.
+- **AGENTS.md**: the substrate field list (~L96) appends `research_refs,
+  research_origin`.
+- **CONVENTIONS.md** + **ARCHITECTURE.md**: note the two optional linkage fields
+  (mirroring `gate_origin`), pointing at `agentic-research`'s HANDOFF.md for the
+  cross-tier contract.
+**Acceptance**: docs describe the two fields as optional, mirroring `gate_origin`;
+the SPEC frontmatter/flag/envelope all list them; no liveness overclaim about the
+arrows (those land in the gate/coordination features).
+
+## Implementation Order
+1. `…-fields-core` (Units 1-3) — model, parse, filter. No within-feature deps.
+2. `…-fields-cli` (Units 4-5) — flags + board. Depends on core (needs `Filter` +
+   `Item` fields).
+3. `…-fields-docs` (Unit 6) — roll-forward. Depends on core + cli (documents the
+   realized field + flag surface).
+
+## Testing
+- **core** (`model.rs`/`parse.rs`/`filter.rs` unit tests): parse flow+block list
+  for `research_refs`; `research_origin` null/empty/missing → `None`; missing
+  `research_refs` → `[]`; `Filter.research` Equals/IsNull; `research_refs`
+  membership; AND-composition with `stage`/`kind`. Mirror the existing
+  `filter_gate_equals` / `filter_blocking_reverse_dep` tests.
+- **cli** (`args.rs` unit + `tests/integration.rs`): `--research-origin <s>` /
+  `--research-origin null` / `--research-refs <s>`; missing-value `UsageError`;
+  an integration fixture item carrying the fields, asserting `--paths` selects it.
+- **board**: extend the no-build board module test if it asserts the feed DTO shape.
+- **docs**: mechanical — SPEC frontmatter/table/flag/envelope list both fields;
+  AGENTS field list updated; all cross-links resolve.
+
+## Risks
+- **Struct-field addition is a compile-wide change.** Every `Item { … }` literal
+  must add both fields (enumerated in Unit 1). Caught immediately by the compiler;
+  listed so implementation doesn't miss the test fixtures.
+- **List-field parse correctness.** `research_refs` as a YAML sequence is handled
+  by `normalize_vec` exactly like `tags`/`depends_on`; the risk is only if a
+  fixture emits it as a scalar. Mitigation: fixtures emit flow-style `[]`.
+- **Over-documenting not-yet-live arrows.** Unit 6 documents the *fields* only;
+  it must not claim the emission gate / commissioning arrows are live (those are
+  the sibling features). Mitigation: docs describe field shape + the `gate_origin`
+  mirror, and point at HANDOFF.md for the contract.
+
+<!-- research_refs cardinality (list) + its single-slug membership filter are a
+deliberate, precedent-grounded call (tags/depends_on storage + blocking filter),
+not a gate_origin clone — see Architectural choice. -->
