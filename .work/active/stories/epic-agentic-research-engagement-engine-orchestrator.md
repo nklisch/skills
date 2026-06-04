@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-engagement-engine-orchestrator
 kind: story
-stage: review
+stage: done
 tags: [skill]
 parent: epic-agentic-research-engagement-engine
 depends_on: [epic-agentic-research-engagement-engine-discipline]
@@ -78,3 +78,12 @@ each dispatch and references the vendored `dispatch.md` template.
   names version numbers) and each in cited/structural context. Artifacts kept (they ground
   `docs/VERSIONING.md`'s pre-1.0 claim) + `references.md` entry 4 added.
 - **Adjacent issues parked**: none.
+
+## Review (approve · fast-lane)
+Verdict: **Approve** — all acceptance criteria met: structural (orchestrator covers every
+SPEC-invariant-map row, inline dispatch composes the verbatim discipline, zero committed
+`agents/*.md`, evaluator isolation, links resolve) **plus the live E2E** recorded above (3/3
+citations resolved · 0 broken · exit 0; chain resolves end to end). Re-confirmed on the
+committed state: files present, E2E brief lints clean, conformance 15/15, tree clean. The
+substantial authored skill surface gets its deep pass at the feature-level review that
+follows. Advance review → done.

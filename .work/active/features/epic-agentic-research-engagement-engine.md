@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-engagement-engine
 kind: feature
-stage: implementing
+stage: review
 tags: [skill]
 parent: epic-agentic-research
 depends_on: [epic-agentic-research-scaffold]
@@ -220,3 +220,11 @@ No unit-test harness (skills/docs). Verifiable acceptance per unit + at feature 
   source-classes, lint, decision-points, enums, provenance). So role briefs reference
   CATALOGS §4/§5 by section (canonical-upstream), consistent with the thin/reference stance —
   not `catalogs.json`. Noted so implementation doesn't hunt for them in the data file.
+
+## Children complete (2026-06-04)
+Both child stories are `done`:
+- `…-discipline` (S1) — research-discipline skill (verbatim) + dispatch.md template + vendor-map sync. Approved fast-lane.
+- `…-orchestrator` (S2) — research-orchestrator skill + 3 inline-dispatch role briefs + openai.yaml + README. Approved fast-lane; **validated end-to-end** (live light-path engagement → lint-clean `.research/` artifacts).
+Feature work complete → advance `implementing → review` for the feature-level deep review
+(the substantial authored skill surface — orchestrator + briefs + discipline wrapper —
+gets its fresh-context quality pass there).
