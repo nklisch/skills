@@ -36,7 +36,7 @@ fn setup_substrate(items: &[(&str, &str)]) -> (TempDir, Substrate) {
 ```
 
 ### Example 2: filter.rs test module (verbatim copy)
-**File**: `plugins/agile-workflow/work-view/crates/core/src/filter.rs:124`
+**File**: `plugins/agile-workflow/work-view/crates/core/src/filter.rs:136`
 ```rust
 fn setup_substrate(items: &[(&str, &str)]) -> (TempDir, Substrate) {
     let tmp = TempDir::new().unwrap();

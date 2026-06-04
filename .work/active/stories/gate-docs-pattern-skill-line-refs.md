@@ -1,7 +1,7 @@
 ---
 id: gate-docs-pattern-skill-line-refs
 kind: story
-stage: implementing
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -36,3 +36,10 @@ The other cites in these skills (`actionable.rs:92`, `render.rs:149`,
 ## Note
 Confirm exact current line numbers with `grep -n` at implement time, since the
 work-view files may shift again before this lands.
+
+## Implementation notes
+Updated 4 stale cites (each verified against current code via grep first):
+- `substrate-borrowing-query.md` `filter.rs:73` → `filter.rs:77`
+- `substrate-test-fixture-builder.md` `filter.rs:124` → `filter.rs:136`
+- `test-item-builders.md` `filter.rs:143` → `filter.rs:155` and `model.rs:128` → `model.rs:133`
+The generated `.agents/rules/patterns.md` digest carries no file:line refs, so it is unaffected.

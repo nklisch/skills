@@ -17,7 +17,7 @@ grow the read API without touching load/parse.
 ## Examples
 
 ### Example 1: `query` — structural filter
-**File**: `plugins/agile-workflow/work-view/crates/core/src/filter.rs:73`
+**File**: `plugins/agile-workflow/work-view/crates/core/src/filter.rs:77`
 ```rust
 pub fn query<'a>(&'a self, f: &Filter) -> Vec<&'a Item> {
     self.items().iter().filter(|item| item_matches(item, f)).collect()
