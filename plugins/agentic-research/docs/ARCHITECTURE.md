@@ -26,8 +26,8 @@ guard — it keeps a synthesis from laundering project framing back into the sou
 
 ## The pairing — research ↔ work handoff
 
-The two substrates pair through two read-only reference arrows across the authority boundary
-(designed, not yet live): **`.work/` → `.research/`** — a work item commissions/tracks/consumes
+The two substrates pair through two read-only reference arrows across the authority boundary,
+both now **live**: **`.work/` → `.research/`** — a work item commissions/tracks/consumes
 research (the primary operational entry) — and **`.research/` → `.work/`** — a finding emits a
 tracked work item, gate-style. The invariant: **work never rewrites the research record** (the
 cleavage above); both arrows are references/commissions, not writes. It **degrades gracefully**
