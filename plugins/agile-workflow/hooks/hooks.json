@@ -1,5 +1,5 @@
 {
-  "description": "agile-workflow hooks: prompt-gated queue/principles context plus PostToolUse substrate maintenance. All hooks are flag-gated by .work/CONVENTIONS.md and use command handlers for Codex/Claude compatibility.",
+  "description": "agile-workflow hooks: session/compact rules context, prompt-gated principles context, and PostToolUse substrate maintenance. All hooks are flag-gated by .work/CONVENTIONS.md and use command handlers for Codex/Claude compatibility.",
   "hooks": {
     "SessionStart": [
       {

@@ -20,7 +20,6 @@ try:  # POSIX advisory file locking; absent on some platforms (e.g. Windows).
 except ImportError:  # pragma: no cover - exercised via monkeypatch in tests.
     fcntl = None  # type: ignore[assignment]
 
-MAX_ITEMS = 5
 MAX_SESSIONS = 20
 
 STRONG_ACTION_RE = re.compile(
@@ -59,35 +58,6 @@ QUEUE_QUERY_RE = re.compile(
 )
 
 DEFAULT_RULES_MAX_BYTES = 12000
-
-# Broad coding/dev-work detector for the .agents/rules/ UserPromptSubmit fallback.
-# Deliberately wider than the workflow-snapshot gate (cheap_action_candidate /
-# is_actionable): it must catch coding prompts that carry no workflow noun, e.g.
-# "fix failing tests", "continue", "debug this build error", or a bare file edit.
-CODING_PROMPT_RE = re.compile(
-    r"\b("
-    r"implement|implementation|fix|fixes|fixing|patch|bug|debug|"
-    r"refactor|perf|optimi[sz]e|optimi[sz]ation|design|review|verdict|"
-    r"test|tests|testing|failing|fails|build|builds|compile|compiles|"
-    r"error|errors|lint|type[- ]?check|typecheck|stack ?trace|"
-    r"add|change|update|rename|extract|inline|migrate|write|edit|wire|"
-    r"remove|delete|create|move|rework|clean ?up|"
-    r"continue|keep going|proceed|next step|finish|"
-    r"function|class|method|module|import|api|endpoint|schema"
-    r")\b",
-    re.IGNORECASE,
-)
-# A file/path reference is also a strong coding signal. Matched per whitespace
-# token (anchored, via re.match) to stay linear — a single scan over the whole
-# prompt with a leading `[\w./+-]*` is quadratic on long no-dot pastes. Match a
-# filename with a code-ish extension, or a multi-segment path (2+ slashes, which
-# avoids prose like "and/or").
-FILE_REF_RE = re.compile(
-    r"^[\w.+-]+\.(?:py|rs|ts|tsx|js|jsx|go|rb|java|kt|swift|c|cc|cpp|h|hpp|cs|"
-    r"php|sh|bash|md|json|ya?ml|toml|sql|html|css|scss|cfg|ini)\b"
-    r"|^(?:[\w.+-]+/){2,}[\w.+-]+"
-)
-_TOKEN_PUNCT = "\"'`.,;:!?()[]{}<>"
 
 CAPSULES = {
     "code_design": {
@@ -366,30 +336,6 @@ def is_actionable(prompt: str, matched_ids: set[str]) -> bool:
     )
 
 
-def run_work_view(root: Path, *args: str) -> list[Path]:
-    work_view = root / ".work" / "bin" / "work-view"
-    if not work_view.is_file() or not os.access(work_view, os.X_OK):
-        return []
-    try:
-        result = subprocess.run(
-            [str(work_view), *args, "--paths"],
-            cwd=str(root),
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            timeout=5,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return []
-    paths: list[Path] = []
-    for line in result.stdout.splitlines():
-        line = line.strip()
-        if line:
-            paths.append((root / line).resolve() if not line.startswith("/") else Path(line))
-    return paths
-
-
 def plugin_root() -> Path | None:
     pr = os.environ.get("PLUGIN_ROOT") or os.environ.get("CLAUDE_PLUGIN_ROOT")
     return Path(pr) if pr else None
@@ -472,69 +418,6 @@ def self_heal_work_view(root: Path, event: str) -> None:
         return
 
 
-def summarize_paths(paths: list[Path], limit: int = MAX_ITEMS) -> tuple[list[str], int]:
-    items: list[str] = []
-    for path in paths[:limit]:
-        fields = frontmatter(path)
-        item_id = fields.get("id") or path.stem
-        kind = fields.get("kind")
-        parent = fields.get("parent")
-        details = []
-        if kind:
-            details.append(kind)
-        if parent and parent != "null":
-            details.append(f"parent={parent}")
-        suffix = f" ({', '.join(details)})" if details else ""
-        items.append(f"- {item_id}{suffix}")
-    return items, max(0, len(paths) - limit)
-
-
-def format_section(title: str, paths: list[Path]) -> list[str]:
-    lines = [f"{title}: {len(paths)}"]
-    items, hidden = summarize_paths(paths)
-    if items:
-        lines.extend(items)
-        if hidden:
-            lines.append(f"- ... {hidden} more")
-    return lines
-
-
-def backlog_paths(root: Path) -> list[Path]:
-    base = root / ".work" / "backlog"
-    if not base.exists():
-        return []
-    return sorted(base.glob("*.md"), key=lambda path: frontmatter(path).get("created", "9999-99-99"))
-
-
-def needs_snapshot(prompt: str, matched_ids: set[str]) -> bool:
-    if matched_ids:
-        return True
-    return bool(
-        re.search(
-            r"\b(agile-workflow|autopilot|drain|ready|blocked|review|verdict|scope|park|release|deploy|gate|epic|feature|story|backlog|queue|next)\b",
-            prompt,
-            re.IGNORECASE,
-        )
-    )
-
-
-def build_snapshot(root: Path, prompt: str) -> str:
-    review = run_work_view(root, "--stage", "review")
-    ready_raw = run_work_view(root, "--ready")
-    blocked = run_work_view(root, "--blocked")
-    # --ready now includes stage:review items (stage-aware semantics).
-    # Exclude them from the Ready section so they appear only under Review.
-    review_paths = set(review)
-    ready = [p for p in ready_raw if p not in review_paths]
-    lines = ["## Agile Workflow Snapshot"]
-    lines.extend(format_section("Ready", ready))
-    lines.extend(format_section("Review", review))
-    lines.extend(format_section("Blocked", blocked))
-    if re.search(r"\b(backlog|park|scope)\b", prompt, re.IGNORECASE):
-        lines.extend(format_section("Backlog", backlog_paths(root)))
-    return "\n".join(lines)
-
-
 def capsule_keys(prompt: str, matched_ids_set: set[str], index: dict[str, Path]) -> list[str]:
     keys = [key for key, spec in CAPSULES.items() if spec["triggers"].search(prompt)]
     if matched_ids_set:
@@ -576,26 +459,6 @@ def format_capsules(keys: list[str]) -> str:
         lines.append(f"{spec['title']}:")
         lines.extend(f"- {line}" for line in spec["text"])
     return "\n".join(lines)
-
-
-def is_coding_prompt(prompt: str) -> bool:
-    """Broad detector for coding/dev work, independent of the workflow gate.
-
-    Catches "fix failing tests", "continue", "debug this build error", and
-    file-specific edits that carry no workflow noun. Errs toward inclusion —
-    over-firing is bounded by the per-epoch dedup and the byte cap, and rules
-    usually load at SessionStart anyway, so this fallback rarely fires.
-    """
-    if not prompt.strip():
-        return False
-    # Cap the scan so a pathological paste can't stall the hook.
-    head = prompt[:4000]
-    if SLASH_RE.search(head) or SKILL_MENTION_RE.search(head):
-        return True
-    if CODING_PROMPT_RE.search(head):
-        return True
-    # File/path reference: match per whitespace token (anchored) to stay linear.
-    return any(FILE_REF_RE.match(tok.strip(_TOKEN_PUNCT)) for tok in head.split())
 
 
 def rules_config(root: Path) -> tuple[bool, int]:
@@ -678,18 +541,12 @@ def rules_unseen(root: Path, payload: dict[str, Any], content_hash: str) -> bool
     return True
 
 
-def emit_rules(
-    root: Path, payload: dict[str, Any], *, require_coding: bool, prompt: str = ""
-) -> str:
+def emit_rules(root: Path, payload: dict[str, Any]) -> str:
     """Return `.agents/rules/` context to inject, or "".
 
-    Shared by the SessionStart/PostCompact path (``require_coding=False`` — load
-    unconditionally, mirroring legacy `.claude/rules/`) and the UserPromptSubmit
-    fallback (``require_coding=True`` — only on a coding prompt). Dedups once per
-    epoch via ``rules_unseen``.
+    Used by the SessionStart/PostCompact path only, loading unconditionally to
+    mirror legacy `.claude/rules/`. Dedups once per epoch via ``rules_unseen``.
     """
-    if require_coding and not is_coding_prompt(prompt):
-        return ""
     enabled, max_bytes = rules_config(root)
     if not enabled:
         return ""
@@ -709,14 +566,13 @@ def main() -> int:
     # Primary rules firing: SessionStart / PostCompact emit `.agents/rules/`
     # directly where the host supports hook-specific context. Codex accepts
     # context on SessionStart but not PostCompact, so Codex PostCompact only
-    # bumps the epoch and leaves context injection to SessionStart compact or
-    # the prompt fallback.
+    # bumps the epoch and leaves context injection to SessionStart compact.
     if event in {"SessionStart", "PostCompact"}:
         bump_epoch(root, payload)
         self_heal_work_view(root, event)
         if event == "PostCompact" and is_codex_hook_environment():
             return 0
-        output_context(event, emit_rules(root, payload, require_coding=False))
+        output_context(event, emit_rules(root, payload))
         return 0
 
     if event != "UserPromptSubmit":
@@ -726,20 +582,12 @@ def main() -> int:
     self_heal_work_view(root, event)
 
     parts: list[str] = []
-    # Rules fallback: independent of the workflow gate, so it catches coding
-    # prompts (e.g. "fix failing tests") that carry no workflow noun. Deduped per
-    # epoch, so this only fires when the SessionStart emission did not happen.
-    rules = emit_rules(root, payload, require_coding=True, prompt=prompt)
-    if rules:
-        parts.append(rules)
-
-    # Workflow snapshot + principles capsules keep their stricter gate.
+    # Prompt-time output is limited to principles capsules behind the workflow
+    # gate. Queue state is available through explicit work-view/board commands.
     if cheap_action_candidate(prompt):
         index = item_index(root)
         matched = matched_item_ids(prompt, set(index))
         if is_actionable(prompt, matched):
-            if needs_snapshot(prompt, matched):
-                parts.append(build_snapshot(root, prompt))
             capsule_text = format_capsules(
                 unseen_capsules(root, payload, capsule_keys(prompt, matched, index))
             )

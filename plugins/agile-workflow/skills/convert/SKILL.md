@@ -491,7 +491,9 @@ skill for detail). Project agent rules live in `.agents/rules/*.md`
 **Before designing, implementing, or reviewing, read `.agents/rules/*.md`** —
 the project's force-loaded agent rules (tag semantics, test integrity, review
 policy). The agile-workflow hook auto-loads these at session start and after
-compaction; read them directly when working without the hook.
+compaction; read them directly when working without the hook. Do not rely on
+UserPromptSubmit for rules or queue snapshots; query `work-view` when queue
+state is needed.
 
 Project-specific refactor style conventions belong in this file under
 `## Refactor Style Conventions`. Detailed refactor convention references belong
@@ -512,8 +514,9 @@ slim section above points agents at `.agents/rules/*.md`.
 
 The dense agile-workflow behavioral rules live in a plugin-managed
 `.agents/rules/agile-workflow.md`, force-loaded into agent context by the
-agile-workflow hook (and read directly by the design/implement/review skills'
-grounding). **Write and verify this file BEFORE writing the slim AGENTS section
+agile-workflow SessionStart/PostCompact hook path (and read directly by the
+design/implement/review skills' grounding). **Write and verify this file BEFORE
+writing the slim AGENTS section
 (Phase 6).** The slim section overwrites the managed AGENTS block, so the rules
 must already exist at their new home or the dense content is lost.
 
@@ -596,8 +599,9 @@ must already exist at their new home or the dense content is lost.
 
 User-owned and legacy rule prose (e.g. non-pattern `.claude/rules/*` content)
 goes into a separate user-owned `.agents/rules/<name>.md` (e.g. `project.md`),
-never inside the plugin `agile-workflow:rules` markers. The hook injects every
-`.agents/rules/*.md`, so both plugin and user rules reach the agent.
+never inside the plugin `agile-workflow:rules` markers. The SessionStart and
+host-supported PostCompact hook paths inject every `.agents/rules/*.md`, so both
+plugin and user rules reach the agent without prompt-time fallback output.
 
 ### Phase 7: Preserve Claude Code compatibility
 

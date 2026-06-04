@@ -75,10 +75,10 @@ agile-workflow is complete enough to operate as the supported workflow engine:
   gate origin, and dependency state.
 - An interactive `work-view board` surface over the same substrate feed, with
   kanban, dependency, table, detail, filter, and browsing views for humans.
-- Shared Claude/Codex/Pi substrate context injection that surfaces
-  queue/principles/rules context only for actionable workflow prompts,
-  auto-bumps `updated:` where the harness supports it, and reports cheap
-  substrate validation issues.
+- Shared Claude/Codex/Pi substrate context injection that force-loads rules at
+  session/compaction boundaries, surfaces prompt-time principles capsules only
+  for actionable workflow prompts, auto-bumps `updated:` where the harness
+  supports it, and reports cheap substrate validation issues.
 - Three-channel plugin distribution metadata: Claude Code marketplace, OpenAI
   Codex marketplace, and Pi packages share the same `skills/` source while
   each channel carries native metadata and ergonomics.

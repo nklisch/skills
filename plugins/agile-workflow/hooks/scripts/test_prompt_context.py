@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Stdlib unittest suite for prompt-context.py's build_snapshot review-dedup.
-
-Guards the partition introduced by Unit 4 of epic-substrate-cli-next-actionable:
-now that stage-aware `--ready` includes review-stage items, build_snapshot must
-exclude review items from the "Ready" section so they appear only under
-"Review". A regression that drops the dedup would list a review item twice.
+"""Stdlib unittest suite for prompt-context.py.
 
 Pure stdlib (unittest + unittest.mock) — does NOT depend on pytest. Run with:
 
@@ -35,118 +30,6 @@ _spec = importlib.util.spec_from_file_location("prompt_context", _MODULE_PATH)
 assert _spec is not None and _spec.loader is not None
 prompt_context = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(prompt_context)
-
-
-def _section_body(snapshot: str, title: str) -> list[str]:
-    """Return the item lines (the '- ...' bullets) under a given section.
-
-    build_snapshot renders each section as a header line "Title: N" followed by
-    "- <id> (...)" bullets, until the next "Title: N" header. This collects the
-    bullet ids belonging to `title`.
-    """
-    lines = snapshot.splitlines()
-    body: list[str] = []
-    in_section = False
-    for line in lines:
-        if line.startswith(f"{title}: "):
-            in_section = True
-            continue
-        # A new section header ends the current section.
-        if in_section and line and not line.startswith("- "):
-            # Could be another "Title: N" header or the snapshot title line.
-            break
-        if in_section and line.startswith("- "):
-            body.append(line)
-    return body
-
-
-class ReviewDedupTest(unittest.TestCase):
-    """build_snapshot must not list a review-stage item under both Ready and Review."""
-
-    def setUp(self) -> None:
-        # Synthetic item paths. build_snapshot only cares about path identity
-        # for the dedup; frontmatter() is read by summarize_paths, but a
-        # nonexistent path simply yields id == path.stem, which is enough to
-        # assert presence/absence per section.
-        self.draft = Path("/fake/.work/active/stories/draft-item.md")
-        self.impl = Path("/fake/.work/active/stories/impl-item.md")
-        self.review = Path("/fake/.work/active/stories/review-item.md")
-        self.root = Path("/fake")
-
-    def _patched_run_work_view(self, root, *args):
-        """Stub for prompt_context.run_work_view.
-
-        --stage review  -> [review]
-        --ready         -> [draft, impl, review]   (stage-aware: includes review)
-        --blocked       -> []
-        """
-        if args[:2] == ("--stage", "review"):
-            return [self.review]
-        if args[:1] == ("--ready",):
-            # The review item is intentionally present in --ready output to
-            # reproduce the stage-aware semantics that make double-listing
-            # reachable.
-            return [self.draft, self.impl, self.review]
-        if args[:1] == ("--blocked",):
-            return []
-        return []
-
-    def test_review_item_not_double_listed(self) -> None:
-        with mock.patch.object(
-            prompt_context, "run_work_view", side_effect=self._patched_run_work_view
-        ):
-            snapshot = prompt_context.build_snapshot(self.root, prompt="what's ready")
-
-        ready_lines = _section_body(snapshot, "Ready")
-        review_lines = _section_body(snapshot, "Review")
-
-        ready_blob = "\n".join(ready_lines)
-        review_blob = "\n".join(review_lines)
-
-        # The review item appears under Review.
-        self.assertIn(
-            "review-item",
-            review_blob,
-            msg=f"review item should appear under Review.\nSnapshot:\n{snapshot}",
-        )
-        # The review item must NOT appear under Ready (the dedup).
-        self.assertNotIn(
-            "review-item",
-            ready_blob,
-            msg=(
-                "review item must be excluded from Ready (review-dedup regression).\n"
-                f"Snapshot:\n{snapshot}"
-            ),
-        )
-        # Drafting + implementing items still appear under Ready.
-        self.assertIn(
-            "draft-item",
-            ready_blob,
-            msg=f"draft item should remain under Ready.\nSnapshot:\n{snapshot}",
-        )
-        self.assertIn(
-            "impl-item",
-            ready_blob,
-            msg=f"impl item should remain under Ready.\nSnapshot:\n{snapshot}",
-        )
-
-    def test_ready_count_excludes_review(self) -> None:
-        """The Ready header count reflects the deduped set (2), not the raw 3."""
-        with mock.patch.object(
-            prompt_context, "run_work_view", side_effect=self._patched_run_work_view
-        ):
-            snapshot = prompt_context.build_snapshot(self.root, prompt="what's ready")
-
-        self.assertIn(
-            "Ready: 2",
-            snapshot,
-            msg=f"Ready count should be 2 after dedup (draft + impl).\nSnapshot:\n{snapshot}",
-        )
-        self.assertIn(
-            "Review: 1",
-            snapshot,
-            msg=f"Review count should be 1.\nSnapshot:\n{snapshot}",
-        )
 
 
 class WorkViewSelfHealTest(unittest.TestCase):
@@ -369,9 +252,9 @@ class WorkViewSelfHealTest(unittest.TestCase):
 class RulesLoaderTest(unittest.TestCase):
     """Guards the generic .agents/rules/ hook loader.
 
-    Covers the broad coding-prompt detector, the reader + hash, the CONVENTIONS
-    flag/byte-cap, per-epoch + content-hash dedup, and the SessionStart wiring.
-    State is isolated to a temp file so dedup does not leak across tests.
+    Covers the reader + hash, the CONVENTIONS flag/byte-cap, per-epoch +
+    content-hash dedup, and the SessionStart/PostCompact wiring. State is
+    isolated to a temp file so dedup does not leak across tests.
     """
 
     def setUp(self) -> None:
@@ -398,27 +281,6 @@ class RulesLoaderTest(unittest.TestCase):
         base = {"session_id": "s1", "hook_event_name": "UserPromptSubmit"}
         base.update(kw)
         return base
-
-    def test_coding_prompt_detector(self) -> None:
-        coding = [
-            "fix the failing tests",
-            "continue",
-            "debug this build error",
-            "implement the loader",
-            "edit src/foo.rs",
-            "refactor the parser",
-            "/agile-workflow:review hook",
-        ]
-        for p in coding:
-            self.assertTrue(prompt_context.is_coding_prompt(p), msg=p)
-        non_coding = [
-            "what is the capital of France",
-            "explain this concept to me",
-            "thanks!",
-            "who are you",
-        ]
-        for p in non_coding:
-            self.assertFalse(prompt_context.is_coding_prompt(p), msg=p)
 
     def test_reads_and_hashes(self) -> None:
         (self.rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
@@ -456,49 +318,42 @@ class RulesLoaderTest(unittest.TestCase):
     def test_emit_dedup_per_epoch(self) -> None:
         (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
         payload = self._payload()
-        first = prompt_context.emit_rules(self.root, payload, require_coding=False)
+        first = prompt_context.emit_rules(self.root, payload)
         self.assertIn("Rule A", first)
-        second = prompt_context.emit_rules(self.root, payload, require_coding=False)
+        second = prompt_context.emit_rules(self.root, payload)
         self.assertEqual(second, "")
 
     def test_emit_reinject_on_content_change(self) -> None:
         (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
         payload = self._payload()
-        self.assertIn(
-            "Rule A", prompt_context.emit_rules(self.root, payload, require_coding=False)
-        )
+        self.assertIn("Rule A", prompt_context.emit_rules(self.root, payload))
         (self.rules_dir / "a.md").write_text("Rule A v2", encoding="utf-8")
         self.assertIn(
             "Rule A v2",
-            prompt_context.emit_rules(self.root, payload, require_coding=False),
+            prompt_context.emit_rules(self.root, payload),
         )
 
     def test_emit_off_when_flag_off(self) -> None:
         (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
         self._write_conventions("rules_context: off\n")
         self.assertEqual(
-            prompt_context.emit_rules(self.root, self._payload(), require_coding=False),
+            prompt_context.emit_rules(self.root, self._payload()),
             "",
         )
 
-    def test_fallback_requires_coding_prompt(self) -> None:
+    def test_user_prompt_submit_omits_rules_and_snapshot_on_actionable_prompt(self) -> None:
         (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
-        payload = self._payload()
-        # Non-coding prompt: fallback suppressed and dedup NOT marked.
-        self.assertEqual(
-            prompt_context.emit_rules(
-                self.root, payload, require_coding=True, prompt="what is this"
-            ),
-            "",
-        )
-        # Coding prompt in the same epoch then emits (proves the prior call did
-        # not consume the once-per-epoch slot).
-        self.assertIn(
-            "Rule A",
-            prompt_context.emit_rules(
-                self.root, payload, require_coding=True, prompt="fix the bug"
-            ),
-        )
+        payload = self._payload(cwd=str(self.root), prompt="drain the queue")
+        out = io.StringIO()
+        with mock.patch.object(
+            prompt_context.sys, "stdin", io.StringIO(json.dumps(payload))
+        ), mock.patch.object(prompt_context.sys, "stdout", out):
+            rc = prompt_context.main()
+        self.assertEqual(rc, 0)
+        printed = out.getvalue()
+        self.assertIn("Agile Workflow Principles", printed)
+        self.assertNotIn("Rule A", printed)
+        self.assertNotIn("Agile Workflow Snapshot", printed)
 
     def test_main_sessionstart_emits_rules(self) -> None:
         (self.rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
@@ -517,13 +372,6 @@ class RulesLoaderTest(unittest.TestCase):
         printed = out.getvalue()
         self.assertIn("additionalContext", printed)
         self.assertIn("Rule A body", printed)
-
-    def test_detector_verbs_and_long_input(self) -> None:
-        self.assertTrue(prompt_context.is_coding_prompt("remove unused code"))
-        self.assertTrue(prompt_context.is_coding_prompt("delete the old module"))
-        self.assertTrue(prompt_context.is_coding_prompt("create a new endpoint"))
-        # A pathological long no-dot token must not hang (linear per-token match).
-        self.assertIsInstance(prompt_context.is_coding_prompt("a" * 50000), bool)
 
     def test_config_prose_does_not_disable(self) -> None:
         self._write_conventions(
@@ -549,20 +397,16 @@ class RulesLoaderTest(unittest.TestCase):
         self.assertIn("Rule A body", text)
         self.assertNotIn("truncated", text)
 
-    def test_fallback_suppressed_after_sessionstart(self) -> None:
+    def test_sessionstart_dedup_suppresses_second_emit(self) -> None:
         (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
         prompt_context.bump_epoch(
             self.root,
             {"session_id": "s1", "hook_event_name": "SessionStart", "source": "startup"},
         )
-        first = prompt_context.emit_rules(
-            self.root, {"session_id": "s1"}, require_coding=False
-        )
+        first = prompt_context.emit_rules(self.root, {"session_id": "s1"})
         self.assertIn("Rule A", first)
-        second = prompt_context.emit_rules(
-            self.root, {"session_id": "s1"}, require_coding=True, prompt="fix the bug"
-        )
-        self.assertEqual(second, "", "UPS fallback must be suppressed after SessionStart emit")
+        second = prompt_context.emit_rules(self.root, {"session_id": "s1"})
+        self.assertEqual(second, "")
 
     def test_main_postcompact_emits(self) -> None:
         (self.rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
@@ -768,14 +612,14 @@ class StateConcurrencyTest(unittest.TestCase):
         self.assertEqual(state["sessions"]["beta"]["epoch"], 1)
 
     def test_process_interleave_does_not_clobber_postcompact_epoch(self) -> None:
-        """A stale UserPromptSubmit writer cannot overwrite a PostCompact bump.
+        """A stale rules writer cannot overwrite a PostCompact bump.
 
         This uses two real Python processes so the fcntl lock is exercised as an
-        inter-process lock. P1 enters the UserPromptSubmit read-modify-write and
-        pauses immediately after `load_state` while still holding the lock. P2
-        attempts the PostCompact epoch bump and must wait. When P1 is released,
-        P2 loads the post-P1 state and bumps the epoch, so the final state keeps
-        the PostCompact epoch instead of being clobbered by P1's stale save.
+        inter-process lock. P1 enters the rules read-modify-write and pauses
+        immediately after `load_state` while still holding the lock. P2 attempts
+        the PostCompact epoch bump and must wait. When P1 is released, P2 loads
+        the post-P1 state and bumps the epoch, so the final state keeps the
+        PostCompact epoch instead of being clobbered by P1's stale save.
         """
         if prompt_context.fcntl is None:
             self.skipTest("requires fcntl for an inter-process lock")
@@ -793,7 +637,7 @@ class StateConcurrencyTest(unittest.TestCase):
         root_path = str(self.root)
         state_path = str(self.state_file)
 
-        user_prompt_worker = f"""
+        rules_worker = f"""
 import importlib.util
 import time
 from pathlib import Path
@@ -821,7 +665,7 @@ def paused_load_state(load_root):
     return state
 
 prompt_context.load_state = paused_load_state
-prompt_context.emit_rules(root, {{"session_id": "race"}}, require_coding=True, prompt="fix bug")
+prompt_context.emit_rules(root, {{"session_id": "race"}})
 """
 
         postcompact_worker = f"""
@@ -840,7 +684,7 @@ prompt_context.bump_epoch(root, {{"session_id": "race", "hook_event_name": "Post
 """
 
         p1 = subprocess.Popen(
-            [sys.executable, "-c", user_prompt_worker],
+            [sys.executable, "-c", rules_worker],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -848,9 +692,9 @@ prompt_context.bump_epoch(root, {{"session_id": "race", "hook_event_name": "Post
             deadline = time.monotonic() + 5
             while not loaded_signal.exists():
                 if p1.poll() is not None:
-                    self.fail(f"UserPromptSubmit worker exited early with {p1.returncode}")
+                    self.fail(f"rules worker exited early with {p1.returncode}")
                 if time.monotonic() > deadline:
-                    self.fail("UserPromptSubmit worker did not reach the load barrier")
+                    self.fail("rules worker did not reach the load barrier")
                 time.sleep(0.02)
 
             p2 = subprocess.Popen(

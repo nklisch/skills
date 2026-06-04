@@ -549,35 +549,19 @@ after compaction or whenever a rules file changes, via per-epoch + content-hash
 dedup). It is content-agnostic — drop any `*.md` into `.agents/rules/` and it
 loads. In Codex, `PostCompact` itself is side-effect-only because Codex does not
 accept `additionalContext` on that event; rules reload through `SessionStart`
-with `source: compact` or the fallback. A broad coding-prompt fallback re-emits
-the rules if the session-start firing was missed (substrate appeared
-mid-session, host skipped SessionStart).
+with `source: compact`.
 
 You can tune this in `.work/CONVENTIONS.md`: `rules_context: off` disables the
 injection, and `rules_context_max_bytes: <int>` (default 12000) caps the size.
 In Codex, plugin-bundled hooks must be reviewed and trusted before they run;
 enabling the plugin alone does not auto-trust them.
 
-For *actionable workflow prompts* — *"what's ready?"*, *"review
-feature-uploads-retry"*, *"drain the auth epic"*, *"scope the backlog"* —
-`prompt-context.py` additionally pipes a compact queue snapshot **into the
-agent's context** (not your terminal — hook output goes to the agent, not the
-human UI). The snapshot looks roughly like this:
-
-```
-## Agile Workflow Snapshot
-Ready: 2
-- story-rate-limits (story, parent=feature-uploads-retry)
-- feature-quota-tracking (feature, parent=epic-rate-limits)
-Review: 1
-- feature-uploads-retry (feature)
-Blocked: 1
-- story-quota-display (story, parent=feature-uploads-retry)
-```
-
-The same hook may add a small principles capsule once per session when the
-prompt calls for it: code design, dispatch economy, or advisory review. Idle
-chat and explainer prompts get no queue snapshot or capsule.
+For *actionable workflow prompts* — *"review feature-uploads-retry"*,
+*"drain the auth epic"*, *"scope the backlog"* — `prompt-context.py` may add a
+small principles capsule once per session when the prompt calls for it: code
+design, dispatch economy, or advisory review. It does not inject queue snapshots
+at prompt time; use `work-view`, `/aw status`, `/aw ready`, or the board for
+queue state. Idle chat and explainer prompts get no capsule.
 
 ### Driving work
 

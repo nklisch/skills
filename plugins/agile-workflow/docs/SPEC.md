@@ -549,7 +549,7 @@ the concatenated `.agents/rules/*.md` content as
 unconditionally — no prompt to gate on. Codex is the exception for
 `PostCompact`: Codex's `PostCompact` output schema does not allow
 `hookSpecificOutput`, so that event only bumps the epoch and leaves context
-reload to `SessionStart` with `source: compact` or the prompt fallback. This
+reload to `SessionStart` with `source: compact`. This
 keeps rules reloading at session start and after compaction, even during
 auto-continuation with no user prompt, mirroring the legacy Claude-only
 `.claude/rules/` force-load.
@@ -561,12 +561,10 @@ producers (`convert`, `gate-patterns`, or the user) can drop content-agnostic
 rule files there and have them reliably reach the agent in both Claude Code and
 Codex. The contract:
 
-- **Fires on:** `SessionStart` and host-supported `PostCompact` context output
-  (primary, unconditional); plus a `UserPromptSubmit` coding-prompt fallback
-  (below) that emits once per epoch if the session-start emission did not
-  happen. On Codex, `PostCompact` is side-effect-only because its output schema
-  does not allow `hookSpecificOutput`; `SessionStart` with `source: compact`
-  and the fallback carry the context.
+- **Fires on:** `SessionStart` and host-supported `PostCompact` context output,
+  unconditionally. On Codex, `PostCompact` is side-effect-only because its
+  output schema does not allow `hookSpecificOutput`; `SessionStart` with
+  `source: compact` carries the context.
 - **Content:** all `<root>/.agents/rules/*.md` files, sorted by name,
   concatenated under a `## Project Rules (.agents/rules/)` heading.
 - **Dedup:** per-session epoch + SHA-256 content hash. Rules inject exactly once
@@ -600,24 +598,16 @@ Codex. The contract:
 }
 ```
 
-**Activation:** runs only if a substrate exists. The queue snapshot and
-principles capsules additionally require an actionable agile-workflow move:
-queue operations, stage movement, explicit workflow verbs, or a known item id.
-The `.agents/rules/` fallback uses a separate, broader coding-prompt detector.
+**Activation:** runs only if a substrate exists. Principles capsules additionally
+require an actionable agile-workflow move: queue operations, stage movement,
+explicit workflow verbs, or a known item id.
 
 **Effect:** returns `hookSpecificOutput.additionalContext` with:
-- The `.agents/rules/*.md` block, as the once-per-epoch fallback to the
-  SessionStart/PostCompact primary firing. This path uses a **broad
-  coding-prompt detector** — deliberately wider than the workflow-snapshot gate
-  — that catches coding work carrying no workflow noun (e.g. "fix failing
-  tests", "continue", "debug this build error", a bare file-path reference).
-  Because the same per-epoch + content-hash dedup applies, it emits only when
-  the session-start emission did not happen (substrate appeared mid-session,
-  host skipped SessionStart, or content changed).
-- A compact queue snapshot only when the prompt benefits from queue state
-  (`ready`, `blocked`, `review`, `autopilot`, `scope`, item ids, etc.).
 - The smallest relevant principles capsule, at most once per session per
   capsule: code design, dispatch economy, or advisory review.
+
+It does not inject `.agents/rules/*.md` or queue snapshots at prompt time. Queue
+state remains available through explicit `work-view`, `/aw`, or board commands.
 
 ### PostToolUse hook
 

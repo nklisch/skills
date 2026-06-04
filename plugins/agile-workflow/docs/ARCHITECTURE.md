@@ -435,7 +435,7 @@ project worktree. Where the host supports hook-specific context, they emit the
 `.agents/rules/` block (below) directly as the primary rules firing. Codex
 `PostCompact` is side-effect-only because Codex rejects `hookSpecificOutput` on
 that event; Codex rules context flows through `SessionStart` with `source:
-compact` or the prompt fallback.
+compact`.
 
 **`.agents/rules/` rules loader:** the script force-loads every
 `<root>/.agents/rules/*.md` file (sorted, concatenated under a
@@ -443,40 +443,26 @@ compact` or the prompt fallback.
 (`convert` writes `.agents/rules/agile-workflow.md`; `gate-patterns` writes
 `.agents/rules/patterns.md`; the user adds their own) reach the agent reliably
 in both Claude Code and Codex. It is content-agnostic — it injects whatever
-`*.md` files exist. Firing is hybrid: **SessionStart and host-supported
-PostCompact context output emit unconditionally** (mirroring the legacy
-`.claude/rules/` force-load, and guaranteeing re-injection after compaction even
-with no user prompt), and a **UserPromptSubmit coding-prompt fallback** emits
-once per epoch if the session-start emission did not happen. Codex uses
-`SessionStart` with `source: compact` or the fallback instead of emitting
-context from `PostCompact`. The fallback uses a broad coding-prompt detector —
-wider than the workflow gate, catching "fix failing tests",
-"continue", "debug this build error", or a bare file-path reference. All paths
-share per-epoch + SHA-256 content-hash dedup, so rules load exactly once per
-`(epoch, content)`. `.work/CONVENTIONS.md` may set `rules_context: on|off`
-(default on) and `rules_context_max_bytes: <int>` (default 12000); the byte cap
-truncates with a notice while hashing the untruncated content so any edit
-re-injects.
+`*.md` files exist. **SessionStart and host-supported PostCompact context output
+emit unconditionally** (mirroring the legacy `.claude/rules/` force-load, and
+guaranteeing re-injection after compaction even with no user prompt). Codex uses
+`SessionStart` with `source: compact` instead of emitting context from
+`PostCompact`. Per-epoch + SHA-256 content-hash dedup means rules load exactly
+once per `(epoch, content)`. `.work/CONVENTIONS.md` may set
+`rules_context: on|off` (default on) and `rules_context_max_bytes: <int>`
+(default 12000); the byte cap truncates with a notice while hashing the
+untruncated content so any edit re-injects.
 
-**UserPromptSubmit effect:** the queue snapshot and principles capsules emit only
-for actionable workflow prompts: queue operations, stage movement, explicit
-agile-workflow verbs, or a known item id. Explainer prompts and idle chat stay
-silent. The `.agents/rules/` fallback uses its own broader coding-prompt gate
-(above), independent of the workflow gate.
+**UserPromptSubmit effect:** principles capsules emit only for actionable
+workflow prompts: queue operations, stage movement, explicit agile-workflow
+verbs, or a known item id. Explainer prompts and idle chat stay silent. The hook
+does not inject `.agents/rules/*.md` or queue snapshots at prompt time.
 
 When it fires, the script returns JSON `hookSpecificOutput.additionalContext`
-containing a compact queue snapshot and any principles capsules that have not
-already fired in the current session epoch:
+containing any principles capsules that have not already fired in the current
+session epoch:
 
 ```
-## Agile Workflow Snapshot
-Ready: 2
-- story-rate-limits (story, parent=feature-uploads-retry)
-Review: 1
-- feature-uploads-retry (feature, parent=epic-uploads)
-Blocked: 1
-- story-quota-display (story, parent=feature-uploads-retry)
-
 ## Agile Workflow Principles
 Code-design capsule:
 - Ports & Adapters: keep domain logic independent of DB/filesystem/HTTP/time/randomness.
