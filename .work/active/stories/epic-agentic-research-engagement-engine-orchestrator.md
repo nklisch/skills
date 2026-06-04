@@ -67,9 +67,14 @@ each dispatch and references the vendored `dispatch.md` template.
   absent from allowed-tools + explicitly forbidden; lint path = `scripts/lint-citations.py`;
   light/multi paths present; 3 briefs as `references/`, zero committed `agents/*.md`; evaluator
   enforces context-isolation; all relative links resolve; conformance 15/15.
-  **NOT run (honest gap)**: the end-to-end criterion — *a live seed engagement producing
-  `.research/` artifacts that pass the lint* — requires actually invoking the orchestrator (an
-  interactive research engagement that spawns sub-agents and fetches sources). That is a
-  use-time/functional validation, not an inline self-verify; left for real use or a deep
-  feature review. The lint + conformance themselves are green on the existing `.research/` seed.
+  **E2E run + passed (gap now closed)**: ran a live light-path engagement following the
+  orchestrator's own walk — seed "SemVer 2.0.0: stability in the 0.y.z phase", floor rigor.
+  Kickoff → substrate-check → light path → attest (`WebFetch` semver.org →
+  `.research/attestation/semver-spec.md`) → synthesize (`.research/analysis/briefs/semver-pre-1.0-stability.md`,
+  `[semver-spec]{4}` citations + `## Disconfirming analysis`) → lint → spot-check. Lint result:
+  **3/3 citations resolved · 0 broken · 0 thin · exit 0**; the citation chain resolved end to
+  end (brief → handle → attestation → fetched source, `source_url` HEAD-check live). The 9
+  `version-number` warns are warn-level spot-check prompts, subject-appropriate (a SemVer brief
+  names version numbers) and each in cited/structural context. Artifacts kept (they ground
+  `docs/VERSIONING.md`'s pre-1.0 claim) + `references.md` entry 4 added.
 - **Adjacent issues parked**: none.
