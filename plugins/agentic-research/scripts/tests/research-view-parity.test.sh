@@ -333,8 +333,11 @@ echo "=== Structural checks on bash fallback ==="
 OUTSIDE_DIR="$(mktemp -d)"
 trap 'rm -rf "$OUTSIDE_DIR"' EXIT
 SH_VER="$( cd "$OUTSIDE_DIR" && bash "$FALLBACK_SH" --version 2>/dev/null )"
+# Derive the expected version from the script's own literal so a legitimate
+# bump-version.sh bump (which projects into this literal) does not break the test.
+EXPECTED_VER="research-view $(sed -n 's/^RESEARCH_VIEW_VERSION="\([^"]*\)".*/\1/p' "$FALLBACK_SH" | head -1)"
 assert_eq "--version outside substrate returns correct line" \
-  "research-view 0.1.0" "$SH_VER"
+  "$EXPECTED_VER" "$SH_VER"
 rm -rf "$OUTSIDE_DIR"
 
 # exit 2 when no substrate
@@ -352,10 +355,10 @@ assert_eq "exit code 1 on unknown flag" "1" "$RC"
 ( cd "$TMPROOT" && bash "$FALLBACK_SH" somefile.md > /dev/null 2>&1 ) ; RC=$?
 assert_eq "exit code 1 on unexpected positional" "1" "$RC"
 
-# raw/ subtree not indexed
-RAW_COUNT="$( cd "$TMPROOT" && bash "$FALLBACK_SH" --count 2>/dev/null )"
-assert_true "raw/ subtree files not included in count (≤ fixture total)" \
-  "[ '$RAW_COUNT' -le 20 ]"
+# raw/ subtree not indexed — assert directly that NO path under a raw/ dir is
+# emitted (an upper-bound on the count would pass even if raw/ leaked in).
+RAW_PATHS="$( cd "$TMPROOT" && bash "$FALLBACK_SH" --paths 2>/dev/null | grep -c '/raw/' || true )"
+assert_eq "raw/ subtree files not indexed (no /raw/ paths emitted)" "0" "$RAW_PATHS"
 
 # README.md at tier root not indexed
 TOTAL_COUNT="$( cd "$TMPROOT" && bash "$FALLBACK_SH" --count 2>/dev/null )"

@@ -274,8 +274,12 @@ build_index() {
   ALL_FILES=()
 
   # Collect all .md files from the relevant tier directories, byte-sorted.
-  # The find commands match the binary's collect_sorted_paths exactly.
-  # We feed them all to sort together for global byte-sort order.
+  # NOTE: this find is recursive for every tier dir, whereas the binary indexes
+  # the flat tiers (attestation/precis/positions/briefs/hypothesis) NON-recursively
+  # (only campaigns/ and reference/ are recursive). Flat tiers carry no subdirs by
+  # convention, so the two sets match in practice; exact -maxdepth parity is a
+  # tracked follow-up (see backlog idea-research-view-fallback-flat-maxdepth).
+  # We feed all dirs to one sort for global byte-sort order.
   local find_dirs=()
   [[ -d "$research/attestation" ]]              && find_dirs+=("$research/attestation")
   [[ -d "$research/precis" ]]                   && find_dirs+=("$research/precis")

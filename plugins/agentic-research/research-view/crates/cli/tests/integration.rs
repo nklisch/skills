@@ -199,9 +199,11 @@ fn count_returns_total_artifact_count() {
     let f = Fixture::seed();
     let (stdout, _, code) = run_in(&f.root, &["--count"]);
     assert_eq!(code, 0);
-    // We have 5 seed artifacts; just ensure it's a non-zero integer
+    // Fixture::seed() writes exactly 5 artifacts (2 attestations, 1 position,
+    // 1 brief, 1 precis). Pin the total so a tier dropped from the index — e.g.
+    // a regression that stops walking precis/ — fails this test.
     let n: usize = stdout.trim().parse().expect("count should be an integer");
-    assert!(n >= 1, "should have at least 1 artifact");
+    assert_eq!(n, 5, "seed has exactly 5 artifacts");
 }
 
 #[test]

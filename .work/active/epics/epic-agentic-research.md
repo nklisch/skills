@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research
 kind: epic
-stage: implementing
+stage: review
 tags: [plugin]
 parent: null
 depends_on: []
@@ -201,10 +201,18 @@ v0.3.0→v0.4.0 and v0.4.0→v0.4.1 tool-driven). **Done:** scaffold, substrate-
 engagement-engine, ard-sync, work-handoff. The epic remains `implementing` — not because the
 proposal is incomplete, but because two pieces are **deliberately deferred as named
 follow-ons**, not abandoned:
-- **`research-view`** (`drafting`) — the Rust query binary over `.research/` (work-view
-  parity / ergonomics). A separable, heavy Rust + cross-compile lift; its own focused PR.
+- **`research-view`** — **LANDED.** The Rust query binary over `.research/` (work-view
+  parity / ergonomics) shipped via `epic-agentic-research-research-view` (4 stories: core,
+  cli, fallback, dist). The committed `dist/<triple>/research-view` binaries land via the
+  post-merge `build-research-view.yml` CI run.
 - **Live `work-handoff`** — **LANDED.** The `.work/`↔`.research/` pairing is now fully live:
   Arrow 2 (emission gate `/agentic-research:research-handoff`) and Arrow 1 (commissioning
   convention `research_refs:` + `depends_on` recipe) are both implemented. See
   `docs/HANDOFF.md` — status is now "live."
-`research-view` remains tracked as a drafting feature here.
+
+## Children complete (2026-06-04)
+All 7 child features are now `done` (scaffold, engagement-engine, substrate-tier,
+foundation-docs, ard-sync, work-handoff, research-view). Both formerly-deferred follow-ons
+landed — the *live* `.work/`↔`.research/` handoff (separate epic
+`epic-research-work-handoff-live`) and `research-view`. Epic advanced `implementing → review`
+by the research-view deep-review rollup; ready for `/agile-workflow:release-deploy`.

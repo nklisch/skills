@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-research-view-dist
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-agentic-research-research-view
 depends_on: [epic-agentic-research-research-view-cli, epic-agentic-research-research-view-fallback]

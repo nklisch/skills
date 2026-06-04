@@ -15,9 +15,11 @@ Upstream framework by Kevoun: <https://code.s-nc.org/Kevoun/ARD>.
 > conventions, the vendored citation lint + conformance set, the artifact templates, and
 > the foundation docs in [`docs/`](docs/) ([ADOPTION](docs/ADOPTION.md) ·
 > [VERSIONING](docs/VERSIONING.md) · [ARCHITECTURE](docs/ARCHITECTURE.md)), the two
-> engagement skills (`research-orchestrator`, `research-discipline`), and the research↔work
-> pairing contract ([HANDOFF](docs/HANDOFF.md)). Pending: the `research-view` query binary,
-> and the *live* research↔work handoff (designed in HANDOFF.md; implementation is a follow-on epic).
+> engagement skills (`research-orchestrator`, `research-discipline`), the research↔work
+> pairing contract ([HANDOFF](docs/HANDOFF.md)), and the `research-view` query binary (the
+> prebuilt per-platform dist binaries land via post-merge CI — see "Prebuilt binaries and CI"
+> below). Pending: the *live* research↔work handoff (designed in HANDOFF.md; implementation
+> is a follow-on epic).
 
 ## Skills
 

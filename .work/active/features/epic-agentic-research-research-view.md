@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-research-view
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-agentic-research
 depends_on: [epic-agentic-research-substrate-tier]
@@ -334,3 +334,45 @@ on supported platforms; do not cut a release before the binary-refresh commit.
 mirrors work-view's harness); (b) the bash fallback treats `--handle null` as a
 literal rather than `IsNull` (other nullable filters mirror the binary; no stdout
 parity impact in tested cases).
+
+## Review (2026-06-04)
+
+**Verdict**: Approve with comments
+
+**Mode/depth**: substrate, deep lane — 3 fresh-context reviewers (Rust core+CLI;
+installer+bump+CI; bash parity+docs) over the ~6k-line diff, plus a deterministic
+host check that the shared `bump-version.sh` agile-workflow branch is byte-identical
+to `main` (confirmed — only a comment above it was reworded; the new
+`agentic-research` branch is a clean parallel `if`). No correctness bugs found in
+core/cli; the bump generalization and its lockstep test are sound; bash/binary
+parity is real.
+
+**Blockers**: none remaining — one found and **fixed inline**:
+- Foundation-doc drift: `README.md` adoption-status listed `research-view` as
+  *Pending* after this PR ships it → moved to *Landed* (dist binaries via post-merge CI).
+
+**Important** (3 fixed inline, 2 filed):
+- Fixed: weak `--count` integration assertion (`>= 1` → `== 5`); parity test's
+  hardcoded `0.1.0` version string → derived from the script literal
+  (bump-safe); vacuous `raw/`-exclusion assertion (`-le 20`) → asserts no
+  `/raw/` path is emitted.
+- Filed `idea-research-view-fallback-flat-maxdepth` (backlog): the fallback's
+  `find` is recursive for the flat tiers where the binary is not — latent (flat
+  tiers carry no subdirs by convention) but a real fidelity gap; the misleading
+  "matches exactly" comment was corrected inline.
+- Filed `idea-research-view-dist-version-guard` (backlog): CI lacks work-view's
+  dist-version skew guard; should land before the first `commit_binaries` CI run.
+
+**Nits** (recorded, no items): installer reuses `WORK_VIEW_UNAME_*` test-override
+names; installer-test groups 7/8 don't pin uname; bump-test group 2 omits a
+research-view-clean assertion; CI path filter doesn't watch
+`agile-workflow/scripts/tests/**`; integration suite doesn't exercise
+`--version`/`--help` with no substrate present; `--handle null` is literal (story's
+"asymmetry" note overstates — both sides yield zero matches).
+
+**Notes**: Re-verified after the inline fixes — `cargo test` workspace green
+(integration 17/17), parity 31/31, installer 45/45, bump-lockstep 77/77. The 4
+committed `dist/<triple>/research-view` binaries remain a post-merge CI artifact
+(`build-research-view.yml`); the installer version gate intentionally fails on
+supported platforms until that run lands. All 4 child stories covered by this deep
+review → advanced to done.
