@@ -162,10 +162,25 @@ artifacts' own frontmatter (artifacts stand on their own metadata).
 - Promoted positions → `.research/analysis/positions/<slug>.md`; staged hypotheses → `.research/analysis/hypothesis/`.
 - Citations are `[handle]{N}`, resolving by number against the per-corpus bibliography; the chain is brief claim → attestation → fetched source (the lint enforces it).
 
+## Next step after a completed engagement
+
+When an engagement surfaces actionable output — a campaign or position with
+`output_kind: adoption-recommendations`, a staged hypothesis to validate, a
+recommendation to implement — suggest to the operator:
+
+> Run `/agentic-research:research-handoff <slug>` to emit operator-confirmed
+> `.work/` items grounded in this engagement's findings.
+
+The handoff skill is the Arrow 2 emission gate (see `docs/HANDOFF.md`). It is
+**never auto-fired** — the operator decides whether and when to emit work items.
+If no `.work/` substrate is present in the project, the handoff skill no-ops
+silently; the research record stands on its own.
+
 ## Related
 
 - **ARD SPEC** — the invariant architecture: §3 (control-space) · §5 (discipline propagation) · §7 (verification stack) · §8 (dials) · §9 (registration) · §10.1 (decision-graph). Canonical upstream; see `docs/ADOPTION.md`.
 - **ARD CATALOGS** — §4 (adversarial-reader jobs) · §5 (evaluator components) · §6 (decision-point catalog), grounding the role briefs.
 - [`research-discipline`](../research-discipline/SKILL.md) — the verbatim anti-fabrication bundle this orchestrator inlines into every authoring dispatch.
+- [`research-handoff`](../research-handoff/SKILL.md) — the Arrow 2 emission gate: operator-confirmed `.work/` item emission from actionable research findings.
 - `references/` — the three dispatch role briefs (research-specialist, adversarial-reader, evaluator).
 - `.research/CONVENTIONS.md` — the substrate's frontmatter contracts + the down-gradient read rule.

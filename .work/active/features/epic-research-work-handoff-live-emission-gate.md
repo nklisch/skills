@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live-emission-gate
 kind: feature
-stage: implementing
+stage: review
 tags: [skill]
 parent: epic-research-work-handoff-live
 depends_on: [epic-research-work-handoff-live-fields]
@@ -169,3 +169,39 @@ Skill + docs — verified by inspection/dry-run since there is no code:
 - **Sequencing** — emitting `research_origin:` before the fields feature lands
   would produce items the substrate can't query. Mitigation: `depends_on:
   [epic-research-work-handoff-live-fields]` (already declared).
+
+## Implementation notes
+
+Implemented in one stride. Files created/changed:
+
+- **NEW** `plugins/agentic-research/skills/research-handoff/SKILL.md` — the
+  Arrow 2 emission gate skill. Five phases: (1) locate artifact under
+  `.research/analysis/`; (2) substrate-presence check (silent no-op if
+  `.work/CONVENTIONS.md` absent); (3) AskUserQuestion propose+confirm (backlog
+  default / active / skip); (4) emit items with `research_origin: <slug>` +
+  body citation; (5) commit + report. Frontmatter mirrors
+  `research-orchestrator` (`name`, `description`, `argument-hint`,
+  `allowed-tools`, `user-invocable: true`). `AskUserQuestion` in
+  `allowed-tools`; no auto-writes anywhere.
+- **MODIFIED** `plugins/agentic-research/skills/research-orchestrator/SKILL.md`
+  — added "Next step after a completed engagement" section pointing at
+  `/agentic-research:research-handoff <slug>`; added `research-handoff` to
+  Related links.
+- **MODIFIED** `plugins/agentic-research/docs/HANDOFF.md` — Arrow 2 heading
+  marked **live**; invocation added (`/agentic-research:research-handoff <slug>`);
+  queryability note added (`work-view --research-origin`); "linkage contract
+  (proposed)" section renamed to "The linkage fields" (no longer proposed);
+  overall intro paragraph updated to drop "design/contract document, not live
+  code" claim; Status section updated to "Arrow 2 live; Arrow 1 designed, not
+  yet live" (per-arrow flip only — the coordination feature owns the full
+  "fully live" flip).
+
+Directionality verified: `research-handoff/SKILL.md` has no step that writes
+into `.research/`; all writes target `.work/`. The only `.research/` references
+are read/locate steps in Phases 1–2.
+
+Acceptance criteria met:
+- Absent `.work/CONVENTIONS.md` → silent no-op (Phase 2)
+- Operator-confirmed via AskUserQuestion (Phase 3); backlog default; never auto-writes
+- Emitted items carry `research_origin: <slug>` + body citation (Phase 4)
+- Writes only to `.work/`; nothing written into `.research/`

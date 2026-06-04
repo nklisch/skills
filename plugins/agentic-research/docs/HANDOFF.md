@@ -1,9 +1,6 @@
 # HANDOFF: research ↔ work pairing
 
-How the research substrate (`.research/`) and the operational substrate (`.work/`) pair. This
-is a **design/contract document, not live code** — it specifies the relationship for a future
-implementation (a named follow-on epic). The plugin's research capability stands alone today;
-nothing here changes `.work/`'s tooling.
+How the research substrate (`.research/`) and the operational substrate (`.work/`) pair.
 
 ## Authority vs coordination — keep them separate
 
@@ -36,11 +33,12 @@ The operational tier commissions and consumes research. A work item that needs g
 
 This is the common operational entry point — work coordinates; research grounds.
 
-## Arrow 2 — `.research/` → `.work/` (grounding; emission)
+## Arrow 2 — `.research/` → `.work/` (grounding; emission) — **live**
 
 Research informs work. A completed engagement that surfaces *actionable* findings — a campaign
 or position carrying `output_kind: adoption-recommendations`, a staged hypothesis to validate,
-a recommendation to implement — can **emit** tracked work items, gate-style:
+a recommendation to implement — can **emit** tracked work items, gate-style, via
+`/agentic-research:research-handoff <slug>`:
 
 - **Operator-confirmed**, mirroring `repo-eval` (which asks before filing and defaults to the
   lowest-commitment target): the emission proposes items and the operator confirms — it is never
@@ -48,12 +46,15 @@ a recommendation to implement — can **emit** tracked work items, gate-style:
 - Default target is `.work/backlog/` (lowest commitment); active stories/features when the scope
   warrants.
 - Each emitted item carries `research_origin:` (the source campaign/position slug) plus a body
-  citation to the grounding artifact.
+  citation to the grounding artifact. Emitted items are queryable via
+  `work-view --research-origin <slug>`.
+- **Silent no-op** when `.work/CONVENTIONS.md` is absent — the research capability stands alone
+  without an operational substrate.
 
 This mirrors how agile-workflow's gates produce items with `gate_origin:` — a research engagement
 is, in this sense, a grounding gate over `.work/`.
 
-## The linkage contract (proposed)
+## The linkage fields
 
 Two `.work/` frontmatter fields, mirroring the existing `gate_origin:` convention:
 
@@ -62,10 +63,10 @@ Two `.work/` frontmatter fields, mirroring the existing `gate_origin:` conventio
 | `research_refs:` | `.work/` → `.research/` | the research artifact(s) this work item tracks / consumes |
 | `research_origin:` | `.research/` → `.work/` | the research artifact that spawned this work item |
 
-Both are machine-greppable, so operational queries can ask "what work is grounded in research X?"
-or "what work did this campaign produce?" **These are a proposed contract** — this feature does
-**not** add them to `.work/`'s schema or tooling; the live implementation does, coordinated with
-`agile-workflow` (which owns the `.work/` item shape).
+Both are part of the `.work/` item schema (added by the `fields` feature, coordinated with
+`agile-workflow`) and are queryable via `work-view`:
+- `work-view --research-origin <slug>` — items emitted by a research engagement
+- `work-view --research-refs <slug>` — items that commission or cite a research engagement
 
 ## Graceful degradation
 
@@ -88,10 +89,13 @@ only** (`reference → attestation → precis → analysis`; *ARD SPEC §4.6, §
 item — never a write into the other tier's authoritative record. The `work → research` arrow is
 coordination, not authorship; it cannot launder operational framing back into a research artifact.
 
-## Status — designed, not live
+## Status — Arrow 2 live; Arrow 1 designed, not yet live
 
-This document is the contract. **Live implementation is a follow-on epic**: a handoff
-skill/gate that performs Arrow 2 emission (operator-confirmed, degrading per above), plus the
-`research_refs:` / `research_origin:` field additions to `.work/` — done in coordination with
-`agile-workflow`. Until then, the pairing is a documented design and the two tiers stand alone.
+**Arrow 2** (`/agentic-research:research-handoff`) is **live** — operator-confirmed emission
+from completed engagements to `.work/` items is implemented as described above.
+
+**Arrow 1** (commissioning convention — `.work/` items commissioning and citing research) is
+**designed but not yet live** as a documented convention. Implementation is the
+`epic-research-work-handoff-live-coordination` follow-on.
+
 See [ARCHITECTURE.md](ARCHITECTURE.md) for where the tiers sit.
