@@ -64,7 +64,7 @@ must match); `N` resolves by number against `references.md` (and the per-corpus
 `INDEX.md`). **`references.md` and `INDEX.md` are append-only — assign the next
 integer to a new source; never renumber.** Renumbering breaks every live citation.
 **Handles are unique** — a `source_handle` declared by two or more attestations resolves
-ambiguously; the lint flags it `colliding-handle` (ARD v0.4.0, *CATALOGS §3*).
+ambiguously; the lint flags it `colliding-handle` (ARD v0.4.1, *CATALOGS §3*).
 
 ## Typed cross-references (optional)
 

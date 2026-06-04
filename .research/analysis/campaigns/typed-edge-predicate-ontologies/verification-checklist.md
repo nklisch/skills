@@ -182,7 +182,7 @@ work.
 
 Parent L105 says the synthesis "pins the **v0.4** `catalogs.json` lineage." The `catalog_baseline`
 field *inside* `catalogs.json` reads `"0.3"`. "v0.4" is defensible as the *ARD release* version
-(README references ARD v0.4.1, CONVENTIONS references ARD v0.4.0), but the `catalogs.json`
+(README + CONVENTIONS both reference ARD v0.4.1 after a post-review fix), but the `catalogs.json`
 *baseline* it claims to pin is 0.3. Tightening to "the v0.4.x ARD release's `catalogs.json`
 (catalog_baseline 0.3)" would remove the seam. **Informational** — not counted in the verdict.
 
