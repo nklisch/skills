@@ -209,7 +209,7 @@ gate_origin, research_refs[], research_origin, created, updated
 `[]` / `null`, no validation warning. Query via `--research-refs <slug>` and
 `--research-origin <slug>`. See `plugins/agentic-research/docs/HANDOFF.md` for
 the cross-tier contract; the emission and commissioning arrows that populate these
-fields are separate features not yet implemented.
+fields are implemented (live) in the `agentic-research` plugin.
 
 ## Querying with work-view (primary tool)
 

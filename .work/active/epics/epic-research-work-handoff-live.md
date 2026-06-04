@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live
 kind: epic
-stage: review
+stage: done
 tags: [skill, tooling]
 parent: null
 depends_on: [epic-agentic-research-substrate-tier]
@@ -265,3 +265,20 @@ both arrows are commission/cite only. The epic's own dependency
 and `agentic-research` (both arrows) — via `bump-version.sh` (user controls publication);
 and rebuilding/recommitting the distributed `.work/bin/work-view` binary so the live
 `--research-*` flags reach the committed CLI. Both are version-bump-time steps.
+
+## Review (epic capstone + Phase 8 final review)
+Verdict: **Approve** → `done`. Fresh-context completion review (Phase 8, inline
+fresh-context — not cross-model) adversarially audited the whole bundle. All
+eight load-bearing checks PASS: directionality (zero `.research/` writes in the
+emission skill), operator-confirmed + silent-no-op emission, no liveness
+overclaim in HANDOFF, the `depends_on`-targets-`.work/` rule present, Rust
+correctness + genuine (un-gamed) tests, fields correctly optional (not
+required-validated), substrate state consistent, cross-links resolve.
+`cargo test --workspace` reproduced green — **323 passed, 0 failed**.
+- **One Important finding, FIXED inline** (rolling-foundation drift): the
+  `fields-docs` story (landed before the arrows) left two stale "arrows not yet
+  implemented" sentences in `.work/CONVENTIONS.md` and agile-workflow
+  `ARCHITECTURE.md`; both are now false since the arrows are live. Rolled forward
+  to "implemented (live) in the agentic-research plugin."
+- Accepted deferrals (not findings): unrebuilt `.work/bin/work-view`, the two
+  release-time version bumps, the skipped optional `filters.js` chip.

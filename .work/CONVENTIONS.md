@@ -35,10 +35,11 @@ with no validation warning.
   work item (Arrow 2, grounding). Mirrors `gate_origin`. Queryable via
   `work-view --research-origin <slug>` (or `null`).
 
-These fields are the schema substrate for the research↔work handoff arrows;
-the arrows themselves (Arrow 2 emission gate and Arrow 1 commissioning convention)
-are separate features not yet implemented. For the cross-tier pairing contract,
-see `plugins/agentic-research/docs/HANDOFF.md`.
+These fields are the schema substrate for the research↔work handoff arrows. The
+arrows themselves are implemented in the `agentic-research` plugin (Arrow 2 = the
+`research-handoff` emission skill; Arrow 1 = the commissioning convention in
+HANDOFF.md) and are **live**. For the cross-tier pairing contract, see
+`plugins/agentic-research/docs/HANDOFF.md`.
 
 ## Gate config
 gates_for_release: [tests, cruft, docs, patterns]
