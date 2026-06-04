@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live
 kind: epic
-stage: drafting
+stage: implementing
 tags: [skill, tooling]
 parent: null
 depends_on: [epic-agentic-research]
@@ -136,20 +136,77 @@ performs that roll-forward when it lands. HANDOFF.md already carries the design;
 implementation flips its "Status — designed, not live" section and the parent
 epic's follow-on note to "live."
 
-## Candidate decomposition (for epic-design)
-Not binding — `epic-design` owns the realized split. A likely shape:
-- **Field additions (agile-workflow)** `[tooling, docs]` — add `research_refs:` /
-  `research_origin:` as first-class optional `.work/` fields; document in
-  CONVENTIONS.md + the SPEC frontmatter contract; teach `work-view` to query
-  them. depends_on: `[]` (within this epic) — the schema foundation.
-- **Arrow 2 emission gate (agentic-research)** `[skill]` — the operator-confirmed
-  `.research/` → `.work/` emission gate/skill, backlog-default, silent no-op
-  without `.work/`, emitted items carry `research_origin:` + citation.
-  depends_on: the field-additions feature.
-- **Arrow 1 coordination (agentic-research + agile-workflow)** `[skill, tooling]`
-  — the work-item-commissions-research ergonomics (`research_refs:`,
-  `depends_on` a research output, `work-view` linkage queries). depends_on: the
-  field-additions feature.
+## Design decisions
+Locked at epic-design time (Phase 4.7, direct user invocation). Each child
+feature's design pass inherits these:
+- **Linkage query ownership → the field-additions feature owns it.** The
+  `--research-origin` / `--research-refs` query flags ship *with* the schema
+  fields, as one complete vertical slice mirroring `gate_origin:`/`--gate`
+  end-to-end. Rationale: a field with no filter flag is dead weight (the
+  `gate_origin` precedent shipped field + flag together), and the query is just
+  a filter on `.work/` items' own fields — "what work is grounded in research
+  X?" = `--research-origin X` — with no cross-tier traversal (`work-view` never
+  reaches into `.research/`). Keeps all `work-view` changes in one agile-workflow
+  version bump.
+- **Arrow 1 depth → convention + fields + query, no new skill.** Arrow 1 ships
+  the documented commissioning workflow (a work item sets `research_refs:`,
+  `depends_on`-s the research output, cites the artifact) and reuses the query
+  from the fields feature — but introduces *no* new executable skill;
+  commissioning reuses the existing `research-orchestrator` invocation. Lightest
+  shape; honors the over-coupling risk (don't blur coordination into authorship).
+
+## Decomposition
+Three child features, split by **arrow + plugin ownership** (not by layer): the
+schema foundation in agile-workflow, then the two arrows in agentic-research,
+which parallelize once the foundation lands. This shape was chosen over a
+single cross-plugin feature (it would force one version bump across two plugins
+and couple the schema to the gate) and over a finer slice (separating the query
+from the fields would ship an unqueryable schema — see the locked decision).
+
+The epic's cross-epic gate (`depends_on: [epic-agentic-research]`) is
+**materialized onto the `fields` entry feature**, because `work-view` readiness
+is non-transitive (it evaluates an item's own `depends_on`, not its parent
+epic's). This keeps the entire epic `--blocked` until the prior ARD-adoption
+epic lands; the other two children inherit the gate through their dependency on
+`fields`. Verified: with `epic-agentic-research` still implementing, `--ready`
+surfaces none of these three features and `--blocked` surfaces all three.
+
+### Child features
+- `epic-research-work-handoff-live-fields` `[tooling, docs]` — the `.work/`
+  schema + `work-view` linkage fields (`research_refs:` / `research_origin:`)
+  and the `--research-origin` / `--research-refs` query flags, plus the
+  CONVENTIONS/SPEC/AGENTS roll-forward. agile-workflow version bump. — depends
+  on: `[epic-agentic-research]` (the materialized cross-epic gate).
+- `epic-research-work-handoff-live-emission-gate` `[skill]` — Arrow 2: the
+  operator-confirmed `.research/` → `.work/` emission gate, backlog-default,
+  silent no-op without `.work/`, emitted items carry `research_origin:` +
+  citation. agentic-research version bump. — depends on:
+  `[epic-research-work-handoff-live-fields]`.
+- `epic-research-work-handoff-live-coordination` `[skill, docs]` — Arrow 1: the
+  work→research commissioning *convention* (no new skill), reusing
+  `research-orchestrator` + the linkage fields/query. agentic-research doc
+  surface. — depends on: `[epic-research-work-handoff-live-fields]`.
+
+### Decomposition risks
+- **`research_refs` is plural — not a `gate_origin` clone.** HANDOFF.md frames
+  `research_refs:` as "handles or analysis slugs" (a list), unlike
+  `gate_origin`'s single `Option<String>`. The `fields` design pass must account
+  for list parse (YAML sequence vs scalar), membership-match filter semantics,
+  and the flag's matching — not blind-copy the `gate_origin` shape.
+- **Shared foundation roll-forward across two features.** Both `emission-gate`
+  (Arrow 2) and `coordination` (Arrow 1) touch HANDOFF.md's status + the parent
+  epic's follow-on note. Flip **per-arrow**, and guard against a premature
+  "fully live" claim before *both* arrows land — feature-design resolves exact
+  wording so the two parallel features don't race the header.
+- **Sequencing / two version bumps.** `emission-gate` writes `research_origin:`
+  and `coordination` relies on the query flags — both must land after `fields`
+  (enforced by `depends_on`). Bumps are split: agile-workflow for `fields`,
+  agentic-research for the two arrows. Per CONVENTIONS/CLAUDE.md, commit feature
+  changes before each `bump-version.sh` run.
+- **Directionality erosion in live code.** Both arrows must stay
+  reference/commission-only (the gate writes only to `.work/`; coordination only
+  reads/cites `.research/`). Each feature's design pass verifies no path lets
+  work write into `.research/` (ARD SPEC §1/§4.6).
 
 ## Risks
 - **Cross-plugin schema coupling.** The fields live in agile-workflow but are
