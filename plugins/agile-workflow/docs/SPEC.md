@@ -90,7 +90,11 @@ tags: [<tag>, ...]
 ---
 ```
 
-Body: a one-paragraph idea description.
+Body: an unscoped capture sized to the input. Simple ideas can be one
+paragraph; richer context notes or roadmap-style multi-arc thoughts can keep
+bullets, references, and current-situation context. Kind, stage, parent,
+dependencies, release binding, and decomposition remain unknown until `scope`
+promotes the item.
 
 ## Substrate file contracts
 

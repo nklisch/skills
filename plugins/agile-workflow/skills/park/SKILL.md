@@ -2,20 +2,21 @@
 name: park
 description: >
   ALWAYS invoke this skill when the user wants to capture an idea for later without
-  derailing current work — do not start working on the parked idea inline. Quickly
-  captures an idea into the agile-workflow backlog at .work/backlog/<id>.md with
-  minimal frontmatter and a one-paragraph idea body. Use when a new direction surfaces
-  mid-flow and you shouldn't derail what's currently in progress. Triggers on "park
-  this", "park it", "remind me about X", "add to backlog", "we should consider Y",
-  "save this for later", "let's not lose this".
+  derailing current work — do not start working on the parked idea inline. Captures
+  short ideas, richer context notes, or roadmap-style multi-arc thoughts into the
+  agile-workflow backlog at .work/backlog/<id>.md with minimal frontmatter. Use when
+  a new direction surfaces mid-flow and you shouldn't derail what's currently in
+  progress. Triggers on "park this", "park it", "remind me about X", "add to
+  backlog", "we should consider Y", "save this for later", "let's not lose this".
 allowed-tools: Read, Write, Bash
 ---
 
 # Park
 
 You capture an idea into the project's `.work/backlog/` tier without interrupting
-the current work. The captured file is intentionally lightweight — full kind, stage,
-parent, and dependency decisions happen later via `/agile-workflow:scope`.
+the current work. The captured file is intentionally unscoped — full kind, stage,
+parent, dependency, and decomposition decisions happen later via
+`/agile-workflow:scope`.
 
 ## When to invoke
 
@@ -37,15 +38,26 @@ Confirm `.work/CONVENTIONS.md` exists in the project. If not, halt:
 > "No agile-workflow substrate found. Run `/agile-workflow:convert` to bootstrap, then
 > retry."
 
-### Phase 2: Distill the idea
+### Phase 2: Capture the idea
 
-Reduce the user's input to a one-paragraph capture:
-- **Slug**: kebab-case `id`, prefixed `idea-` (e.g., `idea-csv-export`,
-  `idea-multi-tenancy`). Keep it short — 2-4 words.
+Preserve the user's useful context without turning park into design work:
+- **Slug**: kebab-case `id`, prefixed `idea-` by default (e.g.,
+  `idea-csv-export`, `idea-multi-tenancy`). Use `roadmap-` only when the user
+  explicitly asks to park a roadmap-style or multi-arc capture. Keep it short —
+  2-5 words.
 - **Tags**: only if the user mentioned a clear category (e.g., "park this security
   thought" → `[security]`). Otherwise leave empty.
-- **Body**: one paragraph capturing what the idea is and why it might matter.
-  Don't expand into requirements, design, or scope decisions — those happen at scope time.
+- **Body**: size the capture to the input and situation. A simple idea can be
+  one paragraph. A rich idea can keep bullets, pasted notes, links, referenced
+  files, relevant constraints, or "current situation" context from the active
+  thread. A roadmap-style capture can preserve multiple possible epic/feature/story
+  arcs as raw notes. It is not a binding release roadmap or an active decomposition.
+
+Only include information already supplied by the user or directly necessary to
+make the parked thought intelligible later. You may lightly organize, dedupe, and
+label that context. Do not add new requirements, propose fresh architecture, choose
+kind/stage/parent/dependencies, or decompose the work beyond what the user already
+said — those happen at scope/design time only when asked.
 
 ### Phase 3: Write the file
 
@@ -58,11 +70,11 @@ created: YYYY-MM-DD     # today's local date (matches the PostToolUse hook)
 tags: [<tag>, ...]      # empty array if no clear category
 ---
 
-<one-paragraph idea body>
+<idea body sized to the capture: one paragraph, bullets, or roadmap-style notes>
 ```
 
 If a backlog file with the same `id` already exists, append a numeric suffix
-(`idea-csv-export-2`, etc.).
+(`idea-csv-export-2`, `roadmap-admin-ux-2`, etc.).
 
 ### Phase 4: Commit
 
@@ -83,7 +95,12 @@ One-line confirmation in conversation:
 
 - Park is a single-stride operation. Do NOT promote to active, do NOT design, do NOT
   ask about scope, dependencies, or release binding. Those are scope's job.
-- Do NOT expand the idea body beyond one paragraph. The whole point is low-friction capture.
+- Do NOT proactively add design after invocation. Preserve and lightly organize
+  supplied context, but do not create new plans, requirements, acceptance criteria,
+  or decomposition unless the user explicitly included them in the parked thought.
+- Do NOT compress rich context into a one-paragraph summary when that would lose
+  useful information. Low-friction capture means no extra process, not minimal
+  content at all costs.
 - Do NOT skip the commit. Each park is a cheap, atomic git event so the user can revert
   individual parks cleanly if needed.
 - Do NOT add the parked item to the conversation's working context — the user wants it

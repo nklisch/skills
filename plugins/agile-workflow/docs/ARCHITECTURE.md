@@ -79,9 +79,11 @@ An item flows through tiers as work progresses on it.
 
 ### Item creation entry points
 
-1. **`/park`** — captures a quick idea mid-conversation as a flat backlog
-   file. Used when something surfaces that shouldn't derail the current
-   thread.
+1. **`/park`** — captures an unscoped backlog note mid-conversation as a flat
+   backlog file. It may be a quick idea, a richer context note, or a
+   roadmap-style multi-arc thought; it preserves supplied context without
+   proactively designing or binding the work. Used when something surfaces
+   that shouldn't derail the current thread.
 2. **`/scope` on a backlog item** — promotes an existing backlog idea to
    active, decides its kind (epic/feature/story), and writes the kind-file
    with full frontmatter including any declared dependencies.
@@ -620,7 +622,7 @@ All skills with their roles, invocability, and triggers.
 
 | Skill | Role | Trigger |
 |---|---|---|
-| `park` | Quick capture of an idea into `.work/backlog/`. One-paragraph file, minimal frontmatter. | "park this", "remind me about X", "add to backlog" |
+| `park` | Capture an unscoped idea, context note, or roadmap-style thought into `.work/backlog/`. Minimal frontmatter; body sized to the supplied context. | "park this", "remind me about X", "add to backlog" |
 | `scope` | Promote backlog item or fresh request to `.work/active/`. Sizes as epic/feature/story. If large, rolls foundation docs forward. Declares dependencies. | "scope this", "promote this", "let's track this" |
 | `fix` | Park-and-implement quick bug as a story. Single-stride: creates story at `stage: implementing`, writes fix, advances to review. | "fix bug X", "fix the typo in", "fix this issue" |
 

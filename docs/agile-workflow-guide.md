@@ -434,7 +434,9 @@ but knowing what each does helps you steer.
 ### Capture and promotion
 
 - **`park`** fires when you say things like "park this idea" or "remind me
-  to think about X later." Output: a flat file in `.work/backlog/`.
+  to think about X later." Output: a flat, unscoped file in `.work/backlog/`.
+  It can preserve a short idea, richer current-context note, or roadmap-style
+  thought without promoting or designing it.
 - **`scope`** fires when you say "let's scope idea-X as a feature" or
   "promote that to active." Output: file moves from `.work/backlog/` to
   `.work/active/<kind>/`, frontmatter populated, dependencies declared. For

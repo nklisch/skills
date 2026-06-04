@@ -254,7 +254,7 @@ created: 2026-01-15
 tags: [tooling]
 ---
 
-A one-paragraph idea description.
+An unscoped idea capture.
 ";
         let item = parse_item(
             &p("/repo/.work/backlog/my-backlog-idea.md"),
