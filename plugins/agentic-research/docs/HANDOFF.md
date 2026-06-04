@@ -82,7 +82,7 @@ Neither tier requires the other to function. The pairing adds value where both a
 ## Directionality guard
 
 Restating the invariant so it is not re-eroded: within `.research/`, reads are **down-gradient
-only** (`reference → attestation → precis → analysis`; *ARD SPEC §4.6*). Across the tiers,
+only** (`reference → attestation → precis → analysis`; *ARD SPEC §4.6, §10.2*). Across the tiers,
 **research informs work, and work never rewrites the research record.** Both arrows above are
 *references / commissions* — a work item cites or triggers research; a finding proposes a work
 item — never a write into the other tier's authoritative record. The `work → research` arrow is
