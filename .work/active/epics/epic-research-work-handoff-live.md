@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live
 kind: epic
-stage: implementing
+stage: review
 tags: [skill, tooling]
 parent: null
 depends_on: [epic-agentic-research-substrate-tier]
@@ -244,3 +244,24 @@ Released sibling follow-on: `research-view` (the Rust query binary over
 `.research/`) remains a separately-tracked drafting feature under
 `epic-agentic-research` — independent of this epic; the two follow-ons do not
 depend on each other.
+
+## Realized (autopilot run)
+All three child features implemented, reviewed, and `done`:
+- `…-fields` (agile-workflow) — `research_refs`/`research_origin` in `Item`/parse/filter
+  + `--research-origin`/`--research-refs` flags + board feed + SPEC/AGENTS/CONVENTIONS/
+  ARCHITECTURE roll-forward. 3 stories; `cargo test --workspace` → 323 passed.
+- `…-emission-gate` (agentic-research) — new `research-handoff` skill (Arrow 2):
+  operator-confirmed, silent no-op without `.work/`, emits items with `research_origin:`
+  + citation, writes only to `.work/`.
+- `…-coordination` (agentic-research) — Arrow 1 commissioning convention (no new skill):
+  HANDOFF Arrow 1 recipe + the `depends_on`-targets-`.work/`-id rule, orchestrator/guide
+  pointers. HANDOFF.md overall status flipped to **live** (both arrows).
+
+**Invariant held end-to-end**: directionality grep confirms zero `.research/` writes;
+both arrows are commission/cite only. The epic's own dependency
+(`epic-agentic-research-substrate-tier`) was done before any work started.
+
+**Deferred to release (NOT done here)**: two version bumps — `agile-workflow` (fields)
+and `agentic-research` (both arrows) — via `bump-version.sh` (user controls publication);
+and rebuilding/recommitting the distributed `.work/bin/work-view` binary so the live
+`--research-*` flags reach the committed CLI. Both are version-bump-time steps.
