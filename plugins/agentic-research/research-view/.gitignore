@@ -1,0 +1,3 @@
+# Cargo build output — never committed. Distribution binaries live in dist/
+# (committed by CI), not here.
+/target
