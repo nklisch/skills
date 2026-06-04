@@ -15,12 +15,11 @@
     "kernel/conformance/": "scripts/conformance/",
     "kernel/templates/attestation.md": "templates/attestation.md",
     "kernel/templates/precis.md": "templates/precis.md",
-    "kernel/templates/INDEX.md": "templates/INDEX.md"
+    "kernel/templates/INDEX.md": "templates/INDEX.md",
+    "kernel/discipline.md": "skills/research-discipline/SKILL.md",
+    "kernel/templates/dispatch.md": "templates/dispatch.md"
   },
-  "not_yet_vendored": {
-    "kernel/discipline.md": "lands with engagement-engine — research-discipline skill vendors it verbatim as the body",
-    "kernel/templates/dispatch.md": "lands with engagement-engine — the dispatch/registration template"
-  },
-  "drift_check": "grep -rl ARD-Version plugins/agentic-research/scripts plugins/agentic-research/templates; diff against upstream `git diff v0.3.0 <newtag> -- kernel/`",
+  "not_yet_vendored": {},
+  "drift_check": "grep -rl ARD-Version plugins/agentic-research/scripts plugins/agentic-research/templates plugins/agentic-research/skills; diff against upstream `git diff v0.3.0 <newtag> -- kernel/`",
   "conformance": "python3 plugins/agentic-research/scripts/conformance/run.py"
 }

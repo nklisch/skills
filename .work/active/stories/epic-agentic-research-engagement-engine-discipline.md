@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-engagement-engine-discipline
 kind: story
-stage: implementing
+stage: review
 tags: [skill]
 parent: epic-agentic-research-engagement-engine
 depends_on: []
@@ -34,3 +34,24 @@ orchestration logic (that's the sibling `-orchestrator` story).
 - [ ] `templates/dispatch.md` byte-identical to upstream
 - [ ] `ard.json` `not_yet_vendored` drained; both paths in `vendored_paths`; ADOPTION.md vendor map 1:1 with `ard.json` (re-run the foundation-docs check)
 - [ ] `scripts/conformance/run.py` still 15/15 (unaffected)
+
+## Implementation notes
+- **Files created**: `skills/research-discipline/SKILL.md` (thin wrapper + verbatim
+  six-section body, built by appending `sed -n '/^## 1\./,$p' kernel/discipline.md` so the
+  body is byte-identical); `templates/dispatch.md` (verbatim `cp` from kernel).
+- **Files changed**: `ard.json` (moved `kernel/discipline.md` → `skills/research-discipline/SKILL.md`
+  and `kernel/templates/dispatch.md` → `templates/dispatch.md` into `vendored_paths`;
+  `not_yet_vendored` now `{}`; extended `drift_check` grep to include `skills`);
+  `docs/ADOPTION.md` (replaced the "(pending)" row with two explicit rows);
+  `docs/VERSIONING.md` (drift-grep command now covers `skills`).
+- **Discrepancies from design**: one minor in-scope addition — the design's Unit 3 named
+  `ard.json` + `ADOPTION.md`, but the discipline stamp lives under `skills/` which the drift
+  grep (in both `ard.json` `drift_check` and `VERSIONING.md`) didn't cover. Extended both
+  grep paths to include `skills/` so the new `ARD-Version` stamp is drift-checkable.
+  Rolling-foundation fix, not a scope expansion.
+- **Tests added**: none (verbatim vendor). **Verification**: discipline six-section body +
+  `templates/dispatch.md` byte-identical to `/tmp/ARD/kernel/`; `ard.json` valid,
+  `not_yet_vendored` drained, `vendored_paths` 9; ADOPTION vendor map 1:1 (9/9); wrapper
+  propagation = inline-dispatch + `user-invocable: false`; drift grep finds the discipline
+  stamp; conformance 15/15.
+- **Adjacent issues parked**: none.

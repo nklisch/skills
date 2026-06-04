@@ -43,7 +43,8 @@ We flattened the kernel into the plugin. The **authoritative map is
 | `kernel/templates/attestation.md` | `templates/attestation.md` | verbatim |
 | `kernel/templates/precis.md` | `templates/precis.md` | verbatim |
 | `kernel/templates/INDEX.md` | `templates/INDEX.md` | verbatim |
-| `kernel/discipline.md`, `kernel/templates/dispatch.md` | *(pending — engagement-engine)* | verbatim |
+| `kernel/discipline.md` | `skills/research-discipline/SKILL.md` (body) | verbatim |
+| `kernel/templates/dispatch.md` | `templates/dispatch.md` | verbatim |
 
 ## The discipline
 

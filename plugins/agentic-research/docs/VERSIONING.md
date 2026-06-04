@@ -45,7 +45,7 @@ This mirrors upstream `VERSIONING.md`'s table — we do not author a divergent m
 ## Drift check + the sync tool
 
 - **Drift check** — every vendored kernel artifact carries an `ARD-Version:` stamp.
-  `grep -rl ARD-Version plugins/agentic-research/scripts plugins/agentic-research/templates`
+  `grep -rl ARD-Version plugins/agentic-research/scripts plugins/agentic-research/templates plugins/agentic-research/skills`
   lists them; compare to the pinned tag with `git diff v0.3.0 <newtag> -- kernel/` in an ARD
   checkout.
 - **Conformance** — after any re-sync, run
