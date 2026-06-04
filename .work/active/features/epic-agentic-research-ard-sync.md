@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-ard-sync
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-agentic-research
 depends_on: [epic-agentic-research-foundation-docs]
@@ -233,3 +233,29 @@ no-drift confirmation, the inverse of the worked example).
   Mitigation: sentinel version + exclude `tests/` from `drift_check` (Unit 3).
 - **Operator points at the wrong ref.** Garbage-in. Mitigation: the report prints the target
   version (read from `<ard-repo>/ard.json`) so the operator sees what they compared against.
+
+## Implementation notes
+- **Files created**: `scripts/ard-sync.py` (the zero-dep check-only drift CLI),
+  `scripts/tests/test_ard_sync.py` (subprocess-cli-harness, tempdir-built fixtures).
+- **Files changed**: `docs/VERSIONING.md` (names `ard-sync.py` as the drift tool, drops "in
+  progress"; manual grep tightened); `ard.json` (`drift_check` → `ard-sync.py` + precise grep).
+- **Discrepancies from design**:
+  - *Removed the per-file `ARD-Version` stamp parse from the tool.* The `ard.json` `version`
+    compare is the authoritative delta; per-file stamp parsing was redundant dead code (the
+    human `grep` covers stamps). Simpler tool.
+  - *Test builds fixtures in a TempDir* rather than committing a `fixtures/` tree — cleaner and
+    sidesteps drift-grep pollution entirely (nothing committed carries a stamp). Added a 5th
+    scenario (version-bump, identical kernel) to cover the delta/bump-axis path.
+  - *Precision fix (surfaced in verify):* the documented drift grep is now `grep "ARD-Version:"`
+    (colon) + `--exclude-dir=tests`, so it lists only genuinely-stamped vendored files —
+    `ard-sync.py` mentions the string in prose but carries no stamp.
+  - *Brief's "adapted SPEC/CATALOGS docs"* — superseded by foundation-docs' thin/reference
+    decision (nothing vendored to diff there); the tool targets exactly `ard.json` `vendored_paths`.
+- **Tests added**: `test_ard_sync.py` — **5/5** (in-sync · file-drift · body-drift ·
+  wrapper-only-no-drift · version-bump).
+- **Verification**: test 5/5; **live in-sync smoke** `ard-sync.py --ard-repo /tmp/ARD` → exit 0
+  (all 9 artifacts `ok`, modes resolved, discipline body-embed `ok` despite differing wrapper);
+  **live drift demo** — mutated real `scripts/catalogs.json` → `DRIFT` named + re-sync plan +
+  exit 1, restored → exit 0; zero third-party imports; conformance 15/15; colon-grep lists only
+  the 8 stamped vendored files.
+- **Adjacent issues parked**: none.

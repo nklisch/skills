@@ -44,16 +44,17 @@ This mirrors upstream `VERSIONING.md`'s table — we do not author a divergent m
 
 ## Drift check + the sync tool
 
-- **Drift check** — every vendored kernel artifact carries an `ARD-Version:` stamp.
-  `grep -rl ARD-Version plugins/agentic-research/scripts plugins/agentic-research/templates plugins/agentic-research/skills`
-  lists them; compare to the pinned tag with `git diff v0.3.0 <newtag> -- kernel/` in an ARD
-  checkout.
+- **The drift tool** — `python3 plugins/agentic-research/scripts/ard-sync.py --ard-repo <ARD-checkout>`
+  reads `ard.json`, compares every vendored artifact against the target kernel (per vendor-mode,
+  with the discipline body-embed handled), reports per-artifact drift + the version delta + the
+  upstream `kernel/` diff + a re-sync plan + the suggested plugin-bump axis. Check-only (exit 0 in
+  sync / 1 drift); the operator applies the re-sync and runs conformance. The **v0.2 → v0.3.0**
+  re-sync is its worked example.
+- **Manual drift check** (no checkout) — every vendored kernel artifact carries an `ARD-Version:`
+  stamp: `grep -rl "ARD-Version:" --exclude-dir=tests plugins/agentic-research/scripts plugins/agentic-research/templates plugins/agentic-research/skills`.
 - **Conformance** — after any re-sync, run
   `python3 plugins/agentic-research/scripts/conformance/run.py` to validate the vendored
   lint against ARD's canonical verdicts.
-- **The repeatable tool** that chains read-pin → drift → re-sync → conformance → bump is
-  the `ard-sync` feature of the adoption epic (in progress). The **v0.2 → v0.3.0** re-sync
-  is its worked example.
 
 ## Plugin SemVer
 

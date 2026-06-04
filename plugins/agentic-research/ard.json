@@ -20,6 +20,6 @@
     "kernel/templates/dispatch.md": "templates/dispatch.md"
   },
   "not_yet_vendored": {},
-  "drift_check": "grep -rl ARD-Version plugins/agentic-research/scripts plugins/agentic-research/templates plugins/agentic-research/skills; diff against upstream `git diff v0.3.0 <newtag> -- kernel/`",
+  "drift_check": "python3 plugins/agentic-research/scripts/ard-sync.py --ard-repo <ARD-checkout>  (or, no checkout: grep -rl 'ARD-Version:' --exclude-dir=tests plugins/agentic-research/scripts plugins/agentic-research/templates plugins/agentic-research/skills)",
   "conformance": "python3 plugins/agentic-research/scripts/conformance/run.py"
 }
