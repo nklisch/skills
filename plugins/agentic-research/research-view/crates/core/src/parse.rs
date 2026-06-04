@@ -180,6 +180,49 @@ pub fn parse_artifact(
     })
 }
 
+/// Build an `Artifact` for a tier-located file that carries no parseable
+/// frontmatter.
+///
+/// Used by the loader for `ReferenceIndex`-tier files — per-corpus `INDEX.md`
+/// bibliographies legitimately have NO YAML frontmatter (the entry number `N`
+/// is the citation anchor, not a frontmatter field). Treating them as parse
+/// errors would emit a spurious warning on every run. The `identity` falls back
+/// to the file stem; all frontmatter-derived fields are `None`; `body` is the
+/// full text. Non-reference tiers do NOT use this — a missing frontmatter block
+/// there is a genuine malformed artifact and stays a `ParseError`.
+pub fn lenient_artifact(
+    path: &Path,
+    rel: &Path,
+    tier: ResearchTier,
+    corpus: Option<String>,
+    text: &str,
+) -> Artifact {
+    let identity = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown")
+        .to_owned();
+
+    Artifact {
+        identity,
+        tier,
+        source_handle: None,
+        slug: None,
+        status: None,
+        temporal_contract: None,
+        provenance: None,
+        fetched: None,
+        authored: None,
+        source_url: None,
+        source_path: None,
+        corpus,
+        path: path.to_owned(),
+        rel_path: rel.to_owned(),
+        raw_text: text.to_owned(),
+        body: text.to_owned(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

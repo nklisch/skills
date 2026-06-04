@@ -23,7 +23,7 @@ use std::{
 use crate::{
     error::{LoadError, ParseError},
     model::{Artifact, ResearchTier},
-    parse::parse_artifact,
+    parse::{lenient_artifact, parse_artifact},
 };
 
 // ── Public report type ────────────────────────────────────────────────────────
@@ -84,7 +84,18 @@ impl Substrate {
 
             match parse_artifact(abs_path, &rel, *tier, corpus.clone(), &text) {
                 Ok(artifact) => artifacts.push(artifact),
-                Err(e) => report.parse_errors.push(e),
+                // Reference-tier files (per-corpus INDEX bibliographies)
+                // legitimately carry no frontmatter — load them leniently rather
+                // than recording a spurious parse error. Frontmatter-bearing
+                // reference entries still parse normally above; this only catches
+                // the no-/bad-frontmatter case. All other tiers keep the error.
+                Err(e) => {
+                    if matches!(tier, ResearchTier::ReferenceIndex) {
+                        artifacts.push(lenient_artifact(abs_path, &rel, *tier, corpus.clone(), &text));
+                    } else {
+                        report.parse_errors.push(e);
+                    }
+                }
             }
         }
 
@@ -563,6 +574,56 @@ mod tests {
         // Only INDEX.md should load; raw/ is excluded.
         assert_eq!(sub.artifacts().len(), 1);
         assert_eq!(sub.artifacts()[0].identity, "index-entry");
+    }
+
+    // ── reference INDEX without frontmatter loads leniently ────────────────
+
+    #[test]
+    fn reference_index_without_frontmatter_loads_leniently() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path().to_path_buf();
+        let research = root.join(".research");
+        fs::create_dir_all(research.join("reference/my-corpus")).unwrap();
+        fs::write(research.join("CONVENTIONS.md"), "# Conventions\n").unwrap();
+        // A per-corpus INDEX bibliography — no YAML frontmatter (by design).
+        fs::write(
+            research.join("reference/my-corpus/INDEX.md"),
+            "# my-corpus — corpus INDEX\n\nA numbered bibliography.\n",
+        )
+        .unwrap();
+
+        let (sub, report) = Substrate::load(&root).unwrap();
+        // Loaded as a lenient artifact, NOT recorded as a parse error.
+        assert_eq!(sub.artifacts().len(), 1);
+        assert!(
+            report.parse_errors.is_empty(),
+            "a frontmatter-less reference INDEX must not be a parse error"
+        );
+        let a = &sub.artifacts()[0];
+        assert_eq!(a.tier, ResearchTier::ReferenceIndex);
+        assert_eq!(a.identity, "INDEX", "identity falls back to the file stem");
+        assert_eq!(a.corpus.as_deref(), Some("my-corpus"));
+        assert!(a.source_handle.is_none());
+    }
+
+    #[test]
+    fn non_reference_tier_without_frontmatter_is_still_a_parse_error() {
+        // The lenient fallback is reference-tier ONLY; a frontmatter-less
+        // attestation is genuinely malformed and stays a parse error.
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path().to_path_buf();
+        let research = root.join(".research");
+        fs::create_dir_all(research.join("attestation")).unwrap();
+        fs::write(research.join("CONVENTIONS.md"), "# Conventions\n").unwrap();
+        fs::write(
+            research.join("attestation/no-fm.md"),
+            "# No frontmatter\n",
+        )
+        .unwrap();
+
+        let (sub, report) = Substrate::load(&root).unwrap();
+        assert!(sub.artifacts().is_empty());
+        assert_eq!(report.parse_errors.len(), 1);
     }
 
     // ── README/CONVENTIONS/references.md not indexed ───────────────────────
