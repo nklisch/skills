@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live-fields
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling, docs]
 parent: epic-research-work-handoff-live
 depends_on: [epic-agentic-research-substrate-tier]
@@ -235,3 +235,27 @@ arrows (those land in the gate/coordination features).
 <!-- research_refs cardinality (list) + its single-slug membership filter are a
 deliberate, precedent-grounded call (tags/depends_on storage + blocking filter),
 not a gate_origin clone — see Architectural choice. -->
+
+## Implementation (orchestrator run)
+All three child stories implemented and advanced to `review`:
+- `…-fields-core` — `Item.research_refs`/`research_origin` + `RawFrontmatter` parse
+  + `Filter.research`/`research_refs`; all in-memory `Item{}` literals updated
+  (model, actionable, render). 8 parse tests + 4 filter tests added.
+- `…-fields-cli` — `--research-origin` (nullable, like `--gate`) / `--research-refs`
+  (membership, like `--blocking`) flags + HELP + doc-contract; board feed DTO
+  carries both fields. 5 arg tests + 2 integration tests + a golden fixture
+  (`story-research-1.md`); 4 stale hardcoded-count integration tests refreshed.
+  `filters.js` chip skipped (optional — `research_origin` is scalar like
+  `gate_origin`, which has no chip).
+- `…-fields-docs` — SPEC frontmatter block + field table + flag table + TS
+  envelope; AGENTS substrate field list (`.claude/CLAUDE.md` is a symlink — no
+  drift); CONVENTIONS "Linkage fields" section; ARCHITECTURE note; convert
+  template + both READMEs kept in sync. No liveness overclaim (fields only;
+  HANDOFF untouched).
+
+**Verification**: `cargo test --workspace` green — **323 tests, 0 failures**
+(109 cli unit + 109 cli integration + 70 core unit + 31 core integration + 4 doc).
+**Deviations**: none material. The committed `.work/bin/work-view` binary is NOT
+rebuilt by this feature (crate-level change only) — rebuilding/recommitting the
+distributed binary so the live `--research-*` flags work from `.work/bin/` is a
+release/dist step, tracked at version-bump time.
