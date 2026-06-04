@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-ard-sync
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-agentic-research
 depends_on: [epic-agentic-research-foundation-docs]
@@ -259,3 +259,26 @@ no-drift confirmation, the inverse of the worked example).
   exit 1, restored → exit 0; zero third-party imports; conformance 15/15; colon-grep lists only
   the 8 stamped vendored files.
 - **Adjacent issues parked**: none.
+
+## Review (approve with comments · deep · fresh-context)
+Verdict: **Approve with comments**. Independent fresh-context audit — ran the tool against the
+live v0.3.0 target *and* crafted inputs for the paths the unit test doesn't cover. **All 8
+checks PASS**: in-sync exit 0 (9 artifacts, correct modes); real drift → exit 1 named;
+discipline body-embed correct (wrapper edit = no-drift, body edit = drift); **degrade mode**
+(no target `ard.json`) graceful; **new-artifact detection** + prefix-match correct (3 vendored
+`templates/*.md` covered by the upstream dir entry, not false-flagged); **git kernel-diff**
+works + fail-open; exit codes 0/1/2 + error handling; semver→action matches VERSIONING.md;
+stdlib-only; drift-grep lists only the 8 stamped files. No blockers.
+
+Findings **fixed inline** (all small):
+- **Important** — body-embed anchor `^## ` → `^## \d`: a deviation from the design's mandated
+  `## 1.` anchor; now robust to a future wrapper heading appearing above the bundle.
+- **Important** — stale-pin nudge: when the surface matches but the recorded pin lags
+  (delta ≠ none on the exit-0 path), print an "update `adopts`" note (test scenario 5 now asserts it).
+- **Nit** — `missing-target` plan line → "DROP vendored entry (upstream removed it)" (was "re-copy").
+- **Nit** — removed the identity-map dict (`axis = delta`).
+- **Bonus (self-found)** — `semver_delta` now tolerates 2-component versions (ARD's tags mix
+  `v0.1`/`v0.2` with `v0.3.0`); verified `0.2 → 0.3.0` = minor.
+
+Re-verified after fixes: test **5/5**, live in-sync exit 0, conformance 15/15, stdlib-only.
+No remaining blockers → advance review → done.

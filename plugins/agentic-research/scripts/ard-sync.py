@@ -22,8 +22,11 @@ import re
 import subprocess
 import sys
 
-FIRST_SECTION_RE = re.compile(r"^## ", re.M)
-SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
+# Anchor on the first *numbered* section (`## 1.`), not just any `## ` heading, so a future
+# wrapper heading above the bundle can't silently shift the body boundary (design mitigation).
+FIRST_SECTION_RE = re.compile(r"^## \d", re.M)
+# Tolerate 2- or 3-component versions — ARD's own tags mix them (v0.1/v0.2 vs v0.3.0).
+SEMVER_RE = re.compile(r"^(\d+)\.(\d+)(?:\.(\d+))?")
 
 
 def die(msg):
@@ -130,7 +133,7 @@ def semver_delta(old, new):
     mo, mn = SEMVER_RE.match(old or ""), SEMVER_RE.match(new or "")
     if not (mo and mn):
         return "unknown"
-    o, n = [int(x) for x in mo.groups()], [int(x) for x in mn.groups()]
+    o, n = [int(x or 0) for x in mo.groups()], [int(x or 0) for x in mn.groups()]
     if n == o:
         return "none"
     if n[0] != o[0]:
@@ -225,11 +228,17 @@ def main():
 
     if not drift:
         print("\nin sync — every vendored artifact matches the target kernel.")
+        if delta not in ("none", "unknown"):
+            print(f"note: the surface matches, but the recorded pin lags the target "
+                  f"({adopts.get('version')} → {target_version}) — update ard.json `adopts` "
+                  f"to the target version/tag/commit.")
         sys.exit(0)
 
     print("\nre-sync plan:")
     for r in drift:
-        if r["mode"] == "verify":
+        if r["status"] == "missing-target":
+            print(f"  - DROP vendored entry {r['key']} → {r['relpath']} (upstream removed it)")
+        elif r["mode"] == "verify":
             print(f"  - re-run conformance after re-syncing: {r['relpath']}")
         elif r["mode"] == "data":
             print(f"  - re-sync DATA  {r['key']} → {r['relpath']} (your tooling/docs read it)")
@@ -239,8 +248,7 @@ def main():
                      if r["key"] == "kernel/discipline.md" else ""))
     print("\nthen: python3 plugins/agentic-research/scripts/conformance/run.py")
     if delta in ("patch", "minor", "major"):
-        axis = {"patch": "patch", "minor": "minor", "major": "major"}[delta]
-        print(f"      ./scripts/bump-version.sh agentic-research {axis}   # decoupled plugin semver")
+        print(f"      ./scripts/bump-version.sh agentic-research {delta}   # decoupled plugin semver")
     print("      update ard.json `adopts` to the target version/tag/commit")
     sys.exit(1)
 

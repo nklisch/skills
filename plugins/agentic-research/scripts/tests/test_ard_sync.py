@@ -120,6 +120,8 @@ def main():
             failures.append(f"version-bump: expected exit 0 (kernel unchanged), got {code}\n{out}")
         if "version delta: minor" not in out:
             failures.append(f"version-bump: expected 'version delta: minor'\n{out}")
+        if "recorded pin lags" not in out:
+            failures.append(f"version-bump: expected the stale-pin nudge on the in-sync path\n{out}")
 
     if failures:
         print("FAIL\n\n" + "\n\n".join(failures))
