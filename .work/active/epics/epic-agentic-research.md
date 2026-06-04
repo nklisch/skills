@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-03
-updated: 2026-06-03
+updated: 2026-06-04
 ---
 
 # Adopt the Agentic Research Discipline (ARD) as the `agentic-research` plugin
@@ -194,3 +194,17 @@ registration per the "Adding a plugin" checklist (AGENTS.md plugin map +1 row,
 `marketplace.json`, three channel manifests). The two-substrate architecture note
 (operational `.work/` + research `.research/`) lands in `docs/` during the
 foundation-docs feature.
+
+## PR scope (this proposal) + named follow-ons
+The PR carries **6 of 7 features** plus two on-branch ARD absorptions (v0.2→v0.3.0 by hand;
+v0.3.0→v0.4.0 tool-driven). **Done:** scaffold, substrate-tier, foundation-docs,
+engagement-engine, ard-sync, work-handoff. The epic remains `implementing` — not because the
+proposal is incomplete, but because two pieces are **deliberately deferred as named
+follow-ons**, not abandoned:
+- **`research-view`** (`drafting`) — the Rust query binary over `.research/` (work-view
+  parity / ergonomics). A separable, heavy Rust + cross-compile lift; its own focused PR.
+- **Live `work-handoff`** — the `.work/`↔`.research/` pairing is *designed* (`docs/HANDOFF.md`);
+  the live emission gate + the `research_refs`/`research_origin` `.work/` field additions
+  (coordinated with `agile-workflow`) are a follow-on.
+Both are tracked: `research-view` as a drafting feature here; the live handoff inside
+`HANDOFF.md`'s "Status — designed, not live" section.
