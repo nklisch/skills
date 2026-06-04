@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
+# ARD-Version: 0.3.0
 # Reference implementation — ARD citation-chain lint.
 #
 # A zero-dependency reference implementation of the full lintable catalogue:
@@ -38,9 +39,13 @@ import urllib.request
 # The citation wire-form grammar (ARD SPEC §4.2): handle = [\w-]+, N = \d+.
 CITATION_RE = re.compile(r"\[([\w-]+)\]\{(\d+)\}")
 
-# Six baseline lint pattern categories (ARD CATALOGS §3). Matchers are deployment
-# latitude; these are reference heuristics that flag a span for human spot-check.
-PATTERN_CATEGORIES = {
+# Reference regex matchers, keyed by the lint pattern-category id (ARD CATALOGS §3).
+# The *categories* are the invariant diagnostic targets and are sourced from the
+# generated catalog data (kernel/catalogs.json) at runtime — so a MINOR inventory
+# bump to the category set is a data change this lint consumes, no code edit. The
+# *matchers* below are deployment latitude (reference heuristics flagging a span for
+# human spot-check). If catalogs.json is absent, the lint falls back to these six.
+REFERENCE_MATCHERS = {
     "decimal-with-attribution": re.compile(
         r"\b\d+(?:\.\d+)?%?\b(?=[^\n]{0,40}(?:arXiv|et al\.|[A-Z][a-z]+ et al|paper|\bpp?\.\s*\d))"
         r"|(?:arXiv|et al\.|paper)[^\n]{0,40}\b\d+(?:\.\d+)?%?\b"
@@ -65,9 +70,32 @@ PATTERN_CATEGORIES = {
     ),
 }
 
-# Non-broken citation statuses (excluded from broken_chains + exit-code).
-NON_BROKEN = {"resolved", "intra-program-resolved", "reduced-substrate-attestation"}
+# Fallback non-broken citation statuses (used only when catalogs.json is absent).
+DEFAULT_NON_BROKEN = {"resolved", "intra-program-resolved", "reduced-substrate-attestation"}
 SEVERITY_RANK = {"high": 3, "medium": 2, "low": 1, "none": 0}
+
+
+def load_catalog_config(catalogs_path):
+    """Source the pattern-category set + non-broken-status set from the generated
+    catalog data. Returns (matchers, non_broken). Falls back to the hardcoded
+    reference set when catalogs.json is missing/unreadable — so a vendored lint
+    without the data file keeps working (backward compatible)."""
+    try:
+        with open(catalogs_path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        lint = data["lint"]
+        cat_ids = [c["id"] for c in lint["pattern_categories"]]
+        non_broken = {s["id"] for s in lint["citation_chain_statuses"] if not s["broken"]}
+    except (OSError, KeyError, ValueError):
+        return dict(REFERENCE_MATCHERS), set(DEFAULT_NON_BROKEN)
+    # Activate a matcher for each declared category; note any the impl can't match yet.
+    matchers = {cid: REFERENCE_MATCHERS[cid] for cid in cat_ids if cid in REFERENCE_MATCHERS}
+    missing = [cid for cid in cat_ids if cid not in REFERENCE_MATCHERS]
+    if missing:
+        print(f"[note] catalogs.json declares {len(missing)} pattern categor(ies) with no "
+              f"matcher in this lint: {', '.join(missing)} — add a matcher to cover them.",
+              file=sys.stderr)
+    return matchers, (non_broken or set(DEFAULT_NON_BROKEN))
 
 
 def parse_frontmatter(text):
@@ -156,7 +184,7 @@ def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_ur
     return {"status": "resolved", "severity": "none", "thin": thin}
 
 
-def lint_file(path, attestation_dir, analysis_dir, do_citation, do_pattern, do_thin, check_urls):
+def lint_file(path, attestation_dir, analysis_dir, matchers, do_citation, do_pattern, do_thin, check_urls):
     with open(path, encoding="utf-8") as fh:
         text = fh.read()
     calling_prov = "provenance" in parse_frontmatter(text)
@@ -172,7 +200,7 @@ def lint_file(path, attestation_dir, analysis_dir, do_citation, do_pattern, do_t
     if do_pattern:
         for lineno, line in enumerate(text.splitlines(), 1):
             has_cite = bool(CITATION_RE.search(line))
-            for cat, rx in PATTERN_CATEGORIES.items():
+            for cat, rx in matchers.items():
                 if cat == "count-without-unit-citation" and has_cite:
                     continue
                 if rx.search(line):
@@ -198,14 +226,18 @@ def main():
     ap.add_argument("--no-pattern-check", action="store_true")
     ap.add_argument("--no-thin-check", action="store_true")
     ap.add_argument("--no-url-check", action="store_true", help="skip the HEAD liveness check on source_url")
+    ap.add_argument("--catalogs", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "catalogs.json"),
+                    help="generated catalog data (pattern categories + chain statuses); falls back to built-ins if absent")
     args = ap.parse_args()
 
-    results = [lint_file(p, args.attestation_dir, args.analysis_dir,
+    matchers, non_broken = load_catalog_config(args.catalogs)
+
+    results = [lint_file(p, args.attestation_dir, args.analysis_dir, matchers,
                          not args.no_citation_check, not args.no_pattern_check,
                          not args.no_thin_check, not args.no_url_check)
                for p in collect(args.target)]
 
-    broken = [c for r in results for c in r["citations"] if c["status"] not in NON_BROKEN]
+    broken = [c for r in results for c in r["citations"] if c["status"] not in non_broken]
     thin_all = [(r["file"], t) for r in results for t in r["thin"]]
     worst = max([SEVERITY_RANK[c["severity"]] for c in broken]
                 + [SEVERITY_RANK["low"]] * bool(thin_all), default=0)
@@ -215,8 +247,8 @@ def main():
                           "thin_attestations": thin_all}, indent=2))
     else:
         for r in results:
-            flags = [c for c in r["citations"] if c["status"] not in NON_BROKEN]
-            notes = [c for c in r["citations"] if c["status"] in NON_BROKEN and c["status"] != "resolved"]
+            flags = [c for c in r["citations"] if c["status"] not in non_broken]
+            notes = [c for c in r["citations"] if c["status"] in non_broken and c["status"] != "resolved"]
             if not (flags or notes or r["patterns"] or r["thin"]):
                 continue
             print(f"\n## {r['file']}")
@@ -228,7 +260,7 @@ def main():
                 print(f"  [warn] L{t['line']} [{t['handle']}] → thin-attestation (GR.5)")
             for p in r["patterns"]:
                 print(f"  [warn] L{p['line']} {p['category']}: {p['text']}")
-        n_ok = sum(1 for r in results for c in r["citations"] if c["status"] in NON_BROKEN)
+        n_ok = sum(1 for r in results for c in r["citations"] if c["status"] in non_broken)
         print(f"\n{len(results)} file(s) · {n_ok} resolved/non-broken citation(s) · "
               f"{len(broken)} broken · {len(thin_all)} thin · "
               f"{sum(len(r['patterns']) for r in results)} pattern flag(s)")

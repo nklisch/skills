@@ -1,0 +1,26 @@
+{
+  "_comment": "Consumer-side ARD pin + vendor map — the SINGLE source of truth for which ARD release this plugin adopts and where each upstream kernel artifact is vendored. Mirrors the `adopter_pin` + `vendorable_surface` of upstream ard.json (https://code.s-nc.org/Kevoun/ARD). The plugin's OWN semver (.claude-plugin/.codex-plugin/package.json `version`) is DECOUPLED from this: bump the plugin when the plugin changes; bump `adopts` only on an ARD version sync (driven by epic-agentic-research-ard-sync). Human-facing 'Adopts ARD vX' strings elsewhere are derived from this record.",
+  "framework": "ARD",
+  "homepage": "https://code.s-nc.org/Kevoun/ARD",
+  "adopts": {
+    "version": "0.3.0",
+    "release_tag": "v0.3.0",
+    "commit_sha": "6218f08bd21b5c253cdd49f566bd62de14b555c1",
+    "catalog_baseline": "0.2"
+  },
+  "vendored_paths": {
+    "kernel/lint-citations.py": "scripts/lint-citations.py",
+    "kernel/catalogs.json": "scripts/catalogs.json",
+    "kernel/schema/attestation.schema.json": "scripts/schema/attestation.schema.json",
+    "kernel/conformance/": "scripts/conformance/",
+    "kernel/templates/attestation.md": "templates/attestation.md",
+    "kernel/templates/precis.md": "templates/precis.md",
+    "kernel/templates/INDEX.md": "templates/INDEX.md"
+  },
+  "not_yet_vendored": {
+    "kernel/discipline.md": "lands with engagement-engine — research-discipline skill vendors it verbatim as the body",
+    "kernel/templates/dispatch.md": "lands with engagement-engine — the dispatch/registration template"
+  },
+  "drift_check": "grep -rl ARD-Version plugins/agentic-research/scripts plugins/agentic-research/templates; diff against upstream `git diff v0.3.0 <newtag> -- kernel/`",
+  "conformance": "python3 plugins/agentic-research/scripts/conformance/run.py"
+}

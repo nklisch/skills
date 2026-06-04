@@ -72,9 +72,12 @@ revisit any of these in review.
 - **Doc home**: plugin-local (`plugins/agentic-research/docs/`) — per `docs/VISION.md`
   ("the repo stays thin and defers; each plugin carries its own foundation docs");
   matches `plugins/agile-workflow/docs/`.
-- **Versioning**: the plugin gets its own semver starting `0.1.0`, recording "adopts
-  ARD v0.2"; the foundation-docs feature reconciles ARD's spec-bundle-as-unit model
-  with per-plugin `bump-version.sh`.
+- **Versioning**: the plugin gets its own semver starting `0.1.0`, recording its ARD
+  pin (now **v0.3.0** — see "Upstream evolution" below); the foundation-docs feature
+  reconciles ARD's spec-bundle-as-unit model with per-plugin `bump-version.sh`. As of
+  ARD v0.3.0 the pin is single-sourced from upstream `ard.json` (`version` +
+  `commit_sha`) rather than restated in prose — `ard-sync` owns the consumer-side
+  provenance record.
 - **Cross-harness degradation**: the lint floor and the `research-view` binary are
   cross-harness (CLI); the three Claude sub-agents are Claude-only and degrade to
   absent — never broken — on Codex/Pi, per the repo's harness-surface rule.
@@ -109,6 +112,45 @@ Key pieces:
   gate — the FR.1 fence).
 - **Tooling**: `lint-citations.py` — zero-dependency citation-chain *validator*
   (not a query tool).
+
+## Upstream evolution — ARD v0.3.0 (consumption contract)
+Mid-adoption, ARD advanced **v0.2 → v0.3.0** ("consumption contract: a derived
+machine surface over canonical prose"; upstream commit `6218f08`). It is a **MINOR,
+backward-compatible** bump — our vendored v0.2 surface keeps producing identical
+verdicts — but it changes *how* a downstream should consume ARD, replacing
+hand-auditing with a machine surface. This is exactly the affordance set the
+`ard-sync` feature anticipated and was designed to use. New upstream surface:
+- **`ard.json`** — single machine-readable manifest: `version`, `release_tag`,
+  `catalog_baseline`, `invariants`, and an enumerated `vendorable_surface[]` where each
+  entry carries a **vendor-mode** — `verbatim` (copy unaltered; never re-narrate),
+  `data` (consume as structured data), or `verify` (run to validate your copy). Also
+  an `adopter_pin` contract: we record `{version, release_tag, commit_sha}`.
+- **`kernel/`** — the liftable vendorable surface; `example/` keeps only the Claude
+  wiring and points at it. Files we vendor now move conceptually under `kernel/`:
+  `discipline.md` (verbatim), `lint-citations.py` (verbatim, now data-sourced),
+  `templates/` (verbatim), `schema/attestation.schema.json` (verbatim, **new**),
+  `catalogs.json` (data, **new**), `conformance/` (verify, **new**).
+- **Per-artifact `ARD-Version:` stamps** + git-tagged releases → `grep -r ARD-Version`
+  and `git diff <tag>..<tag> -- kernel/` become the drift check.
+
+Consequences by child feature (folded into each as design input):
+- **`foundation-docs`** — consume `kernel/catalogs.json` as *data* (do not re-narrate
+  CATALOGS member lists); re-point doc refs `example/` → `kernel/`; adopt `ard.json`
+  as the canonical version source and VERSIONING.md's per-axis adopter-action table +
+  the verbatim/data/verify vendor-mode taxonomy as the sync policy it owns.
+- **`engagement-engine`** — `research-discipline` vendors `kernel/discipline.md`
+  *verbatim* with a thin Claude wrapper (frontmatter + concept→path mapping), mirroring
+  ARD's own `example/skills/research-discipline.md`. The drift fence: do not re-narrate.
+- **`ard-sync`** — its anticipated affordances all shipped; the v0.2 → v0.3.0 re-sync
+  is now its concrete worked example (re-vendor the surface, run `conformance/run.py`).
+- **`substrate-tier`** (DONE) — its v0.2 vendoring is still *correct and working*
+  (backward-compatible), so nothing is broken; the re-vendor to the v0.3.0 `kernel/`
+  surface runs through `ard-sync`'s worked re-sync, not a silent re-open.
+
+**Pin reference:** upstream tags are pushed and verified — annotated `v0.1` / `v0.2` /
+`v0.3.0`, with `v0.3.0` dereferencing to `6218f08` (matching `ard.json`'s `release_tag`
+and `origin/main`). So `ard-sync` pins by **tag** (`v0.3.0` + `commit_sha 6218f08`) and
+the `git diff <tag>..<tag> -- kernel/` drift path works directly — no SHA-range degrade.
 
 ## Decomposition
 Split by capability into seven child features (the seventh, `ard-sync`, scoped later
