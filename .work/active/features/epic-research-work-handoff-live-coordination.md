@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live-coordination
 kind: feature
-stage: review
+stage: done
 tags: [skill, docs]
 parent: epic-research-work-handoff-live
 depends_on: [epic-research-work-handoff-live-fields]
@@ -195,3 +195,18 @@ Acceptance criteria met:
 - Directionality invariant restated; no step writes into `.research/`
 - Pointers in guide and orchestrator resolve to HANDOFF.md; no recipe duplication
 - Parent epic follow-on note updated to reflect landed handoff
+
+## Review (approve · deep · fresh-context)
+Verdict: **Approve**. Deep review against the design + the model constraint:
+- HANDOFF Arrow 1 expanded to a live commissioning recipe; **the central correctness
+  rule is present and explicit** (HANDOFF L48: `depends_on` must target a `.work/`
+  item id, never a bare `.research/` slug — unknown id → non-terminal → blocked
+  forever). `research_refs:` is the citation/query link.
+- Overall HANDOFF status correctly flipped to **live** only now that BOTH arrows
+  landed (per-arrow guard honored — no premature claim).
+- Pointers wired without duplicating the authoritative recipe: agile-workflow guide
+  → HANDOFF; `research-orchestrator` "work-coordination entry" note; parent epic
+  `epic-agentic-research` follow-on note marked LANDED.
+- No new skill / no `work-view` code (the locked "convention + fields + query"
+  decision held); directionality preserved (commission/cite only).
+No blockers / no important findings → `review → done`.

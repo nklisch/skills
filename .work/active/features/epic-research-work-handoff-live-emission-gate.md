@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live-emission-gate
 kind: feature
-stage: review
+stage: done
 tags: [skill]
 parent: epic-research-work-handoff-live
 depends_on: [epic-research-work-handoff-live-fields]
@@ -205,3 +205,15 @@ Acceptance criteria met:
 - Operator-confirmed via AskUserQuestion (Phase 3); backlog default; never auto-writes
 - Emitted items carry `research_origin: <slug>` + body citation (Phase 4)
 - Writes only to `.work/`; nothing written into `.research/`
+
+## Review (approve · deep · fresh-context)
+Verdict: **Approve**. Deep review against the design + directionality invariant:
+- New `skills/research-handoff/SKILL.md` — operator-confirmed (Phase 3 AskUserQuestion
+  mandatory; "no `.work/` write before confirmation"), silent no-op without
+  `.work/CONVENTIONS.md` (Phase 2), emits items carrying `research_origin: <slug>` +
+  body citation (Phase 4). Frontmatter mirrors `research-orchestrator`.
+- **Directionality verified**: `rg "\.research/"` over the skill → every hit is a
+  read/cite/prohibition; ZERO `.research/` write paths. Writes target only `.work/`.
+- Wiring: `research-orchestrator` gained a "next step → research-handoff" pointer +
+  Related link; HANDOFF Arrow 2 marked live (overall header left for coordination).
+No blockers / no important findings → `review → done`.
