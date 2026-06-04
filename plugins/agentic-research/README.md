@@ -14,9 +14,10 @@ Upstream framework by Kevoun: <https://code.s-nc.org/Kevoun/ARD>.
 > **Adoption status (experimental).** Landed: the `.research/` substrate tier and its
 > conventions, the vendored citation lint + conformance set, the artifact templates, and
 > the foundation docs in [`docs/`](docs/) ([ADOPTION](docs/ADOPTION.md) ·
-> [VERSIONING](docs/VERSIONING.md) · [ARCHITECTURE](docs/ARCHITECTURE.md)), and the two
-> engagement skills (`research-orchestrator`, `research-discipline`). Pending: the
-> `research-view` query binary and the designed research→work handoff.
+> [VERSIONING](docs/VERSIONING.md) · [ARCHITECTURE](docs/ARCHITECTURE.md)), the two
+> engagement skills (`research-orchestrator`, `research-discipline`), and the research↔work
+> pairing contract ([HANDOFF](docs/HANDOFF.md)). Pending: the `research-view` query binary,
+> and the *live* research↔work handoff (designed in HANDOFF.md; implementation is a follow-on epic).
 
 ## Skills
 

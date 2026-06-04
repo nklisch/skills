@@ -24,14 +24,16 @@ record.** Within `.research/`, reads are **down-gradient only**:
 reverse (*ARD SPEC §4.6, §10.2*). This directionality is the tier-level anti-fabrication
 guard — it keeps a synthesis from laundering project framing back into the source record.
 
-## The pairing — research → work handoff
+## The pairing — research ↔ work handoff
 
-The two substrates pair through a designed (not-yet-live) handoff: a research campaign can
-emit `.work/` items gate-style, so a finding becomes tracked operational work. It **degrades
-gracefully** when no `.work/` substrate is present — precedent: `repo-eval` files `.work/`
-items only when a substrate exists. The handoff is designed in the adoption epic's
-`work-handoff` feature; the `.research/` tier definition itself is the `substrate-tier`
-feature.
+The two substrates pair through two read-only reference arrows across the authority boundary
+(designed, not yet live): **`.work/` → `.research/`** — a work item commissions/tracks/consumes
+research (the primary operational entry) — and **`.research/` → `.work/`** — a finding emits a
+tracked work item, gate-style. The invariant: **work never rewrites the research record** (the
+cleavage above); both arrows are references/commissions, not writes. It **degrades gracefully**
+when no `.work/` substrate is present (precedent: `repo-eval` files `.work/` items only when a
+substrate exists). Full contract: [HANDOFF.md](HANDOFF.md). The `.research/` tier definition
+itself is the `substrate-tier` feature.
 
 ## Our `.research/` vs ARD's
 

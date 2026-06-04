@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-work-handoff
 kind: feature
-stage: implementing
+stage: review
 tags: [docs]
 parent: epic-agentic-research
 depends_on: [epic-agentic-research-substrate-tier]
@@ -148,3 +148,20 @@ references ARD §1/§4.6 + repo-eval accurately.
   adds nothing to `.work/` tooling.
 - **Directionality confusion** (the issue the reframe resolved). Mitigation: HANDOFF leads with
   the authority-vs-coordination distinction so a reader doesn't re-conflate the axes.
+
+## Implementation notes
+- **Files created**: `docs/HANDOFF.md` — the bidirectional pairing contract, leading with the
+  authority-vs-coordination distinction, then Arrow 1 (`.work/`→`.research/` coordination, the
+  primary entry), Arrow 2 (`.research/`→`.work/` grounding/emission), the `research_refs`/
+  `research_origin` linkage contract (proposed, mirroring `gate_origin`), graceful degradation,
+  the directionality guard, and a "designed, not live + follow-on epic" status section.
+- **Files changed**: `docs/ARCHITECTURE.md` (pairing stub → both arrows + the invariant + link
+  to HANDOFF.md); `README.md` (HANDOFF listed as landed; the *live* handoff is the follow-on;
+  `research-view` still pending).
+- **Discrepancies from design**: none — followed the design as written.
+- **Tests added**: none (docs). **Verification**: all cross-links resolve (HANDOFF↔ARCHITECTURE,
+  README→HANDOFF); HANDOFF leads with authority-vs-coordination and states the invariant ("work
+  never rewrites the research record"); both arrows + both linkage fields + `gate_origin` mirror
+  + repo-eval + ARD SPEC §1/§4.6 present; no liveness overclaim (marked design-only, follow-on
+  named); conformance 15/15 (pure docs).
+- **Adjacent issues parked**: none.
