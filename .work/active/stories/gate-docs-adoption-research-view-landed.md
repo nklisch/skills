@@ -1,7 +1,7 @@
 ---
 id: gate-docs-adoption-research-view-landed
 kind: story
-stage: implementing
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -32,3 +32,8 @@ README already lists it as landed.
 Drop "forthcoming" (rolling-foundation, in place): e.g. "The lint and the
 `research-view` binary are cross-harness (CLI)." Scan ADOPTION.md for any other
 forthcoming/pending phrasing about research-view while there.
+
+## Implementation notes
+Dropped "forthcoming" from `docs/ADOPTION.md:79` — line now reads "The lint and the
+`research-view` binary are cross-harness (CLI)." research-view ships in this branch.
+No other forthcoming/pending phrasing about research-view in ADOPTION.md.

@@ -76,7 +76,7 @@ source. This is the drift fence: the bundle travels verbatim, never paraphrased 
 
 ## Cross-harness degradation
 
-The lint and the forthcoming `research-view` binary are cross-harness (CLI). The two skills are
+The lint and the `research-view` binary are cross-harness (CLI). The two skills are
 portable (the open Agent Skills standard). The `research-orchestrator`'s **fan-out** uses the
 host's sub-agent tool (the Agent/Task tool on Claude) and degrades to inline-in-main-context
 where a host has none — never broken; the discipline travels by inlining either way, and the
