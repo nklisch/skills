@@ -1,4 +1,4 @@
-<!-- ARD-Version: 0.3.0 -->
+<!-- ARD-Version: 0.4.0 -->
 # ARD lint conformance
 
 Golden fixtures + a runner that assert a citation-chain lint reproduces ARD's **canonical verdicts**. Vendor this directory and run it against your vendored or ported lint:

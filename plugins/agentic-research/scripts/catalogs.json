@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from CATALOGS.md by tools/gen-contract.py — do not edit by hand; edit the prose and regenerate.",
-  "catalog_baseline": "0.2",
+  "catalog_baseline": "0.3",
   "generated_from": "CATALOGS.md",
   "failure_shapes": [
     {
@@ -253,6 +253,10 @@
         "broken": true
       },
       {
+        "id": "colliding-handle",
+        "broken": true
+      },
+      {
         "id": "unreachable-source",
         "broken": true
       },
@@ -410,6 +414,68 @@
     {
       "value": "hybrid-curated",
       "applies_to": "hand-authored kernel with agent-derived sections"
+    }
+  ],
+  "typed_edge_predicates": [
+    {
+      "predicate": "cites",
+      "source_ancestor": "CiTO cito:cites",
+      "semantic": "Generic citation (root of the citation-predicate tree)"
+    },
+    {
+      "predicate": "citesAsEvidence",
+      "source_ancestor": "CiTO cito:citesAsEvidence",
+      "semantic": "Cites as a source of factual evidence"
+    },
+    {
+      "predicate": "extends",
+      "source_ancestor": "CiTO cito:extends",
+      "semantic": "Builds on prior work with new content"
+    },
+    {
+      "predicate": "refutes",
+      "source_ancestor": "CiTO cito:refutes",
+      "semantic": "Explicit disagreement; the cited claim is shown false"
+    },
+    {
+      "predicate": "usesMethodIn",
+      "source_ancestor": "CiTO cito:usesMethodIn",
+      "semantic": "Adopts a methodology from the cited work"
+    },
+    {
+      "predicate": "obtainsBackgroundFrom",
+      "source_ancestor": "CiTO cito:obtainsBackgroundFrom",
+      "semantic": "Contextual / background citation"
+    },
+    {
+      "predicate": "grounds",
+      "source_ancestor": "Toulmin (data → claim)",
+      "semantic": "Evidence backs a claim (research grounds a decision)"
+    },
+    {
+      "predicate": "supports",
+      "source_ancestor": "IBIS argument-to-position; CiTO cito:supports",
+      "semantic": "An argument supports a position"
+    },
+    {
+      "predicate": "objects-to",
+      "source_ancestor": "IBIS argument-to-position; CiTO cito:critiques/disputes",
+      "semantic": "An argument contests a position"
+    },
+    {
+      "predicate": "related",
+      "source_ancestor": "SKOS skos:related",
+      "semantic": "Generic associative link when no stronger type fits (the only symmetric predicate)"
+    },
+    {
+      "predicate": "implements",
+      "source_ancestor": "Substrate-native (no clean ontology ancestor)",
+      "semantic": "An implementation realizes a design / decision"
+    },
+    {
+      "predicate": "contrasts",
+      "source_ancestor": "Substrate-native (partial CiTO citesAsRelated)",
+      "semantic": "An alternative without disagreement (sibling approach)"
     }
   ]
 }

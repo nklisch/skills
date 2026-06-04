@@ -63,6 +63,32 @@ temporal_contract: write-once-on-converge
 must match); `N` resolves by number against `references.md` (and the per-corpus
 `INDEX.md`). **`references.md` and `INDEX.md` are append-only — assign the next
 integer to a new source; never renumber.** Renumbering breaks every live citation.
+**Handles are unique** — a `source_handle` declared by two or more attestations resolves
+ambiguously; the lint flags it `colliding-handle` (ARD v0.4.0, *CATALOGS §3*).
+
+## Typed cross-references (optional)
+
+Beyond `[handle]{N}` citations (claim → source), an artifact may carry **typed
+cross-references** to *other artifacts* — a `related:` frontmatter list of directed, typed
+edges a graph index can read (*ARD SPEC §10.5*):
+
+```yaml
+related:
+  - to: <slug-or-relative-path>   # the target artifact
+    type: <predicate>             # from the typed_edge_predicates vocabulary
+    note: <optional rationale>
+```
+
+- **Directed from the carrier outward** — the artifact carrying the edge is the source; `to:`
+  is the target (a precis's `type: grounds` edge means *this precis grounds the target*).
+  `related` is the only symmetric predicate. **Author forward only** — a graph index derives
+  the reverse view; hand-authoring both directions drifts.
+- **Predicate vocabulary** — the baseline of twelve directed predicates (from CiTO /
+  IBIS-Toulmin / SKOS + substrate-native) lives as data in
+  `plugins/agentic-research/scripts/catalogs.json` (`typed_edge_predicates`),
+  closed-with-extension. Consult the data file — not re-listed here.
+- **Optional + opt-in.** Structural relationships (`parent`, `supersedes:` / `superseded_by`)
+  stay as their established top-level fields, not under `related:`.
 
 ## Lifecycle (no draft→review→done stages)
 

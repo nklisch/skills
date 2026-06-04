@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# ARD-Version: 0.3.0
+# ARD-Version: 0.4.0
 # Reference implementation — ARD citation-chain lint.
 #
 # A zero-dependency reference implementation of the full lintable catalogue:
@@ -12,9 +12,9 @@
 #
 # Covers, per the catalogue:
 #   - 6 surface-signature pattern categories (warn; flag for human spot-check)
-#   - citation-chain integrity, 5 checks, statuses:
+#   - citation-chain integrity, 6 checks, statuses:
 #       resolved / unresolved-handle / mismatched-source-handle /
-#       unreachable-source / missing-provenance
+#       colliding-handle / unreachable-source / missing-provenance
 #     plus the two non-broken statuses:
 #       intra-program-resolved      (handle resolves to an analytical-tier artifact)
 #       reduced-substrate-attestation (attestation marked search-summary/snippet-thin)
@@ -138,6 +138,26 @@ def url_alive(url, timeout=5):
         return False
 
 
+def source_handle_counts(attestation_dir):
+    """Map source_handle -> count across the attestation tier, for the uniqueness check.
+    A source_handle declared by 2+ attestations makes that handle resolve ambiguously."""
+    counts = {}
+    if not os.path.isdir(attestation_dir):
+        return counts
+    for r, _, fs in os.walk(attestation_dir):
+        for f in fs:
+            if not f.endswith(".md"):
+                continue
+            try:
+                with open(os.path.join(r, f), encoding="utf-8") as fh:
+                    sh = parse_frontmatter(fh.read()).get("source_handle")
+            except OSError:
+                continue
+            if sh:
+                counts[sh] = counts.get(sh, 0) + 1
+    return counts
+
+
 def intra_program_resolves(handle, analysis_dir):
     """Non-attestation resolution to an analytical-tier artifact (intra-program reference)."""
     if os.path.isfile(os.path.join(analysis_dir, "positions", f"{handle}.md")):
@@ -151,8 +171,8 @@ def intra_program_resolves(handle, analysis_dir):
     return False
 
 
-def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_urls):
-    """Five-check sequence + non-broken statuses + thin flag. Returns a finding dict."""
+def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_urls, handle_counts):
+    """Six-check sequence + non-broken statuses + thin flag. Returns a finding dict."""
     path = os.path.join(attestation_dir, f"{handle}.md")
     # Check 1 — handle resolution. If not an attestation, try the analytical tier.
     if not os.path.isfile(path):
@@ -165,7 +185,10 @@ def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_ur
     # Check 2 — source-handle match.
     if fm.get("source_handle") != handle:
         return {"status": "mismatched-source-handle", "severity": "high", "thin": False}
-    # Check 3 — source resolution. Path failures are errors; URL failures warn.
+    # Check 3 — handle uniqueness: the source_handle must be declared by exactly one attestation.
+    if handle_counts.get(handle, 0) > 1:
+        return {"status": "colliding-handle", "severity": "high", "thin": False}
+    # Check 4 — source resolution. Path failures are errors; URL failures warn.
     if "source_path" in fm:
         if not os.path.exists(fm["source_path"]):
             return {"status": "unreachable-source", "severity": "medium", "thin": False}
@@ -174,7 +197,7 @@ def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_ur
             return {"status": "unreachable-source", "severity": "low", "thin": False}  # URL=warn
     else:
         return {"status": "unreachable-source", "severity": "medium", "thin": False}
-    # Check 4 — provenance present on attestation AND calling brief.
+    # Check 5 — provenance present on attestation AND calling brief.
     if "provenance" not in fm or not calling_prov:
         return {"status": "missing-provenance", "severity": "low", "thin": False}
     # Resolved. Mark reduced-substrate-depth (non-broken) and the GR.5 thin flag.
@@ -184,14 +207,14 @@ def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_ur
     return {"status": "resolved", "severity": "none", "thin": thin}
 
 
-def lint_file(path, attestation_dir, analysis_dir, matchers, do_citation, do_pattern, do_thin, check_urls):
+def lint_file(path, attestation_dir, analysis_dir, matchers, handle_counts, do_citation, do_pattern, do_thin, check_urls):
     with open(path, encoding="utf-8") as fh:
         text = fh.read()
     calling_prov = "provenance" in parse_frontmatter(text)
     citations, patterns, thin = [], [], []
     if do_citation:
         for m in CITATION_RE.finditer(text):
-            f = check_citation(m.group(1), attestation_dir, analysis_dir, calling_prov, check_urls)
+            f = check_citation(m.group(1), attestation_dir, analysis_dir, calling_prov, check_urls, handle_counts)
             line = text.count("\n", 0, m.start()) + 1
             f.update({"handle": m.group(1), "n": int(m.group(2)), "line": line})
             citations.append(f)
@@ -231,8 +254,9 @@ def main():
     args = ap.parse_args()
 
     matchers, non_broken = load_catalog_config(args.catalogs)
+    handle_counts = source_handle_counts(args.attestation_dir)
 
-    results = [lint_file(p, args.attestation_dir, args.analysis_dir, matchers,
+    results = [lint_file(p, args.attestation_dir, args.analysis_dir, matchers, handle_counts,
                          not args.no_citation_check, not args.no_pattern_check,
                          not args.no_thin_check, not args.no_url_check)
                for p in collect(args.target)]

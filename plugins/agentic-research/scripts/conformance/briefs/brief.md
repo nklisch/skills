@@ -5,7 +5,7 @@ provenance: agent-synthesis
 # Conformance brief
 
 Citation chain — one handle per status:
-[resolved-src]{1}, [no-such-handle]{2}, [mismatched-src]{3}, [unreachable-src]{4}, [missing-prov-src]{5}, [a-position]{6}, [reduced-src]{7}, [thin-src]{8}.
+[resolved-src]{1}, [no-such-handle]{2}, [mismatched-src]{3}, [unreachable-src]{4}, [missing-prov-src]{5}, [a-position]{6}, [reduced-src]{7}, [thin-src]{8}, [colliding-src]{9}.
 
 ## Pattern triggers
 

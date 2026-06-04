@@ -8,7 +8,7 @@ absorb an ARD upstream release. Two version axes run here, deliberately decouple
 | Axis | Where | Bumps when | Current |
 |---|---|---|---|
 | **Plugin SemVer** | `package.json` + the `.claude-plugin/` and `.codex-plugin/` manifests (lockstep) | *this plugin* changes — a skill, the `research-view` binary, a doc, the vendored surface | **0.1.1** |
-| **Adopted ARD version** | [`ard.json`](../ard.json) → `adopts` | only when we re-sync to a new ARD release; it is *metadata*, never the plugin's version | **v0.3.0** |
+| **Adopted ARD version** | [`ard.json`](../ard.json) → `adopts` | only when we re-sync to a new ARD release; it is *metadata*, never the plugin's version | **v0.4.0** |
 
 They are **decoupled**: the plugin evolves on its own cadence and bumps its own SemVer via
 `scripts/bump-version.sh`; the adopted ARD version is a pin we record. Conflating them
@@ -48,8 +48,9 @@ This mirrors upstream `VERSIONING.md`'s table — we do not author a divergent m
   reads `ard.json`, compares every vendored artifact against the target kernel (per vendor-mode,
   with the discipline body-embed handled), reports per-artifact drift + the version delta + the
   upstream `kernel/` diff + a re-sync plan + the suggested plugin-bump axis. Check-only (exit 0 in
-  sync / 1 drift); the operator applies the re-sync and runs conformance. The **v0.2 → v0.3.0**
-  re-sync is its worked example.
+  sync / 1 drift); the operator applies the re-sync and runs conformance. Worked examples:
+  **v0.2 → v0.3.0** (by hand, before the tool existed) and **v0.3.0 → v0.4.0** (tool-driven —
+  `ard-sync` reported the drift + plan, then confirmed in-sync after the re-sync).
 - **Manual drift check** (no checkout) — every vendored kernel artifact carries an `ARD-Version:`
   stamp: `grep -rl "ARD-Version:" --exclude-dir=tests plugins/agentic-research/scripts plugins/agentic-research/templates plugins/agentic-research/skills`.
 - **Conformance** — after any re-sync, run

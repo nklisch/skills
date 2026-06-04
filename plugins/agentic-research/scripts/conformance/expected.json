@@ -8,7 +8,8 @@
     "missing-prov-src": "missing-provenance",
     "a-position": "intra-program-resolved",
     "reduced-src": "reduced-substrate-attestation",
-    "thin-src": "resolved"
+    "thin-src": "resolved",
+    "colliding-src": "colliding-handle"
   },
   "thin": ["thin-src"],
   "pattern_categories": [

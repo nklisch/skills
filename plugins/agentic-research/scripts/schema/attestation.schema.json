@@ -3,7 +3,7 @@
   "$id": "https://code.s-nc.org/Kevoun/ARD/kernel/schema/attestation.schema.json",
   "title": "ARD attestation frontmatter (normative minimum)",
   "description": "The normative-minimum YAML frontmatter every per-source attestation carries (ARD SPEC §4.2). This is an architecture-tier data contract — it changes only on a MAJOR bump. Per-source-class fields (ARD CATALOGS §2) are optional extensions, so additionalProperties is permitted.",
-  "x-ard-version": "0.3.0",
+  "x-ard-version": "0.4.0",
   "x-ard-tier": "architecture",
   "type": "object",
   "required": ["source_handle", "fetched", "provenance"],

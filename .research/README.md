@@ -7,7 +7,7 @@ material that analysis rests on. **Analysis informs operational decisions, never
 reverse** (ARD's substrate cleavage).
 
 > This is the **full live substrate** of the Agentic Research Discipline (ARD),
-> provided by the `agentic-research` plugin (adopts ARD v0.3.0). Note: ARD's *own*
+> provided by the `agentic-research` plugin (adopts ARD v0.4.0). Note: ARD's *own*
 > repository uses `.research/` in a narrower sense — a curated "defensibility trace"
 > of positions only. Here, `.research/` is the complete four-tier substrate.
 
