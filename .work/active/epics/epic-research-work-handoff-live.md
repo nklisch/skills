@@ -4,7 +4,7 @@ kind: epic
 stage: implementing
 tags: [skill, tooling]
 parent: null
-depends_on: [epic-agentic-research]
+depends_on: [epic-agentic-research-substrate-tier]
 release_binding: null
 gate_origin: null
 created: 2026-06-04
@@ -62,12 +62,22 @@ stay down-gradient only.
 Resolved at scope time (the framing calls; epic-design may refine decomposition,
 not these).
 - **Standalone follow-on epic, not a child of `epic-agentic-research`** —
-  `parent: null`, `depends_on: [epic-agentic-research]`. Matches HANDOFF.md's
-  and the parent epic's "named follow-on epic" framing: the ARD-adoption
-  proposal PR is deliberately closed around 6/7 features + the *designed*
-  handoff, and ships independently. This live work is its own arc that builds on
-  the landed `.research/` tier and the documented contract — not a reopening of
-  the proposal's scope.
+  `parent: null`, `depends_on: [epic-agentic-research-substrate-tier]`. Matches
+  HANDOFF.md's and the parent epic's "named follow-on epic" framing: the
+  ARD-adoption proposal PR is deliberately closed around 6/7 features + the
+  *designed* handoff, and ships independently. This live work is its own arc that
+  builds on the landed `.research/` tier and the documented contract — not a
+  reopening of the proposal's scope.
+  - **Dependency precisified (epic-design):** originally
+    `depends_on: [epic-agentic-research]` (the whole proposal epic). Re-pointed to
+    `epic-agentic-research-substrate-tier` — the actual prerequisite (the landed
+    `.research/` tier + the done `engagement-engine`/`research-orchestrator`),
+    exactly what the done design feature `epic-agentic-research-work-handoff`
+    depended on. The whole-epic edge over-coupled the handoff to the *orthogonal*
+    `research-view` sibling follow-on, which this epic's own Notes already declare
+    independent ("the two follow-ons do not depend on each other"). With
+    `substrate-tier` done, the handoff is correctly unblocked without waiting on
+    `research-view`.
 - **Both arrows live** — not Arrow 2 emission only. The live epic implements the
   Arrow 1 coordination tooling (a work item commissioning `research-orchestrator`
   and `depends_on`-ing a research output, with `work-view` aware of the linkage)
@@ -163,20 +173,21 @@ single cross-plugin feature (it would force one version bump across two plugins
 and couple the schema to the gate) and over a finer slice (separating the query
 from the fields would ship an unqueryable schema — see the locked decision).
 
-The epic's cross-epic gate (`depends_on: [epic-agentic-research]`) is
-**materialized onto the `fields` entry feature**, because `work-view` readiness
-is non-transitive (it evaluates an item's own `depends_on`, not its parent
-epic's). This keeps the entire epic `--blocked` until the prior ARD-adoption
-epic lands; the other two children inherit the gate through their dependency on
-`fields`. Verified: with `epic-agentic-research` still implementing, `--ready`
-surfaces none of these three features and `--blocked` surfaces all three.
+The epic's cross-epic gate (`depends_on: [epic-agentic-research-substrate-tier]`)
+is **materialized onto the `fields` entry feature**, because `work-view`
+readiness is non-transitive (it evaluates an item's own `depends_on`, not its
+parent epic's). The other two children inherit the gate through their dependency
+on `fields`. Because `substrate-tier` is **done**, this gate is satisfied — the
+handoff is unblocked and ready for design/implementation, independent of the
+still-in-progress `research-view` sibling follow-on.
 
 ### Child features
 - `epic-research-work-handoff-live-fields` `[tooling, docs]` — the `.work/`
   schema + `work-view` linkage fields (`research_refs:` / `research_origin:`)
   and the `--research-origin` / `--research-refs` query flags, plus the
   CONVENTIONS/SPEC/AGENTS roll-forward. agile-workflow version bump. — depends
-  on: `[epic-agentic-research]` (the materialized cross-epic gate).
+  on: `[epic-agentic-research-substrate-tier]` (the materialized cross-epic gate;
+  satisfied — substrate-tier is done).
 - `epic-research-work-handoff-live-emission-gate` `[skill]` — Arrow 2: the
   operator-confirmed `.research/` → `.work/` emission gate, backlog-default,
   silent no-op without `.work/`, emitted items carry `research_origin:` +

@@ -4,7 +4,7 @@ kind: feature
 stage: drafting
 tags: [tooling, docs]
 parent: epic-research-work-handoff-live
-depends_on: [epic-agentic-research]
+depends_on: [epic-agentic-research-substrate-tier]
 release_binding: null
 gate_origin: null
 created: 2026-06-04
@@ -49,15 +49,18 @@ agentic-research-owned).
   features depend on (`emission-gate` writes `research_origin:`; `coordination`
   relies on `research_refs:` and the linkage flags). Owned entirely by
   agile-workflow → one agile-workflow version bump.
-- Carries the epic's cross-epic dependency `depends_on: [epic-agentic-research]`
-  on purpose: `work-view` readiness is **non-transitive** (it evaluates only an
-  item's own `depends_on`, not its parent epic's — see
-  `crates/cli/src/actionable.rs` + `crates/core/src/graph.rs:deps_satisfied`).
-  Materializing the epic-level gate onto this entry feature keeps the whole epic
-  `--blocked` until the prior ARD-adoption epic lands; the other two children
-  inherit the gate transitively through their `depends_on` on this feature. Do
-  not remove this edge as "redundant" — it is the mechanism that enforces the
-  ordering.
+- Carries the epic's cross-epic dependency
+  `depends_on: [epic-agentic-research-substrate-tier]` on purpose: `work-view`
+  readiness is **non-transitive** (it evaluates only an item's own `depends_on`,
+  not its parent epic's — see `crates/cli/src/actionable.rs` +
+  `crates/core/src/graph.rs:deps_satisfied`). Materializing the epic-level gate
+  onto this entry feature lets the other two children inherit it transitively
+  through their `depends_on` on this feature. Do not remove this edge as
+  "redundant" — it is the mechanism that enforces the ordering. The dependency
+  targets `substrate-tier` (the landed `.research/` tier + done
+  `research-orchestrator`), **not** the whole `epic-agentic-research` epic, so the
+  handoff is not coupled to the orthogonal `research-view` follow-on.
+  substrate-tier is done → this gate is satisfied.
 
 ## Foundation references
 - `plugins/agentic-research/docs/HANDOFF.md` — "The linkage contract (proposed)"
