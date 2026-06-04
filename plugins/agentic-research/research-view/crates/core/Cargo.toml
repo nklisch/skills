@@ -1,0 +1,13 @@
+[package]
+name = "research-view-core"
+version = "0.1.0"
+edition = "2021"
+description = "Shared .research/ query and domain core for the agentic-research substrate"
+license = "MIT"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_yaml_ng = "0.10"
+
+[dev-dependencies]
+tempfile = "3"
