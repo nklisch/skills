@@ -1,7 +1,7 @@
 ---
 id: gate-tests-board-feed-research-fields
 kind: story
-stage: implementing
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -41,3 +41,9 @@ In `board_substrate_feed_returns_json_shape_without_private_fields`, locate
 
 ## Test location (suggested)
 `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs` (~L1214)
+
+## Implementation notes
+Extended `board_substrate_feed_returns_json_shape_without_private_fields` to locate
+`story-research-1` in the feed and assert `research_origin == "ard-pos-x"` and
+`research_refs == ["ard-pos-x"]` serialize. Test passes — confirms the linkage fields
+reach the board feed end-to-end (a `feed_item()` dropping one would now fail).

@@ -1272,6 +1272,32 @@ fn board_substrate_feed_returns_json_shape_without_private_fields() {
         !body.contains(&fixture_root().display().to_string()),
         "feed should not leak absolute fixture paths; body: {body}"
     );
+
+    // story-research-1 carries research_origin + research_refs — assert they
+    // actually serialize into the feed item (the gate-tests gap: the DTO test
+    // proved private fields are hidden but never that the linkage fields reach
+    // the feed; feed_item() silently dropping one would have gone unnoticed).
+    let story_research = items
+        .iter()
+        .find(|item| item.get("id").and_then(Value::as_str) == Some("story-research-1"))
+        .expect("feed should include story-research-1");
+    assert_eq!(
+        story_research.get("research_origin").and_then(Value::as_str),
+        Some("ard-pos-x"),
+        "feed item should serialize research_origin; item: {story_research}"
+    );
+    let refs: Vec<&str> = story_research
+        .get("research_refs")
+        .and_then(Value::as_array)
+        .expect("feed item should serialize research_refs as an array")
+        .iter()
+        .filter_map(Value::as_str)
+        .collect();
+    assert_eq!(
+        refs,
+        vec!["ard-pos-x"],
+        "feed item research_refs should be [ard-pos-x]; item: {story_research}"
+    );
     wait_for_success(&mut child);
 }
 
