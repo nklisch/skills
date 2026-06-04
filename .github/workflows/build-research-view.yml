@@ -1,0 +1,246 @@
+name: Build research-view binaries
+
+on:
+  push:
+    paths:
+      - "plugins/agentic-research/research-view/**"
+      - "plugins/agentic-research/scripts/install-research-view.sh"
+      - "plugins/agentic-research/scripts/research-view.sh"
+      - "plugins/agentic-research/scripts/tests/**"
+      - "scripts/bump-version.sh"
+      - ".github/workflows/build-research-view.yml"
+  pull_request:
+    paths:
+      - "plugins/agentic-research/research-view/**"
+      - "plugins/agentic-research/scripts/install-research-view.sh"
+      - "plugins/agentic-research/scripts/research-view.sh"
+      - "plugins/agentic-research/scripts/tests/**"
+      - "scripts/bump-version.sh"
+      - ".github/workflows/build-research-view.yml"
+  workflow_dispatch:
+    inputs:
+      commit_binaries:
+        description: "Commit built binaries to dist/ (manual refresh job)"
+        required: false
+        default: true
+        type: boolean
+
+env:
+  CARGO_TERM_COLOR: always
+  # Maximum allowed binary size in bytes (8 MB)
+  SIZE_BUDGET_BYTES: 8388608
+
+jobs:
+  # -----------------------------------------------------------------------
+  # Install-helper bash test (runs on every trigger)
+  # -----------------------------------------------------------------------
+  test-install-helper:
+    name: Test install-research-view.sh
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run install-helper tests
+        run: bash plugins/agentic-research/scripts/tests/install-research-view.test.sh
+
+      - name: Run research-view parity tests
+        run: bash plugins/agentic-research/scripts/tests/research-view-parity.test.sh
+        continue-on-error: true
+
+      - name: Run bump-version lockstep tests
+        run: bash plugins/agile-workflow/scripts/tests/bump-version.test.sh
+
+  # -----------------------------------------------------------------------
+  # Linux musl builds via cargo-zigbuild
+  # -----------------------------------------------------------------------
+  build-linux:
+    name: Build Linux (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo registry + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            plugins/agentic-research/research-view/target
+          key: cargo-linux-${{ matrix.target }}-${{ hashFiles('plugins/agentic-research/research-view/Cargo.lock') }}
+          restore-keys: |
+            cargo-linux-${{ matrix.target }}-
+
+      - name: Install cargo-zigbuild
+        run: pip install ziglang && cargo install cargo-zigbuild --locked
+
+      - name: Build
+        run: |
+          cd plugins/agentic-research/research-view
+          cargo zigbuild --release --target ${{ matrix.target }}
+
+      - name: Size guard
+        run: |
+          binary="plugins/agentic-research/research-view/target/${{ matrix.target }}/release/research-view"
+          size=$(stat -c '%s' "$binary")
+          echo "Binary size: ${size} bytes"
+          if [ "$size" -gt "$SIZE_BUDGET_BYTES" ]; then
+            echo "ERROR: binary exceeds size budget of ${SIZE_BUDGET_BYTES} bytes (got ${size})"
+            exit 1
+          fi
+
+      - name: Version guard
+        run: |
+          binary="plugins/agentic-research/research-view/target/${{ matrix.target }}/release/research-view"
+          version=$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' plugins/agentic-research/.claude-plugin/plugin.json | head -n 1)
+          if [ -z "$version" ]; then
+            echo "ERROR: failed to read plugin version"
+            exit 1
+          fi
+          if ! LC_ALL=C grep -a -q "$version" "$binary"; then
+            echo "ERROR: binary does not embed plugin version ${version}"
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-view-${{ matrix.target }}
+          path: plugins/agentic-research/research-view/target/${{ matrix.target }}/release/research-view
+          if-no-files-found: error
+
+  # -----------------------------------------------------------------------
+  # macOS builds (native cross-compile per arch)
+  # -----------------------------------------------------------------------
+  build-macos:
+    name: Build macOS (${{ matrix.target }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo registry + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            plugins/agentic-research/research-view/target
+          key: cargo-macos-${{ matrix.target }}-${{ hashFiles('plugins/agentic-research/research-view/Cargo.lock') }}
+          restore-keys: |
+            cargo-macos-${{ matrix.target }}-
+
+      - name: Build
+        run: |
+          cd plugins/agentic-research/research-view
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Size guard
+        run: |
+          binary="plugins/agentic-research/research-view/target/${{ matrix.target }}/release/research-view"
+          size=$(stat -f '%z' "$binary")
+          echo "Binary size: ${size} bytes"
+          if [ "$size" -gt "$SIZE_BUDGET_BYTES" ]; then
+            echo "ERROR: binary exceeds size budget of ${SIZE_BUDGET_BYTES} bytes (got ${size})"
+            exit 1
+          fi
+
+      - name: Version guard
+        run: |
+          binary="plugins/agentic-research/research-view/target/${{ matrix.target }}/release/research-view"
+          version=$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' plugins/agentic-research/.claude-plugin/plugin.json | head -n 1)
+          if [ -z "$version" ]; then
+            echo "ERROR: failed to read plugin version"
+            exit 1
+          fi
+          if ! LC_ALL=C grep -a -q "$version" "$binary"; then
+            echo "ERROR: binary does not embed plugin version ${version}"
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-view-${{ matrix.target }}
+          path: plugins/agentic-research/research-view/target/${{ matrix.target }}/release/research-view
+          if-no-files-found: error
+
+  # -----------------------------------------------------------------------
+  # Manual refresh: commit built binaries to dist/ (workflow_dispatch only)
+  # -----------------------------------------------------------------------
+  commit-dist:
+    name: Commit binaries to dist/
+    if: github.event_name == 'workflow_dispatch' && inputs.commit_binaries
+    needs:
+      - build-linux
+      - build-macos
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Need full history to push back
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Place binaries into dist/
+        run: |
+          for triple in \
+            x86_64-unknown-linux-musl \
+            aarch64-unknown-linux-musl \
+            x86_64-apple-darwin \
+            aarch64-apple-darwin
+          do
+            dest="plugins/agentic-research/research-view/dist/${triple}"
+            mkdir -p "$dest"
+            cp "artifacts/research-view-${triple}/research-view" "${dest}/research-view"
+            chmod +x "${dest}/research-view"
+          done
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push
+        run: |
+          git add plugins/agentic-research/research-view/dist/
+          if git diff --cached --quiet; then
+            echo "No binary changes to commit."
+          else
+            git commit -m "chore: refresh research-view prebuilt binaries [skip ci]"
+            git push
+          fi

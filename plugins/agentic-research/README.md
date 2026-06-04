@@ -58,3 +58,51 @@ pi install -l ./plugins/agentic-research
 ```
 
 All three channels load the same shared `skills/` directory.
+
+## research-view binary
+
+`research-view` is a query tool for the `.research/` substrate. It ships as a
+prebuilt static binary for the four supported platforms, with a pure-bash
+fallback for everything else.
+
+### Installing research-view
+
+After installing the plugin, run the installer from the repo root:
+
+```bash
+PLUGIN_ROOT=./plugins/agentic-research bash plugins/agentic-research/scripts/install-research-view.sh
+```
+
+The installer:
+
+1. Reads the plugin version from `${PLUGIN_ROOT}/.claude-plugin/plugin.json`.
+2. Resolves `uname -s`/`uname -m` to one of four target triples
+   (`x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl`,
+   `x86_64-apple-darwin`, `aarch64-apple-darwin`).
+3. Copies the matching prebuilt from
+   `${PLUGIN_ROOT}/research-view/dist/<triple>/research-view` to
+   `.research/bin/research-view` in the current directory.
+4. Smoke-tests `--help` and verifies `--version` matches the plugin version
+   before atomically moving the binary into place.
+5. Falls back to `${PLUGIN_ROOT}/scripts/research-view.sh` (the pure-bash
+   implementation) when the platform is unsupported.
+
+On success it prints one of:
+
+```
+installed prebuilt <triple> (research-view <semver>)
+installed bash fallback (research-view <semver>)
+```
+
+### Prebuilt binaries and CI
+
+The prebuilt binaries under `research-view/dist/<triple>/research-view` are
+cross-compiled and committed by the CI workflow at
+`.github/workflows/build-research-view.yml`. They are **not** built locally.
+To refresh them after a version bump, trigger the workflow manually with
+`commit_binaries=true` **on the post-bump commit** (not before it — the bump
+writes the version stamp that CI bakes into the binary).
+
+Until the binary-refresh CI run lands, the installer's version check will
+intentionally fail on supported platforms. Do not cut a release before the
+binary-refresh commit appears.
