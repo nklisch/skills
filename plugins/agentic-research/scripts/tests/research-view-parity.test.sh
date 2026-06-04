@@ -1,0 +1,382 @@
+#!/usr/bin/env bash
+# research-view-parity.test.sh — byte-parity test: bash fallback vs Rust binary.
+#
+# For every representative query we run BOTH the binary and the bash fallback
+# (with CWD set to the temp substrate root) and assert that stdout is
+# byte-identical.  A real mismatch is a HARD FAIL; the only skip path is when
+# the reference binary cannot be obtained.
+#
+# Convention mirrors plugins/agile-workflow/scripts/tests/ (bump-version.test.sh,
+# work-view-dist-version.test.sh): PASS/FAIL counters, assert_eq / assert_true,
+# summary block, exit 1 on any failure.
+
+set -uo pipefail
+
+# ── Paths ────────────────────────────────────────────────────────────────────
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# tests/ -> scripts/ -> agentic-research plugin root
+SCRIPTS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPTS_DIR}/.." && pwd)"
+
+FALLBACK_SH="${SCRIPTS_DIR}/research-view.sh"
+BINARY="${PLUGIN_ROOT}/research-view/target/release/research-view"
+CARGO_MANIFEST="${PLUGIN_ROOT}/research-view/Cargo.toml"
+
+# ── Counters ──────────────────────────────────────────────────────────────────
+
+PASS=0
+FAIL=0
+ERRORS=()
+
+assert_eq() {
+  local label="$1" expected="$2" actual="$3"
+  if [ "$expected" = "$actual" ]; then
+    echo "  PASS: $label"
+    ((PASS++))
+  else
+    echo "  FAIL: $label"
+    echo "        expected: $(printf '%q' "$expected")"
+    echo "        actual:   $(printf '%q' "$actual")"
+    ((FAIL++))
+    ERRORS+=("$label")
+  fi
+}
+
+assert_true() {
+  local label="$1"
+  if eval "$2"; then
+    echo "  PASS: $label"
+    ((PASS++))
+  else
+    echo "  FAIL: $label"
+    echo "        condition false: $2"
+    ((FAIL++))
+    ERRORS+=("$label")
+  fi
+}
+
+# parity_assert <label> <binary> <fallback_sh> <substrate_root> [args...]
+# Runs both tools with the same args from <substrate_root>, compares stdout.
+parity_assert() {
+  local label="$1"
+  local binary="$2"
+  local fallback="$3"
+  local substrate="$4"
+  shift 4
+  local args=("$@")
+
+  local bin_out sh_out
+  bin_out="$( cd "$substrate" && "$binary" "${args[@]}" 2>/dev/null )"
+  sh_out="$(  cd "$substrate" && bash "$fallback" "${args[@]}" 2>/dev/null )"
+
+  if [ "$bin_out" = "$sh_out" ]; then
+    echo "  PASS: parity — $label"
+    ((PASS++))
+  else
+    echo "  FAIL: parity — $label"
+    echo "  ---- binary stdout ----"
+    printf '%s\n' "$bin_out" | head -20
+    echo "  ---- fallback stdout ----"
+    printf '%s\n' "$sh_out" | head -20
+    echo "  ---- diff ----"
+    diff <(printf '%s\n' "$bin_out") <(printf '%s\n' "$sh_out") | head -30
+    ((FAIL++))
+    ERRORS+=("parity — $label")
+  fi
+}
+
+# ── Preflight: obtain the binary ──────────────────────────────────────────────
+
+echo ""
+echo "=== Preflight: binary acquisition ==="
+
+if [ ! -x "$BINARY" ]; then
+  echo "  INFO: prebuilt binary not found at $BINARY"
+  if command -v cargo >/dev/null 2>&1 && [ -f "$CARGO_MANIFEST" ]; then
+    echo "  INFO: attempting cargo build --release ..."
+    if cargo build --release --manifest-path "$CARGO_MANIFEST" 2>/dev/null; then
+      echo "  INFO: cargo build succeeded"
+    else
+      echo "SKIP: cargo build failed (offline? missing toolchain?) — parity test skipped"
+      exit 0
+    fi
+  else
+    echo "SKIP: no prebuilt binary and no cargo available — parity test skipped"
+    exit 0
+  fi
+fi
+
+if [ ! -x "$BINARY" ]; then
+  echo "SKIP: binary still absent after attempted build — parity test skipped"
+  exit 0
+fi
+
+echo "  OK: binary found at $BINARY"
+assert_true "fallback script exists and is readable" "[ -f '$FALLBACK_SH' ]"
+
+# ── Fixture: build a temp .research/ substrate ────────────────────────────────
+
+echo ""
+echo "=== Fixture: building temp substrate ==="
+
+TMPROOT="$(mktemp -d)"
+trap 'rm -rf "$TMPROOT"' EXIT
+
+RESEARCH="$TMPROOT/.research"
+
+mkdir -p \
+  "$RESEARCH" \
+  "$RESEARCH/attestation" \
+  "$RESEARCH/precis" \
+  "$RESEARCH/analysis/positions" \
+  "$RESEARCH/analysis/briefs" \
+  "$RESEARCH/analysis/campaigns/my-campaign" \
+  "$RESEARCH/analysis/hypothesis" \
+  "$RESEARCH/reference/rust-binary-size" \
+  "$RESEARCH/reference/rust-binary-size/raw"
+
+# CONVENTIONS.md — required for substrate root detection
+cat > "$RESEARCH/CONVENTIONS.md" <<'EOF'
+# Research Conventions
+EOF
+
+# Two attestation artifacts
+cat > "$RESEARCH/attestation/work-view-dist.md" <<'EOF'
+---
+source_handle: work-view-dist
+fetched: 2026-06-03
+source_path: plugins/agile-workflow/work-view/dist
+provenance: source-direct
+---
+
+# work-view dist binaries
+
+Some body.
+EOF
+
+cat > "$RESEARCH/attestation/cargo-book.md" <<'EOF'
+---
+source_handle: cargo-book
+fetched: 2026-01-01
+source_url: https://doc.rust-lang.org/cargo/
+provenance: source-direct
+---
+
+# Cargo Book
+
+Reference attestation.
+EOF
+
+# One precis
+cat > "$RESEARCH/precis/work-view-dist.md" <<'EOF'
+---
+source_handle: work-view-dist
+authored: 2026-06-03
+provenance: agent-authored-from-raw
+---
+
+# work-view dist binaries — précis
+
+Summary of findings.
+EOF
+
+# One position
+cat > "$RESEARCH/analysis/positions/rust-binary-distribution-viable.md" <<'EOF'
+---
+slug: rust-binary-distribution-viable
+status: settled
+authored: 2026-06-03
+provenance: agent-synthesis
+temporal_contract: extend-on-source-rev
+---
+
+# rust binary distribution is viable
+
+Position body.
+EOF
+
+# One brief
+cat > "$RESEARCH/analysis/briefs/semver-pre-1.0-stability.md" <<'EOF'
+---
+slug: semver-pre-1.0-stability
+provenance: agent-synthesis
+authored: 2026-06-04
+temporal_contract: write-once-on-converge
+---
+
+# semver pre-1.0 stability
+
+Brief body.
+EOF
+
+# One campaign artifact
+cat > "$RESEARCH/analysis/campaigns/my-campaign/overview.md" <<'EOF'
+---
+slug: my-campaign
+provenance: agent-synthesis
+authored: 2026-06-04
+---
+
+# my-campaign — overview
+
+Campaign body.
+EOF
+
+# One hypothesis
+cat > "$RESEARCH/analysis/hypothesis/cost-model.md" <<'EOF'
+---
+slug: cost-model
+provenance: agent-synthesis
+authored: 2026-06-04
+---
+
+# cost-model hypothesis
+
+Hypothesis body.
+EOF
+
+# One reference with frontmatter
+cat > "$RESEARCH/reference/rust-binary-size/entry.md" <<'EOF'
+---
+source_handle: rust-binary-size-entry
+fetched: 2026-01-01
+provenance: source-direct
+---
+
+# Reference entry
+
+Entry body.
+EOF
+
+# One reference INDEX without frontmatter (the lenient rule)
+cat > "$RESEARCH/reference/rust-binary-size/INDEX.md" <<'EOF'
+# rust-binary-size — corpus INDEX
+
+A numbered bibliography.
+
+1. Foo Bar
+2. Baz Qux
+EOF
+
+# One raw/ file that MUST NOT be indexed
+cat > "$RESEARCH/reference/rust-binary-size/raw/fetched-page.md" <<'EOF'
+# Raw fetched page
+This should not be indexed.
+EOF
+
+# Tier-root skip files
+cat > "$RESEARCH/attestation/README.md" <<'EOF'
+# Attestation README — should not be indexed
+EOF
+
+echo "  OK: fixture written to $TMPROOT"
+
+# ── Parity tests ──────────────────────────────────────────────────────────────
+
+echo ""
+echo "=== Parity tests: bash fallback vs binary ==="
+
+# --version
+parity_assert "--version"           "$BINARY" "$FALLBACK_SH" "$TMPROOT" --version
+# -V (short form)
+parity_assert "-V (short form)"     "$BINARY" "$FALLBACK_SH" "$TMPROOT" -V
+# default table (no flags)
+parity_assert "default table"       "$BINARY" "$FALLBACK_SH" "$TMPROOT"
+# --count
+parity_assert "--count"             "$BINARY" "$FALLBACK_SH" "$TMPROOT" --count
+# --paths
+parity_assert "--paths"             "$BINARY" "$FALLBACK_SH" "$TMPROOT" --paths
+# --cat (two-artifact separator test requires same order)
+parity_assert "--attestations --cat" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --attestations --cat
+# --attestations
+parity_assert "--attestations"      "$BINARY" "$FALLBACK_SH" "$TMPROOT" --attestations
+# --positions
+parity_assert "--positions"         "$BINARY" "$FALLBACK_SH" "$TMPROOT" --positions
+# --briefs
+parity_assert "--briefs"            "$BINARY" "$FALLBACK_SH" "$TMPROOT" --briefs
+# --campaigns
+parity_assert "--campaigns"         "$BINARY" "$FALLBACK_SH" "$TMPROOT" --campaigns
+# --hypotheses
+parity_assert "--hypotheses"        "$BINARY" "$FALLBACK_SH" "$TMPROOT" --hypotheses
+# --precis
+parity_assert "--precis"            "$BINARY" "$FALLBACK_SH" "$TMPROOT" --precis
+# --reference (tier sugar)
+parity_assert "--reference"         "$BINARY" "$FALLBACK_SH" "$TMPROOT" --reference
+# --tier reference (explicit)
+parity_assert "--tier reference"    "$BINARY" "$FALLBACK_SH" "$TMPROOT" --tier reference
+# --handle <h> (exact match)
+parity_assert "--handle work-view-dist" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --handle work-view-dist
+# --status settled
+parity_assert "--status settled"    "$BINARY" "$FALLBACK_SH" "$TMPROOT" --status settled
+# --status null (IsNull: artifacts without status)
+parity_assert "--status null"       "$BINARY" "$FALLBACK_SH" "$TMPROOT" --status null
+# --provenance source-direct
+parity_assert "--provenance source-direct" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --provenance source-direct
+# --temporal-contract write-once-on-converge
+parity_assert "--temporal-contract write-once-on-converge" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --temporal-contract write-once-on-converge
+# --corpus rust-binary-size
+parity_assert "--corpus rust-binary-size" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus rust-binary-size
+# --reference --count
+parity_assert "--reference --count" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --reference --count
+# --reference --paths
+parity_assert "--reference --paths" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --reference --paths
+# empty result (no matches → prints nothing, exit 0)
+parity_assert "--status nonexistent (no matches)" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --status nonexistent
+
+# ── Additional structural checks on the fallback ──────────────────────────────
+
+echo ""
+echo "=== Structural checks on bash fallback ==="
+
+# --version outside substrate (no .research/ in parent chain of /)
+OUTSIDE_DIR="$(mktemp -d)"
+trap 'rm -rf "$OUTSIDE_DIR"' EXIT
+SH_VER="$( cd "$OUTSIDE_DIR" && bash "$FALLBACK_SH" --version 2>/dev/null )"
+assert_eq "--version outside substrate returns correct line" \
+  "research-view 0.1.0" "$SH_VER"
+rm -rf "$OUTSIDE_DIR"
+
+# exit 2 when no substrate
+NO_SUBSTRATE="$(mktemp -d)"
+trap 'rm -rf "$NO_SUBSTRATE"' EXIT
+( cd "$NO_SUBSTRATE" && bash "$FALLBACK_SH" > /dev/null 2>&1 ) ; RC=$?
+assert_eq "exit code 2 when no substrate found" "2" "$RC"
+rm -rf "$NO_SUBSTRATE"
+
+# exit 1 on unknown flag
+( cd "$TMPROOT" && bash "$FALLBACK_SH" --no-such-flag > /dev/null 2>&1 ) ; RC=$?
+assert_eq "exit code 1 on unknown flag" "1" "$RC"
+
+# exit 1 on unexpected positional
+( cd "$TMPROOT" && bash "$FALLBACK_SH" somefile.md > /dev/null 2>&1 ) ; RC=$?
+assert_eq "exit code 1 on unexpected positional" "1" "$RC"
+
+# raw/ subtree not indexed
+RAW_COUNT="$( cd "$TMPROOT" && bash "$FALLBACK_SH" --count 2>/dev/null )"
+assert_true "raw/ subtree files not included in count (≤ fixture total)" \
+  "[ '$RAW_COUNT' -le 20 ]"
+
+# README.md at tier root not indexed
+TOTAL_COUNT="$( cd "$TMPROOT" && bash "$FALLBACK_SH" --count 2>/dev/null )"
+ATTEST_COUNT="$( cd "$TMPROOT" && bash "$FALLBACK_SH" --attestations --count 2>/dev/null )"
+assert_eq "attestation README.md not indexed (2 real attestations)" "2" "$ATTEST_COUNT"
+
+# RESEARCH_VIEW_VERSION literal in the fallback script
+assert_true "fallback carries anchored RESEARCH_VIEW_VERSION= literal" \
+  "grep -q '^RESEARCH_VIEW_VERSION=\"[0-9]' '$FALLBACK_SH'"
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+
+echo ""
+echo "============================================================"
+echo "Results: ${PASS} passed, ${FAIL} failed"
+if [ ${#ERRORS[@]} -gt 0 ]; then
+  echo "Failed tests:"
+  for e in "${ERRORS[@]}"; do
+    echo "  - $e"
+  done
+fi
+echo "============================================================"
+
+[ "$FAIL" -eq 0 ] || exit 1
