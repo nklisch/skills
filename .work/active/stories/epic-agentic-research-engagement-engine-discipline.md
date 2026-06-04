@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-engagement-engine-discipline
 kind: story
-stage: review
+stage: done
 tags: [skill]
 parent: epic-agentic-research-engagement-engine
 depends_on: []
@@ -55,3 +55,10 @@ orchestration logic (that's the sibling `-orchestrator` story).
   propagation = inline-dispatch + `user-invocable: false`; drift grep finds the discipline
   stamp; conformance 15/15.
 - **Adjacent issues parked**: none.
+
+## Review (approve · fast-lane)
+Verdict: **Approve** — story verified by implement; fast-lane advance. Re-confirmed on the
+committed state: discipline six-section body + `templates/dispatch.md` byte-identical to
+`/tmp/ARD/kernel/`; `ard.json` valid with `not_yet_vendored: {}` and 9 `vendored_paths`;
+ADOPTION vendor map 1:1; conformance 15/15; tree clean. Verbatim-vendor + vendor-map sync,
+no logic — fast lane appropriate. Advance review → done.
