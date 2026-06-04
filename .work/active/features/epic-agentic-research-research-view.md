@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-research-view
 kind: feature
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-agentic-research
 depends_on: [epic-agentic-research-substrate-tier]
@@ -300,3 +300,37 @@ README install section.
 
 ## UI
 No UI surface (read-only CLI binary). `ux-ui-design` Phase 4.6 N/A.
+
+## Implementation summary (4 stories → review)
+Implemented via implement-orchestrator across 4 sequential single-bundle waves
+(strict `core → cli → {fallback, dist}` dependency chain — no parallelism
+possible). All four child stories at `stage: review`:
+- **`…-core`** (done→review) — `research-view-core` crate: `Artifact`/`ResearchTier`
+  model (no id/stage; heterogeneous per-tier frontmatter), lenient parse, byte-sorted
+  index, borrowing filters. 53 tests.
+- **`…-cli`** (review) — `research-view-cli` crate, binary `research-view`: hand-rolled
+  arg parser, table/paths/cat/count render, exit codes 0/1/2/3, version stamp via
+  `include_str!`. 53 unit + 17 subprocess integration tests.
+- **`…-fallback`** (review) — `research-view.sh` bash fallback; 31/31 byte-parity vs
+  the binary.
+- **`…-dist`** (review) — `install-research-view.sh`, generalized `bump-version.sh`
+  projection (work-view branch kept byte-identical; bump-lockstep 77/77),
+  `build-research-view.yml` CI, dist skeleton + README. Installer test 45/45.
+
+**Mid-flight fix (orchestrator Phase-7 finding):** reference-tier `INDEX.md`
+bibliographies legitimately carry no frontmatter — the core now loads them
+leniently instead of emitting a spurious parse-error warning on every run
+(`fix(research-view-core): lenient parse…`). +2 core tests.
+
+**Verification:** full workspace `cargo test` green (127 tests: 53 core + 53 cli +
+17 integration + 4 doc); install + bump-lockstep + parity bash suites green; binary
+smoke against the live `.research/` correct. **The 4 committed `dist/<triple>/`
+binaries are produced by `build-research-view.yml` post-merge** (work-view's exact
+ordering) — until that CI run lands the installer version gate intentionally fails
+on supported platforms; do not cut a release before the binary-refresh commit.
+
+**Open review nits (for the review pass, non-blocking):** (a) the installer reuses
+`WORK_VIEW_UNAME_S/M` env-override names rather than `RESEARCH_VIEW_*` (test-only,
+mirrors work-view's harness); (b) the bash fallback treats `--handle null` as a
+literal rather than `IsNull` (other nullable filters mirror the binary; no stdout
+parity impact in tested cases).
