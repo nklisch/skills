@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-engagement-engine-orchestrator
 kind: story
-stage: implementing
+stage: review
 tags: [skill]
 parent: epic-agentic-research-engagement-engine
 depends_on: [epic-agentic-research-engagement-engine-discipline]
@@ -41,3 +41,35 @@ each dispatch and references the vendored `dispatch.md` template.
 - [ ] 3 role briefs as `references/`; none as `agents/*.md`; each grounds jobs/components in CATALOGS §4/§5; evaluator enforces isolation
 - [ ] `openai.yaml` present; README lists `research-orchestrator` + `research-discipline`
 - [ ] A trial seed engagement produces `.research/` artifacts that pass `scripts/lint-citations.py`
+
+## Implementation notes
+- **Files created**: `skills/research-orchestrator/SKILL.md` (the SPEC-grounded engagement
+  driver); `skills/research-orchestrator/references/{research-specialist,adversarial-reader,
+  evaluator}.md` (dispatch role briefs); `skills/research-orchestrator/agents/openai.yaml`
+  (`allow_implicit_invocation: false`).
+- **Files changed**: `README.md` (Skills section now lists both skills; adoption-status
+  Pending drops the now-landed engagement skills + the "Claude agents" line, since we ship
+  none — inline dispatch).
+- **Discrepancies from design**:
+  - *Role briefs carry the operational job-lists inline* (adversarial-reader's 8 jobs,
+    evaluator's 5 components) rather than only pointing at CATALOGS §4/§5. Necessary: a brief
+    dispatched in an *installed* plugin has no access to upstream `CATALOGS.md`, so it must be
+    functional standalone. The briefs *cite* §4/§5 as canonical but carry the runnable
+    operationalization (which is CATALOGS "made concrete"). Consistent with the design — the
+    thin/reference stance is for SPEC/CATALOGS *theory prose*, not a verification agent's
+    runnable checklist.
+  - *Orchestrator is a SPEC-grounded adaptation* (~150 lines vs the example's 182), referencing
+    SPEC §N for the control-space theory and keeping the walk + dispatch mechanism + dials +
+    verification stack concrete — exactly the design's intent.
+- **Tests added**: none (skills are instruction prose, not executable code).
+  **Verified (structural)**: orchestrator covers every SPEC-invariant-map row (§3/§5/§7/§8/§9/
+  §10.1); dispatch composes [verbatim discipline] + [role brief] + [params]; `AskUserQuestion`
+  absent from allowed-tools + explicitly forbidden; lint path = `scripts/lint-citations.py`;
+  light/multi paths present; 3 briefs as `references/`, zero committed `agents/*.md`; evaluator
+  enforces context-isolation; all relative links resolve; conformance 15/15.
+  **NOT run (honest gap)**: the end-to-end criterion — *a live seed engagement producing
+  `.research/` artifacts that pass the lint* — requires actually invoking the orchestrator (an
+  interactive research engagement that spawns sub-agents and fetches sources). That is a
+  use-time/functional validation, not an inline self-verify; left for real use or a deep
+  feature review. The lint + conformance themselves are green on the existing `.research/` seed.
+- **Adjacent issues parked**: none.

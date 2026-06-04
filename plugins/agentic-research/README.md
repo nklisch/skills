@@ -14,15 +14,22 @@ Upstream framework by Kevoun: <https://code.s-nc.org/Kevoun/ARD>.
 > **Adoption status (experimental).** Landed: the `.research/` substrate tier and its
 > conventions, the vendored citation lint + conformance set, the artifact templates, and
 > the foundation docs in [`docs/`](docs/) ([ADOPTION](docs/ADOPTION.md) ·
-> [VERSIONING](docs/VERSIONING.md) · [ARCHITECTURE](docs/ARCHITECTURE.md)). Pending: the
-> skills + Claude agents (engagement-engine), the `research-view` query binary, and the
-> designed research→work handoff.
+> [VERSIONING](docs/VERSIONING.md) · [ARCHITECTURE](docs/ARCHITECTURE.md)), and the two
+> engagement skills (`research-orchestrator`, `research-discipline`). Pending: the
+> `research-view` query binary and the designed research→work handoff.
 
 ## Skills
 
-_None yet — see scaffold status above. The `research-orchestrator` (engagement
-entry point) and `research-discipline` (anti-fabrication bundle) skills land with
-the engagement-engine feature._
+- **`research-orchestrator`** — the user-invocable engagement entry point. Reads the
+  engagement dials (`scope_authority`, `verification_rigor`), sets them with you at kickoff,
+  discovers fan-out topology from the seed, and walks the ARD decision-graph at the dialed
+  verification depth — from a one-agent inline brief to an N-specialist campaign. Dispatches
+  the verification roles (specialist, adversarial-reader, evaluator) inline.
+- **`research-discipline`** — the auto-loaded anti-fabrication bundle (ARD `kernel/discipline.md`
+  vendored verbatim). The orchestrator inlines it into every authoring dispatch so the
+  discipline reaches sub-contexts (ARD SPEC §5).
+
+See [docs/ADOPTION.md](docs/ADOPTION.md) for how the engagement engine maps onto the ARD SPEC.
 
 ## Installation
 
