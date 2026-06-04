@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# ARD-Version: 0.4.0
+# ARD-Version: 0.4.1
 # Reference implementation — ARD citation-chain lint.
 #
 # A zero-dependency reference implementation of the full lintable catalogue:
@@ -30,11 +30,14 @@
 
 import argparse
 import glob
+import ipaddress
 import json
 import os
 import re
+import socket
 import sys
 import urllib.request
+from urllib.parse import urlparse
 
 # The citation wire-form grammar (ARD SPEC §4.2): handle = [\w-]+, N = \d+.
 CITATION_RE = re.compile(r"\[([\w-]+)\]\{(\d+)\}")
@@ -129,10 +132,68 @@ def is_thin_attestation(body):
     return not (has_section or has_quote)
 
 
+# --- source_url liveness: SSRF-hardened HEAD probe -------------------------
+# Check 4 (below) HEAD-probes whatever source_url an attestation declares.
+# Attestations are vendored substrate a compromised or hostile source could
+# seed, so the probe is fenced to only ever touch *public web* addresses:
+#   - the scheme is allow-listed to http(s) (refuses file://, gopher://, ...);
+#   - the resolved host must be a public IP — loopback / link-local / private
+#     (RFC1918) / reserved / multicast / unspecified are refused, which closes
+#     the cloud-metadata endpoint (169.254.169.254) and internal-range probes;
+#   - every redirect hop is re-validated against the same two rules, so a 30x
+#     can't bounce an allowed external probe inward.
+# Best-effort by design: a DNS rebind between this resolution and urllib's own
+# is not defended (would need pinning the connection to the checked IP) —
+# proportionate for an operator-run, HEAD-only, body-ignored lint. A refused
+# URL reports as not-alive (the existing low-severity unreachable-source warn).
+_ALLOWED_URL_SCHEMES = ("http", "https")
+
+
+def _host_is_public(host):
+    """True iff `host` (an IP literal or DNS name) maps only to public addresses.
+    A name that resolves to *any* non-public address is refused; an unresolvable
+    or unparseable host is refused (safe default)."""
+    if not host:
+        return False
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False
+    for *_, sockaddr in infos:
+        try:
+            ip = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            return False
+        if (ip.is_loopback or ip.is_link_local or ip.is_private
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+            return False
+    return True
+
+
+def _url_allowed(url):
+    parsed = urlparse(url)
+    return parsed.scheme in _ALLOWED_URL_SCHEMES and _host_is_public(parsed.hostname)
+
+
+class _PublicHTTPRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Re-validate scheme + host on every redirect hop. Returning None refuses
+    the hop, which makes urllib raise HTTPError -> url_alive() reports not-alive."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _url_allowed(newurl):
+            return None
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_URL_OPENER = urllib.request.build_opener(_PublicHTTPRedirectHandler)
+
+
 def url_alive(url, timeout=5):
+    if not _url_allowed(url):
+        return False
     try:
         req = urllib.request.Request(url, method="HEAD")
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with _URL_OPENER.open(req, timeout=timeout) as resp:
             return 200 <= getattr(resp, "status", 200) < 400
     except Exception:
         return False

@@ -3,9 +3,9 @@
   "framework": "ARD",
   "homepage": "https://code.s-nc.org/Kevoun/ARD",
   "adopts": {
-    "version": "0.4.0",
-    "release_tag": "v0.4.0",
-    "commit_sha": "5d97605443f25a47b487e40d8feb8ad6d0890b04",
+    "version": "0.4.1",
+    "release_tag": "v0.4.1",
+    "commit_sha": "abbcfcdee9d9682b60c2eac99519ccdb8ea359b0",
     "catalog_baseline": "0.3"
   },
   "vendored_paths": {
