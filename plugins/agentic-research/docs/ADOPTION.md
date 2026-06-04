@@ -12,7 +12,8 @@ framework: we vendor ARD's reference surface and map it onto this repo's substra
 - **Pin, don't fork.** The adopted release is pinned in [`ard.json`](../ard.json) (currently
   **v0.3.0**); the canonical spec stays upstream and we cite it by section (e.g. *ARD SPEC
   §4.2*). Re-narrating it would reintroduce the very drift the discipline fences (*ARD SPEC
-  §4.6*). See [VERSIONING.md](VERSIONING.md).
+  §4.6/§5* — upstream `ard.json` pairs the never-re-narrate rule with both). See
+  [VERSIONING.md](VERSIONING.md).
 - **Vendor the kernel.** ARD v0.3.0 cleaves a liftable `kernel/` (what every adopter copies)
   from a worked `example/` (one Claude-agent deployment). We take the kernel cross-harness,
   and the example's Claude wiring via the engagement-engine feature; non-Claude channels

@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-foundation-docs
 kind: feature
-stage: review
+stage: done
 tags: [docs]
 parent: epic-agentic-research
 depends_on: [epic-agentic-research-scaffold]
@@ -240,3 +240,18 @@ Docs have no unit tests; acceptance is mechanically checkable at implement time:
   doc-instructed command runs — lint exit 0, conformance 15/15, `grep -r ARD-Version` finds
   the 6 stamped files, `bump-version.sh` usage responds.
 - **Adjacent issues parked**: none.
+
+## Review (approve · deep · fresh-context)
+Verdict: **Approve**. Reviewed by an independent fresh-context agent (cold verification
+against ground truth: ARD upstream `6218f08`, `ard.json`, the vendored surface). All 8
+checks PASS — section references resolve with the claimed meanings; the ADOPTION vendor
+map is 1:1 with `ard.json` `vendored_paths` (7/7, modes + on-disk targets correct); every
+doc-instructed command runs (lint exit 0, conformance 15/15, drift grep → 6 stamped files);
+no catalog-member re-narration; README/AGENTS/CONVENTIONS drift fixes accurately describe
+current repo reality; pins internally consistent (ARD v0.3.0 / plugin 0.1.1). No blockers,
+no important findings.
+- Two nits, both fixed in-session before advancing: (1) `ADOPTION.md` cited *§4.6* alone
+  for the never-re-narrate rule → now *§4.6/§5*, matching upstream `ard.json`'s pairing;
+  (2) `VERSIONING.md` PATCH-row `git diff <tag>..<tag>` → space form `git diff <tag> <tag>`
+  to match upstream's syntax.
+Fast-track: deep review clean, nits resolved → advance review → done.

@@ -35,7 +35,7 @@ The bump axis tells us what to do; our own version stays independent.
 
 | ARD bump | What changed upstream | Our action | Our version |
 |---|---|---|---|
-| **PATCH** | packaging / fixes — no commitment changes | re-sync the `verbatim` surface (`git diff <tag>..<tag> -- kernel/`); run conformance | patch, or none |
+| **PATCH** | packaging / fixes — no commitment changes | re-sync the `verbatim` surface (`git diff <tag> <tag> -- kernel/`); run conformance | patch, or none |
 | **MINOR** | inventory growth (failure-shapes, source-classes, lint categories, enums) | re-sync the `data` surface ([`scripts/catalogs.json`](../scripts/catalogs.json)) — the lint + docs pick up new members; re-run conformance | minor / patch |
 | **MAJOR** | architecture (the `[handle]{N}` wire-form or the attestation frontmatter) | migrate (existing attestations/citations may change); re-vendor the `verbatim` surface + `scripts/schema/` | major |
 
