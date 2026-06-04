@@ -22,5 +22,23 @@ kebab-case. Children are prefixed with their parent's slug
 ## Stage overrides
 none
 
+## Linkage fields
+
+Two optional frontmatter fields connect `.work/` items to `.research/` artifacts,
+mirroring `gate_origin`. Both are inert when absent — missing → `[]` / `null`
+with no validation warning.
+
+- **`research_refs: [<slug>, ...]`** — the research artifacts (`.research/` slugs
+  or handles) this work item tracks or consumes (Arrow 1, coordination). Queryable
+  via `work-view --research-refs <slug>` (membership, like `--blocking`).
+- **`research_origin: <slug>|null`** — the research artifact that spawned this
+  work item (Arrow 2, grounding). Mirrors `gate_origin`. Queryable via
+  `work-view --research-origin <slug>` (or `null`).
+
+These fields are the schema substrate for the research↔work handoff arrows;
+the arrows themselves (Arrow 2 emission gate and Arrow 1 commissioning convention)
+are separate features not yet implemented. For the cross-tier pairing contract,
+see `plugins/agentic-research/docs/HANDOFF.md`.
+
 ## Gate config
 gates_for_release: [tests, cruft, docs, patterns]

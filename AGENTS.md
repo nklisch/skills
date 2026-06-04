@@ -93,7 +93,7 @@ Verify all channel metadata references the new plugin before considering the plu
 ## Agile-Workflow Substrate
 
 Work tracked in `.work/` as markdown items with YAML frontmatter
-(`kind, stage, tags, parent, depends_on, release_binding`).
+(`kind, stage, tags, parent, depends_on, release_binding, research_refs, research_origin`).
 Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
 `.work/releases/<version>/`, `.work/archive/`.
 

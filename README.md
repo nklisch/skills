@@ -249,7 +249,7 @@ docs/                                  ← foundation docs (VISION, SPEC, ARCHIT
 ```
 
 Items are markdown files with structured frontmatter (`id, kind, stage,
-tags, parent, depends_on, release_binding, gate_origin, created, updated`).
+tags, parent, depends_on, release_binding, gate_origin, research_refs, research_origin, created, updated`).
 Design lives inside the item's body — there are no parallel design docs.
 Mockups land in `.mockups/` and link back via a `## Mockups` section in
 the item body. See the guides for the full conventions.

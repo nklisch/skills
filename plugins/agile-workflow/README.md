@@ -92,7 +92,7 @@ instead of N pauses scattered through the run.
   headless sessions. Supports `--port <n>`, `--no-open`, and `--print`.
 
 Every item is a markdown file with structured frontmatter
-(`id, kind, stage, tags, parent, depends_on, release_binding, gate_origin, created, updated`).
+(`id, kind, stage, tags, parent, depends_on, release_binding, gate_origin, research_refs, research_origin, created, updated`).
 Stages advance as work completes. Foundation docs in `docs/` roll forward.
 Releases late-bind.
 

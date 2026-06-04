@@ -45,6 +45,8 @@ parent: <slug>|null              # required (null for top-level)
 depends_on: [<slug>, ...]        # required (may be [])
 release_binding: <version>|null  # required
 gate_origin: <gate-name>|null    # required (null unless gate-produced)
+research_refs: [<slug>...]       # optional (research artifacts this item tracks/consumes)
+research_origin: <slug>|null    # optional (research artifact that spawned this item)
 created: YYYY-MM-DD              # required
 updated: YYYY-MM-DD              # required, auto-bumped by PostToolUse hook
 ---
@@ -62,6 +64,8 @@ updated: YYYY-MM-DD              # required, auto-bumped by PostToolUse hook
 | `depends_on` | array of slugs | **Sequencing.** Items this cannot start until all listed are at `stage: done`. May be empty. Distinct from `parent`. |
 | `release_binding` | version string or null | Late-binding. `null` until the user binds. Format matches the release file's version (e.g., `v1.2.0`). |
 | `gate_origin` | gate name or null | `null` for user-scoped items. One of `security`, `tests`, `cruft`, `docs`, `patterns` when produced by a gate. |
+| `research_refs` | array of slug strings | **Optional; defaults to `[]`.** The research artifacts (`.research/` slugs or handles) this work item tracks or consumes — the Arrow 1 coordination link. Missing → `[]`. Query: `work-view --research-refs <slug>` (membership). See `plugins/agentic-research/docs/HANDOFF.md` for the cross-tier contract. |
+| `research_origin` | slug or null | **Optional; defaults to `null`.** The research artifact that spawned this work item — the Arrow 2 grounding link. Mirrors `gate_origin`. Missing/empty/`"null"` → `null`. Query: `work-view --research-origin <slug>` (or `null`). See `plugins/agentic-research/docs/HANDOFF.md`. |
 | `created` | ISO date | `YYYY-MM-DD`. Set on creation; never modified. FIFO tie-break in autopilot. |
 | `updated` | ISO date | `YYYY-MM-DD`. Auto-bumped by PostToolUse hook on every item edit. |
 
@@ -137,7 +141,7 @@ a root-readable entrypoint.
 ## Agile-Workflow Substrate
 
 Work tracked in `.work/` as markdown items with YAML frontmatter
-(`kind, stage, tags, parent, depends_on, release_binding`).
+(`kind, stage, tags, parent, depends_on, release_binding, research_refs, research_origin`).
 Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
 `.work/releases/<version>/`, `.work/archive/`.
 
@@ -355,6 +359,8 @@ surface for platforms without a shipped prebuilt binary.
 | `--ready` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with all `depends_on` terminal (`done`/`released`, or resident in `releases/`/`archive/`) |
 | `--blocked` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with at least one non-terminal dependency |
 | `--blocking` | `<id>` | Reverse lookup: items that depend on `<id>` |
+| `--research-origin` | `<slug>` | Filter by `research_origin` (use `null` to select items with no origin) |
+| `--research-refs` | `<slug>` | Items whose `research_refs` list contains `<slug>` |
 | `--paths` | (none) | Output only file paths (grep-pipe-friendly) |
 | `--cat` | (none) | Output full bodies of matching items |
 | `--count` | (none) | Output only the match count |
@@ -442,6 +448,8 @@ array of item objects:
     parent: string | null;
     release_binding: string | null;
     gate_origin: string | null;
+    research_origin: string | null;
+    research_refs: string[];
     created: string | null;
     updated: string | null;
     tags: string[];
