@@ -162,6 +162,15 @@ artifacts' own frontmatter (artifacts stand on their own metadata).
 - Promoted positions → `.research/analysis/positions/<slug>.md`; staged hypotheses → `.research/analysis/hypothesis/`.
 - Citations are `[handle]{N}`, resolving by number against the per-corpus bibliography; the chain is brief claim → attestation → fetched source (the lint enforces it).
 
+## Work-coordination entry
+
+A `.work/` item may commission an engagement and cite it back. The common
+pattern: a work item that needs grounding runs this skill, then sets
+`research_refs: [<slug>]` in its frontmatter to cite the resulting artifact.
+To gate the item on research completion, `depends_on:` a `.work/` commissioning
+story (not a `.research/` slug — `work-view` resolves dep ids only against
+`.work/` items). See `docs/HANDOFF.md` Arrow 1 for the full commissioning recipe.
+
 ## Next step after a completed engagement
 
 When an engagement surfaces actionable output — a campaign or position with

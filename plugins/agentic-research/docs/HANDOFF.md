@@ -18,18 +18,44 @@ Separating the axes resolves the apparent paradox ("does work reference research
 reference work?"): **both**, in opposite directions, and neither rewrites the other. There are
 two read-only reference arrows across the authority boundary.
 
-## Arrow 1 — `.work/` → `.research/` (coordination; the primary entry)
+## Arrow 1 — `.work/` → `.research/` (coordination; the primary entry) — **live**
 
 The operational tier commissions and consumes research. A work item that needs grounding —
-"research X to inform decision Y" — *tracks* a research engagement:
+"research X to inform decision Y" — *tracks* a research engagement. This is the commissioning
+recipe:
 
-- The work item triggers a research engagement (`research-orchestrator`), which runs under ARD
-  discipline and writes its artifacts into `.research/` (attestations, briefs, positions).
-- The work item **references** the research it tracks via a `research_refs:` field (handles or
-  analysis slugs) and may `depends_on` the research output, so it stays blocked until the
-  grounding exists.
-- This is **read-only**: the work item *awaits* and *cites* the research record; it does not
-  write into `.research/`. Authority stays with the research tier.
+### Commissioning recipe
+
+1. **Commission the engagement.** Run `/agentic-research:research-orchestrator <seed>` to start
+   the grounded research engagement. The orchestrator runs under ARD discipline and writes its
+   artifacts into `.research/` (attestations, briefs, positions, campaigns).
+
+2. **Optionally track the engagement as a `.work/` commissioning story.** If you want the work
+   item to be gateable on research completion, create a `.work/` story that represents the
+   research task (e.g., `story-ground-feature-x-in-research`). This story reaches `done` when
+   the engagement surfaces its findings.
+
+3. **Cite the result.** Once the research artifact exists, set `research_refs: [<slug>]` in the
+   grounded work item's frontmatter (where `<slug>` is the analysis artifact's slug — the
+   `slug:` frontmatter value on positions/briefs, or the campaign dir name). This is the
+   machine-queryable citation: `work-view --research-refs <slug>` finds all items grounded in
+   that engagement.
+
+4. **To gate the work item on research completion**, set `depends_on:
+   [<commissioning-work-item-id>]` — pointing at the `.work/` commissioning story from step 2,
+   not at the `.research/` slug directly.
+
+   **CRITICAL:** `depends_on` must target a `.work/` item id, never a bare `.research/` slug.
+   `work-view` resolves dependency ids only against `.work/` items — an unknown id (including a
+   `.research/` slug) is treated as a non-terminal dep and **blocks the item forever**. Route
+   gating through the `.work/` commissioning story; cite the `.research/` artifact via
+   `research_refs:`.
+
+5. **Add a body citation.** In the work item body, note the research grounding: artifact path,
+   slug, and one sentence on how it informs the item.
+
+This is **read-only**: the work item *awaits* and *cites* the research record; it never writes
+into `.research/`. Authority stays with the research tier.
 
 This is the common operational entry point — work coordinates; research grounds.
 
@@ -89,13 +115,15 @@ only** (`reference → attestation → precis → analysis`; *ARD SPEC §4.6, §
 item — never a write into the other tier's authoritative record. The `work → research` arrow is
 coordination, not authorship; it cannot launder operational framing back into a research artifact.
 
-## Status — Arrow 2 live; Arrow 1 designed, not yet live
+## Status — live
 
-**Arrow 2** (`/agentic-research:research-handoff`) is **live** — operator-confirmed emission
-from completed engagements to `.work/` items is implemented as described above.
+Both arrows are implemented:
 
-**Arrow 1** (commissioning convention — `.work/` items commissioning and citing research) is
-**designed but not yet live** as a documented convention. Implementation is the
-`epic-research-work-handoff-live-coordination` follow-on.
+- **Arrow 1** (commissioning convention) — **live**. Commission via
+  `/agentic-research:research-orchestrator`; cite with `research_refs:`; gate via a
+  `.work/` commissioning story in `depends_on`. Recipe above.
+- **Arrow 2** (emission gate) — **live**. Run
+  `/agentic-research:research-handoff <slug>` after a completed engagement;
+  operator-confirmed; emits `.work/` items carrying `research_origin: <slug>`.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for where the tiers sit.

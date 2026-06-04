@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live-coordination
 kind: feature
-stage: implementing
+stage: review
 tags: [skill, docs]
 parent: epic-research-work-handoff-live
 depends_on: [epic-research-work-handoff-live-fields]
@@ -158,3 +158,40 @@ Docs/convention — verified by inspection:
 - **Premature "fully live" header.** Mitigation: per-arrow flip with the guard
   (Unit 1); coordination + emission-gate are siblings, so whichever lands second
   flips the overall header.
+
+## Implementation notes
+
+Implemented in one stride. Files created/changed:
+
+- **MODIFIED** `plugins/agentic-research/docs/HANDOFF.md` — Arrow 1 heading
+  marked **live**; full commissioning recipe added as a numbered 5-step
+  procedure (commission → optional tracking story → cite with `research_refs:`
+  → gate via `.work/` id in `depends_on`, never a `.research/` slug →
+  body citation). `depends_on`-must-target-`.work/`-id rule stated explicitly
+  with reason (unknown id → non-terminal → blocked forever). Overall Status
+  section flipped to "live" (both arrows landed). Intro paragraph updated to
+  drop "design/contract" language.
+- **MODIFIED** `plugins/agentic-research/skills/research-orchestrator/SKILL.md`
+  — added "Work-coordination entry" section (brief note: a `.work/` item may
+  commission an engagement and cite it back via `research_refs:`; points at
+  HANDOFF.md Arrow 1 for the full recipe).
+- **MODIFIED** `docs/agile-workflow-guide.md` — added "Grounding work items in
+  research" section (one paragraph) before "Where to read more": commission via
+  `research-orchestrator`, cite with `research_refs:`, see
+  `plugins/agentic-research/docs/HANDOFF.md`. No duplication of the
+  authoritative recipe — HANDOFF.md is the single source.
+- **MODIFIED** `.work/active/epics/epic-agentic-research.md` — follow-on note
+  updated: "Live `work-handoff`" marked LANDED with both arrows now live;
+  pointer to `docs/HANDOFF.md` status.
+
+Directionality invariant: the convention has no step where work writes into
+`.research/`; all cross-tier action is cite/commission. The `depends_on`
+correctness rule (`.work/` id, never `.research/` slug) is stated with reason.
+
+Acceptance criteria met:
+- Arrow 1 documents the commissioning recipe with the `depends_on`-targets-`.work/`
+  rule explicit and explained
+- Overall HANDOFF.md status header flipped to fully-live (both arrows done)
+- Directionality invariant restated; no step writes into `.research/`
+- Pointers in guide and orchestrator resolve to HANDOFF.md; no recipe duplication
+- Parent epic follow-on note updated to reflect landed handoff

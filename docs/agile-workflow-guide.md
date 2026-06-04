@@ -814,6 +814,15 @@ explicitly — the rest the agent picks for you.
   maintainer hooks check for `.work/CONVENTIONS.md` and exit silently in
   non-substrate repos. Safe to install globally.
 
+## Grounding work items in research
+
+When a work item needs external grounding before it can be designed — "what does
+the industry do for X?", "is approach Y actually well-supported?" — commission a
+research engagement via `/agentic-research:research-orchestrator` and cite the
+result with `research_refs: [<slug>]` in the work item's frontmatter. See
+`plugins/agentic-research/docs/HANDOFF.md` for the full commissioning recipe,
+including when to use `depends_on` to gate the item on research completion.
+
 ## Where to read more
 
 - [ux-ui-design-guide.md](ux-ui-design-guide.md) — the mockup-first design loop that pairs with this plugin

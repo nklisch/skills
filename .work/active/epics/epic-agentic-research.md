@@ -203,8 +203,8 @@ proposal is incomplete, but because two pieces are **deliberately deferred as na
 follow-ons**, not abandoned:
 - **`research-view`** (`drafting`) — the Rust query binary over `.research/` (work-view
   parity / ergonomics). A separable, heavy Rust + cross-compile lift; its own focused PR.
-- **Live `work-handoff`** — the `.work/`↔`.research/` pairing is *designed* (`docs/HANDOFF.md`);
-  the live emission gate + the `research_refs`/`research_origin` `.work/` field additions
-  (coordinated with `agile-workflow`) are a follow-on.
-Both are tracked: `research-view` as a drafting feature here; the live handoff inside
-`HANDOFF.md`'s "Status — designed, not live" section.
+- **Live `work-handoff`** — **LANDED.** The `.work/`↔`.research/` pairing is now fully live:
+  Arrow 2 (emission gate `/agentic-research:research-handoff`) and Arrow 1 (commissioning
+  convention `research_refs:` + `depends_on` recipe) are both implemented. See
+  `docs/HANDOFF.md` — status is now "live."
+`research-view` remains tracked as a drafting feature here.
