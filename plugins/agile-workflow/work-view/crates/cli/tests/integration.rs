@@ -1807,6 +1807,41 @@ fn is_null_matches_missing_and_explicit_null_parent() {
     );
 }
 
+// ── --research-origin / --research-refs filters ───────────────────────────────
+//
+// story-research-1.md has research_origin: ard-pos-x and research_refs: [ard-pos-x].
+// All other golden fixture items have neither field set.
+
+#[test]
+fn research_origin_filter_selects_matching_item() {
+    let (stdout, _, code) = run(&["--research-origin", "ard-pos-x", "--paths"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("story-research-1"),
+        "--research-origin ard-pos-x should select the fixture item; stdout: {stdout}"
+    );
+    // Ensure it does NOT return items without research_origin set
+    assert!(
+        !stdout.contains("epic-alpha"),
+        "--research-origin ard-pos-x should not match items with no research_origin; stdout: {stdout}"
+    );
+}
+
+#[test]
+fn research_refs_filter_selects_matching_item() {
+    let (stdout, _, code) = run(&["--research-refs", "ard-pos-x", "--paths"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("story-research-1"),
+        "--research-refs ard-pos-x should select the fixture item; stdout: {stdout}"
+    );
+    // Ensure it does NOT return items without research_refs set
+    assert!(
+        !stdout.contains("epic-alpha"),
+        "--research-refs ard-pos-x should not match items whose research_refs lacks the slug; stdout: {stdout}"
+    );
+}
+
 // ── Output modes ──────────────────────────────────────────────────────────────
 
 #[test]
@@ -1990,9 +2025,9 @@ fn paths_output_contains_known_fixture_paths() {
 fn count_implementing_items_matches_expected() {
     let (stdout, _, code) = run(&["--stage", "implementing", "--count"]);
     assert_eq!(code, 0);
-    // epic-alpha (implementing) + feat-a (implementing) = 2
+    // epic-alpha (implementing) + feat-a (implementing) + story-research-1 (implementing) = 3
     let n: usize = stdout.trim().parse().unwrap();
-    assert_eq!(n, 2, "expected 2 implementing items in fixture");
+    assert_eq!(n, 3, "expected 3 implementing items in fixture");
 }
 
 #[test]
@@ -2011,21 +2046,22 @@ fn table_row_format_for_known_item() {
 // ── --ready / --blocked (item 2: next-actionable) ─────────────────────────────
 //
 // Fixture recap (for --ready/--blocked tests):
-//   epic-alpha   Active  implementing  deps:[]       → READY
-//   feat-a       Active  implementing  deps:[]       → READY
-//   feat-b       Active  drafting      deps:[feat-a] → BLOCKED (feat-a not done)
-//   story-alpha-1 Active review        deps:[]       → READY
-//   idea-backlog  Backlog  (no stage)                → excluded (tier gate)
-//   release-v1.0  Releases released                  → excluded (tier gate)
-//   feat-done     Archive  done                      → excluded (tier gate + stage)
+//   epic-alpha      Active  implementing  deps:[]       → READY
+//   feat-a          Active  implementing  deps:[]       → READY
+//   feat-b          Active  drafting      deps:[feat-a] → BLOCKED (feat-a not done)
+//   story-alpha-1   Active  review        deps:[]       → READY
+//   story-research-1 Active implementing deps:[]       → READY
+//   idea-backlog    Backlog  (no stage)                 → excluded (tier gate)
+//   release-v1.0   Releases released                   → excluded (tier gate)
+//   feat-done       Archive  done                      → excluded (tier gate + stage)
 
 #[test]
 fn ready_returns_items_with_satisfied_deps_across_stages() {
     let (stdout, _, code) = run(&["--ready", "--paths"]);
     assert_eq!(code, 0);
     let paths: Vec<&str> = stdout.lines().collect();
-    // Exactly 3 ready items: epic-alpha, feat-a, story-alpha-1
-    assert_eq!(paths.len(), 3, "expected 3 ready items, got: {paths:?}");
+    // Exactly 4 ready items: epic-alpha, feat-a, story-alpha-1, story-research-1
+    assert_eq!(paths.len(), 4, "expected 4 ready items, got: {paths:?}");
     assert!(
         paths.iter().any(|p| p.contains("epic-alpha")),
         "epic-alpha should be ready"
@@ -2037,6 +2073,10 @@ fn ready_returns_items_with_satisfied_deps_across_stages() {
     assert!(
         paths.iter().any(|p| p.contains("story-alpha-1")),
         "story-alpha-1 (review) should be ready (stage-aware)"
+    );
+    assert!(
+        paths.iter().any(|p| p.contains("story-research-1")),
+        "story-research-1 (implementing, no deps) should be ready"
     );
 }
 
@@ -2099,15 +2139,16 @@ fn blocked_excludes_non_active_tier_items() {
 fn ready_stage_implementing_reproduces_old_narrow_set() {
     // --ready --stage implementing should reproduce the OLD behavior:
     // only implementing items with satisfied deps.
-    // In fixture: epic-alpha (implementing, ready) + feat-a (implementing, ready) = 2 items.
+    // In fixture: epic-alpha (implementing, ready) + feat-a (implementing, ready)
+    //             + story-research-1 (implementing, ready) = 3 items.
     // story-alpha-1 (review) is excluded by the --stage filter.
     let (stdout, _, code) = run(&["--ready", "--stage", "implementing", "--paths"]);
     assert_eq!(code, 0);
     let paths: Vec<&str> = stdout.lines().collect();
     assert_eq!(
         paths.len(),
-        2,
-        "expected 2 items for --ready --stage implementing, got: {paths:?}"
+        3,
+        "expected 3 items for --ready --stage implementing, got: {paths:?}"
     );
     assert!(
         paths.iter().any(|p| p.contains("epic-alpha")),
@@ -2116,6 +2157,10 @@ fn ready_stage_implementing_reproduces_old_narrow_set() {
     assert!(
         paths.iter().any(|p| p.contains("feat-a")),
         "feat-a should be in implementing-only set"
+    );
+    assert!(
+        paths.iter().any(|p| p.contains("story-research-1")),
+        "story-research-1 should be in implementing-only set"
     );
     assert!(
         !paths.iter().any(|p| p.contains("story-alpha-1")),
@@ -2144,10 +2189,10 @@ fn ready_and_blocked_counts_are_consistent() {
     let ready_n: usize = ready_out.trim().parse().unwrap();
     let blocked_n: usize = blocked_out.trim().parse().unwrap();
     // All active movable items = ready + blocked
-    // Active movable: epic-alpha, feat-a, feat-b, story-alpha-1 = 4
+    // Active movable: epic-alpha, feat-a, feat-b, story-alpha-1, story-research-1 = 5
     assert_eq!(
         ready_n + blocked_n,
-        4,
+        5,
         "ready + blocked should account for all active movable items"
     );
 }

@@ -113,6 +113,8 @@ Filters (compose with AND semantics):
   --parent <id>        Direct children of the given item
   --release <version>  Items with release_binding: <version>
   --gate <name>        Items with gate_origin: <name>
+  --research-origin <s> Items with research_origin: <s>
+  --research-refs <s>  Items whose research_refs contains <s>
   --ready              Active items at drafting/implementing/review with all depends_on done
   --blocked            Active items at drafting/implementing/review with unmet dependencies
   --blocking <id>      Items that depend on <id>
@@ -169,10 +171,12 @@ fn next_value<I: Iterator<Item = String>>(
 /// [`ParseOutcome`] (or [`UsageError`]).
 ///
 /// Contract:
-/// - `--stage|--kind <v>`            → `Match::Equals(v)` on the matching filter field
-/// - `--parent|--release|--gate <v>` → `Equals(v)`, but literal `"null"` → `IsNull`
-/// - `--tag <v>` (repeatable)        → appended to `filter.tags` (AND semantics)
-/// - `--blocking <id>`               → `filter.blocking = Some(id)`
+/// - `--stage|--kind <v>`                       → `Match::Equals(v)` on the matching filter field
+/// - `--parent|--release|--gate <v>`            → `Equals(v)`, but literal `"null"` → `IsNull`
+/// - `--research-origin <v>`                    → `filter.research` via `nullable_match` (like `--gate`)
+/// - `--tag <v>` (repeatable)                   → appended to `filter.tags` (AND semantics)
+/// - `--blocking <id>`                          → `filter.blocking = Some(id)`
+/// - `--research-refs <slug>`                   → `filter.research_refs = Some(slug)` (like `--blocking`)
 /// - `--paths|--cat|--count`         → set output mode (last-wins)
 /// - `--ready`                       → `dependency_view = DependencyView::Ready`
 /// - `--blocked`                     → `dependency_view = DependencyView::Blocked`
@@ -226,6 +230,14 @@ pub fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<ParseOutcome, U
             "--gate" => {
                 let v = next_value("--gate", &mut iter)?;
                 opts.filter.gate = nullable_match(v);
+            }
+            "--research-origin" => {
+                let v = next_value("--research-origin", &mut iter)?;
+                opts.filter.research = nullable_match(v);
+            }
+            "--research-refs" => {
+                let v = next_value("--research-refs", &mut iter)?;
+                opts.filter.research_refs = Some(v);
             }
             "--tag" => {
                 let v = next_value("--tag", &mut iter)?;
@@ -545,5 +557,42 @@ mod tests {
     fn blocked_and_ready_together_is_usage_error() {
         let msg = err(&["--blocked", "--ready"]);
         assert!(msg.contains("mutually exclusive"), "got: {msg}");
+    }
+
+    // ── --research-origin / --research-refs ───────────────────────────────────
+
+    #[test]
+    fn research_origin_non_null_sets_equals() {
+        let opts = run(&["--research-origin", "my-research"]);
+        assert_eq!(
+            opts.filter.research,
+            Match::Equals("my-research".into())
+        );
+    }
+
+    #[test]
+    fn research_origin_null_sets_is_null_match() {
+        let opts = run(&["--research-origin", "null"]);
+        assert_eq!(opts.filter.research, Match::IsNull);
+    }
+
+    #[test]
+    fn research_refs_flag_sets_research_refs() {
+        let opts = run(&["--research-refs", "slug-abc"]);
+        assert_eq!(opts.filter.research_refs, Some("slug-abc".into()));
+    }
+
+    #[test]
+    fn missing_value_for_research_origin_is_usage_error() {
+        let msg = err(&["--research-origin"]);
+        assert!(msg.contains("missing value"), "got: {msg}");
+        assert!(msg.contains("--research-origin"), "got: {msg}");
+    }
+
+    #[test]
+    fn missing_value_for_research_refs_is_usage_error() {
+        let msg = err(&["--research-refs"]);
+        assert!(msg.contains("missing value"), "got: {msg}");
+        assert!(msg.contains("--research-refs"), "got: {msg}");
     }
 }
