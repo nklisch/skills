@@ -43,10 +43,10 @@ impl Tier {
 ///
 /// All optional scalar fields are normalized: missing / YAML `null` / literal
 /// `"null"` string / empty string → `None`. This applies to `kind`, `stage`,
-/// `parent`, `release_binding`, and `gate_origin`.
+/// `parent`, `release_binding`, `gate_origin`, and `research_origin`.
 ///
-/// `tags` and `depends_on` are always a `Vec<String>`; missing/empty frontmatter
-/// yields an empty vec (never `None`).
+/// `tags`, `depends_on`, and `research_refs` are always a `Vec<String>`;
+/// missing/empty frontmatter yields an empty vec (never `None`).
 #[derive(Debug, Clone)]
 pub struct Item {
     /// Item identifier. Unique within the active tier; may repeat across tiers.
@@ -74,6 +74,11 @@ pub struct Item {
 
     /// Gate that produced this item (`security`, `tests`, etc.), if any.
     pub gate_origin: Option<String>,
+
+    /// Research artifact(s) this work item tracks/consumes (Arrow 1, coordination).
+    pub research_refs: Vec<String>,
+    /// Research artifact that spawned this work item (Arrow 2, grounding).
+    pub research_origin: Option<String>,
 
     /// ISO date when this item was created (`YYYY-MM-DD`).
     pub created: Option<String>,
@@ -135,6 +140,8 @@ mod tests {
             depends_on: vec![],
             release_binding: None,
             gate_origin: None,
+            research_refs: vec![],
+            research_origin: None,
             created: None,
             updated: None,
             tier,

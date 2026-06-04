@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live-fields-core
 kind: story
-stage: implementing
+stage: review
 tags: [tooling]
 parent: epic-research-work-handoff-live-fields
 depends_on: []
@@ -39,7 +39,24 @@ Both fields are **optional** — do NOT add them to `index.rs` required-field
 validation (it warns only on `kind`/`stage`).
 
 ## Acceptance criteria
-- [ ] `Item` carries both fields; defaults `[]` / `None`; crate compiles (all `Item { }` literals updated)
-- [ ] `research_refs` parses flow + block YAML lists; `research_origin` null/empty/missing → `None`; missing `research_refs` → `[]`
-- [ ] `Filter.research` (Equals/IsNull) filters by origin; `Filter.research_refs = Some(x)` selects items whose refs contain `x`; both AND-compose with existing filters
-- [ ] New unit tests mirror `filter_gate_equals` + `filter_blocking_reverse_dep`; `cargo test -p work-view-core` green
+- [x] `Item` carries both fields; defaults `[]` / `None`; crate compiles (all `Item { }` literals updated)
+- [x] `research_refs` parses flow + block YAML lists; `research_origin` null/empty/missing → `None`; missing `research_refs` → `[]`
+- [x] `Filter.research` (Equals/IsNull) filters by origin; `Filter.research_refs = Some(x)` selects items whose refs contain `x`; both AND-compose with existing filters
+- [x] New unit tests mirror `filter_gate_equals` + `filter_blocking_reverse_dep`; `cargo test -p work-view-core` green
+
+## Implementation notes
+
+### Files changed
+- `crates/core/src/model.rs` — added `research_refs: Vec<String>` and `research_origin: Option<String>` to `Item`; updated struct doc comment to include both fields alongside existing `gate_origin`/`depends_on` mentions; updated `make_item` test fixture.
+- `crates/core/src/parse.rs` — added two `#[serde(default)]` fields to `RawFrontmatter`; wired `normalize_vec`/`normalize_optional` in `parse_item`; extended `full_item_parses_correctly` and `missing_optional_fields_are_none` to assert new fields; added 8 new tests covering flow array, block array, missing-yields-empty, null/empty/missing-normalizes-to-None, and value-preserved for both fields.
+- `crates/core/src/filter.rs` — added `research: Match` and `research_refs: Option<String>` to `Filter`; added filter logic in `item_matches`; added 4 new tests: `filter_research_equals`, `filter_research_is_null`, `filter_research_refs_membership`.
+- `crates/cli/src/actionable.rs` — updated `make_item_direct` literal with `research_refs: vec![]`, `research_origin: None`.
+- `crates/cli/src/render.rs` — updated test fixture `Item { }` literal with `research_refs: vec![]`, `research_origin: None`.
+
+### Verification
+`cargo build --workspace` and `cargo test --workspace` both pass clean.
+Test counts: 104 CLI unit + 107 CLI integration + 70 core unit + 31 core integration + 4 doc-tests = 316 total, 0 failures.
+
+### Notable
+- The committed `.work/bin/work-view` binary is NOT rebuilt by this story (crate-level change only) — that is a separate distribution/release concern, out of scope here.
+- No deviations from the design spec. All fields follow the `gate_origin`/`blocking` precedent exactly.

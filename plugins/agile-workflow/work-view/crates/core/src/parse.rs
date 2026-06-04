@@ -38,6 +38,10 @@ struct RawFrontmatter {
     #[serde(default)]
     gate_origin: Option<String>,
     #[serde(default)]
+    research_refs: Vec<String>,
+    #[serde(default)]
+    research_origin: Option<String>,
+    #[serde(default)]
     created: Option<String>,
     #[serde(default)]
     updated: Option<String>,
@@ -162,6 +166,8 @@ pub fn parse_item(path: &Path, rel: &Path, tier: Tier, text: &str) -> Result<Ite
         depends_on: normalize_vec(raw.depends_on),
         release_binding: normalize_optional(raw.release_binding),
         gate_origin: normalize_optional(raw.gate_origin),
+        research_refs: normalize_vec(raw.research_refs),
+        research_origin: normalize_optional(raw.research_origin),
         created: normalize_optional(raw.created),
         updated: normalize_optional(raw.updated),
         tier,
@@ -220,6 +226,8 @@ Some body text.
         assert_eq!(item.depends_on, vec!["dep-a", "dep-b"]);
         assert_eq!(item.release_binding.as_deref(), Some("v1.0.0"));
         assert!(item.gate_origin.is_none());
+        assert!(item.research_refs.is_empty());
+        assert!(item.research_origin.is_none());
         assert_eq!(item.created.as_deref(), Some("2026-01-01"));
         assert_eq!(item.updated.as_deref(), Some("2026-05-30"));
     }
@@ -324,6 +332,8 @@ A one-paragraph idea description.
         assert!(item.parent.is_none());
         assert!(item.release_binding.is_none());
         assert!(item.gate_origin.is_none());
+        assert!(item.research_refs.is_empty());
+        assert!(item.research_origin.is_none());
         assert!(item.created.is_none());
         assert!(item.updated.is_none());
         assert!(item.tags.is_empty());
@@ -380,5 +390,64 @@ A one-paragraph idea description.
         assert_eq!(item.tier, Tier::Archive);
         assert_eq!(item.path, abs);
         assert_eq!(item.rel_path, rel);
+    }
+
+    #[test]
+    fn research_refs_flow_array_parses() {
+        let text = "---\nid: x\nresearch_refs: [slug-a, slug-b]\n---\n";
+        let item = parse(text).unwrap();
+        assert_eq!(item.research_refs, vec!["slug-a", "slug-b"]);
+    }
+
+    #[test]
+    fn research_refs_block_array_parses_identically() {
+        let text = "---\nid: x\nresearch_refs:\n  - slug-a\n  - slug-b\n---\n";
+        let item = parse(text).unwrap();
+        assert_eq!(item.research_refs, vec!["slug-a", "slug-b"]);
+    }
+
+    #[test]
+    fn research_refs_missing_yields_empty_vec() {
+        let text = "---\nid: x\n---\n";
+        let item = parse(text).unwrap();
+        assert!(item.research_refs.is_empty());
+    }
+
+    #[test]
+    fn research_origin_null_literal_normalizes_to_none() {
+        let text = "---\nid: x\nresearch_origin: \"null\"\n---\n";
+        let item = parse(text).unwrap();
+        assert!(
+            item.research_origin.is_none(),
+            "literal `\"null\"` should normalize to None"
+        );
+    }
+
+    #[test]
+    fn research_origin_yaml_null_normalizes_to_none() {
+        let text = "---\nid: x\nresearch_origin: null\n---\n";
+        let item = parse(text).unwrap();
+        assert!(item.research_origin.is_none());
+    }
+
+    #[test]
+    fn research_origin_empty_string_normalizes_to_none() {
+        let text = "---\nid: x\nresearch_origin: \"\"\n---\n";
+        let item = parse(text).unwrap();
+        assert!(item.research_origin.is_none());
+    }
+
+    #[test]
+    fn research_origin_missing_normalizes_to_none() {
+        let text = "---\nid: x\n---\n";
+        let item = parse(text).unwrap();
+        assert!(item.research_origin.is_none());
+    }
+
+    #[test]
+    fn research_origin_value_preserved() {
+        let text = "---\nid: x\nresearch_origin: pos-x\n---\n";
+        let item = parse(text).unwrap();
+        assert_eq!(item.research_origin.as_deref(), Some("pos-x"));
     }
 }
