@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live-fields
 kind: feature
-stage: review
+stage: done
 tags: [tooling, docs]
 parent: epic-research-work-handoff-live
 depends_on: [epic-agentic-research-substrate-tier]
@@ -259,3 +259,31 @@ All three child stories implemented and advanced to `review`:
 rebuilt by this feature (crate-level change only) — rebuilding/recommitting the
 distributed binary so the live `--research-*` flags work from `.work/bin/` is a
 release/dist step, tracked at version-bump time.
+
+## Review (approve · deep · fresh-context)
+Verdict: **Approve**. Deep review (autopilot-delegated, substrate mode) against
+ground truth — the code diff, the acceptance criteria, and the feature's design
+decisions/risks. **All checks PASS, zero blockers / zero important findings:**
+- `filter.rs` — `research` matches `research_origin` (faithful `gate` mirror);
+  `research_refs` uses correct single-slug membership (`.any(|r| r == ref_id)`),
+  placed right after the gate check. Membership test is genuine (4 fixtures;
+  a/b match `slug-a`, c/d don't).
+- `index.rs` required-field validation untouched → both fields are **optional**
+  (not required-validated), exactly as designed.
+- `research_refs` is a `Vec<String>` with membership filter; `research_origin` is
+  `Option<String>` mirroring `gate_origin` — the locked cardinality decision held.
+- SPEC roll-forward complete + correct: frontmatter block, field-semantics table,
+  flag table, TS envelope, AGENTS field list — all mark the fields optional.
+- **No liveness overclaim**: CONVENTIONS explicitly flags the arrows as "separate
+  features not yet implemented"; `agentic-research/docs/HANDOFF.md` was not touched.
+- Verification reproduced: `cargo test --workspace` → **323 passed, 0 failed**.
+
+Fast-lane child verdicts (verified by implement, green build+tests):
+- `…-fields-core` — Approve (model/parse/filter + all `Item{}` literals).
+- `…-fields-cli` — Approve (flags + feed DTO + integration coverage).
+- `…-fields-docs` — Approve (docs roll-forward, mirrors kept in sync).
+
+Accepted deferral (not a finding): the committed `.work/bin/work-view` binary is
+not rebuilt — the live `--research-*` flags reach `.work/bin/` only after a
+release-time rebuild/recommit. Tracked for version-bump time.
+No blockers → advance feature + 3 stories `review → done`.

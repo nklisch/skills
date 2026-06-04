@@ -1,7 +1,7 @@
 ---
 id: epic-research-work-handoff-live-fields-core
 kind: story
-stage: review
+stage: done
 tags: [tooling]
 parent: epic-research-work-handoff-live-fields
 depends_on: []
