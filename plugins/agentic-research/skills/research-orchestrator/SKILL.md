@@ -66,10 +66,12 @@ and revisited post-campaign — never inferred from the rigor dial (§7).
 Activate the applicable subset of decision-points in this fixed order:
 
 ```
-dispatch-time-registration
+  → [KICKOFF]              set the dials WITH the user — every path, BEFORE decompose (← turn)
+dispatch-time-registration record the settled dials
   → substrate-check        survey .research/ for overlapping prior work; surface the outcome
   → decompose              emergent: draft ≥3 candidates + comparative assessment + self-flag
-  → [KICKOFF + CHECKPOINT A] set the dials, then confirm the decomposition/framing (turns)
+                           (scope_authority — set at kickoff — governs emergent-draft vs. honor-declared)
+  → [CHECKPOINT A]         confirm the decomposition / framing (multi-path) (← turn)
   → BRANCH on fan-out width discovered at decompose:
       ── light (0–1 facet):  attest → synthesize  INLINE (no spawn)
       ── multi (2+ facets):  parallel Agent × N research-specialist (one message)

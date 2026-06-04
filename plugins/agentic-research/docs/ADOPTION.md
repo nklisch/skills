@@ -80,7 +80,7 @@ The lint and the forthcoming `research-view` binary are cross-harness (CLI). The
 portable (the open Agent Skills standard). The `research-orchestrator`'s **fan-out** uses the
 host's sub-agent tool (the Agent/Task tool on Claude) and degrades to inline-in-main-context
 where a host has none — never broken; the discipline travels by inlining either way, and the
-plugin ships **no** committed agent files. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
+plugin ships **no** committed sub-agent definitions. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
 two-substrate picture.
 
 ## A note on ARD's portability shape
@@ -89,5 +89,5 @@ ARD's own repo carries its agent-facing substance in `AGENTS.md`, with `CLAUDE.m
 as thin adapters that import it — its demonstration of "portable knowledge shared, native
 ergonomics separate." This repo already embodies that shape at the root (one canonical
 `AGENTS.md`; `.claude/CLAUDE.md` is a symlink to it) and handles three-channel portability
-through the per-plugin `plugin.json` manifests, so the plugin ships **no** agent files of its
+through the per-plugin `plugin.json` manifests, so the plugin ships **no** sub-agent definitions of its
 own. The shim pattern is preserved as this note, not replicated as structure.

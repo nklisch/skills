@@ -24,7 +24,7 @@ import sys
 
 # Anchor on the first *numbered* section (`## 1.`), not just any `## ` heading, so a future
 # wrapper heading above the bundle can't silently shift the body boundary (design mitigation).
-FIRST_SECTION_RE = re.compile(r"^## \d", re.M)
+FIRST_SECTION_RE = re.compile(r"^## \d+\.", re.M)
 # Tolerate 2- or 3-component versions — ARD's own tags mix them (v0.1/v0.2 vs v0.3.0).
 SEMVER_RE = re.compile(r"^(\d+)\.(\d+)(?:\.(\d+))?")
 
@@ -48,7 +48,7 @@ def read_bytes(path):
 
 
 def body_from_first_section(path):
-    """Return the vendored bundle body: from the first `## ` heading to EOF.
+    """Return the vendored bundle body: from the first `## N.` numbered section to EOF.
     The discipline is vendored as a SKILL.md (frontmatter + wrapper + verbatim body);
     only the body — from `## 1.` onward — is the verbatim artifact."""
     text = open(path, encoding="utf-8").read()
