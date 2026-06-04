@@ -1,9 +1,11 @@
 # .research/ Conventions
 
-Operational conventions for the research substrate. The framework *architecture*
-(the failure-shape inventory, verification catalogs, the control-space model) lives
-in `plugins/agentic-research/docs/` (SPEC/CATALOGS). This file is the tier's working
-contract — the shapes an author and the lint both rely on.
+Operational conventions for the research substrate. The framework *architecture* (the
+failure-shape inventory, verification catalogs, the control-space model) is canonical
+upstream (ARD `SPEC.md` / `CATALOGS.md`) and oriented in
+`plugins/agentic-research/docs/ADOPTION.md`; the catalog members are vendored as data in
+`plugins/agentic-research/scripts/catalogs.json`. This file is the tier's working contract
+— the shapes an author and the lint both rely on.
 
 ## Layout
 

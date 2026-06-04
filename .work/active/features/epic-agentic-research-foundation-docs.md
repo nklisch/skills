@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-foundation-docs
 kind: feature
-stage: implementing
+stage: review
 tags: [docs]
 parent: epic-agentic-research
 depends_on: [epic-agentic-research-scaffold]
@@ -215,3 +215,28 @@ Docs have no unit tests; acceptance is mechanically checkable at implement time:
   `kernel/discipline.md`, which isn't vendored yet (lands with engagement-engine).
   Mitigation: describe it as the bundle engagement-engine will vendor; `ard.json`
   `not_yet_vendored` already records the gap honestly.
+
+## Implementation notes
+- **Files created**: `plugins/agentic-research/docs/{VERSIONING,ADOPTION,ARCHITECTURE}.md`
+  (the small mirror set, thin/reference style — cite ARD by section, link `ard.json` as the
+  authoritative pin/vendor-map, point catalog members at `scripts/catalogs.json`, never
+  re-list them).
+- **Files changed (drift fixes)**: `plugins/agentic-research/README.md` (Scaffold-status →
+  Adoption-status: substrate-tier landed, links `docs/`); `AGENTS.md` (plugin-map row ARD
+  v0.2 → v0.3.0 + consumption-contract note; `.claude/CLAUDE.md` symlinks to it, so one edit
+  covers both); `.research/CONVENTIONS.md` (see discrepancy below).
+- **Discrepancies from design**:
+  - *6th drift fix surfaced during implementation.* `.research/CONVENTIONS.md` already
+    forward-referenced "`plugins/agentic-research/docs/` (SPEC/CATALOGS)" — a dangling
+    pointer under the thin/reference strategy (there is no local `docs/SPEC.md`/`CATALOGS.md`).
+    Reconciled it to point at `docs/ADOPTION.md` (orientation, links upstream) + name
+    `scripts/catalogs.json` as the data home. Design's 5-unit set → 6 with this.
+  - *Vendor-map table expanded to 1:1.* `ADOPTION.md`'s map first used brace-collapsed
+    `kernel/templates/{attestation,precis,INDEX}.md`; expanded to three explicit rows so it
+    is byte-verifiable against `ard.json` `vendored_paths` (acceptance criterion).
+- **Tests added**: none (docs). **Verification run**: all internal links resolve; vendor map
+  1:1 with `ard.json` (7/7 keys); no catalog-member re-narration in docs; pins consistent
+  (ARD v0.3.0 / plugin 0.1.1; v0.2 only as the re-sync worked-example reference); every
+  doc-instructed command runs — lint exit 0, conformance 15/15, `grep -r ARD-Version` finds
+  the 6 stamped files, `bump-version.sh` usage responds.
+- **Adjacent issues parked**: none.

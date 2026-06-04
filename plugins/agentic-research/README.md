@@ -11,9 +11,12 @@ Adopts **ARD v0.3.0** (pinned in [`ard.json`](ard.json) — the single source of
 for the ARD version + vendored-surface map; the plugin's own semver is decoupled).
 Upstream framework by Kevoun: <https://code.s-nc.org/Kevoun/ARD>.
 
-> **Scaffold status.** This is the plugin shell. The skills, the `.research/` tier
-> definition, the citation lint, the `research-view` query binary, and the adapted
-> foundation docs land in subsequent features of the adoption epic.
+> **Adoption status (experimental).** Landed: the `.research/` substrate tier and its
+> conventions, the vendored citation lint + conformance set, the artifact templates, and
+> the foundation docs in [`docs/`](docs/) ([ADOPTION](docs/ADOPTION.md) ·
+> [VERSIONING](docs/VERSIONING.md) · [ARCHITECTURE](docs/ARCHITECTURE.md)). Pending: the
+> skills + Claude agents (engagement-engine), the `research-view` query binary, and the
+> designed research→work handoff.
 
 ## Skills
 
