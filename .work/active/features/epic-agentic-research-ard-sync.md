@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-ard-sync
 kind: feature
-stage: drafting
+stage: implementing
 tags: [tooling]
 parent: epic-agentic-research
 depends_on: [epic-agentic-research-foundation-docs]
@@ -111,3 +111,125 @@ asked to absorb v0.3.0 inline). What landed in the tree:
   repeatable command (read `ard.json`, `grep -r ARD-Version`, `git diff <tag>..<tag> --
   kernel/`, run conformance, guide the re-sync + bump). This feature is NOT done; the
   manual run is its validated worked example.
+  - *Update (2026-06-04):* step 4 is **done** — `bump-version.sh agentic-research patch`
+    ran to **v0.1.1** (committed locally). Only the **tool** remained; it is designed below.
+
+## Design decisions
+- **Tool scope: check-only.** `ard-sync.py --check` detects drift + reports a re-sync plan;
+  the operator applies the re-copy by hand following the plan, then runs conformance. No
+  `--apply` (sidesteps the tricky discipline-wrapper re-gen; matches the "near-trivial
+  drift-check" vision; low-frequency tool).
+- **ARD source: operator-provided checkout.** `--ard-repo PATH` points at a local ARD git
+  checkout at the target ref. Zero-dependency, no network — consistent with
+  `lint-citations.py`/`conformance`. Shells to `git -C <path> diff <tag>..<tag>` for the
+  upstream change summary when git+tags are present, degrading gracefully.
+- **Form: a zero-dep Python CLI** at `scripts/ard-sync.py` — consistent with the other
+  committed tools (cross-harness, testable), not a Claude skill.
+- **The vendored surface = `ard.json` `vendored_paths`.** The brief's "adapted SPEC/CATALOGS
+  docs" is **superseded** by foundation-docs' thin/reference decision — we do not vendor
+  SPEC/CATALOGS prose, so there is nothing to diff there. The tool diffs exactly the
+  machine-checkable vendored kernel artifacts.
+- **No child stories — single stride.** One cohesive tool + its test + a small doc-wiring
+  edit; tight cohesion (the test is coupled to the tool), one author.
+
+## Architectural choice
+A single zero-dep Python drift-check CLI driven by `ard.json` as the source of truth, plus a
+subprocess-cli-harness test and a doc-wiring edit. Chosen over: (a) check+apply (rejected —
+the discipline-wrapper re-gen is tricky and the tool is low-frequency); (b) a Claude skill
+(rejected — the lint/conformance precedent is a cross-harness CLI; a skill would be
+Claude-only and untestable the same way); (c) tool-fetches-ARD (rejected — keeps the tooling
+offline/zero-dep). The tool *reports + guides*; the operator (agent or human) applies and the
+conformance runner is the gate.
+
+## Implementation Units
+Single-stride; three artifacts.
+
+### Unit 1: scripts/ard-sync.py — the drift-check core (trickiest)
+**File**: `plugins/agentic-research/scripts/ard-sync.py`
+```
+python3 ard-sync.py --ard-repo PATH [--ard-json PATH] [--format text|json]
+  --ard-repo PATH   local ARD checkout at the TARGET ref (required)
+  --ard-json PATH   consumer pin (default: ../ard.json relative to this script)
+  --format          text (default) | json
+  exit 0 = in sync · 1 = drift detected · 2 = error (bad paths/inputs)
+```
+Behavior:
+1. **Load the consumer pin** from `ard.json`: `adopts{version,release_tag,commit_sha}` +
+   `vendored_paths{ "kernel/X": "<plugin-rel path>" }`. plugin_root = dir of `ard.json`.
+2. **Read the target version** from `<ard-repo>/ard.json` `version` (+ `vendorable_surface`
+   for each path's **mode**). If the target predates `ard.json` (pre-v0.3.0), degrade:
+   treat every entry as a whole-file verbatim compare and note the degrade.
+3. **Per `vendored_paths` entry** — compare vendored copy (`plugin_root/<relpath>`) against
+   target (`<ard-repo>/<key>`):
+   - **file, verbatim/data** → byte-compare → `OK` | `DRIFT`.
+   - **directory** (key ends `/`, e.g. `kernel/conformance/`) → recursive per-file compare.
+   - **discipline body-embed** (`kernel/discipline.md` → `…/SKILL.md`) → compare the **body
+     from the first `## ` numbered section onward** on both sides (the vendored SKILL.md
+     wraps the verbatim body; only the body is the vendored artifact).
+   - **missing target** (entry removed upstream) / **new kernel artifact** (in target
+     `vendorable_surface` but not in our `vendored_paths`) → report as add/remove.
+4. **ARD-Version stamp delta** — extract the `ARD-Version:` stamp from each stamped vendored
+   copy + its target; report mismatches (belt-and-suspenders vs the `adopts.version` ↔ target
+   version compare).
+5. **git tag-diff (optional)** — if `<ard-repo>/.git` + both tags resolve, shell
+   `git -C <ard-repo> diff <pinned_tag>..<target_tag> --stat -- kernel/` (fail-open:
+   `timeout=`, `check=False`, `stderr=DEVNULL`); include the summary, else a one-line "skipped".
+6. **Report + plan**: consumer pin → target version; per-artifact `OK`/`DRIFT (mode)`;
+   adds/removes; a re-sync plan keyed by mode (verbatim DRIFT → `cp <kernel/X> <our-path>`;
+   data DRIFT → re-sync the data file; verify → re-run conformance); the **suggested plugin
+   bump axis** mapped from the ARD bump (consumer→target version delta) per
+   `docs/VERSIONING.md`'s adopter-action table; and the closing commands
+   (`python3 scripts/conformance/run.py`; `./scripts/bump-version.sh agentic-research <axis>`).
+7. **Exit** 0 (in sync) / 1 (drift) / 2 (error). `--format json` emits the same as a structured object.
+**Implementation notes**: stdlib only (`argparse`, `json`, `os`, `subprocess`, `filecmp`/byte
+read, `re` for the stamp + body-extract). Resolve the discipline body boundary with the same
+`^## ` anchor used in the S1 build.
+**Acceptance**:
+- [ ] In-sync surface → exit 0, reports "in sync" with the pin; a modified vendored file → exit 1, names that artifact `DRIFT`
+- [ ] Discipline body-embed compared by body (wrapper changes alone do NOT report drift; a body change DOES)
+- [ ] Directory entry (`conformance/`) compared recursively; the suggested bump axis matches VERSIONING.md's table; zero third-party imports
+
+### Unit 2: scripts/tests/test_ard_sync.py — subprocess-cli-harness test
+**File**: `plugins/agentic-research/scripts/tests/test_ard_sync.py` (+ `fixtures/`)
+Fixtures: a minimal fake ARD checkout (`fixtures/fake-ard/{ard.json,kernel/…}`) + a fake
+consumer (`fixtures/fake-consumer/{ard.json, <vendored copies>}`). Launch the real
+`ard-sync.py` via subprocess (the repo's subprocess-cli-harness pattern) for two scenarios:
+**in-sync** (vendored == kernel → exit 0) and **drift** (one vendored file mutated → exit 1 +
+names the artifact). Zero-dep; run with `python3`.
+**Acceptance**:
+- [ ] Both scenarios pass (exit 0 / exit 1 + drift named); test is zero-dependency
+- [ ] Fixture stamps use a **sentinel version** (e.g. `0.0.0-fixture`) so they don't masquerade as real vendored stamps in the drift grep
+
+### Unit 3: doc-wiring (close the forward-references)
+**Files**: `docs/VERSIONING.md` (its "repeatable tool … is the `ard-sync` feature (in
+progress)" line → name `scripts/ard-sync.py` as the shipped drift tool, with the invocation);
+`ard.json` `drift_check` field → reference `ard-sync.py` and **exclude `tests/`** from the
+`grep -rl ARD-Version …` path (so fixtures don't pollute it).
+**Acceptance**:
+- [ ] VERSIONING.md names `ard-sync.py` (no "in progress"); `ard.json` `drift_check` excludes `tests/`; drift grep no longer matches fixtures
+
+## Implementation Order
+1. `scripts/ard-sync.py` (the tool; trickiest — the body-embed + mode logic)
+2. `scripts/tests/test_ard_sync.py` + fixtures (validates it; sentinel-stamped)
+3. doc-wiring (VERSIONING.md + ard.json drift_check)
+Then **smoke it against reality**: run `ard-sync.py --ard-repo /tmp/ARD` (currently at
+v0.3.0) — our surface is freshly synced, so it must report **in sync, exit 0** (a live
+no-drift confirmation, the inverse of the worked example).
+
+## Testing
+- **Unit/CLI**: `test_ard_sync.py` (in-sync + drift fixtures, subprocess).
+- **Live smoke**: `ard-sync.py --ard-repo /tmp/ARD` → exit 0 (we are pinned at v0.3.0 and the
+  surface is current). Mutating one vendored file → exit 1 naming it.
+- **No regressions**: `scripts/conformance/run.py` still 15/15; the drift grep no longer
+  catches `tests/` fixtures.
+
+## Risks
+- **Discipline body-embed boundary.** If the `^## ` anchor differs between the SKILL.md and
+  `kernel/discipline.md`, the body-compare false-positives. Mitigation: use the exact anchor
+  from the S1 build (`## 1.`), and cover it in the test.
+- **Vendor-mode source absent.** A pre-v0.3.0 target has no `ard.json`/`vendorable_surface`.
+  Mitigation: the documented degrade — whole-file verbatim compare + a "modes unavailable" note.
+- **Fixtures polluting the drift grep.** Test fixtures carry `ARD-Version`-like stamps.
+  Mitigation: sentinel version + exclude `tests/` from `drift_check` (Unit 3).
+- **Operator points at the wrong ref.** Garbage-in. Mitigation: the report prints the target
+  version (read from `<ard-repo>/ard.json`) so the operator sees what they compared against.
