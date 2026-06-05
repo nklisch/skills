@@ -16,8 +16,9 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion, Skil
 # Release-Deploy
 
 You orchestrate a release. The work is in three movements: **bind** items to a
-version, **gate** the bundle (each gate produces items, not pass/fail), **ship**
-when readiness criteria are met.
+version — both active done items and archived stubs late-bound via `archived_atop` (the work done
+atop the prior shipped tag) — **gate** the bundle (each gate produces items, not pass/fail; already-
+done archived stubs are never re-gated), **ship** when readiness criteria are met.
 
 The release file at `.work/active/<release-id>.md` is the orchestration state.
 Its stage advances `planned → quality-gate → released` as the release proceeds.
@@ -76,32 +77,64 @@ shipped, then move to `releases/<version>/`).
 
 ### Phase 3: Bind items (if at stage: planned)
 
+A release binds two kinds of work: **active done items** (bound the way they always were, by setting
+`release_binding`) and **archived stubs late-bound via `archived_atop`** (the stubs done atop the
+prior shipped tag, pulled in here even though archiving was decoupled from any release).
+
 If the release is at `stage: planned`:
 
-1. Show the user candidate items: items at `stage: done` (or close to it) without
-   a `release_binding`. Use `work-view`:
+1. **Active done candidates.** Show items at `stage: done` (or close to it) without a
+   `release_binding`. Use `work-view`:
    ```bash
    .work/bin/work-view --stage done --release "" --paths
    ```
    (Filter for empty `release_binding`.)
 
-2. Use AskUserQuestion to confirm which to bind. Default: all done items without
-   binding go in.
-
-3. For each chosen item, edit its frontmatter: `release_binding: <version>`. The
-   PostToolUse hook bumps `updated:`.
-
-4. Update the release file's body with the bound items list.
-
-5. Advance the release file: `stage: planned → quality-gate`.
-
-6. Commit:
+2. **Archived-stub candidates (`archived_atop` late-binding).** Determine the **prior shipped tag** —
+   the latest released version before this one (the newest git tag matching the release tag shape, or
+   the newest `.work/releases/<version>/` summary). If no release has ever shipped, the prior
+   baseline is the `pre-release` sentinel. Gather archived stubs whose `archived_atop` equals that
+   prior baseline — these are the items done *atop* the prior release that this version claims:
    ```bash
-   git add .work/active/release-<version>.md <bound-item-files>
+   prior=$(git describe --tags --abbrev=0 2>/dev/null \
+     || ls -d .work/releases/*/ 2>/dev/null | sort -V | tail -1 | xargs -r basename)
+   prior=${prior:-pre-release}
+   for p in .work/archive/*.md; do
+     atop=$(grep -m1 '^archived_atop:' "$p" | awk '{print $2}')
+     binding=$(grep -m1 '^release_binding:' "$p" | awk '{print $2}')
+     [[ "$atop" == "$prior" && "$binding" == "null" ]] && echo "$p"
+   done
+   ```
+   (Skip stubs already carrying a `release_binding` — they belong to an earlier release.)
+
+3. Use AskUserQuestion to confirm the full set (active done items + gathered archived stubs).
+   Default: all active done items without binding plus all archived stubs atop the prior baseline go
+   in. Confirming the archived set explicitly is required, since late-binding pulls in work the user
+   never bound by hand.
+
+4. For each chosen item — active done item OR archived stub — edit its frontmatter:
+   `release_binding: <version>`. The PostToolUse hook bumps `updated:`. Do **not** touch a stub's
+   `archived_atop` (it is immutable) or `git_ref`.
+
+5. Update the release file's body with the bound items list (note which were late-bound archived
+   stubs).
+
+6. Advance the release file: `stage: planned → quality-gate`.
+
+7. Commit:
+   ```bash
+   git add .work/active/release-<version>.md <bound-item-files> <bound-archive-stubs>
    git commit -m "release-deploy: bind <N> items to <version>"
    ```
 
 ### Phase 4: Gate execution
+
+**Gates run over active bound items only — never re-gate already-done archived stubs.** Archived
+stubs late-bound in Phase 3 are already `done` and were gated when they were active; their bodies
+are pruned to git. The gate phase MUST NOT re-analyze a stub's (pruned) body. A gate that needs the
+bound bundle's changes works from active bound items and their commits — a missing stub body is
+expected and must never block a release. When passing the bound set to a gate sub-agent, include
+only the active bound items' paths; archived stubs are recorded in the release, not re-examined.
 
 If the release is at `stage: quality-gate`:
 
@@ -130,6 +163,10 @@ After each gate, append to the release body:
 Readiness condition: **every item with `release_binding: <version>` is at
 `stage: done`.** This spans active done items and archived stubs alike (both carry the
 binding); `work-view --release <version>` finds both tiers.
+
+Archived stubs are `stage: done` by construction and their bodies are pruned — readiness checks only
+their `stage`, never body presence. A missing stub body NEVER counts as pending and never blocks a
+release.
 
 ```bash
 # Items still active
@@ -231,10 +268,11 @@ persists on disk (it carries zero design authority; see the "Zero Design Authori
    .work/bin/work-view --release <version> --paths
    ```
 
-2. Resolve each item's git ref (where its full body lives):
-   - archived stub → reuse its `git_ref:` frontmatter field.
+2. Resolve each item's git ref (where its full body lives) and its `archived_atop`:
+   - archived stub → reuse its `git_ref:` and `archived_atop:` frontmatter fields.
    - active done item → `git_ref=$(git rev-parse --short HEAD)` (the body is present at HEAD,
-     before this prune commit).
+     before this prune commit). It has no `archived_atop` (it was bound directly, never archived);
+     record `—` in that column.
 
 3. Turn the release file into the single summary doc — move it and append a shipped-items table:
 
@@ -249,10 +287,13 @@ persists on disk (it carries zero design authority; see the "Zero Design Authori
 
    Bodies live in git history — read with `git show <git ref>:<path>`.
 
-   | id | title | kind | git ref |
-   |----|-------|------|---------|
-   | <id> | <title> | <kind> | <git_ref> |
+   | id | title | kind | archived_atop | git ref |
+   |----|-------|------|---------------|---------|
+   | <id> | <title> | <kind> | <release \| pre-release \| —> | <git_ref> |
    ```
+
+   The `archived_atop` column records the baseline each late-bound archived stub was done atop
+   (`—` for active items bound directly). This is the durable trace of the late-binding query.
 
 4. Prune each bound item body (never the release summary):
 
@@ -308,7 +349,11 @@ re-run instruction.
 - Don't bypass gates. If `gates_for_release` lists 5 gates, run all 5. If a gate
   fails to produce items, that's a finding (or "no new findings"), not a reason
   to skip.
-- Don't ship if any bound item is not `done`. Halt and surface the pending list.
+- Don't re-gate already-done archived stubs. Late-bound stubs passed their gates when active and
+  their bodies are pruned; gates run over active bound items only. A missing stub body must never
+  block a release.
+- Don't ship if any bound item is not `done`. Halt and surface the pending list. (Archived stubs are
+  `done` by construction; readiness checks their `stage`, not body presence.)
 - Tag-based and release-branch mappings rely on the project's existing release
   script. branch-held requires `gh` CLI for PR merges. none performs no
   publishing action inside release-deploy.
