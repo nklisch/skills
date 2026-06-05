@@ -149,12 +149,14 @@ cycle and asks the user to resolve.
 | (none) | backlog | `/park` | New file in `.work/backlog/<id>.md` |
 | backlog | active | `/scope` | `git mv` to `.work/active/<kind>/<id>.md`; frontmatter populated |
 | (none) | active | `/scope` (skipping backlog) | New file in `.work/active/<kind>/<id>.md` |
-| active | releases | `/release-deploy` shipping | `git mv` to `.work/releases/<version>/<id>.md`; `release_binding` already set |
-| active | archive | item reaches `done` without `release_binding` | `git mv` to `.work/archive/<id>.md` |
+| active | releases | `/release-deploy` shipping | bound bodies collapse into one `.work/releases/<version>/release-<version>.md` summary; the bodies are `git rm`'d (recoverable via the per-item `git ref`). Legacy `retain-bodies` mode `git mv`s each `<id>.md` instead |
+| active | archive | item reaches `done` without `release_binding` | stripped to a bodyless stub at `.work/archive/<id>.md` (frontmatter + `# Title` + `git_ref`); body pruned. Legacy `retain-bodies` mode `git mv`s the full body |
 | backlog | (deleted) | user discards via `/scope` rejection | `git rm` (history retained) |
 
-Every tier transition is a `git mv` so history is preserved. The substrate's
-audit trail IS the git log of the file's path changes.
+Active and backlog transitions are `git mv` so history is preserved by path. Terminal transitions
+(`delete-refs`, the default) prune bodies to refs — a bodyless archive stub or a single release
+summary — and git history retains the full content. Either way the substrate's audit trail IS the
+git log.
 
 ## AGENTS.md substrate section
 

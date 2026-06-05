@@ -251,8 +251,8 @@ After `convert` runs in a project repo:
 ├── .work/
 │   ├── active/{epics,features,stories}/<id>.md
 │   ├── backlog/<id>.md
-│   ├── releases/<version>/<id>.md
-│   ├── archive/<id>.md
+│   ├── releases/<version>/release-<version>.md   # one summary doc (delete-refs)
+│   ├── archive/<id>.md                            # bodyless ref stubs (delete-refs)
 │   ├── bin/work-view
 │   └── CONVENTIONS.md
 ├── AGENTS.md
