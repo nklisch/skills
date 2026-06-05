@@ -1,7 +1,7 @@
 ---
 id: feature-delete-after-release-docs-rules
 kind: feature
-stage: drafting
+stage: review
 tags: [docs, skill, tooling]
 parent: epic-delete-after-release
 depends_on: [feature-delete-after-release-archive-stub, feature-delete-after-release-release-prune, feature-delete-after-release-convert-sync]
@@ -44,3 +44,13 @@ lands.
 - No doc/rule asserts terminal tiers retain full bodies.
 - This repo's `releases/0.9.5/` is one summary doc; archived items are bodyless stubs.
 - `work-view` runs cleanly across all scopes post-migration; gates (docs/cruft) pass.
+
+## Implementation (2026-06-05)
+
+- Docs: updated the `--scope all` bullet in the canonical AGENTS section (`convert` Phase 6) and this
+  repo's `AGENTS.md` mirror — terminal tiers now described as `releases/` (one summary) + `archive/`
+  (bodyless stubs), full bodies in git. work-view `dist/README.md` had no scope prose to change.
+- Self-migration (`/tmp/migrate_terminal.py`, one-time): 10 `.work/archive/` bodies → bodyless stubs
+  (+ per-file `git_ref` = last-touching commit, squash-safe); `releases/0.9.5/` 52 item bodies →
+  collapsed into `release-0.9.5.md` Shipped-items table, then `git rm`. `releases/0.9.5/` now holds
+  only the summary. `work-view --scope all/archive` parse cleanly (103 / 10).
