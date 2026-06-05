@@ -1,7 +1,7 @@
 ---
 id: feature-delete-after-release-convert-sync
 kind: feature
-stage: drafting
+stage: review
 tags: [skill, tooling, docs]
 parent: epic-delete-after-release
 depends_on: [feature-delete-after-release-archive-stub, feature-delete-after-release-release-prune]
@@ -50,3 +50,16 @@ new convention.
 - `convert` sync on a repo with retained terminal bodies offers (not forces) to prune them to
   stubs/summary, and performs it on confirmation.
 - `docs/SPEC.md` documents the convention value + stub shape so it is reproducible.
+
+## Implementation (2026-06-05)
+
+- `docs/SPEC.md`: added `## Terminal-tier retention <delete-refs | retain-bodies>` to the
+  CONVENTIONS.md format block + an explanatory paragraph (default `delete-refs`, stub + one-summary).
+- `convert/SKILL.md` Phase 3: interview now has a 6th question (terminal-tier retention, default
+  `delete-refs`). Phase 5 already writes "per SPEC.md format" → picks it up automatically.
+- `convert/SKILL.md` Phase 8: seeding honors retention (`done-archived`→stub, `done-shipped`→summary
+  row); added the "Sync existing substrates to delete-refs" offer-to-prune step (AskUserQuestion,
+  never forces) for repos with retained terminal bodies.
+
+Must-hit requirement satisfied: a fresh convert seeds the convention into CONVENTIONS.md, so a
+consumer (Silas) running convert picks it up.

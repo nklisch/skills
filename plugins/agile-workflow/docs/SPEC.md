@@ -121,12 +121,22 @@ skill reads this at session start (via the SessionStart hook or directly).
 ## Stage overrides
 <only if the project deviates from the master>
 
+## Terminal-tier retention
+<delete-refs | retain-bodies>
+
 ## Gate config
 gates_for_release: [security, tests, cruft, docs, patterns]
 ```
 
 The default `gates_for_release` order is fixed: **security → tests → cruft
 → docs → patterns**. Override only if the project has a justified reason.
+
+`terminal-tier retention` (default **`delete-refs`**) controls what persists on disk when an item
+reaches a terminal tier. With `delete-refs`, archiving a done item leaves a **bodyless stub**
+(frontmatter + `# Title` + `git_ref:`), and a release **collapses** its bound items into a single
+`releases/<version>/release-<version>.md` summary — full bodies live only in git history, so terminal
+prose (which carries zero design authority) cannot leak to future agents. `retain-bodies` is the
+legacy behavior (full bodies kept under `.work/archive/` and `.work/releases/<version>/`).
 
 ### AGENTS.md section
 

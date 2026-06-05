@@ -418,7 +418,7 @@ imported. Do not create `.claude/rules/*.md` files that don't already exist.
 
 ### Phase 3: Conventions interview
 
-Run an interactive interview via AskUserQuestion. Five questions, in order:
+Run an interactive interview via AskUserQuestion. Six questions, in order:
 
 1. **Release mapping** — `branch-held | tag-based | release-branch | none`. Default
    offered: `tag-based`. Always asked.
@@ -430,6 +430,11 @@ Run an interactive interview via AskUserQuestion. Five questions, in order:
 5. **Gate config** — defaults to
    `gates_for_release: [security, tests, cruft, docs, patterns]`. User can reorder
    or omit.
+6. **Terminal-tier retention** — `delete-refs | retain-bodies`. Default offered:
+   `delete-refs` (archiving leaves a bodyless stub; a release collapses bound items into one
+   `releases/<version>/release-<version>.md` summary; full bodies live in git history, so terminal
+   prose cannot leak to future agents). Offer `retain-bodies` only for projects that deliberately
+   keep full terminal bodies on disk.
 
 ### Phase 4: Create substrate skeleton
 
@@ -753,6 +758,20 @@ design content.
 
 If the user picks any `done-shipped` items, also create
 `.work/releases/v0/release-v0.md` at `stage: released` to bind them.
+
+**Terminal retention applies to seeding.** When `terminal-tier retention: delete-refs` (the
+default), seed terminal buckets as refs, not full bodies: `done-archived` → a bodyless stub
+(frontmatter + `# Title` + `git_ref`, per the review skill's stub shape); `done-shipped` → a row in
+the single `release-v0.md` summary table (id, title, kind, git ref), not a per-item file. Only
+`retain-bodies` keeps full bodies.
+
+**Sync existing substrates to delete-refs.** When converting/syncing a repo that already uses the
+substrate and `delete-refs` is selected, detect retained full-body terminal items — full bodies in
+`.work/archive/*.md` and `.work/releases/<version>/<id>.md` (anything beyond the
+`release-<version>.md` summary) — and **offer** (AskUserQuestion; never force) to prune them to
+current practice: archived bodies → bodyless stubs (capture each `git_ref` from `git log -- <path>`);
+released bodies → folded into their `release-<version>.md` summary table, then `git rm`. Preserve-only
+stays the default per convert's posture.
 
 For `docs/ROADMAP.md` phases:
 1. Each phase becomes an epic at `.work/active/epics/epic-phase-<n>-<slug>.md`.
