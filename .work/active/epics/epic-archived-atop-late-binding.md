@@ -1,7 +1,7 @@
 ---
 id: epic-archived-atop-late-binding
 kind: epic
-stage: drafting
+stage: done
 tags: [skill, tooling, docs]
 parent: null
 depends_on: []
@@ -68,3 +68,18 @@ Silas adoption — tracked by Silas backlog `agent-reflection-prune-terminal-wor
 CONVENTIONS `Done-item archival` to the merged model, move its custom in-marker rules (testkit,
 date-metadata) to user rule files, prune its 1031 archive bodies → stubs preserving `archived_atop`
 + adding `git_ref`, then a clean convert sync. Blocked until this epic ships.
+
+## Children complete (2026-06-05)
+
+All three child features implemented (stub-stamp → release → convention) and at `stage: done`. The
+merged model — bodyless stub carrying immutable `archived_atop` + `git_ref`, release-deploy
+late-binding via `archived_atop` with no re-gate of already-done stubs, one-summary collapse, and ONE
+merged terminal convention seeded/offered by convert — is now coherent across the four surfaces:
+`review/references/substrate-side-effects.md`, `release-deploy/SKILL.md`, `convert/SKILL.md`, and
+`docs/SPEC.md` (with `docs/ARCHITECTURE.md` kept consistent). v0.11 delete-refs was extended, not
+rewritten; `retain-bodies` remains the legacy opt-out.
+
+Residual: `plugin.json` is at 0.11.0 but `CHANGELOG.md`'s top entry is v0.9.5 and `SPEC.md`'s
+manifest example still shows 0.10.0 — pre-existing drift from the v0.11 bump on `main`, out of scope
+here (no version/release ops per the goal). Worth a follow-up version/CHANGELOG reconciliation when a
+release is cut.
