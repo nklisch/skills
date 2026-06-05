@@ -55,6 +55,11 @@ and a retained body on disk leaks stale "we decided X" prose to future agents. G
 every body, so archive items as bodyless refs — discoverable and late-bindable, but with no prose to
 mislead.
 
+The stub also records the release baseline it was done *atop* (`archived_atop`) so
+`/agile-workflow:release-deploy` can later late-bind it into the release that ships work done on top
+of the prior shipped tag. Archiving stays decoupled from release binding: the stub carries
+`release_binding: null` until a release claims it.
+
 To archive `<id>` (a `done` item with no release binding and no active parent):
 
 1. Capture the ref where the full body currently lives — **before** the archive commit:
@@ -63,9 +68,26 @@ To archive `<id>` (a `done` item with no release binding and no active parent):
    git_ref=$(git rev-parse --short HEAD)
    ```
 
-2. Write `.work/archive/<id>.md` as a stub: keep the YAML frontmatter (add `git_ref: <git_ref>`) and
-   the first `# <Title>` line only. Drop all other body content. Keep `stage: done` and the existing
-   `release_binding` (normally `null`; late-bind later by setting it to a `<version>`).
+2. Compute `archived_atop` — the immutable release baseline this item was done atop. It is the
+   **latest released version** at archival time:
+
+   ```bash
+   # Latest released version = newest git tag matching the project's release tag shape,
+   # OR the newest .work/releases/<version>/ summary if no tags are used.
+   archived_atop=$(git describe --tags --abbrev=0 2>/dev/null \
+     || ls -d .work/releases/*/ 2>/dev/null | sort -V | tail -1 | xargs -r basename)
+   # If neither exists yet (no release has ever shipped), use the sentinel:
+   archived_atop=${archived_atop:-pre-release}
+   ```
+
+   Stamp it **once** at archival and **never rewrite it** afterward — it is the immutable baseline.
+   On an idempotent re-archive of an existing stub, preserve the stub's existing `archived_atop`
+   rather than recomputing it.
+
+3. Write `.work/archive/<id>.md` as a stub: keep the YAML frontmatter (add `git_ref: <git_ref>` and
+   `archived_atop: <archived_atop>`) and the first `# <Title>` line only. Drop all other body
+   content. Keep `stage: done` and the existing `release_binding` (normally `null`; late-bind later
+   by setting it to a `<version>`).
 
    ```
    ---
@@ -76,6 +98,7 @@ To archive `<id>` (a `done` item with no release binding and no active parent):
    parent: null
    depends_on: []
    release_binding: null
+   archived_atop: <release | pre-release>
    git_ref: <git_ref>
    created: <orig>
    updated: <today>
@@ -84,7 +107,7 @@ To archive `<id>` (a `done` item with no release binding and no active parent):
    # <Title>
    ```
 
-3. `git rm` the active file and `git add` the stub (see Commit).
+4. `git rm` the active file and `git add` the stub (see Commit).
 
 The stub stays a first-class, work-view-queryable item. Recover the full body any time with
 `git show <git_ref>:.work/active/<kind>s/<id>.md`.

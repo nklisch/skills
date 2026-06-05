@@ -133,10 +133,54 @@ The default `gates_for_release` order is fixed: **security → tests → cruft
 
 `terminal-tier retention` (default **`delete-refs`**) controls what persists on disk when an item
 reaches a terminal tier. With `delete-refs`, archiving a done item leaves a **bodyless stub**
-(frontmatter + `# Title` + `git_ref:`), and a release **collapses** its bound items into a single
-`releases/<version>/release-<version>.md` summary — full bodies live only in git history, so terminal
-prose (which carries zero design authority) cannot leak to future agents. `retain-bodies` is the
-legacy behavior (full bodies kept under `.work/archive/` and `.work/releases/<version>/`).
+(frontmatter + `# Title` + `git_ref:` + `archived_atop:`), and a release **collapses** its bound
+items into a single `releases/<version>/release-<version>.md` summary — full bodies live only in git
+history, so terminal prose (which carries zero design authority) cannot leak to future agents.
+`retain-bodies` is the legacy opt-out (full bodies kept under `.work/archive/` and
+`.work/releases/<version>/`).
+
+#### Archive stub shape
+
+A `done` item with no `release_binding` and no active parent is archived as a bodyless stub. The
+stub is frontmatter + the first `# <Title>` line only; the body is pruned to git history. Its
+frontmatter carries two extra fields beyond the standard contract:
+
+- `archived_atop: <release | pre-release>` — the release baseline the item was done atop (see
+  computation below). Stamped **once** at archival; immutable thereafter.
+- `git_ref: <sha>` — the commit where the full body lives. Recover it with
+  `git show <git_ref>:<path>`.
+
+```yaml
+---
+id: <id>
+kind: <kind>
+stage: done
+tags: [...]
+parent: null
+depends_on: []
+release_binding: null          # null until a release late-binds it
+archived_atop: <release | pre-release>
+git_ref: <sha>
+created: <orig>
+updated: <today>
+---
+
+# <Title>
+```
+
+#### `archived_atop` computation
+
+`archived_atop` is the **latest released version at archival time**, computed deterministically:
+
+1. The newest git tag matching the project's release tag shape (e.g. `git describe --tags
+   --abbrev=0`), OR
+2. the newest `.work/releases/<version>/` summary, when the project does not tag releases.
+3. If neither exists yet — no release has ever shipped — use the `pre-release` sentinel.
+
+Stamp it once when the stub is written and never rewrite it (it is the immutable baseline a release
+late-binds against). Idempotent re-archival preserves the existing `archived_atop`. The
+`/agile-workflow:release-deploy` bind phase queries this field to pull archived stubs into the
+release that ships work done atop the prior shipped tag.
 
 ### AGENTS.md section
 
@@ -252,7 +296,7 @@ After `convert` runs in a project repo:
 │   ├── active/{epics,features,stories}/<id>.md
 │   ├── backlog/<id>.md
 │   ├── releases/<version>/release-<version>.md   # one summary doc (delete-refs)
-│   ├── archive/<id>.md                            # bodyless ref stubs (delete-refs)
+│   ├── archive/<id>.md                            # bodyless ref stubs w/ archived_atop + git_ref (delete-refs)
 │   ├── bin/work-view
 │   └── CONVENTIONS.md
 ├── AGENTS.md
