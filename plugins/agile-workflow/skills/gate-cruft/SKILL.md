@@ -38,11 +38,15 @@ Sub-agent strength is explicit:
 ### Phase 1: Identify bundle changes
 
 ```bash
-# Bound items
-.work/bin/work-view --release <version> --paths
+# Bound items. `--release` auto-widens to ALL tiers (active + archive +
+# releases). Drop any returned path under `.work/archive/`: those are already-
+# done, body-pruned stubs that were gated when active and MUST NOT be re-gated
+# (no-re-gate rule). Filter by path, not `--scope active` — the bash fallback
+# ignores `--scope`.
+.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'
 
-# Files changed by the bundle
-for item in $(.work/bin/work-view --release <version> --paths); do
+# Files changed by the bundle (archived stubs already excluded)
+for item in $(.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'); do
   id=$(grep -m1 '^id:' "$item" | awk '{print $2}')
   git log --grep "$id" --format='%H' | xargs -I{} git diff-tree --no-commit-id --name-only -r {}
 done | sort -u > /tmp/bundle-files-<version>.txt

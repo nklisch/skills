@@ -75,9 +75,13 @@ the gate; never edit the digest directly.
 ### Phase 2: Identify bundle scope
 
 ```bash
-.work/bin/work-view --release <version> --paths
+# `--release` auto-widens to ALL tiers (active + archive + releases). Drop any
+# returned path under `.work/archive/`: those are already-done, body-pruned
+# stubs that were gated when active and MUST NOT be re-gated (no-re-gate rule).
+# Filter by path, not `--scope active` — the bash fallback ignores `--scope`.
+.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'
 
-for item in $(.work/bin/work-view --release <version> --paths); do
+for item in $(.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'); do
   id=$(grep -m1 '^id:' "$item" | awk '{print $2}')
   git log --grep "$id" --format='%H' | xargs -I{} git diff-tree --no-commit-id --name-only -r {}
 done | sort -u > /tmp/bundle-files-<version>.txt

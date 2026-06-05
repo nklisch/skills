@@ -16,9 +16,10 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion, Skil
 # Release-Deploy
 
 You orchestrate a release. The work is in three movements: **bind** items to a
-version — both active done items and archived stubs late-bound via `archived_atop` (the work done
-atop the prior shipped tag) — **gate** the bundle (each gate produces items, not pass/fail; already-
-done archived stubs are never re-gated), **ship** when readiness criteria are met.
+version — both active done items and all unbound archived stubs late-bound here (each stub's
+`archived_atop` records the baseline it was done atop, kept as provenance) — **gate** the bundle
+(each gate produces items, not pass/fail; already-done archived stubs are never re-gated), **ship**
+when readiness criteria are met.
 
 The release file at `.work/active/<release-id>.md` is the orchestration state.
 Its stage advances `planned → quality-gate → released` as the release proceeds.
@@ -78,8 +79,9 @@ shipped, then move to `releases/<version>/`).
 ### Phase 3: Bind items (if at stage: planned)
 
 A release binds two kinds of work: **active done items** (bound the way they always were, by setting
-`release_binding`) and **archived stubs late-bound via `archived_atop`** (the stubs done atop the
-prior shipped tag, pulled in here even though archiving was decoupled from any release).
+`release_binding`) and **archived stubs late-bound here** (all unbound archived stubs, pulled in even
+though archiving was decoupled from any release; each stub's `archived_atop` records which baseline it
+was done atop, kept as provenance).
 
 If the release is at `stage: planned`:
 
@@ -90,27 +92,34 @@ If the release is at `stage: planned`:
    ```
    (Filter for empty `release_binding`.)
 
-2. **Archived-stub candidates (`archived_atop` late-binding).** Determine the **prior shipped tag** —
-   the latest released version before this one (the newest git tag matching the release tag shape, or
-   the newest `.work/releases/<version>/` summary). If no release has ever shipped, the prior
-   baseline is the `pre-release` sentinel. Gather archived stubs whose `archived_atop` equals that
-   prior baseline — these are the items done *atop* the prior release that this version claims:
+2. **Archived-stub candidates (`archived_atop` late-binding).** Gather **all unbound archived
+   stubs** (`release_binding: null`) regardless of their `archived_atop` value. Each unbound stub is
+   work done atop some prior baseline that no release has yet claimed; this version claims whatever
+   remains. `archived_atop` is recorded provenance (it surfaces in the Phase 7 summary column), **not**
+   the gather filter. Gathering by strict `archived_atop == prior` equality strands a stub forever
+   whenever a release is skipped: if a stub atop `N` is deselected (or its baseline differs) at `N+1`,
+   then at `N+2` the prior tag has advanced and that stub — still `archived_atop: N`,
+   `release_binding: null` — would never be gathered again. Claiming all unbound stubs prevents the
+   leak.
    ```bash
+   # The prior shipped tag is still useful as recorded provenance / display context.
    prior=$(git describe --tags --abbrev=0 2>/dev/null \
      || ls -d .work/releases/*/ 2>/dev/null | sort -V | tail -1 | xargs -r basename)
    prior=${prior:-pre-release}
-   for p in .work/archive/*.md; do
-     atop=$(grep -m1 '^archived_atop:' "$p" | awk '{print $2}')
+   # Gather ALL unbound archived stubs (recurse: ROADMAP-phase epics archive to
+   # .work/archive/epics/, not just the flat .work/archive/ root).
+   find .work/archive -name '*.md' -type f | while read -r p; do
      binding=$(grep -m1 '^release_binding:' "$p" | awk '{print $2}')
-     [[ "$atop" == "$prior" && "$binding" == "null" ]] && echo "$p"
+     [[ "$binding" == "null" ]] && echo "$p"
    done
    ```
-   (Skip stubs already carrying a `release_binding` — they belong to an earlier release.)
+   (Skip stubs already carrying a `release_binding` — they belong to an earlier release. Show each
+   stub's `archived_atop` so the user sees the baseline it was done atop when confirming.)
 
 3. Use AskUserQuestion to confirm the full set (active done items + gathered archived stubs).
-   Default: all active done items without binding plus all archived stubs atop the prior baseline go
-   in. Confirming the archived set explicitly is required, since late-binding pulls in work the user
-   never bound by hand.
+   Default: all active done items without binding plus all unbound archived stubs go in. Confirming
+   the archived set explicitly is required, since late-binding pulls in work the user never bound by
+   hand; the user may deselect any stub (it stays unbound for a later release).
 
 4. For each chosen item — active done item OR archived stub — edit its frontmatter:
    `release_binding: <version>`. The PostToolUse hook bumps `updated:`. Do **not** touch a stub's
@@ -133,8 +142,14 @@ If the release is at `stage: planned`:
 stubs late-bound in Phase 3 are already `done` and were gated when they were active; their bodies
 are pruned to git. The gate phase MUST NOT re-analyze a stub's (pruned) body. A gate that needs the
 bound bundle's changes works from active bound items and their commits — a missing stub body is
-expected and must never block a release. When passing the bound set to a gate sub-agent, include
-only the active bound items' paths; archived stubs are recorded in the release, not re-examined.
+expected and must never block a release.
+
+Each gate enforces this itself: gates build their bundle from
+`work-view --release <version> --paths` (which auto-widens to all tiers) and then drop every
+returned path under `.work/archive/`, so archived stubs are never re-scanned and their historical
+commits are never re-derived. release-deploy does not pass a pre-filtered set to the gates — the
+gates self-filter. Archived stubs are recorded in the release summary as provenance, not
+re-examined.
 
 If the release is at `stage: quality-gate`:
 

@@ -58,10 +58,11 @@ Folded the v0.11 retention convention + `archived_atop` late-binding into ONE me
   archival convention" block (detect, offer convergence, route project-specific rules to
   `.agents/rules/<name>.md`).
 - **convert sync (the gap)** — S1 audit now classifies the `Terminal-tier retention` convention
-  (`missing` / `partial` / `match` / bespoke-overlap) AND scans for retained terminal bodies; S3
-  offers to add/refresh/converge the convention and offers the prune-to-stubs migration (stamping
+  (`missing` / `match` / `partial` / bespoke-overlap) AND scans for retained terminal bodies; S3
+  offers to add/reconcile/converge the convention and offers the prune-to-stubs migration (stamping
   `archived_atop` + `git_ref` from history). S4 preserve-list and S5 commit updated to cover the new
-  confirmed writes.
+  confirmed writes. (See Review fixes below: the bare value-only form is now `match`, not `partial` —
+  the per-project CONVENTIONS template is value-only and the merged prose lives only in SPEC.)
 
 Judgment calls:
 - The merged convention keeps the `## Terminal-tier retention` heading (rather than renaming to
@@ -72,3 +73,20 @@ Judgment calls:
   the item's last-touching commit). For released bodies whose baseline is unknowable from history,
   the summary's `archived_atop` column gets `—`. This is honest about historical uncertainty without
   blocking the migration. All prune/converge offers stay opt-in (preserve-only default).
+
+## Review fixes (2026-06-05)
+
+Fresh-context review found one accepted finding on this feature's surface; fixed (item stays
+`stage: done`).
+
+- **I1 (important) — bootstrap output self-classified as drift.** The sync `partial` state was
+  defined as "a bare `delete-refs`/`retain-bodies` value with no merged prose," but bootstrap writes
+  exactly that bare value (the per-project CONVENTIONS template is value-only; the merged prose lives
+  only in SPEC.md, never duplicated per project). So a repo bootstrapped by this version would be
+  flagged `partial` on its next sync — churn, and the `match` branch was unreachable. Fix: a bare
+  `delete-refs`/`retain-bodies` value IS `match` (the canonical value-only form). `partial` now fires
+  only when the value is absent under the heading (folded into `missing`) or contradictory/bespoke.
+  `missing`-accept appends just the heading + value line, not the full SPEC prose. Reconciled across
+  convert S1 classification, the Terminal-tier-retention drift table, S3 apply (missing/partial), S4
+  preserve note, and Phase 5 bootstrap write (now explicitly value-only). A freshly bootstrapped repo
+  now classifies as `match` on its next sync.

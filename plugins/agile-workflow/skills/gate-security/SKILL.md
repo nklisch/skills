@@ -45,19 +45,24 @@ flow can drain to `done` before shipping.
 
 If a release version was provided:
 ```bash
-.work/bin/work-view --release <version> --paths
+# `--release` auto-widens to ALL tiers (active + archive + releases). Drop any
+# returned path under `.work/archive/`: those are already-done, body-pruned
+# stubs that were gated when active and MUST NOT be re-gated (no-re-gate rule).
+# Filter by path, not `--scope active` — the bash fallback ignores `--scope`.
+.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'
 ```
 
 Otherwise, find the active release file (the one at `stage: planned` or
 `stage: quality-gate`) and use its version.
 
-If no items are bound, halt with: "No items bound to release `<version>`. Bind items
-first via `/agile-workflow:release-deploy`."
+If no items are bound (after dropping archived stubs), halt with: "No items
+bound to release `<version>`. Bind items first via
+`/agile-workflow:release-deploy`."
 
-Build the union of files changed by the bundle:
+Build the union of files changed by the bundle (archived stubs already excluded):
 
 ```bash
-for item in $(.work/bin/work-view --release <version> --paths); do
+for item in $(.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'); do
   id=$(grep -m1 '^id:' "$item" | awk '{print $2}')
   git log --grep "$id" --format='%H' | xargs -I{} git diff-tree --no-commit-id --name-only -r {}
 done | sort -u > /tmp/bundle-files-<version>.txt

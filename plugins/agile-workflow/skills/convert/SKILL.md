@@ -433,13 +433,12 @@ Run an interactive interview via AskUserQuestion. Six questions, in order:
 6. **Terminal-tier retention** — `delete-refs | retain-bodies`. This is the ONE merged terminal
    convention (archival + `archived_atop` late-binding + one-summary release), not just byte
    retention. Default offered: `delete-refs` — archiving a done item leaves a **bodyless stub**
-   carrying `archived_atop` (the immutable release baseline it was done atop) + `git_ref`; a release
-   **late-binds** archived stubs done atop the prior shipped tag via `archived_atop` (no re-gating of
-   already-done stubs) and **collapses** all bound items into one
-   `releases/<version>/release-<version>.md` summary (id, title, kind, `archived_atop`, git ref);
-   full bodies live in git history, so terminal prose cannot leak to future agents. Offer
-   `retain-bodies` only for projects that deliberately keep full terminal bodies on disk (same
-   `archived_atop`/late-binding semantics, bodies just not pruned).
+   carrying `archived_atop` (the immutable release baseline it was done atop, kept as provenance) +
+   `git_ref`; a release **late-binds all unbound archived stubs** (no re-gating of already-done stubs)
+   and **collapses** all bound items into one `releases/<version>/release-<version>.md` summary (id,
+   title, kind, `archived_atop`, git ref); full bodies live in git history, so terminal prose cannot
+   leak to future agents. Offer `retain-bodies` only for projects that deliberately keep full terminal
+   bodies on disk (same `archived_atop`/late-binding semantics, bodies just not pruned).
 
 ### Phase 4: Create substrate skeleton
 
@@ -461,7 +460,11 @@ environment, locate the plugin source via the active skill/plugin path or manife
 
 ### Phase 5: Write CONVENTIONS.md
 
-Write `.work/CONVENTIONS.md` from the interview answers, following the format in SPEC.md.
+Write `.work/CONVENTIONS.md` from the interview answers, following the format in SPEC.md. The
+`## Terminal-tier retention` section is **value-only** — write the bare `delete-refs`/`retain-bodies`
+value the user chose, not the merged prose (the prose lives in SPEC.md, never duplicated per project).
+This bare-value form is exactly what a later sync classifies as `match`, so a freshly bootstrapped
+repo never self-reports terminal-retention drift.
 
 ### Phase 6: Write the canonical AGENTS.md section
 
@@ -993,11 +996,14 @@ path list), plus deeper checks:
   - `.work/CONVENTIONS.md` load-bearing tag entries (see below). The rest of
     CONVENTIONS is user-owned and untouched.
   - `.work/CONVENTIONS.md` **Terminal-tier retention** state (the merged convention — see
-    "Terminal-tier retention drift" below). Classify it `missing` (no section at all — a real gap on
-    repos converted before this convention existed), `partial` (a `delete-refs`/`retain-bodies`
-    section that predates the merged model — e.g. no mention of `archived_atop` late-binding), or
-    `match` (already the merged convention). Also detect a bespoke `## Done-item archival` (or
-    similarly named) section that duplicates the merged model; flag it as a convergence candidate.
+    "Terminal-tier retention drift" below). The per-project CONVENTIONS template is **value-only** (a
+    `## Terminal-tier retention` heading + a bare `delete-refs`/`retain-bodies` value); the merged
+    prose lives in SPEC.md, never duplicated per project. Classify it `missing` (no section/value at
+    all — a real gap on repos converted before this convention existed), `match` (a bare
+    `delete-refs`/`retain-bodies` value — the canonical value-only form), or `partial` only when the
+    value is absent under the heading or contradictory/bespoke. Also detect a bespoke
+    `## Done-item archival` (or similarly named) section that duplicates the merged model; flag it as
+    a convergence candidate.
   - `.agents/skills/refactor-conventions/SKILL.md` wrapper shape when present:
     current catalog shape vs old generated template that writes standalone
     `.md` refactoring plans. Rule reference files are user-owned.
@@ -1027,15 +1033,22 @@ The current canonical entries live in `docs/SPEC.md` under
 template.
 
 **Terminal-tier retention drift in CONVENTIONS.md.** This was a real gap: sync historically neither
-seeded nor offered the terminal-retention convention, so repos converted before it existed (or
-before the merged `archived_atop` model) silently lack it. Detect:
+seeded nor offered the terminal-retention convention, so repos converted before it existed silently
+lack it. The per-project CONVENTIONS form is **value-only** — a `## Terminal-tier retention` heading
+plus a bare `delete-refs`/`retain-bodies` value. The merged prose (archival + `archived_atop`
+late-binding + one-summary release) lives in SPEC.md and is the single source of truth; it is NOT
+duplicated into each project's CONVENTIONS.md. A bare value is therefore the **canonical** form, not
+a partial one. Detect:
 
-- **`missing`** — no `## Terminal-tier retention` section at all. S3 offers to add the merged
-  convention (default `delete-refs`).
-- **`partial`** — a section exists but predates the merged model (a bare `delete-refs`/`retain-bodies`
-  value with no `archived_atop`/late-binding language, matching the v0.11-era SPEC text). S3 offers to
-  refresh it to the merged convention.
-- **`match`** — already the merged convention. No-op.
+- **`missing`** — no `## Terminal-tier retention` section, OR a heading with no value under it. S3
+  offers to add the heading + canonical value line (default `delete-refs`) — just the value line
+  under the heading, not the full SPEC prose.
+- **`match`** — a `## Terminal-tier retention` heading with a bare `delete-refs` or `retain-bodies`
+  value. This is the canonical value-only form (prose lives in SPEC, not per project). No-op — a repo
+  bootstrapped by this version lands here on its next sync.
+- **`partial`** — the value is contradictory or bespoke: a value that is neither `delete-refs` nor
+  `retain-bodies`, or inline prose under the heading that conflicts with the SPEC model. S3 offers to
+  reconcile it to a canonical bare value.
 - **bespoke-overlap** — a hand-rolled `## Done-item archival` (or similar) section describes the same
   `archived_atop` late-binding model. S3 offers to **converge** it into the one merged
   `Terminal-tier retention` section (route any project-specific rules it carries to a user-owned
@@ -1209,13 +1222,19 @@ For each artifact with a non-`match` state:
 
 - **Terminal-tier retention convention in `.work/CONVENTIONS.md`** — for the state flagged in S1
   (`missing` / `partial` / bespoke-overlap), offer via `AskUserQuestion` (never silently rewrite
-  user-owned CONVENTIONS):
-  - `missing` — "Your `.work/CONVENTIONS.md` has no `## Terminal-tier retention` section. Add the
-    merged convention (default `delete-refs`: bodyless stubs with `archived_atop`, late-binding,
-    one-summary release)?" On accept, append the merged section per the SPEC format.
-  - `partial` — "Your terminal-retention section predates the merged `archived_atop` model. Refresh
-    it to the merged convention?" Options: `Refresh` / `Keep mine` / `Show diff`. On accept, replace
-    just that section (preserve the chosen `delete-refs`/`retain-bodies` value).
+  user-owned CONVENTIONS). A bare `delete-refs`/`retain-bodies` value is `match` and is left
+  untouched — the merged prose lives in SPEC, not per project, so a bare value is canonical:
+  - `missing` — "Your `.work/CONVENTIONS.md` has no `## Terminal-tier retention` value. Add it
+    (default `delete-refs`)?" On accept, append **just the value-only form** — the
+    `## Terminal-tier retention` heading + a bare `delete-refs` value line per the SPEC CONVENTIONS
+    template — NOT the full SPEC prose (the prose is SPEC's, not duplicated into CONVENTIONS). A repo
+    bootstrapped this way classifies as `match` on its next sync.
+  - `partial` — only fires when the value is contradictory or bespoke (not a bare
+    `delete-refs`/`retain-bodies`, or inline prose that conflicts with the SPEC model). "Your
+    terminal-retention value is non-standard. Reconcile it to a canonical bare
+    `delete-refs`/`retain-bodies` value?" Options: `Reconcile` / `Keep mine` / `Show diff`. On
+    accept, replace the section with the value-only form (preserve the intended
+    `delete-refs`/`retain-bodies` choice).
   - bespoke-overlap (a hand-rolled `## Done-item archival` section) — "You have a custom
     `## Done-item archival` section describing the same `archived_atop` model. Converge it into the
     one merged `Terminal-tier retention` convention (removing the duplicate, preserving any
@@ -1252,7 +1271,8 @@ These are NEVER touched in sync mode:
 - `.work/CONVENTIONS.md` user-customized content. The exceptions, each applied in Phase S3 ONLY with
   user confirmation, are: (a) load-bearing tag entries (`refactor`, `perf`) when they match a known
   prior plugin default verbatim, and (b) the `## Terminal-tier retention` convention when it is
-  `missing`/`partial`/a bespoke `## Done-item archival` overlap (add / refresh / converge). Everything
+  `missing`/`partial`/a bespoke `## Done-item archival` overlap (add / reconcile / converge). A bare
+  `delete-refs`/`retain-bodies` value is `match` and is left untouched. Everything
   else in CONVENTIONS — release mapping, project tags, slug conventions, gate config, any user
   prose — is untouched.
 - Everything under `.work/active/`, `.work/backlog/`, `.work/releases/`,

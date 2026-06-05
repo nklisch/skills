@@ -139,10 +139,12 @@ retention. With `delete-refs`:
    **bodyless stub** (frontmatter + `# Title` + `git_ref:` + `archived_atop:`). Its body is pruned to
    git, so terminal prose (which carries zero design authority) cannot leak to future agents.
    `archived_atop` records the release baseline the item was done atop — stamped once, immutable.
-2. **Late-bind via `archived_atop`.** A release pulls in the archived stubs done atop the prior
-   shipped tag (or `pre-release` for the first release) by querying `archived_atop`, confirms the set
-   with the user, and sets their `release_binding`. Already-done archived stubs are NOT re-gated —
-   they passed gates when active, and a pruned body never blocks a release.
+2. **Late-bind unbound archived stubs.** A release pulls in **all unbound archived stubs**
+   (`release_binding: null`), confirms the set with the user, and sets their `release_binding`. Each
+   stub's `archived_atop` records the baseline it was done atop and is kept as provenance (it surfaces
+   in the release summary), NOT used as the gather filter — filtering by strict `archived_atop ==
+   prior tag` would strand a stub forever whenever a release is skipped. Already-done archived stubs
+   are NOT re-gated — they passed gates when active, and a pruned body never blocks a release.
 3. **One-summary release.** All bound items (active done + late-bound stubs) collapse into a single
    `releases/<version>/release-<version>.md` table (id, title, kind, `archived_atop`, git ref). No
    per-item placement; full bodies live only in git history.
@@ -191,10 +193,11 @@ updated: <today>
 2. the newest `.work/releases/<version>/` summary, when the project does not tag releases.
 3. If neither exists yet — no release has ever shipped — use the `pre-release` sentinel.
 
-Stamp it once when the stub is written and never rewrite it (it is the immutable baseline a release
-late-binds against). Idempotent re-archival preserves the existing `archived_atop`. The
-`/agile-workflow:release-deploy` bind phase queries this field to pull archived stubs into the
-release that ships work done atop the prior shipped tag.
+Stamp it once when the stub is written and never rewrite it (it is the immutable baseline recorded as
+provenance). Idempotent re-archival preserves the existing `archived_atop`. The
+`/agile-workflow:release-deploy` bind phase gathers **all unbound archived stubs** (not only those
+whose `archived_atop` matches the prior tag) and records each stub's `archived_atop` in the release
+summary as provenance.
 
 ### AGENTS.md section
 
