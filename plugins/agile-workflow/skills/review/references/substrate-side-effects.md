@@ -28,8 +28,8 @@ If there are no blockers:
 1. Advance the item from `review` to `done`.
 2. If it has `release_binding: <version>`, leave it active for
    `/agile-workflow:release-deploy`.
-3. If it has no release binding and no active parent epic/feature, move it to
-   `.work/archive/` with `git mv`.
+3. If it has no release binding and no active parent epic/feature, archive it as a **bodyless
+   stub** (see "Archive as a bodyless stub" below) — never retain the full body on disk.
 4. If it has a parent, check whether all siblings are now `done`:
 
 ```bash
@@ -47,6 +47,47 @@ If blockers exist:
 2. Append a `## Review findings` section listing blockers and the created item
    ids.
 3. Do not archive.
+
+## Archive as a bodyless stub
+
+Terminal items carry **zero design authority** (their rationale must not bind present decisions),
+and a retained body on disk leaks stale "we decided X" prose to future agents. Git already preserves
+every body, so archive items as bodyless refs — discoverable and late-bindable, but with no prose to
+mislead.
+
+To archive `<id>` (a `done` item with no release binding and no active parent):
+
+1. Capture the ref where the full body currently lives — **before** the archive commit:
+
+   ```bash
+   git_ref=$(git rev-parse --short HEAD)
+   ```
+
+2. Write `.work/archive/<id>.md` as a stub: keep the YAML frontmatter (add `git_ref: <git_ref>`) and
+   the first `# <Title>` line only. Drop all other body content. Keep `stage: done` and the existing
+   `release_binding` (normally `null`; late-bind later by setting it to a `<version>`).
+
+   ```
+   ---
+   id: <id>
+   kind: <kind>
+   stage: done
+   tags: [...]
+   parent: null
+   depends_on: []
+   release_binding: null
+   git_ref: <git_ref>
+   created: <orig>
+   updated: <today>
+   ---
+
+   # <Title>
+   ```
+
+3. `git rm` the active file and `git add` the stub (see Commit).
+
+The stub stays a first-class, work-view-queryable item. Recover the full body any time with
+`git show <git_ref>:.work/active/<kind>s/<id>.md`.
 
 ## Append Review Record
 
@@ -73,7 +114,7 @@ git add .work/active/<kind>s/<id>.md .work/active/stories/<finding-id>.md .work/
 git commit -m "review: <id> (<verdict>)"
 ```
 
-If the item moved to archive, include the moved file:
+If the item was archived as a bodyless stub, stage the stub and remove the active body:
 
 ```bash
 git add .work/archive/<id>.md
