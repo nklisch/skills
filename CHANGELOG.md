@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.11.1
+
+### Merge `archived_atop` late-binding into delete-refs
+
+- **`archived_atop` baseline** — archived bodyless stubs stamp an immutable `archived_atop` (the
+  release the item was done atop) plus `git_ref`. `release-deploy` late-binds all unbound archived
+  stubs into the one release summary (with an `archived_atop` column), never re-gating already-done
+  work; gates exclude archived stubs from the bundle. One merged terminal-retention convention in
+  SPEC + convert (sync detects/offers it and offers the prune-to-stubs migration).
+
 ## v0.11.0
 
 ### Features

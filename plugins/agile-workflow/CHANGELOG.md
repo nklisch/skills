@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.11.1
+
+### Terminal-tier archival: merged `archived_atop` late-binding into delete-refs
+
+- **`archived_atop` late-binding** — archived items are bodyless stubs stamping an immutable
+  `archived_atop` baseline + `git_ref`; `release-deploy` late-binds all unbound archived stubs into
+  one release summary and never re-gates already-done work.
+- **No-re-gate wiring** — gate skills exclude `.work/archive/` stubs from the release bundle, so
+  late-bound done work is not re-scanned.
+- **convert** — one merged terminal-retention convention; sync detects/offers it and offers to prune
+  existing retained terminal bodies to stubs (stamping `archived_atop` + `git_ref`).
+
+## v0.11.0
+
+### Delete-after-release terminal tiers
+
+- Archived items become bodyless ref stubs; a release collapses bound items into one
+  `releases/<version>/release-<version>.md` summary; full bodies live in git history. `convert` seeds
+  the `terminal-tier retention` convention (default `delete-refs`).
+
+_(0.10.x release notes: see git history.)_
+
 ## v0.9.5
 
 ### Three-channel distribution
