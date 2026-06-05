@@ -131,13 +131,27 @@ gates_for_release: [security, tests, cruft, docs, patterns]
 The default `gates_for_release` order is fixed: **security → tests → cruft
 → docs → patterns**. Override only if the project has a justified reason.
 
-`terminal-tier retention` (default **`delete-refs`**) controls what persists on disk when an item
-reaches a terminal tier. With `delete-refs`, archiving a done item leaves a **bodyless stub**
-(frontmatter + `# Title` + `git_ref:` + `archived_atop:`), and a release **collapses** its bound
-items into a single `releases/<version>/release-<version>.md` summary — full bodies live only in git
-history, so terminal prose (which carries zero design authority) cannot leak to future agents.
+`terminal-tier retention` (default **`delete-refs`**) is **one merged convention** covering the
+whole terminal lifecycle — archival, late-binding, and release collapse — not just on-disk byte
+retention. With `delete-refs`:
+
+1. **Archive (decoupled from release).** A `done` item with no `release_binding` becomes a
+   **bodyless stub** (frontmatter + `# Title` + `git_ref:` + `archived_atop:`). Its body is pruned to
+   git, so terminal prose (which carries zero design authority) cannot leak to future agents.
+   `archived_atop` records the release baseline the item was done atop — stamped once, immutable.
+2. **Late-bind via `archived_atop`.** A release pulls in the archived stubs done atop the prior
+   shipped tag (or `pre-release` for the first release) by querying `archived_atop`, confirms the set
+   with the user, and sets their `release_binding`. Already-done archived stubs are NOT re-gated —
+   they passed gates when active, and a pruned body never blocks a release.
+3. **One-summary release.** All bound items (active done + late-bound stubs) collapse into a single
+   `releases/<version>/release-<version>.md` table (id, title, kind, `archived_atop`, git ref). No
+   per-item placement; full bodies live only in git history.
+
 `retain-bodies` is the legacy opt-out (full bodies kept under `.work/archive/` and
-`.work/releases/<version>/`).
+`.work/releases/<version>/`); it keeps the same `archived_atop`/late-binding semantics, just without
+pruning bodies. A repo that already carries a bespoke "Done-item archival" convention describing this
+model should be **converged** into this one merged convention, not left as a duplicate (see
+`convert`).
 
 #### Archive stub shape
 

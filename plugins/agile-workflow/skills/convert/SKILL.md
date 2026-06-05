@@ -430,11 +430,16 @@ Run an interactive interview via AskUserQuestion. Six questions, in order:
 5. **Gate config** — defaults to
    `gates_for_release: [security, tests, cruft, docs, patterns]`. User can reorder
    or omit.
-6. **Terminal-tier retention** — `delete-refs | retain-bodies`. Default offered:
-   `delete-refs` (archiving leaves a bodyless stub; a release collapses bound items into one
-   `releases/<version>/release-<version>.md` summary; full bodies live in git history, so terminal
-   prose cannot leak to future agents). Offer `retain-bodies` only for projects that deliberately
-   keep full terminal bodies on disk.
+6. **Terminal-tier retention** — `delete-refs | retain-bodies`. This is the ONE merged terminal
+   convention (archival + `archived_atop` late-binding + one-summary release), not just byte
+   retention. Default offered: `delete-refs` — archiving a done item leaves a **bodyless stub**
+   carrying `archived_atop` (the immutable release baseline it was done atop) + `git_ref`; a release
+   **late-binds** archived stubs done atop the prior shipped tag via `archived_atop` (no re-gating of
+   already-done stubs) and **collapses** all bound items into one
+   `releases/<version>/release-<version>.md` summary (id, title, kind, `archived_atop`, git ref);
+   full bodies live in git history, so terminal prose cannot leak to future agents. Offer
+   `retain-bodies` only for projects that deliberately keep full terminal bodies on disk (same
+   `archived_atop`/late-binding semantics, bodies just not pruned).
 
 ### Phase 4: Create substrate skeleton
 
@@ -761,17 +766,36 @@ If the user picks any `done-shipped` items, also create
 
 **Terminal retention applies to seeding.** When `terminal-tier retention: delete-refs` (the
 default), seed terminal buckets as refs, not full bodies: `done-archived` → a bodyless stub
-(frontmatter + `# Title` + `git_ref`, per the review skill's stub shape); `done-shipped` → a row in
-the single `release-v0.md` summary table (id, title, kind, git ref), not a per-item file. Only
-`retain-bodies` keeps full bodies.
+(frontmatter + `# Title` + `git_ref` + `archived_atop`, per the review skill's stub shape; compute
+`archived_atop` per the SPEC "`archived_atop` computation" — latest released tag at the item's
+archival, else `pre-release`); `done-shipped` → a row in the single `release-v0.md` summary table
+(id, title, kind, `archived_atop`, git ref), not a per-item file. Only `retain-bodies` keeps full
+bodies.
 
 **Sync existing substrates to delete-refs.** When converting/syncing a repo that already uses the
 substrate and `delete-refs` is selected, detect retained full-body terminal items — full bodies in
 `.work/archive/*.md` and `.work/releases/<version>/<id>.md` (anything beyond the
 `release-<version>.md` summary) — and **offer** (AskUserQuestion; never force) to prune them to
-current practice: archived bodies → bodyless stubs (capture each `git_ref` from `git log -- <path>`);
-released bodies → folded into their `release-<version>.md` summary table, then `git rm`. Preserve-only
-stays the default per convert's posture.
+current practice. The prune ALSO stamps `archived_atop`:
+
+- archived bodies → bodyless stubs. Capture each `git_ref` from `git log -- <path>`. Stamp
+  `archived_atop` from history: the latest release that existed at the commit where the item reached
+  `done`/was archived (the newest release tag — or `.work/releases/<version>/` summary — reachable
+  from `git log -- <path>`'s last touching commit), else `pre-release`. Stamp once; if a stub already
+  carries `archived_atop`, preserve it.
+- released bodies → folded into their `release-<version>.md` summary table (with their `archived_atop`
+  column, `—` if unknowable from history), then `git rm`.
+
+Preserve-only stays the default per convert's posture.
+
+**Converge a bespoke "Done-item archival" convention.** A repo may already carry a hand-rolled
+`## Done-item archival` (or similarly named) section in `.work/CONVENTIONS.md` describing
+`archived_atop` late-binding. Detect it; do NOT duplicate it alongside the merged
+`Terminal-tier retention` convention. Offer (AskUserQuestion; never force) to **converge** it: fold
+its semantics into the one merged `Terminal-tier retention` section and remove the bespoke section,
+preserving any project-specific rules it carried (custom in-body markers, date metadata, etc.) by
+routing them to a user-owned `.agents/rules/<name>.md` rather than dropping them. The
+content-integrity gate (Phase 1.8) applies before removing the bespoke section.
 
 For `docs/ROADMAP.md` phases:
 1. Each phase becomes an epic at `.work/active/epics/epic-phase-<n>-<slug>.md`.
@@ -968,6 +992,12 @@ path list), plus deeper checks:
   - `.claude/rules/patterns.md` state (legacy content vs AGENTS shim)
   - `.work/CONVENTIONS.md` load-bearing tag entries (see below). The rest of
     CONVENTIONS is user-owned and untouched.
+  - `.work/CONVENTIONS.md` **Terminal-tier retention** state (the merged convention — see
+    "Terminal-tier retention drift" below). Classify it `missing` (no section at all — a real gap on
+    repos converted before this convention existed), `partial` (a `delete-refs`/`retain-bodies`
+    section that predates the merged model — e.g. no mention of `archived_atop` late-binding), or
+    `match` (already the merged convention). Also detect a bespoke `## Done-item archival` (or
+    similarly named) section that duplicates the merged model; flag it as a convergence candidate.
   - `.agents/skills/refactor-conventions/SKILL.md` wrapper shape when present:
     current catalog shape vs old generated template that writes standalone
     `.md` refactoring plans. Rule reference files are user-owned.
@@ -995,6 +1025,27 @@ Detection rule for each load-bearing tag line:
 The current canonical entries live in `docs/SPEC.md` under
 "`.work/CONVENTIONS.md` → Tag taxonomy" and must be kept in sync with that
 template.
+
+**Terminal-tier retention drift in CONVENTIONS.md.** This was a real gap: sync historically neither
+seeded nor offered the terminal-retention convention, so repos converted before it existed (or
+before the merged `archived_atop` model) silently lack it. Detect:
+
+- **`missing`** — no `## Terminal-tier retention` section at all. S3 offers to add the merged
+  convention (default `delete-refs`).
+- **`partial`** — a section exists but predates the merged model (a bare `delete-refs`/`retain-bodies`
+  value with no `archived_atop`/late-binding language, matching the v0.11-era SPEC text). S3 offers to
+  refresh it to the merged convention.
+- **`match`** — already the merged convention. No-op.
+- **bespoke-overlap** — a hand-rolled `## Done-item archival` (or similar) section describes the same
+  `archived_atop` late-binding model. S3 offers to **converge** it into the one merged
+  `Terminal-tier retention` section (route any project-specific rules it carries to a user-owned
+  `.agents/rules/<name>.md`), not duplicate it.
+
+**Retained terminal bodies (for the prune offer).** Independently of the convention text, scan for
+full-body terminal items the merged `delete-refs` model would prune: any `.work/archive/*.md` carrying
+body content beyond `# Title` (or lacking `archived_atop`/`git_ref`), and any
+`.work/releases/<version>/<id>.md` other than the `release-<version>.md` summary. Record the count so
+S3 can offer the prune-to-stubs migration (which stamps `archived_atop` + `git_ref` from history).
 
 Classify each artifact as one of:
 
@@ -1156,6 +1207,30 @@ For each artifact with a non-`match` state:
   lines flagged as drift. If the entry was `missing`, append it in the Tag
   taxonomy section.
 
+- **Terminal-tier retention convention in `.work/CONVENTIONS.md`** — for the state flagged in S1
+  (`missing` / `partial` / bespoke-overlap), offer via `AskUserQuestion` (never silently rewrite
+  user-owned CONVENTIONS):
+  - `missing` — "Your `.work/CONVENTIONS.md` has no `## Terminal-tier retention` section. Add the
+    merged convention (default `delete-refs`: bodyless stubs with `archived_atop`, late-binding,
+    one-summary release)?" On accept, append the merged section per the SPEC format.
+  - `partial` — "Your terminal-retention section predates the merged `archived_atop` model. Refresh
+    it to the merged convention?" Options: `Refresh` / `Keep mine` / `Show diff`. On accept, replace
+    just that section (preserve the chosen `delete-refs`/`retain-bodies` value).
+  - bespoke-overlap (a hand-rolled `## Done-item archival` section) — "You have a custom
+    `## Done-item archival` section describing the same `archived_atop` model. Converge it into the
+    one merged `Terminal-tier retention` convention (removing the duplicate, preserving any
+    project-specific rules to `.agents/rules/<name>.md`)?" On accept, fold its semantics into the
+    merged section, route project-specific rules to a user-owned rules file, and remove the bespoke
+    section only after the content-integrity gate (Phase 1.8) confirms nothing is dropped.
+
+- **Prune retained terminal bodies to stubs (the offer)** — when S1 found retained full-body terminal
+  items and `delete-refs` is in effect, offer (`AskUserQuestion`; never force, preserve-only stays the
+  default) the prune-to-current-practice migration from Phase 8's "Sync existing substrates to
+  delete-refs": archived bodies → bodyless stubs (capture `git_ref` from `git log -- <path>`, stamp
+  `archived_atop` from the history at the archival/done commit, else `pre-release`); released bodies →
+  folded into their `release-<version>.md` summary table, then `git rm`. The content- and
+  reference-integrity gates (Phase 1.8) apply before any `git rm`.
+
 For `drift_user` items, only proceed after the user confirms.
 
 For bespoke overlaps in the `converge` set, run Phase 8.6's convergence
@@ -1174,11 +1249,12 @@ unaccounted block, leave the files and report them as preserved.
 
 These are NEVER touched in sync mode:
 
-- `.work/CONVENTIONS.md` user-customized content. The single exception is
-  load-bearing tag entries (`refactor`, `perf`) when they match a known prior
-  plugin default verbatim — those may be refreshed in Phase S3 with user
-  confirmation. Everything else in CONVENTIONS — release mapping, project
-  tags, slug conventions, gate config, any user prose — is untouched.
+- `.work/CONVENTIONS.md` user-customized content. The exceptions, each applied in Phase S3 ONLY with
+  user confirmation, are: (a) load-bearing tag entries (`refactor`, `perf`) when they match a known
+  prior plugin default verbatim, and (b) the `## Terminal-tier retention` convention when it is
+  `missing`/`partial`/a bespoke `## Done-item archival` overlap (add / refresh / converge). Everything
+  else in CONVENTIONS — release mapping, project tags, slug conventions, gate config, any user
+  prose — is untouched.
 - Everything under `.work/active/`, `.work/backlog/`, `.work/releases/`,
   `.work/archive/`
 - User-authored rule references under `.agents/skills/refactor-conventions/`.
@@ -1212,8 +1288,11 @@ git add AGENTS.md .agents/AGENTS.md .claude/AGENTS.md CLAUDE.md .claude/CLAUDE.m
 git add .claude/rules/
 # If optional project skill catalogs or mirrors were aligned or converged:
 git add .agents/skills/patterns .claude/skills/patterns .agents/skills/refactor-conventions .claude/skills/refactor-conventions
-# If load-bearing CONVENTIONS tag entries were refreshed with user confirmation:
+# If load-bearing CONVENTIONS tag entries OR the terminal-retention convention were
+# refreshed/added/converged with user confirmation:
 git add .work/CONVENTIONS.md
+# If the user accepted the prune-to-stubs migration (archived bodies → stubs, released bodies → summary):
+git add .work/archive/ .work/releases/
 # If reference-integrity rewrote inbound references in existing items/docs:
 git add .work/ docs/
 # If cleanup was explicitly confirmed for exact paths:

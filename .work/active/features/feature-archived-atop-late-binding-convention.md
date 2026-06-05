@@ -1,7 +1,7 @@
 ---
 id: feature-archived-atop-late-binding-convention
 kind: feature
-stage: drafting
+stage: done
 tags: [skill, tooling, docs]
 parent: epic-archived-atop-late-binding
 depends_on: [feature-archived-atop-late-binding-stub-stamp, feature-archived-atop-late-binding-release]
@@ -38,3 +38,37 @@ doesn't even seed/offer the retention convention (a gap found during Silas's con
 - convert sync detects a missing/partial merged convention and offers to add it (not silently), and
   offers the existing-body prune with `archived_atop` stamping.
 - A repo with a pre-existing `Done-item archival` convention is offered convergence, not duplication.
+
+## Implementation (2026-06-05)
+
+Folded the v0.11 retention convention + `archived_atop` late-binding into ONE merged convention:
+
+- **`docs/SPEC.md`** — reworked the `Terminal-tier retention` prose into the merged convention: a
+  numbered 3-step lifecycle (archive decoupled → late-bind via `archived_atop` → one-summary
+  release). `retain-bodies` kept as the legacy opt-out with identical `archived_atop`/late-binding
+  semantics (bodies just not pruned). Added a note that a bespoke "Done-item archival" section should
+  be converged, not duplicated. (The F1 stub-shape + computation subsections from this feature's
+  sibling remain under the same section.)
+- **convert Phase 3 (Q6)** — interview now describes the merged model (stub + `archived_atop` +
+  late-binding + one-summary), not just byte retention. Phase 5 already defers to the SPEC format, so
+  the merged convention flows through unchanged.
+- **convert Phase 8 (seeding + sync block)** — `done-archived` seeds now stamp `archived_atop`; the
+  "Sync existing substrates to delete-refs" prune ALSO stamps `archived_atop` (from `git log`
+  history at the archival/done commit, else `pre-release`); added a "Converge a bespoke Done-item
+  archival convention" block (detect, offer convergence, route project-specific rules to
+  `.agents/rules/<name>.md`).
+- **convert sync (the gap)** — S1 audit now classifies the `Terminal-tier retention` convention
+  (`missing` / `partial` / `match` / bespoke-overlap) AND scans for retained terminal bodies; S3
+  offers to add/refresh/converge the convention and offers the prune-to-stubs migration (stamping
+  `archived_atop` + `git_ref` from history). S4 preserve-list and S5 commit updated to cover the new
+  confirmed writes.
+
+Judgment calls:
+- The merged convention keeps the `## Terminal-tier retention` heading (rather than renaming to
+  "Done-item archival") because SPEC, ARCHITECTURE, convert, and the v0.11 CONVENTIONS template all
+  already reference that heading; renaming would orphan those pointers. The bespoke "Done-item
+  archival" name is treated as a convergence *source*, not the canonical heading.
+- Sync's prune offer derives `archived_atop` from `git log` history (best-effort: latest release at
+  the item's last-touching commit). For released bodies whose baseline is unknowable from history,
+  the summary's `archived_atop` column gets `—`. This is honest about historical uncertainty without
+  blocking the migration. All prune/converge offers stay opt-in (preserve-only default).
