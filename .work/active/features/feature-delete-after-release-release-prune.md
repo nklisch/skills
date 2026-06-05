@@ -1,7 +1,7 @@
 ---
 id: feature-delete-after-release-release-prune
 kind: feature
-stage: drafting
+stage: review
 tags: [skill, tooling, docs]
 parent: epic-delete-after-release
 depends_on: [feature-delete-after-release-archive-stub]
@@ -65,3 +65,13 @@ Bodies live in git history (see git ref per item).
   `release-<version>.md` with N rows; the N item files are gone from the working tree (in git).
 - `git show <git_ref>` recovers each shipped body.
 - release-deploy docs/output describe the single-summary outcome with no stale per-item-move claims.
+
+## Implementation (2026-06-05)
+
+`release-deploy/SKILL.md`: reworked the ship/archive tail and the references to it.
+- Phase 7 rewritten: collect `release_binding: <version>` across both tiers (`work-view --release`),
+  resolve each git ref (stub reuses `git_ref`; active uses `rev-parse HEAD`), move the release file to
+  `releases/<version>/` as the single summary with a Shipped-items table, `git rm` each bound body.
+- Phase 8 references the table; Phase 9 commit notes the `git rm`s are pre-staged and adds CHANGELOG.
+- Description, Phase 1 (none-flow), Phase 5 readiness (dropped the "in releases/ already" clause;
+  spans both tiers), Output, and the guardrail all updated — no stale per-item-`git mv` claims.

@@ -5,8 +5,9 @@ description: >
   version, advances the release stage planned -> quality-gate, runs all configured
   gates in CONVENTIONS.md order (default: security -> tests -> cruft -> docs ->
   patterns), waits until all bound items + gate-produced items reach stage:done,
-  ships per release mapping (tag-based / branch-held / release-branch / none), archives
-  bound items via git mv to releases/<version>/, advances release to released.
+  ships per release mapping (tag-based / branch-held / release-branch / none), collapses
+  bound items into one release summary and prunes their bodies (git keeps history),
+  advances release to released.
   Idempotent — safe to re-run after fixing gate findings.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion, Skill
@@ -37,8 +38,9 @@ Read `.work/CONVENTIONS.md`:
 
 If the mapping is `none`, continue with a gate/archive-only release flow:
 release-deploy binds items, runs gates, waits for every bound item to reach
-`done`, drafts the changelog, and archives the bundle under
-`.work/releases/<version>/`. It does **not** tag, branch, merge, push, or bump
+`done`, drafts the changelog, and collapses the bundle into one summary at
+`.work/releases/<version>/release-<version>.md` (bound item bodies are pruned; git
+holds history). It does **not** tag, branch, merge, push, or bump
 versions. Publishing/version bumping is external to release-deploy and must be
 handled by the project-specific release mechanism.
 
@@ -126,7 +128,8 @@ After each gate, append to the release body:
 ### Phase 5: Wait for readiness
 
 Readiness condition: **every item with `release_binding: <version>` is at
-`stage: done` OR is in `releases/<version>/` already.**
+`stage: done`.** This spans active done items and archived stubs alike (both carry the
+binding); `work-view --release <version>` finds both tiers.
 
 ```bash
 # Items still active
@@ -215,39 +218,73 @@ Record the external publishing mechanism in the release summary.
 If the mapping requires user action (CI credentials, manual confirmation), pause
 and prompt.
 
-### Phase 7: Archive bound items
+### Phase 7: Collapse into one summary and prune bodies
 
-Move each bound item from active to releases:
+Bound items do **not** move to `.work/releases/<version>/` as bodies. Collapse them into a single
+summary doc and `git rm` their bodies — git history retains the full content. Terminal prose never
+persists on disk (it carries zero design authority; see the "Zero Design Authority" convention).
 
-```bash
-git mv .work/active/<kind>s/<id>.md .work/releases/<version>/<id>.md
-```
+1. Collect every item with `release_binding: <version>` — active done items AND archived stubs
+   (`work-view --release <version>` spans both tiers):
 
-Move the release file too:
+   ```bash
+   .work/bin/work-view --release <version> --paths
+   ```
 
-```bash
-git mv .work/active/release-<version>.md .work/releases/<version>/release-<version>.md
-```
+2. Resolve each item's git ref (where its full body lives):
+   - archived stub → reuse its `git_ref:` frontmatter field.
+   - active done item → `git_ref=$(git rev-parse --short HEAD)` (the body is present at HEAD,
+     before this prune commit).
+
+3. Turn the release file into the single summary doc — move it and append a shipped-items table:
+
+   ```bash
+   git mv .work/active/release-<version>.md .work/releases/<version>/release-<version>.md
+   ```
+
+   Append to its body:
+
+   ```markdown
+   ## Shipped items
+
+   Bodies live in git history — read with `git show <git ref>:<path>`.
+
+   | id | title | kind | git ref |
+   |----|-------|------|---------|
+   | <id> | <title> | <kind> | <git_ref> |
+   ```
+
+4. Prune each bound item body (never the release summary):
+
+   ```bash
+   git rm .work/active/<kind>s/<id>.md     # active done items
+   git rm .work/archive/<id>.md            # archived stubs
+   ```
+
+The release folder ends holding exactly one file: `release-<version>.md`.
 
 ### Phase 8: Advance to released
 
-Edit the release file's frontmatter: `stage: quality-gate → released`.
+Edit the release summary's frontmatter: `stage: quality-gate → released`.
 
-Append a final summary to its body:
+Ensure its body records (alongside the Phase 7 shipped-items table):
 - Date shipped
 - Mapping used
 - Total items shipped
 - Gate finding totals
+- The external publishing mechanism (for `none` mapping)
 
 ### Phase 9: Commit
 
+The `git rm`s from Phase 7 are already staged; stage the summary and the changelog and commit:
+
 ```bash
-git add .work/releases/<version>/ <version-file>
+git add .work/releases/<version>/ CHANGELOG.md <version-file>
 git commit -m "release-deploy: <version> shipped (<N> items)"
 ```
 
-For tag-based mappings, the project's release script handles its own commits.
-Don't double-commit.
+The commit captures both the one summary doc and the pruned item bodies. For tag-based mappings,
+the project's release script handles its own commits. Don't double-commit.
 
 ## Output
 
@@ -256,7 +293,8 @@ In conversation:
 - **Items**: count, listed
 - **Gates run**: list with finding counts per gate
 - **Mapping**: tag-based / branch-held / release-branch / none
-- **Next**: items now in `.work/releases/<version>/` as the historical record
+- **Next**: bound items collapsed into `.work/releases/<version>/release-<version>.md`; full
+  bodies in git history
 
 If the run halted at readiness (pending items), output the pending list and the
 re-run instruction.
@@ -274,7 +312,8 @@ re-run instruction.
 - Tag-based and release-branch mappings rely on the project's existing release
   script. branch-held requires `gh` CLI for PR merges. none performs no
   publishing action inside release-deploy.
-- The release file moves to `releases/<version>/` ONLY when the release is
-  actually shipped. Until then it stays in `.work/active/`.
+- The release file moves to `releases/<version>/` (becoming the single summary doc) ONLY when the
+  release is actually shipped. Until then it stays in `.work/active/`. Bound item bodies never move
+  there — they are pruned and live in git history.
 - Stage transitions: `planned → quality-gate` happens at bind. `quality-gate →
   released` happens at ship. Don't pre-populate.
