@@ -269,6 +269,13 @@ jobs:
             chmod +x "${dest}/work-view"
           done
 
+      - name: Refresh repo dogfood work-view from the new dist
+        # The version test (group 3) checks the repo's own .work/bin/work-view
+        # against the plugin version. After a bump, that committed dogfood binary
+        # is stale until reinstalled from the freshly-placed dist — so reinstall
+        # it here (from the dist just built) before verifying and committing.
+        run: PLUGIN_ROOT=plugins/agile-workflow bash plugins/agile-workflow/scripts/install-work-view.sh
+
       - name: Verify dist versions
         run: bash plugins/agile-workflow/scripts/tests/work-view-dist-version.test.sh
 
@@ -279,10 +286,10 @@ jobs:
 
       - name: Commit and push
         run: |
-          git add plugins/agile-workflow/work-view/dist/
+          git add plugins/agile-workflow/work-view/dist/ .work/bin/work-view
           if git diff --cached --quiet; then
             echo "No binary changes to commit."
           else
-            git commit -m "chore: refresh work-view prebuilt binaries [skip ci]"
+            git commit -m "chore: refresh work-view prebuilt binaries + repo dogfood [skip ci]"
             git push
           fi
