@@ -1,0 +1,19 @@
+# Changelog
+
+## v0.11.0
+
+### Features
+- **Delete-after-release terminal tiers.** Done items archive as bodyless ref stubs
+  (frontmatter + `# Title` + `git_ref`), and `release-deploy` collapses bound items into a single
+  `releases/<version>/release-<version>.md` summary and prunes their bodies — full history stays in
+  git. New `terminal-tier retention: delete-refs | retain-bodies` convention (default `delete-refs`),
+  seeded by `convert` so consumers pick it up. Terminal prose (zero design authority) no longer
+  persists on disk to mislead future agents.
+
+### Changed
+- `review` archives a done item as a bodyless stub instead of `git mv`-ing its full body.
+- `release-deploy` Phases 7-9 collapse + prune instead of per-item `git mv` into `releases/`;
+  readiness spans active done items and archived stubs uniformly via `release_binding`.
+- `convert` adds the terminal-retention interview question and offers to prune existing retained
+  terminal bodies to stubs/summary on sync.
+- Docs (SPEC, ARCHITECTURE, AGENTS) describe terminal tiers as refs; git holds the bodies.
