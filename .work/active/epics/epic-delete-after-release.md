@@ -1,7 +1,7 @@
 ---
 id: epic-delete-after-release
 kind: epic
-stage: implementing
+stage: done
 tags: [skill, tooling, docs]
 parent: null
 depends_on: []

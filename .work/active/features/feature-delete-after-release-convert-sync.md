@@ -1,7 +1,7 @@
 ---
 id: feature-delete-after-release-convert-sync
 kind: feature
-stage: review
+stage: done
 tags: [skill, tooling, docs]
 parent: epic-delete-after-release
 depends_on: [feature-delete-after-release-archive-stub, feature-delete-after-release-release-prune]
