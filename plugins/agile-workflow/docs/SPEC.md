@@ -143,8 +143,9 @@ retention. With `delete-refs`:
    (`release_binding: null`), confirms the set with the user, and sets their `release_binding`. Each
    stub's `archived_atop` records the baseline it was done atop and is kept as provenance (it surfaces
    in the release summary), NOT used as the gather filter — filtering by strict `archived_atop ==
-   prior tag` would strand a stub forever whenever a release is skipped. Already-done archived stubs
-   are NOT re-gated — they passed gates when active, and a pruned body never blocks a release.
+   prior tag` would strand a stub forever whenever a release is skipped. Late-bound archived stubs
+   are re-gated during the release. Gates that need the item body must hydrate it from the stub's
+   `git_ref`; a pruned stub body is a lookup requirement, not a reason to skip the item.
 3. **One-summary release.** All bound items (active done + late-bound stubs) collapse into a single
    `releases/<version>/release-<version>.md` table (id, title, kind, `archived_atop`, git ref). No
    per-item placement; full bodies live only in git history.

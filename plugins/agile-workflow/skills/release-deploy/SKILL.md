@@ -18,7 +18,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion, Skil
 You orchestrate a release. The work is in three movements: **bind** items to a
 version — both active done items and all unbound archived stubs late-bound here (each stub's
 `archived_atop` records the baseline it was done atop, kept as provenance) — **gate** the bundle
-(each gate produces items, not pass/fail; already-done archived stubs are never re-gated), **ship**
+(each gate produces items, not pass/fail; archived stubs are re-gated by hydrating their historical
+full bodies from `git_ref` when needed), **ship**
 when readiness criteria are met.
 
 The release file at `.work/active/<release-id>.md` is the orchestration state.
@@ -138,18 +139,16 @@ If the release is at `stage: planned`:
 
 ### Phase 4: Gate execution
 
-**Gates run over active bound items only — never re-gate already-done archived stubs.** Archived
-stubs late-bound in Phase 3 are already `done` and were gated when they were active; their bodies
-are pruned to git. The gate phase MUST NOT re-analyze a stub's (pruned) body. A gate that needs the
-bound bundle's changes works from active bound items and their commits — a missing stub body is
-expected and must never block a release.
+**Gates run over every bound non-release item, including late-bound archived stubs.** Archived stubs
+are `done`, but release binding may happen long after the item left active work. The gate phase MUST
+re-examine those stubs for the release bundle. A gate that needs an archived item's body must
+recover the historical full body from the stub's `git_ref` (trying the archive path and former
+active/backlog paths for the item id) rather than treating the pruned stub body as missing evidence.
 
 Each gate enforces this itself: gates build their bundle from
-`work-view --release <version> --paths` (which auto-widens to all tiers) and then drop every
-returned path under `.work/archive/`, so archived stubs are never re-scanned and their historical
-commits are never re-derived. release-deploy does not pass a pre-filtered set to the gates — the
-gates self-filter. Archived stubs are recorded in the release summary as provenance, not
-re-examined.
+`work-view --release <version> --paths` (which auto-widens to all tiers), ignore only the release
+orchestration item (`kind: release`), and include active done items plus archived stubs. release-deploy
+does not pass a pre-filtered set to the gates.
 
 If the release is at `stage: quality-gate`:
 

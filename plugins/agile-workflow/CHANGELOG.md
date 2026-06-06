@@ -6,9 +6,9 @@
 
 - **`archived_atop` late-binding** — archived items are bodyless stubs stamping an immutable
   `archived_atop` baseline + `git_ref`; `release-deploy` late-binds all unbound archived stubs into
-  one release summary and never re-gates already-done work.
-- **No-re-gate wiring** — gate skills exclude `.work/archive/` stubs from the release bundle, so
-  late-bound done work is not re-scanned.
+  one release summary.
+- **Archive-stub gate hydration** — gate skills include `.work/archive/` stubs in the release
+  bundle and hydrate historical bodies from `git_ref` when a body is needed.
 - **convert** — one merged terminal-retention convention; sync detects/offers it and offers to prune
   existing retained terminal bodies to stubs (stamping `archived_atop` + `git_ref`).
 
