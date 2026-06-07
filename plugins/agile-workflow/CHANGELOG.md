@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.11.3
+
+### Research-substrate linkage fields + agentic-research adoption
+
+- **work-view research linkage** — the Item model gains `research_refs` (Arrow 1: a work item
+  tracks/consumes research) and `research_origin` (Arrow 2: research that spawned the item), parsed
+  from frontmatter and queryable via `--research-refs` / `--research-origin`. Mirrors the
+  `gate_origin` precedent; both fields parse harmlessly when unset, so a plain `.work/` substrate is
+  unaffected.
+- **convert** — research-substrate fields are conditional on the `agentic-research` plugin. The
+  canonical AGENTS block ships the base field list and only advertises `research_refs` /
+  `research_origin` (plus the `.work/` ↔ `.research/` handoff pointer) when that plugin is installed;
+  convert never scaffolds `.research/` on its own.
+
 ## v0.11.2
 
 ### Clarify `--stage review` semantics in seeded docs
