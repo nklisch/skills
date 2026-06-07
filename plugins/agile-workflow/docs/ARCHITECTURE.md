@@ -236,7 +236,7 @@ freely. Run `--help` for the authoritative flag list.
 # Items ready to work right now
 .work/bin/work-view --ready
 
-# Items awaiting user review
+# Items awaiting an agent review pass
 .work/bin/work-view --stage review
 
 # All children of an epic
@@ -272,7 +272,7 @@ git log --since='1 day ago' -- .work/
 
 ## Session start checklist
 1. cat .work/CONVENTIONS.md            project-specific overrides
-2. .work/bin/work-view --stage review  items waiting on user
+2. .work/bin/work-view --stage review  items awaiting an agent review pass
 3. .work/bin/work-view --ready         items ready to work
 4. Identify your work: explicit user ask, or pick the next ready item
 

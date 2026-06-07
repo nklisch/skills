@@ -484,7 +484,7 @@ Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
 **Primary query tool:** `.work/bin/work-view` filters by stage, tag, kind,
 parent, and dependency. Common patterns:
 - `work-view --ready` — items ready to work (deps satisfied)
-- `work-view --stage review` — items waiting on user
+- `work-view --stage review` — items awaiting an agent review pass (`/agile-workflow:review`)
 - `work-view --parent <id>` / `--blocking <id>` — hierarchy / sequencing
 - `work-view --scope all` — include terminal tiers: `releases/` (one summary doc per version) and
   `archive/` (bodyless ref stubs). Full bodies live in git history. By default work-view shows only

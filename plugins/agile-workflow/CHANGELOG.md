@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.11.2
+
+### Clarify `--stage review` semantics in seeded docs
+
+- **convert / docs** — reworded the canonical AGENTS section template and architecture docs so
+  `work-view --stage review` reads as "items awaiting an agent review pass (`/agile-workflow:review`)"
+  rather than "items waiting on user." The review stage is the agent's review queue (advance or
+  bounce), not a hold for human sign-off.
+
 ## v0.11.1
 
 ### Terminal-tier archival: merged `archived_atop` late-binding into delete-refs
