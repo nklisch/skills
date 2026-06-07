@@ -1,0 +1,23 @@
+{
+  "_comment": "Canonical expected verdicts for the ARD reference lint. Any vendored or ported lint must reproduce these. Runner: python3 run.py",
+  "citations": {
+    "resolved-src": "resolved",
+    "no-such-handle": "unresolved-handle",
+    "mismatched-src": "mismatched-source-handle",
+    "unreachable-src": "unreachable-source",
+    "missing-prov-src": "missing-provenance",
+    "a-position": "intra-program-resolved",
+    "reduced-src": "reduced-substrate-attestation",
+    "thin-src": "resolved",
+    "colliding-src": "colliding-handle"
+  },
+  "thin": ["thin-src"],
+  "pattern_categories": [
+    "decimal-with-attribution",
+    "version-number",
+    "count-without-unit-citation",
+    "comparative-superlative",
+    "named-feature-claim",
+    "composed-effort-estimate"
+  ]
+}

@@ -29,7 +29,7 @@ fn item_fm(id: &str, stage: &str, depends_on: &[&str], parent: Option<&str>) -> 
 ```
 
 ### Example 2: wider frontmatter-string builder (filter.rs)
-**File**: `plugins/agile-workflow/work-view/crates/core/src/filter.rs:143`
+**File**: `plugins/agile-workflow/work-view/crates/core/src/filter.rs:155`
 ```rust
 #[allow(clippy::too_many_arguments)]
 fn full_item(id: &str, kind: &str, stage: &str, tags: &[&str], parent: Option<&str>,
@@ -57,7 +57,7 @@ fn make_item(id: &str, kind: Option<&str>, stage: Option<&str>, tags: &[&str],
 ```
 
 Sibling occurrences: `item_md` at `crates/cli/src/actionable.rs:108` (string builder);
-`make_item` at `crates/core/src/model.rs:128` and `make_item_direct` at
+`make_item` at `crates/core/src/model.rs:133` and `make_item_direct` at
 `crates/cli/src/actionable.rs:149` (struct builders). Six builders total across the two
 shapes.
 

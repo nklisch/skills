@@ -4,3 +4,11 @@ __pycache__/
 
 # peeragent per-repo job store (local cross-model delegation cache)
 .peeragent/
+
+# .research/ raw source fetches — never travel; only derived material is committed.
+# Scoped to .research/ (not global) so source PDFs elsewhere in the repo are unaffected.
+.research/reference/**/raw/
+.research/**/*.pdf
+.research/**/*.epub
+.research/**/*.azw3
+.research/**/*.mobi

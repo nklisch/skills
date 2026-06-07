@@ -61,6 +61,10 @@ pub struct Filter {
     pub release: Match,
     /// Filter on `item.gate_origin`.
     pub gate: Match,
+    /// Filter on `item.research_origin` (mirror of `gate`).
+    pub research: Match,
+    /// Membership: select items whose `research_refs` contains this id (mirror of `blocking`).
+    pub research_refs: Option<String>,
     /// AND-semantics tag filter. Item must have ALL listed tags.
     pub tags: Vec<String>,
     /// Reverse-dep filter: select items whose `depends_on` contains this id.
@@ -96,6 +100,14 @@ fn item_matches(item: &Item, f: &Filter) -> bool {
     }
     if !f.gate.matches_opt(&item.gate_origin) {
         return false;
+    }
+    if !f.research.matches_opt(&item.research_origin) {
+        return false;
+    }
+    if let Some(ref_id) = &f.research_refs {
+        if !item.research_refs.iter().any(|r| r == ref_id) {
+            return false;
+        }
     }
 
     // Tags: AND semantics — item must have all requested tags
@@ -681,5 +693,67 @@ mod tests {
         let results = sub.query(&f);
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].id, "a");
+    }
+
+    #[test]
+    fn filter_research_equals() {
+        // Items with research_origin set via inline frontmatter strings
+        let item_a = "---\nid: a\nkind: story\nstage: implementing\nresearch_origin: pos-x\n---\n\n# a\n";
+        let item_b = "---\nid: b\nkind: story\nstage: implementing\nresearch_origin: pos-y\n---\n\n# b\n";
+        let item_c = "---\nid: c\nkind: story\nstage: implementing\n---\n\n# c\n";
+        let (_tmp, sub) = setup_substrate(&[
+            ("active/stories/a.md", item_a),
+            ("active/stories/b.md", item_b),
+            ("active/stories/c.md", item_c),
+        ]);
+        let f = Filter {
+            research: Match::Equals("pos-x".into()),
+            ..Filter::default()
+        };
+        let results = sub.query(&f);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id, "a");
+    }
+
+    #[test]
+    fn filter_research_is_null() {
+        let item_a = "---\nid: a\nkind: story\nstage: implementing\nresearch_origin: pos-x\n---\n\n# a\n";
+        let item_b = "---\nid: b\nkind: story\nstage: implementing\n---\n\n# b\n";
+        let (_tmp, sub) = setup_substrate(&[
+            ("active/stories/a.md", item_a),
+            ("active/stories/b.md", item_b),
+        ]);
+        let f = Filter {
+            research: Match::IsNull,
+            ..Filter::default()
+        };
+        let results = sub.query(&f);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id, "b");
+    }
+
+    #[test]
+    fn filter_research_refs_membership() {
+        // Mirror of filter_blocking_reverse_dep: items whose research_refs contains "slug-a"
+        let item_a = "---\nid: a\nkind: story\nstage: implementing\nresearch_refs: [slug-a]\n---\n\n# a\n";
+        let item_b = "---\nid: b\nkind: story\nstage: implementing\nresearch_refs: [slug-a, slug-b]\n---\n\n# b\n";
+        let item_c = "---\nid: c\nkind: story\nstage: implementing\nresearch_refs: [slug-b]\n---\n\n# c\n";
+        let item_d = "---\nid: d\nkind: story\nstage: implementing\n---\n\n# d\n";
+        let (_tmp, sub) = setup_substrate(&[
+            ("active/stories/a.md", item_a),
+            ("active/stories/b.md", item_b),
+            ("active/stories/c.md", item_c),
+            ("active/stories/d.md", item_d),
+        ]);
+        let f = Filter {
+            research_refs: Some("slug-a".into()),
+            ..Filter::default()
+        };
+        let results = sub.query(&f);
+        let ids: Vec<&str> = results.iter().map(|i| i.id.as_str()).collect();
+        assert!(ids.contains(&"a"));
+        assert!(ids.contains(&"b"));
+        assert!(!ids.contains(&"c"));
+        assert!(!ids.contains(&"d"));
     }
 }

@@ -1,0 +1,25 @@
+{
+  "_comment": "Consumer-side ARD pin + vendor map — the SINGLE source of truth for which ARD release this plugin adopts and where each upstream kernel artifact is vendored. Mirrors the `adopter_pin` + `vendorable_surface` of upstream ard.json (https://code.s-nc.org/Kevoun/ARD). The plugin's OWN semver (.claude-plugin/.codex-plugin/package.json `version`) is DECOUPLED from this: bump the plugin when the plugin changes; bump `adopts` only on an ARD version sync (driven by epic-agentic-research-ard-sync). Human-facing 'Adopts ARD vX' strings elsewhere are derived from this record.",
+  "framework": "ARD",
+  "homepage": "https://code.s-nc.org/Kevoun/ARD",
+  "adopts": {
+    "version": "0.4.1",
+    "release_tag": "v0.4.1",
+    "commit_sha": "abbcfcdee9d9682b60c2eac99519ccdb8ea359b0",
+    "catalog_baseline": "0.3"
+  },
+  "vendored_paths": {
+    "kernel/lint-citations.py": "scripts/lint-citations.py",
+    "kernel/catalogs.json": "scripts/catalogs.json",
+    "kernel/schema/attestation.schema.json": "scripts/schema/attestation.schema.json",
+    "kernel/conformance/": "scripts/conformance/",
+    "kernel/templates/attestation.md": "templates/attestation.md",
+    "kernel/templates/precis.md": "templates/precis.md",
+    "kernel/templates/INDEX.md": "templates/INDEX.md",
+    "kernel/discipline.md": "skills/research-discipline/SKILL.md",
+    "kernel/templates/dispatch.md": "templates/dispatch.md"
+  },
+  "not_yet_vendored": {},
+  "drift_check": "python3 plugins/agentic-research/scripts/ard-sync.py --ard-repo <ARD-checkout>  (or, no checkout: grep -rl 'ARD-Version:' --exclude-dir=tests plugins/agentic-research/scripts plugins/agentic-research/templates plugins/agentic-research/skills)",
+  "conformance": "python3 plugins/agentic-research/scripts/conformance/run.py"
+}

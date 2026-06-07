@@ -1,0 +1,481 @@
+{
+  "_comment": "GENERATED from CATALOGS.md by tools/gen-contract.py — do not edit by hand; edit the prose and regenerate.",
+  "catalog_baseline": "0.3",
+  "generated_from": "CATALOGS.md",
+  "failure_shapes": [
+    {
+      "id": "GR.1a",
+      "name": "Anchor-and-drift — surrounding context composed while the anchor is fetched",
+      "locus": "GR",
+      "status": "fenced",
+      "fence": "per-source attestation + three-state citation + verification stack"
+    },
+    {
+      "id": "GR.1b",
+      "name": "Within-source attribution swap (figures correct, mapping reversed)",
+      "locus": "GR",
+      "status": "fenced",
+      "fence": "per-source attestation + semantic citation-chain walk"
+    },
+    {
+      "id": "GR.1c",
+      "name": "Cite-through fabrication shielded by source authority — the cite-through is structurally correct but the cited-from passage is subtly strengthened beyond what the source states",
+      "locus": "GR",
+      "status": "fenced",
+      "fence": "per-source attestation with quote-context anchors + adversarial-read quote-context walk (sharpens GR.4's fence for the strengthening-via-authority pattern)"
+    },
+    {
+      "id": "GR.2",
+      "name": "Source unfetched — a training-recalled claim presented as cited",
+      "locus": "GR",
+      "status": "forward-looking",
+      "fence": null
+    },
+    {
+      "id": "GR.3",
+      "name": "Composed claims with no source attempt (effort estimates, counts, comparatives)",
+      "locus": "GR",
+      "status": "forward-looking",
+      "fence": null
+    },
+    {
+      "id": "GR.4",
+      "name": "Quote-context distortion — quote accurate, surrounding qualifier stripped",
+      "locus": "GR",
+      "status": "fenced",
+      "fence": "adversarial-read quote-context walk"
+    },
+    {
+      "id": "GR.5",
+      "name": "Thin attestation passing lint — frontmatter correct, body un-anchored",
+      "locus": "GR",
+      "status": "fenced",
+      "fence": "lint structural check + adversarial-read complement"
+    },
+    {
+      "id": "GR.6",
+      "name": "Attestation-abuse — attestation form is correct (anchors present, key passages transcribed) but authored without genuine source engagement; lint and thin-attestation checks both pass",
+      "locus": "GR",
+      "status": "fenced",
+      "fence": "bracket directive (partial) + adversarial-read gloss-fit job (attestation-paraphrase vs independent source-summary) — detection pending"
+    },
+    {
+      "id": "GR.7",
+      "name": "Paradigm-trained gestalt failure — per-claim substrate is accurate, but the agent's gestalt of the whole source fits a trained category rather than the source's own argument structure",
+      "locus": "GR",
+      "status": "fenced",
+      "fence": "bracket directive (partial) + adversarial-read independent-gestalt job (read the source independently, compare gestalts) — detection pending"
+    },
+    {
+      "id": "CX.1",
+      "name": "Noise domination — less-relevant retrieved content used over more-relevant",
+      "locus": "CX",
+      "status": "fenced",
+      "fence": "adversarial-read relevance-weighting (detection only — see SPEC.md §11)"
+    },
+    {
+      "id": "AQ.1",
+      "name": "Coverage gaps / unknown-unknowns",
+      "locus": "AQ",
+      "status": "fenced",
+      "fence": "isolated-context evaluator (coverage component)"
+    },
+    {
+      "id": "AQ.2",
+      "name": "Stale substrate — once-correct content now out of date",
+      "locus": "AQ",
+      "status": "forward-looking",
+      "fence": null
+    },
+    {
+      "id": "CO.1",
+      "name": "Smoothed contradictions in cross-source synthesis",
+      "locus": "CO",
+      "status": "fenced",
+      "fence": "## Contradictions discipline + adversarial-read coherence-read"
+    },
+    {
+      "id": "CO.2",
+      "name": "Premature normalization of abnormal discourse — a substrate-surfaced novel framing is translated into existing vocabulary before its abnormality is adequately surfaced; the normalized form passes the whole stack",
+      "locus": "CO",
+      "status": "forward-looking",
+      "fence": null
+    },
+    {
+      "id": "CO.3",
+      "name": "Cross-tradition convergence-smoothing — multiple traditions' framings of a convergent shape merged into one vocabulary, losing per-tradition prescriptive content (harder to detect than CO.1: the surface signal is agreement, not disagreement)",
+      "locus": "CO",
+      "status": "fenced",
+      "fence": "encoder-side translation-table discipline (each tradition's term preserved; convergence named at the shape-diagnosed level; framings stand side-by-side) + tradition-isolation adversarial-read job — detection pending"
+    },
+    {
+      "id": "FR.1",
+      "name": "Self-confirming framing",
+      "locus": "FR",
+      "status": "fenced",
+      "fence": "isolated-context evaluator (structural isolation)"
+    },
+    {
+      "id": "FR.2",
+      "name": "Premature commitment — a position asserted before its grounding substrate is engaged",
+      "locus": "FR",
+      "status": "forward-looking",
+      "fence": null
+    },
+    {
+      "id": "PR.1",
+      "name": "Drift-inheritance through paraphrase chains — small per-step distortion compounding across multi-step composition",
+      "locus": "PR",
+      "status": "forward-looking",
+      "fence": null
+    },
+    {
+      "id": "PR.2",
+      "name": "Decomposition-framing lock-in — a facet cut inherits a lens all downstream work runs inside",
+      "locus": "PR",
+      "status": "fenced",
+      "fence": "multi-sampling at decompose (≥3 candidates + comparative + bracket) + persisted rationale"
+    },
+    {
+      "id": "WM.1",
+      "name": "Per-artifact-warrant fallacy — an artifact passes per-artifact checks but the corpus context that grounded its claims has shifted (warrant is corpus-distributed, not per-artifact)",
+      "locus": "WM",
+      "status": "forward-looking",
+      "fence": null
+    },
+    {
+      "id": "WM.2",
+      "name": "Theory-ladenness of substrate-test outputs — the substrate test is itself paradigm-conditioned; framings the framework's paradigm naturalizes stay invisible to in-paradigm verification",
+      "locus": "WM",
+      "status": "forward-looking",
+      "fence": null
+    },
+    {
+      "id": "WM.3",
+      "name": "Consumer-side decoding-frame mismatch — an artifact's encoded intent (held-pending vs settled; substrate vs deliverable) is mis-received by a downstream consumer; the encoder's stack catches encoding-side failures, not consumer-side decoding",
+      "locus": "WM",
+      "status": "forward-looking",
+      "fence": null
+    }
+  ],
+  "source_classes": [
+    {
+      "class": "paper",
+      "handle_convention": "<first-author>-<paper-slug>",
+      "load_bearing": "version (papers revise)"
+    },
+    {
+      "class": "book-chapter",
+      "handle_convention": "<author>-<book-slug>-ch<N>",
+      "load_bearing": "edition (chapter numbering varies across editions)"
+    },
+    {
+      "class": "essays",
+      "handle_convention": "<author>-<essay-slug>",
+      "load_bearing": "collection (essay-author attribution, not editor)"
+    },
+    {
+      "class": "tool-doc",
+      "handle_convention": "<tool>-<topic>",
+      "load_bearing": "version (docs revise frequently)"
+    },
+    {
+      "class": "blog-post",
+      "handle_convention": "<author-or-venue>-<post-slug>",
+      "load_bearing": "author byline, post date"
+    },
+    {
+      "class": "github-readme",
+      "handle_convention": "<owner>-<repo>",
+      "load_bearing": "license (SPDX), last-commit"
+    },
+    {
+      "class": "wiki-page",
+      "handle_convention": "<wiki-slug>-<page-slug>",
+      "load_bearing": "fetched-date (wikis drift), license"
+    },
+    {
+      "class": "light-form",
+      "handle_convention": "<platform>-<thread-id>",
+      "load_bearing": "paraphrase-only (no verbatim posts; PII risk)"
+    },
+    {
+      "class": "standard",
+      "handle_convention": "<body>-<doc-number>",
+      "load_bearing": "version + section anchors (revise at section granularity)"
+    },
+    {
+      "class": "talk-podcast",
+      "handle_convention": "<speaker>-<talk-slug>",
+      "load_bearing": "transcript-source (hand-cleaned vs auto-captioned)"
+    }
+  ],
+  "lint": {
+    "pattern_categories": [
+      {
+        "id": "decimal-with-attribution",
+        "name": "Decimals with source attributions",
+        "description": "a decimal figure adjacent to a source name; highest empirical failure rate. Flags proximity for verification."
+      },
+      {
+        "id": "version-number",
+        "name": "Version numbers",
+        "description": "version identifiers in comparative/attributional claims without an in-corpus anchor."
+      },
+      {
+        "id": "count-without-unit-citation",
+        "name": "File / word / page counts",
+        "description": "numeric counts with units and no citation."
+      },
+      {
+        "id": "comparative-superlative",
+        "name": "Comparative superlatives",
+        "description": "\"the only X with Y\", \"the strongest baseline\" — claims requiring a full-set survey the agent did not perform."
+      },
+      {
+        "id": "named-feature-claim",
+        "name": "Named-feature claims",
+        "description": "capabilities attributed to a tool/system by name without a fetched anchor."
+      },
+      {
+        "id": "composed-effort-estimate",
+        "name": "Composed effort estimates",
+        "description": "quantitative effort claims constructed without substrate (forbidden per SPEC.md §4.4)."
+      }
+    ],
+    "citation_chain_statuses": [
+      {
+        "id": "unresolved-handle",
+        "broken": true
+      },
+      {
+        "id": "mismatched-source-handle",
+        "broken": true
+      },
+      {
+        "id": "colliding-handle",
+        "broken": true
+      },
+      {
+        "id": "unreachable-source",
+        "broken": true
+      },
+      {
+        "id": "missing-provenance",
+        "broken": true
+      },
+      {
+        "id": "resolved",
+        "broken": false
+      },
+      {
+        "id": "intra-program-resolved",
+        "broken": false
+      },
+      {
+        "id": "reduced-substrate-attestation",
+        "broken": false
+      }
+    ]
+  },
+  "decision_points": [
+    {
+      "name": "dispatch-time-registration",
+      "tier": "M",
+      "fires": "— (coordination)",
+      "conditional": "always (entry act)"
+    },
+    {
+      "name": "substrate-check",
+      "tier": "D",
+      "fires": "substrate-check",
+      "conditional": "always"
+    },
+    {
+      "name": "decompose",
+      "tier": "D",
+      "fires": "decompose (+ self-flag)",
+      "conditional": "when the walk admits decomposition"
+    },
+    {
+      "name": "specialist-dispatch",
+      "tier": "M",
+      "fires": "— (coordination)",
+      "conditional": "multi-specialist walks only"
+    },
+    {
+      "name": "attest",
+      "tier": "D",
+      "fires": "attest (+ bracket, stage, self-flag)",
+      "conditional": "always (bracket conditional)"
+    },
+    {
+      "name": "synthesize",
+      "tier": "D",
+      "fires": "synthesize (+ seek-disconfirming, stage, self-flag)",
+      "conditional": "always — {within-specialist} and/or {cross-specialist} scope"
+    },
+    {
+      "name": "lint",
+      "tier": "V",
+      "fires": "lint",
+      "conditional": "always (hard floor)"
+    },
+    {
+      "name": "adversarial-read",
+      "tier": "V",
+      "fires": "adversarial-read",
+      "conditional": "selectable; in-floor for synthesis-producing shapes"
+    },
+    {
+      "name": "evaluate",
+      "tier": "V",
+      "fires": "evaluate",
+      "conditional": "selectable; reachable only when a cross-synthesis artifact exists"
+    },
+    {
+      "name": "spot-check",
+      "tier": "D",
+      "fires": "spot-check",
+      "conditional": "always (hard floor; terminal)"
+    },
+    {
+      "name": "user-validation",
+      "tier": "D",
+      "fires": "user-validation",
+      "conditional": "when the user is the committing party"
+    },
+    {
+      "name": "promote",
+      "tier": "D",
+      "fires": "promote",
+      "conditional": "when converged substrate warrants cross-arc lifting"
+    }
+  ],
+  "registration_enums": {
+    "intent": [
+      "terminate-in-position",
+      "build-substrate",
+      "survey-landscape",
+      "validate-claim",
+      "calibrate-external"
+    ],
+    "output_kind": [
+      "position",
+      "synthesis-brief",
+      "landscape-brief",
+      "attestation",
+      "corpus-piece",
+      "precis",
+      "hypothesis-capture",
+      "hypothesis-ledger",
+      "vocab-capture",
+      "adoption-recommendations",
+      "questions-list"
+    ],
+    "scope_authority": [
+      "pre-registered",
+      "mixed",
+      "in-engagement-judgment"
+    ],
+    "analytical_artifact_type": [
+      "per-campaign-brief"
+    ],
+    "temporal_contract": [
+      "write-once-on-converge",
+      "extend-on-source-rev",
+      "supersedes-prior",
+      "ttl-bounded",
+      "re-engage-on-trigger"
+    ],
+    "verification_rigor": [
+      "floor",
+      "standard",
+      "full"
+    ]
+  },
+  "provenance_values": [
+    {
+      "value": "source-direct",
+      "applies_to": "reference raws, indices, per-piece notes, vocab captures"
+    },
+    {
+      "value": "agent-authored-from-raw",
+      "applies_to": "precis files, hypothesis captures"
+    },
+    {
+      "value": "agent-synthesis",
+      "applies_to": "cross-source analytical artifacts (briefs, syntheses, positions, ledgers)"
+    },
+    {
+      "value": "generated-listing",
+      "applies_to": "mechanically produced listings (no editorial content)"
+    },
+    {
+      "value": "hybrid-curated",
+      "applies_to": "hand-authored kernel with agent-derived sections"
+    }
+  ],
+  "typed_edge_predicates": [
+    {
+      "predicate": "cites",
+      "source_ancestor": "CiTO cito:cites",
+      "semantic": "Generic citation (root of the citation-predicate tree)"
+    },
+    {
+      "predicate": "citesAsEvidence",
+      "source_ancestor": "CiTO cito:citesAsEvidence",
+      "semantic": "Cites as a source of factual evidence"
+    },
+    {
+      "predicate": "extends",
+      "source_ancestor": "CiTO cito:extends",
+      "semantic": "Builds on prior work with new content"
+    },
+    {
+      "predicate": "refutes",
+      "source_ancestor": "CiTO cito:refutes",
+      "semantic": "Explicit disagreement; the cited claim is shown false"
+    },
+    {
+      "predicate": "usesMethodIn",
+      "source_ancestor": "CiTO cito:usesMethodIn",
+      "semantic": "Adopts a methodology from the cited work"
+    },
+    {
+      "predicate": "obtainsBackgroundFrom",
+      "source_ancestor": "CiTO cito:obtainsBackgroundFrom",
+      "semantic": "Contextual / background citation"
+    },
+    {
+      "predicate": "grounds",
+      "source_ancestor": "Toulmin (data → claim)",
+      "semantic": "Evidence backs a claim (research grounds a decision)"
+    },
+    {
+      "predicate": "supports",
+      "source_ancestor": "IBIS argument-to-position; CiTO cito:supports",
+      "semantic": "An argument supports a position"
+    },
+    {
+      "predicate": "objects-to",
+      "source_ancestor": "IBIS argument-to-position; CiTO cito:critiques/disputes",
+      "semantic": "An argument contests a position"
+    },
+    {
+      "predicate": "related",
+      "source_ancestor": "SKOS skos:related",
+      "semantic": "Generic associative link when no stronger type fits (the only symmetric predicate)"
+    },
+    {
+      "predicate": "implements",
+      "source_ancestor": "Substrate-native (no clean ontology ancestor)",
+      "semantic": "An implementation realizes a design / decision"
+    },
+    {
+      "predicate": "contrasts",
+      "source_ancestor": "Substrate-native (partial CiTO citesAsRelated)",
+      "semantic": "An alternative without disagreement (sibling approach)"
+    }
+  ]
+}

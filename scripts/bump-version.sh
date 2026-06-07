@@ -108,11 +108,11 @@ bump_json "$claude_json"
 [[ -f "$codex_json" ]] && bump_json "$codex_json"
 [[ -f "$package_json" ]] && bump_json "$package_json"
 
-# Keep work-view's self-reported version in lockstep with the plugin version.
-# Only the agile-workflow plugin ships work-view (a Rust binary + a bash
-# fallback that both report `work-view <semver>` via --version). The semver
-# lives canonically in plugin.json; project it into both implementations here so
-# a single string compare answers "is this installed copy current?".
+# Keep each plugin's self-reported binary version in lockstep with plugin.json.
+# The semver lives canonically in plugin.json; project it into both
+# implementations (Rust stamp + bash fallback) here so a single string compare
+# answers "is this installed copy current?".
+
 if [[ "$plugin" == "agile-workflow" ]]; then
   ver_file="plugins/agile-workflow/work-view/crates/cli/.work-view-version"
   bash_script="plugins/agile-workflow/scripts/work-view.sh"
@@ -139,6 +139,32 @@ if [[ "$plugin" == "agile-workflow" ]]; then
   git add "$bash_script"
 fi
 
+if [[ "$plugin" == "agentic-research" ]]; then
+  ver_file="plugins/agentic-research/research-view/crates/cli/.research-view-version"
+  bash_script="plugins/agentic-research/scripts/research-view.sh"
+
+  # Rust stamp: written with NO trailing newline so the binary's raw
+  # include_str! yields the bare semver (byte-parity with the bash fallback).
+  printf '%s' "$new" > "$ver_file"
+  git add "$ver_file"
+
+  # Bash fallback: update the RESEARCH_VIEW_VERSION="x.y.z" literal in place.
+  # sed -i.bak ... && rm .bak is portable across GNU and BSD/macOS sed.
+  sed -i.bak -E 's/^RESEARCH_VIEW_VERSION="[^"]*"/RESEARCH_VIEW_VERSION="'"$new"'"/' "$bash_script"
+  rm -f "${bash_script}.bak"
+  # Fail Fast: sed exits 0 even when nothing matched, so verify the projection
+  # actually landed. A future refactor of the literal (added indentation,
+  # `readonly`, a rename) would otherwise silently ship a stale bash --version
+  # while the manifests and .research-view-version advance.
+  if ! grep -q "^RESEARCH_VIEW_VERSION=\"${new}\"" "$bash_script"; then
+    echo "bump-version: failed to project version into ${bash_script}" >&2
+    echo "  expected line: RESEARCH_VIEW_VERSION=\"${new}\"" >&2
+    echo "  the anchored sed pattern no longer matches — fix the projection block." >&2
+    exit 1
+  fi
+  git add "$bash_script"
+fi
+
 echo "$plugin: v$current -> v$new"
 
 git commit -m "Bump $plugin plugin to v$new"
@@ -157,6 +183,21 @@ if [[ "$plugin" == "agile-workflow" ]]; then
     echo "      after this bump is pushed, trigger the 'Build work-view binaries'"
     echo "      workflow (workflow_dispatch, commit_binaries=true) against the"
     echo "      bumped commit so dist/<triple>/work-view self-reports v$new."
+    echo "      Until that CI run lands, the supported-platform dist binaries"
+    echo "      intentionally fail the installer version check; do not publish"
+    echo "      or cut a release until the binary refresh commit lands."
+  } >&2
+fi
+
+if [[ "$plugin" == "agentic-research" ]]; then
+  {
+    echo ""
+    echo "NOTE: research-view dist binaries are NOT rebuilt by this script."
+    echo "      They are compiled FROM the version stamp this script just wrote,"
+    echo "      so rebuild them on the POST-bump commit (not before it):"
+    echo "      after this bump is pushed, trigger the 'Build research-view binaries'"
+    echo "      workflow (workflow_dispatch, commit_binaries=true) against the"
+    echo "      bumped commit so dist/<triple>/research-view self-reports v$new."
     echo "      Until that CI run lands, the supported-platform dist binaries"
     echo "      intentionally fail the installer version check; do not publish"
     echo "      or cut a release until the binary refresh commit lands."

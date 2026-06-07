@@ -206,7 +206,14 @@ release  planned → quality-gate → released
 
 ## Frontmatter
 id, kind, stage, tags[], parent, depends_on[], release_binding,
-gate_origin, created, updated
+gate_origin, research_refs[], research_origin, created, updated
+
+`research_refs` and `research_origin` are optional linkage fields that connect
+`.work/` items to `.research/` artifacts (mirroring `gate_origin`). Missing →
+`[]` / `null`, no validation warning. Query via `--research-refs <slug>` and
+`--research-origin <slug>`. See `plugins/agentic-research/docs/HANDOFF.md` for
+the cross-tier contract; the emission and commissioning arrows that populate these
+fields are implemented (live) in the `agentic-research` plugin.
 
 ## Querying with work-view (primary tool)
 
@@ -539,7 +546,7 @@ Format:
 ## Agile-Workflow Substrate
 
 Work tracked in `.work/` as markdown items with YAML frontmatter
-(`kind, stage, tags, parent, depends_on, release_binding`).
+(`kind, stage, tags, parent, depends_on, release_binding, research_refs, research_origin`).
 Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
 `.work/releases/<version>/`, `.work/archive/`.
 

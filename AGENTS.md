@@ -4,7 +4,7 @@ This repo contains agent skills distributed via the Claude Code plugin marketpla
 
 ## Orient first — `ls plugins/` before assuming
 
-**There are FOUR distinct plugins under `plugins/`, not one.** Before designing on top of any plugin, run `ls plugins/` and read the target plugin's `plugin.json` + `docs/` (if it has them). Skill names overlap between plugins by design; the plugin a skill lives in determines its semantics.
+**There are FIVE distinct plugins under `plugins/`, not one.** Before designing on top of any plugin, run `ls plugins/` and read the target plugin's `plugin.json` + `docs/` (if it has them). Skill names overlap between plugins by design; the plugin a skill lives in determines its semantics.
 
 ### Plugin map
 
@@ -13,6 +13,7 @@ This repo contains agent skills distributed via the Claude Code plugin marketpla
 | `plugins/agile-workflow/` | `agile-workflow` | supported | **Substrate-driven** work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, autopilot queue runner. See `plugins/agile-workflow/docs/VISION.md`. |
 | `plugins/ux-ui-design/` | `ux-ui-design` | supported | HTML/CSS/JS mockup-first UI/UX design. Throwaway single-file mockups in `.mockups/`. Loose integration with agile-workflow. |
 | `plugins/nates-toolkit/` | `nates-toolkit` | supported | Standalone, project-agnostic utility skills with **no substrate lock-in** — `plainspeak` (plain-language re-explainer), `repo-eval` (codebase scorecard), `agent-reflection` (self-reflection on tool & skill usage), `write-tool-skill` + `skill-auditor` (skill authoring + quality auditing). Skills here stand alone; substrate integration is optional and degrades gracefully (e.g. `repo-eval` files `.work/` items only when a substrate is present). Absorbed the former `skill-authoring` plugin (now deleted) plus `repo-eval` and `agent-reflection` (formerly `tool-evaluator`) extracted from `agile-workflow`. |
+| `plugins/agentic-research/` | `agentic-research` | experimental | Agentic Research Discipline (ARD) adopted as a plugin — grounded, verifiable AI research: an anti-fabrication floor, selectable verification gates, and a `.research/` substrate tier paralleling `.work/`. **Experimental** — net-new proposed adoption of ARD v0.4.1 (vendors ARD's `kernel/` consumption-contract surface; pinned in `plugins/agentic-research/ard.json`), under evaluation; surface area and conventions may still change. |
 | `plugins/workflow/` | `workflow` | **DEPRECATED — no longer supported** | Doc-driven software workflow with design docs as artifacts in `docs/designs/`. Kept in tree so existing installs don't break. No new features or fixes will land. New projects should use `agile-workflow`; existing `workflow` projects migrate via `/agile-workflow:convert`. |
 
 ### workflow is deprecated
@@ -92,7 +93,7 @@ Verify all channel metadata references the new plugin before considering the plu
 ## Agile-Workflow Substrate
 
 Work tracked in `.work/` as markdown items with YAML frontmatter
-(`kind, stage, tags, parent, depends_on, release_binding`).
+(`kind, stage, tags, parent, depends_on, release_binding, research_refs, research_origin`).
 Layout: `.work/active/{epics,features,stories}/`, `.work/backlog/`,
 `.work/releases/<version>/`, `.work/archive/`.
 

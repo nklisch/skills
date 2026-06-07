@@ -1,0 +1,358 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# ARD-Version: 0.4.1
+# Reference implementation — ARD citation-chain lint.
+#
+# A zero-dependency reference implementation of the full lintable catalogue:
+# the citation-chain enforcement (ARD SPEC §4.2), the lint pattern catalog
+# (ARD CATALOGS §3), and the GR.5 thin-attestation structural check (ARD CATALOGS
+# §1, §4 job h). It is one instantiation, not the framework: it assumes only the
+# two invariants — the `[handle]{N}` citation wire-form and the normative-minimum
+# attestation frontmatter — so it ports to any deployment that follows them.
+#
+# Covers, per the catalogue:
+#   - 6 surface-signature pattern categories (warn; flag for human spot-check)
+#   - citation-chain integrity, 6 checks, statuses:
+#       resolved / unresolved-handle / mismatched-source-handle /
+#       colliding-handle / unreachable-source / missing-provenance
+#     plus the two non-broken statuses:
+#       intra-program-resolved      (handle resolves to an analytical-tier artifact)
+#       reduced-substrate-attestation (attestation marked search-summary/snippet-thin)
+#   - GR.5 thin-attestation structural check (resolved attestation with no
+#       section anchors and no key-passage blockquotes)
+#
+# Usage:
+#   python3 lint-citations.py <brief-or-dir>
+#       [--attestation-dir DIR] [--analysis-dir DIR]
+#       [--format markdown|json] [--exit-code-on high|medium|low|none]
+#       [--no-citation-check] [--no-pattern-check] [--no-thin-check] [--no-url-check]
+"""ARD citation-chain + pattern + thin-attestation lint (reference implementation)."""
+
+import argparse
+import glob
+import ipaddress
+import json
+import os
+import re
+import socket
+import sys
+import urllib.request
+from urllib.parse import urlparse
+
+# The citation wire-form grammar (ARD SPEC §4.2): handle = [\w-]+, N = \d+.
+CITATION_RE = re.compile(r"\[([\w-]+)\]\{(\d+)\}")
+
+# Reference regex matchers, keyed by the lint pattern-category id (ARD CATALOGS §3).
+# The *categories* are the invariant diagnostic targets and are sourced from the
+# generated catalog data (kernel/catalogs.json) at runtime — so a MINOR inventory
+# bump to the category set is a data change this lint consumes, no code edit. The
+# *matchers* below are deployment latitude (reference heuristics flagging a span for
+# human spot-check). If catalogs.json is absent, the lint falls back to these six.
+REFERENCE_MATCHERS = {
+    "decimal-with-attribution": re.compile(
+        r"\b\d+(?:\.\d+)?%?\b(?=[^\n]{0,40}(?:arXiv|et al\.|[A-Z][a-z]+ et al|paper|\bpp?\.\s*\d))"
+        r"|(?:arXiv|et al\.|paper)[^\n]{0,40}\b\d+(?:\.\d+)?%?\b"
+    ),
+    "version-number": re.compile(r"\b[vV]?\d+(?:\.\d+)+\b|\bversion\s+\d+\b"),
+    "count-without-unit-citation": re.compile(
+        r"\b[\d,]+\s+(?:lines|pages|words|files|tokens|developers?)\b|~\s*[\d,]+\s+(?:lines|loc)\b",
+        re.IGNORECASE,
+    ),
+    "comparative-superlative": re.compile(
+        r"\bthe (?:only|strongest|weakest|best|worst|most|least|largest|smallest|fastest|slowest|"
+        r"highest|lowest)\b|\blowest effort\b|\bonly \w+ (?:that|with|to)\b",
+        re.IGNORECASE,
+    ),
+    "named-feature-claim": re.compile(
+        r"\b[A-Z][A-Za-z0-9.\-]+\s+(?:supports|includes|implements|provides|offers|features|ships with)\b"
+    ),
+    "composed-effort-estimate": re.compile(
+        r"\b\d+\s*[-–—]\s*\d+\s*(?:developer-days|dev-days|days|weeks|months|hours)\b"
+        r"|~\s*\d+\s*(?:lines of|loc\b)",
+        re.IGNORECASE,
+    ),
+}
+
+# Fallback non-broken citation statuses (used only when catalogs.json is absent).
+DEFAULT_NON_BROKEN = {"resolved", "intra-program-resolved", "reduced-substrate-attestation"}
+SEVERITY_RANK = {"high": 3, "medium": 2, "low": 1, "none": 0}
+
+
+def load_catalog_config(catalogs_path):
+    """Source the pattern-category set + non-broken-status set from the generated
+    catalog data. Returns (matchers, non_broken). Falls back to the hardcoded
+    reference set when catalogs.json is missing/unreadable — so a vendored lint
+    without the data file keeps working (backward compatible)."""
+    try:
+        with open(catalogs_path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        lint = data["lint"]
+        cat_ids = [c["id"] for c in lint["pattern_categories"]]
+        non_broken = {s["id"] for s in lint["citation_chain_statuses"] if not s["broken"]}
+    except (OSError, KeyError, ValueError):
+        return dict(REFERENCE_MATCHERS), set(DEFAULT_NON_BROKEN)
+    # Activate a matcher for each declared category; note any the impl can't match yet.
+    matchers = {cid: REFERENCE_MATCHERS[cid] for cid in cat_ids if cid in REFERENCE_MATCHERS}
+    missing = [cid for cid in cat_ids if cid not in REFERENCE_MATCHERS]
+    if missing:
+        print(f"[note] catalogs.json declares {len(missing)} pattern categor(ies) with no "
+              f"matcher in this lint: {', '.join(missing)} — add a matcher to cover them.",
+              file=sys.stderr)
+    return matchers, (non_broken or set(DEFAULT_NON_BROKEN))
+
+
+def parse_frontmatter(text):
+    """Minimal frontmatter scan (no YAML dependency) — the fields the lint needs."""
+    fields = {}
+    if not text.startswith("---"):
+        return fields
+    end = text.find("\n---", 3)
+    if end == -1:
+        return fields
+    block = text[3:end]
+    for key in ("source_handle", "source_url", "source_path", "provenance", "substrate_confidence"):
+        m = re.search(rf"^{key}:\s*(.+?)\s*$", block, re.MULTILINE)
+        if m:
+            fields[key] = m.group(1).strip().strip("\"'")
+    return fields
+
+
+def body_after_frontmatter(text):
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end != -1:
+            return text[end + 4:]
+    return text
+
+
+def is_thin_attestation(body):
+    """GR.5 structural check: thin iff body has no `##` section anchor AND no `>` blockquote."""
+    has_section = re.search(r"^##\s", body, re.MULTILINE) is not None
+    has_quote = re.search(r"^>\s", body, re.MULTILINE) is not None
+    return not (has_section or has_quote)
+
+
+# --- source_url liveness: SSRF-hardened HEAD probe -------------------------
+# Check 4 (below) HEAD-probes whatever source_url an attestation declares.
+# Attestations are vendored substrate a compromised or hostile source could
+# seed, so the probe is fenced to only ever touch *public web* addresses:
+#   - the scheme is allow-listed to http(s) (refuses file://, gopher://, ...);
+#   - the resolved host must be a public IP — loopback / link-local / private
+#     (RFC1918) / reserved / multicast / unspecified are refused, which closes
+#     the cloud-metadata endpoint (169.254.169.254) and internal-range probes;
+#   - every redirect hop is re-validated against the same two rules, so a 30x
+#     can't bounce an allowed external probe inward.
+# Best-effort by design: a DNS rebind between this resolution and urllib's own
+# is not defended (would need pinning the connection to the checked IP) —
+# proportionate for an operator-run, HEAD-only, body-ignored lint. A refused
+# URL reports as not-alive (the existing low-severity unreachable-source warn).
+_ALLOWED_URL_SCHEMES = ("http", "https")
+
+
+def _host_is_public(host):
+    """True iff `host` (an IP literal or DNS name) maps only to public addresses.
+    A name that resolves to *any* non-public address is refused; an unresolvable
+    or unparseable host is refused (safe default)."""
+    if not host:
+        return False
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False
+    for *_, sockaddr in infos:
+        try:
+            ip = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            return False
+        if (ip.is_loopback or ip.is_link_local or ip.is_private
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+            return False
+    return True
+
+
+def _url_allowed(url):
+    parsed = urlparse(url)
+    return parsed.scheme in _ALLOWED_URL_SCHEMES and _host_is_public(parsed.hostname)
+
+
+class _PublicHTTPRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Re-validate scheme + host on every redirect hop. Returning None refuses
+    the hop, which makes urllib raise HTTPError -> url_alive() reports not-alive."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _url_allowed(newurl):
+            return None
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_URL_OPENER = urllib.request.build_opener(_PublicHTTPRedirectHandler)
+
+
+def url_alive(url, timeout=5):
+    if not _url_allowed(url):
+        return False
+    try:
+        req = urllib.request.Request(url, method="HEAD")
+        with _URL_OPENER.open(req, timeout=timeout) as resp:
+            return 200 <= getattr(resp, "status", 200) < 400
+    except Exception:
+        return False
+
+
+def source_handle_counts(attestation_dir):
+    """Map source_handle -> count across the attestation tier, for the uniqueness check.
+    A source_handle declared by 2+ attestations makes that handle resolve ambiguously."""
+    counts = {}
+    if not os.path.isdir(attestation_dir):
+        return counts
+    for r, _, fs in os.walk(attestation_dir):
+        for f in fs:
+            if not f.endswith(".md"):
+                continue
+            try:
+                with open(os.path.join(r, f), encoding="utf-8") as fh:
+                    sh = parse_frontmatter(fh.read()).get("source_handle")
+            except OSError:
+                continue
+            if sh:
+                counts[sh] = counts.get(sh, 0) + 1
+    return counts
+
+
+def intra_program_resolves(handle, analysis_dir):
+    """Non-attestation resolution to an analytical-tier artifact (intra-program reference)."""
+    if os.path.isfile(os.path.join(analysis_dir, "positions", f"{handle}.md")):
+        return True
+    m = re.match(r"^c\d+-f(\d+)", handle)          # campaign specialist brief: cN-fM-*
+    if m and glob.glob(os.path.join(analysis_dir, "campaigns", "*", "specialists", f"f{m.group(1)}-*.md")):
+        return True
+    if re.match(r"^c\d+-(parent|position)", handle):  # campaign parent / position
+        if glob.glob(os.path.join(analysis_dir, "campaigns", "*", "parent.md")):
+            return True
+    return False
+
+
+def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_urls, handle_counts):
+    """Six-check sequence + non-broken statuses + thin flag. Returns a finding dict."""
+    path = os.path.join(attestation_dir, f"{handle}.md")
+    # Check 1 — handle resolution. If not an attestation, try the analytical tier.
+    if not os.path.isfile(path):
+        if intra_program_resolves(handle, analysis_dir):
+            return {"status": "intra-program-resolved", "severity": "none", "thin": False}
+        return {"status": "unresolved-handle", "severity": "high", "thin": False}
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
+    fm = parse_frontmatter(text)
+    # Check 2 — source-handle match.
+    if fm.get("source_handle") != handle:
+        return {"status": "mismatched-source-handle", "severity": "high", "thin": False}
+    # Check 3 — handle uniqueness: the source_handle must be declared by exactly one attestation.
+    if handle_counts.get(handle, 0) > 1:
+        return {"status": "colliding-handle", "severity": "high", "thin": False}
+    # Check 4 — source resolution. Path failures are errors; URL failures warn.
+    if "source_path" in fm:
+        if not os.path.exists(fm["source_path"]):
+            return {"status": "unreachable-source", "severity": "medium", "thin": False}
+    elif "source_url" in fm:
+        if check_urls and not url_alive(fm["source_url"]):
+            return {"status": "unreachable-source", "severity": "low", "thin": False}  # URL=warn
+    else:
+        return {"status": "unreachable-source", "severity": "medium", "thin": False}
+    # Check 5 — provenance present on attestation AND calling brief.
+    if "provenance" not in fm or not calling_prov:
+        return {"status": "missing-provenance", "severity": "low", "thin": False}
+    # Resolved. Mark reduced-substrate-depth (non-broken) and the GR.5 thin flag.
+    thin = is_thin_attestation(body_after_frontmatter(text))
+    if fm.get("substrate_confidence") in ("search-summary", "snippet", "snippet-thin"):
+        return {"status": "reduced-substrate-attestation", "severity": "none", "thin": thin}
+    return {"status": "resolved", "severity": "none", "thin": thin}
+
+
+def lint_file(path, attestation_dir, analysis_dir, matchers, handle_counts, do_citation, do_pattern, do_thin, check_urls):
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
+    calling_prov = "provenance" in parse_frontmatter(text)
+    citations, patterns, thin = [], [], []
+    if do_citation:
+        for m in CITATION_RE.finditer(text):
+            f = check_citation(m.group(1), attestation_dir, analysis_dir, calling_prov, check_urls, handle_counts)
+            line = text.count("\n", 0, m.start()) + 1
+            f.update({"handle": m.group(1), "n": int(m.group(2)), "line": line})
+            citations.append(f)
+            if do_thin and f.pop("thin", False):
+                thin.append({"handle": m.group(1), "line": line})
+    if do_pattern:
+        for lineno, line in enumerate(text.splitlines(), 1):
+            has_cite = bool(CITATION_RE.search(line))
+            for cat, rx in matchers.items():
+                if cat == "count-without-unit-citation" and has_cite:
+                    continue
+                if rx.search(line):
+                    patterns.append({"category": cat, "line": lineno, "text": line.strip()[:120]})
+    return {"file": path, "citations": citations, "patterns": patterns, "thin": thin}
+
+
+def collect(target):
+    if os.path.isfile(target):
+        return [target]
+    return sorted(os.path.join(r, f) for r, _, fs in os.walk(target)
+                  for f in fs if f.endswith(".md"))
+
+
+def main():
+    ap = argparse.ArgumentParser(description="ARD citation-chain + pattern + thin lint (reference impl).")
+    ap.add_argument("target", help="markdown file or directory to lint")
+    ap.add_argument("--attestation-dir", default=".research/attestation")
+    ap.add_argument("--analysis-dir", default=".research/analysis")
+    ap.add_argument("--format", choices=("markdown", "json"), default="markdown")
+    ap.add_argument("--exit-code-on", choices=("high", "medium", "low", "none"), default="none")
+    ap.add_argument("--no-citation-check", action="store_true")
+    ap.add_argument("--no-pattern-check", action="store_true")
+    ap.add_argument("--no-thin-check", action="store_true")
+    ap.add_argument("--no-url-check", action="store_true", help="skip the HEAD liveness check on source_url")
+    ap.add_argument("--catalogs", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "catalogs.json"),
+                    help="generated catalog data (pattern categories + chain statuses); falls back to built-ins if absent")
+    args = ap.parse_args()
+
+    matchers, non_broken = load_catalog_config(args.catalogs)
+    handle_counts = source_handle_counts(args.attestation_dir)
+
+    results = [lint_file(p, args.attestation_dir, args.analysis_dir, matchers, handle_counts,
+                         not args.no_citation_check, not args.no_pattern_check,
+                         not args.no_thin_check, not args.no_url_check)
+               for p in collect(args.target)]
+
+    broken = [c for r in results for c in r["citations"] if c["status"] not in non_broken]
+    thin_all = [(r["file"], t) for r in results for t in r["thin"]]
+    worst = max([SEVERITY_RANK[c["severity"]] for c in broken]
+                + [SEVERITY_RANK["low"]] * bool(thin_all), default=0)
+
+    if args.format == "json":
+        print(json.dumps({"results": results, "broken_chains": broken,
+                          "thin_attestations": thin_all}, indent=2))
+    else:
+        for r in results:
+            flags = [c for c in r["citations"] if c["status"] not in non_broken]
+            notes = [c for c in r["citations"] if c["status"] in non_broken and c["status"] != "resolved"]
+            if not (flags or notes or r["patterns"] or r["thin"]):
+                continue
+            print(f"\n## {r['file']}")
+            for c in flags:
+                print(f"  [{c['severity']}] L{c['line']} [{c['handle']}]{{{c['n']}}} → {c['status']}")
+            for c in notes:
+                print(f"  [info] L{c['line']} [{c['handle']}]{{{c['n']}}} → {c['status']}")
+            for t in r["thin"]:
+                print(f"  [warn] L{t['line']} [{t['handle']}] → thin-attestation (GR.5)")
+            for p in r["patterns"]:
+                print(f"  [warn] L{p['line']} {p['category']}: {p['text']}")
+        n_ok = sum(1 for r in results for c in r["citations"] if c["status"] in non_broken)
+        print(f"\n{len(results)} file(s) · {n_ok} resolved/non-broken citation(s) · "
+              f"{len(broken)} broken · {len(thin_all)} thin · "
+              f"{sum(len(r['patterns']) for r in results)} pattern flag(s)")
+
+    threshold = SEVERITY_RANK[args.exit_code_on]
+    sys.exit(1 if threshold and worst >= threshold else 0)
+
+
+if __name__ == "__main__":
+    main()

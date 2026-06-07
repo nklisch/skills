@@ -1,0 +1,16 @@
+[package]
+name = "research-view-cli"
+version = "0.1.0"
+edition = "2021"
+description = "CLI adapter for the agentic-research research-view substrate query tool"
+license = "MIT"
+
+[[bin]]
+name = "research-view"
+path = "src/main.rs"
+
+[dependencies]
+research-view-core = { path = "../core" }
+
+[dev-dependencies]
+tempfile = "3"

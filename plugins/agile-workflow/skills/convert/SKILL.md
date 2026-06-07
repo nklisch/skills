@@ -523,6 +523,19 @@ rules (tag semantics, test integrity, advisory review, entry points) no longer
 live here — Phase 6.5 writes them to `.agents/rules/agile-workflow.md`, and the
 slim section above points agents at `.agents/rules/*.md`.
 
+**Research-substrate fields are conditional on the `agentic-research` plugin.**
+The frontmatter field list above is agile-workflow's own. Only when the
+`agentic-research` plugin is installed in the target project — its
+`research-orchestrator` / `research-handoff` skills are available, or a
+`.research/` tier already exists — extend the field list to
+`(`kind, stage, tags, parent, depends_on, release_binding, research_refs, research_origin`)`
+and add a one-line pointer to the `.work/` ↔ `.research/` handoff
+(`plugins/agentic-research/docs/HANDOFF.md`). Without that plugin, omit
+`research_refs` / `research_origin` and do not scaffold `.research/` or any
+research docs — they are an optional agentic-research extension. (`work-view`
+parses both fields harmlessly when unset, so an existing `.work/` substrate is
+never broken by their absence; convert simply does not advertise them.)
+
 ### Phase 6.5: Write `.agents/rules/agile-workflow.md` (rules-first, then slim)
 
 The dense agile-workflow behavioral rules live in a plugin-managed

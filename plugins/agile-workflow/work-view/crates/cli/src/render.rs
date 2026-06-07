@@ -164,6 +164,8 @@ mod tests {
             depends_on: vec![],
             release_binding: None,
             gate_origin: None,
+            research_refs: vec![],
+            research_origin: None,
             created: None,
             updated: None,
             tier: Tier::Active,

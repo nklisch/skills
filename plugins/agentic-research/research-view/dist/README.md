@@ -1,0 +1,41 @@
+# research-view prebuilt binaries
+
+This directory contains platform-matched prebuilt binaries of `research-view`,
+organised by target triple:
+
+| Triple | Platform |
+|---|---|
+| `x86_64-unknown-linux-musl` | Linux x86_64 (static) |
+| `aarch64-unknown-linux-musl` | Linux aarch64 / ARM64 (static) |
+| `x86_64-apple-darwin` | macOS Intel |
+| `aarch64-apple-darwin` | macOS Apple Silicon (M1/M2/M3) |
+
+## How binaries are produced
+
+Binaries are built and committed by the CI workflow at
+`.github/workflows/build-research-view.yml`. The workflow has two modes:
+
+- **PR / push** — builds all four targets, uploads as GitHub Actions artifacts,
+  and runs a size guard (fails if any binary exceeds 8 MB). Does NOT commit
+  binaries to the tree.
+- **Manual refresh (`workflow_dispatch`)** — builds all four targets and commits
+  the binaries under `dist/<triple>/research-view`. Run this job after
+  `./scripts/bump-version.sh agentic-research <level>` has committed and pushed
+  the new source stamp; a pre-bump refresh compiles the old version into the
+  binaries.
+
+## Do not hand-edit
+
+Binary files in this directory are generated artifacts. Do not add, replace, or
+modify them by hand. Changes made outside the CI refresh job may be silently
+overwritten and will not be reproducible.
+
+## Fallback behaviour
+
+`install-research-view.sh` installs a matching prebuilt binary for supported
+platforms. If that binary is missing, fails its smoke test, or reports a stale
+version, installation fails loudly.
+
+Only unsupported platforms fall back to `scripts/research-view.sh` (the
+pure-bash CLI implementation). That fallback keeps agent query workflows working
+on any platform; it does not support any board-style interactive subcommand.

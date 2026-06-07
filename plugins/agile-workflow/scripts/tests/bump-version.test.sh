@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 # bump-version.test.sh — unit tests for channel-metadata lockstep and the
-# work-view projection in scripts/bump-version.sh (repo-root script).
+# version projection blocks in scripts/bump-version.sh (repo-root script).
 #
-# The load-bearing mechanism under test is the projection block
-# (scripts/bump-version.sh, the `if [[ "$plugin" == "agile-workflow" ]]` block):
-# after a bump it writes the new semver into BOTH work-view implementations in
-# lockstep —
+# The load-bearing mechanisms under test are the two projection blocks:
+#
+# agile-workflow / work-view block:
 #   * the Rust stamp `work-view/crates/cli/.work-view-version` (NO trailing newline)
 #   * the bash fallback's `WORK_VIEW_VERSION="x.y.z"` literal in scripts/work-view.sh
-# with a Fail-Fast `grep` postcondition that exits 1 if the anchored sed pattern
-# no longer matches the literal.
+#
+# agentic-research / research-view block:
+#   * the Rust stamp `research-view/crates/cli/.research-view-version` (NO trailing newline)
+#   * the bash fallback's `RESEARCH_VIEW_VERSION="x.y.z"` literal in scripts/research-view.sh
+#
+# Both blocks use a Fail-Fast `grep` postcondition that exits 1 if the anchored
+# sed pattern no longer matches the literal.
 #
 # We run the REAL bump-version.sh (not a reimplementation) inside a throwaway
 # `git init` scratch repo whose tree mirrors the paths the script touches. To
@@ -119,7 +123,7 @@ EOF
 # ---------------------------------------------------------------------------
 # new_scratch_repo — build a throwaway repo mirroring the paths bump-version.sh
 # touches, with a clean working tree (the script refuses a dirty plugin dir).
-#   $1 = agile-workflow plugin.json version (also seeds the codex manifest)
+#   $1 = plugin.json version to use for agile-workflow (and agentic-research)
 #   $2 = optional extra plugin name to seed (for the non-agile-workflow guard)
 # Echoes the repo path.
 # ---------------------------------------------------------------------------
@@ -151,6 +155,31 @@ new_scratch_repo() {
 #!/usr/bin/env bash
 WORK_VIEW_VERSION="${aw_version}"
 echo "work-view \${WORK_VIEW_VERSION}"
+EOF
+
+  # agentic-research plugin manifests + research-view artifacts.
+  mkdir -p \
+    "${repo}/plugins/agentic-research/.claude-plugin" \
+    "${repo}/plugins/agentic-research/.codex-plugin" \
+    "${repo}/plugins/agentic-research/research-view/crates/cli" \
+    "${repo}/plugins/agentic-research/scripts"
+
+  printf '{\n  "name": "agentic-research",\n  "version": "%s"\n}\n' "$aw_version" \
+    > "${repo}/plugins/agentic-research/.claude-plugin/plugin.json"
+  printf '{\n  "name": "agentic-research",\n  "version": "%s"\n}\n' "$aw_version" \
+    > "${repo}/plugins/agentic-research/.codex-plugin/plugin.json"
+  printf '{\n  "name": "@nklisch/pi-agentic-research",\n  "version": "%s",\n  "keywords": ["pi-package"],\n  "pi": { "skills": ["./skills"] }\n}\n' "$aw_version" \
+    > "${repo}/plugins/agentic-research/package.json"
+
+  # Rust stamp — no trailing newline.
+  printf '%s' "$aw_version" \
+    > "${repo}/plugins/agentic-research/research-view/crates/cli/.research-view-version"
+
+  # Bash fallback with the anchored RESEARCH_VIEW_VERSION literal.
+  cat > "${repo}/plugins/agentic-research/scripts/research-view.sh" <<EOF
+#!/usr/bin/env bash
+RESEARCH_VIEW_VERSION="${aw_version}"
+echo "research-view \${RESEARCH_VIEW_VERSION}"
 EOF
 
   if [ -n "$extra_plugin" ]; then
@@ -202,6 +231,9 @@ is_staged() {
 VER_REL="plugins/agile-workflow/work-view/crates/cli/.work-view-version"
 WV_REL="plugins/agile-workflow/scripts/work-view.sh"
 
+RV_VER_REL="plugins/agentic-research/research-view/crates/cli/.research-view-version"
+RV_SH_REL="plugins/agentic-research/scripts/research-view.sh"
+
 # ---------------------------------------------------------------------------
 # Test group 1: patch bump projects new semver into BOTH implementations
 # ---------------------------------------------------------------------------
@@ -245,6 +277,16 @@ assert_true ".work-view-version is staged" "is_staged '$REPO1' '$VER_REL'"
 assert_true "work-view.sh is staged" "is_staged '$REPO1' '$WV_REL'"
 assert_true "agile-workflow package.json is staged" \
   "is_staged '$REPO1' 'plugins/agile-workflow/package.json'"
+
+# agile-workflow bump must NOT touch research-view artifacts.
+assert_eq "aw-bump: .research-view-version unchanged" "1.2.3" \
+  "$(cat "${REPO1}/${RV_VER_REL}")"
+assert_true "aw-bump: research-view.sh RESEARCH_VIEW_VERSION unchanged" \
+  "grep -q '^RESEARCH_VIEW_VERSION=\"1.2.3\"\$' '${REPO1}/${RV_SH_REL}'"
+assert_false "aw-bump: .research-view-version NOT staged" \
+  "is_staged '$REPO1' '$RV_VER_REL'"
+assert_false "aw-bump: research-view.sh NOT staged" \
+  "is_staged '$REPO1' '$RV_SH_REL'"
 
 rm -rf "$REPO1"
 
@@ -385,6 +427,113 @@ assert_false "no-package plugin does not create package.json" \
   "[ -f '${REPO7}/plugins/workflow/package.json' ]"
 
 rm -rf "$REPO7"
+
+# ---------------------------------------------------------------------------
+# Test group 7: agentic-research patch bump projects new semver into BOTH
+# research-view implementations
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 7: agentic-research patch bump projects lockstep ==="
+
+REPO8="$(new_scratch_repo "1.2.3")"
+run_bump "$REPO8" agentic-research patch
+
+assert_eq "ar patch bump exits 0" "0" "$BUMP_RC"
+
+# .research-view-version equals the new semver with NO trailing newline.
+RV_VER_CONTENT="$(cat "${REPO8}/${RV_VER_REL}")"
+assert_eq "ar: .research-view-version content == new semver" "1.2.4" "$RV_VER_CONTENT"
+RV_VER_BYTES="$(wc -c < "${REPO8}/${RV_VER_REL}" | tr -d ' ')"
+assert_eq "ar: .research-view-version is exactly 5 bytes (no trailing newline)" "5" "$RV_VER_BYTES"
+LAST_BYTE_RV="$(tail -c1 "${REPO8}/${RV_VER_REL}" | od -An -tx1 | tr -d ' \n')"
+assert_false "ar: .research-view-version last byte is not a newline (0a)" "[ '$LAST_BYTE_RV' = '0a' ]"
+
+# research-view.sh RESEARCH_VIEW_VERSION literal equals the new semver.
+assert_true "ar: research-view.sh RESEARCH_VIEW_VERSION literal == new" \
+  "grep -q '^RESEARCH_VIEW_VERSION=\"1.2.4\"\$' '${REPO8}/${RV_SH_REL}'"
+assert_false "ar: old RESEARCH_VIEW_VERSION literal is gone" \
+  "grep -q '^RESEARCH_VIEW_VERSION=\"1.2.3\"\$' '${REPO8}/${RV_SH_REL}'"
+
+# plugin.json manifests and package metadata advanced.
+assert_eq "ar: claude plugin.json bumped" "1.2.4" \
+  "$(jq -r '.version' "${REPO8}/plugins/agentic-research/.claude-plugin/plugin.json")"
+assert_eq "ar: codex plugin.json bumped" "1.2.4" \
+  "$(jq -r '.version' "${REPO8}/plugins/agentic-research/.codex-plugin/plugin.json")"
+assert_eq "ar: package.json bumped" "1.2.4" \
+  "$(jq -r '.version' "${REPO8}/plugins/agentic-research/package.json")"
+
+# Both research-view files are git-staged.
+assert_true "ar: claude plugin.json is staged" \
+  "is_staged '$REPO8' 'plugins/agentic-research/.claude-plugin/plugin.json'"
+assert_true "ar: codex plugin.json is staged" \
+  "is_staged '$REPO8' 'plugins/agentic-research/.codex-plugin/plugin.json'"
+assert_true "ar: .research-view-version is staged" "is_staged '$REPO8' '$RV_VER_REL'"
+assert_true "ar: research-view.sh is staged" "is_staged '$REPO8' '$RV_SH_REL'"
+assert_true "ar: agentic-research package.json is staged" \
+  "is_staged '$REPO8' 'plugins/agentic-research/package.json'"
+
+# agentic-research bump must NOT touch work-view artifacts.
+assert_eq "ar-bump: .work-view-version unchanged" "1.2.3" \
+  "$(cat "${REPO8}/${VER_REL}")"
+assert_true "ar-bump: work-view.sh WORK_VIEW_VERSION unchanged" \
+  "grep -q '^WORK_VIEW_VERSION=\"1.2.3\"\$' '${REPO8}/${WV_REL}'"
+assert_false "ar-bump: .work-view-version NOT staged" \
+  "is_staged '$REPO8' '$VER_REL'"
+assert_false "ar-bump: work-view.sh NOT staged" \
+  "is_staged '$REPO8' '$WV_REL'"
+
+rm -rf "$REPO8"
+
+# ---------------------------------------------------------------------------
+# Test group 8: agentic-research Fail-Fast postcondition fires on indented literal
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 8: ar postcondition exits 1 when literal anchor no longer matches ==="
+
+REPO9="$(new_scratch_repo "1.2.3")"
+# Break the anchored literal: indent it so `^RESEARCH_VIEW_VERSION="..."` no longer
+# matches. sed exits 0 (no match), so the projection silently no-ops and the grep
+# postcondition must catch it.
+cat > "${REPO9}/${RV_SH_REL}" <<'EOF'
+#!/usr/bin/env bash
+  RESEARCH_VIEW_VERSION="1.2.3"
+echo "research-view ${RESEARCH_VIEW_VERSION}"
+EOF
+( cd "$REPO9" && "$REAL_GIT" add -A && "$REAL_GIT" commit -q -m "indent rv literal" >/dev/null 2>&1 )
+
+run_bump "$REPO9" agentic-research patch
+
+assert_eq "ar: indented-literal bump exits 1 (postcondition fires)" "1" "$BUMP_RC"
+AR_POST_ERR="$(cat "$BUMP_ERR" 2>/dev/null || true)"
+assert_true "ar: postcondition reports failed projection" \
+  "printf '%s' \"\$AR_POST_ERR\" | grep -q 'failed to project version into'"
+# The indented literal was not rewritten.
+assert_false "ar: indented literal NOT rewritten to new semver" \
+  "grep -q 'RESEARCH_VIEW_VERSION=\"1.2.4\"' '${REPO9}/${RV_SH_REL}'"
+
+rm -rf "$REPO9"
+
+# ---------------------------------------------------------------------------
+# Test group 9: agentic-research minor/major bumps project correctly
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 9: ar minor and major bumps project lockstep ==="
+
+REPO10="$(new_scratch_repo "1.2.3")"
+run_bump "$REPO10" agentic-research minor
+assert_eq "ar: minor bump exits 0" "0" "$BUMP_RC"
+assert_eq "ar: minor .research-view-version == 1.3.0" "1.3.0" "$(cat "${REPO10}/${RV_VER_REL}")"
+assert_true "ar: minor research-view.sh literal == 1.3.0" \
+  "grep -q '^RESEARCH_VIEW_VERSION=\"1.3.0\"\$' '${REPO10}/${RV_SH_REL}'"
+rm -rf "$REPO10"
+
+REPO11="$(new_scratch_repo "1.2.3")"
+run_bump "$REPO11" agentic-research major
+assert_eq "ar: major bump exits 0" "0" "$BUMP_RC"
+assert_eq "ar: major .research-view-version == 2.0.0" "2.0.0" "$(cat "${REPO11}/${RV_VER_REL}")"
+assert_true "ar: major research-view.sh literal == 2.0.0" \
+  "grep -q '^RESEARCH_VIEW_VERSION=\"2.0.0\"\$' '${REPO11}/${RV_SH_REL}'"
+rm -rf "$REPO11"
 
 # ---------------------------------------------------------------------------
 # Summary
