@@ -124,8 +124,8 @@ standalone plan docs.
 
 ### Tag semantics
 
-The `tags` field on items routes them to the right design skill. One tag has
-load-bearing semantics — get this one right:
+The `tags` field on items routes them to the right design skill. A few tags
+carry load-bearing routing semantics — get these right:
 
 - **`[refactor]`** — behavior-preserving structural change ONLY. Apply the
   black-box test: would any observable behavior change for a caller of the
@@ -138,6 +138,14 @@ load-bearing semantics — get this one right:
     replace a silent failure with an explicit error, split a function in a
     way that changes call-site contracts, "major rework of X."
 - **`[perf]`** — performance work. Routes to `perf-design`.
+- **`[prose]`** — no-code-surface deliverable (docs, conventions / rules,
+  research write-ups, copy, config-as-prose). Routes to `prose-author`, the
+  no-code authoring lane that skips the Explore / pre-mortem / question gate
+  and advances on the brief alone. Work-nature, not domain: apply the black-box
+  test — if the feature has a real code surface (an interface, types, an
+  integration seam, an architectural choice), it is NOT prose; drop the tag and
+  let it route through `feature-design`. Prose items also implement **inline**
+  (`implement`), never via the orchestrator.
 
 All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
 affect skill routing.

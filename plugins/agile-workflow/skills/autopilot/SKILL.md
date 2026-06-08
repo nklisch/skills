@@ -137,6 +137,7 @@ Routing:
 - `stage: drafting`, `kind: epic` -> `epic-design`
 - `stage: drafting`, feature with `tags: [refactor]` -> `refactor-design`
 - `stage: drafting`, feature with `tags: [perf]` -> `perf-design`
+- `stage: drafting`, feature with `tags: [prose]` -> `prose-author`
 - `stage: drafting`, other feature -> `feature-design`
 - `stage: implementing`, epic -> skip direct implementation; children are the
   work targets

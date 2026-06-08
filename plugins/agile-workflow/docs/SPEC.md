@@ -118,6 +118,7 @@ skill reads this at session start (via the SessionStart hook or directly).
 - security    auth, validation, secrets, supply chain
 - perf        throughput, latency, memory — routes to perf-design
 - refactor    behavior-preserving structural change ONLY — fails the black-box test (any observable behavior change for callers) means NOT a refactor — routes to refactor-design
+- prose       no-code-surface deliverable (docs, conventions, copy) — routes to prose-author (lean authoring lane: brief-as-design, inline implement)
 
 ## Slug conventions
 <format and prefix rules>

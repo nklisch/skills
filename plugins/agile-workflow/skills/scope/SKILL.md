@@ -200,9 +200,10 @@ In conversation:
   left in backlog)
 - **Foundation docs rolled forward**: list of files touched (or "none")
 - **Next**: design family picks up drafting features/epics
-  (`/agile-workflow:feature-design`, `epic-design`, `refactor-design`, or
-  `perf-design` based on kind and tags); implementing stories are ready for
-  an autopilot goal or `/agile-workflow:implement-orchestrator`.
+  (`/agile-workflow:feature-design`, `epic-design`, `refactor-design`,
+  `perf-design`, or the `prose-author` lane based on kind and tags); implementing
+  stories are ready for an autopilot goal or
+  `/agile-workflow:implement-orchestrator` (prose features implement inline).
 
 ## Workflow — single-idea mode
 
@@ -451,9 +452,9 @@ In conversation:
 - **Depends on**: `[<id>, ...]` (or "no dependencies")
 - **Foundation docs rolled forward**: list of files touched (or "none")
 - **Next**: for features at `drafting`, the design family will pick this up
-  (`/agile-workflow:feature-design`, `refactor-design`, or `perf-design` based
-  on tags); for epics at `drafting`, `/agile-workflow:epic-design` decomposes
-  into child features.
+  (`/agile-workflow:feature-design`, `refactor-design`, `perf-design`, or the
+  `prose-author` lane based on tags); for epics at `drafting`,
+  `/agile-workflow:epic-design` decomposes into child features.
 
 ## Guardrails
 

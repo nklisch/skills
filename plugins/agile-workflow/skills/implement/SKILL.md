@@ -2,8 +2,10 @@
 name: implement
 description: >
   ALWAYS invoke this skill when the user explicitly asks to implement a substrate
-  item inline OR the delivery is tiny (≤ ~50 LoC, ≤ 2 files, no coordination) — for
-  any larger or default implementing work prefer /agile-workflow:implement-orchestrator.
+  item inline OR the delivery is tiny (≤ ~50 LoC, ≤ 2 files, no coordination) OR the
+  deliverable is no-code prose (a [prose] item — any size, as long as it needs no
+  coordination) — for any larger or default *code* work prefer
+  /agile-workflow:implement-orchestrator.
   Inline single-stride implementation of a substrate item at stage:implementing. Reads
   the design embedded in the item body, writes code per the spec, runs build+tests,
   advances stage implementing -> review, and updates the item body with implementation
@@ -27,12 +29,18 @@ work, no sub-agent fan-out — and it's the right call when:
 
 - The delivery is small and focused (a tiny tweak, a single-file change, a
   flag flip, landing code already in the working tree)
+- The deliverable is **no-code prose** (a `[prose]` feature — docs, a
+  convention / rule, research write-up, copy). The ≤50 LoC / ≤2 files cap is a
+  *code-coordination* proxy; it does not apply to prose, which qualifies on
+  **no-coordination** alone regardless of length. A 600-line convention rewrite
+  is one authoring stride, not an orchestrated fan-out.
 - The user explicitly asks to implement inline / "do it yourself"
 - You're already mid-flow on this item and a hand-off would lose context
 
-When the work is multi-unit, spans several files, or has sibling stories that
-could run in parallel, prefer the orchestrator. When in doubt and nothing
-strongly points either way, the orchestrator is the safer default.
+When the work is multi-unit *code*, spans several files, or has sibling stories
+that could run in parallel, prefer the orchestrator. When in doubt on code work
+and nothing strongly points either way, the orchestrator is the safer default.
+Prose work is never a reason to reach for the orchestrator.
 
 Common phrases:
 - "implement story X", "implement this feature"
