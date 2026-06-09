@@ -105,6 +105,15 @@ deliberately absent from `allowed-tools`).
   output_kind) — the dials are *already set by the act of scoping that item*: read them,
   confirm/adjust with the user, then proceed; don't re-propose from scratch. Scoping the work
   item IS the dispatch act (see §Work-coordination entry).
+  **Under autonomous delegation** (an autopilot/queue-driver goal dispatched this engagement
+  and its contract forbids mid-run questions): the registration-carrying item is the coherent
+  case — the dials were user-confirmed at scope time, so kickoff confirmation is already
+  satisfied; state the read dials and proceed. The checkpoints below then degrade to
+  **surface-and-proceed**: narrate the content, persist the durable half (Checkpoint A's
+  decomposition rationale per §10.6; Checkpoint B's contradictions in the synthesis), and
+  continue — judgment logged, never silently skipped. Without a registration-carrying item,
+  autonomous dispatch has no user-set dials to read; treat that as a hard-halt condition under
+  the delegation contract rather than silently self-setting the dials.
 - **Checkpoint A** (after `decompose`, multi-path) — present the ≥3 decomposition candidates +
   comparative assessment + chosen sample + self-flag; confirm/adjust/reframe.
 - **Checkpoint B** (before the cross-join, multi-path) — surface candidate `## Contradictions`
