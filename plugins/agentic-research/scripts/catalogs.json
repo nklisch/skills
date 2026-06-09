@@ -88,6 +88,13 @@
       "fence": null
     },
     {
+      "id": "AQ.3",
+      "name": "Fabricated acquisition candidate — a training-recalled source surfaced as worth-acquiring (most readily in proactive enrichment), not grounded in a fetched source that names it",
+      "locus": "AQ",
+      "status": "fenced",
+      "fence": "source-bound acquisition-candidate discipline (SPEC.md §4.1) — a proposed source must point at a fetched source that names it as canonical; the recalled-from-training state is forbidden for suggestions as for citations"
+    },
+    {
       "id": "CO.1",
       "name": "Smoothed contradictions in cross-source synthesis",
       "locus": "CO",
@@ -134,7 +141,7 @@
       "name": "Decomposition-framing lock-in — a facet cut inherits a lens all downstream work runs inside",
       "locus": "PR",
       "status": "fenced",
-      "fence": "multi-sampling at decompose (≥3 candidates + comparative + bracket) + persisted rationale"
+      "fence": "multi-sampling at decompose (≥3 candidates + comparative + bracket) + the persisted decomposition-rationale artifact (SPEC.md §10.6)"
     },
     {
       "id": "WM.1",

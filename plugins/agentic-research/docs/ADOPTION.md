@@ -10,7 +10,7 @@ framework: we vendor ARD's reference surface and map it onto this repo's substra
 ## Adoption stance
 
 - **Pin, don't fork.** The adopted release is pinned in [`ard.json`](../ard.json) (currently
-  **v0.4.1**); the canonical spec stays upstream and we cite it by section (e.g. *ARD SPEC
+  **v0.5.0**); the canonical spec stays upstream and we cite it by section (e.g. *ARD SPEC
   §4.2*). Re-narrating it would reintroduce the very drift the discipline fences (*ARD SPEC
   §4.6/§5* — upstream `ard.json` pairs the never-re-narrate rule with both). See
   [VERSIONING.md](VERSIONING.md).

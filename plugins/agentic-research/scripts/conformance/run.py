@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# ARD-Version: 0.4.1
+# ARD-Version: 0.5.0
 # ARD lint conformance runner.
 #
 # Runs the lint over the golden fixtures and asserts it reproduces the canonical
