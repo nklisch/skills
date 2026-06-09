@@ -137,6 +137,86 @@ If the release is at `stage: planned`:
    git commit -m "release-deploy: bind <N> items to <version>"
    ```
 
+### Phase 3.5: Binding-consistency guard
+
+Before any gate runs, walk every item bound to this release and verify three invariants. Any
+mismatch halts the release with a list of offending items — do NOT rebind anything implicitly. The
+user must resolve the inconsistency and re-run `/agile-workflow:release-deploy <version>`.
+
+This guard catches drift where a child's review-pass bound it to the release but its parent epic was
+forgotten, or where a done epic's children were bound without the epic itself being bound.
+
+Note: the plugin's archive tier may hold **bodyless stubs** (when `terminal-tier retention:
+delete-refs` is in effect). Stubs retain their frontmatter (`id`, `parent`, `stage`,
+`release_binding`), so the parent-walk works identically for stubs and live items — read the
+frontmatter fields to resolve parentage and binding regardless of whether a body is present.
+
+```bash
+# Gather all items bound to this release (auto-widens to active + archive tiers).
+# Exclude the release orchestration item itself.
+bound_items=$(.work/bin/work-view --release <version> --paths \
+  | xargs grep -lm1 'kind: \(epic\|feature\|story\)' 2>/dev/null)
+
+mismatches=()
+
+for item_path in $bound_items; do
+  kind=$(grep -m1 '^kind:' "$item_path" | awk '{print $2}')
+  item_id=$(grep -m1 '^id:' "$item_path" | awk '{print $2}')
+  item_binding=$(grep -m1 '^release_binding:' "$item_path" | awk '{print $2}')
+  item_stage=$(grep -m1 '^stage:' "$item_path" | awk '{print $2}')
+  parent_id=$(grep -m1 '^parent:' "$item_path" | awk '{print $2}')
+
+  # Check 1: all children of a bound epic are bound to the same release.
+  # Walk this item's children (items whose parent: field matches this item's id).
+  if [ "$kind" = "epic" ]; then
+    # Find all children of this epic across active and archive tiers.
+    while IFS= read -r child_path; do
+      child_binding=$(grep -m1 '^release_binding:' "$child_path" | awk '{print $2}')
+      child_id=$(grep -m1 '^id:' "$child_path" | awk '{print $2}')
+      if [ "$child_binding" != "<version>" ] && [ "$child_binding" != "null" ] && [ "$child_binding" != "" ]; then
+        mismatches+=("CHECK 1 — child $child_id is bound to $child_binding, but its parent epic $item_id is bound to <version>")
+      elif [ "$child_binding" = "null" ] || [ "$child_binding" = "" ]; then
+        # Child is unbound; that's only a mismatch if the epic is bound.
+        mismatches+=("CHECK 1 — child $child_id (unbound) has parent epic $item_id bound to <version>; all children of a bound epic must share the same release binding")
+      fi
+    done < <(grep -rl "^parent: ${item_id}$" .work/active .work/archive 2>/dev/null)
+  fi
+
+  # Check 2: an epic at stage: done whose children are bound is itself bound.
+  if [ "$kind" = "epic" ] && [ "$item_stage" = "done" ] && { [ "$item_binding" = "null" ] || [ -z "$item_binding" ]; }; then
+    # Look for any child that is bound to <version>.
+    if grep -rl "^parent: ${item_id}$" .work/active .work/archive 2>/dev/null \
+         | xargs grep -lm1 "^release_binding: <version>$" 2>/dev/null | grep -q .; then
+      mismatches+=("CHECK 2 — epic $item_id is at stage: done with bound children but is itself unbound; bind the epic to <version> before proceeding")
+    fi
+  fi
+
+  # Check 3: no done parent missing a binding while its children are bound (orphan risk).
+  # Applies to epics AND features (a feature that parents stories).
+  if { [ "$kind" = "epic" ] || [ "$kind" = "feature" ]; } && \
+     [ "$item_stage" = "done" ] && { [ "$item_binding" = "null" ] || [ -z "$item_binding" ]; }; then
+    if grep -rl "^parent: ${item_id}$" .work/active .work/archive 2>/dev/null \
+         | xargs grep -lm1 "^release_binding: <version>$" 2>/dev/null | grep -q .; then
+      mismatches+=("CHECK 3 — $kind $item_id is done and unbound while its children are bound to <version> (orphan risk)")
+    fi
+  fi
+done
+
+if [ "${#mismatches[@]}" -gt 0 ]; then
+  echo "BINDING CONSISTENCY FAILURES — release <version> is halted:"
+  for m in "${mismatches[@]}"; do
+    echo "  • $m"
+  done
+  echo ""
+  echo "Resolve each mismatch manually (edit release_binding or parent frontmatter as appropriate),"
+  echo "then re-run: /agile-workflow:release-deploy <version>"
+  exit 1
+fi
+```
+
+If any mismatch is found, halt with the list above and stop the release flow. Do not proceed to
+gates. Do not rebind anything. The user is the only actor who can resolve a binding inconsistency.
+
 ### Phase 4: Gate execution
 
 **Gates run over every bound non-release item, including late-bound archived stubs.** Archived stubs
