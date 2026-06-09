@@ -67,12 +67,21 @@ running inline, use the same categories in the final summary:
 
 ## Prerequisites
 
-Before starting:
+Two gates, with different timing:
 
-1. `.work/CONVENTIONS.md` exists. If not, halt: "No substrate found. Run
+1. **Before anything:** `.work/CONVENTIONS.md` exists. If not, halt: "No substrate found. Run
    `/agile-workflow:convert` first."
-2. Foundation docs exist (`docs/VISION.md` or `docs/SPEC.md`). If not, halt
-   with a clear message.
+2. **After Phase 1 resolves the scope** (the check is route-aware, so it runs against the
+   resolved work set): foundation docs exist (`docs/VISION.md` or `docs/SPEC.md`) — required
+   when the scope contains **any** item that routes to the design family (`epic-design` /
+   `feature-design` / `refactor-design` / `perf-design`), which read foundation docs as their
+   design anchor. If absent in that case, halt the whole run with a clear message **before
+   delegating any item** — including in a mixed scope: do not partially drain the
+   non-design-family items, a partial drain leaves the queue in a state the goal statement
+   didn't describe. A scope with no design-family routes — drafting items that all route
+   cross-plugin to `agentic-research:research-orchestrator` (`[research]` items anchor on the
+   commissioning item body + the research substrate, not VISION/SPEC), and/or
+   `implementing`/`review` items only — runs without foundation docs.
 
 These are hard halts because the queue has no reliable substrate or design
 anchor without them.
