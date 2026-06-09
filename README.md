@@ -123,6 +123,7 @@ directional choice and mock so autopilot runs without guessing.
 | **feature-design** | feature at stage:drafting, no specialized tag | Greenfield design — written INTO feature body, child stories spawned with depends_on, advances stage to implementing. Fallback tier for mocks. |
 | **refactor-design** | feature with tags:[refactor], OR discovery (no arg / path / NL scope) | Per-feature: code-smell scan, before/after step shape, risk + rollback per step. Discovery: scans target scope, classifies findings as pure-refactor or behavior-changing, emits items. |
 | **perf-design** | feature with tags:[perf], OR discovery (no arg / path / NL scope) | Per-feature: bottleneck identification, optimization hierarchy (algorithmic > I/O > idioms > parallelism), benchmark scaffolds. Discovery: picks top 3-5 likely hot paths, profiles them, emits items per bottleneck. |
+| **agentic-research:research-orchestrator** *(cross-plugin)* | feature with tags:[research] | Grounded ARD research engagement — an *input* that grounds other work, not a code design. Reads the item's `research_dials:` registration block (scope_authority, verification_rigor, intent, output_kind); scoping the item IS the dispatch act. Runs the ARD walk with verification gates inline; never binds to a release. Requires the `agentic-research` plugin (without it, `[research]` is an inert tag → `feature-design`). |
 
 ### Production + review (agent picks)
 

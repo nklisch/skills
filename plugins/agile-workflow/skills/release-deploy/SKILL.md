@@ -91,7 +91,8 @@ If the release is at `stage: planned`:
    ```bash
    .work/bin/work-view --stage done --release "" --paths
    ```
-   (Filter for empty `release_binding`.)
+   (Filter for empty `release_binding`. **Exclude `tags: [research]` items** — research
+   engagements are inputs that ground other work, not release members; they never bind.)
 
 2. **Archived-stub candidates (`archived_atop` late-binding).** Gather **all unbound archived
    stubs** (`release_binding: null`) regardless of their `archived_atop` value. Each unbound stub is
@@ -111,11 +112,15 @@ If the release is at `stage: planned`:
    # .work/archive/epics/, not just the flat .work/archive/ root).
    find .work/archive -name '*.md' -type f | while read -r p; do
      binding=$(grep -m1 '^release_binding:' "$p" | awk '{print $2}')
+     # [research] items are research inputs, not release members — never bind them.
+     grep -qE 'tags:.*\bresearch\b|^[[:space:]]*-[[:space:]]*research[[:space:]]*$' "$p" && continue
      [[ "$binding" == "null" ]] && echo "$p"
    done
    ```
    (Skip stubs already carrying a `release_binding` — they belong to an earlier release. Show each
-   stub's `archived_atop` so the user sees the baseline it was done atop when confirming.)
+   stub's `archived_atop` so the user sees the baseline it was done atop when confirming. **Skip
+   `tags: [research]` stubs** — a research engagement is an input that grounds other work, not a
+   shippable bundle member, so it never binds to a release; see the `[research]` tag semantics.)
 
 3. Use AskUserQuestion to confirm the full set (active done items + gathered archived stubs).
    Default: all active done items without binding plus all unbound archived stubs go in. Confirming

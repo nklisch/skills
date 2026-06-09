@@ -124,8 +124,8 @@ standalone plan docs.
 
 ### Tag semantics
 
-The `tags` field on items routes them to the right design skill. One tag has
-load-bearing semantics — get this one right:
+The `tags` field on items routes them to the right design skill. A few tags
+carry load-bearing routing semantics — get these right:
 
 - **`[refactor]`** — behavior-preserving structural change ONLY. Apply the
   black-box test: would any observable behavior change for a caller of the
@@ -138,6 +138,19 @@ load-bearing semantics — get this one right:
     replace a silent failure with an explicit error, split a function in a
     way that changes call-site contracts, "major rework of X."
 - **`[perf]`** — performance work. Routes to `perf-design`.
+- **`[research]`** — a grounded research engagement: an *input* that grounds
+  other work (a decision, a design, an adoption call), not a shippable
+  deliverable. Routes **cross-plugin** to `agentic-research:research-orchestrator`
+  (the dynamic ARD research orchestrator), not a design-family skill. The work
+  item carries the engagement registration in a `research_dials:` block
+  (scope_authority, verification_rigor, intent, output_kind) — **scoping the item
+  IS the dispatch act**; the orchestrator reads the dials at kickoff. A
+  `[research]` item **does not bind to a release** (it is an input, not a bundle
+  member) and its verification **gates run inline** in the orchestrator's stack
+  (it never reaches `release-deploy`). Requires the `agentic-research` plugin;
+  without it, `[research]` is an inert project tag — drop it and the item routes
+  through `feature-design`. See the agentic-research plugin's `docs/HANDOFF.md`
+  for the pairing.
 
 All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
 affect skill routing.

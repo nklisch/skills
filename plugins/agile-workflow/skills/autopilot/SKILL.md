@@ -137,10 +137,17 @@ Routing:
 - `stage: drafting`, `kind: epic` -> `epic-design`
 - `stage: drafting`, feature with `tags: [refactor]` -> `refactor-design`
 - `stage: drafting`, feature with `tags: [perf]` -> `perf-design`
+- `stage: drafting`, feature with `tags: [research]` -> `agentic-research:research-orchestrator`
+  (**cross-plugin**; the orchestrator runs the grounded engagement end-to-end — verification
+  gates fire inline, there is no separate implement step, and it never binds to a release.
+  Requires the `agentic-research` plugin; without it, treat as a plain feature.)
 - `stage: drafting`, other feature -> `feature-design`
 - `stage: implementing`, epic -> skip direct implementation; children are the
   work targets
-- `stage: implementing`, non-epic -> `implement-orchestrator <scope>`
+- `stage: implementing`, non-epic with `tags: [research]` -> `agentic-research:research-orchestrator`
+  (resume/continue the engagement; research never flows through `implement-orchestrator` or
+  `release-deploy` — a single-pass research engagement may be a story that skips `drafting`)
+- `stage: implementing`, non-epic (and NOT `tags: [research]`) -> `implement-orchestrator <scope>`
 - `stage: review` -> `review <id>` (review self-selects its lane: a **story**
   fast-advances on `implement`'s verification with no peer pass; a **feature** or
   **epic** gets a fresh-context deep review — cross-model via peeragent when a

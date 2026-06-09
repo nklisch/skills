@@ -5,8 +5,9 @@ description: >
   stage:drafting; do not write design prose inline. Designs the feature inside
   its agile-workflow item body, grounded in foundation docs and code, then
   spawns child stories with depends_on chains and advances drafting ->
-  implementing. Use for greenfield features without [refactor] or [perf] tags;
-  route [refactor] to refactor-design, [perf] to perf-design, and epic
+  implementing. Use for greenfield features without [refactor], [perf], or
+  [research] tags; route [refactor] to refactor-design, [perf] to perf-design,
+  [research] to the agentic-research research-orchestrator, and epic
   decomposition to epic-design. UI/UX mockups are fallback here, inherited from
   the parent epic when available.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
@@ -25,12 +26,18 @@ routes by item kind and tags:
 - `feature-design` (this skill) — `kind: feature`, no specialized tag
 - `refactor-design` — `kind: feature` with `tags: [refactor]`
 - `perf-design` — `kind: feature` with `tags: [perf]`
+- `agentic-research:research-orchestrator` (**cross-plugin**) — `kind: feature` with
+  `tags: [research]`. A grounded research engagement is an *input* that grounds other work,
+  not a code design: the orchestrator reads the item's `research_dials:` registration block
+  and runs the ARD walk; gates run inline; it never binds to a release. Requires the
+  `agentic-research` plugin (without it, `[research]` is an inert project tag — fall through
+  to `feature-design`).
 
-If the feature you're looking at has `[refactor]` or `[perf]` in `tags`, you
+If the feature you're looking at has `[refactor]`, `[perf]`, or `[research]` in `tags`, you
 were misrouted. Don't try to design it — log a one-line note to the item body
-("Misrouted to feature-design; should have gone to refactor-design / perf-design
-based on tags") and return without advancing the stage. The caller (autopilot
-or human) will route correctly on the next pass.
+("Misrouted to feature-design; should have gone to refactor-design / perf-design / the
+agentic-research research-orchestrator based on tags") and return without advancing the
+stage. The caller (autopilot or human) will route correctly on the next pass.
 
 ## Trigger
 
@@ -49,7 +56,7 @@ The skill accepts an optional `--only-questions` flag and an optional target.
 | `<feature-id>` (default) | Full design pass on one feature — workflow Phases 1-9. |
 | `<feature-id> --only-questions` | Question-only pass on one feature — runs the read/ground phases, surfaces ambiguities, asks the user, captures answers in the body, does NOT design or advance stage. |
 | `--only-questions <id1> <id2> ...` | Question-only pass over each listed feature, in order. |
-| `--only-questions --all` | Question-only pass over every `kind: feature` at `stage: drafting` in `.work/active/features/` whose `tags` does not contain `refactor` or `perf`. Iterate in dependency order (features with fewer unresolved upstream deps first). |
+| `--only-questions --all` | Question-only pass over every `kind: feature` at `stage: drafting` in `.work/active/features/` whose `tags` does not contain `refactor`, `perf`, or `research`. Iterate in dependency order (features with fewer unresolved upstream deps first). |
 
 `--only-questions` mode exists so a user can align with the agent on
 high-level direction across many drafting features in one session, then
@@ -73,7 +80,7 @@ For each feature in the target set:
 
 1. **Read the feature item** at `.work/active/features/<id>.md`.
    - Skip if `kind` is not `feature`, if `stage` is not `drafting`, or if
-     `tags` contains `refactor` or `perf`. Log the skip and move on.
+     `tags` contains `refactor`, `perf`, or `research`. Log the skip and move on.
 2. **Ground yourself** — read the parent epic body if `parent` is set, plus
    the foundation docs (`docs/VISION.md`, `docs/SPEC.md`,
    `docs/ARCHITECTURE.md`) and `AGENTS.md` / `CLAUDE.md`. Treat AGENTS as
@@ -126,8 +133,8 @@ In conversation, after the run:
 Read the feature file at `.work/active/features/<id>.md`. Confirm:
 - `kind: feature`
 - `stage: drafting`
-- `tags` does NOT include `refactor` or `perf` (otherwise log a misroute
-  note and return without advancing — see the description block above)
+- `tags` does NOT include `refactor`, `perf`, or `research` (otherwise log a
+  misroute note and return without advancing — see the description block above)
 
 The body should already have a brief from `scope`. Use it as the seed for design.
 

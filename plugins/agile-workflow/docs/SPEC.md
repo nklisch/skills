@@ -118,6 +118,7 @@ skill reads this at session start (via the SessionStart hook or directly).
 - security    auth, validation, secrets, supply chain
 - perf        throughput, latency, memory — routes to perf-design
 - refactor    behavior-preserving structural change ONLY — fails the black-box test (any observable behavior change for callers) means NOT a refactor — routes to refactor-design
+- research    grounded research engagement — an input, not a shippable — routes cross-plugin to agentic-research:research-orchestrator; carries a research_dials: registration block, does not bind to a release, gates run inline (only when the agentic-research plugin is installed)
 
 ## Slug conventions
 <format and prefix rules>

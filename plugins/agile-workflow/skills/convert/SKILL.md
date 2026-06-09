@@ -536,6 +536,36 @@ research docs — they are an optional agentic-research extension. (`work-view`
 parses both fields harmlessly when unset, so an existing `.work/` substrate is
 never broken by their absence; convert simply does not advertise them.)
 
+**The `[research]` routing tag + `research_dials:` block are also conditional on
+`agentic-research`.** When that plugin is present (same detection as above), two
+more things land — both **omitted** when it is absent (agile-workflow's core stays
+agentic-research-agnostic):
+
+1. **Schema** — also advertise the `research_dials:` block in the field list note: a
+   `[research]` item carries its engagement registration in a `research_dials:`
+   nested frontmatter block (`scope_authority`, `verification_rigor`, `intent`,
+   `output_kind`) read by the orchestrator at dispatch. (`work-view` parses only its
+   own known fields and ignores the block harmlessly; it is orchestrator-read, not a
+   `work-view` filter dimension.)
+2. **Tag semantics** — append a `[research]` entry to the Phase 6.5 `### Tag
+   semantics` section (and pluralize its intro to "A few tags carry load-bearing
+   routing semantics — get these right:"), using this block:
+
+   ```markdown
+   - **`[research]`** — a grounded research engagement: an *input* that grounds
+     other work (a decision, a design, an adoption call), not a shippable
+     deliverable. Routes **cross-plugin** to `agentic-research:research-orchestrator`,
+     not a design-family skill. The work item carries the engagement registration in
+     a `research_dials:` block (scope_authority, verification_rigor, intent,
+     output_kind) — **scoping the item IS the dispatch act**; the orchestrator reads
+     the dials at kickoff. A `[research]` item **does not bind to a release** (it is
+     an input, not a bundle member) and its verification **gates run inline** in the
+     orchestrator (it never reaches `release-deploy`). Routes through `feature-design`
+     only as the inert-tag fallback.
+   ```
+
+   Without `agentic-research`, leave the Phase 6.5 template at `[refactor]` + `[perf]`.
+
 ### Phase 6.5: Write `.agents/rules/agile-workflow.md` (rules-first, then slim)
 
 The dense agile-workflow behavioral rules live in a plugin-managed
