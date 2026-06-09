@@ -77,8 +77,11 @@ research_dials:
 ```
 
 The orchestrator **reads these dials from the commissioning item at kickoff** (confirm/adjust with
-the user, don't re-propose), expands them to the full nine-field registration plus defaults, and
-runs the engagement. The seed/intent prose and any pre-registered decomposition live in the item
+the user, don't re-propose) and runs the engagement; the block carries only the subset the scoping
+act fixes — the orchestrator settles the remaining five registration fields at dispatch, as on any
+standalone walk (they are engagement-time judgment, not scoping decisions). A present-but-invalid
+block is never treated as authoritative: re-confirm interactively, hard-halt under autonomous
+delegation. The seed/intent prose and any pre-registered decomposition live in the item
 **body** (richer than frontmatter); the dials live in the **block** (machine-read by the
 orchestrator). `work-view` tolerates the block harmlessly (it parses only its own known fields);
 the item is discoverable by its `[research]` tag.
@@ -101,11 +104,18 @@ Consequences of the registration riding the work item:
 - **Gates run inline** in the orchestrator's verification stack (ARD SPEC §7). Research never reaches
   `release-deploy`, so its verification cannot defer to a release gate — it fires during the
   engagement.
+- **The orchestrator closes the item.** At engagement completion (gates passed at the dialed
+  rigor, output persisted) the orchestrator advances the commissioning item to `stage: done` with a
+  short engagement record — it owns that transition, since the item never passes a review→bind
+  flow. A `[research]` item left non-terminal permanently blocks every `depends_on` consumer.
+- **The tag is feature/story-level.** An epic is never the direct commissioner: epic decomposition
+  is the work substrate's own flow, and each child `[research]` feature carries its own
+  `research_dials:` block.
 - **Decomposition-rationale home (ARD §10.6) follows `scope_authority`:** `pre-registered` → the
-  decomposition rides the work item with the dials (mapping onto an epic→feature decomposition when
-  the commissioner is an epic); `in-engagement-judgment` → the orchestrator drafts the ≥3 candidates
-  mid-engagement and persists the chosen rationale *back* onto the item (or research-side when no
-  work item is present).
+  decomposition rides the work item with the dials; `in-engagement-judgment` → the orchestrator
+  drafts the ≥3 candidates mid-engagement and persists the chosen rationale *back* onto the item
+  (or research-side when no work item is present); `mixed` → both homes — the declared coverage
+  rides the item from scoping, the emergent portion persists back at `decompose`.
 
 **Two satisfiers, kept distinct** (this matters for how the capability is adopted):
 
@@ -196,7 +206,10 @@ Both arrows are implemented:
   **experimental**. The orchestrator reads a `research_dials:` block from the commissioning item;
   `.research/` stays clean output substrate; `dispatch.md` demotes to the standalone fallback. The
   `(B)` block-read half is self-contained in this plugin; the `(A)` `[research]` routing tag is the
-  agile-workflow half. Under evaluation pending an end-to-end `[code]`→`[research]` dogfood.
+  agile-workflow half. Validated end-to-end (2026-06-09) for the work-item-blocked-on-research edge
+  within one substrate — autopilot dispatch, inline gates, dependent-item consumption; the
+  cross-project `[code]` consumer (a code item in one sub-project reading research output across a
+  project boundary) remains untested.
 - **Arrow 2** (emission gate) — **live**. Run
   `/agentic-research:research-handoff <slug>` after a completed engagement;
   operator-confirmed; emits `.work/` items carrying `research_origin: <slug>`.

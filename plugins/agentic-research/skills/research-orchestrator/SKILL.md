@@ -114,6 +114,11 @@ deliberately absent from `allowed-tools`).
   continue — judgment logged, never silently skipped. Without a registration-carrying item,
   autonomous dispatch has no user-set dials to read; treat that as a hard-halt condition under
   the delegation contract rather than silently self-setting the dials.
+  **A present-but-invalid block is never treated as authoritative** (missing field, unknown
+  enum value, wrong shape — e.g. a scalar where `output_kind` expects a value-or-list):
+  interactively, surface the defect and re-confirm corrected dials; under autonomous
+  delegation, hard-halt exactly like the no-dials case — proceeding on malformed dials costs
+  the whole engagement.
 - **Checkpoint A** (after `decompose`, multi-path) — present the ≥3 decomposition candidates +
   comparative assessment + chosen sample + self-flag; confirm/adjust/reframe.
 - **Checkpoint B** (before the cross-join, multi-path) — surface candidate `## Contradictions`
@@ -170,7 +175,9 @@ Set the controls at dispatch via the nine-field registration shape in
 
 - **Commissioned by a `[research]` work item** → the registration rides the work item as a
   `research_dials:` block (the commissioning subset: scope_authority, verification_rigor,
-  intent, output_kind; expand to the full nine fields + defaults at dispatch). **Scoping the
+  intent, output_kind — the fields the scoping act fixes; you settle the remaining five at
+  dispatch as on any standalone walk, since they are engagement-time judgment, not scoping
+  decisions). **Scoping the
   item IS the dispatch act.** `.research/` then holds *clean output substrate only* — no
   `dispatch.md`. See §Work-coordination entry + `docs/HANDOFF.md` Arrow 1.
 - **Standalone, light / single-pass** → the conversation transcript suffices.
@@ -186,7 +193,7 @@ Registration informs the engagement; it is **not** carried into the artifacts' o
 
 - Per-source attestation → `.research/attestation/<handle>.md` (always, before any synthesis prose).
 - Light / single-pass / breadth-survey brief → `.research/analysis/briefs/<slug>.md` (`-landscape.md` for breadth-survey).
-- Multi-specialist / program campaign → `.research/analysis/campaigns/<slug>/` (`dispatch.md`, `parent.md`, `specialists/<facet>.md`, `acquisitions.md`, `verification-checklist.md`, `campaign-evaluation.md`).
+- Multi-specialist / program campaign → `.research/analysis/campaigns/<slug>/` (`parent.md`, `specialists/<facet>.md`, `acquisitions.md`, `verification-checklist.md`, `campaign-evaluation.md`; plus `dispatch.md` **only on the standalone-heavy path** — a work-item-commissioned campaign carries its registration on the item).
 - Promoted positions → `.research/analysis/positions/<slug>.md`; staged hypotheses → `.research/analysis/hypothesis/`.
 - Citations are `[handle]{N}`, resolving by number against the per-corpus bibliography; the chain is brief claim → attestation → fetched source (the lint enforces it).
 
@@ -226,14 +233,32 @@ A `.work/` item may commission an engagement and cite it back — two patterns, 
   stays clean output substrate (no `dispatch.md`). This is the operational pairing of this
   orchestrator with a `[research]` work-nature module.
 
+**Engagement completion closes the commissioning item — this orchestrator owns that
+transition.** When the dialed gates have passed and the output is persisted, advance the
+commissioning `[research]` item to `stage: done` (append a short engagement record to its body:
+fan-out, gate outcomes, output paths). The item never flows through a review→bind path — its
+verification already ran inline — and a `[research]` item left non-terminal **permanently
+blocks every `depends_on` consumer** (work-substrate ready-checks require terminal deps). Never
+flip on unresolved gates: a second-pass `NEEDS-REVISION` leaves the item at its current stage
+with the blocker surfaced.
+
+The registration-carrying tag is **feature/story-level**. An epic is never the direct
+commissioner: epic decomposition is the work substrate's own flow, and each child `[research]`
+feature it produces carries its own `research_dials:` block. (Under
+`scope_authority: pre-registered`, a declared decomposition maps naturally onto that
+epic→feature split — but the split is made work-side, not by this orchestrator.)
+
 See `docs/HANDOFF.md` Arrow 1 for the full commissioning recipe + the registration contract.
 
 **Decomposition-rationale home (ARD §10.6 — the PR.2 fence) follows `scope_authority`:**
 - `pre-registered` → the decomposition is a scoping decision; it rides the work item with the
-  dials (and maps onto an epic→feature decomposition when the commissioner is an epic).
+  dials.
 - `in-engagement-judgment` → you draft the ≥3 candidates mid-engagement at `decompose`; the
   chosen rationale persists *back* onto the commissioning item, or stays a research-side record
   when there is no work item.
+- `mixed` → both homes: the declared portion (pre-registered coverage) rides the item from
+  scoping; the emergent portion's chosen rationale persists *back* onto the item at
+  `decompose`, exactly as on the in-engagement path.
 
 ## Next step after a completed engagement
 
