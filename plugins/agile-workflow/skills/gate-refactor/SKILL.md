@@ -258,7 +258,7 @@ If no libraries were discovered, append the no-libraries log entry from Phase 2 
 ### Phase 6: Commit
 
 ```bash
-git add .work/active/stories/ .work/backlog/
+git add .work/active/stories/ .work/backlog/ .work/releases/<version>.md
 git commit -m "gate-refactor: <N> findings for <version> (<library-tags>)"
 ```
 
