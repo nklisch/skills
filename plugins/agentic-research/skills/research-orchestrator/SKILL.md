@@ -79,6 +79,8 @@ dispatch-time-registration record the settled dials
   → lint                   python3 plugins/agentic-research/scripts/lint-citations.py <out> --attestation-dir .research/attestation/
   → [CHECKPOINT B]         surface contradictions before the cross-join (multi-path only)
   → synthesize {cross}     lead composition across specialist briefs → parent.md (multi-path)
+  → acquisition-offgas     consolidate specialist acquisition candidates → acquisitions.md +
+                           promote to the standing queue (verification-INDEPENDENT; see §Acquisition offgas)
   → adversarial-read       if rigor ≥ standard (dispatch the adversarial-reader brief)
   → evaluate               if rigor = full (dispatch the evaluator brief, ISOLATED context)
   → spot-check             always; lead-context categorical check across lint pattern categories
@@ -158,9 +160,30 @@ artifacts' own frontmatter (artifacts stand on their own metadata).
 
 - Per-source attestation → `.research/attestation/<handle>.md` (always, before any synthesis prose).
 - Light / single-pass / breadth-survey brief → `.research/analysis/briefs/<slug>.md` (`-landscape.md` for breadth-survey).
-- Multi-specialist / program campaign → `.research/analysis/campaigns/<slug>/` (`dispatch.md`, `parent.md`, `specialists/<facet>.md`, `verification-checklist.md`, `campaign-evaluation.md`).
+- Multi-specialist / program campaign → `.research/analysis/campaigns/<slug>/` (`dispatch.md`, `parent.md`, `specialists/<facet>.md`, `acquisitions.md`, `verification-checklist.md`, `campaign-evaluation.md`).
 - Promoted positions → `.research/analysis/positions/<slug>.md`; staged hypotheses → `.research/analysis/hypothesis/`.
 - Citations are `[handle]{N}`, resolving by number against the per-corpus bibliography; the chain is brief claim → attestation → fetched source (the lint enforces it).
+
+## Acquisition offgas (ARD SPEC §4.1)
+
+Specialists return **acquisition candidates** — `blocking` gaps (load-bearing sources they could
+not fetch) and `enriching` candidates (the *proactive lookout*: sources that would deepen a facet
+beyond the web layer). Consolidating them is a **verification-independent offgas**: a source you
+could not fetch is a gap whether or not the synthesis passes adversarial-read, so it does **not**
+gate on the verification stack — consolidate at synthesis-time regardless of the gate outcomes.
+
+- **Multi-specialist / program walks** — consolidate the specialists' returns into
+  `.research/analysis/campaigns/<slug>/acquisitions.md` (one entry per source, classed +
+  urgency-tagged + `completes`-joined; fill from [`templates/acquisitions.md`](../../templates/acquisitions.md)).
+  Light / single-pass walks have no campaign bundle: skip the file and promote any gaps directly.
+- **Promote + dedup** each entry to the standing **`.work/` acquisition queue** (a backlog item),
+  deduplicating by source (merge `completes`, never re-add). The push is one-way — the manifest
+  carries no link back to the queue (a `.research/` artifact does not link into `.work/`). With no
+  `.work/` substrate present, surface the candidates to the user instead (the same
+  degrade-gracefully posture as the research→work handoff).
+- **The anti-recall fence** (carried in the discipline bundle, ARD SPEC §4.1): an `enriching`
+  candidate must point at a fetched source that names it — never training-recall (`AQ.3`). A
+  `blocking` candidate is self-grounding (a fetch was attempted and failed).
 
 ## Work-coordination entry
 

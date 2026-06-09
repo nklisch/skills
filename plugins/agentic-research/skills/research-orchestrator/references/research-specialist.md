@@ -30,5 +30,17 @@ output. Read it before engaging any source. Do not author without it** (the ARD 
 3. **Return** (your final message — data the orchestrator consumes, not a human-facing summary):
    - Path to your brief.
    - List of attestation files you authored (by handle).
-   - Any acquisition-pending gaps (load-bearing sources you could not fetch — name them
-     explicitly per the source-bound citation discipline; never paper over with training-recall).
+   - **Acquisition candidates** — sources worth acquiring, which the orchestrator consolidates
+     into the campaign acquisition manifest. Two kinds, each tagged with its urgency:
+     - **`blocking`** — a load-bearing source you could not fetch (paywall / 403 / not online).
+       Name it explicitly per the source-bound citation discipline; the dependent claim stays
+       held / acquisition-gated, never papered over with training-recall.
+     - **`enriching`** — the *proactive lookout*: a source that would **deepen** your facet
+       beyond the web layer (a practitioner book, a treatise, primary-document text) *even where
+       no cited claim is blocked*. Notice these while researching — do not wait to be blocked.
+       Per the acquisition-candidate discipline (ARD SPEC §4.1), an enriching candidate must
+       point at a **fetched** source that names it as canonical for the engagement; a candidate
+       grounded only in memory is training-recall — drop it (`AQ.3`).
+     For each candidate give: **source** (bibliographic id), **class** (`ingestible` /
+     `primary-doc` / `portal` / `counsel`), **web-availability**, and **completes** (the held
+     claims/facets the source would ground). Omit cleanly if your facet surfaced none.
