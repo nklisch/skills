@@ -59,6 +59,69 @@ into `.research/`. Authority stays with the research tier.
 
 This is the common operational entry point — work coordinates; research grounds.
 
+### Registration-carrying `[research]` items — the work-nature module
+
+The recipe above commissions an engagement *alongside* a work item. The richer pairing makes the
+**commissioning work item carry the engagement's registration**, so the act of scoping the item
+*is* the dispatch act — and `.research/` is left holding clean output substrate only.
+
+A `[research]`-tagged work item carries the dials in a `research_dials:` frontmatter block — the
+**commissioning subset** of the registration (ARD SPEC §9):
+
+```yaml
+research_dials:
+  scope_authority: pre-registered        # pre-registered | mixed | in-engagement-judgment
+  verification_rigor: standard           # floor | standard | full
+  intent: build-substrate                # the ARD intent (SPEC §9)
+  output_kind: synthesis-brief           # expected output_kind (single value or a [list])
+```
+
+The orchestrator **reads these dials from the commissioning item at kickoff** (confirm/adjust with
+the user, don't re-propose), expands them to the full nine-field registration plus defaults, and
+runs the engagement. The seed/intent prose and any pre-registered decomposition live in the item
+**body** (richer than frontmatter); the dials live in the **block** (machine-read by the
+orchestrator). `work-view` tolerates the block harmlessly (it parses only its own known fields);
+the item is discoverable by its `[research]` tag.
+
+Why this is ARD-conformant: ARD classifies `dispatch-time-registration` as a **tier-M coordination
+act** (CATALOGS §6) whose **persistence is a deployment choice** (SPEC §9). *Where* the dials live
+is below the architecture line — so moving them onto the commissioning work item is a legitimate
+deployment binding, not a divergence. ARD's registration shape (`templates/dispatch.md`) stays
+substrate-agnostic and verbatim; the work-item carrier is this deployment's binding layered on top.
+
+Consequences of the registration riding the work item:
+
+- **`.research/` holds clean output substrate only** — no `dispatch.md`. The `dispatch.md` template
+  demotes to the **standalone fallback**: it persists the registration only when there is *no* work
+  item to carry it (standalone heavy walks), preserving the standalone invariant (ARD research runs
+  with no `.work/` substrate at all).
+- **`[research]` does not bind to a release.** Research is an *input* that grounds other work, not a
+  shippable bundle member. The item simply never acquires a `release_binding` (it routes through the
+  orchestrator, not the review→bind flow).
+- **Gates run inline** in the orchestrator's verification stack (ARD SPEC §7). Research never reaches
+  `release-deploy`, so its verification cannot defer to a release gate — it fires during the
+  engagement.
+- **Decomposition-rationale home (ARD §10.6) follows `scope_authority`:** `pre-registered` → the
+  decomposition rides the work item with the dials (mapping onto an epic→feature decomposition when
+  the commissioner is an epic); `in-engagement-judgment` → the orchestrator drafts the ≥3 candidates
+  mid-engagement and persists the chosen rationale *back* onto the item (or research-side when no
+  work item is present).
+
+**Two satisfiers, kept distinct** (this matters for how the capability is adopted):
+
+- **(B) the `research_dials:` block read by the orchestrator** — a convention *within* this plugin.
+  It delivers the clean-`.research/` win with **no change to agile-workflow's routing**: any work
+  item can carry the block and the orchestrator reads it.
+- **(A) the `[research]` work-nature routing tag** in agile-workflow — adds first-class
+  auto-dispatch (the full module): a `[research]`-tagged feature routes to
+  `agentic-research:research-orchestrator` the way `[refactor]` routes to `refactor-design`. This is
+  the agile-workflow half of the pairing.
+
+This contract is owned **here** (the agentic-research plugin's `research-handoff` skill + this
+HANDOFF), mirroring `research_refs:` / `research_origin:` — it is deliberately **not** an ARD
+contract, because ARD's research record stays substrate-agnostic and cannot know about `.work/`
+tags or item schemas.
+
 ## Arrow 2 — `.research/` → `.work/` (grounding; emission) — **live**
 
 Research informs work. A completed engagement that surfaces *actionable* findings — a campaign
@@ -88,11 +151,18 @@ Two `.work/` frontmatter fields, mirroring the existing `gate_origin:` conventio
 |---|---|---|
 | `research_refs:` | `.work/` → `.research/` | the research artifact(s) this work item tracks / consumes |
 | `research_origin:` | `.research/` → `.work/` | the research artifact that spawned this work item |
+| `research_dials:` | `.work/` → orchestrator | the commissioning registration block a `[research]` item carries (read at dispatch) |
 
-Both are part of the `.work/` item schema (added by the `fields` feature, coordinated with
-`agile-workflow`) and are queryable via `work-view`:
+The two scalar/list fields (`research_refs:` / `research_origin:`) are part of the `.work/` item
+schema (added by the `fields` feature, coordinated with `agile-workflow`) and are queryable via
+`work-view`:
 - `work-view --research-origin <slug>` — items emitted by a research engagement
 - `work-view --research-refs <slug>` — items that commission or cite a research engagement
+
+`research_dials:` is a nested block read by the **orchestrator** at dispatch, not a `work-view`
+filter dimension — `work-view` parses only its own known fields and ignores the block harmlessly
+(items stay discoverable by their `[research]` tag). Adding it as a `work-view` query dimension is
+a deferred enhancement (a Rust change), unneeded for the pairing.
 
 ## Graceful degradation
 
@@ -122,6 +192,11 @@ Both arrows are implemented:
 - **Arrow 1** (commissioning convention) — **live**. Commission via
   `/agentic-research:research-orchestrator`; cite with `research_refs:`; gate via a
   `.work/` commissioning story in `depends_on`. Recipe above.
+- **Arrow 1, registration-carrying `[research]` items** (the work-nature module) —
+  **experimental**. The orchestrator reads a `research_dials:` block from the commissioning item;
+  `.research/` stays clean output substrate; `dispatch.md` demotes to the standalone fallback. The
+  `(B)` block-read half is self-contained in this plugin; the `(A)` `[research]` routing tag is the
+  agile-workflow half. Under evaluation pending an end-to-end `[code]`→`[research]` dogfood.
 - **Arrow 2** (emission gate) — **live**. Run
   `/agentic-research:research-handoff <slug>` after a completed engagement;
   operator-confirmed; emits `.work/` items carrying `research_origin: <slug>`.

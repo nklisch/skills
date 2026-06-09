@@ -67,7 +67,8 @@ Activate the applicable subset of decision-points in this fixed order:
 
 ```
   → [KICKOFF]              set the dials WITH the user — every path, BEFORE decompose (← turn)
-dispatch-time-registration record the settled dials
+                           commissioned by a [research] work item? READ its research_dials + confirm
+dispatch-time-registration record the settled dials (commissioning item if present; else transcript / dispatch.md)
   → substrate-check        survey .research/ for overlapping prior work; surface the outcome
   → decompose              emergent: draft ≥3 candidates + comparative assessment + self-flag
                            (scope_authority — set at kickoff — governs emergent-draft vs. honor-declared)
@@ -99,6 +100,11 @@ deliberately absent from `allowed-tools`).
 
 - **Kickoff** (every path, before `decompose`) — propose the dials + reasoning + the
   trade-offs; settle them with the user. Mispositioned dials cost the whole engagement.
+  **When a `[research]` work item commissioned this engagement** — it carries a
+  `research_dials:` registration block (scope_authority, verification_rigor, intent,
+  output_kind) — the dials are *already set by the act of scoping that item*: read them,
+  confirm/adjust with the user, then proceed; don't re-propose from scratch. Scoping the work
+  item IS the dispatch act (see §Work-coordination entry).
 - **Checkpoint A** (after `decompose`, multi-path) — present the ≥3 decomposition candidates +
   comparative assessment + chosen sample + self-flag; confirm/adjust/reframe.
 - **Checkpoint B** (before the cross-join, multi-path) — surface candidate `## Contradictions`
@@ -149,12 +155,23 @@ When a decomposition lands 7+ facets across 3+ domains, escalate to **program-sc
 
 ## Registration (ARD SPEC §9)
 
-Set the controls at dispatch via the nine-field registration in
-[`templates/dispatch.md`](../../templates/dispatch.md). Persistence is a deployment choice:
-the conversation transcript suffices for a light/single-pass walk; persist a `dispatch.md` at
-the campaign root (`.research/analysis/campaigns/<slug>/`) for multi-specialist and
-program-scale walks. Registration informs the engagement; it is **not** carried into the
-artifacts' own frontmatter (artifacts stand on their own metadata).
+Set the controls at dispatch via the nine-field registration shape in
+[`templates/dispatch.md`](../../templates/dispatch.md). Persistence is a deployment choice
+(SPEC §9) — and *where* the registration lives tracks whether a work substrate is present:
+
+- **Commissioned by a `[research]` work item** → the registration rides the work item as a
+  `research_dials:` block (the commissioning subset: scope_authority, verification_rigor,
+  intent, output_kind; expand to the full nine fields + defaults at dispatch). **Scoping the
+  item IS the dispatch act.** `.research/` then holds *clean output substrate only* — no
+  `dispatch.md`. See §Work-coordination entry + `docs/HANDOFF.md` Arrow 1.
+- **Standalone, light / single-pass** → the conversation transcript suffices.
+- **Standalone, heavy (multi-specialist / program-scale)** → persist a `dispatch.md` at the
+  campaign root (`.research/analysis/campaigns/<slug>/`). This is the **standalone fallback** —
+  it carries the registration when there is no work item to carry it, preserving the standalone
+  invariant (ARD research runs with no work substrate at all).
+
+Registration informs the engagement; it is **not** carried into the artifacts' own frontmatter
+(artifacts stand on their own metadata).
 
 ## Output paths (this deployment's `.research/` map)
 
@@ -187,12 +204,27 @@ gate on the verification stack — consolidate at synthesis-time regardless of t
 
 ## Work-coordination entry
 
-A `.work/` item may commission an engagement and cite it back. The common
-pattern: a work item that needs grounding runs this skill, then sets
-`research_refs: [<slug>]` in its frontmatter to cite the resulting artifact.
-To gate the item on research completion, `depends_on:` a `.work/` commissioning
-story (not a `.research/` slug — `work-view` resolves dep ids only against
-`.work/` items). See `docs/HANDOFF.md` Arrow 1 for the full commissioning recipe.
+A `.work/` item may commission an engagement and cite it back — two patterns, both
+**read-only** across the authority boundary (operational state never rewrites `.research/`):
+
+- **Plain commissioning** — a work item that needs grounding runs this skill, then sets
+  `research_refs: [<slug>]` in its frontmatter to cite the resulting artifact. To gate the
+  item on research completion, `depends_on:` a `.work/` commissioning story (not a `.research/`
+  slug — `work-view` resolves dep ids only against `.work/` items).
+- **Registration-carrying `[research]` item** — a `[research]`-tagged work item carries the
+  dials in a `research_dials:` block; **scoping it IS the dispatch act**. The orchestrator reads
+  the dials from the commissioning item at kickoff (confirm, don't re-propose), and `.research/`
+  stays clean output substrate (no `dispatch.md`). This is the operational pairing of this
+  orchestrator with a `[research]` work-nature module.
+
+See `docs/HANDOFF.md` Arrow 1 for the full commissioning recipe + the registration contract.
+
+**Decomposition-rationale home (ARD §10.6 — the PR.2 fence) follows `scope_authority`:**
+- `pre-registered` → the decomposition is a scoping decision; it rides the work item with the
+  dials (and maps onto an epic→feature decomposition when the commissioner is an epic).
+- `in-engagement-judgment` → you draft the ≥3 candidates mid-engagement at `decompose`; the
+  chosen rationale persists *back* onto the commissioning item, or stays a research-side record
+  when there is no work item.
 
 ## Next step after a completed engagement
 
