@@ -135,6 +135,16 @@ gates_for_release: [security, tests, cruft, docs, patterns]
 The default `gates_for_release` order is fixed: **security → tests → cruft
 → docs → patterns**. Override only if the project has a justified reason.
 
+**`gate-refactor` is an opt-in gate** — not in the default list. Add it when your project has
+scan-rule libraries installed at `{project}/.agents/skills/scan-*/SKILL.md` or
+`{project}/.claude/skills/scan-*/SKILL.md`. The gate discovers and loads all libraries it finds,
+then checks the release bundle's changed files against every rule. With no libraries installed it
+logs a graceful skip and continues — not an error. Example opt-in:
+
+```yaml
+gates_for_release: [security, tests, cruft, docs, patterns, refactor]
+```
+
 `terminal-tier retention` (default **`delete-refs`**) is **one merged convention** covering the
 whole terminal lifecycle — archival, late-binding, and release collapse — not just on-disk byte
 retention. With `delete-refs`:

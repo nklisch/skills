@@ -429,7 +429,9 @@ Run an interactive interview via AskUserQuestion. Six questions, in order:
 4. **Stage overrides** — none by default. Discouraged.
 5. **Gate config** — defaults to
    `gates_for_release: [security, tests, cruft, docs, patterns]`. User can reorder
-   or omit.
+   or omit. `gate-refactor` is an **opt-in gate** (not in the default list) — add it
+   when the project has scan-rule libraries at `{project}/.agents/skills/scan-*/` or
+   `{project}/.claude/skills/scan-*/`.
 6. **Terminal-tier retention** — `delete-refs | retain-bodies`. This is the ONE merged terminal
    convention (archival + `archived_atop` late-binding + one-summary release), not just byte
    retention. Default offered: `delete-refs` — archiving a done item leaves a **bodyless stub**
