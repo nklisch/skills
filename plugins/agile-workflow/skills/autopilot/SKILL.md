@@ -146,7 +146,9 @@ Routing:
   work targets
 - `stage: implementing`, non-epic with `tags: [research]` -> `agentic-research:research-orchestrator`
   (resume/continue the engagement; research never flows through `implement-orchestrator` or
-  `release-deploy` — a single-pass research engagement may be a story that skips `drafting`)
+  `release-deploy` — a single-pass research engagement may be a story that skips `drafting`.
+  Requires the `agentic-research` plugin; without it, treat as a plain implementing item ->
+  `implement-orchestrator`, mirroring the drafting row's degrade.)
 - `stage: implementing`, non-epic (and NOT `tags: [research]`) -> `implement-orchestrator <scope>`
 - `stage: review` -> `review <id>` (review self-selects its lane: a **story**
   fast-advances on `implement`'s verification with no peer pass; a **feature** or

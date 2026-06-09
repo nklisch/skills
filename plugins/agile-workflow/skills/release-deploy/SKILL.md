@@ -110,10 +110,13 @@ If the release is at `stage: planned`:
    prior=${prior:-pre-release}
    # Gather ALL unbound archived stubs (recurse: ROADMAP-phase epics archive to
    # .work/archive/epics/, not just the flat .work/archive/ root).
+   # [research] items are research inputs, not release members — never bind them. Use
+   # work-view's real tag parse for the exclusion set, never a hand-rolled tags regex
+   # (a regex misreads block-style tag lists and false-positives on tags like research-ops).
+   research_paths=$(.work/bin/work-view --scope archive --tag research --paths | sort)
    find .work/archive -name '*.md' -type f | while read -r p; do
+     printf '%s\n' "$research_paths" | grep -qxF "$p" && continue
      binding=$(grep -m1 '^release_binding:' "$p" | awk '{print $2}')
-     # [research] items are research inputs, not release members — never bind them.
-     grep -qE 'tags:.*\bresearch\b|^[[:space:]]*-[[:space:]]*research[[:space:]]*$' "$p" && continue
      [[ "$binding" == "null" ]] && echo "$p"
    done
    ```
