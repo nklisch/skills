@@ -130,10 +130,17 @@ skill reads this at session start (via the SessionStart hook or directly).
 
 ## Gate config
 gates_for_release: [security, tests, cruft, docs, patterns]
+binding_guard: warn
 ```
 
 The default `gates_for_release` order is fixed: **security → tests → cruft
 → docs → patterns**. Override only if the project has a justified reason.
+
+**`binding_guard`** (default **`warn`** when absent) controls the Phase 3.5 epic-cohesion check in
+`release-deploy`. Values: `warn` | `halt` | `off`. `warn` runs all three checks and surfaces any
+mismatch as a durable warning in the release body, then continues. `halt` stops the release on any
+mismatch (for projects that hold the "epics don't span releases" invariant). `off` skips the checks
+entirely.
 
 `terminal-tier retention` (default **`delete-refs`**) is **one merged convention** covering the
 whole terminal lifecycle — archival, late-binding, and release collapse — not just on-disk byte

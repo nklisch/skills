@@ -139,9 +139,24 @@ If the release is at `stage: planned`:
 
 ### Phase 3.5: Binding-consistency guard
 
+Read `binding_guard:` from `.work/CONVENTIONS.md` (same read as `gates_for_release` in Phase 1).
+Values: `warn` (default when the key is absent) | `halt` | `off`.
+
+- `off` — skip all three checks; log one line: "binding-consistency guard is off (CONVENTIONS
+  binding_guard: off); skipping." Continue to Phase 4.
+- `warn` — run all three checks; if mismatches are found, print the full mismatch report into the
+  conversation AND append it verbatim to the release file body under a `### Binding-consistency
+  warnings` subsection (so the record is durable), then **continue** the release flow.
+- `halt` — run all three checks; if mismatches are found, report and stop (current behavior).
+  The user resolves and re-runs `/agile-workflow:release-deploy <version>`.
+
+Projects that hold an epic-cohesion convention (epics don't span releases) set `halt`; the default
+`warn` surfaces drift without imposing the convention.
+
 Before any gate runs, walk every item bound to this release and verify three invariants. Any
-mismatch halts the release with a list of offending items — do NOT rebind anything implicitly. The
-user must resolve the inconsistency and re-run `/agile-workflow:release-deploy <version>`.
+mismatch halts (or warns, per `binding_guard`) — do NOT rebind anything implicitly. The
+user must resolve any inconsistency flagged at `halt` level and re-run
+`/agile-workflow:release-deploy <version>`.
 
 This guard catches drift where a child's review-pass bound it to the release but its parent epic was
 forgotten, or where a done epic's children were bound without the epic itself being bound.
@@ -202,20 +217,42 @@ for item_path in $bound_items; do
   fi
 done
 
+binding_guard=$(grep -m1 '^binding_guard:' .work/CONVENTIONS.md | awk '{print $2}')
+binding_guard="${binding_guard:-warn}"   # default: warn
+
 if [ "${#mismatches[@]}" -gt 0 ]; then
-  echo "BINDING CONSISTENCY FAILURES — release <version> is halted:"
+  report="BINDING CONSISTENCY — release <version>:"
   for m in "${mismatches[@]}"; do
-    echo "  • $m"
+    report+=$'\n'"  • $m"
   done
-  echo ""
-  echo "Resolve each mismatch manually (edit release_binding or parent frontmatter as appropriate),"
-  echo "then re-run: /agile-workflow:release-deploy <version>"
-  exit 1
+  report+=$'\n'
+  report+="Resolve each mismatch manually (edit release_binding or parent frontmatter as appropriate),"
+  report+=$'\n'"then re-run: /agile-workflow:release-deploy <version>"
+
+  if [ "$binding_guard" = "halt" ]; then
+    echo "BINDING CONSISTENCY FAILURES (halt) — $report"
+    exit 1
+  else
+    # warn: surface in conversation + append to release body (durable record)
+    echo "BINDING CONSISTENCY WARNINGS (warn) — $report"
+    # Append to release file body
+    {
+      echo ""
+      echo "### Binding-consistency warnings"
+      echo ""
+      echo "$report"
+    } >> .work/active/release-<version>.md
+  fi
 fi
 ```
 
-If any mismatch is found, halt with the list above and stop the release flow. Do not proceed to
-gates. Do not rebind anything. The user is the only actor who can resolve a binding inconsistency.
+Act on the result per `binding_guard`:
+
+- **`off`**: skip the bash block above entirely; log one line and continue to Phase 4.
+- **`halt`**: if any mismatch is found, stop the release flow. Do not proceed to gates. Do not
+  rebind anything. The user is the only actor who can resolve a binding inconsistency.
+- **`warn`** (default): if any mismatch is found, print the report into the conversation AND append
+  it to the release body, then continue to Phase 4. Do not rebind anything.
 
 ### Phase 4: Gate execution
 

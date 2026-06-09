@@ -429,7 +429,9 @@ Run an interactive interview via AskUserQuestion. Six questions, in order:
 4. **Stage overrides** — none by default. Discouraged.
 5. **Gate config** — defaults to
    `gates_for_release: [security, tests, cruft, docs, patterns]`. User can reorder
-   or omit.
+   or omit. `binding_guard` sets the Phase 3.5 binding-consistency check behavior:
+   `warn` (default — surfaces mismatches without halting), `halt` (for projects that
+   hold the "epics don't span releases" invariant), or `off` (skip).
 6. **Terminal-tier retention** — `delete-refs | retain-bodies`. This is the ONE merged terminal
    convention (archival + `archived_atop` late-binding + one-summary release), not just byte
    retention. Default offered: `delete-refs` — archiving a done item leaves a **bodyless stub**
