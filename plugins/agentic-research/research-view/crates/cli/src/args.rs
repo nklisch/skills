@@ -37,6 +37,9 @@ pub enum OutputMode {
     Cat,
     /// Match count as a single integer.
     Count,
+    /// Tag-vocabulary projection: one line per tag, lexically sorted, with entry
+    /// count and corpus list.  Composes with filters (e.g. `--corpus X --tags`).
+    Tags,
 }
 
 // ── Options ───────────────────────────────────────────────────────────────────
@@ -91,6 +94,7 @@ Filters (compose with AND semantics):
   --temporal-contract <tc>       Artifacts with the given temporal_contract (or 'null')
   --provenance <p>               Artifacts with the given provenance (or 'null')
   --corpus <c>                   Reference artifacts from the given corpus (or 'null')
+  --tag <t>                      Reference artifacts whose theme set contains tag <t>
 
 Tier sugar (sets --tier):
   --attestations                 Shorthand for --tier attestation
@@ -105,6 +109,8 @@ Output (default tabular):
   --paths                        One file path per line
   --cat                          Full artifact bodies (separated by ---)
   --count                        Match count only
+  --tags                         Tag-vocabulary projection: one line per tag with entry
+                                 count and corpus list (composes with filters)
 
 Other:
   --version, -V                  Print the research-view version and exit
@@ -233,6 +239,21 @@ pub fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<ParseOutcome, U
                 let v = next_value("--corpus", &mut iter)?;
                 opts.filter.corpus = nullable_match(v);
             }
+            "--tag" => {
+                let v = next_value("--tag", &mut iter)?;
+                // Reject the literal string "null" — themes is a set membership
+                // test, not a nullable scalar.  There is no "null" state to match
+                // against (an artifact either has a theme or it doesn't; use
+                // `--reference` or `--tier reference` to scope to reference tier).
+                if v == "null" {
+                    return Err(UsageError(
+                        "--tag does not accept 'null': themes is a set membership filter; \
+                         use --tier reference to find reference artifacts"
+                            .to_owned(),
+                    ));
+                }
+                opts.filter.tag = Some(v);
+            }
             // Tier sugar flags — equivalent to `--tier <tier>`
             "--attestations" => {
                 opts.filter.tier = Some(ResearchTier::Attestation);
@@ -264,6 +285,9 @@ pub fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<ParseOutcome, U
             }
             "--count" => {
                 opts.output = OutputMode::Count;
+            }
+            "--tags" => {
+                opts.output = OutputMode::Tags;
             }
             flag if flag.starts_with('-') => {
                 return Err(UsageError(format!("unknown flag: {flag}")));
@@ -601,5 +625,55 @@ mod tests {
             opts.filter.provenance,
             Match::Equals("source-direct".into())
         );
+    }
+
+    // ── --tag and --tags ───────────────────────────────────────────────────────
+
+    #[test]
+    fn tag_flag_sets_filter_tag() {
+        let opts = run(&["--tag", "retrieval"]);
+        assert_eq!(opts.filter.tag, Some("retrieval".to_owned()));
+    }
+
+    #[test]
+    fn tag_null_is_usage_error() {
+        let msg = err(&["--tag", "null"]);
+        assert!(msg.contains("--tag"), "got: {msg}");
+        assert!(msg.contains("set membership"), "got: {msg}");
+    }
+
+    #[test]
+    fn tag_missing_value_is_usage_error() {
+        let msg = err(&["--tag"]);
+        assert!(msg.contains("missing value"), "got: {msg}");
+        assert!(msg.contains("--tag"), "got: {msg}");
+    }
+
+    #[test]
+    fn tags_sets_output_mode() {
+        let opts = run(&["--tags"]);
+        assert_eq!(opts.output, OutputMode::Tags);
+    }
+
+    #[test]
+    fn tags_composes_with_corpus_filter() {
+        let opts = run(&["--corpus", "my-corpus", "--tags"]);
+        assert_eq!(opts.filter.corpus, Match::Equals("my-corpus".into()));
+        assert_eq!(opts.output, OutputMode::Tags);
+    }
+
+    #[test]
+    fn tags_composes_with_tag_filter() {
+        let opts = run(&["--tag", "retrieval", "--tags"]);
+        assert_eq!(opts.filter.tag, Some("retrieval".to_owned()));
+        assert_eq!(opts.output, OutputMode::Tags);
+    }
+
+    #[test]
+    fn output_tags_last_wins_with_count() {
+        let opts = run(&["--count", "--tags"]);
+        assert_eq!(opts.output, OutputMode::Tags);
+        let opts = run(&["--tags", "--count"]);
+        assert_eq!(opts.output, OutputMode::Count);
     }
 }

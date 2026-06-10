@@ -9,7 +9,7 @@
 //! - Invalid YAML or no frontmatter block → `ParseError` (non-fatal; artifact skipped).
 //! - `tier` and `corpus` are supplied by the loader — parse does not inspect the path.
 
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use serde::Deserialize;
 
@@ -160,6 +160,13 @@ pub fn parse_artifact(
                 .to_owned()
         });
 
+    // Extract themes from body for ReferenceIndex tier only.
+    let (themes, theme_entry_counts) = if matches!(tier, ResearchTier::ReferenceIndex) {
+        parse_themes(body)
+    } else {
+        (Vec::new(), HashMap::new())
+    };
+
     Ok(Artifact {
         identity,
         tier,
@@ -177,7 +184,100 @@ pub fn parse_artifact(
         rel_path: rel.to_owned(),
         raw_text: text.to_owned(),
         body: body.to_owned(),
+        themes,
+        theme_entry_counts,
     })
+}
+
+/// Parse `- **Themes:** tag, tag, ...` lines from the body text of a
+/// `ReferenceIndex`-tier artifact.
+///
+/// Returns `(themes, entry_counts)` where:
+/// - `themes` — deduplicated tag list, case-preserved, first-seen order.
+/// - `entry_counts` — for each tag, how many `**Themes:**` lines (entries) mention it.
+///
+/// Rules:
+/// - Matches lines with optional leading whitespace followed by `-` or `*`,
+///   at least one whitespace character, then `**Themes:**` (exact case).
+/// - Splits the remainder on commas; trims each tag; drops empties.
+/// - Strips a trailing `[NEW]` marker (with surrounding whitespace) from each tag.
+/// - Keeps original case; deduplicates in first-seen order (for `themes`).
+/// - Non-reference artifacts should always get empty results (callers are
+///   responsible for not calling this on non-reference body text, but the
+///   function is correct regardless).
+pub fn parse_themes(body: &str) -> (Vec<String>, HashMap<String, usize>) {
+    let mut seen_global = std::collections::HashSet::new();
+    let mut themes = Vec::new();
+    let mut entry_counts: HashMap<String, usize> = HashMap::new();
+
+    for line in body.lines() {
+        let trimmed = line.trim_start();
+        // Match lines starting with `-` or `*` bullet, followed by at least one
+        // whitespace character (CommonMark requirement). `-**Themes:**` without
+        // a space is NOT a bullet line in either impl.
+        let after_bullet = if let Some(rest) = trimmed.strip_prefix('-') {
+            // Require at least one whitespace after `-`
+            if !rest.starts_with(|c: char| c.is_ascii_whitespace()) {
+                continue;
+            }
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix('*') {
+            // A bullet `*` must be followed by whitespace, not another `*`
+            // (which would be bold syntax, not a bullet).
+            if !rest.starts_with(|c: char| c.is_ascii_whitespace()) {
+                continue;
+            }
+            rest
+        } else {
+            continue;
+        };
+
+        let after_bullet = after_bullet.trim_start();
+        // Now check for `**Themes:**`
+        let themes_value = if let Some(rest) = after_bullet.strip_prefix("**Themes:**") {
+            rest
+        } else {
+            continue;
+        };
+
+        // Collect tags from this entry line (one entry = one **Themes:** line),
+        // deduplicating within the entry (one entry should not double-count its own tags).
+        let mut seen_this_entry: std::collections::HashSet<String> = std::collections::HashSet::new();
+        for raw_tag in themes_value.split(',') {
+            let tag = raw_tag.trim();
+            if tag.is_empty() {
+                continue;
+            }
+            // Strip trailing `[NEW]` marker (with surrounding whitespace)
+            let tag = strip_new_marker(tag);
+            if tag.is_empty() {
+                continue;
+            }
+            let tag = tag.to_owned();
+            if !seen_this_entry.insert(tag.clone()) {
+                // Already seen in this entry — skip (no double-count)
+                continue;
+            }
+            // Accumulate entry count (how many entries mention this tag)
+            *entry_counts.entry(tag.clone()).or_insert(0) += 1;
+            // Track global deduplication for the themes list (first-seen order)
+            if seen_global.insert(tag.clone()) {
+                themes.push(tag);
+            }
+        }
+    }
+
+    (themes, entry_counts)
+}
+
+/// Strip a trailing `[NEW]` marker (with surrounding whitespace) from a tag.
+fn strip_new_marker(tag: &str) -> &str {
+    let t = tag.trim_end();
+    if let Some(base) = t.strip_suffix("[NEW]") {
+        base.trim_end()
+    } else {
+        t
+    }
 }
 
 /// Build an `Artifact` for a tier-located file that carries no parseable
@@ -203,6 +303,14 @@ pub fn lenient_artifact(
         .unwrap_or("unknown")
         .to_owned();
 
+    // For lenient reference-index artifacts, body = full text (no frontmatter),
+    // so parse themes from the full text.
+    let (themes, theme_entry_counts) = if matches!(tier, ResearchTier::ReferenceIndex) {
+        parse_themes(text)
+    } else {
+        (Vec::new(), HashMap::new())
+    };
+
     Artifact {
         identity,
         tier,
@@ -220,6 +328,8 @@ pub fn lenient_artifact(
         rel_path: rel.to_owned(),
         raw_text: text.to_owned(),
         body: text.to_owned(),
+        themes,
+        theme_entry_counts,
     }
 }
 
@@ -538,5 +648,182 @@ Body paragraph.
         assert_eq!(a.tier, ResearchTier::Position);
         assert_eq!(a.path, abs);
         assert_eq!(a.rel_path, rel);
+    }
+
+    // ── parse_themes ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn parse_themes_extracts_tags_from_themes_lines() {
+        let body = "\
+### 1. Foo — `foo`
+
+- **Source class:** paper
+- **Themes:** retrieval, knowledge-graphs, overview
+
+### 2. Bar — `bar`
+
+- **Source class:** paper
+- **Themes:** retrieval, rag
+";
+        let (themes, counts) = parse_themes(body);
+        // All unique tags, first-seen order: retrieval, knowledge-graphs, overview, rag
+        assert_eq!(themes, vec!["retrieval", "knowledge-graphs", "overview", "rag"]);
+        // Entry counts: retrieval appears in 2 entries, others in 1
+        assert_eq!(*counts.get("retrieval").unwrap(), 2);
+        assert_eq!(*counts.get("knowledge-graphs").unwrap(), 1);
+        assert_eq!(*counts.get("overview").unwrap(), 1);
+        assert_eq!(*counts.get("rag").unwrap(), 1);
+    }
+
+    #[test]
+    fn parse_themes_strips_new_marker() {
+        let body = "- **Themes:** retrieval, fresh-tag [NEW], overview\n";
+        let (themes, counts) = parse_themes(body);
+        assert_eq!(themes, vec!["retrieval", "fresh-tag", "overview"]);
+        assert_eq!(*counts.get("fresh-tag").unwrap(), 1);
+        assert!(!themes.iter().any(|t| t.contains("[NEW]")));
+    }
+
+    #[test]
+    fn parse_themes_tolerates_leading_whitespace_on_bullet() {
+        let body = "  - **Themes:** spaced-tag, another\n";
+        let (themes, _) = parse_themes(body);
+        assert_eq!(themes, vec!["spaced-tag", "another"]);
+    }
+
+    #[test]
+    fn parse_themes_empty_body_returns_empty() {
+        let (themes, counts) = parse_themes("");
+        assert!(themes.is_empty());
+        assert!(counts.is_empty());
+    }
+
+    #[test]
+    fn parse_themes_no_themes_lines_returns_empty() {
+        let body = "### 1. Foo\n- **Source class:** paper\n- **Author:** Alice\n";
+        let (themes, counts) = parse_themes(body);
+        assert!(themes.is_empty());
+        assert!(counts.is_empty());
+    }
+
+    #[test]
+    fn parse_themes_deduplicates_across_entries() {
+        let body = "\
+- **Themes:** retrieval, overview
+- **Themes:** overview, rag
+";
+        let (themes, counts) = parse_themes(body);
+        // "overview" appears in both entries but only once in themes
+        assert!(themes.iter().filter(|t| t.as_str() == "overview").count() == 1);
+        // Entry count for "overview" = 2 (two entries mention it)
+        assert_eq!(*counts.get("overview").unwrap(), 2);
+    }
+
+    #[test]
+    fn parse_themes_bullet_without_space_not_matched() {
+        // CommonMark: a bullet marker must be followed by at least one space.
+        // `-**Themes:** tag` has no space after `-` — must not be parsed as themes.
+        let body = "-**Themes:** no-space-tag\n- **Themes:** has-space-tag\n";
+        let (themes, _) = parse_themes(body);
+        assert!(
+            !themes.contains(&"no-space-tag".to_owned()),
+            "bullet without space should not be parsed as themes; themes: {themes:?}"
+        );
+        assert!(
+            themes.contains(&"has-space-tag".to_owned()),
+            "bullet with space should still be parsed; themes: {themes:?}"
+        );
+    }
+
+    #[test]
+    fn parse_themes_hr_in_frontmatter_less_file_does_not_stop_parsing() {
+        // A markdown horizontal rule (`---`) in a frontmatter-less INDEX body must
+        // not be mistaken for a frontmatter opener. Tags both before and after the
+        // `---` must be parsed.
+        let body = "\
+# corpus INDEX
+
+### 1. Entry — `one`
+
+- **Source class:** paper
+- **Themes:** before-hr
+
+---
+
+### 2. Entry — `two`
+
+- **Source class:** paper
+- **Themes:** after-hr
+";
+        let (themes, _) = parse_themes(body);
+        assert!(
+            themes.contains(&"before-hr".to_owned()),
+            "tag before HR should be parsed; themes: {themes:?}"
+        );
+        assert!(
+            themes.contains(&"after-hr".to_owned()),
+            "tag after HR should be parsed; themes: {themes:?}"
+        );
+    }
+
+    #[test]
+    fn parse_themes_non_reference_artifact_has_empty_themes() {
+        // parse_artifact on a non-ReferenceIndex tier should have empty themes
+        let text = "\
+---
+source_handle: my-src
+fetched: 2026-01-01
+provenance: source-direct
+---
+
+- **Themes:** retrieval, overview
+";
+        let a = parse_attest(text).unwrap();
+        assert!(a.themes.is_empty(), "attestation should have no themes");
+        assert!(a.theme_entry_counts.is_empty());
+    }
+
+    #[test]
+    fn parse_themes_reference_index_with_frontmatter_extracts_themes() {
+        let text = "\
+---
+source_handle: my-entry
+fetched: 2026-01-01
+provenance: source-direct
+---
+
+- **Themes:** retrieval, overview
+";
+        let a = parse_artifact(
+            &p("/repo/.research/reference/my-corpus/entry.md"),
+            &p(".research/reference/my-corpus/entry.md"),
+            ResearchTier::ReferenceIndex,
+            Some("my-corpus".into()),
+            text,
+        )
+        .unwrap();
+        assert_eq!(a.themes, vec!["retrieval", "overview"]);
+        assert_eq!(*a.theme_entry_counts.get("retrieval").unwrap(), 1);
+    }
+
+    #[test]
+    fn lenient_artifact_extracts_themes_from_full_text() {
+        let text = "\
+# corpus INDEX
+
+### 1. Entry — `entry`
+
+- **Source class:** paper
+- **Themes:** retrieval, knowledge-graphs
+";
+        let a = lenient_artifact(
+            &p("/repo/.research/reference/my-corpus/INDEX.md"),
+            &p(".research/reference/my-corpus/INDEX.md"),
+            ResearchTier::ReferenceIndex,
+            Some("my-corpus".into()),
+            text,
+        );
+        assert_eq!(a.themes, vec!["retrieval", "knowledge-graphs"]);
+        assert_eq!(*a.theme_entry_counts.get("retrieval").unwrap(), 1);
     }
 }

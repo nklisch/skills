@@ -18,7 +18,10 @@
 //!
 //! - **Count**: `artifacts.len()` followed by newline.
 
-use std::io::{self, Write};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    io::{self, Write},
+};
 
 use research_view_core::model::{Artifact, ResearchTier};
 
@@ -48,6 +51,7 @@ pub fn render(artifacts: &[&Artifact], mode: OutputMode, out: &mut impl Write) -
         OutputMode::Paths => render_paths(artifacts, out),
         OutputMode::Cat => render_cat(artifacts, out),
         OutputMode::Count => render_count(artifacts, out),
+        OutputMode::Tags => render_tags(artifacts, out),
     }
 }
 
@@ -157,10 +161,81 @@ fn render_count(artifacts: &[&Artifact], out: &mut impl Write) -> io::Result<()>
     writeln!(out, "{}", artifacts.len())
 }
 
+// ── Tags ──────────────────────────────────────────────────────────────────────
+
+/// TAG column width (matches W_IDENTITY for visual consistency)
+const W_TAG: usize = 30;
+
+fn render_tags(artifacts: &[&Artifact], out: &mut impl Write) -> io::Result<()> {
+    // Accumulate per-tag totals: (entry_count, corpus_set)
+    // BTreeMap gives us lexically sorted tags in byte order (ASCII paths = ASCII tags
+    // → LC_ALL=C sort and Rust's BTreeMap use the same byte ordering for ASCII).
+    let mut tag_data: BTreeMap<String, (usize, BTreeSet<String>)> = BTreeMap::new();
+
+    for artifact in artifacts {
+        let corpus = artifact.corpus.clone().unwrap_or_default();
+        for tag in &artifact.themes {
+            let count = artifact
+                .theme_entry_counts
+                .get(tag)
+                .copied()
+                .unwrap_or(0);
+            let entry = tag_data
+                .entry(tag.clone())
+                .or_insert_with(|| (0, BTreeSet::new()));
+            entry.0 += count;
+            if !corpus.is_empty() {
+                entry.1.insert(corpus.clone());
+            }
+        }
+    }
+
+    if tag_data.is_empty() {
+        return Ok(());
+    }
+
+    // Header
+    writeln!(
+        out,
+        "{:<w_tag$}  {:>5}  CORPORA",
+        "TAG",
+        "COUNT",
+        w_tag = W_TAG,
+    )?;
+    // Separator
+    writeln!(
+        out,
+        "{:<w_tag$}  {:>5}  -------",
+        "------------------------------",
+        "-----",
+        w_tag = W_TAG,
+    )?;
+
+    for (tag, (count, corpora)) in &tag_data {
+        let corpus_list = corpora
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(",");
+        writeln!(
+            out,
+            "{:<w_tag$}  {:>5}  {}",
+            tag,
+            count,
+            corpus_list,
+            w_tag = W_TAG,
+        )?;
+    }
+
+    Ok(())
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
     use std::path::PathBuf;
 
@@ -190,6 +265,8 @@ mod tests {
             rel_path: PathBuf::from(".research/attestation/test.md"),
             raw_text: raw_text.to_string(),
             body: String::new(),
+            themes: vec![],
+            theme_entry_counts: HashMap::new(),
         }
     }
 
@@ -373,5 +450,144 @@ mod tests {
         let refs: Vec<&Artifact> = artifacts.iter().collect();
         let output = render_to_string(&refs, OutputMode::Count);
         assert_eq!(output.trim(), "3");
+    }
+
+    // ── Tags ───────────────────────────────────────────────────────────────────
+
+    /// Build a reference-index artifact with specified themes and entry counts.
+    fn make_reference_artifact(
+        identity: &str,
+        corpus: &str,
+        path: &str,
+        themes: Vec<&str>,
+        entry_counts: Vec<(&str, usize)>,
+    ) -> Artifact {
+        let themes = themes.into_iter().map(str::to_string).collect();
+        let theme_entry_counts = entry_counts
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect();
+        Artifact {
+            identity: identity.to_string(),
+            tier: ResearchTier::ReferenceIndex,
+            source_handle: None,
+            slug: None,
+            status: None,
+            temporal_contract: None,
+            provenance: None,
+            fetched: None,
+            authored: None,
+            source_url: None,
+            source_path: None,
+            corpus: Some(corpus.to_string()),
+            path: PathBuf::from(path),
+            rel_path: PathBuf::from(path),
+            raw_text: String::new(),
+            body: String::new(),
+            themes,
+            theme_entry_counts,
+        }
+    }
+
+    #[test]
+    fn tags_empty_artifacts_prints_nothing() {
+        let output = render_to_string(&[], OutputMode::Tags);
+        assert_eq!(output, "");
+    }
+
+    #[test]
+    fn tags_no_themes_prints_nothing() {
+        let a = make_artifact("x", ResearchTier::ReferenceIndex, None, None, None, "/p.md", "");
+        let output = render_to_string(&[&a], OutputMode::Tags);
+        assert_eq!(output, "");
+    }
+
+    #[test]
+    fn tags_single_artifact_has_header_separator_rows() {
+        let a = make_reference_artifact(
+            "INDEX",
+            "my-corpus",
+            "/root/.research/reference/my-corpus/INDEX.md",
+            vec!["retrieval", "overview"],
+            vec![("retrieval", 2), ("overview", 1)],
+        );
+        let output = render_to_string(&[&a], OutputMode::Tags);
+        let lines: Vec<&str> = output.lines().collect();
+        assert!(lines.len() >= 3, "should have header + separator + rows; got: {output:?}");
+        assert!(lines[0].contains("TAG"), "first line should be header: {output:?}");
+        assert!(lines[0].contains("COUNT"), "header should have COUNT: {output:?}");
+        assert!(lines[0].contains("CORPORA"), "header should have CORPORA: {output:?}");
+    }
+
+    #[test]
+    fn tags_sorted_lexically() {
+        let a = make_reference_artifact(
+            "INDEX",
+            "corpus-a",
+            "/root/.research/reference/corpus-a/INDEX.md",
+            vec!["rag", "overview", "agents"],
+            vec![("rag", 1), ("overview", 1), ("agents", 1)],
+        );
+        let output = render_to_string(&[&a], OutputMode::Tags);
+        let rows: Vec<&str> = output.lines().skip(2).collect(); // skip header + separator
+        // Rows should be byte-sorted: "agents", "overview", "rag"
+        assert!(rows[0].contains("agents"), "first row should be 'agents': {output:?}");
+        assert!(rows[1].contains("overview"), "second row should be 'overview': {output:?}");
+        assert!(rows[2].contains("rag"), "third row should be 'rag': {output:?}");
+    }
+
+    #[test]
+    fn tags_accumulates_across_artifacts() {
+        let a1 = make_reference_artifact(
+            "INDEX",
+            "corpus-a",
+            "/root/.research/reference/corpus-a/INDEX.md",
+            vec!["retrieval", "overview"],
+            vec![("retrieval", 3), ("overview", 2)],
+        );
+        let a2 = make_reference_artifact(
+            "INDEX",
+            "corpus-b",
+            "/root/.research/reference/corpus-b/INDEX.md",
+            vec!["retrieval", "rag"],
+            vec![("retrieval", 1), ("rag", 2)],
+        );
+        let output = render_to_string(&[&a1, &a2], OutputMode::Tags);
+        // "retrieval" total count = 3 + 1 = 4, corpora = corpus-a,corpus-b
+        let retrieval_line = output
+            .lines()
+            .find(|l| l.trim_start().starts_with("retrieval"))
+            .expect("retrieval line should exist");
+        assert!(retrieval_line.contains("4"), "retrieval count should be 4: {retrieval_line:?}");
+        assert!(retrieval_line.contains("corpus-a"), "should list corpus-a: {retrieval_line:?}");
+        assert!(retrieval_line.contains("corpus-b"), "should list corpus-b: {retrieval_line:?}");
+    }
+
+    #[test]
+    fn tags_corpus_list_is_lexically_sorted() {
+        let a1 = make_reference_artifact(
+            "INDEX",
+            "z-corpus",
+            "/root/.research/reference/z-corpus/INDEX.md",
+            vec!["retrieval"],
+            vec![("retrieval", 1)],
+        );
+        let a2 = make_reference_artifact(
+            "INDEX",
+            "a-corpus",
+            "/root/.research/reference/a-corpus/INDEX.md",
+            vec!["retrieval"],
+            vec![("retrieval", 1)],
+        );
+        let output = render_to_string(&[&a1, &a2], OutputMode::Tags);
+        let retrieval_line = output
+            .lines()
+            .find(|l| l.trim_start().starts_with("retrieval"))
+            .expect("retrieval line should exist");
+        // Corpora should be sorted: "a-corpus,z-corpus" (not z-corpus,a-corpus)
+        assert!(
+            retrieval_line.contains("a-corpus,z-corpus"),
+            "corpora should be sorted a-corpus,z-corpus: {retrieval_line:?}"
+        );
     }
 }
