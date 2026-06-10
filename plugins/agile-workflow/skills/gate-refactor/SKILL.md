@@ -4,7 +4,10 @@ description: >
   Refactor gate that discovers scan-rule libraries declared in the host project
   ({project}/.agents/skills/scan-*/SKILL.md and {project}/.claude/skills/scan-*/SKILL.md),
   loads every discovered library, checks the release bundle's changed files against all loaded
-  rules, and produces findings as items with gate_origin:refactor and tags:[refactor].
+  rules, and produces findings as items with gate_origin:refactor; routing tag declared per
+  library (libraries whose fixes are behavior-preserving declare findings-route:refactor;
+  behavior-changing libraries declare no route — findings emit untagged and route through
+  normal feature/story design).
   Rule libraries are deployment-local — the gate ships the mechanism; adopters supply the rules.
   Auto-triggers during /agile-workflow:release-deploy when the host project opts in via
   CONVENTIONS.md: gates_for_release: [..., refactor, ...].
@@ -84,6 +87,12 @@ For each discovered `SKILL.md`:
    the detailed per-rule specifications.
 3. Derive a **library tag** from the directory name by stripping `scan-` (e.g., `scan-wcag-aa`
    → `wcag-aa`, `scan-structural` → `structural`).
+4. Read the library's **routing declaration**: look for a `findings-route:` line in the SKILL.md
+   body (format: `findings-route: refactor` or `findings-route: none`). This line declares whether
+   the library's findings carry `tags: [refactor]`. If the line is absent, the default is **no
+   routing tag** — untagged is safe-by-default (feature-design handles everything; the `[refactor]`
+   route is the optimization a library opts into by asserting its fixes are behavior-preserving).
+   Record the routing decision per library for use in Phase 4.
 
 **No-libraries behavior:** if both globs return zero results, log to the release body:
 
@@ -198,6 +207,20 @@ M-times-N redundant file reads and allows cross-library finding deduplication.
 
 For each finding the sub-agent returned:
 
+**`gate_origin: refactor` is unconditional** — it records which gate produced the item, not the
+nature of the fix. The `tags:` field is determined by the source library's routing declaration:
+- Library declared `findings-route: refactor` → `tags: [refactor]` (behavior-preserving; routes
+  through refactor-design).
+- Library declared `findings-route: none` or declaration absent → `tags: []` (behavior-changing or
+  unclassified; routes through the normal feature/story design path).
+
+The rationale: `[refactor]` is strictly behavior-preserving by definition (black-box test — no
+observable behavior change for any caller of the public surface). Libraries whose fixes change
+observable behavior — a11y improvements, SEO changes, API corrections — must not carry the tag or
+refactor-design will bounce them as mistagged.
+
+**Example: behavior-preserving library (e.g. `scan-structural`, `findings-route: refactor`)**
+
 ```yaml
 ---
 id: gate-refactor-<short-slug>
@@ -211,7 +234,28 @@ gate_origin: refactor
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---
+```
 
+**Example: behavior-changing library (e.g. `scan-wcag-aa`, no findings-route declaration)**
+
+```yaml
+---
+id: gate-refactor-<short-slug>
+kind: story
+stage: implementing | drafting    # by confidence — see table below
+tags: []
+parent: null
+depends_on: []
+release_binding: <version>
+gate_origin: refactor
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+---
+```
+
+Item body (same for both cases):
+
+```markdown
 # <one-line description>
 
 ## Library
@@ -301,14 +345,38 @@ A scan-rule library declares itself by its directory name and the content of its
 - **Rule format**: each rule should carry a slug (for deduplication), a description of what
   constitutes a violation, and confidence guidance (when does a match warrant high vs. medium vs.
   low confidence).
+- **Routing declaration** (one line in the SKILL.md body):
+  ```
+  findings-route: refactor
+  ```
+  Declares that this library's rules are **behavior-preserving** (structural, stylistic, dead-code
+  removal) — every fix passes the black-box test: no observable behavior change for any caller of
+  the public surface. Findings from this library carry `tags: [refactor]` and may route through
+  `refactor-design`.
+
+  **Default when absent: no routing tag.** Libraries whose fixes are **behavior-changing** (a11y,
+  SEO, API corrections, anything altering observable behavior for any consumer) omit the
+  declaration or set `findings-route: none`. Their findings emit without a `[refactor]` tag and
+  route through the normal feature/story design path. Untagged is the safe default — feature-design
+  handles everything; the `[refactor]` route is the optimization a library opts into by asserting
+  behavior-preservation.
 - **No registration required**: the gate discovers libraries by glob. No manifest entry needed.
 
-Example library skeleton:
+Example library skeleton (behavior-preserving — opts in to `[refactor]` routing):
 
 ```
 {project}/.agents/skills/scan-structural/
-  SKILL.md         ← library declaration + rule inventory
+  SKILL.md         ← library declaration + rule inventory + findings-route: refactor
   references/
     api-shape.md   ← detailed rule: API structural conventions
     error-shape.md ← detailed rule: error-handling conventions
+```
+
+Example library skeleton (behavior-changing — omits routing declaration):
+
+```
+{project}/.agents/skills/scan-wcag-aa/
+  SKILL.md         ← library declaration + rule inventory (no findings-route line)
+  references/
+    wcag-aa-rules.md ← detailed WCAG 2.x AA rule set
 ```
