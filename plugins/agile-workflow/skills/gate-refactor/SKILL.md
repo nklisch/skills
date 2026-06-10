@@ -174,7 +174,9 @@ M-times-N redundant file reads and allows cross-library finding deduplication.
 > - Do not fabricate findings. If a rule produces no matches, emit nothing for it.
 > - Skip already-tracked findings (exact file:line + rule-slug match).
 > - Confidence follows the library's own guidance for each rule. When the library
->   does not specify, default to medium.
+>   does not specify, default to medium. Normalize any other severity vocabulary a
+>   library uses (e.g. critical/info, numeric scores) onto `high`/`medium`/`low`
+>   rather than defaulting mismatches to medium.
 >
 > **Output format** — return a single markdown document with:
 >
@@ -286,7 +288,9 @@ Confidence → stage mapping (mirrors gate-cruft):
 | Low | backlog file | `.work/backlog/` |
 
 Slug: derive from library tag + rule slug + file fragment (e.g.
-`gate-refactor-structural-routes-api`, `gate-refactor-wcag-aa-missing-alt`).
+`gate-refactor-structural-routes-api`, `gate-refactor-wcag-aa-missing-alt`). If the derived
+slug already exists (same rule firing twice in one file or across runs), append a counter
+suffix (`-2`, `-3`, …) to keep slugs unique.
 
 ### Phase 5: Update the release body
 
@@ -343,9 +347,11 @@ A scan-rule library declares itself by its directory name and the content of its
 - **SKILL.md content**: the `description` frontmatter field and the body carry the rules. The
   gate reads the full SKILL.md and all files in `references/` as the library declaration.
 - **Rule format**: each rule should carry a slug (for deduplication), a description of what
-  constitutes a violation, and confidence guidance (when does a match warrant high vs. medium vs.
-  low confidence).
-- **Routing declaration** (one line in the SKILL.md body):
+  constitutes a violation, and confidence guidance (when does a match warrant `high` vs. `medium`
+  vs. `low` confidence). These three values are the **required vocabulary** — the gate and
+  downstream tooling map directly on them.
+- **Routing declaration** (one line in the SKILL.md **body** — NOT a frontmatter key; the gate
+  scans the body for this line, so a frontmatter placement would be silently missed):
   ```
   findings-route: refactor
   ```

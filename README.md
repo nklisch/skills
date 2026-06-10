@@ -153,7 +153,7 @@ order (default: security → tests → cruft → docs → patterns). `gate-refac
 | **gate-cruft** | Dead code / cruft cleanup items with `gate_origin: cruft` |
 | **gate-docs** | Foundation-doc drift items (enforces rolling-foundation) with `gate_origin: docs` |
 | **gate-patterns** | Reusable patterns extracted to `.agents/skills/patterns/` with optional Claude mirror |
-| **gate-refactor** | Refactor rule-library findings with `gate_origin: refactor`, `tags: [refactor]` — opt-in; discovers libraries at `{project}/.agents/skills/scan-*/` and `{project}/.claude/skills/scan-*/`; graceful no-op when no libraries installed |
+| **gate-refactor** | Refactor rule-library findings with `gate_origin: refactor`; routing tag per library declaration (`findings-route:`); see the gate's SKILL.md — opt-in; discovers libraries at `{project}/.agents/skills/scan-*/` and `{project}/.claude/skills/scan-*/`; graceful no-op when no libraries installed |
 
 ### Reference
 
