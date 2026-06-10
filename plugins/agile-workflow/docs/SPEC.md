@@ -131,16 +131,24 @@ skill reads this at session start (via the SessionStart hook or directly).
 ## Gate config
 gates_for_release: [security, tests, cruft, docs, patterns]
 binding_guard: warn
+epic_cohesion: phased
 ```
 
 The default `gates_for_release` order is fixed: **security → tests → cruft
 → docs → patterns**. Override only if the project has a justified reason.
 
-**`binding_guard`** (default **`warn`** when absent) controls the Phase 3.5 epic-cohesion check in
-`release-deploy`. Values: `warn` | `halt` | `off`. `warn` runs all three checks and surfaces any
-mismatch as a durable warning in the release body, then continues. `halt` stops the release on any
-mismatch (for projects that hold the "epics don't span releases" invariant). `off` skips the checks
-entirely.
+**`binding_guard`** (default **`warn`** when absent) controls the Phase 3.5 binding-consistency check
+in `release-deploy`. Values: `warn` | `halt` | `off`. `warn` runs all three checks and records any
+finding as a durable warning in the release body (replace-or-skip, not appended), then continues.
+`halt` stops the release on any acted-on finding (for projects that hold the no-cross-version-drift
+invariant). `off` skips the checks entirely (short-circuits before any walk).
+
+**`epic_cohesion`** (default **`phased`** when absent) governs the severity of an *unbound child of
+a bound parent* (an INCOMPLETE finding). `phased` treats INCOMPLETE entries as informational —
+listed in the warn report, never counting toward a halt (an epic may ship across releases). `total`
+treats them as mismatches acted on per `binding_guard`, like CONFLICTs (the project holds "epics
+ship whole"). CONFLICTs (a child bound to a *different* version than its bound parent, or a done
+parent unbound while its children are bound) always follow `binding_guard` regardless of this dial.
 
 `terminal-tier retention` (default **`delete-refs`**) is **one merged convention** covering the
 whole terminal lifecycle — archival, late-binding, and release collapse — not just on-disk byte

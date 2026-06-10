@@ -140,26 +140,50 @@ If the release is at `stage: planned`:
 ### Phase 3.5: Binding-consistency guard
 
 Read `binding_guard:` from `.work/CONVENTIONS.md` (same read as `gates_for_release` in Phase 1).
-Values: `warn` (default when the key is absent) | `halt` | `off`.
+Values: `warn` (default when the key is absent) | `halt` | `off`. The guard reports two classes of
+finding (defined below): **CONFLICT** (always acted on) and **INCOMPLETE** (severity governed by the
+`epic_cohesion` convention).
 
 - `off` — skip all three checks; log one line: "binding-consistency guard is off (CONVENTIONS
-  binding_guard: off); skipping." Continue to Phase 4.
-- `warn` — run all three checks; if mismatches are found, print the full mismatch report into the
-  conversation AND append it verbatim to the release file body under a `### Binding-consistency
-  warnings` subsection (so the record is durable), then **continue** the release flow.
-- `halt` — run all three checks; if mismatches are found, report and stop.
-  The user resolves and re-runs `/agile-workflow:release-deploy <version>`.
+  binding_guard: off); skipping." Continue to Phase 4. The guard short-circuits here **before** any
+  gathering or walking — the CONVENTIONS read is the first thing the bash block does.
+- `warn` — run all three checks; if findings are present, print the full report into the
+  conversation AND record it in the release file body under a `### Binding-consistency warnings`
+  subsection (so the record is durable), then **continue** the release flow. The record is
+  **replace-or-skip**: a re-invoke rewrites the existing subsection with the current report rather
+  than appending a second block (current state, not history — release-deploy is idempotent).
+- `halt` — run all three checks; if any **acted-on** finding is present (every CONFLICT, plus
+  INCOMPLETEs only under `epic_cohesion: total`), report and stop. The user resolves and re-runs
+  `/agile-workflow:release-deploy <version>`. Informational INCOMPLETEs (under `phased`) never halt.
 
-Projects that hold an epic-cohesion convention (epics don't span releases) set `halt`; the default
-`warn` surfaces drift without imposing the convention.
+**Two report classes.** The guard's hard invariant is *no cross-version drift*; whether an epic
+must ship *whole* is a project convention (`epic_cohesion`), so the two are split:
+
+- **CONFLICT** — a child bound to a *different* version than its bound parent, or a done parent left
+  unbound while its children are bound. Always a genuine coherence violation; always acted on per
+  `binding_guard` mode.
+- **INCOMPLETE** — an unbound child of a bound parent. This is legitimate phased delivery for some
+  projects and drift for others, so its severity is governed by **`epic_cohesion`** (read from
+  `.work/CONVENTIONS.md`): `phased` (default) treats INCOMPLETE entries as informational — listed in
+  the warn report, never counting toward a halt; `total` treats them as mismatches acted on per
+  `binding_guard` mode, exactly like CONFLICTs.
+
+Projects that hold the stronger "epics ship whole" convention set `epic_cohesion: total` (and
+typically `binding_guard: halt`); the defaults (`phased` + `warn`) surface drift without imposing
+total cohesion — so `halt` stays usable for phased / multi-release epics.
 
 Before any gate runs, walk every item bound to this release and verify three invariants. Any
-mismatch halts (or warns, per `binding_guard`) — do NOT rebind anything implicitly. The
+acted-on finding halts (or warns, per `binding_guard`) — do NOT rebind anything implicitly. The
 user must resolve any inconsistency flagged at `halt` level and re-run
 `/agile-workflow:release-deploy <version>`.
 
-This guard catches drift where a child's review-pass bound it to the release but its parent epic was
-forgotten, or where a done epic's children were bound without the epic itself being bound.
+Throughout this guard a **parent** is an item of kind epic OR feature: Checks 1, 2, and 3 all walk
+the children of a bound (or done-unbound) epic or feature, so a bound feature whose stories drift
+cross-version is caught by Check 1 just as a bound epic's features are.
+
+This guard catches drift where a child's review-pass bound it to the release but its parent (epic or
+feature) was forgotten, or where a done parent's children were bound without the parent itself being
+bound.
 
 Note: the plugin's archive tier may hold **bodyless stubs** (when `terminal-tier retention:
 delete-refs` is in effect). Stubs retain their frontmatter (`id`, `parent`, `stage`,
@@ -168,6 +192,20 @@ frontmatter fields to resolve parentage and binding regardless of whether a body
 
 ```bash
 version=<version>   # substitute the target release version here (single substitution point)
+
+# Read the gate config FIRST so `off` short-circuits before any gathering or walking.
+# (Reading after the loop would run every check and then discard the result, contradicting
+# "off — skip all three checks".)
+binding_guard=$(grep -m1 '^binding_guard:' .work/CONVENTIONS.md | awk '{print $2}')
+binding_guard="${binding_guard:-warn}"   # default: warn
+epic_cohesion=$(grep -m1 '^epic_cohesion:' .work/CONVENTIONS.md | awk '{print $2}')
+epic_cohesion="${epic_cohesion:-phased}" # default: phased (an epic may ship across releases)
+
+if [ "$binding_guard" = "off" ]; then
+  echo "binding-consistency guard is off (CONVENTIONS binding_guard: off); skipping."
+  # Continue to Phase 4 — do NOT gather or walk anything.
+  return 0 2>/dev/null || exit 0
+fi
 
 # Gather all items bound to this release (auto-widens to active + archive tiers).
 # Exclude the release orchestration item itself.
@@ -183,7 +221,22 @@ bound_items=$(.work/bin/work-view --release "$version" --paths \
 # Without the agentic-research plugin, [research] is an inert project tag — its items bind
 # normally and MUST be walked by the guard like any other item; do not apply the filter.
 
-mismatches=()
+# Two report classes, split by severity (the guard's hard invariant is no-cross-version-drift;
+# whether an epic must ship *whole* is a project convention, carried by epic_cohesion):
+#   conflicts[]  — CONFLICT: a child bound to a DIFFERENT version than its bound parent, or a
+#                  done parent unbound while its children are bound. Always a genuine coherence
+#                  violation; always acted on per binding_guard mode.
+#   incompletes[] — INCOMPLETE: an unbound child of a bound parent. Legitimate phased delivery
+#                  under epic_cohesion: phased (informational only); a mismatch under
+#                  epic_cohesion: total (acted on per binding_guard mode, like a CONFLICT).
+conflicts=()
+incompletes=()
+
+# Note on search scope: the parent/child walks grep `.work/active .work/archive` only and
+# deliberately exclude `.work/releases`. Collapsed release items are not valid parents under
+# either retention model (delete-refs prunes to a single summary doc; retain-bodies keeps bodies
+# but the items are terminal), so a `parent:` pointing into releases/ is an orphan by construction
+# and would never resolve a live binding here.
 
 for item_path in $bound_items; do
   kind=$(grep -m1 '^kind:' "$item_path" | awk '{print $2}')
@@ -192,78 +245,97 @@ for item_path in $bound_items; do
   item_stage=$(grep -m1 '^stage:' "$item_path" | awk '{print $2}')
   parent_id=$(grep -m1 '^parent:' "$item_path" | awk '{print $2}')
 
-  # Check 1: all children of a bound epic are bound to the same release.
+  # Check 1: children of a bound parent (epic OR feature) are consistent with it.
   # Walk this item's children (items whose parent: field matches this item's id).
-  if [ "$kind" = "epic" ]; then
-    # Find all children of this epic across active and archive tiers.
+  if [ "$kind" = "epic" ] || [ "$kind" = "feature" ]; then
+    # Find all children of this parent across active and archive tiers (see scope note above).
     while IFS= read -r child_path; do
       child_binding=$(grep -m1 '^release_binding:' "$child_path" | awk '{print $2}')
       child_id=$(grep -m1 '^id:' "$child_path" | awk '{print $2}')
       if [ "$child_binding" != "$version" ] && [ "$child_binding" != "null" ] && [ "$child_binding" != "" ]; then
-        mismatches+=("CHECK 1 — child $child_id is bound to $child_binding, but its parent epic $item_id is bound to $version")
+        # CONFLICT: child bound to a different version than its bound parent.
+        conflicts+=("CONFLICT — child $child_id is bound to $child_binding, but its parent $kind $item_id is bound to $version")
       elif [ "$child_binding" = "null" ] || [ "$child_binding" = "" ]; then
-        # Child is unbound; that's only a mismatch if the epic is bound.
-        mismatches+=("CHECK 1 — child $child_id (unbound) has parent epic $item_id bound to $version; all children of a bound epic must share the same release binding")
+        # INCOMPLETE: unbound child of a bound parent. Severity depends on epic_cohesion.
+        incompletes+=("INCOMPLETE — child $child_id (unbound) has parent $kind $item_id bound to $version; under epic_cohesion: total all children of a bound parent must share the same release binding")
       fi
     done < <(grep -rl "^parent: ${item_id}$" .work/active .work/archive 2>/dev/null)
   fi
 
-  # Check 2: an epic at stage: done whose children are bound is itself bound.
-  if [ "$kind" = "epic" ] && [ "$item_stage" = "done" ] && { [ "$item_binding" = "null" ] || [ -z "$item_binding" ]; }; then
-    # Look for any child that is bound to this release.
-    if grep -rl "^parent: ${item_id}$" .work/active .work/archive 2>/dev/null \
-         | xargs grep -lm1 "^release_binding: ${version}$" 2>/dev/null | grep -q .; then
-      mismatches+=("CHECK 2 — epic $item_id is at stage: done with bound children but is itself unbound; bind the epic to $version before proceeding")
-    fi
-  fi
-
-  # Check 3: no done parent missing a binding while its children are bound (orphan risk).
+  # Checks 2 & 3: a done parent (epic OR feature) left unbound while any child is bound is itself a
+  # CONFLICT (orphan risk). These two invariants share one predicate — done + unbound + a bound
+  # child — so they are evaluated together and emit a single CONFLICT per parent (no double-report).
   # Applies to epics AND features (a feature that parents stories).
   if { [ "$kind" = "epic" ] || [ "$kind" = "feature" ]; } && \
      [ "$item_stage" = "done" ] && { [ "$item_binding" = "null" ] || [ -z "$item_binding" ]; }; then
+    # Look for any child that is bound to this release (see scope note above).
     if grep -rl "^parent: ${item_id}$" .work/active .work/archive 2>/dev/null \
          | xargs grep -lm1 "^release_binding: ${version}$" 2>/dev/null | grep -q .; then
-      mismatches+=("CHECK 3 — $kind $item_id is done and unbound while its children are bound to $version (orphan risk)")
+      conflicts+=("CONFLICT — $kind $item_id is at stage: done and unbound while its children are bound to $version (orphan risk); bind the $kind to $version before proceeding")
     fi
   fi
 done
 
-binding_guard=$(grep -m1 '^binding_guard:' .work/CONVENTIONS.md | awk '{print $2}')
-binding_guard="${binding_guard:-warn}"   # default: warn
+# Severity assembly. CONFLICTs always count toward halt/warn. INCOMPLETEs count only under
+# epic_cohesion: total; under phased they are informational and never trigger a halt.
+acted=("${conflicts[@]}")
+informational=()
+if [ "$epic_cohesion" = "total" ]; then
+  acted+=("${incompletes[@]}")
+else
+  informational=("${incompletes[@]}")
+fi
 
-if [ "${#mismatches[@]}" -gt 0 ]; then
-  report="BINDING CONSISTENCY — release $version:"
-  for m in "${mismatches[@]}"; do
+if [ "${#acted[@]}" -gt 0 ] || [ "${#informational[@]}" -gt 0 ]; then
+  report="BINDING CONSISTENCY — release $version (epic_cohesion: $epic_cohesion):"
+  for m in "${acted[@]}"; do
     report+=$'\n'"  • $m"
   done
+  for m in "${informational[@]}"; do
+    report+=$'\n'"  • $m  [informational under epic_cohesion: phased]"
+  done
   report+=$'\n'
-  report+="Resolve each mismatch manually (edit release_binding or parent frontmatter as appropriate),"
+  report+="Resolve each CONFLICT manually (edit release_binding or parent frontmatter as appropriate),"
   report+=$'\n'"then re-run: /agile-workflow:release-deploy $version"
 
-  if [ "$binding_guard" = "halt" ]; then
+  if [ "$binding_guard" = "halt" ] && [ "${#acted[@]}" -gt 0 ]; then
+    # halt only on acted-on entries (CONFLICTs always; INCOMPLETEs only under total).
     echo "BINDING CONSISTENCY FAILURES (halt) — $report"
     exit 1
   else
-    # warn: surface in conversation + append to release body (durable record)
+    # warn (or halt with only informational INCOMPLETEs): surface in conversation + record durably.
     echo "BINDING CONSISTENCY WARNINGS (warn) — $report"
-    # Append to release file body
-    {
-      echo ""
-      echo "### Binding-consistency warnings"
-      echo ""
-      echo "$report"
-    } >> .work/active/release-"$version".md
+    # Replace-or-skip the durable record so re-invokes don't accumulate duplicate subsections
+    # (release-deploy is idempotent — current state, not history).
+    release_file=.work/active/release-"$version".md
+    subsection="### Binding-consistency warnings"
+    new_block=$(printf '%s\n\n%s\n' "$subsection" "$report")
+    if grep -qF "$subsection" "$release_file"; then
+      # Rewrite the existing subsection in place: drop the old block (from its heading up to the
+      # next "### "/"## " heading or EOF) and splice the current report at the same spot.
+      awk -v block="$new_block" '
+        $0 == "### Binding-consistency warnings" { skip=1; print block; next }
+        skip && /^#{2,3} / && $0 != "### Binding-consistency warnings" { skip=0 }
+        !skip { print }
+      ' "$release_file" > "$release_file.tmp" && mv "$release_file.tmp" "$release_file"
+    else
+      printf '\n%s\n' "$new_block" >> "$release_file"
+    fi
   fi
 fi
 ```
 
 Act on the result per `binding_guard`:
 
-- **`off`**: skip the bash block above entirely; log one line and continue to Phase 4.
-- **`halt`**: if any mismatch is found, stop the release flow. Do not proceed to gates. Do not
-  rebind anything. The user is the only actor who can resolve a binding inconsistency.
-- **`warn`** (default): if any mismatch is found, print the report into the conversation AND append
-  it to the release body, then continue to Phase 4. Do not rebind anything.
+- **`off`**: the bash block short-circuits at its first step (the CONVENTIONS read) before gathering
+  or walking anything; log one line and continue to Phase 4.
+- **`halt`**: if any acted-on finding is present (every CONFLICT, plus INCOMPLETEs only under
+  `epic_cohesion: total`), stop the release flow. Do not proceed to gates. Do not rebind anything.
+  The user is the only actor who can resolve a binding inconsistency. Informational INCOMPLETEs
+  (under `epic_cohesion: phased`) are recorded but do not halt.
+- **`warn`** (default): if any finding is present, print the report into the conversation AND record
+  it in the release body (replace-or-skip the `### Binding-consistency warnings` subsection rather
+  than appending a duplicate), then continue to Phase 4. Do not rebind anything.
 
 ### Phase 4: Gate execution
 
