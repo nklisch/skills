@@ -3,10 +3,10 @@
   "framework": "ARD",
   "homepage": "https://code.s-nc.org/Kevoun/ARD",
   "adopts": {
-    "version": "0.5.0",
-    "release_tag": "v0.5.0",
-    "commit_sha": "cf8440abbb3776f703f02fec4af14aa87f737484",
-    "catalog_baseline": "0.3"
+    "version": "0.5.1",
+    "release_tag": "v0.5.1",
+    "commit_sha": "5fda20e94bf232fc98d1835f0bac8bb59856b3dd",
+    "catalog_baseline": "0.5.0"
   },
   "vendored_paths": {
     "kernel/lint-citations.py": "scripts/lint-citations.py",

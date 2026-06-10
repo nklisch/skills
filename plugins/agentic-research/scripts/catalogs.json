@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from CATALOGS.md by tools/gen-contract.py — do not edit by hand; edit the prose and regenerate.",
-  "catalog_baseline": "0.3",
+  "catalog_baseline": "0.5.0",
   "generated_from": "CATALOGS.md",
   "failure_shapes": [
     {
@@ -386,7 +386,8 @@
       "in-engagement-judgment"
     ],
     "analytical_artifact_type": [
-      "per-campaign-brief"
+      "per-campaign-brief",
+      "accumulative-ledger"
     ],
     "temporal_contract": [
       "write-once-on-converge",

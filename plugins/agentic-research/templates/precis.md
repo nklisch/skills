@@ -1,4 +1,4 @@
-<!-- ARD-Version: 0.5.0 -->
+<!-- ARD-Version: 0.5.1 -->
 # Precis — template
 
 An engagement-unit aggregation (ARD SPEC §10.2), authored **from raw** (not from the attestation or orientation notes — strict layer-directionality). Lives at `.research/precis/<slug>.md`. Source-coherent; the engagement unit is the smallest source-scope at which the source constructs a coherent whole, identified by reading.

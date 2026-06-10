@@ -1,4 +1,4 @@
-<!-- ARD-Version: 0.5.0 -->
+<!-- ARD-Version: 0.5.1 -->
 # Dispatch registration — template
 
 The dispatch-time registration declaration (ARD SPEC §9). Sets the controls for an engagement. For a single-pass walk this can live in the conversation transcript; for a multi-specialist or multi-campaign walk, persist it as a `dispatch.md` at the campaign root. The nine fields are always present (a uniform shape prevents silent default drift).
