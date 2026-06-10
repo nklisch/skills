@@ -37,6 +37,12 @@ If there are no blockers:
      frontmatter additions (`archived_atop`, `git_ref`) and same late-binding semantics —
      bodies are just not pruned. Honor the project's existing archive layout (e.g.
      kind-grouped `archive/<kind>s/`) when one is established.
+   - **Any other value** → treat as `retain-bodies` (keep the full body) and print a loud
+     one-line warning: `WARNING: unrecognized Terminal-tier retention value "<value>" in
+     CONVENTIONS.md — archiving with body kept (safe default); fix CONVENTIONS.md.`
+     Rationale: a typo must never trigger body-pruning. `delete-refs` applies only when
+     explicitly and exactly declared (or when the key is absent — the documented default
+     above; that default is unchanged).
 4. If it has a parent, check whether all siblings are now `done`:
 
 ```bash

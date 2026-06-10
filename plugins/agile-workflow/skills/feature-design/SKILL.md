@@ -22,7 +22,10 @@ design is done, you advance the feature's stage `drafting → implementing`.
 
 This skill is the feature-level entry point in the design family. The family
 routes by item kind and tags:
-- `epic-design` — `kind: epic` at `stage: drafting` (decomposes into features)
+- `epic-design` — `kind: epic` at `stage: drafting` (decomposes into features; an epic
+  carrying `[research]` is a research-program epic — routes here as normal decomposition,
+  whose children are `[research]` features each with their own `research_dials:` registration;
+  the tag at epic level signals program decomposition, never an epic-level registration)
 - `feature-design` (this skill) — `kind: feature`, no specialized tag
 - `refactor-design` — `kind: feature` with `tags: [refactor]`
 - `perf-design` — `kind: feature` with `tags: [perf]`
@@ -32,6 +35,9 @@ routes by item kind and tags:
   and runs the ARD walk; gates run inline; it never binds to a release. Requires the
   `agentic-research` plugin (without it, `[research]` is an inert project tag — fall through
   to `feature-design`).
+
+The cross-plugin target `agentic-research:research-orchestrator` is a fixed pairing contract;
+a deployment substituting a different research entry skill edits these routing rows.
 
 If the feature you're looking at has `[refactor]`, `[perf]`, or `[research]` in `tags`, you
 were misrouted. Don't try to design it — log a one-line note to the item body

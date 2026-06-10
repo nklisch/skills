@@ -75,12 +75,13 @@ Two gates, with different timing:
    resolved work set): foundation docs exist (`docs/VISION.md` or `docs/SPEC.md`) — required
    when the scope contains **any** item that routes to the design family (`epic-design` /
    `feature-design` / `refactor-design` / `perf-design`), which read foundation docs as their
-   design anchor. If absent in that case, halt the whole run with a clear message **before
-   delegating any item** — including in a mixed scope: do not partially drain the
-   non-design-family items, a partial drain leaves the queue in a state the goal statement
-   didn't describe. A scope with no design-family routes — drafting items that all route
-   cross-plugin to `agentic-research:research-orchestrator` (`[research]` items anchor on the
-   commissioning item body + the research substrate, not VISION/SPEC), and/or
+   design anchor. *(Design family = skills that read foundation docs as their design anchor; a
+   deployment adding such a skill extends this list.)* If absent in that case, halt the whole
+   run with a clear message **before delegating any item** — including in a mixed scope: do not
+   partially drain the non-design-family items, a partial drain leaves the queue in a state the
+   goal statement didn't describe. A scope with no design-family routes — drafting items that
+   all route cross-plugin to `agentic-research:research-orchestrator` (`[research]` items anchor
+   on the commissioning item body + the research substrate, not VISION/SPEC), and/or
    `implementing`/`review` items only — runs without foundation docs.
 
 These are hard halts because the queue has no reliable substrate or design
@@ -143,7 +144,10 @@ this caller note in every delegated prompt:
 
 Routing:
 
-- `stage: drafting`, `kind: epic` -> `epic-design`
+- `stage: drafting`, `kind: epic` -> `epic-design` (an epic carrying `[research]` is a
+  research-program epic — it routes here as normal epic decomposition; its children are
+  `[research]` features each carrying their own `research_dials:` registration; the tag at
+  epic level signals program decomposition, never an epic-level registration)
 - `stage: drafting`, feature with `tags: [refactor]` -> `refactor-design`
 - `stage: drafting`, feature with `tags: [perf]` -> `perf-design`
 - `stage: drafting`, feature with `tags: [research]` -> `agentic-research:research-orchestrator`

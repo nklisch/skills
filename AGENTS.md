@@ -150,7 +150,11 @@ carry load-bearing routing semantics — get these right:
   (it never reaches `release-deploy`). Requires the `agentic-research` plugin;
   without it, `[research]` is an inert project tag — drop it and the item routes
   through `feature-design`. See the agentic-research plugin's `docs/HANDOFF.md`
-  for the pairing.
+  for the pairing. **At `kind: epic`:** an epic carrying `[research]` is a
+  research-program epic — it routes to `epic-design` as normal epic decomposition,
+  whose children are `[research]` features each carrying their own `research_dials:`
+  registration; the tag at epic level signals program decomposition, never an
+  epic-level registration.
 
 All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
 affect skill routing.
