@@ -80,8 +80,9 @@ dispatch-time-registration record the settled dials (commissioning item if prese
   → lint                   python3 plugins/agentic-research/scripts/lint-citations.py <out> --attestation-dir .research/attestation/
   → [CHECKPOINT B]         surface contradictions before the cross-join (multi-path only)
   → synthesize {cross}     lead composition across specialist briefs → parent.md (multi-path)
-  → acquisition-offgas     consolidate specialist acquisition candidates → acquisitions.md +
-                           promote to the standing queue (verification-INDEPENDENT; see §Acquisition offgas)
+  → acquisition-offgas     consolidate specialist acquisition candidates → acquisitions.md
+                           (research-side persist always); propose queue promotion at the
+                           handoff gate — operator-confirmed (verification-INDEPENDENT; see §Acquisition offgas)
   → adversarial-read       if rigor ≥ standard (dispatch the adversarial-reader brief)
   → evaluate               if rigor = full (dispatch the evaluator brief, ISOLATED context)
   → spot-check             always; lead-context categorical check across lint pattern categories
@@ -111,18 +112,43 @@ deliberately absent from `allowed-tools`).
   satisfied; state the read dials and proceed. The checkpoints below then degrade to
   **surface-and-proceed**: narrate the content, persist the durable half (Checkpoint A's
   decomposition rationale per §10.6; Checkpoint B's contradictions in the synthesis), and
-  continue — judgment logged, never silently skipped. Without a registration-carrying item,
-  autonomous dispatch has no user-set dials to read; treat that as a hard-halt condition under
-  the delegation contract rather than silently self-setting the dials.
-  **A present-but-invalid block is never treated as authoritative** (missing field, unknown
-  enum value, wrong shape — e.g. a scalar where `output_kind` expects a value-or-list):
+  continue — judgment logged, never silently skipped. This degradation is a **deliberate
+  choice**, not a loss of rigor: the durable half is always persisted and the dials were
+  pre-confirmed at scope time, so proceeding loses only the live turn. A deployment that wants
+  hard-halt-on-contradiction (block the engagement until a human resolves a Checkpoint-B
+  contradiction) would gate that separately — it is not this orchestrator's default. Without a
+  registration-carrying item, autonomous dispatch has no user-set dials to read; treat that as a
+  hard-halt condition under the delegation contract rather than silently self-setting the dials.
+  **A present-but-invalid block is never treated as authoritative** (an unknown enum value or
+  wrong shape — e.g. a scalar where `output_kind` expects a value-or-list — present in the block):
   interactively, surface the defect and re-confirm corrected dials; under autonomous
   delegation, hard-halt exactly like the no-dials case — proceeding on malformed dials costs
-  the whole engagement.
+  the whole engagement. An **omitted** dial is *not* malformation — a field simply absent from
+  the block takes its default (see Per-dial defaults below); the hard-halt is for present-but-invalid
+  values, never for omission.
 - **Checkpoint A** (after `decompose`, multi-path) — present the ≥3 decomposition candidates +
   comparative assessment + chosen sample + self-flag; confirm/adjust/reframe.
 - **Checkpoint B** (before the cross-join, multi-path) — surface candidate `## Contradictions`
   and any high-severity lint findings before composing the parent synthesis.
+
+### Per-dial defaults (omission ⇒ default)
+
+A `research_dials:` block may carry any subset of the four commissioning fields; an **absent**
+field is not malformation — it takes its default, consistent with the standalone-walk defaults
+(§Reading the dials). Confirm any inferred value at kickoff when interactive.
+
+| dial (omitted) | ⇒ default |
+|---|---|
+| `scope_authority` | `in-engagement-judgment` (the standalone default) |
+| `verification_rigor` | inferred per the standalone inference rules (how much rigor the output warrants); surfaced + confirmed at kickoff when interactive |
+| `intent` | inferred from the commissioning item body (its seed/intent prose) |
+| `output_kind` | the orchestrator's default for the discovered engagement shape (brief / campaign / position) |
+
+**Enum extensibility:** `scope_authority` and `verification_rigor` are **closed enums** (their
+value sets are ARD architecture — ARD SPEC §8); `intent` and `output_kind` are **open inventory**
+an adopter may extend (with `output_kind`→`.research/` path bindings being deployment choices, not
+ARD's). Omission of an open-inventory dial still resolves to its default above; an unknown *value*
+in a closed enum is the present-but-invalid hard-halt case.
 
 ## Verification depth (ARD SPEC §7 — the rigor control)
 
@@ -205,15 +231,26 @@ beyond the web layer). Consolidating them is a **verification-independent offgas
 could not fetch is a gap whether or not the synthesis passes adversarial-read, so it does **not**
 gate on the verification stack — consolidate at synthesis-time regardless of the gate outcomes.
 
-- **Multi-specialist / program walks** — consolidate the specialists' returns into
+- **Candidates persist research-side first, always.** Multi-specialist / program walks
+  consolidate the specialists' returns into
   `.research/analysis/campaigns/<slug>/acquisitions.md` (one entry per source, classed +
   urgency-tagged + `completes`-joined; fill from [`templates/acquisitions.md`](../../templates/acquisitions.md)).
-  Light / single-pass walks have no campaign bundle: skip the file and promote any gaps directly.
-- **Promote + dedup** each entry to the standing **`.work/` acquisition queue** (a backlog item),
-  deduplicating by source (merge `completes`, never re-add). The push is one-way — the manifest
-  carries no link back to the queue (a `.research/` artifact does not link into `.work/`). With no
-  `.work/` substrate present, surface the candidates to the user instead (the same
-  degrade-gracefully posture as the research→work handoff).
+  Light / single-pass walks have no campaign bundle: skip the file and carry the gaps in the
+  engagement record. This research-side write is unconditional and needs no confirmation — it is
+  output substrate, not a cross-band write.
+- **Promotion into `.work/` is operator-confirmed** — never a silent auto-write, matching the
+  Arrow-2 contract (`research-handoff` NEVER auto-fires, always asks). The promotion target is the
+  standing **`research-acquisition-queue`** backlog item (a stable slug, so dedup has a defined
+  target); promoting **merges** each candidate into it by source (merge `completes`, never re-add).
+  The push is one-way — the manifest carries no link back to the queue (a `.research/` artifact does
+  not link into `.work/`).
+  - **Interactive runs** — ask before writing the queue; on confirmation, create/merge the
+    `research-acquisition-queue` item.
+  - **Autonomous runs** — never write the queue silently. Surface the candidates in the engagement
+    record and **propose** promotion at the handoff gate (`/agentic-research:research-handoff`),
+    leaving the write to the operator.
+  - **No `.work/` substrate present** — surface the candidates to the user instead (the same
+    degrade-gracefully posture as the research→work handoff).
 - **The anti-recall fence** (carried in the discipline bundle, ARD SPEC §4.1): an `enriching`
   candidate must point at a fetched source that names it — never training-recall (`AQ.3`). A
   `blocking` candidate is self-grounding (a fetch was attempted and failed).
@@ -235,16 +272,32 @@ A `.work/` item may commission an engagement and cite it back — two patterns, 
 
 **Engagement completion closes the commissioning item — this orchestrator owns that
 transition.** When the dialed gates have passed and the output is persisted, advance the
-commissioning `[research]` item to `stage: done` (append a short engagement record to its body:
-fan-out, gate outcomes, output paths). The item never flows through a review→bind path — its
-verification already ran inline — and a `[research]` item left non-terminal **permanently
-blocks every `depends_on` consumer** (work-substrate ready-checks require terminal deps). Never
-flip on unresolved gates: a second-pass `NEEDS-REVISION` leaves the item at its current stage
-with the blocker surfaced.
+commissioning `[research]` item and append a short engagement record to its body (fan-out, gate
+outcomes, output paths). **Where it advances to is CONVENTIONS-configurable** — read
+`research_completion` from `.work/CONVENTIONS.md` (like the agile-workflow keys):
 
-The registration-carrying tag is **feature/story-level**. An epic is never the direct
-commissioner: epic decomposition is the work substrate's own flow, and each child `[research]`
-feature it produces carries its own `research_dials:` block. (Under
+- **`close-to-done`** (default) — flip the item straight to `stage: done`. Verification ran inline
+  in the orchestrator's stack (ARD SPEC §7), so review→bind adds nothing; closing to `done` is the
+  deliberate posture, not a skipped step.
+- **`route-to-review`** — advance the item to `stage: review` instead, for deployments whose review
+  stage carries sign-off / governance meaning (a human signs research off before consumers proceed).
+  A reviewer then closes it.
+
+Either way the verification already ran inline, so the item never flows through a review→bind
+*release* path. Note that a `[research]` item left non-terminal blocks its `depends_on` consumers —
+but that is ordinary non-terminal-substrate behavior, true of any item, not a special hazard of this
+seam; `research_completion` just lets a deployment choose where the human sits. Never flip on
+unresolved gates: a second-pass `NEEDS-REVISION` leaves the item at its current stage with the
+blocker surfaced.
+
+**The registration carrier is feature/story-level — one `research_dials:` block = one
+engagement.** The positive pattern this implies is the **research program**: an *epic* whose
+children are `[research]` **features**, each a separately-registered engagement carrying its own
+`research_dials:` block. The arcs are sequenced work-side via `depends_on` (a later arc consumes an
+earlier arc's positions), consumer items interleave between them, and cross-arc artifacts (campaign
+bundles, cross-arc ledgers) live research-side in `.research/analysis/`. An epic tagged `[research]`
+therefore means *"decompose me into `[research]` feature engagements"* — work-side epic
+decomposition, the work substrate's own flow — never an epic-level registration. (Under
 `scope_authority: pre-registered`, a declared decomposition maps naturally onto that
 epic→feature split — but the split is made work-side, not by this orchestrator.)
 

@@ -79,12 +79,27 @@ research_dials:
 The orchestrator **reads these dials from the commissioning item at kickoff** (confirm/adjust with
 the user, don't re-propose) and runs the engagement; the block carries only the subset the scoping
 act fixes — the orchestrator settles the remaining five registration fields at dispatch, as on any
-standalone walk (they are engagement-time judgment, not scoping decisions). A present-but-invalid
-block is never treated as authoritative: re-confirm interactively, hard-halt under autonomous
-delegation. The seed/intent prose and any pre-registered decomposition live in the item
-**body** (richer than frontmatter); the dials live in the **block** (machine-read by the
-orchestrator). `work-view` tolerates the block harmlessly (it parses only its own known fields);
-the item is discoverable by its `[research]` tag.
+standalone walk (they are engagement-time judgment, not scoping decisions). The seed/intent prose
+and any pre-registered decomposition live in the item **body** (richer than frontmatter); the dials
+live in the **block** (machine-read by the orchestrator). `work-view` tolerates the block harmlessly
+(it parses only its own known fields); the item is discoverable by its `[research]` tag.
+
+**Per-dial defaults — omission ⇒ default (not malformation).** The block may carry any subset of
+the four fields; an absent field takes its default, consistent with the orchestrator's
+standalone-walk defaults:
+
+| dial (omitted) | ⇒ default |
+|---|---|
+| `scope_authority` | `in-engagement-judgment` (the standalone default) |
+| `verification_rigor` | inferred per the standalone inference rules; surfaced + confirmed at kickoff when interactive |
+| `intent` | inferred from the commissioning item body |
+| `output_kind` | the orchestrator's default for the discovered engagement shape |
+
+`scope_authority` and `verification_rigor` are **closed enums** (ARD architecture, SPEC §8);
+`intent` and `output_kind` are **open inventory** an adopter may extend (the `output_kind`→path
+bindings are deployment choices). A **present-but-invalid** block — an unknown value in a closed
+enum, or a wrong shape — is never treated as authoritative: re-confirm interactively, hard-halt
+under autonomous delegation. Omission is never a hard-halt; only a present-but-invalid value is.
 
 Why this is ARD-conformant: ARD classifies `dispatch-time-registration` as a **tier-M coordination
 act** (CATALOGS §6) whose **persistence is a deployment choice** (SPEC §9). *Where* the dials live
@@ -105,12 +120,22 @@ Consequences of the registration riding the work item:
   `release-deploy`, so its verification cannot defer to a release gate — it fires during the
   engagement.
 - **The orchestrator closes the item.** At engagement completion (gates passed at the dialed
-  rigor, output persisted) the orchestrator advances the commissioning item to `stage: done` with a
-  short engagement record — it owns that transition, since the item never passes a review→bind
-  flow. A `[research]` item left non-terminal permanently blocks every `depends_on` consumer.
-- **The tag is feature/story-level.** An epic is never the direct commissioner: epic decomposition
-  is the work substrate's own flow, and each child `[research]` feature carries its own
-  `research_dials:` block.
+  rigor, output persisted) the orchestrator advances the commissioning item with a short engagement
+  record — it owns that transition, since the item never passes a review→bind *release* flow. *Where*
+  it advances is **CONVENTIONS-configurable** via `research_completion` in `.work/CONVENTIONS.md`:
+  `close-to-done` (default — flip straight to `stage: done`; verification ran inline, so review adds
+  nothing) or `route-to-review` (advance to `stage: review` instead, for deployments whose review
+  stage carries sign-off / governance meaning). Either way, a `[research]` item left non-terminal
+  blocks its `depends_on` consumers — ordinary non-terminal-substrate behavior, not a special hazard;
+  the key just lets a deployment choose where the human sits.
+- **The registration carrier is feature/story-level — one `research_dials:` block = one
+  engagement.** The positive pattern is the **research program**: an *epic* whose children are
+  `[research]` **features**, each a separately-registered engagement carrying its own
+  `research_dials:` block, sequenced work-side via `depends_on` (later arcs consume earlier arcs'
+  positions), with consumer items interleaved and cross-arc artifacts (campaign bundles, cross-arc
+  ledgers) living research-side. An epic tagged `[research]` means *"decompose me into `[research]`
+  feature engagements"* (work-side epic decomposition, the work substrate's own flow) — never an
+  epic-level registration.
 - **Decomposition-rationale home (ARD §10.6) follows `scope_authority`:** `pre-registered` → the
   decomposition rides the work item with the dials; `in-engagement-judgment` → the orchestrator
   drafts the ≥3 candidates mid-engagement and persists the chosen rationale *back* onto the item

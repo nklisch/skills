@@ -6,10 +6,14 @@
 
 A campaign's source-acquisition offgas (ARD SPEC §4.1). Lives at
 `.research/analysis/campaigns/<slug>/acquisitions.md`, a peer of `dispatch.md`. The orchestrator
-writes it at synthesis-time from the specialists' acquisition returns, then promotes each entry to
-the standing `.work/` acquisition queue. **Verification-independent** — it does not gate on the
+writes it at synthesis-time from the specialists' acquisition returns — this research-side write is
+the durable record and is unconditional. Promotion into `.work/` (the standing
+`research-acquisition-queue` backlog item) is a **separate, operator-confirmed** step: interactive
+runs ask before writing the queue; autonomous runs surface the candidates and propose promotion at
+the handoff gate rather than writing silently. **Verification-independent** — it does not gate on the
 verification stack (a source you could not fetch is a gap regardless of the synthesis verdict).
-Single-pass / light walks have no campaign bundle: skip the file and promote any gaps directly.
+Single-pass / light walks have no campaign bundle: skip the file and carry any gaps in the
+engagement record.
 
 ```yaml
 ---
