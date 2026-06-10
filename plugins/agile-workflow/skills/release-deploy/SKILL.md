@@ -147,7 +147,7 @@ Values: `warn` (default when the key is absent) | `halt` | `off`.
 - `warn` — run all three checks; if mismatches are found, print the full mismatch report into the
   conversation AND append it verbatim to the release file body under a `### Binding-consistency
   warnings` subsection (so the record is durable), then **continue** the release flow.
-- `halt` — run all three checks; if mismatches are found, report and stop (current behavior).
+- `halt` — run all three checks; if mismatches are found, report and stop.
   The user resolves and re-runs `/agile-workflow:release-deploy <version>`.
 
 Projects that hold an epic-cohesion convention (epics don't span releases) set `halt`; the default
@@ -167,10 +167,16 @@ delete-refs` is in effect). Stubs retain their frontmatter (`id`, `parent`, `sta
 frontmatter fields to resolve parentage and binding regardless of whether a body is present.
 
 ```bash
+version=<version>   # substitute the target release version here (single substitution point)
+
 # Gather all items bound to this release (auto-widens to active + archive tiers).
 # Exclude the release orchestration item itself.
-bound_items=$(.work/bin/work-view --release <version> --paths \
-  | xargs grep -lm1 'kind: \(epic\|feature\|story\)' 2>/dev/null)
+# When the agentic-research plugin is installed, [research] items are inert-tag placeholders
+# (their lifecycle runs through the research substrate, not release binding); exclude them.
+# Without the agentic-research plugin the filter is a no-op and degrades gracefully.
+bound_items=$(.work/bin/work-view --release "$version" --paths \
+  | xargs grep -lm1 'kind: \(epic\|feature\|story\)' 2>/dev/null \
+  | xargs grep -rLm1 'tags:.*\[research\]' 2>/dev/null)
 
 mismatches=()
 
@@ -188,21 +194,21 @@ for item_path in $bound_items; do
     while IFS= read -r child_path; do
       child_binding=$(grep -m1 '^release_binding:' "$child_path" | awk '{print $2}')
       child_id=$(grep -m1 '^id:' "$child_path" | awk '{print $2}')
-      if [ "$child_binding" != "<version>" ] && [ "$child_binding" != "null" ] && [ "$child_binding" != "" ]; then
-        mismatches+=("CHECK 1 — child $child_id is bound to $child_binding, but its parent epic $item_id is bound to <version>")
+      if [ "$child_binding" != "$version" ] && [ "$child_binding" != "null" ] && [ "$child_binding" != "" ]; then
+        mismatches+=("CHECK 1 — child $child_id is bound to $child_binding, but its parent epic $item_id is bound to $version")
       elif [ "$child_binding" = "null" ] || [ "$child_binding" = "" ]; then
         # Child is unbound; that's only a mismatch if the epic is bound.
-        mismatches+=("CHECK 1 — child $child_id (unbound) has parent epic $item_id bound to <version>; all children of a bound epic must share the same release binding")
+        mismatches+=("CHECK 1 — child $child_id (unbound) has parent epic $item_id bound to $version; all children of a bound epic must share the same release binding")
       fi
     done < <(grep -rl "^parent: ${item_id}$" .work/active .work/archive 2>/dev/null)
   fi
 
   # Check 2: an epic at stage: done whose children are bound is itself bound.
   if [ "$kind" = "epic" ] && [ "$item_stage" = "done" ] && { [ "$item_binding" = "null" ] || [ -z "$item_binding" ]; }; then
-    # Look for any child that is bound to <version>.
+    # Look for any child that is bound to this release.
     if grep -rl "^parent: ${item_id}$" .work/active .work/archive 2>/dev/null \
-         | xargs grep -lm1 "^release_binding: <version>$" 2>/dev/null | grep -q .; then
-      mismatches+=("CHECK 2 — epic $item_id is at stage: done with bound children but is itself unbound; bind the epic to <version> before proceeding")
+         | xargs grep -lm1 "^release_binding: ${version}$" 2>/dev/null | grep -q .; then
+      mismatches+=("CHECK 2 — epic $item_id is at stage: done with bound children but is itself unbound; bind the epic to $version before proceeding")
     fi
   fi
 
@@ -211,8 +217,8 @@ for item_path in $bound_items; do
   if { [ "$kind" = "epic" ] || [ "$kind" = "feature" ]; } && \
      [ "$item_stage" = "done" ] && { [ "$item_binding" = "null" ] || [ -z "$item_binding" ]; }; then
     if grep -rl "^parent: ${item_id}$" .work/active .work/archive 2>/dev/null \
-         | xargs grep -lm1 "^release_binding: <version>$" 2>/dev/null | grep -q .; then
-      mismatches+=("CHECK 3 — $kind $item_id is done and unbound while its children are bound to <version> (orphan risk)")
+         | xargs grep -lm1 "^release_binding: ${version}$" 2>/dev/null | grep -q .; then
+      mismatches+=("CHECK 3 — $kind $item_id is done and unbound while its children are bound to $version (orphan risk)")
     fi
   fi
 done
@@ -221,13 +227,13 @@ binding_guard=$(grep -m1 '^binding_guard:' .work/CONVENTIONS.md | awk '{print $2
 binding_guard="${binding_guard:-warn}"   # default: warn
 
 if [ "${#mismatches[@]}" -gt 0 ]; then
-  report="BINDING CONSISTENCY — release <version>:"
+  report="BINDING CONSISTENCY — release $version:"
   for m in "${mismatches[@]}"; do
     report+=$'\n'"  • $m"
   done
   report+=$'\n'
   report+="Resolve each mismatch manually (edit release_binding or parent frontmatter as appropriate),"
-  report+=$'\n'"then re-run: /agile-workflow:release-deploy <version>"
+  report+=$'\n'"then re-run: /agile-workflow:release-deploy $version"
 
   if [ "$binding_guard" = "halt" ]; then
     echo "BINDING CONSISTENCY FAILURES (halt) — $report"
@@ -241,7 +247,7 @@ if [ "${#mismatches[@]}" -gt 0 ]; then
       echo "### Binding-consistency warnings"
       echo ""
       echo "$report"
-    } >> .work/active/release-<version>.md
+    } >> .work/active/release-"$version".md
   fi
 fi
 ```
