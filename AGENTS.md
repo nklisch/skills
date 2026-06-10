@@ -145,7 +145,11 @@ carry load-bearing routing semantics — get these right:
   test — if the feature has a real code surface (an interface, types, an
   integration seam, an architectural choice), it is NOT prose; drop the tag and
   let it route through `feature-design`. Prose items also implement **inline**
-  (`implement`), never via the orchestrator.
+  (`implement`), never via the orchestrator. **Token is reserved by the
+  plugin's routing** — it activates unconditionally (prose-author ships inside
+  the plugin; there is no missing-plugin degrade). A project already using
+  `prose` as a domain tag should retag that usage before adopting this plugin
+  (the tag name may change before v1.0 if the collision proves common).
 
 All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
 affect skill routing.

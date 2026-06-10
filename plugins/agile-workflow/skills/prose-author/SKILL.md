@@ -76,6 +76,13 @@ Domain ≠ nature. A documentation *feature* that ships a docs-site generator ha
 a code surface → `feature-design`. A rule rewrite, an AGENTS.md edit, a research
 brief, or release notes → `prose`.
 
+**Config-with-no-logic criterion:** a config file is `[prose]` only when nothing
+parses it as schema — e.g. a docs-site config (MkDocs, Docusaurus YAML),
+`.editorconfig`, `.prettierrc`. A config with a typed or programmatic consumer
+(env files read by a typed loader, OpenAPI specs consumed by a code-generator,
+database migration configs, CI pipeline definitions) has an integration seam and
+real failure paths → NOT `[prose]`; route through `feature-design`.
+
 ## Trigger
 
 The agent picks this lane for a feature at `stage: drafting` with

@@ -141,7 +141,10 @@ Routing:
 - `stage: drafting`, other feature -> `feature-design`
 - `stage: implementing`, epic -> skip direct implementation; children are the
   work targets
-- `stage: implementing`, non-epic -> `implement-orchestrator <scope>`
+- `stage: implementing`, non-epic with `tags: [prose]` -> `implement <id>`
+  (inline — single stride, no orchestration; prose does not need parallel
+  coordination)
+- `stage: implementing`, non-epic (NOT `[prose]`) -> `implement-orchestrator <scope>`
 - `stage: review` -> `review <id>` (review self-selects its lane: a **story**
   fast-advances on `implement`'s verification with no peer pass; a **feature** or
   **epic** gets a fresh-context deep review — cross-model via peeragent when a
