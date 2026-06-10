@@ -91,8 +91,10 @@ If the release is at `stage: planned`:
    ```bash
    .work/bin/work-view --stage done --release "" --paths
    ```
-   (Filter for empty `release_binding`. **Exclude `tags: [research]` items** — research
-   engagements are inputs that ground other work, not release members; they never bind.)
+   (Filter for empty `release_binding`. **When the `agentic-research` plugin is installed,
+   exclude `tags: [research]` items** — research engagements are inputs that ground other
+   work, not release members; they never bind. Without `agentic-research`, `[research]` is
+   an inert project tag — items with it bind normally.)
 
 2. **Archived-stub candidates (`archived_atop` late-binding).** Gather **all unbound archived
    stubs** (`release_binding: null`) regardless of their `archived_atop` value. Each unbound stub is
@@ -110,9 +112,10 @@ If the release is at `stage: planned`:
    prior=${prior:-pre-release}
    # Gather ALL unbound archived stubs (recurse: ROADMAP-phase epics archive to
    # .work/archive/epics/, not just the flat .work/archive/ root).
-   # [research] items are research inputs, not release members — never bind them. Use
-   # work-view's real tag parse for the exclusion set, never a hand-rolled tags regex
-   # (a regex misreads block-style tag lists and false-positives on tags like research-ops).
+   # When agentic-research is installed: [research] items are research inputs, not
+   # release members — exclude them. Use work-view's real tag parse for the exclusion
+   # set, never a hand-rolled tags regex (a regex misreads block-style tag lists and
+   # false-positives on tags like research-ops).
    research_paths=$(.work/bin/work-view --scope archive --tag research --paths | sort)
    find .work/archive -name '*.md' -type f | while read -r p; do
      printf '%s\n' "$research_paths" | grep -qxF "$p" && continue
@@ -121,9 +124,11 @@ If the release is at `stage: planned`:
    done
    ```
    (Skip stubs already carrying a `release_binding` — they belong to an earlier release. Show each
-   stub's `archived_atop` so the user sees the baseline it was done atop when confirming. **Skip
-   `tags: [research]` stubs** — a research engagement is an input that grounds other work, not a
-   shippable bundle member, so it never binds to a release; see the `[research]` tag semantics.)
+   stub's `archived_atop` so the user sees the baseline it was done atop when confirming. **When the
+   `agentic-research` plugin is installed, skip `tags: [research]` stubs** — a research engagement
+   is an input that grounds other work, not a shippable bundle member, so it never binds to a
+   release; without `agentic-research`, `[research]` is an inert project tag and stubs bind
+   normally. See the `[research]` tag semantics.)
 
 3. Use AskUserQuestion to confirm the full set (active done items + gathered archived stubs).
    Default: all active done items without binding plus all unbound archived stubs go in. Confirming
