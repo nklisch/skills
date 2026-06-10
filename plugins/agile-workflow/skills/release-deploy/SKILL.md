@@ -171,12 +171,17 @@ version=<version>   # substitute the target release version here (single substit
 
 # Gather all items bound to this release (auto-widens to active + archive tiers).
 # Exclude the release orchestration item itself.
-# When the agentic-research plugin is installed, [research] items are inert-tag placeholders
-# (their lifecycle runs through the research substrate, not release binding); exclude them.
-# Without the agentic-research plugin the filter is a no-op and degrades gracefully.
 bound_items=$(.work/bin/work-view --release "$version" --paths \
-  | xargs grep -lm1 'kind: \(epic\|feature\|story\)' 2>/dev/null \
-  | xargs grep -rLm1 'tags:.*\[research\]' 2>/dev/null)
+  | xargs grep -lm1 'kind: \(epic\|feature\|story\)' 2>/dev/null)
+
+# ONLY when the agentic-research plugin is installed, additionally apply Phase 3's [research]
+# exclusion here too (research engagements never bind; defensively drop any that slipped into
+# the bind set, e.g. bound before the plugin was adopted):
+#
+#   bound_items=$(printf '%s\n' $bound_items | xargs grep -Lm1 '^tags:.*\bresearch\b' 2>/dev/null)
+#
+# Without the agentic-research plugin, [research] is an inert project tag — its items bind
+# normally and MUST be walked by the guard like any other item; do not apply the filter.
 
 mismatches=()
 
