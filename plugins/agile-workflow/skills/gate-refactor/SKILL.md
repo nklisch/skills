@@ -56,16 +56,21 @@ gates_for_release: [security, tests, cruft, docs, patterns, refactor]
 ### Phase 1: Identify bundle changes
 
 ```bash
-# Bound items. `--release` auto-widens to ALL tiers (active + archive + releases).
-# Drop any returned path under `.work/archive/`: those are already-done, body-pruned
-# stubs that were gated when active and MUST NOT be re-gated (no-re-gate rule).
-.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'
+# Bound non-release items. `--release` auto-widens to ALL tiers (active + archive + releases).
+# Include late-bound archived stubs; their bodies may be pruned, but their item id is still
+# present and can recover the bundle commits/files. Ignore only the release orchestration item.
+.work/bin/work-view --release <version> --paths | while IFS= read -r item; do
+  kind=$(grep -m1 '^kind:' "$item" | awk '{print $2}')
+  [ "$kind" = "release" ] && continue
+  echo "$item"
+done > /tmp/bundle-items-<version>.txt
 
-# Files changed by the bundle (archived stubs already excluded)
-for item in $(.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'); do
+# Files changed by the bundle. For archived stubs, the body is pruned on disk by design; use the
+# item id to find implementation commits instead of treating the missing body as a skip reason.
+while IFS= read -r item; do
   id=$(grep -m1 '^id:' "$item" | awk '{print $2}')
   git log --grep "$id" --format='%H' | xargs -I{} git diff-tree --no-commit-id --name-only -r {}
-done | sort -u > /tmp/bundle-files-<version>.txt
+done < /tmp/bundle-items-<version>.txt | sort -u > /tmp/bundle-files-<version>.txt
 ```
 
 ### Phase 2: Discover scan-rule libraries (idempotency prep)
@@ -306,7 +311,7 @@ If no libraries were discovered, append the no-libraries log entry from Phase 2 
 ### Phase 6: Commit
 
 ```bash
-git add .work/active/stories/ .work/backlog/ .work/releases/<version>.md
+git add .work/active/stories/ .work/backlog/ .work/active/release-<version>.md
 git commit -m "gate-refactor: <N> findings for <version> (<library-tags>)"
 ```
 
@@ -331,8 +336,9 @@ In conversation:
 - **No-libraries is not an error.** Graceful skip with a log entry is the correct behavior when
   no scan-* libraries are installed.
 - Pass already-tracked findings into the sub-agent's brief so it skips duplicates (idempotency).
-- Archive stubs are excluded (no-re-gate rule): items under `.work/archive/` were gated when
-  active and must not be re-gated. Filter them out via `grep -v '\.work/archive/'` in Phase 1.
+- Include archive stubs returned by `work-view --release <version> --paths`. Late-bound archived
+  stubs are part of the release bundle and must be scanned from their associated commits/files,
+  even when their on-disk bodies are pruned.
 - Do NOT add `refactor` to the default `gates_for_release` list. The gate is opt-in by design.
   Deployers with no scan-rule libraries would get a no-op gate on every release — unnecessary
   overhead. Adopters opt in by editing their `.work/CONVENTIONS.md`.
