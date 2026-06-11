@@ -123,6 +123,7 @@ directional choice and mock so autopilot runs without guessing.
 | **feature-design** | feature at stage:drafting, no specialized tag | Greenfield design — written INTO feature body, child stories spawned with depends_on, advances stage to implementing. Fallback tier for mocks. |
 | **refactor-design** | feature with tags:[refactor], OR discovery (no arg / path / NL scope) | Per-feature: code-smell scan, before/after step shape, risk + rollback per step. Discovery: scans target scope, classifies findings as pure-refactor or behavior-changing, emits items. |
 | **perf-design** | feature with tags:[perf], OR discovery (no arg / path / NL scope) | Per-feature: bottleneck identification, optimization hierarchy (algorithmic > I/O > idioms > parallelism), benchmark scaffolds. Discovery: picks top 3-5 likely hot paths, profiles them, emits items per bottleneck. |
+| **prose-author** | feature with tags:[prose] | No-code authoring lane (authors, not a design step) — for prose deliverables with no code surface (docs, conventions, rules, copy). Verifies no real code surface (black-box test), writes brief-as-design, advances stage to implementing with no Explore / pre-mortem / question gate. Collapses to one inline stride for the common case; large multi-section prose can use drafting → implementing → review as real draft/write/revise steps. Pairs with implement's inline path. |
 
 ### Production + review (agent picks)
 
