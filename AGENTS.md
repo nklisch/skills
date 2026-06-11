@@ -150,6 +150,23 @@ carry load-bearing routing semantics — get these right:
   the plugin; there is no missing-plugin degrade). A project already using
   `prose` as a domain tag should retag that usage before adopting this plugin
   (the tag name may change before v1.0 if the collision proves common).
+- **`[research]`** — a grounded research engagement: an *input* that grounds
+  other work (a decision, a design, an adoption call), not a shippable
+  deliverable. Routes **cross-plugin** to `agentic-research:research-orchestrator`
+  (the dynamic ARD research orchestrator), not a design-family skill. The work
+  item carries the engagement registration in a `research_dials:` block
+  (scope_authority, verification_rigor, intent, output_kind) — **scoping the item
+  IS the dispatch act**; the orchestrator reads the dials at kickoff. A
+  `[research]` item **does not bind to a release** (it is an input, not a bundle
+  member) and its verification **gates run inline** in the orchestrator's stack
+  (it never reaches `release-deploy`). Requires the `agentic-research` plugin;
+  without it, `[research]` is an inert project tag — drop it and the item routes
+  through `feature-design`. See the agentic-research plugin's `docs/HANDOFF.md`
+  for the pairing. **At `kind: epic`:** an epic carrying `[research]` is a
+  research-program epic — it routes to `epic-design` as normal epic decomposition,
+  whose children are `[research]` features each carrying their own `research_dials:`
+  registration; the tag at epic level signals program decomposition, never an
+  epic-level registration.
 
 All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
 affect skill routing.
