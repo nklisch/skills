@@ -42,17 +42,21 @@ Sub-agent strength is explicit:
 ### Phase 1: Identify bundle and changed files
 
 ```bash
-# `--release` auto-widens to ALL tiers (active + archive + releases). Drop any
-# returned path under `.work/archive/`: those are already-done, body-pruned
-# stubs that were gated when active and MUST NOT be re-gated (no-re-gate rule).
-# Filter by path, not `--scope active` — the bash fallback ignores `--scope`.
-.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'
+# Bound non-release items. `--release` auto-widens to ALL tiers (active + archive + releases).
+# Include late-bound archived stubs; their bodies may be pruned, but their item id is still
+# present and can recover the bundle commits/files. Ignore only the release orchestration item.
+.work/bin/work-view --release <version> --paths | while IFS= read -r item; do
+  kind=$(grep -m1 '^kind:' "$item" | awk '{print $2}')
+  [ "$kind" = "release" ] && continue
+  echo "$item"
+done > /tmp/bundle-items-<version>.txt
 
-# Files changed by the bundle (archived stubs already excluded)
-for item in $(.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'); do
+# Files changed by the bundle. For archived stubs, the body is pruned on disk by design; use the
+# item id to find implementation commits instead of treating the missing body as a skip reason.
+while IFS= read -r item; do
   id=$(grep -m1 '^id:' "$item" | awk '{print $2}')
   git log --grep "$id" --format='%H' | xargs -I{} git diff-tree --no-commit-id --name-only -r {}
-done | sort -u > /tmp/bundle-files-<version>.txt
+done < /tmp/bundle-items-<version>.txt | sort -u > /tmp/bundle-files-<version>.txt
 ```
 
 ### Phase 2: Read existing gate items (idempotency prep)
@@ -87,7 +91,10 @@ findings.
 > <bundle-files>
 > ```
 >
-> **Bound items** (read each item's body to classify the change type):
+> **Bound items** (read each item's body to classify the change type; an
+> archived stub's body is pruned on disk — hydrate it from the stub's
+> `git_ref` frontmatter via `git show <git_ref>:<path>`, trying the item's
+> former `.work/active/` path at that ref):
 > `<bound-item-ids>`
 >
 > **Already-tracked findings to skip**:
