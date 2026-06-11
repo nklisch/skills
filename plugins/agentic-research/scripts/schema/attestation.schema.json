@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://code.s-nc.org/Kevoun/ARD/kernel/schema/attestation.schema.json",
   "title": "ARD attestation frontmatter (normative minimum)",
-  "description": "The normative-minimum YAML frontmatter every per-source attestation carries (ARD SPEC §4.2). This is an architecture-tier data contract — it changes only on a MAJOR bump. Per-source-class fields (ARD CATALOGS §2) are optional extensions, so additionalProperties is permitted.",
-  "x-ard-version": "0.4.1",
+  "description": "The normative-minimum YAML frontmatter every per-source attestation carries (ARD SPEC §4.2). This is an architecture-tier data contract — its required minimum changes only on a MAJOR bump. Per-source-class and cross-class fields (ARD CATALOGS §2) are optional extensions, so additionalProperties is permitted; documenting an optional extension as a named property is additive (MINOR).",
+  "x-ard-version": "0.5.1",
   "x-ard-tier": "architecture",
   "type": "object",
   "required": ["source_handle", "fetched", "provenance"],
@@ -29,6 +29,14 @@
     "provenance": {
       "type": "string",
       "description": "Artifact-local warrant. For a source-direct attestation, typically 'source-direct'. (Provenance values are inventory — ARD CATALOGS §8 — so not enum-constrained here.)"
+    },
+    "extraction_pipeline": {
+      "type": "string",
+      "description": "Optional cross-class extension (ARD CATALOGS §2). Names the pipeline used to extract the source (e.g. a PDF/EPUB extractor) for drift-detectability across re-extractions. Not enum-constrained — inventory. Optional: not in the normative minimum."
+    },
+    "substrate_confidence": {
+      "type": "string",
+      "description": "Optional cross-class extension (ARD CATALOGS §2). Engagement depth: 'source-direct' / 'search-summary' / 'snippet-thin', defaulting to source-direct when omitted. Distinct from provenance (which names how the artifact was authored). Optional: not in the normative minimum."
     }
   },
   "anyOf": [

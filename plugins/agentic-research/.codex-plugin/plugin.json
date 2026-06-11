@@ -1,7 +1,7 @@
 {
   "name": "agentic-research",
   "version": "0.1.0",
-  "description": "Agentic Research Discipline (ARD) — grounded, verifiable AI research with a non-erodable anti-fabrication floor, selectable verification gates, and a .research/ substrate tier paralleling .work/. Adopts ARD v0.4.1.",
+  "description": "Agentic Research Discipline (ARD) — grounded, verifiable AI research with a non-erodable anti-fabrication floor, selectable verification gates, and a .research/ substrate tier paralleling .work/. Adopts ARD v0.5.1.",
   "author": {
     "name": "Kevoun"
   },
@@ -11,7 +11,7 @@
   "interface": {
     "displayName": "Agentic Research Discipline",
     "shortDescription": "Grounded, verifiable AI research discipline",
-    "longDescription": "ARD makes AI research grounded and verifiable: a non-erodable anti-fabrication floor, a per-engagement control-space of selectable verification gates, and a .research/ substrate tier (attestations, precis, analytical syntheses) paralleling the operational .work/ tier. Citations use the [handle]{N} convention with per-source attestations, enforced by a citation-chain lint. Adopts ARD v0.4.1 (https://code.s-nc.org/Kevoun/ARD).",
+    "longDescription": "ARD makes AI research grounded and verifiable: a non-erodable anti-fabrication floor, a per-engagement control-space of selectable verification gates, and a .research/ substrate tier (attestations, precis, analytical syntheses) paralleling the operational .work/ tier. Citations use the [handle]{N} convention with per-source attestations, enforced by a citation-chain lint. Adopts ARD v0.5.1 (https://code.s-nc.org/Kevoun/ARD).",
     "developerName": "Kevoun",
     "category": "Productivity",
     "websiteURL": "https://github.com/nklisch/skills"

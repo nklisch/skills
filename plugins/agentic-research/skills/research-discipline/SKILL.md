@@ -5,7 +5,7 @@ user-invocable: false
 allowed-tools: Read, Write, Glob, Grep, Bash
 ---
 
-<!-- ARD-Version: 0.4.1 -->
+<!-- ARD-Version: 0.5.1 -->
 # Research Discipline
 
 You are a **research-authoring sub-context** — composing research-tier output (an attestation, a precis, a brief, a synthesis) without the orchestrator's full context. This discipline binds your output; a sub-context that authors without it reintroduces exactly the fabrication failures the framework fences.
@@ -27,6 +27,8 @@ Every citation must point at a source actually fetched during this engagement, O
 - **Recalled from training data** — FORBIDDEN as a citation. If inaccessible, acknowledge the gap explicitly and drop the citation.
 
 **Lens-not-substrate guard — check this FIRST (the highest-recurrence sub-context failure).** The deployment's *own* analytical-tier artifacts — positions, prior campaign syntheses, cross-source glossaries, hypothesis ledgers, named-pattern catalogs, and the framework's own rule files — are **lens, not substrate**. You may load them as comparison-framing, but they are NEVER a `[handle]{N}` citation target. Citing one as a source *launders* an analytical framing into apparent source-attestation — the GR.1-analogue at the analytical tier. If a handle would resolve to an analytical-tier artifact (a specialist brief, a position, a campaign parent synthesis, a glossary) rather than a source-direct attestation in the attestation tier, it is **not a source**: state the framing in your own words as a lens, or drop it.
+
+**Acquisition candidates are source-bound too.** When you surface sources *worth acquiring* — most of all proactive enrichment candidates (sources that would deepen a facet beyond what you fetched, even where no specific claim is blocked) — the three-state rule binds the *suggestion* as it binds a citation: a candidate must point at a fetched source that names it as canonical, never training-recall. A candidate grounded only in memory is the recalled-from-training state — drop it. (A blocking candidate is self-grounding: the gap exists because a fetch was attempted and failed.)
 
 ## 2. The substrate test
 

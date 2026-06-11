@@ -11,7 +11,7 @@
 //! - `identity` is a computed fallback: `source_handle ∥ slug ∥ file stem`.
 //! - `corpus` is derived from `reference/<corpus>/` path; `None` elsewhere.
 
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 /// The `.research/` substrate tier an artifact was loaded from.
 ///
@@ -99,4 +99,20 @@ pub struct Artifact {
     ///
     /// Does NOT include the frontmatter block.
     pub body: String,
+
+    /// Theme tags extracted from `- **Themes:** tag, tag, ...` lines in the
+    /// artifact body.  Non-empty only for `ReferenceIndex`-tier artifacts;
+    /// always empty for all other tiers.
+    ///
+    /// Tags are deduplicated, case-preserved, first-seen order across all entries.
+    /// A trailing `[NEW]` marker (with surrounding whitespace) is stripped from
+    /// each tag before storage.
+    pub themes: Vec<String>,
+
+    /// Per-tag count of how many INDEX entries (i.e., `**Themes:**` lines) mention
+    /// each tag in this artifact.  Keys match `themes` exactly.
+    ///
+    /// Non-empty only for `ReferenceIndex`-tier artifacts; empty for all others.
+    /// Used by `--tags` to accumulate entry counts across the matched artifact set.
+    pub theme_entry_counts: HashMap<String, usize>,
 }
