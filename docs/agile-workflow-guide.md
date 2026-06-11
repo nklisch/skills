@@ -414,7 +414,7 @@ item cleanly, commits, and stops. No special halt command.
    tag-based, branch-held, release-branch, or none). `none` means
    release-deploy only gates and archives the bundle; publishing/version
    bumping stays with the project's external release mechanism.
-5. **Archive** — bound items collapse into one `releases/<version>/release-<version>.md`
+5. **Archive** — bound items collapse into one `.work/releases/<version>/release-<version>.md`
    summary; bodies are pruned to git history or kept on disk per the project's
    terminal-tier retention. The release file flips to `stage: released`.
 
