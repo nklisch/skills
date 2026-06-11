@@ -45,27 +45,32 @@ flow can drain to `done` before shipping.
 
 If a release version was provided:
 ```bash
-# `--release` auto-widens to ALL tiers (active + archive + releases). Drop any
-# returned path under `.work/archive/`: those are already-done, body-pruned
-# stubs that were gated when active and MUST NOT be re-gated (no-re-gate rule).
-# Filter by path, not `--scope active` — the bash fallback ignores `--scope`.
-.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'
+# Bound non-release items. `--release` auto-widens to ALL tiers (active + archive + releases).
+# Include late-bound archived stubs; their bodies may be pruned, but their item id is still
+# present and can recover the bundle commits/files. Ignore only the release orchestration item.
+.work/bin/work-view --release <version> --paths | while IFS= read -r item; do
+  kind=$(grep -m1 '^kind:' "$item" | awk '{print $2}')
+  [ "$kind" = "release" ] && continue
+  echo "$item"
+done > /tmp/bundle-items-<version>.txt
 ```
 
 Otherwise, find the active release file (the one at `stage: planned` or
 `stage: quality-gate`) and use its version.
 
-If no items are bound (after dropping archived stubs), halt with: "No items
+If no items are bound (the bundle-items file is empty), halt with: "No items
 bound to release `<version>`. Bind items first via
 `/agile-workflow:release-deploy`."
 
-Build the union of files changed by the bundle (archived stubs already excluded):
+Build the union of files changed by the bundle. For archived stubs, the body is pruned on disk by
+design; use the item id to find implementation commits instead of treating the missing body as a
+skip reason:
 
 ```bash
-for item in $(.work/bin/work-view --release <version> --paths | grep -v '\.work/archive/'); do
+while IFS= read -r item; do
   id=$(grep -m1 '^id:' "$item" | awk '{print $2}')
   git log --grep "$id" --format='%H' | xargs -I{} git diff-tree --no-commit-id --name-only -r {}
-done | sort -u > /tmp/bundle-files-<version>.txt
+done < /tmp/bundle-items-<version>.txt | sort -u > /tmp/bundle-files-<version>.txt
 ```
 
 ### Phase 2: Read existing gate items (idempotency prep)
@@ -101,7 +106,9 @@ classification — and returns structured findings.
 > <bundle-files>
 > ```
 >
-> **Bound items**: `<bound-item-ids>`
+> **Bound items** (an archived stub's body is pruned on disk — hydrate it from
+> the stub's `git_ref` frontmatter via `git show <git_ref>:<path>`, trying the
+> item's former `.work/active/` path at that ref): `<bound-item-ids>`
 >
 > **Already-tracked findings to skip** (do not re-report these):
 > ```
