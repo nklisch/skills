@@ -6,8 +6,9 @@ description: >
   gates in CONVENTIONS.md order (default: security -> tests -> cruft -> docs ->
   patterns), waits until all bound items + gate-produced items reach stage:done,
   ships per release mapping (tag-based / branch-held / release-branch / none), collapses
-  bound items into one release summary and prunes their bodies (git keeps history),
-  advances release to released.
+  bound items into one release summary and disposes their bodies per the terminal-tier
+  retention convention (delete-refs prunes to git history; retain-bodies keeps bodies on
+  disk), advances release to released.
   Idempotent — safe to re-run after fixing gate findings.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion, Skill
@@ -38,12 +39,14 @@ Its stage advances `planned → quality-gate → released` as the release procee
 Read `.work/CONVENTIONS.md`:
 - Release mapping: `branch-held | tag-based | release-branch | none`
 - Gate config: `gates_for_release: [...]` (default if absent: `[security, tests, cruft, docs, patterns]`)
+- Terminal-tier retention: `delete-refs | retain-bodies` (default if absent: `delete-refs`) —
+  governs Phase 7's body disposition
 
 If the mapping is `none`, continue with a gate/archive-only release flow:
 release-deploy binds items, runs gates, waits for every bound item to reach
 `done`, drafts the changelog, and collapses the bundle into one summary at
-`.work/releases/<version>/release-<version>.md` (bound item bodies are pruned; git
-holds history). It does **not** tag, branch, merge, push, or bump
+`.work/releases/<version>/release-<version>.md` (bound item bodies pruned or retained
+per terminal-tier retention; git holds history). It does **not** tag, branch, merge, push, or bump
 versions. Publishing/version bumping is external to release-deploy and must be
 handled by the project-specific release mechanism.
 
@@ -510,11 +513,19 @@ Record the external publishing mechanism in the release summary.
 If the mapping requires user action (CI credentials, manual confirmation), pause
 and prompt.
 
-### Phase 7: Collapse into one summary and prune bodies
+### Phase 7: Collapse into one summary; dispose bodies per retention
 
-Bound items do **not** move to `.work/releases/<version>/` as bodies. Collapse them into a single
-summary doc and `git rm` their bodies — git history retains the full content. Terminal prose never
-persists on disk (it carries zero design authority; see the "Zero Design Authority" convention).
+Both retention modes produce the same single summary doc; they differ only in step 4's body
+disposition (the Phase 1 `terminal-tier retention` read; SPEC §Terminal-tier retention).
+
+Under `delete-refs` (default): bound items do **not** move to `.work/releases/<version>/` as
+bodies. Collapse them into a single summary doc and `git rm` their bodies — git history retains
+the full content. Terminal prose never persists on disk (it carries zero design authority; see
+the "Zero Design Authority" convention).
+
+Under `retain-bodies` (the legacy opt-out): the summary doc and shipped-items table are still
+produced, but full bodies stay on disk — kept under `.work/archive/` and
+`.work/releases/<version>/` — and nothing is pruned.
 
 1. Collect every item with `release_binding: <version>` — active done items AND archived stubs
    (`work-view --release <version>` spans both tiers):
@@ -523,15 +534,18 @@ persists on disk (it carries zero design authority; see the "Zero Design Authori
    .work/bin/work-view --release <version> --paths
    ```
 
-2. Resolve each item's git ref (where its full body lives) and its `archived_atop`:
-   - archived stub → reuse its `git_ref:` and `archived_atop:` frontmatter fields.
+2. Resolve each item's git ref (the commit where its full body can be recovered, at the item's
+   former active path) and its `archived_atop`:
+   - archived item → reuse its `git_ref:` and `archived_atop:` frontmatter fields (under
+     `retain-bodies` the body is also still on disk; if no `git_ref` was stamped, record `—`).
    - active done item → `git_ref=$(git rev-parse --short HEAD)` (the body is present at HEAD,
-     before this prune commit). It has no `archived_atop` (it was bound directly, never archived);
-     record `—` in that column.
+     before Phase 7's disposition commit). It has no `archived_atop` (it was bound directly,
+     never archived); record `—` in that column.
 
 3. Turn the release file into the single summary doc — move it and append a shipped-items table:
 
    ```bash
+   mkdir -p .work/releases/<version>
    git mv .work/active/release-<version>.md .work/releases/<version>/release-<version>.md
    ```
 
@@ -540,7 +554,8 @@ persists on disk (it carries zero design authority; see the "Zero Design Authori
    ```markdown
    ## Shipped items
 
-   Bodies live in git history — read with `git show <git ref>:<path>`.
+   Bodies live in git history (delete-refs) or on disk (retain-bodies) — `git show
+   <git ref>:<former active path>` recovers any pruned body.
 
    | id | title | kind | archived_atop | git ref |
    |----|-------|------|---------------|---------|
@@ -550,14 +565,27 @@ persists on disk (it carries zero design authority; see the "Zero Design Authori
    The `archived_atop` column records the baseline each late-bound archived stub was done atop
    (`—` for active items bound directly). This is the durable trace of the late-binding query.
 
-4. Prune each bound item body (never the release summary):
+4. Dispose of each bound item body per retention (never the release summary):
+
+   Under `delete-refs` (default) — prune:
 
    ```bash
    git rm .work/active/<kind>s/<id>.md     # active done items
    git rm .work/archive/<id>.md            # archived stubs
    ```
 
-The release folder ends holding exactly one file: `release-<version>.md`.
+   The release folder ends holding exactly one file: `release-<version>.md`.
+
+   Under `retain-bodies` — keep full bodies on disk; nothing is pruned:
+
+   ```bash
+   git mv .work/active/<kind>s/<id>.md .work/releases/<version>/   # active done items
+   # late-bound archived items keep their full bodies in place under .work/archive/
+   ```
+
+   The release folder ends holding the summary plus the directly-bound items' bodies; the
+   shipped-items table is still appended (the `archived_atop` provenance applies under both
+   modes; the git-ref column records what step 2 resolved).
 
 ### Phase 8: Advance to released
 
@@ -572,14 +600,15 @@ Ensure its body records (alongside the Phase 7 shipped-items table):
 
 ### Phase 9: Commit
 
-The `git rm`s from Phase 7 are already staged; stage the summary and the changelog and commit:
+Phase 7's body disposition (`git rm`s or `git mv`s) is already staged; stage the summary and the
+changelog and commit:
 
 ```bash
 git add .work/releases/<version>/ CHANGELOG.md <version-file>
 git commit -m "release-deploy: <version> shipped (<N> items)"
 ```
 
-The commit captures both the one summary doc and the pruned item bodies. For tag-based mappings,
+The commit captures both the one summary doc and the body disposition. For tag-based mappings,
 the project's release script handles its own commits. Don't double-commit.
 
 ## Output
@@ -590,7 +619,7 @@ In conversation:
 - **Gates run**: list with finding counts per gate
 - **Mapping**: tag-based / branch-held / release-branch / none
 - **Next**: bound items collapsed into `.work/releases/<version>/release-<version>.md`; full
-  bodies in git history
+  bodies in git history (`delete-refs`) or kept on disk (`retain-bodies`)
 
 If the run halted at readiness (pending items), output the pending list and the
 re-run instruction.
@@ -613,7 +642,7 @@ re-run instruction.
   script. branch-held requires `gh` CLI for PR merges. none performs no
   publishing action inside release-deploy.
 - The release file moves to `releases/<version>/` (becoming the single summary doc) ONLY when the
-  release is actually shipped. Until then it stays in `.work/active/`. Bound item bodies never move
-  there — they are pruned and live in git history.
+  release is actually shipped. Until then it stays in `.work/active/`. Bound item bodies move there
+  only under `retain-bodies`; under `delete-refs` (default) they are pruned and live in git history.
 - Stage transitions: `planned → quality-gate` happens at bind. `quality-gate →
   released` happens at ship. Don't pre-populate.

@@ -143,7 +143,7 @@ directional choice and mock so autopilot runs without guessing.
 
 | Skill | What it does |
 |-------|-------------|
-| **release-deploy** | Bind items to a version, run all configured gates in CONVENTIONS.md order, wait for readiness, ship per release mapping, archive items via git mv. Idempotent. |
+| **release-deploy** | Bind items to a version, run all configured gates in CONVENTIONS.md order, wait for readiness, ship per release mapping, collapse the bundle into one release summary (bodies pruned or retained per terminal-tier retention). Idempotent. |
 | **autopilot** | Goal-backed queue runner. Picks next ready item respecting depends_on, invokes the right skill, advances stage, repeats until the goal scope is done or blocked — then runs a final cross-model peer-review pass over the whole completion bundle before reporting complete. Invokable from goal text such as "Use agile-workflow autopilot to drain --all"; direct `/agile-workflow:autopilot <scope>` still works. Harness goal/continuation owns persistence, not `/loop`. |
 | **bold-refactor** | Architectural reconception via conceptual lenses. Sweeps a target and produces one or more refactor EPICs with child features tagged [refactor]. User-invocable only — too aggressive for auto-trigger. |
 
