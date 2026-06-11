@@ -1,0 +1,25 @@
+{
+  "name": "@nklisch/pi-agent-coordination",
+  "version": "0.1.0",
+  "description": "Sparse cross-agent coordination ledger for shared repositories.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nklisch/skills.git",
+    "directory": "plugins/agent-coordination"
+  },
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "agent-coordination",
+    "multi-agent"
+  ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  }
+}

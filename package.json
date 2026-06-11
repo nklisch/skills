@@ -16,7 +16,8 @@
     "agent-skills",
     "agile-workflow",
     "ux-ui-design",
-    "nates-toolkit"
+    "nates-toolkit",
+    "agent-coordination"
   ],
   "pi": {
     "extensions": [
@@ -25,7 +26,8 @@
     "skills": [
       "./plugins/agile-workflow/skills",
       "./plugins/ux-ui-design/skills",
-      "./plugins/nates-toolkit/skills"
+      "./plugins/nates-toolkit/skills",
+      "./plugins/agent-coordination/skills"
     ]
   }
 }

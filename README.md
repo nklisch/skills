@@ -19,6 +19,7 @@ ergonomics.
 /plugin install agile-workflow@nklisch-skills    # work tracking + autopilot
 /plugin install ux-ui-design@nklisch-skills      # mockup-first UI design
 /plugin install nates-toolkit@nklisch-skills     # standalone utility skills
+/plugin install agent-coordination@nklisch-skills # sparse cross-agent ledger
 ```
 
 ### OpenAI Codex
@@ -28,6 +29,7 @@ codex plugin marketplace add https://github.com/nklisch/skills
 codex plugin install agile-workflow
 codex plugin install ux-ui-design
 codex plugin install nates-toolkit
+codex plugin install agent-coordination
 ```
 
 ### Pi
@@ -40,12 +42,14 @@ pi install git:github.com/nklisch/skills
 pi install npm:@nklisch/pi-agile-workflow
 pi install npm:@nklisch/pi-ux-ui-design
 pi install npm:@nklisch/pi-nates-toolkit
+pi install npm:@nklisch/pi-agent-coordination
 
 # Local checkout/development installs
 pi install -l .
 pi install -l ./plugins/agile-workflow
 pi install -l ./plugins/ux-ui-design
 pi install -l ./plugins/nates-toolkit
+pi install -l ./plugins/agent-coordination
 ```
 
 Pi packages can load executable extensions in addition to shared skills. The root
@@ -53,13 +57,14 @@ Git install loads all supported plugins; the deprecated `workflow` plugin is not
 included. Install from trusted sources; `agile-workflow` includes a Pi-native
 `/aw` command for queue inspection and workflow handoffs.
 
-## The three supported plugins
+## The supported plugins
 
 | Plugin | What it does | Guide |
 |---|---|---|
 | **agile-workflow** | Substrate-driven work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, goal-backed autopilot queue runner. | [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md) |
 | **ux-ui-design** | HTML/CSS/JS mockup-first UI design. Throwaway single-file mockups in `.mockups/` for alignment before any production code. Loosely integrated with agile-workflow. | [docs/ux-ui-design-guide.md](docs/ux-ui-design-guide.md) |
 | **nates-toolkit** | Standalone utility skills, no workflow lock-in — explain in plain language, score a codebase, reflect on tool & skill usage, author and audit skills. |  |
+| **agent-coordination** | Sparse cross-agent coordination ledger for shared repos — deliberate claims, handoffs, blockers, review summaries, and merge summaries without turning Discussions into chat. Lightly aware of agile-workflow `.work` IDs when present. |  |
 
 The two big ones — `agile-workflow` + `ux-ui-design` — are designed to work
 together. The killer workflow is to use `ux-ui-design` mocks during
@@ -208,6 +213,19 @@ via `/plugin install nates-toolkit@nklisch-skills`.
 | **write-tool-skill** | Create distributable reference skills for a tool, CLI, MCP server, or library. |
 | **skill-auditor** | Static quality audit of a skill against type-specific, triggering, and emotional-tone rubrics. Scored report with fixes and a trigger-test plan. |
 
+## Agent Coordination
+
+Sparse cross-agent coordination for shared repositories. Install via
+`/plugin install agent-coordination@nklisch-skills`.
+
+| Skill | What it does |
+|-------|-------------|
+| **coordination-ledger** | Defines a deliberate GitHub Discussions-backed ledger for active claims, scope updates, releases, handoffs, blockers, review summaries, and merge summaries. Uses `.work` item IDs as optional context when agile-workflow is present, but keeps `.work`, PRs, and code review authoritative. |
+
+The plugin also ships `scripts/agent-comms`, a small `gh api graphql` wrapper
+for ledger operations such as `doctor`, `ensure-thread`, `active-claims`,
+`claim`, `release`, `handoff`, `blocker`, `review-summary`, and `merge-summary`.
+
 ## Library & Tool References
 
 Reference skills that auto-load when their library is detected.
@@ -277,6 +295,7 @@ plugins/ux-ui-design/              # ux-ui-design plugin (7 skills, mockup-first
 ├── skills/                        #   skill source
 └── docs/                          #   plugin design docs
 plugins/nates-toolkit/skills/      # standalone utility skills (plainspeak, repo-eval, agent-reflection, write-tool-skill, skill-auditor)
+plugins/agent-coordination/skills/ # sparse cross-agent coordination ledger
 plugins/workflow/                  # DEPRECATED — doc-driven, no longer supported
 .agents/skills/                    # reference, principle, and utility skills
 .claude-plugin/                    # Claude Code plugin manifest (root)

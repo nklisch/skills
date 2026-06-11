@@ -40,6 +40,13 @@
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
     {
+      "name": "agent-coordination",
+      "source": "./plugins/agent-coordination",
+      "description": "Sparse cross-agent coordination ledger for shared repositories. Uses deliberate GitHub Discussion events for claims, handoffs, blockers, review summaries, and merge summaries without turning Discussions into chat.",
+      "category": "productivity",
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
+    },
+    {
       "name": "krometrail",
       "source": {
         "source": "git-subdir",

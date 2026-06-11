@@ -1,0 +1,6 @@
+interface:
+  display_name: "Coordination Ledger"
+  short_description: "Sparse cross-agent coordination ledger"
+  default_prompt: "Use $coordination-ledger to check active claims and post a deliberate claim, handoff, blocker, review, or merge summary for this repo."
+policy:
+  allow_implicit_invocation: false

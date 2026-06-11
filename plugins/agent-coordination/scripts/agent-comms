@@ -1,0 +1,528 @@
+#!/usr/bin/env python3
+"""GitHub Discussions-backed coordination ledger helper."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import os
+import re
+import subprocess
+import sys
+from typing import Any
+
+
+DEFAULT_TITLE = "Agent Coordination Ledger"
+DEFAULT_CATEGORY = "Agent Coordination"
+SCHEMA = "agent-coordination/v1"
+ENVELOPE_RE = re.compile(r"<!--\s*agent-coordination\s*(.*?)\s*-->", re.DOTALL)
+
+
+class AgentCommsError(RuntimeError):
+    """User-facing command failure."""
+
+
+def run(command: list[str], *, cwd: str | None = None) -> str:
+    try:
+        result = subprocess.run(
+            command,
+            cwd=cwd,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except FileNotFoundError as exc:
+        raise AgentCommsError(f"required command not found: {command[0]}") from exc
+    except subprocess.CalledProcessError as exc:
+        stderr = exc.stderr.strip()
+        detail = f"\n{stderr}" if stderr else ""
+        raise AgentCommsError(f"command failed: {' '.join(command)}{detail}") from exc
+    return result.stdout
+
+
+def gh_json(args: list[str]) -> dict[str, Any]:
+    output = run(["gh", *args])
+    try:
+        data = json.loads(output)
+    except json.JSONDecodeError as exc:
+        raise AgentCommsError(f"gh returned non-JSON output for: gh {' '.join(args)}") from exc
+    if data.get("errors"):
+        raise AgentCommsError(json.dumps(data["errors"], indent=2))
+    return data
+
+
+def gh_graphql(query: str, **variables: str) -> dict[str, Any]:
+    args = ["api", "graphql", "-f", f"query={query}"]
+    for key, value in variables.items():
+        if value is not None:
+            args.extend(["-f", f"{key}={value}"])
+    return gh_json(args)
+
+
+def resolve_repo(repo: str | None) -> tuple[str, str, str]:
+    args = ["repo", "view"]
+    if repo:
+        args.append(repo)
+    args.extend(["--json", "nameWithOwner"])
+    data = gh_json(args)
+    name_with_owner = data["nameWithOwner"]
+    owner, name = name_with_owner.split("/", 1)
+    return owner, name, name_with_owner
+
+
+def repo_snapshot(owner: str, name: str) -> dict[str, Any]:
+    query = """
+    query($owner: String!, $name: String!, $after: String) {
+      repository(owner: $owner, name: $name) {
+        id
+        nameWithOwner
+        hasDiscussionsEnabled
+        discussionCategories(first: 50) {
+          nodes { id name slug isAnswerable }
+        }
+        discussions(first: 100, after: $after, orderBy: {field: UPDATED_AT, direction: DESC}) {
+          nodes { id number title url category { name slug } }
+          pageInfo { hasNextPage endCursor }
+        }
+      }
+    }
+    """
+    discussions: list[dict[str, Any]] = []
+    cursor: str | None = None
+    repository: dict[str, Any] | None = None
+    while True:
+        variables = {"owner": owner, "name": name}
+        if cursor:
+            variables["after"] = cursor
+        data = gh_graphql(query, **variables)
+        repository = data["data"]["repository"]
+        connection = repository["discussions"]
+        discussions.extend(connection["nodes"])
+        page_info = connection["pageInfo"]
+        if not page_info["hasNextPage"]:
+            break
+        cursor = page_info["endCursor"]
+    assert repository is not None
+    repository = dict(repository)
+    repository["discussions"]["nodes"] = discussions
+    return repository
+
+
+def select_category(categories: list[dict[str, Any]], preferred: str) -> dict[str, Any]:
+    lowered = preferred.casefold()
+    for category in categories:
+        if category["name"].casefold() == lowered or category["slug"].casefold() == lowered:
+            return category
+    for category in categories:
+        if category["name"].casefold() == "general" or category["slug"].casefold() == "general":
+            return category
+    if categories:
+        return categories[0]
+    raise AgentCommsError("repository has discussions enabled but no discussion categories")
+
+
+def ensure_thread(args: argparse.Namespace) -> dict[str, Any]:
+    owner, name, name_with_owner = resolve_repo(args.repo)
+    snapshot = repo_snapshot(owner, name)
+    if not snapshot["hasDiscussionsEnabled"]:
+        if not args.enable_discussions:
+            raise AgentCommsError(
+                f"GitHub Discussions are disabled for {name_with_owner}; rerun with --enable-discussions"
+            )
+        run(["gh", "repo", "edit", name_with_owner, "--enable-discussions"])
+        snapshot = repo_snapshot(owner, name)
+
+    title = args.title
+    for discussion in snapshot["discussions"]["nodes"]:
+        if discussion["title"] == title:
+            return discussion
+
+    category = select_category(snapshot["discussionCategories"]["nodes"], args.category)
+    body = (
+        f"Coordination ledger for deliberate cross-agent work in {name_with_owner}.\n\n"
+        "Use this thread for sparse claim, release, handoff, blocker, review-summary, "
+        "and merge-summary events. Do not use it for routine progress narration, "
+        "debugging logs, reasoning traces, heartbeat updates, or casual agent chat.\n\n"
+        ".work items, PRs, source code, tests, and docs remain authoritative; this "
+        "ledger is advisory coordination evidence only."
+    )
+    mutation = """
+    mutation($repoId: ID!, $categoryId: ID!, $title: String!, $body: String!) {
+      createDiscussion(input: {repositoryId: $repoId, categoryId: $categoryId, title: $title, body: $body}) {
+        discussion { id number title url category { name slug } }
+      }
+    }
+    """
+    data = gh_graphql(
+        mutation,
+        repoId=snapshot["id"],
+        categoryId=category["id"],
+        title=title,
+        body=body,
+    )
+    return data["data"]["createDiscussion"]["discussion"]
+
+
+def find_thread(args: argparse.Namespace) -> dict[str, Any] | None:
+    owner, name, _ = resolve_repo(args.repo)
+    snapshot = repo_snapshot(owner, name)
+    for discussion in snapshot["discussions"]["nodes"]:
+        if discussion["title"] == args.title:
+            return discussion
+    return None
+
+
+def discussion_comments(discussion_id: str) -> list[dict[str, Any]]:
+    query = """
+    query($discussionId: ID!, $after: String) {
+      node(id: $discussionId) {
+        ... on Discussion {
+          comments(first: 100, after: $after) {
+            nodes { id url body bodyText createdAt author { login } }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }
+    }
+    """
+    comments: list[dict[str, Any]] = []
+    cursor: str | None = None
+    while True:
+        variables = {"discussionId": discussion_id}
+        if cursor:
+            variables["after"] = cursor
+        data = gh_graphql(query, **variables)
+        connection = data["data"]["node"]["comments"]
+        comments.extend(connection["nodes"])
+        page_info = connection["pageInfo"]
+        if not page_info["hasNextPage"]:
+            return comments
+        cursor = page_info["endCursor"]
+
+
+def parse_envelope(body: str) -> dict[str, str] | None:
+    match = ENVELOPE_RE.search(body)
+    if not match:
+        return None
+    fields: dict[str, str] = {}
+    current_top_level = True
+    for raw_line in match.group(1).splitlines():
+        if not raw_line.strip():
+            continue
+        current_top_level = not raw_line.startswith((" ", "\t"))
+        if not current_top_level:
+            continue
+        key, sep, value = raw_line.partition(":")
+        if not sep:
+            continue
+        fields[key.strip()] = value.strip().strip('"')
+    if fields.get("schema") != SCHEMA:
+        return None
+    return fields
+
+
+def parse_time(value: str | None) -> dt.datetime | None:
+    if not value:
+        return None
+    normalized = value.strip().replace("Z", "+00:00")
+    try:
+        parsed = dt.datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=dt.timezone.utc)
+    return parsed.astimezone(dt.timezone.utc)
+
+
+def active_claims(args: argparse.Namespace) -> list[dict[str, Any]]:
+    thread = find_thread(args)
+    if not thread:
+        return []
+    comments = discussion_comments(thread["id"])
+    now = dt.datetime.now(dt.timezone.utc)
+    claims: dict[str, dict[str, Any]] = {}
+    for comment in comments:
+        envelope = parse_envelope(comment["body"])
+        if not envelope:
+            continue
+        event_type = envelope.get("type")
+        context = envelope.get("context_id", "")
+        if event_type == "claim":
+            expires_at = parse_time(envelope.get("expires_at"))
+            if expires_at and expires_at <= now:
+                continue
+            claims[comment["url"]] = {
+                "url": comment["url"],
+                "createdAt": comment["createdAt"],
+                "author": (comment.get("author") or {}).get("login"),
+                "context_id": context,
+                "agent": envelope.get("agent"),
+                "intent": envelope.get("intent", ""),
+                "next": envelope.get("next", ""),
+                "expires_at": envelope.get("expires_at", ""),
+                "bodyText": comment.get("bodyText", ""),
+            }
+        elif event_type == "release":
+            if envelope.get("released_comment"):
+                claims.pop(envelope["released_comment"], None)
+            if context:
+                for url, claim in list(claims.items()):
+                    if claim["context_id"] == context:
+                        claims.pop(url, None)
+
+    return list(claims.values())
+
+
+def quote_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if value is None:
+        return "null"
+    text = str(value)
+    if re.fullmatch(r"[A-Za-z0-9_./:#@+-]+", text):
+        return text
+    return json.dumps(text)
+
+
+def add_field(lines: list[str], key: str, value: Any) -> None:
+    if value is not None and value != "":
+        lines.append(f"{key}: {quote_value(value)}")
+
+
+def read_body(args: argparse.Namespace, fallback: str) -> str:
+    if getattr(args, "body_file", None):
+        with open(args.body_file, "r", encoding="utf-8") as handle:
+            return handle.read().strip()
+    if getattr(args, "body", None):
+        return args.body.strip()
+    return fallback
+
+
+def git_branch() -> str | None:
+    try:
+        branch = run(["git", "branch", "--show-current"]).strip()
+    except AgentCommsError:
+        return None
+    return branch or None
+
+
+def expires_at(duration: str | None, exact: str | None) -> str | None:
+    if exact:
+        return exact
+    if not duration:
+        return None
+    match = re.fullmatch(r"(\d+)([mhd])", duration)
+    if not match:
+        raise AgentCommsError("--expires-in must look like 30m, 4h, or 2d")
+    amount = int(match.group(1))
+    unit = match.group(2)
+    delta = {
+        "m": dt.timedelta(minutes=amount),
+        "h": dt.timedelta(hours=amount),
+        "d": dt.timedelta(days=amount),
+    }[unit]
+    return (dt.datetime.now(dt.timezone.utc) + delta).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def event_body(event_type: str, args: argparse.Namespace, repo_name: str) -> str:
+    lines = ["<!-- agent-coordination"]
+    add_field(lines, "schema", SCHEMA)
+    add_field(lines, "type", event_type)
+    add_field(lines, "agent", args.agent)
+    add_field(lines, "repo", repo_name)
+    add_field(lines, "context_id", args.context)
+    add_field(lines, "work_item", getattr(args, "work_item", None))
+    add_field(lines, "branch", getattr(args, "branch", None))
+    add_field(lines, "pr", getattr(args, "pr", None))
+    add_field(lines, "claim_released", getattr(args, "claim_released", None))
+    add_field(lines, "released_comment", getattr(args, "released_comment", None))
+    add_field(lines, "intent", getattr(args, "intent", None))
+    add_field(lines, "next", getattr(args, "next_step", None))
+    add_field(lines, "expires_at", getattr(args, "expires_at_value", None))
+    paths = getattr(args, "paths", None) or []
+    crates = getattr(args, "crates", None) or []
+    if paths or crates:
+        lines.append("scope:")
+        if paths:
+            lines.append("  paths:")
+            for path in paths:
+                lines.append(f"    - {quote_value(path)}")
+        if crates:
+            lines.append("  crates:")
+            for crate in crates:
+                lines.append(f"    - {quote_value(crate)}")
+    lines.append("-->")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def post_event(event_type: str, args: argparse.Namespace) -> dict[str, Any]:
+    _owner, _name, repo_name = resolve_repo(args.repo)
+    thread = ensure_thread(args)
+    if event_type == "claim":
+        default_note = f"Taking {args.context} next. {args.intent}"
+    elif event_type == "release":
+        default_note = f"Claim released for {args.context}."
+    elif event_type == "handoff":
+        default_note = f"Handoff for {args.context}."
+    elif event_type == "blocker":
+        default_note = f"Coordination blocker for {args.context}."
+    elif event_type == "review-summary":
+        default_note = f"Review summary for {args.context}."
+    elif event_type == "merge-summary":
+        default_note = f"Merge summary for {args.context}."
+    else:
+        raise AgentCommsError(f"unsupported event type: {event_type}")
+    note = read_body(args, default_note)
+    prefix = event_body(event_type, args, repo_name)
+    body = f"{prefix}{note}"
+    mutation = """
+    mutation($discussionId: ID!, $body: String!) {
+      addDiscussionComment(input: {discussionId: $discussionId, body: $body}) {
+        comment { id url bodyText }
+      }
+    }
+    """
+    data = gh_graphql(mutation, discussionId=thread["id"], body=body)
+    return data["data"]["addDiscussionComment"]["comment"]
+
+
+def command_doctor(args: argparse.Namespace) -> int:
+    run(["gh", "auth", "status"])
+    owner, name, repo_name = resolve_repo(args.repo)
+    snapshot = repo_snapshot(owner, name)
+    thread = find_thread(args)
+    gh_discussion = subprocess.run(
+        ["gh", "discussion", "--help"],
+        text=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    ).returncode == 0
+    print(f"repo: {repo_name}")
+    print(f"discussions: {'enabled' if snapshot['hasDiscussionsEnabled'] else 'disabled'}")
+    print(f"ledger: {thread['url'] if thread else 'not found'}")
+    print(f"gh discussion command: {'available' if gh_discussion else 'unavailable; using gh api graphql'}")
+    return 0
+
+
+def command_ensure_thread(args: argparse.Namespace) -> int:
+    thread = ensure_thread(args)
+    category = thread.get("category") or {}
+    print(f"{thread['url']} ({category.get('name', 'unknown category')})")
+    return 0
+
+
+def command_active_claims(args: argparse.Namespace) -> int:
+    claims = active_claims(args)
+    if args.json:
+        print(json.dumps(claims, indent=2))
+        return 0
+    if not claims:
+        print("No active claims.")
+        return 0
+    for claim in claims:
+        print(f"{claim['context_id']} [{claim['agent']}] expires {claim['expires_at']}")
+        if claim["intent"]:
+            print(f"  intent: {claim['intent']}")
+        if claim["next"]:
+            print(f"  next: {claim['next']}")
+        print(f"  {claim['url']}")
+    return 0
+
+
+def command_post(event_type: str, args: argparse.Namespace) -> int:
+    if event_type == "claim":
+        args.expires_at_value = expires_at(args.expires_in, args.expires_at)
+        if args.branch is None:
+            args.branch = git_branch()
+    if event_type == "release":
+        args.claim_released = True
+    comment = post_event(event_type, args)
+    print(comment["url"])
+    return 0
+
+
+def add_common(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--repo", help="GitHub repo as OWNER/REPO; defaults to the current directory repo")
+    parser.add_argument("--title", default=DEFAULT_TITLE, help=f"ledger discussion title (default: {DEFAULT_TITLE!r})")
+    parser.add_argument("--category", default=DEFAULT_CATEGORY, help=f"preferred category for new ledgers (default: {DEFAULT_CATEGORY!r})")
+    parser.add_argument("--enable-discussions", action="store_true", help="enable GitHub Discussions if the repo has them disabled")
+
+
+def add_event_common(parser: argparse.ArgumentParser) -> None:
+    add_common(parser)
+    parser.add_argument("--agent", default=os.environ.get("AGENT_COMMS_AGENT", "codex"))
+    parser.add_argument("--context", required=True, help="coordination context; prefer a .work item id when present")
+    parser.add_argument("--work-item", help=".work item id when agile-workflow is present")
+    parser.add_argument("--branch", help="branch name; claim defaults to current git branch when available")
+    parser.add_argument("--pr", help="PR number or URL")
+    parser.add_argument("--body", help="short human-readable note after the event envelope")
+    parser.add_argument("--body-file", help="file containing the human-readable note")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="agent-comms", description="Sparse GitHub Discussions coordination ledger helper")
+    subcommands = parser.add_subparsers(dest="command", required=True)
+
+    doctor = subcommands.add_parser("doctor", help="check gh auth, repo discussion state, and ledger availability")
+    add_common(doctor)
+    doctor.set_defaults(func=command_doctor)
+
+    ensure = subcommands.add_parser("ensure-thread", help="create or print the ledger discussion")
+    add_common(ensure)
+    ensure.set_defaults(func=command_ensure_thread)
+
+    claims = subcommands.add_parser("active-claims", help="list unexpired, unreleased claim events")
+    add_common(claims)
+    claims.add_argument("--json", action="store_true", help="print machine-readable JSON")
+    claims.set_defaults(func=command_active_claims)
+
+    claim = subcommands.add_parser("claim", help="post a soft claim")
+    add_event_common(claim)
+    claim.add_argument("--intent", required=True)
+    claim.add_argument("--next", dest="next_step")
+    claim.add_argument("--path", dest="paths", action="append", default=[])
+    claim.add_argument("--crate", dest="crates", action="append", default=[])
+    claim.add_argument("--expires-in", default="4h")
+    claim.add_argument("--expires-at")
+    claim.set_defaults(func=lambda args: command_post("claim", args))
+
+    release = subcommands.add_parser("release", help="release a soft claim")
+    add_event_common(release)
+    release.add_argument("--released-comment", help="claim comment URL being released")
+    release.set_defaults(func=lambda args: command_post("release", args))
+
+    handoff = subcommands.add_parser("handoff", help="post a handoff event")
+    add_event_common(handoff)
+    handoff.set_defaults(func=lambda args: command_post("handoff", args))
+
+    blocker = subcommands.add_parser("blocker", help="post a coordination blocker event")
+    add_event_common(blocker)
+    blocker.set_defaults(func=lambda args: command_post("blocker", args))
+
+    review = subcommands.add_parser("review-summary", help="post a review summary event")
+    add_event_common(review)
+    review.set_defaults(func=lambda args: command_post("review-summary", args))
+
+    merge = subcommands.add_parser("merge-summary", help="post a merge summary event")
+    add_event_common(merge)
+    merge.set_defaults(func=lambda args: command_post("merge-summary", args))
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        return args.func(args)
+    except AgentCommsError as exc:
+        print(f"agent-comms: {exc}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

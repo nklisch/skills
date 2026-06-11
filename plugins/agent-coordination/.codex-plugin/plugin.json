@@ -1,0 +1,24 @@
+{
+  "name": "agent-coordination",
+  "version": "0.1.0",
+  "description": "Sparse cross-agent coordination ledger for shared repositories. Uses deliberate GitHub Discussion events for claims, handoffs, blockers, review summaries, and merge summaries without turning Discussions into chat.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agent Coordination",
+    "shortDescription": "Sparse cross-agent coordination ledger",
+    "longDescription": "A portable skill for deliberate cross-agent coordination in shared repositories. It defines a GitHub Discussions-backed ledger for advisory claims, handoffs, blockers, review summaries, and merge summaries, with optional agile-workflow awareness when a .work substrate exists. The ledger is not chat, not a progress stream, and not a replacement for .work, PRs, or code review.",
+    "developerName": "nklisch",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Bash"
+    ],
+    "defaultPrompt": "Use coordination-ledger to check active claims and post a deliberate claim, handoff, blocker, review, or merge summary for this repo.",
+    "websiteURL": "https://github.com/nklisch/skills"
+  }
+}
