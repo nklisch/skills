@@ -63,7 +63,7 @@ updated: YYYY-MM-DD              # required, auto-bumped by PostToolUse hook
 | `parent` | slug or null | **Hierarchy.** `null` for top-level. Points to a parent item's `id`. |
 | `depends_on` | array of slugs | **Sequencing.** Items this cannot start until all listed are at `stage: done`. May be empty. Distinct from `parent`. |
 | `release_binding` | version string or null | Late-binding. `null` until the user binds. Format matches the release file's version (e.g., `v1.2.0`). |
-| `gate_origin` | gate name or null | `null` for user-scoped items. One of `security`, `tests`, `cruft`, `docs`, `patterns` when produced by a gate. |
+| `gate_origin` | gate name or null | `null` for user-scoped items. One of `security`, `tests`, `cruft`, `docs`, `patterns`, `refactor` when produced by a gate (`refactor` is the opt-in gate's value). |
 | `research_refs` | array of slug strings | **Optional; defaults to `[]`.** The research artifacts (`.research/` slugs or handles) this work item tracks or consumes — the Arrow 1 coordination link. Missing → `[]`. Query: `work-view --research-refs <slug>` (membership). See `plugins/agentic-research/docs/HANDOFF.md` for the cross-tier contract. |
 | `research_origin` | slug or null | **Optional; defaults to `null`.** The research artifact that spawned this work item — the Arrow 2 grounding link. Mirrors `gate_origin`. Missing/empty/`"null"` → `null`. Query: `work-view --research-origin <slug>` (or `null`). See `plugins/agentic-research/docs/HANDOFF.md`. |
 | `created` | ISO date | `YYYY-MM-DD`. Set on creation; never modified. FIFO tie-break in autopilot. |
@@ -136,6 +136,16 @@ gates_for_release: [security, tests, cruft, docs, patterns]
 
 The default `gates_for_release` order is fixed: **security → tests → cruft
 → docs → patterns**. Override only if the project has a justified reason.
+
+**`gate-refactor` is an opt-in gate** — not in the default list. Add it when your project has
+scan-rule libraries installed at `{project}/.agents/skills/scan-*/SKILL.md` or
+`{project}/.claude/skills/scan-*/SKILL.md`. The gate discovers and loads all libraries it finds,
+then checks the release bundle's changed files against every rule. With no libraries installed it
+logs a graceful skip and continues — not an error. Example opt-in:
+
+```yaml
+gates_for_release: [security, tests, cruft, docs, patterns, refactor]
+```
 
 `terminal-tier retention` (default **`delete-refs`**) is **one merged convention** covering the
 whole terminal lifecycle — archival, late-binding, and release collapse — not just on-disk byte
