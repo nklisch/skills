@@ -63,7 +63,7 @@ updated: YYYY-MM-DD              # required, auto-bumped by PostToolUse hook
 | `parent` | slug or null | **Hierarchy.** `null` for top-level. Points to a parent item's `id`. |
 | `depends_on` | array of slugs | **Sequencing.** Items this cannot start until all listed are at `stage: done`. May be empty. Distinct from `parent`. |
 | `release_binding` | version string or null | Late-binding. `null` until the user binds. Format matches the release file's version (e.g., `v1.2.0`). |
-| `gate_origin` | gate name or null | `null` for user-scoped items. One of `security`, `tests`, `cruft`, `docs`, `patterns` when produced by a gate. |
+| `gate_origin` | gate name or null | `null` for user-scoped items. One of `security`, `tests`, `cruft`, `docs`, `patterns`, `refactor` when produced by a gate (`refactor` is the opt-in gate's value). |
 | `research_refs` | array of slug strings | **Optional; defaults to `[]`.** The research artifacts (`.research/` slugs or handles) this work item tracks or consumes — the Arrow 1 coordination link. Missing → `[]`. Query: `work-view --research-refs <slug>` (membership). See `plugins/agentic-research/docs/HANDOFF.md` for the cross-tier contract. |
 | `research_origin` | slug or null | **Optional; defaults to `null`.** The research artifact that spawned this work item — the Arrow 2 grounding link. Mirrors `gate_origin`. Missing/empty/`"null"` → `null`. Query: `work-view --research-origin <slug>` (or `null`). See `plugins/agentic-research/docs/HANDOFF.md`. |
 | `created` | ISO date | `YYYY-MM-DD`. Set on creation; never modified. FIFO tie-break in autopilot. |
@@ -118,6 +118,8 @@ skill reads this at session start (via the SessionStart hook or directly).
 - security    auth, validation, secrets, supply chain
 - perf        throughput, latency, memory — routes to perf-design
 - refactor    behavior-preserving structural change ONLY — fails the black-box test (any observable behavior change for callers) means NOT a refactor — routes to refactor-design
+- prose       no-code-surface deliverable (docs, conventions, copy) — routes to prose-author (lean authoring lane: brief-as-design, inline implement)  # optional — omit if `prose` already means something else in your project (token name may change before v1.0)
+- research    grounded research engagement — an input, not a shippable — routes cross-plugin to agentic-research:research-orchestrator; carries a research_dials: registration block, does not bind to a release, gates run inline (only when the agentic-research plugin is installed)
 
 ## Slug conventions
 <format and prefix rules>
@@ -130,10 +132,35 @@ skill reads this at session start (via the SessionStart hook or directly).
 
 ## Gate config
 gates_for_release: [security, tests, cruft, docs, patterns]
+binding_guard: warn
+epic_cohesion: phased
 ```
 
 The default `gates_for_release` order is fixed: **security → tests → cruft
 → docs → patterns**. Override only if the project has a justified reason.
+
+**`gate-refactor` is an opt-in gate** — not in the default list. Add it when your project has
+scan-rule libraries installed at `{project}/.agents/skills/scan-*/SKILL.md` or
+`{project}/.claude/skills/scan-*/SKILL.md`. The gate discovers and loads all libraries it finds,
+then checks the release bundle's changed files against every rule. With no libraries installed it
+logs a graceful skip and continues — not an error. Example opt-in:
+
+```yaml
+gates_for_release: [security, tests, cruft, docs, patterns, refactor]
+```
+
+**`binding_guard`** (default **`warn`** when absent) controls the Phase 3.5 binding-consistency check
+in `release-deploy`. Values: `warn` | `halt` | `off`. `warn` runs all three checks and records any
+finding as a durable warning in the release body (replace-or-skip, not appended), then continues.
+`halt` stops the release on any acted-on finding (for projects that hold the no-cross-version-drift
+invariant). `off` skips the checks entirely (short-circuits before any walk).
+
+**`epic_cohesion`** (default **`phased`** when absent) governs the severity of an *unbound child of
+a bound parent* (an INCOMPLETE finding). `phased` treats INCOMPLETE entries as informational —
+listed in the warn report, never counting toward a halt (an epic may ship across releases). `total`
+treats them as mismatches acted on per `binding_guard`, like CONFLICTs (the project holds "epics
+ship whole"). CONFLICTs (a child bound to a *different* version than its bound parent, or a done
+parent unbound while its children are bound) always follow `binding_guard` regardless of this dial.
 
 `terminal-tier retention` (default **`delete-refs`**) is **one merged convention** covering the
 whole terminal lifecycle — archival, late-binding, and release collapse — not just on-disk byte

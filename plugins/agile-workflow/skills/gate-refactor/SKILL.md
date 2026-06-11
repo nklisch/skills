@@ -1,0 +1,394 @@
+---
+name: gate-refactor
+description: >
+  Refactor gate that discovers scan-rule libraries declared in the host project
+  ({project}/.agents/skills/scan-*/SKILL.md and {project}/.claude/skills/scan-*/SKILL.md),
+  loads every discovered library, checks the release bundle's changed files against all loaded
+  rules, and produces findings as items with gate_origin:refactor; routing tag declared per
+  library (libraries whose fixes are behavior-preserving declare findings-route:refactor;
+  behavior-changing libraries declare no route — findings emit untagged and route through
+  normal feature/story design).
+  Rule libraries are deployment-local — the gate ships the mechanism; adopters supply the rules.
+  Auto-triggers during /agile-workflow:release-deploy when the host project opts in via
+  CONVENTIONS.md: gates_for_release: [..., refactor, ...].
+  No-libraries behavior: graceful skip (logs "no scan-* libraries discovered" and continues).
+  Item-producer, NOT a pass/fail report.
+allowed-tools: Read, Glob, Grep, Bash, Agent, Edit
+---
+
+# Gate-Refactor
+
+You orchestrate a refactor gate over the items bound to a release. You discover scan-rule
+libraries the host project has installed, load them, and dispatch a **deep refactor sub-agent** to
+check the release bundle's changed files against every loaded rule. Your role is library discovery,
+bundle preparation, sub-agent dispatch, and converting findings into substrate items.
+
+This gate ships **the mechanism, not the rules**. The scan rule libraries that supply the actual
+rules live in the host project (`{project}/.agents/skills/scan-*/SKILL.md` and
+`{project}/.claude/skills/scan-*/SKILL.md`). The gate requires no built-in rule knowledge — it
+adapts to whatever libraries the deploying project provides. This is why the gate is opt-in (not
+in the default `gates_for_release` list): an install with no rule libraries has nothing to check,
+and that is by design, not an error.
+
+Sub-agent strength is explicit:
+- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
+  `subagent_type: "general-purpose"`.
+- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort: high`; use `xhigh`
+  for large or polyglot release bundles, or when multiple libraries each carry dense rule sets.
+- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the deep refactor audit when
+  hosted in Pi and available; otherwise use the same-host read-only analysis fallback.
+
+## Trigger
+
+- `/agile-workflow:release-deploy` invokes during `quality-gate` stage when `gates_for_release`
+  in `.work/CONVENTIONS.md` includes `refactor`.
+- User can invoke manually: `/agile-workflow:gate-refactor <release-version>`
+
+**Opt-in gate.** The default `gates_for_release` list does not include `refactor`. Add it
+explicitly when your project has scan-rule libraries to enforce:
+
+```
+gates_for_release: [security, tests, cruft, docs, patterns, refactor]
+```
+
+## Workflow
+
+### Phase 1: Identify bundle changes
+
+```bash
+# Bound non-release items. `--release` auto-widens to ALL tiers (active + archive + releases).
+# Include late-bound archived stubs; their bodies may be pruned, but their item id is still
+# present and can recover the bundle commits/files. Ignore only the release orchestration item.
+.work/bin/work-view --release <version> --paths | while IFS= read -r item; do
+  kind=$(grep -m1 '^kind:' "$item" | awk '{print $2}')
+  [ "$kind" = "release" ] && continue
+  echo "$item"
+done > /tmp/bundle-items-<version>.txt
+
+# Files changed by the bundle. For archived stubs, the body is pruned on disk by design; use the
+# item id to find implementation commits instead of treating the missing body as a skip reason.
+while IFS= read -r item; do
+  id=$(grep -m1 '^id:' "$item" | awk '{print $2}')
+  git log --grep "$id" --format='%H' | xargs -I{} git diff-tree --no-commit-id --name-only -r {}
+done < /tmp/bundle-items-<version>.txt | sort -u > /tmp/bundle-files-<version>.txt
+```
+
+### Phase 2: Discover scan-rule libraries (idempotency prep)
+
+Glob the host project for rule libraries at both plugin-canonical and Claude-compat roots:
+
+```bash
+# Plugin-canonical root (.agents/skills/)
+glob_agents: {project}/.agents/skills/scan-*/SKILL.md
+
+# Claude-compat root (.claude/skills/)
+glob_claude: {project}/.claude/skills/scan-*/SKILL.md
+```
+
+For each discovered `SKILL.md`:
+1. Read the `SKILL.md` fully — its frontmatter `description` and body carry the rules the gate
+   must enforce.
+2. Read all files in the library's `references/` directory (if present) — reference files carry
+   the detailed per-rule specifications.
+3. Derive a **library tag** from the directory name by stripping `scan-` (e.g., `scan-wcag-aa`
+   → `wcag-aa`, `scan-structural` → `structural`).
+4. Read the library's **routing declaration**: look for a `findings-route:` line in the SKILL.md
+   body (format: `findings-route: refactor` or `findings-route: none`). This line declares whether
+   the library's findings carry `tags: [refactor]`. If the line is absent, the default is **no
+   routing tag** — untagged is safe-by-default (feature-design handles everything; the `[refactor]`
+   route is the optimization a library opts into by asserting its fixes are behavior-preserving).
+   Record the routing decision per library for use in Phase 4.
+
+**No-libraries behavior:** if both globs return zero results, log to the release body:
+
+```
+gate-refactor (<date>) — no scan-* rule libraries discovered; gate-refactor has nothing to
+check. To activate: install a scan-rule library at {project}/.agents/skills/scan-<name>/ or
+{project}/.claude/skills/scan-<name>/. See gate-refactor/SKILL.md for the library contract.
+```
+
+Then continue the gate sequence. This is not an error — the gate is designed to ship
+content-free when no libraries are installed.
+
+Read existing gate items (idempotency prep):
+
+```bash
+.work/bin/work-view --release <version> --gate refactor --paths
+```
+
+Capture the set of `(file:line, rule-slug)` already-tracked findings to feed into the
+sub-agent's brief so it skips duplicates.
+
+### Phase 3: Dispatch the refactor sub-agent
+
+If at least one library was discovered, spawn ONE deep refactor sub-agent with the full scan brief.
+For Claude Code, this is `Agent(subagent_type=general-purpose, model=opus)`. For Codex, use
+`reasoning_effort: high` (or `xhigh` for large/polyglot bundles or dense rule sets). For Pi,
+use a native `reviewer` or `oracle` subagent when available; otherwise use the same-host
+read-only analysis fallback.
+
+The sub-agent checks all rules from all libraries in one pass per file, returning structured
+findings. Dispatching one sub-agent with the full library set (rather than one per library) avoids
+M-times-N redundant file reads and allows cross-library finding deduplication.
+
+**Brief template**:
+
+> You are conducting a refactor gate scan for release `<version>`. You have access to
+> Read, Glob, Grep, Bash. Scan ONLY the bundle's changed files — not the whole repo.
+>
+> **Bundle scope** (files changed by the bundle):
+> ```
+> <bundle-files>
+> ```
+>
+> **Loaded rule libraries** (N libraries discovered):
+>
+> For each library `<tag>` (e.g. `structural`, `wcag-aa`):
+>
+> **Library: `<tag>`** (source: `{project}/.agents/skills/scan-<name>/` or `{project}/.claude/skills/scan-<name>/`)
+> ```
+> <full SKILL.md content>
+> ```
+> Reference files:
+> ```
+> <full content of each file in references/>
+> ```
+>
+> **Already-tracked findings to skip**:
+> ```
+> <(file:line, rule-slug) pairs already written as items>
+> ```
+>
+> **Instructions**:
+>
+> 1. Read every file in the bundle scope.
+> 2. For each file, check against all rules from all loaded libraries in a single pass.
+> 3. For each finding, record:
+>    - **Library tag**: which library's rule was violated (e.g. `structural`).
+>    - **Rule slug**: which specific rule was violated (from the library's rule inventory).
+>    - **File:line**: exact location.
+>    - **Issue**: one-sentence description of the violation.
+>    - **Fix**: specific proposed change (or "needs analysis" for findings requiring judgment).
+>    - **Confidence**: `high` / `medium` / `low` per the library's guidance for that rule.
+> 4. Deduplicate against the already-tracked set.
+> 5. Return findings as a structured list.
+>
+> **Rules**:
+> - Scan only the bundle scope. Do not expand to the whole repo.
+> - Cite file:line for every finding.
+> - Do not fabricate findings. If a rule produces no matches, emit nothing for it.
+> - Skip already-tracked findings (exact file:line + rule-slug match).
+> - Confidence follows the library's own guidance for each rule. When the library
+>   does not specify, default to medium. Normalize any other severity vocabulary a
+>   library uses (e.g. critical/info, numeric scores) onto `high`/`medium`/`low`
+>   rather than defaulting mismatches to medium.
+>
+> **Output format** — return a single markdown document with:
+>
+> ```
+> ## Findings
+>
+> ### Finding 1
+> - **Title**: <one-line description>
+> - **Library**: <library-tag>
+> - **Rule**: <rule-slug>
+> - **Confidence**: High | Medium | Low
+> - **Location**: `<file>:<line>`
+> - **Issue**: <one sentence>
+> - **Fix**: <specific proposed change or "needs analysis">
+>
+> ### Finding 2
+> ...
+> ```
+>
+> Followed by:
+>
+> ```
+> ## Scan summary
+> - Libraries loaded: <list of library tags>
+> - Files scanned: <count>
+> - Findings by confidence: High=<n>, Medium=<n>, Low=<n>
+> ```
+
+### Phase 4: Convert findings to items
+
+For each finding the sub-agent returned:
+
+**`gate_origin: refactor` is unconditional** — it records which gate produced the item, not the
+nature of the fix. The `tags:` field is determined by the source library's routing declaration:
+- Library declared `findings-route: refactor` → `tags: [refactor]` (behavior-preserving; routes
+  through refactor-design).
+- Library declared `findings-route: none` or declaration absent → `tags: []` (behavior-changing or
+  unclassified; routes through the normal feature/story design path).
+
+The rationale: `[refactor]` is strictly behavior-preserving by definition (black-box test — no
+observable behavior change for any caller of the public surface). Libraries whose fixes change
+observable behavior — a11y improvements, SEO changes, API corrections — must not carry the tag or
+refactor-design will bounce them as mistagged.
+
+**Example: behavior-preserving library (e.g. `scan-structural`, `findings-route: refactor`)**
+
+```yaml
+---
+id: gate-refactor-<short-slug>
+kind: story
+stage: implementing | drafting    # by confidence — see table below
+tags: [refactor]
+parent: null
+depends_on: []
+release_binding: <version>
+gate_origin: refactor
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+---
+```
+
+**Example: behavior-changing library (e.g. `scan-wcag-aa`, no findings-route declaration)**
+
+```yaml
+---
+id: gate-refactor-<short-slug>
+kind: story
+stage: implementing | drafting    # by confidence — see table below
+tags: []
+parent: null
+depends_on: []
+release_binding: <version>
+gate_origin: refactor
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+---
+```
+
+Item body (same for both cases):
+
+```markdown
+# <one-line description>
+
+## Library
+<library-tag>
+
+## Rule
+<rule-slug>
+
+## Confidence
+High | Medium | Low
+
+## Location
+`<file>:<line>`
+
+## Issue
+<one-sentence violation description>
+
+## Fix
+<specific proposed change, or "needs analysis" for medium/low>
+```
+
+Confidence → stage mapping (mirrors gate-cruft):
+
+| Confidence | Stage | Tier |
+|---|---|---|
+| High | `stage: implementing` | `.work/active/stories/` |
+| Medium | `stage: drafting` | `.work/active/stories/` |
+| Low | backlog file | `.work/backlog/` |
+
+Slug: derive from library tag + rule slug + file fragment (e.g.
+`gate-refactor-structural-routes-api`, `gate-refactor-wcag-aa-missing-alt`). If the derived
+slug already exists (same rule firing twice in one file or across runs), append a counter
+suffix (`-2`, `-3`, …) to keep slugs unique.
+
+### Phase 5: Update the release body
+
+Append to the release body's gate-runs section:
+
+```markdown
+- **gate-refactor** (YYYY-MM-DD) — N findings (H high, M medium, L low) from K libraries:
+  <library-tag-1> (<n> findings), <library-tag-2> (<n> findings)
+```
+
+If no libraries were discovered, append the no-libraries log entry from Phase 2 instead.
+
+### Phase 6: Commit
+
+```bash
+git add .work/active/stories/ .work/backlog/ .work/active/release-<version>.md
+git commit -m "gate-refactor: <N> findings for <version> (<library-tags>)"
+```
+
+If no findings and no libraries: `gate-refactor: no libraries discovered for <version> — gate skipped`.
+If no findings but libraries ran: `gate-refactor: 0 findings for <version> (<library-tags> — clean)`.
+
+## Output
+
+In conversation:
+- **Bundle**: `<version>` — `<N>` items audited, `<M>` files changed
+- **Libraries**: count and tags (`structural`, `wcag-aa`, ...) or "none discovered"
+- **Findings**: count by confidence (High / Medium / Low), or "no findings"
+- **Items created**: count, with new ids
+- **Already-tracked**: count skipped
+
+## Guardrails
+
+- **The scan happens in the sub-agent, not here.** Your job is library discovery, bundle prep,
+  dispatch, and item-writing. Do not replicate the sub-agent's analysis.
+- Scan only the bundle's changed files, not the whole repo.
+- Never apply fixes in this skill — produce items only.
+- **No-libraries is not an error.** Graceful skip with a log entry is the correct behavior when
+  no scan-* libraries are installed.
+- Pass already-tracked findings into the sub-agent's brief so it skips duplicates (idempotency).
+- Include archive stubs returned by `work-view --release <version> --paths`. Late-bound archived
+  stubs are part of the release bundle and must be scanned from their associated commits/files,
+  even when their on-disk bodies are pruned.
+- Do NOT add `refactor` to the default `gates_for_release` list. The gate is opt-in by design.
+  Deployers with no scan-rule libraries would get a no-op gate on every release — unnecessary
+  overhead. Adopters opt in by editing their `.work/CONVENTIONS.md`.
+
+## Library contract (for adopters writing scan-rule libraries)
+
+A scan-rule library declares itself by its directory name and the content of its SKILL.md:
+
+- **Location**: `{project}/.agents/skills/scan-<name>/SKILL.md` OR
+  `{project}/.claude/skills/scan-<name>/SKILL.md` (both roots are discovered; duplicate
+  names are merged — the `.agents/` root takes precedence if both carry the same name).
+- **SKILL.md content**: the `description` frontmatter field and the body carry the rules. The
+  gate reads the full SKILL.md and all files in `references/` as the library declaration.
+- **Rule format**: each rule should carry a slug (for deduplication), a description of what
+  constitutes a violation, and confidence guidance (when does a match warrant `high` vs. `medium`
+  vs. `low` confidence). These three values are the **required vocabulary** — the gate and
+  downstream tooling map directly on them.
+- **Routing declaration** (one line in the SKILL.md **body** — NOT a frontmatter key; the gate
+  scans the body for this line, so a frontmatter placement would be silently missed):
+  ```
+  findings-route: refactor
+  ```
+  Declares that this library's rules are **behavior-preserving** (structural, stylistic, dead-code
+  removal) — every fix passes the black-box test: no observable behavior change for any caller of
+  the public surface. Findings from this library carry `tags: [refactor]` and may route through
+  `refactor-design`.
+
+  **Default when absent: no routing tag.** Libraries whose fixes are **behavior-changing** (a11y,
+  SEO, API corrections, anything altering observable behavior for any consumer) omit the
+  declaration or set `findings-route: none`. Their findings emit without a `[refactor]` tag and
+  route through the normal feature/story design path. Untagged is the safe default — feature-design
+  handles everything; the `[refactor]` route is the optimization a library opts into by asserting
+  behavior-preservation.
+- **No registration required**: the gate discovers libraries by glob. No manifest entry needed.
+
+Example library skeleton (behavior-preserving — opts in to `[refactor]` routing):
+
+```
+{project}/.agents/skills/scan-structural/
+  SKILL.md         ← library declaration + rule inventory + findings-route: refactor
+  references/
+    api-shape.md   ← detailed rule: API structural conventions
+    error-shape.md ← detailed rule: error-handling conventions
+```
+
+Example library skeleton (behavior-changing — omits routing declaration):
+
+```
+{project}/.agents/skills/scan-wcag-aa/
+  SKILL.md         ← library declaration + rule inventory (no findings-route line)
+  references/
+    wcag-aa-rules.md ← detailed WCAG 2.x AA rule set
+```

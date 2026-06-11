@@ -91,7 +91,10 @@ If the release is at `stage: planned`:
    ```bash
    .work/bin/work-view --stage done --release "" --paths
    ```
-   (Filter for empty `release_binding`.)
+   (Filter for empty `release_binding`. **When the `agentic-research` plugin is installed,
+   exclude `tags: [research]` items** — research engagements are inputs that ground other
+   work, not release members; they never bind. Without `agentic-research`, `[research]` is
+   an inert project tag — items with it bind normally.)
 
 2. **Archived-stub candidates (`archived_atop` late-binding).** Gather **all unbound archived
    stubs** (`release_binding: null`) regardless of their `archived_atop` value. Each unbound stub is
@@ -109,13 +112,34 @@ If the release is at `stage: planned`:
    prior=${prior:-pre-release}
    # Gather ALL unbound archived stubs (recurse: ROADMAP-phase epics archive to
    # .work/archive/epics/, not just the flat .work/archive/ root).
+   # When agentic-research is installed: [research] items are research inputs, not
+   # release members — exclude them. Use work-view's real tag parse for the exclusion
+   # set, never a hand-rolled tags regex (a regex misreads block-style tag lists and
+   # false-positives on tags like research-ops). Without agentic-research, [research]
+   # is an inert project tag and must not be filtered.
+   agentic_research_installed=false
+   if [ -d ".research" ] ||
+      [ -f "plugins/agentic-research/skills/research-orchestrator/SKILL.md" ] ||
+      [ -f ".agents/skills/research-orchestrator/SKILL.md" ] ||
+      [ -f ".claude/skills/research-orchestrator/SKILL.md" ]; then
+     agentic_research_installed=true
+   fi
+   research_paths=""
+   if [ "$agentic_research_installed" = true ]; then
+     research_paths=$(.work/bin/work-view --scope archive --tag research --paths | sort)
+   fi
    find .work/archive -name '*.md' -type f | while read -r p; do
+     [ -n "$research_paths" ] && printf '%s\n' "$research_paths" | grep -qxF "$p" && continue
      binding=$(grep -m1 '^release_binding:' "$p" | awk '{print $2}')
      [[ "$binding" == "null" ]] && echo "$p"
    done
    ```
    (Skip stubs already carrying a `release_binding` — they belong to an earlier release. Show each
-   stub's `archived_atop` so the user sees the baseline it was done atop when confirming.)
+   stub's `archived_atop` so the user sees the baseline it was done atop when confirming. **When the
+   `agentic-research` plugin is installed, skip `tags: [research]` stubs** — a research engagement
+   is an input that grounds other work, not a shippable bundle member, so it never binds to a
+   release; without `agentic-research`, `[research]` is an inert project tag and stubs bind
+   normally. See the `[research]` tag semantics.)
 
 3. Use AskUserQuestion to confirm the full set (active done items + gathered archived stubs).
    Default: all active done items without binding plus all unbound archived stubs go in. Confirming
@@ -136,6 +160,223 @@ If the release is at `stage: planned`:
    git add .work/active/release-<version>.md <bound-item-files> <bound-archive-stubs>
    git commit -m "release-deploy: bind <N> items to <version>"
    ```
+
+### Phase 3.5: Binding-consistency guard
+
+Read `binding_guard:` from `.work/CONVENTIONS.md` (same read as `gates_for_release` in Phase 1).
+Values: `warn` (default when the key is absent) | `halt` | `off`. The guard reports two classes of
+finding (defined below): **CONFLICT** (always acted on) and **INCOMPLETE** (severity governed by the
+`epic_cohesion` convention).
+
+- `off` — skip all three checks; log one line: "binding-consistency guard is off (CONVENTIONS
+  binding_guard: off); skipping." Continue to Phase 4. The guard short-circuits here **before** any
+  gathering or walking — the CONVENTIONS read is the first thing the bash block does.
+- `warn` — run all three checks; if findings are present, print the full report into the
+  conversation AND record it in the release file body under a `### Binding-consistency warnings`
+  subsection (so the record is durable), then **continue** the release flow. The record is
+  **replace-or-skip**: a re-invoke rewrites the existing subsection with the current report rather
+  than appending a second block (current state, not history — release-deploy is idempotent).
+- `halt` — run all three checks; if any **acted-on** finding is present (every CONFLICT, plus
+  INCOMPLETEs only under `epic_cohesion: total`), report and stop. The user resolves and re-runs
+  `/agile-workflow:release-deploy <version>`. Informational INCOMPLETEs (under `phased`) never halt.
+
+**Two report classes.** The guard's hard invariant is *no cross-version drift*; whether an epic
+must ship *whole* is a project convention (`epic_cohesion`), so the two are split:
+
+- **CONFLICT** — a child bound to a *different* version than its bound parent, or a done parent left
+  unbound while its children are bound. Always a genuine coherence violation; always acted on per
+  `binding_guard` mode.
+- **INCOMPLETE** — an unbound child of a bound parent. This is legitimate phased delivery for some
+  projects and drift for others, so its severity is governed by **`epic_cohesion`** (read from
+  `.work/CONVENTIONS.md`): `phased` (default) treats INCOMPLETE entries as informational — listed in
+  the warn report, never counting toward a halt; `total` treats them as mismatches acted on per
+  `binding_guard` mode, exactly like CONFLICTs.
+
+Projects that hold the stronger "epics ship whole" convention set `epic_cohesion: total` (and
+typically `binding_guard: halt`); the defaults (`phased` + `warn`) surface drift without imposing
+total cohesion — so `halt` stays usable for phased / multi-release epics.
+
+Before any gate runs, walk every item bound to this release plus every done-but-unbound parent
+across active/archive, and verify three invariants. Any acted-on finding halts (or warns, per
+`binding_guard`) — do NOT rebind anything implicitly. The user must resolve any inconsistency
+flagged at `halt` level and re-run `/agile-workflow:release-deploy <version>`.
+
+Throughout this guard a **parent** is an item of kind epic OR feature: Check 1 walks children of
+bound epics/features, and Checks 2/3 walk done-unbound epics/features directly, so a bound feature
+whose stories drift cross-version is caught just as a bound epic's features are.
+
+This guard catches drift where a child's review-pass bound it to the release but its parent (epic or
+feature) was forgotten, or where a done parent's children were bound without the parent itself being
+bound.
+
+Note: the plugin's archive tier may hold **bodyless stubs** (when `terminal-tier retention:
+delete-refs` is in effect). Stubs retain their frontmatter (`id`, `parent`, `stage`,
+`release_binding`), so the parent-walk works identically for stubs and live items — read the
+frontmatter fields to resolve parentage and binding regardless of whether a body is present.
+
+```bash
+version=<version>   # substitute the target release version here (single substitution point)
+
+# Read the gate config FIRST so `off` short-circuits before any gathering or walking.
+# (Reading after the loop would run every check and then discard the result, contradicting
+# "off — skip all three checks".)
+binding_guard=$(grep -m1 '^binding_guard:' .work/CONVENTIONS.md | awk '{print $2}')
+binding_guard="${binding_guard:-warn}"   # default: warn
+epic_cohesion=$(grep -m1 '^epic_cohesion:' .work/CONVENTIONS.md | awk '{print $2}')
+epic_cohesion="${epic_cohesion:-phased}" # default: phased (an epic may ship across releases)
+
+if [ "$binding_guard" = "off" ]; then
+  echo "binding-consistency guard is off (CONVENTIONS binding_guard: off); skipping."
+  # Continue to Phase 4 — do NOT gather or walk anything.
+  return 0 2>/dev/null || exit 0
+fi
+
+# Gather all items bound to this release (auto-widens to active + archive tiers).
+# Exclude the release orchestration item itself.
+bound_items=$(.work/bin/work-view --release "$version" --paths \
+  | xargs grep -lm1 'kind: \(epic\|feature\|story\)' 2>/dev/null)
+
+# ONLY when the agentic-research plugin is installed, additionally apply Phase 3's [research]
+# exclusion here too (research engagements never bind; defensively drop any that slipped into
+# the bind set, e.g. bound before the plugin was adopted). Without the plugin, [research] is
+# an inert project tag — its items bind normally and MUST be walked like any other item.
+agentic_research_installed=false
+if [ -d ".research" ] ||
+   [ -f "plugins/agentic-research/skills/research-orchestrator/SKILL.md" ] ||
+   [ -f ".agents/skills/research-orchestrator/SKILL.md" ] ||
+   [ -f ".claude/skills/research-orchestrator/SKILL.md" ]; then
+  agentic_research_installed=true
+fi
+if [ "$agentic_research_installed" = true ]; then
+  research_paths=$(.work/bin/work-view --scope all --tag research --paths | sort)
+  bound_items=$(printf '%s\n' $bound_items | while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    printf '%s\n' "$research_paths" | grep -qxF "$p" || echo "$p"
+  done)
+fi
+
+# Two report classes, split by severity (the guard's hard invariant is no-cross-version-drift;
+# whether an epic must ship *whole* is a project convention, carried by epic_cohesion):
+#   conflicts[]  — CONFLICT: a child bound to a DIFFERENT version than its bound parent, or a
+#                  done parent unbound while its children are bound. Always a genuine coherence
+#                  violation; always acted on per binding_guard mode.
+#   incompletes[] — INCOMPLETE: an unbound child of a bound parent. Legitimate phased delivery
+#                  under epic_cohesion: phased (informational only); a mismatch under
+#                  epic_cohesion: total (acted on per binding_guard mode, like a CONFLICT).
+conflicts=()
+incompletes=()
+
+# Note on search scope: the parent/child walks grep `.work/active .work/archive` only and
+# deliberately exclude `.work/releases`. Collapsed release items are not valid parents under
+# either retention model (delete-refs prunes to a single summary doc; retain-bodies keeps bodies
+# but the items are terminal), so a `parent:` pointing into releases/ is an orphan by construction
+# and would never resolve a live binding here.
+
+for item_path in $bound_items; do
+  kind=$(grep -m1 '^kind:' "$item_path" | awk '{print $2}')
+  item_id=$(grep -m1 '^id:' "$item_path" | awk '{print $2}')
+  item_binding=$(grep -m1 '^release_binding:' "$item_path" | awk '{print $2}')
+  item_stage=$(grep -m1 '^stage:' "$item_path" | awk '{print $2}')
+  parent_id=$(grep -m1 '^parent:' "$item_path" | awk '{print $2}')
+
+  # Check 1: children of a bound parent (epic OR feature) are consistent with it.
+  # Walk this item's children (items whose parent: field matches this item's id).
+  if [ "$kind" = "epic" ] || [ "$kind" = "feature" ]; then
+    # Find all children of this parent across active and archive tiers (see scope note above).
+    while IFS= read -r child_path; do
+      child_binding=$(grep -m1 '^release_binding:' "$child_path" | awk '{print $2}')
+      child_id=$(grep -m1 '^id:' "$child_path" | awk '{print $2}')
+      if [ "$child_binding" != "$version" ] && [ "$child_binding" != "null" ] && [ "$child_binding" != "" ]; then
+        # CONFLICT: child bound to a different version than its bound parent.
+        conflicts+=("CONFLICT — child $child_id is bound to $child_binding, but its parent $kind $item_id is bound to $version")
+      elif [ "$child_binding" = "null" ] || [ "$child_binding" = "" ]; then
+        # INCOMPLETE: unbound child of a bound parent. Severity depends on epic_cohesion.
+        incompletes+=("INCOMPLETE — child $child_id (unbound) has parent $kind $item_id bound to $version; under epic_cohesion: total all children of a bound parent must share the same release binding")
+      fi
+    done < <(grep -rl "^parent: ${item_id}$" .work/active .work/archive 2>/dev/null)
+  fi
+done
+
+# Checks 2 & 3: a done parent (epic OR feature) left unbound while any child is bound is itself a
+# CONFLICT (orphan risk). These parents are NOT in `bound_items` by definition, so walk all active
+# and archived epics/features directly. The two invariants share one predicate — done + unbound +
+# a bound child — so emit a single CONFLICT per parent (no double-report).
+while IFS= read -r parent_path; do
+  kind=$(grep -m1 '^kind:' "$parent_path" | awk '{print $2}')
+  item_id=$(grep -m1 '^id:' "$parent_path" | awk '{print $2}')
+  item_binding=$(grep -m1 '^release_binding:' "$parent_path" | awk '{print $2}')
+  item_stage=$(grep -m1 '^stage:' "$parent_path" | awk '{print $2}')
+
+  [ "$item_stage" = "done" ] || continue
+  { [ "$item_binding" = "null" ] || [ -z "$item_binding" ]; } || continue
+
+  # Look for any child that is bound to this release (see scope note above).
+  if grep -rl "^parent: ${item_id}$" .work/active .work/archive 2>/dev/null \
+       | xargs grep -lm1 "^release_binding: ${version}$" 2>/dev/null | grep -q .; then
+    conflicts+=("CONFLICT — $kind $item_id is at stage: done and unbound while its children are bound to $version (orphan risk); bind the $kind to $version before proceeding")
+  fi
+done < <(grep -rl '^kind: \(epic\|feature\)$' .work/active .work/archive 2>/dev/null)
+
+# Severity assembly. CONFLICTs always count toward halt/warn. INCOMPLETEs count only under
+# epic_cohesion: total; under phased they are informational and never trigger a halt.
+acted=("${conflicts[@]}")
+informational=()
+if [ "$epic_cohesion" = "total" ]; then
+  acted+=("${incompletes[@]}")
+else
+  informational=("${incompletes[@]}")
+fi
+
+if [ "${#acted[@]}" -gt 0 ] || [ "${#informational[@]}" -gt 0 ]; then
+  report="BINDING CONSISTENCY — release $version (epic_cohesion: $epic_cohesion):"
+  for m in "${acted[@]}"; do
+    report+=$'\n'"  • $m"
+  done
+  for m in "${informational[@]}"; do
+    report+=$'\n'"  • $m  [informational under epic_cohesion: phased]"
+  done
+  report+=$'\n'
+  report+="Resolve each CONFLICT manually (edit release_binding or parent frontmatter as appropriate),"
+  report+=$'\n'"then re-run: /agile-workflow:release-deploy $version"
+
+  if [ "$binding_guard" = "halt" ] && [ "${#acted[@]}" -gt 0 ]; then
+    # halt only on acted-on entries (CONFLICTs always; INCOMPLETEs only under total).
+    echo "BINDING CONSISTENCY FAILURES (halt) — $report"
+    exit 1
+  else
+    # warn (or halt with only informational INCOMPLETEs): surface in conversation + record durably.
+    echo "BINDING CONSISTENCY WARNINGS (warn) — $report"
+    # Replace-or-skip the durable record so re-invokes don't accumulate duplicate subsections
+    # (release-deploy is idempotent — current state, not history).
+    release_file=.work/active/release-"$version".md
+    subsection="### Binding-consistency warnings"
+    new_block=$(printf '%s\n\n%s\n' "$subsection" "$report")
+    if grep -qF "$subsection" "$release_file"; then
+      # Rewrite the existing subsection in place: drop the old block (from its heading up to the
+      # next "### "/"## " heading or EOF) and splice the current report at the same spot.
+      awk -v block="$new_block" '
+        $0 == "### Binding-consistency warnings" { skip=1; print block; next }
+        skip && /^#{2,3} / && $0 != "### Binding-consistency warnings" { skip=0 }
+        !skip { print }
+      ' "$release_file" > "$release_file.tmp" && mv "$release_file.tmp" "$release_file"
+    else
+      printf '\n%s\n' "$new_block" >> "$release_file"
+    fi
+  fi
+fi
+```
+
+Act on the result per `binding_guard`:
+
+- **`off`**: the bash block short-circuits at its first step (the CONVENTIONS read) before gathering
+  or walking anything; log one line and continue to Phase 4.
+- **`halt`**: if any acted-on finding is present (every CONFLICT, plus INCOMPLETEs only under
+  `epic_cohesion: total`), stop the release flow. Do not proceed to gates. Do not rebind anything.
+  The user is the only actor who can resolve a binding inconsistency. Informational INCOMPLETEs
+  (under `epic_cohesion: phased`) are recorded but do not halt.
+- **`warn`** (default): if any finding is present, print the report into the conversation AND record
+  it in the release body (replace-or-skip the `### Binding-consistency warnings` subsection rather
+  than appending a duplicate), then continue to Phase 4. Do not rebind anything.
 
 ### Phase 4: Gate execution
 
@@ -363,9 +604,9 @@ re-run instruction.
 - Don't bypass gates. If `gates_for_release` lists 5 gates, run all 5. If a gate
   fails to produce items, that's a finding (or "no new findings"), not a reason
   to skip.
-- Don't re-gate already-done archived stubs. Late-bound stubs passed their gates when active and
-  their bodies are pruned; gates run over active bound items only. A missing stub body must never
-  block a release.
+- Re-gate late-bound archived stubs. Release gates run over every bound non-release item, including
+  stubs that were archived before this release claimed them. A gate that needs body text hydrates it
+  from the stub's `git_ref`; a missing on-disk stub body must never block a release.
 - Don't ship if any bound item is not `done`. Halt and surface the pending list. (Archived stubs are
   `done` by construction; readiness checks their `stage`, not body presence.)
 - Tag-based and release-branch mappings rely on the project's existing release

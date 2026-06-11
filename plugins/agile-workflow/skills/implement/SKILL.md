@@ -2,8 +2,10 @@
 name: implement
 description: >
   ALWAYS invoke this skill when the user explicitly asks to implement a substrate
-  item inline OR the delivery is tiny (≤ ~50 LoC, ≤ 2 files, no coordination) — for
-  any larger or default implementing work prefer /agile-workflow:implement-orchestrator.
+  item inline OR the delivery is tiny (≤ ~50 LoC, ≤ 2 files, no coordination) OR the
+  deliverable is no-code prose (a [prose] item — any size, as long as it needs no
+  coordination) — for any larger or default *code* work prefer
+  /agile-workflow:implement-orchestrator.
   Inline single-stride implementation of a substrate item at stage:implementing. Reads
   the design embedded in the item body, writes code per the spec, runs build+tests,
   advances stage implementing -> review, and updates the item body with implementation
@@ -27,12 +29,18 @@ work, no sub-agent fan-out — and it's the right call when:
 
 - The delivery is small and focused (a tiny tweak, a single-file change, a
   flag flip, landing code already in the working tree)
+- The deliverable is **no-code prose** (a `[prose]` feature — docs, a
+  convention / rule, research write-up, copy). The ≤50 LoC / ≤2 files cap is a
+  *code-coordination* proxy; it does not apply to prose, which qualifies on
+  **no-coordination** alone regardless of length. A 600-line convention rewrite
+  is one authoring stride, not an orchestrated fan-out.
 - The user explicitly asks to implement inline / "do it yourself"
 - You're already mid-flow on this item and a hand-off would lose context
 
-When the work is multi-unit, spans several files, or has sibling stories that
-could run in parallel, prefer the orchestrator. When in doubt and nothing
-strongly points either way, the orchestrator is the safer default.
+When the work is multi-unit *code*, spans several files, or has sibling stories
+that could run in parallel, prefer the orchestrator. When in doubt on code work
+and nothing strongly points either way, the orchestrator is the safer default.
+Prose work is never a reason to reach for the orchestrator.
 
 Common phrases:
 - "implement story X", "implement this feature"
@@ -49,7 +57,8 @@ active during implementation).
 
 Read:
 1. **The item file** at `.work/active/{features,stories}/<id>.md` — this is your
-   spec. The design is in there.
+   spec. The design is in there. Note whether `tags:` contains `prose`; that switches the
+   workflow into prose mode below.
 2. **The parent feature** if implementing a story: `.work/active/features/<parent>.md`
    — context and acceptance criteria for the parent
 3. **Foundation docs** referenced by the design: `docs/SPEC.md`, `docs/ARCHITECTURE.md`
@@ -81,7 +90,30 @@ Autopilot pre-filters via `work-view --ready` so this should rarely fire under
 autopilot. Interactive callers will see the note and can choose to fix the
 dep or remove it.
 
+### Phase 2.5: Choose delivery mode
+
+If the item carries `tags: [prose]`, use **prose mode** for the rest of this skill:
+
+- Treat the item body as a writing brief, not a code design.
+- Treat the target docs, rules, conventions, copy, or research write-up as the integration surface.
+- Skip source-code mapping and build/test assumptions unless the prose claim depends on a code fact
+  or the repo has explicit docs checks.
+- Do not spawn an Explore sub-agent just to map code. Use a read-only sub-agent only when the
+  document's factual basis is broad enough that local reading leaves named unknowns.
+
+For non-prose items, continue in code mode.
+
 ### Phase 3: Map integration points
+
+For `[prose]` items, map prose integration points instead:
+
+- list the target docs/rules/copy files named by the brief
+- read nearby sections for terminology, tone, and current conventions
+- verify any concrete API, command, path, or behavior claim against the repo before writing it
+- check for duplicate or conflicting guidance in `AGENTS.md`, `.agents/rules/*.md`, docs, and skill
+  references
+
+Then skip to Phase 6 in prose mode.
 
 Start with a local scope-size probe using Read/Glob/Grep:
 
@@ -150,6 +182,17 @@ canonical when they disagree. Recency improves adherence.
 
 ### Phase 6: Implement
 
+For `[prose]` items:
+1. Write the requested prose deliverable in the target file(s), preserving surrounding structure,
+   markers, and ownership boundaries.
+2. Keep statements current-state oriented. Do not add history narratives unless the target file is
+   explicitly historical.
+3. Remove or reconcile obsolete duplicate wording when the brief requires a single source of truth.
+4. Verify links, commands, file paths, skill names, and frontmatter examples against the repo.
+5. Do not run unrelated code builds solely because the repository has one.
+
+For code items:
+
 For each unit/file in the item's design:
 1. Write the code following the design's specifications — exact types, signatures,
    contracts
@@ -177,6 +220,14 @@ This is part of the rolling record of the item — a future agent reading this f
 should see the design AND what actually happened.
 
 ### Phase 8: Self-verify
+
+For `[prose]` items:
+1. Proofread the changed text in context.
+2. Run markdown/docs checks if the repo defines them.
+3. Verify every concrete path, command, skill name, and version claim touched by the prose.
+4. Walk through each acceptance criterion in the item body and confirm it is met.
+
+For code items:
 
 1. Run the build command from `AGENTS.md` / `CLAUDE.md`
 2. Run the test command — all tests including new ones must pass

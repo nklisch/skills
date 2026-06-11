@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# ARD-Version: 0.4.1
+# ARD-Version: 0.5.1
 # Reference implementation — ARD citation-chain lint.
 #
 # A zero-dependency reference implementation of the full lintable catalogue:
@@ -21,11 +21,18 @@
 #   - GR.5 thin-attestation structural check (resolved attestation with no
 #       section anchors and no key-passage blockquotes)
 #
+# Suppression contexts (reduce false-positives in pattern scanning):
+#   - YAML frontmatter block and fenced code blocks are fully masked.
+#   - Per-category: version-number skipped in URLs and inline code; count and
+#     decimal-with-attribution skipped in attestation files; composed-effort-estimate
+#     and comparative-superlative skipped in blockquotes.
+#
 # Usage:
 #   python3 lint-citations.py <brief-or-dir>
 #       [--attestation-dir DIR] [--analysis-dir DIR]
 #       [--format markdown|json] [--exit-code-on high|medium|low|none]
 #       [--no-citation-check] [--no-pattern-check] [--no-thin-check] [--no-url-check]
+#       [--stats]
 """ARD citation-chain + pattern + thin-attestation lint (reference implementation)."""
 
 import argparse
@@ -268,10 +275,72 @@ def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_ur
     return {"status": "resolved", "severity": "none", "thin": thin}
 
 
+# --- Pattern-scan suppression helpers --------------------------------------
+# These reduce false-positives in contexts that *usually* carry quoted or
+# source-attested content (code spans, URLs, blockquotes, source-direct
+# attestations). A deliberate precision-for-recall trade: an agent-authored
+# claim placed in one of these contexts is no longer flagged — acceptable
+# because pattern output is a warn-only spot-check aid, not a verification
+# gate.
+
+def _frontmatter_line_count(lines):
+    """Return the number of lines occupied by the YAML frontmatter block (0 if absent).
+    The opening and closing `---` fence lines are included in the count."""
+    if not lines or lines[0].rstrip() != "---":
+        return 0
+    for i in range(1, len(lines)):
+        if lines[i].rstrip() == "---":
+            return i + 1
+    return 0
+
+
+def _code_block_mask(lines):
+    """Return per-line bool mask: True means the line is inside (or is) a fenced code
+    block and should be fully skipped by the pattern scanner."""
+    mask = [False] * len(lines)
+    in_block = False
+    for i, line in enumerate(lines):
+        if line.lstrip().startswith("```"):
+            in_block = not in_block
+            mask[i] = True  # the fence line itself is also masked
+        else:
+            mask[i] = in_block
+    return mask
+
+
+def _is_blockquote(line):
+    """True iff the line's lstrip starts with `>` (Markdown blockquote)."""
+    return line.lstrip().startswith(">")
+
+
+def _is_in_url(line, pos):
+    """True iff character position `pos` in `line` falls inside an https?:// URL."""
+    for m in re.finditer(r"https?://\S+", line):
+        if m.start() <= pos < m.end():
+            return True
+    return False
+
+
+def _is_in_inline_code(line, pos):
+    """True iff character position `pos` in `line` falls inside backtick-delimited
+    inline code. Walks the chars toggling a flag on each backtick."""
+    in_code = False
+    for i, ch in enumerate(line):
+        if ch == "`":
+            in_code = not in_code
+        if i == pos:
+            return in_code
+    return False
+
+
 def lint_file(path, attestation_dir, analysis_dir, matchers, handle_counts, do_citation, do_pattern, do_thin, check_urls):
     with open(path, encoding="utf-8") as fh:
         text = fh.read()
-    calling_prov = "provenance" in parse_frontmatter(text)
+    fm = parse_frontmatter(text)
+    calling_prov = "provenance" in fm
+    # Attestation files have source-direct provenance; counts/decimals there are
+    # source-attested by design, not composed claims.
+    is_attestation = fm.get("provenance") == "source-direct"
     citations, patterns, thin = [], [], []
     if do_citation:
         for m in CITATION_RE.finditer(text):
@@ -282,13 +351,46 @@ def lint_file(path, attestation_dir, analysis_dir, matchers, handle_counts, do_c
             if do_thin and f.pop("thin", False):
                 thin.append({"handle": m.group(1), "line": line})
     if do_pattern:
-        for lineno, line in enumerate(text.splitlines(), 1):
+        lines = text.splitlines()
+        fm_skip = _frontmatter_line_count(lines)   # number of leading lines to skip
+        code_mask = _code_block_mask(lines)
+        for lineno, line in enumerate(lines, 1):
+            # Skip YAML frontmatter and fenced code blocks entirely.
+            if lineno <= fm_skip:
+                continue
+            if code_mask[lineno - 1]:
+                continue
             has_cite = bool(CITATION_RE.search(line))
+            in_bq = _is_blockquote(line)
             for cat, rx in matchers.items():
-                if cat == "count-without-unit-citation" and has_cite:
-                    continue
-                if rx.search(line):
+                for m in rx.finditer(line):
+                    pos = m.start()
+                    # Per-category suppression rules (on top of the context masks above):
+                    if cat == "version-number":
+                        # Version strings inside URLs or inline code are structural, not claims.
+                        if _is_in_url(line, pos) or _is_in_inline_code(line, pos):
+                            continue
+                    elif cat == "count-without-unit-citation":
+                        # Attestation counts are source-attested; inline-code counts are examples.
+                        if is_attestation or _is_in_inline_code(line, pos):
+                            continue
+                        # Keep the existing same-line-citation suppression.
+                        if has_cite:
+                            continue
+                    elif cat == "composed-effort-estimate":
+                        # Quoted estimates and attestation-body content are source-direct.
+                        if in_bq or is_attestation:
+                            continue
+                    elif cat == "decimal-with-attribution":
+                        # Attestations quote decimals from source; that's the discipline working.
+                        if is_attestation:
+                            continue
+                    elif cat == "comparative-superlative":
+                        # Superlatives inside blockquotes are quoted from source.
+                        if in_bq:
+                            continue
                     patterns.append({"category": cat, "line": lineno, "text": line.strip()[:120]})
+                    break  # one finding per category per line is enough
     return {"file": path, "citations": citations, "patterns": patterns, "thin": thin}
 
 
@@ -297,6 +399,58 @@ def collect(target):
         return [target]
     return sorted(os.path.join(r, f) for r, _, fs in os.walk(target)
                   for f in fs if f.endswith(".md"))
+
+
+def _build_stats(results, attestation_dir):
+    """Compute the three-part stats/audit section for --stats mode."""
+    # Part 1: by-handle citation counts across all linted files.
+    handle_files = {}   # handle -> list of files citing it
+    for r in results:
+        for c in r["citations"]:
+            h = c["handle"]
+            if h not in handle_files:
+                handle_files[h] = []
+            if r["file"] not in handle_files[h]:
+                handle_files[h].append(r["file"])
+    by_handle = {h: {"count": sum(1 for r in results for c in r["citations"] if c["handle"] == h),
+                     "files": sorted(handle_files[h])}
+                 for h in sorted(handle_files)}
+
+    # Part 2: by-file citation counts (per-handle counts within each linted file).
+    by_file = {}
+    for r in results:
+        counts = {}
+        for c in r["citations"]:
+            counts[c["handle"]] = counts.get(c["handle"], 0) + 1
+        by_file[r["file"]] = counts
+
+    # Part 3: attestation-tier audit (walk attestation_dir independent of lint targets).
+    audit_findings = []
+    if os.path.isdir(attestation_dir):
+        # Collision: source_handle declared by 2+ attestation files.
+        sh_counts = source_handle_counts(attestation_dir)
+        for sh, cnt in sorted(sh_counts.items()):
+            if cnt > 1:
+                audit_findings.append({"kind": "colliding-handle", "handle": sh, "count": cnt})
+        # Filename-mismatch: attestation file whose stem != its source_handle frontmatter.
+        # The default citation-chain check (check 2) only catches mismatches for *cited*
+        # handles; an uncited drifted attestation is invisible to that check.
+        for root_dir, _, fnames in os.walk(attestation_dir):
+            for fname in sorted(fnames):
+                if not fname.endswith(".md"):
+                    continue
+                stem = fname[:-3]
+                fpath = os.path.join(root_dir, fname)
+                try:
+                    with open(fpath, encoding="utf-8") as fh:
+                        sh = parse_frontmatter(fh.read()).get("source_handle")
+                except OSError:
+                    continue
+                if sh and sh != stem:
+                    audit_findings.append({"kind": "filename-mismatch", "file": fpath,
+                                           "stem": stem, "source_handle": sh})
+
+    return {"by_handle": by_handle, "by_file": by_file, "audit": audit_findings}
 
 
 def main():
@@ -310,6 +464,8 @@ def main():
     ap.add_argument("--no-pattern-check", action="store_true")
     ap.add_argument("--no-thin-check", action="store_true")
     ap.add_argument("--no-url-check", action="store_true", help="skip the HEAD liveness check on source_url")
+    ap.add_argument("--stats", action="store_true",
+                    help="emit citation deployment counts + attestation-tier audit after normal lint output")
     ap.add_argument("--catalogs", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "catalogs.json"),
                     help="generated catalog data (pattern categories + chain statuses); falls back to built-ins if absent")
     args = ap.parse_args()
@@ -327,9 +483,16 @@ def main():
     worst = max([SEVERITY_RANK[c["severity"]] for c in broken]
                 + [SEVERITY_RANK["low"]] * bool(thin_all), default=0)
 
+    stats = _build_stats(results, args.attestation_dir) if args.stats else None
+    # Stats audit findings (collision, filename-mismatch) count as high severity.
+    if stats and stats["audit"]:
+        worst = max(worst, SEVERITY_RANK["high"])
+
     if args.format == "json":
-        print(json.dumps({"results": results, "broken_chains": broken,
-                          "thin_attestations": thin_all}, indent=2))
+        payload = {"results": results, "broken_chains": broken, "thin_attestations": thin_all}
+        if stats is not None:
+            payload["stats"] = stats
+        print(json.dumps(payload, indent=2))
     else:
         for r in results:
             flags = [c for c in r["citations"] if c["status"] not in non_broken]
@@ -349,6 +512,28 @@ def main():
         print(f"\n{len(results)} file(s) · {n_ok} resolved/non-broken citation(s) · "
               f"{len(broken)} broken · {len(thin_all)} thin · "
               f"{sum(len(r['patterns']) for r in results)} pattern flag(s)")
+        if stats is not None:
+            print("\n### Citation deployment stats")
+            print("\n#### By handle")
+            for h, info in stats["by_handle"].items():
+                print(f"  {h}: {info['count']} citation(s) in {len(info['files'])} file(s)")
+            print("\n#### By file")
+            for fpath in sorted(stats["by_file"]):
+                counts = stats["by_file"][fpath]
+                if counts:
+                    parts = ", ".join(f"{h}×{n}" for h, n in sorted(counts.items()))
+                    print(f"  {fpath}: {parts}")
+            print("\n#### Attestation-tier audit")
+            if stats["audit"]:
+                for finding in stats["audit"]:
+                    if finding["kind"] == "colliding-handle":
+                        print(f"  [high] colliding-handle: [{finding['handle']}] declared by "
+                              f"{finding['count']} attestation files")
+                    elif finding["kind"] == "filename-mismatch":
+                        print(f"  [high] filename-mismatch: {finding['file']} "
+                              f"(stem={finding['stem']!r}, source_handle={finding['source_handle']!r})")
+            else:
+                print("  no audit findings")
 
     threshold = SEVERITY_RANK[args.exit_code_on]
     sys.exit(1 if threshold and worst >= threshold else 0)

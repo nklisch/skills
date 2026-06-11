@@ -489,8 +489,11 @@ silently kills autopilot.
 ## Skills this applies to
 
 Autopilot delegates to: `feature-design`, `epic-design`, `refactor-design`,
-`perf-design`, `implement`, `implement-orchestrator`, `review`. Every one of
-those needs caller-aware decision points.
+`perf-design`, `implement`, `implement-orchestrator`, `review` — plus, for
+`[research]`-tagged items, the cross-plugin
+`agentic-research:research-orchestrator` (inert without that plugin; the item
+then routes as a plain feature). Every one of those needs caller-aware
+decision points.
 
 User-invocable-only skills (`convert`, `epicize`, `ideate`, `bold-refactor`,
 `release-deploy`) can stay interactive-first — autopilot doesn't call them.

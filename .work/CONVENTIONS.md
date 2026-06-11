@@ -43,3 +43,13 @@ HANDOFF.md) and are **live**. For the cross-tier pairing contract, see
 
 ## Gate config
 gates_for_release: [tests, cruft, docs, patterns]
+
+## Research completion
+research_completion: close-to-done
+
+When the `agentic-research` orchestrator completes a `[research]` commissioning
+item, it advances the item per this key. `close-to-done` (default) flips it
+straight to `stage: done` — verification ran inline in the orchestrator's stack,
+so the review→bind path adds nothing. `route-to-review` advances to `stage: review`
+instead, for deployments whose review stage carries sign-off / governance meaning.
+See `plugins/agentic-research/docs/HANDOFF.md` Arrow 1.

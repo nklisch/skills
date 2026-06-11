@@ -123,6 +123,8 @@ directional choice and mock so autopilot runs without guessing.
 | **feature-design** | feature at stage:drafting, no specialized tag | Greenfield design — written INTO feature body, child stories spawned with depends_on, advances stage to implementing. Fallback tier for mocks. |
 | **refactor-design** | feature with tags:[refactor], OR discovery (no arg / path / NL scope) | Per-feature: code-smell scan, before/after step shape, risk + rollback per step. Discovery: scans target scope, classifies findings as pure-refactor or behavior-changing, emits items. |
 | **perf-design** | feature with tags:[perf], OR discovery (no arg / path / NL scope) | Per-feature: bottleneck identification, optimization hierarchy (algorithmic > I/O > idioms > parallelism), benchmark scaffolds. Discovery: picks top 3-5 likely hot paths, profiles them, emits items per bottleneck. |
+| **prose-author** | feature with tags:[prose] | No-code authoring lane (authors, not a design step) — for prose deliverables with no code surface (docs, conventions, rules, copy). Verifies no real code surface (black-box test), writes brief-as-design, advances stage to implementing with no Explore / pre-mortem / question gate. Collapses to one inline stride for the common case; large multi-section prose can use drafting → implementing → review as real draft/write/revise steps. Pairs with implement's inline path. |
+| **agentic-research:research-orchestrator** *(cross-plugin)* | feature with tags:[research] | Grounded ARD research engagement — an *input* that grounds other work, not a code design. Reads the item's `research_dials:` registration block (scope_authority, verification_rigor, intent, output_kind); scoping the item IS the dispatch act. Runs the ARD walk with verification gates inline; never binds to a release. Requires the `agentic-research` plugin (without it, `[research]` is an inert tag → `feature-design`). |
 
 ### Production + review (agent picks)
 
@@ -142,8 +144,9 @@ directional choice and mock so autopilot runs without guessing.
 
 ### Gates (agent picks; produce items, NOT pass/fail reports)
 
-All five fire during release-deploy's quality-gate stage in CONVENTIONS.md
-order (default: security → tests → cruft → docs → patterns).
+Five gates fire by default during release-deploy's quality-gate stage in CONVENTIONS.md
+order (default: security → tests → cruft → docs → patterns). `gate-refactor` is opt-in
+— add it to `gates_for_release` when your project has scan-rule libraries installed.
 
 | Skill | Items produced |
 |-------|---|
@@ -152,6 +155,7 @@ order (default: security → tests → cruft → docs → patterns).
 | **gate-cruft** | Dead code / cruft cleanup items with `gate_origin: cruft` |
 | **gate-docs** | Foundation-doc drift items (enforces rolling-foundation) with `gate_origin: docs` |
 | **gate-patterns** | Reusable patterns extracted to `.agents/skills/patterns/` with optional Claude mirror |
+| **gate-refactor** | Refactor rule-library findings with `gate_origin: refactor`; routing tag per library declaration (`findings-route:`); see the gate's SKILL.md — opt-in; discovers libraries at `{project}/.agents/skills/scan-*/` and `{project}/.claude/skills/scan-*/`; graceful no-op when no libraries installed |
 
 ### Reference
 

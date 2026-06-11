@@ -67,6 +67,15 @@ pub struct Filter {
     pub provenance: Match,
     /// Filter on `artifact.corpus` (reference-tier corpus name).
     pub corpus: Match,
+    /// Set-membership filter on `artifact.themes`.
+    ///
+    /// `None` = no filter (matches all artifacts, including those with empty theme sets).
+    /// `Some(t)` = artifact's theme set must contain `t` exactly (case-sensitive).
+    ///
+    /// There is no `IsNull` sugar for themes — use the default `None` to skip the filter,
+    /// or a non-empty `Some(t)` for membership.  Artifacts with empty theme sets never
+    /// match a `Some(t)` filter (they carry no themes to match against).
+    pub tag: Option<String>,
 }
 
 impl Substrate {
@@ -106,6 +115,13 @@ fn artifact_matches(artifact: &Artifact, f: &Filter) -> bool {
     }
     if !f.corpus.matches_opt(&artifact.corpus) {
         return false;
+    }
+
+    // --tag: set-membership test on artifact.themes
+    if let Some(ref tag) = f.tag {
+        if !artifact.themes.iter().any(|t| t == tag) {
+            return false;
+        }
     }
 
     true
@@ -395,5 +411,99 @@ mod tests {
         let results = sub.query(&f);
         let ids: Vec<&str> = results.iter().map(|a| a.identity.as_str()).collect();
         assert_eq!(ids, vec!["a-src", "m-src", "z-src"]);
+    }
+
+    // ── tag filter ─────────────────────────────────────────────────────────────
+
+    fn reference_index_with_themes(corpus: &str, filename: &str, themes_line: &str) -> (String, String) {
+        let path = format!("reference/{corpus}/{filename}");
+        let content = format!(
+            "# corpus INDEX\n\n### 1. Entry\n\n- **Source class:** paper\n- {themes_line}\n"
+        );
+        (path, content)
+    }
+
+    #[test]
+    fn filter_tag_matches_artifact_with_theme() {
+        let (path1, content1) = reference_index_with_themes(
+            "my-corpus", "INDEX.md",
+            "**Themes:** retrieval, knowledge-graphs, overview",
+        );
+        let (path2, content2) = reference_index_with_themes(
+            "other-corpus", "INDEX.md",
+            "**Themes:** rag, overview",
+        );
+        let (_tmp, sub) = setup_substrate(&[
+            (path1.as_str(), content1.as_str()),
+            (path2.as_str(), content2.as_str()),
+        ]);
+        // Filter for "retrieval" — only my-corpus matches
+        let f = Filter {
+            tag: Some("retrieval".into()),
+            ..Filter::default()
+        };
+        let results = sub.query(&f);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].corpus.as_deref(), Some("my-corpus"));
+    }
+
+    #[test]
+    fn filter_tag_no_match_returns_empty() {
+        let (path, content) = reference_index_with_themes(
+            "my-corpus", "INDEX.md",
+            "**Themes:** retrieval, overview",
+        );
+        let (_tmp, sub) = setup_substrate(&[(path.as_str(), content.as_str())]);
+        let f = Filter {
+            tag: Some("nonexistent-tag".into()),
+            ..Filter::default()
+        };
+        let results = sub.query(&f);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn filter_tag_non_reference_artifacts_never_match() {
+        let (path, content) = reference_index_with_themes(
+            "my-corpus", "INDEX.md",
+            "**Themes:** retrieval, overview",
+        );
+        let (_tmp, sub) = setup_substrate(&[
+            (path.as_str(), content.as_str()),
+            ("attestation/src.md", &attestation_fm("src", "source-direct")),
+        ]);
+        // Even though attestation has no themes, it should not match --tag
+        let f = Filter {
+            tag: Some("retrieval".into()),
+            ..Filter::default()
+        };
+        let results = sub.query(&f);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].tier, ResearchTier::ReferenceIndex);
+    }
+
+    #[test]
+    fn filter_tag_composes_with_corpus_filter() {
+        let (path1, content1) = reference_index_with_themes(
+            "corpus-a", "INDEX.md",
+            "**Themes:** retrieval, overview",
+        );
+        let (path2, content2) = reference_index_with_themes(
+            "corpus-b", "INDEX.md",
+            "**Themes:** retrieval, rag",
+        );
+        let (_tmp, sub) = setup_substrate(&[
+            (path1.as_str(), content1.as_str()),
+            (path2.as_str(), content2.as_str()),
+        ]);
+        // --corpus corpus-a --tag retrieval → only corpus-a
+        let f = Filter {
+            corpus: Match::Equals("corpus-a".into()),
+            tag: Some("retrieval".into()),
+            ..Filter::default()
+        };
+        let results = sub.query(&f);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].corpus.as_deref(), Some("corpus-a"));
     }
 }

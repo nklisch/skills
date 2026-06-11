@@ -38,6 +38,8 @@ impl Fixture {
         fs::create_dir_all(research.join("precis")).unwrap();
         fs::create_dir_all(research.join("analysis/positions")).unwrap();
         fs::create_dir_all(research.join("analysis/briefs")).unwrap();
+        fs::create_dir_all(research.join("reference/retrieval-systems")).unwrap();
+        fs::create_dir_all(research.join("reference/agent-frameworks")).unwrap();
         fs::write(research.join("CONVENTIONS.md"), "# Conventions\n").unwrap();
 
         // Attestation — work-view-dist
@@ -72,6 +74,49 @@ impl Fixture {
         fs::write(
             research.join("precis/cargo-profiles-precis.md"),
             "---\nsource_handle: cargo-profiles\nauthored: 2026-01-05\nprovenance: agent-authored-from-raw\n---\n\n# cargo-profiles precis\n",
+        )
+        .unwrap();
+
+        // Reference INDEX — retrieval-systems corpus (3 entries, overlapping tags)
+        fs::write(
+            research.join("reference/retrieval-systems/INDEX.md"),
+            "\
+# retrieval-systems — corpus INDEX
+
+### 1. HippoRAG — `hipporag`
+
+- **Source class:** paper
+- **Themes:** retrieval, knowledge-graphs, overview
+
+### 2. ColBERT — `colbert`
+
+- **Source class:** paper
+- **Themes:** retrieval, dense-retrieval
+
+### 3. RAG Survey — `rag-survey`
+
+- **Source class:** paper
+- **Themes:** retrieval, rag, overview, survey [NEW]
+",
+        )
+        .unwrap();
+
+        // Reference INDEX — agent-frameworks corpus (2 entries, disjoint tags)
+        fs::write(
+            research.join("reference/agent-frameworks/INDEX.md"),
+            "\
+# agent-frameworks — corpus INDEX
+
+### 1. ReAct — `react`
+
+- **Source class:** paper
+- **Themes:** agents, tool-use
+
+### 2. AutoGPT Patterns — `autogpt-patterns`
+
+- **Source class:** blog-post
+- **Themes:** agents, orchestration
+",
         )
         .unwrap();
 
@@ -203,7 +248,7 @@ fn count_returns_total_artifact_count() {
     // 1 brief, 1 precis). Pin the total so a tier dropped from the index — e.g.
     // a regression that stops walking precis/ — fails this test.
     let n: usize = stdout.trim().parse().expect("count should be an integer");
-    assert_eq!(n, 5, "seed has exactly 5 artifacts");
+    assert_eq!(n, 7, "seed has exactly 7 artifacts (5 original + 2 reference INDEX files)");
 }
 
 #[test]
@@ -332,4 +377,149 @@ fn tier_sugar_and_tier_flag_produce_same_output() {
     assert_eq!(code1, 0);
     assert_eq!(code2, 0);
     assert_eq!(sugar_out, flag_out, "--attestations and --tier attestation should produce identical output");
+}
+
+// ── --tag filter ──────────────────────────────────────────────────────────────
+
+#[test]
+fn tag_filter_matches_reference_artifacts_with_theme() {
+    let f = Fixture::seed();
+    let (stdout, stderr, code) = run_in(&f.root, &["--tag", "retrieval"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    // "retrieval" is only in retrieval-systems corpus, so exactly one reference artifact matches.
+    // The table shows IDENTITY=INDEX, TIER=reference. Verify at least one row and the right tier.
+    assert!(
+        !stdout.is_empty(),
+        "should have matching artifacts; stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("reference"),
+        "tier 'reference' should appear in output; stdout: {stdout}"
+    );
+    // Use --count to verify exactly 1 match
+    let (count_out, _, _) = run_in(&f.root, &["--tag", "retrieval", "--count"]);
+    let n: usize = count_out.trim().parse().expect("count should be integer");
+    assert_eq!(n, 1, "exactly 1 artifact should have 'retrieval' tag");
+}
+
+#[test]
+fn tag_filter_no_match_returns_nothing() {
+    let f = Fixture::seed();
+    let (stdout, _, code) = run_in(&f.root, &["--tag", "nonexistent-tag-xyz"]);
+    assert_eq!(code, 0);
+    assert_eq!(stdout, "", "no match should print nothing");
+}
+
+#[test]
+fn tag_filter_composes_with_corpus() {
+    let f = Fixture::seed();
+    // --corpus retrieval-systems --tag agents → no match (retrieval-systems has no "agents" tag)
+    let (stdout, _, code) = run_in(&f.root, &["--corpus", "retrieval-systems", "--tag", "agents"]);
+    assert_eq!(code, 0);
+    assert_eq!(stdout, "", "retrieval-systems has no 'agents' tag");
+}
+
+#[test]
+fn tag_null_is_usage_error() {
+    let f = Fixture::seed();
+    let (_, stderr, code) = run_in(&f.root, &["--tag", "null"]);
+    assert_eq!(code, 1, "null tag should be a usage error");
+    assert!(
+        stderr.contains("--tag"),
+        "error should mention --tag; got: {stderr}"
+    );
+}
+
+// ── --tags projection ─────────────────────────────────────────────────────────
+
+#[test]
+fn tags_projection_has_header_and_rows() {
+    let f = Fixture::seed();
+    let (stdout, stderr, code) = run_in(&f.root, &["--tags"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let lines: Vec<&str> = stdout.lines().collect();
+    // header + separator + at least one row
+    assert!(lines.len() >= 3, "should have header + separator + rows; stdout: {stdout}");
+    assert!(lines[0].contains("TAG"), "header should contain TAG; got: {stdout}");
+    assert!(lines[0].contains("COUNT"), "header should contain COUNT; got: {stdout}");
+    assert!(lines[0].contains("CORPORA"), "header should contain CORPORA; got: {stdout}");
+}
+
+#[test]
+fn tags_projection_sorted_lexically() {
+    let f = Fixture::seed();
+    let (stdout, _, code) = run_in(&f.root, &["--tags"]);
+    assert_eq!(code, 0);
+    let rows: Vec<&str> = stdout.lines().skip(2).collect();
+    // Extract tag names (first non-whitespace token per row)
+    let tag_names: Vec<&str> = rows
+        .iter()
+        .filter(|l| !l.is_empty())
+        .map(|l| l.trim_start().split_whitespace().next().unwrap_or(""))
+        .collect();
+    // Verify they are in byte-sorted (lexical) order
+    let mut sorted = tag_names.clone();
+    sorted.sort_unstable();
+    assert_eq!(tag_names, sorted, "tags should be lexically sorted; got: {stdout}");
+}
+
+#[test]
+fn tags_projection_includes_retrieval_with_correct_count() {
+    let f = Fixture::seed();
+    let (stdout, _, code) = run_in(&f.root, &["--tags"]);
+    assert_eq!(code, 0);
+    // "retrieval" appears in 3 entries in retrieval-systems INDEX
+    let retrieval_line = stdout
+        .lines()
+        .find(|l| {
+            let t = l.trim_start();
+            t.starts_with("retrieval") && !t.starts_with("retrieval-")
+        })
+        .expect("retrieval tag line should exist");
+    assert!(
+        retrieval_line.contains("3"),
+        "retrieval count should be 3 (3 entries); got: {retrieval_line:?}"
+    );
+    assert!(
+        retrieval_line.contains("retrieval-systems"),
+        "should list retrieval-systems corpus; got: {retrieval_line:?}"
+    );
+}
+
+#[test]
+fn tags_projection_new_marker_stripped() {
+    let f = Fixture::seed();
+    let (stdout, _, code) = run_in(&f.root, &["--tags"]);
+    assert_eq!(code, 0);
+    // "survey [NEW]" in the fixture should appear as "survey" (no [NEW])
+    assert!(
+        stdout.contains("survey"),
+        "survey tag should appear after [NEW] stripping; stdout: {stdout}"
+    );
+    assert!(
+        !stdout.contains("[NEW]"),
+        "[NEW] marker should be stripped; stdout: {stdout}"
+    );
+}
+
+#[test]
+fn tags_projection_composed_with_corpus_filter() {
+    let f = Fixture::seed();
+    let (stdout, stderr, code) = run_in(&f.root, &["--corpus", "agent-frameworks", "--tags"]);
+    assert_eq!(code, 0, "stderr: {stderr}");
+    // Only agent-frameworks tags: agents, orchestration, tool-use
+    assert!(stdout.contains("agents"), "should have 'agents'; stdout: {stdout}");
+    assert!(
+        !stdout.contains("retrieval"),
+        "retrieval is not in agent-frameworks; stdout: {stdout}"
+    );
+}
+
+#[test]
+fn tags_projection_empty_when_no_matches() {
+    let f = Fixture::seed();
+    // --corpus nonexistent → no matches → --tags prints nothing
+    let (stdout, _, code) = run_in(&f.root, &["--corpus", "nonexistent", "--tags"]);
+    assert_eq!(code, 0);
+    assert_eq!(stdout, "", "no matches should print nothing");
 }

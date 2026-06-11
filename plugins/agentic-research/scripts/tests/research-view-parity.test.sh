@@ -250,13 +250,66 @@ Entry body.
 EOF
 
 # One reference INDEX without frontmatter (the lenient rule)
+# This one has NO Themes lines — used to test empty-themes handling.
 cat > "$RESEARCH/reference/rust-binary-size/INDEX.md" <<'EOF'
 # rust-binary-size — corpus INDEX
 
 A numbered bibliography.
 
-1. Foo Bar
-2. Baz Qux
+### 1. Foo Bar — `foo-bar`
+
+- **Source class:** paper
+- **Author:** Foo
+
+### 2. Baz Qux — `baz-qux`
+
+- **Source class:** paper
+- **Author:** Baz
+EOF
+
+# ── Extended fixture for --tag / --tags parity testing ────────────────────────
+#
+# Two new corpora:
+#   alpha-corpus: 3 entries, overlapping + repeated tags, a [NEW]-marked tag
+#   beta-corpus:  2 entries, disjoint tags from alpha-corpus
+# rust-binary-size/INDEX.md: no Themes lines (tests empty-themes artifacts)
+
+mkdir -p "$RESEARCH/reference/alpha-corpus"
+mkdir -p "$RESEARCH/reference/beta-corpus"
+
+# alpha-corpus INDEX: 3 entries, overlapping themes, a [NEW]-marked tag
+cat > "$RESEARCH/reference/alpha-corpus/INDEX.md" <<'EOF'
+# alpha-corpus — corpus INDEX
+
+### 1. Paper One — `alpha-one`
+
+- **Source class:** paper
+- **Themes:** retrieval, knowledge-graphs, overview
+
+### 2. Paper Two — `alpha-two`
+
+- **Source class:** paper
+- **Themes:** retrieval, dense-retrieval, overview
+
+### 3. Survey — `alpha-three`
+
+- **Source class:** paper
+- **Themes:** retrieval, rag, survey-topic [NEW]
+EOF
+
+# beta-corpus INDEX: 2 entries, disjoint from alpha-corpus (no overlap with retrieval)
+cat > "$RESEARCH/reference/beta-corpus/INDEX.md" <<'EOF'
+# beta-corpus — corpus INDEX
+
+### 1. Agent One — `beta-one`
+
+- **Source class:** paper
+- **Themes:** agents, tool-use
+
+### 2. Agent Two — `beta-two`
+
+- **Source class:** blog-post
+- **Themes:** agents, orchestration
 EOF
 
 # One raw/ file that MUST NOT be indexed
@@ -268,6 +321,49 @@ EOF
 # Tier-root skip files
 cat > "$RESEARCH/attestation/README.md" <<'EOF'
 # Attestation README — should not be indexed
+EOF
+
+# ── Parser alignment fixtures ─────────────────────────────────────────────────
+#
+# I1(a): hr-corpus — frontmatter-less INDEX with a markdown horizontal rule
+#         between two Themes lines. Both before-hr and after-hr tags must be
+#         parsed by both impls (the `---` HR must not be mistaken for a
+#         frontmatter opener).
+# I1(b): no-space-corpus — bullet without space (`-**Themes:** tag`) must NOT
+#         be parsed as a themes line by either impl; a well-formed control tag
+#         in the same file confirms parsing is otherwise active.
+
+mkdir -p "$RESEARCH/reference/hr-corpus"
+mkdir -p "$RESEARCH/reference/no-space-corpus"
+
+cat > "$RESEARCH/reference/hr-corpus/INDEX.md" <<'EOF'
+# hr-corpus — corpus INDEX
+
+### 1. Paper One — `hr-one`
+
+- **Source class:** paper
+- **Themes:** before-hr
+
+---
+
+### 2. Paper Two — `hr-two`
+
+- **Source class:** paper
+- **Themes:** after-hr
+EOF
+
+cat > "$RESEARCH/reference/no-space-corpus/INDEX.md" <<'EOF'
+# no-space-corpus — corpus INDEX
+
+### 1. Paper One — `nospace-one`
+
+- **Source class:** paper
+-**Themes:** no-space-tag
+
+### 2. Paper Two — `nospace-two`
+
+- **Source class:** paper
+- **Themes:** control-tag
 EOF
 
 echo "  OK: fixture written to $TMPROOT"
@@ -323,6 +419,52 @@ parity_assert "--reference --count" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --refere
 parity_assert "--reference --paths" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --reference --paths
 # empty result (no matches → prints nothing, exit 0)
 parity_assert "--status nonexistent (no matches)" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --status nonexistent
+# --tag hit: retrieval appears in alpha-corpus
+parity_assert "--tag retrieval (hit)"        "$BINARY" "$FALLBACK_SH" "$TMPROOT" --tag retrieval
+# --tag miss: disjoint tag not in alpha-corpus
+parity_assert "--tag agents (hit, beta-corpus only)" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --tag agents
+# --tag miss: tag not in any corpus
+parity_assert "--tag nonexistent-tag (miss)" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --tag nonexistent-tag
+# --tag + --corpus composition: only alpha-corpus should match
+parity_assert "--corpus alpha-corpus --tag retrieval" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus alpha-corpus --tag retrieval
+# --tag + --corpus miss: beta-corpus has no 'retrieval' tag
+parity_assert "--corpus beta-corpus --tag retrieval (miss)" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus beta-corpus --tag retrieval
+# --tags global projection (all corpora)
+parity_assert "--tags (global)"              "$BINARY" "$FALLBACK_SH" "$TMPROOT" --tags
+# --tags scoped to one corpus
+parity_assert "--corpus alpha-corpus --tags" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus alpha-corpus --tags
+parity_assert "--corpus beta-corpus --tags"  "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus beta-corpus --tags
+# --tags with no matches prints nothing
+parity_assert "--corpus nonexistent --tags (no matches)" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus nonexistent --tags
+# --tag composed with another filter (--provenance)
+parity_assert "--tag retrieval --provenance source-direct" "$BINARY" "$FALLBACK_SH" "$TMPROOT" --tag retrieval --provenance source-direct
+
+# ── Parser alignment cases (I1a, I1b, N6) ─────────────────────────────────────
+
+# I1(a): HR in frontmatter-less INDEX — both before-hr and after-hr tags must
+#         appear on both sides (--tags projects the tag vocabulary for hr-corpus).
+parity_assert "I1a: hr-corpus --tags (before-hr and after-hr both parsed)" \
+  "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus hr-corpus --tags
+# Verify that both tags are reachable via --tag filter on each side.
+parity_assert "I1a: --tag before-hr (hit, hr-corpus)" \
+  "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus hr-corpus --tag before-hr
+parity_assert "I1a: --tag after-hr (hit, hr-corpus)" \
+  "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus hr-corpus --tag after-hr
+
+# I1(b): Bullet without space — no-space-tag must NOT appear in --tags output;
+#         control-tag (well-formed bullet) must appear on both sides.
+parity_assert "I1b: no-space-corpus --tags (no-space-tag absent, control-tag present)" \
+  "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus no-space-corpus --tags
+parity_assert "I1b: --tag no-space-tag (miss — bullet without space)" \
+  "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus no-space-corpus --tag no-space-tag
+parity_assert "I1b: --tag control-tag (hit — well-formed bullet present)" \
+  "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus no-space-corpus --tag control-tag
+
+# N6: output-mode precedence — last flag wins (both impls agree).
+parity_assert "N6: --tags --count last-wins (count mode)" \
+  "$BINARY" "$FALLBACK_SH" "$TMPROOT" --tags --count
+parity_assert "N6: --count --tags last-wins (tags mode)" \
+  "$BINARY" "$FALLBACK_SH" "$TMPROOT" --count --tags
 
 # ── Additional structural checks on the fallback ──────────────────────────────
 

@@ -28,8 +28,21 @@ If there are no blockers:
 1. Advance the item from `review` to `done`.
 2. If it has `release_binding: <version>`, leave it active for
    `/agile-workflow:release-deploy`.
-3. If it has no release binding and no active parent epic/feature, archive it as a **bodyless
-   stub** (see "Archive as a bodyless stub" below) — never retain the full body on disk.
+3. If it has no release binding and no active parent epic/feature, archive it per the
+   project's **Terminal-tier retention** value in `.work/CONVENTIONS.md` — the ONE merged
+   terminal convention (see convert / SPEC.md):
+   - `delete-refs` (the default) → archive as a **bodyless stub** (see "Archive as a bodyless
+     stub" below) — do not retain the full body on disk.
+   - `retain-bodies` (the documented opt-out) → archive with the **full body kept**, same
+     frontmatter additions (`archived_atop`, `git_ref`) and same late-binding semantics —
+     bodies are just not pruned. Honor the project's existing archive layout (e.g.
+     kind-grouped `archive/<kind>s/`) when one is established.
+   - **Any other value** → treat as `retain-bodies` (keep the full body) and print a loud
+     one-line warning: `WARNING: unrecognized Terminal-tier retention value "<value>" in
+     CONVENTIONS.md — archiving with body kept (safe default); fix CONVENTIONS.md.`
+     Rationale: a typo must never trigger body-pruning. `delete-refs` applies only when
+     explicitly and exactly declared (or when the key is absent — the documented default
+     above; that default is unchanged).
 4. If it has a parent, check whether all siblings are now `done`:
 
 ```bash
@@ -49,6 +62,9 @@ If blockers exist:
 3. Do not archive.
 
 ## Archive as a bodyless stub
+
+*(Applies under `delete-refs` retention — the default. Under `retain-bodies`, keep the full
+body and apply only the frontmatter additions below.)*
 
 Terminal items carry **zero design authority** (their rationale must not bind present decisions),
 and a retained body on disk leaks stale "we decided X" prose to future agents. Git already preserves

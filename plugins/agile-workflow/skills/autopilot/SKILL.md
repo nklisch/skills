@@ -67,12 +67,22 @@ running inline, use the same categories in the final summary:
 
 ## Prerequisites
 
-Before starting:
+Two gates, with different timing:
 
-1. `.work/CONVENTIONS.md` exists. If not, halt: "No substrate found. Run
+1. **Before anything:** `.work/CONVENTIONS.md` exists. If not, halt: "No substrate found. Run
    `/agile-workflow:convert` first."
-2. Foundation docs exist (`docs/VISION.md` or `docs/SPEC.md`). If not, halt
-   with a clear message.
+2. **After Phase 1 resolves the scope** (the check is route-aware, so it runs against the
+   resolved work set): foundation docs exist (`docs/VISION.md` or `docs/SPEC.md`) — required
+   when the scope contains **any** item that routes to the design family (`epic-design` /
+   `feature-design` / `refactor-design` / `perf-design`), which read foundation docs as their
+   design anchor. *(Design family = skills that read foundation docs as their design anchor; a
+   deployment adding such a skill extends this list.)* If absent in that case, halt the whole
+   run with a clear message **before delegating any item** — including in a mixed scope: do not
+   partially drain the non-design-family items, a partial drain leaves the queue in a state the
+   goal statement didn't describe. A scope with no design-family routes — drafting items that
+   all route cross-plugin to `agentic-research:research-orchestrator` (`[research]` items anchor
+   on the commissioning item body + the research substrate, not VISION/SPEC), and/or
+   `implementing`/`review` items only — runs without foundation docs.
 
 These are hard halts because the queue has no reliable substrate or design
 anchor without them.
@@ -134,13 +144,29 @@ this caller note in every delegated prompt:
 
 Routing:
 
-- `stage: drafting`, `kind: epic` -> `epic-design`
+- `stage: drafting`, `kind: epic` -> `epic-design` (an epic carrying `[research]` is a
+  research-program epic — it routes here as normal epic decomposition; its children are
+  `[research]` features each carrying their own `research_dials:` registration; the tag at
+  epic level signals program decomposition, never an epic-level registration)
 - `stage: drafting`, feature with `tags: [refactor]` -> `refactor-design`
 - `stage: drafting`, feature with `tags: [perf]` -> `perf-design`
+- `stage: drafting`, feature with `tags: [prose]` -> `prose-author`
+- `stage: drafting`, feature with `tags: [research]` -> `agentic-research:research-orchestrator`
+  (**cross-plugin**; the orchestrator runs the grounded engagement end-to-end — verification
+  gates fire inline, there is no separate implement step, and it never binds to a release.
+  Requires the `agentic-research` plugin; without it, treat as a plain feature.)
 - `stage: drafting`, other feature -> `feature-design`
 - `stage: implementing`, epic -> skip direct implementation; children are the
   work targets
-- `stage: implementing`, non-epic -> `implement-orchestrator <scope>`
+- `stage: implementing`, non-epic with `tags: [prose]` -> `implement <id>`
+  (inline — single stride, no orchestration; prose does not need parallel
+  coordination)
+- `stage: implementing`, non-epic with `tags: [research]` -> `agentic-research:research-orchestrator`
+  (resume/continue the engagement; research never flows through `implement-orchestrator` or
+  `release-deploy` — a single-pass research engagement may be a story that skips `drafting`.
+  Requires the `agentic-research` plugin; without it, treat as a plain implementing item ->
+  `implement-orchestrator`, mirroring the drafting row's degrade.)
+- `stage: implementing`, non-epic (and NOT `tags: [prose]` or `[research]`) -> `implement-orchestrator <scope>`
 - `stage: review` -> `review <id>` (review self-selects its lane: a **story**
   fast-advances on `implement`'s verification with no peer pass; a **feature** or
   **epic** gets a fresh-context deep review — cross-model via peeragent when a

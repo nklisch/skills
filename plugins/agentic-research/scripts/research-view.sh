@@ -13,7 +13,7 @@
 set -euo pipefail
 
 # Kept in lockstep with plugin.json by scripts/bump-version.sh. Do not hand-edit.
-RESEARCH_VIEW_VERSION="0.1.0"
+RESEARCH_VIEW_VERSION="0.2.0"
 
 # ============================================================================
 # Version prelude (POSIX / bash 3.2 safe — runs BEFORE the Bash-4 guard)
@@ -73,6 +73,7 @@ Filters (compose with AND semantics):
   --temporal-contract <tc>       Artifacts with the given temporal_contract (or 'null')
   --provenance <p>               Artifacts with the given provenance (or 'null')
   --corpus <c>                   Reference artifacts from the given corpus (or 'null')
+  --tag <t>                      Reference artifacts whose theme set contains tag <t>
 
 Tier sugar (sets --tier):
   --attestations                 Shorthand for --tier attestation
@@ -87,6 +88,8 @@ Output (default tabular):
   --paths                        One file path per line
   --cat                          Full artifact bodies (separated by ---)
   --count                        Match count only
+  --tags                         Tag-vocabulary projection: one line per tag with entry
+                                 count and corpus list (composes with filters)
 
 Other:
   --version, -V                  Print the research-view version and exit
@@ -142,25 +145,98 @@ function field(line, key,   p) {
   if (match(line, p)) return strip(substr(line, RLENGTH + 1))
   return "\001NOMATCH\001"
 }
-function emit() {
+# Strip a trailing [NEW] marker (with surrounding whitespace) from a tag.
+function strip_new(tag) {
+  sub(/[[:space:]]*\[NEW\][[:space:]]*$/, "", tag)
+  sub(/[[:space:]]+$/, "", tag)
+  return tag
+}
+# Parse a **Themes:** body line, accumulating per-tag entry counts and the
+# ordered unique tag list for the current file.
+# tag_counts[tag] = entry-count; tag_order[] = ordered unique list; tag_order_n = length.
+function parse_themes_line(line,   rest, n, parts, i, tag, trimmed) {
+  # Match: optional leading whitespace, then "-" or "*" (but not "**"), then
+  # optional whitespace, then "**Themes:**", then the tag list.
+  if (match(line, /^[[:space:]]*[-*][[:space:]]+\*\*Themes:\*\*/)) {
+    rest = substr(line, RSTART + RLENGTH)
+    n = split(rest, parts, ",")
+    # Deduplicate within this entry before counting
+    delete seen_this
+    for (i = 1; i <= n; i++) {
+      trimmed = parts[i]
+      sub(/^[[:space:]]+/, "", trimmed)
+      sub(/[[:space:]]+$/, "", trimmed)
+      trimmed = strip_new(trimmed)
+      if (trimmed == "") continue
+      if (trimmed in seen_this) continue
+      seen_this[trimmed] = 1
+      # Accumulate entry count
+      tag_counts[trimmed]++
+      # Track first-seen order
+      if (!(trimmed in tag_seen_global)) {
+        tag_seen_global[trimmed] = 1
+        tag_order[++tag_order_n] = trimmed
+      }
+    }
+  }
+}
+function emit(   i, tag, first, themes_enc) {
   if (cf == "") return
-  printf "%s\037%s\037%s\037%s\037%s\037%s\n", \
-    cf, handle, slug, status, temporal, provenance
+  # Encode themes as "tag:count|tag:count|..." in first-seen order.
+  # Limitation: tags containing ":" or "|" break this encoding (undefined behavior
+  # shared by both impls); slug-like tags assumed. Redesigning the encoding is
+  # out of scope here.
+  # If no themes, emit empty field.
+  themes_enc = ""
+  first = 1
+  for (i = 1; i <= tag_order_n; i++) {
+    tag = tag_order[i]
+    if (!first) themes_enc = themes_enc "|"
+    themes_enc = themes_enc tag ":" tag_counts[tag]
+    first = 0
+  }
+  printf "%s\037%s\037%s\037%s\037%s\037%s\037%s\n", \
+    cf, handle, slug, status, temporal, provenance, themes_enc
 }
 function reset(fname) {
   cf = fname; in_fm = 0; fm_done = 0
   handle = ""; slug = ""; status = ""; temporal = ""; provenance = ""
   delete have
+  # Reset theme state
+  delete tag_counts
+  delete tag_seen_global
+  delete tag_order
+  tag_order_n = 0
+  # Detect reference tier by path: contains "/.research/reference/"
+  is_reference = (fname ~ /\/\.research\/reference\//)
 }
 BEGIN { v = "" }
 FNR == 1 { emit(); reset(FILENAME) }
 {
-  if (fm_done) next
-  if ($0 ~ /^---[[:space:]]*$/) {
-    if (in_fm == 0) { in_fm = 1 } else { fm_done = 1 }
+  if (fm_done) {
+    # After frontmatter: parse body for themes (reference tier only)
+    if (is_reference) parse_themes_line($0)
     next
   }
-  if (in_fm != 1) next
+  if ($0 ~ /^---[[:space:]]*$/) {
+    # Frontmatter can only open at the very first line (FNR==1).
+    # A "---" anywhere else in a file that never opened frontmatter is body
+    # content (e.g. a markdown horizontal rule) and must not be treated as an
+    # opener; doing so would silently drop all body lines that follow it.
+    if (in_fm == 0 && FNR == 1) {
+      in_fm = 1
+    } else if (in_fm == 1) {
+      fm_done = 1
+    }
+    # else: mid-body "---" with no open frontmatter block — fall through to
+    # the body-line branch below (is_reference parse_themes_line call).
+    next
+  }
+  if (in_fm != 1) {
+    # Body line before any frontmatter (lenient file — no opening ---)
+    if (is_reference) parse_themes_line($0)
+    next
+  }
   if (!("handle" in have))    { v = field($0, "source_handle");     if (v != "\001NOMATCH\001") { handle = v;     have["handle"] = 1;     next } }
   if (!("slug" in have))      { v = field($0, "slug");              if (v != "\001NOMATCH\001") { slug = v;       have["slug"] = 1;       next } }
   if (!("status" in have))    { v = field($0, "status");            if (v != "\001NOMATCH\001") { status = v;     have["status"] = 1;     next } }
@@ -244,6 +320,8 @@ derive_tier_corpus() {
 declare -a ALL_FILES=()
 declare -A IDX_HANDLE IDX_SLUG IDX_STATUS IDX_TEMPORAL IDX_PROVENANCE
 declare -A IDX_TIER IDX_CORPUS IDX_IDENTITY
+# IDX_THEMES[path] — "tag:count|tag:count|..." for reference-tier artifacts (empty otherwise)
+declare -A IDX_THEMES
 
 # SKIP_FILE — returns 0 (true) if the file should be skipped.
 # Skips: reference/**/raw/**, README.md, CONVENTIONS.md, references.md
@@ -296,7 +374,7 @@ build_index() {
   # Parse awk output into index arrays.
   # awk is run over all files in byte-sorted order so the awk index order
   # matches the binary's load order.
-  while IFS=$'\037' read -r path handle slug status temporal provenance; do
+  while IFS=$'\037' read -r path handle slug status temporal provenance themes_enc; do
     [[ -n "$path" ]] || continue
 
     # Apply skip rules
@@ -327,6 +405,7 @@ build_index() {
     IDX_TIER["$path"]="$DERIVED_TIER"
     IDX_CORPUS["$path"]="$DERIVED_CORPUS"
     IDX_IDENTITY["$path"]="$identity"
+    IDX_THEMES["$path"]="${themes_enc:-}"
 
   done < <(
     find "${find_dirs[@]}" -type f -name '*.md' -print0 2>/dev/null \
@@ -349,6 +428,7 @@ want_provenance=""
 want_provenance_null=0
 want_corpus=""
 want_corpus_null=0
+want_tag=""
 output_mode="table"
 flags_done=0
 
@@ -432,9 +512,18 @@ while [[ $# -gt 0 ]]; do
         want_corpus="$2"; want_corpus_null=0
       fi
       shift 2 ;;
+    --tag)
+      if [[ $# -lt 2 || "$2" == -* ]]; then
+        echo "research-view: missing value for --tag" >&2; exit 1
+      fi
+      if [[ "$2" == "null" ]]; then
+        echo "research-view: --tag does not accept 'null': themes is a set membership filter; use --tier reference to find reference artifacts" >&2; exit 1
+      fi
+      want_tag="$2"; shift 2 ;;
     --paths)   output_mode="paths"; shift ;;
     --cat)     output_mode="cat";   shift ;;
     --count)   output_mode="count"; shift ;;
+    --tags)    output_mode="tags";  shift ;;
     -*)
       echo "research-view: unknown flag: $1" >&2; exit 1 ;;
     *)
@@ -495,6 +584,30 @@ for f in "${ALL_FILES[@]}"; do
     [[ "${IDX_CORPUS[$f]}" == "$want_corpus" ]] || continue
   fi
 
+  # --tag (set membership: artifact's themes must contain the tag exactly)
+  if [[ -n "$want_tag" ]]; then
+    themes_enc_f="${IDX_THEMES[$f]:-}"
+    if [[ -z "$themes_enc_f" ]]; then
+      continue  # no themes → never matches
+    fi
+    # themes_enc = "tag:count|tag:count|..."
+    # Check if any segment starts with "want_tag:"
+    found_tag_f=0
+    IFS_save_f="$IFS"
+    IFS='|'
+    set -f  # disable glob expansion while word-splitting themes_enc_f
+    for seg_f in $themes_enc_f; do
+      seg_tag_f="${seg_f%%:*}"
+      if [[ "$seg_tag_f" == "$want_tag" ]]; then
+        found_tag_f=1
+        break
+      fi
+    done
+    set +f
+    IFS="$IFS_save_f"
+    [[ $found_tag_f -eq 1 ]] || continue
+  fi
+
   matches+=("$f")
 done
 
@@ -524,6 +637,67 @@ case "$output_mode" in
       cat "$f"
       local_first=0
     done
+    ;;
+  tags)
+    # Tag-vocabulary projection: aggregate per-tag entry counts and corpora
+    # across matched artifacts, then print lexically sorted (LC_ALL=C byte order).
+    #
+    # Accumulate into TAG_COUNT[tag]=total_entries and TAG_CORPORA[tag]=set.
+    # We use bash associative arrays for counts and a parallel sorted-insert
+    # for corpora. Final sort is handled by LC_ALL=C sort.
+    declare -A TAG_COUNT=()
+    declare -A TAG_CORPORA=()  # value: "corpus1\ncorpus2\n..." (one per line, deduped by sort -u)
+
+    for f in "${matches[@]}"; do
+      themes_enc_t="${IDX_THEMES[$f]:-}"
+      [[ -n "$themes_enc_t" ]] || continue
+      corpus_t="${IDX_CORPUS[$f]:-}"
+      # Parse "tag:count|tag:count|..."
+      IFS_save_t="$IFS"
+      IFS='|'
+      set -f  # disable glob expansion while word-splitting themes_enc_t
+      for seg_t in $themes_enc_t; do
+        seg_tag_t="${seg_t%%:*}"
+        seg_count_t="${seg_t#*:}"
+        [[ -n "$seg_tag_t" ]] || continue
+        TAG_COUNT["$seg_tag_t"]=$(( ${TAG_COUNT["$seg_tag_t"]:-0} + ${seg_count_t:-0} ))
+        if [[ -n "$corpus_t" ]]; then
+          # Append corpus to set (we'll deduplicate with sort -u at render time)
+          TAG_CORPORA["$seg_tag_t"]+="${corpus_t}"$'\n'
+        fi
+      done
+      set +f
+      IFS="$IFS_save_t"
+    done
+
+    if (( ${#TAG_COUNT[@]} == 0 )); then
+      exit 0
+    fi
+
+    # Build sorted output: one line per tag, LC_ALL=C byte-sorted.
+    tag_lines_t=()
+    for tag_t in "${!TAG_COUNT[@]}"; do
+      tag_lines_t+=("$tag_t")
+    done
+
+    # Sort tags in LC_ALL=C byte order
+    sorted_tags_t="$(printf '%s\n' "${tag_lines_t[@]}" | LC_ALL=C sort)"
+
+    # Print header + separator + rows
+    printf '%-30s  %5s  CORPORA\n' "TAG" "COUNT"
+    printf '%-30s  %5s  -------\n' "------------------------------" "-----"
+
+    while IFS= read -r tag_t; do
+      [[ -n "$tag_t" ]] || continue
+      count_t="${TAG_COUNT[$tag_t]:-0}"
+      # Build comma-separated corpora list, sorted and deduplicated
+      corpora_raw_t="${TAG_CORPORA[$tag_t]:-}"
+      corpora_list_t=""
+      if [[ -n "$corpora_raw_t" ]]; then
+        corpora_list_t="$(printf '%s' "$corpora_raw_t" | LC_ALL=C sort -u | tr '\n' ',' | sed 's/,$//')"
+      fi
+      printf '%-30s  %5d  %s\n' "$tag_t" "$count_t" "$corpora_list_t"
+    done <<< "$sorted_tags_t"
     ;;
   table|*)
     if (( ${#matches[@]} == 0 )); then

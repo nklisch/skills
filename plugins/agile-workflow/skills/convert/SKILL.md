@@ -429,7 +429,14 @@ Run an interactive interview via AskUserQuestion. Six questions, in order:
 4. **Stage overrides** — none by default. Discouraged.
 5. **Gate config** — defaults to
    `gates_for_release: [security, tests, cruft, docs, patterns]`. User can reorder
-   or omit.
+   or omit. `gate-refactor` is an **opt-in gate** (not in the default list) — add it
+   when the project has scan-rule libraries at `{project}/.agents/skills/scan-*/` or
+   `{project}/.claude/skills/scan-*/`. `binding_guard` sets the Phase 3.5
+   binding-consistency check behavior: `warn` (default — surfaces findings without
+   halting), `halt` (for projects that hold the no-cross-version-drift invariant), or
+   `off` (skip). `epic_cohesion` sets how an unbound child of a bound parent is
+   scored: `phased` (default — informational, an epic may ship across releases) or
+   `total` (treated as a mismatch, "epics ship whole").
 6. **Terminal-tier retention** — `delete-refs | retain-bodies`. This is the ONE merged terminal
    convention (archival + `archived_atop` late-binding + one-summary release), not just byte
    retention. Default offered: `delete-refs` — archiving a done item leaves a **bodyless stub**
@@ -535,6 +542,36 @@ and add a one-line pointer to the `.work/` ↔ `.research/` handoff
 research docs — they are an optional agentic-research extension. (`work-view`
 parses both fields harmlessly when unset, so an existing `.work/` substrate is
 never broken by their absence; convert simply does not advertise them.)
+
+**The `[research]` routing tag + `research_dials:` block are also conditional on
+`agentic-research`.** When that plugin is present (same detection as above), two
+more things land — both **omitted** when it is absent (agile-workflow's core stays
+agentic-research-agnostic):
+
+1. **Schema** — also advertise the `research_dials:` block in the field list note: a
+   `[research]` item carries its engagement registration in a `research_dials:`
+   nested frontmatter block (`scope_authority`, `verification_rigor`, `intent`,
+   `output_kind`) read by the orchestrator at dispatch. (`work-view` parses only its
+   own known fields and ignores the block harmlessly; it is orchestrator-read, not a
+   `work-view` filter dimension.)
+2. **Tag semantics** — append a `[research]` entry to the Phase 6.5 `### Tag
+   semantics` section (and pluralize its intro to "A few tags carry load-bearing
+   routing semantics — get these right:"), using this block:
+
+   ```markdown
+   - **`[research]`** — a grounded research engagement: an *input* that grounds
+     other work (a decision, a design, an adoption call), not a shippable
+     deliverable. Routes **cross-plugin** to `agentic-research:research-orchestrator`,
+     not a design-family skill. The work item carries the engagement registration in
+     a `research_dials:` block (scope_authority, verification_rigor, intent,
+     output_kind) — **scoping the item IS the dispatch act**; the orchestrator reads
+     the dials at kickoff. A `[research]` item **does not bind to a release** (it is
+     an input, not a bundle member) and its verification **gates run inline** in the
+     orchestrator (it never reaches `release-deploy`). Routes through `feature-design`
+     only as the inert-tag fallback.
+   ```
+
+   Without `agentic-research`, leave the Phase 6.5 template at `[refactor]` + `[perf]`.
 
 ### Phase 6.5: Write `.agents/rules/agile-workflow.md` (rules-first, then slim)
 

@@ -13,7 +13,7 @@ This repo contains agent skills distributed via the Claude Code plugin marketpla
 | `plugins/agile-workflow/` | `agile-workflow` | supported | **Substrate-driven** work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, autopilot queue runner. See `plugins/agile-workflow/docs/VISION.md`. |
 | `plugins/ux-ui-design/` | `ux-ui-design` | supported | HTML/CSS/JS mockup-first UI/UX design. Throwaway single-file mockups in `.mockups/`. Loose integration with agile-workflow. |
 | `plugins/nates-toolkit/` | `nates-toolkit` | supported | Standalone, project-agnostic utility skills with **no substrate lock-in** — `plainspeak` (plain-language re-explainer), `repo-eval` (codebase scorecard), `agent-reflection` (self-reflection on tool & skill usage), `write-tool-skill` + `skill-auditor` (skill authoring + quality auditing). Skills here stand alone; substrate integration is optional and degrades gracefully (e.g. `repo-eval` files `.work/` items only when a substrate is present). Absorbed the former `skill-authoring` plugin (now deleted) plus `repo-eval` and `agent-reflection` (formerly `tool-evaluator`) extracted from `agile-workflow`. |
-| `plugins/agentic-research/` | `agentic-research` | experimental | Agentic Research Discipline (ARD) adopted as a plugin — grounded, verifiable AI research: an anti-fabrication floor, selectable verification gates, and a `.research/` substrate tier paralleling `.work/`. **Experimental** — net-new proposed adoption of ARD v0.4.1 (vendors ARD's `kernel/` consumption-contract surface; pinned in `plugins/agentic-research/ard.json`), under evaluation; surface area and conventions may still change. |
+| `plugins/agentic-research/` | `agentic-research` | experimental | Agentic Research Discipline (ARD) adopted as a plugin — grounded, verifiable AI research: an anti-fabrication floor, selectable verification gates, and a `.research/` substrate tier paralleling `.work/`. **Experimental** — net-new proposed adoption of ARD v0.5.1 (vendors ARD's `kernel/` consumption-contract surface; pinned in `plugins/agentic-research/ard.json`), under evaluation; surface area and conventions may still change. |
 | `plugins/workflow/` | `workflow` | **DEPRECATED — no longer supported** | Doc-driven software workflow with design docs as artifacts in `docs/designs/`. Kept in tree so existing installs don't break. No new features or fixes will land. New projects should use `agile-workflow`; existing `workflow` projects migrate via `/agile-workflow:convert`. |
 
 ### workflow is deprecated
@@ -29,7 +29,7 @@ If a user asks for the workflow plugin or wants to migrate, point them at:
 
 **Surface-area differences (for reference):**
 - `workflow` has: `design`, `roadmap`, `extend`, `e2e-test-design`, `test-quality`, `update-documentation`, `security-review`, `release`, `cruft-cleaner`, `extract-patterns`
-- `agile-workflow` has: `scope`, `convert`, `epicize`, `epic-design`, `feature-design`, `park`, `gate-{security,tests,cruft,docs,patterns}`, `release-deploy`
+- `agile-workflow` has: `scope`, `convert`, `epicize`, `epic-design`, `feature-design`, `park`, `gate-{security,tests,cruft,docs,patterns}`, `gate-refactor` (opt-in), `release-deploy`
 
 ### Other locations
 
@@ -124,8 +124,8 @@ standalone plan docs.
 
 ### Tag semantics
 
-The `tags` field on items routes them to the right design skill. One tag has
-load-bearing semantics — get this one right:
+The `tags` field on items routes them to the right design skill. A few tags
+carry load-bearing routing semantics — get these right:
 
 - **`[refactor]`** — behavior-preserving structural change ONLY. Apply the
   black-box test: would any observable behavior change for a caller of the
@@ -138,6 +138,35 @@ load-bearing semantics — get this one right:
     replace a silent failure with an explicit error, split a function in a
     way that changes call-site contracts, "major rework of X."
 - **`[perf]`** — performance work. Routes to `perf-design`.
+- **`[prose]`** — no-code-surface deliverable (docs, conventions / rules,
+  research write-ups, copy, config-as-prose). Routes to `prose-author`, the
+  no-code authoring lane that skips the Explore / pre-mortem / question gate
+  and advances on the brief alone. Work-nature, not domain: apply the black-box
+  test — if the feature has a real code surface (an interface, types, an
+  integration seam, an architectural choice), it is NOT prose; drop the tag and
+  let it route through `feature-design`. Prose items also implement **inline**
+  (`implement`), never via the orchestrator. **Token is reserved by the
+  plugin's routing** — it activates unconditionally (prose-author ships inside
+  the plugin; there is no missing-plugin degrade). A project already using
+  `prose` as a domain tag should retag that usage before adopting this plugin
+  (the tag name may change before v1.0 if the collision proves common).
+- **`[research]`** — a grounded research engagement: an *input* that grounds
+  other work (a decision, a design, an adoption call), not a shippable
+  deliverable. Routes **cross-plugin** to `agentic-research:research-orchestrator`
+  (the dynamic ARD research orchestrator), not a design-family skill. The work
+  item carries the engagement registration in a `research_dials:` block
+  (scope_authority, verification_rigor, intent, output_kind) — **scoping the item
+  IS the dispatch act**; the orchestrator reads the dials at kickoff. A
+  `[research]` item **does not bind to a release** (it is an input, not a bundle
+  member) and its verification **gates run inline** in the orchestrator's stack
+  (it never reaches `release-deploy`). Requires the `agentic-research` plugin;
+  without it, `[research]` is an inert project tag — drop it and the item routes
+  through `feature-design`. See the agentic-research plugin's `docs/HANDOFF.md`
+  for the pairing. **At `kind: epic`:** an epic carrying `[research]` is a
+  research-program epic — it routes to `epic-design` as normal epic decomposition,
+  whose children are `[research]` features each carrying their own `research_dials:`
+  registration; the tag at epic level signals program decomposition, never an
+  epic-level registration.
 
 All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
 affect skill routing.
