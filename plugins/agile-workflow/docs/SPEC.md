@@ -209,8 +209,8 @@ retention. With `delete-refs`:
    are re-gated during the release. Gates that need the item body must hydrate it from the stub's
    `git_ref`; a pruned stub body is a lookup requirement, not a reason to skip the item.
 3. **One-summary release.** All bound items (active done + late-bound stubs) collapse into a single
-   `releases/<version>/release-<version>.md` table (id, title, kind, `archived_atop`, git ref). No
-   per-item placement; full bodies live only in git history.
+   `.work/releases/<version>/release-<version>.md` table (id, title, kind, `archived_atop`, git ref).
+   No per-item placement; full bodies live only in git history.
 
 `retain-bodies` is the legacy opt-out (full bodies kept under `.work/archive/` and
 `.work/releases/<version>/`); it keeps the same `archived_atop`/late-binding semantics, just without

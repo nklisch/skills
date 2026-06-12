@@ -78,7 +78,7 @@ updated: YYYY-MM-DD
 ```
 
 Write to `.work/active/release-<version>.md` (release files live in active until
-shipped, then move to `releases/<version>/`).
+shipped, then move to `.work/releases/<version>/`).
 
 ### Phase 3: Bind items (if at stage: planned)
 
@@ -89,15 +89,34 @@ was done atop, kept as provenance).
 
 If the release is at `stage: planned`:
 
-1. **Active done candidates.** Show items at `stage: done` (or close to it) without a
-   `release_binding`. Use `work-view`:
+1. **Active done candidates (straggler sweep).** Projects typically bind items as they pass
+   review — the item carries `release_binding` before flipping `done` — so this gather only
+   sweeps done items the en-route binding missed. Show items at `stage: done` without a
+   `release_binding`. Note `--release ""` is NOT an unbound filter (work-view skips an empty
+   value entirely); filter the frontmatter directly. When the `agentic-research` plugin is
+   installed, also exclude `tags: [research]` items here — before the user-facing
+   confirmation — via work-view's real tag parse (never a hand-rolled tags regex):
    ```bash
-   .work/bin/work-view --stage done --release "" --paths
+   agentic_research_installed=false
+   if [ -d ".research" ] ||
+      [ -f "plugins/agentic-research/skills/research-orchestrator/SKILL.md" ] ||
+      [ -f ".agents/skills/research-orchestrator/SKILL.md" ] ||
+      [ -f ".claude/skills/research-orchestrator/SKILL.md" ]; then
+     agentic_research_installed=true
+   fi
+   research_paths=""
+   if [ "$agentic_research_installed" = true ]; then
+     research_paths=$(.work/bin/work-view --tag research --paths | sort)
+   fi
+   .work/bin/work-view --stage done --paths | while IFS= read -r item; do
+     [ -n "$research_paths" ] && printf '%s\n' "$research_paths" | grep -qxF "$item" && continue
+     binding=$(grep -m1 '^release_binding:' "$item" | awk '{print $2}')
+     { [ "$binding" = "null" ] || [ -z "$binding" ]; } && echo "$item"
+   done
    ```
-   (Filter for empty `release_binding`. **When the `agentic-research` plugin is installed,
-   exclude `tags: [research]` items** — research engagements are inputs that ground other
-   work, not release members; they never bind. Without `agentic-research`, `[research]` is
-   an inert project tag — items with it bind normally.)
+   (Research engagements are inputs that ground other work, not release members; they never
+   bind. Without `agentic-research`, `[research]` is an inert project tag — items with it
+   bind normally, and the probe above leaves the gather unfiltered.)
 
 2. **Archived-stub candidates (`archived_atop` late-binding).** Gather **all unbound archived
    stubs** (`release_binding: null`) regardless of their `archived_atop` value. Each unbound stub is
@@ -449,8 +468,12 @@ where you left off.
 Before shipping, draft a CHANGELOG.md entry from the bound items + their commits:
 
 ```bash
-# Find commits since the last tag (or all commits if no tags yet)
-git log --oneline $(git describe --tags --abbrev=0 2>/dev/null)..HEAD || git log --oneline
+# Commits since the last tag — all commits when no tag exists (an empty $prior drops the
+# range; the old `$(git describe ...)..HEAD || git log` form never fired its fallback,
+# because `..HEAD` with an empty left side is a valid empty range that exits 0). The
+# `|| true` keeps the no-tag assignment from aborting under `set -e`.
+prior=$(git describe --tags --abbrev=0 2>/dev/null || true)
+git log --oneline ${prior:+${prior}..}HEAD
 ```
 
 Group changes:
@@ -641,7 +664,7 @@ re-run instruction.
 - Tag-based and release-branch mappings rely on the project's existing release
   script. branch-held requires `gh` CLI for PR merges. none performs no
   publishing action inside release-deploy.
-- The release file moves to `releases/<version>/` (becoming the single summary doc) ONLY when the
+- The release file moves to `.work/releases/<version>/` (becoming the single summary doc) ONLY when the
   release is actually shipped. Until then it stays in `.work/active/`. Bound item bodies move there
   only under `retain-bodies`; under `delete-refs` (default) they are pruned and live in git history.
 - Stage transitions: `planned → quality-gate` happens at bind. `quality-gate →

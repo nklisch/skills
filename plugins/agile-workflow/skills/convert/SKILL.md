@@ -446,7 +446,7 @@ Run an interactive interview via AskUserQuestion. Six questions, in order:
    carrying `archived_atop` (the immutable release baseline it was done atop, kept as provenance) +
    `git_ref`; a release **late-binds all unbound archived stubs** (re-gated during the release —
    gates recover changed files by item id and hydrate pruned bodies from `git_ref`)
-   and **collapses** all bound items into one `releases/<version>/release-<version>.md` summary (id,
+   and **collapses** all bound items into one `.work/releases/<version>/release-<version>.md` summary (id,
    title, kind, `archived_atop`, git ref); full bodies live in git history, so terminal prose cannot
    leak to future agents. Offer `retain-bodies` only for projects that deliberately keep full terminal
    bodies on disk (same `archived_atop`/late-binding semantics, bodies just not pruned).
