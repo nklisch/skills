@@ -1,7 +1,7 @@
 ---
 id: feature-gate-configurability
 kind: feature
-stage: drafting
+stage: implementing
 tags: [prose, skill, plugin]
 parent: null
 depends_on: []
@@ -46,3 +46,39 @@ gate skills read `.work/CONVENTIONS.md` directly as operational instructions.
   note for roots outside the project tree.
 - The repo-facing README and foundation docs stay consistent with the skill
   contracts.
+
+## Outline
+
+Target files:
+
+- `plugins/agile-workflow/docs/SPEC.md`
+- `plugins/agile-workflow/docs/ARCHITECTURE.md`
+- `plugins/agile-workflow/skills/gate-security/SKILL.md`
+- `plugins/agile-workflow/skills/gate-tests/SKILL.md`
+- `plugins/agile-workflow/skills/gate-cruft/SKILL.md`
+- `plugins/agile-workflow/skills/gate-docs/SKILL.md`
+- `plugins/agile-workflow/skills/gate-refactor/SKILL.md`
+- `README.md`
+
+Design decisions:
+
+- Use `gate_finding_routing` as the shared key name because it covers
+  confidence, priority, and severity vocabularies without forcing every gate to
+  rename its local classification.
+- Preserve current defaults:
+  `critical: implementing`, `high: implementing`, `medium: drafting`,
+  `low: backlog`, and `info: skip`.
+- Treat `skip` as "do not emit an item." Gates that skip findings still report
+  skipped counts in their conversational output and any durable gate-run record
+  they already write.
+- Keep gate-specific definitions in each gate. The shared key only controls the
+  conversion from a normalized tier to an item tier/stage.
+- Use `gate_refactor_scan_library_roots` as the `gate-refactor` root key. The
+  default remains `.agents/skills` then `.claude/skills`.
+- Resolve relative scan roots from the project/substrate root. Continue to
+  discover only `scan-*/SKILL.md` below each configured root.
+- Deduplicate rule libraries by derived library tag in configured root order;
+  the first discovered library wins, which preserves current `.agents` before
+  `.claude` precedence.
+- Document that roots outside the project tree expand the trust boundary because
+  the gate loads instructions and references from those locations.
