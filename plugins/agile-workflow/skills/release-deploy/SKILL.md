@@ -78,7 +78,7 @@ updated: YYYY-MM-DD
 ```
 
 Write to `.work/active/release-<version>.md` (release files live in active until
-shipped, then move to `releases/<version>/`).
+shipped, then move to `.work/releases/<version>/`).
 
 ### Phase 3: Bind items (if at stage: planned)
 
@@ -650,7 +650,7 @@ re-run instruction.
 - Tag-based and release-branch mappings rely on the project's existing release
   script. branch-held requires `gh` CLI for PR merges. none performs no
   publishing action inside release-deploy.
-- The release file moves to `releases/<version>/` (becoming the single summary doc) ONLY when the
+- The release file moves to `.work/releases/<version>/` (becoming the single summary doc) ONLY when the
   release is actually shipped. Until then it stays in `.work/active/`. Bound item bodies move there
   only under `retain-bodies`; under `delete-refs` (default) they are pruned and live in git history.
 - Stage transitions: `planned → quality-gate` happens at bind. `quality-gate →
