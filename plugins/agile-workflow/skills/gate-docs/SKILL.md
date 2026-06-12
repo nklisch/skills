@@ -198,6 +198,13 @@ findings.
 
 For each finding the sub-agent returned:
 
+Read `gate_finding_routing` from `.work/CONVENTIONS.md` before writing items.
+If absent, use the default routing below. Normalize documentation confidence to
+routing keys as: `High -> high` and `Medium -> medium`. If a normalized key maps
+to `skip`, do not emit an item for that finding; include the skipped count in
+the gate output. If it maps to `backlog`, write a `.work/backlog/` item instead
+of an active story.
+
 ```yaml
 ---
 id: gate-docs-<short-slug>
@@ -236,10 +243,14 @@ no "previously" prose, no "in v1.x" notes. Replace the assertion in place.>
 For generated files needing regeneration, the item describes the regeneration
 command rather than a manual edit.
 
+Default confidence -> placement mapping:
+- **High** → `stage: implementing` in `.work/active/stories/`
+- **Medium** → `stage: drafting` in `.work/active/stories/`
+
 ### Phase 5: Commit
 
 ```bash
-git add .work/active/stories/
+git add .work/active/stories/ .work/backlog/
 git commit -m "gate-docs: <N> rolling-foundation findings for <version>"
 ```
 

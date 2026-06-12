@@ -152,6 +152,8 @@ directional choice and mock so autopilot runs without guessing.
 Five gates fire by default during release-deploy's quality-gate stage in CONVENTIONS.md
 order (default: security → tests → cruft → docs → patterns). `gate-refactor` is opt-in
 — add it to `gates_for_release` when your project has scan-rule libraries installed.
+Gate finding placement is configurable with `gate_finding_routing` after each
+gate normalizes its own severity/priority/confidence vocabulary.
 
 | Skill | Items produced |
 |-------|---|
@@ -160,7 +162,7 @@ order (default: security → tests → cruft → docs → patterns). `gate-refac
 | **gate-cruft** | Dead code / cruft cleanup items with `gate_origin: cruft` |
 | **gate-docs** | Foundation-doc drift items (enforces rolling-foundation) with `gate_origin: docs` |
 | **gate-patterns** | Reusable patterns extracted to `.agents/skills/patterns/` with optional Claude mirror |
-| **gate-refactor** | Refactor rule-library findings with `gate_origin: refactor`; routing tag per library declaration (`findings-route:`); see the gate's SKILL.md — opt-in; discovers libraries at `{project}/.agents/skills/scan-*/` and `{project}/.claude/skills/scan-*/`; graceful no-op when no libraries installed |
+| **gate-refactor** | Refactor rule-library findings with `gate_origin: refactor`; routing tag per library declaration (`findings-route:`); see the gate's SKILL.md — opt-in; discovers libraries under `gate_refactor_scan_library_roots` (default: `{project}/.agents/skills/scan-*/`, then `{project}/.claude/skills/scan-*/`); graceful no-op when no libraries installed |
 
 ### Reference
 

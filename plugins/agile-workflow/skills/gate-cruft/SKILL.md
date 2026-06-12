@@ -183,6 +183,13 @@ structured findings.
 
 For each finding the sub-agent returned:
 
+Read `gate_finding_routing` from `.work/CONVENTIONS.md` before writing items.
+If absent, use the default routing below. Normalize cruft confidence to routing
+keys as: `High -> high`, `Medium -> medium`, and `Low -> low`. If a normalized
+key maps to `skip`, do not emit an item for that finding; include the skipped
+count in the gate output. If it maps to `backlog`, write a `.work/backlog/`
+item instead of an active story.
+
 ```yaml
 ---
 id: gate-cruft-<short-slug>
@@ -217,7 +224,7 @@ High | Medium | Low
 <what to remove and what to fix in the surroundings — imports, whitespace, etc.>
 ```
 
-Confidence → stage mapping:
+Default confidence -> placement mapping:
 - **High** → `stage: implementing` in `.work/active/stories/`
 - **Medium** → `stage: drafting` in `.work/active/stories/`
 - **Low** → backlog file in `.work/backlog/`

@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.12.1
+
+### Gate configurability
+
+- **Gate finding routing** — documented `gate_finding_routing` in
+  `.work/CONVENTIONS.md` so release gates normalize severity/priority/confidence
+  to one project-level item-placement policy.
+- **gate-refactor scan roots** — documented `gate_refactor_scan_library_roots`
+  so monorepos can share scan-rule libraries while preserving the default
+  `.agents/skills` then `.claude/skills` discovery order.
+
 ## v0.11.3
 
 ### Research-substrate linkage fields + agentic-research adoption

@@ -516,9 +516,13 @@ and produces new items rather than emitting a pass/fail report:
 | `gate-docs` | Foundation-doc alignment with the bundle's behavior changes | Items with `gate_origin: docs`, tagged `[documentation]` — enforces rolling-foundation |
 | `gate-patterns` | Reusable patterns that emerged in the bundle | Detailed pattern-skill files in `.agents/skills/patterns/` (single source of truth) with optional Claude mirror, the generated hook-loaded `.agents/rules/patterns.md` digest (slug+one-liner index pointing back at the skill, with banner + source hash), plus a tracking item with `gate_origin: patterns` |
 
-Gate-produced items get `stage: implementing` (high-confidence findings),
-`stage: drafting` (medium-confidence), or land in `.work/backlog/`
-(low-confidence — for future consideration).
+For gates that emit findings as items, placement flows through
+`gate_finding_routing` in `.work/CONVENTIONS.md` after the gate normalizes its
+local vocabulary. The default routing is `critical`/`high` -> active story at
+`stage: implementing`, `medium` -> active story at `stage: drafting`, `low` ->
+`.work/backlog/`, and `info` -> `skip`. Gate-specific definitions remain local
+to each gate: security uses severity, tests uses priority, and
+docs/cruft/refactor use confidence.
 
 ### Release readiness
 

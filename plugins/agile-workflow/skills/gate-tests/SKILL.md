@@ -282,8 +282,14 @@ and returns structured findings.
 
 ### Phase 4: Convert findings to items
 
-For each finding the sub-agent returned (above the no-item threshold; Low
-goes to backlog):
+For each finding the sub-agent returned:
+
+Read `gate_finding_routing` from `.work/CONVENTIONS.md` before writing items.
+If absent, use the default routing below. Normalize test priority to routing
+keys as: `Critical -> critical`, `High -> high`, `Medium -> medium`, and
+`Low -> low`. If a normalized key maps to `skip`, do not emit an item for that
+finding; include the skipped count in the gate output. If it maps to `backlog`,
+write a `.work/backlog/` item instead of an active story.
 
 ```yaml
 ---
@@ -320,6 +326,11 @@ Acceptance criterion: <quote the criterion>
 ## Test location (suggested)
 `<test-file-path>` (following project conventions)
 ```
+
+Default priority -> placement mapping:
+- **Critical** / **High** → `stage: implementing` in `.work/active/stories/`
+- **Medium** → `stage: drafting` in `.work/active/stories/`
+- **Low** → backlog file in `.work/backlog/` (not stage-managed)
 
 Tautological tests get items too:
 

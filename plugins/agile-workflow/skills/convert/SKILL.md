@@ -428,10 +428,13 @@ Run an interactive interview via AskUserQuestion. Six questions, in order:
 3. **Slug conventions** — defaults to kebab-case with parent-prefix for children.
 4. **Stage overrides** — none by default. Discouraged.
 5. **Gate config** — defaults to
-   `gates_for_release: [security, tests, cruft, docs, patterns]`. User can reorder
-   or omit. `gate-refactor` is an **opt-in gate** (not in the default list) — add it
-   when the project has scan-rule libraries at `{project}/.agents/skills/scan-*/` or
-   `{project}/.claude/skills/scan-*/`. `binding_guard` sets the Phase 3.5
+   `gates_for_release: [security, tests, cruft, docs, patterns]` plus the
+   default `gate_finding_routing` map (`critical/high -> implementing`,
+   `medium -> drafting`, `low -> backlog`, `info -> skip`). User can reorder
+   or omit gates and can override finding routing for the project. `gate-refactor`
+   is an **opt-in gate** (not in the default list) — add it when the project has
+   scan-rule libraries under `gate_refactor_scan_library_roots` (default:
+   `.agents/skills`, `.claude/skills`). `binding_guard` sets the Phase 3.5
    binding-consistency check behavior: `warn` (default — surfaces findings without
    halting), `halt` (for projects that hold the no-cross-version-drift invariant), or
    `off` (skip). `epic_cohesion` sets how an unbound child of a bound parent is

@@ -1,7 +1,7 @@
 ---
 id: feature-gate-configurability
 kind: feature
-stage: implementing
+stage: review
 tags: [prose, skill, plugin]
 parent: null
 depends_on: []
@@ -59,6 +59,9 @@ Target files:
 - `plugins/agile-workflow/skills/gate-docs/SKILL.md`
 - `plugins/agile-workflow/skills/gate-refactor/SKILL.md`
 - `README.md`
+- `plugins/agile-workflow/skills/convert/SKILL.md`
+- `plugins/agile-workflow/docs/MIGRATION.md`
+- `plugins/agile-workflow/CHANGELOG.md`
 
 Design decisions:
 
@@ -82,3 +85,26 @@ Design decisions:
   `.claude` precedence.
 - Document that roots outside the project tree expand the trust boundary because
   the gate loads instructions and references from those locations.
+
+## Implementation notes
+
+- Files changed:
+  - `README.md`
+  - `plugins/agile-workflow/CHANGELOG.md`
+  - `plugins/agile-workflow/docs/ARCHITECTURE.md`
+  - `plugins/agile-workflow/docs/MIGRATION.md`
+  - `plugins/agile-workflow/docs/SPEC.md`
+  - `plugins/agile-workflow/skills/convert/SKILL.md`
+  - `plugins/agile-workflow/skills/gate-cruft/SKILL.md`
+  - `plugins/agile-workflow/skills/gate-docs/SKILL.md`
+  - `plugins/agile-workflow/skills/gate-refactor/SKILL.md`
+  - `plugins/agile-workflow/skills/gate-security/SKILL.md`
+  - `plugins/agile-workflow/skills/gate-tests/SKILL.md`
+- Tests added: none; prose contract change only.
+- Verification:
+  - `bash plugins/agile-workflow/scripts/tests/convert-content-integrity.test.sh`
+  - Consistency `rg` searches for the new keys and stale hardcoded routing/root wording.
+- Discrepancies from design: added `convert/SKILL.md`, `MIGRATION.md`, and
+  `CHANGELOG.md` so bootstrap/release docs stay consistent with the skill
+  contracts.
+- Adjacent issues parked: none.

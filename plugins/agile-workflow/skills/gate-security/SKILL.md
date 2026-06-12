@@ -201,6 +201,15 @@ classification — and returns structured findings.
 
 For each finding the sub-agent returned (above Info severity):
 
+Read `gate_finding_routing` from `.work/CONVENTIONS.md` before writing items.
+If absent, use the default routing below. Normalize security severity to routing
+keys as: `Critical -> critical`, `High -> high`, `Medium -> medium`,
+`Low -> low`, and `Info -> info` (Info is not returned as a finding by the
+sub-agent, but the route is reserved for consistency). If a normalized key maps
+to `skip`, do not emit an item for that finding; include the skipped count in
+the gate output. If it maps to `backlog`, write a `.work/backlog/` item instead
+of an active story.
+
 ```yaml
 ---
 id: gate-security-<short-slug>
@@ -237,10 +246,11 @@ Critical | High | Medium | Low
 <what should change — direction, not a finished fix>
 ```
 
-Severity → stage mapping:
+Default severity -> placement mapping:
 - **Critical** / **High** → `stage: implementing` in `.work/active/stories/`
 - **Medium** → `stage: drafting` in `.work/active/stories/`
 - **Low** → backlog file in `.work/backlog/` (not stage-managed)
+- **Info** → skipped (no item emitted)
 
 ### Phase 5: Commit
 

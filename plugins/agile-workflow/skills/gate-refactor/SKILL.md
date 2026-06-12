@@ -2,7 +2,9 @@
 name: gate-refactor
 description: >
   Refactor gate that discovers scan-rule libraries declared in the host project
-  ({project}/.agents/skills/scan-*/SKILL.md and {project}/.claude/skills/scan-*/SKILL.md),
+  (default roots: {project}/.agents/skills/scan-*/SKILL.md and
+  {project}/.claude/skills/scan-*/SKILL.md; configurable via
+  CONVENTIONS.md: gate_refactor_scan_library_roots),
   loads every discovered library, checks the release bundle's changed files against all loaded
   rules, and produces findings as items with gate_origin:refactor; routing tag declared per
   library (libraries whose fixes are behavior-preserving declare findings-route:refactor;
@@ -24,11 +26,11 @@ check the release bundle's changed files against every loaded rule. Your role is
 bundle preparation, sub-agent dispatch, and converting findings into substrate items.
 
 This gate ships **the mechanism, not the rules**. The scan rule libraries that supply the actual
-rules live in the host project (`{project}/.agents/skills/scan-*/SKILL.md` and
-`{project}/.claude/skills/scan-*/SKILL.md`). The gate requires no built-in rule knowledge — it
-adapts to whatever libraries the deploying project provides. This is why the gate is opt-in (not
-in the default `gates_for_release` list): an install with no rule libraries has nothing to check,
-and that is by design, not an error.
+rules live under the host project's configured `gate_refactor_scan_library_roots` (default:
+`{project}/.agents/skills` and `{project}/.claude/skills`). The gate requires no built-in rule
+knowledge — it adapts to whatever libraries the deploying project provides. This is why the gate is
+opt-in (not in the default `gates_for_release` list): an install with no rule libraries has nothing
+to check, and that is by design, not an error.
 
 Sub-agent strength is explicit:
 - **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
@@ -75,17 +77,21 @@ done < /tmp/bundle-items-<version>.txt | sort -u > /tmp/bundle-files-<version>.t
 
 ### Phase 2: Discover scan-rule libraries (idempotency prep)
 
-Glob the host project for rule libraries at both plugin-canonical and Claude-compat roots:
+Read `gate_refactor_scan_library_roots` from `.work/CONVENTIONS.md`. If absent, use the default
+plugin-canonical and Claude-compat roots:
 
-```bash
-# Plugin-canonical root (.agents/skills/)
-glob_agents: {project}/.agents/skills/scan-*/SKILL.md
-
-# Claude-compat root (.claude/skills/)
-glob_claude: {project}/.claude/skills/scan-*/SKILL.md
+```yaml
+gate_refactor_scan_library_roots:
+  - .agents/skills
+  - .claude/skills
 ```
 
-For each discovered `SKILL.md`:
+Resolve relative roots from the project/substrate root; absolute roots are allowed. For each
+configured root, glob `<root>/scan-*/SKILL.md`. If a configured root points outside the project
+tree, continue but treat it as a trust-boundary expansion: the gate will load instructions and
+reference files from that location.
+
+For each discovered `SKILL.md`, in configured root order:
 1. Read the `SKILL.md` fully — its frontmatter `description` and body carry the rules the gate
    must enforce.
 2. Read all files in the library's `references/` directory (if present) — reference files carry
@@ -98,13 +104,17 @@ For each discovered `SKILL.md`:
    routing tag** — untagged is safe-by-default (feature-design handles everything; the `[refactor]`
    route is the optimization a library opts into by asserting its fixes are behavior-preserving).
    Record the routing decision per library for use in Phase 4.
+5. If another discovered library has the same derived library tag, keep the first one discovered
+   and skip the duplicate. This preserves current `.agents/skills` before `.claude/skills`
+   precedence under the defaults and makes custom-root precedence follow configured root order.
 
-**No-libraries behavior:** if both globs return zero results, log to the release body:
+**No-libraries behavior:** if all configured roots return zero results, log to the release body:
 
 ```
 gate-refactor (<date>) — no scan-* rule libraries discovered; gate-refactor has nothing to
-check. To activate: install a scan-rule library at {project}/.agents/skills/scan-<name>/ or
-{project}/.claude/skills/scan-<name>/. See gate-refactor/SKILL.md for the library contract.
+check. To activate: install a scan-rule library under gate_refactor_scan_library_roots
+(default: {project}/.agents/skills/scan-<name>/ or {project}/.claude/skills/scan-<name>/).
+See gate-refactor/SKILL.md for the library contract.
 ```
 
 Then continue the gate sequence. This is not an error — the gate is designed to ship
@@ -214,6 +224,12 @@ M-times-N redundant file reads and allows cross-library finding deduplication.
 
 For each finding the sub-agent returned:
 
+Read `gate_finding_routing` from `.work/CONVENTIONS.md` before writing items. If absent, use the
+default routing below. Normalize refactor confidence to routing keys as: `High -> high`,
+`Medium -> medium`, and `Low -> low`. If a normalized key maps to `skip`, do not emit an item for
+that finding; include the skipped count in the gate output and release-body gate-run record. If it
+maps to `backlog`, write a `.work/backlog/` item instead of an active story.
+
 **`gate_origin: refactor` is unconditional** — it records which gate produced the item, not the
 nature of the fix. The `tags:` field is determined by the source library's routing declaration:
 - Library declared `findings-route: refactor` → `tags: [refactor]` (behavior-preserving; routes
@@ -232,7 +248,7 @@ refactor-design will bounce them as mistagged.
 ---
 id: gate-refactor-<short-slug>
 kind: story
-stage: implementing | drafting    # by confidence — see table below
+stage: implementing | drafting    # by gate_finding_routing
 tags: [refactor]
 parent: null
 depends_on: []
@@ -249,7 +265,7 @@ updated: YYYY-MM-DD
 ---
 id: gate-refactor-<short-slug>
 kind: story
-stage: implementing | drafting    # by confidence — see table below
+stage: implementing | drafting    # by gate_finding_routing
 tags: []
 parent: null
 depends_on: []
@@ -284,7 +300,7 @@ High | Medium | Low
 <specific proposed change, or "needs analysis" for medium/low>
 ```
 
-Confidence → stage mapping (mirrors gate-cruft):
+Default confidence -> placement mapping:
 
 | Confidence | Stage | Tier |
 |---|---|---|
@@ -347,9 +363,11 @@ In conversation:
 
 A scan-rule library declares itself by its directory name and the content of its SKILL.md:
 
-- **Location**: `{project}/.agents/skills/scan-<name>/SKILL.md` OR
-  `{project}/.claude/skills/scan-<name>/SKILL.md` (both roots are discovered; duplicate
-  names are merged — the `.agents/` root takes precedence if both carry the same name).
+- **Location**: `<root>/scan-<name>/SKILL.md`, where `<root>` comes from
+  `gate_refactor_scan_library_roots` in `.work/CONVENTIONS.md` (default:
+  `{project}/.agents/skills` then `{project}/.claude/skills`). Duplicate names are merged by
+  derived library tag; the first discovered library wins, so configured root order determines
+  precedence.
 - **SKILL.md content**: the `description` frontmatter field and the body carry the rules. The
   gate reads the full SKILL.md and all files in `references/` as the library declaration.
 - **Rule format**: each rule should carry a slug (for deduplication), a description of what

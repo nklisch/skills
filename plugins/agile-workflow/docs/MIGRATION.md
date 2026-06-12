@@ -55,8 +55,11 @@ Questions, in order:
 4. **Stage overrides** — none by default. User can declare custom stages
    here if they have a strong reason.
 5. **Gate config** — defaults to
-   `gates_for_release: [security, tests, cruft, docs, patterns]`.
-   User can reorder or omit gates per project.
+   `gates_for_release: [security, tests, cruft, docs, patterns]`,
+   the default `gate_finding_routing` map, and default
+   `gate_refactor_scan_library_roots`. User can reorder or omit gates,
+   override finding routing, or point `gate-refactor` at shared scan-rule roots
+   per project.
 
 Answers land in `.work/CONVENTIONS.md` in the format specified by SPEC.md.
 

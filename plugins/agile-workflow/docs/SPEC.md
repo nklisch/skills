@@ -132,6 +132,15 @@ skill reads this at session start (via the SessionStart hook or directly).
 
 ## Gate config
 gates_for_release: [security, tests, cruft, docs, patterns]
+gate_finding_routing:
+  critical: implementing
+  high: implementing
+  medium: drafting
+  low: backlog
+  info: skip
+gate_refactor_scan_library_roots:
+  - .agents/skills
+  - .claude/skills
 binding_guard: warn
 epic_cohesion: phased
 ```
@@ -140,14 +149,36 @@ The default `gates_for_release` order is fixed: **security → tests → cruft
 → docs → patterns**. Override only if the project has a justified reason.
 
 **`gate-refactor` is an opt-in gate** — not in the default list. Add it when your project has
-scan-rule libraries installed at `{project}/.agents/skills/scan-*/SKILL.md` or
-`{project}/.claude/skills/scan-*/SKILL.md`. The gate discovers and loads all libraries it finds,
+scan-rule libraries installed under `gate_refactor_scan_library_roots` (defaults:
+`{project}/.agents/skills/scan-*/SKILL.md`, then
+`{project}/.claude/skills/scan-*/SKILL.md`). The gate discovers and loads all libraries it finds,
 then checks the release bundle's changed files against every rule. With no libraries installed it
 logs a graceful skip and continues — not an error. Example opt-in:
 
 ```yaml
 gates_for_release: [security, tests, cruft, docs, patterns, refactor]
 ```
+
+**`gate_finding_routing`** controls how item-producing gates place findings after
+each gate normalizes its local vocabulary. Defaults preserve the built-in routing:
+`critical` and `high` create active stories at `stage: implementing`, `medium`
+creates active stories at `stage: drafting`, `low` writes a backlog file, and
+`info` is skipped. Valid target values are `implementing`, `drafting`, `backlog`,
+and `skip`; missing keys fall back to defaults. `skip` means no work item is
+emitted, but the gate still reports skipped counts in its conversational output
+and in any durable gate-run record it already writes. Gate vocabularies stay
+gate-local: security and tests normalize `Critical|High|Medium|Low`, docs
+normalizes `High|Medium`, and cruft/refactor normalize `High|Medium|Low`.
+
+**`gate_refactor_scan_library_roots`** controls the parent directories
+`gate-refactor` searches for scan-rule libraries. Defaults preserve current
+behavior: `.agents/skills` first, `.claude/skills` second. Relative paths resolve
+from the project/substrate root; absolute paths are allowed. The gate still only
+loads libraries matching `scan-*/SKILL.md` below each configured root. Duplicate
+libraries are deduped by derived library tag in configured root order, so the
+first discovered library wins. Roots outside the project tree expand the trust
+boundary because the gate loads instructions and reference files from those
+locations.
 
 **`binding_guard`** (default **`warn`** when absent) controls the Phase 3.5 binding-consistency check
 in `release-deploy`. Values: `warn` | `halt` | `off`. `warn` runs all three checks and records any
