@@ -47,6 +47,7 @@ release_binding: <version>|null  # required
 gate_origin: <gate-name>|null    # required (null unless gate-produced)
 research_refs: [<slug>...]       # optional (research artifacts this item tracks/consumes)
 research_origin: <slug>|null    # optional (research artifact that spawned this item)
+scan_origin: <slug>|null        # optional (scan campaign that spawned this item)
 created: YYYY-MM-DD              # required
 updated: YYYY-MM-DD              # required, auto-bumped by PostToolUse hook
 ---
@@ -66,6 +67,7 @@ updated: YYYY-MM-DD              # required, auto-bumped by PostToolUse hook
 | `gate_origin` | gate name or null | `null` for user-scoped items. One of `security`, `tests`, `cruft`, `docs`, `patterns`, `refactor` when produced by a gate (`refactor` is the opt-in gate's value). |
 | `research_refs` | array of slug strings | **Optional; defaults to `[]`.** The research artifacts (`.research/` slugs or handles) this work item tracks or consumes — the Arrow 1 coordination link. Missing → `[]`. Query: `work-view --research-refs <slug>` (membership). See `plugins/agentic-research/docs/HANDOFF.md` for the cross-tier contract. |
 | `research_origin` | slug or null | **Optional; defaults to `null`.** The research artifact that spawned this work item — the Arrow 2 grounding link. Mirrors `gate_origin`. Missing/empty/`"null"` → `null`. Query: `work-view --research-origin <slug>` (or `null`). See `plugins/agentic-research/docs/HANDOFF.md`. |
+| `scan_origin` | slug or null | **Optional; defaults to `null`.** The scan campaign (`scan-<goal>`) that produced this work item — the `deep-code-scan` linkage. Mirrors `research_origin`. Missing/empty/`"null"` → `null`. Query: `work-view --scan-origin <slug>` (or `null`). |
 | `created` | ISO date | `YYYY-MM-DD`. Set on creation; never modified. FIFO tie-break in autopilot. |
 | `updated` | ISO date | `YYYY-MM-DD`. Auto-bumped by PostToolUse hook on every item edit. |
 
@@ -494,12 +496,13 @@ retirement of the Bash fallback (Rust-only) is tracked as a parked epic.
 | `--parent` | `<id>` | Filter to direct children of the given item |
 | `--release` | `<version>` | Filter by `release_binding` |
 | `--gate` | `<gate>` | Filter by `gate_origin` |
-| `--ready` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with all `depends_on` terminal (`done`/`released`, or resident in `releases/`/`archive/`) |
-| `--blocked` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with at least one non-terminal dependency |
+| `--ready` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with all `depends_on` terminal (`done`/`released`, or resident in `releases/`/`archive/`). **Excludes `[scan]`-tagged items** — they are engagement-owned by `deep-code-scan` and must not be drained by autopilot. |
+| `--blocked` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with at least one non-terminal dependency. Also excludes `[scan]`-tagged items. |
 | `--blocking` | `<id>` | Reverse lookup: items that depend on `<id>` |
 | `--scope` | `<active\|backlog\|releases\|archive\|all>` | Tiers to surface. Default (flag absent) = **active + backlog** (non-terminal); terminal tiers (`releases`/`archive`) are hidden unless requested. `--release`/`--gate` auto-widen to `all` unless `--scope` is set explicitly |
 | `--research-origin` | `<slug>` | Filter by `research_origin` (use `null` to select items with no origin) |
 | `--research-refs` | `<slug>` | Items whose `research_refs` list contains `<slug>` |
+| `--scan-origin` | `<slug>` | Filter by `scan_origin` (use `null` to select items with no scan origin) |
 | `--paths` | (none) | Output only file paths (grep-pipe-friendly) |
 | `--cat` | (none) | Output full bodies of matching items |
 | `--count` | (none) | Output only the match count |
@@ -595,6 +598,7 @@ array of item objects:
     gate_origin: string | null;
     research_origin: string | null;
     research_refs: string[];
+    scan_origin: string | null;
     created: string | null;
     updated: string | null;
     tags: string[];

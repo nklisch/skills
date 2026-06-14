@@ -1286,6 +1286,11 @@ fn board_substrate_feed_returns_json_shape_without_private_fields() {
         Some("ard-pos-x"),
         "feed item should serialize research_origin; item: {story_research}"
     );
+    assert_eq!(
+        story_research.get("scan_origin").and_then(Value::as_str),
+        Some("scan-demo"),
+        "feed item should serialize scan_origin; item: {story_research}"
+    );
     let refs: Vec<&str> = story_research
         .get("research_refs")
         .and_then(Value::as_array)
@@ -2010,6 +2015,21 @@ fn research_origin_filter_selects_matching_item() {
     assert!(
         !stdout.contains("epic-alpha"),
         "--research-origin ard-pos-x should not match items with no research_origin; stdout: {stdout}"
+    );
+}
+
+#[test]
+fn scan_origin_filter_selects_matching_item() {
+    let (stdout, _, code) = run(&["--scan-origin", "scan-demo", "--paths"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("story-research-1"),
+        "--scan-origin scan-demo should select the fixture item; stdout: {stdout}"
+    );
+    // Ensure it does NOT return items without scan_origin set
+    assert!(
+        !stdout.contains("epic-alpha"),
+        "--scan-origin scan-demo should not match items with no scan_origin; stdout: {stdout}"
     );
 }
 

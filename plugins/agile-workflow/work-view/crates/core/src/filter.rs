@@ -63,6 +63,8 @@ pub struct Filter {
     pub gate: Match,
     /// Filter on `item.research_origin` (mirror of `gate`).
     pub research: Match,
+    /// Filter on `item.scan_origin` (mirror of `research`).
+    pub scan: Match,
     /// Membership: select items whose `research_refs` contains this id (mirror of `blocking`).
     pub research_refs: Option<String>,
     /// AND-semantics tag filter. Item must have ALL listed tags.
@@ -102,6 +104,9 @@ fn item_matches(item: &Item, f: &Filter) -> bool {
         return false;
     }
     if !f.research.matches_opt(&item.research_origin) {
+        return false;
+    }
+    if !f.scan.matches_opt(&item.scan_origin) {
         return false;
     }
     if let Some(ref_id) = &f.research_refs {
@@ -725,6 +730,46 @@ mod tests {
         ]);
         let f = Filter {
             research: Match::IsNull,
+            ..Filter::default()
+        };
+        let results = sub.query(&f);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id, "b");
+    }
+
+    #[test]
+    fn filter_scan_equals() {
+        // Items with scan_origin set via inline frontmatter strings
+        let item_a =
+            "---\nid: a\nkind: story\nstage: implementing\nscan_origin: scan-x\n---\n\n# a\n";
+        let item_b =
+            "---\nid: b\nkind: story\nstage: implementing\nscan_origin: scan-y\n---\n\n# b\n";
+        let item_c = "---\nid: c\nkind: story\nstage: implementing\n---\n\n# c\n";
+        let (_tmp, sub) = setup_substrate(&[
+            ("active/stories/a.md", item_a),
+            ("active/stories/b.md", item_b),
+            ("active/stories/c.md", item_c),
+        ]);
+        let f = Filter {
+            scan: Match::Equals("scan-x".into()),
+            ..Filter::default()
+        };
+        let results = sub.query(&f);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id, "a");
+    }
+
+    #[test]
+    fn filter_scan_is_null() {
+        let item_a =
+            "---\nid: a\nkind: story\nstage: implementing\nscan_origin: scan-x\n---\n\n# a\n";
+        let item_b = "---\nid: b\nkind: story\nstage: implementing\n---\n\n# b\n";
+        let (_tmp, sub) = setup_substrate(&[
+            ("active/stories/a.md", item_a),
+            ("active/stories/b.md", item_b),
+        ]);
+        let f = Filter {
+            scan: Match::IsNull,
             ..Filter::default()
         };
         let results = sub.query(&f);

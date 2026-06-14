@@ -42,6 +42,8 @@ struct RawFrontmatter {
     #[serde(default)]
     research_origin: Option<String>,
     #[serde(default)]
+    scan_origin: Option<String>,
+    #[serde(default)]
     created: Option<String>,
     #[serde(default)]
     updated: Option<String>,
@@ -168,6 +170,7 @@ pub fn parse_item(path: &Path, rel: &Path, tier: Tier, text: &str) -> Result<Ite
         gate_origin: normalize_optional(raw.gate_origin),
         research_refs: normalize_vec(raw.research_refs),
         research_origin: normalize_optional(raw.research_origin),
+        scan_origin: normalize_optional(raw.scan_origin),
         created: normalize_optional(raw.created),
         updated: normalize_optional(raw.updated),
         tier,
@@ -449,5 +452,43 @@ An unscoped idea capture.
         let text = "---\nid: x\nresearch_origin: pos-x\n---\n";
         let item = parse(text).unwrap();
         assert_eq!(item.research_origin.as_deref(), Some("pos-x"));
+    }
+
+    #[test]
+    fn scan_origin_null_literal_normalizes_to_none() {
+        let text = "---\nid: x\nscan_origin: \"null\"\n---\n";
+        let item = parse(text).unwrap();
+        assert!(
+            item.scan_origin.is_none(),
+            "literal `\"null\"` should normalize to None"
+        );
+    }
+
+    #[test]
+    fn scan_origin_yaml_null_normalizes_to_none() {
+        let text = "---\nid: x\nscan_origin: null\n---\n";
+        let item = parse(text).unwrap();
+        assert!(item.scan_origin.is_none());
+    }
+
+    #[test]
+    fn scan_origin_empty_string_normalizes_to_none() {
+        let text = "---\nid: x\nscan_origin: \"\"\n---\n";
+        let item = parse(text).unwrap();
+        assert!(item.scan_origin.is_none());
+    }
+
+    #[test]
+    fn scan_origin_missing_normalizes_to_none() {
+        let text = "---\nid: x\n---\n";
+        let item = parse(text).unwrap();
+        assert!(item.scan_origin.is_none());
+    }
+
+    #[test]
+    fn scan_origin_value_preserved() {
+        let text = "---\nid: x\nscan_origin: scan-x\n---\n";
+        let item = parse(text).unwrap();
+        assert_eq!(item.scan_origin.as_deref(), Some("scan-x"));
     }
 }

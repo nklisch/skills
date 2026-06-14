@@ -31,6 +31,10 @@ use crate::args::DependencyView;
 /// autopilot queue definition exactly.
 fn is_actionable_candidate(item: &Item) -> bool {
     item.tier == Tier::Active
+        // `[scan]`-tagged items are engagement-owned by the deep-code-scan
+        // skill: they are never surfaced by `--ready`/`--blocked` nor grabbed
+        // by autopilot, so they are categorically excluded from actionability.
+        && !item.tags.iter().any(|t| t == "scan")
         && matches!(
             item.stage.as_deref(),
             Some("drafting" | "implementing" | "review")
@@ -159,6 +163,7 @@ mod tests {
             gate_origin: None,
             research_refs: vec![],
             research_origin: None,
+            scan_origin: None,
             created: None,
             updated: None,
             tier,
@@ -242,6 +247,26 @@ mod tests {
             Tier::Releases,
             Some("implementing")
         )));
+    }
+
+    #[test]
+    fn scan_tagged_active_implementing_is_not_candidate() {
+        // A `[scan]`-tagged item is engagement-owned by the deep-code-scan
+        // skill: it must never be surfaced by --ready/--blocked, even though it
+        // is Active and at a movable stage. An otherwise-identical untagged
+        // item IS a candidate.
+        let mut tagged = make_item_direct("scan-x", Tier::Active, Some("implementing"));
+        tagged.tags = vec!["scan".to_string()];
+        assert!(
+            !is_actionable_candidate(&tagged),
+            "scan-tagged active implementing item must NOT be actionable"
+        );
+
+        let untagged = make_item_direct("plain-x", Tier::Active, Some("implementing"));
+        assert!(
+            is_actionable_candidate(&untagged),
+            "untagged active implementing item must be actionable"
+        );
     }
 
     // ── apply_dependency_view: All ────────────────────────────────────────────

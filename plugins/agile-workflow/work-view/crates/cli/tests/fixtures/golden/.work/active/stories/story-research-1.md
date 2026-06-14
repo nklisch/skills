@@ -8,6 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 research_origin: ard-pos-x
+scan_origin: scan-demo
 research_refs: [ard-pos-x]
 created: 2026-06-04
 updated: 2026-06-04

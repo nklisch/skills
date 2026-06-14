@@ -15,6 +15,18 @@ but does not tag or branch — publishing stays with the bump script.
 - tooling     substrate tooling — work-view, the board, the planned binary, scripts/
 - docs        guides, foundation docs, READMEs
 
+### deep-code-scan reserved tags
+
+The `deep-code-scan` skill owns these. `scan` marks the engagement-owned scan scaffold and is
+**load-bearing**: `work-view --ready`/`--blocked` (and therefore autopilot) exclude any `[scan]`-tagged
+item, so the scaffold is never drained as ordinary work. Do not hand-apply `scan` to normal work.
+
+- scan          engagement-owned scan-campaign scaffold (excluded from --ready/--blocked)
+- correctness · tests · performance · security · quality · structure · architecture · custom
+                scan lanes (one per scan feature)
+- leaf · module · subsystem · system
+                scan altitude bands (on scan stories)
+
 ## Slug conventions
 kebab-case. Children are prefixed with their parent's slug
 (e.g. `epic-substrate-tooling` → `feature-substrate-tooling-cli`).
@@ -34,6 +46,9 @@ with no validation warning.
 - **`research_origin: <slug>|null`** — the research artifact that spawned this
   work item (Arrow 2, grounding). Mirrors `gate_origin`. Queryable via
   `work-view --research-origin <slug>` (or `null`).
+- **`scan_origin: <slug>|null`** — the scan campaign (`scan-<goal>`) that produced
+  this work item (the `deep-code-scan` linkage). Mirrors `research_origin`. Queryable
+  via `work-view --scan-origin <slug>` (or `null`).
 
 These fields are the schema substrate for the research↔work handoff arrows. The
 arrows themselves are implemented in the `agentic-research` plugin (Arrow 2 = the

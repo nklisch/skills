@@ -101,6 +101,16 @@ Build the scope from the argument:
 Only active items are candidates. Backlog items must be promoted through
 `scope` before autopilot can touch them.
 
+**Settle the implementation tier once, here at kickoff** — don't let it default
+silently per wave. If the goal/args/user named a tier (or the project fixes one in
+`.work/CONVENTIONS.md`), honor it. Otherwise, when the goal permits interaction, ask
+once (AskUserQuestion: `sonnet`/`mixed`/`opus`, or Codex `codex-medium`/`codex-high`/
+`codex-xhigh`) and lock it for the whole run. Under an autonomous goal contract that
+forbids mid-run questions, use the `implement-orchestrator` default and **state the
+tier in the run summary** so a cheap-tier drain is never a silent surprise. Pass the
+settled tier down in the Phase 4 caller note so `implement-orchestrator` does not
+re-ask.
+
 ### Phase 2: Build The Queue
 
 Filter candidates to `stage` in `{drafting, implementing, review}`.
@@ -112,6 +122,13 @@ An item is ready when every `depends_on` entry is terminal:
 
 Use `.work/bin/work-view` when it can answer the query; otherwise read
 frontmatter directly.
+
+**`[scan]`-tagged items are never queued.** `work-view --ready`/`--blocked` exclude
+them by construction — they are engagement-owned scan-campaign scaffold driven by
+`/agile-workflow:deep-code-scan`, not ordinary work. (If you fall back to reading
+frontmatter directly because `work-view` is unavailable, replicate this: skip any
+item whose `tags` contain `scan`.) The remediation a scan produces is a separate
+`fix-<goal>` epic with normal routing tags — that drains here as usual.
 
 ### Phase 3: Pick The Next Item
 
@@ -133,7 +150,8 @@ this caller note in every delegated prompt:
 
 > Delegated by an active agile-workflow autopilot goal for `<scope>`. Resolve
 > ambiguities with judgment, log rationale in the item body, and do not ask
-> strategic questions unless a hard halt condition applies. For large or risky
+> strategic questions unless a hard halt condition applies. Implementation tier
+> for this run: `<settled tier>` — use it for worker dispatch; do not re-ask. For large or risky
 > design decisions, use the cross-model advisory review policy from
 > `principles/SKILL.md` only when a different model class is available; peer
 > failures are non-blocking. If that policy launches Claude Opus through

@@ -42,6 +42,24 @@ worktree isolation when overlap or merge risk warrants it, and verify integratio
 after each wave. Serialize only the portions whose write sets or dependency
 edges make parallel work unsafe.
 
+### Implementation tier (settle once, before dispatch)
+
+The worker model/effort is a **dial**, not a silent default. Before spawning the first wave,
+determine the implementation tier:
+
+1. **Honor an explicit choice** — a tier named in the goal/args/user request, or a stable project
+   convention (e.g. a `.work/CONVENTIONS.md` model note), wins. Use it and skip the question.
+2. **Otherwise ask once** (AskUserQuestion), then lock it for the whole run — never re-ask per wave:
+   - Claude Code: `sonnet` (default — routine code), `mixed` (sonnet workers + opus on the broad/risky
+     bundles), or `opus` (deep/broad diagnosis throughout).
+   - Codex: `codex-medium` (default), `codex-high`, or `codex-xhigh`.
+   The vocabulary matches `deep-code-scan`'s scanner-tier dial so the two read alike.
+3. **Autonomous contract (no mid-run questions)** — when the dispatching goal forbids interaction
+   (an autopilot goal that says so), do NOT block: use the documented default below and **state the
+   tier you chose** in the run notes, so a cheap-tier run is never a silent surprise.
+
+The defaults below are the `sonnet`/`codex-medium` baseline; the tiers above scale from there.
+
 Use explicit runtime paths:
 
 - **Claude Code / Anthropic path:** spawn implementation workers with the Agent

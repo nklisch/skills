@@ -166,6 +166,7 @@ mod tests {
             gate_origin: None,
             research_refs: vec![],
             research_origin: None,
+            scan_origin: None,
             created: None,
             updated: None,
             tier: Tier::Active,

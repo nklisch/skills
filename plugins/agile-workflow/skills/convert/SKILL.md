@@ -1216,6 +1216,19 @@ For each artifact with a non-`match` state:
   surface that rule for removal or a negation entry under convert's
   preserve-by-default cleanup policy rather than silently editing ignore files.
   Ensure `.work/bin/work-view` is included in the Phase S5 `git add`.
+  - **Scan-awareness rides this reinstall.** The current `work-view` delivers the
+    `deep-code-scan` substrate support: the `--scan-origin <slug>` filter (the
+    `scan_origin` linkage field) and the **`[scan]`-tag exclusion from `--ready`/
+    `--blocked`** (so engagement-owned scan scaffold is never drained by autopilot).
+    Reinstalling the binary is what brings an existing install up to scan-awareness —
+    no separate step. Verify post-reinstall with `.work/bin/work-view --scan-origin x`
+    exiting cleanly.
+- **Scan taxonomy in CONVENTIONS (user-owned — offer, never force).** If
+  `.work/CONVENTIONS.md` doesn't yet register the `deep-code-scan` reserved tags
+  (`scan` + the lane/band tags) or the `scan_origin` linkage field, **offer** to add
+  them (AskUserQuestion), exactly like other convergence offers — preserving all user
+  content. These are documentation/taxonomy; the behavioral guarantee lives in the
+  reinstalled binary, so this offer is non-blocking.
 - Entrypoint compatibility — refresh the pointer in the direction set by
   `entrypoint_model`:
   - `agents-canonical` — import legacy generated content from any detected

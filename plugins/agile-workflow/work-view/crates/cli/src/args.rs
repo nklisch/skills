@@ -162,6 +162,7 @@ Filters (compose with AND semantics):
   --release <version>  Items with release_binding: <version>
   --gate <name>        Items with gate_origin: <name>
   --research-origin <s> Items with research_origin: <s>
+  --scan-origin <s>    Items with scan_origin: <s>
   --research-refs <s>  Items whose research_refs contains <s>
   --ready              Active items at drafting/implementing/review with all depends_on done
   --blocked            Active items at drafting/implementing/review with unmet dependencies
@@ -226,6 +227,7 @@ fn next_value<I: Iterator<Item = String>>(
 /// - `--stage|--kind <v>`                       → `Match::Equals(v)` on the matching filter field
 /// - `--parent|--release|--gate <v>`            → `Equals(v)`, but literal `"null"` → `IsNull`
 /// - `--research-origin <v>`                    → `filter.research` via `nullable_match` (like `--gate`)
+/// - `--scan-origin <v>`                        → `filter.scan` via `nullable_match` (like `--research-origin`)
 /// - `--tag <v>` (repeatable)                   → appended to `filter.tags` (AND semantics)
 /// - `--blocking <id>`                          → `filter.blocking = Some(id)`
 /// - `--research-refs <slug>`                   → `filter.research_refs = Some(slug)` (like `--blocking`)
@@ -289,6 +291,10 @@ pub fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<ParseOutcome, U
             "--research-origin" => {
                 let v = next_value("--research-origin", &mut iter)?;
                 opts.filter.research = nullable_match(v);
+            }
+            "--scan-origin" => {
+                let v = next_value("--scan-origin", &mut iter)?;
+                opts.filter.scan = nullable_match(v);
             }
             "--research-refs" => {
                 let v = next_value("--research-refs", &mut iter)?;
@@ -748,6 +754,25 @@ mod tests {
         let msg = err(&["--research-origin"]);
         assert!(msg.contains("missing value"), "got: {msg}");
         assert!(msg.contains("--research-origin"), "got: {msg}");
+    }
+
+    #[test]
+    fn scan_origin_non_null_sets_equals() {
+        let opts = run(&["--scan-origin", "my-scan"]);
+        assert_eq!(opts.filter.scan, Match::Equals("my-scan".into()));
+    }
+
+    #[test]
+    fn scan_origin_null_sets_is_null_match() {
+        let opts = run(&["--scan-origin", "null"]);
+        assert_eq!(opts.filter.scan, Match::IsNull);
+    }
+
+    #[test]
+    fn missing_value_for_scan_origin_is_usage_error() {
+        let msg = err(&["--scan-origin"]);
+        assert!(msg.contains("missing value"), "got: {msg}");
+        assert!(msg.contains("--scan-origin"), "got: {msg}");
     }
 
     #[test]
