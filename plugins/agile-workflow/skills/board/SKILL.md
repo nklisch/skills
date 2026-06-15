@@ -1,14 +1,11 @@
 ---
 name: board
 description: >
-  Launch and open the agile-workflow interactive substrate board for a project.
-  Use when the user asks to open, view, serve, inspect, or launch the .work
-  board, substrate board, kanban board, dependency board, or `work-view board`.
-  Requires an existing agile-workflow `.work/` substrate, a compiled
-  board-capable `.work/bin/work-view` binary, and a full terminal session that
-  can keep the long-running local server alive.
-user-invocable: true
-allowed-tools: Bash
+  Launch and open the agile-workflow interactive substrate board for a project. Use when the user asks
+  to open, view, serve, inspect, or launch the .work board, substrate board, kanban board, dependency
+  board, or `work-view board`. Requires an existing agile-workflow `.work/` substrate, a compiled
+  board-capable `.work/bin/work-view` binary, and a full terminal session that can keep the
+  long-running local server alive.
 ---
 
 # Board

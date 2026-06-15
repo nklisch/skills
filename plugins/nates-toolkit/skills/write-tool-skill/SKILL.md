@@ -1,12 +1,10 @@
 ---
 name: write-tool-skill
 description: >
-  Write agent skills for external tools, CLIs, MCP servers, and libraries. Use when creating
-  a skill that teaches agents how to use a specific tool — covers research, structure decisions,
-  description writing, progressive disclosure, reference splitting, and multi-skill
-  breakouts. Interactive workflow with user checkpoints at each phase.
-user-invocable: true
-allowed-tools: Read, Write, Glob, Grep, WebSearch, WebFetch, AskUserQuestion
+  Write agent skills for external tools, CLIs, MCP servers, and libraries. Use when creating a skill
+  that teaches agents how to use a specific tool — covers research, structure decisions, description
+  writing, progressive disclosure, reference splitting, and multi-skill breakouts. Interactive
+  workflow with user checkpoints at each phase.
 ---
 
 # Write Tool Skill
@@ -24,7 +22,7 @@ If no output path is given, ask the user where the skill should be written.
 
 ## Workflow
 
-Work through these phases in order. Use AskUserQuestion at each checkpoint.
+Work through these phases in order. Use structured question tool at each checkpoint.
 Do NOT skip checkpoints — the user's input shapes the skill.
 
 ### Phase 1: Research the tool
@@ -73,7 +71,7 @@ Recommend keeping as one skill when:
 - Splitting would force agents to load two skills for most tasks
 
 If recommending a split, propose the skill names, descriptions, and what goes where.
-Use AskUserQuestion to confirm with the user.
+Use structured question tool to confirm with the user.
 
 ### Phase 3: Structure checkpoint
 
@@ -86,7 +84,7 @@ For each skill being created, propose:
 4. **Reference files** — what goes in `references/` vs. the main SKILL.md
    (see [references/progressive-disclosure.md](references/progressive-disclosure.md))
 
-Present this to the user via AskUserQuestion. Adjust based on feedback.
+Present this to the user via structured question tool. Adjust based on feedback.
 
 ### Phase 4: Write SKILL.md
 

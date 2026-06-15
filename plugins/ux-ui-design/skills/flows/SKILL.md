@@ -1,21 +1,16 @@
 ---
 name: flows
 description: >
-  ALWAYS invoke this skill when the user asks to mock, design, wireframe, or explore
-  a multi-screen journey — signup, checkout, onboarding, recovery, multi-step forms,
-  wizards, settings, dashboards, account areas — do not start writing production
-  flow code inline. Generates a multi-page user-flow mockup as a set of single-file
-  HTML pages in .mockups/flows/<flow-name>/ with chrome matched to the flow's
-  topology: sequential (prev/next), hub-and-spoke (persistent nav between peer
-  pages), or hybrid (sequence + cross-jumps). Renders BOTH navigation patterns
-  when both fit; renders the one that fits when only one does. Always includes
-  an index.html navigator that visualizes the topology. Triggers on "mock the
-  signup flow", "design the checkout journey", "flow mockup for onboarding",
-  "multi-page wireframe for X", "design the settings area", "navigate between
-  these pages", "design the dashboard pages". Defers to ux-ui-principles for
-  storage, tech, and linking conventions.
-user-invocable: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
+  ALWAYS invoke this skill when the user asks to mock, design, wireframe, or explore a multi-screen
+  journey — signup, checkout, onboarding, recovery, multi-step forms, wizards, settings, dashboards,
+  account areas — do not start writing production flow code inline. Generates a multi-page user-flow
+  mockup as a set of single-file HTML pages under .mockups/flows/ with chrome matched to the
+  flow's topology: sequential (prev/next), hub-and-spoke (persistent nav between peer pages), or
+  hybrid (sequence + cross-jumps). Renders BOTH navigation patterns when both fit; renders the one
+  that fits when only one does. Always includes an index.html navigator that visualizes the topology.
+  Triggers on "mock the signup flow", "design the checkout journey", "flow mockup for onboarding",
+  "multi-page wireframe for X", "design the settings area", "navigate between these pages", "design
+  the dashboard pages". Defers to ux-ui-principles for storage, tech, and linking conventions.
 ---
 
 # Flows
@@ -90,7 +85,7 @@ them exhale? Or, for hub-and-spoke flows: what brings them into this area,
 which page is the natural entry, where do they go from there?
 
 Translate that into a page list (for hub-and-spoke) or step sequence (for
-sequential / hybrid) and confirm via `AskUserQuestion`:
+sequential / hybrid) and confirm via `structured question tool`:
 
 ```
 Proposed flow: <flow-name>
@@ -146,7 +141,7 @@ button, don't add one to satisfy a default.
 - Conversational / assistant names (`chat`, `assistant`, `support`, `bot`,
   `agent`, `inquiry-flow`) → propose **chat-as-canvas**
 
-Confirm with the user via `AskUserQuestion`:
+Confirm with the user via `structured question tool`:
 
 ```
 Q: How do users move between these pages?
@@ -444,7 +439,7 @@ xdg-open .mockups/flows/<flow-name>/index.html 2>/dev/null & \
   || echo "file://$(pwd)/.mockups/flows/<flow-name>/index.html"
 ```
 
-Ask the user to walk through and give feedback via `AskUserQuestion`:
+Ask the user to walk through and give feedback via `structured question tool`:
 
 ```
 Q: How does the journey feel?

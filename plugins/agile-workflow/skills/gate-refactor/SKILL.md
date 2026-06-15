@@ -1,21 +1,17 @@
 ---
 name: gate-refactor
 description: >
-  Refactor gate that discovers scan-rule libraries declared in the host project
-  (default roots: {project}/.agents/skills/scan-*/SKILL.md and
-  {project}/.claude/skills/scan-*/SKILL.md; configurable via
-  CONVENTIONS.md: gate_refactor_scan_library_roots),
-  loads every discovered library, checks the release bundle's changed files against all loaded
-  rules, and produces findings as items with gate_origin:refactor; routing tag declared per
-  library (libraries whose fixes are behavior-preserving declare findings-route:refactor;
-  behavior-changing libraries declare no route — findings emit untagged and route through
-  normal feature/story design).
-  Rule libraries are deployment-local — the gate ships the mechanism; adopters supply the rules.
-  Auto-triggers during /agile-workflow:release-deploy when the host project opts in via
-  CONVENTIONS.md: gates_for_release: [..., refactor, ...].
-  No-libraries behavior: graceful skip (logs "no scan-* libraries discovered" and continues).
-  Item-producer, NOT a pass/fail report.
-allowed-tools: Read, Glob, Grep, Bash, Agent, Edit
+  Refactor gate that discovers scan-rule libraries declared in the host project (default roots:
+  {project}/.agents/skills/scan-*/SKILL.md and {project}/.claude/skills/scan-*/SKILL.md; configurable
+  via CONVENTIONS.md: gate_refactor_scan_library_roots), loads every discovered library, checks the
+  release bundle's changed files against all loaded rules, and produces findings as items with
+  gate_origin:refactor; routing tag declared per library (libraries whose fixes are
+  behavior-preserving declare findings-route:refactor; behavior-changing libraries declare no route —
+  findings emit untagged and route through normal feature/story design). Rule libraries are
+  deployment-local — the gate ships the mechanism; adopters supply the rules. Auto-triggers during
+  /agile-workflow:release-deploy when the host project opts in via CONVENTIONS.md: gates_for_release:
+  [..., refactor, ...]. No-libraries behavior: graceful skip (logs "no scan-* libraries discovered"
+  and continues). Item-producer, NOT a pass/fail report.
 ---
 
 # Gate-Refactor
@@ -32,13 +28,11 @@ knowledge — it adapts to whatever libraries the deploying project provides. Th
 opt-in (not in the default `gates_for_release` list): an install with no rule libraries has nothing
 to check, and that is by design, not an error.
 
-Sub-agent strength is explicit:
-- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
-  `subagent_type: "general-purpose"`.
-- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort: high`; use `xhigh`
-  for large or polyglot release bundles, or when multiple libraries each carry dense rule sets.
-- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the deep refactor audit when
-  hosted in Pi and available; otherwise use the same-host read-only analysis fallback.
+Sub-agent strength is explicit: spawn exactly one read-only deep refactor
+sub-agent with the strongest reviewer setting the host exposes. Use extra-high
+reasoning for large/polyglot release bundles or when multiple libraries carry
+dense rule sets. If the host has no sub-agent path, run the scan inline and
+record the reduced isolation in the release body.
 
 ## Trigger
 
@@ -131,11 +125,11 @@ sub-agent's brief so it skips duplicates.
 
 ### Phase 3: Dispatch the refactor sub-agent
 
-If at least one library was discovered, spawn ONE deep refactor sub-agent with the full scan brief.
-For Claude Code, this is `Agent(subagent_type=general-purpose, model=opus)`. For Codex, use
-`reasoning_effort: high` (or `xhigh` for large/polyglot bundles or dense rule sets). For Pi,
-use a native `reviewer` or `oracle` subagent when available; otherwise use the same-host
-read-only analysis fallback.
+If at least one library was discovered, spawn ONE read-only deep refactor
+sub-agent with the full scan brief. Use the strongest reviewer setting the host
+exposes, escalating for large/polyglot bundles or dense rule sets. If
+sub-agents are unavailable, run the scan inline and record the reduced isolation
+in the release body.
 
 The sub-agent checks all rules from all libraries in one pass per file, returning structured
 findings. Dispatching one sub-agent with the full library set (rather than one per library) avoids

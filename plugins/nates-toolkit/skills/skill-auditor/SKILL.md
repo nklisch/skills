@@ -9,10 +9,6 @@ description: >
   plan, and behavioral test scenarios. Use when the user says "audit skill", "evaluate skill", "review
   skill", "skill quality", "improve this skill", or invokes /skill-auditor. This audits a skill as
   written; for how a skill performed in a live session, use agent-reflection.
-user-invocable: true
-disable-model-invocation: true
-model: opus
-allowed-tools: Read, Glob, Grep, Agent, Write, AskUserQuestion
 ---
 
 # Skill Auditor
@@ -25,7 +21,7 @@ the author can run. You audit the artifact as written; you do not run it.
 ## Input
 
 The user provides a path to a skill directory or SKILL.md file. If not provided, ask which skill to
-audit using **AskUserQuestion**.
+audit using **structured question tool**.
 
 ## Skill Types
 
@@ -39,7 +35,7 @@ Classify the target skill into one of these types:
 | **Principle** | Enforces conventions; declarative rules with good/bad examples | Yes | 80-150 lines |
 
 Classification signals:
-- `user-invocable: true` + AskUserQuestion usage → likely **interactive**
+- `user-invocable: true` + structured question tool usage → likely **interactive**
 - `disable-model-invocation: true` → manual-only; its description is *not* in Claude's auto-trigger
   context, so score triggering for discoverability (the `/` menu), not auto-activation
 - keyword-heavy description + API tables → likely **reference**
@@ -56,7 +52,7 @@ Classification signals:
 4. Validate the frontmatter against [references/frontmatter-spec.md](references/frontmatter-spec.md) —
    name rules, required fields, and any Claude-Code-specific fields the skill uses
 5. Classify the skill type using the signals above
-6. **AskUserQuestion checkpoint:** "I classified this as a **{type}** skill. Is that correct?"
+6. **structured question tool checkpoint:** "I classified this as a **{type}** skill. Is that correct?"
    - If the user overrides, use their classification
 
 ### Phase 2: Evaluate
@@ -85,7 +81,7 @@ Classification signals:
    - For ET findings: include a **rewrite** of the problematic text (quote original → identify vector →
      provide rewrite → explain shift)
 7. Identify strengths (scores of 4-5) — note what's working well
-8. **AskUserQuestion checkpoint:** Present the scores and top findings conversationally.
+8. **structured question tool checkpoint:** Present the scores and top findings conversationally.
    Ask: "Want me to dive deeper into any dimension, or proceed to the trigger & behavior tests?"
 
 ### Phase 3: Trigger & Behavior Tests
@@ -116,7 +112,7 @@ Produce a test plan the author can run — do not run it yourself. Follow
 
 Assemble the report using the template below.
 
-**AskUserQuestion checkpoint:** "Ready to write the report to `{skill-dir}/audit.md`?"
+**structured question tool checkpoint:** "Ready to write the report to `{skill-dir}/audit.md`?"
 - If the user specifies a different path, use that
 
 ## Report Template

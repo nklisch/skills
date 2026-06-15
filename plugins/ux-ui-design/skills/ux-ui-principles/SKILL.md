@@ -1,18 +1,15 @@
 ---
 name: ux-ui-principles
 description: >
-  ALWAYS load this skill when designing, proposing, mocking, or reviewing user
-  interfaces; when invoking screens / flows / palette / components; or when any
-  other workflow (agile-workflow, workflow design, feature-design, epic-design,
-  ideate, scope) reaches a UI surface decision — do not start mocking inline.
-  Reference for the mockup-first UI/UX design convention. Carries the storage
-  layout (.mockups/{design-system,screens,flows}/), the REQUIRED vs OPTIONAL
-  vs SKIP decision matrix, the tier-ordering rule (scope/epic primary, feature
-  fallback), the design-system pipeline (palette → components → screens/flows),
-  the linking convention to agile-workflow items, and the single-file HTML/CSS/JS
-  tech rule. Also installs the rule into the project's CLAUDE.md on first
-  invocation (with confirmation).
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
+  ALWAYS load this skill when designing, proposing, mocking, or reviewing user interfaces; when
+  invoking screens / flows / palette / components; or when any other workflow (agile-workflow,
+  workflow design, feature-design, epic-design, ideate, scope) reaches a UI surface decision — do not
+  start mocking inline. Reference for the mockup-first UI/UX design convention. Carries the storage
+  layout (.mockups/{design-system,screens,flows}/), the REQUIRED vs OPTIONAL vs SKIP decision matrix,
+  the tier-ordering rule (scope/epic primary, feature fallback), the design-system pipeline (palette →
+  components → screens/flows), the linking convention to agile-workflow items, and the single-file
+  HTML/CSS/JS tech rule. Also installs the rule into the project's CLAUDE.md on first invocation (with
+  confirmation).
 ---
 
 # UX / UI Design Principles
@@ -243,7 +240,7 @@ the path. Nothing more is needed.
 The first time THIS skill runs in a project, check whether the project's root
 `CLAUDE.md` carries the mockup convention. If the marker
 `<!-- ux-ui-design:installed -->` is absent, offer to append the rule block
-via `AskUserQuestion`.
+via `structured question tool`.
 
 See `references/claude-md-installer.md` for the exact check command, the
 verbatim block to append, and the idempotency rules. The marker is the

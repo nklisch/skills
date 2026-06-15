@@ -1,2 +1,6 @@
+interface:
+  display_name: "Release Deploy"
+  short_description: "Use Release Deploy for repo workflows"
+  default_prompt: "Use $release-deploy for this repository."
 policy:
   allow_implicit_invocation: false

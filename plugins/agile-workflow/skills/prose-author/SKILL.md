@@ -1,21 +1,16 @@
 ---
 name: prose-author
 description: >
-  ALWAYS invoke this skill when picking up a feature tagged [prose] at
-  stage:drafting — a no-code-surface deliverable (docs, conventions, rules,
-  research prose, copy, config-as-prose) whose design and implementation
-  collapse into a single inline authoring act. Confirms the brief is a
-  sufficient spec, fleshes the feature body inline if needed, and advances
-  drafting -> implementing WITHOUT Explore agents, a pre-mortem, or an
-  AskUserQuestion design gate. The no-code authoring lane: the
-  design-family routing layer forks [prose] work here the way it forks
-  [refactor]/[perf] to refactor-design/perf-design — but this lane authors,
-  it does not design. Collapses to one inline stride for the common case;
-  large multi-section prose can still flow through drafting -> implementing
-  -> review as real draft/write/revise steps. Misroutes anything with a real
-  code surface back to feature-design. Pairs with implement's no-coordination
-  inline path.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+  ALWAYS invoke this skill when picking up a feature tagged [prose] at stage:drafting — a
+  no-code-surface deliverable (docs, conventions, rules, research prose, copy, config-as-prose) whose
+  design and implementation collapse into a single inline authoring act. Confirms the brief is a
+  sufficient spec, fleshes the feature body inline if needed, and advances drafting to implementing
+  WITHOUT exploratory sub-agents, a pre-mortem, or a structured question tool design gate. The no-code authoring lane:
+  the design-family routing layer forks [prose] work here the way it forks [refactor]/[perf] to
+  refactor-design/perf-design — but this lane authors, it does not design. Collapses to one inline
+  stride for the common case; large multi-section prose can still flow through drafting to
+  implementing to review as real draft/write/revise steps. Misroutes anything with a real code surface
+  back to feature-design. Pairs with implement's no-coordination inline path.
 ---
 
 # Prose-Author
@@ -38,8 +33,8 @@ forks `[prose]` work to this lane the way it forks `[refactor]`/`[perf]` to
 - `perf-design` — `kind: feature` with `tags: [perf]`
 - `prose-author` (this lane) — `kind: feature` with `tags: [prose]`
 
-Where `feature-design` runs Explore agents, a pre-mortem, and an
-`AskUserQuestion` design gate to leave `drafting`, `prose-author` does none of
+Where `feature-design` runs exploratory sub-agents, a pre-mortem, and an
+`structured question tool` design gate to leave `drafting`, `prose-author` does none of
 that — for prose that ceremony has no payoff, because there is no code surface
 to design against. It still advances `drafting → implementing` at the same seam,
 so the stage machine and `autopilot` are unchanged; the lane just authors the
@@ -118,7 +113,7 @@ Read only what the prose itself must stay consistent with — the parent epic bo
 if `parent` is set, the foundation docs (`docs/VISION.md`, `docs/SPEC.md`,
 `docs/ARCHITECTURE.md`) and `AGENTS.md` / `CLAUDE.md` when the deliverable
 touches conventions or project-facing claims, and any sibling doc the feature
-revises. One pass, skim. **Do NOT** spawn Explore agents — there is no code
+revises. One pass, skim. **Do NOT** spawn exploratory sub-agents — there is no code
 surface to map.
 
 ### Phase 4: Confirm the brief is a sufficient spec
@@ -135,7 +130,7 @@ decide:
   step that lets the writing and a later revise pass run as distinct strides
   (see "Collapse by default, graduate when the prose is large" above).
 
-Do NOT run a pre-mortem and do NOT open an `AskUserQuestion` design gate. If a
+Do NOT run a pre-mortem and do NOT open a `structured question tool` design gate. If a
 genuine directional ambiguity exists (rare for prose), that is the signal the
 item wanted `feature-design` — reconsider the Phase 2 misroute test. The one
 exception: under `--only-questions`, capture the ambiguity and stop.
@@ -181,7 +176,7 @@ In conversation:
 
 - `[prose]` is work-nature, not domain. Verify no real code surface every time —
   the Phase 2 misroute test is the load-bearing check.
-- No Explore agents, no pre-mortem, no design `AskUserQuestion` gate. If you
+- No exploratory sub-agents, no pre-mortem, no design `structured question tool` gate. If you
   reach for any of them, the item probably wanted `feature-design` — misroute it.
 - Never advance past `implementing` — that's `implement` / `review`'s job.
 - The brief / outline lives in the feature body. NEVER create

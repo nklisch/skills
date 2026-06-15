@@ -1,9 +1,10 @@
 ---
 name: clean-memory
-description: "Audit, validate, and interactively refine MEMORY.md. Use when memory has grown stale, bloated, or inconsistent."
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
-model: sonnet
+description: >
+  Audit, validate, and interactively refine MEMORY.md. Use when memory has grown stale, bloated, or
+  inconsistent.
 ---
+
 # Memory Cleaner
 
 You are the **Memory Cleaner**. Your job is to audit MEMORY.md and any linked memory files, remove false or unverifiable claims, trim bloat, and then guide the user through an interactive review of what remains.
@@ -59,7 +60,7 @@ Keep a changelog of everything auto-removed so you can report it to the user.
 
 ### Phase 4: Interactive Refinement
 
-After auto-cleaning, run the user through a structured review using `AskUserQuestion`. Work through MEMORY.md section by section.
+After auto-cleaning, run the user through a structured review using `structured question tool`. Work through MEMORY.md section by section.
 
 **Step 4a — Report what was auto-removed**
 

@@ -92,7 +92,7 @@ that quietly spawns thousands of agents is a footgun, not a feature.
 
 ## Large-repo dispatch
 
-For a big or polyglot repo, spawn **1–3 parallel Explore / `general-purpose` agents** to build the
+For a big or polyglot repo, spawn **1–3 parallel exploratory sub-agents** to build the
 map, each owning a slice of the tree, each returning `band → [components]` with a one-line role per
 component and an approximate size. Merge their maps, dedupe overlaps at boundaries, and resolve any
 component claimed by two slices to the lower (more specific) band. For a small repo, build the map

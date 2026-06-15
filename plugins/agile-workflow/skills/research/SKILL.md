@@ -1,16 +1,13 @@
 ---
 name: research
 description: >
-  ALWAYS invoke this skill when the user asks to research a library, API, SDK, or
-  technology choice — do not just web-search and summarize inline. Researches external
-  libraries, APIs, SDKs, and patterns to inform design and implementation.
-  Investigates options, evaluates trade-offs against project needs, and produces both
-  a research document and an auto-loading reference skill. Use before designing
-  features that depend on unfamiliar technology, when choosing between options, or
-  when API assumptions need verification. Triggers on "research X", "compare X vs Y",
-  "what library should I use for Y", "investigate <api>", "evaluate <sdk>".
-user-invocable: true
-allowed-tools: Read, Write, Glob, Grep, WebSearch, WebFetch, Agent, AskUserQuestion
+  ALWAYS invoke this skill when the user asks to research a library, API, SDK, or technology choice —
+  do not just web-search and summarize inline. Researches external libraries, APIs, SDKs, and patterns
+  to inform design and implementation. Investigates options, evaluates trade-offs against project
+  needs, and produces both a research document and an auto-loading reference skill. Use before
+  designing features that depend on unfamiliar technology, when choosing between options, or when API
+  assumptions need verification. Triggers on "research X", "compare X vs Y", "what library should I
+  use for Y", "investigate an API", and "evaluate an SDK".
 ---
 
 # Research
@@ -27,21 +24,19 @@ Understand what needs investigating and why.
    and what's already in use
 2. Map how the project currently handles the area being researched with
    read-first triage: dependency manifests, imports, config files, existing
-   wrappers, and representative call sites via Read/Glob/Grep. Use an Explore
+   wrappers, and representative call sites via Read/Glob/Grep. Use an exploratory
    sub-agent only when the integration surface is broad or unclear after that
    probe.
-   - **Claude Code / Anthropic:** Sonnet minimum, Opus for large or complex codebases.
-   - **Codex / OpenAI:** `reasoning_effort: medium`; use `high` for large or
-     complex codebases.
-   - **Pi path:** use a native Pi `scout` or `context-builder` subagent for
-     broad integration mapping when hosted in Pi and available; otherwise keep
-     direct host-local research.
+   - Use the host's read-only exploratory sub-agent path with medium reasoning
+     by default.
+   - Use high or strongest reviewer reasoning for large or complex codebases.
+   - If no sub-agent path is available, keep direct host-local research.
 3. Define research questions:
    - What specific problem does this technology need to solve for the project?
    - What constraints must it satisfy? (bundle size, license, runtime, compatibility)
    - What existing patterns must it work with?
 
-**AskUserQuestion checkpoint:** Present:
+**structured question tool checkpoint:** Present:
 - The research questions you'll investigate
 - Options you plan to evaluate (if known)
 - Any constraints you identified from the codebase
@@ -85,7 +80,7 @@ For each option:
 - Learning curve and documentation quality
 - Risk: what happens if this option is abandoned?
 
-**AskUserQuestion checkpoint:** Present:
+**structured question tool checkpoint:** Present:
 - Summary table of options with scores
 - Your recommendation and rationale
 - Any trade-offs the user should weigh in on
@@ -157,7 +152,7 @@ The skill must:
 - NEVER produce a research doc without code examples — agents need concrete patterns
 - NEVER write a reference skill with generic keywords — specific imports and method
   names are what trigger auto-loading
-- NEVER skip AskUserQuestion checkpoints — wrong research direction wastes effort
+- NEVER skip structured question tool checkpoints — wrong research direction wastes effort
 
 ## Completion Criteria
 

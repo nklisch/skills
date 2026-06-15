@@ -1,14 +1,12 @@
 ---
 name: gate-cruft
 description: >
-  Cruft gate that scans the items bound to a release for AI-accumulated debris
-  (dead code, stale comments, compatibility shims, defensive bloat,
-  over-abstraction) introduced or revealed by the bundle. Delegates the full
-  scan to a deep cleanup-audit sub-agent which runs language-aware detection plus heuristic
-  pattern-matching, then returns findings. The orchestrator converts findings
-  into items in .work/active/ with gate_origin:cruft and tags:[cleanup].
-  Auto-triggers during /agile-workflow:release-deploy.
-allowed-tools: Read, Glob, Grep, Bash, Agent, Edit
+  Cruft gate that scans the items bound to a release for AI-accumulated debris (dead code, stale
+  comments, compatibility shims, defensive bloat, over-abstraction) introduced or revealed by the
+  bundle. Delegates the full scan to a deep cleanup-audit sub-agent which runs language-aware
+  detection plus heuristic pattern-matching, then returns findings. The orchestrator converts findings
+  into items in .work/active/ with gate_origin:cruft and tags:[cleanup]. Auto-triggers during
+  /agile-workflow:release-deploy.
 ---
 
 # Gate-Cruft
@@ -19,14 +17,10 @@ bundle context, dispatch the sub-agent, and convert the findings it returns
 into items in the substrate. Findings get `gate_origin: cruft`,
 `tags: [cleanup]`, with severity tier shaping the stage.
 
-Sub-agent strength is explicit:
-- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
-  `subagent_type: "general-purpose"`.
-- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
-  high`; use `xhigh` for large or polyglot release bundles.
-- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the deep
-  cleanup audit when hosted in Pi and available; otherwise use the same-host
-  read-only analysis fallback.
+Sub-agent strength is explicit: spawn exactly one read-only deep cleanup-audit
+sub-agent with the strongest reviewer setting the host exposes. Use extra-high
+reasoning for large or polyglot release bundles. If the host has no sub-agent
+path, run the audit inline and record the reduced isolation in the release body.
 
 ## Trigger
 
@@ -66,12 +60,10 @@ into the sub-agent's brief.
 
 ### Phase 3: Dispatch the cruft sub-agent
 
-Spawn ONE deep cleanup-audit sub-agent with the full scan brief. For Claude
-Code, this is `Agent(subagent_type=general-purpose, model=opus)`. For Codex,
-use `reasoning_effort: high`, or `xhigh` for large/polyglot bundles. For Pi,
-use a native `reviewer` or `oracle` subagent when available; otherwise use the
-same-host read-only analysis fallback. The
-sub-agent does ecosystem detection, runs language-aware
+Spawn ONE read-only deep cleanup-audit sub-agent with the full scan brief. Use
+the strongest reviewer setting the host exposes, escalating for large or
+polyglot bundles. If sub-agents are unavailable, run the audit inline and record
+the reduced isolation in the release body. The sub-agent does ecosystem detection, runs language-aware
 tools, applies heuristic pattern-matching, triages confidence, and returns
 structured findings.
 

@@ -1,9 +1,8 @@
 ---
 name: hono-v4
 description: >
-  Hono v4 web framework reference. Auto-loads when working with Hono routes,
-  middleware, zValidator, streamSSE, HTTPException, hono/factory, RPC client.
-user-invocable: false
+  Hono v4 web framework reference. Auto-loads when working with Hono routes, middleware, zValidator,
+  streamSSE, HTTPException, hono/factory, RPC client.
 ---
 
 # Hono Reference

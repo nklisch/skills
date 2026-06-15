@@ -1,15 +1,12 @@
 ---
 name: gate-security
 description: >
-  Security gate that scans items bound to a release and produces items as findings.
-  Delegates the full audit to a deep security-audit sub-agent which discovers stack, picks
-  relevant security domains (auth, injection, secrets, deps, API, infra, crypto,
-  data protection, error handling), audits the bundle's code changes, and returns
-  findings. The orchestrator converts findings into items in .work/active/ with
-  gate_origin:security and appropriate tags. Auto-triggers during
-  /agile-workflow:release-deploy quality-gate stage. Item-producer, NOT a
-  pass/fail report.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
+  Security gate that scans items bound to a release and produces items as findings. Delegates the full
+  audit to a deep security-audit sub-agent which discovers stack, picks relevant security domains
+  (auth, injection, secrets, deps, API, infra, crypto, data protection, error handling), audits the
+  bundle's code changes, and returns findings. The orchestrator converts findings into items in
+  .work/active/ with gate_origin:security and appropriate tags. Auto-triggers during
+  /agile-workflow:release-deploy quality-gate stage. Item-producer, NOT a pass/fail report.
 ---
 
 # Gate-Security
@@ -19,16 +16,11 @@ audit runs inside a **deep security-audit sub-agent**; your role is to prepare
 the bundle context, dispatch the sub-agent, and convert the findings it returns
 into items in the substrate.
 
-Sub-agent strength is explicit:
-- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
-  `subagent_type: "general-purpose"`.
-- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
-  high`; use `xhigh` only for auth/crypto/data-loss surfaces, broad public API
-  changes, or a large/polyglot release bundle. Use a reviewer/default agent if
-  available, otherwise a worker with read-only instructions.
-- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the deep
-  security audit when hosted in Pi and available; otherwise use the same-host
-  read-only analysis fallback.
+Sub-agent strength is explicit: spawn exactly one read-only deep security-audit
+sub-agent with the strongest reviewer setting the host exposes. Use extra-high
+reasoning only for auth, crypto, data-loss, broad public API, or large/polyglot
+release bundles. If the host has no sub-agent path, run the audit inline and
+record the reduced isolation in the release body.
 
 This is NOT a standalone audit (for that, use a standalone `repo-eval` skill). This
 is a gate over a specific release bundle, producing items the release-deploy
@@ -84,12 +76,11 @@ sub-agent can be told to skip duplicates.
 
 ### Phase 3: Dispatch the audit sub-agent
 
-Spawn ONE deep audit sub-agent with the full audit brief. For Claude Code, this
-is `Agent(subagent_type=general-purpose, model=opus)`. For Codex, use
-`reasoning_effort: high`, escalating to `xhigh` for auth/crypto/data-loss
-surfaces, broad public API changes, or large/polyglot bundles. For Pi, use a
-native `reviewer` or `oracle` subagent when available; otherwise use the
-same-host read-only analysis fallback. The sub-agent does all of the analysis end-to-end —
+Spawn ONE read-only deep audit sub-agent with the full audit brief. Use the
+strongest reviewer setting the host exposes, escalating for auth, crypto,
+data-loss, broad public API, or large/polyglot bundles. If sub-agents are
+unavailable, run the audit inline and record the reduced isolation in the
+release body. The sub-agent does all of the analysis end-to-end —
 stack discovery, domain selection, parallel domain audits, severity
 classification — and returns structured findings.
 

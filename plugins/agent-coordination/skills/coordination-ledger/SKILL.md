@@ -1,6 +1,11 @@
 ---
 name: coordination-ledger
-description: Sparse cross-agent coordination ledger for shared repositories. Use when explicitly asked to coordinate multiple agents, claim or release work, check active claims before broad edits, publish a handoff/blocker/review/merge summary, or define a GitHub Discussions-backed coordination process. Integrates lightly with agile-workflow by treating .work item IDs as optional context IDs while keeping .work, PRs, and code review authoritative.
+description: >
+  Sparse cross-agent coordination ledger for shared repositories. Use when explicitly asked to
+  coordinate multiple agents, claim or release work, check active claims before broad edits, publish a
+  handoff/blocker/review/merge summary, or define a GitHub Discussions-backed coordination process.
+  Integrates lightly with agile-workflow by treating .work item IDs as optional context IDs while
+  keeping .work, PRs, and code review authoritative.
 ---
 
 # Coordination Ledger

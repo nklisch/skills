@@ -1,15 +1,13 @@
 ---
 name: fix
 description: >
-  ALWAYS invoke this skill when the user asks to fix a specific verified bug — do not
-  just edit code inline. Diagnoses and repairs a specific bug as a single-stride
-  substrate story. Reproduces the issue, identifies the root cause, writes a failing
-  test, applies the minimal fix, confirms, and creates a story item at
-  .work/active/stories/<id>.md at stage:review capturing the work. Use when something
-  is verifiably broken — not for unverified hunches, refactors, or feature additions.
-  Triggers on "fix bug X", "fix the typo in", "fix this issue", "this is broken — fix
-  it", "patch <id>".
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
+  ALWAYS invoke this skill when the user asks to fix a specific verified bug — do not just edit code
+  inline. Diagnoses and repairs a specific bug as a single-stride substrate story. Reproduces the
+  issue, identifies the root cause, writes a failing test, applies the minimal fix, confirms, and
+  creates a story item under .work/active/stories/ at stage:review capturing the work. Use when
+  something is verifiably broken — not for unverified hunches, refactors, or feature additions.
+  Triggers on "fix bug X", "fix the typo in", "fix this issue", "this is broken — fix it", and "patch
+  this item".
 ---
 
 # Fix

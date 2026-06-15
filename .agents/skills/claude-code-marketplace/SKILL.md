@@ -1,9 +1,9 @@
 ---
 name: claude-code-marketplace
-description: "Research findings on Claude Code marketplace, plugin structure, and distribution. Auto-loads
-  when working with marketplace.json, plugin.json, plugin distribution, Claude Code plugin format,
-  SKILL.md frontmatter, npm skill packages, agentskills.io standard, or /plugin install."
-user-invocable: false
+description: >
+  Research findings on Claude Code marketplace, plugin structure, and distribution. Auto-loads when
+  working with marketplace.json, plugin.json, plugin distribution, Claude Code plugin format, SKILL.md
+  frontmatter, npm skill packages, agentskills.io standard, or /plugin install.
 ---
 
 # Research: Claude Code Marketplace / Plugin Structure

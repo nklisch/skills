@@ -1,14 +1,11 @@
 ---
 name: epicize
 description: >
-  Decompose foundation docs into multiple epics seeded in .work/active/epics/ with
-  declared dependencies. Reads VISION.md, SPEC.md, ARCHITECTURE.md, identifies
-  capability arcs, proposes an epic decomposition with depends_on chains, and writes
-  the epic files at stage:drafting after user confirmation. Use after
-  /agile-workflow:convert on a greenfield project, or any time foundation docs need
-  epic decomposition. User-invocable only — interactive workshop.
-user-invocable: true
-allowed-tools: Read, Write, Glob, Grep, Bash, AskUserQuestion
+  Decompose foundation docs into multiple epics seeded in .work/active/epics/ with declared
+  dependencies. Reads VISION.md, SPEC.md, ARCHITECTURE.md, identifies capability arcs, proposes an
+  epic decomposition with depends_on chains, and writes the epic files at stage:drafting after user
+  confirmation. Use after /agile-workflow:convert on a greenfield project, or any time foundation docs
+  need epic decomposition. User-invocable only — interactive workshop.
 ---
 
 # Epicize
@@ -112,7 +109,7 @@ For each epic candidate, identify what must be done first:
 
 ### Phase 4: Confirm with user
 
-Present the proposed decomposition via AskUserQuestion or conversational summary:
+Present the proposed decomposition via structured question tool or conversational summary:
 
 ```
 Proposed epic decomposition (4 epics):

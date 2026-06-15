@@ -1,17 +1,14 @@
 ---
 name: implement
 description: >
-  ALWAYS invoke this skill when the user explicitly asks to implement a substrate
-  item inline OR the delivery is tiny (≤ ~50 LoC, ≤ 2 files, no coordination) OR the
-  deliverable is no-code prose (a [prose] item — any size, as long as it needs no
-  coordination) — for any larger or default *code* work prefer
-  /agile-workflow:implement-orchestrator.
-  Inline single-stride implementation of a substrate item at stage:implementing. Reads
-  the design embedded in the item body, writes code per the spec, runs build+tests,
-  advances stage implementing -> review, and updates the item body with implementation
-  notes. Triggers on "implement this inline", "implement <id> inline", "just do it
+  ALWAYS invoke this skill when the user explicitly asks to implement a substrate item inline OR the
+  delivery is tiny (about 50 LoC or less, two files or fewer, no coordination) OR the deliverable is no-code prose (a
+  [prose] item — any size, as long as it needs no coordination) — for any larger or default *code*
+  work prefer /agile-workflow:implement-orchestrator. Inline single-stride implementation of a
+  substrate item at stage:implementing. Reads the design embedded in the item body, writes code per
+  the spec, runs build+tests, advances stage implementing to review, and updates the item body with
+  implementation notes. Triggers on "implement this inline", "implement this item inline", "just do it
   inline", or a very small explicit delivery.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task
 ---
 
 # Implement
@@ -98,7 +95,7 @@ If the item carries `tags: [prose]`, use **prose mode** for the rest of this ski
 - Treat the target docs, rules, conventions, copy, or research write-up as the integration surface.
 - Skip source-code mapping and build/test assumptions unless the prose claim depends on a code fact
   or the repo has explicit docs checks.
-- Do not spawn an Explore sub-agent just to map code. Use a read-only sub-agent only when the
+- Do not spawn an exploratory sub-agent just to map code. Use a read-only sub-agent only when the
   document's factual basis is broad enough that local reading leaves named unknowns.
 
 For non-prose items, continue in code mode.
@@ -123,19 +120,15 @@ Start with a local scope-size probe using Read/Glob/Grep:
 - search for matching test helpers and fixtures
 - read the 1-3 files most likely to define the integration contract
 
-If this answers the integration question, skip Explore and continue. Inline
+If this answers the integration question, skip exploratory fanout and continue. Inline
 implementation is often chosen because the scope is small enough for direct
 reading.
 
-Spawn one read-only Explore sub-agent only when the integration surface is still
+Spawn one read-only exploratory sub-agent only when the integration surface is still
 unclear or broader than a few obvious files:
-- **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
-  or complex codebases.
-- **Codex / OpenAI:** `explorer` sub-agent with `reasoning_effort: medium`;
-  use `high` for large or complex codebases.
-- **Pi path:** use a native Pi `scout` or `context-builder` subagent for
-  read-only mapping only after local probing leaves a named unknown. If Pi
-  subagents are unavailable, keep the bounded mapping in the host session.
+- Use the host's read-only exploratory sub-agent path with medium reasoning by default.
+- Use high or strongest reviewer reasoning for large or complex codebases.
+- If no sub-agent path is available, keep the bounded mapping in the host session.
 
 Brief:
 - "Find all public exports, shared utilities, type definitions, and module

@@ -1,2 +1,6 @@
+interface:
+  display_name: "Deep Code Scan"
+  short_description: "Plan multi-lane code scan campaigns"
+  default_prompt: "Use $deep-code-scan to plan a multi-lane scan campaign for this repository."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

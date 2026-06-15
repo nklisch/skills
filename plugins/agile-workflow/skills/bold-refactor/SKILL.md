@@ -1,15 +1,12 @@
 ---
 name: bold-refactor
 description: >
-  Find beautiful code abstractions and cross-cutting simplifications. Applies
-  conceptual lenses (elimination, unification, inversion, algebraic, declarative,
-  domain crystallization) to surface bold architectural reconceptions, then
-  produces a refactor EPIC with child features tagged [refactor] and declared
-  depends_on chains. The epic and its children land in .work/active/ — the actual
-  refactor work then flows through /agile-workflow:refactor-design and
+  Find beautiful code abstractions and cross-cutting simplifications. Applies conceptual lenses
+  (elimination, unification, inversion, algebraic, declarative, domain crystallization) to surface
+  bold architectural reconceptions, then produces a refactor EPIC with child features tagged
+  [refactor] and declared depends_on chains. The epic and its children land in .work/active/ — the
+  actual refactor work then flows through /agile-workflow:refactor-design and
   /agile-workflow:implement. User-invocable only — too aggressive for auto-trigger.
-user-invocable: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion
 ---
 
 # Bold-Refactor
@@ -102,9 +99,9 @@ for areas with the highest complexity-to-value ratio.
 Run a local scope-size probe first: list likely roots, search for obvious
 entry points and large/hot files, and read a few representative files. If the
 target path is small and the leverage is visible from direct reading, skip
-parallel Explore and proceed with that evidence.
+parallel exploratory fanout and proceed with that evidence.
 
-For repo-wide or genuinely broad targets, spawn parallel Explore sub-agents:
+For repo-wide or genuinely broad targets, spawn parallel exploratory sub-agents:
 1. **Architecture map** — module structure, dependency graph, entry points, data flow
 2. **Complexity hotspots** — large files, deep nesting, high cyclomatic complexity, god objects
 3. **Hidden assumptions** — implicit conventions, invisible coupling
@@ -128,7 +125,7 @@ Each suggestion:
 Vary the lenses across suggestions. If all 5 use Elimination, you're not
 thinking broadly enough.
 
-**Checkpoint (AskUserQuestion):** Present all suggestions. Ask which resonate,
+**Checkpoint (structured question tool):** Present all suggestions. Ask which resonate,
 which to drop, what's missing. Expect pushback — that's the point.
 
 ### Phase 3: Discuss

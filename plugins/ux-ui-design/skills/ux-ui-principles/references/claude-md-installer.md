@@ -12,7 +12,7 @@ test -f CLAUDE.md && grep -q "ux-ui-design:installed" CLAUDE.md && echo present 
 
 If `present`, do nothing — the rule is installed.
 
-If `absent`, ask the user via `AskUserQuestion` whether to append the rule
+If `absent`, ask the user via `structured question tool` whether to append the rule
 to `CLAUDE.md` (creating the file if missing). Two options:
 
 - **Append the rule to CLAUDE.md** (recommended)

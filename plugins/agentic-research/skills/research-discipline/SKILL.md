@@ -1,8 +1,12 @@
 ---
 name: research-discipline
-description: "The ARD anti-fabrication discipline bundle — the six load-bearing sections (source-bound citation, substrate test, no-footnote-fabrication, per-source attestation, contradiction-handling + seek-disconfirming, composed-claim) that bind any research-authoring context in this repo's .research/ substrate. Vendored verbatim from ARD kernel/discipline.md. The research-orchestrator inlines this bundle into every authoring dispatch so the discipline reaches sub-contexts; it also auto-loads here for light-path inline authoring."
-user-invocable: false
-allowed-tools: Read, Write, Glob, Grep, Bash
+description: >
+  The ARD anti-fabrication discipline bundle — the six load-bearing sections (source-bound citation,
+  substrate test, no-footnote-fabrication, per-source attestation, contradiction-handling +
+  seek-disconfirming, composed-claim) that bind any research-authoring context in this repo's
+  .research/ substrate. Vendored verbatim from ARD kernel/discipline.md. The research-orchestrator
+  inlines this bundle into every authoring dispatch so the discipline reaches sub-contexts; it also
+  auto-loads here for light-path inline authoring.
 ---
 
 <!-- ARD-Version: 0.5.1 -->

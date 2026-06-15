@@ -1,15 +1,12 @@
 ---
 name: review
 description: >
-  ALWAYS invoke this skill when the user asks to review a substrate item, an
-  item is at stage:review, or the user says "review this". Substrate-first:
-  reviews tracked items, files follow-up items, and advances or bounces them.
-  Also supports out-of-band reviews of branches, commits, PRs, working trees, or
-  unpushed commits without substrate side effects. Uses fast, standard, and deep
-  lanes; deep review runs in fresh context when useful. Triggers on "review item
-  X", "review this", "review <id>", "deep review", "is this ready", and
-  "verdict on <id>".
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion
+  ALWAYS invoke this skill when the user asks to review a substrate item, an item is at stage:review,
+  or the user says "review this". Substrate-first: reviews tracked items, files follow-up items, and
+  advances or bounces them. Also supports out-of-band reviews of branches, commits, PRs, working
+  trees, or unpushed commits without substrate side effects. Uses fast, standard, and deep lanes; deep
+  review runs in fresh context when useful. Triggers on "review item X", "review this", "review this item",
+  "deep review", "is this ready", and "verdict on this item".
 ---
 
 # Review

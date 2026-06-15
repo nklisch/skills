@@ -1,2 +1,6 @@
+interface:
+  display_name: "Autopilot"
+  short_description: "Use Autopilot for repo workflows"
+  default_prompt: "Use $autopilot for this repository."
 policy:
   allow_implicit_invocation: true

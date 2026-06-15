@@ -1,17 +1,13 @@
 ---
 name: release-deploy
 description: >
-  Cut a release in the agile-workflow substrate. Interactively binds items to a
-  version, advances the release stage planned -> quality-gate, runs all configured
-  gates in CONVENTIONS.md order (default: security -> tests -> cruft -> docs ->
-  patterns), waits until all bound items + gate-produced items reach stage:done,
-  ships per release mapping (tag-based / branch-held / release-branch / none), collapses
-  bound items into one release summary and disposes their bodies per the terminal-tier
-  retention convention (delete-refs prunes to git history; retain-bodies keeps bodies on
-  disk), advances release to released.
-  Idempotent — safe to re-run after fixing gate findings.
-user-invocable: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion, Skill
+  Cut a release in the agile-workflow substrate. Interactively binds items to a version, advances the
+  release stage from planned to quality-gate, runs all configured gates in CONVENTIONS.md order
+  (default: security, tests, cruft, docs, patterns), waits until all bound items + gate-produced items
+  reach stage:done, ships per release mapping (tag-based / branch-held / release-branch / none),
+  collapses bound items into one release summary and disposes their bodies per the terminal-tier
+  retention convention (delete-refs prunes to git history; retain-bodies keeps bodies on disk),
+  advances release to released. Idempotent — safe to re-run after fixing gate findings.
 ---
 
 # Release-Deploy
@@ -163,7 +159,7 @@ If the release is at `stage: planned`:
    release; without `agentic-research`, `[research]` is an inert project tag and stubs bind
    normally. See the `[research]` tag semantics.)
 
-3. Use AskUserQuestion to confirm the full set (active done items + gathered archived stubs).
+3. Use structured question tool to confirm the full set (active done items + gathered archived stubs).
    Default: all active done items without binding plus all unbound archived stubs go in. Confirming
    the archived set explicitly is required, since late-binding pulls in work the user never bound by
    hand; the user may deselect any stub (it stays unbound for a later release).
@@ -491,7 +487,7 @@ version-bump commits, merge commits, typo/formatting-only commits.
 Format the entry header as `## v<version>` and prepend to CHANGELOG.md (preserve
 existing content). If CHANGELOG.md doesn't exist, create it with this entry.
 
-Show the user the drafted changelog and ask via AskUserQuestion: "Does this look
+Show the user the drafted changelog and ask via structured question tool: "Does this look
 correct? Reply yes to proceed with shipping, or provide edits." Apply edits and
 re-confirm before shipping.
 

@@ -184,7 +184,7 @@ In order:
 
 3. **Ask the user.** When neither rule suggests an obvious choice (e.g., a
    greenfield project mocking a third-party SaaS), surface the decision via
-   `AskUserQuestion`.
+   `structured question tool`.
 
 ### Container shape
 

@@ -1,10 +1,8 @@
 ---
 name: patterns
-description: "Project code patterns and conventions. Auto-loads when implementing,
-  designing, verifying, or reviewing code. Provides detailed pattern definitions
-  with code examples."
-user-invocable: false
-allowed-tools: Read, Glob, Grep
+description: >
+  Project code patterns and conventions. Auto-loads when implementing, designing, verifying, or
+  reviewing code. Provides detailed pattern definitions with code examples.
 ---
 
 # Project Patterns Reference

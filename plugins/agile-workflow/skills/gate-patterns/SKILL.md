@@ -1,17 +1,15 @@
 ---
 name: gate-patterns
 description: >
-  Patterns gate that scans the bundle's changes for reusable code structures.
-  Delegates the full discovery to a deep pattern-discovery sub-agent which identifies recurring
-  shapes (3+ occurrences) introduced or revealed by the bundle, names them,
-  documents them with concrete file:line examples, and returns pattern drafts.
-  The orchestrator writes detailed pattern skills to .agents/skills/patterns/ (the
-  single source of truth) with optional Claude mirrors, updates the index, also
-  generates the hook-loaded .agents/rules/patterns.md digest (a do-not-hand-edit
-  slug+one-liner index that points back at the patterns skill for detail), and
-  produces a tracking item with gate_origin:patterns.
-  Auto-triggers during /agile-workflow:release-deploy as the final gate.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
+  Patterns gate that scans the bundle's changes for reusable code structures. Delegates the full
+  discovery to a deep pattern-discovery sub-agent which identifies recurring shapes (3+ occurrences)
+  introduced or revealed by the bundle, names them, documents them with concrete file:line examples,
+  and returns pattern drafts. The orchestrator writes detailed pattern skills to
+  .agents/skills/patterns/ (the single source of truth) with optional Claude mirrors, updates the
+  index, also generates the hook-loaded .agents/rules/patterns.md digest (a do-not-hand-edit
+  slug+one-liner index that points back at the patterns skill for detail), and produces a tracking
+  item with gate_origin:patterns. Auto-triggers during /agile-workflow:release-deploy as the final
+  gate.
 ---
 
 # Gate-Patterns
@@ -21,15 +19,12 @@ pattern discovery runs inside a **deep pattern-discovery sub-agent**; your role
 is to prepare the bundle context, dispatch the sub-agent, and write the pattern
 files + index it returns.
 
-Sub-agent strength is explicit:
-- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
-  `subagent_type: "general-purpose"`.
-- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
-  high`; use `xhigh` only for large/polyglot bundles, architecture-wide pattern
-  extraction, or conflicting pattern catalogs.
-- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for deep pattern
-  discovery when hosted in Pi and available; otherwise use the same-host
-  read-only analysis fallback.
+Sub-agent strength is explicit: spawn exactly one read-only deep
+pattern-discovery sub-agent with the strongest reviewer setting the host
+exposes. Use extra-high reasoning only for large/polyglot bundles,
+architecture-wide pattern extraction, or conflicting pattern catalogs. If the
+host has no sub-agent path, run discovery inline and record the reduced
+isolation in the release body.
 
 This is NOT about coding style or naming conventions (that's `AGENTS.md` /
 `CLAUDE.md`'s job). This is about identifying structural patterns for
@@ -94,12 +89,11 @@ done < /tmp/bundle-items-<version>.txt | sort -u > /tmp/bundle-files-<version>.t
 
 ### Phase 3: Dispatch the discovery sub-agent
 
-Spawn ONE deep pattern-discovery sub-agent with the full discovery brief. For
-Claude Code, this is `Agent(subagent_type=general-purpose, model=opus)`. For
-Codex, use `reasoning_effort: high`, escalating to `xhigh` for large/polyglot
-bundles, architecture-wide pattern extraction, or conflicting catalogs. For Pi,
-use a native `reviewer` or `oracle` subagent when available; otherwise use the
-same-host read-only analysis fallback. The sub-agent runs parallel pattern searches, filters to
+Spawn ONE read-only deep pattern-discovery sub-agent with the full discovery
+brief. Use the strongest reviewer setting the host exposes, escalating for
+large/polyglot bundles, architecture-wide pattern extraction, or conflicting
+catalogs. If sub-agents are unavailable, run discovery inline and record the
+reduced isolation in the release body. The sub-agent runs parallel pattern searches, filters to
 genuine 3+ occurrences, drafts pattern documentation, and returns
 structured output.
 

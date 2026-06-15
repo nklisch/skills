@@ -1,16 +1,14 @@
 ---
 name: scope
 description: >
-  ALWAYS invoke this skill when the user asks to scope, promote, formalize, cluster,
-  or track new work — do not start drafting items inline. Promotes ideas from
-  .work/backlog/ or fresh user requests into the active tier as epics, features, or
-  stories with declared dependencies. Use when scoping new work, formalizing a new
-  direction, clustering backlog, or promoting an idea into tracking. Triggers on
-  "scope this", "scope it", "let's scope", "scope <id>", "scope the backlog",
-  "promote this", "let's track this", "this should be a feature/epic/story", or any
-  request to formalize a new direction. For vision/spec/architecture changes, also
-  rolls foundation docs forward in the same stride.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
+  ALWAYS invoke this skill when the user asks to scope, promote, formalize, cluster, or track new work
+  — do not start drafting items inline. Promotes ideas from .work/backlog/ or fresh user requests into
+  the active tier as epics, features, or stories with declared dependencies. Use when scoping new
+  work, formalizing a new direction, clustering backlog, or promoting an idea into tracking. Triggers
+  on "scope this", "scope it", "let's scope", "scope this item", "scope the backlog", "promote this",
+  "let's track this", "this should be a feature/epic/story", or any request to formalize a new
+  direction. For vision/spec/architecture changes, also rolls foundation docs forward in the same
+  stride.
 ---
 
 # Scope
@@ -48,7 +46,7 @@ an idea without acting on it, use `/agile-workflow:park`.
 fresh idea, treat as single-idea mode; if it reads like a filter directive over
 the backlog (mentions tags, areas, themes, or "everything that..."), treat as
 batch-filter mode. When genuinely ambiguous, prefer batch-filter mode and
-confirm via `AskUserQuestion` before writing — a bigger read costs nothing, but
+confirm via `structured question tool` before writing — a bigger read costs nothing, but
 a fresh idea misread as a filter wastes user time.
 
 ## Workflow — batch / clustering mode
@@ -79,19 +77,17 @@ Read `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `.work/CONVENTION
 and `AGENTS.md` / `CLAUDE.md`. One pass, skim — you're orienting, not absorbing every detail.
 You'll re-read selectively for large clusters in Phase B5.
 
-### Phase B3: Map code areas (read-first, maybe one Explore agent)
+### Phase B3: Map code areas (read-first, maybe one exploratory sub-agent)
 
 Start locally. Use Glob/`rg --files` to identify likely modules, packages, and
 tests, and Grep/`rg` for terms from the targeted backlog ideas. If the ideas
 clearly touch a small set of known areas, build the area-map yourself and skip
-Explore.
+exploratory fanout.
 
-Spawn **one** read-only Explore sub-agent only when the batch spans unclear code
-areas or you cannot confidently name the natural seams from direct reading. For
-Claude Code, use the Explore/Agent shape. For Codex, use an `explorer`
-sub-agent with `reasoning_effort: medium`. For Pi, use a native `scout` or
-`context-builder` subagent when available; otherwise keep the area-map in the
-host session.
+Spawn **one** read-only exploratory sub-agent only when the batch spans unclear
+code areas or you cannot confidently name the natural seams from direct reading.
+Use the host's medium-effort read-only exploration path. If no sub-agent path is
+available, keep the area-map in the host session.
 Give it:
 - The list of targeted backlog ideas (id + brief, one per line)
 - A one-paragraph summary of the foundation docs from Phase B2
@@ -157,7 +153,7 @@ question for the Phase B7 gate, offering per leftover:
 
 ### Phase B7: Confirm with the user (single round-trip)
 
-Make **one** `AskUserQuestion` call covering all of the below (the tool accepts
+Make **one** `structured question tool` call covering all of the below (the tool accepts
 1-4 questions per call):
 
 1. **Cluster structure** — present each cluster (ids included, proposed kind,
@@ -272,7 +268,7 @@ already pin every strategic choice. For small (story) and medium (feature)
 scope, the bar is higher — only ask if a strategic ambiguity genuinely
 affects framing; otherwise skip directly to Phase 2.
 
-Use `AskUserQuestion` to ask. Capture answers in the item body under a
+Use `structured question tool` to ask. Capture answers in the item body under a
 `## Strategic decisions` section so the downstream design family inherits
 the locked-in direction:
 
@@ -473,10 +469,10 @@ In conversation:
   feature to `implementing` at scope time — `design` does that when it advances.
 - Do NOT pre-bind to a release. `release_binding` stays `null` until
   `/agile-workflow:release-deploy` runs.
-- If sizing is genuinely unclear after Phase 2, ask the user via AskUserQuestion
+- If sizing is genuinely unclear after Phase 2, ask the user via structured question tool
   rather than guessing.
 - **Batch mode: one confirmation gate, not many.** Phase B7 is a single
-  `AskUserQuestion` call (up to 4 questions). Apply NL adjustments from the
+  `structured question tool` call (up to 4 questions). Apply NL adjustments from the
   user's reply and proceed — do not loop on a second confirmation round.
 - **Batch mode: read-first in Phase B3.** Use direct mapping when the backlog
   ideas touch obvious areas. If an agent is needed, use one medium-breadth

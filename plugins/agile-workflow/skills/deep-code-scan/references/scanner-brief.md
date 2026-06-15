@@ -10,15 +10,13 @@ body). Read it and honor it; the guidance below is what each tier means, with `m
 default. Whatever the scanner tier, the cross-model **gauntlet** (Verification) still runs on a
 *different* class — independence there is non-negotiable.
 
-Single-model fan-out gives single-model blind spots, so the default `mixed` tier spreads the wave
-across model classes:
-
-- **Claude Code / Anthropic** — `mixed` = `model: opus` on dense/subtle/high-altitude components +
-  `model: sonnet` on smaller/leaf components and high-volume waves. `opus` / `sonnet` tiers pin all
-  scanners to that one model. Never haiku for scanning.
-- **Codex / OpenAI** — `codex-high` = `reasoning_effort: high`; `codex-xhigh` for high-altitude
-  bands or high-risk components (concurrency, data-layer, auth).
-- **Pi** — native read-only `reviewer` / `oracle` subagents; same-host read-only fallback otherwise.
+Single-model fan-out gives single-model blind spots, so the default `mixed`
+tier spreads the wave across the host's available model classes or reasoning
+settings. Use stronger reviewer reasoning on dense, subtle, high-altitude, or
+high-risk components; use the capable default for smaller leaf components and
+high-volume waves. The `codex-high` and `codex-xhigh` tiers map directly to
+Codex high and extra-high reasoning; other hosts should map those tiers to
+their closest read-only reviewer/scanner settings.
 
 The cross-model **adversarial** pass (Verification, `rigor ≥ standard`) should run on a *different*
 model class than the bulk of the scanners — that is where `peeragent` fits, and it is pre-approved
@@ -30,7 +28,7 @@ for cross-review.
 - Each scanner is scoped to **its component's file list only**, plus the **inherited findings** from
   the band below (so wider scans reason about interactions, not re-find leaf bugs).
 - If a scanner errors, record it as a coverage gap in the story body — do not blind-retry.
-- If a scanner returns >25 findings, ask it (SendMessage) to keep the top 25 by severity; a flood
+- If a scanner returns >25 findings, ask it to keep the top 25 by severity; a flood
   usually means pattern over-matching.
 
 ## Scanner brief template

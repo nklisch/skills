@@ -1,2 +1,6 @@
+interface:
+  display_name: "Epicize"
+  short_description: "Use Epicize for repo workflows"
+  default_prompt: "Use $epicize for this repository."
 policy:
   allow_implicit_invocation: false

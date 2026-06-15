@@ -1,9 +1,8 @@
 ---
 name: biome-v2
 description: >
-  Biome v2 linter/formatter reference. Auto-loads when working with biome.json,
-  biome config, linting rules, formatting, import organization, biome check.
-user-invocable: false
+  Biome v2 linter/formatter reference. Auto-loads when working with biome.json, biome config, linting
+  rules, formatting, import organization, biome check.
 ---
 
 # Biome Reference

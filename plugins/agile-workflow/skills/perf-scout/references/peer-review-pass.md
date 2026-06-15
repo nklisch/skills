@@ -47,10 +47,10 @@ failure, or exceeds a timeout chosen for Opus-scale review work.
 
 **Fallback — fresh max-effort sub-agent.** Use this when peeragent is
 unavailable, the wrapper returns `failed`/`blocked`, or the only peer would be the
-same model class. Spawn one in-harness agent at the highest model
-(Claude → `Agent(subagent_type=general-purpose, model=opus)`) and give it **only**
-the codebase, the lens catalog (`references/`), and the idea deck — deliberately
-NOT your scouts' reasoning or notes — so it reviews with independent context.
+same model class. Spawn one in-harness agent at the strongest reviewer setting
+and give it **only** the codebase, the lens catalog (`references/`), and the idea
+deck — deliberately NOT your scouts' reasoning or notes — so it reviews with
+independent context.
 Context isolation is what buys independence when model diversity isn't available.
 Frame it explicitly as an adversarial gap-finder (same three asks below).
 

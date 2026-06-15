@@ -1,2 +1,6 @@
+interface:
+  display_name: "Perf Scout"
+  short_description: "Use Perf Scout for repo workflows"
+  default_prompt: "Use $perf-scout for this repository."
 policy:
   allow_implicit_invocation: false

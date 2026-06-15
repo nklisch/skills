@@ -1,11 +1,9 @@
 ---
 name: claude-cli-sdk
 description: >
-  @nklisch/claude-cli-sdk reference. Auto-loads when working with this SDK —
-  spawns Claude CLI as a subprocess using Pro/Max billing (no API key needed).
-  Trigger on imports from '@nklisch/claude-cli-sdk', or when user asks to use
-  the SDK.
-user-invocable: false
+  @nklisch/claude-cli-sdk reference. Auto-loads when working with this SDK — spawns Claude CLI as a
+  subprocess using Pro/Max billing (no API key needed). Trigger on imports from
+  '@nklisch/claude-cli-sdk', or when user asks to use the SDK.
 ---
 
 # @nklisch/claude-cli-sdk Reference

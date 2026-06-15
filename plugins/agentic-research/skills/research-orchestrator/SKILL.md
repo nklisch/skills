@@ -1,10 +1,13 @@
 ---
 name: research-orchestrator
-description: "Dynamic research-engagement entry point for the .research/ substrate. Reads the engagement's dials (scope_authority, verification_rigor), sets them with the user at kickoff, discovers fan-out topology from the seed (one inline pass to N specialists), and walks the ARD decision-graph at the dialed verification depth. Use for any grounded research engagement: focused single-pass, breadth survey, multi-specialist decomposition, or program-scale. Honors the ARD SPEC invariants (anti-fabrication floor, verification stack, registration); this is one deployment of ARD on the Claude agent system."
-argument-hint: "[seed] [--scope-authority pre-registered|mixed|in-engagement-judgment] [--rigor floor|standard|full]"
-allowed-tools: Read, Write, Glob, Grep, Bash, WebSearch, WebFetch, Agent
-model: opus
-user-invocable: true
+description: >
+  Dynamic research-engagement entry point for the .research/ substrate. Reads the engagement's dials
+  (scope_authority, verification_rigor), sets them with the user at kickoff, discovers fan-out
+  topology from the seed (one inline pass to N specialists), and walks the ARD decision-graph at the
+  dialed verification depth. Use for any grounded research engagement: focused single-pass, breadth
+  survey, multi-specialist decomposition, or program-scale. Honors the ARD SPEC invariants
+  (anti-fabrication floor, verification stack, registration); this is one deployment of ARD on the
+  Claude agent system.
 ---
 
 # Research Orchestrator
@@ -96,7 +99,7 @@ synthesis, and `adversarial-read` *after* it (§10.1).
 ## Kickoff + checkpoints (conversational HITL)
 
 The human-in-the-loop points are **conversational turns**, not tool calls — surface the
-content as a message, wait for the reply, honor it. **Do not use `AskUserQuestion`** (it is
+content as a message, wait for the reply, honor it. **Do not use `structured question tool`** (it is
 deliberately absent from `allowed-tools`).
 
 - **Kickoff** (every path, before `decompose`) — propose the dials + reasoning + the

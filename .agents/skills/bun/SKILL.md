@@ -1,6 +1,11 @@
 ---
 name: bun
-description: Reference for Bun runtime APIs used in this project. Use this skill whenever writing code that runs shell commands (Bun.$ or Bun.spawn), reading/writing files (Bun.file/Bun.write), running tests (bun test), or configuring the monorepo (workspaces, bunfig.toml). Prefer Bun APIs over Node.js equivalents — use Bun.$ instead of child_process, Bun.file() instead of fs.readFile, bun:test instead of jest.
+description: >
+  Reference for Bun runtime APIs used in this project. Use this skill whenever writing code that runs
+  shell commands (Bun.$ or Bun.spawn), reading/writing files (Bun.file/Bun.write), running tests (bun
+  test), or configuring the monorepo (workspaces, bunfig.toml). Prefer Bun APIs over Node.js
+  equivalents — use Bun.$ instead of child_process, Bun.file() instead of fs.readFile, bun:test
+  instead of jest.
 ---
 
 # Bun Runtime Reference

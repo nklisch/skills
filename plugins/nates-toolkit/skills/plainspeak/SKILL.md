@@ -1,19 +1,15 @@
 ---
 name: plainspeak
-description: >-
-  On-demand plain-language re-explainer. When the user runs /plainspeak, take
-  the LAST substantive thing in the conversation — a decision, design, summary,
-  or explanation just produced — and re-render it in vivid, plain language built
-  around one central everyday metaphor, one concrete example, and a crisp
-  restatement of the actual point. It first asks how deep the reader wants it
-  (gist / standard / deep dive), then writes to that depth. Manual only: invoke
-  ONLY when the user
-  explicitly runs /plainspeak. Do NOT auto-trigger from words like "explain",
-  "simplify", "ELI5", or "what does this mean" — the user reaches for this
-  deliberately when they want the last bit made plain. This is a writing move,
-  not a research task: explain what was just said, do not go re-investigate it.
-user-invocable: true
-disable-model-invocation: true
+description: >
+  On-demand plain-language re-explainer. When the user runs /plainspeak, take the LAST substantive
+  thing in the conversation — a decision, design, summary, or explanation just produced — and
+  re-render it in vivid, plain language built around one central everyday metaphor, one concrete
+  example, and a crisp restatement of the actual point. It first asks how deep the reader wants it
+  (gist / standard / deep dive), then writes to that depth. Manual only: invoke ONLY when the user
+  explicitly runs /plainspeak. Do NOT auto-trigger from words like "explain", "simplify", "ELI5", or
+  "what does this mean" — the user reaches for this deliberately when they want the last bit made
+  plain. This is a writing move, not a research task: explain what was just said, do not go
+  re-investigate it.
 ---
 
 # plainspeak
@@ -34,7 +30,7 @@ as a two-sentence "got it" or a full guided tour, and only the reader knows whic
 one they're after right now. Asking first respects their time and saves you from
 over- or under-shooting — a wasted page is worse than a five-second question.
 
-Make it your first action: call AskUserQuestion with one question — *"How deep do
+Make it your first action: call structured question tool with one question — *"How deep do
 you want this?"* — and these three levels:
 
 - **Gist** — the metaphor, the parts it maps to, the one-sentence punchline, a
@@ -50,7 +46,7 @@ Two shortcuts so the gate never becomes friction:
 - If the invocation already names a depth (`/plainspeak quick`, "give me the deep
   version"), honor it and skip the question.
 - If it's genuinely unclear *which* recent thing they mean, fold that in — ask
-  "which thing?" and "how deep?" in the same AskUserQuestion round (it takes more
+  "which thing?" and "how deep?" in the same structured question tool round (it takes more
   than one question) so you only interrupt once.
 
 The depth gate sets the *ceiling* on structure. The lean rule below still governs

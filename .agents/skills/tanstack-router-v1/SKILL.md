@@ -1,9 +1,8 @@
 ---
 name: tanstack-router-v1
 description: >
-  TanStack Router v1 reference. Auto-loads when working with createFileRoute,
-  file-based routing, useNavigate, useParams, useSearch, Link, route loaders.
-user-invocable: false
+  TanStack Router v1 reference. Auto-loads when working with createFileRoute, file-based routing,
+  useNavigate, useParams, useSearch, Link, route loaders.
 ---
 
 # TanStack Router Reference

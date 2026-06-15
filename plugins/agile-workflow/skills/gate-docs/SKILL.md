@@ -1,14 +1,12 @@
 ---
 name: gate-docs
 description: >
-  Documentation gate that enforces the rolling-foundation principle. Delegates
-  the full drift detection to a deep documentation-audit sub-agent which scans the bundle's
-  changes for foundation-doc drift (assertions in docs/ that no longer match
-  implementation), changelog gaps, README staleness, and skill/pattern-skill
-  staleness. The orchestrator converts findings into items in .work/active/
-  with gate_origin:docs and tags:[documentation]. Auto-triggers during
+  Documentation gate that enforces the rolling-foundation principle. Delegates the full drift
+  detection to a deep documentation-audit sub-agent which scans the bundle's changes for
+  foundation-doc drift (assertions in docs/ that no longer match implementation), changelog gaps,
+  README staleness, and skill/pattern-skill staleness. The orchestrator converts findings into items
+  in .work/active/ with gate_origin:docs and tags:[documentation]. Auto-triggers during
   /agile-workflow:release-deploy.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 ---
 
 # Gate-Docs
@@ -23,14 +21,11 @@ The actual drift detection runs inside a **deep documentation-audit sub-agent**;
 your role is to prepare the bundle context, dispatch the sub-agent, and convert
 the findings it returns into items that will roll the docs forward.
 
-Sub-agent strength is explicit:
-- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
-  `subagent_type: "general-purpose"`.
-- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
-  high`; use `xhigh` for large documentation surfaces or broad API drift.
-- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the deep
-  documentation audit when hosted in Pi and available; otherwise use the
-  same-host read-only analysis fallback.
+Sub-agent strength is explicit: spawn exactly one read-only deep documentation
+audit sub-agent with the strongest reviewer setting the host exposes. Use
+extra-high reasoning for large documentation surfaces or broad API drift. If the
+host has no sub-agent path, run the audit inline and record the reduced
+isolation in the release body.
 
 ## Trigger
 
@@ -69,11 +64,10 @@ Capture the set of `(doc-file:line, drift-category)` already-tracked findings.
 
 ### Phase 3: Dispatch the drift-detection sub-agent
 
-Spawn ONE deep documentation-audit sub-agent with the full drift-detection
-brief. For Claude Code, this is `Agent(subagent_type=general-purpose,
-model=opus)`. For Codex, use `reasoning_effort: high`, or `xhigh` for large
-documentation surfaces. For Pi, use a native `reviewer` or `oracle` subagent
-when available; otherwise use the same-host read-only analysis fallback. The sub-agent maps the doc structure, classifies the
+Spawn ONE read-only deep documentation-audit sub-agent with the full
+drift-detection brief. Use the strongest reviewer setting the host exposes,
+escalating for large documentation surfaces. If sub-agents are unavailable, run
+the audit inline and record the reduced isolation in the release body. The sub-agent maps the doc structure, classifies the
 bundle's changes, runs parallel drift checks, and returns structured
 findings.
 

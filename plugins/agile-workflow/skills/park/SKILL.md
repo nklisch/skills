@@ -1,14 +1,12 @@
 ---
 name: park
 description: >
-  ALWAYS invoke this skill when the user wants to capture an idea for later without
-  derailing current work — do not start working on the parked idea inline. Captures
-  short ideas, richer context notes, or roadmap-style multi-arc thoughts into the
-  agile-workflow backlog at .work/backlog/<id>.md with minimal frontmatter. Use when
-  a new direction surfaces mid-flow and you shouldn't derail what's currently in
-  progress. Triggers on "park this", "park it", "remind me about X", "add to
-  backlog", "we should consider Y", "save this for later", "let's not lose this".
-allowed-tools: Read, Write, Bash
+  ALWAYS invoke this skill when the user wants to capture an idea for later without derailing current
+  work — do not start working on the parked idea inline. Captures short ideas, richer context notes,
+  or roadmap-style multi-arc thoughts into the agile-workflow backlog under .work/backlog/ with
+  minimal frontmatter. Use when a new direction surfaces mid-flow and you shouldn't derail what's
+  currently in progress. Triggers on "park this", "park it", "remind me about X", "add to backlog",
+  "we should consider Y", "save this for later", "let's not lose this".
 ---
 
 # Park

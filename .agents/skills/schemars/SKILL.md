@@ -1,10 +1,10 @@
 ---
 name: schemars
-description: "Research findings on the schemars Rust crate for JSON Schema generation.
-  Auto-loads when working with schemars, JsonSchema derive macro, json_schema! macro,
-  schema_for!, SchemaSettings, SchemaGenerator, JSON Schema from Rust types,
-  schemars attributes, schemars feature flags, or migrating from schemars 0.8 to 1.x."
-user-invocable: false
+description: >
+  Research findings on the schemars Rust crate for JSON Schema generation. Auto-loads when working
+  with schemars, JsonSchema derive macro, json_schema! macro, schema_for!, SchemaSettings,
+  SchemaGenerator, JSON Schema from Rust types, schemars attributes, schemars feature flags, or
+  migrating from schemars 0.8 to 1.x.
 ---
 
 # Research: schemars

@@ -1,15 +1,12 @@
 ---
 name: refactor-design
 description: >
-  ALWAYS invoke this skill when the user asks to scan for refactor opportunities,
-  plan a refactor, or design a [refactor]-tagged feature. Discovery mode scans
-  code smells, separates pure refactors from behavior changes, and emits
-  substrate items. Per-feature mode plans an existing [refactor] feature at
-  stage:drafting, writes the plan into the feature body, spawns child stories
-  with depends_on chains, and advances drafting -> implementing. Uses sensible
-  built-in refactor heuristics by default, and extends them with a
-  project-specific refactor-conventions catalog when present.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
+  ALWAYS invoke this skill when the user asks to scan for refactor opportunities, plan a refactor, or
+  design a [refactor]-tagged feature. Discovery mode scans code smells, separates pure refactors from
+  behavior changes, and emits substrate items. Per-feature mode plans an existing [refactor] feature
+  at stage:drafting, writes the plan into the feature body, spawns child stories with depends_on
+  chains, and advances drafting to implementing. Uses sensible built-in refactor heuristics by
+  default, and extends them with a project-specific refactor-conventions catalog when present.
 ---
 
 # Refactor-Design
@@ -143,12 +140,12 @@ drafting features. Iterate over the target set:
 
 1. Read the feature; skip if not `[refactor]`-tagged or not at `stage: drafting`
 2. Light ground (foundation docs + AGENTS.md / CLAUDE.md)
-3. Read-first map of the feature's area; use one Explore sub-agent only if the
+3. Read-first map of the feature's area; use one exploratory sub-agent only if the
    area is still unclear. Include `.agents/skills/refactor-conventions/` as
    context when present.
 4. Surface strategic ambiguities specific to the refactor (e.g., "preserve API
    shape or break consumers?", "in-place or shadow-then-swap?", "rollback
-   strategy when atomic?"). Use AskUserQuestion.
+   strategy when atomic?"). Use structured question tool.
 5. Capture answers under `## Design decisions` in the feature body
 6. Do NOT design or advance stage — let the design family pick up later
 7. Commit per feature: `refactor-design --only-questions: <id>`
@@ -193,21 +190,19 @@ The principles skill auto-loads. Read:
 
 ### Phase 3: Code-smell scan
 
-Run a read-first scope-size probe before spawning Explore agents. If the
+Run a read-first scope-size probe before spawning exploratory sub-agents. If the
 refactor target is a bounded module or small file set, inspect it directly
-across the lenses below and skip Explore. If one area is unclear, use one
-focused Explore agent. Use parallel Explore only when the lenses need separate
+across the lenses below and skip exploratory fanout. If one area is unclear, use one
+focused exploratory sub-agent. Use parallel exploratory sub-agents only when the lenses need separate
 attention across a medium/large target.
 
 The first four scan axes are mandatory. Run them even when a project-specific
 refactor-conventions catalog exists. The catalog adds a fifth scan axis; it
 does not narrow or disable the default refactor judgment.
 
-- **Claude Code / Anthropic:** Task/Explore with Sonnet minimum; use Opus for
-  large or architecture-heavy refactors.
-- **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`
-  for focused scans, `high` for normal refactor discovery, and `xhigh` only for
-  large or architecture-heavy refactors.
+- Use the host's read-only exploratory sub-agent path with medium reasoning for
+  focused scans, high reasoning for normal refactor discovery, and strongest
+  reviewer reasoning only for large or architecture-heavy refactors.
 - **Pi path:** use native Pi `scout` or `context-builder` subagents for
   read-only refactor discovery when hosted in Pi and available; otherwise keep
   host-local scan fallback.

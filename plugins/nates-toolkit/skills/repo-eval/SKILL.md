@@ -1,13 +1,11 @@
 ---
 name: repo-eval
 description: >
-  Multi-dimensional codebase evaluation with verified scoring. Launches parallel
-  explore agents, cross-checks findings with direct verification, produces calibrated
-  1-10 scorecard across architecture, code quality, testing, documentation, CI/CD,
-  error handling, security, DX, and maintainability with prioritized recommendations.
-  Use when user asks to evaluate, audit, score, or review a repository holistically.
-user-invocable: true
-allowed-tools: Read, Glob, Grep, Bash, Agent, Write, AskUserQuestion
+  Multi-dimensional codebase evaluation with verified scoring. Launches parallel exploratory sub-agents,
+  cross-checks findings with direct verification, produces calibrated 1-10 scorecard across
+  architecture, code quality, testing, documentation, CI/CD, error handling, security, DX, and
+  maintainability with prioritized recommendations. Use when user asks to evaluate, audit, score, or
+  review a repository holistically.
 ---
 
 # Repo Eval
@@ -39,13 +37,10 @@ Score all 9 by default. User may opt out via arguments.
 
 ## Phase 1: Parallel Exploration
 
-Launch 4 explore agents in parallel. Agent strength is explicit:
-
-- **Claude Code / Anthropic:** use `model: "opus"` for all agents (minimum
-  `"sonnet"` — never use haiku for evaluation). Each agent is a
-  `general-purpose` type.
-- **Codex / OpenAI:** use `explorer` sub-agents with `reasoning_effort: high`;
-  use `xhigh` for very large, polyglot, or architecture-heavy repositories.
+Launch 4 exploratory sub-agents in parallel. Agent strength is explicit: use the
+strongest reviewer/explorer setting the host exposes; use extra-high reasoning
+for very large, polyglot, or architecture-heavy repositories. Do not use a cheap
+or lightweight model for evaluation.
 
 Give each agent a **complete, standalone brief** — they have no conversation context.
 Include the repo path and any scope restrictions from the user's arguments.
@@ -180,12 +175,12 @@ The report must include:
 
 Present the full report in conversation. Then:
 
-**AskUserQuestion checkpoint**: Ask whether to save the report to a markdown file.
+**structured question tool checkpoint**: Ask whether to save the report to a markdown file.
 If yes, write to `REPO-EVAL.md` in the project root (or user-specified path).
 
 ### Phase 4: File findings as substrate items (if substrate exists)
 
-If `.work/CONVENTIONS.md` is present, ask one more `AskUserQuestion`: should the
+If `.work/CONVENTIONS.md` is present, ask one more `structured question tool`: should the
 top recommendations be filed as substrate items?
 
 Options:

@@ -1,21 +1,17 @@
 ---
 name: perf-scout
 description: >
-  Cross-domain performance *idea* generator — a speculative brainstorm engine,
-  not a profiler. Use when the user asks for performance ideas, optimization
-  angles, "how could this be faster", "what would a game engine / database / GPU
-  do here", a perf brainstorm, "ways to speed this up", or a broad sweep of
-  possible speedups. Fans parallel highest-thinking-model scouts across strategy
-  lenses (algorithmic, memory/locality, parallelism/SIMD, GPU, caching, I/O,
-  distributed, game-engine, database internals, compiler/runtime, approximation),
-  each surfacing *candidate* optimizations borrowed from demanding domains as
-  unvalidated hypotheses — never asserting gains are real. Then a different model
-  class (via peeragent, or a fresh max-effort sub-agent) prunes weak ideas and
-  surfaces missed angles. Writes a ranked report and parks ideas to .work/.
-  Distinct from perf-design (which measures and asserts — hand validated ideas
-  there), bug-scan (correctness), and refactor-design (structure).
-user-invocable: true
-allowed-tools: Read, Glob, Grep, Bash, Agent, WebSearch, WebFetch, Write, Edit, AskUserQuestion
+  Cross-domain performance *idea* generator — a speculative brainstorm engine, not a profiler. Use
+  when the user asks for performance ideas, optimization angles, "how could this be faster", "what
+  would a game engine / database / GPU do here", a perf brainstorm, "ways to speed this up", or a
+  broad sweep of possible speedups. Fans parallel highest-thinking-model scouts across strategy lenses
+  (algorithmic, memory/locality, parallelism/SIMD, GPU, caching, I/O, distributed, game-engine,
+  database internals, compiler/runtime, approximation), each surfacing *candidate* optimizations
+  borrowed from demanding domains as unvalidated hypotheses — never asserting gains are real. Then a
+  different model class (via peeragent, or a fresh max-effort sub-agent) prunes weak ideas and
+  surfaces missed angles. Writes a ranked report and parks ideas to .work/. Distinct from perf-design
+  (which measures and asserts — hand validated ideas there), bug-scan (correctness), and
+  refactor-design (structure).
 ---
 
 # Perf-Scout
@@ -58,21 +54,12 @@ on a deadline never reaches for. This skill's job is to reach for all of them.
 ## Highest-thinking-model mandate
 
 Idea quality scales hard with model strength, and this skill deliberately trades
-tokens for insight. Run **every** sub-agent at maximum:
-
-- **Claude Code / Anthropic:** every scout and the fallback reviewer use
-  `Agent(subagent_type=general-purpose, model=opus)`. No `sonnet`/`haiku`
-  downgrades anywhere in this skill — not for "simple" lenses, not for research.
-- **Codex / OpenAI:** every scout uses an analysis sub-agent with
-  `reasoning_effort: xhigh` (not `high`). These are read-only ideation agents.
-- **Pi path:** use native Pi `scout` or `context-builder` subagents for scout
-  fanout and a `reviewer` or `oracle` subagent for same-harness fallback review
-  when hosted in Pi and available. This does not replace the peeragent
-  cross-model pass.
-- **Peer pass:** the cross-model reviewer runs at the deepest effort its agent
-  supports (see Phase 5). If this launches Claude Opus through peeragent, a
-  large deck review can take 10 to 30 minutes; do not assume a quiet process has
-  hung after only a few minutes.
+tokens for insight. Run **every** sub-agent at maximum: use the host's strongest
+read-only scout/reviewer setting, and use extra-high reasoning where the host
+exposes it. Do not downgrade "simple" lenses. This does not replace the
+peeragent cross-model pass: the peer reviewer still runs at the deepest effort
+its agent supports (see Phase 5). Large deck reviews can take 10 to 30 minutes;
+do not assume a quiet process has hung after only a few minutes.
 
 If you ever feel tempted to save tokens by downgrading a model here, don't — that
 trade is the opposite of what this skill is for.
@@ -139,7 +126,7 @@ brief.
 Map the detected stack and workload shape to the 11 lenses. Mark each **most
 relevant**, **relevant**, or **skip**.
 
-**AskUserQuestion checkpoint** (multi-select): show the lenses with relevance
+**structured question tool checkpoint** (multi-select): show the lenses with relevance
 annotations. Recommend the most-relevant set for a focused scout, or all 11 for a
 full cross-domain sweep. Default to all "most relevant" + "relevant" if the user
 doesn't pick. If invoked with `--lenses a,b,c`, skip the prompt and use exactly
@@ -152,10 +139,9 @@ relevant to nearly all code.
 ## Phase 3: Fan-out idea generation
 
 For each selected lens, spawn **one parallel scout sub-agent in a single message**
-so they run concurrently. Claude → `Agent(subagent_type=general-purpose,
-model=opus)`. Codex → analysis sub-agent at `reasoning_effort: xhigh`. Pi →
-native `scout` or `context-builder` subagent when available, otherwise
-same-host read-only ideation fallback.
+so they run concurrently. Use the host's strongest read-only scout path and
+extra-high reasoning when available; otherwise use the same-host read-only
+ideation fallback.
 
 ### Scope (passed into every scout)
 
@@ -255,7 +241,7 @@ honest:
 
 - Dispatch all selected scouts in a **single message** (parallel).
 - If a scout errors, record it as a gap in the report — don't blindly re-run.
-- If a scout returns >20 ideas, ask it (via SendMessage) to keep the top 15 by
+- If a scout returns >20 ideas, ask it (via follow-up message) to keep the top 15 by
   Leverage × Applicability. A flood usually means generic pattern-matching rather
   than the sharp domain-borrowed ideas you want.
 
@@ -375,7 +361,7 @@ id), a "Top 5 to investigate first" callout, the cross-model peer summary
 - Path to the report; parked count + duplicates skipped (or why parking was skipped).
 - A reminder that **every idea is an unvalidated hypothesis** — nothing here is a
   measured win yet.
-- **AskUserQuestion** (next steps):
+- **structured question tool** (next steps):
   - "Hand the top idea(s) to `/agile-workflow:perf-design` to profile and validate"
   - "Promote a tier into tracked work via `/agile-workflow:scope`"
   - "Dive deeper into one lens (re-scout with `--lenses <lens>`)"

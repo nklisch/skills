@@ -1,2 +1,6 @@
+interface:
+  display_name: "Bug Scan"
+  short_description: "Use Bug Scan for repo workflows"
+  default_prompt: "Use $bug-scan for this repository."
 policy:
   allow_implicit_invocation: false

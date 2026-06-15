@@ -1,16 +1,13 @@
 ---
 name: feature-design
 description: >
-  ALWAYS invoke when the user asks to design or flesh out a feature at
-  stage:drafting; do not write design prose inline. Designs the feature inside
-  its agile-workflow item body, grounded in foundation docs and code, then
-  spawns child stories with depends_on chains and advances drafting ->
-  implementing. Use for greenfield features without [refactor], [perf],
-  [prose], or [research] tags; route [refactor] to refactor-design, [perf] to
-  perf-design, [prose] to prose-author, [research] to the agentic-research
-  research-orchestrator, and epic decomposition to epic-design. UI/UX mockups
-  are fallback here, inherited from the parent epic when available.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
+  ALWAYS invoke when the user asks to design or flesh out a feature at stage:drafting; do not write
+  design prose inline. Designs the feature inside its agile-workflow item body, grounded in foundation
+  docs and code, then spawns child stories with depends_on chains and advances drafting to
+  implementing. Use for greenfield features without [refactor], [perf], [prose], or [research] tags;
+  route [refactor] to refactor-design, [perf] to perf-design, [prose] to prose-author, [research] to
+  the agentic-research research-orchestrator, and epic decomposition to epic-design. UI/UX mockups are
+  fallback here, inherited from the parent epic when available.
 ---
 
 # Feature-Design
@@ -95,7 +92,7 @@ For each feature in the target set:
    canonical when both exist. Be efficient: skim, don't exhaustively re-read
    across iterations within one session.
 3. **Map the codebase lightly** — start with direct Read/Glob/Grep over the
-   obvious area. Use one Task-tool Explore sub-agent only if local reading
+   obvious area. Use one exploratory sub-agent only if local reading
    leaves a real unknown; skip the full three-agent parallel sweep used in
    the default mode because you're not designing units.
 4. **Run Phase 4.6 (UI surface fallback)** when `ux-ui-design` is installed
@@ -103,7 +100,7 @@ For each feature in the target set:
    upstream coverage is missing). Most ask-questions runs find the parent
    epic already mocked and skip here.
 5. **Surface ambiguities** — run Phase 4.5 as written above, but always in
-   the interactive branch (use `AskUserQuestion`). Do not resolve with
+   the interactive branch (use `structured question tool`). Do not resolve with
    judgment — the whole point of this mode is to capture user answers.
 6. **Capture answers** — append (or merge into existing) `## Design
    decisions` in the feature body:
@@ -165,7 +162,7 @@ Read:
 
 ### Phase 3: Map the codebase
 
-Run a read-first scope-size probe before spawning Explore agents:
+Run a read-first scope-size probe before spawning exploratory sub-agents:
 
 1. Use Glob/`rg --files` to identify likely directories, entry points, and
    existing tests.
@@ -175,21 +172,17 @@ Run a read-first scope-size probe before spawning Explore agents:
 
 Then choose the dispatch size:
 
-- **Small/bounded feature** — known module or a few obvious files: skip Explore
+- **Small/bounded feature** — known module or a few obvious files: skip exploratory fanout
   and use direct reading.
 - **Medium/unclear feature** — one area but uncertain patterns: spawn one
-  read-only Explore agent with a combined brief.
+  read-only exploratory sub-agent with a combined brief.
 - **Broad/cross-cutting feature** — distinct structure, interface, and test
-  questions across separate areas: spawn parallel read-only Explore sub-agents.
+  questions across separate areas: spawn parallel read-only exploratory sub-agents.
 
-For Explore:
-- **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
-  or complex codebases.
-- **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`;
-  use `high` for large or complex codebases.
-- **Pi path:** use native Pi `scout` or `context-builder` subagents for
-  read-only mapping when hosted in Pi and available; otherwise keep direct
-  host-local mapping.
+For exploratory fanout:
+- Use the host's read-only exploratory sub-agent path with medium reasoning by default.
+- Use high or strongest reviewer reasoning for large or complex codebases.
+- If no sub-agent path is available, keep the bounded mapping in the host session.
 
 Possible prompts:
 1. **Codebase Structure** — directory layout, modules, entry points, exports
@@ -262,7 +255,7 @@ locked-in answers as inputs — do NOT re-ask them.
 
 In every other invocation — including direct user invocation under harness
 auto mode (`permissions.defaultMode: "auto"`) — ask the user via
-`AskUserQuestion` before locking in. Harness-level "work without pausing"
+`structured question tool` before locking in. Harness-level "work without pausing"
 reminders do **not** suppress these checkpoints. See `principles/SKILL.md`
 Part III for the full caller-awareness rule.
 

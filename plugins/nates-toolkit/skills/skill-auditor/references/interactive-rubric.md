@@ -6,14 +6,14 @@ Additional criteria for **interactive** skills (user interview + artifact produc
 
 | Score | Criteria |
 |-------|----------|
-| 5 | Clear ask-vs-talk distinction; AskUserQuestion at decisions only; conversational for exploration |
+| 5 | Clear ask-vs-talk distinction; structured question tool at decisions only; conversational for exploration |
 | 4 | Good checkpoint placement; one or two could be better calibrated |
 | 3 | Checkpoints exist but some gate exploration unnecessarily or miss key decisions |
 | 2 | Over-asks (every step is a question) or under-asks (critical decisions made silently) |
-| 1 | No checkpoints, or every interaction is gated behind AskUserQuestion |
+| 1 | No checkpoints, or every interaction is gated behind structured question tool |
 
 **What to check:**
-- **Ask** (AskUserQuestion) used for: decisions that change direction, info only the user has, approval gates before writing
+- **Ask** (structured question tool) used for: decisions that change direction, info only the user has, approval gates before writing
 - **Talk** (direct output) used for: presenting findings, creative ideation, explaining tradeoffs, showing options
 - Checkpoints are labeled and their purpose is documented
 - User can override recommendations at each checkpoint
@@ -72,7 +72,7 @@ Additional criteria for **interactive** skills (user interview + artifact produc
 
 Flag these if present:
 - **Premature questioning** — asking structured questions before understanding the problem space
-- **Gating exploration** — using AskUserQuestion for ideation (should be conversational)
+- **Gating exploration** — using structured question tool for ideation (should be conversational)
 - **Writing before approval** — producing files without a confirmation checkpoint
 - **Scope drift** — no non-goals section; skill could expand indefinitely
 - **Form-filling feel** — rapid sequential questions instead of natural conversation

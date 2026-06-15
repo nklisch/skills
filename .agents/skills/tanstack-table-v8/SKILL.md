@@ -1,9 +1,8 @@
 ---
 name: tanstack-table-v8
 description: >
-  TanStack Table v8 headless table reference. Auto-loads when working with
-  useReactTable, createColumnHelper, ColumnDef, flexRender, sorting, filtering, pagination.
-user-invocable: false
+  TanStack Table v8 headless table reference. Auto-loads when working with useReactTable,
+  createColumnHelper, ColumnDef, flexRender, sorting, filtering, pagination.
 ---
 
 # TanStack Table Reference

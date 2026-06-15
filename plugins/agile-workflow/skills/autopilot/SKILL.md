@@ -1,18 +1,14 @@
 ---
 name: autopilot
 description: >
-  Goal-statement or direct-invocation queue driver for agile-workflow. Use when
-  a harness goal or user request says to run autopilot, drain ready work, finish
-  an epic, continue through .work/active/, or make autonomous progress on the
-  substrate. Reads .work/active/, picks ready items by depends_on and stage,
-  delegates to design, implement, and review skills, commits transitions, and
-  repeats until the scope is done or blocked. Before reporting complete, runs a
-  final peer-review/fresh-context completion pass and fixes or files accepted
-  findings. No /loop or --resume mechanics; the harness goal/continuation
-  feature owns long-running persistence. Epic-scoped by default; --all drains
-  all active work; free-text scope directives are allowed.
-user-invocable: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Skill
+  Goal-statement or direct-invocation queue driver for agile-workflow. Use when a harness goal or user
+  request says to run autopilot, drain ready work, finish an epic, continue through .work/active/, or
+  make autonomous progress on the substrate. Reads .work/active/, picks ready items by depends_on and
+  stage, delegates to design, implement, and review skills, commits transitions, and repeats until the
+  scope is done or blocked. Before reporting complete, runs a final peer-review/fresh-context
+  completion pass and fixes or files accepted findings. No /loop or --resume mechanics; the harness
+  goal/continuation feature owns long-running persistence. Epic-scoped by default; --all drains all
+  active work; free-text scope directives are allowed.
 ---
 
 # Autopilot
@@ -104,7 +100,7 @@ Only active items are candidates. Backlog items must be promoted through
 **Settle the implementation tier once, here at kickoff** — don't let it default
 silently per wave. If the goal/args/user named a tier (or the project fixes one in
 `.work/CONVENTIONS.md`), honor it. Otherwise, when the goal permits interaction, ask
-once (AskUserQuestion: `sonnet`/`mixed`/`opus`, or Codex `codex-medium`/`codex-high`/
+once (structured question tool: `sonnet`/`mixed`/`opus`, or Codex `codex-medium`/`codex-high`/
 `codex-xhigh`) and lock it for the whole run. Under an autonomous goal contract that
 forbids mid-run questions, use the `implement-orchestrator` default and **state the
 tier in the run summary** so a cheap-tier drain is never a silent surprise. Pass the
@@ -312,7 +308,7 @@ Narrate briefly as items advance. Final summary:
 
 ## Guardrails
 
-- Never use AskUserQuestion while an autopilot goal is actively driving the
+- Never use structured question tool while an autopilot goal is actively driving the
   delegated work. Resolve with judgment and log rationale.
 - Do not report `complete` until Phase 8 has run successfully and all accepted
   final-review findings have been fixed or filed back into the queue.

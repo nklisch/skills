@@ -1,20 +1,16 @@
 ---
 name: convert
 description: >
-  Bootstrap or sync the agile-workflow substrate. Auto-detects repo state:
-  bootstrap creates .work/, CONVENTIONS.md, the canonical AGENTS.md section,
-  Claude compatibility, work-view, and migrated items; sync refreshes
-  plugin-owned artifacts plus optional skill catalog mirrors while preserving
-  user-owned CONVENTIONS.md, refactor rules, and substrate state. `convert
-  --update` performs one-pass artifact alignment. Discovery-driven: sweeps both
-  skill roots to detect bespoke DIY skills that overlap plugin-owned concepts
-  (patterns, refactor conventions, plan-doc generators) and offers to converge
-  them to the canonical layout, deferring to the owning skill for placement.
-  Checks inbound references before moving any path and rewrites or shims them.
-  Always asks whether destructive cleanup is in scope before deleting, moving,
-  or replacing legacy artifacts; preserve-only is the default.
-user-invocable: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
+  Bootstrap or sync the agile-workflow substrate. Auto-detects repo state: bootstrap creates .work/,
+  CONVENTIONS.md, the canonical AGENTS.md section, Claude compatibility, work-view, and migrated
+  items; sync refreshes plugin-owned artifacts plus optional skill catalog mirrors while preserving
+  user-owned CONVENTIONS.md, refactor rules, and substrate state. `convert --update` performs one-pass
+  artifact alignment. Discovery-driven: sweeps both skill roots to detect bespoke DIY skills that
+  overlap plugin-owned concepts (patterns, refactor conventions, plan-doc generators) and offers to
+  converge them to the canonical layout, deferring to the owning skill for placement. Checks inbound
+  references before moving any path and rewrites or shims them. Always asks whether destructive
+  cleanup is in scope before deleting, moving, or replacing legacy artifacts; preserve-only is the
+  default.
 ---
 
 # Convert
@@ -418,7 +414,7 @@ imported. Do not create `.claude/rules/*.md` files that don't already exist.
 
 ### Phase 3: Conventions interview
 
-Run an interactive interview via AskUserQuestion. Six questions, in order:
+Run an interactive interview via structured question tool. Six questions, in order:
 
 1. **Release mapping** — `branch-held | tag-based | release-branch | none`. Default
    offered: `tag-based`. Always asked.
@@ -813,7 +809,7 @@ Heuristics for inferred default (use these to pre-fill the per-design ask):
 - In `docs/designs/`, code partially landed → `implementing`
 - In `docs/designs/`, no code yet → `drafting`
 
-Ask the user to confirm/edit the classification per design via AskUserQuestion
+Ask the user to confirm/edit the classification per design via structured question tool
 (group designs by inferred bucket if there are many, to keep the question count
 under 4-options-per-call). The body of each new feature item = the original
 design content.
@@ -832,7 +828,7 @@ bodies.
 **Sync existing substrates to delete-refs.** When converting/syncing a repo that already uses the
 substrate and `delete-refs` is selected, detect retained full-body terminal items — full bodies in
 `.work/archive/*.md` and `.work/releases/<version>/<id>.md` (anything beyond the
-`release-<version>.md` summary) — and **offer** (AskUserQuestion; never force) to prune them to
+`release-<version>.md` summary) — and **offer** (structured question tool; never force) to prune them to
 current practice. The prune ALSO stamps `archived_atop`:
 
 - archived bodies → bodyless stubs. Capture each `git_ref` from `git log -- <path>`. Stamp
@@ -848,7 +844,7 @@ Preserve-only stays the default per convert's posture.
 **Converge a bespoke "Done-item archival" convention.** A repo may already carry a hand-rolled
 `## Done-item archival` (or similarly named) section in `.work/CONVENTIONS.md` describing
 `archived_atop` late-binding. Detect it; do NOT duplicate it alongside the merged
-`Terminal-tier retention` convention. Offer (AskUserQuestion; never force) to **converge** it: fold
+`Terminal-tier retention` convention. Offer (structured question tool; never force) to **converge** it: fold
 its semantics into the one merged `Terminal-tier retention` section and remove the bespoke section,
 preserving any project-specific rules it carried (custom in-body markers, date metadata, etc.) by
 routing them to a user-owned `.agents/rules/<name>.md` rather than dropping them. The
@@ -861,7 +857,7 @@ For `docs/ROADMAP.md` phases:
    `.work/archive/epics/`. If any child is `implementing` or `review`, epic is
    at `stage: implementing`. Otherwise `stage: drafting`.
 3. Phase ordering becomes `depends_on` chains (phase 2 depends on phase 1, etc.).
-4. Confirm with the user via AskUserQuestion before committing.
+4. Confirm with the user via structured question tool before committing.
 
 For `docs/PROGRESS.md` deviation logs: fold notes into relevant items' bodies.
 
@@ -916,12 +912,12 @@ something to drain after bootstrap:
 1. **Cluster** the changed files. Start with path grouping plus `git diff
    --stat`; if the changed set is still small enough to inspect directly, read
    the relevant diffs yourself. For large or unclear sets, use a read-only
-   Explore sub-agent: "Categorize these <N> files into 1-5 coherent feature
+   exploratory sub-agent: "Categorize these <N> files into 1-5 coherent feature
    buckets by path, imports, and diff content. Report each as slug +
    one-paragraph description + file list." Pass `git status --porcelain` and
    `git diff --stat` as the sub-agent's context rather than dumping many full
    diffs into the prompt.
-2. **Confirm with the user** via AskUserQuestion (groups of 2-4 buckets if
+2. **Confirm with the user** via structured question tool (groups of 2-4 buckets if
    there are many). Allow merge / split / rename.
 3. **Scope each cluster** as `.work/active/features/feature-<slug>.md` with
    `kind: feature, stage: implementing`, body = brief + "Files in this
@@ -1226,7 +1222,7 @@ For each artifact with a non-`match` state:
 - **Scan taxonomy in CONVENTIONS (user-owned — offer, never force).** If
   `.work/CONVENTIONS.md` doesn't yet register the `deep-code-scan` reserved tags
   (`scan` + the lane/band tags) or the `scan_origin` linkage field, **offer** to add
-  them (AskUserQuestion), exactly like other convergence offers — preserving all user
+  them (structured question tool), exactly like other convergence offers — preserving all user
   content. These are documentation/taxonomy; the behavioral guarantee lives in the
   reinstalled binary, so this offer is non-blocking.
 - Entrypoint compatibility — refresh the pointer in the direction set by
@@ -1274,7 +1270,7 @@ For each artifact with a non-`match` state:
   concise `## Refactor Style Conventions` section. If the user declines, leave
   the catalog intact and report the mismatch.
 - Load-bearing tag entries in `.work/CONVENTIONS.md` — for each entry flagged
-  `drift_plugin` or `missing` in Phase S1, ask the user via `AskUserQuestion`
+  `drift_plugin` or `missing` in Phase S1, ask the user via `structured question tool`
   before rewriting:
   > "Your `.work/CONVENTIONS.md` has the old default text for the `[refactor]`
   > tag. The current plugin default tightens the definition to lock the
@@ -1288,7 +1284,7 @@ For each artifact with a non-`match` state:
   taxonomy section.
 
 - **Terminal-tier retention convention in `.work/CONVENTIONS.md`** — for the state flagged in S1
-  (`missing` / `partial` / bespoke-overlap), offer via `AskUserQuestion` (never silently rewrite
+  (`missing` / `partial` / bespoke-overlap), offer via `structured question tool` (never silently rewrite
   user-owned CONVENTIONS). A bare `delete-refs`/`retain-bodies` value is `match` and is left
   untouched — the merged prose lives in SPEC, not per project, so a bare value is canonical:
   - `missing` — "Your `.work/CONVENTIONS.md` has no `## Terminal-tier retention` value. Add it
@@ -1310,7 +1306,7 @@ For each artifact with a non-`match` state:
     section only after the content-integrity gate (Phase 1.8) confirms nothing is dropped.
 
 - **Prune retained terminal bodies to stubs (the offer)** — when S1 found retained full-body terminal
-  items and `delete-refs` is in effect, offer (`AskUserQuestion`; never force, preserve-only stays the
+  items and `delete-refs` is in effect, offer (`structured question tool`; never force, preserve-only stays the
   default) the prune-to-current-practice migration from Phase 8's "Sync existing substrates to
   delete-refs": archived bodies → bodyless stubs (capture `git_ref` from `git log -- <path>`, stamp
   `archived_atop` from the history at the archival/done commit, else `pre-release`); released bodies →

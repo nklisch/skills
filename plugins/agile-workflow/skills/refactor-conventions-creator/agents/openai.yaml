@@ -1,2 +1,6 @@
+interface:
+  display_name: "Refactor Conventions Creator"
+  short_description: "Use Refactor Conventions Creator for repo workflows"
+  default_prompt: "Use $refactor-conventions-creator for this repository."
 policy:
   allow_implicit_invocation: false

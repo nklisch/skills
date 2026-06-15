@@ -1,15 +1,12 @@
 ---
 name: substrate-binary
 description: >
-  Reference for building the agile-workflow substrate binary — the compiled
-  work-view CLI and interactive work-board web view over .work/ — in Rust.
-  Auto-loads when implementing the .work/ query core, the work-view CLI, the
-  substrate web board, cross-compilation, asset embedding, or binary
-  distribution. Triggers on work-view binary, .work query core, substrate CLI,
-  work-board server, cargo-zigbuild, rust-embed, axum board, or "bun --compile"
-  for the substrate. Carries the Rust-vs-Bun decision (2026-05) and the
-  prebuilt-binary + bash-fallback distribution pattern.
-user-invocable: false
+  Reference for building the agile-workflow substrate binary — the compiled work-view CLI and
+  interactive work-board web view over .work/ — in Rust. Auto-loads when implementing the .work/ query
+  core, the work-view CLI, the substrate web board, cross-compilation, asset embedding, or binary
+  distribution. Triggers on work-view binary, .work query core, substrate CLI, work-board server,
+  cargo-zigbuild, rust-embed, axum board, or "bun --compile" for the substrate. Carries the
+  Rust-vs-Bun decision (2026-05) and the prebuilt-binary + bash-fallback distribution pattern.
 ---
 
 # Substrate binary (Rust)

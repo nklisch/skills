@@ -1,24 +1,12 @@
 ---
 name: deep-code-scan
 description: >
-  Goal-driven, decomposition-first whole-codebase scan CAMPAIGN. Use when a scan should be a
-  planned, MULTI-LANE campaign — "audit the whole codebase across correctness, tests, perf, and
-  security", "deep scan campaign", "map the codebase and hunt for every class of issue",
-  "comprehensive multi-wave audit", "find all the issues across the repo and give me an organized
-  fix plan" — i.e. work that spans several scan lanes and/or needs decomposition + consolidation,
-  not a single pass. Interviews the user for the scan goal, lanes, rigor, and scanner agent tier;
-  decomposes the repo into altitude bands (leaf -> module -> subsystem -> system) as an
-  agile-workflow EPIC whose features are scan lanes and whose stories are altitude waves; fans out
-  multi-model scanner agents per lane and altitude (reusing bug-scan / perf-scout / repo-eval /
-  gate-tests reference knowledge); runs a multi-round cross-model review gauntlet to cull
-  false-positive, context-ignorant, and goal-fighting findings; and consolidates survivors into one
-  intelligently-bundled FIX epic. Composes the depth specialists rather than replacing them — a
-  single-domain whole-repo scan (just correctness, just perf, just tests, just security) routes to
-  the specialist (bug-scan / perf-scout / gate-tests / gate-security); reach for deep-code-scan for
-  the multi-lane campaign layer above them. Requires the agile-workflow .work/ substrate.
-user-invocable: true
-allowed-tools: Read, Glob, Grep, Bash, Agent, Skill, WebSearch, WebFetch, Write, Edit, AskUserQuestion
-model: opus
+  Multi-lane, decomposition-first codebase scan campaign for agile-workflow. Use when the user asks
+  for a deep code scan, comprehensive audit, whole-repo issue hunt, or organized fix plan that spans
+  multiple lanes such as correctness, tests, performance, security, quality, structure, or
+  architecture. Interviews for goal, lanes, rigor, scanner tier, and altitude bands; maps the repo
+  from leaf to system scope; fans out scoped scanners; runs a review gauntlet; and consolidates
+  surviving findings into one fix epic. For a single-domain scan, route to the specialist instead.
 ---
 
 # Deep Code Scan
@@ -146,8 +134,9 @@ autopilot-grabbable on this install, and get explicit user acknowledgment (or ha
 paired feature first). This is a hard checkpoint, not a footnote.
 
 ### Phase 1 — Kickoff interview (set the dials)
-Use **AskUserQuestion** (this is agile-workflow, not ARD — the structured prompt is welcome).
-Drive the conversation to settle `goal`, `lanes`, `rigor`, `scanner tier`, and `altitude bands`.
+Use the available structured question tool when the harness provides one; otherwise ask concise
+direct questions. Drive the conversation to settle `goal`, `lanes`, `rigor`, `scanner tier`, and
+`altitude bands`.
 Read enough of the repo first (languages, frameworks, top-level layout, entry points —
 `git ls-files`, manifests) to propose *grounded* lanes and bands, not generic ones. Confirm before
 proceeding.
@@ -157,7 +146,7 @@ Build the **altitude component map**: for each band, the concrete list of compon
 This is the skill's signature move — get it right and everything downstream is scoped cleanly.
 See [references/decomposition.md](references/decomposition.md) for the method (module-boundary
 detection, dependency-graph cues, `ast-grep` structural probes, how to keep the leaf set
-tractable). Spawn 1–3 parallel Explore/`general-purpose` agents for a large repo; do it inline
+tractable). Spawn 1–3 parallel exploratory sub-agents for a large repo; do it inline
 for a small one. The output is a map: `band → [components]` with a one-line role per component.
 
 ### Phase 3 — Write the scan plan (FIRST DELIVERABLE) + checkpoint
@@ -233,10 +222,9 @@ verification, and consolidation. Do not re-do a scanner's work in the orchestrat
 - **Parallel, single message.** Dispatch all of an altitude's component-scanners in one message so
   they run concurrently. Do not serialize.
 - **Honor the lane's locked scanner tier** (the kickoff dial, in the lane feature body). `mixed`
-  (default) splits Claude Code fan-out across `model: opus` (dense/high-altitude) and `model: sonnet`
-  (leaf/high-volume) so findings aren't single-model-correlated; `opus`/`sonnet` pin one model;
-  `codex-high`/`codex-xhigh` set Codex effort; Pi uses native read-only `reviewer`/`oracle`
-  subagents. The gauntlet still runs cross-model regardless of the scanner tier.
+  is the default for model diversity; `codex-high`/`codex-xhigh` set Codex reasoning effort; other
+  hosts map the same dial to their native high-quality scanner options. The gauntlet still runs with
+  independent fresh context regardless of the scanner tier.
 - **Scoped tight.** Each scanner gets only its component's file list plus the findings inherited
   from the band below. Never the whole repo per scanner.
 - **References, not re-derivation.** Each scanner loads the lane's reference file(s) and applies

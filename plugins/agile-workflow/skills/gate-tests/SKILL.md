@@ -1,13 +1,11 @@
 ---
 name: gate-tests
 description: >
-  Test-quality gate that scans items bound to a release for test coverage gaps.
-  Delegates the full analysis to a deep test-analysis sub-agent which derives expected
-  coverage from each bound item's acceptance criteria (NOT from implementation
-  code), maps existing test coverage, identifies gaps, and returns findings.
-  The orchestrator converts findings into gate_origin:tests items in
+  Test-quality gate that scans items bound to a release for test coverage gaps. Delegates the full
+  analysis to a deep test-analysis sub-agent which derives expected coverage from each bound item's
+  acceptance criteria (NOT from implementation code), maps existing test coverage, identifies gaps,
+  and returns findings. The orchestrator converts findings into gate_origin:tests items in
   .work/active/. Auto-triggers during /agile-workflow:release-deploy.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent
 ---
 
 # Gate-Tests
@@ -17,17 +15,12 @@ actual analysis runs inside a **deep test-analysis sub-agent**; your role is to
 prepare the bundle context, dispatch the sub-agent, and convert the gaps it
 returns into items in the substrate.
 
-Sub-agent strength is explicit:
-- **Claude Code / Anthropic:** spawn one Agent with `model: "opus"` and
-  `subagent_type: "general-purpose"`.
-- **Codex / OpenAI:** spawn one analysis sub-agent with `reasoning_effort:
-  high`; use `xhigh` only for broad cross-feature releases, complex state
-  machines, concurrency-heavy behavior, or repeated test-quality misses. Use a
-  reviewer/default agent if available, otherwise a worker with read-only
-  instructions.
-- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the deep test
-  analysis when hosted in Pi and available; otherwise use the same-host
-  read-only analysis fallback.
+Sub-agent strength is explicit: spawn exactly one read-only deep test-analysis
+sub-agent with the strongest reviewer setting the host exposes. Use extra-high
+reasoning only for broad cross-feature releases, complex state machines,
+concurrency-heavy behavior, or repeated test-quality misses. If the host has no
+sub-agent path, run the analysis inline and record the reduced isolation in the
+release body.
 
 ## Core principle
 
@@ -85,12 +78,11 @@ Capture already-tracked findings to feed into the sub-agent's brief.
 
 ### Phase 3: Dispatch the test-coverage sub-agent
 
-Spawn ONE deep analysis sub-agent with the full analysis brief. For Claude Code,
-this is `Agent(subagent_type=general-purpose, model=opus)`. For Codex, use
-`reasoning_effort: high`, escalating to `xhigh` for broad cross-feature
-releases, complex state machines, concurrency-heavy behavior, or repeated
-test-quality misses. For Pi, use a native `reviewer` or `oracle` subagent when
-available; otherwise use the same-host read-only analysis fallback. The sub-agent extracts behavioral contracts from item
+Spawn ONE read-only deep analysis sub-agent with the full analysis brief. Use
+the strongest reviewer setting the host exposes, escalating for broad
+cross-feature releases, complex state machines, concurrency-heavy behavior, or
+repeated test-quality misses. If sub-agents are unavailable, run the analysis
+inline and record the reduced isolation in the release body. The sub-agent extracts behavioral contracts from item
 bodies, maps existing tests, applies test-design techniques to find gaps,
 and returns structured findings.
 

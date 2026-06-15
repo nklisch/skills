@@ -1,16 +1,12 @@
 ---
 name: bug-scan
 description: >
-  Deep multi-angle correctness bug hunt. Use when the user asks to "scan for
-  bugs", "bug hunt", "deep bug audit", "find hidden bugs", "find race
-  conditions", or audit lurking correctness issues. Fans parallel scanner
-  sub-agents across relevant domains such as concurrency, async, state,
-  resource leaks, time/numbers, error handling, data layer, and language
-  footguns. Standalone mode writes a scored report; gate mode binds to a
-  release bundle and emits .work/active/stories/ items with gate_origin:bugs.
-  Distinct from gate-security, review, perf-design, and repo-eval.
-user-invocable: true
-allowed-tools: Read, Glob, Grep, Bash, Agent, WebSearch, WebFetch, Write, Edit, AskUserQuestion
+  Deep multi-angle correctness bug hunt. Use when the user asks to "scan for bugs", "bug hunt", "deep
+  bug audit", "find hidden bugs", "find race conditions", or audit lurking correctness issues. Fans
+  parallel scanner sub-agents across relevant domains such as concurrency, async, state, resource
+  leaks, time/numbers, error handling, data layer, and language footguns. Standalone mode writes a
+  scored report; gate mode binds to a release bundle and emits .work/active/stories/ items with
+  gate_origin:bugs. Distinct from gate-security, review, perf-design, and repo-eval.
 ---
 
 # Bug-Scan
@@ -23,13 +19,10 @@ just because it exists in the table. Each scanner loads only its domain's refere
 that's the progressive-disclosure move that keeps each scanner focused and the
 orchestrator's context lean.
 
-Sub-agent strength is explicit:
-- **Claude Code / Anthropic:** spawn one Agent per selected domain with
-  `model: "opus"` and `subagent_type: "general-purpose"`.
-- **Codex / OpenAI:** spawn one analysis sub-agent per selected domain with
-  `reasoning_effort: high`; use `xhigh` only for concurrency/data-layer/time
-  bugs in high-risk domains, very large scopes, or repeat scans that previously
-  missed issues. These are read-only scanner agents, not fixers.
+Sub-agent strength is explicit: spawn one read-only scanner sub-agent per
+selected domain with high reviewer reasoning. Use extra-high reasoning only for
+concurrency, data-layer, or time bugs in high-risk domains, very large scopes,
+or repeat scans that previously missed issues. These are scanners, not fixers.
 - **Pi path:** use native Pi `reviewer` or `oracle` subagents for read-only
   domain scanners when hosted in Pi and available; otherwise use the same-host
   read-only analysis fallback.
@@ -107,7 +100,7 @@ instead of launching empty scanners. For a broad release bundle or repo-wide
 audit, include every domain with real evidence in Phase 1.
 
 ### Standalone mode
-**AskUserQuestion checkpoint** (multi-select): show the 8 domains with relevance annotations,
+**structured question tool checkpoint** (multi-select): show the 8 domains with relevance annotations,
 recommend 4-6 for a focused scan or all 8 for a full audit. Default to all "most relevant" +
 "relevant" if user doesn't choose.
 
@@ -119,11 +112,9 @@ Skip the prompt. Default to all domains that touch any file in the bundle.
 For each selected domain, spawn **one parallel scanner sub-agent in a single
 message** so they run concurrently.
 
-- Claude Code / Anthropic: use `Agent(subagent_type=general-purpose,
-  model=opus)`.
-- Codex / OpenAI: use an analysis sub-agent with `reasoning_effort: high`;
-  escalate to `xhigh` only for high-risk domains, very large scopes, or repeat
-  scans that previously missed issues.
+Use the host's read-only analysis sub-agent path with high reviewer reasoning;
+escalate to extra-high only for high-risk domains, very large scopes, or repeat
+scans that previously missed issues.
 - Pi path: use a native `reviewer` or `oracle` subagent for each read-only
   scanner when available; otherwise use the same-host read-only analysis
   fallback.
@@ -236,7 +227,7 @@ Each scanner gets:
 
 - Dispatch all selected scanners in a **single message** (parallel).
 - If a scanner returns an error, record it as a gap in the report — do not re-run blindly.
-- If a scanner returns >25 findings, ask it (via SendMessage) to keep only the top 25 by
+- If a scanner returns >25 findings, ask it (via follow-up message) to keep only the top 25 by
   severity (anything beyond suggests pattern over-matching).
 
 ## Phase 4: Aggregate & dedupe
@@ -326,7 +317,7 @@ Write to `bug-scan-report.md` in the repo root using the template at
 - Top 3 critical findings (one line each, with `file:line`)
 - Path to the report
 - Parked count + duplicates skipped (or "parking skipped (--no-park)" / "parking skipped (no substrate)")
-- **AskUserQuestion** (four options):
+- **structured question tool** (four options):
   - "Elevate criticals to `stage:implementing` via `/agile-workflow:scope`"
   - "Hand top finding to `/agile-workflow:fix` now"
   - "Dive deeper into a specific domain"

@@ -1,15 +1,13 @@
 ---
 name: design-pages
 description: >
-  Design GitHub Pages for a project. Use when creating a new project website, landing page,
-  or documentation site. Explores the codebase to understand the project deeply, considers
-  the domain and audience, then pitches design and structural choices for the pages — layout,
-  sections, content hierarchy, color palette, and visual feel. Tech stack is pre-decided
-  (VitePress + Vue 3 + CSS custom properties).
-disable-model-invocation: true
-allowed-tools: Read, Write, Glob, Grep, Task, WebSearch, WebFetch, AskUserQuestion
-model: opus
+  Design GitHub Pages for a project. Use when creating a new project website, landing page, or
+  documentation site. Explores the codebase to understand the project deeply, considers the domain and
+  audience, then pitches design and structural choices for the pages — layout, sections, content
+  hierarchy, color palette, and visual feel. Tech stack is pre-decided (VitePress + Vue 3 + CSS custom
+  properties).
 ---
+
 # Pages Designer Agent
 
 You are the **Pages Designer** agent. You explore a project's codebase to deeply understand what it does, then design a GitHub Pages site — pitching layout, content, structure, and visual identity choices to the user.
@@ -54,7 +52,7 @@ You are designing a **project website**, not just documentation. The site should
 
 ### Step 1: Deep Codebase Exploration
 
-Use the **Task tool** to spawn parallel Explore sub-agents (model: **sonnet** minimum, **opus** for large or complex codebases) to understand the project thoroughly:
+Use parallel exploratory sub-agents with the host's strongest practical reviewer setting to understand the project thoroughly:
 
 1. **Project Identity**: "What is this project? Read the main source files (not just README). What problem does it solve? What's the core abstraction? Who would use it? Look at package.json/Cargo.toml/pyproject.toml for metadata, keywords, and description."
 
@@ -147,7 +145,7 @@ For each, describe its purpose and rough visual behavior (hover effects, animati
 
 ### Step 5: Ask for Direction
 
-After presenting the pitch, **ask the user** to weigh in on each dimension. Use AskUserQuestion. Frame it as:
+After presenting the pitch, **ask the user** to weigh in on each dimension. Use structured question tool. Frame it as:
 - "Here are my recommendations. Which direction resonates? What should I adjust?"
 - Offer your recommended combination as a default
 

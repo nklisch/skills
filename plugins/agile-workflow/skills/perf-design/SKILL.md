@@ -1,16 +1,13 @@
 ---
 name: perf-design
 description: >
-  ALWAYS invoke when the user asks to profile performance, find bottlenecks,
-  optimize code, make something faster, or design a [perf]-tagged feature; do
-  not optimize inline. Discovery mode profiles likely hot paths and emits
-  substrate items per bottleneck. Per-feature mode designs an existing
-  stage:drafting [perf] feature, writes the plan and benchmark scaffolds into
-  the feature body, spawns child stories, and advances drafting -> implementing.
-  Uses the hierarchy: algorithmic/data model, I/O, data locality and CPU/cache
-  behavior, language/runtime idioms, then parallelism. Route greenfield work to
-  feature-design and refactors to refactor-design.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task, AskUserQuestion
+  ALWAYS invoke when the user asks to profile performance, find bottlenecks, optimize code, make
+  something faster, or design a [perf]-tagged feature; do not optimize inline. Discovery mode profiles
+  likely hot paths and emits substrate items per bottleneck. Per-feature mode designs an existing
+  stage:drafting [perf] feature, writes the plan and benchmark scaffolds into the feature body, spawns
+  child stories, and advances drafting to implementing. Uses the hierarchy: algorithmic/data model,
+  I/O, data locality and CPU/cache behavior, language/runtime idioms, then parallelism. Route
+  greenfield work to feature-design and refactors to refactor-design.
 ---
 
 # Perf-Design
@@ -70,7 +67,7 @@ Pick the **top 3-5** entry points most likely to dominate runtime. Heuristics:
 on critical user paths, called per-request or per-event, high call count from
 logs/tests, known historically slow, contain nested loops or I/O.
 
-If confidence is low about which to pick, ask via `AskUserQuestion` (single
+If confidence is low about which to pick, ask via `structured question tool` (single
 multi-select question). Log the picks.
 
 **Cap the scan.** Never profile every function in the codebase.
@@ -117,7 +114,7 @@ drafting features. Iterate over the target set:
 2. Light ground (foundation docs + AGENTS.md / CLAUDE.md + existing benchmarks)
 3. Surface strategic ambiguities specific to perf (e.g., "what target
    scenario?", "current vs desired measured throughput?", "target hardware?",
-   "acceptable memory or layout tradeoff for speed?"). Use AskUserQuestion.
+   "acceptable memory or layout tradeoff for speed?"). Use structured question tool.
 4. Capture answers under `## Design decisions` in the feature body
 5. Do NOT design or advance stage
 6. Commit per feature: `perf-design --only-questions: <id>`
@@ -198,14 +195,11 @@ The principles skill auto-loads. Read:
 
 1. Detect language and runtime from the project's source files and build config
 2. Spawn a research sub-agent:
-   - **Claude Code / Anthropic:** Agent with `model: "sonnet"`; use Opus for
-     unfamiliar runtimes or deep perf investigations.
-   - **Codex / OpenAI:** analysis sub-agent with `reasoning_effort: medium`
-     for known stacks, `high` for unfamiliar runtimes or deeper investigations,
-     and `xhigh` only for broad, high-risk perf redesigns.
-   - **Pi path:** use a native Pi `scout` or `context-builder` subagent for
-     profiling-tool research when hosted in Pi and available; otherwise keep the
-     same host-local research fallback.
+   - Use the host's read-only research sub-agent path with medium reasoning for
+     known stacks.
+   - Use high reasoning for unfamiliar runtimes or deeper investigations, and
+     strongest reviewer reasoning only for broad, high-risk perf redesigns.
+   - If no sub-agent path is available, keep the same host-local research fallback.
    Brief it:
    "Find the recommended profiling tools for <language/runtime>. Return: CPU
    profiler, memory/allocation profiler, I/O/tracing tool, lock/off-CPU profiler,

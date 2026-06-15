@@ -1,2 +1,6 @@
+interface:
+  display_name: "Convert"
+  short_description: "Use Convert for repo workflows"
+  default_prompt: "Use $convert for this repository."
 policy:
   allow_implicit_invocation: false

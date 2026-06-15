@@ -1,0 +1,6 @@
+interface:
+  display_name: "Repo Skill Style"
+  short_description: "Normalize skills in this repository"
+  default_prompt: "Use $repo-skill-style when writing or auditing skills in this repository."
+policy:
+  allow_implicit_invocation: true

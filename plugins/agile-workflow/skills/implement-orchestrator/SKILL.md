@@ -1,15 +1,12 @@
 ---
 name: implement-orchestrator
 description: >
-  ALWAYS invoke when the user asks to implement substrate items, work through
-  stage:implementing items, drain the queue, or implement a feature/epic scope.
-  Default implementation path; call implement directly only when the user says
-  "inline". Builds a depends_on graph, bundles related work, chooses wave width
-  and worktree isolation, and dispatches implementation sub-agents when useful.
-  This skill authorizes sub-agents, including large non-overlapping write paths
-  when ownership and verification make that safe. Advances parents whose
-  children all reach stage:review.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, Task
+  ALWAYS invoke when the user asks to implement substrate items, work through stage:implementing
+  items, drain the queue, or implement a feature/epic scope. Default implementation path; call
+  implement directly only when the user says "inline". Builds a depends_on graph, bundles related
+  work, chooses wave width and worktree isolation, and dispatches implementation sub-agents when
+  useful. This skill authorizes sub-agents, including large non-overlapping write paths when ownership
+  and verification make that safe. Advances parents whose children all reach stage:review.
 ---
 
 # Implement-Orchestrator
@@ -30,7 +27,7 @@ skill is active. The user has chosen the orchestrator because the orchestrator i
 the parallelization brain.
 
 Authorization is not a mandate to fan out before sizing the system. Do a
-read-first scope probe before choosing Explore agents, bundle shape, wave width,
+read-first scope probe before choosing exploratory sub-agents, bundle shape, wave width,
 or worktree isolation. Direct reading is often faster and more accurate when the
 work points at a known module, a small file set, or a few obvious integration
 points.
@@ -49,7 +46,7 @@ determine the implementation tier:
 
 1. **Honor an explicit choice** — a tier named in the goal/args/user request, or a stable project
    convention (e.g. a `.work/CONVENTIONS.md` model note), wins. Use it and skip the question.
-2. **Otherwise ask once** (AskUserQuestion), then lock it for the whole run — never re-ask per wave:
+2. **Otherwise ask once** (structured question tool), then lock it for the whole run — never re-ask per wave:
    - Claude Code: `sonnet` (default — routine code), `mixed` (sonnet workers + opus on the broad/risky
      bundles), or `opus` (deep/broad diagnosis throughout).
    - Codex: `codex-medium` (default), `codex-high`, or `codex-xhigh`.
@@ -58,27 +55,18 @@ determine the implementation tier:
    (an autopilot goal that says so), do NOT block: use the documented default below and **state the
    tier you chose** in the run notes, so a cheap-tier run is never a silent surprise.
 
-The defaults below are the `sonnet`/`codex-medium` baseline; the tiers above scale from there.
+The defaults below are the medium/default worker baseline; the tiers above scale from there.
 
-Use explicit runtime paths:
-
-- **Claude Code / Anthropic path:** spawn implementation workers with the Agent
-  tool using `model: "sonnet"` and `subagent_type: "general-purpose"`. Use the
-  Task/Explore shape only for read-only discovery work. Escalate to `model:
-  "opus"` only for unusually broad implementation diagnosis, not routine code
-  writing.
-- **Codex / OpenAI path:** spawn `worker` sub-agents for implementation. Use
-  `reasoning_effort: medium` for small/single-item bundles, `high` for
-  multi-item, cross-module, or orchestration-critical bundles, and `xhigh` only
-  for large cross-feature write paths, risky migrations, or difficult
-  generated-code reconciliation. Use `explorer` sub-agents with
-  `reasoning_effort: medium` or `high` for read-only mapping.
-- **Pi path:** when hosted in Pi and native Pi subagents are available, use
-  `worker` subagents for write bundles, `scout` or `context-builder` for
-  read-only mapping, and `reviewer` for same-harness integration checks. If Pi
-  subagents are unavailable, run bounded work in the host session or use the
-  fresh-context fallback already described by the skill. Do not use peeragent for
-  routine implementation-worker fanout.
+Use explicit runtime paths: spawn implementation workers with the host's
+code-writing sub-agent mechanism. Use medium/default effort for small or
+single-item bundles, high effort for multi-item, cross-module, or
+orchestration-critical bundles, and extra-high effort only for large
+cross-feature write paths, risky migrations, or difficult generated-code
+reconciliation. Use read-only exploratory sub-agents with medium/high reasoning
+for mapping. If the host provides named worker, scout, or reviewer roles, map
+write bundles to workers, read-only mapping to scouts, and same-harness
+integration checks to reviewers. Do not use peeragent for routine
+implementation-worker fanout.
 
 In every runtime, make each worker prompt self-contained and require one commit
 per item.
@@ -161,7 +149,7 @@ Then read deeply — the quality of your agent prompts depends on this.
    rules (tag semantics, test integrity, review policy)
 6. **Concrete pattern examples** in the codebase — for each type of code the
    agents will write, find an existing example. Read 3-5 key files yourself.
-   Use Explore sub-agents only for breadth you can name after local search.
+   Use exploratory sub-agents only for breadth you can name after local search.
 7. **Discrepancies between design and repo reality** — for every file the
    designs reference, confirm interfaces match. Note discrepancies for
    inclusion in agent prompts.
@@ -177,8 +165,8 @@ spawning discovery or implementation agents. Build a quick sizing note:
 - whether the scope is direct-read, one-Explore, or parallel-Explore sized
 
 If the work set points at a handful of known files, read them directly and skip
-Explore. If one bounded area remains fuzzy, use one focused Explore agent. If
-several independent surfaces remain unknown, use parallel Explore agents with
+Explore. If one bounded area remains fuzzy, use one focused exploratory sub-agent. If
+several independent surfaces remain unknown, use parallel exploratory sub-agents with
 different questions. Feed this sizing decision into bundling and wave width; do
 not default to a wide wave because many items are present.
 
@@ -441,20 +429,7 @@ budget win the bundle is buying.
 
 Spawn one implementation sub-agent per bundle, regardless of bundle size.
 
-**Claude Code / Anthropic:**
-
-```
-Agent(
-  description: "Implement <bundle-id>: <item-or-cluster-summary>",
-  model: "sonnet",
-  prompt: <crafted prompt (single-item or multi-item bundle shape)>,
-  subagent_type: "general-purpose"
-)
-```
-
-**Codex / OpenAI:**
-
-Spawn a `worker` sub-agent with:
+Spawn a code-writing worker sub-agent with:
 - `reasoning_effort: medium` for small/single-item bundles
 - `reasoning_effort: high` for multi-item, cross-module, or
   orchestration-critical bundles
@@ -569,7 +544,7 @@ In conversation:
   implementations. Cross-feature scopes mean more reading, not less — every
   parent in the work set gets the full read.
 - Size the system before dispatch. If local search and direct file reads answer
-  the discovery question, skip Explore and record that choice. Spawn Explore
+  the discovery question, skip exploratory fanout and record that choice. Spawn Explore
   only for named unknowns or genuinely independent surfaces.
 - Decide parallelism deliberately. Three sub-agents per wave is a conservative
   default, not a hard ceiling. Use more only when write ownership is clear,

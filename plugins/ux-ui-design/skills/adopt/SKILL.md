@@ -1,14 +1,11 @@
 ---
 name: adopt
 description: >
-  ALWAYS invoke this skill when the user asks to adopt mockup-first design in an
-  existing project, audit UI inconsistencies, mirror current screens into mocks,
-  redesign an app, or sync drifted mockups. Inventories UI surfaces and
-  design-system fragments, audits gaps, then orchestrates palette, components,
-  screens, and flows in MIRROR or REIMAGINE mode. Produces
+  ALWAYS invoke this skill when the user asks to adopt mockup-first design in an existing project,
+  audit UI inconsistencies, mirror current screens into mocks, redesign an app, or sync drifted
+  mockups. Inventories UI surfaces and design-system fragments, audits gaps, then orchestrates
+  palette, components, screens, and flows in MIRROR or REIMAGINE mode. Produces
   .mockups/adoption-report.md with inventory, findings, and decisions.
-user-invocable: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
 # Adopt
@@ -81,7 +78,7 @@ Check whether `.mockups/adoption-report.md` already exists:
   refresh inventory, refresh audit, or both. Re-sync preserves prior
   user decisions where they still hold.
 
-Confirm scan boundary via `AskUserQuestion`:
+Confirm scan boundary via `structured question tool`:
 
 ```
 Q: What's the scan boundary?
@@ -133,7 +130,7 @@ and writes to it.
 
 ### Phase 3: Pick mode
 
-This is the user's "first question." Use `AskUserQuestion`:
+This is the user's "first question." Use `structured question tool`:
 
 ```
 Q: How should we approach this adoption?
@@ -215,7 +212,7 @@ each delegated skill.
 ### Phase 5: Pick surfaces to mock
 
 Present the inventory from Phase 2 and ask which surfaces to mock now.
-Use a multi-select `AskUserQuestion`:
+Use a multi-select `structured question tool`:
 
 ```
 Q: Which surfaces should we mock now? (multi-select)
@@ -378,7 +375,7 @@ When `.mockups/adoption-report.md` already exists at invocation:
 
 1. Read the prior report; note prior mode, prior surface decisions,
    prior remediation queue
-2. Ask via `AskUserQuestion`:
+2. Ask via `structured question tool`:
    ```
    Q: What kind of re-sync?
    - Refresh inventory + audit only — produce a new findings list, don't regenerate mocks

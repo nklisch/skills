@@ -1,18 +1,14 @@
 ---
 name: screens
 description: >
-  ALWAYS invoke this skill when the user asks to mock, design, wireframe, or explore
-  options for a single UI screen, page, or surface — do not start writing production
-  components inline. Generates N distinct single-screen HTML mockup options (default
-  4) for one UI surface, writes them to .mockups/screens/<feature-id>/, opens them in
-  the user's browser, and asks the user to pick or describe a hybrid. Iterates with
-  feedback until the user signs off. Use whenever a new screen, page, or surface
-  needs design exploration before code. Triggers on "mock the X screen", "design the
-  login page", "give me 4 options for Y", "screen mockups for Z", "wireframe X",
-  "let's mock up the dashboard". Defers to ux-ui-principles for storage, tech, and
-  linking conventions.
-user-invocable: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
+  ALWAYS invoke this skill when the user asks to mock, design, wireframe, or explore options for a
+  single UI screen, page, or surface — do not start writing production components inline. Generates N
+  distinct single-screen HTML mockup options (default 4) for one UI surface, writes them to
+  .mockups/screens/, opens them in the user's browser, and asks the user to pick or
+  describe a hybrid. Iterates with feedback until the user signs off. Use whenever a new screen, page,
+  or surface needs design exploration before code. Triggers on "mock the X screen", "design the login
+  page", "give me 4 options for Y", "screen mockups for Z", "wireframe X", "let's mock up the
+  dashboard". Defers to ux-ui-principles for storage, tech, and linking conventions.
 ---
 
 # Screens
@@ -65,7 +61,7 @@ design system has been locked.
 ### Phase 2: Understand the screen
 
 Before generating, confirm the following from the item body, foundation
-docs, or codebase. Ask the user via `AskUserQuestion` only for the
+docs, or codebase. Ask the user via `structured question tool` only for the
 unanswered pieces — keep questions tight (2-4 max):
 
 1. **What the screen IS.** A page? A modal? A panel? A wizard step?
@@ -81,7 +77,7 @@ This is the checkpoint where four options that all look "kinda corporate
 SaaS" gets prevented. The real value of this skill comes from generating
 four genuinely different **aesthetic worlds** the screen could live in.
 
-Use `AskUserQuestion` to claim the design space the options should explore.
+Use `structured question tool` to claim the design space the options should explore.
 Frame each pole as a real direction with personality, not a neutral
 checkbox. Pitch a varied set of 12-15 poles spanning the families and let
 the user pick 2-4 that feel alive for this project. The full 37-pole catalog
@@ -276,7 +272,7 @@ xdg-open .mockups/screens/<feature-id>/index.html 2>/dev/null & \
   || echo "file://$(pwd)/.mockups/screens/<feature-id>/index.html"
 ```
 
-Then use `AskUserQuestion` with options that match the generated count plus
+Then use `structured question tool` with options that match the generated count plus
 a hybrid escape. Frame each option as a world, not a checkbox:
 
 ```

@@ -1,2 +1,6 @@
+interface:
+  display_name: "Research"
+  short_description: "Use Research for repo workflows"
+  default_prompt: "Use $research for this repository."
 policy:
   allow_implicit_invocation: false

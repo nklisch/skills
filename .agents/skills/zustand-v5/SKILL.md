@@ -1,9 +1,8 @@
 ---
 name: zustand-v5
 description: >
-  Zustand v5 state management reference. Auto-loads when working with zustand stores,
-  create, createStore, useShallow, persist, devtools, immer middleware.
-user-invocable: false
+  Zustand v5 state management reference. Auto-loads when working with zustand stores, create,
+  createStore, useShallow, persist, devtools, immer middleware.
 ---
 
 # Zustand Reference

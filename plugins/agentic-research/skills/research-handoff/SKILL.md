@@ -1,9 +1,11 @@
 ---
 name: research-handoff
-description: "Operator-confirmed emission gate: takes a completed research engagement (analysis slug or campaign dir) and proposes .work/ items grounded in its actionable findings. Each emitted item carries research_origin: <slug> plus a body citation back to the .research/ artifact. Silent no-op when .work/CONVENTIONS.md is absent. NEVER auto-fires — always operator-invoked and always asks before writing."
-argument-hint: "<slug-or-campaign-dir>"
-allowed-tools: Read, Glob, Grep, Write, Bash, AskUserQuestion
-user-invocable: true
+description: >
+  Operator-confirmed emission gate: takes a completed research engagement (analysis slug or campaign
+  dir) and proposes .work/ items grounded in its actionable findings. Each emitted item carries
+  research_origin metadata plus a body citation back to the .research/ artifact. Silent no-op when
+  .work/CONVENTIONS.md is absent. NEVER auto-fires — always operator-invoked and always asks before
+  writing.
 ---
 
 # Research Handoff
@@ -58,7 +60,7 @@ This is the `repo-eval` precedent: "if no substrate exists, skip this phase sile
 
 Only proceed to Phase 3 if `.work/CONVENTIONS.md` is present.
 
-## Phase 3 — Propose and confirm via AskUserQuestion
+## Phase 3 — Propose and confirm via structured question tool
 
 Present the operator with:
 - A summary of the source artifact (slug, path, `output_kind`, brief description).
@@ -147,7 +149,7 @@ Report in conversation:
 
 ## Behavioral invariants
 
-- **No `.work/` write before confirmation.** Phase 3's AskUserQuestion is mandatory.
+- **No `.work/` write before confirmation.** Phase 3's structured question tool is mandatory.
 - **No `.research/` writes anywhere.** This gate is read-only against `.research/`;
   every write targets `.work/`.
 - **Silent no-op without `.work/CONVENTIONS.md`.** Phase 2 stops before any write

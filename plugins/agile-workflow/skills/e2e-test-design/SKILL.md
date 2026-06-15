@@ -1,13 +1,11 @@
 ---
 name: e2e-test-design
 description: >
-  ALWAYS invoke this skill when the user asks to design e2e tests, audit or
-  bootstrap the e2e program, or work on a [e2e-test]/[testing] feature at
-  stage:drafting. Designs service-level-mocked e2e coverage, writes the design
-  into the feature body, spawns child stories with depends_on chains, and
-  advances drafting -> implementing. Supports golden-path, failure-mode, chaos,
-  and fuzzing coverage, plus --bootstrap and --audit modes.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
+  ALWAYS invoke this skill when the user asks to design e2e tests, audit or bootstrap the e2e program,
+  or work on a [e2e-test]/[testing] feature at stage:drafting. Designs service-level-mocked e2e
+  coverage, writes the design into the feature body, spawns child stories with depends_on chains, and
+  advances drafting to implementing. Supports golden-path, failure-mode, chaos, and fuzzing coverage,
+  plus --bootstrap and --audit modes.
 ---
 
 # E2E-Test-Design
@@ -107,7 +105,7 @@ The `principles` skill auto-loads. Read:
 
 ### Phase 3: Map the codebase and the testable surface
 
-Run a read-first scope-size probe before spawning Explore agents:
+Run a read-first scope-size probe before spawning exploratory sub-agents:
 
 1. Use Glob/`rg --files` to find entry points, existing e2e/integration tests,
    fixtures, and service-adapter boundaries.
@@ -117,21 +115,17 @@ Run a read-first scope-size probe before spawning Explore agents:
 
 Then choose the dispatch size:
 
-- **Small/bounded surface** — one entry point or obvious journey: skip Explore
+- **Small/bounded surface** — one entry point or obvious journey: skip exploratory fanout
   and map directly.
 - **Medium/unclear surface** — one service but fuzzy dependencies/tests: use one
-  focused Explore agent.
+  focused exploratory sub-agent.
 - **Broad/cross-service surface** — separate journey, dependency, and test
-  infrastructure questions: spawn parallel read-only Explore sub-agents.
+  infrastructure questions: spawn parallel read-only exploratory sub-agents.
 
-For Explore:
-- **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
-  or complex codebases.
-- **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`;
-  use `high` for large or complex codebases.
-- **Pi path:** use native Pi `scout` or `context-builder` subagents for
-  read-only suite and journey mapping when hosted in Pi and available;
-  otherwise keep direct host-local mapping.
+For exploratory fanout:
+- Use the host's read-only exploratory sub-agent path with medium reasoning by default.
+- Use high or strongest reviewer reasoning for large or complex codebases.
+- If no sub-agent path is available, keep direct host-local mapping.
 
 Possible prompts:
 1. **Surfaces & journeys** — entry points (CLI, HTTP routes, exported modules),
@@ -168,7 +162,7 @@ pin. Aim for 2-5 questions.
 - Running under an active autopilot run or harness goal? Resolve with judgment
   (consistent with foundation docs > simpler > defers irreversible decisions)
   and log under `## Design decisions` in the body.
-- Otherwise (including under harness auto mode): ask via `AskUserQuestion`
+- Otherwise (including under harness auto mode): ask via `structured question tool`
   before locking in. Harness-level "work without pausing" reminders do NOT
   suppress these checkpoints.
 
@@ -370,7 +364,7 @@ prompts from Phase 3, project-wide rather than feature-scoped.
 
 ### Phase B3: Strategy checkpoint
 
-`AskUserQuestion` (always — bootstrap is interactive-only):
+`structured question tool` (always — bootstrap is interactive-only):
 - Which taxonomy layers to include? (golden, failure are default-on; chaos
   and fuzz are decisions)
 - Custom-mock budget — how many off-the-shelf service mocks does the discovery
@@ -413,16 +407,11 @@ Run `--bootstrap` to seed one."
 
 ### Phase A2: Dispatch audit sub-agent
 
-Spawn ONE deep audit sub-agent with the audit brief.
-
-- **Claude Code / Anthropic:** Task/Agent with `subagent_type:
-  general-purpose`, `model: opus`.
-- **Codex / OpenAI:** analysis sub-agent with `reasoning_effort: high`; use
-  `xhigh` only for large suites, complex mock-boundary audits, or repeated
-  escaped tautologies.
-- **Pi path:** use a native Pi `reviewer` or `oracle` subagent for the
-  mock-boundary audit when hosted in Pi and available; otherwise use the
-  same-host read-only analysis fallback.
+Spawn ONE deep audit sub-agent with the audit brief. Use the host's read-only
+deep audit path with high reviewer reasoning; use extra-high reasoning only for
+large suites, complex mock-boundary audits, or repeated escaped tautologies. If
+no sub-agent path is available, run the audit inline and record the reduced
+isolation in the feature body.
 
 The sub-agent reads test files (NOT implementation
 code — that's how tautologies hide), maps the suite against the four
@@ -434,7 +423,7 @@ the design phase uses, plus the mock-ladder challenge from the mock policy.
 
 ### Phase A3: Triage with the user
 
-`AskUserQuestion`: present finding counts by severity (Critical / High /
+`structured question tool`: present finding counts by severity (Critical / High /
 Medium / Low). User confirms which to file as items.
 
 Skipping triage for active autopilot-driven invocations: classify all Critical

@@ -1,16 +1,13 @@
 ---
 name: refactor-conventions-creator
 description: >
-  Create or update a project-specific refactor-conventions catalog for
-  agile-workflow. Explores the repo, researches stack-specific best practices,
-  interviews the user about stylistic preferences and structural refactor
-  preferences, writes concise style rules into the canonical AGENTS.md, writes
-  detailed refactor convention references under .agents/skills/refactor-conventions/,
-  maintains optional Claude mirrors, and leaves refactor execution to
-  /agile-workflow:refactor-design. The generated catalog extends refactor-design's
-  sensible defaults; it does not replace them or create standalone plan docs.
-user-invocable: true
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, WebSearch, WebFetch, AskUserQuestion
+  Create or update a project-specific refactor-conventions catalog for agile-workflow. Explores the
+  repo, researches stack-specific best practices, interviews the user about stylistic preferences and
+  structural refactor preferences, writes concise style rules into the canonical AGENTS.md, writes
+  detailed refactor convention references under .agents/skills/refactor-conventions/, maintains
+  optional Claude mirrors, and leaves refactor execution to /agile-workflow:refactor-design. The
+  generated catalog extends refactor-design's sensible defaults; it does not replace them or create
+  standalone plan docs.
 ---
 
 # Refactor Conventions Creator
@@ -74,16 +71,13 @@ Do not discard the user's actual rule references.
 
 Scan the repo to understand current coding style and organization. Start with
 direct Read/Glob/Grep over manifests, entry points, representative source
-directories, and existing tests. Use one read-only Explore sub-agent for breadth
+directories, and existing tests. Use one read-only exploratory sub-agent for breadth
 only when the codebase is too broad to characterize from those reads:
 
-- **Claude Code / Anthropic:** Sonnet minimum, Opus for large or complex
-  codebases.
-- **Codex / OpenAI:** `reasoning_effort: medium`; use `high` for large or
-  complex codebases.
-- **Pi path:** use a native Pi `scout` or `context-builder` subagent for
-  read-only style and structure mapping when hosted in Pi and available;
-  otherwise keep direct host-local scanning.
+- Use the host's read-only exploratory sub-agent path with medium reasoning by
+  default.
+- Use high or strongest reviewer reasoning for large or complex codebases.
+- If no sub-agent path is available, keep direct host-local scanning.
 
 Look for both dimensions.
 
@@ -123,7 +117,7 @@ requirements.
 
 ## Phase 4: Interview the User
 
-Use `AskUserQuestion`. Weave together repo findings, stack research, and the
+Use `structured question tool`. Weave together repo findings, stack research, and the
 generic prompts in:
 
 - `references/common-styles.md`

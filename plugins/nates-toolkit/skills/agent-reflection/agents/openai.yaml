@@ -1,2 +1,6 @@
+interface:
+  display_name: "Agent Reflection"
+  short_description: "Use Agent Reflection for repo workflows"
+  default_prompt: "Use $agent-reflection for this repository."
 policy:
   allow_implicit_invocation: false

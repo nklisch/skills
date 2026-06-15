@@ -1,13 +1,11 @@
 ---
 name: epic-design
 description: >
-  ALWAYS invoke this skill when the user asks to design, decompose, or pick up
-  an epic at stage:drafting. Reads the epic, foundation docs, and codebase;
-  identifies child feature arcs; writes feature files with parent and depends_on
-  metadata; updates the epic body with the realized decomposition; and advances
-  drafting -> implementing. When ux-ui-design is installed, includes mockup
-  planning for net-new screens and journeys.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Task, AskUserQuestion
+  ALWAYS invoke this skill when the user asks to design, decompose, or pick up an epic at
+  stage:drafting. Reads the epic, foundation docs, and codebase; identifies child feature arcs; writes
+  feature files with parent and depends_on metadata; updates the epic body with the realized
+  decomposition; and advances drafting to implementing. When ux-ui-design is installed, includes
+  mockup planning for net-new screens and journeys.
 ---
 
 # Epic-Design
@@ -83,7 +81,7 @@ For each epic:
    installed, run the full Phase 4.6 pass; reference resulting paths in
    the epic body's `## Mockups` section.
 5. Run Phase 4.7 (Surface high-level design ambiguities) in the interactive
-   branch, always using `AskUserQuestion`
+   branch, always using `structured question tool`
 6. Capture answers under `## Design decisions` in the epic body (merge with
    existing entries; don't overwrite without flagging)
 7. Do NOT decompose into child features or advance stage
@@ -146,7 +144,7 @@ Read:
 
 ### Phase 3: Map the codebase
 
-Run a read-first scope-size probe before spawning Explore agents:
+Run a read-first scope-size probe before spawning exploratory sub-agents:
 
 1. Use Glob/`rg --files` to identify likely directories, entry points, active
    sibling work, and tests.
@@ -156,20 +154,17 @@ Run a read-first scope-size probe before spawning Explore agents:
 
 Then choose the dispatch size:
 
-- **Small/bounded epic** — one known subsystem with obvious seams: skip Explore
+- **Small/bounded epic** — one known subsystem with obvious seams: skip exploratory fanout
   and map it directly.
 - **Medium/unclear epic** — one area but missing ownership or dependency
-  clarity: spawn one read-only Explore agent.
+  clarity: spawn one read-only exploratory sub-agent.
 - **Broad/cross-cutting epic** — several independent surfaces or sibling-work
-  interactions: spawn parallel read-only Explore sub-agents.
+  interactions: spawn parallel read-only exploratory sub-agents.
 
-For Explore:
-- **Claude Code / Anthropic:** Task/Explore with Sonnet minimum, Opus for large
-  or complex codebases.
-- **Codex / OpenAI:** `explorer` sub-agents with `reasoning_effort: medium`;
-  use `high` for large or complex codebases.
-- **Pi path:** use native Pi `scout` or `context-builder` subagents for
-  read-only mapping when hosted in Pi and available; otherwise keep direct
+For exploratory fanout:
+- Use the host's read-only exploratory sub-agent path with medium reasoning by default.
+- Use high or strongest reviewer reasoning for large or complex codebases.
+- If no sub-agent path is available, keep direct
   host-local mapping.
 
 Possible prompts:
@@ -309,7 +304,7 @@ under `## Design decisions` in the epic body:
 
 In every other invocation — including direct user invocation under harness
 auto mode (`permissions.defaultMode: "auto"`) — ask the user via
-`AskUserQuestion` before locking in, then write the answers under `## Design
+`structured question tool` before locking in, then write the answers under `## Design
 decisions` in the epic body. Harness-level "work without pausing" reminders
 do **not** suppress these checkpoints. See `principles/SKILL.md` Part III
 for the full caller-awareness rule.

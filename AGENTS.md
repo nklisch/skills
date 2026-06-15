@@ -70,12 +70,52 @@ Bump versions with `./scripts/bump-version.sh <plugin> <major|minor|patch>`:
 
 When adding or modifying a skill, bump the version of the plugin it belongs to.
 
+## Skill authoring style
+
+When writing, updating, reviewing, or auditing skills in this repo, load
+`.agents/skills/repo-skill-style/` first. It is the repo-local style contract
+for portable `SKILL.md` files and Codex metadata.
+
+Portable skill frontmatter should contain only:
+
+```yaml
+---
+name: skill-name
+description: >
+  Concise third-person summary that states what the skill does and when to use it.
+---
+```
+
+- Keep `description` under the 1024-character portable cap; target roughly 100
+  words or less. Lead with trigger phrases because skill listings are budgeted
+  and may truncate.
+- Do not put harness-specific fields in `SKILL.md` frontmatter for new or
+  updated skills: no `user-invocable`, `disable-model-invocation`, `model`,
+  `effort`, `argument-hint`, `allowed-tools`, or tool allow-lists.
+- Put Codex-specific presentation and invocation policy in
+  `agents/openai.yaml`: `interface.display_name`, `short_description`,
+  `default_prompt`, and `policy.allow_implicit_invocation` when needed.
+- Use `policy.allow_implicit_invocation: true` for skills the model should see
+  in the available-skills list and auto-route by description. Use `false` only
+  for deliberately manual-only skills, knowing they will not appear in the
+  model-visible implicit list.
+- Keep portable skill bodies harness-neutral. Prefer "structured question tool",
+  "sub-agent", "fresh-context reviewer", and "current-source lookup" over
+  Claude-only tool names. Put native ergonomics in harness metadata, not in
+  shared workflow prose.
+- Keep `SKILL.md` under 300 lines when practical and under 500 lines always.
+  Move deep catalogs to directly linked `references/` files; keep references
+  under 200 lines each, and add a table of contents when a reference exceeds
+  100 lines.
+
 ## Adding a skill
 
 1. Create the skill directory under the appropriate plugin: `plugins/<plugin>/skills/<skill-name>/`
-2. Write `SKILL.md` with frontmatter and workflow. Frontmatter follows the open Agent Skills standard (`name`, `description` required; `allowed-tools` optional). `user-invocable: true|false` is a Claude extension — Codex ignores it harmlessly.
+2. Write `SKILL.md` with portable frontmatter and workflow. Frontmatter follows
+   the repo style above: `name` and `description` only.
 3. Add reference files in `references/` if needed (one per topic, under 200 lines each)
-4. (Optional, Codex-only) Add `agents/openai.yaml` to set Codex marketplace polish (display_name, icons) or `policy.allow_implicit_invocation: false` for explicit-only invocation.
+4. Add `agents/openai.yaml` when the skill needs Codex picker text or explicit
+   invocation policy.
 5. Commit your changes (the bump script refuses to run with a dirty plugin dir)
 6. Bump the plugin version: `./scripts/bump-version.sh <plugin> patch`
 

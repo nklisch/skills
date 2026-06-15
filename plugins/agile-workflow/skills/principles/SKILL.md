@@ -1,13 +1,11 @@
 ---
 name: principles
 description: >
-  agile-workflow principles — code-design (Ports & Adapters, Single Source of Truth,
-  Generated Contracts, Fail Fast) and substrate-execution (Item-IS-the-Work,
-  Rolling-Foundation, Late-Binding). Auto-loads when designing modules, defining
-  interfaces, writing or implementing code, scoping work in the substrate, advancing
-  stages, scoping releases, or any time the agile-workflow design/implement/review
-  skills are active.
-user-invocable: false
+  agile-workflow principles — code-design (Ports & Adapters, Single Source of Truth, Generated
+  Contracts, Fail Fast) and substrate-execution (Item-IS-the-Work, Rolling-Foundation, Late-Binding).
+  Auto-loads when designing modules, defining interfaces, writing or implementing code, scoping work
+  in the substrate, advancing stages, scoping releases, or any time the agile-workflow
+  design/implement/review skills are active.
 ---
 
 # Principles
@@ -384,7 +382,7 @@ fresh-context same-harness delegation, not as cross-model evidence. Keep
 `peeragent` for cross-model or cross-harness advisory/review paths, and fall
 back to direct single-agent execution when neither adapter is available.
 
-Before spawning read-only Explore/discovery agents, do a local scope-size probe:
+Before spawning read-only exploratory/discovery sub-agents, do a local scope-size probe:
 
 - List likely roots with `rg --files`, Glob, manifests, route maps, package
   metadata, or `.work/bin/work-view`.
@@ -401,9 +399,9 @@ Choose the lightest mechanism that will produce better evidence:
 
 | Scope signal | Dispatch choice |
 |---|---|
-| Known file(s), one module, or a handful of obvious integration points | Read directly with Read/Grep/Glob; skip Explore. |
-| One bounded area but uncertain patterns or call sites | Use one focused Explore agent, then spot-check key files yourself. |
-| Several independent surfaces with different questions | Use parallel Explore agents, one per surface/question. |
+| Known file(s), one module, or a handful of obvious integration points | Read directly with Read/Grep/Glob; skip exploratory fanout. |
+| One bounded area but uncertain patterns or call sites | Use one focused exploratory sub-agent, then spot-check key files yourself. |
+| Several independent surfaces with different questions | Use parallel exploratory sub-agents, one per surface/question. |
 | Implementation work with independent write ownership | Fan out by ownership and dependency layer; do not use item count alone as the parallelism signal. |
 | Deep audit/review where fresh context is the point | Spawn the dedicated audit/review sub-agent described by that skill; in Pi, prefer native reviewer/oracle subagents before same-class inline fallback. |
 
@@ -421,7 +419,7 @@ auditable later.
 # Part III — Caller Awareness
 
 **The rule:** If an active agile-workflow autopilot run or harness goal is
-driving this skill, no AskUserQuestion and no halts on ordinary ambiguity.
+driving this skill, no structured question tool and no halts on ordinary ambiguity.
 Resolve with judgment and log the rationale in the item body. Otherwise,
 asking the user is fine and often helpful.
 
@@ -436,7 +434,7 @@ strongest signal. If no active autopilot driver exists, you are interactive.
 Judgment-mode is triggered only by an active autopilot driver. In particular:
 
 - **General harness "auto mode"** — a reminder to work without unnecessary
-  clarification does **not** suppress `AskUserQuestion` inside these skills.
+  clarification does **not** suppress `structured question tool` inside these skills.
   It shapes default conversational tone; it does not mean an autopilot queue
   goal is active.
 - **A user saying "just decide" earlier in the conversation** — that applies
@@ -449,7 +447,7 @@ Judgment-mode is triggered only by an active autopilot driver. In particular:
 
 When a user types `/agile-workflow:feature-design <id>` (or any other
 design/implement/review skill) directly, they want a collaborator at the
-checkpoints. Use `AskUserQuestion` unless the direct prompt also makes clear it
+checkpoints. Use `structured question tool` unless the direct prompt also makes clear it
 is part of an active autopilot goal.
 
 The disambiguation test: *"Is an active autopilot queue goal currently driving
@@ -481,7 +479,7 @@ can review later.
 ## How to phrase decision points
 
 > If an active autopilot run or goal is driving this skill, <judgment-mode
-> behavior>. Otherwise, ask the user via AskUserQuestion.
+> behavior>. Otherwise, ask the user via structured question tool.
 
 Not "halt and tell the user." The first form supports both modes; the second
 silently kills autopilot.

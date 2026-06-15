@@ -1,12 +1,11 @@
 ---
 name: codex-plugin-format
 description: >
-  OpenAI Codex CLI plugin, skill, and AGENTS.md format reference. Auto-loads when working with
-  Codex plugins, `.codex-plugin/plugin.json`, Codex marketplaces, AGENTS.md, AGENTS.override.md,
-  `~/.codex/config.toml`, project_doc_fallback_filenames, `agents/openai.yaml`, the
-  agentskills.io open standard, $plugin-creator, $skill-installer, `codex plugin marketplace`
-  CLI, or designing dual Claude/Codex plugin distribution.
-user-invocable: false
+  OpenAI Codex CLI plugin, skill, and AGENTS.md format reference. Auto-loads when working with Codex
+  plugins, `.codex-plugin/plugin.json`, Codex marketplaces, AGENTS.md, AGENTS.override.md,
+  `~/.codex/config.toml`, project_doc_fallback_filenames, `agents/openai.yaml`, the agentskills.io
+  open standard, $plugin-creator, $skill-installer, `codex plugin marketplace` CLI, or designing dual
+  Claude/Codex plugin distribution.
 ---
 
 # Codex Plugin / Skill / AGENTS.md Reference

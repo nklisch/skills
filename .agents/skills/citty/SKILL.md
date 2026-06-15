@@ -1,10 +1,10 @@
 ---
 name: citty
 description: >
-  Reference for the citty CLI framework (UnJS). Auto-loads when importing from 'citty',
-  using defineCommand, runMain, or runCommand, or building CLI tools with argument parsing,
-  subcommands, or lifecycle hooks. Covers defineCommand, runMain, argument definitions,
-  subcommands, and lifecycle hooks.
+  Reference for the citty CLI framework (UnJS). Auto-loads when importing from 'citty', using
+  defineCommand, runMain, or runCommand, or building CLI tools with argument parsing, subcommands, or
+  lifecycle hooks. Covers defineCommand, runMain, argument definitions, subcommands, and lifecycle
+  hooks.
 ---
 
 # citty — CLI Framework Reference
