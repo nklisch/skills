@@ -1,7 +1,7 @@
 ---
 id: feature-backlog-grooming-skill
 kind: feature
-stage: implementing
+stage: review
 tags: [skill, plugin]
 parent: null
 depends_on: [feature-backlog-item-updated-contract]
@@ -202,3 +202,28 @@ semantic-pass design grows large enough to warrant its own resume point.)
 - **Cadence creep** — the skill must not impose or assume a sweep cadence (continuous-vs-batch is a
   deployment choice per the research). Keep it invocation-driven; document schedulability as a
   deployment option, not a built-in.
+
+## Implementation notes (landed)
+
+Both units done. The skill is a prose/skill deliverable (no code-test surface); verification was
+the repo skill-style contract + an independent skill-auditor pass + channel-parity.
+
+- **Unit 1 (`groom` skill):** `plugins/agile-workflow/skills/groom/SKILL.md` (155 lines). Phases:
+  verify substrate → mechanical pass (`work-view --stale`, missing-field, cites-done-work) →
+  grounded semantic sub-agent pass (DUPLICATE/SUPERSEDED/MERGEABLE, quoted grounding required,
+  skippable) → write triage report to scratchpad (explicit `.work/scratch/` → `.memory/scratchpad/`
+  → inline order; never `.work/backlog/`) → per-finding operator-confirmed disposition (DONE/
+  SUPERSEDED via terminal-tier retention; MERGEABLE hands off to `scope`). Propose-not-prune
+  operationalized in Phase 5 + guardrails.
+- **Unit 2 (channel registration):** all three channels (`.claude-plugin`, `.codex-plugin`,
+  `package.json`) point at `./skills/` directory-level — **auto-discovered**, no per-skill manifest
+  enumeration needed. Added `agents/openai.yaml` (display_name/short_description/default_prompt;
+  `allow_implicit_invocation: true` — a discoverable hygiene utility). No `commands/` dir in the
+  plugin, so `SKILL.md` + `openai.yaml` is the full surface.
+
+**Verification:** repo skill-style contract passes (frontmatter = name+description only; 971-char
+description leading with triggers; 155 lines). skill-auditor verdict SHIP WITH NITS — the one nit
+(scratchpad path discovery order underspecified) fixed inline. Boundary scan clean.
+
+**Note for release:** depends_on `feature-backlog-item-updated-contract` (now `done`). This is the
+user-facing capability — the version bump ships once this lands done.
