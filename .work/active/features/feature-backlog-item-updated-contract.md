@@ -1,7 +1,7 @@
 ---
 id: feature-backlog-item-updated-contract
 kind: feature
-stage: review
+stage: done
 tags: [plugin, tooling]
 parent: null
 depends_on: []
@@ -217,3 +217,26 @@ both the inert (no key → notice + exit 0, empty) and active (key=90 → only t
 **Note for review/release:** the committed binary `.work/bin/work-view` and the crate `dist/` are
 NOT rebuilt here — they refresh via the separate `[skip ci]` binary process. Source + tests are
 the deliverable.
+
+## Review (2026-06-15)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: `stale.rs` `parse_staleness_days` — a malformed/out-of-range/comment-suffixed
+`backlog_staleness_days` value fails the `u64` parse and falls through to "not configured"
+(inert) rather than surfacing an error. Consistent with inert-by-default and the safer choice
+(a typo can't mis-fire staleness), but can mask a config mistake. No action; noted for a future
+"why isn't `--stale` working" report.
+
+**Notes**: Substrate mode, deep lane, fresh-context independent reviewer (Opus sub-agent — I
+implemented this myself, so review was delegated to fresh context, not self-confirmation). The
+reviewer ran `cargo build` + `cargo test` itself (365 tests green: 153 CLI unit incl. 16
+`stale::tests`, 100 CLI integration incl. 6 new `--stale`, 77 core, 31 core integration, 4 doc),
+ran clippy (no new warnings; `stale.rs` clippy-clean), and verified the local-time date math
+independently against a Python `date` reference across leap-year + threshold boundaries. All
+Unit 1/2/3 acceptance criteria pass; optional/inert invariant confirmed (no change to the
+always-on hook; `bump_updated` still replace-only); no project-boundary leaks. Kept in
+`active/` (not archived) because `feature-backlog-grooming-skill` still `depends_on` it and root
+release mapping is `none`.
