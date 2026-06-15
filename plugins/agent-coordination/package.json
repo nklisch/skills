@@ -1,6 +1,6 @@
 {
   "name": "@nklisch/pi-agent-coordination",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Sparse cross-agent coordination ledger for shared repositories.",
   "author": {
     "name": "nklisch"
