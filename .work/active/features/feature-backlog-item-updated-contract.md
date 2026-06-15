@@ -240,3 +240,19 @@ Unit 1/2/3 acceptance criteria pass; optional/inert invariant confirmed (no chan
 always-on hook; `bump_updated` still replace-only); no project-boundary leaks. Kept in
 `active/` (not archived) because `feature-backlog-grooming-skill` still `depends_on` it and root
 release mapping is `none`.
+
+## Post-review fixes (2026-06-15, PR #19)
+
+The PR's automated reviewer caught two correctness bugs in the Unit-3 `--stale` path that the
+pre-merge review missed (the review flagged the date-parse area as a nit but not these specific
+cases):
+
+1. **BrokenPipe panic** — the inert branch (`main.rs`) printed the "no backlog_staleness_days
+   configured" notice with a bare `println!`, which panics on a closed pipe
+   (`work-view --stale | head -n 0`). Fixed to write through the BrokenPipe-safe path
+   (`writeln!` to locked stdout; BrokenPipe ⇒ exit 0), matching the CLI's documented contract.
+2. **Invalid calendar dates** — `parse_date` (`stale.rs`) range-checked day `1..=31`, so
+   `2026-02-31` / non-leap `2026-02-29` parsed as valid and fed into staleness math. Fixed to
+   validate day against a leap-aware `days_in_month`; invalid dates return `None` and fail closed
+   (surface as stale — the conservative arm). Added unit + integration regression tests; full
+   suite green, clippy clean. (Commit `216f862`.)
