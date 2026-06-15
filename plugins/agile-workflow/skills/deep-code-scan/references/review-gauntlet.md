@@ -72,10 +72,11 @@ genuinely fresh, or it just agrees with itself.
   gauntlet so consolidation clusters only survivors.
 - **Gate 2 — the drafted fix epic** (end of Phase 5, before emission): the *clustered plan* runs one
   more gauntlet pass. Reviewers need a concrete artifact, so consolidation first persists a
-  **fix-epic draft packet** (`/tmp/fix-<goal>-draft.md` or a `## Proposed fix epic (draft)` section in
-  the scan epic) — hand that path to the reviewer. Clustering can introduce new context/intent
-  problems (a feature that bundles three findings may, as written, fight a goal none of the three did
-  alone). The fix epic is materialized into real `.work/` items **only after the packet passes**.
+  **fix-epic draft packet** at `.work/scan-artifacts/scan-<goal>/fix-draft.md` — hand that path to
+  the reviewer. Clustering can introduce new context/intent problems (a feature that bundles three
+  findings may, as written, fight a goal none of the three did alone). The fix epic is materialized
+  into real `.work/` items **only after the packet passes**. After the durable `.work/` items and
+  campaign record are written, the artifact root is deleted.
 
 ### Gate 2 verdict schema (per cluster)
 

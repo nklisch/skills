@@ -5,6 +5,10 @@ All items follow the agile-workflow active-tier schema (see `docs/SPEC.md`). Two
 - **Scan scaffold** (`scan-<goal>` epic + lane features + altitude stories) — **engagement-owned
   working state**. `deep-code-scan` creates it, drives it, and advances it to `done` *within the same
   run*. It is not a queue for `autopilot` to drain (see the routing guardrail in SKILL.md).
+- **Artifact ledger** (`.work/scan-artifacts/scan-<goal>/`) — temporary scanner-written raw packets,
+  candidate findings, per-scanner status files, orchestrator-accepted rollups, and gauntlet inputs.
+  The scan scaffold links to it while the campaign is running; Phase 6 deletes it after the scan/fix
+  item bodies contain the collated durable record.
 - **Fix epic** (`fix-<goal>`) — the **durable deliverable**. Ordinary remediation work that plugs
   straight into the normal design → implement → release machinery.
 
@@ -95,11 +99,22 @@ updated: YYYY-MM-DD
 ## Component map
 <the band -> [components] map from decomposition; this is what was approved at the checkpoint>
 
+## Artifact ledger
+- root: `.work/scan-artifacts/scan-<goal>/`
+- manifest: `.work/scan-artifacts/scan-<goal>/manifest.jsonl`
+- raw packets: `.work/scan-artifacts/scan-<goal>/raw/`
+- scanner candidates: `.work/scan-artifacts/scan-<goal>/candidates/`
+- scanner statuses: `.work/scan-artifacts/scan-<goal>/status/`
+- accepted findings: `.work/scan-artifacts/scan-<goal>/accepted/`
+- rollups: `.work/scan-artifacts/scan-<goal>/rollups/`
+- lifecycle: temporary; removed after final collation
+
 ## Campaign record   <!-- filled at Phase 6; a done+unbound epic body is git-historical and may later
                           be pruned to a stub, so the DURABLE summary also rides fix-<goal> -->
 - lanes run / components scanned / findings by severity
 - review gauntlet: rounds, dropped (by lens) + why, contested/advisory items (Low findings live here)
 - fix epic emitted: `fix-<goal>` (<M> features)
+- artifact cleanup: `.work/scan-artifacts/scan-<goal>/` removed after collation
 ```
 
 ### Lane feature — `.work/active/features/scan-<goal>-<lane>.md`
@@ -161,6 +176,13 @@ updated: YYYY-MM-DD
 - `file:line` — <title> — fix locality: local|module|cross-cutting — <one line>
 ### Low (advisory — stays here, NOT minted as backlog stubs)
 - `file:line` — <title> — <one line>
+
+## Artifact links
+- raw packets: `.work/scan-artifacts/scan-<goal>/raw/<lane>/<band>/`
+- scanner candidates: `.work/scan-artifacts/scan-<goal>/candidates/<lane>/<band>/`
+- scanner statuses: `.work/scan-artifacts/scan-<goal>/status/<lane>/<band>/`
+- accepted findings: `.work/scan-artifacts/scan-<goal>/accepted/<lane>/<band>.jsonl`
+- rollup: `.work/scan-artifacts/scan-<goal>/rollups/<lane>/<band>.md`
 
 ## Coverage gaps
 <components/domains skipped + why, scanner errors>

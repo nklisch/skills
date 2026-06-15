@@ -24,9 +24,12 @@ unique work is the four things none of the specialists do on their own:
 2. **The small→large sweep** — scan leaves first, then let each wider altitude consume the
    findings below it, so module- and system-level scanners are primed by what the leaves
    revealed.
-3. **Cross-model verification** — a different-model adversarial/peer pass over findings, so the
+3. **Temporary durable scan artifacts** — preallocate per-scanner artifact paths and require scanners
+   to write their own packets/findings there, so compaction cannot erase in-flight evidence; prune
+   those raw artifacts after the final summary and fix epic are collated.
+4. **Cross-model verification** — a different-model adversarial/peer pass over findings, so the
    campaign's output is hardened, not just generated.
-4. **Intelligent fix bundling** — consolidate everything into one coherent fix epic clustered by
+5. **Intelligent fix bundling** — consolidate everything into one coherent fix epic clustered by
    locality and theme, not 200 backlog stubs.
 
 ## Composition, not replacement (read this before worrying about overlap)
@@ -89,6 +92,10 @@ EPIC  fix-<goal>                            the OUTPUT: one organized remediatio
   `autopilot`. The **fix epic is the durable deliverable** ("here's the organized work"), carrying
   the audit summary that outlives the (prunable) scan epic. Keeping them separate mirrors
   research → handoff.
+- The **scanner packets, candidate findings, and intermediate rollups are temporary durable working
+  artifacts** under `.work/scan-artifacts/scan-<goal>/`. Scanners write their own unique files there;
+  story/fix bodies carry the durable summaries. After Phase 6 collates the final record, remove the
+  artifact root so the git tree does not retain raw scan junk.
 
 ## Dials (settle these WITH the user at kickoff — never silently)
 
@@ -156,6 +163,15 @@ their altitude stories, using the frontmatter in
 each lane; lanes are independent (parallel) unless the user says one informs another. Write the
 component map into the relevant story bodies as their scope.
 
+Create the campaign artifact root before fan-out:
+`.work/scan-artifacts/scan-<goal>/`. Record that path in the scan epic body and initialize the
+directory structure described in [references/artifact-ledger.md](references/artifact-ledger.md).
+Before each scanner wave, preallocate one unique `raw`, `candidates`, and `status` path per scanner
+and include those paths in its brief. Treat this directory as durable **in-flight** campaign state:
+leave it untracked/ignored, reload from it after compaction or context reset, and delete it after
+final collation. Checkpoint commits include only the summaries copied into `.work` item bodies, not
+the ignored scanner artifact files.
+
 **Compute and record an agent budget.** The fan-out is `components × (domains per lane)` and can
 explode — eight bug domains across hundreds of leaf files is thousands of agent calls. Before the
 checkpoint, estimate and write into the epic body: max scanners per wave, leaf batch size (files per
@@ -186,30 +202,38 @@ reads the findings the band below recorded). For each altitude story, fan out **
 multi-model scanner agents across that altitude's components** — see
 [references/scanner-brief.md](references/scanner-brief.md) for the brief, the model-diversity
 rule, and the finding schema. Each scanner loads the lane's references (per the
-[lane catalog](references/lane-catalog.md)). Record confirmed findings into the story body and
-**spot-check each band** before advancing to the next (the cited code is real and read in context).
-A finding is not a finding without a confirmed `file:line` and a read-in-context rationale — grep
-hits alone never count. The full multi-round gauntlet runs at **Gate 1** once all lanes/bands have
-scanned, just before consolidation.
+[lane catalog](references/lane-catalog.md)).
+
+Each scanner writes its own packet, candidate findings, and status files directly to its assigned
+paths, then replies with only a compact status line. The orchestrator must never receive or hold the
+full scanner output in chat. At the band checkpoint, collate scanner status files, spot-check from
+the saved packets/candidates, write accepted findings to the altitude story and rollup, and advance
+only after the artifact manifest is current. A finding is not a finding without a confirmed
+`file:line` and a read-in-context rationale — grep hits alone never count. The full multi-round
+gauntlet runs at **Gate 1** once all lanes/bands have scanned, just before consolidation.
 
 ### Phase 5 — Consolidate into the fix epic (gauntleted, operator-confirmed)
-This is what makes the output usable. First run the **review gauntlet's Gate 1** over the raw
-finding set (multi-round, cross-model — see Verification) so only survivors proceed. Then collect,
-dedupe by `file:line`, and **cluster** into a coherent remediation plan — by fix-locality, by theme,
-by shared root cause — rather than emitting one item per finding. See
+This is what makes the output usable. First materialize the Gate 1 input packet from the artifact
+rollups, then run the **review gauntlet's Gate 1** over that packet (multi-round, cross-model — see
+Verification) so only survivors proceed. Then collect, dedupe by `file:line`, and **cluster** into a
+coherent remediation plan — by fix-locality, by theme, by shared root cause — rather than emitting
+one item per finding. See
 [references/consolidation.md](references/consolidation.md) for the clustering method and the fix
-epic's shape. Persist the proposed plan as a **fix-epic draft packet** (`/tmp/fix-<goal>-draft.md`)
-and run *that* through the **gauntlet's Gate 2** — fresh-context reviewers need a concrete artifact,
-and clustering can introduce new context/intent problems a single finding didn't have. **Then
-propose the fix epic and ask before materializing it** (like `research-handoff` — never an
-auto-flood). On confirmation, write `fix-<goal>` + its clustered features/stories, each carrying
-`scan_origin: scan-<goal>` back to the campaign. Commit:
+epic's shape. Persist the proposed plan as a **fix-epic draft packet** inside the artifact root and
+run *that* through the **gauntlet's Gate 2** — fresh-context reviewers need a concrete artifact, and
+clustering can introduce new context/intent problems a single finding didn't have. **Then propose
+the fix epic and ask before materializing it** (like `research-handoff` — never an auto-flood). On
+confirmation, write `fix-<goal>` + its clustered features/stories, each carrying `scan_origin:
+scan-<goal>` back to the campaign. Commit:
 `deep-code-scan: emit fix epic for <goal> (<N> findings -> <M> features)`.
 
 ### Phase 6 — Close and report
 Append a campaign record to the scan epic body (lanes run, components scanned, finding counts by
-severity, verification outcomes, fix-epic id) and advance the scan epic to `stage: done` — the
-audit is complete; it is not release-bound, and verification ran inline. Report to the user:
+severity, verification outcomes, artifact root status, fix-epic id) and advance the scan epic to
+`stage: done` — the audit is complete; it is not release-bound, and verification ran inline. Once the
+fix epic and campaign record contain the collated durable summary, delete
+`.work/scan-artifacts/scan-<goal>/`; the closeout commit should contain only the collated `.work`
+item changes. Report to the user:
 goal, lanes, components scanned, findings by severity, the fix epic id + its feature breakdown,
 and the suggested next step (`/agile-workflow:autopilot` scoped to `fix-<goal>`, or
 `/agile-workflow:scope` to reprioritize).
@@ -217,7 +241,8 @@ and the suggested next step (`/agile-workflow:autopilot` scoped to `fix-<goal>`,
 ## Scanner dispatch (the fan-out spec)
 
 The scanning happens **in the sub-agents, not in your context** — your job is mapping, dispatch,
-verification, and consolidation. Do not re-do a scanner's work in the orchestrator.
+artifact-path preallocation, checkpoint collation, verification, and consolidation. Do not re-do a
+scanner's work in the orchestrator.
 
 - **Parallel, single message.** Dispatch all of an altitude's component-scanners in one message so
   they run concurrently. Do not serialize.
@@ -229,8 +254,14 @@ verification, and consolidation. Do not re-do a scanner's work in the orchestrat
   from the band below. Never the whole repo per scanner.
 - **References, not re-derivation.** Each scanner loads the lane's reference file(s) and applies
   their named patterns. That is the progressive-disclosure win — keep it.
+- **Scanners write artifacts themselves.** Each scanner receives unique `raw`, `candidates`, and
+  `status` paths and writes them directly. It returns only a terse completion line to chat. If
+  context compacts mid-campaign, restart from the status files, manifest, and story links, not from
+  memory.
 
 Full brief template, severity rubric, and output format: [references/scanner-brief.md](references/scanner-brief.md).
+Artifact paths, manifest schema, rollups, checkpoint commits, and final cleanup:
+[references/artifact-ledger.md](references/artifact-ledger.md).
 
 ## Verification — the multi-round review gauntlet (the rigor dial)
 
@@ -305,6 +336,14 @@ Skip duplicates; tally and report skips, as `bug-scan` does for its parked items
 - **Budget the fan-out.** Compute and get the scanner budget approved at the checkpoint. A campaign
   that quietly spawns thousands of agents (domains × hundreds of leaves) is a footgun — batch leaves,
   prune irrelevant scope, and surface the estimate.
+- **Persist before summarizing.** Every scanner packet, scanner candidate-finding file, accepted
+  finding rollup, gauntlet input, and draft fix packet must exist on disk under
+  `.work/scan-artifacts/scan-<goal>/` before you depend on it. The chat transcript is not durable
+  storage; compaction is expected on large campaigns.
+- **Clean after collating.** `.work/scan-artifacts/scan-<goal>/` is temporary campaign state, not the
+  final audit record. After the fix epic, resolved finding index, campaign record, and gauntlet
+  summary are written, remove the artifact root so raw scanner packets do not dirty the repo long
+  term.
 - **Scan scaffold is engagement-owned, enforced by the `[scan]` tag.** The paired substrate change
   makes `autopilot` skip `[scan]` items, so the scaffold can't be misrouted to `implement-orchestrator`.
   `deep-code-scan` drives scan execution; only the **fix** epic (no `[scan]` tag) is autopilot work.

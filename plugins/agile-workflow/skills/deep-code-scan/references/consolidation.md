@@ -11,7 +11,8 @@ gets one more gauntlet pass before emission.
 
 ## Step 1 — collect and dedupe
 
-Gather every surviving finding from every altitude story across every lane. Dedupe by `file:line`:
+Gather every surviving finding from the artifact ledger's accepted findings and Gate 1 ledger, using
+the altitude story bodies as the human-readable index. Dedupe by `file:line`:
 - Same location flagged by two lanes → keep the higher severity, note "also flagged by: <lane>".
 - A leaf finding subsumed by a module finding (the wider one's fix resolves the narrow one) → keep
   the wider, reference the narrower.
@@ -62,11 +63,11 @@ EPIC  fix-<goal>            kind: epic, scan_origin: scan-<goal>, release_bindin
 
 Gate 2 needs a **concrete artifact** to review, not an idea in your head. Persist the proposed plan
 as a **fix-epic draft packet** before reviewing it: write the would-be epic + every cluster
-feature/story (frontmatter + bodies + the `file:line` lists each resolves) to a temp file —
-`/tmp/fix-<goal>-draft.md` — or to a `## Proposed fix epic (draft)` section in the scan epic body.
-Hand *that path* to the Gate 2 gauntlet reviewers so a fresh-context, cross-model pass can judge the
-clustered plan (does it, as written, still pass Reality / Context / Intent? did clustering bundle a
-finding into a feature that now fights a goal?). See [review-gauntlet.md](review-gauntlet.md).
+feature/story (frontmatter + bodies + the `file:line` lists each resolves) to
+`.work/scan-artifacts/scan-<goal>/fix-draft.md`. Hand *that path* to the Gate 2 gauntlet reviewers so
+a fresh-context, cross-model pass can judge the clustered plan (does it, as written, still pass
+Reality / Context / Intent? did clustering bundle a finding into a feature that now fights a goal?).
+See [review-gauntlet.md](review-gauntlet.md).
 
 Once the packet clears Gate 2, **present it and ask before writing the real items** — like
 `research-handoff`, never an auto-flood:
@@ -77,6 +78,10 @@ Once the packet clears Gate 2, **present it and ask before writing the real item
 On confirmation, materialize the packet into real `.work/` items (epic + features/stories, each with
 `scan_origin: scan-<goal>`) and commit:
 `deep-code-scan: emit fix epic for <goal> (<N> findings -> <M> features)`.
+
+After emission and the scan epic campaign record are updated, delete
+`.work/scan-artifacts/scan-<goal>/`. The emitted `.work/` items are the durable record; the artifact
+root is in-flight scratch space.
 
 ## What the user gets back
 
