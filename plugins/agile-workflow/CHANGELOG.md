@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.14.0
+
+### Backlog grooming + staleness signal
+
+- **`groom` skill** — new user-invocable backlog-hygiene sweep
+  (`/agile-workflow:groom`). Classifies `.work/backlog/` items
+  DONE/SUPERSEDED/DUPLICATE/STALE/MERGEABLE/VALID via mechanical signals plus a
+  grounded semantic pass, and writes a triage report. Propose-not-prune:
+  dispositions are operator-confirmed and route through the terminal-tier
+  retention convention; it never auto-prunes and is not a release gate. Opt-in.
+- **`work-view --stale`** — lists backlog items whose last-touched date
+  (`updated` if present, else `created`) exceeds the new `backlog_staleness_days`
+  `.work/CONVENTIONS.md` key. Absent key ⇒ inert notice + exit 0, so a project
+  that doesn't opt in is unaffected. Backlog-tier only; std-only, local-time.
+- **`updated` on the backlog contract** — documented as an optional backlog
+  frontmatter field (`== created` at birth, written by `park`; bumped by the
+  PostToolUse hook on edit; treated as `created` when absent). `BACKLOG_REQUIRED`
+  unchanged — the field stays optional.
+
 ## v0.12.1
 
 ### Gate configurability

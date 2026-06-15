@@ -624,6 +624,7 @@ All skills with their roles, invocability, and triggers.
 | `park` | Capture an unscoped idea, context note, or roadmap-style thought into `.work/backlog/`. Minimal frontmatter; body sized to the supplied context. | "park this", "remind me about X", "add to backlog" |
 | `scope` | Promote backlog item or fresh request to `.work/active/`. Sizes as epic/feature/story. If large, rolls foundation docs forward. Declares dependencies. | "scope this", "promote this", "let's track this" |
 | `fix` | Park-and-implement quick bug as a story. Single-stride: creates story at `stage: implementing`, writes fix, advances to review. | "fix bug X", "fix the typo in", "fix this issue" |
+| `groom` | Backlog-hygiene sweep over `.work/backlog/`. Classifies items DONE/SUPERSEDED/DUPLICATE/STALE/MERGEABLE/VALID via mechanical signals (`work-view --stale`, missing-field, cites-done-work) + a grounded semantic pass; writes a triage report. Propose-not-prune: dispositions are operator-confirmed and route through terminal-tier retention; never auto-prunes. Not a release gate. Opt-in; staleness face inert unless `backlog_staleness_days` is set. | "groom the backlog", "backlog hygiene", "find stale/dead/duplicate items" |
 
 ### Design family (model-invocable, kind- and tag-routed)
 
