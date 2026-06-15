@@ -229,10 +229,32 @@ fn parse_date(s: &str) -> Option<u64> {
     let year: i32 = s[..4].parse().ok()?;
     let month: u32 = s[5..7].parse().ok()?;
     let day: u32 = s[8..10].parse().ok()?;
-    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
+    if !(1..=12).contains(&month) {
+        return None;
+    }
+    // Validate the day against the actual length of the month (leap-aware), so
+    // impossible calendar dates like 2026-02-31 or non-leap 2026-02-29 fail
+    // closed (None) rather than being fed into staleness comparisons as if real.
+    if day < 1 || day > days_in_month(year, month) {
         return None;
     }
     Some(date_to_days(year, month, day))
+}
+
+/// Number of days in a given month, accounting for Gregorian leap years.
+fn days_in_month(year: i32, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if is_leap_year(year) => 29,
+        2 => 28,
+        _ => 0, // unreachable: callers guard 1..=12
+    }
+}
+
+/// Proleptic Gregorian leap-year rule.
+fn is_leap_year(year: i32) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
 }
 
 /// Convert a proleptic Gregorian calendar date to a day number.
@@ -382,6 +404,38 @@ mod tests {
         assert!(parse_date("2026/01/01").is_none()); // wrong separator
         assert!(parse_date("2026-1-1").is_none()); // no zero-padding
         assert!(parse_date("").is_none());
+    }
+
+    #[test]
+    fn parse_date_impossible_calendar_dates_return_none() {
+        // Day exceeds the month's real length — must fail closed, not be fed
+        // into staleness math as if it were a real date.
+        assert!(parse_date("2026-02-31").is_none()); // Feb never has 31
+        assert!(parse_date("2026-02-29").is_none()); // 2026 is not a leap year
+        assert!(parse_date("2026-04-31").is_none()); // April has 30
+        assert!(parse_date("2026-06-31").is_none()); // June has 30
+        assert!(parse_date("2026-01-32").is_none()); // no month has 32
+        assert!(parse_date("2026-01-00").is_none()); // day 0 invalid
+        assert!(parse_date("2026-00-10").is_none()); // month 0 invalid
+        assert!(parse_date("2026-13-10").is_none()); // month 13 invalid
+    }
+
+    #[test]
+    fn parse_date_leap_year_boundaries() {
+        assert!(parse_date("2000-02-29").is_some()); // divisible by 400 → leap
+        assert!(parse_date("2024-02-29").is_some()); // divisible by 4 → leap
+        assert!(parse_date("1900-02-29").is_none()); // divisible by 100, not 400 → not leap
+        assert!(parse_date("2026-02-28").is_some()); // last valid non-leap Feb day
+    }
+
+    #[test]
+    fn days_in_month_is_leap_aware() {
+        assert_eq!(days_in_month(2026, 2), 28);
+        assert_eq!(days_in_month(2024, 2), 29);
+        assert_eq!(days_in_month(1900, 2), 28);
+        assert_eq!(days_in_month(2000, 2), 29);
+        assert_eq!(days_in_month(2026, 4), 30);
+        assert_eq!(days_in_month(2026, 12), 31);
     }
 
     #[test]

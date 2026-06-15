@@ -2711,6 +2711,34 @@ fn stale_absent_key_is_inert_with_notice() {
     assert_eq!(stderr, "", "stderr must be empty when inert; stderr: {stderr}");
 }
 
+// ── Test 2b: inert-path notice is BrokenPipe-safe (regression) ───────────────
+
+#[test]
+fn stale_inert_notice_survives_broken_pipe() {
+    // The inert branch (no backlog_staleness_days) prints a notice. It must use
+    // the BrokenPipe-safe write path, not a bare println! that panics when the
+    // consumer closes the pipe early (e.g. `work-view --stale | head -n 0`).
+    use std::process::Stdio;
+    let conventions = "# Conventions\nsome_other_key: 30\n";
+    let old_item = backlog_item("old-idea", OLD_DATE, None);
+    let tmp = setup_stale_substrate(&[("backlog/old-idea.md", &old_item)], conventions);
+
+    let mut child = Command::new(bin!())
+        .current_dir(tmp.path())
+        .arg("--stale")
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("failed to spawn work-view");
+    // Close the read end immediately to simulate a broken pipe consumer.
+    drop(child.stdout.take());
+    let status = child.wait().expect("failed to wait");
+    let code = status.code().unwrap_or(-1);
+    assert_eq!(
+        code, 0,
+        "inert --stale notice on a broken pipe must exit 0 (not panic), got {code}"
+    );
+}
+
 // ── Test 3: non-backlog tiers excluded ───────────────────────────────────────
 
 #[test]

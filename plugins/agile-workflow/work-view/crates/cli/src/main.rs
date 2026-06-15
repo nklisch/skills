@@ -148,8 +148,21 @@ fn run() -> u8 {
     let items = if opts.stale {
         match read_staleness_threshold(&root) {
             StalenessThreshold::NotConfigured => {
-                println!("work-view: no backlog_staleness_days configured");
-                return 0;
+                // Write the inert notice through the same BrokenPipe-safe path as
+                // render (a bare println! panics on a closed pipe, e.g.
+                // `work-view --stale | head -n 0`). A broken pipe here is a clean
+                // exit 0, matching the documented CLI contract.
+                use std::io::Write;
+                let stdout = io::stdout();
+                let mut out = stdout.lock();
+                return match writeln!(out, "work-view: no backlog_staleness_days configured") {
+                    Ok(()) => 0,
+                    Err(e) if e.kind() == ErrorKind::BrokenPipe => 0,
+                    Err(e) => {
+                        eprintln!("work-view: render error: {e}");
+                        3
+                    }
+                };
             }
             StalenessThreshold::Days(threshold) => {
                 let today = today_as_days();
