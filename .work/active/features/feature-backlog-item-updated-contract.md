@@ -1,7 +1,7 @@
 ---
 id: feature-backlog-item-updated-contract
 kind: feature
-stage: drafting
+stage: implementing
 tags: [plugin, tooling]
 parent: null
 depends_on: []
@@ -69,3 +69,128 @@ detection is impossible if items carry only a creation date." Landscape detail (
 staleness signals; the canonical stale-bot's age/last-update lifecycle) is in the synthesis brief
 `workflow-priority-grooming-for-agentic-substrates-landscape` and the
 `backlog-grooming-discipline-landscape` facet brief.
+
+## Grounding findings (from the code, before designing)
+
+`updated` is a **stubbed-but-unused field on the backlog tier**, not a missing one:
+
+- `work-view`'s `Item` model already parses `updated: Option<String>`
+  (`work-view/crates/core/src/model.rs`) — the field is *known* to the query layer.
+- But nothing writes it onto a backlog item: `BACKLOG_REQUIRED = {id, created, tags}`
+  (`hooks/scripts/substrate-maintainer.py`) and `park`/scaffold does not emit it.
+- The hook's `bump_updated` is **replace-only** — it refreshes an existing `updated:` line but
+  **cannot insert a missing one** (`substrate-maintainer.py` ~line 140). So editing a fieldless
+  backlog item does not add it.
+- Empirically: 0 of the current backlog items carry `updated`.
+- No staleness query exists — `work-view` exposes no `--stale` / age flag.
+
+So the work is to **activate a half-present field** (make it reliably present + queryable on the
+backlog tier), not build new plumbing.
+
+## Design decisions
+
+- **Activation — `park` writes `updated: == created` at birth**: new backlog items carry
+  `updated` from creation; the existing replace-only hook then bumps it on edit. No change to the
+  always-on hook. *Rejected alternative: teaching `bump_updated` to insert-when-missing* — it
+  would self-heal legacy items but changes behavior in the one component that runs on every item
+  edit in every project (larger blast radius, harder bloat story). Revisit if legacy-item
+  staleness accuracy proves load-bearing.
+- **`updated` is optional on the backlog contract, `created` is the fallback**: absent ⇒ treat as
+  `created`. A deployment not grooming is unaffected; legacy fieldless items read as "as old as
+  created" — a safe, conservative staleness floor.
+- **Staleness query lives in `work-view --stale`, threshold in CONVENTIONS**: opt-in via a
+  `backlog_staleness_days:` key; key absent ⇒ feature inert (surfaces nothing). Mirrors the
+  `gates_for_release` opt-in pattern. Gives the grooming consumer a reusable query rather than
+  re-parsing frontmatter.
+- **Single-stride feature, no child stories**: the three units are tightly cohesive and verified
+  together; splitting on docs/python/rust is package boundary, not story boundary.
+
+## Architectural choice
+
+**Activate-at-the-edges, keep the always-on hook untouched.** The field becomes reliable by
+writing it where items are *born* (`park`) and reading it where staleness is *asked*
+(`work-view --stale`), leaving the per-edit hook exactly as-is. This is the minimal-blast-radius
+shape and the cleanest optional-by-convention story for upstream: a project that sets no
+`backlog_staleness_days:` key sees zero behavior change, and the hook's behavior is identical for
+every project regardless.
+
+## Implementation Units
+
+### Unit 1: Backlog item contract — declare `updated` (optional)
+**File**: `plugins/agile-workflow/docs/SPEC.md` (backlog item shape section)
+
+Add `updated: YYYY-MM-DD` to the documented backlog frontmatter shape as **optional**, with a
+note: written by `park` at creation (`== created`), bumped by the PostToolUse hook on edit,
+treated as `created` when absent. Keep `BACKLOG_REQUIRED` unchanged (the field stays optional —
+validation already format-checks `updated` only if present, `substrate-maintainer.py` ~line 252,
+so no validator change is needed). Document the `backlog_staleness_days:` CONVENTIONS key in the
+SPEC §CONVENTIONS schema and the convert-written CONVENTIONS template.
+
+**Acceptance Criteria**:
+- [ ] SPEC backlog shape lists `updated` as optional with the "== created at birth, == created
+      when absent" semantics.
+- [ ] SPEC §CONVENTIONS documents `backlog_staleness_days:` (integer; absent ⇒ `--stale` inert).
+- [ ] `BACKLOG_REQUIRED` is unchanged; no new required field.
+
+### Unit 2: `park` populate-path — write `updated` at creation
+**File**: the `park` skill scaffold path (`plugins/agile-workflow/skills/park/`) — the backlog
+item template/writer.
+
+When `park` creates `.work/backlog/<id>.md`, emit `updated: <today>` alongside `created: <today>`.
+
+**Implementation Notes**:
+- Mirror the date source already used for `created` (no new date logic).
+- Does not retro-touch existing items; legacy items remain fieldless and read as `created`.
+
+**Acceptance Criteria**:
+- [ ] A freshly-parked backlog item contains `updated:` equal to `created:`.
+- [ ] The existing replace-only hook bumps that `updated:` on a subsequent edit (no hook change).
+- [ ] Existing fieldless backlog items are left untouched.
+
+### Unit 3: `work-view --stale` staleness query
+**Files**: `plugins/agile-workflow/work-view/crates/cli/src/args.rs` (flag parse),
+`crates/cli/src/actionable.rs` or a sibling (selection), `crates/core/src/filter.rs` (predicate),
+help text in `args.rs`.
+
+Add `--stale` to the filter set. Semantics: backlog-tier items where
+`(today - (updated ?? created)) > backlog_staleness_days`. The threshold is read from
+`.work/CONVENTIONS.md` `backlog_staleness_days:`; **absent key ⇒ `--stale` surfaces nothing and
+prints a one-line "no `backlog_staleness_days` configured" notice** (politely inert, not an
+error — matches the graceful-skip pattern of opt-in gates).
+
+**Implementation Notes**:
+- `updated` and `created` are already `Option<String>` on the model — no parse change.
+- Date math against "today": follow the hook's local-time convention for consistency.
+- Reuse the existing repeatable-flag parser pattern in `args.rs`; do not add a dependency.
+- The bash fallback `work-view.sh` is a frozen degraded fallback — `--stale` is Rust-only
+  (consistent with `--scope` being Rust-only, per the args.rs note).
+
+**Acceptance Criteria**:
+- [ ] `work-view --stale` with `backlog_staleness_days: N` set lists backlog items older than N
+      days by `(updated ?? created)`.
+- [ ] With the key absent, `--stale` surfaces nothing and prints the inert notice (exit 0).
+- [ ] Non-backlog tiers are excluded from `--stale`.
+- [ ] An item with `updated` newer than `created` is judged by `updated` (last-touched, not birth).
+
+## Implementation Order
+1. Unit 1 (SPEC contract — names the field + the CONVENTIONS key the others reference)
+2. Unit 2 (`park` populate) and Unit 3 (`work-view --stale`) — independent, either order
+
+## Testing
+- **Unit 2**: extend the `park` skill's scaffold test (or add one) asserting a parked backlog
+  item carries `updated == created`.
+- **Unit 3**: `work-view` integration tests (`crates/cli/tests/integration.rs`) — fixture
+  backlog items with varied `created`/`updated`/absent, asserting `--stale` selection at a set
+  threshold, the absent-key inert path, tier exclusion, and `updated`-over-`created` precedence.
+  Use the existing in-memory substrate test fixture builder pattern.
+- **Unit 1**: doc change; covered by the SPEC reconciliation being self-consistent with the
+  validator (no validator change) — no code test, but verify `convert`'s CONVENTIONS template
+  round-trips the new key if a template test exists.
+
+## Risks
+- **Local-time date math drift** (the hook bumps in local time; `--stale` must match or
+  off-by-one staleness appears across timezones). Mitigation: reuse the hook's date convention
+  explicitly in Unit 3.
+- **Optional-key discoverability**: a project that wants grooming must know to set
+  `backlog_staleness_days:`. Mitigation: `convert` writes it (commented/defaulted-off) into the
+  CONVENTIONS template so the knob is visible but inert until set.
