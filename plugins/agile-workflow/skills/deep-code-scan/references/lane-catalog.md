@@ -54,12 +54,12 @@ Paths are relative to the repo's plugin root (`plugins/`).
 - **Standalone alternative:** `/agile-workflow:perf-scout <path>`.
 
 ### quality / holistic
-- **References:** `nates-toolkit/skills/repo-eval/references/` — the 9 dimensions + scoring rubric +
+- **References:** `code-audit/skills/repo-eval/references/` — the 9 dimensions + scoring rubric +
   verification-checks.
 - **Note:** this lane *scores*, it doesn't only list findings. Best at the `subsystem`/`system`
   bands where holistic judgment applies; weak at `leaf`. Often run as one or two high-altitude
   stories rather than a full leaf→system spine.
-- **Standalone alternative:** `/nates-toolkit:repo-eval <path>`.
+- **Standalone alternative:** `/code-audit:repo-eval <path>`.
 
 ### structure / refactor
 - **References:** `agile-workflow/skills/refactor-design` discovery heuristics + any project

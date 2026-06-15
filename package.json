@@ -16,7 +16,9 @@
     "agent-skills",
     "agile-workflow",
     "ux-ui-design",
+    "code-audit",
     "nates-toolkit",
+    "agentic-research",
     "agent-coordination"
   ],
   "pi": {
@@ -26,7 +28,9 @@
     "skills": [
       "./plugins/agile-workflow/skills",
       "./plugins/ux-ui-design/skills",
+      "./plugins/code-audit/skills",
       "./plugins/nates-toolkit/skills",
+      "./plugins/agentic-research/skills",
       "./plugins/agent-coordination/skills"
     ]
   }

@@ -125,7 +125,9 @@ Claude Code and Codex.
 ### Bootstrap a project
 
 After install, any of these will trigger the `ux-ui-principles` skill to offer
-appending the design-convention block to your project's `CLAUDE.md`:
+appending the design-convention block to your project's `AGENTS.md`, using
+`CLAUDE.md` only as a compatibility target when that is the existing
+agent-instructions file:
 
 - "design the login screen"
 - `/ux-ui-design:screens login`

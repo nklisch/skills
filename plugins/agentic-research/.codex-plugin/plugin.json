@@ -14,6 +14,16 @@
     "longDescription": "ARD makes AI research grounded and verifiable: a non-erodable anti-fabrication floor, a per-engagement control-space of selectable verification gates, and a .research/ substrate tier (attestations, precis, analytical syntheses) paralleling the operational .work/ tier. Citations use the [handle]{N} convention with per-source attestations, enforced by a citation-chain lint. Adopts ARD v0.5.1 (https://code.s-nc.org/Kevoun/ARD).",
     "developerName": "Kevoun",
     "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Bash",
+      "WebSearch",
+      "WebFetch"
+    ],
+    "defaultPrompt": [
+      "Use agentic-research to run a grounded research engagement with citation attestations and verification gates."
+    ],
     "websiteURL": "https://github.com/nklisch/skills"
   }
 }

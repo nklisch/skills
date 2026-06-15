@@ -46,7 +46,7 @@ items outside `fix-<goal>`. The rightmost column is the **standalone alternative
 | correctness | `bug-scan/references/*` (8 bug domains) | `/agile-workflow:bug-scan <path>` |
 | tests | `gate-tests` coverage analysis (bad tests, gaps, stale fixtures, weak assertions) | `/agile-workflow:gate-tests` |
 | performance | `perf-scout/references/*` (11 perf lenses) | `/agile-workflow:perf-scout <path>` |
-| quality / holistic | `repo-eval/references/*` (9 dimensions) | `/nates-toolkit:repo-eval <path>` |
+| quality / holistic | `code-audit/skills/repo-eval/references/*` (9 dimensions) | `/code-audit:repo-eval <path>` |
 | structure / refactor | `refactor-design` discovery heuristics | `/agile-workflow:refactor-design <path>` |
 | architecture / bold | `bold-refactor` conceptual lenses (elimination, unification, inversion, algebraic, declarative, domain crystallization) | `/agile-workflow:bold-refactor` |
 | security | `gate-security` audit domains | `/agile-workflow:gate-security` |
@@ -364,7 +364,7 @@ Skip duplicates; tally and report skips, as `bug-scan` does for its parked items
   performance lane's knowledge.
 - [`bold-refactor`](../bold-refactor/SKILL.md) — conceptual architecture lenses; the architecture
   lane's knowledge (and it already emits a `[refactor]` epic for a direct pass).
-- [`repo-eval`](../../../nates-toolkit/skills/repo-eval/SKILL.md) — holistic scorecard; the quality
+- [`repo-eval`](../../../code-audit/skills/repo-eval/SKILL.md) — holistic scorecard; the quality
   lane's knowledge.
 - [`research-orchestrator`](../../../agentic-research/skills/research-orchestrator/SKILL.md) — the
   dial/checkpoint/verification model this skill mirrors, pointed at code instead of external sources.

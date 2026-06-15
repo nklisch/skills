@@ -49,9 +49,10 @@ Agent-driven triggers (from agile-workflow design family or workflow design):
 
 ### Phase 1: Ground in the convention
 
-Confirm `ux-ui-principles` is loaded. If the project's `CLAUDE.md` lacks the
-`<!-- ux-ui-design:installed -->` marker, delegate to `ux-ui-principles` for
-the install and then continue.
+Confirm `ux-ui-principles` is loaded. If the project's agent instructions lack
+the `<!-- ux-ui-design:installed -->` marker, delegate to `ux-ui-principles`
+for the install and then continue (`AGENTS.md` first, `CLAUDE.md` only as a
+compatibility target).
 
 Read the substrate item if applicable (`.work/active/**/<feature-id>.md`),
 the parent epic body if one exists, and any nearby design notes. Link to

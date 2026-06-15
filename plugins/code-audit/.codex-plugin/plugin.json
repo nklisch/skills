@@ -1,0 +1,27 @@
+{
+  "name": "code-audit",
+  "version": "0.1.0",
+  "description": "Standalone code audit skills that produce markdown reports and remediation plans without requiring agile-workflow or any .work substrate.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Code Audit",
+    "shortDescription": "Standalone markdown code-audit reports",
+    "longDescription": "Doc-producing code audit skills with no agile-workflow substrate dependency: deep-code-scan for multi-lane campaigns, bug-scan for correctness hunts, security-scan for vulnerability review, test-scan for coverage and test quality, perf-scout for speculative optimization ideas, bold-refactor for architectural reconception plans, and repo-eval for verified scorecards. Outputs are markdown reports and remediation plans, not .work items.",
+    "developerName": "nklisch",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Bash"
+    ],
+    "defaultPrompt": [
+      "Use code-audit to scan this repository and write markdown findings."
+    ],
+    "websiteURL": "https://github.com/nklisch/skills"
+  }
+}

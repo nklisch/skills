@@ -1,8 +1,9 @@
 # nklisch/skills
 
 A software development workflow suite for Claude Code, OpenAI Codex, and Pi —
-work tracking, UI/UX design, and standalone utility skills, designed to tee up
-autonomous agent runs that actually ship the right thing.
+work tracking, UI/UX design, grounded research, markdown code audits, and
+standalone utility skills, designed to tee up autonomous agent runs that
+actually ship the right thing.
 
 Available as **Claude Code plugins**, **Codex plugins**, and **Pi packages**.
 
@@ -18,7 +19,9 @@ ergonomics.
 /plugin marketplace add nklisch/skills
 /plugin install agile-workflow@nklisch-skills    # work tracking + autopilot
 /plugin install ux-ui-design@nklisch-skills      # mockup-first UI design
+/plugin install code-audit@nklisch-skills        # standalone markdown code audits
 /plugin install nates-toolkit@nklisch-skills     # standalone utility skills
+/plugin install agentic-research@nklisch-skills  # grounded research discipline
 /plugin install agent-coordination@nklisch-skills # sparse cross-agent ledger
 ```
 
@@ -28,7 +31,9 @@ ergonomics.
 codex plugin marketplace add https://github.com/nklisch/skills
 codex plugin install agile-workflow
 codex plugin install ux-ui-design
+codex plugin install code-audit
 codex plugin install nates-toolkit
+codex plugin install agentic-research
 codex plugin install agent-coordination
 ```
 
@@ -41,14 +46,18 @@ pi install git:github.com/nklisch/skills
 # Or install individual published packages
 pi install npm:@nklisch/pi-agile-workflow
 pi install npm:@nklisch/pi-ux-ui-design
+pi install npm:@nklisch/pi-code-audit
 pi install npm:@nklisch/pi-nates-toolkit
+pi install npm:@nklisch/pi-agentic-research
 pi install npm:@nklisch/pi-agent-coordination
 
 # Local checkout/development installs
 pi install -l .
 pi install -l ./plugins/agile-workflow
 pi install -l ./plugins/ux-ui-design
+pi install -l ./plugins/code-audit
 pi install -l ./plugins/nates-toolkit
+pi install -l ./plugins/agentic-research
 pi install -l ./plugins/agent-coordination
 ```
 
@@ -63,7 +72,9 @@ included. Install from trusted sources; `agile-workflow` includes a Pi-native
 |---|---|---|
 | **agile-workflow** | Substrate-driven work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, goal-backed autopilot queue runner. | [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md) |
 | **ux-ui-design** | HTML/CSS/JS mockup-first UI design. Throwaway single-file mockups in `.mockups/` for alignment before any production code. Loosely integrated with agile-workflow. | [docs/ux-ui-design-guide.md](docs/ux-ui-design-guide.md) |
-| **nates-toolkit** | Standalone utility skills, no workflow lock-in — explain in plain language, score a codebase, reflect on tool & skill usage, author and audit skills. |  |
+| **code-audit** | Standalone markdown-first code audits — deep multi-lane scans, bug/security/test scans, perf scouting, bold refactor proposals, and repo scorecards without `.work`. | [plugins/code-audit/README.md](plugins/code-audit/README.md) |
+| **nates-toolkit** | Standalone utility skills, no workflow lock-in — explain in plain language, reflect on tool & skill usage, author skills, and audit skill artifacts. | [plugins/nates-toolkit/README.md](plugins/nates-toolkit/README.md) |
+| **agentic-research** | Grounded, verifiable AI research discipline. Produces `.research/` attestations and syntheses with citation/verification gates, and pairs with agile-workflow when research should ground a work item. | [plugins/agentic-research/README.md](plugins/agentic-research/README.md) |
 | **agent-coordination** | Sparse cross-agent coordination ledger for shared repos — deliberate claims, handoffs, blockers, review summaries, and merge summaries without turning Discussions into chat. Lightly aware of agile-workflow `.work` IDs when present. |  |
 
 The two big ones — `agile-workflow` + `ux-ui-design` — are designed to work
@@ -82,9 +93,9 @@ the agile-workflow guide for the full rhythm.
 
 ## agile-workflow
 
-Twenty-six skills for tracking and shipping work via a markdown substrate in
+A full substrate skill set for tracking and shipping work via markdown files in
 `.work/`. See [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md)
-for the full guide.
+for the full guide and current catalog.
 
 ### Pipeline
 
@@ -186,7 +197,7 @@ mockups in `.mockups/` for alignment before any production code. See
 | **screens** | N (default 4) distinct HTML mockups for a single screen, plus a 2x2 comparison grid. |
 | **flows** | Multi-page user flow with prev/next or hub-and-spoke chrome, plus index navigator. |
 | **adopt** | Scans an existing codebase, inventories every UI surface, audits for inconsistencies, mirrors current UI into mocks OR reimagines them. |
-| **ux-ui-principles** | Reference: storage layout, decision matrix, tech rule. Adds convention to project CLAUDE.md on first run. Auto-loads. |
+| **ux-ui-principles** | Reference: storage layout, decision matrix, tech rule. Adds convention to project AGENTS.md on first run, with CLAUDE.md compatibility when needed. Auto-loads. |
 
 ### Plugged into agile-workflow
 
@@ -210,10 +221,32 @@ via `/plugin install nates-toolkit@nklisch-skills`.
 | Skill | What it does |
 |-------|-------------|
 | **plainspeak** | Re-render the last thing said in vivid plain language — one everyday metaphor, one concrete example, a crisp restatement, at a chosen depth. Manual only (`/plainspeak`). |
-| **repo-eval** | Multi-dimensional codebase audit — calibrated 1–10 scorecard with prioritized recommendations. Files findings as substrate items when an agile-workflow `.work/` exists. |
 | **agent-reflection** | Reflect on how the agent's own tools and skills served it this session — confusion, inefficiency, friction, context cost. Prioritized recommendations for tool and skill authors. |
 | **write-tool-skill** | Create distributable reference skills for a tool, CLI, MCP server, or library. |
 | **skill-auditor** | Static quality audit of a skill against type-specific, triggering, and emotional-tone rubrics. Scored report with fixes and a trigger-test plan. |
+
+## Code Audit
+
+Standalone markdown-first code audits with no workflow substrate. Install via
+`/plugin install code-audit@nklisch-skills`.
+
+| Skill | What it does |
+|-------|-------------|
+| **deep-code-scan** | Multi-lane campaign: decomposes the repo, fans out scanners, reviews findings, and writes `code-audit/scan-<goal>/` docs. |
+| **bug-scan** | Correctness bug hunt across concurrency, async, state, resource, time/number, error, data, and language-footgun domains. |
+| **security-scan** | Security review across auth, injection, secrets, deps, API, infra, crypto, data protection, and logging risks. |
+| **test-scan** | Test-quality audit: coverage gaps from contracts/specs, weak assertions, stale fixtures, over-mocking, and flaky tests. |
+| **perf-scout** | Speculative performance idea deck with validation paths; no claimed speedups. |
+| **bold-refactor** | Architectural reconception proposals through elimination, unification, inversion, algebraic, declarative, and domain lenses. |
+| **repo-eval** | Verified repository scorecard written to `REPO-EVAL.md`; this is the supported home for repository evaluation. |
+
+### Which audit/eval path to use
+
+Use **code-audit** when you want markdown deliverables only: reports, scorecards,
+and remediation plans that do not assume agile-workflow exists.
+
+Use **agile-workflow gates** when you are cutting a release and want findings to
+become substrate work tied to the release bundle instead of standalone reports.
 
 ## Agent Coordination
 
@@ -296,7 +329,9 @@ plugins/agile-workflow/            # agile-workflow plugin (substrate-driven)
 plugins/ux-ui-design/              # ux-ui-design plugin (7 skills, mockup-first)
 ├── skills/                        #   skill source
 └── docs/                          #   plugin design docs
-plugins/nates-toolkit/skills/      # standalone utility skills (plainspeak, repo-eval, agent-reflection, write-tool-skill, skill-auditor)
+plugins/code-audit/skills/         # standalone markdown-first code audit skills
+plugins/nates-toolkit/skills/      # standalone utility skills (plainspeak, agent-reflection, write-tool-skill, skill-auditor)
+plugins/agentic-research/          # grounded research discipline + .research substrate
 plugins/agent-coordination/skills/ # sparse cross-agent coordination ledger
 plugins/workflow/                  # DEPRECATED — doc-driven, no longer supported
 .agents/skills/                    # reference, principle, and utility skills
@@ -306,5 +341,5 @@ docs/                              # human-facing guides — agile-workflow-guid
 
 ## Requirements
 
-- Claude Code with Task/Agent tool support (or Codex CLI)
+- Claude Code with Task/Agent tool support, OpenAI Codex CLI, or Pi
 - Git repository

@@ -46,9 +46,9 @@
 ## Structural Findings
 
 ### 1. Installer block adds ~80 inline lines that could move to a reference (Score: 3 / Token Efficiency)
-**Issue:** Lines 121–188 carry the CLAUDE.md installer flow and the verbatim block to append. The block must be byte-stable, but it doesn't have to live in SKILL.md — a reference like `references/claude-md-installer.md` keeps SKILL.md leaner and preserves verbatim copy semantics.
+**Issue:** Lines 121–188 carry the agent-instructions installer flow and the verbatim block to append. The block must be byte-stable, but it doesn't have to live in SKILL.md — a reference like `references/agent-instructions-installer.md` keeps SKILL.md leaner and preserves verbatim copy semantics.
 **Rubric:** Token Efficiency — "Reference files under 200 lines each" and "Content needed for 20% of tasks is in references." The installer fires once per project; the rule body is consulted every time the skill loads.
-**Recommendation:** Move the installer block + idempotency notes to `references/claude-md-installer.md`. Keep a one-paragraph summary plus "see `references/claude-md-installer.md` for the exact block" in SKILL.md.
+**Recommendation:** Move the installer block + idempotency notes to `references/agent-instructions-installer.md`. Keep a one-paragraph summary plus "see `references/agent-instructions-installer.md` for the exact block" in SKILL.md.
 
 ### 2. Progressive disclosure could externalize the `<style>` patterns each generator inherits (Score: 4)
 **Issue:** "What the generator skills inherit" (lines 207–219) is short and works, but the three sibling SKILL.md files each re-implement very similar `<header class="flow-meta">` / index-grid markup. A `references/shared-css.md` here would let `screens`/`flows`/`palette` cite a single source.
@@ -76,7 +76,7 @@
 ### Scenario 1: First-invocation install on a project with no CLAUDE.md
 **What to test:** Idempotency and graceful project bootstrap.
 **Prompt:** "I'm starting a new project at `/tmp/test-skill-eval`. There's no `CLAUDE.md`. We're going to need to design a few screens — can you set up the UI/UX design convention for this project?"
-**Expected behavior:** The skill detects the missing `CLAUDE.md`, asks via AskUserQuestion whether to create+install the block, and writes the file with `<!-- ux-ui-design:installed -->`.
+**Expected behavior:** The skill detects the missing agent-instructions marker, asks via AskUserQuestion whether to create+install the block, and writes the file with `<!-- ux-ui-design:installed -->`.
 **Failure signal:** Skill installs silently without asking, OR writes the block without the marker, OR fails because `CLAUDE.md` doesn't exist.
 
 ### Scenario 2: Second invocation should not re-prompt
@@ -105,4 +105,4 @@
 
 ## Summary
 
-This is a strong principle/reference skill — the decision matrix and storage convention are unambiguous, the installer protocol is well-designed, and the deferral pattern with the three generators is documented in both directions. The single highest-priority improvement is **moving the 80-line CLAUDE.md installer block into `references/claude-md-installer.md`** to pull SKILL.md under the 200-line target and reduce auto-load token cost without losing any verbatim semantics.
+This is a strong principle/reference skill — the decision matrix and storage convention are unambiguous, the installer protocol is well-designed, and the deferral pattern with the three generators is documented in both directions. The single highest-priority improvement is **moving the 80-line agent-instructions installer block into `references/agent-instructions-installer.md`** to pull SKILL.md under the 200-line target and reduce auto-load token cost without losing any verbatim semantics.

@@ -9,7 +9,6 @@ substrate.
 | Skill | What it does |
 |---|---|
 | `plainspeak` | Re-explains the last substantive answer in vivid plain language. |
-| `repo-eval` | Produces a calibrated codebase scorecard with prioritized recommendations. |
 | `agent-reflection` | Reviews how the agent's tools and skills performed in the current session. |
 | `write-tool-skill` | Authors reference skills for tools, CLIs, MCP servers, and libraries. |
 | `skill-auditor` | Audits a skill artifact for structure, triggering, and behavior quality. |

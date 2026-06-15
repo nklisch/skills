@@ -14,7 +14,14 @@
     {
       "name": "nates-toolkit",
       "source": "./plugins/nates-toolkit",
-      "description": "Standalone, project-agnostic utility skills with no workflow lock-in — plainspeak (plain-language re-explanation), repo-eval (codebase scorecard), agent-reflection (self-reflection on tool & skill usage), write-tool-skill + skill-auditor (skill authoring and quality auditing).",
+      "description": "Standalone, project-agnostic utility skills with no workflow lock-in — plainspeak (plain-language re-explanation), agent-reflection (self-reflection on tool & skill usage), write-tool-skill + skill-auditor (skill authoring and quality auditing).",
+      "category": "productivity",
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
+    },
+    {
+      "name": "code-audit",
+      "source": "./plugins/code-audit",
+      "description": "Standalone markdown-first code audit skills — deep code scan, bug scan, security scan, test scan, perf scout, bold refactor, and repo eval without requiring agile-workflow or .work.",
       "category": "productivity",
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },

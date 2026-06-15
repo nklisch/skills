@@ -69,8 +69,9 @@ Agent-driven triggers:
 
 ### Phase 1: Ground and confirm scan boundary
 
-Confirm `ux-ui-principles` is loaded; install the `CLAUDE.md` block if
-the marker is missing.
+Confirm `ux-ui-principles` is loaded; install the project agent-instructions
+block if the marker is missing (`AGENTS.md` first, `CLAUDE.md` only as a
+compatibility target).
 
 Check whether `.mockups/adoption-report.md` already exists:
 - **Absent** → first-run adoption.

@@ -526,11 +526,10 @@ Worth knowing they exist so the items they produce make sense:
 
 - **`principles`** auto-loads during design, implement, review, and any time
   foundation docs are touched.
-- **`repo-eval`** — multi-dimensional codebase audit. Say "evaluate this
-  repo" or "score the codebase". Produces a calibrated scorecard, then asks
-  whether to file the top recommendations as substrate items (backlog or
-  active) tagged `[audit]` — so the audit drives action instead of just
-  sitting in a report.
+- **`code-audit` plugin scans** — optional companion reports when you want
+  markdown audit deliverables without writing `.work` items. Use those for
+  report-only deep scans, bug/security/test scans, perf scouting, bold refactor
+  proposals, and `repo-eval` scorecards.
 - **`research`** and **`refactor-conventions-creator`** — auto-loading or
   one-shot helpers.
 
@@ -725,8 +724,9 @@ Idempotent via `--update`. The full migration matrix is in
 
 ## Skill catalog (reference)
 
-Twenty-six skills across seven tiers. You'll only ever invoke a few
-explicitly — the rest the agent picks for you.
+The catalog is grouped by how humans experience it. You'll only ever invoke a
+few skills explicitly — the rest the agent picks for you from the substrate,
+item kind, tags, release stage, and conversational intent.
 
 ### Bootstrap (you invoke)
 - **ideate** — foundation-docs workshop
@@ -743,6 +743,9 @@ explicitly — the rest the agent picks for you.
 - **feature-design** — greenfield feature design (no specialized tag). Fallback tier for UI mocks.
 - **refactor-design** — for features tagged `[refactor]`; also discovery mode (scan codebase, emit items) when no feature is named
 - **perf-design** — for features tagged `[perf]`; also discovery mode (profile hot paths, emit items)
+- **prose-author** — no-code authoring lane for features tagged `[prose]`
+- **e2e-test-design** — designs service-level-mocked e2e coverage for e2e/testing features
+- **agentic-research:research-orchestrator** — cross-plugin research lane for features tagged `[research]`
 
 ### Production (agent picks)
 - **implement** — single-stride code from item body
@@ -754,14 +757,19 @@ explicitly — the rest the agent picks for you.
 - **release-deploy** *(you invoke)* — bind, gate, ship
 - **autopilot** *(goal-backed; user or agent starts it)* — autonomous queue runner
 - **bold-refactor** *(you invoke)* — architectural reconception
+- **board** — human-facing `.work` board over the same substrate
+
+### Scan and discovery helpers
+- **deep-code-scan** — comprehensive multi-lane scan that emits substrate work
+- **bug-scan** — correctness bug hunt that emits substrate work
+- **perf-scout** — speculative performance idea deck that emits substrate work
 
 ### Gates (agent picks; produce items, not pass/fail; release-time only)
 - **gate-security**, **gate-tests**, **gate-cruft**, **gate-docs**,
-  **gate-patterns**
+  **gate-patterns**, **gate-refactor**
 
 ### Reference
 - **principles** — code-design + substrate-execution principles
-- **repo-eval** — codebase audit; files top recommendations as substrate items tagged `[audit]` when a substrate exists
 - **research**, **refactor-conventions-creator** — auto-loading or one-shot helpers
 
 ## Tips for productive collaboration
@@ -811,6 +819,9 @@ research engagement via `/agentic-research:research-orchestrator` and cite the
 result with `research_refs: [<slug>]` in the work item's frontmatter. See
 `plugins/agentic-research/docs/HANDOFF.md` for the full commissioning recipe,
 including when to use `depends_on` to gate the item on research completion.
+Install `agentic-research` through the same Claude Code, Codex, or Pi channel as
+`agile-workflow`; without it, `[research]` is just a project tag and normal
+feature design handles the item.
 
 ## Where to read more
 

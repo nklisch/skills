@@ -72,8 +72,9 @@ downstream mock reads from this file.
 
 ### Phase 1: Ground and detect mode
 
-Confirm `ux-ui-principles` is loaded; install the `CLAUDE.md` block if the
-marker is missing.
+Confirm `ux-ui-principles` is loaded; install the project agent-instructions
+block if the marker is missing (`AGENTS.md` first, `CLAUDE.md` only as a
+compatibility target).
 
 **Verify `tokens.css` exists.** Components are composed from tokens. If
 `.mockups/design-system/tokens.css` is missing, delegate to `palette`
@@ -85,7 +86,7 @@ Read:
 - `.mockups/design-system/components.css` if present → **refinement mode**
 - The substrate item (epic/feature) if applicable, for project-unique
   component hints
-- `CLAUDE.md`, `README.md`, any brand/voice docs
+- `AGENTS.md`, `CLAUDE.md`, `README.md`, any brand/voice docs
 
 ### Phase 2: Pick the common-component starter set
 

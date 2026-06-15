@@ -277,15 +277,20 @@ Source kinds: `local`, `git-subdir` (others may exist; these are the documented 
 
 Installation policies: `AVAILABLE`, `INSTALLED_BY_DEFAULT`, `NOT_AVAILABLE`.
 
-This repo's existing `marketplace.json` already uses `local` (as string shorthand `"./..."`)
-and `git-subdir` source shapes. To be fully Codex-compatible the entries would need:
+This repo's current `.claude-plugin/marketplace.json` deliberately uses
+Claude-compatible string-path local sources (`"source": "./plugins/<name>"`) plus
+object-form `git-subdir` sources for external plugins. Codex reads the same file
+as an alternate marketplace location. Do **not** rewrite local entries to
+`{ "source": "local", "path": "..." }` unless Claude Code's marketplace support
+changes; the repo-level source-shape policy lives in `docs/SPEC.md`.
 
-- `source.source: "local"` wrapper instead of bare-string `"./plugins/agile-workflow"`
-- `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }` per entry
-- `category` per entry
+Required current fields per local entry:
 
-Claude Code marketplace tolerates the explicit-source-object shape too, so a single
-marketplace.json can satisfy both.
+- `name`
+- `source: "./plugins/<name>"`
+- `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }`
+- `category`
+- `description`
 
 ### CLI commands
 
@@ -325,36 +330,23 @@ mentioning to projects adopting this repo's plugins.
 
 ## Implementation Notes for this repo
 
-If adopting Option B:
+Option B has been adopted. Every supported plugin should now ship:
 
-1. **Add `.codex-plugin/plugin.json`** to each plugin sibling-of `.claude-plugin/`:
-   - `plugins/workflow/.codex-plugin/plugin.json`
-   - `plugins/agile-workflow/.codex-plugin/plugin.json`
-   - `plugins/skill-authoring/.codex-plugin/plugin.json`
+- `plugins/<name>/.claude-plugin/plugin.json`
+- `plugins/<name>/.codex-plugin/plugin.json` with `skills: "./skills/"`
+- `plugins/<name>/package.json` with Pi metadata
+- a `.claude-plugin/marketplace.json` entry using the current dual-compatible
+  string-path local source form
 
-   Each is a near-clone of the Claude `plugin.json` with `skills: "./skills/"` added and an
-   `interface` block for marketplace polish.
+The supported in-tree plugins are `agile-workflow`, `ux-ui-design`,
+`code-audit`, `nates-toolkit`, `agentic-research`, and `agent-coordination`.
+The deprecated `workflow` plugin remains in the tree for existing installs, but
+new work does not extend it.
 
-2. **Verify SKILL.md compatibility**. Existing skills use:
-   - `name`, `description` ✓ standard
-   - `allowed-tools` ✓ standard (experimental tag in spec)
-   - `user-invocable: true|false` — Claude-specific. Codex ignores unknown frontmatter, so this
-     is harmless. For Codex to honor the same intent, add `agents/openai.yaml` with
-     `policy.allow_implicit_invocation: false` to the user-invocable-only skills.
-
-3. **Update `.claude-plugin/marketplace.json`** to use the explicit `source: { source: "local",
-   path: ... }` shape and add `policy` + `category` to each entry. Both ecosystems will accept
-   the explicit shape.
-
-4. **(Optional) Per-skill `agents/openai.yaml`** for marketplace-visible skills where icons,
-   brand color, or default prompts add value. Most reference skills (e.g. `hono-v4`) don't need
-   this — they auto-load on keyword match in both ecosystems and aren't surfaced in pickers.
-
-5. **Update bump-version.sh** to refuse on `plugins/<name>/.codex-plugin/` dirty trees too, not
-   just `.claude-plugin/`.
-
-6. **Update CLAUDE.md** to mention the dual-manifest convention so future skill authors don't
-   forget the Codex side.
+Per-skill `agents/openai.yaml` remains optional and should be used for Codex
+marketplace polish or explicit invocation policy. Portable `SKILL.md`
+frontmatter should stay on the shared Agent Skills surface; repo-local skill
+style rules live in `.agents/skills/repo-skill-style/`.
 
 ## Code Examples
 
@@ -392,12 +384,12 @@ allowed-tools: Read, Write, Glob, Grep, WebSearch, WebFetch
 }
 ```
 
-### Codex-compatible marketplace entry (rewrite of an existing entry)
+### Current dual-compatible marketplace entry
 
 ```json
 {
   "name": "agile-workflow",
-  "source": { "source": "local", "path": "./plugins/agile-workflow" },
+  "source": "./plugins/agile-workflow",
   "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
   "category": "Productivity",
   "description": "Markdown-based work-tracking substrate for AI-driven projects."

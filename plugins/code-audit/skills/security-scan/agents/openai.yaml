@@ -1,0 +1,6 @@
+interface:
+  display_name: "Security Scan"
+  short_description: "Markdown security review and vulnerability scan"
+  default_prompt: "Use $security-scan for this repository."
+policy:
+  allow_implicit_invocation: false

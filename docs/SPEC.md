@@ -112,7 +112,8 @@ The single-source-of-truth rules that keep the catalog coherent:
 
 ## Status and deprecation
 
-- **Supported:** `agile-workflow` (flagship), `ux-ui-design`, `nates-toolkit`.
+- **Supported:** `agile-workflow` (flagship), `ux-ui-design`, `code-audit`,
+  `nates-toolkit`, `agentic-research`, `agent-coordination`.
 - **Deprecated and frozen:** `workflow`. It stays in the tree so existing
   installs keep working; it gets no new features or fixes. New work does not
   extend it, and new docs do not cite it as a sibling.
@@ -124,6 +125,6 @@ is built internally, defer to its own docs:
 
 - Substrate model, item lifecycle, gates, releases →
   `plugins/agile-workflow/docs/{SPEC,ARCHITECTURE,PRINCIPLES}.md`.
-- Other plugins → their own directory and manifests.
+- Other plugins → their own directory, README/docs where present, and manifests.
 
 Repo layout and the substrate-access model live in `docs/ARCHITECTURE.md`.

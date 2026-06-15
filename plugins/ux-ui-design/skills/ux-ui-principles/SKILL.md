@@ -8,15 +8,15 @@ description: >
   layout (.mockups/{design-system,screens,flows}/), the REQUIRED vs OPTIONAL vs SKIP decision matrix,
   the tier-ordering rule (scope/epic primary, feature fallback), the design-system pipeline (palette →
   components → screens/flows), the linking convention to agile-workflow items, and the single-file
-  HTML/CSS/JS tech rule. Also installs the rule into the project's CLAUDE.md on first invocation (with
-  confirmation).
+  HTML/CSS/JS tech rule. Also installs the rule into the project's AGENTS.md on first invocation, with
+  CLAUDE.md compatibility when needed and confirmation before writing.
 ---
 
 # UX / UI Design Principles
 
 This is the reference skill for mockup-first UI/UX design. It encodes WHERE
 mockups live, WHEN to produce them, HOW they link back to work items, and
-WHAT the rule text in `CLAUDE.md` says. The six generator skills
+WHAT the rule text in the project's agent instructions says. The six generator skills
 (`palette`, `components`, `motion`, `screens`, `flows`, `adopt`) all defer here.
 
 This skill also carries two auto-loaded reference files:
@@ -235,14 +235,15 @@ When a mock is generated in the context of a substrate item, link it both ways:
 When NOT running in a substrate context, write the mocks and tell the user
 the path. Nothing more is needed.
 
-## First-invocation CLAUDE.md installer
+## First-invocation AGENTS.md installer
 
 The first time THIS skill runs in a project, check whether the project's root
-`CLAUDE.md` carries the mockup convention. If the marker
-`<!-- ux-ui-design:installed -->` is absent, offer to append the rule block
-via `structured question tool`.
+agent instructions carry the mockup convention. `AGENTS.md` is canonical; use
+`CLAUDE.md` only when it is the existing compatibility target and `AGENTS.md`
+is absent. If the marker `<!-- ux-ui-design:installed -->` is absent, offer to
+append the rule block via `structured question tool`.
 
-See `references/claude-md-installer.md` for the exact check command, the
+See `references/agent-instructions-installer.md` for the exact check command, the
 verbatim block to append, and the idempotency rules. The marker is the
 single source of truth — present means installed; absent means re-prompt.
 
@@ -269,7 +270,8 @@ The six generators (`palette`, `components`, `motion`, `screens`, `flows`,
 
 - This skill is loaded (its conventions are active)
 - `.mockups/` exists or will be created
-- `CLAUDE.md` carries the rule (this skill installed it earlier)
+- `AGENTS.md` carries the rule, or `CLAUDE.md` carries it as the compatibility
+  target in older projects
 - The user wants mocks opened automatically after generation
 - Mocks are single-file HTML with inline vanilla CSS/JS
 - Shared chrome CSS comes from `references/shared-chrome-css.md`
@@ -279,9 +281,9 @@ The six generators (`palette`, `components`, `motion`, `screens`, `flows`,
   motion before screens/flows; downstream skills delegate upstream if
   dependencies are missing
 
-If a generator runs and the `CLAUDE.md` marker is absent, the generator
-delegates to this skill first (mention "loading ux-ui-principles to install
-the rule"), then proceeds.
+If a generator runs and the marker is absent from the project agent
+instructions, the generator delegates to this skill first (mention "loading
+ux-ui-principles to install the rule"), then proceeds.
 
 ## Anti-patterns
 

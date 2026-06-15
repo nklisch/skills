@@ -11,9 +11,17 @@
   "interface": {
     "displayName": "UX / UI Design",
     "shortDescription": "Mockup-first UI/UX design in HTML/CSS/JS",
-    "longDescription": "Seven skills for design-phase UI/UX work: ux-ui-principles (auto-loading reference + CLAUDE.md installer), palette (color + typography design system), components (reusable component library + showcase), motion (named easing curves + Doherty-coupled durations + spring presets + reduced-motion), screens (4-option single-screen mockups), flows (multi-page user journeys — sequential, hub-and-spoke, hybrid, map-as-canvas, chat-as-canvas), adopt (existing-project bootstrap that scans, audits, and orchestrates the pipeline in mirror, reimagine, or diegetic-prototype mode with Whose-Default mirror-mocks). All outputs are standalone single-file HTML mockups in .mockups/ — throwaway artifacts that align design decisions before implementation, loosely integrated with agile-workflow item ids.",
+    "longDescription": "Seven skills for design-phase UI/UX work: ux-ui-principles (auto-loading reference + AGENTS.md convention installer, with CLAUDE.md compatibility), palette (color + typography design system), components (reusable component library + showcase), motion (named easing curves + Doherty-coupled durations + spring presets + reduced-motion), screens (4-option single-screen mockups), flows (multi-page user journeys — sequential, hub-and-spoke, hybrid, map-as-canvas, chat-as-canvas), adopt (existing-project bootstrap that scans, audits, and orchestrates the pipeline in mirror, reimagine, or diegetic-prototype mode with Whose-Default mirror-mocks). All outputs are standalone single-file HTML mockups in .mockups/ — throwaway artifacts that align design decisions before implementation, loosely integrated with agile-workflow item ids.",
     "developerName": "nklisch",
     "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Bash"
+    ],
+    "defaultPrompt": [
+      "Use ux-ui-design to create mockup-first UI/UX design artifacts before production code."
+    ],
     "websiteURL": "https://github.com/nklisch/skills"
   }
 }

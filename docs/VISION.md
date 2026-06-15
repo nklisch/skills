@@ -9,8 +9,9 @@ AI coding agents are only as good as the context and tooling they are handed.
 Left generic, they re-derive the same workflows, re-learn the same library APIs,
 and re-invent the same project scaffolding on every task. This repo closes that
 gap: it packages durable agent capability — work tracking, design workflows, UI
-mockup generation, library references, skill-authoring tooling — as installable
-skills and plugins, authored to a bar a thoughtful peer would defend.
+mockup generation, grounded research, markdown code audits, coordination
+protocols, library references, skill-authoring tooling — as installable skills
+and plugins, authored to a bar a thoughtful peer would defend.
 
 The audience is people building with Claude Code, OpenAI Codex, and Pi who want
 their agents to arrive already knowing how to work.
@@ -27,8 +28,10 @@ ergonomics around that shared core.
 The catalog is anchored by a flagship — **agile-workflow** — a substrate where a
 project's work lives as markdown files with structured frontmatter, and the
 agent drains them. Around it sit `ux-ui-design` (mockup-first UI design),
-`nates-toolkit` (standalone utilities), a curated library of reference skills,
-and federated external plugins.
+`code-audit` (standalone markdown audits), `nates-toolkit` (standalone
+utilities), `agentic-research` (grounded research discipline),
+`agent-coordination` (sparse cross-agent ledger), a curated library of reference
+skills, and federated external plugins.
 
 ## The dogfooding thesis
 
@@ -68,7 +71,7 @@ foundation docs — read those for purpose and internals:
 
 - **agile-workflow** (flagship) —
   `plugins/agile-workflow/docs/{VISION,SPEC,ARCHITECTURE,PRINCIPLES}.md`
-- **Other plugins** — see each plugin directory and its
+- **Other plugins** — see each plugin directory, README, and
   `.claude-plugin/plugin.json`.
 
 Repo-level structure and distribution mechanics live in `docs/ARCHITECTURE.md`;

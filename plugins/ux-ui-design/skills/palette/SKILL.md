@@ -60,12 +60,13 @@ overwrites without confirmation; every downstream mock reads from this file.
 
 ### Phase 1: Ground and detect mode
 
-Confirm `ux-ui-principles` is loaded; install the `CLAUDE.md` block if the
-marker is missing.
+Confirm `ux-ui-principles` is loaded; install the project agent-instructions
+block if the marker is missing (`AGENTS.md` first, `CLAUDE.md` only as a
+compatibility target).
 
 Read:
 - `.mockups/design-system/tokens.css` if it exists → **refinement mode**
-- `CLAUDE.md`, `README.md`, any docs about brand or visual direction
+- `AGENTS.md`, `CLAUDE.md`, `README.md`, any docs about brand or visual direction
 - Existing CSS / theme files in the app code
 - Logos or brand assets the user can point at
 

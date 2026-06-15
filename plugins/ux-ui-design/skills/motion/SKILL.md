@@ -72,8 +72,9 @@ overwrite without confirmation; every downstream mock reads from this file.
 
 ### Phase 1: Ground and detect mode
 
-Confirm `ux-ui-principles` is loaded; install the `CLAUDE.md` block if the marker is
-missing.
+Confirm `ux-ui-principles` is loaded; install the project agent-instructions
+block if the marker is missing (`AGENTS.md` first, `CLAUDE.md` only as a
+compatibility target).
 
 **Verify upstream files exist.** Motion composes against tokens (for color transitions)
 and components (for the actual targets that animate). If `.mockups/design-system/tokens.css`
@@ -86,7 +87,7 @@ Read:
 - `.mockups/design-system/components.css` — the components motion will animate
 - `.mockups/design-system/motion.css` if present → **refinement mode**
 - The substrate item (epic/feature) if applicable, for project-character hints
-- `CLAUDE.md`, `README.md`, any brand/voice docs
+- `AGENTS.md`, `CLAUDE.md`, `README.md`, any brand/voice docs
 
 ### Phase 2: Set the motion thesis (attitude)
 

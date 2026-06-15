@@ -67,13 +67,15 @@ instead — a flow needs multiple connected pages to mean anything.
 
 ### Phase 1: Ground and confirm scope
 
-Confirm `ux-ui-principles` is loaded; if `CLAUDE.md` lacks the marker,
-delegate to `ux-ui-principles` for the install first.
+Confirm `ux-ui-principles` is loaded; if the project agent instructions lack
+the marker, delegate to `ux-ui-principles` for the install first (`AGENTS.md`
+first, `CLAUDE.md` only as a compatibility target).
 
 Read context lightly:
 - The substrate item (epic or feature) if applicable
 - Existing mocks under `.mockups/screens/` that this flow might touch
 - `.mockups/design-system/tokens.css` if present
+- `AGENTS.md`
 - `CLAUDE.md`
 
 ### Phase 2: Walk the path out loud

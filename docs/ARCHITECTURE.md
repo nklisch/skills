@@ -11,7 +11,10 @@ plugin-internal architecture lives in each plugin's own `docs/ARCHITECTURE.md`.
 ├── plugins/                 # the shippable plugins (one directory each)
 │   ├── agile-workflow/       # flagship — substrate work tracking
 │   ├── ux-ui-design/         # mockup-first UI design
+│   ├── code-audit/           # standalone markdown code audits
 │   ├── nates-toolkit/        # standalone utility skills
+│   ├── agentic-research/     # grounded research discipline + .research substrate
+│   ├── agent-coordination/   # sparse cross-agent coordination ledger
 │   └── workflow/             # DEPRECATED, frozen, kept for existing installs
 ├── .agents/skills/          # standalone reference-skill library (non-plugin)
 ├── .claude-plugin/
@@ -98,5 +101,9 @@ not pinned here.
 - Substrate item lifecycle, gates, releases, and the work-view query model →
   `plugins/agile-workflow/docs/{ARCHITECTURE,SPEC,PRINCIPLES}.md`.
 - Mockup-first design layout → the `ux-ui-design` plugin.
+- Standalone markdown audit reports → the `code-audit` plugin.
+- Grounded research substrate and citation discipline → the `agentic-research`
+  plugin.
+- Sparse cross-agent handoffs and claims → the `agent-coordination` plugin.
 - Distribution constraints and versioning rules → `docs/SPEC.md`.
 - Purpose and the dogfooding thesis → `docs/VISION.md`.

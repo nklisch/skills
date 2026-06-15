@@ -10,12 +10,12 @@ design. It works on its own, and it gets even better paired with
 
 ## What this is
 
-A small plugin that turns Claude Code into a fast UI design partner. You ask
-for screen options, flows, or a palette. The agent generates standalone HTML
-mocks under `.mockups/`. You open them, compare, pick one (or describe a
-hybrid). The agent iterates. When you're happy, that mock is the alignment
-artifact — your real implementation later translates it into your actual
-stack.
+A small plugin that turns Claude Code, Codex, or Pi into a fast UI design
+partner. You ask for screen options, flows, or a palette. The agent generates
+standalone HTML mocks under `.mockups/`. You open them, compare, pick one (or
+describe a hybrid). The agent iterates. When you're happy, that mock is the
+alignment artifact — your real implementation later translates it into your
+actual stack.
 
 **Mocks are throwaway.** They exist for *alignment*, not deployment. No build
 step, no React, no Tailwind — just a `.html` file with vanilla CSS and JS
@@ -31,7 +31,7 @@ that survives long after the framework du jour is gone.
 | **`screens`** | "mock the login screen", "give me 4 options for X" | N (default 4) distinct HTML options for a single screen, plus a 2x2 comparison grid |
 | **`flows`** | "mock the signup flow", "design the checkout journey" | A multi-page user-flow mock with prev/next or hub-and-spoke navigation, plus an index navigator |
 | **`adopt`** | "bootstrap mockup-first design", "audit our UI" | Scans an existing codebase, inventories every UI surface, audits for inconsistencies, mirrors current screens into mocks OR reimagines them |
-| **`ux-ui-principles`** | auto-loads when UI design comes up | Reference: storage layout, decision matrix, tech rule. Adds the convention to your project's `CLAUDE.md` on first run. |
+| **`ux-ui-principles`** | auto-loads when UI design comes up | Reference: storage layout, decision matrix, tech rule. Adds the convention to your project's `AGENTS.md` on first run, with `CLAUDE.md` compatibility when needed. |
 
 ## The output layout
 

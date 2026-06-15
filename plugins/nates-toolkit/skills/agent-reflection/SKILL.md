@@ -31,7 +31,7 @@ fact you could have discovered in one command instead of five.
 
 - **No argument** — reflect on all tool and skill usage in the conversation.
 - **A tool or MCP server name** (e.g. `krometrail`) — focus on that tool/server.
-- **A skill name** (e.g. `repo-eval`) — focus on how that skill triggered and performed.
+- **A skill name** (e.g. `skill-auditor`) — focus on how that skill triggered and performed.
 - **A context source** (e.g. `AGENTS.md`, `system`, `docs`, `comments`) — focus on whether it
   helped, misled, or cost too much context.
 - **A repo workflow** (e.g. `repo-info`, `question-answering`, `implementation`) — focus on

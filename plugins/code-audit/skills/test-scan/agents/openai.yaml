@@ -1,0 +1,6 @@
+interface:
+  display_name: "Test Scan"
+  short_description: "Markdown test coverage and quality audit"
+  default_prompt: "Use $test-scan for this repository."
+policy:
+  allow_implicit_invocation: false
