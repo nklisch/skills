@@ -1,0 +1,6 @@
+interface:
+  display_name: "Groom"
+  short_description: "Audit backlog hygiene — find stale, dead, duplicate, superseded items"
+  default_prompt: "Use $groom to audit the backlog for stale, dead, duplicate, and superseded items."
+policy:
+  allow_implicit_invocation: true

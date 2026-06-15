@@ -65,11 +65,17 @@ Write to `.work/backlog/<id>.md`:
 ---
 id: <id>
 created: YYYY-MM-DD     # today's local date (matches the PostToolUse hook)
+updated: YYYY-MM-DD     # same as created at birth; the PostToolUse hook bumps it on every edit
 tags: [<tag>, ...]      # empty array if no clear category
 ---
 
 <idea body sized to the capture: one paragraph, bullets, or roadmap-style notes>
 ```
+
+`updated` is written equal to `created` so a backlog item carries a reliable
+last-touched signal from birth (the hook is replace-only and cannot insert a
+missing `updated:` line). It stays optional in the backlog contract — a legacy
+item without it is treated as last-touched at `created`.
 
 If a backlog file with the same `id` already exists, append a numeric suffix
 (`idea-csv-export-2`, `roadmap-admin-ux-2`, etc.).
