@@ -1,6 +1,6 @@
 {
   "name": "@nklisch/pi-code-audit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Standalone code audit skills that write markdown reports.",
   "author": {
     "name": "nklisch"
