@@ -114,6 +114,9 @@ pub struct CliOptions {
     pub dependency_view: DependencyView,
     /// Tier-scope post-filter (default: non-terminal tiers).
     pub scope: TierScope,
+    /// When `true`, restrict output to stale backlog items (those whose
+    /// last-touched date exceeds `backlog_staleness_days` in CONVENTIONS.md).
+    pub stale: bool,
 }
 
 // ── Outcome ───────────────────────────────────────────────────────────────────
@@ -167,6 +170,8 @@ Filters (compose with AND semantics):
   --ready              Active items at drafting/implementing/review with all depends_on done
   --blocked            Active items at drafting/implementing/review with unmet dependencies
   --blocking <id>      Items that depend on <id>
+  --stale              Backlog items whose last-touched date exceeds backlog_staleness_days
+                       configured in .work/CONVENTIONS.md (absent key → notice + exit 0)
 
 Scope (default: active + backlog; terminal tiers hidden):
   --scope <scope>      Tiers to include: active|backlog|releases|archive|all
@@ -307,6 +312,9 @@ pub fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<ParseOutcome, U
             "--blocking" => {
                 let v = next_value("--blocking", &mut iter)?;
                 opts.filter.blocking = Some(v);
+            }
+            "--stale" => {
+                opts.stale = true;
             }
             "--ready" => {
                 saw_ready = true;

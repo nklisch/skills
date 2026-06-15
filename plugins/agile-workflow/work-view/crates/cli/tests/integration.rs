@@ -2590,3 +2590,216 @@ fn version_stamp_equals_plugin_json_version() {
          ({codex_version:?}); the Claude and Codex manifests must stay in lockstep"
     );
 }
+
+// ── --stale flag ──────────────────────────────────────────────────────────────
+//
+// Integration tests for `--stale`.  Each test builds a minimal substrate in a
+// TempDir, writes .work/CONVENTIONS.md with (or without) `backlog_staleness_days`,
+// then drives the binary via subprocess.
+//
+// Dates used in fixtures are chosen so they are always in the past relative to
+// any realistic test-run date (>= 2026). "Old" = 2020-01-01 (clearly stale for
+// any threshold <= a few years). "Fresh" = 2099-12-31 (clearly in the future,
+// i.e. never stale, immune to clock drift).
+
+/// Write files into a TempDir-based substrate.
+fn setup_stale_substrate(items: &[(&str, &str)], conventions: &str) -> tempfile::TempDir {
+    use std::fs;
+    let tmp = tempfile::TempDir::new().expect("failed to create tempdir");
+    let root = tmp.path();
+    fs::create_dir_all(root.join(".work")).expect("failed to create .work");
+    fs::write(root.join(".work/CONVENTIONS.md"), conventions).expect("failed to write CONVENTIONS.md");
+    for (rel_path, content) in items {
+        let path = root.join(".work").join(rel_path);
+        if let Some(p) = path.parent() {
+            fs::create_dir_all(p).expect("failed to create parent dirs");
+        }
+        fs::write(&path, content).expect("failed to write item");
+    }
+    tmp
+}
+
+/// Run `work-view` with `args` in the given directory.
+fn run_in(dir: &Path, args: &[&str]) -> (String, String, i32) {
+    let out = Command::new(bin!())
+        .args(args)
+        .current_dir(dir)
+        .output()
+        .expect("failed to run work-view");
+    (
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+        out.status.code().unwrap_or(-1),
+    )
+}
+
+const OLD_DATE: &str = "2020-01-01"; // always older than any reasonable threshold
+const FRESH_DATE: &str = "2099-12-31"; // far in the future, never stale
+
+fn backlog_item(id: &str, created: &str, updated: Option<&str>) -> String {
+    let updated_line = match updated {
+        Some(u) => format!("updated: {u}\n"),
+        None => String::new(),
+    };
+    format!(
+        "---\nid: {id}\ncreated: {created}\n{updated_line}tags: []\n---\nIdea: {id}\n"
+    )
+}
+
+fn active_item(id: &str, created: &str) -> String {
+    format!(
+        "---\nid: {id}\nkind: feature\nstage: implementing\ntags: []\nparent: null\ndepends_on: []\nrelease_binding: null\ngate_origin: null\ncreated: {created}\nupdated: {created}\n---\n\n# {id}\n"
+    )
+}
+
+// ── Test 1: stale with configured threshold lists old backlog items ───────────
+
+#[test]
+fn stale_lists_backlog_items_older_than_threshold() {
+    let conventions = "# Conventions\nbacklog_staleness_days: 90\n";
+    let old_item = backlog_item("old-idea", OLD_DATE, None);
+    let fresh_item = backlog_item("fresh-idea", FRESH_DATE, None);
+
+    let tmp = setup_stale_substrate(
+        &[
+            ("backlog/old-idea.md", &old_item),
+            ("backlog/fresh-idea.md", &fresh_item),
+        ],
+        conventions,
+    );
+
+    let (stdout, stderr, code) = run_in(tmp.path(), &["--stale"]);
+    assert_eq!(code, 0, "exit 0 on success; stderr: {stderr}");
+    assert!(
+        stdout.contains("old-idea"),
+        "--stale should list old-idea; stdout: {stdout}"
+    );
+    assert!(
+        !stdout.contains("fresh-idea"),
+        "--stale should NOT list fresh-idea; stdout: {stdout}"
+    );
+}
+
+// ── Test 2: absent key → inert (notice + exit 0, empty result) ───────────────
+
+#[test]
+fn stale_absent_key_is_inert_with_notice() {
+    // CONVENTIONS.md has no backlog_staleness_days key.
+    let conventions = "# Conventions\nsome_other_key: 30\n";
+    let old_item = backlog_item("old-idea", OLD_DATE, None);
+
+    let tmp = setup_stale_substrate(
+        &[("backlog/old-idea.md", &old_item)],
+        conventions,
+    );
+
+    let (stdout, stderr, code) = run_in(tmp.path(), &["--stale"]);
+    assert_eq!(
+        code, 0,
+        "absent key must exit 0 (inert, not an error); stderr: {stderr}"
+    );
+    // Must print the notice to stdout.
+    assert!(
+        stdout.contains("no backlog_staleness_days configured"),
+        "--stale with no key must print the inert notice; stdout: {stdout}"
+    );
+    // Must produce no item rows (inert).
+    assert!(
+        !stdout.contains("old-idea"),
+        "--stale with no key must not list items; stdout: {stdout}"
+    );
+    assert_eq!(stderr, "", "stderr must be empty when inert; stderr: {stderr}");
+}
+
+// ── Test 3: non-backlog tiers excluded ───────────────────────────────────────
+
+#[test]
+fn stale_excludes_non_backlog_tiers() {
+    let conventions = "# Conventions\nbacklog_staleness_days: 90\n";
+    let backlog_old = backlog_item("backlog-old", OLD_DATE, None);
+    let active_old = active_item("active-old", OLD_DATE);
+
+    let tmp = setup_stale_substrate(
+        &[
+            ("backlog/backlog-old.md", &backlog_old),
+            ("active/features/active-old.md", &active_old),
+        ],
+        conventions,
+    );
+
+    let (stdout, _stderr, code) = run_in(tmp.path(), &["--stale"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("backlog-old"),
+        "--stale should include old backlog item; stdout: {stdout}"
+    );
+    assert!(
+        !stdout.contains("active-old"),
+        "--stale must exclude active items; stdout: {stdout}"
+    );
+}
+
+// ── Test 4: updated takes precedence over created ─────────────────────────────
+
+#[test]
+fn stale_updated_date_takes_precedence_over_created() {
+    let conventions = "# Conventions\nbacklog_staleness_days: 90\n";
+
+    // created is old but updated is fresh → not stale (updated wins)
+    let updated_recently = backlog_item("not-stale", OLD_DATE, Some(FRESH_DATE));
+    // created is fresh but updated is old → stale (updated wins)
+    let updated_old = backlog_item("is-stale", FRESH_DATE, Some(OLD_DATE));
+
+    let tmp = setup_stale_substrate(
+        &[
+            ("backlog/not-stale.md", &updated_recently),
+            ("backlog/is-stale.md", &updated_old),
+        ],
+        conventions,
+    );
+
+    let (stdout, _stderr, code) = run_in(tmp.path(), &["--stale"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("is-stale"),
+        "--stale should include item where updated is old; stdout: {stdout}"
+    );
+    assert!(
+        !stdout.contains("not-stale"),
+        "--stale should exclude item where updated is fresh; stdout: {stdout}"
+    );
+}
+
+// ── Test 5: dateless item surfaces as stale ───────────────────────────────────
+
+#[test]
+fn stale_dateless_item_surfaces_as_stale() {
+    let conventions = "# Conventions\nbacklog_staleness_days: 90\n";
+
+    // Item with neither created nor updated.
+    let dateless = "---\nid: dateless-idea\ntags: []\n---\nIdea with no dates.\n";
+
+    let tmp = setup_stale_substrate(
+        &[("backlog/dateless-idea.md", dateless)],
+        conventions,
+    );
+
+    let (stdout, _stderr, code) = run_in(tmp.path(), &["--stale"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("dateless-idea"),
+        "--stale should surface a dateless backlog item; stdout: {stdout}"
+    );
+}
+
+// ── Test 6: --stale appears in help text ─────────────────────────────────────
+
+#[test]
+fn stale_flag_appears_in_help() {
+    let (stdout, _, code) = run(&["--help"]);
+    assert_eq!(code, 0);
+    assert!(
+        stdout.contains("--stale"),
+        "--stale should appear in help text; stdout: {stdout}"
+    );
+}

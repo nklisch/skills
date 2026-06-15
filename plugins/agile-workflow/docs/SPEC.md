@@ -92,9 +92,17 @@ a scoping pass fixes them.
 ---
 id: <slug>
 created: YYYY-MM-DD
+updated: YYYY-MM-DD   # optional; written by park (== created), bumped by the hook on edit
 tags: [<tag>, ...]
 ---
 ```
+
+`updated` is **optional** on the backlog contract (it is not in
+`BACKLOG_REQUIRED`). `park` writes it equal to `created` at creation, and the
+PostToolUse hook bumps it on every edit. When absent (e.g. a legacy item parked
+before this contract), consumers treat the last-touched date as `created`. This
+gives a backlog grooming/staleness query a reliable last-touched signal without
+requiring the field — see `backlog_staleness_days` under §`.work/CONVENTIONS.md`.
 
 Body: an unscoped capture sized to the input. Simple ideas can be one
 paragraph; richer context notes or roadmap-style multi-arc thoughts can keep
@@ -145,6 +153,7 @@ gate_refactor_scan_library_roots:
   - .claude/skills
 binding_guard: warn
 epic_cohesion: phased
+backlog_staleness_days: 90
 ```
 
 The default `gates_for_release` order is fixed: **security → tests → cruft
@@ -194,6 +203,14 @@ listed in the warn report, never counting toward a halt (an epic may ship across
 treats them as mismatches acted on per `binding_guard`, like CONFLICTs (the project holds "epics
 ship whole"). CONFLICTs (a child bound to a *different* version than its bound parent, or a done
 parent unbound while its children are bound) always follow `binding_guard` regardless of this dial.
+
+**`backlog_staleness_days`** (integer; **absent ⇒ feature inert**) is the age threshold for the
+opt-in backlog staleness query `work-view --stale`. When set, `--stale` lists `.work/backlog/`
+items whose last-touched date — `updated` if present, else `created` — is more than this many days
+before today (local time). When the key is absent, `--stale` surfaces nothing and prints a
+one-line "no `backlog_staleness_days` configured" notice (exit 0) — a project that does not opt in
+sees no behavior change. This is the query surface a backlog grooming capability consumes; it does
+not auto-prune anything.
 
 `terminal-tier retention` (default **`delete-refs`**) is **one merged convention** covering the
 whole terminal lifecycle — archival, late-binding, and release collapse — not just on-disk byte

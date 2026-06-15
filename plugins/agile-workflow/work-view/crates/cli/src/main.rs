@@ -31,6 +31,7 @@ mod args;
 mod board;
 mod render;
 mod scope;
+mod stale;
 
 use std::env;
 use std::io::{self, ErrorKind};
@@ -43,6 +44,7 @@ use args::{parse_args, ParseOutcome, HELP};
 use board::{parse_board_args, run_board, BoardParseOutcome, BOARD_HELP};
 use render::render;
 use scope::apply_scope;
+use stale::{apply_stale, read_staleness_threshold, today_as_days, StalenessThreshold};
 
 fn run() -> u8 {
     // ── 1. Parse argv ────────────────────────────────────────────────────────
@@ -137,9 +139,29 @@ fn run() -> u8 {
     }
 
     // ── 5. Query + post-filters ──────────────────────────────────────────────
-    let items = sub.query(&opts.filter);
-    let items = apply_scope(items, opts.scope);
-    let items = apply_dependency_view(&sub, items, opts.dependency_view);
+
+    // --stale: a dedicated backlog-staleness query.  It bypasses the normal
+    // scope / dependency-view pipeline and operates only on backlog items.
+    // When backlog_staleness_days is absent from CONVENTIONS.md, print a
+    // polite notice to stdout and exit 0 (inert, not an error — mirrors the
+    // graceful-skip pattern of opt-in gates).
+    let items = if opts.stale {
+        match read_staleness_threshold(&root) {
+            StalenessThreshold::NotConfigured => {
+                println!("work-view: no backlog_staleness_days configured");
+                return 0;
+            }
+            StalenessThreshold::Days(threshold) => {
+                let today = today_as_days();
+                let all_items = sub.query(&opts.filter);
+                apply_stale(all_items, threshold, today)
+            }
+        }
+    } else {
+        let items = sub.query(&opts.filter);
+        let items = apply_scope(items, opts.scope);
+        apply_dependency_view(&sub, items, opts.dependency_view)
+    };
 
     // ── 6. Render ────────────────────────────────────────────────────────────
     let stdout = io::stdout();

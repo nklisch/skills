@@ -1,7 +1,7 @@
 ---
 id: feature-backlog-item-updated-contract
 kind: feature
-stage: implementing
+stage: review
 tags: [plugin, tooling]
 parent: null
 depends_on: []
@@ -194,3 +194,26 @@ error — matches the graceful-skip pattern of opt-in gates).
 - **Optional-key discoverability**: a project that wants grooming must know to set
   `backlog_staleness_days:`. Mitigation: `convert` writes it (commented/defaulted-off) into the
   CONVENTIONS template so the knob is visible but inert until set.
+
+## Implementation notes (landed)
+
+All three units implemented; `cargo build` + `cargo test` green (261 tests, 6 new `--stale`
+integration tests), no new dependencies, no new clippy warnings. End-to-end smoke test confirmed
+both the inert (no key → notice + exit 0, empty) and active (key=90 → only the >90-day item) paths.
+
+- **Unit 1 (SPEC contract):** `plugins/agile-workflow/docs/SPEC.md` — backlog item shape now lists
+  `updated` as optional (== created at birth, == created when absent); `backlog_staleness_days`
+  documented in the §CONVENTIONS schema block + explanatory paragraph. `BACKLOG_REQUIRED`
+  unchanged (no validator change — validate() already format-checks `updated` only when present).
+- **Unit 2 (`park` populate):** `plugins/agile-workflow/skills/park/SKILL.md` — Phase 3 template
+  now emits `updated: == created` with a note explaining the replace-only-hook rationale.
+- **Unit 3 (`work-view --stale`):** new `crates/cli/src/stale.rs` (staleness logic + minimal
+  line-scanner CONVENTIONS reader, std-only); `args.rs` (`--stale` flag + help); `main.rs`
+  (pipeline branch); `integration.rs` (6 tests). Local-time date math via POSIX `localtime_r`
+  `extern "C"` (no `chrono` dependency); `#[cfg(not(unix))]` UTC fallback. Dateless backlog items
+  surface as stale (a dateless item is at least as suspect as an old one). Bash fallback
+  `work-view.sh` deliberately untouched (Rust-only, consistent with `--scope`).
+
+**Note for review/release:** the committed binary `.work/bin/work-view` and the crate `dist/` are
+NOT rebuilt here — they refresh via the separate `[skip ci]` binary process. Source + tests are
+the deliverable.
