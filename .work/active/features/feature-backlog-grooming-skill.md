@@ -1,7 +1,7 @@
 ---
 id: feature-backlog-grooming-skill
 kind: feature
-stage: review
+stage: done
 tags: [skill, plugin]
 parent: null
 depends_on: [feature-backlog-item-updated-contract]
@@ -227,3 +227,24 @@ description leading with triggers; 155 lines). skill-auditor verdict SHIP WITH N
 
 **Note for release:** depends_on `feature-backlog-item-updated-contract` (now `done`). This is the
 user-facing capability — the version bump ships once this lands done.
+
+## Review (2026-06-15)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: (1) Phase 5 routes confirmed MERGEABLE to `/agile-workflow:scope` rather than the
+literal Unit-1 wording (inline fold) — the reviewer judged the skill's choice *better* than the
+design (clustering is genuinely a scope act); kept as-is. (2) The "unrecognized retention value →
+keep body, exactly as release/review do" claim was flagged as an untraced parallel — verified
+post-review against `review/references/substrate-side-effects.md` (lines 40-42): the claim is
+accurate, no change needed.
+
+**Notes**: Substrate mode, deep lane, fresh-context independent reviewer (Opus sub-agent —
+self-authored, so review delegated to fresh context). All Unit-1 acceptance criteria verified
+against the actual skill text; the load-bearing constraints (propose-not-prune, grounded-claims-
+only, inherited disposition) confirmed *operationalized in the workflow*, not just asserted;
+faithful to research Position 2 on all five constraints; external deps (`work-view --stale`,
+terminal-tier retention) verified present; skill-style contract passes; not wired as a release
+gate; boundary clean. Advanced review -> done. Both features in this arc now done.
