@@ -68,7 +68,10 @@ These signals need no judgment. For each, record the item id + the signal that f
 2. **Missing-field.** Flag backlog items missing a required field (`id`, `created`, `tags`) — a
    malformed capture worth a human look.
 3. **Cites-done-work.** Scan each backlog item body for references to a feature/release/story id;
-   cross-check with `work-view` whether that id is now `stage: done` (or shipped). An item whose
+   cross-check with `work-view` whether that id is now `stage: done` (or shipped). **Query with
+   `--scope all`** (e.g. `work-view --scope all --stage done`): completed work usually lives in the
+   terminal tiers (`archive/`, `releases/`), which `work-view` hides by default — without widening
+   scope this check would miss exactly the shipped/archived work it exists to catch. An item whose
    premise cites already-completed work is a **DONE candidate** — flag it with the cited id.
 
 Mechanical findings are higher-confidence; still proposals, never auto-applied.
