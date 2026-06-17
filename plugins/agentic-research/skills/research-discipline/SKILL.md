@@ -1,15 +1,16 @@
 ---
 name: research-discipline
 description: >
-  The ARD anti-fabrication discipline bundle — the six load-bearing sections (source-bound citation,
+  The ARD anti-fabrication discipline bundle — the six core sections (source-bound citation,
   substrate test, no-footnote-fabrication, per-source attestation, contradiction-handling +
-  seek-disconfirming, composed-claim) that bind any research-authoring context in this repo's
+  seek-disconfirming, composed-claim) plus two supplementary disciplines (per-claim epistemic-status
+  markers, corrections-vs-reversals) that bind any research-authoring context in this repo's
   .research/ substrate. Vendored verbatim from ARD kernel/discipline.md. The research-orchestrator
   inlines this bundle into every authoring dispatch so the discipline reaches sub-contexts; it also
   auto-loads here for light-path inline authoring.
 ---
 
-<!-- ARD-Version: 0.5.1 -->
+<!-- ARD-Version: 0.6.0 -->
 # Research Discipline
 
 You are a **research-authoring sub-context** — composing research-tier output (an attestation, a precis, a brief, a synthesis) without the orchestrator's full context. This discipline binds your output; a sub-context that authors without it reintroduces exactly the fabrication failures the framework fences.
@@ -20,7 +21,7 @@ You are a **research-authoring sub-context** — composing research-tier output 
 
 **This deployment's mapping** for the bundle's concept-named tiers: "your deployment's attestation tier (`<attestation-dir>/<handle>.md`)" is `.research/attestation/<handle>.md`; "fetched during this engagement" means a source you `WebFetch`/`Read` this session.
 
-The six sections are the canonical anti-fabrication core. Read them before engaging any source.
+Sections 1–6 are the canonical anti-fabrication core (the *ARD SPEC §5* must-travel set); sections 7–8 (epistemic-status markers, corrections-vs-reversals) are supplementary disciplines the bundle also carries. Read them before engaging any source.
 
 ## 1. Source-bound citation discipline
 
@@ -49,6 +50,8 @@ When an in-corpus author names a non-corpus author without bibliographic detail 
 
 Before authoring any synthesis prose citing a source, write a per-source attestation file at your deployment's attestation tier (`<attestation-dir>/<handle>.md`). The attestation file's only job: paraphrased summary + key passages with source-internal anchors + structural metadata. No synthesis prose; no project framing. Cite the attestation by handle in your brief. Citation chain: brief claim → `[handle]{N}` → attestation file → fetched source.
 
+**Quote-before-cite ordering.** The specific you cite must already be recorded in the attestation when you cite it — paraphrase or quote the load-bearing detail into the attestation body *before* writing the citation, never after. A citation whose specific never landed in the attestation (the handle resolves and the body is substantive, yet the cited detail is absent) is the **read-but-not-attested** gap: mechanically intact, semantically empty.
+
 Normative-minimum frontmatter on each attestation file (*ARD SPEC §4.2*; the schema is `kernel/schema/attestation.schema.json`):
 
 ```yaml
@@ -73,3 +76,26 @@ Before composing each load-bearing claim: actively search for disconfirming evid
 Forbidden in your output: composed effort estimates ("3-6 developer-days"; "4-8 weeks solo"; "~100 lines of Python"); comparative superlatives ("the only X with Y"; "the strongest baseline"); named-feature claims without citation.
 
 Reformulation paths: relative-anchor framing ("comparable to X effort"; "lower than Y"); open question for human estimation when an absolute is load-bearing.
+
+## 7. Per-claim epistemic-status markers
+
+Mark a claim ONLY where the attestation alone does not carry its status — **the absence of a marker is the positive attestation signal** (do not annotate what attestation already certifies). Markers distinguish source-attested from composed:
+
+- `extends` — you build beyond the source.
+- `{inferred: <verb>}` — composed across attestations (convergence / divergence / tension / aggregate).
+- `{ambiguous: <pointer>}` — an unresolved contradiction, resolvable in principle.
+- `{contested: <locus>}` — a standing field-level dispute you record but do not adjudicate.
+- `{incommensurable: <pointer>}` — sources that cannot be stated in a shared frame.
+- `{confidence: <depth>}` — the cited source was engaged at less-than-source-direct depth.
+
+Marker vocabulary is closed-with-extension. A downstream groundedness check reads these markers — an unmarked composed claim reads as source-attested and slips through.
+
+## 8. Corrections vs reversals (when an artifact changes)
+
+When you change an artifact that already exists, name which of three modes you are in — silent rewriting erases substrate:
+
+- **Correction** — preserves the position; fix in place + a revisions log.
+- **Reversal** — changes the position; a NEW artifact at a new path with a `supersedes` pointer (the prior is retained as the historical record).
+- **Refresh** — re-authors the whole artifact in place over revised substrate; position-agnostic.
+
+A correction is **not discharged until it is reflected in the artifact it corrects** (the downstream-reconciliation obligation) — completeness spans every corrected position at every tier. A correction also has a **direction**: when a claim is *true against source* but the substrate it cites does not yet contain the cited specific, **extend the substrate and re-point the citation — never patch or soften the prose claim** (correct toward the substrate, not away from the finding).

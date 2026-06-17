@@ -9,7 +9,17 @@
     "a-position": "intra-program-resolved",
     "reduced-src": "reduced-substrate-attestation",
     "thin-src": "resolved",
-    "colliding-src": "colliding-handle"
+    "colliding-src": "colliding-handle",
+    "explicit-sc-src": "resolved",
+    "unspecified-sc-src": "reduced-substrate-attestation",
+    "c1-f1-real": "intra-program-resolved",
+    "c9-f1-totally-fabricated": "unresolved-handle",
+    "c1-parent": "intra-program-resolved",
+    "BadCase-Handle": "non-canonical-handle",
+    "dup-key-src": "duplicate-frontmatter-key",
+    "acq-candidate-src": "acquisition-candidate",
+    "c1-f2-cross": "intra-program-resolved",
+    "c9-position-fake": "unresolved-handle"
   },
   "thin": ["thin-src"],
   "pattern_categories": [
@@ -19,5 +29,7 @@
     "comparative-superlative",
     "named-feature-claim",
     "composed-effort-estimate"
-  ]
+  ],
+  "campaign_unbound": ["c1-f1-real", "c1-parent", "c1-f2-cross", "c9-f1-real"],
+  "campaign_unbound_excluded": ["a-position", "c9-f1-totally-fabricated", "c9-position-fake"]
 }

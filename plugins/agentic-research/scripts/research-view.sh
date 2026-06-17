@@ -13,7 +13,7 @@
 set -euo pipefail
 
 # Kept in lockstep with plugin.json by scripts/bump-version.sh. Do not hand-edit.
-RESEARCH_VIEW_VERSION="0.3.0"
+RESEARCH_VIEW_VERSION="0.4.0"
 
 # ============================================================================
 # Version prelude (POSIX / bash 3.2 safe — runs BEFORE the Bash-4 guard)

@@ -7,7 +7,7 @@ control-space of selectable verification gates, and a `.research/` substrate tie
 `agile-workflow`'s operational `.work/` tier. Citations use the `[handle]{N}`
 convention backed by per-source attestations, enforced by a citation-chain lint.
 
-Adopts **ARD v0.5.1** (pinned in [`ard.json`](ard.json) — the single source of truth
+Adopts **ARD v0.6.0** (pinned in [`ard.json`](ard.json) — the single source of truth
 for the ARD version + vendored-surface map; the plugin's own semver is decoupled).
 Upstream framework by Kevoun: <https://code.s-nc.org/Kevoun/ARD>.
 
