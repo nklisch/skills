@@ -41,31 +41,38 @@ edges make parallel work unsafe.
 
 ### Implementation tier (settle once, before dispatch)
 
-The worker model/effort is a **dial**, not a silent default. Before spawning the first wave,
-determine the implementation tier:
+The worker agent type and effort tier are a **dial**, not a silent default.
+Before spawning the first wave, determine the implementation tier:
 
-1. **Honor an explicit choice** — a tier named in the goal/args/user request, or a stable project
-   convention (e.g. a `.work/CONVENTIONS.md` model note), wins. Use it and skip the question.
-2. **Otherwise ask once** (structured question tool), then lock it for the whole run — never re-ask per wave:
-   - Claude Code: `sonnet` (default — routine code), `mixed` (sonnet workers + opus on the broad/risky
-     bundles), or `opus` (deep/broad diagnosis throughout).
-   - Codex: `codex-medium` (default), `codex-high`, or `codex-xhigh`.
-   The vocabulary matches `deep-code-scan`'s scanner-tier dial so the two read alike.
-3. **Autonomous contract (no mid-run questions)** — when the dispatching goal forbids interaction
-   (an autopilot goal that says so), do NOT block: use the documented default below and **state the
-   tier you chose** in the run notes, so a cheap-tier run is never a silent surprise.
+1. **Honor an explicit choice** — a tier named in the goal/args/user request,
+   an autopilot caller note, or a stable project convention (e.g. a
+   `.work/CONVENTIONS.md` model note), wins. Use it and skip the question.
+2. **Autopilot mode is non-interactive** — when delegated by an active
+   autopilot run, use the tier autopilot settled for the scoped run. If the
+   caller note is missing the tier, fall back to `codex-medium` (or the host
+   runtime's medium/default worker baseline when Codex tiers are unavailable),
+   and state the fallback in the run notes. Do not ask the user from inside an
+   autopilot-driven implementation pass.
+3. **All other modes ask once** — when there is no explicit/project/autopilot
+   choice, ask the user what implementation agent type and tier to use
+   (structured question tool when available), then lock it for the whole run;
+   never re-ask per wave:
+   - Claude Code: `sonnet` (routine code), `mixed` (sonnet workers + opus on
+     broad/risky bundles), or `opus` (deep/broad diagnosis throughout).
+   - Codex: `codex-medium` (routine code), `codex-high`, or `codex-xhigh`.
+   The vocabulary matches `deep-code-scan`'s scanner-tier dial so the two read
+   alike.
 
-The defaults below are the medium/default worker baseline; the tiers above scale from there.
-
-Use explicit runtime paths: spawn implementation workers with the host's
-code-writing sub-agent mechanism. Use medium/default effort for small or
-single-item bundles, high effort for multi-item, cross-module, or
-orchestration-critical bundles, and extra-high effort only for large
-cross-feature write paths, risky migrations, or difficult generated-code
-reconciliation. Use read-only exploratory sub-agents with medium/high reasoning
-for mapping. If the host provides named worker, scout, or reviewer roles, map
-write bundles to workers, read-only mapping to scouts, and same-harness
-integration checks to reviewers. Do not use peeragent for routine
+Use explicit runtime paths: spawn implementation workers with the settled agent
+type/tier and the host's code-writing sub-agent mechanism. Map routine
+small/single-item bundles to the settled baseline, raise effort within the
+settled agent family for multi-item, cross-module, or orchestration-critical
+bundles, and reserve the highest tier for large cross-feature write paths,
+risky migrations, difficult generated-code reconciliation, or repeated failed
+attempts. Use read-only exploratory sub-agents with the same settled family at
+medium/high reasoning for mapping. If the host provides named worker, scout, or
+reviewer roles, map write bundles to workers, read-only mapping to scouts, and
+same-harness integration checks to reviewers. Do not use peeragent for routine
 implementation-worker fanout.
 
 In every runtime, make each worker prompt self-contained and require one commit
@@ -429,14 +436,17 @@ budget win the bundle is buying.
 
 Spawn one implementation sub-agent per bundle, regardless of bundle size.
 
-Spawn a code-writing worker sub-agent with:
-- `reasoning_effort: medium` for small/single-item bundles
-- `reasoning_effort: high` for multi-item, cross-module, or
-  orchestration-critical bundles
-- `reasoning_effort: xhigh` only for large cross-feature write paths, deep
-  migrations, high-risk reconciliation, or repeated failed attempts
-- no model override unless the user has named one or the project has a stable
-  Codex model convention
+Spawn code-writing worker sub-agents using the settled implementation agent
+type/tier from the kickoff decision:
+- `codex-medium` / `sonnet` / host medium-default for small or single-item
+  bundles
+- `codex-high` / `mixed` / host high-effort for multi-item, cross-module, or
+  orchestration-critical bundles when the settled choice allows escalation
+- `codex-xhigh` / `opus` / host highest-effort only for large cross-feature
+  write paths, deep migrations, high-risk reconciliation, or repeated failed
+  attempts, and only when selected explicitly or permitted by the settled tier
+- no model override outside the settled agent type/tier unless the user has
+  named one or the project has a stable model convention
 
 **Pi:**
 
