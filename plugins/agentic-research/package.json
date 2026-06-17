@@ -1,7 +1,7 @@
 {
   "name": "@nklisch/pi-agentic-research",
   "version": "0.3.0",
-  "description": "Agentic Research Discipline (ARD) — grounded, verifiable AI research with a .research/ substrate tier. Adopts ARD v0.5.1.",
+  "description": "Agentic Research Discipline (ARD) — grounded, verifiable AI research with a .research/ substrate tier. Adopts ARD v0.6.0.",
   "author": {
     "name": "Kevoun"
   },

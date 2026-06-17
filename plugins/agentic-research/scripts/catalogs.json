@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from CATALOGS.md by tools/gen-contract.py — do not edit by hand; edit the prose and regenerate.",
-  "catalog_baseline": "0.5.0",
+  "catalog_baseline": "0.6.0",
   "generated_from": "CATALOGS.md",
   "failure_shapes": [
     {
@@ -61,10 +61,17 @@
     },
     {
       "id": "GR.7",
-      "name": "Paradigm-trained gestalt failure — per-claim substrate is accurate, but the agent's gestalt of the whole source fits a trained category rather than the source's own argument structure",
+      "name": "Paradigm-trained gestalt failure — per-claim substrate is accurate, but the agent's gestalt of the whole source fits a trained category rather than the source's own argument structure. Includes the per-claim facet — source-posture presupposition: a sentence-level claim about the source's own stance or intent (\"drew the wrong conclusion\", \"the most optimistic finding\"), read as source-attributable when the source names no such posture (finer-grained than the whole-source gestalt; distinct from corpus-comparative / superlative-value claims, which weigh a source against the corpus rather than impute a stance to it)",
       "locus": "GR",
       "status": "fenced",
-      "fence": "bracket directive (partial) + adversarial-read independent-gestalt job (read the source independently, compare gestalts) — detection pending"
+      "fence": "bracket directive (partial) + adversarial-read independent-gestalt job (read the source independently, compare gestalts), extended to walk per-claim source-posture attributions — detection pending"
+    },
+    {
+      "id": "GR.8",
+      "name": "Disclaiming attestation — a claim cited to an attestation whose own body affirmatively denies or scopes out the cited sub-claim; the handle resolves and the attestation is substantive (anchored), so lint and the GR.5 thin-attestation check both pass. Distinct from GR.2 (no attestation / training-recall) and GR.5 (attestation present but thin / un-anchored): here the attestation is present, anchored, and contradicts the claim it is cited for",
+      "locus": "GR",
+      "status": "fenced",
+      "fence": "adversarial-read semantic citation-chain walk (job (a)) — verifies not only that the attestation supports the claim but that its gaps / scope section does not deny it; prevention via the honest-gaps-recording attestation discipline (an attestation that records what the source does not confirm is doing its job) — not lint-detectable (the disclaimer is semantic; the handle resolves)"
     },
     {
       "id": "CX.1",
@@ -84,8 +91,8 @@
       "id": "AQ.2",
       "name": "Stale substrate — once-correct content now out of date",
       "locus": "AQ",
-      "status": "forward-looking",
-      "fence": null
+      "status": "fenced",
+      "fence": "substrate-check staleness-diff — on finding prior substrate, diff it against current sources; a stale diff fires a refresh re-engagement (SPEC.md §4.8)"
     },
     {
       "id": "AQ.3",
@@ -96,10 +103,10 @@
     },
     {
       "id": "CO.1",
-      "name": "Smoothed contradictions in cross-source synthesis",
+      "name": "Smoothed contradictions in cross-source synthesis — including synthesis-artifact self-smoothing: a contradiction the artifact's own structured form preserves (a table / ledger row) is reintegrated into a unified middle by the surrounding prose (distinct from cross-source smoothing, where the contradiction never surfaces at all)",
       "locus": "CO",
       "status": "fenced",
-      "fence": "## Contradictions discipline + adversarial-read coherence-read"
+      "fence": "## Contradictions discipline + adversarial-read coherence-read (job (c)) — reads the synthesizing prose against the artifact's own structured contradictions, not only across sources"
     },
     {
       "id": "CO.2",
@@ -124,31 +131,38 @@
     },
     {
       "id": "FR.2",
-      "name": "Premature commitment — a position asserted before its grounding substrate is engaged",
+      "name": "Premature commitment — a position asserted before its grounding substrate is engaged; reproduced as orientation-leak (a detail present only in an orientation / lens artifact consulted to seed the engagement, surfaced as source-attested) and attribution-costume (a true, internally-derived conclusion dressed as drawn from the source literature — the conclusion survives; only the attribution is fabricated)",
       "locus": "FR",
-      "status": "forward-looking",
-      "fence": null
+      "status": "fenced",
+      "fence": "substrate-before-stance discipline (§4.3 substrate test + §4.6 strict layer-directionality) + the LENS-not-substrate tier (§4.6: an artifact consulted to seed an engagement is a non-citable lens, never a source) + adversarial-read semantic citation-chain walk (detection — the handle resolves to the lens or to no source; only the semantic walk catches it)"
     },
     {
       "id": "PR.1",
       "name": "Drift-inheritance through paraphrase chains — small per-step distortion compounding across multi-step composition",
       "locus": "PR",
-      "status": "forward-looking",
-      "fence": null
+      "status": "fenced",
+      "fence": "strict layer-directionality (SPEC.md §4.6 — the structural prevention against drift-inheritance) + adversarial-read lineage-DAG distortion walk (job (i), §4 — detection job-spec; the mechanical graph-build is deployment-operationalized)"
     },
     {
       "id": "PR.2",
       "name": "Decomposition-framing lock-in — a facet cut inherits a lens all downstream work runs inside",
       "locus": "PR",
       "status": "fenced",
-      "fence": "multi-sampling at decompose (≥3 candidates + comparative + bracket) + the persisted decomposition-rationale artifact (SPEC.md §10.6)"
+      "fence": "multi-sampling at decompose (≥3 candidates + comparative + bracket) + the persisted decomposition-rationale artifact (SPEC.md §10.6) + adversarial-read lineage-DAG distortion walk (job (i) — detection of lock-in the bracket missed)"
+    },
+    {
+      "id": "PR.3",
+      "name": "Non-propagated correction — a correction diagnosed in a synthesis-tier artifact never reaches the downstream artifact it corrects; the record ends up right while the artifact it was meant to fix stays wrong",
+      "locus": "PR",
+      "status": "fenced",
+      "fence": "the §4.8 downstream-reconciliation obligation, verified at the reconcile decision-point (§6 below) via the spot-check reconciliation-completeness job (§10 below) — completeness spans corrected positions at every tier"
     },
     {
       "id": "WM.1",
       "name": "Per-artifact-warrant fallacy — an artifact passes per-artifact checks but the corpus context that grounded its claims has shifted (warrant is corpus-distributed, not per-artifact)",
       "locus": "WM",
-      "status": "forward-looking",
-      "fence": null
+      "status": "fenced",
+      "fence": "corpus-tier warrant check paired with the per-artifact substrate test — when a per-artifact attestation's corpus warrant has moved under it, hold the divergence as a tension and file an acquisition candidate rather than resolving it per-artifact; periodic corpus-walk detection committed as a job-spec, detection-implementation deployment-side"
     },
     {
       "id": "WM.2",
@@ -192,6 +206,11 @@
       "load_bearing": "author byline, post date"
     },
     {
+      "class": "journal-essay",
+      "handle_convention": "<author>-<piece-slug>",
+      "load_bearing": "original_venue (journal + issue + year — editorial-curated venue, distinct from a later web-repost URL)"
+    },
+    {
       "class": "github-readme",
       "handle_convention": "<owner>-<repo>",
       "load_bearing": "license (SPDX), last-commit"
@@ -215,6 +234,11 @@
       "class": "talk-podcast",
       "handle_convention": "<speaker>-<talk-slug>",
       "load_bearing": "transcript-source (hand-cleaned vs auto-captioned)"
+    },
+    {
+      "class": "source-code",
+      "handle_convention": "<project>-<component>",
+      "load_bearing": "subclass (engine / dependency / gameplay-foundations / gameplay-systems); license (SPDX — varies per source, check per-piece)"
     }
   ],
   "lint": {
@@ -272,6 +296,14 @@
         "broken": true
       },
       {
+        "id": "non-canonical-handle",
+        "broken": true
+      },
+      {
+        "id": "duplicate-frontmatter-key",
+        "broken": true
+      },
+      {
         "id": "resolved",
         "broken": false
       },
@@ -281,6 +313,10 @@
       },
       {
         "id": "reduced-substrate-attestation",
+        "broken": false
+      },
+      {
+        "id": "acquisition-candidate",
         "broken": false
       }
     ]
@@ -357,6 +393,12 @@
       "tier": "D",
       "fires": "promote",
       "conditional": "when converged substrate warrants cross-arc lifting"
+    },
+    {
+      "name": "reconcile",
+      "tier": "D",
+      "fires": "reconcile",
+      "conditional": "re-engagement walks only (terminal) — verify the re-authored artifact reflects its corrections"
     }
   ],
   "registration_enums": {

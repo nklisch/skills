@@ -9,7 +9,15 @@
     "a-position": "intra-program-resolved",
     "reduced-src": "reduced-substrate-attestation",
     "thin-src": "resolved",
-    "colliding-src": "colliding-handle"
+    "colliding-src": "colliding-handle",
+    "explicit-sc-src": "resolved",
+    "unspecified-sc-src": "reduced-substrate-attestation",
+    "c1-f1-real": "intra-program-resolved",
+    "c9-f1-totally-fabricated": "unresolved-handle",
+    "c1-parent": "intra-program-resolved",
+    "BadCase-Handle": "non-canonical-handle",
+    "dup-key-src": "duplicate-frontmatter-key",
+    "acq-candidate-src": "acquisition-candidate"
   },
   "thin": ["thin-src"],
   "pattern_categories": [

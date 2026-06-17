@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# ARD-Version: 0.5.1
+# ARD-Version: 0.6.0
 # ARD lint conformance runner.
 #
 # Runs the lint over the golden fixtures and asserts it reproduces the canonical
-# verdicts in expected.json: every citation status (all 5 broken + 2 non-broken),
+# verdicts in expected.json: every citation status (all 7 broken + 4 non-broken),
 # the GR.5 thin flag, and every lint pattern category. Any adopter who vendored or
 # ported the lint runs this to validate against ARD's truth (ARD root-0054).
 #
-# Additionally asserts the v0.5.1 behaviours:
+# Additionally asserts the suppression, --stats, substrate-confidence, and
+# lint-hardening behaviours:
 #   - Suppression contexts: patterns do NOT fire inside fenced code blocks, inside
 #     inline code, inside URLs (version-number), or in blockquotes / attestations
 #     for the per-category rules.
 #   - --stats mode: audit surfaces colliding-handle and filename-mismatch findings
 #     correctly; by-handle counts are accurate.
+#   - substrate_confidence omission deprecation + the "exactly N" census matcher.
 #
 # Usage:
 #   python3 run.py                 # lint ../lint-citations.py against ./, vs expected.json
@@ -82,6 +84,37 @@ def main():
     # counts cannot drift from the checks actually run.
     n_suppression = 0
     n_stats = 0
+    n_sc = 0
+    n_lint = 0
+
+    # ── Check group 1c: lint-hardening — superlative closed-world "exactly N" census ──
+    # comparative-superlative must fire on bounded-count census phrasing, not only
+    # lexical superlatives (the v0.6.0 lint-hardening extension). The new citation
+    # statuses (non-canonical-handle, duplicate-frontmatter-key, acquisition-candidate,
+    # the slug-bound campaign resolution) are asserted in the baseline citations check.
+    n_lint += 1
+    census_fired = any(
+        p["category"] == "comparative-superlative" and "exactly two" in p["text"]
+        for r in out["results"] for p in r["patterns"]
+    )
+    if not census_fired:
+        failures.append("lint-hardening: comparative-superlative must fire on the "
+                        "'exactly two' closed-world census line, but it did not")
+
+    # ── Check group 1b: substrate_confidence omission deprecation ────────────────
+    # A resolved attestation that OMITS substrate_confidence is flagged (grace-period
+    # deprecation; reads source-direct, warns); one that declares it explicitly is not.
+    # unspecified-sc-src (substrate_confidence: unspecified) maps to the substrate-gap
+    # status — asserted in the baseline citations check above.
+    sc_omitted = set(out.get("substrate_confidence_omitted", []))
+    n_sc += 1
+    if "resolved-src" not in sc_omitted:
+        failures.append("substrate_confidence: resolved-src omits the field and should be "
+                        "flagged in substrate_confidence_omitted, but was not")
+    n_sc += 1
+    if "explicit-sc-src" in sc_omitted:
+        failures.append("substrate_confidence: explicit-sc-src declares the field and must NOT "
+                        "be flagged in substrate_confidence_omitted")
 
     # ── Check group 2: suppression — fenced code block ──────────────────────────
     # Lines inside ``` fences (and the fence lines themselves) must not produce
@@ -183,9 +216,10 @@ def main():
     # counters incremented at each executed assertion above.
     n_baseline = (len(expected["citations"]) + len(expected["thin"])
                   + len(expected["pattern_categories"]))
-    n_total = n_baseline + n_suppression + n_stats
+    n_total = n_baseline + n_suppression + n_stats + n_sc + n_lint
     print(f"ok — conformance: {n_total}/{n_total} checks passed "
-          f"({n_baseline} baseline · {n_suppression} suppression · {n_stats} stats)")
+          f"({n_baseline} baseline · {n_suppression} suppression · {n_stats} stats · "
+          f"{n_sc} substrate-confidence · {n_lint} lint-hardening)")
     sys.exit(0)
 
 

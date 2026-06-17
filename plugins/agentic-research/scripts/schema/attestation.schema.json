@@ -3,7 +3,7 @@
   "$id": "https://code.s-nc.org/Kevoun/ARD/kernel/schema/attestation.schema.json",
   "title": "ARD attestation frontmatter (normative minimum)",
   "description": "The normative-minimum YAML frontmatter every per-source attestation carries (ARD SPEC §4.2). This is an architecture-tier data contract — its required minimum changes only on a MAJOR bump. Per-source-class and cross-class fields (ARD CATALOGS §2) are optional extensions, so additionalProperties is permitted; documenting an optional extension as a named property is additive (MINOR).",
-  "x-ard-version": "0.5.1",
+  "x-ard-version": "0.6.0",
   "x-ard-tier": "architecture",
   "type": "object",
   "required": ["source_handle", "fetched", "provenance"],
@@ -11,7 +11,7 @@
     "source_handle": {
       "type": "string",
       "pattern": "^[\\w-]+$",
-      "description": "Stable source handle. MUST equal the [handle] in citing prose; resolves to this attestation file."
+      "description": "Stable source handle. MUST equal the [handle] in citing prose; resolves to this attestation file. Canonical form is ASCII-lowercase ([a-z0-9-]+) — the lint flags uppercase or non-ASCII (homoglyph) handles as non-canonical; the pattern here stays permissive ([\\w-]+) so a malformed handle surfaces rather than failing schema validation silently, and a future MAJOR may tighten it."
     },
     "fetched": {
       "type": "string",
@@ -36,7 +36,7 @@
     },
     "substrate_confidence": {
       "type": "string",
-      "description": "Optional cross-class extension (ARD CATALOGS §2). Engagement depth: 'source-direct' / 'search-summary' / 'snippet-thin', defaulting to source-direct when omitted. Distinct from provenance (which names how the artifact was authored). Optional: not in the normative minimum."
+      "description": "Optional cross-class extension (ARD CATALOGS §2). Engagement depth: 'source-direct' / 'search-summary' / 'snippet-thin' / 'unspecified'. Omission currently defaults to source-direct, but THAT DEFAULT IS DEPRECATED (v0.6.0): during a grace period omission still reads source-direct and the lint emits a deprecation warning; a future MAJOR flips the default to fail-closed — omission will read 'unspecified', which lints as a substrate gap (reduced-substrate-attestation). Declare the value explicitly. Distinct from provenance (which names how the artifact was authored). Optional: not in the normative minimum."
     }
   },
   "anyOf": [

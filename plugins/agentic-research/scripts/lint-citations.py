@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# ARD-Version: 0.5.1
+# ARD-Version: 0.6.0
 # Reference implementation — ARD citation-chain lint.
 #
 # A zero-dependency reference implementation of the full lintable catalogue:
@@ -12,14 +12,19 @@
 #
 # Covers, per the catalogue:
 #   - 6 surface-signature pattern categories (warn; flag for human spot-check)
-#   - citation-chain integrity, 6 checks, statuses:
-#       resolved / unresolved-handle / mismatched-source-handle /
-#       colliding-handle / unreachable-source / missing-provenance
-#     plus the two non-broken statuses:
-#       intra-program-resolved      (handle resolves to an analytical-tier artifact)
-#       reduced-substrate-attestation (attestation marked search-summary/snippet-thin)
+#   - canonical-handle fence (ASCII-lowercase; uppercase/homoglyph -> non-canonical-handle)
+#   - citation-chain integrity, statuses:
+#       resolved / unresolved-handle / mismatched-source-handle / colliding-handle /
+#       unreachable-source / missing-provenance / duplicate-frontmatter-key (split-brain)
+#     plus the non-broken statuses:
+#       intra-program-resolved        (handle resolves to an analytical-tier artifact)
+#       reduced-substrate-attestation (attestation marked search-summary/snippet-thin/unspecified)
+#       acquisition-candidate         (intentionally-unfetched escape-hatch source, SPEC §4.1)
 #   - GR.5 thin-attestation structural check (resolved attestation with no
 #       section anchors and no key-passage blockquotes)
+#   - substrate_confidence-omission grace-period deprecation: a resolved attestation
+#       that omits substrate_confidence still reads source-direct but is flagged
+#       (a future MAJOR flips the default fail-closed: omission -> unspecified -> gap)
 #
 # Suppression contexts (reduce false-positives in pattern scanning):
 #   - YAML frontmatter block and fenced code blocks are fully masked.
@@ -47,6 +52,9 @@ import urllib.request
 from urllib.parse import urlparse
 
 # The citation wire-form grammar (ARD SPEC §4.2): handle = [\w-]+, N = \d+.
+# N is captured for reporting only — the kernel resolves by HANDLE, never by N.
+# {N}<->INDEX correspondence (CATALOGS §3 check 7) needs the deployment's INDEX
+# structure (not an ARD invariant), so it is deployment-mapped, not validated here.
 CITATION_RE = re.compile(r"\[([\w-]+)\]\{(\d+)\}")
 
 # Reference regex matchers, keyed by the lint pattern-category id (ARD CATALOGS §3).
@@ -67,7 +75,10 @@ REFERENCE_MATCHERS = {
     ),
     "comparative-superlative": re.compile(
         r"\bthe (?:only|strongest|weakest|best|worst|most|least|largest|smallest|fastest|slowest|"
-        r"highest|lowest)\b|\blowest effort\b|\bonly \w+ (?:that|with|to)\b",
+        r"highest|lowest)\b|\blowest effort\b|\bonly \w+ (?:that|with|to)\b"
+        # Closed-world census phrased as a bounded count ("each has exactly two attested
+        # implementations") — the same anchor-and-drift shape one altitude up.
+        r"|\bexactly (?:one|two|three|four|five|six|seven|eight|nine|ten|\d+)\b",
         re.IGNORECASE,
     ),
     "named-feature-claim": re.compile(
@@ -81,7 +92,10 @@ REFERENCE_MATCHERS = {
 }
 
 # Fallback non-broken citation statuses (used only when catalogs.json is absent).
-DEFAULT_NON_BROKEN = {"resolved", "intra-program-resolved", "reduced-substrate-attestation"}
+# Keep in sync with the non-broken statuses in CATALOGS §3 — a status the lint emits
+# but omits here would be miscounted as broken on the no-data-file backward-compat path.
+DEFAULT_NON_BROKEN = {"resolved", "intra-program-resolved",
+                      "reduced-substrate-attestation", "acquisition-candidate"}
 SEVERITY_RANK = {"high": 3, "medium": 2, "low": 1, "none": 0}
 
 
@@ -109,7 +123,9 @@ def load_catalog_config(catalogs_path):
 
 
 def parse_frontmatter(text):
-    """Minimal frontmatter scan (no YAML dependency) — the fields the lint needs."""
+    """Minimal frontmatter scan (no YAML dependency) — the fields the lint needs.
+    Reads the LAST occurrence of each key (YAML loaders are last-wins); duplicate
+    resolution-critical keys are caught separately by frontmatter_duplicate_keys."""
     fields = {}
     if not text.startswith("---"):
         return fields
@@ -117,11 +133,26 @@ def parse_frontmatter(text):
     if end == -1:
         return fields
     block = text[3:end]
-    for key in ("source_handle", "source_url", "source_path", "provenance", "substrate_confidence"):
-        m = re.search(rf"^{key}:\s*(.+?)\s*$", block, re.MULTILINE)
-        if m:
-            fields[key] = m.group(1).strip().strip("\"'")
+    for key in ("source_handle", "source_url", "source_path", "provenance",
+                "substrate_confidence", "acquisition_status"):
+        matches = re.findall(rf"^{key}:\s*(.+?)\s*$", block, re.MULTILINE)
+        if matches:
+            fields[key] = matches[-1].strip().strip("\"'")
     return fields
+
+
+def frontmatter_duplicate_keys(text):
+    """Set of resolution-critical keys appearing 2+ times in the frontmatter block.
+    A duplicated key is split-brain: this lint reads last-wins (matching YAML), but a
+    tool reading first-wins sees a different value — the attestation's identity forks."""
+    if not text.startswith("---"):
+        return set()
+    end = text.find("\n---", 3)
+    if end == -1:
+        return set()
+    block = text[3:end]
+    return {key for key in ("source_handle", "source_url", "source_path", "provenance")
+            if len(re.findall(rf"(?m)^{key}:\s*.+$", block)) > 1}
 
 
 def body_after_frontmatter(text):
@@ -230,17 +261,36 @@ def intra_program_resolves(handle, analysis_dir):
     """Non-attestation resolution to an analytical-tier artifact (intra-program reference)."""
     if os.path.isfile(os.path.join(analysis_dir, "positions", f"{handle}.md")):
         return True
-    m = re.match(r"^c\d+-f(\d+)", handle)          # campaign specialist brief: cN-fM-*
-    if m and glob.glob(os.path.join(analysis_dir, "campaigns", "*", "specialists", f"f{m.group(1)}-*.md")):
+    # Campaign specialist brief: cN-fM-<slug> must name an ACTUAL specialist file
+    # fM-<slug>.md (slug-bound) — not merely any fM-*.md, which laundered any
+    # fabricated cN-fM-<anything> handle in (the campaign-namespace evasion).
+    #
+    # RESIDUAL (deployment-tier): the slug is bound, but the campaign NUMBER `cN` and
+    # the campaign DIRECTORY are not — a real fM-<slug>.md in an UNRELATED campaign
+    # still resolves a cN handle nominally for another campaign (cross-campaign reuse),
+    # and the parent/position path below binds nothing but existence. Fully closing this
+    # needs a cN -> campaign-directory map, which is a deployment naming convention (dirs
+    # are slugs, not numbers), not an ARD invariant — so it is deployment-mapped, like the
+    # {N}<->INDEX check (CATALOGS §3 check 7). A deployment can make the analytical-tier
+    # handle convention data-driven to bind the campaign too.
+    m = re.match(r"^c\d+-(f\d+-.+)$", handle)
+    if m and glob.glob(os.path.join(analysis_dir, "campaigns", "*", "specialists", f"{m.group(1)}.md")):
         return True
-    if re.match(r"^c\d+-(parent|position)", handle):  # campaign parent / position
+    if re.match(r"^c\d+-(parent|position)", handle):  # campaign parent / position (existence-bound only)
         if glob.glob(os.path.join(analysis_dir, "campaigns", "*", "parent.md")):
             return True
     return False
 
 
 def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_urls, handle_counts):
-    """Six-check sequence + non-broken statuses + thin flag. Returns a finding dict."""
+    """Canonical-handle fence + six-check sequence + non-broken statuses + thin flag.
+    Returns a finding dict."""
+    # Canonical-handle fence (homoglyph / case): the wire-form captures [\w-]+
+    # permissively (Python \w is Unicode) so malformed handles surface here rather than
+    # silently matching; a *canonical* handle is ASCII-lowercase. A Cyrillic-lookalike or
+    # uppercase handle is non-canonical and must not resolve silently beside the real one.
+    if not re.fullmatch(r"[a-z0-9-]+", handle):
+        return {"status": "non-canonical-handle", "severity": "high", "thin": False}
     path = os.path.join(attestation_dir, f"{handle}.md")
     # Check 1 — handle resolution. If not an attestation, try the analytical tier.
     if not os.path.isfile(path):
@@ -250,12 +300,23 @@ def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_ur
     with open(path, encoding="utf-8") as fh:
         text = fh.read()
     fm = parse_frontmatter(text)
+    # Frontmatter split-brain fence: a duplicated resolution-critical key (any of
+    # source_handle / source_url / source_path / provenance) means this lint
+    # (last-wins) and a first-wins reader disagree on the attestation's identity or
+    # the source/provenance it resolves to.
+    if frontmatter_duplicate_keys(text):
+        return {"status": "duplicate-frontmatter-key", "severity": "high", "thin": False}
     # Check 2 — source-handle match.
     if fm.get("source_handle") != handle:
         return {"status": "mismatched-source-handle", "severity": "high", "thin": False}
     # Check 3 — handle uniqueness: the source_handle must be declared by exactly one attestation.
     if handle_counts.get(handle, 0) > 1:
         return {"status": "colliding-handle", "severity": "high", "thin": False}
+    # Acquisition candidate: an intentionally-unfetched source (the acquisition-pending
+    # escape hatch, SPEC §4.1) marked in frontmatter — a benign non-broken status, NOT
+    # unreachable-source. Distinguishes deliberate not-yet-fetched from fabrication.
+    if fm.get("acquisition_status") == "candidate":
+        return {"status": "acquisition-candidate", "severity": "none", "thin": False}
     # Check 4 — source resolution. Path failures are errors; URL failures warn.
     if "source_path" in fm:
         if not os.path.exists(fm["source_path"]):
@@ -268,11 +329,16 @@ def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_ur
     # Check 5 — provenance present on attestation AND calling brief.
     if "provenance" not in fm or not calling_prov:
         return {"status": "missing-provenance", "severity": "low", "thin": False}
-    # Resolved. Mark reduced-substrate-depth (non-broken) and the GR.5 thin flag.
+    # Resolved. Mark reduced-substrate-depth (non-broken), the GR.5 thin flag, and
+    # the substrate_confidence-omission grace-period deprecation (see main()).
     thin = is_thin_attestation(body_after_frontmatter(text))
-    if fm.get("substrate_confidence") in ("search-summary", "snippet", "snippet-thin"):
+    sc = fm.get("substrate_confidence")
+    # `unspecified` is the future fail-closed default — an explicit substrate gap now.
+    if sc in ("search-summary", "snippet", "snippet-thin", "unspecified"):
         return {"status": "reduced-substrate-attestation", "severity": "none", "thin": thin}
-    return {"status": "resolved", "severity": "none", "thin": thin}
+    # Omission still reads source-direct (grace period) but is flagged deprecated:
+    # a future MAJOR flips the default to fail-closed (omission -> unspecified -> gap).
+    return {"status": "resolved", "severity": "none", "thin": thin, "sc_omitted": sc is None}
 
 
 # --- Pattern-scan suppression helpers --------------------------------------
@@ -341,13 +407,17 @@ def lint_file(path, attestation_dir, analysis_dir, matchers, handle_counts, do_c
     # Attestation files have source-direct provenance; counts/decimals there are
     # source-attested by design, not composed claims.
     is_attestation = fm.get("provenance") == "source-direct"
-    citations, patterns, thin = [], [], []
+    citations, patterns, thin, sc_omitted = [], [], [], set()
     if do_citation:
         for m in CITATION_RE.finditer(text):
             f = check_citation(m.group(1), attestation_dir, analysis_dir, calling_prov, check_urls, handle_counts)
             line = text.count("\n", 0, m.start()) + 1
             f.update({"handle": m.group(1), "n": int(m.group(2)), "line": line})
             citations.append(f)
+            # Grace-period deprecation (dedup per handle): a resolved attestation that
+            # omits substrate_confidence still reads source-direct but is flagged.
+            if f.pop("sc_omitted", False):
+                sc_omitted.add(m.group(1))
             if do_thin and f.pop("thin", False):
                 thin.append({"handle": m.group(1), "line": line})
     if do_pattern:
@@ -391,7 +461,8 @@ def lint_file(path, attestation_dir, analysis_dir, matchers, handle_counts, do_c
                             continue
                     patterns.append({"category": cat, "line": lineno, "text": line.strip()[:120]})
                     break  # one finding per category per line is enough
-    return {"file": path, "citations": citations, "patterns": patterns, "thin": thin}
+    return {"file": path, "citations": citations, "patterns": patterns, "thin": thin,
+            "sc_omitted": sorted(sc_omitted)}
 
 
 def collect(target):
@@ -480,6 +551,9 @@ def main():
 
     broken = [c for r in results for c in r["citations"] if c["status"] not in non_broken]
     thin_all = [(r["file"], t) for r in results for t in r["thin"]]
+    # Grace-period deprecation: resolved attestations omitting substrate_confidence
+    # (deduped across files). Warn-only — does not contribute to exit-code severity.
+    sc_omitted_all = sorted({h for r in results for h in r["sc_omitted"]})
     worst = max([SEVERITY_RANK[c["severity"]] for c in broken]
                 + [SEVERITY_RANK["low"]] * bool(thin_all), default=0)
 
@@ -489,7 +563,8 @@ def main():
         worst = max(worst, SEVERITY_RANK["high"])
 
     if args.format == "json":
-        payload = {"results": results, "broken_chains": broken, "thin_attestations": thin_all}
+        payload = {"results": results, "broken_chains": broken, "thin_attestations": thin_all,
+                   "substrate_confidence_omitted": sc_omitted_all}
         if stats is not None:
             payload["stats"] = stats
         print(json.dumps(payload, indent=2))
@@ -512,6 +587,14 @@ def main():
         print(f"\n{len(results)} file(s) · {n_ok} resolved/non-broken citation(s) · "
               f"{len(broken)} broken · {len(thin_all)} thin · "
               f"{sum(len(r['patterns']) for r in results)} pattern flag(s)")
+        if sc_omitted_all:
+            print(f"\n[deprecation] {len(sc_omitted_all)} cited attestation(s) omit "
+                  f"substrate_confidence — omission defaults to source-direct (DEPRECATED; a "
+                  f"future MAJOR makes it fail-closed: omission → unspecified → substrate gap). "
+                  f"Declare it explicitly.")
+            if args.stats:
+                for h in sc_omitted_all:
+                    print(f"  - {h}")
         if stats is not None:
             print("\n### Citation deployment stats")
             print("\n#### By handle")
