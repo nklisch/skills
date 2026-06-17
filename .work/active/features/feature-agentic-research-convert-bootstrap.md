@@ -1,10 +1,43 @@
 ---
-id: idea-agentic-research-convert-bootstrap
-created: 2026-06-17
+id: feature-agentic-research-convert-bootstrap
+kind: feature
+stage: drafting
 tags: [skill, tooling]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
+created: 2026-06-17
+updated: 2026-06-17
 ---
 
 # `agentic-research:convert` — discover + bootstrap an adopter's research into ARD parity
+
+## Brief
+
+A new `agentic-research:convert` (or `bootstrap`) skill that supplies the missing
+**front half** of ARD adoption: locate pre-existing research in an adopter's repo,
+scaffold the `.research/` substrate that receives it, and map the found material into
+the tiers — then hand each mapped artifact to ARD v0.6.0's **rigor-uplift** recipe for
+per-artifact citation/attestation parity, with `lint-citations.py` as the conformance
+check.
+
+Net flow: `convert` (locate + scaffold + map) → `rigor-uplift` per artifact (re-author
+to ARD rigor) → lint (verify). ARD v0.6.0 supplies the middle step; this feature is the
+missing front half. Modeled on **agile-workflow's `convert`** discipline (borrow the
+approach, not the code).
+
+## Strategic decisions
+- **Parent**: top-level feature, `parent: null` — the named `epic-agentic-research`
+  adoption epic is `done` (all 7 children complete, at `stage: review`, heading to
+  release). This is post-epic follow-on work that builds on the now-complete plugin;
+  scoping it under the closed epic would re-open and delay a shipping epic.
+- **Dependency**: none. ARD v0.6.0 is already vendored in the plugin
+  (`plugins/agentic-research/ard.json` → `adopts.version 0.6.0`, `release_tag v0.6.0`),
+  landed on main via PR #20, so the rigor-uplift hand-off target exists. The discovery +
+  bootstrap half was always independent of the version bump; with v0.6.0 vendored the
+  per-artifact uplift hand-off is also unblocked. The whole feature can be designed and
+  built now.
 
 ## The gap
 
@@ -49,20 +82,21 @@ on **agile-workflow's `convert`** discipline (borrow the approach, not the code)
    per-artifact citation/attestation parity, with `lint-citations.py` as the conformance check.
 
 Net effect: `convert` (locate + scaffold + map) → `rigor-uplift` per artifact (re-author to ARD
-rigor) → lint (verify). ARD 0.6.0 supplies the middle step; this item is the missing front half.
+rigor) → lint (verify). ARD 0.6.0 supplies the middle step; this feature is the missing front half.
 
 ## Linkage & sequencing
 
-- Parent epic: `epic-agentic-research`.
-- **Depends on the v0.6.0 sync** for the rigor-uplift hand-off target: `epic-agentic-research-ard-sync`
-  is the repeatable-sync tooling, but the *adopts-bump to v0.6.0* (which vendors the rigor-uplift
-  recipe) is its own pending PR — see root AGENTS.md §Work band and `.research/CONVENTIONS.md`
-  §Dual-pin. The **discovery + bootstrap half is independent of that** and could land first; only
-  the per-artifact uplift hand-off needs v0.6.0 vendored.
+- Lineage epic: `epic-agentic-research` (the ARD-as-plugin adoption — now `done`). This feature
+  is post-epic follow-on, scoped top-level rather than re-opening it.
+- The v0.6.0 sync that vendors the rigor-uplift recipe is already on main (the *adopts*-bump
+  landed via PR #20; `epic-agentic-research-ard-sync` shipped the repeatable-sync tooling). With
+  v0.6.0 vendored, the per-artifact uplift hand-off target exists — no remaining dependency.
 - Reference model: `plugins/agile-workflow/skills/convert/SKILL.md` (discovery sweep →
   classify → content-integrity gate → route & import → reference-integrity → preserve-only).
 
-## Open questions for scoping
+## Open questions for design
+
+(Feature-design-internal — resolve in the design pass, not at scope time.)
 
 - One skill with bootstrap/sync auto-detect (the agile-workflow pattern), or split discovery
   from scaffold?
