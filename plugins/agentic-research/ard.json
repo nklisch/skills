@@ -5,7 +5,7 @@
   "adopts": {
     "version": "0.6.0",
     "release_tag": "v0.6.0",
-    "commit_sha": "4099f8c2283b5e267d618b3d20694c2df00db412",
+    "commit_sha": "cd539faf87c709a963a193aa31b005527c998bda",
     "catalog_baseline": "0.6.0"
   },
   "vendored_paths": {

@@ -101,6 +101,23 @@ def main():
         failures.append("lint-hardening: comparative-superlative must fire on the "
                         "'exactly two' closed-world census line, but it did not")
 
+    # ── Check group 1d: campaign-unbound surfacing (lint-hardening) ──────────────
+    # A cN- campaign handle that resolves by slug/existence but whose campaign NUMBER the
+    # kernel cannot bind is reported in `campaign_unbound` (surfaced, not silently clean),
+    # so a fabricated / cross-campaign handle stays visible. The slug is still bound (a
+    # fabricated slug is unresolved-handle, asserted above), and a cN-position handle no
+    # longer resolves on parent existence (the position-arm fix → unresolved-handle).
+    campaign_unbound = set(out.get("campaign_unbound", []))
+    for handle in expected.get("campaign_unbound", []):
+        n_lint += 1
+        if handle not in campaign_unbound:
+            failures.append(f"campaign-unbound: [{handle}] resolves cN-unbound and must be "
+                            f"surfaced in campaign_unbound, but was not")
+    for handle in expected.get("campaign_unbound_excluded", []):
+        n_lint += 1
+        if handle in campaign_unbound:
+            failures.append(f"campaign-unbound: [{handle}] must NOT appear in campaign_unbound")
+
     # ── Check group 1b: substrate_confidence omission deprecation ────────────────
     # A resolved attestation that OMITS substrate_confidence is flagged (grace-period
     # deprecation; reads source-direct, warns); one that declares it explicitly is not.

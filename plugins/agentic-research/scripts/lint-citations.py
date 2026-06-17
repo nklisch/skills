@@ -258,28 +258,42 @@ def source_handle_counts(attestation_dir):
 
 
 def intra_program_resolves(handle, analysis_dir):
-    """Non-attestation resolution to an analytical-tier artifact (intra-program reference)."""
+    """Non-attestation resolution to an analytical-tier artifact (intra-program reference).
+
+    Returns a resolution KIND, or None if unresolved:
+      - "bound"            — a position artifact at positions/<handle>.md (fully bound).
+      - "campaign-unbound" — a campaign specialist/parent reference whose slug (or
+                             existence) resolves, but whose campaign NUMBER `cN` the kernel
+                             cannot bind to a campaign directory. Reported in the output's
+                             `campaign_unbound` list (not silently clean), so a fabricated
+                             or cross-campaign `cN` is visible.
+    """
     if os.path.isfile(os.path.join(analysis_dir, "positions", f"{handle}.md")):
-        return True
+        return "bound"
     # Campaign specialist brief: cN-fM-<slug> must name an ACTUAL specialist file
-    # fM-<slug>.md (slug-bound) — not merely any fM-*.md, which laundered any
-    # fabricated cN-fM-<anything> handle in (the campaign-namespace evasion).
+    # fM-<slug>.md (slug-bound) — not merely any fM-*.md, which laundered any fabricated
+    # cN-fM-<anything> handle in (the campaign-namespace evasion, closed in v0.6.0).
     #
-    # RESIDUAL (deployment-tier): the slug is bound, but the campaign NUMBER `cN` and
-    # the campaign DIRECTORY are not — a real fM-<slug>.md in an UNRELATED campaign
-    # still resolves a cN handle nominally for another campaign (cross-campaign reuse),
-    # and the parent/position path below binds nothing but existence. Fully closing this
-    # needs a cN -> campaign-directory map, which is a deployment naming convention (dirs
-    # are slugs, not numbers), not an ARD invariant — so it is deployment-mapped, like the
-    # {N}<->INDEX check (CATALOGS §3 check 7). A deployment can make the analytical-tier
-    # handle convention data-driven to bind the campaign too.
+    # RESIDUAL (deployment-tier): the slug is bound, but the campaign NUMBER `cN` and the
+    # campaign DIRECTORY are not — a real fM-<slug>.md in an UNRELATED campaign still
+    # resolves a cN handle nominally for another campaign (cross-campaign reuse), and the
+    # parent path below binds nothing but existence. Fully binding `cN` needs a
+    # cN -> campaign-directory map, a deployment naming convention (dirs are slugs, not
+    # numbers), not an ARD invariant — so it is deployment-mapped, like the {N}<->INDEX
+    # check (CATALOGS §3 check 7). The kernel does NOT silently bless it: a cN resolution
+    # is reported "campaign-unbound" (surfaced), so a fabricated cross-campaign handle is
+    # visible. A deployment binds `cN` by making the handle convention data-driven.
     m = re.match(r"^c\d+-(f\d+-.+)$", handle)
     if m and glob.glob(os.path.join(analysis_dir, "campaigns", "*", "specialists", f"{m.group(1)}.md")):
-        return True
-    if re.match(r"^c\d+-(parent|position)", handle):  # campaign parent / position (existence-bound only)
+        return "campaign-unbound"
+    # Campaign parent (existence-bound only; cN unbound). NOTE: `position` is NOT resolved
+    # here — a position artifact resolves above via positions/<handle>.md; globbing parent.md
+    # for a cN-position-* handle was a latent bug (a position handle resolving on parent
+    # existence), now removed.
+    if re.match(r"^c\d+-parent", handle):
         if glob.glob(os.path.join(analysis_dir, "campaigns", "*", "parent.md")):
-            return True
-    return False
+            return "campaign-unbound"
+    return None
 
 
 def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_urls, handle_counts):
@@ -294,8 +308,12 @@ def check_citation(handle, attestation_dir, analysis_dir, calling_prov, check_ur
     path = os.path.join(attestation_dir, f"{handle}.md")
     # Check 1 — handle resolution. If not an attestation, try the analytical tier.
     if not os.path.isfile(path):
-        if intra_program_resolves(handle, analysis_dir):
-            return {"status": "intra-program-resolved", "severity": "none", "thin": False}
+        kind = intra_program_resolves(handle, analysis_dir)
+        if kind:
+            f = {"status": "intra-program-resolved", "severity": "none", "thin": False}
+            if kind == "campaign-unbound":
+                f["campaign_unbound"] = True
+            return f
         return {"status": "unresolved-handle", "severity": "high", "thin": False}
     with open(path, encoding="utf-8") as fh:
         text = fh.read()
@@ -407,7 +425,7 @@ def lint_file(path, attestation_dir, analysis_dir, matchers, handle_counts, do_c
     # Attestation files have source-direct provenance; counts/decimals there are
     # source-attested by design, not composed claims.
     is_attestation = fm.get("provenance") == "source-direct"
-    citations, patterns, thin, sc_omitted = [], [], [], set()
+    citations, patterns, thin, sc_omitted, campaign_unbound = [], [], [], set(), set()
     if do_citation:
         for m in CITATION_RE.finditer(text):
             f = check_citation(m.group(1), attestation_dir, analysis_dir, calling_prov, check_urls, handle_counts)
@@ -418,6 +436,8 @@ def lint_file(path, attestation_dir, analysis_dir, matchers, handle_counts, do_c
             # omits substrate_confidence still reads source-direct but is flagged.
             if f.pop("sc_omitted", False):
                 sc_omitted.add(m.group(1))
+            if f.pop("campaign_unbound", False):
+                campaign_unbound.add(m.group(1))
             if do_thin and f.pop("thin", False):
                 thin.append({"handle": m.group(1), "line": line})
     if do_pattern:
@@ -462,7 +482,7 @@ def lint_file(path, attestation_dir, analysis_dir, matchers, handle_counts, do_c
                     patterns.append({"category": cat, "line": lineno, "text": line.strip()[:120]})
                     break  # one finding per category per line is enough
     return {"file": path, "citations": citations, "patterns": patterns, "thin": thin,
-            "sc_omitted": sorted(sc_omitted)}
+            "sc_omitted": sorted(sc_omitted), "campaign_unbound": sorted(campaign_unbound)}
 
 
 def collect(target):
@@ -554,6 +574,10 @@ def main():
     # Grace-period deprecation: resolved attestations omitting substrate_confidence
     # (deduped across files). Warn-only — does not contribute to exit-code severity.
     sc_omitted_all = sorted({h for r in results for h in r["sc_omitted"]})
+    # cN- campaign handles whose campaign number the kernel cannot bind (deployment-mapped):
+    # surfaced (not silently clean) so a fabricated / cross-campaign handle stays visible.
+    # Warn-only — does not contribute to exit-code severity.
+    campaign_unbound_all = sorted({h for r in results for h in r["campaign_unbound"]})
     worst = max([SEVERITY_RANK[c["severity"]] for c in broken]
                 + [SEVERITY_RANK["low"]] * bool(thin_all), default=0)
 
@@ -564,7 +588,8 @@ def main():
 
     if args.format == "json":
         payload = {"results": results, "broken_chains": broken, "thin_attestations": thin_all,
-                   "substrate_confidence_omitted": sc_omitted_all}
+                   "substrate_confidence_omitted": sc_omitted_all,
+                   "campaign_unbound": campaign_unbound_all}
         if stats is not None:
             payload["stats"] = stats
         print(json.dumps(payload, indent=2))
@@ -595,6 +620,13 @@ def main():
             if args.stats:
                 for h in sc_omitted_all:
                     print(f"  - {h}")
+        if campaign_unbound_all:
+            print(f"\n[note] {len(campaign_unbound_all)} intra-program handle(s) resolve by "
+                  f"slug/existence but the kernel cannot bind the campaign number cN "
+                  f"(deployment-mapped, like the 7th INDEX check) — confirm each cN names the "
+                  f"intended campaign:")
+            for h in campaign_unbound_all:
+                print(f"  - {h}")
         if stats is not None:
             print("\n### Citation deployment stats")
             print("\n#### By handle")
