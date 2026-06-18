@@ -42,8 +42,9 @@ you compose its prompt through **one mandatory step**:
 > - **engagement params** — the facet/seed/paths/rigor for this specific dispatch.
 
 On the **light path** (no fan-out) you author inline in your own context, with the discipline
-already present (you read it at engagement start; on Claude the `research-discipline` skill also
-auto-loads), so no separate inlining is needed. **Never author or dispatch authoring without the
+already present because **you read it at engagement start** (the `research-discipline` skill body —
+read it explicitly; do not assume it is auto-loaded, since skills are not guaranteed to auto-invoke).
+So no separate inlining is needed on the light path. **Never author or dispatch authoring without the
 discipline present** — that is the §5 fence.
 
 ## Reading the dials (ARD SPEC §8)

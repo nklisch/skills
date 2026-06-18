@@ -164,25 +164,30 @@ def default_probe(url, fetched_date):
 
 
 # --- the handle -> citing-artifacts join (reuses the lint's wire-form) ------
-def build_handle_index(analysis_dir):
-    """Map source_handle -> sorted list of analysis artifacts citing it, by scanning for
-    the `[handle]{N}` wire-form. This is the join that lets a source-level signal name an
-    artifact refresh target."""
+def build_handle_index(*citing_dirs):
+    """Map source_handle -> sorted list of citing artifacts, by scanning for the `[handle]{N}`
+    wire-form across every citation-bearing tier. This is the join that lets a source-level
+    signal name an artifact refresh target.
+
+    BOTH `analysis/` AND `precis/` are citation-bearing (a precis carries `[handle]{1}` over its
+    `source_handle`), so a source cited only from a precis must still resolve to a refresh target.
+    """
     index = {}
-    if not os.path.isdir(analysis_dir):
-        return index
-    for root_dir, _, fnames in os.walk(analysis_dir):
-        for fname in fnames:
-            if not fname.endswith(".md"):
-                continue
-            path = os.path.join(root_dir, fname)
-            try:
-                with open(path, encoding="utf-8") as fh:
-                    text = fh.read()
-            except OSError:
-                continue
-            for handle in citations_in(text):     # masked: skips frontmatter + code fences
-                index.setdefault(handle, set()).add(path)
+    for citing_dir in citing_dirs:
+        if not citing_dir or not os.path.isdir(citing_dir):
+            continue
+        for root_dir, _, fnames in os.walk(citing_dir):
+            for fname in fnames:
+                if not fname.endswith(".md"):
+                    continue
+                path = os.path.join(root_dir, fname)
+                try:
+                    with open(path, encoding="utf-8") as fh:
+                        text = fh.read()
+                except OSError:
+                    continue
+                for handle in citations_in(text):     # masked: skips frontmatter + code fences
+                    index.setdefault(handle, set()).add(path)
     return {h: sorted(files) for h, files in index.items()}
 
 
@@ -445,6 +450,7 @@ def main(argv=None):
         return 2
     attestation_dir = os.path.join(research_dir, "attestation")
     analysis_dir = os.path.join(research_dir, "analysis")
+    precis_dir = os.path.join(research_dir, "precis")
 
     queue_path = args.queue
     if queue_path is None:
@@ -458,7 +464,7 @@ def main(argv=None):
         sys.stderr.write("error: --today must be YYYY-MM-DD\n")
         return 2
 
-    handle_index = build_handle_index(analysis_dir)
+    handle_index = build_handle_index(analysis_dir, precis_dir)
     attestations = list(load_attestations(attestation_dir))
     queue = parse_queue(queue_path)
 

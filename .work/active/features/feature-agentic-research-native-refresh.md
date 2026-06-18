@@ -109,7 +109,34 @@ The two scope-time questions are resolved: staleness is the **second detector in
 separable); the trigger is a **lint-shaped check script** (not an operator-invoked skill / not an
 orchestrator walk step) — mechanical detection, operator-confirmed mutation.
 
-## PR #22 review fixes (2026-06-18)
+## PR #22 review round 2 + pre-push self-review (2026-06-18)
+
+The PR reviewer's second pass (on the round-1 fix) found 3 more — all real, all fixed:
+- **`precis/` not indexed** — `build_handle_index` walked only `analysis/`, but `precis/` is also
+  citation-bearing (a precis carries `[handle]{1}` over its `source_handle`). Generalized to
+  `build_handle_index(*citing_dirs)`; `main` now passes `analysis/` + `precis/`. Regression test
+  `test_precis_tier_is_indexed` (a source cited only from a precis surfaces as a target).
+- **VERSIONING.md stale** — its plugin-SemVer table still said `0.4.0` after the v0.5.0 bump
+  (`bump-version.sh` updates manifests, not this prose table). → `0.5.0`.
+- **`research-discipline` "auto-loads" claim** — conflicted with the repo rule that skills don't
+  auto-invoke. Reworded to "read explicitly" in `research-orchestrator/SKILL.md`,
+  `research-discipline/SKILL.md`, AND the plugin README (the README sibling caught by the pre-push
+  self-review, not the PR reviewer).
+
+**Then ran an adversarial peeragent pass BEFORE pushing** (to stop the round-by-round ping-pong).
+It caught two things a 4th PR-review round would have:
+- **Blocker** — `test_probe_does_not_fabricate_dead_on_head_rejection` (added an earlier round)
+  still used `https://example.com/x`, so it **fails in a DNS-restricted environment** (the SSRF
+  fence's `getaddrinfo` fails before the stubbed opener) — the same false-green pattern as before,
+  and the PR reviewer's env IS DNS-restricted. Fixed to a public IP literal. **Verified: all 7
+  tests pass under simulated no-DNS.**
+- **Important** — the README still said `research-discipline` is "auto-loaded" (the missed sibling).
+
+Tests **7/7** (incl. under simulated no-DNS); no regressions (conformance 56/56, lint 0, py_compile
+OK). The pre-push self-review is the process fix for the repeated round-trips: don't push until an
+off-model adversarial pass on the fix is clean.
+
+## PR #22 review round 1 (2026-06-18)
 
 The opened-PR local reviewer (nklisch) requested changes — two real logic gaps in
 `refresh-scan.py` that survived the passing test suite, both verified and fixed:

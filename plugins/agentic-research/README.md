@@ -29,9 +29,9 @@ Upstream framework by Kevoun: <https://code.s-nc.org/Kevoun/ARD>.
   discovers fan-out topology from the seed, and walks the ARD decision-graph at the dialed
   verification depth — from a one-agent inline brief to an N-specialist campaign. Dispatches
   the verification roles (specialist, adversarial-reader, evaluator) inline.
-- **`research-discipline`** — the auto-loaded anti-fabrication bundle (ARD `kernel/discipline.md`
+- **`research-discipline`** — the anti-fabrication bundle (ARD `kernel/discipline.md`
   vendored verbatim). The orchestrator inlines it into every authoring dispatch so the
-  discipline reaches sub-contexts (ARD SPEC §5).
+  discipline reaches sub-contexts (ARD SPEC §5); on the light path it is read explicitly.
 - **`convert`** — the front half of adoption: discover a repo's pre-existing (non-ARD) research,
   bootstrap the `.research/` substrate, route raw sources to `reference/` and claim-bearing
   syntheses to a holding area, then hand each synthesis to the orchestrator's refresh branch for

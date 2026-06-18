@@ -282,19 +282,53 @@ def test_probe_does_not_fabricate_dead_on_head_rejection():
         def open(self, req, timeout=None):
             return _Resp()
 
+    # Use a public IP LITERAL (no DNS) so the SSRF fence passes offline before the stubbed opener
+    # runs — `example.com` needs a resolver and fails in DNS-restricted environments.
+    pub = "http://1.1.1.1/x"
     orig = rs._URL_OPENER
     try:
         rs._URL_OPENER = _Opener403()
-        assert rs.probe_source("https://example.com/x") == "live-unverifiable", "403 must NOT be dead"
+        assert rs.probe_source(pub) == "live-unverifiable", "403 must NOT be dead"
         rs._URL_OPENER = _Opener404()
-        assert rs.probe_source("https://example.com/x") == "dead", "404 must be dead"
+        assert rs.probe_source(pub) == "dead", "404 must be dead"
         rs._URL_OPENER = _OpenerOK()
-        assert rs.probe_source("https://example.com/x") == "live-unverifiable", "200 is reachable"
+        assert rs.probe_source(pub) == "live-unverifiable", "200 is reachable"
         # SSRF fence: a non-public URL is refused before any open()
         assert rs.probe_source("file:///etc/passwd") == "refused", "file:// must be refused"
     finally:
         rs._URL_OPENER = orig
     print("test_probe_does_not_fabricate_dead_on_head_rejection: PASS")
+
+
+def test_precis_tier_is_indexed():
+    """Regression (PR #22 review 2): `precis/` is citation-bearing too. A source cited ONLY from a
+    precis must still resolve as a refresh target (the handle index must walk precis/, not just
+    analysis/)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        research = os.path.join(tmp, ".research")
+        att = os.path.join(research, "attestation")
+        precis = os.path.join(research, "precis")
+        # a stale (changed) source cited ONLY from a precis, with no analysis/ artifact at all
+        write(os.path.join(att, "psrc.md"), attestation("psrc", U_DRIFT))
+        write(os.path.join(precis, "p1.md"),
+              "---\nsource_handle: psrc\nprovenance: agent-authored-from-raw\n---\n\n"
+              "# Precis\n\n[psrc]{1} paraphrased.\n")
+        queue = os.path.join(tmp, "queue.md")
+        write(queue, "")
+        fixture = os.path.join(tmp, "probe.json")
+        write(fixture, json.dumps({U_DRIFT: "alive-changed"}))
+
+        code, out, err = run(research, queue, fixture)
+        assert err == "", err
+        report = json.loads(out)
+        # the precis-cited source drifted -> a stale-drifted refresh candidate naming the precis
+        drift = [c for c in report["refresh_candidates"] if c["class"] == "stale-drifted"]
+        assert drift and drift[0]["handle"] == "psrc", \
+            f"a source cited only from precis/ must surface as a target: {report}"
+        assert any("p1.md" in t for t in drift[0]["targets"]), \
+            f"the precis artifact must be named as the target: {drift}"
+        assert code == 1
+        print("test_precis_tier_is_indexed: PASS")
 
 
 if __name__ == "__main__":
@@ -304,4 +338,5 @@ if __name__ == "__main__":
     test_probe_does_not_fabricate_dead_on_head_rejection()
     test_fenced_and_frontmatter_citations_are_not_targets()
     test_ssrf_refused_queue_url_is_not_droppable()
+    test_precis_tier_is_indexed()
     print("ALL PASS")
