@@ -1,7 +1,7 @@
 ---
 id: feature-agentic-research-refresh-entry
 kind: feature
-stage: review
+stage: done
 tags: [skill]
 parent: epic-agentic-research-reengagement
 depends_on: []
@@ -170,6 +170,17 @@ No code; verification is structural/static (consistent with how the plugin's oth
   evidence the lens exclusion held.
 - **Both input states covered** — the reference + branch name both `ard-native` and `legacy`
   start-states; a reviewer confirms neither consumer is left without a path.
+
+## Review 3 (2026-06-18, cross-model GPT-5.5 — confirmation pass)
+
+**Verdict**: **Approve** — same cross-model reviewer (GPT-5.5 via `codex exec`), second pass over
+the now-fixed state. All three Review-2 findings **RESOLVED**, **no new findings**, "clean enough to
+advance to done." Notably it walked the Important-2 worst case (a sibling lens loaded immediately
+before a revision-pass dispatch): inserted at load time + the revision dispatch re-reads the current
+set at composition ⇒ exclusion re-attached, no laundering window. The known-lens guard is sound.
+
+Two cross-model passes total: the first found real gaps (Important-1/2 + Nit), the second confirms
+they are closed with nothing new. Advanced `review → done`.
 
 ## Review 2 (2026-06-18, cross-model GPT-5.5)
 
