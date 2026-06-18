@@ -3,9 +3,9 @@ name: convert
 description: >
   Discover an adopter's pre-existing research and bootstrap it into ARD parity. Use when a repo has
   research authored outside ARD (scattered docs, a wiki, a differently-shaped folder) but no
-  conformant .research/ substrate. Auto-detects: absent .research/ -> bootstrap the substrate
-  (CONVENTIONS, tier layout, per-corpus INDEX); present -> sync (validate + report drift, never
-  overwrite). Sweeps the repo for foreign research, classifies it (operator-confirmed), routes raw
+  conformant .research/ substrate. Auto-detects: absent .research/ bootstraps the substrate
+  (CONVENTIONS, tier layout, per-corpus INDEX); an existing one syncs (validate + report drift,
+  never overwrite). Sweeps the repo for foreign research, classifies it (operator-confirmed), routes raw
   sources to reference/ and claim-bearing syntheses to a holding area, then hands each synthesis to
   the research-orchestrator refresh branch for per-artifact rigor-uplift. Preserve-only default;
   content-integrity gate before any destructive op. The front half of ARD adoption that runs before

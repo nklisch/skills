@@ -1,7 +1,7 @@
 ---
 id: feature-agentic-research-convert-bootstrap
 kind: feature
-stage: review
+stage: done
 tags: [skill, tooling]
 parent: epic-agentic-research-reengagement
 depends_on: [feature-agentic-research-refresh-entry]
@@ -180,6 +180,25 @@ front half. Raw sources are placed directly; only syntheses round-trip through u
 (All resolved — see §Design decisions: one-skill auto-detect; operator-confirmed preserve-only
 tier mapping; heuristic-sweep + operator-confirmed classification; separate `import_origin:` key.
 The `inferred-from-legacy`-is-plugin-local question is settled in §Strategic decisions.)
+
+## Review (2026-06-18, cross-model GPT-5.5 via peeragent)
+
+**Verdict**: Request changes → **resolved**. Deep-lane cross-model implementation review (Codex/
+GPT-5.5 through peeragent). **1 Blocker, 0 Important, 0 Nits.** The reviewer confirmed all six
+load-bearing design points survived translation into prose (raw-vs-synthesis split; no malformed
+authoritative import; separate `import_origin:`; retained holding artifacts; `input_state: legacy`;
+preserve-only + operator-confirmed routing), that `.research/.import-holding/` is coherently
+outside the authoritative lint surface, and that the `intended_output_kind` addition is
+optional/additive in both orchestrator surfaces (no break to the shipped refresh-entry contract).
+
+- **Blocker (fixed)** — the SKILL.md frontmatter `description` used `->` arrows; the repo skill
+  validator rejects `>` in a description (`Description cannot contain angle brackets`). *Verified*
+  by running `quick_validate.py` (it failed, then passed after the fix). Reworded the two arrows to
+  prose ("absent .research/ bootstraps…; an existing one syncs…"). Validator now reports
+  "Skill is valid!".
+
+No design or Important findings — the implementation faithfully encodes the (already
+cross-model-design-reviewed) spec. Advanced `review → done`.
 
 ## Implementation notes (2026-06-18)
 
