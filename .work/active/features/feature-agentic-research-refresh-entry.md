@@ -1,7 +1,7 @@
 ---
 id: feature-agentic-research-refresh-entry
 kind: feature
-stage: review
+stage: implementing
 tags: [skill]
 parent: epic-agentic-research-reengagement
 depends_on: []
@@ -165,6 +165,66 @@ No code; verification is structural/static (consistent with how the plugin's oth
   sample refreshed artifact reports a clean chain (no handle resolving to the prior artifact).
 - **Both input states covered** — the reference + branch name both `ard-native` and `legacy`
   start-states; a reviewer confirms neither consumer is left without a path.
+
+## Review (2026-06-18)
+
+**Verdict**: Request changes — deep lane, fresh-context independent reviewer (local sub-agent;
+peeragent not available — recorded per deep-review degradation).
+
+**Blockers** (fixed in the next implement pass — they are spec/prose corrections, not separate
+story items):
+
+- **B1 — the "belt-and-suspenders" lint backstop claim is FALSE for the prior-artifact case.**
+  *Independently verified in `plugins/agentic-research/scripts/lint-citations.py`*: `intra-program-resolved`
+  is in `DEFAULT_NON_BROKEN` (line 97-98) and carries `severity: none` (line 313). A `[handle]{N}`
+  resolving to an analytical-tier artifact (position, campaign parent/specialist) is treated as
+  **clean, not broken** — by design (the lint comment at line 20 names it a legitimate
+  intra-program reference). The prior artifact being refreshed is *always* analytical-tier, so
+  citing it would resolve `intra-program-resolved` and **pass lint**. The lint is therefore NOT a
+  backstop against the lens violation — the **pre-flight known-lens check is the SOLE guard**, not
+  a redundant second one. Fix: rewrite the claim in `references/refresh-reengagement.md`
+  (§the-pre-flight-lens-check, §the-re-authoring-walk) and the SKILL.md branch to stop calling lint
+  a backstop for this case; state that the pre-flight exclusion is the primary and sole structural
+  guard, and that lint only catches the unrelated *broken-handle* case (a handle resolving to
+  nothing), not intra-program self-citation. Update the feature's own "belt-and-suspenders"
+  language in Implementation notes + Risks to match.
+- **B2 — the pre-flight known-lens check is under-specified, and B1 makes it load-bearing.** With
+  lint removed as a backstop, "inject into every authoring dispatch as an explicit exclusion" is the
+  only guard and must be concretely implementable. Fix: in `references/refresh-reengagement.md`
+  specify the mechanism — the `known_lens_paths` set is built at refresh-engagement start (entering
+  the refresh branch), and the dispatch-composition step (the §5 verbatim-bundle + role-brief +
+  params step) gains a concrete prepended block: `KNOWN-LENS EXCLUSION — these paths are framing,
+  NOT sources; never cite as [handle]{N}: <paths>`. Name *when* it is built, *where* it attaches in
+  the dispatch composition, and that "every dispatch" means the same composition step the discipline
+  bundle already flows through (so completeness rides on the existing §5 mechanism).
+
+**Important** (fold into the same next implement pass):
+
+- **I1 — `ard-native` re-validation is operationally vague.** "Re-validate each existing
+  attestation against current sources" does not say *what* re-validation does (HEAD-probe the URL?
+  re-fetch and compare content? re-confirm the claim still holds?). The `native-refresh` consumer
+  depends on this contract. Fix: spell out the re-validation procedure in
+  `references/refresh-reengagement.md` §attestation-start-state-branch (e.g. probe source liveness →
+  reuse if unchanged; re-fetch + fresh attestation if changed; mark gap + offgas if dead).
+- **I2 — `input_state` is caller-set but unasserted.** A caller mistakenly passing `ard-native` on
+  a legacy artifact sends the walk into re-validating attestations that do not exist. Fix: add a
+  cheap pre-flight assertion — `ard-native` ⇒ confirm the prior artifact has ≥1 attestation in
+  `.research/attestation/`; on mismatch, interactive surface-and-correct / autonomous hard-halt
+  (mirrors the orchestrator's existing malformed-dials posture).
+
+**Nits** (optional, address if cheap):
+- N1 — SKILL.md walk annotation "resume below" → "resume at the attest step" for precision.
+- N2 — reference §the-pre-flight-lens-check "any sibling artifacts loaded as framing" is vague;
+  define what counts as a sibling lens (other analytical-tier artifacts loaded as reading aids
+  during this refresh).
+
+**Notes**: Substrate mode, deep lane. Fresh-context reviewer was a local sub-agent (peeragent
+unavailable — degraded per deep-review.md, recorded here). The reviewer's central claim (B1) was
+**independently re-verified against the lint source** before acceptance, not taken on faith — it is
+correct. B1 is the high-stakes finding: the epic's anti-fabrication lynchpin shipped a guard whose
+advertised redundancy does not exist. Caught before two siblings built on the unsound contract,
+which is exactly why the lynchpin was reviewed first. No code changed by this review; bounced
+`review → implementing`.
 
 ## Implementation notes
 - **Files changed**: `plugins/agentic-research/skills/research-orchestrator/SKILL.md` (refresh
