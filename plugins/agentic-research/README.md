@@ -114,3 +114,19 @@ writes the version stamp that CI bakes into the binary).
 Until the binary-refresh CI run lands, the installer's version check will
 intentionally fail on supported platforms. Do not cut a release before the
 binary-refresh commit appears.
+
+## Scripts
+
+Zero-dependency Python checks over the `.research/` substrate (run like any lint — no Claude
+dependency, cross-harness, testable):
+
+- **`scripts/lint-citations.py`** — the citation-chain integrity lint (every `[handle]{N}` resolves
+  to an attestation; the anti-fabrication pattern catalog; URL liveness).
+- **`scripts/refresh-scan.py`** — the **acquisition-queue drain + staleness detector**. Re-probes
+  the standing `research-acquisition-queue` and the cited sources of ARD-native artifacts,
+  classifies refresh candidates (`now-re-acquirable` / `stale-drifted` / `stale-dead` /
+  `queue-still-dead` / `needs-artifact-binding`), and prints a batch worklist. **Writes nothing** —
+  the operator triages and accepted items drive the orchestrator's refresh branch. The operator does
+  not have to *know* a source became re-acquirable or drifted: the detector surfaces it. See
+  `docs/HANDOFF.md` §Acquisition-queue drain loop. Reuses `lint-citations.py`'s SSRF-hardened probe.
+- **`scripts/ard-sync.py`** — the ARD upstream-version drift check (see `docs/VERSIONING.md`).

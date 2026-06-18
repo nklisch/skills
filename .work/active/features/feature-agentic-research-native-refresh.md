@@ -1,7 +1,7 @@
 ---
 id: feature-agentic-research-native-refresh
 kind: feature
-stage: implementing
+stage: review
 tags: [skill]
 parent: epic-agentic-research-reengagement
 depends_on: [feature-agentic-research-refresh-entry]
@@ -108,6 +108,50 @@ claims it completes by handing the affected ARD-native artifact to the refresh-e
 The two scope-time questions are resolved: staleness is the **second detector in this feature** (not
 separable); the trigger is a **lint-shaped check script** (not an operator-invoked skill / not an
 orchestrator walk step) — mechanical detection, operator-confirmed mutation.
+
+## Implementation notes (2026-06-18)
+
+- **Files created**:
+  - `plugins/agentic-research/scripts/refresh-scan.py` — the zero-dep detector. Imports the lint's
+    vetted helpers by path (`CITATION_RE`, `parse_frontmatter`, `_url_allowed`, `_URL_OPENER`) so the
+    SSRF fence + wire-form have ONE source of truth. Two detectors (acquisition flow-back +
+    staleness) keyed on `source_handle` via a handle→citing-artifact index; class→role exit policy
+    (informational classes never become refresh candidates); writes nothing.
+  - `plugins/agentic-research/scripts/tests/test_refresh_scan.py` — subprocess-cli-harness, tempdir
+    fixtures, fully offline (probe injected via `REFRESH_SCAN_PROBE_FIXTURE`). 4 tests covering every
+    class + the action-split + the SSRF fence + the probe-honesty regression.
+- **Files changed**:
+  - `skills/research-orchestrator/SKILL.md` — offgas-section pointer to `refresh-scan.py` as the
+    drain mechanism.
+  - `docs/HANDOFF.md` — new §Acquisition-queue drain loop (offgas accumulates → scan detects →
+    operator triages → refresh-entry re-engages → downstream unblocks).
+  - `README.md` — §Scripts (lint / refresh-scan / ard-sync).
+- **Smoke-test discovery → probe honesty fix (the key implementation finding).** The live smoke
+  against this repo's own `.research/` initially reported **12 `gap-emit` candidates** — but they
+  were live sources (Wikipedia, mountaingoatsoftware, …) that **403 on HEAD**. The lint's `url_alive`
+  collapses every non-2xx/3xx into "not alive", which for this detector would **fabricate `dead`**
+  (firing a spurious gap-emit on a live claim) — violating the design's "never fabricate a verdict"
+  floor. Fix: `refresh-scan.py` carries its own `probe_source` that reuses the lint's SSRF fence but
+  reads the HTTP status precisely — only a clean `404`/`410` is `dead`; `403`/`405`/timeout/other →
+  `live-unverifiable` (informational, never a death). Re-smoke: 12 gap-emit → **0 gap-emit / 41
+  informational, exit 0** (the repo's substrate is healthy). Locked in by
+  `test_probe_does_not_fabricate_dead_on_head_rejection` (403→unverifiable, 404→dead, file://→refused).
+  The lint itself was NOT modified — its HEAD-only liveness is correct for its own low-severity warn.
+- **Tests added**: `test_refresh_scan.py` — **4/4** (full class set + action-split + SSRF-fence
+  offline + probe-honesty regression). No regressions: conformance **56/56**, lint exit 0, ard-sync
+  test **5/5**.
+- **Discrepancies from design**:
+  - *Probe split into a detector-local `probe_source`* rather than importing the lint's `url_alive`
+    verbatim — the design said "reuse the SSRF-hardened probe verbatim", but the smoke proved
+    `url_alive`'s collapse-to-dead fabricates verdicts for this detector. The **SSRF fence** is
+    reused verbatim (`_url_allowed` + `_URL_OPENER`); only the status→verdict mapping is detector-
+    local (honesty). A faithful improvement on the design's intent, surfaced by the smoke.
+  - *Change-detection (`stale-drifted`) is not wired to a live signal yet* — without `Last-Modified`/
+    `ETag` plumbing or a stored content snapshot, a reachable source is `live-unverifiable`, never a
+    fabricated `stale-drifted`. The class + path exist (a fixture can produce `alive-changed`); the
+    live change-probe is the parked future enhancement the design named (attestations store a content
+    hash at fetch time). Honest by design — no false drift.
+- **Adjacent issues parked**: none.
 
 ## Other agent review (cross-model design peer-review, GPT-5.5 via peeragent)
 

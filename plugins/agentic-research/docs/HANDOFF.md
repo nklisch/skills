@@ -211,6 +211,33 @@ The pairing is optional and degrades to absent, never broken:
 
 Neither tier requires the other to function. The pairing adds value where both are present.
 
+## Acquisition-queue drain loop
+
+The acquisition offgas writes candidate sources to the standing `research-acquisition-queue`
+backlog item (one-way, dedup-by-source) — it is **append-only**, so `blocking` candidates (sources
+a cited claim needs but a fetch could not get) accumulate and represent **acquisition-gated claims**.
+Left alone the queue grows unboundedly and the gated claims stay blocked. The **drain loop** keeps
+it bounded:
+
+1. **Offgas accumulates** — engagements push `blocking`/`enriching` candidates to the queue.
+2. **`scripts/refresh-scan.py` detects** (lint-shaped — run it mechanically, like `lint-citations.py`;
+   the operator does not have to *know* a source became re-acquirable or drifted). It re-probes the
+   queue sources + the cited sources of ARD-native artifacts and classifies: `now-re-acquirable`
+   (a `blocking` source that now fetches), `stale-drifted` / `stale-dead` (a cited source that
+   changed / is gone), `queue-still-dead` (still unreachable), `needs-artifact-binding` (a queue
+   entry with no resolvable handle). It **writes nothing** — it prints a batch worklist.
+3. **Operator batch-triages** — drops genuinely-dead queue entries (the drain), accepts
+   re-acquisitions/drifts. The batch human-judgment step is deliberate: the operator decides
+   dead-for-good vs temporarily-down, which a machine cannot.
+4. **refresh-entry re-engages** — each accepted candidate drives the orchestrator refresh branch
+   (`input_state: ard-native`, scoped to the completing claims), re-grounding the held claims and
+   unblocking the downstream that depended on them. A dead *cited* source becomes a gap + a new
+   offgas candidate (never a silent drop), per the refresh procedure.
+
+The detector keys on `source_handle` (the one machine-resolvable join — `Completes:` is free-form
+prose with no queue backlink), and detection is automatic while every **mutation stays
+operator-confirmed** — consistent with the operator-confirmed-write floor the whole substrate holds.
+
 ## Directionality guard
 
 Restating the invariant so it is not re-eroded: within `.research/`, reads are **down-gradient

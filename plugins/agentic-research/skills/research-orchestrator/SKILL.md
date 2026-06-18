@@ -295,6 +295,13 @@ gate on the verification stack — consolidate at synthesis-time regardless of t
 - **The anti-recall fence** (carried in the discipline bundle, ARD SPEC §4.1): an `enriching`
   candidate must point at a fetched source that names it — never training-recall (`AQ.3`). A
   `blocking` candidate is self-grounding (a fetch was attempted and failed).
+- **The offgas writes the queue; `refresh-scan.py` drains it.** The standing
+  `research-acquisition-queue` is append-only — `blocking` candidates accumulate as
+  acquisition-gated claims. The drain mechanism is the lint-shaped detector
+  `scripts/refresh-scan.py` (run it like `lint-citations.py`): it re-probes the queue + cited
+  sources, classifies (re-acquirable / stale / still-dead), and prints a batch worklist. It writes
+  nothing — the operator triages, and accepted items drive the refresh branch (above). See
+  `docs/HANDOFF.md` §Acquisition-queue drain loop.
 
 ## Work-coordination entry
 
