@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-17
-updated: 2026-06-17
+updated: 2026-06-18
 ---
 
 # `agentic-research:convert` — discover + bootstrap an adopter's research into ARD parity
@@ -103,3 +103,25 @@ rigor) → lint (verify). ARD 0.6.0 supplies the middle step; this feature is th
 - How aggressive is auto-classification vs. operator-confirmed per-artifact tier assignment?
 - Does the migrated-attestation `inferred-from-legacy` provenance value need an ARD
   catalogs/schema addition, or is it a plugin-local frontmatter convention?
+
+## Verification notes (scope-time, against vendored ARD v0.6.0)
+
+Checked the gap analysis's ARD references against the vendored kernel data
+(`plugins/agentic-research/scripts/catalogs.json`, `templates/dispatch.md`). SPEC.md /
+CATALOGS.md prose is **not** vendored (the foundation-docs thin/reference decision — only
+the kernel data surface is in-repo), so the §-number cites trace to upstream ARD, but the
+underlying concepts are corroborated by the vendored data:
+
+- **`AQ.2 substrate-check` is real and matches the brief.** `catalogs.json` carries it with
+  fence text *"on finding prior substrate, diff it against current sources; a stale diff fires
+  a refresh re-engagement (SPEC.md §4.8)"* — confirming both the `SPEC §4.8` cite and the
+  feature's claim that AQ.2 is scoped to staleness-diffing the adopter's *own prior ARD*
+  substrate (not a foreign-research sweep).
+- **`temporal_contract: supersedes-prior` is a real `registration_enums` value** ✓ — validates
+  the rigor-uplift re-engagement mechanism the hand-off targets. `rigor-uplift` / `refresh`
+  concepts appear in `catalogs.json` + `templates/dispatch.md`.
+- **`inferred-from-legacy` does NOT exist in the vendored `provenance_values` enum.** The five
+  legal values are `source-direct`, `agent-authored-from-raw`, `agent-synthesis`,
+  `generated-listing`, `hybrid-curated`. So the third open question's proposed provenance flag
+  is confirmed **net-new** — it requires either an upstream ARD catalogs/schema addition or a
+  plugin-local frontmatter convention. The design pass decides which; the value is not legal today.
