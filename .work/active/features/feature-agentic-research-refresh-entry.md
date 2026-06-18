@@ -1,7 +1,7 @@
 ---
 id: feature-agentic-research-refresh-entry
 kind: feature
-stage: implementing
+stage: review
 tags: [skill]
 parent: epic-agentic-research-reengagement
 depends_on: []
@@ -165,6 +165,33 @@ No code; verification is structural/static (consistent with how the plugin's oth
   sample refreshed artifact reports a clean chain (no handle resolving to the prior artifact).
 - **Both input states covered** — the reference + branch name both `ard-native` and `legacy`
   start-states; a reviewer confirms neither consumer is left without a path.
+
+## Implementation notes
+- **Files changed**: `plugins/agentic-research/skills/research-orchestrator/SKILL.md` (refresh
+  branch annotation in the walk diagram at `substrate-check`; new `## Refresh re-engagement`
+  section with the input contract; a refresh note in `## Registration`).
+- **Files created**: `plugins/agentic-research/skills/research-orchestrator/references/refresh-reengagement.md`
+  (the full procedure — when-this-runs, input contract, pre-flight lens check, attestation
+  start-state branch, the re-authoring walk, superseding-artifact output; 104 lines, ToC).
+- **Discrepancies from design**: *Unit 3's optional plugin-docs note was skipped.* The design
+  said a one-line note in `docs/ARCHITECTURE.md`/`HANDOFF.md` "if a re-engagement entry belongs
+  in the plugin's own docs." ARCHITECTURE.md is altitude-high (substrates / cleavage / pairing)
+  and does not enumerate orchestrator entry modes; forcing a note there would be out-of-altitude
+  noise. The input contract lives where it's used (the SKILL.md branch), which is the correct
+  home — so the doc edit was not manufactured (per document-evolution: don't add edits that don't
+  earn their place). The input contract (Unit 3's substance) IS delivered, in the SKILL.md branch.
+- **Adjacent issues parked**: none. (Noted but NOT fixed — out of scope: the orchestrator SKILL.md
+  carries two pre-existing skill-style stale-term hits — `allowed-tools` at L131, "Suggested
+  model: sonnet/opus" at L221 — both predate this change and describe existing Claude-native
+  behavior; not touched.)
+- **Verification**: line budgets OK (SKILL 372 < 500, reference 104 < 200, ToC present);
+  frontmatter unchanged (name+description); reference link resolves; new prose harness-neutral;
+  discipline guard confirmed at `research-discipline/SKILL.md:34` (citations accurate);
+  belt-and-suspenders lens enforcement present in both surfaces; lint backstop runs (the
+  pre-existing 87-broken `.research/` count is disjoint from this `plugins/`-only edit — no
+  regression introduced). Lens-enforcement paper walk-through passes: a handle to the prior
+  artifact is both pre-flight-excluded (known-lens set) and lint-rejected (analytical-tier ≠
+  source).
 
 ## Risks
 
