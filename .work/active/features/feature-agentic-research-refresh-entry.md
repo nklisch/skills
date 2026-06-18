@@ -52,9 +52,11 @@ when acquisitions land or substrate goes stale.
   re-authoring dispatch, the mode records the prior artifact's path in a **known-lens set**
   (excluded from `[handle]{N}` citation targets) and prepends that exclusion into the authoring
   dispatch alongside the verbatim lens-not-substrate guard (already in the discipline bundle,
-  `research-discipline/SKILL.md:34`). `lint-citations.py` remains the backstop (a handle
-  resolving to the prior analytical-tier artifact already fails the citation-chain check), but
-  the pre-flight check catches the violation at author time, structurally. **This is
+  `research-discipline/SKILL.md:34`). The pre-flight exclusion is the **SOLE structural guard**
+  — `lint-citations.py` is NOT a backstop for this violation: a handle resolving to the prior
+  analytical-tier artifact is status `intra-program-resolved`, which the lint treats as
+  non-broken at `severity: none` by design (verified `lint-citations.py:97,313`), so it passes
+  clean. The pre-flight check catches the violation at author time, structurally. **This is
   plugin-local orchestration, not an ARD change** — it operationalizes the *existing* universal
   guard for this engagement's specific prior artifact; the discipline rule itself is unchanged.
 - **Attestation handling: branch on input state, one walk.** An *ARD-native* artifact carries a
@@ -159,14 +161,40 @@ No code; verification is structural/static (consistent with how the plugin's oth
 - **Discipline-bundle integrity** — confirm the refresh branch's dispatch still inlines the
   verbatim discipline bundle (the §5 fence is not bypassed by the new branch).
 - **Lens-enforcement walk-through** — trace a worked refresh (a sample prior artifact) on paper:
-  confirm the prior path lands in the known-lens set and that a `[handle]{N}` pointing at it
-  would be both pre-flight-excluded AND lint-rejected (belt and suspenders).
-- **Lint backstop live** — `python3 plugins/agentic-research/scripts/lint-citations.py` over a
-  sample refreshed artifact reports a clean chain (no handle resolving to the prior artifact).
+  confirm the prior path lands in the known-lens set and that a `[handle]{N}` pointing at it is
+  caught by the pre-flight exclusion (the SOLE guard — lint does NOT catch it: a handle to the
+  analytical-tier prior artifact resolves `intra-program-resolved`, treated as clean).
+- **Lint citation-chain check** — `python3 plugins/agentic-research/scripts/lint-citations.py` over a
+  sample refreshed artifact reports a clean chain (no *broken* handles). NB: lint validates the
+  chain; it is not the lens guard — it would pass a handle to the prior artifact, so it is not
+  evidence the lens exclusion held.
 - **Both input states covered** — the reference + branch name both `ard-native` and `legacy`
   start-states; a reviewer confirms neither consumer is left without a path.
 
-## Review (2026-06-18)
+## Review 2 (2026-06-18, cross-model GPT-5.5)
+
+**Verdict**: Request changes — deep lane, **cross-model** fresh-context reviewer (GPT-5.5 via
+`codex exec -m gpt-5.5`, a genuinely different model class from the Opus author; peeragent not
+installed, so codex was invoked directly — a stronger cross-model path than the local-sub-agent
+fallback). **No blockers**; 2 Important + 1 Nit, all applied (see the cross-model review-fix pass
+notes above).
+
+- Independently re-confirmed **B1** against the lint source (cited the same `lint-citations.py:97`
+  + `:313` — `intra-program-resolved` ∈ `DEFAULT_NON_BROKEN` at `severity: none`), agreeing the
+  first fix was correct and lint is rightly no longer treated as a guard.
+- Confirmed **B2/I1/I2 materially fixed** (concrete dispatch-composition attach point, operational
+  re-validation, pre-flight `input_state` assertion) and skill-style passing (376 / 161+ToC /
+  portable frontmatter).
+- **Important-1** (stale false-contract language in the feature item) + **Important-2** (known-lens
+  set update rule undefined) + **Nit** (presence-only `input_state` check) — all fixed this pass.
+
+**Notes**: Cross-model review is the deep-review reference's *preferred* path ("different model
+class through peeragent when available"); peeragent isn't installed here, so codex was wired
+directly via Bash — same effect, genuinely off-model. Both of GPT-5.5's Important findings were
+real and accepted; its B1 re-confirmation gives independent cross-model agreement on the
+highest-stakes fix. Bounced `review → implementing` for the fix, now re-advanced.
+
+## Review 1 (2026-06-18)
 
 **Verdict**: Request changes — deep lane, fresh-context independent reviewer (local sub-agent;
 peeragent not available — recorded per deep-review degradation).
@@ -226,6 +254,33 @@ advertised redundancy does not exist. Caught before two siblings built on the un
 which is exactly why the lynchpin was reviewed first. No code changed by this review; bounced
 `review → implementing`.
 
+## Implementation notes (cross-model review-fix pass, 2026-06-18)
+
+Second review was **cross-model** (GPT-5.5 via `codex exec`, a different model class from the
+author) — verdict Request changes, **no blockers**, two Important + one Nit. It *independently
+re-confirmed B1 against the lint source* (same lines 97/313), agreeing the prior fix was right.
+Findings applied:
+
+- **GPT-5.5 Important-1 — stale false-contract language in the *feature item itself*** (fixed). The
+  SKILL.md/reference were corrected last pass, but the feature body's live spec sections still read
+  "lint backstop / belt-and-suspenders." Corrected **in place**: §Design decisions (lint is NOT a
+  backstop; pre-flight is sole guard), §Testing (walk-through + lint-chain-check reworded), §Risks
+  (mitigation reworded). The initial-pass implementation notes are now explicitly marked
+  **SUPERSEDED / obsolete record** so their false language can't be read as the contract.
+- **GPT-5.5 Important-2 — known-lens set had no update rule** (fixed). `references/refresh-reengagement.md`
+  §the-pre-flight-lens-check now specifies the set is **live, not built-once**: a sibling lens
+  loaded mid-walk is added at load time, and because every authoring *and revision-pass* dispatch
+  re-reads the current set through the §5 composition step, there is no window where a later
+  dispatch misses an exclusion.
+- **GPT-5.5 Nit — `input_state` assertion was presence-only** (strengthened). The pre-flight
+  assertion now checks **claim-level resolution** (the cited handles for the claims being
+  re-engaged resolve to source-direct attestations), catching a *partially* attested legacy
+  artifact mislabeled `ard-native`, not just a wholly-unattested one.
+
+Re-verified: budgets OK (SKILL 376 < 500, reference 161 < 200, ToC present); the live spec sections
+carry no false-backstop claim (remaining mentions are review-findings quoting it, or inside the
+obsolete-marked block). Advanced implementing → review.
+
 ## Implementation notes (review-fix pass, 2026-06-18)
 
 Applied the Request-changes punch-list from the §Review below. All six findings were
@@ -257,7 +312,13 @@ false-backstop claim (all 3 "backstop" mentions are negations); corrected lint c
 source (intra-program-resolved ∈ DEFAULT_NON_BROKEN @ severity none). Advanced
 implementing → review.
 
-## Implementation notes (initial pass)
+## Implementation notes (initial pass — SUPERSEDED by the review-fix pass above)
+
+> **Obsolete record.** This block captures the *first* implementation pass, whose
+> "belt-and-suspenders / lint backstop" verification claims were **false** (see Review B1).
+> Kept as the historical record of what that pass did; the review-fix-pass notes above are the
+> current state. Do NOT read the lint-backstop language below as the contract.
+
 - **Files changed**: `plugins/agentic-research/skills/research-orchestrator/SKILL.md` (refresh
   branch annotation in the walk diagram at `substrate-check`; new `## Refresh re-engagement`
   section with the input contract; a refresh note in `## Registration`).
@@ -288,9 +349,12 @@ implementing → review.
 
 - **Lens-not-substrate is the whole ballgame.** If the pre-flight check or the dispatch exclusion
   is wrong, a refresh launders the prior artifact's unsourced claims into the new one — the exact
-  GR.1-analogue the discipline fences (`research-discipline/SKILL.md:34`). Mitigation: belt-and-
-  suspenders (pre-flight exclusion + lint backstop) and a paper walk-through in Testing. This is
-  why the feature is the epic's dependency root and gets adversarial design care.
+  GR.1-analogue the discipline fences (`research-discipline/SKILL.md:34`). Mitigation: the
+  pre-flight known-lens exclusion is the **sole structural guard** (lint is NOT a backstop here —
+  it passes a handle to the prior analytical-tier artifact as `intra-program-resolved`), so the
+  exclusion must be built at branch entry, updated at lens-load time, and re-attached to every
+  authoring/revision dispatch; plus a paper walk-through in Testing. This is why the feature is the
+  epic's dependency root and gets adversarial design care.
 - **Orchestrator size budget.** The orchestrator SKILL.md is already large; the branch must stay
   compact (procedure in the reference). Mitigation: verify the 500-line hard cap post-edit; move
   anything heavy into `references/refresh-reengagement.md`.

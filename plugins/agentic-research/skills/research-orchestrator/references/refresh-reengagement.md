@@ -57,14 +57,20 @@ warning below — so this check must be concrete and complete.
 **Build the known-lens set on entering the refresh branch** (at `substrate-check`, once the
 input contract is read):
 
-1. `known_lens_paths = [prior_artifact_path]`, plus any **sibling lenses** — other
-   analytical-tier artifacts loaded *during this refresh as reading aids* (e.g. a related
-   position or campaign synthesis pulled in for framing). A path is a sibling lens iff it is
-   loaded for framing and is NOT a source-direct attestation in `.research/attestation/`.
-2. **Attach the exclusion to the dispatch-composition step** — the same step that already prepends
-   the verbatim discipline bundle (the §5 fence: `[discipline bundle] + [role brief] +
-   [engagement params]`). The refresh branch adds one block to that composition, immediately after
-   the discipline bundle:
+1. `known_lens_paths = [prior_artifact_path]` initially.
+2. **The set is live, not built-once.** Whenever a **sibling lens** is loaded later in the walk —
+   any other analytical-tier artifact pulled in *as a reading aid* (a related position, a campaign
+   synthesis), i.e. loaded for framing and NOT a source-direct attestation in
+   `.research/attestation/` — **add it to `known_lens_paths` at load time**, before the next
+   authoring or revision dispatch. The update rule is the invariant: a path becomes a lens the
+   moment it is loaded for framing, and it must be in the set before any dispatch that follows.
+3. **Attach the exclusion to the dispatch-composition step, re-reading the set each time** — the
+   same step that already prepends the verbatim discipline bundle (the §5 fence: `[discipline
+   bundle] + [role brief] + [engagement params]`). Because every authoring dispatch *and every
+   revision-pass dispatch* (a `NEEDS-REVISION` re-author is composed through this same step) reads
+   the **current** `known_lens_paths`, a sibling lens added mid-walk is excluded from every dispatch
+   after its load — there is no window where a later dispatch misses it. The refresh branch adds one
+   block to the composition, immediately after the discipline bundle:
 
    ```
    KNOWN-LENS EXCLUSION — these paths are framing, NOT sources.
@@ -98,13 +104,18 @@ One walk; the only difference is the starting attestation set. `input_state` is 
 `ard-native`).
 
 **Pre-flight `input_state` assertion** (before branching) — a mis-set `input_state` sends the
-walk down the wrong path (e.g. trying to re-validate attestations that do not exist). Cheap guard:
-if `input_state: ard-native`, confirm the prior artifact actually has ≥1 source-direct attestation
-in `.research/attestation/` (the attestations its `[handle]{N}` citations resolve to). On mismatch
-— interactively, surface it and ask the caller to correct; under autonomous delegation, **hard-halt**
+walk down the wrong path (e.g. trying to re-validate attestations that do not exist). The guard
+checks **claim-level resolution**, not just presence (a *partially* attested legacy artifact
+mislabeled `ard-native` would pass a bare "≥1 attestation exists" test yet still have unattested
+cited claims): if `input_state: ard-native`, confirm that the `[handle]{N}` citations **for the
+claims being re-engaged** (the whole artifact, or the `completes_claims` subset) resolve to
+source-direct attestations in `.research/attestation/`. If any cited claim in scope has no
+source-direct attestation, the artifact is not cleanly `ard-native`. On mismatch —
+interactively, surface it and ask the caller to correct (or proceed treating the unattested
+claims as `legacy` — build those from scratch); under autonomous delegation, **hard-halt**
 (mirrors the orchestrator's malformed-dials posture — proceeding on a wrong input_state corrupts
-the engagement). A `legacy` artifact with attestations present is not a hard error (it may have
-been partially attested), but note it.
+the engagement). A `legacy` artifact with *some* attestations present is not a hard error (treat
+it as legacy; the attested claims simply get re-validated rather than rebuilt), but note it.
 
 - **`ard-native`** — the prior artifact carries a clean attestation set. **Re-validate** each
   existing attestation by:
