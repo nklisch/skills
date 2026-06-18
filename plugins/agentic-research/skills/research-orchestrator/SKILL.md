@@ -42,8 +42,9 @@ you compose its prompt through **one mandatory step**:
 > - **engagement params** — the facet/seed/paths/rigor for this specific dispatch.
 
 On the **light path** (no fan-out) you author inline in your own context, with the discipline
-already present (you read it at engagement start; on Claude the `research-discipline` skill also
-auto-loads), so no separate inlining is needed. **Never author or dispatch authoring without the
+already present because **you read it at engagement start** (the `research-discipline` skill body —
+read it explicitly; do not assume it is auto-loaded, since skills are not guaranteed to auto-invoke).
+So no separate inlining is needed on the light path. **Never author or dispatch authoring without the
 discipline present** — that is the §5 fence.
 
 ## Reading the dials (ARD SPEC §8)
@@ -73,6 +74,8 @@ Activate the applicable subset of decision-points in this fixed order:
                            commissioned by a [research] work item? READ its research_dials + confirm
 dispatch-time-registration record the settled dials (commissioning item if present; else transcript / dispatch.md)
   → substrate-check        survey .research/ for overlapping prior work; surface the outcome
+                           HANDED a prior artifact? → REFRESH BRANCH (see §Refresh re-engagement):
+                           register refresh + supersedes-prior, load prior AS LENS, then resume at attest
   → decompose              emergent: draft ≥3 candidates + comparative assessment + self-flag
                            (scope_authority — set at kickoff — governs emergent-draft vs. honor-declared)
   → [CHECKPOINT A]         confirm the decomposition / framing (multi-path) (← turn)
@@ -95,6 +98,38 @@ dispatch-time-registration record the settled dials (commissioning item if prese
 
 For multi-specialist walks, `lint` fires against within-specialist briefs *before* cross
 synthesis, and `adversarial-read` *after* it (§10.1).
+
+## Refresh re-engagement (re-authoring a prior artifact)
+
+When the engagement is **handed a prior artifact** rather than seeded fresh — a `convert`/bootstrap
+import or a `native-refresh` enrichment — `substrate-check` routes into the **refresh branch**. The
+prior artifact is a **LENS, not substrate**: it frames *what to re-engage*, but is NEVER a
+`[handle]{N}` citation target (citing it launders its claims into apparent source-attestation — the
+lens-not-substrate guard in the discipline bundle). The branch:
+
+1. **Register** `refresh` + `temporal_contract: supersedes-prior` (existing enums — no new vocabulary).
+2. **Pre-flight lens check (the SOLE structural guard).** Build a `known_lens_paths` set on entering
+   the branch (the prior artifact + any sibling analytical-tier artifacts loaded as framing), and
+   attach a "NEVER cite these paths" exclusion to the **dispatch-composition step** — riding the same
+   §5 step that prepends the verbatim discipline bundle, so every authoring dispatch carries it. The
+   lint is **NOT** a backstop here: a handle to the prior (analytical-tier) artifact resolves
+   `intra-program-resolved`, which the lint treats as clean by design — so the pre-flight exclusion
+   is the only thing preventing a lens violation.
+3. **Attestation start-state branches on `input_state`** (caller-set, asserted pre-flight) —
+   `ard-native`: re-validate the prior's attestations (probe liveness → reuse unchanged / re-fetch
+   changed / gap+offgas dead) + extend with new acquisitions; `legacy`: build the chain from scratch
+   (no prior attestations exist).
+4. **Resume the normal walk** (attest → synthesize → lint → verify) over the **current** substrate at
+   the dialed rigor. The prior's old verdicts do not carry forward. Output is a superseding artifact
+   with a `supersedes` pointer; the prior is retained as the historical record.
+
+**Input contract** the front-halves call with: `{prior_artifact_path, input_state:
+ard-native|legacy, completes_claims?: [...], intended_output_kind?}`. `intended_output_kind` is
+optional/additive — the caller's confirmed destination shape for the uplifted artifact (absent ⇒
+discovered-shape default). `input_state` is set by the **caller** (convert knows
+`legacy`; native-refresh knows `ard-native`), never inferred. `completes_claims` is the acquisition
+manifest's `Completes:` join, scoping which held claims a landed acquisition re-engages. Full
+procedure: [`references/refresh-reengagement.md`](references/refresh-reengagement.md).
 
 ## Kickoff + checkpoints (conversational HITL)
 
@@ -218,6 +253,10 @@ Set the controls at dispatch via the nine-field registration shape in
 Registration informs the engagement; it is **not** carried into the artifacts' own frontmatter
 (artifacts stand on their own metadata).
 
+A **refresh re-engagement** (handed a prior artifact) registers `refresh` +
+`temporal_contract: supersedes-prior` and additionally records the prior artifact path +
+`input_state` (the refresh input contract above); see §Refresh re-engagement.
+
 ## Output paths (this deployment's `.research/` map)
 
 - Per-source attestation → `.research/attestation/<handle>.md` (always, before any synthesis prose).
@@ -257,6 +296,13 @@ gate on the verification stack — consolidate at synthesis-time regardless of t
 - **The anti-recall fence** (carried in the discipline bundle, ARD SPEC §4.1): an `enriching`
   candidate must point at a fetched source that names it — never training-recall (`AQ.3`). A
   `blocking` candidate is self-grounding (a fetch was attempted and failed).
+- **The offgas writes the queue; `refresh-scan.py` drains it.** The standing
+  `research-acquisition-queue` is append-only — `blocking` candidates accumulate as
+  acquisition-gated claims. The drain mechanism is the lint-shaped detector
+  `scripts/refresh-scan.py` (run it like `lint-citations.py`): it re-probes the queue + cited
+  sources, classifies (re-acquirable / stale / still-dead), and prints a batch worklist. It writes
+  nothing — the operator triages, and accepted items drive the refresh branch (above). See
+  `docs/HANDOFF.md` §Acquisition-queue drain loop.
 
 ## Work-coordination entry
 

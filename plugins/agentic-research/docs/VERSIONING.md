@@ -7,7 +7,7 @@ absorb an ARD upstream release. Two version axes run here, deliberately decouple
 
 | Axis | Where | Bumps when | Current |
 |---|---|---|---|
-| **Plugin SemVer** | `package.json` + the `.claude-plugin/` and `.codex-plugin/` manifests (lockstep) | *this plugin* changes — a skill, the `research-view` binary, a doc, the vendored surface | **0.4.0** |
+| **Plugin SemVer** | `package.json` + the `.claude-plugin/` and `.codex-plugin/` manifests (lockstep) | *this plugin* changes — a skill, the `research-view` binary, a doc, the vendored surface | **0.5.0** |
 | **Adopted ARD version** | [`ard.json`](../ard.json) → `adopts` | only when we re-sync to a new ARD release; it is *metadata*, never the plugin's version | **v0.6.0** |
 
 They are **decoupled**: the plugin evolves on its own cadence and bumps its own SemVer via

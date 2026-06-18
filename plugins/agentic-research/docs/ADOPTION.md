@@ -19,6 +19,15 @@ framework: we vendor ARD's reference surface and map it onto this repo's substra
   and the example's Claude wiring via the engagement-engine feature; non-Claude channels
   (Codex, Pi) take the kernel only.
 
+## Standing up the `.research/` substrate
+
+Adopting ARD here means having a conformant `.research/` substrate (the tier layout +
+`CONVENTIONS.md` + per-corpus INDEX). The **`convert`** skill is the automated path: it bootstraps
+that substrate when none exists, and — for a repo that already has research authored *outside* ARD
+— discovers it, routes raw sources to `reference/` and claim-bearing syntheses to a holding area,
+then hands each synthesis to the orchestrator's refresh branch for rigor-uplift. Run `convert`
+before authoring new engagements on a fresh adopter repo; it is preserve-only and operator-confirmed.
+
 ## Vendor-mode taxonomy
 
 Each kernel artifact carries a **vendor-mode** (from upstream `ard.json`):

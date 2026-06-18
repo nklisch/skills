@@ -29,9 +29,14 @@ Upstream framework by Kevoun: <https://code.s-nc.org/Kevoun/ARD>.
   discovers fan-out topology from the seed, and walks the ARD decision-graph at the dialed
   verification depth — from a one-agent inline brief to an N-specialist campaign. Dispatches
   the verification roles (specialist, adversarial-reader, evaluator) inline.
-- **`research-discipline`** — the auto-loaded anti-fabrication bundle (ARD `kernel/discipline.md`
+- **`research-discipline`** — the anti-fabrication bundle (ARD `kernel/discipline.md`
   vendored verbatim). The orchestrator inlines it into every authoring dispatch so the
-  discipline reaches sub-contexts (ARD SPEC §5).
+  discipline reaches sub-contexts (ARD SPEC §5); on the light path it is read explicitly.
+- **`convert`** — the front half of adoption: discover a repo's pre-existing (non-ARD) research,
+  bootstrap the `.research/` substrate, route raw sources to `reference/` and claim-bearing
+  syntheses to a holding area, then hand each synthesis to the orchestrator's refresh branch for
+  per-artifact rigor-uplift. Auto-detects bootstrap (no substrate) vs sync (validate existing);
+  preserve-only, operator-confirmed.
 
 See [docs/ADOPTION.md](docs/ADOPTION.md) for how the engagement engine maps onto the ARD SPEC.
 
@@ -109,3 +114,24 @@ writes the version stamp that CI bakes into the binary).
 Until the binary-refresh CI run lands, the installer's version check will
 intentionally fail on supported platforms. Do not cut a release before the
 binary-refresh commit appears.
+
+## Scripts
+
+Zero-dependency Python checks over the `.research/` substrate (run like any lint — no Claude
+dependency, cross-harness, testable):
+
+- **`scripts/lint-citations.py`** — the citation-chain integrity lint (every `[handle]{N}` resolves
+  to an attestation; the anti-fabrication pattern catalog; URL liveness).
+- **`scripts/refresh-scan.py`** — the **acquisition-queue drain + source-liveness detector**.
+  Re-probes the standing `research-acquisition-queue` and the cited sources of ARD-native artifacts,
+  classifies (`now-re-acquirable` / `enriching-available` / `stale-dead` / `queue-still-dead` /
+  `needs-artifact-binding` / `unprobeable-source`), and prints a batch worklist. **Writes nothing** —
+  the operator triages and
+  accepted items drive the orchestrator's refresh branch. The operator does not have to *know* a
+  source became re-acquirable or went dead: the detector surfaces it. **Scope today: liveness, not
+  content drift** — the probe detects a source that is now reachable or gone (HTTP liveness), but
+  does **not** yet detect a *live source whose content changed* since its attestation (`stale-drifted`)
+  — that needs an attestation-stored content snapshot, a parked enhancement; a reachable source is
+  reported `live-unverifiable`, never a fabricated drift. See `docs/HANDOFF.md` §Acquisition-queue
+  drain loop. Reuses `lint-citations.py`'s SSRF-hardened probe.
+- **`scripts/ard-sync.py`** — the ARD upstream-version drift check (see `docs/VERSIONING.md`).

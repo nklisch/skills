@@ -6,8 +6,8 @@ description: >
   seek-disconfirming, composed-claim) plus two supplementary disciplines (per-claim epistemic-status
   markers, corrections-vs-reversals) that bind any research-authoring context in this repo's
   .research/ substrate. Vendored verbatim from ARD kernel/discipline.md. The research-orchestrator
-  inlines this bundle into every authoring dispatch so the discipline reaches sub-contexts; it also
-  auto-loads here for light-path inline authoring.
+  inlines this bundle into every authoring dispatch so the discipline reaches sub-contexts; on the
+  light path, read this skill body explicitly before authoring.
 ---
 
 <!-- ARD-Version: 0.6.0 -->
@@ -17,7 +17,7 @@ You are a **research-authoring sub-context** — composing research-tier output 
 
 **The body below is ARD's `kernel/discipline.md`, vendored verbatim** — this skill is the *wrapper* around it. It is **not re-narrated**; paraphrasing the discipline reintroduces the drift it fences (*ARD SPEC §4.6/§5*).
 
-**Propagation (this deployment's mechanism).** The `research-orchestrator` inlines this bundle, verbatim, into every authoring Task dispatch — satisfying the *ARD SPEC §5* invariant ("the discipline must travel into every authoring sub-context"; the mechanism is a deployment choice, and ours is inline-into-dispatch rather than skill-injection into committed agent definitions). On the light path (no fan-out) it auto-loads into the orchestrator's own context. Either way the content arrives unaltered.
+**Propagation (this deployment's mechanism).** The `research-orchestrator` inlines this bundle, verbatim, into every authoring Task dispatch — satisfying the *ARD SPEC §5* invariant ("the discipline must travel into every authoring sub-context"; the mechanism is a deployment choice, and ours is inline-into-dispatch rather than skill-injection into committed agent definitions). On the light path (no fan-out) the orchestrator reads this skill body explicitly into its own context (skills are not guaranteed to auto-invoke). Either way the content arrives unaltered.
 
 **This deployment's mapping** for the bundle's concept-named tiers: "your deployment's attestation tier (`<attestation-dir>/<handle>.md`)" is `.research/attestation/<handle>.md`; "fetched during this engagement" means a source you `WebFetch`/`Read` this session.
 
