@@ -3,8 +3,8 @@ id: feature-agentic-research-convert-bootstrap
 kind: feature
 stage: drafting
 tags: [skill, tooling]
-parent: null
-depends_on: []
+parent: epic-agentic-research-reengagement
+depends_on: [feature-agentic-research-refresh-entry]
 release_binding: null
 gate_origin: null
 created: 2026-06-17
@@ -28,16 +28,21 @@ missing front half. Modeled on **agile-workflow's `convert`** discipline (borrow
 approach, not the code).
 
 ## Strategic decisions
-- **Parent**: top-level feature, `parent: null` — the named `epic-agentic-research`
-  adoption epic is `done` (all 7 children complete, at `stage: review`, heading to
-  release). This is post-epic follow-on work that builds on the now-complete plugin;
-  scoping it under the closed epic would re-open and delay a shipping epic.
-- **Dependency**: none. ARD v0.6.0 is already vendored in the plugin
-  (`plugins/agentic-research/ard.json` → `adopts.version 0.6.0`, `release_tag v0.6.0`),
-  landed on main via PR #20, so the rigor-uplift hand-off target exists. The discovery +
-  bootstrap half was always independent of the version bump; with v0.6.0 vendored the
-  per-artifact uplift hand-off is also unblocked. The whole feature can be designed and
-  built now.
+- **Parent**: `epic-agentic-research-reengagement` (re-parented during the design pass). This
+  is the **legacy front-half** of the re-engagement epic — it locates research authored
+  *outside* ARD and scaffolds the substrate to hold it. It was first scoped top-level, but
+  grounding revealed its rigor-uplift hand-off depends on a re-authoring doorway that does not
+  exist in the plugin yet; that doorway (`feature-agentic-research-refresh-entry`) is shared
+  with the ARD-native refresh lineage, so convert is one consumer of a shared primitive, not a
+  standalone feature. (It is **not** a child of the now-done `epic-agentic-research` adoption
+  epic — that epic shipped; this is new post-adoption capability.)
+- **Dependency**: `depends_on: [feature-agentic-research-refresh-entry]` — convert scaffolds +
+  maps + flags `inferred-from-legacy` artifacts, then hands each to the refresh-entry for
+  per-artifact rigor-uplift. The discovery + scaffold + map work is independent and can be
+  designed in parallel, but the end-to-end hand-off needs the doorway. ARD v0.6.0 is already
+  vendored (`plugins/agentic-research/ard.json` → `adopts.version 0.6.0`, landed via PR #20),
+  so the refresh *vocabulary + discipline* exist; what the refresh-entry adds is the
+  orchestration *walk* for them.
 - **`inferred-from-legacy` is a plugin-local import marker, NOT an ARD provenance value**
   (resolves the third open design question). ARD's `provenance_values` enum describes the
   *authoring relationship to sources* at substrate-entry time (`source-direct`,
@@ -93,33 +98,45 @@ on **agile-workflow's `convert`** discipline (borrow the approach, not the code)
 4. **Content-integrity gate before any destructive op** — block-level preservation manifest so
    nothing is dropped on import; preserve-only default.
 5. **Reference-integrity on move** — rewrite inbound refs or leave redirect shims.
-6. **Report** — emit a migration report; hand each mapped artifact to **rigor-uplift** for
-   per-artifact citation/attestation parity, with `lint-citations.py` as the conformance check.
+6. **Report** — emit a migration report; hand each mapped `inferred-from-legacy` artifact to
+   the **refresh-entry** (`feature-agentic-research-refresh-entry`) for per-artifact
+   citation/attestation parity, with `lint-citations.py` as the conformance check.
 
-Net effect: `convert` (locate + scaffold + map) → `rigor-uplift` per artifact (re-author to ARD
-rigor) → lint (verify). ARD 0.6.0 supplies the middle step; this feature is the missing front half.
+Net effect: `convert` (locate + scaffold + map) → refresh-entry per artifact (re-author to ARD
+rigor) → lint (verify). The refresh *vocabulary + discipline* are vendored (ARD v0.6.0); the
+refresh-entry sibling supplies the orchestration walk; this feature is the legacy front half.
+
+## Design decisions
+
+- **One skill, bootstrap/sync auto-detect** (mirrors agile-workflow `convert`). Plain
+  `convert` inspects repo state and auto-routes: no `.research/` → bootstrap (scaffold
+  CONVENTIONS + path map + per-corpus INDEX); present → sync/validate. Single entry, internally
+  phased. Chosen over split discover+scaffold for fewer surfaces and fidelity to the named
+  reference model.
+- **Operator-confirmed tier mapping, preserve-only default.** Heuristics *propose* a
+  per-artifact tier mapping; the operator confirms/edits in one batched question before any
+  write. Content-integrity gate (block-level preservation manifest) before any destructive op;
+  reference-integrity on move. Chosen over auto-classify-high-confidence because the `.research/`
+  substrate is durable and misclassification there is costly — the safe posture matches
+  agile-workflow convert.
 
 ## Linkage & sequencing
 
-- Lineage epic: `epic-agentic-research` (the ARD-as-plugin adoption — now `done`). This feature
-  is post-epic follow-on, scoped top-level rather than re-opening it.
-- The v0.6.0 sync that vendors the rigor-uplift recipe is already on main (the *adopts*-bump
-  landed via PR #20; `epic-agentic-research-ard-sync` shipped the repeatable-sync tooling). With
-  v0.6.0 vendored, the per-artifact uplift hand-off target exists — no remaining dependency.
+- Parent epic: `epic-agentic-research-reengagement`. This feature is the **legacy front-half**;
+  it depends on the shared `feature-agentic-research-refresh-entry` doorway and is a sibling of
+  `feature-agentic-research-native-refresh` (the ARD-native front-half).
+- Not under the now-done `epic-agentic-research` adoption epic — that epic shipped; this is new
+  post-adoption capability. ARD v0.6.0 is vendored (PR #20), so the refresh vocabulary/discipline
+  exist; the refresh-entry sibling adds the orchestration walk convert hands off to.
 - Reference model: `plugins/agile-workflow/skills/convert/SKILL.md` (discovery sweep →
   classify → content-integrity gate → route & import → reference-integrity → preserve-only).
 
 ## Open questions for design
 
-(Feature-design-internal — resolve in the design pass, not at scope time.)
-
-- One skill with bootstrap/sync auto-detect (the agile-workflow pattern), or split discovery
-  from scaffold?
-- How aggressive is auto-classification vs. operator-confirmed per-artifact tier assignment?
-
-(The former third question — whether `inferred-from-legacy` needs an ARD catalogs/schema
-addition — is **resolved**: it's a plugin-local import marker, not an ARD value. See
-§Strategic decisions. The only residual is the field-choice nicety noted there.)
+(The two original open questions are now resolved — see §Design decisions. The former third
+question, whether `inferred-from-legacy` needs an ARD catalogs/schema addition, is also resolved:
+it's a plugin-local import marker, not an ARD value — see §Strategic decisions. The only residual
+is the field-choice nicety: overload `provenance:` vs. a separate `import_origin:`-style key.)
 
 ## Verification notes (scope-time, against vendored ARD v0.6.0)
 
