@@ -109,6 +109,28 @@ The two scope-time questions are resolved: staleness is the **second detector in
 separable); the trigger is a **lint-shaped check script** (not an operator-invoked skill / not an
 orchestrator walk step) — mechanical detection, operator-confirmed mutation.
 
+## PR #22 review fixes (2026-06-18)
+
+The opened-PR local reviewer (nklisch) requested changes — two real logic gaps in
+`refresh-scan.py` that survived the passing test suite, both verified and fixed:
+
+- **Fenced / frontmatter citations became false targets.** `build_handle_index` scanned raw
+  markdown with `CITATION_RE.findall`, so a `[handle]{N}` inside a code fence or frontmatter
+  counted as a real citation (the reviewer reproduced it). Fix: a new masked `citations_in()`
+  reuses the lint's `_frontmatter_line_count` + `_code_block_mask` to skip frontmatter + fenced
+  blocks. **Refinement the case exposed:** a dead/changed attestation that NO conformant artifact
+  cites (empty targets) is now `uncited-dead`/`uncited-changed` (informational) — uninteresting
+  substrate, never a gap-emit/refresh. Regression test added.
+- **SSRF-refused queue URL was droppable.** A queue source whose URL the SSRF fence refuses was
+  classed `queue-still-dead` (a drop candidate) even though the probe never established death.
+  Fix: only a clean-gone `dead` (404/410) → `queue-still-dead`; `refused`/`probe-failed` →
+  `unprobeable-source` (hygiene, not droppable) — matching the attestation path's honesty.
+  Regression test added.
+
+Both are the same theme as the prior fixes: never assert "dead" without a clean signal, and never
+name a target that isn't a real deployment. Tests now **6/6**; no regressions (conformance 56/56,
+lint 0); live smoke still exit 0.
+
 ## Review (2026-06-18, cross-model GPT-5.5 via peeragent)
 
 **Verdict**: Request changes → **resolved**. Deep-lane cross-model implementation review (Codex/

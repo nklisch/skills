@@ -71,6 +71,23 @@ CITATION_RE = _LINT.CITATION_RE                  # re for [handle]{N}
 parse_frontmatter = _LINT.parse_frontmatter      # text -> {key: value}
 url_allowed = _LINT._url_allowed                 # scheme + public-host gate (the SSRF fence)
 _URL_OPENER = _LINT._URL_OPENER                  # the SSRF-redirect-fenced opener
+_frontmatter_line_count = _LINT._frontmatter_line_count   # leading lines occupied by YAML frontmatter
+_code_block_mask = _LINT._code_block_mask        # per-line bool: inside a fenced code block
+
+
+def citations_in(text):
+    """Yield the canonical `[handle]{N}` handles in `text`, EXCLUDING any inside the YAML
+    frontmatter block or a fenced code block. A handle that appears only in a code example or
+    in frontmatter is not a real deployment — counting it would name a false refresh target.
+    Mirrors the lint's frontmatter + code-fence masking (reuses its helpers)."""
+    lines = text.splitlines()
+    fm_skip = _frontmatter_line_count(lines)
+    mask = _code_block_mask(lines)
+    for i, line in enumerate(lines):
+        if i < fm_skip or mask[i]:
+            continue
+        for handle, _n in CITATION_RE.findall(line):
+            yield handle
 
 
 # --- a status-precise liveness probe (reuses the lint's SSRF fence) ---------
@@ -164,7 +181,7 @@ def build_handle_index(analysis_dir):
                     text = fh.read()
             except OSError:
                 continue
-            for handle, _n in CITATION_RE.findall(text):
+            for handle in citations_in(text):     # masked: skips frontmatter + code fences
                 index.setdefault(handle, set()).add(path)
     return {h: sorted(files) for h, files in index.items()}
 
@@ -250,7 +267,10 @@ REFRESH_CLASSES = {"now-re-acquirable", "stale-drifted", "enriching-available"}
 # Hygiene classes need operator attention but aren't refreshes or drops.
 HYGIENE_CLASSES = {"needs-artifact-binding", "unprobeable-source"}
 ACTIONABLE_CLASSES = REFRESH_CLASSES | {"stale-dead", "queue-still-dead"} | HYGIENE_CLASSES
-INFORMATIONAL_CLASSES = {"unchanged", "live-unverifiable", "probe-failed"}
+# Informational = no action. `uncited-dead`/`uncited-changed`: a dead/changed source NO conformant
+# artifact cites — uninteresting substrate, never a refresh candidate or a gap.
+INFORMATIONAL_CLASSES = {"unchanged", "live-unverifiable", "probe-failed",
+                         "uncited-dead", "uncited-changed"}
 
 
 def _handle_for_url(url, attestations):
@@ -287,9 +307,14 @@ def detect_acquisition_flowback(queue, handle_index, attestations, probe):
                     out.append({"class": "needs-artifact-binding", "source": e["name"],
                                 "handle": handle, "targets": [], "completes": e["completes"],
                                 "note": "source fetches but no resolvable handle -> cannot name target"})
-            elif result in ("dead", "probe-failed", "refused"):
+            elif result == "dead":
+                # Only a clean-gone signal (404/410) makes a queue source a drop candidate.
                 out.append({"class": "queue-still-dead", "source": e["name"], "handle": handle,
                             "targets": [], "completes": e["completes"], "probe": result})
+            else:   # refused (SSRF-fenced) / probe-failed -> NOT established dead, so NOT droppable.
+                out.append({"class": "unprobeable-source", "source": e["name"], "handle": handle,
+                            "targets": [], "completes": e["completes"], "probe": result,
+                            "note": f"probe did not establish death ({result}) -> manual triage, not a drop"})
         elif e["urgency"] == "enriching":
             if result in ("alive-unverifiable", "alive-changed", "alive-unchanged"):
                 if handle and targets:
@@ -331,6 +356,13 @@ def detect_staleness(attestations, handle_index, probe, ttl_days, today):
             cls = "live-unverifiable"
         else:
             cls = "probe-failed"
+        # An attestation NO conformant artifact cites has no downstream claim to re-ground — a
+        # dead/changed source with no target is uninteresting substrate, not an actionable refresh.
+        # (This is also what makes the fenced/frontmatter-citation fix complete: a handle that
+        # resolves to zero REAL citations leaves the attestation with no target, so it never
+        # surfaces as gap-emit/stale-drifted.)
+        if cls in ("stale-dead", "stale-drifted") and not targets:
+            cls = "uncited-dead" if cls == "stale-dead" else "uncited-changed"
         entry = {"class": cls, "attestation": path, "handle": handle, "targets": targets,
                  "source_url": url}
         if cls == "stale-dead":

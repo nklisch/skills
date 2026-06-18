@@ -193,6 +193,67 @@ def test_bad_research_dir_exit_2():
     print("test_bad_research_dir_exit_2: PASS")
 
 
+def test_fenced_and_frontmatter_citations_are_not_targets():
+    """Regression (PR #22 review): a `[handle]{N}` that appears ONLY inside a fenced code
+    block or YAML frontmatter is not a real citation — it must not become a refresh target."""
+    with tempfile.TemporaryDirectory() as tmp:
+        research = os.path.join(tmp, ".research")
+        att = os.path.join(research, "attestation")
+        ana = os.path.join(research, "analysis")
+        # dead source whose handle appears ONLY in a code fence + in frontmatter of a doc.
+        write(os.path.join(att, "fake.md"), attestation("fake", U_DEAD))
+        fenced = ("---\n"
+                  "example_handle: fake\n"          # frontmatter mention of the handle TEXT
+                  "---\n\n"
+                  "# Doc\n\n"
+                  "Here is the wire-form, in a code example:\n\n"
+                  "```\n"
+                  "A claim [fake]{1} grounded.\n"   # fenced — NOT a real citation
+                  "```\n\n"
+                  "Prose with no real citation.\n")
+        write(os.path.join(ana, "briefs", "fenced.md"), fenced)
+        queue = os.path.join(tmp, "queue.md")
+        write(queue, "")
+        fixture = os.path.join(tmp, "probe.json")
+        write(fixture, json.dumps({U_DEAD: "dead"}))
+
+        code, out, err = run(research, queue, fixture)
+        assert err == "", err
+        report = json.loads(out)
+        # the dead source is cited only inside a fence -> NO real target -> nothing actionable
+        gap_handles = {c.get("handle") for c in report["gap_emit"]}
+        assert "fake" not in gap_handles, \
+            f"a fenced/frontmatter-only citation became a refresh target: {report['gap_emit']}"
+        assert report["actionable_count"] == 0 and code == 0, \
+            f"fenced-only citation should yield nothing actionable, got {out}"
+        print("test_fenced_and_frontmatter_citations_are_not_targets: PASS")
+
+
+def test_ssrf_refused_queue_url_is_not_droppable():
+    """Regression (PR #22 review): a queue source whose URL the SSRF fence REFUSES was never
+    established dead — it must go to hygiene (unprobeable-source), NOT queue-drain (droppable)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        research = os.path.join(tmp, ".research")
+        os.makedirs(os.path.join(research, "attestation"))
+        os.makedirs(os.path.join(research, "analysis"))
+        queue = os.path.join(tmp, "queue.md")
+        # a blocking queue source on a reserved IP (TEST-NET-3) -> SSRF fence refuses it
+        write(queue, queue_entry("Refused source", "blocking", U_SSRF, handle="refused"))
+        fixture = os.path.join(tmp, "probe.json")
+        write(fixture, json.dumps({}))   # U_SSRF never reaches the fixture (fence refuses first)
+
+        code, out, err = run(research, queue, fixture)
+        assert err == "", err
+        report = json.loads(out)
+        drain = {c["source"] for c in report["queue_drain"]}
+        hygiene = {c["source"] for c in report["hygiene"]}
+        assert "Refused source" not in drain, \
+            f"an SSRF-refused queue URL must NOT be a drop candidate: {report['queue_drain']}"
+        assert "Refused source" in hygiene, \
+            f"an SSRF-refused queue URL should be hygiene/unprobeable: {report['hygiene']}"
+        print("test_ssrf_refused_queue_url_is_not_droppable: PASS")
+
+
 def test_probe_does_not_fabricate_dead_on_head_rejection():
     """Regression: a live source that rejects HEAD (403/405 — Wikipedia, CDNs) must read
     `live-unverifiable`, NOT `dead`. A fabricated `dead` would fire a spurious gap-emit
@@ -241,4 +302,6 @@ if __name__ == "__main__":
     test_clean_substrate_exit_0()
     test_bad_research_dir_exit_2()
     test_probe_does_not_fabricate_dead_on_head_rejection()
+    test_fenced_and_frontmatter_citations_are_not_targets()
+    test_ssrf_refused_queue_url_is_not_droppable()
     print("ALL PASS")
