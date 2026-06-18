@@ -38,6 +38,21 @@ approach, not the code).
   bootstrap half was always independent of the version bump; with v0.6.0 vendored the
   per-artifact uplift hand-off is also unblocked. The whole feature can be designed and
   built now.
+- **`inferred-from-legacy` is a plugin-local import marker, NOT an ARD provenance value**
+  (resolves the third open design question). ARD's `provenance_values` enum describes the
+  *authoring relationship to sources* at substrate-entry time (`source-direct`,
+  `agent-authored-from-raw`, `agent-synthesis`, `generated-listing`, `hybrid-curated`).
+  Pre-adoption provenance — *where faulty research came from before convert ran* — is
+  migration metadata, below ARD's line: ARD's discipline begins at the substrate boundary
+  and is agnostic about an artifact's pre-adoption history. The marker is also **transient
+  by design**: the moment `convert` hands an artifact to rigor-uplift, the artifact is
+  re-authored and earns a real `provenance_values` member, dissolving the import marker. So
+  it never becomes a durable taxonomy member and does not belong in the canonical catalog.
+  Consequence: **no ARD bump, no re-vendor, no dual-pin move** — the marker is `convert`-skill
+  frontmatter. Lint-compatible as-is: `lint-citations.py` presence-checks `provenance` but
+  does **not** enum-gate its value (it only special-cases the literal `source-direct`), so a
+  plugin-local value passes. Open *nicety* for design: overload the `provenance:` field vs. a
+  separate `import_origin:`-style key — a field-choice detail, not a framework change.
 
 ## The gap
 
@@ -101,8 +116,10 @@ rigor) → lint (verify). ARD 0.6.0 supplies the middle step; this feature is th
 - One skill with bootstrap/sync auto-detect (the agile-workflow pattern), or split discovery
   from scaffold?
 - How aggressive is auto-classification vs. operator-confirmed per-artifact tier assignment?
-- Does the migrated-attestation `inferred-from-legacy` provenance value need an ARD
-  catalogs/schema addition, or is it a plugin-local frontmatter convention?
+
+(The former third question — whether `inferred-from-legacy` needs an ARD catalogs/schema
+addition — is **resolved**: it's a plugin-local import marker, not an ARD value. See
+§Strategic decisions. The only residual is the field-choice nicety noted there.)
 
 ## Verification notes (scope-time, against vendored ARD v0.6.0)
 
@@ -122,6 +139,9 @@ underlying concepts are corroborated by the vendored data:
   concepts appear in `catalogs.json` + `templates/dispatch.md`.
 - **`inferred-from-legacy` does NOT exist in the vendored `provenance_values` enum.** The five
   legal values are `source-direct`, `agent-authored-from-raw`, `agent-synthesis`,
-  `generated-listing`, `hybrid-curated`. So the third open question's proposed provenance flag
-  is confirmed **net-new** — it requires either an upstream ARD catalogs/schema addition or a
-  plugin-local frontmatter convention. The design pass decides which; the value is not legal today.
+  `generated-listing`, `hybrid-curated` — all describing authoring relationship at substrate
+  entry. The proposed marker is **net-new**, and the call is **settled as plugin-local** (see
+  §Strategic decisions): ARD is agnostic about pre-adoption provenance, the marker is transient
+  (rigor-uplift overwrites it with a real value), and `lint-citations.py` presence-checks but
+  does not enum-gate `provenance` (only the literal `source-direct` is special-cased, lint
+  lines 348/427), so a plugin-local value passes without an ARD change.
