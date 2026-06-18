@@ -61,6 +61,19 @@ def classes(report, key):
     return {c.get("class") for c in report.get(key, [])}
 
 
+# Offline-safe URLs: public IP LITERALS resolve via inet_pton (no DNS network call), so the
+# SSRF fence (_host_is_public -> getaddrinfo) still runs and passes without a resolver. A
+# reserved TEST-NET-3 literal (203.0.113.x) is refused by the fence (proves SSRF offline).
+U_LIVE = "http://1.1.1.1/live"
+U_DEAD = "http://1.1.1.1/dead"
+U_REACQ = "http://1.1.1.1/reacq"
+U_ORPHAN = "http://1.1.1.1/orphan"
+U_STILLDEAD = "http://1.1.1.1/stilldead"
+U_ENRICH = "http://1.1.1.1/enrich"
+U_DRIFT = "http://1.1.1.1/drift"
+U_SSRF = "http://203.0.113.5/ssrf"   # TEST-NET-3 (reserved) -> fence refuses, no DNS
+
+
 def test_all():
     with tempfile.TemporaryDirectory() as tmp:
         research = os.path.join(tmp, ".research")
@@ -68,74 +81,83 @@ def test_all():
         ana = os.path.join(research, "analysis")
 
         # --- cited attestations + the artifacts that cite their handles ---
-        write(os.path.join(att, "live-src.md"), attestation("live-src", "https://example.com/live"))
-        write(os.path.join(att, "dead-src.md"), attestation("dead-src", "https://example.com/dead"))
-        write(os.path.join(att, "ssrf-src.md"), attestation("ssrf-src", "file:///etc/passwd"))
-        write(os.path.join(ana, "briefs", "b1.md"), analysis_citing("live-src"))
-        write(os.path.join(ana, "briefs", "b2.md"), analysis_citing("dead-src"))
-        write(os.path.join(ana, "briefs", "b3.md"), analysis_citing("ssrf-src"))
-        # the now-re-acquirable blocking source is grounded by a handle cited in b4
-        write(os.path.join(att, "reacq.md"), attestation("reacq", "https://example.com/reacq"))
-        write(os.path.join(ana, "briefs", "b4.md"), analysis_citing("reacq"))
+        write(os.path.join(att, "live-src.md"), attestation("live-src", U_LIVE))
+        write(os.path.join(att, "dead-src.md"), attestation("dead-src", U_DEAD))
+        write(os.path.join(att, "drift-src.md"), attestation("drift-src", U_DRIFT))
+        write(os.path.join(att, "ssrf-src.md"), attestation("ssrf-src", U_SSRF))
+        write(os.path.join(att, "reacq.md"), attestation("reacq", U_REACQ))
+        write(os.path.join(att, "enrich.md"), attestation("enrich", U_ENRICH))
+        for h in ("live-src", "dead-src", "drift-src", "ssrf-src", "reacq", "enrich"):
+            write(os.path.join(ana, "briefs", f"b-{h}.md"), analysis_citing(h))
 
         # --- acquisition queue ---
         queue = os.path.join(tmp, "queue.md")
         write(queue,
-              queue_entry("Re-acquirable source", "blocking",
-                          "https://example.com/reacq", handle="reacq")
-              + queue_entry("Unbindable source", "blocking",
-                            "https://example.com/orphan")   # fetches but no handle/citation
-              + queue_entry("Still-dead source", "blocking",
-                            "https://example.com/stilldead", handle="stilldead"))
+              queue_entry("Re-acquirable source", "blocking", U_REACQ, handle="reacq")
+              + queue_entry("Unbindable source", "blocking", U_ORPHAN)  # fetches, no handle/citation
+              + queue_entry("Still-dead source", "blocking", U_STILLDEAD, handle="stilldead")
+              + queue_entry("Bibliographic source", "blocking",
+                            "Passman, Music Business, 11th ed.")        # no URL -> unprobeable
+              + queue_entry("Enriching source", "enriching", U_ENRICH, handle="enrich"))
 
         # --- deterministic probe fixture (offline) ---
         fixture = os.path.join(tmp, "probe.json")
         write(fixture, json.dumps({
-            "https://example.com/live": "alive-unverifiable",
-            "https://example.com/dead": "dead",
-            "https://example.com/reacq": "alive-unverifiable",
-            "https://example.com/orphan": "alive-unverifiable",
-            "https://example.com/stilldead": "dead",
-            # file:/// never reaches the fixture — the SSRF fence refuses it first
+            U_LIVE: "alive-unverifiable",
+            U_DEAD: "dead",
+            U_DRIFT: "alive-changed",
+            U_REACQ: "alive-unverifiable",
+            U_ORPHAN: "alive-unverifiable",
+            U_STILLDEAD: "dead",
+            U_ENRICH: "alive-unverifiable",
+            # U_SSRF never reaches the fixture — the SSRF fence refuses it first
         }))
 
         code, out, err = run(research, queue, fixture)
         assert err == "", f"unexpected stderr: {err}"
         report = json.loads(out)
-
-        # exit 1 — there are actionable candidates
         assert code == 1, f"expected exit 1, got {code}\n{out}"
 
-        # now-re-acquirable: blocking source fetches + handle resolves to b4
+        # now-re-acquirable: blocking source fetches + handle resolves to its citing brief
         refresh = classes(report, "refresh_candidates")
         assert "now-re-acquirable" in refresh, report["refresh_candidates"]
         reacq = [c for c in report["refresh_candidates"] if c["class"] == "now-re-acquirable"][0]
-        assert any("b4.md" in t for t in reacq["targets"]), reacq
+        assert any("b-reacq.md" in t for t in reacq["targets"]), reacq
 
-        # needs-artifact-binding: the orphan blocking source fetches but names no handle
-        binding = {c["source"] for c in report["needs_artifact_binding"]}
-        assert "Unbindable source" in binding, report["needs_artifact_binding"]
+        # enriching-available: an enriching source that fetches + resolves
+        assert "enriching-available" in refresh, report["refresh_candidates"]
 
-        # queue-still-dead -> queue-drain (NOT gap-emit)
-        drain = {c["source"] for c in report["queue_drain"]}
-        assert "Still-dead source" in drain, report["queue_drain"]
+        # stale-drifted: a cited source the probe reports changed
+        assert "stale-drifted" in refresh, report["refresh_candidates"]
+        drift = [c for c in report["refresh_candidates"] if c["class"] == "stale-drifted"][0]
+        assert drift["handle"] == "drift-src", drift
 
         # cited dead attestation -> stale-dead -> gap-emit (NOT a queue drop)
         gap = {c["handle"] for c in report["gap_emit"]}
         assert "dead-src" in gap, report["gap_emit"]
         assert all(c.get("action") == "gap-emit" for c in report["gap_emit"]), report["gap_emit"]
 
-        # live source with no change metadata -> live-unverifiable -> INFORMATIONAL, not refresh
+        # queue-still-dead -> queue-drain (a URL that probes dead)
+        drain = {c["source"] for c in report["queue_drain"]}
+        assert "Still-dead source" in drain, report["queue_drain"]
+
+        # hygiene: orphan (no handle) + bibliographic (no URL) -> hygiene, NOT queue-drain
+        hygiene = {c["source"] for c in report["hygiene"]}
+        hygiene_classes = {c["class"] for c in report["hygiene"]}
+        assert "Unbindable source" in hygiene, report["hygiene"]
+        assert "Bibliographic source" in hygiene, report["hygiene"]
+        assert "needs-artifact-binding" in hygiene_classes and "unprobeable-source" in hygiene_classes
+        assert "Bibliographic source" not in drain, "a bibliographic (no-URL) source must NOT be a drop candidate"
+
+        # informational: live-unverifiable, NOT a refresh candidate
         info = classes(report, "informational")
         assert "live-unverifiable" in info, report["informational"]
         assert "live-src" not in {c.get("handle") for c in report["refresh_candidates"]}, \
             "informational live source leaked into refresh candidates"
 
-        # SSRF: file:// source is refused by the fence -> probe-failed-class, never refresh/gap
-        all_handles_in_refresh = {c.get("handle") for c in report["refresh_candidates"]}
-        all_handles_in_gap = {c.get("handle") for c in report["gap_emit"]}
-        assert "ssrf-src" not in all_handles_in_refresh, "SSRF source became a refresh candidate"
-        assert "ssrf-src" not in all_handles_in_gap, "SSRF source treated as a real dead cited source"
+        # SSRF: a reserved-IP source is refused by the fence -> probe-failed informational, never refresh/gap
+        assert "ssrf-src" not in {c.get("handle") for c in report["refresh_candidates"]}, "SSRF -> refresh"
+        assert "ssrf-src" not in {c.get("handle") for c in report["gap_emit"]}, "SSRF -> real dead cited"
         ssrf = [c for c in report["informational"] if c.get("handle") == "ssrf-src"]
         assert ssrf and ssrf[0]["class"] == "probe-failed", \
             f"SSRF-refused source should be probe-failed informational, got {ssrf}"
@@ -148,13 +170,13 @@ def test_clean_substrate_exit_0():
         research = os.path.join(tmp, ".research")
         att = os.path.join(research, "attestation")
         ana = os.path.join(research, "analysis")
-        # a single live, unchanged-via-fixture source, no queue -> nothing actionable
-        write(os.path.join(att, "ok.md"), attestation("ok", "https://example.com/ok"))
+        # a single live source reported informational-only -> nothing actionable, exit 0
+        write(os.path.join(att, "ok.md"), attestation("ok", "http://1.1.1.1/ok"))
         write(os.path.join(ana, "briefs", "b.md"), analysis_citing("ok"))
         queue = os.path.join(tmp, "queue.md")
         write(queue, "")
         fixture = os.path.join(tmp, "probe.json")
-        write(fixture, json.dumps({"https://example.com/ok": "alive-unchanged"}))
+        write(fixture, json.dumps({"http://1.1.1.1/ok": "alive-unchanged"}))
 
         code, out, err = run(research, queue, fixture)
         assert err == "", err

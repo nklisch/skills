@@ -1,7 +1,7 @@
 ---
 id: feature-agentic-research-native-refresh
 kind: feature
-stage: review
+stage: done
 tags: [skill]
 parent: epic-agentic-research-reengagement
 depends_on: [feature-agentic-research-refresh-entry]
@@ -108,6 +108,41 @@ claims it completes by handing the affected ARD-native artifact to the refresh-e
 The two scope-time questions are resolved: staleness is the **second detector in this feature** (not
 separable); the trigger is a **lint-shaped check script** (not an operator-invoked skill / not an
 orchestrator walk step) — mechanical detection, operator-confirmed mutation.
+
+## Review (2026-06-18, cross-model GPT-5.5 via peeragent)
+
+**Verdict**: Request changes → **resolved**. Deep-lane cross-model implementation review (Codex/
+GPT-5.5 through peeragent), checking real code behavior. **3 Blockers + 3 Important** — all verified
+against the code and fixed. The clean checks it confirmed: the SSRF fence IS genuinely reused
+(`_url_allowed` + `_URL_OPENER`), the lint's `__main__` guard makes import-by-path safe, the script
+is genuinely write-free, and the exit policy keeps informational classes out of candidates.
+
+- **Blocker 1 (fixed + verified)** — `parse_frontmatter` (reused from the lint) exposes only a fixed
+  key set and **omits `fetched`**, so `--ttl-days` silently probed everything. Added a local
+  `_frontmatter_field` to read `fetched`; verified the TTL filter now actually discriminates
+  (2020+30d→stale; 2024-recent→not).
+- **Blocker 2 (fixed)** — a `blocking` queue entry with **no `source_url`** (a bibliographic source —
+  acquisitions.md permits `ingestible`/`primary-doc`/`counsel`) was classified `queue-still-dead` (a
+  drop candidate). Now → `unprobeable-source` (hygiene, manual triage), never a drop. New test
+  asserts a bibliographic source is NOT a drop candidate.
+- **Blocker 3 (fixed + PROVEN, the highest-value catch)** — the "offline" test was **not offline**:
+  `default_probe` runs the DNS-backed SSRF fence (`getaddrinfo`) before the fixture lookup, and the
+  test used `example.com`, so it needed real DNS. It passed in my env (DNS present) and **failed in
+  the reviewer's sandboxed env** (`AssertionError: []`) — a false-green only a different environment
+  could surface. Fix: the test uses **public IP-LITERAL URLs** (`1.1.1.1`) — the fence's `getaddrinfo`
+  resolves a literal via `inet_pton` with no DNS, so the fence still runs (proving it works) while
+  the test is genuinely offline. **Proven by running `test_all` under a monkeypatched no-DNS
+  `getaddrinfo`** (the reviewer's exact condition) — it passes. The SSRF-refusal scenario uses a
+  reserved TEST-NET-3 literal (`203.0.113.5`), also DNS-free.
+- **Important (all fixed)** — the test now asserts `enriching-available`, `stale-drifted` (via a
+  fixture `alive-changed`), and the informational classes; the DNS-gone-conservative tradeoff (a
+  dead domain reads `live-unverifiable`, not a fabricated `stale-dead`) is documented as honest-by-
+  design (better a missed detection than a fabricated death — surfaces next run).
+
+**Notes**: Cross-model review on real code earned its keep — Blocker 3 (the not-actually-offline
+test) was invisible in my environment and only surfaced because the reviewer's sandbox lacks DNS.
+Each blocker re-verified against the code before fixing. Tests 4/4 (incl. under simulated no-DNS);
+no regressions (conformance 56/56, lint 0, ard-sync 5/5). Advanced `review → done`.
 
 ## Implementation notes (2026-06-18)
 

@@ -37,9 +37,22 @@ import datetime
 import importlib.util
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
+
+
+def _frontmatter_field(text, key):
+    """Read a single frontmatter field by name (the reused lint parser exposes only a fixed
+    key set and omits some — e.g. `fetched` — so read those here). Returns None if absent."""
+    if not text.startswith("---"):
+        return None
+    end = text.find("\n---", 3)
+    if end == -1:
+        return None
+    m = re.search(rf"(?m)^{re.escape(key)}:\s*(.+?)\s*$", text[3:end])
+    return m.group(1).strip().strip("\"'") if m else None
 
 
 # --- import the lint's vetted helpers (single source of truth) -------------
@@ -167,9 +180,14 @@ def load_attestations(attestation_dir):
             path = os.path.join(root_dir, fname)
             try:
                 with open(path, encoding="utf-8") as fh:
-                    yield path, parse_frontmatter(fh.read())
+                    text = fh.read()
             except OSError:
                 continue
+            fm = parse_frontmatter(text)
+            # The reused lint parser only exposes a fixed key set and omits `fetched`; read it
+            # locally so the TTL pre-filter actually works (without it, --ttl-days probed all).
+            fm["fetched"] = _frontmatter_field(text, "fetched")
+            yield path, fm
 
 
 def _ttl_stale(fetched, ttl_days, today):
@@ -229,7 +247,9 @@ def parse_queue(queue_path):
 
 # --- the two detectors -----------------------------------------------------
 REFRESH_CLASSES = {"now-re-acquirable", "stale-drifted", "enriching-available"}
-ACTIONABLE_CLASSES = REFRESH_CLASSES | {"stale-dead", "queue-still-dead", "needs-artifact-binding"}
+# Hygiene classes need operator attention but aren't refreshes or drops.
+HYGIENE_CLASSES = {"needs-artifact-binding", "unprobeable-source"}
+ACTIONABLE_CLASSES = REFRESH_CLASSES | {"stale-dead", "queue-still-dead"} | HYGIENE_CLASSES
 INFORMATIONAL_CLASSES = {"unchanged", "live-unverifiable", "probe-failed"}
 
 
@@ -249,7 +269,15 @@ def detect_acquisition_flowback(queue, handle_index, attestations, probe):
         handle = e["handle"] or _handle_for_url(e["source_url"], att_list)
         targets = handle_index.get(handle, []) if handle else []
         probe_url = e["source_url"]
-        result = probe(probe_url, None) if probe_url else "probe-failed"
+        # A queue entry need not carry a URL: bibliographic sources (a book, a standard, a person
+        # — acquisitions.md `ingestible`/`primary-doc`/`counsel`) have no probe target. Such an
+        # entry is NOT "still dead" (a drop candidate) — it is unprobeable and routes to hygiene.
+        if not probe_url:
+            out.append({"class": "unprobeable-source", "source": e["name"], "handle": handle,
+                        "targets": [], "completes": e["completes"],
+                        "note": "no source_url to probe (bibliographic / offline source) -> manual triage"})
+            continue
+        result = probe(probe_url, None)
         if e["urgency"] == "blocking":
             if result in ("alive-unverifiable", "alive-changed", "alive-unchanged"):
                 if handle and targets:
@@ -317,14 +345,14 @@ def build_report(flowback, staleness):
     refresh = [c for c in candidates if c["class"] in REFRESH_CLASSES]
     gap_emit = [c for c in candidates if c["class"] == "stale-dead"]
     queue_drain = [c for c in candidates if c["class"] == "queue-still-dead"]
-    needs_binding = [c for c in candidates if c["class"] == "needs-artifact-binding"]
+    hygiene = [c for c in candidates if c["class"] in HYGIENE_CLASSES]
     informational = [c for c in candidates if c["class"] in INFORMATIONAL_CLASSES]
-    actionable = refresh + gap_emit + queue_drain + needs_binding
+    actionable = refresh + gap_emit + queue_drain + hygiene
     return {
         "refresh_candidates": refresh,
         "gap_emit": gap_emit,
         "queue_drain": queue_drain,
-        "needs_artifact_binding": needs_binding,
+        "hygiene": hygiene,
         "informational": informational,
         "actionable_count": len(actionable),
     }
@@ -354,9 +382,9 @@ def render_text(report):
     section("Queue-drain (standing queue source still dead -> operator may drop)",
             report["queue_drain"],
             lambda c: f"{c['source']} (probe: {c.get('probe')})")
-    section("Needs artifact binding (queue entry has no resolvable handle -> queue hygiene)",
-            report["needs_artifact_binding"],
-            lambda c: f"{c['source']} — {c.get('note', '')}")
+    section("Queue hygiene (no resolvable handle / no probe target -> manual triage)",
+            report["hygiene"],
+            lambda c: f"[{c['class']}] {c.get('source') or c.get('handle')} — {c.get('note', '')}")
 
     lines.append("## Next (operator-confirmed)")
     lines.append("Triage the batch. For each accepted REFRESH candidate, invoke the")
