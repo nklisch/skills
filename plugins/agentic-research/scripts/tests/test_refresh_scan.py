@@ -14,11 +14,14 @@ ever touches the network. Asserts every class and the load-bearing behaviours:
   - clean substrate                                   -> exit 0
 Zero dependencies; fixtures live only in the TempDir. Run with `python3`.
 """
+import datetime
 import json
 import os
 import subprocess
 import sys
 import tempfile
+
+_TODAY = datetime.date(2024, 1, 1)   # fixed "today" for deterministic TTL logic in unit-level tests
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOL = os.path.join(HERE, os.pardir, "refresh-scan.py")
@@ -282,6 +285,25 @@ def test_probe_does_not_fabricate_dead_on_head_rejection():
         def open(self, req, timeout=None):
             return _Resp()
 
+    # transport failures: NO HTTP response -> probe-failed (not reachable, not dead)
+    import socket
+
+    class _OpenerDNS:
+        def open(self, req, timeout=None):
+            raise urllib.error.URLError(socket.gaierror("name resolution failed"))
+
+    class _OpenerRefused:
+        def open(self, req, timeout=None):
+            raise urllib.error.URLError(ConnectionRefusedError("refused"))
+
+    class _OpenerTimeout:
+        def open(self, req, timeout=None):
+            raise socket.timeout("timed out")
+
+    class _Opener5xx:
+        def open(self, req, timeout=None):
+            raise urllib.error.HTTPError(req.full_url, 503, "Service Unavailable", {}, None)
+
     # Use a public IP LITERAL (no DNS) so the SSRF fence passes offline before the stubbed opener
     # runs — `example.com` needs a resolver and fails in DNS-restricted environments.
     pub = "http://1.1.1.1/x"
@@ -293,11 +315,78 @@ def test_probe_does_not_fabricate_dead_on_head_rejection():
         assert rs.probe_source(pub) == "dead", "404 must be dead"
         rs._URL_OPENER = _OpenerOK()
         assert rs.probe_source(pub) == "live-unverifiable", "200 is reachable"
+        rs._URL_OPENER = _Opener5xx()
+        assert rs.probe_source(pub) == "live-unverifiable", "5xx = server answered -> reachable, not transport-failed"
         # SSRF fence: a non-public URL is refused before any open()
         assert rs.probe_source("file:///etc/passwd") == "refused", "file:// must be refused"
+        # transport failures must be probe-failed — NEVER live-unverifiable (false reachability ->
+        # false now-re-acquirable) and NEVER dead (no clean-gone signal).
+        rs._URL_OPENER = _OpenerDNS()
+        assert rs.probe_source(pub) == "probe-failed", "DNS failure must be probe-failed, not reachable"
+        rs._URL_OPENER = _OpenerRefused()
+        assert rs.probe_source(pub) == "probe-failed", "connection refused must be probe-failed"
+        rs._URL_OPENER = _OpenerTimeout()
+        assert rs.probe_source(pub) == "probe-failed", "timeout must be probe-failed"
     finally:
         rs._URL_OPENER = orig
+
+    # The DNS-failure-at-the-FENCE path (url_allowed -> getaddrinfo fails BEFORE the opener):
+    # an unresolvable host must be `probe-failed` (transport), NOT `refused` (which is a deliberate
+    # SSRF *policy* rejection — bad scheme or a non-public host). Both probe_source and default_probe
+    # must agree. (No opener stub needed — this exercises the real resolver path on a .invalid host,
+    # which is guaranteed non-resolvable per RFC 6761, so it works offline.)
+    assert rs.probe_source("https://nope.invalid") == "probe-failed", "DNS-at-fence must be probe-failed"
+    assert rs.default_probe("https://nope.invalid", None) == "probe-failed", "default_probe must agree"
+    # a true SSRF policy rejection stays `refused` (reserved TEST-NET-3 + file://)
+    assert rs.probe_source("http://203.0.113.5/x") == "refused", "reserved IP is a policy refusal"
+    assert rs.probe_source("file:///etc/passwd") == "refused", "bad scheme is a policy refusal"
     print("test_probe_does_not_fabricate_dead_on_head_rejection: PASS")
+
+
+def test_transport_failure_does_not_promote_or_suppress():
+    """Regression (PR #22 review 4): a transport failure (DNS/refused/timeout) must NOT look
+    reachable. Otherwise a blocking queue source that can't be reached gets `now-re-acquirable`,
+    and a dead-domain cited source gets suppressed instead of surfacing. Drives the REAL probe
+    (not the fixture) via a stubbed opener that raises a transport error."""
+    import importlib.util
+    import socket
+    import urllib.error
+    spec = importlib.util.spec_from_file_location("refresh_scan", TOOL)
+    rs = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rs)
+
+    class _OpenerDNS:
+        def open(self, req, timeout=None):
+            raise urllib.error.URLError(socket.gaierror("name resolution failed"))
+
+    # a blocking queue source + a cited attestation, BOTH on an unreachable (DNS-failing) host
+    queue_entries = [{"name": "Unreachable blocking", "urgency": "blocking",
+                      "handle": "unreach", "source_url": "http://1.1.1.1/gone", "completes": "x"}]
+    attestations = [("/fake/att/unreach.md",
+                     {"source_handle": "unreach", "source_url": "http://1.1.1.1/gone",
+                      "fetched": "2020-01-01"})]
+    handle_index = {"unreach": ["/fake/analysis/b.md"]}
+
+    orig = rs._URL_OPENER
+    try:
+        rs._URL_OPENER = _OpenerDNS()
+        # flow-back: the unreachable blocking source must NOT be now-re-acquirable
+        flow = rs.detect_acquisition_flowback(queue_entries, handle_index, attestations, rs.default_probe)
+        classes = {c["class"] for c in flow}
+        assert "now-re-acquirable" not in classes, \
+            f"an unreachable blocking source must not be re-acquirable: {flow}"
+        assert "unprobeable-source" in classes, f"should be hygiene/unprobeable: {flow}"
+        # staleness: the unreachable cited source must be informational probe-failed, not a false
+        # `unchanged`/`live-unverifiable` that suppresses a possible death — and NOT a fabricated dead
+        stale = rs.detect_staleness(attestations, handle_index, rs.default_probe, None, _TODAY)
+        scls = {c["class"] for c in stale}
+        assert "probe-failed" in scls, f"unreachable cited source must be probe-failed: {stale}"
+        assert "stale-dead" not in scls, "must not fabricate dead from a transport failure"
+        assert "unchanged" not in scls and "live-unverifiable" not in scls, \
+            "a transport failure must not be reported as reachable"
+    finally:
+        rs._URL_OPENER = orig
+    print("test_transport_failure_does_not_promote_or_suppress: PASS")
 
 
 def test_precis_tier_is_indexed():
@@ -338,5 +427,6 @@ if __name__ == "__main__":
     test_probe_does_not_fabricate_dead_on_head_rejection()
     test_fenced_and_frontmatter_citations_are_not_targets()
     test_ssrf_refused_queue_url_is_not_droppable()
+    test_transport_failure_does_not_promote_or_suppress()
     test_precis_tier_is_indexed()
     print("ALL PASS")

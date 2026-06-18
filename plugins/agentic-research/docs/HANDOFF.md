@@ -224,9 +224,11 @@ it bounded:
    the operator does not have to *know* a source became re-acquirable or went dead). It re-probes the
    queue sources + the cited sources of ARD-native artifacts and classifies: `now-re-acquirable`
    (a `blocking` source that now fetches), `enriching-available` (an `enriching` source that now
-   fetches), `stale-dead` (a cited source that is gone), `queue-still-dead` (still unreachable),
-   `needs-artifact-binding` / `unprobeable-source` (a queue entry with no resolvable handle / no
-   probe target). It **writes nothing** — it prints a batch worklist. **Scope today is liveness, not content drift:** the probe detects reachable-vs-gone, but
+   fetches), `stale-dead` (a cited source that is **clean-gone** — 404/410), `queue-still-dead` (a
+   queue source that is **clean-gone**, droppable), `needs-artifact-binding` / `unprobeable-source`
+   (no resolvable handle / no probe target — *or* a source the probe could not reach: a DNS
+   failure / refused connection / SSRF-refused URL is `unprobeable`, never a drop). It **writes
+   nothing** — it prints a batch worklist. **Scope today is liveness, not content drift:** the probe detects reachable-vs-gone, but
    does not yet detect a *live source whose content changed* since its attestation (the `stale-drifted`
    class exists for that signal but is not wired to the live probe — it needs an attestation-stored
    content snapshot, a parked enhancement). A reachable source is reported `live-unverifiable`, never

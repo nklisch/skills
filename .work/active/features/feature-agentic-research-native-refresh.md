@@ -109,6 +109,48 @@ The two scope-time questions are resolved: staleness is the **second detector in
 separable); the trigger is a **lint-shaped check script** (not an operator-invoked skill / not an
 orchestrator walk step) — mechanical detection, operator-confirmed mutation.
 
+## PR #22 review round 4 (2026-06-18) — split reachability from transport failure (real bug)
+
+A genuine correctness bug (not docs): `probe_source` collapsed **every** non-404/410 outcome into
+`live-unverifiable` — including DNS failures, connection-refused, timeouts, and SSRF-refused
+redirect hops. Two opposite-direction harms:
+- a blocking queue source that **can't be reached** read as reachable → falsely `now-re-acquirable`;
+- a cited source whose **domain is dead** (DNS fails) read as `live-unverifiable` (informational)
+  → suppressed instead of surfacing.
+
+Fix: `probe_source` now keeps three states **distinct**, never collapsing reachability with
+transport failure:
+- **server answered** (200 / 3xx-followed / 403 / 405 / 5xx / any non-gone status) → `live-unverifiable`
+  (reachable);
+- **404/410** → `dead`;
+- **NO HTTP response** (DNS / connection-refused / timeout / SSRF-refused redirect) → `probe-failed`
+  (informational — not reachable, not provably dead; re-probed next run).
+The honesty floor now cuts both ways: a transport failure is never `dead` (no fabricated death) AND
+never `live-unverifiable` (no fabricated reachability). Through the detectors: a transport-failed
+blocking source → `unprobeable-source` (hygiene, not re-acquirable); a transport-failed attestation →
+`probe-failed` (informational, doesn't suppress a real death).
+
+Tests: extended `test_probe_does_not_fabricate_dead_on_head_rejection` with the transport cases
+(DNS/refused/timeout → `probe-failed`; 5xx → reachable) and added
+`test_transport_failure_does_not_promote_or_suppress` (the reviewer-requested regression — drives the
+real probe via a stubbed DNS-failing opener and asserts no false `now-re-acquirable` / no suppressed
+death). **8/8** (incl. no-DNS); conformance 56/56; py_compile OK.
+
+**Two pre-push adversarial peeragent passes caught two more siblings of this fix:**
+- A **DNS failure at the SSRF-fence stage** (`url_allowed` → `getaddrinfo` fails *before* the opener)
+  returned `refused`, not `probe-failed` — inconsistent with the new contract (two DNS-failure code
+  paths, two results). Fixed with `_fence_reject_reason()`, which distinguishes a DNS-resolution
+  failure (`probe-failed`) from a deliberate SSRF *policy* rejection (bad scheme / non-public host →
+  `refused`), applied at BOTH `probe_source` and `default_probe`. Regression assertions added
+  (`nope.invalid` → probe-failed at both entry points; reserved/private IP + `file://` → refused).
+  Also fixed the stale `DNS-gone → genuinely dead` comment and the return-comment nit.
+- **Doc drift**: `HANDOFF.md` still defined `queue-still-dead` as "still unreachable," but it now
+  means **clean-gone (404/410)**; `refused`/`probe-failed` route to `unprobeable-source`. Corrected.
+
+The two-pass discipline (peeragent before pushing, then again on the fix) caught what would have been
+two more PR-review rounds. The code fix was confirmed correct by the second pass (the `_fence_reject_reason`
+predicates match the lint fence exactly; both probe entry points agree on every boundary).
+
 ## PR #22 review round 3 (2026-06-18) — honest-scoping the drift claim
 
 One finding, and a fair one (honest-scoping, not a bug): **`stale-drifted` (real source-content

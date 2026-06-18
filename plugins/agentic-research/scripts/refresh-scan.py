@@ -45,12 +45,15 @@ The SSRF-fenced source probe and the citation/frontmatter parsing are imported f
 import argparse
 import datetime
 import importlib.util
+import ipaddress
 import json
 import os
 import re
+import socket
 import sys
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 
 
 def _frontmatter_field(text, key):
@@ -102,36 +105,75 @@ def citations_in(text):
 
 # --- a status-precise liveness probe (reuses the lint's SSRF fence) ---------
 # The lint's `url_alive` collapses every non-2xx/3xx into "not alive" — correct for its own
-# low-severity warn, but for THIS detector that would fabricate `dead` (-> gap-emit, which
-# marks a claim a gap + offgas) for a source that merely rejects HEAD. Many live servers
-# (Wikipedia, CDNs) return 403/405 to HEAD or block default user-agents. So we distinguish:
-#   clean-gone  (404 / 410 / DNS-gone / connection-refused) -> genuinely dead
-#   reachable-but-unverifiable (403 / 405 / timeout / other) -> live-unverifiable, NOT dead
-# Honesty floor: only a clean-gone signal is reported `dead`; everything ambiguous is
-# `live-unverifiable`, never a fabricated death.
+# low-severity warn, but for THIS detector that would fabricate `dead` for a source that merely
+# rejects HEAD (Wikipedia/CDNs 403/405 HEAD). So we keep FOUR states distinct and never collapse
+# reachability with transport failure (collapsing both promotes unreachable sources AND hides dead
+# ones):
+#   dead              — server answered with a clean-gone status (404 / 410).
+#   live-unverifiable — server ANSWERED (200 / 3xx-followed / 403 / 405 / 5xx / any non-gone status)
+#                       -> reachable; content-change undeterminable here, so never a refresh alone.
+#   probe-failed      — NO HTTP response AND not a deliberate SSRF policy rejection: a DNS-resolution
+#                       failure, connection-refused, timeout, or an SSRF-refused redirect hop. Not
+#                       reachable, not provably dead -> informational, re-probed next run.
+#   refused           — the URL was rejected by the SSRF *policy* (non-http(s) scheme, or a host that
+#                       resolves to a private/reserved/loopback IP). A deliberate fence decision, not
+#                       a transport failure.
+# Honesty floor: a transport failure is never `dead` (no fabricated death) and never
+# `live-unverifiable` (no fabricated reachability); a DNS failure is `probe-failed`, not `refused`.
 _DEAD_HTTP = {404, 410}
+
+
+def _fence_reject_reason(url):
+    """Why did the SSRF fence reject `url`? Distinguishes a deliberate POLICY rejection (bad scheme
+    or a host that resolves to a non-public IP) from a DNS-RESOLUTION failure (host won't resolve).
+    Returns 'refused' (policy) | 'probe-failed' (DNS failure) | None (the URL is actually allowed)."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        return "refused"                     # non-http(s) scheme — a policy rejection
+    host = parsed.hostname
+    if not host:
+        return "refused"
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return "probe-failed"                # host won't resolve — a transport failure, not policy
+    for *_, sockaddr in infos:
+        try:
+            ip = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            return "refused"
+        if (ip.is_loopback or ip.is_link_local or ip.is_private
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+            return "refused"                 # resolves to a non-public address — policy rejection
+    return None                              # allowed (defensive; caller already gated on url_allowed)
 
 
 def probe_source(url, timeout=5):
     """Return 'dead' | 'live-unverifiable' | 'refused' | 'probe-failed' for a public-http URL.
 
-    Never returns a change verdict (no snapshot/metadata plumbing here) — a reachable source is
-    `live-unverifiable`, which the caller treats as informational, never a refresh on its own."""
+    Four states, kept DISTINCT (see the module comment above). In particular a DNS-resolution
+    failure is `probe-failed` (a transport failure), NOT `refused` (which is a deliberate SSRF
+    policy rejection) — so the three-way split is consistent whether the failure surfaces at the
+    pre-request fence or at the opener."""
     if not url_allowed(url):
-        return "refused"
+        # Disambiguate the fence rejection: a DNS failure is a transport failure (probe-failed),
+        # a bad scheme / non-public host is a policy rejection (refused).
+        return _fence_reject_reason(url) or "refused"
     req = urllib.request.Request(url, method="HEAD")
     try:
         with _URL_OPENER.open(req, timeout=timeout) as resp:
             getattr(resp, "status", 200)
-            return "live-unverifiable"        # reachable; change-since-fetched undeterminable
+            return "live-unverifiable"        # server answered; change-since-fetched undeterminable
     except urllib.error.HTTPError as e:
+        # An HTTP *status* came back: 404/410 is a clean-gone (dead); any other status (403/405/5xx/…)
+        # means the server answered, so it is reachable-but-unverifiable — NOT a transport failure.
         return "dead" if e.code in _DEAD_HTTP else "live-unverifiable"
     except Exception:
-        # DNS-gone / connection-refused read as gone; a transient timeout also lands here.
-        # Conservative: treat a hard connection failure as dead only on a clean signal —
-        # but since we cannot tell a permanent DNS failure from a transient one here, report
-        # the safe `live-unverifiable` for ambiguous transport errors rather than a false death.
-        return "live-unverifiable"
+        # No HTTP response at all — DNS failure, connection refused, timeout, or an SSRF-refused
+        # redirect hop (raises before a status). We could not reach the source: report `probe-failed`,
+        # which is informational (no action, re-probed next run). NOT live-unverifiable (that would
+        # fabricate reachability -> false now-re-acquirable) and NOT dead (no clean-gone signal).
+        return "probe-failed"
 
 
 # --- probe seam (injectable so tests run offline / deterministic) ----------
@@ -155,22 +197,25 @@ def _fixture_probe():
 
 
 def default_probe(url, fetched_date):
-    """Liveness probe for a public-http URL, mapping to the detector's result vocabulary.
+    """Liveness probe for a public-http URL, mapping `probe_source` into the detector vocabulary.
 
-    `refused` for any URL the SSRF fence rejects (file://, private host, ...). A reachable
-    source is `alive-unverifiable` (change-since-fetched is undeterminable without snapshot/
-    metadata plumbing — out of scope); only a clean-gone signal is `dead`. Never fabricates a
-    change or death verdict.
+    `refused` — SSRF fence rejected the URL (file://, private host, ...). `dead` — a clean-gone
+    HTTP status (404/410). `alive-unverifiable` — the server ANSWERED (reachable; content-change
+    undeterminable). `probe-failed` — NO HTTP response (DNS/connection/timeout/refused-redirect):
+    not reachable and not provably dead, so informational and re-probed next run. Never fabricates a
+    change, a death, OR reachability — a transport failure is `probe-failed`, never `alive-unverifiable`.
     """
     if not url_allowed(url):                # SSRF fence first — even under a fixture
-        return "refused"
+        # Disambiguate (consistent with probe_source): a DNS-resolution failure is a transport
+        # failure (`probe-failed`), a bad scheme / non-public host is a policy rejection (`refused`).
+        return _fence_reject_reason(url) or "refused"
     fixture = _fixture_probe()
     if fixture is not None:
         return fixture.get(url, "probe-failed")
     result = probe_source(url)
     if result == "live-unverifiable":
         return "alive-unverifiable"         # the caller's vocabulary for a reachable source
-    return result                           # "dead" | "refused"
+    return result                           # "dead" | "refused" | "probe-failed"
 
 
 # --- the handle -> citing-artifacts join (reuses the lint's wire-form) ------
