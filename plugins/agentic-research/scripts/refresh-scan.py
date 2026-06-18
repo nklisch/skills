@@ -2,8 +2,8 @@
 """refresh-scan — a lint-shaped detector for ARD-native research that needs re-engagement.
 
 The operator cannot be the trigger for a refresh: they have no way to *know* that a
-previously-failed fetch is now re-acquirable, or that a live source's content has drifted
-since its attestation. So this runs mechanically, like `lint-citations.py` — it re-probes
+previously-failed fetch is now re-acquirable, or that a cited source has gone dead since its
+attestation. So this runs mechanically, like `lint-citations.py` — it re-probes
 the standing acquisition queue + the cited sources of ARD-native artifacts, classifies each
 candidate, and prints a BATCH WORKLIST. It writes NOTHING to `.research/`. The operator
 batch-triages; accepted items drive the research-orchestrator refresh branch.
@@ -13,18 +13,28 @@ Detect automatically; mutate operator-confirmed. The script fires nothing.
 Two detectors, one worklist, keyed on `source_handle` (the one machine-resolvable join —
 `Completes:` is free-form prose with no queue backlink, so it is human context only):
   A. acquisition flow-back — a queue source that now fetches -> the artifacts citing its handle.
-  B. staleness            — a cited attestation source that is dead / drifted / unverifiable.
+  B. staleness            — a cited attestation source that is dead or (today) reachable-but-
+                            unverifiable. SCOPE TODAY IS LIVENESS, NOT CONTENT DRIFT: the live probe
+                            returns reachable-vs-gone only; it does NOT compare content against the
+                            attestation's `fetched` snapshot, so a live source whose CONTENT changed
+                            is reported `live-unverifiable`, never a fabricated drift. The
+                            `stale-drifted` class + path exist as the seam for a future content-drift
+                            signal (an attestation-stored content hash) but do not fire from the live
+                            probe — only via an injected `alive-changed` (the test fixture).
 
 Class -> role (the exit-policy contract; an informational class is NEVER a refresh candidate):
-  now-re-acquirable / stale-drifted / enriching-available -> REFRESH candidate (drive refresh-entry)
+  now-re-acquirable / enriching-available                 -> REFRESH candidate (drive refresh-entry)
+  stale-drifted                                           -> REFRESH candidate WHEN a content-drift
+                                                            signal is wired (parked; not live today)
   stale-dead                                              -> GAP-EMIT (per refresh-entry: a dead
                                                             *cited* source is a gap + acquisition
                                                             offgas, NEVER a silent queue drop)
   queue-still-dead                                        -> QUEUE-DRAIN (operator may drop the
                                                             standing queue entry)
-  needs-artifact-binding                                 -> QUEUE-HYGIENE (queue entry has no
-                                                            resolvable handle; never guessed)
-  unchanged / live-unverifiable / probe-failed           -> INFORMATIONAL (no action)
+  needs-artifact-binding / unprobeable-source             -> QUEUE-HYGIENE (no resolvable handle /
+                                                            no probe target; never guessed)
+  unchanged / live-unverifiable / probe-failed /
+  uncited-dead / uncited-changed                          -> INFORMATIONAL (no action)
 
 Exit: 0 = nothing actionable · 1 = >=1 actionable candidate · 2 = error (bad paths/inputs).
 
@@ -338,7 +348,8 @@ def detect_acquisition_flowback(queue, handle_index, attestations, probe):
 
 
 def detect_staleness(attestations, handle_index, probe, ttl_days, today):
-    """Detector B — a cited attestation source that is dead / drifted / unverifiable."""
+    """Detector B — a cited attestation source that is dead or (today) reachable-but-unverifiable.
+    Content drift (`stale-drifted`) is the parked future seam, not emitted by the live probe."""
     out = []
     for path, fm in attestations:
         url = fm.get("source_url")
@@ -354,6 +365,11 @@ def detect_staleness(attestations, handle_index, probe, ttl_days, today):
         elif result == "dead":
             cls = "stale-dead"
         elif result == "alive-changed":
+            # NOTE: the LIVE probe never returns `alive-changed` today — `default_probe`/`probe_source`
+            # do liveness only (a reachable source is `alive-unverifiable`). This branch is the seam
+            # for a future content-drift signal (attestation-stored content hash compared on re-probe).
+            # It fires only when a caller injects `alive-changed` (e.g. the test fixture). So
+            # `stale-drifted` does NOT surface in production yet — by design, not a bug. Docs say so.
             cls = "stale-drifted"
         elif result == "alive-unchanged":
             cls = "unchanged"

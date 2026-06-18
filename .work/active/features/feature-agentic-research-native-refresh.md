@@ -109,6 +109,46 @@ The two scope-time questions are resolved: staleness is the **second detector in
 separable); the trigger is a **lint-shaped check script** (not an operator-invoked skill / not an
 orchestrator walk step) — mechanical detection, operator-confirmed mutation.
 
+## PR #22 review round 3 (2026-06-18) — honest-scoping the drift claim
+
+One finding, and a fair one (honest-scoping, not a bug): **`stale-drifted` (real source-content
+drift) only fires via the test fixture** — the live `probe_source` does liveness only (returns
+`live-unverifiable` for any reachable source), never `alive-changed`. So drift detection does not
+fire in production, yet the README + HANDOFF presented it as shipped. That overstates capability —
+the exact honesty principle this feature is built on, applied to the docs.
+
+This was a *known* limitation (the design Risks + impl notes name content-drift as a parked
+enhancement needing an attestation-stored content snapshot). Round 3 makes the **docs + output**
+match: chose the reviewer's option (b), narrow-to-what-ships, over (a) wire-real-drift (which needs
+the parked snapshot work, genuinely out of scope):
+- **README + HANDOFF** — reframed to "acquisition-queue drain + **source-liveness** detector";
+  drift explicitly named as a parked enhancement (reachable source → `live-unverifiable`, never a
+  fabricated drift); the live class list narrowed to what actually fires.
+- **Code honesty** — the module docstring's class→role table now marks `stale-drifted` as "REFRESH
+  candidate WHEN a content-drift signal is wired (parked; not live today)"; the `alive-changed`
+  branch carries a NOTE that the live probe never returns it (it's the future-signal seam, fires
+  only via injected fixture). The class + path stay (so the future enhancement plugs in cleanly),
+  but nothing claims they ship.
+
+No behavior change (the live probe never emitted `alive-changed` anyway) — this aligns the docs +
+self-description with the shipped liveness-only reality. Tests unchanged (still 7/7; the fixture
+still exercises the `stale-drifted` seam for when the signal lands).
+
+**Pre-push adversarial peeragent pass caught 4 missed siblings** (the recurring fix-one-miss-a-sibling
+pattern — caught locally, not in a round-4 PR review):
+- the `refresh-scan.py` docstring's *opening* paragraph still said a "live source's content has
+  drifted" (I'd fixed the class table lower down but missed the top) → "a cited source has gone dead";
+- `HANDOFF.md` triage step still said "accepts re-acquisitions/**drifts**" → qualified "(when the
+  content-drift signal is wired)";
+- `detect_staleness` docstring still said "dead / **drifted** / unverifiable" → corrected;
+- **a NEW inconsistency I introduced**: narrowing the class lists dropped `enriching-available`,
+  which IS production-reachable (an `enriching` queue source that now fetches — no drift dependency).
+  Restored to both README + HANDOFF class lists.
+
+Final sweep across all named surfaces (README, HANDOFF, ARCHITECTURE, VERSIONING, orchestrator SKILL,
+the script + render output): every remaining drift mention is an honest negation or the
+parked-marked seam. Tests 7/7 (no-DNS), conformance 56/56, py_compile OK.
+
 ## PR #22 review round 2 + pre-push self-review (2026-06-18)
 
 The PR reviewer's second pass (on the round-1 fix) found 3 more — all real, all fixed:

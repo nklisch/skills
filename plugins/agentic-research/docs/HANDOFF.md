@@ -221,14 +221,19 @@ it bounded:
 
 1. **Offgas accumulates** — engagements push `blocking`/`enriching` candidates to the queue.
 2. **`scripts/refresh-scan.py` detects** (lint-shaped — run it mechanically, like `lint-citations.py`;
-   the operator does not have to *know* a source became re-acquirable or drifted). It re-probes the
+   the operator does not have to *know* a source became re-acquirable or went dead). It re-probes the
    queue sources + the cited sources of ARD-native artifacts and classifies: `now-re-acquirable`
-   (a `blocking` source that now fetches), `stale-drifted` / `stale-dead` (a cited source that
-   changed / is gone), `queue-still-dead` (still unreachable), `needs-artifact-binding` (a queue
-   entry with no resolvable handle). It **writes nothing** — it prints a batch worklist.
+   (a `blocking` source that now fetches), `enriching-available` (an `enriching` source that now
+   fetches), `stale-dead` (a cited source that is gone), `queue-still-dead` (still unreachable),
+   `needs-artifact-binding` / `unprobeable-source` (a queue entry with no resolvable handle / no
+   probe target). It **writes nothing** — it prints a batch worklist. **Scope today is liveness, not content drift:** the probe detects reachable-vs-gone, but
+   does not yet detect a *live source whose content changed* since its attestation (the `stale-drifted`
+   class exists for that signal but is not wired to the live probe — it needs an attestation-stored
+   content snapshot, a parked enhancement). A reachable source is reported `live-unverifiable`, never
+   a fabricated drift.
 3. **Operator batch-triages** — drops genuinely-dead queue entries (the drain), accepts
-   re-acquisitions/drifts. The batch human-judgment step is deliberate: the operator decides
-   dead-for-good vs temporarily-down, which a machine cannot.
+   re-acquisitions (and, when the content-drift signal is wired, drifts). The batch human-judgment
+   step is deliberate: the operator decides dead-for-good vs temporarily-down, which a machine cannot.
 4. **refresh-entry re-engages** — each accepted candidate drives the orchestrator refresh branch
    (`input_state: ard-native`, scoped to the completing claims), re-grounding the held claims and
    unblocking the downstream that depended on them. A dead *cited* source becomes a gap + a new

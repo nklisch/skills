@@ -122,11 +122,16 @@ dependency, cross-harness, testable):
 
 - **`scripts/lint-citations.py`** — the citation-chain integrity lint (every `[handle]{N}` resolves
   to an attestation; the anti-fabrication pattern catalog; URL liveness).
-- **`scripts/refresh-scan.py`** — the **acquisition-queue drain + staleness detector**. Re-probes
-  the standing `research-acquisition-queue` and the cited sources of ARD-native artifacts,
-  classifies refresh candidates (`now-re-acquirable` / `stale-drifted` / `stale-dead` /
-  `queue-still-dead` / `needs-artifact-binding`), and prints a batch worklist. **Writes nothing** —
-  the operator triages and accepted items drive the orchestrator's refresh branch. The operator does
-  not have to *know* a source became re-acquirable or drifted: the detector surfaces it. See
-  `docs/HANDOFF.md` §Acquisition-queue drain loop. Reuses `lint-citations.py`'s SSRF-hardened probe.
+- **`scripts/refresh-scan.py`** — the **acquisition-queue drain + source-liveness detector**.
+  Re-probes the standing `research-acquisition-queue` and the cited sources of ARD-native artifacts,
+  classifies (`now-re-acquirable` / `enriching-available` / `stale-dead` / `queue-still-dead` /
+  `needs-artifact-binding` / `unprobeable-source`), and prints a batch worklist. **Writes nothing** —
+  the operator triages and
+  accepted items drive the orchestrator's refresh branch. The operator does not have to *know* a
+  source became re-acquirable or went dead: the detector surfaces it. **Scope today: liveness, not
+  content drift** — the probe detects a source that is now reachable or gone (HTTP liveness), but
+  does **not** yet detect a *live source whose content changed* since its attestation (`stale-drifted`)
+  — that needs an attestation-stored content snapshot, a parked enhancement; a reachable source is
+  reported `live-unverifiable`, never a fabricated drift. See `docs/HANDOFF.md` §Acquisition-queue
+  drain loop. Reuses `lint-citations.py`'s SSRF-hardened probe.
 - **`scripts/ard-sync.py`** — the ARD upstream-version drift check (see `docs/VERSIONING.md`).
