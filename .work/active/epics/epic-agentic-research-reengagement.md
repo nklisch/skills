@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-reengagement
 kind: epic
-stage: implementing
+stage: review
 tags: [skill, tooling]
 parent: null
 depends_on: []
@@ -132,3 +132,25 @@ and declared `depends_on` chains. Epic-design **validated** rather than re-deriv
 
 Advanced `drafting → implementing`. Children are at `stage: drafting`, ready for the
 feature-design family — `refresh-entry` first (the lynchpin and anti-fabrication surface).
+
+## Children complete (2026-06-18)
+
+All 3 child features are `done`. Each was designed, implemented, and cross-model reviewed
+(GPT-5.5 via peeragent / a local fresh-context sub-agent for the lynchpin):
+
+- **`refresh-entry`** (the lynchpin) — the prior-artifact-as-LENS re-authoring mode on
+  `research-orchestrator`. Two review passes caught the lint-is-not-a-backstop gap + the
+  known-lens update rule; both fixed.
+- **`convert-bootstrap`** — the legacy front-half (`agentic-research:convert` skill). Design
+  peer-review reshaped the material-routing model (raw-vs-synthesis split, holding-area, retained
+  lens); implementation review caught a validator nit.
+- **`native-refresh`** — the ARD-native front-half (`scripts/refresh-scan.py`, a lint-shaped
+  detector). Design peer-review (4 blockers) reshaped it onto the one machine-resolvable join
+  (`source_handle`); implementation review (3 blockers) caught a `fetched`-parse bug, a
+  bibliographic-source misclassification, and a not-actually-offline test (false-green only the
+  reviewer's no-DNS env surfaced).
+
+The shared `refresh-entry` doorway + the two front-halves give the full re-engagement surface:
+legacy import (authored outside ARD) and ARD-native refresh/enrichment (drift + acquisition drain),
+both re-authoring through one anti-fabrication-fenced primitive. Advanced `implementing → review`;
+ready for `/agile-workflow:release-deploy` or epic review.
