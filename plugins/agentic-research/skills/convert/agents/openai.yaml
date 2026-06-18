@@ -1,0 +1,6 @@
+interface:
+  display_name: "Convert"
+  short_description: "Discover + bootstrap an adopter's research into ARD parity"
+  default_prompt: "Use $convert to discover this repo's pre-existing research and bootstrap the .research/ substrate."
+policy:
+  allow_implicit_invocation: true

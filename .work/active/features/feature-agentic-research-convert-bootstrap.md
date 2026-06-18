@@ -1,7 +1,7 @@
 ---
 id: feature-agentic-research-convert-bootstrap
 kind: feature
-stage: implementing
+stage: review
 tags: [skill, tooling]
 parent: epic-agentic-research-reengagement
 depends_on: [feature-agentic-research-refresh-entry]
@@ -180,6 +180,45 @@ front half. Raw sources are placed directly; only syntheses round-trip through u
 (All resolved — see §Design decisions: one-skill auto-detect; operator-confirmed preserve-only
 tier mapping; heuristic-sweep + operator-confirmed classification; separate `import_origin:` key.
 The `inferred-from-legacy`-is-plugin-local question is settled in §Strategic decisions.)
+
+## Implementation notes (2026-06-18)
+
+- **Files created**:
+  - `plugins/agentic-research/skills/convert/SKILL.md` (109 lines — the compact spec: auto-detect,
+    7-phase workflow, net-flow, guardrails)
+  - `plugins/agentic-research/skills/convert/references/research-substrate-scaffold.md` (90 lines —
+    Unit 2: top-level layout, CONVENTIONS skeleton, per-corpus INDEX, bootstrap + sync modes)
+  - `plugins/agentic-research/skills/convert/references/legacy-discovery-mapping.md` (115 lines, ToC
+    — Unit 3: discovery heuristics, operator-confirmed classification, the raw-vs-synthesis routing
+    split, the holding-area + `import_origin:` marker, the content-integrity gate, reference-
+    integrity, the refresh-entry hand-off)
+  - `plugins/agentic-research/skills/convert/agents/openai.yaml` (Unit 4 — Codex picker metadata)
+- **Files changed**:
+  - `plugins/agentic-research/README.md` — `convert` skill-table row
+  - `plugins/agentic-research/docs/ADOPTION.md` — new "Standing up the `.research/` substrate"
+    section pointing at `convert`
+  - `plugins/agentic-research/skills/research-orchestrator/SKILL.md` +
+    `references/refresh-reengagement.md` — the **`intended_output_kind` contract touch** (optional/
+    additive field, absent ⇒ discovered-shape default) — the inline option for the cross-feature
+    seam the peer-review caught (done refresh-entry feature; the field is optional so it doesn't
+    break the shipped contract).
+- **Tests added**: none — skill-prose deliverable, no test framework. Static verification per Testing
+  all passed: skill-style audit (budgets SKILL 109 / refs 115+90, ToC, portable frontmatter,
+  harness-neutral, no stale fields); **scaffold fidelity** (the scaffold ref names all 7 real
+  `.research/` tiers + matches the actual `.research/CONVENTIONS.md` section skeleton exactly);
+  **hand-off contract match** (convert passes `input_state: legacy` + `intended_output_kind`;
+  refresh-entry's contract now accepts `intended_output_kind`); reference links resolve.
+- **Discrepancies from design**:
+  - *ADOPTION.md had no literal "set up `.research/` by hand" line* to rewrite (the design assumed
+    one). The doc simply didn't cover substrate scaffolding — so I **added** a "Standing up the
+    `.research/` substrate" section pointing at `convert`, rather than rewriting a nonexistent line.
+    Same net effect (ADOPTION now names `convert` as the scaffold path).
+  - *`openai.yaml` sets `allow_implicit_invocation: true`* (not agile-workflow convert's `false`).
+    Rationale: per repo-skill-style, `true` is for skills the model should auto-route by description
+    — `convert` *should* surface when a repo has un-imported research, so implicit invocation is
+    correct here. (agile-workflow convert is `false` because it's a deliberate bootstrap act; this
+    convert is a discovery-driven offer, which fits implicit.) A deliberate per-skill call, noted.
+- **Adjacent issues parked**: none.
 
 ## Other agent review (cross-model design peer-review, GPT-5.5 via peeragent)
 

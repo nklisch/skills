@@ -32,6 +32,11 @@ Upstream framework by Kevoun: <https://code.s-nc.org/Kevoun/ARD>.
 - **`research-discipline`** — the auto-loaded anti-fabrication bundle (ARD `kernel/discipline.md`
   vendored verbatim). The orchestrator inlines it into every authoring dispatch so the
   discipline reaches sub-contexts (ARD SPEC §5).
+- **`convert`** — the front half of adoption: discover a repo's pre-existing (non-ARD) research,
+  bootstrap the `.research/` substrate, route raw sources to `reference/` and claim-bearing
+  syntheses to a holding area, then hand each synthesis to the orchestrator's refresh branch for
+  per-artifact rigor-uplift. Auto-detects bootstrap (no substrate) vs sync (validate existing);
+  preserve-only, operator-confirmed.
 
 See [docs/ADOPTION.md](docs/ADOPTION.md) for how the engagement engine maps onto the ARD SPEC.
 

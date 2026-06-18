@@ -123,7 +123,9 @@ lens-not-substrate guard in the discipline bundle). The branch:
    with a `supersedes` pointer; the prior is retained as the historical record.
 
 **Input contract** the front-halves call with: `{prior_artifact_path, input_state:
-ard-native|legacy, completes_claims?: [...]}`. `input_state` is set by the **caller** (convert knows
+ard-native|legacy, completes_claims?: [...], intended_output_kind?}`. `intended_output_kind` is
+optional/additive — the caller's confirmed destination shape for the uplifted artifact (absent ⇒
+discovered-shape default). `input_state` is set by the **caller** (convert knows
 `legacy`; native-refresh knows `ard-native`), never inferred. `completes_claims` is the acquisition
 manifest's `Completes:` join, scoping which held claims a landed acquisition re-engages. Full
 procedure: [`references/refresh-reengagement.md`](references/refresh-reengagement.md).

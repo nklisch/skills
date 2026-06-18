@@ -40,6 +40,8 @@ prior_artifact_path: <.research/ path of the artifact to re-author>
 input_state: ard-native | legacy        # who knows: the caller sets it, never inferred
 completes_claims: [<claim id/handle>, ...]   # optional; native-refresh scopes which held
                                              # claims a landed acquisition re-engages
+intended_output_kind: <output_kind>          # optional; the destination tier/shape the uplift
+                                             # should produce (e.g. precis, position, synthesis-brief)
 ```
 
 - `input_state` is **set by the caller**, not detected: `convert` knows its artifacts are
@@ -47,6 +49,11 @@ completes_claims: [<claim id/handle>, ...]   # optional; native-refresh scopes w
   re-validate attestations that do not exist (see Risks on the feature).
 - `completes_claims` is the `Completes:` join from the acquisition manifest — "acquired source →
   exactly these held claims to re-engage." Absent it, the refresh re-engages the whole artifact.
+- `intended_output_kind` is **optional and additive** — the caller's confirmed destination for the
+  uplifted artifact (an ARD `output_kind` value, mapping to a `.research/` path binding). `convert`
+  carries the operator's confirmed target tier through it so the uplift produces the right artifact
+  shape. **Absent, the refresh falls back to the discovered-shape default** (the output_kind the
+  engagement would pick on its own) — so an existing caller that omits it is unaffected.
 
 ## The pre-flight lens check
 
