@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-reengagement
 kind: epic
-stage: drafting
+stage: implementing
 tags: [skill, tooling]
 parent: null
 depends_on: []
@@ -114,3 +114,21 @@ No foundation-doc roll-forward at scope time. This is plugin-internal capability
 plugin and `.research/` tier — no new architectural boundary at the repo's `docs/` level.
 The plugin's own `docs/` (ADOPTION.md, ARCHITECTURE.md, HANDOFF.md) may gain a
 re-engagement note during implementation, owned by the relevant child feature.
+
+## Epic-design note (2026-06-18)
+
+Decomposition pre-existed — the three child features were created during the scope pass
+with operator-confirmed shape (the 3-child fork: lynchpin + two front-halves), full briefs,
+and declared `depends_on` chains. Epic-design **validated** rather than re-derived:
+
+- All 3 children parent correctly to this epic; no capability gap relative to the brief
+  (lynchpin `refresh-entry` + legacy `convert-bootstrap` + ARD-native `native-refresh`
+  covers the full re-engagement surface).
+- Dependency graph verified acyclic (`work-view --blocking`): `refresh-entry` is the root
+  (`depends_on []`); both front-halves depend on it. Critical path is intentional — the
+  shared primitive must land before either consumer, which is the point of the shape.
+- 3 children (within the 2-6 range); no `[refactor]`/`[perf]` tags to propagate; no UI
+  surface (all skill/orchestration work), so no mockup tier applies.
+
+Advanced `drafting → implementing`. Children are at `stage: drafting`, ready for the
+feature-design family — `refresh-entry` first (the lynchpin and anti-fabrication surface).
