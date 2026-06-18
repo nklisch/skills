@@ -50,33 +50,76 @@ completes_claims: [<claim id/handle>, ...]   # optional; native-refresh scopes w
 
 ## The pre-flight lens check
 
-**Before any authoring dispatch**, record the prior artifact in a **known-lens set**:
+The known-lens pre-flight check is the **sole structural guard** against the prior artifact's
+claims laundering into the refreshed output. The lint is **not** a backstop here — see the
+warning below — so this check must be concrete and complete.
 
-1. Add `prior_artifact_path` (and any sibling artifacts loaded as framing) to a known-lens list
-   for this engagement.
-2. Inject that list into **every** authoring dispatch as an explicit exclusion — "NEVER cite
-   these paths as `[handle]{N}` sources; they are lens, read for framing only" — *atop* the
-   verbatim lens-not-substrate guard already carried in the discipline bundle.
-3. The dispatch composition is otherwise unchanged (the §5 fence: verbatim discipline bundle +
-   role brief + engagement params); the known-lens exclusion is the only addition.
+**Build the known-lens set on entering the refresh branch** (at `substrate-check`, once the
+input contract is read):
 
-This is **belt-and-suspenders** with the lint backstop: `lint-citations.py` already rejects a
-handle that resolves to an analytical-tier artifact (the prior artifact is analytical-tier, not a
-source-direct attestation), so a violation fails the citation-chain check. The pre-flight check
-catches it earlier, at author time, structurally — the lint is the safety net, not the only guard.
+1. `known_lens_paths = [prior_artifact_path]`, plus any **sibling lenses** — other
+   analytical-tier artifacts loaded *during this refresh as reading aids* (e.g. a related
+   position or campaign synthesis pulled in for framing). A path is a sibling lens iff it is
+   loaded for framing and is NOT a source-direct attestation in `.research/attestation/`.
+2. **Attach the exclusion to the dispatch-composition step** — the same step that already prepends
+   the verbatim discipline bundle (the §5 fence: `[discipline bundle] + [role brief] +
+   [engagement params]`). The refresh branch adds one block to that composition, immediately after
+   the discipline bundle:
+
+   ```
+   KNOWN-LENS EXCLUSION — these paths are framing, NOT sources.
+   Never cite them as [handle]{N}; read them for framing only:
+     - <prior_artifact_path>
+     - <each sibling lens path>
+   ```
+
+   Because the exclusion rides the *same* composition step the discipline bundle already flows
+   through, "every authoring dispatch" is satisfied by the existing §5 mechanism — there is no
+   separate completeness obligation to track. A dispatch that carries the discipline bundle
+   carries the exclusion.
+
+> **The lint is NOT a backstop for this violation.** A handle resolving to an analytical-tier
+> artifact (a position, a campaign parent/specialist) is status **`intra-program-resolved`**,
+> which `lint-citations.py` treats as **non-broken at `severity: none`** by design — it is a
+> *legitimate* intra-program reference, not an error. The prior artifact being refreshed is
+> always analytical-tier, so citing it would resolve `intra-program-resolved` and **pass lint
+> clean**. The lint only catches a genuinely *broken* handle (one resolving to nothing), never
+> intra-program self-citation. Therefore the pre-flight exclusion above is the only structural
+> guard; do not rely on the lint to catch a lens violation.
 
 This check is **plugin-local orchestration**: it operationalizes the *existing* universal
-lens-not-substrate rule for this engagement's specific prior artifact. It does not change the
-discipline rule, so it needs no ARD-kernel change.
+lens-not-substrate rule (in the discipline bundle) for this engagement's specific prior artifact.
+It does not change the discipline rule, so it needs no ARD-kernel change.
 
 ## Attestation start-state branch
 
-One walk; the only difference is the starting attestation set.
+One walk; the only difference is the starting attestation set. `input_state` is set by the
+**caller**, never inferred (`convert` knows its artifacts are `legacy`; `native-refresh` knows
+`ard-native`).
+
+**Pre-flight `input_state` assertion** (before branching) — a mis-set `input_state` sends the
+walk down the wrong path (e.g. trying to re-validate attestations that do not exist). Cheap guard:
+if `input_state: ard-native`, confirm the prior artifact actually has ≥1 source-direct attestation
+in `.research/attestation/` (the attestations its `[handle]{N}` citations resolve to). On mismatch
+— interactively, surface it and ask the caller to correct; under autonomous delegation, **hard-halt**
+(mirrors the orchestrator's malformed-dials posture — proceeding on a wrong input_state corrupts
+the engagement). A `legacy` artifact with attestations present is not a hard error (it may have
+been partially attested), but note it.
 
 - **`ard-native`** — the prior artifact carries a clean attestation set. **Re-validate** each
-  existing attestation against current sources (a URL may have moved, updated, or died) and
-  **extend** with attestations for any new acquisitions (`completes_claims` scopes which). Valid
-  attestations are reused, not re-fetched wastefully; changed sources get fresh attestations.
+  existing attestation by:
+  1. probing the source for **liveness** (the `source_url` still resolves);
+  2. if alive **and unchanged** (the cited specific is still present at the source) → **reuse** the
+     attestation as-is — no re-fetch;
+  3. if alive **but changed** (content moved/updated such that the cited specific shifted) →
+     **re-fetch and write a fresh attestation**, re-pointing the citation;
+  4. if **dead** (404 / removed) → mark the claim a **gap**, attempt a replacement source, and
+     emit the gap to the acquisition offgas (a dead source is an acquisition candidate, not a
+     silent drop).
+
+  Then **extend** with attestations for any new acquisitions (`completes_claims` scopes which held
+  claims a landed acquisition re-engages). The point of the `ard-native` branch is to *reuse* still-
+  valid attestations rather than re-fetch wastefully — only changed/dead sources cost a fetch.
 - **`legacy`** — the prior artifact has *no* attestation set (`inferred-from-legacy`). **Build the
   chain from scratch**: every claim worth keeping must earn a fresh source-direct attestation, or
   be dropped/marked as unsupported. The prior artifact only frames *what to look for*.
@@ -90,7 +133,10 @@ over the *current* substrate, at the dialed `verification_rigor`:
    prior artifact's held claims (read as lens) are the topology to re-engage — not a fresh seed.
 2. **attest** — per start-state branch above (per-source attestation files, before any prose).
 3. **synthesize** — re-author the artifact over the now-current attestations.
-4. **lint** — `lint-citations.py`; confirms no handle resolves to the prior artifact (backstop).
+4. **lint** — `lint-citations.py`; validates the citation chain (every `[handle]{N}` resolves to a
+   source-direct attestation, no broken handles). Note it does **not** catch a lens violation — a
+   handle to the prior analytical-tier artifact resolves `intra-program-resolved` (clean); the
+   pre-flight exclusion is what prevents that, not the lint.
 5. **verify** — adversarial-read (rigor ≥ standard) / evaluate (rigor = full) / spot-check
    (always), at the dialed rigor over the **new** substrate. The prior artifact's old verdicts do
    **not** carry forward unexamined — a refresh is a real engagement, not a diff-and-patch.

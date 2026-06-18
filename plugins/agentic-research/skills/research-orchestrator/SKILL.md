@@ -74,7 +74,7 @@ Activate the applicable subset of decision-points in this fixed order:
 dispatch-time-registration record the settled dials (commissioning item if present; else transcript / dispatch.md)
   → substrate-check        survey .research/ for overlapping prior work; surface the outcome
                            HANDED a prior artifact? → REFRESH BRANCH (see §Refresh re-engagement):
-                           register refresh + supersedes-prior, load prior AS LENS, then resume below
+                           register refresh + supersedes-prior, load prior AS LENS, then resume at attest
   → decompose              emergent: draft ≥3 candidates + comparative assessment + self-flag
                            (scope_authority — set at kickoff — governs emergent-draft vs. honor-declared)
   → [CHECKPOINT A]         confirm the decomposition / framing (multi-path) (← turn)
@@ -107,13 +107,17 @@ prior artifact is a **LENS, not substrate**: it frames *what to re-engage*, but 
 lens-not-substrate guard in the discipline bundle). The branch:
 
 1. **Register** `refresh` + `temporal_contract: supersedes-prior` (existing enums — no new vocabulary).
-2. **Pre-flight lens check** — record the prior artifact path in a **known-lens set**, injected into
-   every authoring dispatch as an explicit "NEVER cite these paths" exclusion, atop the verbatim
-   discipline guard. The lint is the backstop (a handle resolving to the prior analytical-tier
-   artifact already fails the chain check); the pre-flight check catches it at author time.
-3. **Attestation start-state branches on `input_state`** — `ard-native`: re-validate the prior's
-   attestations against current sources + extend with new acquisitions; `legacy`: build the chain
-   from scratch (no prior attestations exist).
+2. **Pre-flight lens check (the SOLE structural guard).** Build a `known_lens_paths` set on entering
+   the branch (the prior artifact + any sibling analytical-tier artifacts loaded as framing), and
+   attach a "NEVER cite these paths" exclusion to the **dispatch-composition step** — riding the same
+   §5 step that prepends the verbatim discipline bundle, so every authoring dispatch carries it. The
+   lint is **NOT** a backstop here: a handle to the prior (analytical-tier) artifact resolves
+   `intra-program-resolved`, which the lint treats as clean by design — so the pre-flight exclusion
+   is the only thing preventing a lens violation.
+3. **Attestation start-state branches on `input_state`** (caller-set, asserted pre-flight) —
+   `ard-native`: re-validate the prior's attestations (probe liveness → reuse unchanged / re-fetch
+   changed / gap+offgas dead) + extend with new acquisitions; `legacy`: build the chain from scratch
+   (no prior attestations exist).
 4. **Resume the normal walk** (attest → synthesize → lint → verify) over the **current** substrate at
    the dialed rigor. The prior's old verdicts do not carry forward. Output is a superseding artifact
    with a `supersedes` pointer; the prior is retained as the historical record.

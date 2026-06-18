@@ -1,7 +1,7 @@
 ---
 id: feature-agentic-research-refresh-entry
 kind: feature
-stage: implementing
+stage: review
 tags: [skill]
 parent: epic-agentic-research-reengagement
 depends_on: []
@@ -226,7 +226,38 @@ advertised redundancy does not exist. Caught before two siblings built on the un
 which is exactly why the lynchpin was reviewed first. No code changed by this review; bounced
 `review → implementing`.
 
-## Implementation notes
+## Implementation notes (review-fix pass, 2026-06-18)
+
+Applied the Request-changes punch-list from the §Review below. All six findings were
+spec/prose corrections to the two files — no architecture change:
+
+- **B1 (fixed)** — removed the false "belt-and-suspenders / lint backstop" framing from BOTH
+  surfaces. The reference §the-pre-flight-lens-check now carries an explicit warning block: a
+  handle to an analytical-tier prior artifact resolves `intra-program-resolved`, which
+  `lint-citations.py` treats as non-broken at `severity: none` by design (re-verified at lint
+  source lines 97 + 313) — so the lint is NOT a backstop. The pre-flight exclusion is named the
+  **sole structural guard**. The SKILL.md branch + the re-authoring-walk lint step were corrected
+  to match. The feature's own Risks/Implementation-notes "belt-and-suspenders" language is
+  superseded by this note.
+- **B2 (fixed)** — the pre-flight check is now concretely specified: `known_lens_paths` built on
+  entering the refresh branch; a `KNOWN-LENS EXCLUSION` block attached to the §5 dispatch-
+  composition step (so "every dispatch" rides the existing discipline-bundle mechanism — no
+  separate completeness obligation). Mechanism documented in the reference + summarized in SKILL.md.
+- **I1 (fixed)** — `ard-native` re-validation spelled out as a 4-step procedure (probe liveness →
+  reuse unchanged / re-fetch changed / gap+offgas dead), then extend with new acquisitions.
+- **I2 (fixed)** — added a pre-flight `input_state` assertion: `ard-native` ⇒ confirm ≥1
+  source-direct attestation exists; mismatch → interactive surface-and-correct / autonomous
+  hard-halt (mirrors the malformed-dials posture).
+- **N1 (fixed)** — walk annotation "resume below" → "resume at attest".
+- **N2 (fixed)** — "sibling artifacts loaded as framing" now defined (analytical-tier artifacts
+  loaded for framing during this refresh; NOT a source-direct attestation).
+
+Re-verified: line budgets OK (SKILL 376 < 500, reference 150 < 200, ToC present); no residual
+false-backstop claim (all 3 "backstop" mentions are negations); corrected lint claim matches
+source (intra-program-resolved ∈ DEFAULT_NON_BROKEN @ severity none). Advanced
+implementing → review.
+
+## Implementation notes (initial pass)
 - **Files changed**: `plugins/agentic-research/skills/research-orchestrator/SKILL.md` (refresh
   branch annotation in the walk diagram at `substrate-check`; new `## Refresh re-engagement`
   section with the input contract; a refresh note in `## Registration`).
