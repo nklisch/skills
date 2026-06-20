@@ -11,6 +11,10 @@
     "url": "git+https://github.com/nklisch/skills.git"
   },
   "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "unpdf": "^1.6.2"
+  },
   "keywords": [
     "pi-package",
     "agent-skills",
