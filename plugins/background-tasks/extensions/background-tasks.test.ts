@@ -595,6 +595,44 @@ describe("JobPanel (overlay component)", () => {
     expect(closed).toContain(true);
   });
 
+  test("arrow keys move selection in BOTH normal and application cursor modes", () => {
+    // The bug: the old code only matched \u001b[B (normal mode). Many terminals /
+    // pi's raw-mode TTY deliver application-cursor \u001bOB, so arrows silently
+    // did nothing. Both modes must work (and the hint shows arrows first).
+    const panel = new JobPanel(
+      (() => [job(1, "a"), job(2, "b"), job(3, "c")]) as unknown as () => Parameters<typeof JobPanel>[0][],
+      { fg: (_n: string, t: string) => t },
+      () => {},
+    ) as unknown as { handleInput: (d: string) => void; selected: number };
+    expect(panel.selected).toBe(0);
+    panel.handleInput("\u001b[B"); // down, normal mode
+    expect(panel.selected).toBe(1);
+    panel.handleInput("\u001bOB"); // down, application mode
+    expect(panel.selected).toBe(2);
+    panel.handleInput("\u001b[A"); // up, normal mode
+    expect(panel.selected).toBe(1);
+    panel.handleInput("\u001bOA"); // up, application mode
+    expect(panel.selected).toBe(0);
+  });
+
+  test("Esc closes the panel; right-arrow opens paging; left-arrow exits paging", () => {
+    const closed: boolean[] = [];
+    const panel = new JobPanel(
+      (() => [job(1, "a", "OUT1")]) as unknown as () => Parameters<typeof JobPanel>[0][],
+      { fg: (_n: string, t: string) => t },
+      () => closed.push(true),
+    ) as unknown as { handleInput: (d: string) => void; render: (w: number) => string[] };
+    // right-arrow (normal mode) opens paging
+    panel.handleInput("\u001b[C");
+    expect(panel.render(40).some((l) => l.includes("OUT1"))).toBe(true);
+    // left-arrow (normal mode) returns to the list (new behavior)
+    panel.handleInput("\u001b[D");
+    expect(panel.render(40).some((l) => l.includes("Background jobs"))).toBe(true);
+    // Esc (\u001b) closes the panel
+    panel.handleInput("\u001b");
+    expect(closed).toContain(true);
+  });
+
   test("selection clamps when the job list shrinks", () => {
     let snapshot = [job(1, "a"), job(2, "b"), job(3, "c")];
     const panel = new JobPanel(

@@ -42,6 +42,45 @@
 
 import { spawn, type ChildProcess } from "node:child_process";
 
+// --- Keybinding matcher (sync, optional) ---------------------------------
+//
+// JobPanel input must respond to arrow keys and Esc. The robust way is pi-tui's
+// keybinding manager (matches raw input against semantic actions like
+// "up"/"escape", resolving ALL byte variants incl. application-cursor
+// \u001bOA and user rebindings). The pi-tui module is resolvable synchronously
+// inside the pi process; under bare `bun test` it isn't, so resolveKb() is
+// guarded and JobPanel falls back to raw-byte matches when it returns null.
+// NOTE: resolve once, at JobPanel construction (handleInput's contract is sync —
+// `handleInput(data): void`, invoked fire-and-forget by the input loop — so an
+// async dynamic import() cannot resolve in time for a keystroke).
+let kbMatcher: { matches: (data: string, action: string) => boolean } | null | undefined;
+function resolveKb(): { matches: (data: string, action: string) => boolean } | null {
+  if (kbMatcher !== undefined) return kbMatcher;
+  try {
+    // createRequire keeps the file dependency-free at import time (no top-level
+    // import of @earendil-works/pi-tui) while resolving it synchronously at the
+    // JobPanel construction site inside the pi process.
+    const { createRequire } = require("node:module") as typeof import("node:module");
+    const req = createRequire(import.meta.url);
+    const mod = req("@earendil-works/pi-tui") as {
+      getKeybindings?: () => { matches: (data: string, action: string) => boolean };
+    };
+    kbMatcher = mod.getKeybindings?.() ?? null;
+  } catch {
+    kbMatcher = null;
+  }
+  return kbMatcher;
+}
+/** Raw-byte fallbacks for when pi-tui is unavailable (tests, non-TUI harness). */
+const RAW = {
+  up: (d: string) => d === "k" || d === "\u001b[A" || d === "\u001bOA",
+  down: (d: string) => d === "j" || d === "\u001b[B" || d === "\u001bOB",
+  left: (d: string) => d === "h" || d === "\u001b[D" || d === "\u001bOD",
+  right: (d: string) => d === "l" || d === "\u001b[C" || d === "\u001bOC",
+  confirm: (d: string) => d === "\r" || d === "\n",
+  cancel: (d: string) => d === "\u001b" || d === "\u0003", // Esc, Ctrl+C
+};
+
 const STATUS_KEY = "background-tasks";
 const MAX_TAIL_CHARS = 6_000; // hard cap on anything sent back to the model
 const MAX_BUFFER_CHARS = 200_000; // rolling in-memory buffer per job
@@ -934,10 +973,24 @@ class JobPanel {
     this.getJobs = getJobs;
     this.theme = theme;
     this.onClose = onClose;
+    // Resolve the keybinding manager once, at construction. handleInput's
+    // contract is sync (fire-and-forget), so it cannot await an import here.
+    resolveKb();
   }
 
   private fg(name: string, text: string): string {
     return this.theme.fg ? this.theme.fg(name, text) : text;
+  }
+
+  /** Match input against a pi-tui action, falling back to raw bytes. */
+  private is(data: string, action: "up" | "down" | "left" | "right" | "confirm" | "cancel"): boolean {
+    const kb = kbMatcher;
+    const actionId =
+      action === "left" || action === "right"
+        ? `tui.editor.cursor${action[0].toUpperCase()}${action.slice(1)}`
+        : `tui.select.${action}`;
+    if (kb?.matches(data, actionId)) return true;
+    return RAW[action](data);
   }
 
   handleInput(data: string): void {
@@ -945,21 +998,21 @@ class JobPanel {
     // Clamp selection up-front in case the list shrank since the last render.
     this.selected = jobs.length === 0 ? 0 : Math.min(this.selected, jobs.length - 1);
     if (this.paging) {
-      // In paging mode: any of q/Esc/enter returns to the list.
-      if (data === "\u001b" || data === "q" || data === "\r" || data === "\n") this.paging = null;
+      // In paging mode: left/Esc/enter/"q"/back-to-list all return to the list.
+      if (this.is(data, "cancel") || this.is(data, "confirm") || this.is(data, "left") || data === "q") this.paging = null;
       return;
     }
     if (jobs.length === 0) {
-      if (data === "q" || data === "\u001b") this.onClose();
+      if (this.is(data, "cancel") || data === "q") this.onClose();
       return;
     }
-    if (data === "\u001b" || data === "q") {
+    if (this.is(data, "cancel") || data === "q") {
       this.onClose();
-    } else if (data === "j" || data === "\u001b[B") {
+    } else if (this.is(data, "down")) {
       this.selected = Math.min(jobs.length - 1, this.selected + 1);
-    } else if (data === "k" || data === "\u001b[A") {
+    } else if (this.is(data, "up")) {
       this.selected = Math.max(0, this.selected - 1);
-    } else if (data === "\r" || data === "\n" || data === "l" || data === "\u001b[C") {
+    } else if (this.is(data, "confirm") || this.is(data, "right")) {
       const job = jobs[this.selected];
       if (job) this.paging = { jobId: job.id };
     }
@@ -975,7 +1028,7 @@ class JobPanel {
     this.selected = sel;
     const rule = "─".repeat(w);
     lines.push(clipToWidth(this.fg("borderMuted", rule), w));
-    const header = this.fg("accent", ` Background jobs (${jobs.length}) `) + this.fg("dim", "  — j/k move · enter page output · q/Esc close");
+    const header = this.fg("accent", ` Background jobs (${jobs.length}) `) + this.fg("dim", "  — ↑/↓ move · enter page output · q/Esc close");
     lines.push(clipToWidth(header, w));
     lines.push(clipToWidth(this.fg("borderMuted", rule), w));
     if (jobs.length === 0) {
@@ -1009,7 +1062,7 @@ class JobPanel {
       for (const ln of body.split("\n")) lines.push(clipToWidth(ln, w));
     }
     lines.push(clipToWidth(this.fg("borderMuted", rule), w));
-    lines.push(clipToWidth(this.fg("dim", " q/Esc/enter — back to list"), w));
+    lines.push(clipToWidth(this.fg("dim", " ←/q/Esc/enter — back to list"), w));
     return lines;
   }
 }
