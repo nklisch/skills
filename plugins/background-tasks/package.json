@@ -1,0 +1,27 @@
+{
+  "name": "@nklisch/pi-background-tasks",
+  "version": "0.1.0",
+  "description": "Pi-native runtime tools — background a long command and get woken on exit, poll a command until a condition holds, and manage the job registry.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nklisch/skills.git",
+    "directory": "plugins/background-tasks"
+  },
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "background-tasks"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  }
+}

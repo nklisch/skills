@@ -19,11 +19,13 @@
     "code-audit",
     "nates-toolkit",
     "agentic-research",
-    "agent-coordination"
+    "agent-coordination",
+    "background-tasks"
   ],
   "pi": {
     "extensions": [
-      "./plugins/agile-workflow/extensions/agile-workflow.ts"
+      "./plugins/agile-workflow/extensions/agile-workflow.ts",
+      "./plugins/background-tasks/extensions/background-tasks.ts"
     ],
     "skills": [
       "./plugins/agile-workflow/skills",
@@ -31,7 +33,8 @@
       "./plugins/code-audit/skills",
       "./plugins/nates-toolkit/skills",
       "./plugins/agentic-research/skills",
-      "./plugins/agent-coordination/skills"
+      "./plugins/agent-coordination/skills",
+      "./plugins/background-tasks/skills"
     ]
   }
 }
