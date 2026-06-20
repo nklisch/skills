@@ -63,7 +63,7 @@ function makeContext(): TestContext {
   return ctx;
 }
 
-function makeFakePi() {
+function makeFakePi(injectedExec?: (command: string, args: string[]) => Promise<ExecResult>) {
   const tools = new Map<string, RegisteredTool>();
   const wakes: Wake[] = [];
   const entries: Array<{ type: string; data: unknown }> = [];
@@ -80,21 +80,23 @@ function makeFakePi() {
     appendEntry: (type: string, data: unknown) => {
       entries.push({ type, data });
     },
-    exec: async (command: string, args: string[] = [], options?: { cwd?: string; timeout?: number; signal?: AbortSignal }): Promise<ExecResult> => {
-      // Mirror the REAL pi.exec runtime: spawn(command, args, { shell: false }).
-      // The previous fake ignored args and always ran `/bin/sh -c <command>`,
-      // which masked the bug where the extension passed shell syntax as the
-      // program name. Honoring command+args means a test only passes when the
-      // extension routes through /bin/sh -c itself.
-      const { execFileSync } = require("node:child_process") as typeof import("node:child_process");
-      try {
-        const out = execFileSync(command, args, { encoding: "utf8", cwd: options?.cwd, timeout: options?.timeout });
-        return { stdout: out, code: 0 };
-      } catch (err) {
-        const e = err as { stdout?: string; status?: number };
-        return { stdout: e.stdout ?? "", code: e.status ?? 1 };
-      }
-    },
+    exec: injectedExec
+      ? (command: string, args: string[], options?: { cwd?: string; timeout?: number; signal?: AbortSignal }) => injectedExec(command, args)
+      : async (command: string, args: string[] = [], options?: { cwd?: string; timeout?: number; signal?: AbortSignal }): Promise<ExecResult> => {
+        // Mirror the REAL pi.exec runtime: spawn(command, args, { shell: false }).
+        // The previous fake ignored args and always ran `/bin/sh -c <command>`,
+        // which masked the bug where the extension passed shell syntax as the
+        // program name. Honoring command+args means a test only passes when the
+        // extension routes through /bin/sh -c itself.
+        const { execFileSync } = require("node:child_process") as typeof import("node:child_process");
+        try {
+          const out = execFileSync(command, args, { encoding: "utf8", cwd: options?.cwd, timeout: options?.timeout });
+          return { stdout: out, code: 0 };
+        } catch (err) {
+          const e = err as { stdout?: string; status?: number };
+          return { stdout: e.stdout ?? "", code: e.status ?? 1 };
+        }
+      },
     on: (event: string, handler: (event: unknown) => unknown) => {
       // Record all handlers so before_agent_start (not just session_shutdown)
       // can be driven in tests.
@@ -319,6 +321,53 @@ describe("monitor tool", () => {
       makeContext(),
     )) as { details: { intervalSeconds: number } };
     expect(res.details.intervalSeconds).toBeGreaterThanOrEqual(1);
+  });
+
+  test("fail-fast: a poll that ENOENTs every tick bails early with a diagnostic, not a silent timeout", async () => {
+    // Reproduces the live-session failure: a pipeline poll command run under
+    // shell:false ENOENTs every tick (empty stdout). Before this fix it would
+    // poll silently to the full deadline with no hint the poll was broken.
+    // Inject an exec that returns empty stdout + code 1 every call.
+    const { tools, wakes } = makeFakePi(async () => ({ stdout: "", code: 1 }));
+    const mon = tools.get("monitor")!;
+    await mon.execute(
+      "c1",
+      { command: "peeragent --status x | python3 ...", satisfy_on: "stdout_matches", pattern: "DONE", interval_seconds: 1, timeout_seconds: 30 },
+      undefined,
+      undefined,
+      makeContext(),
+    );
+    const wake = await waitFor(() => wakes[0], { timeoutMs: 8000 });
+    expect(wake.content).toContain("consecutive failed polls");
+    expect(wake.content).toContain("empty stdout");
+    expect(wake.content).toContain("fix the command");
+    // It must NOT be the generic timeout message.
+    expect(wake.content).not.toContain("timed out after 30s");
+  });
+
+  test("fail-fast counter resets on a transient success (only CONSISTENT failure is diagnostic)", async () => {
+    // A poll that fails once then succeeds must not accumulate toward the
+    // threshold — only unbroken streaks of failure should trigger early abort.
+    let calls = 0;
+    const { tools, wakes } = makeFakePi(async () => {
+      calls++;
+      // fail, fail, succeed (matches pattern), then would keep going — but
+      // the success on call 3 must satisfy immediately and clear the streak.
+      if (calls <= 2) return { stdout: "", code: 1 };
+      return { stdout: "READY", code: 0 };
+    });
+    const mon = tools.get("monitor")!;
+    await mon.execute(
+      "c1",
+      { command: "flaky", satisfy_on: "stdout_matches", pattern: "READY", interval_seconds: 1, timeout_seconds: 30 },
+      undefined,
+      undefined,
+      makeContext(),
+    );
+    const wake = await waitFor(() => wakes[0], { timeoutMs: 8000 });
+    // The transient failures did not trip the threshold; it eventually satisfied.
+    expect(wake.content).toContain("satisfied");
+    expect(wake.content).not.toContain("consecutive failed polls");
   });
 });
 
@@ -613,6 +662,31 @@ describe("JobPanel (overlay component)", () => {
     expect(panel.selected).toBe(1);
     panel.handleInput("\u001bOA"); // up, application mode
     expect(panel.selected).toBe(0);
+  });
+
+  test("W1: a keybindings matcher threaded through the ctor is preferred (opus review)", () => {
+    // pi hands the live KeybindingsManager to the ui.custom factory (3rd arg);
+    // openJobPanel threads it into JobPanel. Verify an injected matcher is
+    // used and can bind an ARBITRARY key to an action (user-rebinding support
+    // that RAW-byte matching alone cannot provide). Uses a made-up key 'x' for
+    // 'down' to prove the matcher — not RAW — is driving selection.
+    const matcher = {
+      matches: (data: string, action: string) => data === "x" && action === "tui.select.down",
+    };
+    const panel = new JobPanel(
+      (() => [job(1, "a"), job(2, "b"), job(3, "c")]) as unknown as () => Parameters<typeof JobPanel>[0][],
+      { fg: (_n: string, t: string) => t },
+      () => {},
+      matcher as unknown as Parameters<typeof JobPanel>[3],
+    ) as unknown as { handleInput: (d: string) => void; selected: number };
+    expect(panel.selected).toBe(0);
+    // 'x' is NOT a RAW down-binding (only j/arrows are), so it only works via
+    // the injected matcher — proving W1's threading is active.
+    panel.handleInput("x");
+    expect(panel.selected).toBe(1);
+    // A real RAW down (j) still works too (matcher returns false -> RAW falls through).
+    panel.handleInput("j");
+    expect(panel.selected).toBe(2);
   });
 
   test("Esc closes the panel; right-arrow opens paging; left-arrow exits paging", () => {

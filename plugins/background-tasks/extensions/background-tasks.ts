@@ -87,6 +87,7 @@ const MAX_BUFFER_CHARS = 200_000; // rolling in-memory buffer per job
 const DEFAULT_MONITOR_INTERVAL_S = 10;
 const DEFAULT_MONITOR_TIMEOUT_S = 600;
 const MIN_MONITOR_INTERVAL_S = 1; // floor; sub-second polls flood commands
+const MONITOR_POLL_FAIL_THRESHOLD = 3; // consecutive failed polls -> early diagnostic timeout
 const DEFAULT_TAIL_LINES = 40;
 const CANCEL_GRACE_MS = 4_000; // SIGTERM grace before SIGKILL
 const KILL_GRACE_MS = 2_000; // post-SIGKILL reap window before declaring kill_failed
@@ -114,9 +115,10 @@ This harness wakes you asynchronously. When you launch work that runs detached, 
 - **Do NOT use \`background\` for a single quick command** (a few seconds). That's what \`bash\` is for. \`background\` is for *long-running async* and *parallel fan-out*.
 - **Do NOT sleep in \`bash\` to wait for a condition.** That's exactly what \`monitor\` is for, and it's non-blocking.
 
-### Delegation vs. backgrounding (don't conflate)
-- **\`/peer\` (peeragent)** — delegate a focused pass (implement/review/research/debug) to a *cross-harness* peer model. It can run \`--async\`; watch its job with \`monitor\` while you keep working.
-- **\`subagent\`** — for *internal* parallel sub-agent work that stays inside this harness. Use this, NOT \`/peer\`, for internal parallel work.`;
+### Delegation vs. backgrounding (conditional — only if your harness has these)
+- If you have a **cross-harness peer** tool (e.g. peeragent's \/peer\`), it delegates a focused pass (implement/review/research) to a *different* model. It can run \`--async\`; watch its job with \`monitor\` while you keep working.
+- If you have an **internal sub-agent** tool, use THAT (not a cross-harness peer) for parallel work that stays inside this harness.
+- Backgrounding a SHELL command (this plugin) is neither of those — it runs a process, not an agent. If you're unsure which exists in your harness, check before delegating.`;
 
 // --- Tiny JSON-Schema builders (no external deps) -------------------------
 
@@ -242,6 +244,7 @@ type Job = {
   satisfyOn?: string;
   pattern?: string;
   polling?: boolean; // in-flight guard so monitor polls never overlap
+  pollFailures?: number; // consecutive polls with empty stdout or non-zero exit
   timer?: ReturnType<typeof setTimeout>;
 };
 
@@ -676,6 +679,32 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       const out = `${result.stdout ?? ""}${result.stderr ?? ""}`;
       appendBuffer(job, out);
 
+      // Poll-failure visibility: track consecutive polls that produced empty
+      // stdout OR exited non-zero. A poll command that ENOENTs or fails EVERY
+      // tick (e.g. a pipeline string run under shell:false, a typo'd binary,
+      // a missing tool) is structurally broken — it can never satisfy, so
+      // running it to the full timeout wastes the agent's time and surfaces
+      // only an opaque "timed out" with no hint that the poll itself was at
+      // fault. After MONITOR_POLL_FAIL_THRESHOLD consecutive failures, bail
+      // early with a diagnostic message naming the symptom. A single transient
+      // failure resets the counter (only *consistent* failure is diagnostic).
+      const stdoutEmpty = !result.stdout || result.stdout.trim() === "";
+      const failed = stdoutEmpty || (result.code != null && result.code !== 0);
+      job.pollFailures = failed ? (job.pollFailures ?? 0) + 1 : 0;
+      if ((job.pollFailures ?? 0) >= MONITOR_POLL_FAIL_THRESHOLD) {
+        job.exitCode = result.code ?? undefined;
+        job.status = "timeout";
+        const hint = stdoutEmpty
+          ? "every poll produced empty stdout (command not found, or command prints nothing)"
+          : `every poll exited non-zero (code ${result.code})`;
+        notify("error", `monitor #${job.id} "${label}" aborting: ${hint}. Check the poll command.`);
+        wake(
+          `[monitor #${job.id} "${label}" aborted after ${job.pollFailures} consecutive failed polls: ${hint}. This usually means the poll command is broken (not found / wrong syntax / prints nothing) — read the last poll with the jobs tool (action=tail, jobId=${job.id}) and fix the command.`,
+        );
+        finalize(job);
+        return;
+      }
+
       if (evaluate(result.stdout ?? "", result.code)) {
         job.exitCode = result.code ?? undefined;
         job.status = "satisfied";
@@ -798,9 +827,21 @@ export default function backgroundTasksExtension(pi: PiApi): void {
   function openJobPanel(ui: NonNullable<ToolContext["ui"]>): void {
     if (!ui.custom) return;
     // The component is built fresh on each open (overlays dispose on close).
+    // pi ALWAYS passes the live KeybindingsManager as the factory's 3rd arg
+    // (interactive-mode.js: `factory(this.ui, theme, this.keybindings, close)`),
+    // so thread it straight into JobPanel rather than re-deriving the same
+    // object via a fragile createRequire("@earendil-works/pi-tui") of an
+    // undeclared dependency (opus review W1). Tests construct JobPanel
+    // without a factory, so the param is optional there and resolveKb()
+    // remains as a test-only fallback.
     ui.custom(
       (tui: unknown, theme: ThemeLike, keybindings: Keybindings, done: () => void) =>
-        new JobPanel(() => Array.from(jobs.values()).sort((a, b) => a.id - b.id), theme, done),
+        new JobPanel(
+          () => Array.from(jobs.values()).sort((a, b) => a.id - b.id),
+          theme,
+          done,
+          keybindings,
+        ),
       { overlay: true, overlayOptions: { width: "70%", maxHeight: "80%", anchor: "center" } },
     );
   }
@@ -965,17 +1006,25 @@ function clipToWidth(text: string, width: number): string {
 class JobPanel {
   private theme: ThemeLike;
   private onClose: () => void;
+  private kb: { matches: (data: string, action: string) => boolean } | null;
   private selected = 0;
   private paging: { jobId: number } | null = null;
   private getJobs: () => Job[];
 
-  constructor(getJobs: () => Job[], theme: ThemeLike, onClose: () => void) {
+  constructor(
+    getJobs: () => Job[],
+    theme: ThemeLike,
+    onClose: () => void,
+    // pi hands the live KeybindingsManager to the ui.custom factory (3rd arg)
+    // and we thread it through openJobPanel. Optional so tests can construct
+    // JobPanel directly without a factory (opus review W1: prefer this over a
+    // createRequire lookup of an undeclared dependency).
+    keybindings?: { matches: (data: string, action: string) => boolean },
+  ) {
     this.getJobs = getJobs;
     this.theme = theme;
     this.onClose = onClose;
-    // Resolve the keybinding manager once, at construction. handleInput's
-    // contract is sync (fire-and-forget), so it cannot await an import here.
-    resolveKb();
+    this.kb = keybindings ?? resolveKb();
   }
 
   private fg(name: string, text: string): string {
@@ -984,12 +1033,11 @@ class JobPanel {
 
   /** Match input against a pi-tui action, falling back to raw bytes. */
   private is(data: string, action: "up" | "down" | "left" | "right" | "confirm" | "cancel"): boolean {
-    const kb = kbMatcher;
     const actionId =
       action === "left" || action === "right"
         ? `tui.editor.cursor${action[0].toUpperCase()}${action.slice(1)}`
         : `tui.select.${action}`;
-    if (kb?.matches(data, actionId)) return true;
+    if (this.kb?.matches(data, actionId)) return true;
     return RAW[action](data);
   }
 
