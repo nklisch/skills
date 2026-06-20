@@ -47,9 +47,13 @@ genuinely fresh, or it just agrees with itself.
    sources above) to an independent reviewer, per agile-workflow's **advisory-review policy**: when a
    *different* model class is available, use `peeragent` (pre-approved for cross-review); otherwise
    fall back to a fresh-context same-harness sub-agent. The cross-model path is preferred but
-   **optional** — the gauntlet degrades to fresh-context review, never skips. Either way the reviewer
-   scores every finding `keep | revise | drop` on all three lenses, with a one-line reason each, and
-   the ledger (below) is written regardless of which path ran.
+   **optional** — the gauntlet degrades to fresh-context review, never skips. For a deep or complex
+   campaign where two model classes are available, use **two distinct classes** — the first pass in
+   the advisory/completeness posture (is the finding set complete, anything missed?), the next in the
+   adversarial posture (which findings don't hold up?). Class selection and peer flags live in
+   [../../principles/references/models.md](../../principles/references/models.md). Either way the
+   reviewer scores every finding `keep | revise | drop` on all three lenses, with a one-line reason
+   each, and the ledger (below) is written regardless of which path ran.
 2. **Apply.** Drop the rejects. Revise the salvageable (often: re-scope the fix to the right
    altitude, or soften "replace X" to "the real issue is Y"). Record every drop + reason in the
    campaign ledger — dropped findings are evidence the gauntlet worked, not waste.

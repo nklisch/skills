@@ -20,8 +20,15 @@ context-isolated agent still gives *some* independence.
 
 ## Step 1: Pick the reviewer
 
-**Preferred — different model class via peeragent.** Resolve the wrapper before
-calling; never assume `peeragent` is on `PATH`:
+**Preferred — different model class via peeragent.** The whole value is blind-spot
+diversity, so pick the peer that **maximizes training difference from the host**,
+not a "better" model. Resolve the concrete host→peer pairing (Claude host →
+codex/gemini/zai; Codex host → claude opus/gemini/zai; Gemini host → claude opus/
+codex/zai; GLM host → claude opus/codex/gemini) and the exact `--agent/--model/
+--effort` flags from [../../principles/references/models.md](../../principles/references/models.md)
+§4 and §7 — keep the matrix in one place rather than duplicating it here.
+
+Resolve the wrapper before calling; never assume `peeragent` is on `PATH`:
 
 1. If `PEERAGENT_BIN` names an executable, use it.
 2. Otherwise resolve the peeragent plugin's bundled wrapper (`bin/peeragent`
@@ -30,20 +37,22 @@ calling; never assume `peeragent` is on `PATH`:
    `command -v peeragent` succeeds. If a bare call fails with `command not
    found`, retry once with the bundled path before giving up.
 
-Pick the target by host:
-- Host is **Claude Code** → `--agent codex --effort xhigh`.
-- Host is **Codex** → `--agent claude --model opus --effort xhigh`.
-- Use `--agent gemini` if the natural pair is unavailable.
-
 Run the wrapper in the host harness's outside-sandbox command mode so the peer
 CLI inherits normal network/auth/process env. Do **not** pass `--full-access` —
 review never needs it.
 
-When the target is Claude Opus (`--agent claude --model opus`), budget real wall
-time. Large deck reviews commonly take 10 to 30 minutes, and the wrapper may be
-quiet for most of that time. Do not treat "no response after a few minutes" as a
-hang, and do not switch to the fallback unless the process exits, reports
-failure, or exceeds a timeout chosen for Opus-scale review work.
+When the target is a top-tier reasoning peer (Opus-class, xhigh Codex/GLM),
+budget real wall time. Large deck reviews commonly take 10 to 30 minutes, and
+the wrapper may be quiet for most of that time. Do not treat "no response after a
+few minutes" as a hang, and do not switch to the fallback unless the process
+exits, reports failure, or exceeds a timeout chosen for top-tier review work.
+
+**This pass is the adversarial phase.** For a deep or complex deck, precede it
+with a **completeness/advisory** pass from a *second* different class if
+available — does the deck miss whole lenses or high-leverage angles before you
+start pruning? That realizes the 2-class rule (advisory class A, adversarial
+class B). See the two-phase ordering in
+[../../principles/references/models.md](../../principles/references/models.md) §6.
 
 **Fallback — fresh max-effort sub-agent.** Use this when peeragent is
 unavailable, the wrapper returns `failed`/`blocked`, or the only peer would be the
@@ -54,7 +63,7 @@ independent context.
 Context isolation is what buys independence when model diversity isn't available.
 Frame it explicitly as an adversarial gap-finder (same three asks below).
 
-State in the report which reviewer ran (peer agent + effort, or "fallback
+State in the report which reviewer ran (peer class + effort, or "fallback
 sub-agent — peeragent unavailable") so the cross-model value is transparent.
 
 ## Step 2: Ask for three things

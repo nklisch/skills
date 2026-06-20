@@ -149,12 +149,14 @@ this caller note in every delegated prompt:
 > strategic questions unless a hard halt condition applies. Implementation tier
 > for this run: `<settled tier>` — use it for worker dispatch; do not re-ask. For large or risky
 > design decisions, use the cross-model advisory review policy from
-> `principles/SKILL.md` only when a different model class is available; peer
-> failures are non-blocking. If that policy launches Claude Opus through
-> peeragent, allow 10 to 30 minutes for large reviews; lack of output after a few
-> minutes does not mean it has hung. When hosted in Pi, use native Pi subagents
-> for same-harness worker/scout/reviewer fanout when available; keep peeragent
-> for cross-model or cross-harness review.
+> `principles/SKILL.md` (Part IV) only when a different model class is available;
+> peer failures are non-blocking. For deep or complex design work, use **two
+> different model classes** if available, paired across the advisory→adversarial
+> phases in `principles/references/models.md`. A top-tier reasoning peer may take
+> 10 to 30 minutes for a large review; lack of output after a few minutes does
+> not mean it has hung. When hosted in Pi, use native Pi subagents for
+> same-harness worker/scout/reviewer fanout when available; keep peeragent for
+> cross-model or cross-harness review.
 
 Routing:
 
@@ -184,8 +186,10 @@ Routing:
 - `stage: review` -> `review <id>` (review self-selects its lane: a **story**
   fast-advances on `implement`'s verification with no peer pass; a **feature** or
   **epic** gets a fresh-context deep review — cross-model via peeragent when a
-  different class is reachable, else a native Pi reviewer/oracle subagent when
-  hosted in Pi and available, else a fresh top-class sub-agent)
+  different class is reachable (two classes paired across the advisory→adversarial
+  phases for deep/complex scope; see `principles/references/models.md`), else a
+  native Pi reviewer/oracle subagent when hosted in Pi and available, else a fresh
+  top-class sub-agent)
 
 The delegated skill owns its internal workflow and stage transition. After it
 returns, rebuild the queue from disk rather than relying on cached state.
@@ -256,12 +260,14 @@ When the scoped queue appears drained:
    - commits associated with advanced items
    - notable design decisions, implementation deviations, blockers resolved,
      and verification results reported by delegated skills
-2. If `peer-review` is available with a different model class, run one
-   cross-model peer-review loop over that completion bundle. Ask for bugs,
-   missed acceptance criteria, unreviewed risks, foundation-doc drift, and
-   substrate-state inconsistencies that would make "complete" premature. When
-   the peer is Claude Opus via peeragent, expect large completion reviews to
-   take 10 to 30 minutes; do not classify a quiet, still-running process as
+2. Run the completion review as the two-phase design-review order from
+   `principles/SKILL.md` Part IV (advisory/completeness, then adversarial). If
+   `peer-review` is available with a different model class, use it; for a deep or
+   complex completion bundle, **use two different model classes** if available,
+   one per phase. Ask for bugs, missed acceptance criteria, unreviewed risks,
+   foundation-doc drift, and substrate-state inconsistencies that would make
+   "complete" premature. A top-tier reasoning peer may take 10 to 30 minutes for a
+   large completion review; do not classify a quiet, still-running process as
    hung after only a few minutes.
 3. If peeragent would use the same model class, do not use `peer-review`; use a
    native Pi reviewer/oracle subagent when hosted in Pi and available, otherwise

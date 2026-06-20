@@ -31,6 +31,7 @@ Load only the reference needed for the selected lane:
 | [target-resolution.md](references/target-resolution.md) | Determining the target diff, PR, branch, commit range, or epic aggregate scope. |
 | [review-lenses.md](references/review-lenses.md) | Running a standard or deep review of code changes. |
 | [deep-review.md](references/deep-review.md) | The lane is feature, epic, explicit `--deep`, or the user asks for a more robust review. |
+| [../principles/references/models.md](../principles/references/models.md) | Picking the reviewer/peer, host→peer pairing, and the two-phase advisory→adversarial order for deep reviews. |
 | [substrate-side-effects.md](references/substrate-side-effects.md) | Substrate mode needs findings filed, stages advanced or bounced, records appended, or a commit made. |
 
 ## Invocation Modes
@@ -92,7 +93,10 @@ Feature, epic, and explicit deep reviews use the deep lane. Load
 [deep-review.md](references/deep-review.md) plus any target or lens reference it
 points to. Prefer fresh-context evaluation when available; if no fresh reviewer
 is reachable, do a degraded inline deep review and record that limitation in
-Notes rather than skipping the review.
+Notes rather than skipping the review. Deep reviews follow the two-phase order
+— **completeness/advisory, then adversarial** — and for a feature/epic (deep or
+complex scope) use **two different model classes** when available, one per phase
+(see [../principles/references/models.md](../principles/references/models.md)).
 
 ## Workflow
 

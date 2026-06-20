@@ -274,10 +274,15 @@ full mechanics. In brief:
 
 1. **Pick the reviewer.** Prefer a **different model class** via peeragent
    (resolve the wrapper from the peeragent plugin location — never assume it's on
-   PATH). Host is Claude → `--agent codex --effort xhigh`. Host is Codex →
-   `--agent claude --model opus --effort xhigh`. Same-class peers add little; in
-   that case use the fallback. When the peer is Claude Opus, expect 10 to 30
-   minutes for a large deck review; no return after a few minutes is not a hang.
+   PATH) to maximize blind-spot diversity — pick the concrete target from the
+   host→peer pairing in [../principles/references/models.md](../principles/references/models.md)
+   (Claude host → codex/gemini/zai; Codex host → claude opus/gemini/zai; etc.).
+   Same-class peers add little; in that case use the fallback. A top-tier reasoning
+   peer may take 10 to 30 minutes for a large deck review; no return after a few
+   minutes is not a hang. This pass is the **adversarial** phase; for a deep or
+   complex deck, precede it with a **completeness/advisory** pass from a *second*
+   different class if available (see the two-phase ordering in
+   [../principles/references/models.md](../principles/references/models.md) §6).
 2. **Fallback** when peeragent is unavailable, fails, or would be same-class:
    spawn a **fresh max-effort sub-agent** (Pi → native `reviewer` or `oracle`
    when available; Claude → `Agent(model=opus)`) that

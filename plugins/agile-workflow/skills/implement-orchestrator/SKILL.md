@@ -56,10 +56,14 @@ Before spawning the first wave, determine the implementation tier:
 3. **All other modes ask once** — when there is no explicit/project/autopilot
    choice, ask the user what implementation agent type and tier to use
    (structured question tool when available), then lock it for the whole run;
-   never re-ask per wave:
-   - Claude Code: `sonnet` (routine code), `mixed` (sonnet workers + opus on
-     broad/risky bundles), or `opus` (deep/broad diagnosis throughout).
-   - Codex: `codex-medium` (routine code), `codex-high`, or `codex-xhigh`.
+   never re-ask per wave. Pick a **baseline**, **raised**, or **highest** tier
+   by capability, not by name — concrete model resolution per host is in
+   [../principles/references/models.md](../principles/references/models.md):
+   - **Baseline** = write fidelity at low cost: routine, well-scoped code.
+   - **Raised** = deeper reasoning/stamina for multi-item, cross-module, or
+     orchestration-critical bundles.
+   - **Highest** = the strongest reasoning available for large cross-feature
+     write paths, risky migrations, or repeated failed attempts.
    The vocabulary matches `deep-code-scan`'s scanner-tier dial so the two read
    alike.
 

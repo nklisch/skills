@@ -115,11 +115,16 @@ mispositioned dial costs the whole campaign.
   from how load-bearing the output is; surface your inference.
 - **`scanner tier`** — which agent/model tier the scanner fan-out uses, **locked per lane** at plan
   time (recorded in each lane feature's body, not frontmatter). One enum, used everywhere:
-  `opus | mixed | sonnet | codex-high | codex-xhigh`. `mixed` (default) gives model diversity (opus on
-  dense/high-altitude components + sonnet on leaves); `opus`/`sonnet` pin one Claude model;
-  `codex-high`/`codex-xhigh` set Codex reasoning effort. Offer it per lane or once for all. The
-  choice binds that lane's scanners; the cross-model gauntlet still uses a *different* class
-  regardless (independence is non-negotiable).
+  `opus | mixed | sonnet | codex-high | codex-xhigh | gemini | zai-high | zai-xhigh`. `mixed`
+  (default) gives model diversity — opus on dense/high-altitude components + sonnet on leaves,
+  drawing on the host's available classes; `opus`/`sonnet` pin one Claude model; `codex-high`/
+  `codex-xhigh` set Codex reasoning effort; `gemini` pins Gemini; `zai-high`/`zai-xhigh` set
+  Z.AI GLM 5.2 reasoning effort (model fixed `glm-5.2`). Offer it per lane or once for all. The
+  role→capability→model mapping and which classes count as distinct is in
+  [../principles/references/models.md](../principles/references/models.md). The choice binds that
+  lane's scanners; the cross-model gauntlet still uses a *different* class regardless, and for a
+  deep/complex campaign uses **two** different classes if available (advisory phase + adversarial
+  phase) — independence is non-negotiable.
 - **`altitude bands`** — the default sweep is `leaf → module → subsystem → system`. Trim or
   rename to fit the repo (a tiny library may be just `file → repo`; a monorepo may add
   `package`). The bands become each lane's story spine.

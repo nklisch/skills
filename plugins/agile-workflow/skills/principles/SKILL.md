@@ -500,31 +500,40 @@ User-invocable-only skills (`convert`, `epicize`, `ideate`, `bold-refactor`,
 
 # Part IV — Cross-Model Advisory Review
 
-Cross-model review is an advisory signal, not a stage transition. Use it only
-when a different model class is available through an installed peer mechanism
-such as `peeragent:peer` or `peeragent:peer-review`. If the peer would be the
-same model class as the host, do not use `peer` or `peer-review`; instead spawn a
-**fresh sub-agent at the highest model class available to the host** (a Sonnet host
-spawns a fresh Sonnet reviewer; an **Opus host spawns a new Opus reviewer**) — never
-review inline in the host's own context, which is anchored on the work it just
-produced. Under Pi, native reviewer/oracle subagents count as this same-harness
-fresh-context fallback when no different-model peer is available. Label it a
-same-class or same-harness fresh-context pass, not cross-model review. If the
-peer's model class is uncertain, skip peeragent and use the fresh sub-agent.
+Cross-model review is an advisory signal, not a stage transition. The policy
+below is written in **role and capability** terms so it holds as model
+generations change. For the concrete model-to-capability mapping, the
+host→peer pairing table, and the exact `peeragent` flags, load
+[references/models.md](references/models.md) — that is the single source of
+truth for which models fill each role.
+
+Cross-model review is used only when a **different model class** is available
+through an installed peer mechanism such as `peeragent:peer` or
+`peeragent:peer-review`. The value of a peer is **independent blind spots**, not
+a more authoritative answer, so the peer must be a different class than the host.
+If the peer would be the same model class, do not use `peer` or `peer-review`;
+instead spawn a **fresh sub-agent at the highest model class available to the
+host** — never review inline in the host's own context, which is anchored on the
+work it just produced. Under Pi, native reviewer/oracle subagents count as this
+same-harness fresh-context fallback when no different-model peer is available.
+Label it a same-class or same-harness fresh-context pass, not cross-model review.
+If the peer's model class is uncertain, skip peeragent and use the fresh
+sub-agent.
 
 Explicit user instructions and project-level `AGENTS.md` / `CLAUDE.md` review
 rules override this policy. If they require review, follow them. If they opt out
 or restrict external model egress, do not invoke peeragent.
 
-Opus latency expectation: when peeragent targets Claude Opus, especially from a
-Codex host with `--agent claude --model opus`, large reviews commonly take 10 to
-30 minutes. A long quiet period or lack of intermediate output is normal. Do not
-treat "it has not returned in a few minutes" as a hang, and do not fall back,
-mark the peer attempt failed, or block the run unless the process exits with an
-error, reports failure, or exceeds a timeout that is long enough for Opus-scale
+Latency expectation: a top-tier reasoning peer (Opus-class, xhigh Codex/GLM,
+or equivalent) commonly takes 10 to 30 minutes for large reviews and may be
+quiet for most of it. A long quiet period or lack of intermediate output is
+normal. Do not treat "it has not returned in a few minutes" as a hang, and do
+not fall back, mark the peer attempt failed, or block the run unless the process
+exits with an error, reports failure, or exceeds a timeout sized for top-tier
 review work.
 
-Default judgment:
+Default judgment (by scope — see [references/models.md](references/models.md)
+for the model classes that fill each role):
 
 - Small, low-risk work: skip cross-model review.
 - Small/medium work with real uncertainty: optionally use one focused `peer`
@@ -532,6 +541,11 @@ Default judgment:
 - Large, risky, or architectural design points under autopilot: use one focused
   `peer` pass when no prior `--only-questions` / `## Design decisions`
   alignment exists.
+- **Deep or complex work** (architectural design, large/risky features or
+  epics, the final autopilot completion review, whole-repo scans): **if two
+  different model classes are available, use both**, paired across the two
+  review phases below. Two distinct training lineages catch more than one, and
+  their disagreements are themselves signal.
 - Reviewing a completed **feature or epic** at `stage: review` (the `review`
   skill's deep lane): run the lens review in a fresh context — a different-class
   `peer-review` when reachable, otherwise a native Pi reviewer/oracle subagent
@@ -545,38 +559,58 @@ Default judgment:
 - Completed substantial artifacts, or explicit user requests for review: use
   `peer-review` only when the full iterative loop is appropriate.
 
-For autopilot-driven design work, the default peer ask is **question/risk
-augmentation before decisions are locked**, not validation after the host has
-already decided. Ask the other model for missing questions, risks, ambiguous
-constraints, and alternatives. The host still chooses, verifies against
-foundation docs and code, and records the rationale.
+Designs are reviewed in a fixed **two-phase order** (full mechanics in
+[references/models.md](references/models.md) §6):
+
+1. **Phase 1 — Completeness / Complementary / Advisory (before decisions lock).**
+   Augmentation, not judgment. Ask a different-class peer what is missing, what
+   alternatives strengthen the design, and what questions/risks should be weighed
+   before committing. The host still chooses and records rationale. This is the
+   default autopilot design-time peer ask.
+2. **Phase 2 — Adversarial (after the design is complete).** Attack posture. Ask
+   a **different** peer (ideally a different class than Phase 1, per the 2-class
+   rule) what is broken, contradictory, built on a false assumption, or will
+   fail in operation. Verify concrete claims before accepting.
+
+Never reverse the phases and never skip Phase 1 to jump straight to attack. For
+autopilot-driven design work, the default peer ask is **augmentation before
+decisions are locked**, not validation after the host has already decided.
 
 Design-time advisory peer failures are non-blocking under autopilot. If the
 peer wrapper is missing, the executable cannot be resolved, the invocation
 fails, or the call would use the same model class, continue with host judgment
-and log the reason briefly. A peeragent Opus call still running after only a few
-minutes is not a failure. Do not halt the queue for an advisory review failure.
+and log the reason briefly. A top-tier reasoning peer still running after only
+a few minutes is not a failure. Do not halt the queue for an advisory review
+failure.
 
 The final autopilot completion review is stricter: it must succeed through a
 different-model `peer-review` loop or a same-harness fresh-context fallback
 (native Pi reviewer/oracle when hosted in Pi and available, otherwise local)
-before the run reports `complete`. If the selected final-review path fails, the
-run is blocked on final review rather than complete.
+before the run reports `complete`. For deep/complex scope that means clearing
+through at least one cross-class pass per phase in §6 where two classes are
+available; if the selected final-review path fails, the run is blocked on final
+review rather than complete.
 
 When invoked, summarize the result in the item body without dumping transcripts:
 
 ```markdown
 ## Other agent review
-- Invoked because: <large/risky/autopilot/no prior alignment>
-- Reviewer: <agent/model class, if known>
-- Mode: peer advisory | peer-review
-- Questions/risks considered:
-  - <summary>
+- Invoked because: <large/risky/deep-complex/autopilot/no prior alignment>
+- Scope: <single peer | two-class — list classes>
+- Reviewer (Phase 1 — advisory/completeness): <class, if known>
+  - Gaps / missing requirements / alternatives considered:
+    - <summary>
+- Reviewer (Phase 2 — adversarial): <class, if known; different from Phase 1>
+  - Broken assumptions / failure modes / rejected points:
+    - <summary>
 - Accepted:
-  - <decision or adjustment>
+  - <decision or adjustment> (phase N)
 - Rejected:
-  - <point> — <reason>
+  - <point> — <reason> (phase N)
 ```
+
+If only one peer class was available (or only one phase was warranted by scope),
+fill only the phase that ran and note the other was skipped and why.
 
 Limit autopilot to one advisory pass per item per design stage. Do not run a
 multi-pass `peer-review` loop inside routine autopilot design unless the user or
