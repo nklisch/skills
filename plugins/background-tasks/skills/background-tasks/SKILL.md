@@ -17,15 +17,19 @@ description: >
 Three agent tools for long-running and state-waiting work, so the agent's turn
 is never blocked on a slow command and never busy-loops waiting for a condition.
 
-- **`background`** — run a shell command detached, get woken with the exit code
-  and an output tail when it exits. Optionally wake early the first time output
-  matches a regexp (`wake_on_pattern`); the job keeps running and still wakes on
-  exit.
+- **`background`** — run a shell command detached, get woken when it exits
+  (the wake carries only the job id, label, and exit code — **never the command
+  output**, which you read on demand via `jobs tail`/`view`). Optionally wake
+  early the first time output matches a regexp (`wake_on_pattern`); the job
+  keeps running and still wakes on exit.
 - **`monitor`** — poll a shell command on an interval until a condition is
-  satisfied, then wake with the result. `satisfy_on` selects the condition:
+  satisfied, then wake (id + status only; output read via `jobs tail`/`view`).
+  `satisfy_on` selects the condition:
   `exit_zero`, `exit_nonzero`, `stdout_matches` (needs `pattern`), or
   `stdout_not_matches` (needs `pattern`). Times out after `timeout_seconds`.
-- **`jobs`** — `list`, `tail`, `status`, or `cancel` over the registry.
+- **`jobs`** — `list`, `tail`, `status`, `cancel`, or `view` (open a focusable,
+  keyboard-navigable panel: j/k or arrows to move, enter to page a job's
+  output, q/Esc to close) over the registry.
 
 ## When to use which
 
@@ -45,13 +49,24 @@ once, with the result.
 
 Both `background` and `monitor` return immediately with a job id; the turn can
 end. When the job finishes (`background`) or the condition is met/times out
-(`monitor`), the agent is woken in a new turn carrying the exit code and an
-output tail. Cancellation (`jobs action=cancel`) stops a job **without** waking
-— a cancelled job produces no completion message.
+(`monitor`), the agent is woken in a new turn — but the wake carries **only a
+trusted, hardcoded message**: the job id, label, and exit code or status word
+(plus a pointer to the jobs tool). **Command output is never in the wake.**
+The agent reads the actual output on demand with `jobs action=tail` (or
+`action=view` for the panel). This is a deliberate security property: a
+command's stdout/stderr is attacker-controlled, so it is never auto-injected as
+user content — it only enters the agent's context when the agent deliberately
+requests it.
 
-Output sent back to the agent is tail-truncated to keep context bounded; a
-rolling in-memory buffer per job prevents unbounded memory growth on very long
-runs. Use `jobs action=tail` to read more of a job's buffered output.
+Cancellation (`jobs action=cancel`) SIGTERMs the job's process group and
+escalates to SIGKILL after a grace window if it won't exit; a cancelled job
+produces no completion wake. `session_shutdown` cancels every still-running job
+so no child outlives the session.
+
+A rolling in-memory buffer per job (capped) plus pruning of old terminal jobs
+keeps memory bounded across a long session. Output returned by `tail`/
+`view` is hard-capped so it can't blow out context. The footer shows a live
+summary (e.g. `⏳ 2 jobs: #1 tests, #2 build`) of active jobs.
 
 ## Patterns
 
@@ -68,7 +83,7 @@ monitor: command="gh run list --branch $(git branch --show-current) -L 1 --json 
 ```
 The conclusion regex matches either terminal state, so the agent is woken as
 soon as CI finishes regardless of pass/fail — then it reads the actual
-conclusion from the returned output.
+conclusion from the job's output with `jobs action=tail`.
 
 **Wake early the moment a build emits a known marker, but still get the final exit:**
 ```
@@ -84,13 +99,17 @@ monitor: command="test -f dist/bundle.js && echo READY", satisfy_on="stdout_matc
 ## Guardrails
 
 - Set a `timeout_seconds` on every `monitor` so a condition that never holds
-  wakes the agent with a timeout instead of polling indefinitely.
+  wakes the agent with a timeout instead of polling indefinitely. Polls never
+  overlap (the next poll is scheduled only after the current one completes) and
+  the interval is floored at 1s.
+- After a wake, read the job's output with `jobs action=tail` (or `view`) — it
+  is never delivered automatically.
 - Prefer `monitor` over `background` for any "wait until X" goal — `background`
   waits on one command's exit, not on a re-checked condition.
 - Don't background trivially short commands; the ordinary `bash` tool is
-  cheaper and returns inline.
-- The ordinary `bash` tool is unchanged; these tools are an additional surface
-  for the long-running and state-waiting cases specifically.
+  cheaper and returns inline. The ordinary `bash` tool is unchanged; these
+  tools are an additional surface for the long-running and state-waiting cases
+  specifically.
 
 ## Runtime availability
 
@@ -101,3 +120,11 @@ command, poll for a condition) but must fall back to the ordinary shell tool and
 manage waiting itself. This is intentional harness-specific surface — the
 portable knowledge is the when/why above; the executable ergonomics live in the
 extension.
+
+**Known limitation — session scoping.** The job registry, wake channel, and UI
+handles are process-global within a single pi process, not per-session. If you
+switch or fork sessions while a background job is still running, that job's
+completion can still fire and wake/notify the *current* session rather than the
+one that started it. For long jobs that may outlive a session switch, prefer
+starting them in the session you intend to receive the wake, or cancel before
+switching. (Per-session scoping is a future improvement.)
