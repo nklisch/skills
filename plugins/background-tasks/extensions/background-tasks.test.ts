@@ -68,6 +68,7 @@ function makeFakePi() {
   const wakes: Wake[] = [];
   const entries: Array<{ type: string; data: unknown }> = [];
   const shutdownHandlers: Array<() => Promise<void> | void> = [];
+  const handlers: Record<string, Array<(event: unknown) => unknown>> = {};
 
   const pi = {
     registerTool: (def: RegisteredTool) => {
@@ -79,23 +80,31 @@ function makeFakePi() {
     appendEntry: (type: string, data: unknown) => {
       entries.push({ type, data });
     },
-    exec: async (command: string): Promise<ExecResult> => {
+    exec: async (command: string, args: string[] = [], options?: { cwd?: string; timeout?: number; signal?: AbortSignal }): Promise<ExecResult> => {
+      // Mirror the REAL pi.exec runtime: spawn(command, args, { shell: false }).
+      // The previous fake ignored args and always ran `/bin/sh -c <command>`,
+      // which masked the bug where the extension passed shell syntax as the
+      // program name. Honoring command+args means a test only passes when the
+      // extension routes through /bin/sh -c itself.
       const { execFileSync } = require("node:child_process") as typeof import("node:child_process");
       try {
-        const out = execFileSync("/bin/sh", ["-c", command], { encoding: "utf8" });
+        const out = execFileSync(command, args, { encoding: "utf8", cwd: options?.cwd, timeout: options?.timeout });
         return { stdout: out, code: 0 };
       } catch (err) {
         const e = err as { stdout?: string; status?: number };
         return { stdout: e.stdout ?? "", code: e.status ?? 1 };
       }
     },
-    on: (event: string, handler: () => Promise<void> | void) => {
-      if (event === "session_shutdown") shutdownHandlers.push(handler);
+    on: (event: string, handler: (event: unknown) => unknown) => {
+      // Record all handlers so before_agent_start (not just session_shutdown)
+      // can be driven in tests.
+      (handlers[event] ??= []).push(handler);
+      if (event === "session_shutdown") shutdownHandlers.push(handler as () => Promise<void> | void);
     },
   };
 
   backgroundTasksExtension(pi);
-  return { pi, tools, wakes, entries, shutdownHandlers };
+  return { pi, tools, wakes, entries, shutdownHandlers, handlers };
 }
 
 async function waitFor<T>(
@@ -223,6 +232,49 @@ describe("monitor tool", () => {
     expect(wake.content).toContain("stdout_matches");
     expect(wake.content).not.toContain("status=READY"); // H1: poll output not in wake
     expect(wake.options?.deliverAs).toBe("followUp");
+  });
+
+  test("REGRESSION: stdout_matches against shell-only syntax (echo X; echo Y) — requires the /bin/sh -c route", async () => {
+    // A bare binary literally named `echo first; echo SECOND_TOKEN` does not
+    // exist, so without shell routing spawn() ENOENTs, stdout stays empty, and
+    // the monitor times out. This was the live-session #8 failure: pi.exec uses
+    // shell:false but the extension passed shell syntax as the program name.
+    const { tools, wakes } = makeFakePi();
+    const mon = tools.get("monitor")!;
+    await mon.execute(
+      "c1",
+      { command: "echo first; echo SECOND_TOKEN", satisfy_on: "stdout_matches", pattern: "SECOND_TOKEN", interval_seconds: 1, timeout_seconds: 4 },
+      undefined,
+      undefined,
+      makeContext(),
+    );
+    const wake = await waitFor(() => wakes[0], { timeoutMs: 8000 });
+    expect(wake.content).toContain("satisfied");
+  });
+
+  test("REGRESSION: compound `test -f <file>` satisfies stdout_matches — monitor sees the real filesystem via shell", async () => {
+    // The live-session #2 symptom was diagnosed as FS isolation; the real cause
+    // was the same missing shell route — `test -f X && ...` ENOENTs as a program
+    // name. Create a file via the host shell, then confirm a monitor polling a
+    // compound shell predicate sees it.
+    const tmp = `/tmp/peer-monitor-reg-${process.pid}-${Date.now()}`;
+    const { execSync } = require("node:child_process") as typeof import("node:child_process");
+    execSync(`touch ${tmp}`);
+    try {
+      const { tools, wakes } = makeFakePi();
+      const mon = tools.get("monitor")!;
+      await mon.execute(
+        "c1",
+        { command: `test -f ${tmp} && echo present`, satisfy_on: "stdout_matches", pattern: "present", interval_seconds: 1, timeout_seconds: 4 },
+        undefined,
+        undefined,
+        makeContext(),
+      );
+      const wake = await waitFor(() => wakes[0], { timeoutMs: 8000 });
+      expect(wake.content).toContain("satisfied");
+    } finally {
+      require("node:fs").unlinkSync(tmp);
+    }
   });
 
   test("times out when the condition never holds", async () => {
@@ -366,6 +418,57 @@ describe("lifecycle", () => {
     // (cancelling immediately, cancelled/kill_failed once SIGKILL resolves).
     const st = after.content[0].text.match(/\[[a-z_]+/)?.[0] ?? "";
     expect(["[cancelling", "[cancelled", "[kill_failed"]).toContain(st);
+  });
+});
+
+describe("session-start system-prompt nudge (before_agent_start)", () => {
+  const BASE = "You are pi. Follow AGENTS.md.";
+
+  async function runNudge(base: string): Promise<string> {
+    const { handlers } = makeFakePi();
+    const hs = handlers["before_agent_start"];
+    if (!hs || hs.length === 0) throw new Error("no before_agent_start handler registered");
+    const out = await hs[0]({ type: "before_agent_start", systemPrompt: base });
+    return (out as { systemPrompt?: string })?.systemPrompt ?? base;
+  }
+
+  test("appends the explainer to the base prompt (does NOT wipe it)", async () => {
+    // Returning { systemPrompt } wholesale-replaces; the handler MUST preserve
+    // event.systemPrompt. Losing the base prompt would brick the session.
+    const result = await runNudge(BASE);
+    expect(result.startsWith(BASE)).toBe(true);
+    expect(result).toContain("Long-Running & Concurrent Work");
+    // The corrected contract: after launching, keep working in parallel OR end the
+    // turn — NOT "end the turn" as the primary instruction.
+    expect(result).toContain("keep working on something else");
+    expect(result).toContain("Do NOT hand-roll sleep/poll loops");
+    expect(result.length).toBeGreaterThan(BASE.length);
+  });
+
+  test("is idempotent: a prompt already containing the nudge is returned unchanged", async () => {
+    // Guards against double-application (e.g. chained handlers re-adding).
+    const already = `${BASE}\n\n## Long-Running & Concurrent Work\n\nold copy`;
+    const result = await runNudge(already);
+    expect(result).toBe(already);
+  });
+
+  test("is idempotent across chaining: feeding the handler's own output back in does not duplicate the nudge", async () => {
+    // The pi runner threads currentSystemPrompt through chained before_agent_start
+    // handlers. If two extensions (or a double-registration) both append, the
+    // second must see the first's header and bail. Simulate that chain here.
+    const { handlers } = makeFakePi();
+    const hs = handlers["before_agent_start"];
+    expect(hs?.length).toBe(1);
+    const first = (await hs![0]({ type: "before_agent_start", systemPrompt: BASE })) as { systemPrompt?: string };
+    expect(first?.systemPrompt).toContain("Long-Running & Concurrent Work");
+    // Feed first's output back as the next handler's input — header present -> no-op.
+    const second = (await hs![0]({ type: "before_agent_start", systemPrompt: first!.systemPrompt! })) as
+      | { systemPrompt?: string }
+      | undefined;
+    expect(second?.systemPrompt).toBeUndefined();
+    // And the prompt was not duplicated.
+    const nudgeCount = (first!.systemPrompt!.match(/Long-Running & Concurrent Work/g) ?? []).length;
+    expect(nudgeCount).toBe(1);
   });
 });
 

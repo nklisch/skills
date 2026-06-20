@@ -54,6 +54,31 @@ const KILL_GRACE_MS = 2_000; // post-SIGKILL reap window before declaring kill_f
 const MAX_RETAINED_JOBS = 50; // prune oldest terminal jobs above this count
 const PAGING_TAIL_LINES = 200; // lines of output shown per job in the view panel
 
+// --- Session-start discoverability nudge --------------------------------
+//
+// A short, agent-facing explainer appended to the system prompt every turn so
+// the agent reaches for background/monitor (and distinguishes them from
+// peeragent/subagent delegation) instead of reflexively blocking on `bash`.
+// Header is also the idempotency sentinel.
+const SYSTEM_PROMPT_EXPLAINER_HEADER = "## Long-Running & Concurrent Work";
+const SYSTEM_PROMPT_EXPLAINER = `${SYSTEM_PROMPT_EXPLAINER_HEADER}
+
+This harness wakes you asynchronously. When you launch work that runs detached, the point is to STOP BLOCKING on it: **either keep working on something else in parallel while it runs, or — if there's genuinely nothing else to do — end the turn** and the harness starts a new one for you when it finishes. Never sit blocked waiting for it.
+
+### Do
+- **\`background\`** — run a long shell command detached and keep working; you're woken on exit. Use for anything that may run more than a few seconds (test suites, builds, deploys, watch/serve, CI runs) AND for **launching multiple instances in parallel** (fan out N jobs, keep doing other work, harvest results via \`jobs\` as each finishes). The whole point: long-running async work you step away from while you produce in parallel.
+- **\`monitor\`** — the SANCTIONED poller. Polls a command on an interval until a *condition* holds, then wakes you. Use it over \`background\` when you're waiting on a state, not a single exit: CI going green, PR reviewer status, a file/port/log line, a \`peeragent --async\` job flipping to done.
+- After a wake, read output with \`jobs\` (action=tail) — it is never auto-delivered.
+
+### Don't
+- **Do NOT hand-roll sleep/poll loops** (\`sleep N\` in bash then \`jobs list\`, over and over). That re-implements the wake the harness already gives you AND blocks the turn you were trying to free up. After launching a background job: **keep working on something else, or end the turn** — you will be woken on exit. (Ending the turn is the *fallback* when there's nothing else to do, not the primary instruction.)
+- **Do NOT use \`background\` for a single quick command** (a few seconds). That's what \`bash\` is for. \`background\` is for *long-running async* and *parallel fan-out*.
+- **Do NOT sleep in \`bash\` to wait for a condition.** That's exactly what \`monitor\` is for, and it's non-blocking.
+
+### Delegation vs. backgrounding (don't conflate)
+- **\`/peer\` (peeragent)** — delegate a focused pass (implement/review/research/debug) to a *cross-harness* peer model. It can run \`--async\`; watch its job with \`monitor\` while you keep working.
+- **\`subagent\`** — for *internal* parallel sub-agent work that stays inside this harness. Use this, NOT \`/peer\`, for internal parallel work.`;
+
 // --- Tiny JSON-Schema builders (no external deps) -------------------------
 
 type Schema = Record<string, unknown>;
@@ -127,7 +152,7 @@ type PiApi = {
   exec?: (
     command: string,
     args: string[],
-    options?: { signal?: AbortSignal; timeout?: number },
+    options?: { signal?: AbortSignal; timeout?: number; cwd?: string },
   ) => Promise<ExecResult>;
   sendUserMessage?: (
     content: string,
@@ -592,7 +617,17 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       job.polling = true;
       let result: ExecResult;
       try {
-        result = await pi.exec!(command, [], { timeout: Math.max(5, intervalSeconds) * 1000 });
+        // Route through /bin/sh -c explicitly. pi.exec uses spawn() with
+        // shell:false, so passing the raw command as the program name only
+        // works for bare binaries (true/false); anything with shell syntax
+        // (echo X, test -f X && echo Y, pipelines, redirects) ENOENTs and
+        // yields empty stdout — which silently breaks stdout_matches and
+        // starved exit-based polls of real output. Mirrors the background
+        // tool's `spawn(command, { shell: "/bin/sh" })`.
+        result = await pi.exec!("/bin/sh", ["-c", command], {
+          timeout: Math.max(5, intervalSeconds) * 1000,
+          cwd: ctx.cwd ?? process.cwd(),
+        });
       } catch (err) {
         result = { stderr: (err as Error).message, code: null };
       }
@@ -740,7 +775,8 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       "Run a long-running shell command in the background and return immediately with a job id. The agent is automatically woken (new turn) when the command exits; if wake_on_pattern is set, it also wakes the first time output matches that regexp. The wake carries only the job id and exit code — never command output, which the agent reads on demand with the jobs tool. Use this instead of the bash tool for anything long-running (test suites, builds, deploys, CI runs) so the turn doesn't block.",
     promptSnippet: "Run a long command in the background; get woken on completion",
     promptGuidelines: [
-      "Use background for any command that may take more than a few seconds (test suites, builds, deploys, watch/serve, CI) instead of the bash tool, which blocks the turn.",
+      "Use background for any command that may take more than a few seconds (test suites, builds, deploys, watch/serve, CI) instead of the bash tool, which blocks the turn. Also use it to launch multiple instances in parallel (fan out N jobs, harvest results with the jobs tool).",
+      "After launching a background job, do NOT block waiting for it — either keep working on something else in parallel, or end the turn if there's nothing else to do. Never sleep or poll for it (no `sleep N` then `jobs list` loops): you are woken automatically on exit, and re-implementing the wake blocks the turn you were freeing up.",
       "Prefer the monitor tool over background when you need to wait for a CONDITION (e.g. CI going green, a file appearing, a log line) rather than a single command's exit.",
       "Command output is never auto-delivered: after a wake, read it with the jobs tool (action=tail) rather than expecting it in the wake message.",
     ],
@@ -761,7 +797,8 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       "Poll a shell command on an interval until a condition is satisfied (or a timeout fires), then wake the agent. satisfy_on picks the condition: exit_zero, exit_nonzero, stdout_matches (pattern), or stdout_not_matches (pattern). Use this to wait on a state rather than a single run — e.g. watch CI until green (gh run list + stdout_matches on success), wait for a file/port, or wait for a log line. Returns immediately with a monitor id; the agent is woken on satisfy or timeout. Polls never overlap and the interval is floored at 1s.",
     promptSnippet: "Poll a command until a condition holds (CI green, file appears, log line)",
     promptGuidelines: [
-      "Use monitor (not background) when you are waiting for a STATE/condition to become true by re-checking a command, not for a single long command's exit.",
+      "Use monitor (not background, and NEVER a hand-rolled `sleep N` + check loop) when you are waiting for a STATE/condition to become true by re-checking a command. Monitor is the sanctioned, non-blocking poller.",
+      "After launching a monitor, do NOT block waiting for it — keep working on something else, or end the turn. You are woken on satisfy or timeout; never sleep or poll for it.",
       "Set a sensible timeout_seconds so a never-satisfied condition wakes you with a timeout rather than polling forever.",
     ],
     parameters: obj({
@@ -801,6 +838,27 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       if (ctx.mode === "tui" && ctx.ui?.custom) openJobPanel(ctx.ui);
       else ctx.ui?.notify?.("Interactive panel is TUI-only; use the jobs tool instead.", "warning");
     },
+  });
+
+  // --- Session-start system-prompt nudge ---------------------------------
+  //
+  // Append the explainer every turn. Why every turn rather than a one-shot
+  // `session_start` user message: the session rebuilds the system prompt from
+  // the base each turn, so a one-shot message would be summarized away on the
+  // first compaction and never return. Re-appending per turn is compaction-
+  // immune, and the token cost is comparable to the per-turn promptGuidelines
+  // already attached to each tool definition.
+  //
+  // The runner wholesale-replaces the prompt with whatever we return and threads
+  // `currentSystemPrompt` through chained handlers, so we MUST preserve
+  // event.systemPrompt (append to it) — returning only our block would wipe
+  // the entire prompt. `event.systemPrompt` starts from the base prompt every
+  // turn, so this never sees our own prior append under normal single
+  // registration; the header check is a cheap double-registration guard.
+  pi.on?.("before_agent_start", (event) => {
+    const base = event.systemPrompt ?? "";
+    if (base.includes(SYSTEM_PROMPT_EXPLAINER_HEADER)) return;
+    return { systemPrompt: `${base}\n\n${SYSTEM_PROMPT_EXPLAINER}` };
   });
 
   // Clean up every spawned child / timer on shutdown so we never leak processes.
