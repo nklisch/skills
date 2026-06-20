@@ -559,18 +559,22 @@ for the model classes that fill each role):
 - Completed substantial artifacts, or explicit user requests for review: use
   `peer-review` only when the full iterative loop is appropriate.
 
-Designs are reviewed in a fixed **two-phase order** (full mechanics in
-[references/models.md](references/models.md) §6):
+Designs and reviews are both evaluated in a fixed **two-phase order**
+(full mechanics in [references/models.md](references/models.md) §6):
 
-1. **Phase 1 — Completeness / Complementary / Advisory (before decisions lock).**
-   Augmentation, not judgment. Ask a different-class peer what is missing, what
-   alternatives strengthen the design, and what questions/risks should be weighed
-   before committing. The host still chooses and records rationale. This is the
-   default autopilot design-time peer ask.
-2. **Phase 2 — Adversarial (after the design is complete).** Attack posture. Ask
-   a **different** peer (ideally a different class than Phase 1, per the 2-class
-   rule) what is broken, contradictory, built on a false assumption, or will
-   fail in operation. Verify concrete claims before accepting.
+1. **Phase 1 — Completeness / Complementary / Advisory.** Augmentation, not
+   judgment. Ask a different-class peer what is missing, what alternatives
+   strengthen it, and what questions/risks should be weighed. The loop shape
+   depends on the artifact: **designs (open)** get a **single pass** before
+   decisions lock; **reviews (complete artifact)** get a **multi-step
+   convergence loop to nits** — the ideal is the full `peer-review` loop
+   (≥3 passes, stop on nits, cap ~5) when `peer-review` is available.
+2. **Phase 2 — Adversarial.** Attack posture. Ask a **different** peer
+   (ideally a different class than Phase 1, per the 2-class rule) what is
+   broken, contradictory, built on a false assumption, or will fail in
+   operation. For reviews this is the same convergence loop in the attack
+   posture; for designs it is a focused adversarial pass. Verify concrete
+   claims before accepting.
 
 Never reverse the phases and never skip Phase 1 to jump straight to attack. For
 autopilot-driven design work, the default peer ask is **augmentation before

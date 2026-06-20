@@ -124,35 +124,41 @@ scope only.
 
 ## 6. Two-phase design review: advisory then adversarial
 
-Designs are reviewed in a fixed **two-phase order**. Never reverse it, and never
-skip Phase 1 to jump to attack — a design reviewed only adversarially gets torn
-apart before anyone checks whether it is complete.
+Designs and reviews are both evaluated in a fixed **two-phase order** —
+**completeness/complementary/advisory first, adversarial second.** Never reverse
+the phases and never skip Phase 1 to jump straight to attack: a design or review
+reviewed only adversarially gets torn apart before anyone checks whether it is
+complete. The two phases have **different loop shapes depending on whether the
+artifact is a design (open) or a review (complete)**:
 
-**Phase 1 — Completeness / Complementary / Advisory (before decisions lock).**
-Augmentation, not judgment. Ask the reviewer (ideally a different class):
-- *Completeness* — are all requirements, acceptance criteria, edge cases, error
-  paths, ports/adapters, and dependencies covered? What is missing?
-- *Complementary* — what additional considerations, alternatives, or
-  refinements strengthen the design?
-- *Advisory* — what questions, risks, ambiguous constraints, or alternative
-  approaches should be weighed before committing?
+**Phase 1 — Completeness / Complementary / Advisory.** Augmentation, not
+judgment. Ask what is missing, what alternatives strengthen it, and what
+questions/risks should be weighed.
+- *Design (open artifact, before decisions lock)*: **a single pass.** You don't
+  iterate an open design to convergence. The host chooses and records rationale.
+  This is the default autopilot design-time peer ask.
+- *Review (complete artifact — feature/epic/out-of-band review)*: **a multi-step
+  convergence loop**, not a single ask — the artifact is complete, so iterate
+  until findings stabilize. The ideal is the full `peer-review` convergence loop
+  (≥3 review→refine passes, continue while substantive issues surface, stop on
+  nits, cap ~5); run that loop in the advisory/complementary posture when
+  `peer-review` is available. When only a single peer pass is available, run as
+  many rounds as the mechanism allows and say it did not reach full convergence.
 
-Framing: "make this complete and well-considered." The host still chooses and
-records rationale. This is the default autopilot design-time peer ask.
+**Phase 2 — Adversarial (after Phase 1 converges or, for designs, completes).**
+Attack posture. Ask a **different** reviewer (ideally a different class than
+Phase 1, per the 2-class rule in §5) what is broken, contradictory, built on a
+false assumption, or will fail in operation. For reviews this is the same
+`peer-review`-style convergence loop applied in the attack posture; for designs
+it is a focused adversarial pass. Verify concrete claims against code/foundation
+docs before accepting or rejecting.
 
-**Phase 2 — Adversarial (after the design is complete).** Attack posture. Ask a
-**different** reviewer (ideally a different class than Phase 1, per §5):
-- What is broken, contradictory, or built on a false assumption?
-- What will fail under load, at the boundaries, in integration, or in operation?
-- Where does this design not hold up?
-
-Framing: "prove this is wrong / find what breaks." Verify concrete claims
-against code/foundation docs before accepting or rejecting.
-
-Record both phases in the item body under `## Other agent review`, labeling
-each finding's phase and the reviewer class. Peer failures in either phase are
-non-blocking (fall back to a fresh same-class sub-agent); the final autopilot
-completion review must still clear through at least one cross-class pass.
+Record both phases in the item body under `## Other agent review`, labeling each
+finding's phase, the reviewer class, and (for reviews) how far the convergence
+loop ran (converged on nits / hit cap / single pass only). Peer failures in
+either phase are non-blocking (fall back to a fresh same-class sub-agent); the
+final autopilot completion review must still clear through at least one
+cross-class pass.
 
 ## 7. peeragent invocation cheatsheet
 

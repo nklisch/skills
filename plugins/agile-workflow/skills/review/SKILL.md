@@ -94,9 +94,13 @@ Feature, epic, and explicit deep reviews use the deep lane. Load
 points to. Prefer fresh-context evaluation when available; if no fresh reviewer
 is reachable, do a degraded inline deep review and record that limitation in
 Notes rather than skipping the review. Deep reviews follow the two-phase order
-— **completeness/advisory, then adversarial** — and for a feature/epic (deep or
-complex scope) use **two different model classes** when available, one per phase
-(see [../principles/references/models.md](../principles/references/models.md)).
+— **completeness/complementary, then adversarial** — and because a review target
+is a complete artifact, each phase is a **convergence loop to nits**, not a
+single pass (the ideal is the full `peer-review` loop when available). For a
+feature/epic (deep or complex scope) use **two different model classes** when
+available, one per phase (see
+[../principles/references/models.md](../principles/references/models.md) §6 for
+the design-vs-review loop distinction).
 
 ## Workflow
 
