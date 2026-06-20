@@ -74,7 +74,10 @@ A single index drives the Claude Code and Codex marketplaces:
 Pi distribution is package-native. A plugin's Pi package metadata lives beside
 the Claude and Codex manifests in that plugin directory, points at the same
 `skills/` tree, and adds Pi-native extensions or prompt templates only when they
-improve the user experience beyond raw skill loading.
+improve the user experience beyond raw skill loading. External companions such
+as `peeragent` are not re-exported by this repo's root Pi package; Pi users
+install them from their own package roots, for example
+`pi install git:github.com/nklisch/peeragent@v0.4.1`.
 
 ## The substrate-access model
 

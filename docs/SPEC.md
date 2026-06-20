@@ -51,7 +51,10 @@ Codex:
 Pi distribution is package-native rather than marketplace-index-native in this
 repo: each shippable plugin directory owns its Pi `package.json`, and published
 Pi packages use npm metadata plus the `pi-package` keyword for gallery
-discovery. Git and local-path installs use the same package roots.
+discovery. Git and local-path installs use the same package roots. External
+marketplace companions such as `peeragent` live in their own repositories and
+must expose their own Pi package roots; the root `nklisch/skills` Pi package does
+not include or re-export them.
 
 ## Shared and harness-specific surfaces
 

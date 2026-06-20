@@ -51,6 +51,9 @@ pi install npm:@nklisch/pi-nates-toolkit
 pi install npm:@nklisch/pi-agentic-research
 pi install npm:@nklisch/pi-agent-coordination
 
+# External companion plugin: peeragent lives in its own repo/package
+pi install git:github.com/nklisch/peeragent@v0.4.1
+
 # Local checkout/development installs
 pi install -l .
 pi install -l ./plugins/agile-workflow
@@ -62,9 +65,11 @@ pi install -l ./plugins/agent-coordination
 ```
 
 Pi packages can load executable extensions in addition to shared skills. The root
-Git install loads all supported plugins; the deprecated `workflow` plugin is not
-included. Install from trusted sources; `agile-workflow` includes a Pi-native
-`/aw` command for queue inspection and workflow handoffs.
+Git install loads all supported in-tree plugins; the deprecated `workflow` plugin
+and external marketplace companions such as `peeragent` are not included. Install
+external companions from their own Pi package roots. Install from trusted sources;
+`agile-workflow` includes a Pi-native `/aw` command for queue inspection and
+workflow handoffs.
 
 ## The supported plugins
 
@@ -76,6 +81,12 @@ included. Install from trusted sources; `agile-workflow` includes a Pi-native
 | **nates-toolkit** | Standalone utility skills, no workflow lock-in — explain in plain language, reflect on tool & skill usage, author skills, and audit skill artifacts. | [plugins/nates-toolkit/README.md](plugins/nates-toolkit/README.md) |
 | **agentic-research** | Grounded, verifiable AI research discipline. Produces `.research/` attestations and syntheses with citation/verification gates, and pairs with agile-workflow when research should ground a work item. | [plugins/agentic-research/README.md](plugins/agentic-research/README.md) |
 | **agent-coordination** | Sparse cross-agent coordination ledger for shared repos — deliberate claims, handoffs, blockers, review summaries, and merge summaries without turning Discussions into chat. Lightly aware of agile-workflow `.work` IDs when present. |  |
+
+## External companion plugins
+
+| Plugin | Pi install | What it does |
+|---|---|---|
+| **peeragent** | `pi install git:github.com/nklisch/peeragent@v0.4.1` | Cross-harness peer delegation and peer review. Pi loads the `peer` and `peer-review` skills from peeragent's package and uses its bundled wrapper/binaries to call Codex, Claude Code, Gemini through Antigravity, or Z.AI GLM 5.2 through Pi. |
 
 The two big ones — `agile-workflow` + `ux-ui-design` — are designed to work
 together. The killer workflow is to use `ux-ui-design` mocks during

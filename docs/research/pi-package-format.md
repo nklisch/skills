@@ -54,3 +54,17 @@ as an optional native delegation adapter when present, keep peeragent as a
 cross-model/cross-harness advisory adapter, and retain a single-agent fallback.
 
 Source: https://pi.dev/packages/pi-subagents
+
+## External companion packages
+
+Marketplace-only external plugins are not automatically part of the root
+`nklisch/skills` Pi package. If an external companion should work in Pi, that
+companion repo needs its own package root. Peeragent follows that model: its
+root `package.json` exposes `./plugin/skills` so Pi loads skills from the same
+subtree that contains the bundled `plugin/bin/peeragent` shim and committed
+platform binaries. Users install it separately, pinned to a peeragent release
+tag:
+
+```bash
+pi install git:github.com/nklisch/peeragent@v0.4.1
+```
