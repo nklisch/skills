@@ -17,6 +17,9 @@
     "nates-toolkit"
   ],
   "pi": {
+    "extensions": [
+      "./extensions"
+    ],
     "skills": [
       "./skills"
     ]
