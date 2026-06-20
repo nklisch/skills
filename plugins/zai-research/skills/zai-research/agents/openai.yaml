@@ -1,0 +1,6 @@
+interface:
+  display_name: "Z.ai Research"
+  short_description: "Z.ai web search, URL/PDF reading, GitHub repo deep-read"
+  default_prompt: "Use $zai-research for current web search, URL/PDF fetching, or deep-reading a GitHub repo via Z.ai."
+policy:
+  allow_implicit_invocation: true

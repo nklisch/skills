@@ -61,6 +61,13 @@
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
     {
+      "name": "zai-research",
+      "source": "./plugins/zai-research",
+      "description": "Z.ai-powered web search, URL/PDF reading, and GitHub repo deep-read for Pi. Wraps Z.ai's web-search-prime, web-reader, and zread MCP servers via the bundled MCP SDK client (pi has no built-in MCP), plus provider-free local PDF extraction via unpdf. Auth is the configured zai provider key. Replaces the prior pi-web-access web-search/fetch surface.",
+      "category": "productivity",
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
+    },
+    {
       "name": "krometrail",
       "source": {
         "source": "git-subdir",

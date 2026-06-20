@@ -2,6 +2,10 @@
 __pycache__/
 *.pyc
 
+# Node — plugin dependencies install locally (e.g. plugins/*/node_modules);
+# lockfiles (bun.lock) ARE committed for reproducible installs.
+node_modules/
+
 # peeragent per-repo job store (local cross-model delegation cache)
 .peeragent/
 

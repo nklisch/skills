@@ -4,7 +4,7 @@ This repo contains agent skills distributed via the Claude Code plugin marketpla
 
 ## Orient first — `ls plugins/` before assuming
 
-**There are EIGHT distinct plugins under `plugins/`, not one.** Before designing on top of any plugin, run `ls plugins/` and read the target plugin's `plugin.json` + `docs/` (if it has them). Skill names overlap between plugins by design; the plugin a skill lives in determines its semantics.
+**There are NINE distinct plugins under `plugins/`, not one.** Before designing on top of any plugin, run `ls plugins/` and read the target plugin's `plugin.json` + `docs/` (if it has them). Skill names overlap between plugins by design; the plugin a skill lives in determines its semantics.
 
 ### Plugin map
 
@@ -17,6 +17,7 @@ This repo contains agent skills distributed via the Claude Code plugin marketpla
 | `plugins/agentic-research/` | `agentic-research` | supported | Agentic Research Discipline (ARD) adopted as a plugin — grounded, verifiable AI research: an anti-fabrication floor, selectable verification gates, and a `.research/` substrate tier paralleling `.work/`. Fully supported alongside the other current plugins; vendors ARD's `kernel/` consumption-contract surface, pinned in `plugins/agentic-research/ard.json`. |
 | `plugins/agent-coordination/` | `agent-coordination` | supported | Sparse cross-agent coordination ledger for shared repositories. Defines deliberate GitHub Discussion events for claims, handoffs, blockers, review summaries, and merge summaries. Lightly aware of agile-workflow `.work` IDs, but not coupled to the substrate. |
 | `plugins/background-tasks/` | `background-tasks` | supported | **Pi-native runtime tools** (not a workflow skill set). A pi extension that registers three agent tools — `background` (run a command detached, wake on exit or first pattern match), `monitor` (poll a command until a condition holds or it times out), and `jobs` (list/tail/status/cancel) — plus a portable skill describing when to reach for them. Tools are pi-runtime-only and degrade to informational in other harnesses. |
+| `plugins/zai-research/` | `zai-research` | supported | **Pi-native Z.ai research tools.** A pi extension wrapping Z.ai's web-search-prime, web-reader, and zread MCP servers via the bundled MCP SDK client (pi has no built-in MCP), re-exposed as `web_search`, `fetch_content` (webReader + local unpdf for PDFs), `search_repo_docs`, `get_repo_structure`, `read_repo_file`. Auth is the configured `zai` provider key. Replaces `pi-web-access`'s web-search/fetch surface. |
 | `plugins/workflow/` | `workflow` | **DEPRECATED — no longer supported** | Doc-driven software workflow with design docs as artifacts in `docs/designs/`. Kept in tree so existing installs don't break. No new features or fixes will land. New projects should use `agile-workflow`; existing `workflow` projects migrate via `/agile-workflow:convert`. |
 
 ### workflow is deprecated

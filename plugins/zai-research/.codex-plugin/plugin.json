@@ -1,0 +1,25 @@
+{
+  "name": "zai-research",
+  "version": "0.1.0",
+  "description": "Z.ai-powered web search, URL/PDF reading, and GitHub repo deep-read for Pi. Wraps Z.ai's web-search-prime, web-reader, and zread MCP servers via the bundled MCP SDK client, plus provider-free local PDF extraction.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Z.ai Research",
+    "shortDescription": "Z.ai web search, URL/PDF reading, GitHub repo deep-read",
+    "longDescription": "A pi-native research extension routing web search, URL/PDF reading, and GitHub repo deep-read through Z.ai. Wraps Z.ai's web-search-prime, web-reader, and zread MCP servers via the bundled official MCP SDK client (pi has no built-in MCP support), plus provider-free local PDF extraction via unpdf. Auth is the configured zai provider key. Replaces the prior pi-web-access web-search/fetch surface.",
+    "developerName": "nklisch",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Use zai-research for current web search, URL/PDF fetching, or deep-reading a GitHub repo via Z.ai."
+    ],
+    "websiteURL": "https://github.com/nklisch/skills"
+  }
+}
