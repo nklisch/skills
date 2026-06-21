@@ -1,6 +1,6 @@
 {
   "name": "nates-toolkit",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Standalone, project-agnostic utility skills with no workflow lock-in — plain-language re-explanation (plainspeak), agent self-reflection on tool & skill usage (agent-reflection), and skill authoring + quality auditing (write-tool-skill, skill-auditor).",
   "author": {
     "name": "nklisch"
