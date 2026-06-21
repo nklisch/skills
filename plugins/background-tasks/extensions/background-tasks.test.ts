@@ -323,37 +323,72 @@ describe("monitor tool", () => {
     expect(res.details.intervalSeconds).toBeGreaterThanOrEqual(1);
   });
 
-  test("fail-fast: a poll that ENOENTs every tick bails early with a diagnostic, not a silent timeout", async () => {
-    // Reproduces the live-session failure: a pipeline poll command run under
-    // shell:false ENOENTs every tick (empty stdout). Before this fix it would
-    // poll silently to the full deadline with no hint the poll was broken.
-    // Inject an exec that returns empty stdout + code 1 every call.
-    const { tools, wakes } = makeFakePi(async () => ({ stdout: "", code: 1 }));
+  test("fail-fast: a poll whose command is not found bails early with a diagnostic, not a silent timeout", async () => {
+    // Reproduces the live-session failure: a poll whose command can't run
+    // (typo'd binary, missing tool, or a bogus command inside a pipeline).
+    // /bin/sh reports "command not found" in stderr (note a pipeline still
+    // exits 0 via its last stage, so code is NOT the signal). Before this fix
+    // the monitor polled silently to the full deadline with no hint the poll
+    // was broken. Inject an exec returning that stderr every tick.
+    const { tools, wakes } = makeFakePi(async () => ({
+      stdout: "",
+      stderr: "/bin/sh: bogus-tool-xyz: command not found\n",
+      code: 127,
+    }));
     const mon = tools.get("monitor")!;
     await mon.execute(
       "c1",
-      { command: "peeragent --status x | python3 ...", satisfy_on: "stdout_matches", pattern: "DONE", interval_seconds: 1, timeout_seconds: 30 },
+      { command: "bogus-tool-xyz --status x | python3 ...", satisfy_on: "stdout_matches", pattern: "DONE", interval_seconds: 1, timeout_seconds: 30 },
       undefined,
       undefined,
       makeContext(),
     );
     const wake = await waitFor(() => wakes[0], { timeoutMs: 8000 });
-    expect(wake.content).toContain("consecutive failed polls");
-    expect(wake.content).toContain("empty stdout");
+    expect(wake.content).toContain("consecutive broken polls");
+    expect(wake.content).toContain("command not found");
     expect(wake.content).toContain("fix the command");
     // It must NOT be the generic timeout message.
     expect(wake.content).not.toContain("timed out after 30s");
   });
 
-  test("fail-fast counter resets on a transient success (only CONSISTENT failure is diagnostic)", async () => {
-    // A poll that fails once then succeeds must not accumulate toward the
-    // threshold — only unbroken streaks of failure should trigger early abort.
+  test("NOT a broken poll: a legit pending check (test -f / nc / grep) failing with non-zero + empty stderr is NOT aborted", async () => {
+    // local-pr-reviewer finding on PR #24: the prior heuristic
+    // (code !== 0 || empty stdout) false-aborted the monitor's CORE use case
+    // — polling a condition that legitimately fails (exit 1, empty stderr)
+    // until it holds. This test pins the corrected, narrow heuristic: a
+    // non-zero exit with NO "command not found" in stderr is a legit pending
+    // poll and must run to its real timeout, not abort.
     let calls = 0;
     const { tools, wakes } = makeFakePi(async () => {
       calls++;
-      // fail, fail, succeed (matches pattern), then would keep going — but
-      // the success on call 3 must satisfy immediately and clear the streak.
-      if (calls <= 2) return { stdout: "", code: 1 };
+      // test -f style: exit 1, empty stderr, empty stdout, every tick.
+      return { stdout: "", stderr: "", code: 1 };
+    });
+    const mon = tools.get("monitor")!;
+    await mon.execute(
+      "c1",
+      { command: "test -f /never-appears && echo ready", satisfy_on: "stdout_matches", pattern: "READY", interval_seconds: 1, timeout_seconds: 3 },
+      undefined,
+      undefined,
+      makeContext(),
+    );
+    const wake = await waitFor(() => wakes[0], { timeoutMs: 10000 });
+    // It must hit the REAL timeout (3s), NOT the fail-fast abort.
+    expect(wake.content).toContain("timed out after 3s");
+    expect(wake.content).not.toContain("broken polls");
+    // And it must have polled many times (not aborted after 3), proving the
+    // legit-pending path wasn't misclassified.
+    expect(calls).toBeGreaterThan(3);
+  });
+
+  test("fail-fast counter resets on a transient broken poll (only CONSISTENT not-found is diagnostic)", async () => {
+    // A poll that reports not-found once then succeeds must not accumulate —
+    // only an unbroken streak of not-found should trigger the abort.
+    let calls = 0;
+    const { tools, wakes } = makeFakePi(async () => {
+      calls++;
+      // not-found, not-found, then satisfy (matches pattern).
+      if (calls <= 2) return { stdout: "", stderr: "x: command not found\n", code: 127 };
       return { stdout: "READY", code: 0 };
     });
     const mon = tools.get("monitor")!;
@@ -365,9 +400,9 @@ describe("monitor tool", () => {
       makeContext(),
     );
     const wake = await waitFor(() => wakes[0], { timeoutMs: 8000 });
-    // The transient failures did not trip the threshold; it eventually satisfied.
+    // The transient not-found did not trip the threshold; it eventually satisfied.
     expect(wake.content).toContain("satisfied");
-    expect(wake.content).not.toContain("consecutive failed polls");
+    expect(wake.content).not.toContain("broken polls");
   });
 });
 

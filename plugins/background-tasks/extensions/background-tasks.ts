@@ -679,27 +679,29 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       const out = `${result.stdout ?? ""}${result.stderr ?? ""}`;
       appendBuffer(job, out);
 
-      // Poll-failure visibility: track consecutive polls that produced empty
-      // stdout OR exited non-zero. A poll command that ENOENTs or fails EVERY
-      // tick (e.g. a pipeline string run under shell:false, a typo'd binary,
-      // a missing tool) is structurally broken — it can never satisfy, so
-      // running it to the full timeout wastes the agent's time and surfaces
-      // only an opaque "timed out" with no hint that the poll itself was at
-      // fault. After MONITOR_POLL_FAIL_THRESHOLD consecutive failures, bail
-      // early with a diagnostic message naming the symptom. A single transient
-      // failure resets the counter (only *consistent* failure is diagnostic).
-      const stdoutEmpty = !result.stdout || result.stdout.trim() === "";
-      const failed = stdoutEmpty || (result.code != null && result.code !== 0);
-      job.pollFailures = failed ? (job.pollFailures ?? 0) + 1 : 0;
+      // Poll-failure visibility: catch a STRUCTURALLY-BROKEN poll — one whose
+      // command can never succeed — and bail early with a diagnostic instead of
+      // running it silently to the full deadline. The discriminator is narrow
+      // on purpose: a `command not found` / `not found` error in stderr means
+      // /bin/sh couldn't run the command at all (typo'd binary, missing tool,
+      // or a bogus command inside a pipeline — note a pipeline still exits 0
+      // via its last stage, so code alone is NOT a reliable signal). Legit
+      // pending polls (test -f, nc -z, curl -fsS, grep -q) fail with a non-zero
+      // exit and EMPTY or non-"not found" stderr until the condition holds, so
+      // they must NOT be classified as broken — they're the tool's core use
+      // case (local-pr-reviewer finding on PR #24: a broader `code !== 0 ||
+      // empty stdout` heuristic false-aborted exactly these). After
+      // MONITOR_POLL_FAIL_THRESHOLD consecutive "not found" polls, abort with
+      // a diagnostic. A poll without that error resets the counter.
+      const notFound = /(?:command not found|not found|No such file or directory)/i.test(result.stderr ?? "");
+      job.pollFailures = notFound ? (job.pollFailures ?? 0) + 1 : 0;
       if ((job.pollFailures ?? 0) >= MONITOR_POLL_FAIL_THRESHOLD) {
         job.exitCode = result.code ?? undefined;
         job.status = "timeout";
-        const hint = stdoutEmpty
-          ? "every poll produced empty stdout (command not found, or command prints nothing)"
-          : `every poll exited non-zero (code ${result.code})`;
+        const hint = `every poll failed to run its command (command not found in stderr). The poll command likely references a missing/typo'd binary or tool`;
         notify("error", `monitor #${job.id} "${label}" aborting: ${hint}. Check the poll command.`);
         wake(
-          `[monitor #${job.id} "${label}" aborted after ${job.pollFailures} consecutive failed polls: ${hint}. This usually means the poll command is broken (not found / wrong syntax / prints nothing) — read the last poll with the jobs tool (action=tail, jobId=${job.id}) and fix the command.`,
+          `[monitor #${job.id} "${label}" aborted after ${job.pollFailures} consecutive broken polls: ${hint}. Read the last poll with the jobs tool (action=tail, jobId=${job.id}) and fix the command.`,
         );
         finalize(job);
         return;

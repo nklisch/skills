@@ -1,6 +1,6 @@
 {
   "name": "background-tasks",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Pi-native runtime tools for long-running and state-waiting work — background a command and get woken on exit (or first pattern match), poll a command until a condition holds (CI green, file appears, log line) or it times out, and list/tail/status/cancel the job registry.",
   "author": {
     "name": "nklisch"
