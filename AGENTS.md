@@ -4,7 +4,7 @@ This repo contains agent skills distributed via the Claude Code plugin marketpla
 
 ## Orient first — `ls plugins/` before assuming
 
-**There are EIGHT distinct plugins under `plugins/`, not one.** Before designing on top of any plugin, run `ls plugins/` and read the target plugin's `plugin.json` + `docs/` (if it has them). Skill names overlap between plugins by design; the plugin a skill lives in determines its semantics.
+**There are NINE distinct plugins under `plugins/`, not one.** Before designing on top of any plugin, run `ls plugins/` and read the target plugin's `plugin.json` + `docs/` (if it has them). Skill names overlap between plugins by design; the plugin a skill lives in determines its semantics.
 
 ### Plugin map
 
@@ -16,6 +16,7 @@ This repo contains agent skills distributed via the Claude Code plugin marketpla
 | `plugins/nates-toolkit/` | `nates-toolkit` | supported | Standalone, project-agnostic utility skills with **no substrate lock-in** — `plainspeak` (plain-language re-explainer), `agent-reflection` (self-reflection on tool & skill usage), `write-tool-skill` + `skill-auditor` (skill authoring + quality auditing). Skills here stand alone. Absorbed the former `skill-authoring` plugin (now deleted) plus `agent-reflection` (formerly `tool-evaluator`) extracted from `agile-workflow`. |
 | `plugins/agentic-research/` | `agentic-research` | supported | Agentic Research Discipline (ARD) adopted as a plugin — grounded, verifiable AI research: an anti-fabrication floor, selectable verification gates, and a `.research/` substrate tier paralleling `.work/`. Fully supported alongside the other current plugins; vendors ARD's `kernel/` consumption-contract surface, pinned in `plugins/agentic-research/ard.json`. |
 | `plugins/agent-coordination/` | `agent-coordination` | supported | Sparse cross-agent coordination ledger for shared repositories. Defines deliberate GitHub Discussion events for claims, handoffs, blockers, review summaries, and merge summaries. Lightly aware of agile-workflow `.work` IDs, but not coupled to the substrate. |
+| `plugins/background-tasks/` | `background-tasks` *(Pi package only)* | supported | **Pi-native runtime tools** (not a workflow skill set, and **not** a Claude/Codex plugin — the tools are pi-runtime-only with no cross-harness equivalent). A pi extension registering three agent tools — `background` (run a command detached, wake on exit or first pattern match), `monitor` (poll a command until a condition holds or it times out), and `jobs` (list/tail/status/cancel) — plus a portable skill describing when to reach for them. Distributed as a Pi package only; in other harnesses the skill is informational. |
 | `plugins/zai-research/` | `zai-research` | supported | **Pi-native Z.ai research tools.** A pi extension wrapping Z.ai's web-search-prime, web-reader, and zread MCP servers via the bundled MCP SDK client (pi has no built-in MCP), re-exposed as `web_search`, `fetch_content` (webReader + local unpdf for PDFs), `search_repo_docs`, `get_repo_structure`, `read_repo_file`. Auth is the configured `zai` provider key. Replaces `pi-web-access`'s web-search/fetch surface. |
 | `plugins/workflow/` | `workflow` | **DEPRECATED — no longer supported** | Doc-driven software workflow with design docs as artifacts in `docs/designs/`. Kept in tree so existing installs don't break. No new features or fixes will land. New projects should use `agile-workflow`; existing `workflow` projects migrate via `/agile-workflow:convert`. |
 
@@ -46,6 +47,8 @@ Each supported plugin ships channel metadata, kept in lockstep:
 - `plugins/<name>/.codex-plugin/plugin.json` — for OpenAI Codex CLI (`codex plugin marketplace add`).
 - `plugins/<name>/package.json` — for Pi packages (`pi install` from npm, git, or local paths). The `pi` manifest points at the same shared `skills/` directory and any Pi-native extensions, prompt templates, or themes.
 
+**Pi-only plugins.** A plugin whose capability is pi-runtime-only — with no meaningful Claude/Codex surface — ships a `package.json` and skips the `.claude-plugin/` and `.codex-plugin/` manifests entirely, and is omitted from `.claude-plugin/marketplace.json`. `background-tasks` is the current example: its tools (job registry, wake channel, TUI panel) exist only inside the pi runtime, so a Claude/Codex install would carry a skill describing tools that don't work there. By contrast `zai-research` stays three-channel because its value is an **MCP + skill combo** — the underlying Z.ai MCP servers (`web_search_prime`, `webReader`, zread) are cross-harness servers that Claude/Codex can drive via native MCP, so the portable skill plus `references/servers.md` are genuinely useful there.
+
 The root `.claude-plugin/marketplace.json` uses the legacy string-path shape for local plugins (`"source": "./plugins/<name>"`) plus `policy` + `category`. Claude Code does NOT support the object shape `{ "source": "local", "path": "..." }` — only `github`, `url`, `git-subdir`, and `npm` are valid object-form source types. Codex reads this file as an alternative marketplace location, so both ecosystems install from the same git tree. Pi distribution is package-native: each plugin's `package.json` is the install/package root for npm, git, or local-path installs. External marketplace companions such as `peeragent` are not pulled into the root Pi package; document their own `pi install git:...@<tag>` commands instead.
 
 **Shared surface (works in all three):** SKILL.md files (open Agent Skills standard at agentskills.io) and each plugin's `skills/` directory.
@@ -61,7 +64,7 @@ For full background on the Codex format, see `docs/research/codex-plugin-format.
 
 ## Versioning
 
-Each plugin has matching `version` fields across its channel metadata. `bump-version.sh` bumps all channel metadata at once and refuses to run if they're out of sync.
+Each plugin has matching `version` fields across its channel metadata. `bump-version.sh` bumps all present channel metadata at once and refuses to run if they're out of sync. A plugin may be **Pi-only** (no `.claude-plugin/` or `.codex-plugin/` manifests) when its capability is pi-runtime-only — `background-tasks` is the current example; in that case the script takes the version from `package.json` and bumps just that file.
 
 **Commit your feature changes BEFORE bumping.** `bump-version.sh` auto-commits and pushes the version bump on its own — if you run it with pending changes in the plugin dir, the published bump commit won't contain them. The script refuses to run if `plugins/<plugin>/` has uncommitted changes.
 

@@ -11,10 +11,15 @@ usage() {
   echo "Plugins:"
   for dir in plugins/*/; do
     name=$(basename "$dir")
-    json="$dir.claude-plugin/plugin.json"
+    json="${dir}.claude-plugin/plugin.json"
+    pkg="${dir}package.json"
     if [[ -f "$json" ]]; then
       version=$(jq -r '.version' "$json")
       echo "  $name  (v$version)"
+    elif [[ -f "$pkg" ]]; then
+      # Pi-only plugin (no Claude/Codex manifests) — version lives in package.json.
+      version=$(jq -r '.version' "$pkg")
+      echo "  $name  (v$version, Pi-only)"
     fi
   done
   exit 1
@@ -28,8 +33,15 @@ claude_json="plugins/$plugin/.claude-plugin/plugin.json"
 codex_json="plugins/$plugin/.codex-plugin/plugin.json"
 package_json="plugins/$plugin/package.json"
 
-if [[ ! -f "$claude_json" ]]; then
-  echo "Error: $claude_json not found"
+# A plugin ships at least one channel manifest. Most ship Claude + Codex + Pi
+# package in lockstep; a few are Pi-only (e.g. background-tasks) where the
+# capability is pi-runtime-only and the Claude/Codex surfaces are intentionally
+# absent. The Claude manifest is the canonical version source when present,
+# otherwise fall back to the Pi package.json.
+if [[ ! -f "$claude_json" && ! -f "$package_json" ]]; then
+  echo "Error: no channel metadata found for $plugin"
+  echo "  looked for: $claude_json"
+  echo "             $package_json"
   exit 1
 fi
 
@@ -55,7 +67,13 @@ if ! git diff --quiet -- "plugins/$plugin/" \
   exit 1
 fi
 
-current=$(jq -r '.version' "$claude_json")
+# Canonical version source: the Claude manifest when present, else the Pi
+# package.json (Pi-only plugins have no Claude/Codex manifests).
+if [[ -f "$claude_json" ]]; then
+  current=$(jq -r '.version' "$claude_json")
+else
+  current=$(jq -r '.version' "$package_json")
+fi
 
 # If a Codex manifest exists, require its version to match before bumping.
 # A mismatch means a prior bump went sideways and we shouldn't silently
@@ -104,7 +122,7 @@ bump_json() {
   git add "$file"
 }
 
-bump_json "$claude_json"
+[[ -f "$claude_json" ]] && bump_json "$claude_json"
 [[ -f "$codex_json" ]] && bump_json "$codex_json"
 [[ -f "$package_json" ]] && bump_json "$package_json"
 
