@@ -1,6 +1,6 @@
-# {{OWNER_NAME}} — Work Tracker
+# {{OWNER_NAME}} - Work Tracker
 
-A single-person work-tracking repo. An agent drives it via MCPs and CLIs; all state lives in flat files here. No service, no database.
+A single-person work-tracking repo. An agent drives it through the configured tools in `config/tools.md`; all state lives in flat files here. No service, no database.
 
 ## Owner
 
@@ -8,36 +8,36 @@ A single-person work-tracking repo. An agent drives it via MCPs and CLIs; all st
 
 ## How to operate
 
-The skills in `skills/` describe the *shape* of each task, not a rigid script. Stay flexible and let context drive the output. If a day is quiet, say so briefly instead of padding a fixed format; if something urgent dominates, lead with it and let the rest shrink. Adapt length, structure, and emphasis to what's actually in front of you — a short honest answer beats a complete-but-hollow one. The data rules below are firm (what's editable vs append-only); almost everything about *presentation and framing* is yours to judge.
+The guides in `skills/` describe the *shape* of each task, not a rigid script. Stay flexible and let context drive the output. If a day is quiet, say so briefly instead of padding a fixed format; if something urgent dominates, lead with it and let the rest shrink. Adapt length, structure, and emphasis to what's actually in front of you. The data rules below are firm (what's editable vs append-only); almost everything about *presentation and framing* is yours to judge.
 
 ## First thing each day
 
-Run **`skills/sync.md`**. It pulls from {{TRACKER_NAME}}, {{CHAT_NAME}}, and your transcripts/notes, normalizes everything into `state/ingest.jsonl`, and surfaces what changed.
+Run **`skills/sync.md`**. It pulls from {{TRACKER_NAME}}, {{CHAT_NAME}}, and your transcripts/notes using the access configured in `config/tools.md`, normalizes everything into `state/ingest.jsonl`, and surfaces what changed.
 
 ## File map
 
-- `config/` — who you are, what tools are wired, where sources live. Hand-edited. Read these first.
-- `skills/` — the operating skills. Each is concrete to this job's tools.
-  - `sync.md` — start-of-day pull
-  - `plan.md` — work the future axis: goals, sizing, what's next
-  - `report.md` — generate a one-off HTML report
-  - `log.md` — record work done
-  - `ticket.md` — create/update tracker status
-- `state/` — the data. See the rule below.
-- `templates/report-spec.md` — the report's content sections.
-- `templates/report-example.html` — the visual direction the report skill works within.
-- `reports/` — generated reports land here.
+- `config/`: who you are, what tools are wired, where sources live. Hand-edited. Read these first.
+- `skills/`: the operating guides. Each is concrete to this job's tools.
+  - `sync.md`: start-of-day pull
+  - `plan.md`: work the future axis: goals, sizing, what's next
+  - `report.md`: generate a one-off HTML report
+  - `log.md`: record work done
+  - `ticket.md`: create/update tracker status
+- `state/`: the data. See the rule below.
+- `templates/report-spec.md`: the report's content sections.
+- `templates/report-example.html`: the visual direction the report guide works within.
+- `reports/`: generated reports land here.
 
 ## The one data rule
 
 Two storage layers, by access pattern:
 
-- **Editable JSON — the future and present.** `state/goals.json` and `state/tasks.json` get re-scoped, reordered, and rewritten freely.
-- **Append-only JSONL — the past and the raw intake.** `state/worklog.jsonl` (work done) and `state/ingest.jsonl` (normalized transcripts/notes/chat) are never rewritten or hand-edited. They are the honest ledger.
+- **Editable JSON: the future and present.** `state/goals.json` and `state/tasks.json` get re-scoped, reordered, and rewritten freely.
+- **Append-only JSONL: the past and the raw intake.** `state/worklog.jsonl` (work done) and `state/ingest.jsonl` (normalized transcripts/notes/chat) are never rewritten or hand-edited. They are the honest ledger.
 
 Record shapes:
 
 - `goals.json`: `{ id, title, horizon, status, why, children: [task_id...] }`
-- `tasks.json`: `{ id, title, goal_id, size, status, opened, closed, refs: [] }` — `size` is a rough planning bucket (S/M/L), not an estimate.
+- `tasks.json`: `{ id, title, goal_id, size, status, opened, closed, refs: [] }` - `size` is a rough planning bucket (S/M/L), not an estimate.
 - `worklog.jsonl`: `{ ts, task_id, kind, summary, refs: [] }`
 - `ingest.jsonl`: `{ ts, source, type, ref, text }`

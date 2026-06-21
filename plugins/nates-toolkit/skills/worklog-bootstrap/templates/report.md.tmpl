@@ -4,22 +4,22 @@ Generate a one-off status report as a single self-contained HTML file. The conte
 
 ## Inputs
 
-- `templates/report-spec.md` — the sections this report must contain. Follow it as the content spec.
-- `templates/report-example.html` — the **visual direction**: a mockup (with dummy data) the user signed off on during setup. It establishes the *feel* — overall aesthetic, typography, color, density, the kind of layout. Treat it as a direction to stay within, **not** a rigid template to reproduce pixel-for-pixel. Each day's report should keep the same feel while adapting to what that day actually holds: lead with what matters most that day, expand or drop sections depending on whether there's anything to show, let a heavy day look denser and a light day look sparser. Same character, different content.
-- `state/goals.json`, `state/tasks.json` — the future/present picture.
-- `state/worklog.jsonl` — what actually got done (filter to the report's time window).
-- Recent `state/ingest.jsonl` — for context (decisions, notable threads), if a section calls for it.
+- `templates/report-spec.md`: the sections this report must contain. Follow it as the content spec.
+- `templates/report-example.html`: the **visual direction**: a mockup (with dummy data) the user signed off on during setup. It establishes the *feel*: overall aesthetic, typography, color, density, the kind of layout. Treat it as a direction to stay within, **not** a rigid template to reproduce pixel-for-pixel. Each day's report should keep the same feel while adapting to what that day actually holds: lead with what matters most that day, expand or drop sections depending on whether there's anything to show, let a heavy day look denser and a light day look sparser. Same character, different content.
+- `state/goals.json`, `state/tasks.json`: the future/present picture.
+- `state/worklog.jsonl`: what actually got done (filter to the report's time window).
+- Recent `state/ingest.jsonl`: for context (decisions, notable threads), if a section calls for it.
 
 ## Build
 
-1. Read `report-spec.md` for the candidate content and `report-example.html` for the visual direction. Fold the state data into the sections that have something to say *today* — don't force every section if a day is quiet, and let the strongest item lead. Common shape: progress against goals, what got done (from the worklog), what's next (from tasks ordered by size/status), and anything blocking.
-2. Render to a **single self-contained `.html` file** — inline CSS and JS, no external assets or CDN links, so it opens anywhere and can be sent as one file. Keep the feel of `report-example.html`; you have latitude in exact layout day to day, so long as it reads as the same report. Light interactivity (collapsible sections, a filter) is fine if it fits.
-3. Write it to `reports/<YYYY-MM-DD>.html`. Don't overwrite a same-day report without asking — suffix it (`-2`) instead.
+1. Read `report-spec.md` for the candidate content and `report-example.html` for the visual direction. Fold the state data into the sections that have something to say *today*. Do not force every section if a day is quiet, and let the strongest item lead. Common shape: progress against goals, what got done (from the worklog), what's next (from tasks ordered by size/status), and anything blocking.
+2. Render to a **single self-contained `.html` file**: inline CSS and JS, no external assets or CDN links, so it opens anywhere and can be sent as one file. Keep the feel of `report-example.html`; you have latitude in exact layout day to day, so long as it reads as the same report. Light interactivity (collapsible sections, a filter) is fine if it fits.
+3. Write it to `reports/<YYYY-MM-DD>.html`. Do not overwrite a same-day report without asking; suffix it (`-2`) instead.
 4. Append a `worklog.jsonl` line: `{ ts, task_id: null, kind: "report", summary: "Generated report for <window>", refs: ["reports/<file>"] }`.
 
 ## Notes
 
-- The report is **derived** — never edit state to make a report look better; fix the state, then regenerate.
+- The report is **derived**: never edit state to make a report look better; fix the state, then regenerate.
 - `report-spec.md` is the knob the user turns to change report contents. If they want different sections, point them there rather than hardcoding changes in this skill.
 
 ## Output

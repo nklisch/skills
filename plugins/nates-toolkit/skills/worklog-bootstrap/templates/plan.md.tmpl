@@ -1,27 +1,27 @@
 # Skill: plan
 
-Work the **future axis**: define and re-scope long-run goals, break them into tasks, size them roughly, and decide what's next. This is the editable layer — you rewrite `goals.json` and `tasks.json` freely here.
+Work the **future axis**: define and re-scope long-run goals, break them into tasks, size them roughly, and decide what's next. This is the editable layer; rewrite `goals.json` and `tasks.json` when the user has agreed to the plan changes.
 
 ## Context to load first
 
-- `state/goals.json` — the long-run picture.
-- `state/tasks.json` — backlog + in-flight.
-- Recent `state/ingest.jsonl` tail — what `sync` surfaced (so planning reflects today's reality).
-- `config/profile.md` — what {{OWNER_NAME}} owns, to keep goals in scope.
+- `state/goals.json`: the long-run picture.
+- `state/tasks.json`: backlog + in-flight.
+- Recent `state/ingest.jsonl` tail: what `sync` surfaced (so planning reflects today's reality).
+- `config/profile.md`: what {{OWNER_NAME}} owns, to keep goals in scope.
 
 ## What you help with
 
-**Shape goals.** Goals are coarse and slow-moving — they can span months. Each is `{ id, title, horizon, status, why, children: [task_id...] }`. Co-author them with the user: a good goal has a clear `why` and a `horizon` (rough timeframe, not a deadline). Re-scope freely — splitting, merging, and dropping goals is normal.
+**Shape goals.** Goals are coarse and slow-moving; they can span months. Each is `{ id, title, horizon, status, why, children: [task_id...] }`. Co-author them with the user: a good goal has a clear `why` and a `horizon` (rough timeframe, not a deadline). Re-scope freely; splitting, merging, and dropping goals is normal.
 
 **Break goals into tasks.** A task is a concrete unit that ladders up to a goal: `{ id, title, goal_id, size, status, opened, closed, refs: [] }`. Set `goal_id` to connect it. Pull candidate tasks from what `sync` surfaced when relevant.
 
-**Size roughly.** `size` is a planning bucket only — S/M/L (or the user's own scale). It exists to order work and rough out what fits next. Do **not** turn this into estimation; there is no estimate-vs-actual tracking. If the user fixates on precision, gently steer back to coarse buckets.
+**Size roughly.** `size` is a planning bucket only: S/M/L (or the user's own scale). It exists to order work and rough out what fits next. Do **not** turn this into estimation; there is no estimate-vs-actual tracking. If the user fixates on precision, gently steer back to coarse buckets.
 
-**Decide what's next.** Using status and size, propose a short ordered list of what to pick up — small things that unblock, or the next step on the highest-priority goal. Keep it to a handful of items, not an exhaustive backlog dump.
+**Decide what's next.** Using status and size, propose a short ordered list of what to pick up: small things that unblock, or the next step on the highest-priority goal. Keep it to a handful of items, not an exhaustive backlog dump.
 
 ## Writing back
 
-`goals.json` and `tasks.json` are editable — rewrite them in place with the agreed changes. Keep them as clean JSON arrays. When you add or change a task as a result of real work, note it; `log` handles recording that work to the append-only ledger.
+`goals.json` and `tasks.json` are editable. Rewrite them in place with agreed changes and keep them as clean JSON arrays. When you add or change a task as a result of real work, note it; `log` handles recording that work to the append-only ledger.
 
 ## Output
 

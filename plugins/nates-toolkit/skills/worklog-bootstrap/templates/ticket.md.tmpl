@@ -6,6 +6,8 @@ Create and update work items in {{TRACKER_NAME}}, and keep local `tasks.json` in
 
 Reach {{TRACKER_NAME}} via {{TRACKER_ACCESS}}. Work within the boards/projects listed in `config/sources.md`.
 
+If access is unavailable or authentication is missing, stop and ask for the missing setup instead of inventing tracker state.
+
 ## Create
 
 When the user (or `sync`/`plan`) decides something needs a {{TRACKER_NAME}} item:
@@ -23,7 +25,7 @@ When status changes (started, blocked, in review, done):
 
 ## Keep the two in sync
 
-{{TRACKER_NAME}} is the shared source of truth your team sees; `tasks.json` is your local working view. After any change, both should agree. If `sync` finds them diverged (someone changed the ticket upstream), surface it and reconcile — upstream {{TRACKER_NAME}} status wins for the field that changed.
+{{TRACKER_NAME}} is the shared source of truth your team sees; `tasks.json` is your local working view. After any change, both should agree. If `sync` finds them diverged (someone changed the ticket upstream), surface it and reconcile. Upstream {{TRACKER_NAME}} status wins for the field that changed.
 
 ## Output
 
