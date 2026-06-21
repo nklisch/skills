@@ -53,8 +53,11 @@ something else in parallel while it runs, or — if there's genuinely nothing
 else to do — end the turn. **Never** hand-roll a `sleep N` + `jobs list` loop
 to wait for it; that re-implements the wake the harness already gives you and
 blocks the turn you were trying to free up. When the job finishes (`background`)
-or the condition is met/times out (`monitor`), the agent is woken in a new
-turn — but the wake carries **only a trusted, hardcoded message**: the job id,
+or the condition is met/times out (`monitor`), the agent is woken as soon as
+possible — the wake is delivered with `deliverAs:"steer"`, so it injects right
+after the current tool-call batch ends (mid-turn) rather than waiting for the
+whole turn to wind down; if the agent is already idle, that is simply a fresh
+turn. The wake carries **only a trusted, hardcoded message**: the job id,
 label, and exit code or status word (plus a pointer to the jobs tool).
 **Command output is never in the wake.** The agent reads the actual output on
 demand with `jobs action=tail` (or `action=view` for the panel). This is a

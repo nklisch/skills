@@ -152,7 +152,7 @@ describe("background tool", () => {
 
     const wake = await waitFor(() => wakes[0]);
     expect(wake.content).toContain("finished");
-    expect(wake.options?.deliverAs).toBe("followUp");
+    expect(wake.options?.deliverAs).toBe("steer");
     // H1: the command's own output must NOT appear in the wake message.
     expect(wake.content).not.toContain("hello-from-job");
     // H1: the wake must point the agent at the jobs tool to read output.
@@ -233,7 +233,7 @@ describe("monitor tool", () => {
     expect(wake.content).toContain("satisfied");
     expect(wake.content).toContain("stdout_matches");
     expect(wake.content).not.toContain("status=READY"); // H1: poll output not in wake
-    expect(wake.options?.deliverAs).toBe("followUp");
+    expect(wake.options?.deliverAs).toBe("steer");
   });
 
   test("REGRESSION: stdout_matches against shell-only syntax (echo X; echo Y) — requires the /bin/sh -c route", async () => {

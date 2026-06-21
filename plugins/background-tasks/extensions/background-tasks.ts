@@ -10,9 +10,14 @@
  *                  (or a timeout fires); wake the agent with the result.
  *   - jobs       : list / cancel / tail / status / view over the registry.
  *
- * Wake-ups are delivered via pi.sendUserMessage with a HARDCODED, trusted
- * message that contains only the numeric job id and exit code / status word
- * — never command output. Command output stays in the registry and is read
+ * Wake-ups are delivered via pi.sendUserMessage with deliverAs:"steer" so the
+ * message injects as soon as possible — right after the current tool-call
+ * batch, before the next LLM call — instead of deferring to end-of-turn
+ * (which is what "followUp" does). When the agent is already idle, "steer"
+ * and "followUp" behave identically (an immediate fresh turn). The message is
+ * HARDCODED and trusted: it carries only the numeric job id and exit code /
+ * status word — never command output. Command output stays in the registry
+ * and is read
  * on demand via the jobs tool (action=tail) or the focusable overlay panel
  * (action=view). This keeps a malicious command's stdout from being injected
  * as user-authored content (it would otherwise arrive as a real user turn).
@@ -197,7 +202,7 @@ type PiApi = {
   ) => Promise<ExecResult>;
   sendUserMessage?: (
     content: string,
-    options?: { deliverAs?: "followUp" | "steer" | "immediate" },
+    options?: { deliverAs?: "steer" | "followUp" },
   ) => void | Promise<void>;
   appendEntry?: (customType: string, data?: unknown) => void;
   registerTool?: (def: ToolDefinition) => void;
@@ -361,7 +366,11 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       if (pi.sendUserMessage) {
         // Best-effort: catch BOTH a rejected promise and a synchronous throw
         // from sendUserMessage (older runtimes may throw instead of rejecting).
-        void Promise.resolve(pi.sendUserMessage(message, { deliverAs: "followUp" })).catch((err) => {
+        // deliverAs:"steer" injects the wake as soon as the current tool-call
+        // batch finishes (before the next LLM call) rather than waiting for the
+        // agent to wind down the whole turn ("followUp"). When idle, both start
+        // a fresh turn immediately.
+        void Promise.resolve(pi.sendUserMessage(message, { deliverAs: "steer" })).catch((err) => {
           console.error(`[background-tasks] wake failed: ${(err as Error).message}`);
         });
       } else if (lastUi?.notify) {
