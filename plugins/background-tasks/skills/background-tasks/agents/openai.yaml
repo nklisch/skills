@@ -1,6 +1,0 @@
-interface:
-  display_name: "Background Tasks"
-  short_description: "Background long commands, monitor conditions, manage jobs"
-  default_prompt: "Use $background-tasks to run a long command in the background, poll a command until a condition holds, or manage the job registry."
-policy:
-  allow_implicit_invocation: true

@@ -24,13 +24,11 @@
     "nates-toolkit",
     "agentic-research",
     "agent-coordination",
-    "background-tasks",
     "zai-research"
   ],
   "pi": {
     "extensions": [
       "./plugins/agile-workflow/extensions/agile-workflow.ts",
-      "./plugins/background-tasks/extensions/background-tasks.ts",
       "./plugins/zai-research/extensions/index.ts",
       "./plugins/nates-toolkit/extensions/nates-toolkit.ts"
     ],
@@ -41,7 +39,6 @@
       "./plugins/nates-toolkit/skills",
       "./plugins/agentic-research/skills",
       "./plugins/agent-coordination/skills",
-      "./plugins/background-tasks/skills",
       "./plugins/zai-research/skills"
     ]
   }

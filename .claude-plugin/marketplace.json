@@ -54,13 +54,6 @@
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
     {
-      "name": "background-tasks",
-      "source": "./plugins/background-tasks",
-      "description": "Pi-native runtime tools for long-running and state-waiting work — background a command and get woken on exit (or first pattern match), poll a command until a condition holds (CI green, file appears, log line) or it times out, and list/tail/status/cancel the job registry. Pi-runtime-only tools plus a portable skill describing when to reach for them.",
-      "category": "productivity",
-      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
-    },
-    {
       "name": "zai-research",
       "source": "./plugins/zai-research",
       "description": "Z.ai-powered web search, URL/PDF reading, and GitHub repo deep-read for Pi. Wraps Z.ai's web-search-prime, web-reader, and zread MCP servers via the bundled MCP SDK client (pi has no built-in MCP), plus provider-free local PDF extraction via unpdf. Auth is the configured zai provider key. Replaces the prior pi-web-access web-search/fetch surface.",
