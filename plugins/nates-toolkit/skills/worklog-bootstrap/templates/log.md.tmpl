@@ -1,0 +1,22 @@
+# Skill: log
+
+Record work done. This appends to the **immutable** ledger — it never rewrites anything.
+
+## Do this
+
+Append one line to `state/worklog.jsonl`:
+
+```json
+{ "ts": "<ISO8601 now>", "task_id": "<id from tasks.json, or null>", "kind": "<progress|done|blocked|note|decision>", "summary": "<one or two sentences, in the user's words>", "refs": ["<links: PR, ticket, doc, transcript ref>"] }
+```
+
+Rules:
+
+- **Append only.** Do not edit or delete existing lines, ever. This file is the honest record of what happened.
+- **Link to a task when there is one.** If the work maps to a `tasks.json` entry, set `task_id`. If it doesn't, leave it `null` rather than inventing a task.
+- **If the work closes a task**, log it here with `"kind": "done"`, then update that task's `status` and `closed` in `tasks.json` (that file is editable).
+- **The agent can infer entries from `sync`** — if a transcript or chat clearly shows work {{OWNER_NAME}} did, propose a log line, but confirm before appending.
+
+## Output
+
+Confirm what was logged in one line. If a task status changed as a result, say so.

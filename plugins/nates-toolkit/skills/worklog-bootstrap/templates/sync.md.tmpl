@@ -1,0 +1,37 @@
+# Skill: sync
+
+Start-of-day pull. Run this first each day. It gathers everything from your sources, normalizes it into one ledger, and tells you what changed since yesterday.
+
+## Do this
+
+1. **Pull {{TRACKER_NAME}}.** Using {{TRACKER_ACCESS}}, fetch the current state of the boards/projects listed in `config/sources.md` — open items assigned to or owned by {{OWNER_NAME}}, plus recent status changes.
+
+2. **Pull {{CHAT_NAME}}.** Using {{CHAT_ACCESS}}, read new activity since the last sync in the channels listed in `config/sources.md`. Focus on threads that mention {{OWNER_NAME}}'s responsibilities (see `config/profile.md`).
+
+3. **Pull transcripts and notes.** {{TRANSCRIPT_SOURCE}} {{NOTE_SOURCE}}
+
+4. **Normalize into `state/ingest.jsonl`.** Append one line per meaningful chunk, all in the same shape regardless of origin:
+   ```json
+   { "ts": "<ISO8601>", "source": "{{TRACKER_NAME}}|{{CHAT_NAME}}|transcript|note", "type": "ticket|message|decision|action_item|note", "ref": "<url or id back to the original>", "text": "<the chunk, lightly cleaned>" }
+   ```
+   Append only — never rewrite existing lines. Skip anything already ingested (dedupe on `ref`).
+
+5. **Diff against `state/tasks.json`.** Surface, but do not silently apply:
+   - New action items or tickets that should become tasks.
+   - Status changes on existing tasks (something closed, blocked, or reopened upstream).
+   - Tasks with no recent activity that may be stale.
+
+6. **Record the sync.** Append a line to `state/worklog.jsonl`:
+   ```json
+   { "ts": "<ISO8601>", "task_id": null, "kind": "sync", "summary": "Synced {{TRACKER_NAME}}, {{CHAT_NAME}}, transcripts/notes; N new ingest records", "refs": [] }
+   ```
+
+## Output
+
+Give a tight summary, not a dump:
+
+- **New since last sync** — what arrived (grouped by source).
+- **Suggested task changes** — proposed additions/updates to `tasks.json`, each as a one-liner the user can accept or reject. Only write to `tasks.json` after confirmation, or per the user's standing preference in `config/profile.md`.
+- **Worth your attention** — anything blocking, urgent, or aimed at {{OWNER_NAME}} directly.
+
+Then offer to run `plan` if the user wants to act on it.

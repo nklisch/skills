@@ -12,6 +12,7 @@ substrate.
 | `agent-reflection` | Reviews how the agent's tools and skills performed in the current session. |
 | `write-tool-skill` | Authors reference skills for tools, CLIs, MCP servers, and libraries. |
 | `skill-auditor` | Audits a skill artifact for structure, triggering, and behavior quality. |
+| `worklog-bootstrap` | Generates a self-contained, agent-driven personal work-tracking repo from one job's tool stack. |
 
 ## Pi Extensions
 

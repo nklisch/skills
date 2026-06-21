@@ -1,0 +1,6 @@
+interface:
+  display_name: "Worklog Bootstrap"
+  short_description: "Scaffold an agent-driven personal work tracker"
+  default_prompt: "Use $worklog-bootstrap to set up my work-tracking repo."
+policy:
+  allow_implicit_invocation: true

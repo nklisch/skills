@@ -1,0 +1,30 @@
+# Skill: ticket
+
+Create and update work items in {{TRACKER_NAME}}, and keep local `tasks.json` in sync with what you do.
+
+## Access
+
+Reach {{TRACKER_NAME}} via {{TRACKER_ACCESS}}. Work within the boards/projects listed in `config/sources.md`.
+
+## Create
+
+When the user (or `sync`/`plan`) decides something needs a {{TRACKER_NAME}} item:
+
+1. Create it in {{TRACKER_NAME}} with a clear title, the right board/project, and {{OWNER_NAME}} as owner unless told otherwise.
+2. Mirror it into `state/tasks.json` as `{ id, title, goal_id, size, status: "open", opened: "<ISO8601>", closed: null, refs: ["<tracker url>"] }`. Link `goal_id` if it ladders up to a known goal; otherwise leave null and flag it for `plan`.
+
+## Update status
+
+When status changes (started, blocked, in review, done):
+
+1. Update the item in {{TRACKER_NAME}}.
+2. Update the matching `tasks.json` entry's `status` (and `closed` if it's finished).
+3. Append a `state/worklog.jsonl` line recording the change (`kind` = the new status), with the tracker URL in `refs`.
+
+## Keep the two in sync
+
+{{TRACKER_NAME}} is the shared source of truth your team sees; `tasks.json` is your local working view. After any change, both should agree. If `sync` finds them diverged (someone changed the ticket upstream), surface it and reconcile — upstream {{TRACKER_NAME}} status wins for the field that changed.
+
+## Output
+
+State what changed in {{TRACKER_NAME}} and confirm `tasks.json` now matches.
