@@ -1,6 +1,6 @@
 {
   "name": "@nklisch/pi-background-tasks",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Pi-native runtime tools — background a long command and get woken on exit, poll a command until a condition holds, and manage the job registry.",
   "author": {
     "name": "nklisch"

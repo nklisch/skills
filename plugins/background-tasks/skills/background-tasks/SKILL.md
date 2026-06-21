@@ -47,16 +47,20 @@ once, with the result.
 
 ## How the wake-up works
 
-Both `background` and `monitor` return immediately with a job id; the turn can
-end. When the job finishes (`background`) or the condition is met/times out
-(`monitor`), the agent is woken in a new turn — but the wake carries **only a
-trusted, hardcoded message**: the job id, label, and exit code or status word
-(plus a pointer to the jobs tool). **Command output is never in the wake.**
-The agent reads the actual output on demand with `jobs action=tail` (or
-`action=view` for the panel). This is a deliberate security property: a
-command's stdout/stderr is attacker-controlled, so it is never auto-injected as
-user content — it only enters the agent's context when the agent deliberately
-requests it.
+Both `background` and `monitor` return immediately with a job id. The point of
+launching detached work is to **stop blocking on it**: either keep working on
+something else in parallel while it runs, or — if there's genuinely nothing
+else to do — end the turn. **Never** hand-roll a `sleep N` + `jobs list` loop
+to wait for it; that re-implements the wake the harness already gives you and
+blocks the turn you were trying to free up. When the job finishes (`background`)
+or the condition is met/times out (`monitor`), the agent is woken in a new
+turn — but the wake carries **only a trusted, hardcoded message**: the job id,
+label, and exit code or status word (plus a pointer to the jobs tool).
+**Command output is never in the wake.** The agent reads the actual output on
+demand with `jobs action=tail` (or `action=view` for the panel). This is a
+deliberate security property: a command's stdout/stderr is attacker-controlled,
+so it is never auto-injected as user content — it only enters the agent's
+context when the agent deliberately requests it.
 
 Cancellation (`jobs action=cancel`) SIGTERMs the job's process group and
 escalates to SIGKILL after a grace window if it won't exit; a cancelled job

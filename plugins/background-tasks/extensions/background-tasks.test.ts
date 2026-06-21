@@ -63,7 +63,7 @@ function makeContext(): TestContext {
   return ctx;
 }
 
-function makeFakePi() {
+function makeFakePi(injectedExec?: (command: string, args: string[]) => Promise<ExecResult>) {
   const tools = new Map<string, RegisteredTool>();
   const wakes: Wake[] = [];
   const entries: Array<{ type: string; data: unknown }> = [];
@@ -80,21 +80,23 @@ function makeFakePi() {
     appendEntry: (type: string, data: unknown) => {
       entries.push({ type, data });
     },
-    exec: async (command: string, args: string[] = [], options?: { cwd?: string; timeout?: number; signal?: AbortSignal }): Promise<ExecResult> => {
-      // Mirror the REAL pi.exec runtime: spawn(command, args, { shell: false }).
-      // The previous fake ignored args and always ran `/bin/sh -c <command>`,
-      // which masked the bug where the extension passed shell syntax as the
-      // program name. Honoring command+args means a test only passes when the
-      // extension routes through /bin/sh -c itself.
-      const { execFileSync } = require("node:child_process") as typeof import("node:child_process");
-      try {
-        const out = execFileSync(command, args, { encoding: "utf8", cwd: options?.cwd, timeout: options?.timeout });
-        return { stdout: out, code: 0 };
-      } catch (err) {
-        const e = err as { stdout?: string; status?: number };
-        return { stdout: e.stdout ?? "", code: e.status ?? 1 };
-      }
-    },
+    exec: injectedExec
+      ? (command: string, args: string[], options?: { cwd?: string; timeout?: number; signal?: AbortSignal }) => injectedExec(command, args)
+      : async (command: string, args: string[] = [], options?: { cwd?: string; timeout?: number; signal?: AbortSignal }): Promise<ExecResult> => {
+        // Mirror the REAL pi.exec runtime: spawn(command, args, { shell: false }).
+        // The previous fake ignored args and always ran `/bin/sh -c <command>`,
+        // which masked the bug where the extension passed shell syntax as the
+        // program name. Honoring command+args means a test only passes when the
+        // extension routes through /bin/sh -c itself.
+        const { execFileSync } = require("node:child_process") as typeof import("node:child_process");
+        try {
+          const out = execFileSync(command, args, { encoding: "utf8", cwd: options?.cwd, timeout: options?.timeout });
+          return { stdout: out, code: 0 };
+        } catch (err) {
+          const e = err as { stdout?: string; status?: number };
+          return { stdout: e.stdout ?? "", code: e.status ?? 1 };
+        }
+      },
     on: (event: string, handler: (event: unknown) => unknown) => {
       // Record all handlers so before_agent_start (not just session_shutdown)
       // can be driven in tests.
@@ -319,6 +321,88 @@ describe("monitor tool", () => {
       makeContext(),
     )) as { details: { intervalSeconds: number } };
     expect(res.details.intervalSeconds).toBeGreaterThanOrEqual(1);
+  });
+
+  test("fail-fast: a poll whose command is not found bails early with a diagnostic, not a silent timeout", async () => {
+    // Reproduces the live-session failure: a poll whose command can't run
+    // (typo'd binary, missing tool, or a bogus command inside a pipeline).
+    // /bin/sh reports "command not found" in stderr (note a pipeline still
+    // exits 0 via its last stage, so code is NOT the signal). Before this fix
+    // the monitor polled silently to the full deadline with no hint the poll
+    // was broken. Inject an exec returning that stderr every tick.
+    const { tools, wakes } = makeFakePi(async () => ({
+      stdout: "",
+      stderr: "/bin/sh: bogus-tool-xyz: command not found\n",
+      code: 127,
+    }));
+    const mon = tools.get("monitor")!;
+    await mon.execute(
+      "c1",
+      { command: "bogus-tool-xyz --status x | python3 ...", satisfy_on: "stdout_matches", pattern: "DONE", interval_seconds: 1, timeout_seconds: 30 },
+      undefined,
+      undefined,
+      makeContext(),
+    );
+    const wake = await waitFor(() => wakes[0], { timeoutMs: 8000 });
+    expect(wake.content).toContain("consecutive broken polls");
+    expect(wake.content).toContain("command not found");
+    expect(wake.content).toContain("fix the command");
+    // It must NOT be the generic timeout message.
+    expect(wake.content).not.toContain("timed out after 30s");
+  });
+
+  test("NOT a broken poll: a legit pending check (test -f / nc / grep) failing with non-zero + empty stderr is NOT aborted", async () => {
+    // local-pr-reviewer finding on PR #24: the prior heuristic
+    // (code !== 0 || empty stdout) false-aborted the monitor's CORE use case
+    // — polling a condition that legitimately fails (exit 1, empty stderr)
+    // until it holds. This test pins the corrected, narrow heuristic: a
+    // non-zero exit with NO "command not found" in stderr is a legit pending
+    // poll and must run to its real timeout, not abort.
+    let calls = 0;
+    const { tools, wakes } = makeFakePi(async () => {
+      calls++;
+      // test -f style: exit 1, empty stderr, empty stdout, every tick.
+      return { stdout: "", stderr: "", code: 1 };
+    });
+    const mon = tools.get("monitor")!;
+    await mon.execute(
+      "c1",
+      { command: "test -f /never-appears && echo ready", satisfy_on: "stdout_matches", pattern: "READY", interval_seconds: 1, timeout_seconds: 3 },
+      undefined,
+      undefined,
+      makeContext(),
+    );
+    const wake = await waitFor(() => wakes[0], { timeoutMs: 10000 });
+    // It must hit the REAL timeout (3s), NOT the fail-fast abort.
+    expect(wake.content).toContain("timed out after 3s");
+    expect(wake.content).not.toContain("broken polls");
+    // And it must have polled many times (not aborted after 3), proving the
+    // legit-pending path wasn't misclassified.
+    expect(calls).toBeGreaterThan(3);
+  });
+
+  test("fail-fast counter resets on a transient broken poll (only CONSISTENT not-found is diagnostic)", async () => {
+    // A poll that reports not-found once then succeeds must not accumulate —
+    // only an unbroken streak of not-found should trigger the abort.
+    let calls = 0;
+    const { tools, wakes } = makeFakePi(async () => {
+      calls++;
+      // not-found, not-found, then satisfy (matches pattern).
+      if (calls <= 2) return { stdout: "", stderr: "x: command not found\n", code: 127 };
+      return { stdout: "READY", code: 0 };
+    });
+    const mon = tools.get("monitor")!;
+    await mon.execute(
+      "c1",
+      { command: "flaky", satisfy_on: "stdout_matches", pattern: "READY", interval_seconds: 1, timeout_seconds: 30 },
+      undefined,
+      undefined,
+      makeContext(),
+    );
+    const wake = await waitFor(() => wakes[0], { timeoutMs: 8000 });
+    // The transient not-found did not trip the threshold; it eventually satisfied.
+    expect(wake.content).toContain("satisfied");
+    expect(wake.content).not.toContain("broken polls");
   });
 });
 
@@ -613,6 +697,31 @@ describe("JobPanel (overlay component)", () => {
     expect(panel.selected).toBe(1);
     panel.handleInput("\u001bOA"); // up, application mode
     expect(panel.selected).toBe(0);
+  });
+
+  test("W1: a keybindings matcher threaded through the ctor is preferred (opus review)", () => {
+    // pi hands the live KeybindingsManager to the ui.custom factory (3rd arg);
+    // openJobPanel threads it into JobPanel. Verify an injected matcher is
+    // used and can bind an ARBITRARY key to an action (user-rebinding support
+    // that RAW-byte matching alone cannot provide). Uses a made-up key 'x' for
+    // 'down' to prove the matcher — not RAW — is driving selection.
+    const matcher = {
+      matches: (data: string, action: string) => data === "x" && action === "tui.select.down",
+    };
+    const panel = new JobPanel(
+      (() => [job(1, "a"), job(2, "b"), job(3, "c")]) as unknown as () => Parameters<typeof JobPanel>[0][],
+      { fg: (_n: string, t: string) => t },
+      () => {},
+      matcher as unknown as Parameters<typeof JobPanel>[3],
+    ) as unknown as { handleInput: (d: string) => void; selected: number };
+    expect(panel.selected).toBe(0);
+    // 'x' is NOT a RAW down-binding (only j/arrows are), so it only works via
+    // the injected matcher — proving W1's threading is active.
+    panel.handleInput("x");
+    expect(panel.selected).toBe(1);
+    // A real RAW down (j) still works too (matcher returns false -> RAW falls through).
+    panel.handleInput("j");
+    expect(panel.selected).toBe(2);
   });
 
   test("Esc closes the panel; right-arrow opens paging; left-arrow exits paging", () => {
