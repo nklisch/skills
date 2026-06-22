@@ -1,9 +1,20 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  lstatSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  readlinkSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-import agileWorkflowExtension from "./agile-workflow";
+import agileWorkflowExtension, { syncBundledPiAgents } from "./agile-workflow";
 
 type ExecCall = {
   command: string;
@@ -114,7 +125,17 @@ function makePi(options: {
       sentMessages.push({ content, options: messageOptions });
     };
   }
-  agileWorkflowExtension(pi);
+  const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
+  process.env.PI_CODING_AGENT_DIR = tempRoot();
+  try {
+    agileWorkflowExtension(pi);
+  } finally {
+    if (previousAgentDir === undefined) {
+      delete process.env.PI_CODING_AGENT_DIR;
+    } else {
+      process.env.PI_CODING_AGENT_DIR = previousAgentDir;
+    }
+  }
   if (!handler) {
     throw new Error("extension did not register /aw");
   }
@@ -124,6 +145,84 @@ function makePi(options: {
     sentMessages,
   };
 }
+
+function makeAgentSource(): string {
+  const source = tempRoot();
+  for (const name of ["designer.md", "implementor.md", "reviewer.md"]) {
+    writeFileSync(join(source, name), `---\ndescription: ${name}\n---\n${name}\n`, "utf8");
+  }
+  return source;
+}
+
+describe("bundled Pi agent sync", () => {
+  test("installs bundled agents into the global Pi agents directory", () => {
+    const source = makeAgentSource();
+    const target = tempRoot();
+
+    const result = syncBundledPiAgents({ sourceDir: source, targetDir: target });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.installed).toEqual(["designer.md", "implementor.md", "reviewer.md"]);
+    for (const name of result.installed) {
+      const installed = join(target, name);
+      expect(existsSync(installed)).toBe(true);
+      expect(lstatSync(installed).isSymbolicLink()).toBe(true);
+      expect(readlinkSync(installed)).toBe(join(source, name));
+    }
+  });
+
+  test("treats a second activation as a no-op when links already point at bundled agents", () => {
+    const source = makeAgentSource();
+    const target = tempRoot();
+
+    syncBundledPiAgents({ sourceDir: source, targetDir: target });
+    const result = syncBundledPiAgents({ sourceDir: source, targetDir: target });
+
+    expect(result.installed).toHaveLength(0);
+    expect(result.updated).toHaveLength(0);
+    expect(result.skipped).toEqual(["designer.md", "implementor.md", "reviewer.md"]);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test("refreshes existing symlinks but leaves ordinary user files alone", () => {
+    const source = makeAgentSource();
+    const target = tempRoot();
+    const oldSource = tempRoot();
+    writeFileSync(join(oldSource, "designer.md"), "old designer\n", "utf8");
+    symlinkSync(join(oldSource, "designer.md"), join(target, "designer.md"));
+    writeFileSync(join(target, "implementor.md"), "custom implementor\n", "utf8");
+
+    const result = syncBundledPiAgents({ sourceDir: source, targetDir: target });
+
+    expect(result.updated).toContain("designer.md");
+    expect(result.skipped).toContain("implementor.md");
+    expect(readlinkSync(join(target, "designer.md"))).toBe(join(source, "designer.md"));
+    expect(readFileSync(join(target, "implementor.md"), "utf8")).toBe("custom implementor\n");
+  });
+
+  test("refreshes broken symlinks left by moved installs", () => {
+    const source = makeAgentSource();
+    const target = tempRoot();
+    symlinkSync(join(target, "missing-reviewer.md"), join(target, "reviewer.md"));
+
+    const result = syncBundledPiAgents({ sourceDir: source, targetDir: target });
+
+    expect(result.updated).toContain("reviewer.md");
+    expect(readlinkSync(join(target, "reviewer.md"))).toBe(join(source, "reviewer.md"));
+  });
+
+  test("updates managed copy fallbacks on later activation", () => {
+    const source = makeAgentSource();
+    const target = tempRoot();
+    writeFileSync(join(target, "reviewer.md"), "old managed reviewer\n", "utf8");
+    writeFileSync(join(target, "reviewer.md.agile-workflow-managed"), join(source, "reviewer.md"), "utf8");
+
+    const result = syncBundledPiAgents({ sourceDir: source, targetDir: target });
+
+    expect(result.updated).toContain("reviewer.md");
+    expect(readFileSync(join(target, "reviewer.md"), "utf8")).toContain("reviewer.md");
+  });
+});
 
 describe("/aw command shell", () => {
   test("help does not require a substrate", async () => {
