@@ -1,7 +1,6 @@
 ---
 name: designer
 description: Dedicated agile-workflow design/planning agent for .work items at stage:drafting. Writes only .work design artifacts and advances drafting to implementing.
-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Designer

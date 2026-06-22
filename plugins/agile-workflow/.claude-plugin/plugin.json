@@ -7,5 +7,9 @@
   },
   "repository": "https://github.com/nklisch/skills",
   "license": "MIT",
-  "agents": "./agents/claude/"
+  "agents": [
+    "./agents/claude/designer.md",
+    "./agents/claude/implementor.md",
+    "./agents/claude/reviewer.md"
+  ]
 }

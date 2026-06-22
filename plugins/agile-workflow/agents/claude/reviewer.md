@@ -1,7 +1,6 @@
 ---
 name: reviewer
 description: Agile-workflow review agent for stage:review items and requested item/branch/commit/PR/diff reviews. Writes only .work review metadata and routes fixes back to implementation.
-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Reviewer

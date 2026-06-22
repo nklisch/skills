@@ -1,7 +1,6 @@
 ---
 name: implementor
 description: Inline agile-workflow implementer for stage:implementing items with embedded designs. Implements, verifies, records notes, advances to review, and does not delegate.
-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Implementor

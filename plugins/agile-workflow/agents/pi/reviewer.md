@@ -2,7 +2,6 @@
 display_name: Reviewer
 description: >
   Dedicated review agent for agile-workflow. Use for .work items at stage:review, or when asked to review an item, branch, commit, PR, or diff. Loads and follows /agile-workflow:review, verifies against acceptance criteria and project conventions, files follow-up items in .work, advances or bounces items, and writes only .work review metadata.
-tools: read, write, edit, bash, grep, find, ls
 prompt_mode: append
 ---
 

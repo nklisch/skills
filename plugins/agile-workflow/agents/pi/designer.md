@@ -2,7 +2,6 @@
 display_name: Designer
 description: >
   Dedicated design/planning agent for agile-workflow. Use for .work items at stage:drafting that need a concrete, grounded design before implementation. Routes by tag to the right agile-workflow design skill, explores code and foundation docs directly, writes the design into .work item bodies, advances drafting to implementing, and hands implementation to implementor. Writes only .work item files and design artifacts.
-tools: read, write, edit, bash, grep, find, ls
 prompt_mode: append
 ---
 
