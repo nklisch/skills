@@ -2,7 +2,7 @@
 name: gate-docs
 description: >
   Documentation gate that enforces the rolling-foundation principle. Delegates the full drift
-  detection to a deep documentation-audit sub-agent which scans the bundle's changes for
+  detection to a deep documentation scanner agent which scans the bundle's changes for
   foundation-doc drift (assertions in docs/ that no longer match implementation), changelog gaps,
   README staleness, and skill/pattern-skill staleness. The orchestrator converts findings into items
   in .work/active/ with gate_origin:docs and tags:[documentation]. Auto-triggers during
@@ -17,14 +17,16 @@ future state, never past state. After implementation work, foundation-doc
 assertions can drift from reality or from the intended state they are meant to
 describe.
 
-The actual drift detection runs inside a **deep documentation-audit sub-agent**;
-your role is to prepare the bundle context, dispatch the sub-agent, and convert
-the findings it returns into items that will roll the docs forward.
+The actual drift detection runs inside a **deep documentation scanner agent**
+(the shipped agile-workflow `scanner` role when available); your role is to
+prepare the bundle context, dispatch the scanner, and convert the findings it
+returns into items that will roll the docs forward.
 
-Sub-agent strength is explicit: spawn exactly one read-only deep documentation
-audit sub-agent with the strongest reviewer setting the host exposes. Use
+Scanner strength is explicit: spawn exactly one source-read-only deep
+documentation scanner with the strongest inspection/reviewer setting the host
+exposes. Use the shipped agile-workflow `scanner` role when available. Use
 extra-high reasoning for large documentation surfaces or broad API drift. If the
-host has no sub-agent path, run the audit inline and record the reduced
+host has no scanner path, run the audit inline and record the reduced
 isolation in the release body.
 
 ## Trigger
@@ -62,23 +64,23 @@ done < /tmp/bundle-items-<version>.txt | sort -u > /tmp/bundle-files-<version>.t
 
 Capture the set of `(doc-file:line, drift-category)` already-tracked findings.
 
-### Phase 3: Dispatch the drift-detection sub-agent
+### Phase 3: Dispatch the drift-detection scanner
 
-Spawn ONE read-only deep documentation-audit sub-agent with the full
-drift-detection brief. Use the strongest reviewer setting the host exposes,
-escalating for large documentation surfaces. If sub-agents are unavailable, run
-the audit inline and record the reduced isolation in the release body. The sub-agent maps the doc structure, classifies the
-bundle's changes, runs parallel drift checks, and returns structured
-findings.
+Spawn ONE source-read-only deep scanner agent with the full drift-detection
+brief. Use the shipped agile-workflow `scanner` role when available and the
+strongest inspection/reviewer setting the host exposes, escalating for large
+documentation surfaces. If scanner agents are unavailable, run the audit
+inline and record the reduced isolation in the release body. The scanner maps
+the doc structure, classifies the bundle's changes, runs drift-check passes, and
+returns structured findings.
 
 **Brief template**:
 
-> You are conducting a documentation drift audit for release `<version>`.
-> The principle: docs in `docs/` describe current truth or intended future
-> state, never past state. Drift = doc says X, but the completed bundle now
-> does Y or the intended future state has changed to Y. You have access to
-> Read, Write, Edit, Glob, Grep, Bash, Task. You may spawn parallel sub-tasks
-> for the different drift categories.
+> You are conducting a documentation drift audit for release `<version>` as an
+> agile-workflow scanner. The principle: docs in `docs/` describe current truth
+> or intended future state, never past state. Drift = doc says X, but the
+> completed bundle now does Y or the intended future state has changed to Y. Use
+> read/search/shell tools as needed, but do not spawn nested sub-agents or fix docs.
 >
 > **Bundle scope** (the changes that may have caused drift):
 > ```
@@ -120,7 +122,7 @@ findings.
 >    | New stable pattern | Pattern skills under `.agents/skills/patterns/` |
 >    | Changed interface used by repo skills | Repo-specific skills referencing it |
 >
-> 3. **Parallel drift checks** — spawn sub-tasks for each:
+> 3. **Drift-check passes** — run each relevant pass yourself:
 >    - **Foundation-doc drift** — for VISION.md, SPEC.md, ARCHITECTURE.md,
 >      for each assertion (interface, contract, component, behavior), grep
 >      the bundle's changed files. Flag any assertion where the doc says X
@@ -186,11 +188,11 @@ findings.
 > - For generated files, the required edit is the regeneration command, not
 >   a manual edit.
 > - Skip already-tracked findings.
-> - Don't fix the docs in the sub-agent. Findings only.
+> - Don't fix the docs in the scanner. Findings only.
 
 ### Phase 4: Convert findings to items
 
-For each finding the sub-agent returned:
+For each finding the scanner returned:
 
 Read `gate_finding_routing` from `.work/CONVENTIONS.md` before writing items.
 If absent, use the default routing below. Normalize documentation confidence to
@@ -261,16 +263,16 @@ In conversation:
 
 ## Guardrails
 
-- **The drift detection happens in the sub-agent, not here.** Your job is
-  bundle prep, dispatch, and item-writing. Don't replicate the sub-agent's
+- **The drift detection happens in the scanner agent, not here.** Your job is
+  bundle prep, dispatch, and item-writing. Don't replicate the scanner's
   analysis in the orchestrator's context.
-- Foundation-doc drift is the gate's primary job. The sub-agent surfaces it;
+- Foundation-doc drift is the gate's primary job. The scanner surfaces it;
   you turn it into items.
 - Required edits ENFORCE rolling-foundation: replace stale assertions in
   place. Do NOT propose adding "previously" or "in v1.x" prose.
 - Don't fix the docs in this skill — produce items only. Implementation of
   the fixes happens via `/agile-workflow:implement` on each item.
 - Audit only the bundle's changes plus the docs that own those areas — the
-  sub-agent enforces this; don't override.
+  scanner enforces this; don't override.
 - Generated files get items describing the regeneration command, not manual
   edits.

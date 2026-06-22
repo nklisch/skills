@@ -6,7 +6,7 @@ description: >
   would a game engine / database / GPU do here", a perf brainstorm, "ways to speed this up", or a
   broad sweep of possible speedups. Fans parallel highest-thinking-model scouts across strategy lenses
   (algorithmic, memory/locality, parallelism/SIMD, GPU, caching, I/O, distributed, game-engine,
-  database internals, compiler/runtime, approximation), each surfacing *candidate* optimizations
+  database internals, compiler/runtime, approximation) through scanner agents, each surfacing *candidate* optimizations
   borrowed from demanding domains as unvalidated hypotheses — never asserting gains are real. Then a
   different model class (via peeragent, or a fresh max-effort sub-agent) prunes weak ideas and
   surfaces missed angles. Writes a ranked report and parks ideas to .work/. Distinct from perf-design
@@ -23,8 +23,9 @@ systems, GPU programming, compilers — and ask, for the code in front of you:
 *could any of these apply here?*
 
 You detect the stack and workload shape, choose relevant **strategy lenses**,
-dispatch **one deep scout sub-agent per lens in parallel** (each at the highest
-thinking model available), aggregate and rank the candidate ideas, then run the
+dispatch **one deep scanner/scout agent per lens in parallel** (each at the highest
+thinking model available, using the shipped agile-workflow `scanner` role when available),
+aggregate and rank the candidate ideas, then run the
 whole deck past a **different model class** to prune the weak ideas and surface
 the angles your first pass missed. The output is a ranked deck of *candidate*
 optimizations and parked backlog ideas.
@@ -54,7 +55,7 @@ on a deadline never reaches for. This skill's job is to reach for all of them.
 ## Highest-thinking-model mandate
 
 Idea quality scales hard with model strength, and this skill deliberately trades
-tokens for insight. Run **every** sub-agent at maximum: use the host's strongest
+tokens for insight. Run **every** scanner/scout agent at maximum: use the host's strongest
 read-only scout/reviewer setting, and use extra-high reasoning where the host
 exposes it. Do not downgrade "simple" lenses. This does not replace the
 peeragent cross-model pass: the peer reviewer still runs at the deepest effort
@@ -138,10 +139,10 @@ relevant to nearly all code.
 
 ## Phase 3: Fan-out idea generation
 
-For each selected lens, spawn **one parallel scout sub-agent in a single message**
-so they run concurrently. Use the host's strongest read-only scout path and
-extra-high reasoning when available; otherwise use the same-host read-only
-ideation fallback.
+For each selected lens, spawn **one parallel scanner/scout agent in a single message**
+so they run concurrently. Use the shipped agile-workflow `scanner` role when available,
+the host's strongest read-only scout path, and extra-high reasoning when available;
+otherwise use the same-host read-only ideation fallback.
 
 ### Scope (passed into every scout)
 
@@ -155,7 +156,9 @@ Each scout gets this brief. Read it carefully — the framing (hypotheses, not
 findings; borrowed-from attribution; validation path) is what makes the output
 honest:
 
-> You are a **perf-scout** sub-agent for the **<lens>** lens. Your job is to
+> You are a **perf-scout scanner agent** for the **<lens>** lens. Follow the
+> agile-workflow scanner contract: source-read-only, no fixes, no recursive
+> sub-agents. Your job is to
 > generate *candidate* performance ideas — speculative hypotheses, not proven
 > wins. You do not measure or profile. You surface angles worth investigating.
 >
@@ -284,9 +287,8 @@ full mechanics. In brief:
    different class if available (see the two-phase ordering in
    [../principles/references/models.md](../principles/references/models.md) §6).
 2. **Fallback** when peeragent is unavailable, fails, or would be same-class:
-   spawn a **fresh max-effort sub-agent** (Pi → native `reviewer` or `oracle`
-   when available; Claude → `Agent(model=opus)`) that
-   sees only the codebase, the lens catalog, and the idea deck — NOT your scouts'
+   spawn a **fresh max-effort reviewer sub-agent** when available that sees only
+   the codebase, the lens catalog, and the idea deck — NOT your scouts'
    reasoning — so it reviews with independent context. This is the "max compute
    and quality subagent" fallback.
 3. **Ask the reviewer for three things** (write the deck to a temp file, pass via
@@ -382,7 +384,7 @@ id), a "Top 5 to investigate first" callout, the cross-model peer summary
   reading. An idea with no source domain is probably a generic one — sharpen it.
 - **Every idea has a validation path.** If you can't say how to confirm it, you
   haven't thought it through. Usually: hand to perf-design.
-- **The ideation happens in the sub-agents, not here.** Your job is discovery,
+- **The ideation happens in the scanner/scout agents, not here.** Your job is discovery,
   dispatch, aggregation, the peer pass, and the report. Don't re-derive a scout's
   work in the orchestrator — that throws away the progressive-disclosure win.
 - **Always fan out, always at max model.** One scout per lens, parallel, Opus /

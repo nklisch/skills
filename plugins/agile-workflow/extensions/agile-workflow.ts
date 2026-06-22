@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 const STATUS_KEY = "agile-workflow";
 const MAX_OUTPUT_CHARS = 6_000;
 const ITEM_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
-const BUNDLED_AGENT_FILES = ["designer.md", "implementor.md", "reviewer.md"] as const;
+const BUNDLED_AGENT_FILES = ["designer.md", "implementor.md", "reviewer.md", "scanner.md"] as const;
 const MANAGED_MARKER_SUFFIX = ".agile-workflow-managed";
 
 type PiApi = {

@@ -405,18 +405,19 @@ Look for canonical locations: `tests/e2e/`, `e2e/`, `cypress/`, `playwright/`,
 `tests/integration/`. If nothing found, refuse: "No e2e suite detected.
 Run `--bootstrap` to seed one."
 
-### Phase A2: Dispatch audit sub-agent
+### Phase A2: Dispatch audit scanner
 
-Spawn ONE deep audit sub-agent with the audit brief. Use the host's read-only
-deep audit path with high reviewer reasoning; use extra-high reasoning only for
-large suites, complex mock-boundary audits, or repeated escaped tautologies. If
-no sub-agent path is available, run the audit inline and record the reduced
-isolation in the feature body.
+Spawn ONE deep scanner agent with the audit brief. Use the shipped
+agile-workflow `scanner` role when available and the host's source-read-only
+deep inspection path with high reviewer reasoning; use extra-high reasoning only
+for large suites, complex mock-boundary audits, or repeated escaped tautologies.
+If no scanner/sub-agent path is available, run the audit inline and record the
+reduced isolation in the feature body.
 
-The sub-agent reads test files (NOT implementation
-code — that's how tautologies hide), maps the suite against the four
-taxonomy layers, scans for mock-boundary violations (in-process mocks where
-service-level is possible), and returns structured findings.
+The scanner reads test files (NOT implementation code — that's how tautologies
+hide), maps the suite against the four taxonomy layers, scans for mock-boundary
+violations (in-process mocks where service-level is possible), and returns
+structured findings.
 
 The audit brief enforces the same `references/anti-tautology.md` heuristics
 the design phase uses, plus the mock-ladder challenge from the mock policy.

@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Scanner agent role
+
+- **Shared scanner subagent** — added Claude/Pi `scanner` and Codex `aw-scanner`
+  role definitions for deep, scoped inspection briefs. The role is distinct from
+  Explore/code-search, stays source-read-only except for caller-authorized
+  artifacts or finding files, and is wired into Pi agent sync plus agent metadata
+  tests.
+- **Gate/scanner routing** — release gates, bug-scan, deep-code-scan,
+  e2e-test-design audit mode, and perf-scout now name the scanner role for
+  finding/idea-generation work instead of ad-hoc deep audit workers.
+
 ## v0.14.0
 
 ### Backlog grooming + staleness signal

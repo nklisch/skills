@@ -41,7 +41,7 @@ assert_eq() {
 echo ""
 echo "=== Agile-workflow agent metadata ==="
 
-for role in designer implementor reviewer; do
+for role in designer implementor reviewer scanner; do
   shared="${PLUGIN_ROOT}/agents/shared/${role}.md"
   claude="${PLUGIN_ROOT}/agents/claude/${role}.md"
   pi="${PLUGIN_ROOT}/agents/pi/${role}.md"
@@ -71,7 +71,7 @@ done
 assert_true "Claude/Pi shared agents do not pin tools" \
   "! grep -H '^tools:' '${PLUGIN_ROOT}'/agents/shared/*.md '${PLUGIN_ROOT}'/agents/claude/*.md '${PLUGIN_ROOT}'/agents/pi/*.md >/dev/null"
 
-for role in aw-designer aw-implementor aw-reviewer; do
+for role in aw-designer aw-implementor aw-reviewer aw-scanner; do
   file="${PLUGIN_ROOT}/agents/codex/${role}.toml"
   assert_true "Codex ${role} template exists" "[ -f '$file' ]"
   assert_true "Codex ${role} has name" "grep -q '^name = \"${role}\"$' '$file'"
@@ -88,7 +88,7 @@ PY"
 done
 
 assert_eq "Claude manifest agents list" \
-  '["./agents/shared/designer.md","./agents/shared/implementor.md","./agents/shared/reviewer.md"]' \
+  '["./agents/shared/designer.md","./agents/shared/implementor.md","./agents/shared/reviewer.md","./agents/shared/scanner.md"]' \
   "$(jq -c '.agents' "${PLUGIN_ROOT}/.claude-plugin/plugin.json")"
 assert_eq "Pi package explicitly supports @gotgenes/pi-subagents" "@gotgenes/pi-subagents" \
   "$(jq -r '.pi.subagents.provider' "${PLUGIN_ROOT}/package.json")"

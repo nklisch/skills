@@ -10,6 +10,7 @@
   "agents": [
     "./agents/shared/designer.md",
     "./agents/shared/implementor.md",
-    "./agents/shared/reviewer.md"
+    "./agents/shared/reviewer.md",
+    "./agents/shared/scanner.md"
   ]
 }

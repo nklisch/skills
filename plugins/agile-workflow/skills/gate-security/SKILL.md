@@ -2,7 +2,7 @@
 name: gate-security
 description: >
   Security gate that scans items bound to a release and produces items as findings. Delegates the full
-  audit to a deep security-audit sub-agent which discovers stack, picks relevant security domains
+  audit to a deep security scanner agent which discovers stack, picks relevant security domains
   (auth, injection, secrets, deps, API, infra, crypto, data protection, error handling), audits the
   bundle's code changes, and returns findings. The orchestrator converts findings into items in
   .work/active/ with gate_origin:security and appropriate tags. Auto-triggers during
@@ -12,14 +12,16 @@ description: >
 # Gate-Security
 
 You orchestrate a security gate over the items bound to a release. The actual
-audit runs inside a **deep security-audit sub-agent**; your role is to prepare
-the bundle context, dispatch the sub-agent, and convert the findings it returns
-into items in the substrate.
+audit runs inside a **deep security scanner agent** (the shipped agile-workflow
+`scanner` role when available); your role is to prepare the bundle context,
+dispatch the scanner, and convert the findings it returns into items in the
+substrate.
 
-Sub-agent strength is explicit: spawn exactly one read-only deep security-audit
-sub-agent with the strongest reviewer setting the host exposes. Use extra-high
-reasoning only for auth, crypto, data-loss, broad public API, or large/polyglot
-release bundles. If the host has no sub-agent path, run the audit inline and
+Scanner strength is explicit: spawn exactly one source-read-only deep security
+scanner with the strongest inspection/reviewer setting the host exposes. Use the
+shipped agile-workflow `scanner` role when available. Use extra-high reasoning
+only for auth, crypto, data-loss, broad public API, or large/polyglot release
+bundles. If the host has no scanner path, run the audit inline and
 record the reduced isolation in the release body.
 
 This is NOT a standalone audit (for that, use a standalone `repo-eval` skill). This
@@ -72,24 +74,25 @@ done < /tmp/bundle-items-<version>.txt | sort -u > /tmp/bundle-files-<version>.t
 ```
 
 Capture the set of `(file:line, severity)` already-tracked findings so the
-sub-agent can be told to skip duplicates.
+scanner can be told to skip duplicates.
 
-### Phase 3: Dispatch the audit sub-agent
+### Phase 3: Dispatch the security scanner
 
-Spawn ONE read-only deep audit sub-agent with the full audit brief. Use the
-strongest reviewer setting the host exposes, escalating for auth, crypto,
-data-loss, broad public API, or large/polyglot bundles. If sub-agents are
-unavailable, run the audit inline and record the reduced isolation in the
-release body. The sub-agent does all of the analysis end-to-end —
-stack discovery, domain selection, parallel domain audits, severity
-classification — and returns structured findings.
+Spawn ONE source-read-only deep scanner agent with the full audit brief. Use the
+shipped agile-workflow `scanner` role when available and the strongest
+inspection/reviewer setting the host exposes, escalating for auth, crypto,
+data-loss, broad public API, or large/polyglot bundles. If scanner agents
+are unavailable, run the audit inline and record the reduced isolation in the
+release body. The scanner does all of the analysis end-to-end — stack discovery,
+domain selection, domain audit passes, severity classification — and returns
+structured findings.
 
 **Brief template** (substitute `<version>`, `<bundle-files>`,
 `<bound-item-ids>`, `<already-tracked>`):
 
-> You are conducting a security gate audit for release `<version>`. You have
-> access to the full toolset (Read, Glob, Grep, Bash, WebSearch, WebFetch,
-> Task) and may spawn parallel sub-tasks for per-domain audits.
+> You are conducting a security gate audit for release `<version>` as an
+> agile-workflow scanner. Use read/search/shell/current-source lookup tools as
+> needed, but do not spawn nested sub-agents or implement fixes.
 >
 > **Bundle scope** (audit ONLY these files; this is a release gate, not a
 > repo-wide audit):
@@ -137,10 +140,10 @@ classification — and returns structured findings.
 >    9. Error Handling & Logging — stack trace leakage, audit gaps, PII in
 >       logs, missing error boundaries, verbose prod errors. All prod apps.
 >
-> 3. **Parallel domain audits** — for each selected domain, spawn a parallel
->    sub-task (Task tool) that audits the bundle's changed files for that
->    domain's checklist. Use WebSearch to verify current best practices for
->    `<stack>+<domain>` combinations before judging.
+> 3. **Domain audit passes** — for each selected domain, audit the bundle's
+>    changed files against that domain's checklist. Use current-source lookup
+>    when needed to verify best practices for `<stack>+<domain>` combinations
+>    before judging.
 >
 > 4. **Severity classification** — every finding gets one of:
 >    | Severity | Meaning |
@@ -190,13 +193,13 @@ classification — and returns structured findings.
 
 ### Phase 4: Convert findings to items
 
-For each finding the sub-agent returned (above Info severity):
+For each finding the scanner returned (above Info severity):
 
 Read `gate_finding_routing` from `.work/CONVENTIONS.md` before writing items.
 If absent, use the default routing below. Normalize security severity to routing
 keys as: `Critical -> critical`, `High -> high`, `Medium -> medium`,
 `Low -> low`, and `Info -> info` (Info is not returned as a finding by the
-sub-agent, but the route is reserved for consistency). If a normalized key maps
+scanner, but the route is reserved for consistency). If a normalized key maps
 to `skip`, do not emit an item for that finding; include the skipped count in
 the gate output. If it maps to `backlog`, write a `.work/backlog/` item instead
 of an active story.
@@ -262,14 +265,14 @@ In conversation:
 
 ## Guardrails
 
-- **The audit happens in the sub-agent, not here.** Your job is bundle prep,
-  dispatch, and item-writing. Don't replicate the sub-agent's analysis in
+- **The audit happens in the scanner agent, not here.** Your job is bundle
+  prep, dispatch, and item-writing. Don't replicate the scanner's analysis in
   the orchestrator's context.
 - Never implement fixes — produce items only.
 - Always cite file:line in finding bodies.
-- Don't fabricate findings. If the sub-agent returns nothing for a domain, it
+- Don't fabricate findings. If the scanner returns nothing for a domain, it
   returns nothing. Don't paper that over.
-- Idempotent re-runs: pass already-tracked findings into the sub-agent's brief
-  so it skips duplicates. Double-check on item-write before creating.
+- Idempotent re-runs: pass already-tracked findings into the scanner brief so it
+  skips duplicates. Double-check on item-write before creating.
 - Audit only the bundle's changes, not the whole repo. Repo-wide audits are
   a standalone `repo-eval`'s job, not a release gate's.

@@ -1,8 +1,9 @@
 # Scanner Dispatch — brief template, model diversity, finding schema
 
-Scanners are the workers of an altitude story. They are **source-read-only**, **scoped to one
-component**, and **armed with the lane's references**. Their only writes are their assigned artifact
-files. The orchestrator never re-does their work.
+Scanners are the workers of an altitude story. Use the shipped agile-workflow `scanner` role when
+available. They are **source-read-only**, **scoped to one component**, and **armed with the lane's
+references**. Their only writes are their assigned artifact files. The orchestrator never re-does
+their work.
 
 ## Model diversity (the "different models in parallel" rule)
 
@@ -37,7 +38,9 @@ for cross-review.
 
 ## Scanner brief template
 
-> You are a **source-read-only scanner sub-agent** for the **<lane>** lane at the **<band>** altitude.
+> You are a **source-read-only scanner agent** for the **<lane>** lane at the **<band>** altitude.
+> Follow the agile-workflow scanner contract: scoped inspection, caller-authorized artifacts only,
+> no fixes, and no recursive sub-agents.
 >
 > **Scan goal (the campaign north star):** <goal — verbatim from the user>
 > Everything you report must serve this goal. A finding outside the goal is noise.
@@ -141,7 +144,7 @@ written.
 
 ### Rolling findings up to the next band
 
-The orchestrator reads `rollups/<lane>/<band-below>.md` between bands (sub-agents are stateless) and
+The orchestrator reads `rollups/<lane>/<band-below>.md` between bands (scanner agents are stateless) and
 injects only the relevant subset into each next-band scanner's brief. The roll-up is
 **deterministic by explicit component membership** (defined in the component map — file sets +
 parent edges, see `decomposition.md`), not naive path prefix: a band-N component's inherited set =

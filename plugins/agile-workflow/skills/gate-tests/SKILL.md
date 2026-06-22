@@ -2,7 +2,7 @@
 name: gate-tests
 description: >
   Test-quality gate that scans items bound to a release for test coverage gaps. Delegates the full
-  analysis to a deep test-analysis sub-agent which derives expected coverage from each bound item's
+  analysis to a deep test scanner agent which derives expected coverage from each bound item's
   acceptance criteria (NOT from implementation code), maps existing test coverage, identifies gaps,
   and returns findings. The orchestrator converts findings into gate_origin:tests items in
   .work/active/. Auto-triggers during /agile-workflow:release-deploy.
@@ -11,29 +11,31 @@ description: >
 # Gate-Tests
 
 You orchestrate a test-quality gate over the items bound to a release. The
-actual analysis runs inside a **deep test-analysis sub-agent**; your role is to
-prepare the bundle context, dispatch the sub-agent, and convert the gaps it
-returns into items in the substrate.
+actual analysis runs inside a **deep test scanner agent** (the shipped
+agile-workflow `scanner` role when available); your role is to prepare the
+bundle context, dispatch the scanner, and convert the gaps it returns into
+items in the substrate.
 
-Sub-agent strength is explicit: spawn exactly one read-only deep test-analysis
-sub-agent with the strongest reviewer setting the host exposes. Use extra-high
-reasoning only for broad cross-feature releases, complex state machines,
+Scanner strength is explicit: spawn exactly one source-read-only deep test
+scanner with the strongest inspection/reviewer setting the host exposes. Use the
+shipped agile-workflow `scanner` role when available. Use extra-high reasoning
+only for broad cross-feature releases, complex state machines,
 concurrency-heavy behavior, or repeated test-quality misses. If the host has no
-sub-agent path, run the analysis inline and record the reduced isolation in the
-release body.
+scanner path, run the analysis inline and record the reduced isolation
+in the release body.
 
 ## Core principle
 
 The gate's principle: **tests derive from specs, not implementations**. Each
-bound item's acceptance criteria IS the spec. The sub-agent verifies those
+bound item's acceptance criteria IS the spec. The scanner verifies those
 criteria are covered, finds gaps, and returns them. It also checks the seams
 BETWEEN bound items — integration coverage where one item's output feeds
 another.
 
 Tests derived from reading implementation code are tautological — they verify
 that the code does what the code does. Tests derived from specs verify what
-the code *should* do. That's where bugs live. The sub-agent's brief enforces
-this discipline.
+the code *should* do. That's where bugs live. The scanner brief enforces this
+discipline.
 
 ## Trigger
 
@@ -74,17 +76,18 @@ done < /tmp/bundle-items-<version>.txt | sort -u > /tmp/bundle-files-<version>.t
 .work/bin/work-view --release <version> --gate tests --paths
 ```
 
-Capture already-tracked findings to feed into the sub-agent's brief.
+Capture already-tracked findings to feed into the scanner brief.
 
-### Phase 3: Dispatch the test-coverage sub-agent
+### Phase 3: Dispatch the test-coverage scanner
 
-Spawn ONE read-only deep analysis sub-agent with the full analysis brief. Use
-the strongest reviewer setting the host exposes, escalating for broad
-cross-feature releases, complex state machines, concurrency-heavy behavior, or
-repeated test-quality misses. If sub-agents are unavailable, run the analysis
-inline and record the reduced isolation in the release body. The sub-agent extracts behavioral contracts from item
-bodies, maps existing tests, applies test-design techniques to find gaps,
-and returns structured findings.
+Spawn ONE source-read-only deep scanner agent with the full analysis brief. Use
+the shipped agile-workflow `scanner` role when available and the strongest
+inspection/reviewer setting the host exposes, escalating for broad cross-feature
+releases, complex state machines, concurrency-heavy behavior, or repeated
+test-quality misses. If scanner agents are unavailable, run the analysis
+inline and record the reduced isolation in the release body. The scanner
+extracts behavioral contracts from item bodies, maps existing tests, applies
+test-design techniques to find gaps, and returns structured findings.
 
 **Brief template**:
 
@@ -92,8 +95,8 @@ and returns structured findings.
 > principle: **tests derive from specs, not implementations**. Each bound
 > item's acceptance criteria IS the spec.
 >
-> You have access to Read, Glob, Grep, Bash, Task. You may spawn parallel
-> sub-tasks for per-item coverage mapping.
+> Use read/search/shell tools as needed. Do not spawn nested sub-agents or implement
+> fixes.
 >
 > **Bundle scope** (files changed by the bundle):
 > ```
@@ -145,16 +148,12 @@ and returns structured findings.
 >    These four axes plus the explicit acceptance criteria form the spec.
 >
 > 2. **Map existing test coverage.** For each bound item, find tests that
->    reference its implementation. Spawn a parallel sub-task per item:
->    > For files changed by item `<id>`: list all tests covering those
->    > files. For each test, identify which acceptance criterion or
->    > behavioral contract it verifies. Cite file:line. Note any tests that
->    > appear to mirror implementation step-by-step (tautological — should
->    > be reworked or deleted). Do NOT read implementation bodies; only
->    > test files and types.
->
->    After the sub-tasks return, **read 2-3 key test files yourself** to
->    verify.
+>    reference its implementation. For files changed by item `<id>`, list all
+>    tests covering those files. For each test, identify which acceptance
+>    criterion or behavioral contract it verifies. Cite file:line. Note any
+>    tests that appear to mirror implementation step-by-step (tautological —
+>    should be reworked or deleted). Do NOT read implementation bodies; only
+>    test files and types. Read 2-3 key test files yourself to verify the map.
 >
 > 3. **Apply test-design techniques** for each acceptance criterion not
 >    covered by tests:
@@ -274,7 +273,7 @@ and returns structured findings.
 
 ### Phase 4: Convert findings to items
 
-For each finding the sub-agent returned:
+For each finding the scanner returned:
 
 Read `gate_finding_routing` from `.work/CONVENTIONS.md` before writing items.
 If absent, use the default routing below. Normalize test priority to routing
@@ -352,12 +351,12 @@ In conversation:
 
 ## Guardrails
 
-- **The analysis happens in the sub-agent, not here.** Your job is bundle
-  prep, dispatch, and item-writing. Don't replicate the sub-agent's contract
+- **The analysis happens in the scanner agent, not here.** Your job is bundle
+  prep, dispatch, and item-writing. Don't replicate the scanner's contract
   extraction or coverage mapping.
-- The sub-agent's brief enforces "specs not implementations". Don't
-  substitute your own judgment for findings.
-- Cite spec references in every item body. The sub-agent provides them.
+- The scanner brief enforces "specs not implementations". Don't substitute
+  your own judgment for findings.
+- Cite spec references in every item body. The scanner provides them.
 - Prioritize invalid input, error cases, boundary conditions — that's where
   bugs hide and specs are most often undertested.
 - Audit only the bundle's items, not the whole repo.

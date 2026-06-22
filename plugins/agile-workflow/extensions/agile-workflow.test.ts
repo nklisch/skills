@@ -148,7 +148,7 @@ function makePi(options: {
 
 function makeAgentSource(): string {
   const source = tempRoot();
-  for (const name of ["designer.md", "implementor.md", "reviewer.md"]) {
+  for (const name of ["designer.md", "implementor.md", "reviewer.md", "scanner.md"]) {
     writeFileSync(join(source, name), `---\ndescription: ${name}\n---\n${name}\n`, "utf8");
   }
   return source;
@@ -162,7 +162,7 @@ describe("bundled Pi agent sync", () => {
     const result = syncBundledPiAgents({ sourceDir: source, targetDir: target });
 
     expect(result.errors).toHaveLength(0);
-    expect(result.installed).toEqual(["designer.md", "implementor.md", "reviewer.md"]);
+    expect(result.installed).toEqual(["designer.md", "implementor.md", "reviewer.md", "scanner.md"]);
     for (const name of result.installed) {
       const installed = join(target, name);
       expect(existsSync(installed)).toBe(true);
@@ -180,7 +180,7 @@ describe("bundled Pi agent sync", () => {
 
     expect(result.installed).toHaveLength(0);
     expect(result.updated).toHaveLength(0);
-    expect(result.skipped).toEqual(["designer.md", "implementor.md", "reviewer.md"]);
+    expect(result.skipped).toEqual(["designer.md", "implementor.md", "reviewer.md", "scanner.md"]);
     expect(result.errors).toHaveLength(0);
   });
 

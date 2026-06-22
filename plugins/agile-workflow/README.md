@@ -42,9 +42,10 @@ snapshots (`/aw status`, `/aw ready`) and workflow handoffs (`/aw autopilot`,
 trust.
 
 Agile-workflow also ships optional subagent role definitions for supported
-hosts. Pi support is explicit to `@gotgenes/pi-subagents`; other Pi subagent
-packages are not supported by these role files. See
-`agents/README.md` for Claude, Codex, and Pi loading details.
+hosts, including a deep `scanner` role for release gates and scan campaigns
+(distinct from code-search/Explore). Pi support is explicit to
+`@gotgenes/pi-subagents`; other Pi subagent packages are not supported by these
+role files. See `agents/README.md` for Claude, Codex, and Pi loading details.
 
 ### Bootstrap
 

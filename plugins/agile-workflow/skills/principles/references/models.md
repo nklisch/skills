@@ -84,7 +84,7 @@ the in-skill prose names; this is what they mean.
 | Role | Needs (capability) | Primary models |
 |---|---|---|
 | Primary worker | write fidelity, agentic stamina | Sonnet-class / Codex high / GLM-5.2 high |
-| Scout (read-only fan-out) | breadth, cheap, accurate mapping | Haiku / Sonnet medium / Sonnet |
+| Scanner/scout (deep read-only fan-out) | domain inspection, evidence, scoped artifacts | Haiku / Sonnet medium / Sonnet for volume; Opus/Codex xhigh/GLM xhigh for subtle gates |
 | Deep reviewer | reasoning depth, fresh context | Opus-class xhigh / Codex xhigh / GLM-5.2 xhigh |
 | Advisory peer (Phase 1) | blind-spot diversity, augmentation | a **different class** than the host |
 | Adversarial peer (Phase 2) | blind-spot diversity, attack posture | a **different class** than host + than Phase 1 |
@@ -182,9 +182,9 @@ Always tell the reviewer **not** to recurse back through peeragent's own
 
 When peeragent is unavailable, fails, would be same-class, or the needed class
 isn't reachable: spawn a **fresh max-effort sub-agent** at the highest class
-available to the host (Pi -> agile-workflow `reviewer` when available; Claude
--> fresh Opus). Give it **only** the artifact + the lens catalog — deliberately
-not the host's own reasoning — so context isolation buys as much independence as
+available to the host (Pi -> agile-workflow `reviewer` for review/adversarial
+passes or `scanner` for inspection passes; Claude -> fresh Opus). Give it **only**
+the artifact + the lens catalog — deliberately not the host's own reasoning — so context isolation buys as much independence as
 possible. Label the pass by the model actually selected at spawn time: cross-model
 only if it is a different model class from the caller; otherwise same-class /
 same-harness fresh-context. Independence is degraded but not absent. For

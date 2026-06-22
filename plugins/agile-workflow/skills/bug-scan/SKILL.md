@@ -3,7 +3,7 @@ name: bug-scan
 description: >
   Deep multi-angle correctness bug hunt. Use when the user asks to "scan for bugs", "bug hunt", "deep
   bug audit", "find hidden bugs", "find race conditions", or audit lurking correctness issues. Fans
-  parallel scanner sub-agents across relevant domains such as concurrency, async, state, resource
+  parallel scanner agents across relevant domains such as concurrency, async, state, resource
   leaks, time/numbers, error handling, data layer, and language footguns. Standalone mode writes a
   scored report; gate mode binds to a release bundle and emits .work/active/stories/ items with
   gate_origin:bugs. Distinct from gate-security, review, perf-design, and repo-eval.
@@ -12,21 +12,22 @@ description: >
 # Bug-Scan
 
 You orchestrate a deep, multi-angle hunt for hard-to-find correctness bugs. You detect the
-stack, choose relevant bug domains, dispatch **one deep scanner sub-agent per selected domain in parallel**, and
+stack, choose relevant bug domains, dispatch **one deep scanner agent per selected domain in parallel**, and
 either write a scored report (standalone) or produce items in `.work/active/stories/` (gate
-mode). Domain selection is the scope-size gate: do not spawn a scanner for a domain
-just because it exists in the table. Each scanner loads only its domain's reference —
+mode). Use the shipped agile-workflow `scanner` role when available. Domain selection is the
+scope-size gate: do not spawn a scanner for a domain just because it exists in the table. Each
+scanner loads only its domain's reference —
 that's the progressive-disclosure move that keeps each scanner focused and the
 orchestrator's context lean.
 
-Sub-agent strength is explicit: spawn one read-only scanner sub-agent per
-selected domain with high reviewer reasoning. Use extra-high reasoning only for
+Scanner strength is explicit: spawn one source-read-only scanner agent per
+selected domain with high inspection/reviewer reasoning. Use the shipped
+agile-workflow `scanner` role when available. Use extra-high reasoning only for
 concurrency, data-layer, or time bugs in high-risk domains, very large scopes,
 or repeat scans that previously missed issues. These are scanners, not fixers.
 - For host-specific role names and Pi support limits, load
-  `../principles/references/subagents.md`. Use the shipped agile-workflow
-  `reviewer` role for same-harness fresh-context scanning when available;
-  otherwise use the same-host read-only analysis fallback.
+  `../principles/references/subagents.md`. If the scanner role is unavailable,
+  use the same-host read-only analysis fallback.
 
 This skill hunts **correctness** bugs, not vulnerabilities, not perf, not style. Use the
 sibling skills for those.
@@ -110,15 +111,14 @@ Skip the prompt. Default to all domains that touch any file in the bundle.
 
 ## Phase 3: Fan-out scan
 
-For each selected domain, spawn **one parallel scanner sub-agent in a single
+For each selected domain, spawn **one parallel scanner agent in a single
 message** so they run concurrently.
 
-Use the host's read-only analysis sub-agent path with high reviewer reasoning;
-escalate to extra-high only for high-risk domains, very large scopes, or repeat
-scans that previously missed issues.
-- Pi path: use a native `reviewer` or `oracle` subagent for each read-only
-  scanner when available; otherwise use the same-host read-only analysis
-  fallback.
+Use the shipped agile-workflow `scanner` role when available with high
+inspection/reviewer reasoning; escalate to extra-high only for high-risk
+domains, very large scopes, or repeat scans that previously missed issues. If a
+host cannot spawn the scanner role, use the same-host read-only analysis
+fallback.
 
 ### Scope (passed into every scanner)
 
@@ -146,7 +146,9 @@ scans that previously missed issues.
 
 Each scanner gets:
 
-> You are a bug-scanner sub-agent for the **<domain>** domain.
+> You are a bug scanner agent for the **<domain>** domain. Use the
+> agile-workflow scanner contract: source-read-only, no fixes, no recursive
+> sub-agents.
 >
 > **Reference (load FIRST)**: `<absolute path to references/<domain>.md>`
 > Read the whole file. It contains the patterns to hunt for in this domain.
@@ -352,9 +354,9 @@ Then report to the user (same format as gate-security):
 
 ## Guardrails
 
-- **The scanning happens in the sub-agents, not here.** Your job is stack discovery, scanner
-  dispatch, and result aggregation. Do not re-do a scanner's work in the orchestrator's
-  context — that throws away the progressive-disclosure win.
+- **The scanning happens in the scanner agents, not here.** Your job is stack discovery,
+  scanner dispatch, and result aggregation. Do not re-do a scanner's work in the
+  orchestrator's context — that throws away the progressive-disclosure win.
 - **Fan out selected domains.** Once Phase 2 has selected domains, run one
   scanner per selected domain in parallel. Do not serialize them, and do not
   spawn skipped domains.

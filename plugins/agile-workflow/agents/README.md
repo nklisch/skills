@@ -2,7 +2,7 @@
 
 Agile-workflow ships role definitions for hosts that support custom subagents.
 The shared skills stay portable; these files are harness-specific ergonomics for
-the same design, implementation, and review roles.
+the same design, implementation, review, and scanner roles.
 
 ## Supported hosts
 
@@ -53,3 +53,8 @@ or into `~/.codex/agents/` globally.
   without delegating to more subagents.
 - `reviewer` / `aw-reviewer`: reviews a tracked item or diff, writes only
   substrate review metadata, and routes fixes back to implementation.
+- `scanner` / `aw-scanner`: performs deep, scoped inspection for gates,
+  scan campaigns, bug domains, e2e audits, perf scouting, and other
+  evidence-generation briefs. It is source-read-only except for
+  caller-authorized artifacts or finding files; it is not the Explore/code-search
+  role and does not implement fixes.

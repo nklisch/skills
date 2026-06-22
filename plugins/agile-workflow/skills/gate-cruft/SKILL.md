@@ -3,7 +3,7 @@ name: gate-cruft
 description: >
   Cruft gate that scans the items bound to a release for AI-accumulated debris (dead code, stale
   comments, compatibility shims, defensive bloat, over-abstraction) introduced or revealed by the
-  bundle. Delegates the full scan to a deep cleanup-audit sub-agent which runs language-aware
+  bundle. Delegates the full scan to a deep cleanup scanner agent which runs language-aware
   detection plus heuristic pattern-matching, then returns findings. The orchestrator converts findings
   into items in .work/active/ with gate_origin:cruft and tags:[cleanup]. Auto-triggers during
   /agile-workflow:release-deploy.
@@ -12,15 +12,17 @@ description: >
 # Gate-Cruft
 
 You orchestrate a cruft gate over the items bound to a release. The actual
-scan runs inside a **deep cleanup-audit sub-agent**; your role is to prepare the
-bundle context, dispatch the sub-agent, and convert the findings it returns
-into items in the substrate. Findings get `gate_origin: cruft`,
+scan runs inside a **deep cleanup scanner agent** (the shipped agile-workflow
+`scanner` role when available); your role is to prepare the bundle context,
+dispatch the scanner, and convert the findings it returns into items in the
+substrate. Findings get `gate_origin: cruft`,
 `tags: [cleanup]`, with severity tier shaping the stage.
 
-Sub-agent strength is explicit: spawn exactly one read-only deep cleanup-audit
-sub-agent with the strongest reviewer setting the host exposes. Use extra-high
-reasoning for large or polyglot release bundles. If the host has no sub-agent
-path, run the audit inline and record the reduced isolation in the release body.
+Scanner strength is explicit: spawn exactly one source-read-only deep cleanup
+scanner with the strongest inspection/reviewer setting the host exposes. Use the
+shipped agile-workflow `scanner` role when available. Use extra-high reasoning
+for large or polyglot release bundles. If the host has no scanner path,
+run the audit inline and record the reduced isolation in the release body.
 
 ## Trigger
 
@@ -56,22 +58,24 @@ done < /tmp/bundle-items-<version>.txt | sort -u > /tmp/bundle-files-<version>.t
 ```
 
 Capture the set of `(file:line, category)` already-tracked findings to feed
-into the sub-agent's brief.
+into the scanner brief.
 
-### Phase 3: Dispatch the cruft sub-agent
+### Phase 3: Dispatch the cruft scanner
 
-Spawn ONE read-only deep cleanup-audit sub-agent with the full scan brief. Use
-the strongest reviewer setting the host exposes, escalating for large or
-polyglot bundles. If sub-agents are unavailable, run the audit inline and record
-the reduced isolation in the release body. The sub-agent does ecosystem detection, runs language-aware
-tools, applies heuristic pattern-matching, triages confidence, and returns
-structured findings.
+Spawn ONE source-read-only deep scanner agent with the full scan brief. Use the
+shipped agile-workflow `scanner` role when available and the strongest
+inspection/reviewer setting the host exposes, escalating for large or polyglot
+bundles. If scanner agents are unavailable, run the audit inline and record
+the reduced isolation in the release body. The scanner does ecosystem detection,
+runs language-aware tools, applies heuristic pattern-matching, triages
+confidence, and returns structured findings.
 
 **Brief template**:
 
-> You are conducting a cruft scan for release `<version>`. You have access
-> to Read, Glob, Grep, Bash, Edit. Audit ONLY the bundle's changed files —
-> not the whole repo.
+> You are conducting a cruft scan for release `<version>` as an agile-workflow
+> scanner. Use read/search/shell tools as needed. Audit ONLY the bundle's
+> changed files — not the whole repo. Do not spawn nested sub-agents or implement
+> fixes.
 >
 > **Bundle scope**:
 > ```
@@ -173,7 +177,7 @@ structured findings.
 
 ### Phase 4: Convert findings to items
 
-For each finding the sub-agent returned:
+For each finding the scanner returned:
 
 Read `gate_finding_routing` from `.work/CONVENTIONS.md` before writing items.
 If absent, use the default routing below. Normalize cruft confidence to routing
@@ -244,14 +248,14 @@ and parallelizes well."
 
 ## Guardrails
 
-- **The scan happens in the sub-agent, not here.** Your job is bundle prep,
-  dispatch, and item-writing. Don't replicate the sub-agent's analysis.
+- **The scan happens in the scanner agent, not here.** Your job is bundle
+  prep, dispatch, and item-writing. Don't replicate the scanner's analysis.
 - Audit only the bundle's changed files, not the whole repo.
 - Never remove code in this skill — produce items only.
 - Cleanup items must be surgical when implemented. They remove cruft and fix
   the immediate surroundings only. They do NOT improve, refactor, or enhance.
 - Patterns documented in `.agents/skills/patterns/` or legacy
   `.claude/skills/patterns/` are intentional, not
-  cruft. The sub-agent cross-checks; don't override.
-- Pass already-tracked findings into the sub-agent's brief so it skips
+  cruft. The scanner cross-checks; don't override.
+- Pass already-tracked findings into the scanner brief so it skips
   duplicates.
