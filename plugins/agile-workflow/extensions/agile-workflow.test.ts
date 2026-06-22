@@ -171,6 +171,21 @@ describe("bundled Pi agent sync", () => {
     }
   });
 
+  test("accepts bundled agent sources that are symlinks", () => {
+    const shared = makeAgentSource();
+    const source = tempRoot();
+    const target = tempRoot();
+    for (const name of ["designer.md", "implementor.md", "reviewer.md", "scanner.md"]) {
+      symlinkSync(join(shared, name), join(source, name));
+    }
+
+    const result = syncBundledPiAgents({ sourceDir: source, targetDir: target });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.installed).toEqual(["designer.md", "implementor.md", "reviewer.md", "scanner.md"]);
+    expect(readlinkSync(join(target, "scanner.md"))).toBe(join(source, "scanner.md"));
+  });
+
   test("treats a second activation as a no-op when links already point at bundled agents", () => {
     const source = makeAgentSource();
     const target = tempRoot();

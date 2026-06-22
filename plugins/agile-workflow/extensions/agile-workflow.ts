@@ -5,6 +5,7 @@ import {
   mkdirSync,
   readlinkSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -156,7 +157,7 @@ export function syncBundledPiAgents(options: {
     const marker = `${target}${MANAGED_MARKER_SUFFIX}`;
 
     try {
-      const sourceStat = lstatOrNull(source);
+      const sourceStat = statOrNull(source);
       if (!sourceStat?.isFile()) {
         result.errors.push({ file, message: `missing bundled agent: ${source}` });
         continue;
@@ -202,6 +203,14 @@ export function syncBundledPiAgents(options: {
 function lstatOrNull(path: string): ReturnType<typeof lstatSync> | null {
   try {
     return lstatSync(path);
+  } catch {
+    return null;
+  }
+}
+
+function statOrNull(path: string): ReturnType<typeof statSync> | null {
+  try {
+    return statSync(path);
   } catch {
     return null;
   }
