@@ -41,6 +41,11 @@ snapshots (`/aw status`, `/aw ready`) and workflow handoffs (`/aw autopilot`,
 `/aw board`). Pi packages can execute extension code, so install from sources you
 trust.
 
+Agile-workflow also ships optional subagent role definitions for supported
+hosts. Pi support is explicit to `@gotgenes/pi-subagents`; other Pi subagent
+packages are not supported by these role files. See
+`agents/README.md` for Claude, Codex, and Pi loading details.
+
 ### Bootstrap
 
 ```bash

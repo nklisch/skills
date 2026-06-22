@@ -28,10 +28,10 @@ both augmentation diversity and adversarial independence are maximized.
    or will fail in operation? Use `peeragent` when a different model class is
    available and appropriate; do not use peeragent when it would be the same
    class as the host.
-3. When hosted in Pi and a native Pi subagent adapter is available, use a
-   reviewer or oracle subagent as the same-harness fresh-context fallback for
-   whichever phase/class can't reach a different class. Record that it was not
-   cross-model.
+3. When hosted in Pi and the agile-workflow `reviewer` role is available, use
+   it as the same-harness fresh-context fallback for whichever phase/class can't
+   reach a different class. Record that it was not cross-model. Do not assume
+   generic Pi reviewer roles are equivalent to the shipped agile-workflow role.
 4. Otherwise, use a fresh local sub-agent at the highest available model class
    when the environment provides one. If the mechanism only supports single
    passes (no convergence loop), run as many rounds as it allows and note that

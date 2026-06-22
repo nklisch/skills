@@ -77,6 +77,15 @@ assert_package() {
   else
     assert_eq "${plugin} pi.extensions absent" "null" "$(jq -c '.pi.extensions // null' "$package_json")"
   fi
+
+  if [ "$plugin" = "agile-workflow" ]; then
+    assert_eq "${plugin} pi.subagents.provider" "@gotgenes/pi-subagents" \
+      "$(jq -r '.pi.subagents.provider' "$package_json")"
+    assert_eq "${plugin} pi.subagents.agents" "[\"./agents/pi\"]" \
+      "$(jq -c '.pi.subagents.agents' "$package_json")"
+  else
+    assert_eq "${plugin} pi.subagents absent" "null" "$(jq -c '.pi.subagents // null' "$package_json")"
+  fi
 }
 
 echo ""
@@ -84,7 +93,7 @@ echo "=== Preflight: jq and plugin package metadata ==="
 assert_true "jq is available" "command -v jq >/dev/null 2>&1"
 
 assert_package "agile-workflow" "@nklisch/pi-agile-workflow" "yes"
-assert_package "nates-toolkit" "@nklisch/pi-nates-toolkit" "no"
+assert_package "nates-toolkit" "@nklisch/pi-nates-toolkit" "yes"
 assert_package "ux-ui-design" "@nklisch/pi-ux-ui-design" "no"
 
 echo ""

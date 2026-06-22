@@ -6,5 +6,6 @@
     "name": "nklisch"
   },
   "repository": "https://github.com/nklisch/skills",
-  "license": "MIT"
+  "license": "MIT",
+  "agents": "./agents/claude/"
 }

@@ -74,10 +74,10 @@ settled agent family for multi-item, cross-module, or orchestration-critical
 bundles, and reserve the highest tier for large cross-feature write paths,
 risky migrations, difficult generated-code reconciliation, or repeated failed
 attempts. Use read-only exploratory sub-agents with the same settled family at
-medium/high reasoning for mapping. If the host provides named worker, scout, or
-reviewer roles, map write bundles to workers, read-only mapping to scouts, and
-same-harness integration checks to reviewers. Do not use peeragent for routine
-implementation-worker fanout.
+medium/high reasoning for mapping. If the host provides named roles, load
+`../principles/references/subagents.md` and map write bundles, read-only
+mapping, and same-harness integration checks through that role map. Do not use
+peeragent for routine implementation-worker fanout.
 
 In every runtime, make each worker prompt self-contained and require one commit
 per item.
@@ -454,11 +454,14 @@ type/tier from the kickoff decision:
 
 **Pi:**
 
-When hosted in Pi and native Pi subagents are available, spawn a `worker`
-subagent for each write bundle. Use `scout` or `context-builder` for read-only
-mapping bundles and `reviewer` for same-harness integration checks. If Pi
-subagents are unavailable, keep the bounded work in the host session or use the
-fresh-context fallback already described by the skill.
+When hosted in Pi and the agile-workflow role definitions are available, spawn
+`implementor` for each write bundle and `reviewer` for same-harness integration
+checks. Use the deployment's existing `Explore` role for read-only mapping only
+when it is already available; agile-workflow does not ship a generic Explore
+override. If the expected Pi roles are unavailable, keep the bounded work in the
+host session or use the fresh-context fallback already described by the skill.
+Do not assume generic Pi role names are equivalent to these shipped
+agile-workflow roles.
 
 For waves with multiple bundles, send all in a **single message** with multiple
 sub-agent calls when the runtime supports parallel execution.

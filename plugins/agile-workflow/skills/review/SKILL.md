@@ -32,6 +32,7 @@ Load only the reference needed for the selected lane:
 | [review-lenses.md](references/review-lenses.md) | Running a standard or deep review of code changes. |
 | [deep-review.md](references/deep-review.md) | The lane is feature, epic, explicit `--deep`, or the user asks for a more robust review. |
 | [../principles/references/models.md](../principles/references/models.md) | Picking the reviewer/peer, host→peer pairing, and the two-phase advisory→adversarial order for deep reviews. |
+| [../principles/references/subagents.md](../principles/references/subagents.md) | Mapping fresh-context reviewer roles across Claude, Codex, and Pi. |
 | [substrate-side-effects.md](references/substrate-side-effects.md) | Substrate mode needs findings filed, stages advanced or bounced, records appended, or a commit made. |
 
 ## Invocation Modes

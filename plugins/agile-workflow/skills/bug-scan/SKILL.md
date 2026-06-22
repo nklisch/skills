@@ -23,9 +23,10 @@ Sub-agent strength is explicit: spawn one read-only scanner sub-agent per
 selected domain with high reviewer reasoning. Use extra-high reasoning only for
 concurrency, data-layer, or time bugs in high-risk domains, very large scopes,
 or repeat scans that previously missed issues. These are scanners, not fixers.
-- **Pi path:** use native Pi `reviewer` or `oracle` subagents for read-only
-  domain scanners when hosted in Pi and available; otherwise use the same-host
-  read-only analysis fallback.
+- For host-specific role names and Pi support limits, load
+  `../principles/references/subagents.md`. Use the shipped agile-workflow
+  `reviewer` role for same-harness fresh-context scanning when available;
+  otherwise use the same-host read-only analysis fallback.
 
 This skill hunts **correctness** bugs, not vulnerabilities, not perf, not style. Use the
 sibling skills for those.

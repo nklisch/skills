@@ -154,8 +154,9 @@ this caller note in every delegated prompt:
 > different model classes** if available, paired across the advisory→adversarial
 > phases in `principles/references/models.md`. A top-tier reasoning peer may take
 > 10 to 30 minutes for a large review; lack of output after a few minutes does
-> not mean it has hung. When hosted in Pi, use native Pi subagents for
-> same-harness worker/scout/reviewer fanout when available; keep peeragent for
+> not mean it has hung. For same-harness subagent role names, load
+> `principles/references/subagents.md`. When hosted in Pi, use only the
+> supported agile-workflow Pi roles for this adapter; keep peeragent for
 > cross-model or cross-harness review.
 
 Routing:
@@ -188,8 +189,8 @@ Routing:
   **epic** gets a fresh-context deep review — cross-model via peeragent when a
   different class is reachable (two classes paired across the advisory→adversarial
   phases for deep/complex scope; see `principles/references/models.md`), else a
-  native Pi reviewer/oracle subagent when hosted in Pi and available, else a fresh
-  top-class sub-agent)
+  supported same-harness reviewer from `principles/references/subagents.md`, else
+  a fresh top-class sub-agent)
 
 The delegated skill owns its internal workflow and stage transition. After it
 returns, rebuild the queue from disk rather than relying on cached state.
@@ -269,12 +270,13 @@ When the scoped queue appears drained:
    "complete" premature. A top-tier reasoning peer may take 10 to 30 minutes for a
    large completion review; do not classify a quiet, still-running process as
    hung after only a few minutes.
-3. If peeragent would use the same model class, do not use `peer-review`; use a
-   native Pi reviewer/oracle subagent when hosted in Pi and available, otherwise
-   a local inline review sub-agent as a fresh-context completion check, and
-   record that it was not cross-model.
-4. If peer-review is unavailable, use the native Pi reviewer/oracle fallback
-   when hosted in Pi and available, otherwise the local inline review fallback.
+3. If peeragent would use the same model class, do not use `peer-review`; use the
+   supported same-harness reviewer from `principles/references/subagents.md`
+   when available, otherwise a local inline review sub-agent as a fresh-context
+   completion check, and record that it was not cross-model.
+4. If peer-review is unavailable, use the supported same-harness reviewer from
+   `principles/references/subagents.md` when available, otherwise the local
+   inline review fallback.
    If the selected final-review path fails, do not report completion; mark the
    run blocked on final review and include the failure reason. Do not invent a
    pass.

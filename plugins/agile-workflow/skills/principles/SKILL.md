@@ -375,12 +375,13 @@ Sub-agents are for breadth, isolation, independent judgment, or parallel
 implementation with clear write ownership. They are not a replacement for
 reading, and they are not automatically better than local read-oriented tools.
 
-When hosted in Pi, native Pi subagents are the preferred same-harness adapter for
-worker, scout, reviewer, and oracle-style fanout when the Pi runtime or an
-installed package such as `pi-subagents` exposes them. Treat those runs as
+When hosted in Pi, native Pi subagents are the preferred same-harness adapter
+when the agile-workflow role definitions are available. Treat those runs as
 fresh-context same-harness delegation, not as cross-model evidence. Keep
 `peeragent` for cross-model or cross-harness advisory/review paths, and fall
-back to direct single-agent execution when neither adapter is available.
+back to direct single-agent execution when the supported adapter is unavailable.
+For the host-specific role names, load
+[references/subagents.md](references/subagents.md).
 
 Before spawning read-only exploratory/discovery sub-agents, do a local scope-size probe:
 
@@ -403,7 +404,7 @@ Choose the lightest mechanism that will produce better evidence:
 | One bounded area but uncertain patterns or call sites | Use one focused exploratory sub-agent, then spot-check key files yourself. |
 | Several independent surfaces with different questions | Use parallel exploratory sub-agents, one per surface/question. |
 | Implementation work with independent write ownership | Fan out by ownership and dependency layer; do not use item count alone as the parallelism signal. |
-| Deep audit/review where fresh context is the point | Spawn the dedicated audit/review sub-agent described by that skill; in Pi, prefer native reviewer/oracle subagents before same-class inline fallback. |
+| Deep audit/review where fresh context is the point | Spawn the dedicated audit/review sub-agent described by that skill; in Pi, prefer the agile-workflow `reviewer` role before same-class inline fallback. |
 
 Parallel Explore only pays for itself when the prompts are genuinely different.
 Three agents asking the same broad question usually return duplicated shallow
@@ -514,11 +515,11 @@ a more authoritative answer, so the peer must be a different class than the host
 If the peer would be the same model class, do not use `peer` or `peer-review`;
 instead spawn a **fresh sub-agent at the highest model class available to the
 host** — never review inline in the host's own context, which is anchored on the
-work it just produced. Under Pi, native reviewer/oracle subagents count as this
-same-harness fresh-context fallback when no different-model peer is available.
-Label it a same-class or same-harness fresh-context pass, not cross-model review.
-If the peer's model class is uncertain, skip peeragent and use the fresh
-sub-agent.
+work it just produced. Under Pi, the agile-workflow `reviewer` role counts as
+this same-harness fresh-context fallback when no different-model peer is
+available. Label it a same-class or same-harness fresh-context pass, not
+cross-model review. If the peer's model class is uncertain, skip peeragent and
+use the fresh sub-agent.
 
 Explicit user instructions and project-level `AGENTS.md` / `CLAUDE.md` review
 rules override this policy. If they require review, follow them. If they opt out
@@ -548,7 +549,7 @@ for the model classes that fill each role):
   their disagreements are themselves signal.
 - Reviewing a completed **feature or epic** at `stage: review` (the `review`
   skill's deep lane): run the lens review in a fresh context — a different-class
-  `peer-review` when reachable, otherwise a native Pi reviewer/oracle subagent
+  `peer-review` when reachable, otherwise the agile-workflow `reviewer` role
   when hosted in Pi and available, otherwise a fresh top-class sub-agent.
   **Stories skip this** entirely; they fast-advance on `implement`'s
   verification.
@@ -589,7 +590,7 @@ failure.
 
 The final autopilot completion review is stricter: it must succeed through a
 different-model `peer-review` loop or a same-harness fresh-context fallback
-(native Pi reviewer/oracle when hosted in Pi and available, otherwise local)
+(agile-workflow `reviewer` when hosted in Pi and available, otherwise local)
 before the run reports `complete`. For deep/complex scope that means clearing
 through at least one cross-class pass per phase in §6 where two classes are
 available; if the selected final-review path fails, the run is blocked on final

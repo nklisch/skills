@@ -203,9 +203,10 @@ does not narrow or disable the default refactor judgment.
 - Use the host's read-only exploratory sub-agent path with medium reasoning for
   focused scans, high reasoning for normal refactor discovery, and strongest
   reviewer reasoning only for large or architecture-heavy refactors.
-- **Pi path:** use native Pi `scout` or `context-builder` subagents for
-  read-only refactor discovery when hosted in Pi and available; otherwise keep
-  host-local scan fallback.
+- For host-specific role names and Pi support limits, load
+  `../principles/references/subagents.md`. Agile-workflow does not ship a
+  generic read-only Explore override, so use an existing deployment-provided
+  read-only role or keep the host-local scan fallback.
 
 1. **Code Smells** — "Find code that smells off in <area>. Look for: duplicated
    logic across files; long files (>500 lines); deep nesting (>4 levels); god

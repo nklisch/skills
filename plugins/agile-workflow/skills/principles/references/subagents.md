@@ -1,0 +1,52 @@
+# Subagent Role Map
+
+Use this reference when a skill needs a host-specific subagent role. The shared
+skills stay harness-neutral; this file is the adapter map.
+
+## Support Matrix
+
+| Role | Pi | Claude Code plugin | Codex |
+|---|---|---|---|
+| Design/planning | `designer` | `designer` | `aw-designer` template |
+| Inline implementation | `implementor` | `implementor` | `aw-implementor` template |
+| Review/fresh-context fallback | `reviewer` | `reviewer` | `aw-reviewer` template |
+| Read-only exploration | `Explore` when already available, otherwise host read-only path | host read-only subagent if available | host read-only subagent if available |
+
+## Pi
+
+When hosted in Pi and the agile-workflow Pi role definitions are available,
+prefer:
+
+- `designer` for `.work` items at `stage: drafting`.
+- `implementor` for code-writing bundles that should execute the inline
+  implementation contract.
+- `reviewer` for same-harness fresh-context review.
+- Existing `Explore` only if the deployment already provides it; agile-workflow
+  does not ship a generic Explore override.
+
+If the expected Pi roles are unavailable, use the skill's inline fallback. Do
+not assume generic Pi role names are equivalent to these shipped agile-workflow
+roles.
+
+## Claude Code
+
+Claude Code plugin installs can load `agents/claude/` from the plugin. Use the
+same role names: `designer`, `implementor`, and `reviewer`.
+
+## Codex
+
+Codex custom agents live in `~/.codex/agents/` or project `.codex/agents/`.
+Codex plugin manifests do not currently expose an `agents` pointer, so
+agile-workflow ships Codex TOML files under `agents/codex/` as templates. Use
+them only after they have been installed into one of Codex's custom-agent
+locations.
+
+## Dispatch Rules
+
+- Subagents cannot spawn further subagents unless the host explicitly supports
+  recursive delegation and the role permits it. These shipped roles do not.
+- Same-harness subagent review is fresh-context evidence, not cross-model
+  evidence.
+- Keep `peeragent` for cross-model or cross-harness advisory/review paths.
+- Record the role used in run notes when it affects design, implementation
+  bundling, or review depth.

@@ -22,6 +22,12 @@
     ],
     "skills": [
       "./skills"
-    ]
+    ],
+    "subagents": {
+      "provider": "@gotgenes/pi-subagents",
+      "agents": [
+        "./agents/pi"
+      ]
+    }
   }
 }

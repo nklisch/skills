@@ -129,6 +129,9 @@ unclear or broader than a few obvious files:
 - Use the host's read-only exploratory sub-agent path with medium reasoning by default.
 - Use high or strongest reviewer reasoning for large or complex codebases.
 - If no sub-agent path is available, keep the bounded mapping in the host session.
+- For host-specific role names and Pi support limits, load
+  `../principles/references/subagents.md`; in Pi, use the shipped
+  agile-workflow roles only when they are available.
 
 Brief:
 - "Find all public exports, shared utilities, type definitions, and module

@@ -182,8 +182,9 @@ Always tell the reviewer **not** to recurse back through peeragent's own
 
 When peeragent is unavailable, fails, would be same-class, or the needed class
 isn't reachable: spawn a **fresh max-effort sub-agent** at the highest class
-available to the host (Pi → native `reviewer`/`oracle` when available; Claude →
-fresh Opus). Give it **only** the artifact + the lens catalog — deliberately
-not the host's own reasoning — so context isolation buys as much independence
-as possible. Label it a **same-class / same-harness fresh-context pass**, never
-cross-model. Independence is degraded but not absent.
+available to the host (Pi -> agile-workflow `reviewer` when available; Claude
+-> fresh Opus). Give it **only** the artifact + the lens catalog — deliberately
+not the host's own reasoning — so context isolation buys as much independence as
+possible. Label it a **same-class / same-harness fresh-context pass**, never
+cross-model. Independence is degraded but not absent. For host-specific role names, load
+[subagents.md](subagents.md).
