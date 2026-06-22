@@ -5,14 +5,15 @@ updated: 2026-06-21
 tags: [bug, tooling]
 ---
 
-# Refresh stale work-view dist binaries for 0.14.7
+# Refresh stale work-view dist binaries for current manifest
 
 ## Symptom
 
 `plugins/agile-workflow/scripts/tests/work-view-dist-version.test.sh` fails on the
-current checkout because the agile-workflow channel manifests report `0.14.7`,
-but every committed `plugins/agile-workflow/work-view/dist/<triple>/work-view`
-binary and the dogfood `.work/bin/work-view` report `work-view 0.14.6`.
+current checkout because the agile-workflow channel manifests report the current
+plugin version, but every committed
+`plugins/agile-workflow/work-view/dist/<triple>/work-view` binary and the dogfood
+`.work/bin/work-view` report an older `work-view` version.
 
 ## Repro
 
@@ -23,12 +24,14 @@ bash plugins/agile-workflow/scripts/tests/work-view-dist-version.test.sh
 
 Observed failures:
 
-- `x86_64-unknown-linux-musl` binary lacks `0.14.7`
-- `aarch64-unknown-linux-musl` binary lacks `0.14.7`
-- `x86_64-apple-darwin` binary lacks `0.14.7`
-- `aarch64-apple-darwin` binary lacks `0.14.7`
-- native `--version` returns `work-view 0.14.6`
-- dogfood `.work/bin/work-view --version` returns `work-view 0.14.6`
+Observed at filing time:
+
+- Manifests had advanced past the committed dist binaries.
+- `x86_64-unknown-linux-musl` binary lacked the current manifest version.
+- `aarch64-unknown-linux-musl` binary lacked the current manifest version.
+- `x86_64-apple-darwin` binary lacked the current manifest version.
+- `aarch64-apple-darwin` binary lacked the current manifest version.
+- native `--version` and dogfood `.work/bin/work-view --version` returned the older embedded version.
 
 ## Impact
 
