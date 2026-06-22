@@ -42,14 +42,34 @@ echo ""
 echo "=== Agile-workflow agent metadata ==="
 
 for role in designer implementor reviewer; do
-  assert_true "Pi ${role} agent exists" "[ -f '${PLUGIN_ROOT}/agents/pi/${role}.md' ]"
-  assert_true "Claude ${role} agent exists" "[ -f '${PLUGIN_ROOT}/agents/claude/${role}.md' ]"
-  assert_true "Pi ${role} uses @gotgenes prompt_mode format" \
-    "grep -q '^prompt_mode: append$' '${PLUGIN_ROOT}/agents/pi/${role}.md'"
+  shared="${PLUGIN_ROOT}/agents/shared/${role}.md"
+  claude="${PLUGIN_ROOT}/agents/claude/${role}.md"
+  pi="${PLUGIN_ROOT}/agents/pi/${role}.md"
+
+  assert_true "Shared ${role} agent exists" "[ -f '$shared' ]"
+  assert_true "Claude ${role} agent exists" "[ -f '$claude' ]"
+  assert_true "Pi ${role} agent exists" "[ -f '$pi' ]"
+  assert_true "Claude ${role} is symlinked to shared" "[ -L '$claude' ]"
+  assert_true "Pi ${role} is symlinked to shared" "[ -L '$pi' ]"
+  assert_eq "Claude ${role} symlink target" "../shared/${role}.md" "$(readlink "$claude")"
+  assert_eq "Pi ${role} symlink target" "../shared/${role}.md" "$(readlink "$pi")"
+  assert_true "Shared ${role} has Claude-compatible name" "grep -q '^name: ${role}$' '$shared'"
+  assert_true "Shared ${role} has description" "grep -q '^description: >$' '$shared'"
+  assert_true "Shared ${role} description is caller-facing" "python3 - '$shared' <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding='utf-8').read()
+match = re.search(r'description: >\n((?:  .+\n)+)', text)
+desc = ' '.join(line.strip() for line in match.group(1).splitlines()) if match else ''
+raise SystemExit(0 if desc.startswith('Use for ') and len(desc) <= 1024 else 1)
+PY"
+  assert_true "Shared ${role} loads principles" "grep -q '/agile-workflow:principles' '$shared'"
+  assert_true "Shared ${role} grounds on VISION in body" "grep -q 'docs/VISION.md' '$shared'"
+  assert_true "Shared ${role} omits tool pinning" "! grep -q '^tools:' '$shared'"
+  assert_true "Shared ${role} omits Pi-only prompt_mode" "! grep -q '^prompt_mode:' '$shared'"
 done
 
-assert_true "Pi agents do not use broken tools: all shorthand" \
-  "! grep -R '^tools: all$' '${PLUGIN_ROOT}/agents/pi' >/dev/null"
+assert_true "Claude/Pi shared agents do not pin tools" \
+  "! grep -H '^tools:' '${PLUGIN_ROOT}'/agents/shared/*.md '${PLUGIN_ROOT}'/agents/claude/*.md '${PLUGIN_ROOT}'/agents/pi/*.md >/dev/null"
 
 for role in aw-designer aw-implementor aw-reviewer; do
   file="${PLUGIN_ROOT}/agents/codex/${role}.toml"
@@ -57,12 +77,23 @@ for role in aw-designer aw-implementor aw-reviewer; do
   assert_true "Codex ${role} has name" "grep -q '^name = \"${role}\"$' '$file'"
   assert_true "Codex ${role} has description" "grep -q '^description = ' '$file'"
   assert_true "Codex ${role} has developer instructions" "grep -q '^developer_instructions = \"\"\"$' '$file'"
+  assert_true "Codex ${role} description is caller-facing" "python3 - '$file' <<'PY'
+import sys, tomllib
+data = tomllib.loads(open(sys.argv[1], encoding='utf-8').read())
+desc = data.get('description', '')
+raise SystemExit(0 if desc.startswith('Use for ') and len(desc) <= 1024 else 1)
+PY"
+  assert_true "Codex ${role} loads principles" "grep -q '/agile-workflow:principles' '$file'"
+  assert_true "Codex ${role} grounds on VISION in developer instructions" "grep -q 'docs/VISION.md' '$file'"
 done
 
-assert_eq "Claude manifest agents pointer" "./agents/claude/" \
-  "$(jq -r '.agents' "${PLUGIN_ROOT}/.claude-plugin/plugin.json")"
+assert_eq "Claude manifest agents list" \
+  '["./agents/shared/designer.md","./agents/shared/implementor.md","./agents/shared/reviewer.md"]' \
+  "$(jq -c '.agents' "${PLUGIN_ROOT}/.claude-plugin/plugin.json")"
 assert_eq "Pi package explicitly supports @gotgenes/pi-subagents" "@gotgenes/pi-subagents" \
   "$(jq -r '.pi.subagents.provider' "${PLUGIN_ROOT}/package.json")"
+assert_eq "Pi package points at shared agent directory" '["./agents/shared"]' \
+  "$(jq -c '.pi.subagents.agents' "${PLUGIN_ROOT}/package.json")"
 
 echo ""
 echo "============================================================"

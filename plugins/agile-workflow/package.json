@@ -26,7 +26,7 @@
     "subagents": {
       "provider": "@gotgenes/pi-subagents",
       "agents": [
-        "./agents/pi"
+        "./agents/shared"
       ]
     }
   }

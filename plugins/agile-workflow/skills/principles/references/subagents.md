@@ -9,8 +9,18 @@ skills stay harness-neutral; this file is the adapter map.
 |---|---|---|---|
 | Design/planning | `designer` | `designer` | `aw-designer` template |
 | Inline implementation | `implementor` | `implementor` | `aw-implementor` template |
-| Review/fresh-context fallback | `reviewer` | `reviewer` | `aw-reviewer` template |
+| Review/fresh-context reviewer | `reviewer` (cross-model only when spawned with a different model class) | `reviewer` (cross-model only when spawned with a different model class) | `aw-reviewer` template |
 | Read-only exploration | `Explore` when already available, otherwise host read-only path | host read-only subagent if available | host read-only subagent if available |
+
+## Shared Claude/Pi role definitions
+
+The Claude Code and Pi role files are symlinked to the same Markdown prompts in
+`agents/shared/`. They use the common frontmatter subset (`name` +
+`description`) and intentionally omit `tools:` so each host inherits the invoking
+session's tool surface. Role boundaries are enforced in prose: the shipped roles
+must not recursively spawn subagents; designer may use bounded `peeragent`
+advisory consultation when the design policy calls for it; implementor/reviewer
+do not call `peeragent` from inside their delegated run.
 
 ## Pi
 
@@ -20,7 +30,9 @@ prefer:
 - `designer` for `.work` items at `stage: drafting`.
 - `implementor` for code-writing bundles that should execute the inline
   implementation contract.
-- `reviewer` for same-harness fresh-context review.
+- `reviewer` for fresh-context review. It may be same-harness or cross-model
+  depending on the model/provider selected when spawning; call it cross-model
+  only when the spawned reviewer is a different model class from the caller.
 - Existing `Explore` only if the deployment already provides it; agile-workflow
   does not ship a generic Explore override.
 
@@ -30,8 +42,9 @@ roles.
 
 ## Claude Code
 
-Claude Code plugin installs can load `agents/claude/` from the plugin. Use the
-same role names: `designer`, `implementor`, and `reviewer`.
+Claude Code plugin installs load `agents/shared/*.md` from the plugin;
+`agents/claude/` is a source-tree symlink alias. Use the same role names:
+`designer`, `implementor`, and `reviewer`.
 
 ## Codex
 

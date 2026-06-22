@@ -8,16 +8,29 @@ the same design, implementation, and review roles.
 
 | Host | Status | Location |
 |---|---|---|
-| Claude Code | plugin-loaded | `agents/claude/*.md` |
-| Pi | supported only through `@gotgenes/pi-subagents` | `agents/pi/*.md` |
+| Claude Code | plugin-loaded | `agents/shared/*.md` (`agents/claude/*.md` symlink aliases in source) |
+| Pi | supported only through `@gotgenes/pi-subagents` | `agents/shared/*.md` (`agents/pi/*.md` symlink aliases in source) |
 | Codex | templates only | `agents/codex/*.toml` |
+
+## Shared Claude/Pi Markdown
+
+Claude Code and `@gotgenes/pi-subagents` both accept the shared Markdown subset
+used here: YAML frontmatter with `name` + `description`, followed by the role
+prompt body. The canonical files live in `agents/shared/*.md`; `agents/claude/`
+and `agents/pi/` are symlinks to the same files so the two channels cannot drift.
+
+Installed packages load the real `agents/shared/` files; the `agents/claude/`
+and `agents/pi/` symlinks are source-tree aliases for maintainers. The shared
+files intentionally omit `tools:`. Each host inherits the invoking session's
+tools; role boundaries such as "do not recursively spawn subagents" and the
+designer-only peer-advisory exception live in the prompt prose instead of brittle
+tool allow-lists. Pi's `prompt_mode` also stays omitted because
+`@gotgenes/pi-subagents` defaults custom agents to append mode.
 
 ## Pi support
 
-Pi support is explicitly for `@gotgenes/pi-subagents`. The files use that
-package's custom-agent Markdown format (`display_name`, `tools`, `prompt_mode`,
-and related frontmatter). Other Pi subagent packages are not supported by these
-definitions.
+Pi support is explicitly for `@gotgenes/pi-subagents`. Other Pi subagent packages
+are not supported by these definitions.
 
 `@gotgenes/pi-subagents` discovers agents from project `.pi/agents/*.md` and
 global `~/.pi/agent/agents/*.md`. The package manifest also advertises these

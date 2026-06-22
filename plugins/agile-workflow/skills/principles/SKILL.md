@@ -509,17 +509,19 @@ host→peer pairing table, and the exact `peeragent` flags, load
 truth for which models fill each role.
 
 Cross-model review is used only when a **different model class** is available
-through an installed peer mechanism such as `peeragent:peer` or
-`peeragent:peer-review`. The value of a peer is **independent blind spots**, not
-a more authoritative answer, so the peer must be a different class than the host.
-If the peer would be the same model class, do not use `peer` or `peer-review`;
-instead spawn a **fresh sub-agent at the highest model class available to the
-host** — never review inline in the host's own context, which is anchored on the
-work it just produced. Under Pi, the agile-workflow `reviewer` role counts as
-this same-harness fresh-context fallback when no different-model peer is
-available. Label it a same-class or same-harness fresh-context pass, not
-cross-model review. If the peer's model class is uncertain, skip peeragent and
-use the fresh sub-agent.
+through an installed peer mechanism such as `peeragent:peer` /
+`peeragent:peer-review`, or through a host sub-agent spawn where the caller can
+select a different model/provider for the reviewer. The value of a peer is
+**independent blind spots**, not a more authoritative answer, so the reviewer
+must be a different class than the host before you label the pass cross-model. If
+`peeragent` would use the same model class, do not use `peer` or `peer-review`;
+instead spawn a **fresh sub-agent at the strongest appropriate model available to
+the host** — never review inline in the host's own context, which is anchored on
+the work it just produced. Under Pi, the agile-workflow `reviewer` role may serve
+either path depending on how it is spawned: cross-model when the caller selects a
+different model class, otherwise same-harness / same-class fresh-context. If the
+spawned reviewer's model class is uncertain, label it fresh-context, not
+cross-model.
 
 Explicit user instructions and project-level `AGENTS.md` / `CLAUDE.md` review
 rules override this policy. If they require review, follow them. If they opt out
@@ -549,14 +551,16 @@ for the model classes that fill each role):
   their disagreements are themselves signal.
 - Reviewing a completed **feature or epic** at `stage: review` (the `review`
   skill's deep lane): run the lens review in a fresh context — a different-class
-  `peer-review` when reachable, otherwise the agile-workflow `reviewer` role
-  when hosted in Pi and available, otherwise a fresh top-class sub-agent.
+  `peer-review` when reachable; otherwise the agile-workflow `reviewer` role
+  spawned with a different model class when the host can do that; otherwise the
+  strongest same-harness fresh-context reviewer available.
   **Stories skip this** entirely; they fast-advance on `implement`'s
   verification.
 - End of an autopilot run, after the scoped queue appears drained and before
   reporting `complete`: run a final `peer-review` loop when a different model
-  class is available; otherwise use the same-harness fresh-context fallback
-  above, then fix or file accepted findings before completion.
+  class is available; otherwise use the freshest reviewer role available,
+  labeling it cross-model only if spawned with a different model class. Fix or
+  file accepted findings before completion.
 - Completed substantial artifacts, or explicit user requests for review: use
   `peer-review` only when the full iterative loop is appropriate.
 
@@ -589,8 +593,9 @@ a few minutes is not a failure. Do not halt the queue for an advisory review
 failure.
 
 The final autopilot completion review is stricter: it must succeed through a
-different-model `peer-review` loop or a same-harness fresh-context fallback
-(agile-workflow `reviewer` when hosted in Pi and available, otherwise local)
+different-model `peer-review` loop, an agile-workflow `reviewer` spawned as a
+fresh-context reviewer (cross-model when the caller selects a different model
+class, otherwise same-harness), or another supported fresh-context fallback
 before the run reports `complete`. For deep/complex scope that means clearing
 through at least one cross-class pass per phase in §6 where two classes are
 available; if the selected final-review path fails, the run is blocked on final

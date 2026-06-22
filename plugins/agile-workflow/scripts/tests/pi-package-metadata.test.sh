@@ -81,7 +81,7 @@ assert_package() {
   if [ "$plugin" = "agile-workflow" ]; then
     assert_eq "${plugin} pi.subagents.provider" "@gotgenes/pi-subagents" \
       "$(jq -r '.pi.subagents.provider' "$package_json")"
-    assert_eq "${plugin} pi.subagents.agents" "[\"./agents/pi\"]" \
+    assert_eq "${plugin} pi.subagents.agents" "[\"./agents/shared\"]" \
       "$(jq -c '.pi.subagents.agents' "$package_json")"
   else
     assert_eq "${plugin} pi.subagents absent" "null" "$(jq -c '.pi.subagents // null' "$package_json")"

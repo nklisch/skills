@@ -8,8 +8,8 @@
   "repository": "https://github.com/nklisch/skills",
   "license": "MIT",
   "agents": [
-    "./agents/claude/designer.md",
-    "./agents/claude/implementor.md",
-    "./agents/claude/reviewer.md"
+    "./agents/shared/designer.md",
+    "./agents/shared/implementor.md",
+    "./agents/shared/reviewer.md"
   ]
 }
