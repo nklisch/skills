@@ -10,19 +10,18 @@
  *                  (or a timeout fires); wake the agent with the result.
  *   - jobs       : list / cancel / tail / status / view over the registry.
  *
- * Wake-ups are delivered via pi.sendUserMessage with deliverAs:"steer" so the
- * message injects as soon as possible — right after the current tool-call
- * batch, before the next LLM call — instead of deferring to end-of-turn
- * (which is what "followUp" does). When the agent is already idle, "steer"
- * and "followUp" behave identically (an immediate fresh turn). The message is
- * HARDCODED and trusted: it carries only the numeric job id and exit code /
- * status word — never command output. Command output stays in the registry
- * and is read
- * on demand via the jobs tool (action=tail) or the focusable overlay panel
- * (action=view). This keeps a malicious command's stdout from being injected
- * as user-authored content (it would otherwise arrive as a real user turn).
+ * Wake-ups are delivered via pi.sendMessage with triggerTurn:true and
+ * deliverAs:"steer" so the message injects as soon as possible — right after
+ * the current tool-call batch, before the next LLM call — instead of deferring
+ * to end-of-turn (which is what "followUp" does). When the agent is already
+ * idle, triggerTurn starts an immediate fresh turn. The custom message is
+ * extension-authored (not user-authored) and trusted: it carries only the
+ * numeric job id and exit code / status word — never command output. Command
+ * output stays in the registry and is read on demand via the jobs tool
+ * (action=tail) or the focusable overlay panel (action=view). This keeps a
+ * malicious command's stdout from being injected as user-authored content.
  *
- * If sendUserMessage is unavailable (older pi), completion is surfaced via
+ * If sendMessage is unavailable (older pi), completion is surfaced via
  * ui.notify + footer status and the agent is NOT auto-woken.
  *
  * Parameter schemas are plain JSON-Schema objects (no typebox import) so the
@@ -87,6 +86,7 @@ const RAW = {
 };
 
 const STATUS_KEY = "background-tasks";
+const WAKE_CUSTOM_TYPE = "background-tasks:wake";
 const MAX_TAIL_CHARS = 6_000; // hard cap on anything sent back to the model
 const MAX_BUFFER_CHARS = 200_000; // rolling in-memory buffer per job
 const DEFAULT_MONITOR_INTERVAL_S = 10;
@@ -200,9 +200,14 @@ type PiApi = {
     args: string[],
     options?: { signal?: AbortSignal; timeout?: number; cwd?: string },
   ) => Promise<ExecResult>;
-  sendUserMessage?: (
-    content: string,
-    options?: { deliverAs?: "steer" | "followUp" },
+  sendMessage?: (
+    message: {
+      customType: string;
+      content: string;
+      display: boolean;
+      details?: unknown;
+    },
+    options?: { triggerTurn?: boolean; deliverAs?: "steer" | "followUp" | "nextTurn" },
   ) => void | Promise<void>;
   appendEntry?: (customType: string, data?: unknown) => void;
   registerTool?: (def: ToolDefinition) => void;
@@ -354,27 +359,38 @@ export default function backgroundTasksExtension(pi: PiApi): void {
   }
 
   /**
-   * Wake the agent with a TRUSTED, hardcoded message. Only the numeric job id
-   * and an exit/status word are interpolated — never command output, which is
-   * attacker-controlled. The agent reads the actual output on demand via the
-   * jobs tool (tail/view). Returns void; the wake is best-effort.
+   * Wake the agent with a TRUSTED, hardcoded custom message. Only the numeric
+   * job id and an exit/status word are interpolated — never command output,
+   * which is attacker-controlled. The agent reads the actual output on demand
+   * via the jobs tool (tail/view). Returns void; the wake is best-effort.
    */
-  function wake(message: string): void {
+  function wake(message: string, details: Record<string, unknown> = {}): void {
     if (shuttingDown) return; // don't trigger turns during/after shutdown
     const tail = message.split("\n")[0];
+    const wakeDetails = { source: "background-tasks", trusted: true, ...details };
     try {
-      if (pi.sendUserMessage) {
+      if (pi.sendMessage) {
         // Best-effort: catch BOTH a rejected promise and a synchronous throw
-        // from sendUserMessage (older runtimes may throw instead of rejecting).
-        // deliverAs:"steer" injects the wake as soon as the current tool-call
-        // batch finishes (before the next LLM call) rather than waiting for the
-        // agent to wind down the whole turn ("followUp"). When idle, both start
-        // a fresh turn immediately.
-        void Promise.resolve(pi.sendUserMessage(message, { deliverAs: "steer" })).catch((err) => {
+        // from sendMessage (older runtimes may throw instead of rejecting).
+        // deliverAs:"steer" injects the custom wake as soon as the current
+        // tool-call batch finishes (before the next LLM call) rather than
+        // waiting for the agent to wind down the whole turn ("followUp"). When
+        // idle, triggerTurn starts a fresh turn immediately.
+        void Promise.resolve(
+          pi.sendMessage(
+            {
+              customType: WAKE_CUSTOM_TYPE,
+              content: message,
+              display: true,
+              details: wakeDetails,
+            },
+            { triggerTurn: true, deliverAs: "steer" },
+          ),
+        ).catch((err) => {
           console.error(`[background-tasks] wake failed: ${(err as Error).message}`);
         });
       } else if (lastUi?.notify) {
-        lastUi.notify(tail, "info");
+        lastUi.notify(`${tail} (auto-wake unavailable: pi.sendMessage missing)`, "info");
       } else {
         console.error(`[background-tasks] wake (no channel): ${tail}`);
       }

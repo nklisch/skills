@@ -48,7 +48,13 @@ type TestContext = {
   mode?: "tui" | "rpc" | "json" | "print";
 };
 
-type Wake = { content: string; options?: { deliverAs?: string } };
+type Wake = {
+  customType?: string;
+  content: string;
+  display?: boolean;
+  details?: Record<string, unknown>;
+  options?: { deliverAs?: string; triggerTurn?: boolean };
+};
 
 function makeContext(): TestContext {
   const ctx: TestContext = {
@@ -66,6 +72,7 @@ function makeContext(): TestContext {
 function makeFakePi(injectedExec?: (command: string, args: string[]) => Promise<ExecResult>) {
   const tools = new Map<string, RegisteredTool>();
   const wakes: Wake[] = [];
+  const userMessages: Wake[] = [];
   const entries: Array<{ type: string; data: unknown }> = [];
   const shutdownHandlers: Array<() => Promise<void> | void> = [];
   const handlers: Record<string, Array<(event: unknown) => unknown>> = {};
@@ -74,8 +81,14 @@ function makeFakePi(injectedExec?: (command: string, args: string[]) => Promise<
     registerTool: (def: RegisteredTool) => {
       tools.set(def.name, def);
     },
+    sendMessage: (
+      message: { customType: string; content: string; display: boolean; details?: Record<string, unknown> },
+      options?: { deliverAs?: string; triggerTurn?: boolean },
+    ) => {
+      wakes.push({ ...message, options });
+    },
     sendUserMessage: (content: string, options?: { deliverAs?: string }) => {
-      wakes.push({ content, options });
+      userMessages.push({ content, options });
     },
     appendEntry: (type: string, data: unknown) => {
       entries.push({ type, data });
@@ -106,7 +119,7 @@ function makeFakePi(injectedExec?: (command: string, args: string[]) => Promise<
   };
 
   backgroundTasksExtension(pi);
-  return { pi, tools, wakes, entries, shutdownHandlers, handlers };
+  return { pi, tools, wakes, userMessages, entries, shutdownHandlers, handlers };
 }
 
 async function waitFor<T>(
@@ -137,8 +150,8 @@ afterEach(async () => {
 });
 
 describe("background tool", () => {
-  test("starts a job, returns immediately with an id, and wakes on exit with a trusted (output-free) message", async () => {
-    const { tools, wakes } = makeFakePi();
+  test("starts a job, returns immediately with an id, and wakes on exit with a custom trusted (output-free) message", async () => {
+    const { tools, wakes, userMessages } = makeFakePi();
     const bg = tools.get("background")!;
 
     const res = (await bg.execute("c1", { command: "echo hello-from-job" }, undefined, undefined, makeContext())) as {
@@ -151,8 +164,15 @@ describe("background tool", () => {
     expect(res.content[0].text).toContain("Started background job");
 
     const wake = await waitFor(() => wakes[0]);
+    expect(wake.customType).toBe("background-tasks:wake");
+    expect(wake.display).toBe(true);
+    expect(wake.details?.source).toBe("background-tasks");
+    expect(wake.details?.trusted).toBe(true);
     expect(wake.content).toContain("finished");
     expect(wake.options?.deliverAs).toBe("steer");
+    expect(wake.options?.triggerTurn).toBe(true);
+    // Regression: wakes are extension-authored custom messages, not fake user messages.
+    expect(userMessages).toHaveLength(0);
     // H1: the command's own output must NOT appear in the wake message.
     expect(wake.content).not.toContain("hello-from-job");
     // H1: the wake must point the agent at the jobs tool to read output.
@@ -216,8 +236,8 @@ describe("background tool", () => {
 });
 
 describe("monitor tool", () => {
-  test("wakes on satisfy_on stdout_matches and keeps output out of the wake", async () => {
-    const { tools, wakes } = makeFakePi();
+  test("wakes on satisfy_on stdout_matches with a custom message and keeps output out of the wake", async () => {
+    const { tools, wakes, userMessages } = makeFakePi();
     const mon = tools.get("monitor")!;
 
     const res = (await mon.execute(
@@ -230,10 +250,13 @@ describe("monitor tool", () => {
 
     expect(res.details.status).toBe("running");
     const wake = await waitFor(() => wakes[0]);
+    expect(wake.customType).toBe("background-tasks:wake");
+    expect(wake.options?.triggerTurn).toBe(true);
     expect(wake.content).toContain("satisfied");
     expect(wake.content).toContain("stdout_matches");
     expect(wake.content).not.toContain("status=READY"); // H1: poll output not in wake
     expect(wake.options?.deliverAs).toBe("steer");
+    expect(userMessages).toHaveLength(0);
   });
 
   test("REGRESSION: stdout_matches against shell-only syntax (echo X; echo Y) — requires the /bin/sh -c route", async () => {
