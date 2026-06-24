@@ -1,0 +1,34 @@
+name: Check extension dependencies
+
+on:
+  push:
+    paths:
+      - "plugins/*/extensions/**"
+      - "plugins/*/package.json"
+      - "package.json"
+      - "scripts/check-extension-deps.mjs"
+      - ".github/workflows/check-extension-deps.yml"
+  pull_request:
+    paths:
+      - "plugins/*/extensions/**"
+      - "plugins/*/package.json"
+      - "package.json"
+      - "scripts/check-extension-deps.mjs"
+      - ".github/workflows/check-extension-deps.yml"
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Root manifest covers extension imports
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check extension deps are declared in root package.json
+        run: node scripts/check-extension-deps.mjs
