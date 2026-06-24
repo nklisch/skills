@@ -1,7 +1,7 @@
 ---
 id: feature-zai-fetch-content-improvements
 kind: feature
-stage: review
+stage: done
 tags: [plugin, tooling, zai-research]
 parent: null
 depends_on: []
@@ -341,4 +341,14 @@ All child stories are now done and ready for feature review:
 - `story-zai-fetch-skill-docs-update` — done; tool guidance and `SKILL.md` updated for JSON/API and article modes.
 
 Verification: `cd plugins/zai-research && bun test` → 71 pass / 0 fail.
+
+## Review (2026-06-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Feature-level release-readiness review. All three child stories are done, Codex implementation review findings were fixed, compact JSON behavior was adjusted after operator feedback, real API smoke tests passed, and `cd plugins/zai-research && bun test` reports 71 pass / 0 fail.
 
