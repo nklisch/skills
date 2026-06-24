@@ -646,12 +646,14 @@ export default function zaiResearchExtension(pi: PiApi): void {
     name: "fetch_content",
     label: "Fetch Content",
     description:
-      "Fetch and extract readable content from one or more URLs via Z.ai's webReader (returns markdown by default). PDFs are extracted locally (provider-free, via unpdf) and returned as markdown page-by-page. Use to read a web page, doc, or PDF the agent found or was given — for full text beyond a search snippet.",
-    promptSnippet: "Fetch/extract URL content (web pages + PDFs) via Z.ai webReader + local unpdf",
+      "Fetch and extract readable content from one or more URLs. Defaults to Z.ai webReader markdown for web pages; PDFs are extracted locally; JSON/API endpoints can be fetched directly with return_format:'json'; noisy docs pages can use extract:'article'.",
+    promptSnippet: "Fetch/extract URL content (web pages, PDFs, JSON APIs, article mode)",
     promptGuidelines: [
-      "Use fetch_content to read a page in full after web_search, or to ingest a doc/PDF URL the user provided.",
-      "PDFs (by .pdf URL) are extracted locally — no provider needed. Everything else goes through Z.ai webReader.",
-      "Pass urls (an array) to fetch several at once; results are concatenated per URL.",
+      "Use fetch_content to read a page in full after web_search, or to ingest a doc/PDF/API URL the user provided.",
+      "Use return_format:'json' for REST/JSON API endpoints such as model lists, version metadata, or config schemas — it bypasses webReader and returns parsed JSON.",
+      "Use extract:'article' when a docs page returns too much navigation, sidebar, or footer noise; do not combine it with return_format:'json'.",
+      "PDFs (by .pdf URL) are extracted locally — no provider needed. PDF URL routing wins over json/article options.",
+      "Pass urls (an array) to fetch several at once; mode options apply to the whole batch, so keep JSON batches homogeneous.",
     ],
     parameters: obj({
       url: str("A single URL to fetch."),

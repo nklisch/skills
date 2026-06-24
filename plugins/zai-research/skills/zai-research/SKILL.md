@@ -1,16 +1,14 @@
 ---
 name: zai-research
 description: >
-  Z.ai-powered web research for Pi: web search, URL/PDF reading, and GitHub repo
-  deep-read. Reaches for five agent tools — web_search (Z.ai web search, current
-  info), fetch_content (Z.ai webReader for pages + local unpdf for PDFs),
-  search_repo_docs / get_repo_structure / read_repo_file (Z.ai zread over a
-  GitHub repo). Use whenever work needs current or version-sensitive information
-  the agent's training data may not have, or when deep-reading a GitHub repo
-  without cloning. The tools wrap Z.ai's web-search-prime, web-reader, and zread
-  MCP servers via the bundled MCP SDK client; auth is the configured Z.ai (zai)
-  provider key, so there is no separate setup for a user already on the zai
-  provider.
+  Z.ai-powered web research for Pi: web search, URL/PDF/JSON/API reading, and
+  GitHub repo deep-read. Reaches for five agent tools — web_search (Z.ai web
+  search), fetch_content (webReader pages, local PDF extraction, direct JSON/API
+  fetches, and article extraction for noisy docs), search_repo_docs /
+  get_repo_structure / read_repo_file (Z.ai zread over GitHub). Use whenever
+  work needs current or version-sensitive information, structured API metadata,
+  or deep-reading a GitHub repo without cloning. Auth comes from the configured
+  Z.ai (zai) provider key.
 ---
 
 # zai-research
@@ -21,9 +19,14 @@ Five agent tools that route research through Z.ai, so the agent reaches for
 - **`web_search`** — Z.ai web search (`web_search_prime`). Returns page titles,
   URLs, summaries. Use `recency` for time-bounded queries, `domain` to restrict
   to a site, `content_size: high` for deeper summaries.
-- **`fetch_content`** — Z.ai `webReader` for web pages (markdown); **local
-  provider-free `unpdf`** for PDFs (returned page-by-page as markdown). Accepts
-  one URL or an array (`urls`, max 20).
+- **`fetch_content`** — URL reader with four modes:
+  - Web pages default to Z.ai `webReader` markdown.
+  - PDFs are extracted locally with provider-free `unpdf`, page-by-page.
+  - REST/JSON API endpoints use `return_format: "json"` for direct bounded
+    HTTP fetch + parsed JSON.
+  - Noisy docs pages use `extract: "article"` for local readability extraction
+    before markdown conversion.
+  Accepts one URL or an array (`urls`, max 20).
 - **`search_repo_docs`** — Z.ai zread `search_doc`. Searches a GitHub repo's
   docs, issues, and commits.
 - **`get_repo_structure`** — Z.ai zread `get_repo_structure`. Lists a repo's
@@ -37,6 +40,8 @@ Five agent tools that route research through Z.ai, so the agent reaches for
 |---|---|
 | Current info, version-sensitive API/SDK/model behavior, "what's the latest on X" | `web_search` |
 | Read a page, doc, or PDF in full (found via search or given by the user) | `fetch_content` |
+| Confirm model IDs, version lists, config keys, or other structured API metadata | `fetch_content` with `return_format: "json"` |
+| Strip nav/sidebar/footer noise from a docs page | `fetch_content` with `extract: "article"` |
 | Understand what a GitHub repo does, its recent changes, known issues | `search_repo_docs` |
 | Map a repo's layout before reading files | `get_repo_structure` |
 | Read a specific file's source from a repo without cloning | `read_repo_file` |
@@ -51,12 +56,16 @@ repo. Cite the URL/repo in your answer.
 1. **Search first** for current/version-sensitive topics. Prefer `web_search`
    with a tight query (Z.ai recommends ≤70 chars). Add `recency` for news/release
    timing, `domain` for an authoritative source.
-2. **Read in depth** with `fetch_content` on the best result — or, for a GitHub
-   repo, skip the clone and use the zread tools.
+2. **Read in depth** with `fetch_content` on the best result — or choose a
+   precise mode:
+   - `return_format: "json"` for structured API endpoints.
+   - `extract: "article"` for noisy docs pages.
+   - default markdown/text for normal pages.
+   For a GitHub repo, skip the clone and use the zread tools.
 3. **Verify before asserting.** Model/API facts change; never state a version
    number, model name, config key, or signature from memory alone when you could
-   have searched. If `web_search` and training disagree, trust the fresh result
-   and cite it.
+   have searched or fetched the current source. If `web_search` and training
+   disagree, trust the fresh result and cite it.
 
 ## Patterns
 
@@ -69,6 +78,20 @@ web_search: query="Hono vs Express 2026 benchmarks", content_size="high"
 ```
 web_search: query="Z.ai GLM-5.2 release", recency="oneMonth"
 ```
+
+**Fetch structured API metadata directly:**
+```
+fetch_content: url="https://api.example.com/model-info", return_format="json"
+```
+Use this for model IDs, version lists, config schemas, feature flags, and other
+API data where a rendered docs page would be noisy or indirect.
+
+**Strip boilerplate from a docs page:**
+```
+fetch_content: url="https://docs.example.com/models", extract="article"
+```
+Use this when the default page read returns navigation, sidebars, footers, or
+repeated chrome around the actual article.
 
 **Deep-read a GitHub repo without cloning:**
 ```
@@ -89,12 +112,24 @@ fetch_content: url="https://arxiv.org/pdf/1706.03762" # local unpdf → markdown
   to keep results authoritative.
 - `content_size: high` costs more (longer summaries); use `medium` (default)
   for most queries.
-- `fetch_content` PDFs are extracted **locally** (provider-free) — no Z.ai call
-  is made for `.pdf` URLs. Everything else goes through Z.ai webReader. Local
-  PDF fetches are SSRF-guarded (private/loopback/link-local hosts refused) and
-  byte-capped; a URL that looks like a PDF but isn't falls back to webReader.
-  One bad URL in a `urls` batch returns a per-URL error block — it does not sink
-  the rest.
+- `fetch_content` mode precedence is: PDF URL → `return_format: "json"` →
+  `extract: "article"` → default webReader. PDF URL routing wins over JSON or
+  article options.
+- `return_format: "json"` and `extract: "article"` are mutually exclusive.
+  JSON mode is for structured endpoints; article mode is for HTML docs pages.
+- `urls` batch mode applies the same options to every URL. Keep JSON batches
+  homogeneous; one bad URL returns a per-URL error block and does not sink the
+  rest.
+- Direct local fetches (PDF, JSON, article mode) are SSRF-guarded: non-http(s),
+  localhost, private/loopback/link-local IPv4 and IPv6, IPv4-mapped IPv6, and
+  redirects to blocked hosts are refused. DNS rebinding is still a documented
+  limitation of local-dev URL fetching.
+- JSON mode uses a 5 MB response cap and returns a clear truncation marker if
+  the pretty-printed JSON exceeds the tool return cap. A truncated JSON response
+  is explicitly marked incomplete.
+- Article extraction uses a readability library plus markdown conversion. If it
+  cannot identify a viable article, it returns full-page text with a fallback
+  marker rather than silently discarding content.
 - For a GitHub repo, prefer the zread tools over `fetch_content`-ing raw GitHub
   URLs — zread returns structured docs/issues/code, not scraped HTML.
 
