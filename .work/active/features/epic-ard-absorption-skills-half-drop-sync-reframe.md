@@ -63,6 +63,15 @@ vendors.
   all four to the absorbed identity (drop the version-pin phrasing, or replace
   with the internal-snapshot phrasing if the versioning sub-decision keeps a
   snapshot record). This is the marketplace-facing surface — do not miss it.
+- **Dangling local links in the copied `ard-core/` docs (handed off from F1).**
+  The scaffold copies `ard-core/SPEC.md` + `ard-core/kernel/README.md` verbatim,
+  which carry markdown links to files the absorption does NOT port (`VERSIONING.md`,
+  `ADOPTING.md`, `example/`, `ard.json`, `LICENSE`, `.research/`). F1 inventories
+  them (its dangling-link scan); **F3 rewrites or removes them** — repoint to the
+  absorbed equivalents where one exists (e.g. ARD versioning narrative now lives in
+  the plugin's reframed `docs/VERSIONING.md`), drop the rest. Use F1's recorded
+  inventory as the worklist; re-run the dangling-link scan after the rewrite and
+  assert it's clean (`check-doc-links` over `ard-core/`).
 
 **Name inline (artifacts-defend-themselves-inline discipline):**
 - the **rejected** separate-repo / dual-pin / publication path (and *why* — publication judged dead);
