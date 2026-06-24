@@ -64,12 +64,16 @@ chain is larger. Verified during decomposition:
 - `ard/tools/meta-fences.py` is the verbatim meta-fence (`ARD-Version:` stamping)
   — **dropped** in F3, not ported.
 
-**Design fork for this feature's design pass (resolve with the peer + operator):**
-does `ard-core/` carry `CATALOGS.md` + `SPEC.md` + `gen-contract.py` (regeneratable,
-true SSOT, resolves the `§` references) — recommended by the empirical-first
-absorption logic — or keep `catalogs.json` as a frozen blob (simpler, but not
-actually a single source and leaves `§` references dangling)? The brief assumes
-the former; the design pass confirms and sizes it.
+**Resolved (cross-model consensus, pass 2): `ard-core/` carries `CATALOGS.md` +
+`SPEC.md` + `gen-contract.py`.** Rationale: `SPEC.md` resolves the pervasive
+`ARD SPEC §N` prose references after submodule removal; `CATALOGS.md` + the
+generator keep `catalogs.json` a *generated* contract (Single Source of Truth /
+Generated Contracts principles) rather than a frozen vendored blob under a new
+name. **Rejected:** keeping `catalogs.json` as a frozen blob — it only works if
+you ALSO rewrite every `ARD SPEC §N` reference away from section citations, which
+is more churn and worse provenance (the peer's words, and correct). The design
+pass sizes the port (these are ~3 files + the generator) and confirms
+`gen-contract.py`'s `ROOT`-relative paths resolve under `ard-core/`.
 
 ## Conformance-green invariant (peer-confirmed: F1 keeps conformance green by itself)
 
