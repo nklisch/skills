@@ -17,7 +17,12 @@ closes the distillation/warrant gap the separate-framework model manufactured.
 ## Ledger entry shape
 
 Each entry in [`ledger.md`](ledger.md) records one observed failure cluster and the
-discipline it warrants, in five fields:
+discipline it warrants, in five fields, **plus a required `grounding` citation
+line**. The five fields describe the *failure cluster*; `grounding` is
+metadata-about-the-entry — the external warrant it rests on, cited as `[handle]{N}`
+resolving against the attestation/bibliography tier (never a citation to an
+analytical artifact like `theory/COMMITMENTS.md`, per the lens-not-substrate
+discipline).
 
 | Field | Meaning |
 |---|---|
@@ -26,6 +31,7 @@ discipline it warrants, in five fields:
 | **observed behavior** | what actually went wrong, concretely — the failure as seen, not the abstraction |
 | **mitigation** | the discipline / shape / fence introduced in response |
 | **verification result** | how the mitigation was confirmed to address the failure (gate, re-engagement, peer pass) |
+| **grounding** *(accompanying line)* | the external warrant, as `[handle]{N}` citations resolving against the bibliography/attestation tier — with a confidence marker where the engagement was `search-summary` rather than source-direct. Not one of the five failure-fields; required nonetheless. |
 
 ## Authoring discipline
 
