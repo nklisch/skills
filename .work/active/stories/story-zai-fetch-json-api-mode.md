@@ -42,7 +42,7 @@ Implemented Unit 1 (`return_format: "json"`) plus the prerequisite Unit 0
 - `plugins/zai-research/extensions/index.test.ts`
   - Added 17 tests across three new suites:
     `parseJsonBody` (8), `fetchBounded` (2), `fetchOneJson` (7). Covers:
-    2xx pretty-print, 4xx-with-JSON surfacing both status and body, non-JSON
+    2xx compact JSON, 4xx-with-JSON surfacing both status and body, non-JSON
     (HTML) structured error mentioning Content-Type, empty body, whitespace
     body, BOM stripping, omitted Content-Type, large-JSON external-marker
     truncation (and that the truncated text is no longer valid JSON),
@@ -56,7 +56,7 @@ Implemented Unit 1 (`return_format: "json"`) plus the prerequisite Unit 0
   prefix line OUTSIDE the JSON.** The story's acceptance criterion says a 4xx
   JSON body must surface *both* status and body; without the prefix, a 4xx
   body would be indistinguishable from a 2xx body. The 2xx happy path stays
-  clean (just the pretty JSON).
+  compact (just the JSON, without whitespace formatting).
 - **Truncation marker is appended outside the JSON**, per the design —
   head-truncating JSON would silently produce invalid-JSON-disguised-as-valid.
   The test asserts the truncated text no longer round-trips through

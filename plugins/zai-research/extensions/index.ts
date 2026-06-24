@@ -258,7 +258,7 @@ export async function fetchBounded(
   }
 }
 
-/** Outcome of {@link parseJsonBody}: a successful pretty-printed JSON string, or a structured error. */
+/** Outcome of {@link parseJsonBody}: a successful compact JSON string, or a structured error. */
 type ParseJsonOutcome = { ok: true; text: string } | { ok: false; error: string };
 
 /**
@@ -275,7 +275,8 @@ type ParseJsonOutcome = { ok: true; text: string } | { ok: false; error: string 
  * - On parse success for a non-2xx status, prepends a `> HTTP <status>` line
  *   so an API error body shows BOTH status and body — otherwise a 4xx JSON
  *   body would be indistinguishable from a 2xx success body.
- * - Pretty-prints with a 2-space indent. If the result exceeds
+ * - Emits compact JSON by default. Agents can parse compact JSON just as well
+ *   as pretty JSON, and whitespace is token overhead. If the result exceeds
  *   {@link MAX_RETURN_CHARS}, head-truncates and appends
  *   {@link JSON_TRUNCATION_MARKER} OUTSIDE the JSON.
  */
@@ -305,19 +306,19 @@ export function parseJsonBody(result: FetchBoundedResult): ParseJsonOutcome {
     };
   }
 
-  let pretty = JSON.stringify(parsed, null, 2);
+  let jsonText = JSON.stringify(parsed);
   // Non-2xx with a parseable JSON body: surface status + Content-Type so an
   // API error is not mistaken for a success. The prefix is OUTSIDE the JSON.
   if (status < 200 || status >= 300) {
     const ct = headers.get("content-type");
     const ctLabel = ct ? ` (${ct})` : "";
-    pretty = `> HTTP ${status}${ctLabel}\n${pretty}`;
+    jsonText = `> HTTP ${status}${ctLabel}\n${jsonText}`;
   }
-  if (pretty.length <= MAX_RETURN_CHARS) {
-    return { ok: true, text: pretty };
+  if (jsonText.length <= MAX_RETURN_CHARS) {
+    return { ok: true, text: jsonText };
   }
   const budget = Math.max(0, MAX_RETURN_CHARS - JSON_TRUNCATION_MARKER.length);
-  return { ok: true, text: `${pretty.slice(0, budget)}${JSON_TRUNCATION_MARKER}` };
+  return { ok: true, text: `${jsonText.slice(0, budget)}${JSON_TRUNCATION_MARKER}` };
 }
 
 /**

@@ -124,9 +124,9 @@ fetch_content: url="https://arxiv.org/pdf/1706.03762" # local unpdf → markdown
   localhost, private/loopback/link-local IPv4 and IPv6, IPv4-mapped IPv6, and
   redirects to blocked hosts are refused. DNS rebinding is still a documented
   limitation of local-dev URL fetching.
-- JSON mode uses a 5 MB response cap and returns a clear truncation marker if
-  the pretty-printed JSON exceeds the tool return cap. A truncated JSON response
-  is explicitly marked incomplete.
+- JSON mode uses compact JSON to avoid wasting tokens, with a 5 MB response cap
+  and a clear truncation marker if rendered output exceeds the tool return cap.
+  A truncated JSON response is explicitly marked incomplete.
 - Article extraction uses a readability library plus markdown conversion. If it
   cannot identify a viable article, it returns full-page text with a fallback
   marker rather than silently discarding content.

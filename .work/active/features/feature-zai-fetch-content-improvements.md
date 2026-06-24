@@ -129,7 +129,7 @@ When `params.return_format === "json"`:
 
 1. Validate the URL with `assertSafeFetchUrl`.
 2. Fetch with the refactored `fetchBounded` using a new `MAX_JSON_BYTES` cap
-   (suggest **5 MB**). JSON parsing + pretty-printing a 25 MB PDF-sized blob is
+   (suggest **5 MB**). JSON parsing and rendering a 25 MB PDF-sized blob is
    wasteful and an OOM risk under batch fetches.
 3. Inspect `Content-Type`. If it plainly says `text/html`, return an error early
    so callers don’t see a parse-failure dump. If it is `application/json` (or
@@ -140,10 +140,11 @@ When `params.return_format === "json"`:
 5. Strip a leading UTF-8 BOM before parsing.
 6. Detect empty body and return a clear "empty body" error instead of a generic
    parse error.
-7. Pretty-print parsed JSON. If the pretty-printed output exceeds
-   `MAX_RETURN_CHARS`, truncate **safely**: emit a truncation marker **outside**
-   any JSON structure and state clearly that the result is incomplete JSON.
-   Head-truncation with an inline marker would produce invalid JSON.
+7. Render parsed JSON compactly by default. Agents can parse compact JSON and
+   whitespace is token overhead. If the output exceeds `MAX_RETURN_CHARS`,
+   truncate **safely**: emit a truncation marker **outside** any JSON structure
+   and state clearly that the result is incomplete JSON. Head-truncation with
+   an inline marker would produce invalid JSON.
 
 Tool schema changes:
 
@@ -161,7 +162,7 @@ this matches today’s URL-type routing.
 **Story**: `story-zai-fetch-json-api-mode`
 
 **Acceptance criteria**:
-- [ ] `return_format: "json"` on a JSON endpoint returns pretty-printed JSON.
+- [ ] `return_format: "json"` on a JSON endpoint returns compact parsed JSON.
 - [ ] A 4xx/5xx response with a JSON body surfaces both status and body.
 - [ ] A non-JSON (e.g. HTML) response returns a structured error mentioning Content-Type.
 - [ ] Empty body / 204 returns a clear "empty body" error, not a generic parse error.

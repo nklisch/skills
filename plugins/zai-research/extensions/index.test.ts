@@ -85,7 +85,7 @@ function jsonResult(opts: {
 }
 
 describe("parseJsonBody", () => {
-  test("pretty-prints a 2xx JSON body (happy path: just the JSON)", () => {
+  test("renders compact JSON for a 2xx body (happy path: just the JSON)", () => {
     const out = parseJsonBody(jsonResult({
       status: 200,
       contentType: "application/json",
@@ -93,7 +93,7 @@ describe("parseJsonBody", () => {
     }));
     expect(out.ok).toBe(true);
     if (out.ok) {
-      expect(out.text).toBe('{\n  "b": 2,\n  "a": 1\n}');
+      expect(out.text).toBe('{"b":2,"a":1}');
     }
   });
 
@@ -106,7 +106,7 @@ describe("parseJsonBody", () => {
     expect(out.ok).toBe(true);
     if (out.ok) {
       expect(out.text).toContain("HTTP 404");
-      expect(out.text).toContain('"error": "model not found"');
+      expect(out.text).toContain('"error":"model not found"');
     }
   });
 
@@ -156,7 +156,7 @@ describe("parseJsonBody", () => {
       body,
     }));
     expect(out.ok).toBe(true);
-    if (out.ok) expect(out.text).toContain('"ok": true');
+    if (out.ok) expect(out.text).toContain('"ok":true');
   });
 
   test("omitted Content-Type on a parse failure is reported as (unknown)", () => {
@@ -169,7 +169,7 @@ describe("parseJsonBody", () => {
   });
 
   test("large JSON exceeding the return cap is truncated with an external marker (invalid JSON)", () => {
-    // Build a JSON body whose pretty-printed form clearly exceeds 60_000 chars.
+    // Build a JSON body whose compact form clearly exceeds 60_000 chars.
     const obj: Record<string, string> = {};
     for (let i = 0; i < 2000; i++) obj[`key_${i}`] = "x".repeat(60);
     const body = JSON.stringify(obj);
@@ -442,7 +442,7 @@ describe("fetch_content routing (registered tool)", () => {
 });
 
 describe("fetchOneJson (JSON/API mode)", () => {
-  test("returns pretty-printed JSON on a 2xx success", async () => {
+  test("returns compact JSON on a 2xx success", async () => {
     await withMockedFetch(
       (() =>
         Promise.resolve(
@@ -453,7 +453,7 @@ describe("fetchOneJson (JSON/API mode)", () => {
         )) as typeof globalThis.fetch,
       async () => {
         const out = await fetchOneJson("https://example.com/api");
-        expect(out).toBe('{\n  "b": 2,\n  "a": 1\n}');
+        expect(out).toBe('{"b":2,"a":1}');
       },
     );
   });
@@ -470,7 +470,7 @@ describe("fetchOneJson (JSON/API mode)", () => {
       async () => {
         const out = await fetchOneJson("https://example.com/missing");
         expect(out).toContain("HTTP 404");
-        expect(out).toContain('"error": "nope"');
+        expect(out).toContain('"error":"nope"');
       },
     );
   });
@@ -518,7 +518,7 @@ describe("fetchOneJson (JSON/API mode)", () => {
         )) as typeof globalThis.fetch,
       async () => {
         const out = await fetchOneJson("https://example.com/bom");
-        expect(out).toContain('"ok": true');
+        expect(out).toContain('"ok":true');
       },
     );
   });
