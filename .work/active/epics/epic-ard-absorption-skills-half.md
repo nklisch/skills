@@ -215,8 +215,12 @@ Reviewed the reconciled 5-feature decomposition. One blocker + SSOT-fork resolut
   "schema + v0.7 seed") that contradicted the child features; added public-path
   smoke checks (compat shim, `refresh-scan.py`) to `conformance-bump`.
 
-**Consensus reached after pass 2** — no blockers remain; the decomposition is
-settled. (Pass-3 dispatched only to confirm; if it returns nits-only the loop closes.)
+**Pass 3 (sign-off, job `20260624T230653Z-96b65f40`): "No blockers — consensus."**
+The decomposition loop is closed. One residual wording nit (two stale `57`-count
+mentions in `conformance-bump`) fixed after sign-off. The standing peer caveat
+carries forward: no pass could inspect the `b1dc0f3` ARD source tree (submodule
+absent in the skills checkout) — the scaffold implementor validates the file
+inventory against the root repo's `ard/` submodule at implementation time.
 
 ## Revisit if
 
