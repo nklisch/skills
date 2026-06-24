@@ -1,7 +1,7 @@
 ---
 id: epic-ard-absorption-skills-half-scaffold
 kind: feature
-stage: implementing
+stage: review
 tags: [plugin]
 parent: epic-ard-absorption-skills-half
 depends_on: []
@@ -270,6 +270,47 @@ No new test *code* — validated by the existing gates + presence/link scans aga
   sidesteps any gitignored raw tier under `ard/.research/`; the 11 positions + infra
   are verified tracked files at `b1dc0f3`. Dest `ard-core/` is freshly tracked.
 
+## Implementation notes (2026-06-24)
+
+Implemented inline as one stride. All 7 acceptance criteria pass on first run:
+- **`ard-core/kernel/conformance/run.py` → 57/57** ✓ (v0.7 content landed; tree self-contained)
+- **`ard-core/tools/gen-contract.py --check` → in sync** ✓ — the central design
+  claim proven empirically: the two-level layout resolves both the lint's sibling
+  `catalogs.json` and the generator's `ROOT/kernel/catalogs.json` with **zero path
+  edits**.
+- **old `scripts/conformance/run.py` → 56/56** unchanged ✓ (copy-not-move; `main` green)
+- theory: 11 positions + 3 infra ✓ · evidence README + ledger ✓ · ard-core README ✓
+- **dangling-link inventory non-empty** ✓ — captured at
+  `ard-core/.dangling-links-inventory.md` (the F3 worklist). Computed set: only
+  `SPEC.md` dangles (5 targets: `.research`, `ADOPTING.md`, `LICENSE`,
+  `VERSIONING.md`, `example`). `CATALOGS.md` + `kernel/README.md` are clean (their
+  links resolve within `ard-core/`) — a finding that *narrows* F3's worklist vs the
+  peer's pass-1 estimate (which named `kernel/README.md` as also dangling; on the
+  ported tree its links resolve to ported siblings).
+
+Authored files (not verbatim copies): `ard-core/README.md` (absorbed-SSOT
+identity + rejected separate-repo path + revisit-if-2nd-adopter escape hatch),
+`ard-core/evidence/{README.md,ledger.md}` (five-field ledger schema + shaped-empty
+ledger), `ard-core/.dangling-links-inventory.md` (F3 hand-off).
+
+**Implementation-review fixes (peer pass, job `…c28fc247`, Request-changes → fixed):**
+- **`kernel/conformance/run.py` made executable** — `cp -p` preserved the source's
+  `644` (the source `run.py` isn't +x; only `lint-citations.py` is), but the
+  feature acceptance requires it executable. `chmod +x` applied; runs directly at
+  57/57. NB: this is an intentional mode-divergence from source (byte-identical
+  *content*, executable *mode*) — recorded so a future diff-parity check doesn't
+  flag it as drift.
+- **Dangling-link inventory widened to the full tree** — the first scan only
+  checked 3 named docs and missed `theory/README.md → ../.gitignore` (resolved at
+  source `ard/.research/README.md` → `ard/.gitignore`; dangles post-relocation).
+  Re-scanned all `ard-core/**/*.md`; complete set is now 2 docs (`SPEC.md` ×5 +
+  `theory/README.md` ×1). The inventory file carries the corrected full-tree scan
+  command for F3.
+- **`ard-core/README.md` wiring claim corrected** — it described consumers
+  referencing `ard-core/` directly in present tense; F1 leaves consumers on legacy
+  paths until F2/F3. Reframed as a `> Migration status` note (intended end state,
+  not a claim every consumer is repointed yet).
+
 ## Other agent review
 
 Cross-model design consensus loop (Codex high-effort, session `…1bc718c471dd`),
@@ -285,4 +326,15 @@ Cross-model design consensus loop (Codex high-effort, session `…1bc718c471dd`)
   conformance 57-vs-56 (delta = `c9-f1-real`).
 - **Pass 2: "No blockers."** One non-blocking nit (the dangling-link acceptance
   should require a *non-empty* inventory — an empty scan is a false clean) — fixed.
-- Consensus reached after pass 2; design committed at `implementing`.
+- Design consensus reached after pass 2; design committed at `implementing`.
+
+**Implementation review (Codex high-effort, session `…8ad8f6c6cb16`), 2 passes:**
+- **Pass 1: Request changes** (3 findings — exec bit on `run.py`, narrow-scan
+  dangling inventory missing `theory/README.md → ../.gitignore`, README
+  overstated current wiring). All fixed; 49-file byte-identity confirmed by the peer.
+- **Pass 2: "No blockers."** Verified `100755` mode, 57/57 direct-exec, gen in
+  sync, old 56/56, full-tree scan matches inventory, byte-identity holds (only the
+  intended mode divergence). Nit (inventory intro naming 3 docs) — fixed.
+- **Implementation consensus reached.** Advanced to `review` (implemented +
+  peer-reviewed-to-consensus; the feature awaits the epic-level final loop, not a
+  separate review pass — the consensus loop already supplied the passed review path).
