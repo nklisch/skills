@@ -20,6 +20,7 @@
 
 import { createMcpHub, type McpHub } from "./mcp.js";
 import { pdfBufferToMarkdown, looksLikePdfUrl } from "./pdf.js";
+import { extractArticle } from "./article.js";
 
 const MAX_RETURN_CHARS = 60_000; // cap text returned to the model per tool call
 const MAX_FETCH_URLS = 20; // cap parallel fan-out in fetch_content
@@ -267,6 +268,41 @@ export function parseJsonBody(result: FetchBoundedResult): ParseJsonOutcome {
 }
 
 /**
+ * Fetch one URL in article-extraction mode: bounded raw-HTML fetch → UTF-8
+ * decode → {@link extractArticle}. SSRF rejection, byte-cap overflow, and
+ * HTTP errors are returned as inline `[article fetch error ...]` strings so a
+ * batch with one bad URL doesn't sink the rest (per-URL isolation, matching
+ * {@link fetchOneJson} and the existing PDF/HTML error wrapping).
+ *
+ * Reuses {@link MAX_PDF_BYTES} for the HTML cap in v1 (25 MB is generous for
+ * doc pages; a dedicated HTML cap can be split out later if needed). Non-2xx
+ * responses short-circuit to an inline error — error pages are usually HTML
+ * templates with no real article, and feeding them to Readability would
+ * produce misleading "extraction succeeded" output.
+ */
+export async function fetchOneArticle(url: string, signal?: AbortSignal): Promise<string> {
+  try {
+    assertSafeFetchUrl(url);
+  } catch (err) {
+    return `[article fetch error for ${url}: SSRF rejected: ${(err as Error).message}]`;
+  }
+  let result: FetchBoundedResult;
+  try {
+    result = await fetchBounded(url, MAX_PDF_BYTES, signal);
+  } catch (err) {
+    return `[article fetch error for ${url}: ${(err as Error).message}]`;
+  }
+  if (result.status < 200 || result.status >= 300) {
+    return `[article fetch error for ${url}: HTTP ${result.status}]`;
+  }
+  const html = new TextDecoder("utf-8").decode(new Uint8Array(result.body));
+  // extractArticle already prefixes the fallback marker when distillation
+  // fails, so we pass `markdown` straight through without re-marking.
+  const { markdown } = extractArticle(html, url);
+  return markdown;
+}
+
+/**
  * Fetch one URL in JSON/API mode. SSRF rejection, byte-cap overflow, and
  * parse failures are returned as inline `[JSON fetch error ...]` strings so a
  * batch with one bad URL doesn't sink the rest (per-URL isolation, matching
@@ -377,6 +413,22 @@ export default function zaiResearchExtension(pi: PiApi): void {
       };
     }
     const wantJson = params.return_format === "json";
+    const wantArticle = params.extract === "article";
+    // json + article is a config error: json fetches the URL and returns
+    // parsed JSON; article fetches raw HTML and returns extracted markdown.
+    // They consume the same precedence slot and can't both win — fail fast
+    // with a clear message instead of silently picking one.
+    if (wantJson && wantArticle) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: 'return_format: "json" and extract: "article" are mutually exclusive. Use return_format: "json" for REST/JSON API endpoints, or extract: "article" to strip boilerplate from an HTML doc page.',
+          },
+        ],
+        isError: true,
+      };
+    }
     // webReader format is used by the PDF-fallback webReader call and the
     // HTML/webReader path. JSON mode ignores it (it returns parsed JSON).
     const returnFormat = params.return_format === "text" ? "text" : "markdown";
@@ -408,6 +460,13 @@ export default function zaiResearchExtension(pi: PiApi): void {
       if (wantJson) {
         return await fetchOneJson(url, signal);
       }
+      // Article extraction (raw HTML fetch + readability + turndown). Strips
+      // nav/sidebars/footers from noisy doc pages. Per-URL isolated errors.
+      // Ignored for PDFs (handled above) and JSON mode (handled above +
+      // rejected up front as mutually exclusive).
+      if (wantArticle) {
+        return await fetchOneArticle(url, signal);
+      }
       // HTML via webReader — isolated per URL so one failure doesn't sink the batch.
       try {
         const args: Record<string, unknown> = {
@@ -434,7 +493,7 @@ export default function zaiResearchExtension(pi: PiApi): void {
               .join("\n\n---\n\n");
       return {
         content: [{ type: "text", text: truncate(body) || "(no content)" }],
-        details: { urls, server: "web-reader", pdfUsed: urls.some(looksLikePdfUrl), jsonMode: wantJson },
+        details: { urls, server: "web-reader", pdfUsed: urls.some(looksLikePdfUrl), jsonMode: wantJson, articleMode: wantArticle },
       };
     } catch (err) {
       return { content: [{ type: "text", text: `fetch_content failed: ${(err as Error).message}` }], isError: true };
@@ -549,6 +608,10 @@ export default function zaiResearchExtension(pi: PiApi): void {
         "Output format. markdown/text route through Z.ai webReader; json fetches the URL directly and returns parsed JSON (use for REST/JSON API endpoints). PDFs always return markdown regardless of this setting.",
       ),
       prompt: str("Optional note framing what you want from the content (accepted for drop-in compatibility; not sent to Z.ai)."),
+      extract: strEnum(
+        ["full", "article"],
+        'For HTML pages, "full" (default) returns the whole webReader output; "article" fetches raw HTML directly, strips nav/sidebars/footers via readability, and returns markdown. Ignored for PDF URLs and for return_format: "json".',
+      ),
     }, []),
     execute: fetchContentExecute,
   });

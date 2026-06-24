@@ -1,7 +1,7 @@
 ---
 id: story-zai-fetch-article-extraction
 kind: story
-stage: implementing
+stage: review
 tags: [plugin, tooling, zai-research]
 parent: feature-zai-fetch-content-improvements
 depends_on: [story-zai-fetch-json-api-mode]
@@ -32,3 +32,19 @@ dependency or a clean heuristic with documented limitations.
 - New unit tests cover a representative doc-page HTML fixture, a page with no
   identifiable article, and a PDF URL combined with `extract: article`.
 - No regression in existing `fetch_content` behavior.
+
+## Implementation notes
+
+- Files changed:
+  - `plugins/zai-research/extensions/index.ts` — added `fetchOneArticle` and `extract` parameter integration; reused refactored `fetchBounded`.
+  - `plugins/zai-research/extensions/article.ts` — new article-extraction helper using `linkedom`, `@mozilla/readability`, and `turndown`.
+  - `plugins/zai-research/extensions/index.test.ts` — added unit tests for article extraction and routing.
+  - `plugins/zai-research/extensions/test/fixtures/noisy-docs.html` — realistic noisy docs fixture.
+  - `plugins/zai-research/extensions/test/fixtures/no-article.html` — login page fixture with no article.
+  - `plugins/zai-research/extensions/test/fixtures/false-positive.html` — fixture where a small `.content` block would falsely win without the character floor.
+  - `plugins/zai-research/package.json` and `bun.lock` — added `@mozilla/readability`, `linkedom`, `turndown` dependencies.
+- Tests added: `extractArticle` suite, `fetchOneArticle` suite, schema snapshot assertion.
+- Discrepancies from design:
+  - Tests do not assert on `<h1>` text because `@mozilla/readability` strips the headline from `.content`; the assertion checks for an `## Overview` heading and the canary phrase instead.
+  - The malformed-HTML test relaxes the fallback-marker expectation because linkedom/readability can still produce useful output; we only assert no throw and non-empty output.
+- Adjacent issues parked: none.

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Configuring the widget pipeline — Acme Docs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/assets/style.css" />
+  <script>
+    // Analytics + nav hydration noise — must NOT survive article extraction.
+    window.analytics = { track(event) { console.log(event); } };
+    function hydrateNav() { /* ... ads ... */ }
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">Acme</a>
+    <nav class="top-nav">
+      <a href="/docs">Docs</a>
+      <a href="/api">API</a>
+      <a href="/blog">Blog</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/login">Sign in</a>
+      <button class="search-toggle">Search ⌘K</button>
+    </nav>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="toc-sidebar">
+        <h4>Getting started</h4>
+        <a href="/docs/install">Installation</a>
+        <a href="/docs/quickstart">Quickstart</a>
+        <h4>Guides</h4>
+        <a href="/docs/widgets">Widgets</a>
+        <a href="/docs/pipeline" class="active">Configuring the widget pipeline</a>
+        <a href="/docs/deploy">Deployment</a>
+        <h4>Reference</h4>
+        <a href="/docs/cli">CLI</a>
+        <a href="/docs/config-schema">Config schema</a>
+      </nav>
+      <div class="ad-slot" data-ad="sidebar-promo">
+        <strong>Try Acme Pro free!</strong>
+        <p>Upgrade now and get 50% off the widget cluster for 12 months. Limited offer.</p>
+      </div>
+    </aside>
+
+    <main class="doc-content">
+      <article>
+        <h1>Configuring the widget pipeline</h1>
+        <p class="lead">
+          The widget pipeline is the core processing stage that turns raw
+          inbound events into normalized widget records. This guide walks
+          through the configuration options, explains the defaults, and shows
+          how to tune the pipeline for high-throughput workloads.
+        </p>
+
+        <h2 id="overview">Overview</h2>
+        <p>
+          Every event entering Acme flows through three ordered stages: ingest,
+          transform, and emit. The transform stage is what most operators mean
+          when they say "the pipeline", and it is where the bulk of the
+          configuration lives. Each stage exposes a small set of knobs that
+          trade latency for throughput, and the defaults are tuned for the
+          common case of balanced, mixed-shape traffic.
+        </p>
+        <p>
+          ARTICLE CANARY PHRASE 777 — this distinctive marker appears only in
+          the real article body and should always survive extraction. It is the
+          canary the test suite asserts on.
+        </p>
+
+        <h2 id="config-file">The config file</h2>
+        <p>
+          Pipeline configuration lives in <code>acme.toml</code> at the root of
+          your project. The file is hot-reloaded by default: changing a value on
+          disk causes the running pipeline to drain in-flight events and then
+          swap to the new configuration without a restart. You can disable
+          hot-reload with the <code>watch = false</code> top-level flag.
+        </p>
+        <pre><code>[pipeline]
+concurrency = 8
+queue = "events"
+flush_interval_ms = 250
+retry = { max_attempts = 5, backoff = "exponential" }</code></pre>
+        <p>
+          The <code>concurrency</code> setting controls how many events the
+          transform stage processes in parallel. The default of 8 is a good
+          starting point for most deployments; raise it on larger boxes and
+          lower it on small ones so background work does not starve your
+          request handlers.
+        </p>
+
+        <h2 id="tuning">Tuning for throughput</h2>
+        <p>
+          High-throughput workloads benefit from a larger
+          <code>flush_interval_ms</code> (which batches more events per emit)
+          and a higher <code>concurrency</code>. The trade-off is latency: a
+          1000 ms flush interval means a given event waits, on average, half a
+          second before it leaves the transform stage. Measure your end-to-end
+          latency under realistic load before committing to aggressive
+          batching.
+        </p>
+        <p>
+          The retry block is intentionally conservative. Exponential backoff
+          with five attempts gives transient failures time to clear without
+          hammering a downstream that is already struggling. If your downstream
+          is a job queue that tolerates redelivery, you can lower
+          <code>max_attempts</code> to fail fast and let the queue handle
+          retries instead.
+        </p>
+
+        <h2 id="see-also">See also</h2>
+        <ul>
+          <li><a href="/docs/widgets">Widget reference</a></li>
+          <li><a href="/docs/deploy">Deployment topology</a></li>
+          <li><a href="/docs/config-schema">Full config schema</a></li>
+        </ul>
+      </article>
+
+      <aside class="on-this-page">
+        <h5>On this page</h5>
+        <ul>
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#config-file">The config file</a></li>
+          <li><a href="#tuning">Tuning for throughput</a></li>
+          <li><a href="#see-also">See also</a></li>
+        </ul>
+      </aside>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <nav class="footer-nav">
+      <a href="/about">About</a>
+      <a href="/jobs">Jobs</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="/status">Status</a>
+    </nav>
+    <p class="copyright">© 2026 Acme Corporation. FOOTER_NOISE_MARK. All rights reserved.</p>
+    <p class="cookie-banner">We use cookies. Accept all to continue.</p>
+  </footer>
+
+  <script>
+    // More noise — inline scripts must never appear in extracted markdown.
+    fetch("/api/event", { method: "POST", body: JSON.stringify({ ad: 1 }) });
+  </script>
+</body>
+</html>

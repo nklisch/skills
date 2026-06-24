@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Status board — Acme</title>
+</head>
+<body>
+  <header class="site-header">
+    <a class="logo" href="/">Acme</a>
+    <nav class="top-nav">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/incidents">Incidents</a>
+      <a href="/metrics">Metrics</a>
+      <a href="/settings">Settings</a>
+      <a href="/billing">Billing</a>
+    </nav>
+  </header>
+
+  <!-- A small `.content`-tagged card that a naive ".content" selector would
+       latch onto. It is real markup but carries only a trivial status blurb —
+       far below the article character floor. Readability tends to pick this
+       kind of dense little block, so without the floor + fallback the real
+       body below would be silently discarded. Verified empirically: with the
+       real content rendered as list items (which Readability scores low),
+       Readability returns length ~88 (< 400 floor), its parsed content does
+       NOT contain the canary, but the whole-page text does. -->
+  <aside class="content status-card">
+    <h2>All systems operational</h2>
+    <p>Last checked 2 minutes ago. No active incidents to report.</p>
+  </aside>
+
+  <section class="incident-log">
+    <h1>Incident history</h1>
+    <!-- The real content lives here as list items. List-item text scores low
+         in Readability's paragraph-density heuristic, so the extractor latches
+         onto the status card above and discards this. The fallback dump of
+         the whole page must preserve it. -->
+    <ul class="incidents">
+      <li>
+        REAL_CONTENT_CANARY_999 — 2026-06-21: Elevated API latency in the
+        eu-west-1 region between 14:02 and 14:47 UTC, caused by a misconfigured
+        read-replica connection pool on the widget lookup path.
+      </li>
+      <li>
+        2026-06-15: A backlog in the webhook dispatcher caused delivery delays
+        of up to eleven minutes for a subset of customers between 09:10 and
+        09:38 UTC. The backlog drained by 09:41 UTC; no deliveries were lost.
+      </li>
+      <li>
+        2026-06-02: Scheduled maintenance window completed. No customer impact.
+      </li>
+    </ul>
+  </section>
+
+  <footer class="site-footer">
+    <nav class="footer-nav">
+      <a href="/about">About</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+    </nav>
+    <p class="copyright">© 2026 Acme Corporation. All rights reserved.</p>
+  </footer>
+</body>
+</html>

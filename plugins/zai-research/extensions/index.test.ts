@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { truncate, assertSafeFetchUrl, fetchBounded, parseJsonBody, fetchOneJson } from "./index";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { truncate, assertSafeFetchUrl, fetchBounded, parseJsonBody, fetchOneJson, fetchOneArticle } from "./index";
+import { extractArticle, ARTICLE_FALLBACK_MARKER } from "./article";
+import zaiResearchExtension from "./index";
+import { looksLikePdfUrl } from "./pdf";
+
+const FIXTURES_DIR = join(import.meta.dir, "test", "fixtures");
 
 describe("truncate (keeps the HEAD)", () => {
   test("returns text unchanged when under the cap", () => {
@@ -229,6 +236,111 @@ describe("fetchBounded", () => {
         );
       },
     );
+  });
+});
+
+describe("extractArticle", () => {
+  test("extracts the real article from a noisy docs fixture", async () => {
+    const html = await readFile(join(FIXTURES_DIR, "noisy-docs.html"), "utf-8");
+    const { markdown, fallback } = extractArticle(html, "https://example.com/docs/pipeline");
+    expect(fallback).toBe(false);
+    expect(markdown).toContain("ARTICLE CANARY PHRASE 777");
+    expect(markdown).not.toContain("FOOTER_NOISE_MARK");
+    expect(markdown).not.toContain("Try Acme Pro free!");
+    expect(markdown).toContain("Overview");
+  });
+
+  test("falls back to full-page text when no article is identified", async () => {
+    const html = await readFile(join(FIXTURES_DIR, "no-article.html"), "utf-8");
+    const { markdown, fallback } = extractArticle(html);
+    expect(fallback).toBe(true);
+    expect(markdown.startsWith(ARTICLE_FALLBACK_MARKER)).toBe(true);
+    expect(markdown).toContain("Sign in");
+    expect(markdown).toContain("Forgot password?");
+  });
+
+  test("falls back when readability latches onto a small non-content block", async () => {
+    const html = await readFile(join(FIXTURES_DIR, "false-positive.html"), "utf-8");
+    const { markdown, fallback } = extractArticle(html);
+    expect(fallback).toBe(true);
+    expect(markdown).toContain("REAL_CONTENT_CANARY_999");
+  });
+
+  test("handles malformed HTML without throwing", () => {
+    const { markdown } = extractArticle("<<<not html>>>");
+    expect(markdown.length).toBeGreaterThan(0);
+  });
+});
+
+describe("fetchOneArticle (article mode)", () => {
+  test("returns extracted article markdown on success", async () => {
+    const html = await readFile(join(FIXTURES_DIR, "noisy-docs.html"), "utf-8");
+    await withMockedFetch(
+      (() =>
+        Promise.resolve(
+          new Response(html, {
+            status: 200,
+            headers: { "content-type": "text/html; charset=utf-8" },
+          }),
+        )) as typeof globalThis.fetch,
+      async () => {
+        const out = await fetchOneArticle("https://example.com/docs/pipeline");
+        expect(out).toContain("ARTICLE CANARY PHRASE 777");
+        expect(out).not.toContain("FOOTER_NOISE_MARK");
+        expect(out).not.toContain(ARTICLE_FALLBACK_MARKER);
+      },
+    );
+  });
+
+  test("returns an inline SSRF error without calling fetch", async () => {
+    let calls = 0;
+    await withMockedFetch(
+      (() => {
+        calls++;
+        return Promise.resolve(new Response(""));
+      }) as typeof globalThis.fetch,
+      async () => {
+        const out = await fetchOneArticle("http://127.0.0.1/page");
+        expect(calls).toBe(0);
+        expect(out).toMatch(/article fetch error/);
+        expect(out).toMatch(/SSRF rejected/);
+      },
+    );
+  });
+
+  test("returns an inline error on HTTP error status", async () => {
+    await withMockedFetch(
+      (() =>
+        Promise.resolve(
+          new Response("<html>error</html>", { status: 502, headers: { "content-type": "text/html" } }),
+        )) as typeof globalThis.fetch,
+      async () => {
+        const out = await fetchOneArticle("https://example.com/down");
+        expect(out).toMatch(/article fetch error/);
+        expect(out).toContain("HTTP 502");
+      },
+    );
+  });
+});
+
+describe("fetch_content routing (registered tool)", () => {
+  function makePi() {
+    const tools: Array<{ name: string; parameters: unknown }> = [];
+    const api = {
+      registerTool: (def: { name: string; parameters: unknown }) => tools.push(def),
+      on: () => {},
+    };
+    zaiResearchExtension(api as unknown as Parameters<typeof zaiResearchExtension>[0]);
+    return { fetch_content: tools.find((t) => t.name === "fetch_content")! };
+  }
+
+  test("schema includes json return_format and extract params", () => {
+    const { fetch_content } = makePi();
+    const params = fetch_content.parameters as {
+      properties: Record<string, { enum?: string[]; description?: string }>;
+    };
+    expect(params.properties.return_format.enum).toContain("json");
+    expect(params.properties.extract.enum).toContain("article");
   });
 });
 
