@@ -16,7 +16,7 @@ updated: 2026-06-24
 ## Brief
 
 Validate the absorbed plugin end-to-end and ship it. Run the ARD conformance
-suite (57 checks) against the `ard-core/` layout, fix any path breakage the
+suite (the reconciled baseline count — see Tasks) against the `ard-core/` layout, fix any path breakage the
 migration introduced, then bump the `agentic-research` plugin version. This is
 the last feature before the epic's final cross-model review loop.
 
@@ -66,6 +66,6 @@ the last feature before the epic's final cross-model review loop.
 
 ## Verification
 
-Conformance 57/57 against the absorbed layout. Channel metadata references no
+Conformance passes at the reconciled baseline count against the absorbed layout. Channel metadata references no
 removed paths. Plugin version bumped and pushed. The plugin installs/loads with
 `ard-core/` as the only kernel surface.
