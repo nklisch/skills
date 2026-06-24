@@ -23,12 +23,21 @@ the last feature before the epic's final cross-model review loop.
 ## Tasks
 
 - **Conformance** — `ard-core/conformance/run.py` reproduces the canonical
-  verdicts (57 checks: 27 baseline · 16 suppression · 4 stats · 2
-  substrate-confidence · 8 lint-hardening) against the lint at its `ard-core/`
-  home. Fix any path/import breakage from the move.
+  verdicts against the lint at its `ard-core/` home. **Check count = whatever the
+  baseline actually is** (the conformance README says 57; the peer's live run
+  reported 56/56 with 26 baseline — do NOT pre-bake a number here; the scaffold
+  feature reconciles the true count, and this feature asserts the migrated layout
+  reproduces it exactly). Fix any path/import breakage from the move.
 - **Cross-channel metadata sanity** — `.claude-plugin/`, `.codex-plugin/`,
   `package.json` still reference only paths that exist post-migration (no
   pointer to removed `scripts/ard-sync.py`, the dropped `ard.json` keys, etc.).
+- **Public-path smoke checks (peer-surfaced)** — conformance alone does not
+  exercise the public-path contracts the migration must preserve. Add explicit
+  smoke checks: (1) `scripts/lint-citations.py` compat shim runs and delegates to
+  `ard-core/lint-citations.py` (same output on a known input); (2)
+  `scripts/refresh-scan.py` imports / `--help` works after its import was
+  repointed in F2. These guard the operator-facing surface the bump claims to
+  preserve.
 - **Catalogs regen check (if SSOT fork chose regeneratable)** — if the scaffold
   feature kept `CATALOGS.md` + `gen-contract.py` in `ard-core/`, confirm
   `catalogs.json` is in sync (`gen-contract.py --check`).

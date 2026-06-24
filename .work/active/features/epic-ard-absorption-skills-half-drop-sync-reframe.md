@@ -4,7 +4,7 @@ kind: feature
 stage: drafting
 tags: [plugin]
 parent: epic-ard-absorption-skills-half
-depends_on: [epic-ard-absorption-skills-half-collapse-vendoring]
+depends_on: [epic-ard-absorption-skills-half-collapse-vendoring, epic-ard-absorption-skills-half-evidence-ledger]
 release_binding: null
 gate_origin: null
 created: 2026-06-24
@@ -22,15 +22,18 @@ ARD as the plugin's internal, empirically-warranted discipline (a periodically
 distilled snapshot of practice), not a separately-published framework the plugin
 vendors.
 
-## Depends on F2, not just F1 (serialize)
+## Dependencies (both peer-confirmed)
 
-This feature **depends on `collapse-vendoring`**, not merely the scaffold. Both
-F2 and this one touch `ard.json` and `README.md`; serializing them avoids
-merge-coordination churn on the same files, and the doc reframe reads more
-honestly *after* the vendoring is actually gone (the docs can describe the landed
-state, not a half-migrated one). If the peer argues the parallelism is worth more
-than the coordination cost, the edge can be relaxed to `[...-scaffold]` — noted
-as an open edge in the epic `## Decomposition`.
+- **`collapse-vendoring`** — both this and F2 touch `ard.json` and `README.md`;
+  serializing avoids merge churn on the same files, and the doc reframe reads more
+  honestly *after* the vendoring is gone (docs describe the landed state, not a
+  half-migrated one).
+- **`evidence-ledger`** — the doc reframe NAMES `ard-core/evidence/` as the
+  **primary warrant tier**. Pointing the docs at an *empty* evidence tier would
+  ship an incoherent migration (peer pass-2 blocker). So the seeded tier must
+  exist before this feature reframes the docs. This transitively gates
+  `conformance-bump` on the evidence seed too — the terminal ship path can no
+  longer finish with an unseeded warrant tier.
 
 ## What to drop
 

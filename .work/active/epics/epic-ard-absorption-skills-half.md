@@ -84,32 +84,28 @@ state, merged to ARD `main` local fast-forward). The v0.7.0 revendor is
 **subsumed** by this migration — no separate ARD tag/release, no separate
 revendor pass. The content moves in as the `ard-core/` seed.
 
-## Phases (decompose properly at `epic-design`)
+## Phases
 
-1. **Scaffold `ard-core/`** — create the directory; move the v0.7.0 ARD kernel
-   content in (`discipline.md`, `catalogs.{md,json}`, `lint-citations.py`,
-   `templates/`, `schema/`, `conformance/`); port all 10 theory positions into
-   `ard-core/theory/`; stand up `ard-core/evidence/` with schema + v0.7 seed.
-2. **Collapse vendoring** — repoint every plugin skill/script/doc that consumes
-   a vendored kernel path (`scripts/lint-citations.py`, `scripts/catalogs.json`,
-   `scripts/conformance/`, `scripts/schema/`, `templates/*`,
-   `skills/research-discipline/SKILL.md`) to reference `ard-core/` directly;
-   remove the duplicate copies; ensure the research-discipline skill body is the
-   single `ard-core/discipline.md` (no verbatim-fenced duplicate).
-3. **Drop the sync machinery** — delete `ard-sync.py` + its test; strip the
-   `adopts` / `vendored_paths` / `not_yet_vendored` / `drift_check` blocks from
-   `ard.json` (or retire `ard.json` if nothing survives); rewrite the plugin docs
-   (`README.md`, `docs/VERSIONING.md`, `docs/ADOPTION.md`, `docs/ARCHITECTURE.md`,
-   `docs/HANDOFF.md`) to the absorbed, empirical-first model — name the rejected
-   separate-repo path + the revisit-if-2nd-adopter escape hatch inline.
-4. **Conformance + bump** — run the plugin conformance suite against the
-   absorbed layout; fix paths; `bump-version.sh agentic-research <minor|major>`.
+Decomposed 2026-06-24 — the realized child features and their dependency spine
+are in `## Decomposition` below (the authoritative list; this section is no
+longer a separate provisional sketch). Five features, not the original
+four-phase sketch: the evidence-ledger seeding split out of the scaffold on the
+peer's sizing read. Corrections folded from the provisional sketch: **11** theory
+positions (not 10); the scaffold stands up the evidence tier **schema/directory
+only** (the v0.7 seed is the separate `evidence-ledger` feature); `ard-core/`
+also carries `SPEC.md` + `CATALOGS.md` + `gen-contract.py` (SSOT, peer-confirmed).
 
 ## Cross-model review policy (this epic)
 
-Per operator: **peeragent on every feature design AND every implementation**,
-plus a **final cross-model loop** on the migrated structure + reframed docs.
-Opus peer calls can take 10–30 min; that is expected, not a hang.
+Per operator: **loop-to-consensus everywhere.** Every feature design AND every
+implementation runs the **iterative `peer-review` loop** (`peeragent ... --resume`,
+typically 3–5 passes) until the peer returns only nits / no blockers — not a
+single advisory pass. A **final cross-model consensus loop** runs on the whole
+migrated structure + reframed docs. The decomposition itself was first reviewed
+with one advisory pass, then brought to consensus with the loop to match this
+policy. Opus peer calls can take 10–30 min/pass; that is expected, not a hang
+(Codex passes are faster). Apply accepted findings as follow-up commits between
+passes.
 
 ## Coordination
 
@@ -129,10 +125,13 @@ scaffold on the peer's sizing read — it is synthesis, not file moves).
 
 A decomposition-time discovery widened the scaffold beyond the epic's stated
 "target shape": `catalogs.json` is **generated** from `CATALOGS.md` (repo root)
-by `gen-contract.py`, and plugin prose pervasively cites `ARD SPEC §N` —
-so a true single-source `ard-core/` likely needs `CATALOGS.md` + `SPEC.md` +
-`gen-contract.py`, not just `catalogs.{md,json}`. Left as a design fork in the
-scaffold feature (recommended: carry them; resolve at that feature's design pass).
+by `gen-contract.py`, and plugin prose pervasively cites `ARD SPEC §N` — so a
+true single-source `ard-core/` needs `CATALOGS.md` + `SPEC.md` + `gen-contract.py`,
+not just `catalogs.{md,json}`. **Resolved (cross-model consensus): carry all
+three** — `SPEC.md` resolves the `§` references post-submodule, the generator
+keeps `catalogs.json` a generated contract rather than a frozen blob. The cheaper
+frozen-blob option was rejected (it requires rewriting every `§` reference —
+more churn, worse provenance).
 
 ### Child features
 
@@ -150,10 +149,13 @@ scaffold feature (recommended: carry them; resolve at that feature's design pass
 - `epic-ard-absorption-skills-half-drop-sync-reframe` — delete `ard-sync.py` +
   test, strip the `ard.json` dual-pin, drop the meta-fence, reframe README +
   docs + channel manifests + marketplace to empirical-first (name rejected path +
-  escape hatch inline) — depends on: `[collapse-vendoring]`
+  escape hatch inline) — depends on: `[collapse-vendoring, evidence-ledger]`
+  (the docs name `evidence/` the primary warrant tier, so the seed must exist
+  first — peer pass-2 blocker)
 - `epic-ard-absorption-skills-half-conformance-bump` — conformance against the
-  absorbed layout + channel-metadata sanity + version bump (minor, contingent on
-  the compat shim) — depends on: `[collapse-vendoring, drop-sync-reframe]`
+  absorbed layout + channel-metadata sanity + public-path smoke checks (compat
+  shim, `refresh-scan.py`) + version bump (minor, contingent on the compat shim)
+  — depends on: `[collapse-vendoring, drop-sync-reframe]`
 
 ### Decomposition risks
 
@@ -168,11 +170,16 @@ scaffold feature (recommended: carry them; resolve at that feature's design pass
   on it. If the operator prefers a clean break, F4 goes major.
 - **Conformance-green windows.** copy-not-move in the scaffold is the mitigation;
   the baseline count needs reconciling (README says 57, peer's live run reported
-  56 — confirm at scaffold design).
-- **SSOT scope creep.** carrying `SPEC.md` + `CATALOGS.md` + `gen-contract.py`
-  into `ard-core/` is the right SSOT call but expands the scaffold; the alternative
-  (frozen `catalogs.json` blob + dangling `§` refs) is cheaper but not actually a
-  single source. Resolve at scaffold design with the operator.
+  56/56 with 26 baseline — confirm the true count at scaffold design and assert
+  it; do not pre-bake a number in conformance-bump).
+- **Empty-warrant-tier ship (resolved, peer pass-2 blocker).** The docs reframe
+  names `ard-core/evidence/` the primary warrant tier — pointing them at an empty
+  tier would ship incoherent. Fixed by gating `drop-sync-reframe` on
+  `evidence-ledger` (transitively gates the terminal ship path).
+- **SSOT scope (resolved).** carrying `SPEC.md` + `CATALOGS.md` + `gen-contract.py`
+  into `ard-core/` expands the scaffold but is the right call (cross-model
+  consensus). The cheaper frozen-blob alternative was rejected — it needs every
+  `§` reference rewritten (more churn, worse provenance).
 
 ## Other agent review
 
@@ -193,6 +200,23 @@ reviewed the decomposition. Accepted and folded in:
 - Peer caveat: it could not inspect the `b1dc0f3` ARD source tree (submodule absent
   in the skills checkout) — the scaffold feature's implementor reads it from the
   root repo's `ard/` submodule.
+
+**Pass 2 (consensus check, same Codex session, job `20260624T225926Z-fba967bc`).**
+Reviewed the reconciled 5-feature decomposition. One blocker + SSOT-fork resolution
++ 3 nits, all folded in:
+- **BLOCKER — empty-warrant-tier ship:** `conformance-bump` didn't transitively
+  depend on `evidence-ledger`, so the docs could name the evidence tier "primary
+  warrant" while it shipped empty → added `evidence-ledger` to
+  `drop-sync-reframe`'s `depends_on`.
+- **SSOT fork resolved → carry `SPEC.md` + `CATALOGS.md` + `gen-contract.py`**
+  (cross-model agreement; frozen-blob alternative rejected).
+- Nits: don't pre-bake the conformance count in `conformance-bump` (assert the
+  reconciled true count); cleaned the stale epic phase prose ("10 positions",
+  "schema + v0.7 seed") that contradicted the child features; added public-path
+  smoke checks (compat shim, `refresh-scan.py`) to `conformance-bump`.
+
+**Consensus reached after pass 2** — no blockers remain; the decomposition is
+settled. (Pass-3 dispatched only to confirm; if it returns nits-only the loop closes.)
 
 ## Revisit if
 
