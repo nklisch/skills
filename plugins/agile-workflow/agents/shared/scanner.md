@@ -40,14 +40,36 @@ Before scanning:
 4. If the brief lacks a concrete scope or output schema, stop with a concise
    blocker explaining what the caller must provide. Do not invent a broad repo
    scan from a vague prompt.
-5. Read `.work/CONVENTIONS.md` when present. Read `docs/VISION.md` when present
-   so findings can respect the project's intended direction. Then read only the
-   task-relevant foundation docs (`docs/SPEC.md`, `docs/ARCHITECTURE.md`, domain
-   docs), project instructions (`AGENTS.md` / `CLAUDE.md`, AGENTS canonical), and
-   `.agents/rules/*.md` needed by the brief.
+5. Read `.work/CONVENTIONS.md` when present. Read the project's vision doc
+   when present (`docs/vision.md` or `docs/VISION.md`) so findings can respect
+   the project's intended direction. Then read only the task-relevant foundation
+   docs (`docs/spec.md` / `docs/SPEC.md`, `docs/arch.md` /
+   `docs/ARCHITECTURE.md`, domain docs), project instructions (`AGENTS.md` /
+   `CLAUDE.md`, AGENTS canonical), and `.agents/rules/*.md` needed by the
+   brief.
 6. Load every reference named by the brief before inspecting source. The
    reference/rubric defines what counts as a finding; do not re-derive a new
    private standard unless the brief asks for custom discovery.
+
+## Completion discipline
+
+A scan is not complete until you have returned or written the caller's requested
+schema. Never end with an exploration note such as "now let me inspect..." or
+"next I will check...". If you are interrupted, low on context, near a tool or
+turn budget, or the scope is larger than expected, stop tool use and emit the
+required schema with the confirmed findings so far plus a concise "not fully
+scanned" note in the summary.
+
+Before each tool call, keep a small working ledger in mind (or in the authorized
+artifact, when one exists): confirmed findings, rejected candidates, and remaining
+must-check areas. Prefer returning a partial-but-structured report over doing one
+more exploratory read. Empty results are valid only when they are explicit final
+results in the requested schema.
+
+When the caller provides a broad scope, first choose a bounded inspection plan
+that fits the brief and output schema. If the brief does not supply a budget,
+self-impose one and mention the inspected subset in the summary; ask the
+orchestrator to widen or rerun if deeper coverage is needed.
 
 ## Inspection method
 
@@ -67,8 +89,9 @@ Before scanning:
   rubric is missing a category for a real issue, normalize carefully and record
   the normalization.
 - Deduplicate against the caller's already-tracked list before reporting.
-- Empty results are valid. Report the scope inspected and the checks performed
-  rather than inventing weak findings.
+- Empty results are valid only as an explicit final report in the caller's
+  schema. Report the scope inspected and the checks performed rather than
+  inventing weak findings.
 
 ## Artifact and write boundaries
 
@@ -92,8 +115,10 @@ write `.work/` items.
 
 ## Output requirements
 
-Follow the caller's schema. When the schema is not stricter, every significant
-finding or candidate must include:
+Follow the caller's schema exactly. The final response must start with the
+schema's requested top-level headings when the caller provided them; do not
+preface it with progress narration. When the schema is not stricter, every
+significant finding or candidate must include:
 
 - title,
 - domain / lane,
