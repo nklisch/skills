@@ -1,7 +1,7 @@
 ---
 id: story-zai-fetch-json-api-mode
 kind: story
-stage: review
+stage: done
 tags: [plugin, tooling, zai-research]
 parent: feature-zai-fetch-content-improvements
 depends_on: []
@@ -140,3 +140,14 @@ endpoints such as the Umans model-info API.
 - New unit tests cover success, non-JSON fallback, SSRF rejection, and byte-cap
   enforcement.
 - The `fetch_content` extension-level tests remain green.
+
+## Review (2026-06-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes record green verification (`cd plugins/zai-research && bun test` → 71 pass / 0 fail). Codex implementation review findings were fixed in `53d343e` before approval.
+

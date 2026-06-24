@@ -1,7 +1,7 @@
 ---
 id: story-zai-fetch-article-extraction
 kind: story
-stage: review
+stage: done
 tags: [plugin, tooling, zai-research]
 parent: feature-zai-fetch-content-improvements
 depends_on: [story-zai-fetch-json-api-mode]
@@ -57,3 +57,14 @@ dependency or a clean heuristic with documented limitations.
   - Fixed the shared mock-fetch helper so the fetch-path tests actually execute.
 - Verification: `cd plugins/zai-research && bun test` → **71 pass / 0 fail**.
 - Adjacent issues parked: none.
+
+## Review (2026-06-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation notes record green verification (`cd plugins/zai-research && bun test` → 71 pass / 0 fail). Codex implementation review findings were fixed in `53d343e` before approval.
+
