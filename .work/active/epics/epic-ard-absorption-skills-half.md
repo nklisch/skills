@@ -107,6 +107,16 @@ policy. Opus peer calls can take 10–30 min/pass; that is expected, not a hang
 (Codex passes are faster). Apply accepted findings as follow-up commits between
 passes.
 
+**Per-feature done-gate (operator-settled): consensus = done.** A feature whose
+implementation reaches cross-model consensus (no blockers) advances straight to
+`stage: done` — its consensus loop IS the passed review, so a separate `review`
+hold adds nothing and would deadlock the dependency chain (`--ready` requires all
+`depends_on` at `done`). The **final cross-model loop** (the epic's task 3) is a
+separate *whole-epic* review over the migrated structure + reframed docs; if it
+finds issues it files new items (the normal gate pattern), it does not hold every
+feature at `review`. Matches how the sibling `epic-agentic-research` features
+terminated at `done`.
+
 ## Coordination
 
 - The skills repo's `epic-agentic-research` (currently `review`) is the sibling

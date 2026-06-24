@@ -1,7 +1,7 @@
 ---
 id: epic-ard-absorption-skills-half-scaffold
 kind: feature
-stage: review
+stage: done
 tags: [plugin]
 parent: epic-ard-absorption-skills-half
 depends_on: []
