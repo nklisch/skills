@@ -1,6 +1,6 @@
 {
   "name": "@nklisch/pi-zai-research",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Z.ai-powered web search, URL reading, and GitHub repo deep-read for Pi — wraps Z.ai's web-search-prime, web-reader, and zread MCP servers.",
   "author": {
     "name": "nklisch"

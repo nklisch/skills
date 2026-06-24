@@ -1,7 +1,7 @@
 {
   "name": "zai-research",
   "description": "Z.ai-powered web search, URL/PDF reading, and GitHub repo deep-read for Pi. Wraps Z.ai's web-search-prime, web-reader, and zread MCP servers via the bundled MCP SDK client, plus provider-free local PDF extraction.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": {
     "name": "nklisch"
   },
