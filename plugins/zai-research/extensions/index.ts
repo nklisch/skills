@@ -24,7 +24,25 @@ import { pdfBufferToMarkdown, looksLikePdfUrl } from "./pdf.js";
 const MAX_RETURN_CHARS = 60_000; // cap text returned to the model per tool call
 const MAX_FETCH_URLS = 20; // cap parallel fan-out in fetch_content
 const MAX_PDF_BYTES = 25_000_000; // cap a single local PDF download (25 MB)
-const PDF_FETCH_TIMEOUT_MS = 30_000; // timeout for a local PDF download
+const MAX_JSON_BYTES = 5_000_000; // cap a single JSON/API direct fetch (5 MB)
+const PDF_FETCH_TIMEOUT_MS = 30_000; // timeout for a local PDF / JSON download
+
+// UTF-8 BOM bytes (EF BB BF). Some APIs emit a leading BOM; strip it before
+// JSON.parse, which otherwise fails with "Unexpected token \uFEFF".
+const UTF8_BOM = [0xef, 0xbb, 0xbf] as const;
+
+// Truncation marker for oversized JSON. Appended OUTSIDE the JSON structure so
+// the result is honestly incomplete rather than invalid-JSON-disguised-as-valid
+// — head-truncating JSON would silently break the structure for callers.
+const JSON_TRUNCATION_MARKER =
+  "\n\n…[truncated by zai-research: JSON output exceeded the return cap and is incomplete]";
+
+/** Structured result of a bounded fetch: HTTP status, headers, and body. */
+export type FetchBoundedResult = {
+  status: number;
+  headers: Headers;
+  body: ArrayBuffer;
+};
 
 // --- Tiny JSON-Schema builders (no external deps) ------------------------
 
@@ -141,15 +159,30 @@ export function assertSafeFetchUrl(rawUrl: string): void {
   }
 }
 
-/** Fetch a URL with a byte cap + timeout, aborting if the body exceeds maxBytes. */
-async function fetchBounded(url: string, maxBytes: number, signal?: AbortSignal): Promise<ArrayBuffer> {
+/**
+ * Fetch a URL with a byte cap + timeout. Streams and aborts if the body
+ * exceeds `maxBytes` (so a huge response can't exhaust memory), follows
+ * redirects, and returns the structured result. Does NOT throw on non-2xx —
+ * callers decide how to handle the status (the JSON/API path needs to inspect
+ * status, headers, and 4xx/5xx JSON error bodies).
+ */
+export async function fetchBounded(
+  url: string,
+  maxBytes: number,
+  signal?: AbortSignal,
+): Promise<FetchBoundedResult> {
   const timeout = AbortSignal.timeout(PDF_FETCH_TIMEOUT_MS);
   const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
   const resp = await fetch(url, { signal: combined, redirect: "follow" });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  // Stream and cap, so a huge response can't exhaust memory.
   const reader = resp.body?.getReader();
-  if (!reader) return resp.arrayBuffer();
+  if (!reader) {
+    // No streaming body — read it whole, capped.
+    const buf = await resp.arrayBuffer();
+    if (buf.byteLength > maxBytes) {
+      throw new Error(`response exceeds ${maxBytes} byte cap`);
+    }
+    return { status: resp.status, headers: resp.headers, body: buf };
+  }
   const chunks: Uint8Array[] = [];
   let total = 0;
   for (;;) {
@@ -168,7 +201,91 @@ async function fetchBounded(url: string, maxBytes: number, signal?: AbortSignal)
     out.set(c, off);
     off += c.byteLength;
   }
-  return out.buffer;
+  return { status: resp.status, headers: resp.headers, body: out.buffer };
+}
+
+/** Outcome of {@link parseJsonBody}: a successful pretty-printed JSON string, or a structured error. */
+type ParseJsonOutcome = { ok: true; text: string } | { ok: false; error: string };
+
+/**
+ * Parse a {@link FetchBoundedResult} for the JSON/API mode. Pure and isolated
+ * so it is directly unit-testable.
+ *
+ * - Strips a leading UTF-8 BOM before decoding/parsing.
+ * - Returns a clear "empty body" error for empty / whitespace-only bodies
+ *   (avoids a generic parse error on a 204 or genuinely empty response).
+ * - Attempts `JSON.parse` regardless of HTTP status, so 4xx/5xx JSON error
+ *   bodies (e.g. `{"error":"model not found"}`) surface.
+ * - On parse failure, returns a structured error carrying the HTTP status,
+ *   the Content-Type header (if any), and a short body snippet.
+ * - On parse success for a non-2xx status, prepends a `> HTTP <status>` line
+ *   so an API error body shows BOTH status and body — otherwise a 4xx JSON
+ *   body would be indistinguishable from a 2xx success body.
+ * - Pretty-prints with a 2-space indent. If the result exceeds
+ *   {@link MAX_RETURN_CHARS}, head-truncates and appends
+ *   {@link JSON_TRUNCATION_MARKER} OUTSIDE the JSON.
+ */
+export function parseJsonBody(result: FetchBoundedResult): ParseJsonOutcome {
+  const { status, headers, body } = result;
+  const bytes = new Uint8Array(body);
+  const start =
+    bytes.length >= 3 && bytes[0] === UTF8_BOM[0] && bytes[1] === UTF8_BOM[1] && bytes[2] === UTF8_BOM[2]
+      ? 3
+      : 0;
+  const text = new TextDecoder("utf-8").decode(start === 0 ? bytes : bytes.subarray(start));
+
+  if (text.trim().length === 0) {
+    return { ok: false, error: `empty body (HTTP ${status})` };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    const ct = headers.get("content-type");
+    const ctLabel = ct ? `Content-Type: ${ct}` : "Content-Type: (unknown)";
+    const snippet = text.slice(0, 200).replace(/\s+/g, " ").trim();
+    return {
+      ok: false,
+      error: `HTTP ${status}: response is not valid JSON (${ctLabel}). Body snippet: ${snippet}`,
+    };
+  }
+
+  let pretty = JSON.stringify(parsed, null, 2);
+  // Non-2xx with a parseable JSON body: surface status + Content-Type so an
+  // API error is not mistaken for a success. The prefix is OUTSIDE the JSON.
+  if (status < 200 || status >= 300) {
+    const ct = headers.get("content-type");
+    const ctLabel = ct ? ` (${ct})` : "";
+    pretty = `> HTTP ${status}${ctLabel}\n${pretty}`;
+  }
+  if (pretty.length <= MAX_RETURN_CHARS) {
+    return { ok: true, text: pretty };
+  }
+  const budget = Math.max(0, MAX_RETURN_CHARS - JSON_TRUNCATION_MARKER.length);
+  return { ok: true, text: `${pretty.slice(0, budget)}${JSON_TRUNCATION_MARKER}` };
+}
+
+/**
+ * Fetch one URL in JSON/API mode. SSRF rejection, byte-cap overflow, and
+ * parse failures are returned as inline `[JSON fetch error ...]` strings so a
+ * batch with one bad URL doesn't sink the rest (per-URL isolation, matching
+ * the existing PDF/HTML error wrapping in fetch_content).
+ */
+export async function fetchOneJson(url: string, signal?: AbortSignal): Promise<string> {
+  try {
+    assertSafeFetchUrl(url);
+  } catch (err) {
+    return `[JSON fetch error for ${url}: SSRF rejected: ${(err as Error).message}]`;
+  }
+  let result: FetchBoundedResult;
+  try {
+    result = await fetchBounded(url, MAX_JSON_BYTES, signal);
+  } catch (err) {
+    return `[JSON fetch error for ${url}: ${(err as Error).message}]`;
+  }
+  const outcome = parseJsonBody(result);
+  return outcome.ok ? outcome.text : `[JSON fetch error for ${url}: ${outcome.error}]`;
 }
 
 /** Resolve the Z.ai API key from the configured zai provider. */
@@ -237,8 +354,13 @@ export default function zaiResearchExtension(pi: PiApi): void {
 
   async function fetchOnePdf(url: string, signal?: AbortSignal): Promise<string> {
     assertSafeFetchUrl(url);
-    const buf = await fetchBounded(url, MAX_PDF_BYTES, signal);
-    const out = await pdfBufferToMarkdown(new Uint8Array(buf), { source: url });
+    const result = await fetchBounded(url, MAX_PDF_BYTES, signal);
+    // fetchBounded no longer throws on non-2xx; preserve today's PDF behavior
+    // by checking status here and throwing the identical `HTTP <status>` message.
+    if (result.status < 200 || result.status >= 300) {
+      throw new Error(`HTTP ${result.status}`);
+    }
+    const out = await pdfBufferToMarkdown(new Uint8Array(result.body), { source: url });
     return out.markdown;
   }
 
@@ -254,12 +376,17 @@ export default function zaiResearchExtension(pi: PiApi): void {
         isError: true,
       };
     }
+    const wantJson = params.return_format === "json";
+    // webReader format is used by the PDF-fallback webReader call and the
+    // HTML/webReader path. JSON mode ignores it (it returns parsed JSON).
     const returnFormat = params.return_format === "text" ? "text" : "markdown";
 
     const fetchOne = async (url: string): Promise<string> => {
       // PDF → local provider-free extraction (with SSRF + size guards); on
       // local failure (e.g. a .pdf URL that is actually HTML), fall through to
       // webReader so a false-positive heuristic doesn't strand the URL.
+      // PDF precedence wins over return_format: "json" — today's URL-type
+      // routing is preserved.
       if (looksLikePdfUrl(url)) {
         try {
           return await fetchOnePdf(url, signal);
@@ -273,6 +400,13 @@ export default function zaiResearchExtension(pi: PiApi): void {
             return `[fetch failed for ${url}: local=${(err as Error).message}; webReader=${(err2 as Error).message}]`;
           }
         }
+      }
+      // JSON/API direct fetch (with SSRF + 5 MB size guards). Takes precedence
+      // over the HTML/webReader path so a JSON request returns parsed JSON,
+      // not a rendered-docs dump. Per-URL isolated errors so a batch with one
+      // bad URL doesn't sink the rest.
+      if (wantJson) {
+        return await fetchOneJson(url, signal);
       }
       // HTML via webReader — isolated per URL so one failure doesn't sink the batch.
       try {
@@ -300,7 +434,7 @@ export default function zaiResearchExtension(pi: PiApi): void {
               .join("\n\n---\n\n");
       return {
         content: [{ type: "text", text: truncate(body) || "(no content)" }],
-        details: { urls, server: "web-reader", pdfUsed: urls.some(looksLikePdfUrl) },
+        details: { urls, server: "web-reader", pdfUsed: urls.some(looksLikePdfUrl), jsonMode: wantJson },
       };
     } catch (err) {
       return { content: [{ type: "text", text: `fetch_content failed: ${(err as Error).message}` }], isError: true };
@@ -410,7 +544,10 @@ export default function zaiResearchExtension(pi: PiApi): void {
     parameters: obj({
       url: str("A single URL to fetch."),
       urls: { type: "array", items: { type: "string" }, description: "Multiple URLs to fetch in parallel (max 20)." },
-      return_format: strEnum(["markdown", "text"], "Output format for webReader (markdown default). PDFs always return markdown."),
+      return_format: strEnum(
+        ["markdown", "text", "json"],
+        "Output format. markdown/text route through Z.ai webReader; json fetches the URL directly and returns parsed JSON (use for REST/JSON API endpoints). PDFs always return markdown regardless of this setting.",
+      ),
       prompt: str("Optional note framing what you want from the content (accepted for drop-in compatibility; not sent to Z.ai)."),
     }, []),
     execute: fetchContentExecute,

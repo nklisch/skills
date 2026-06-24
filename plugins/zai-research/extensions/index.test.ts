@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { truncate, assertSafeFetchUrl } from "./index";
+import { truncate, assertSafeFetchUrl, fetchBounded, parseJsonBody, fetchOneJson } from "./index";
 
 describe("truncate (keeps the HEAD)", () => {
   test("returns text unchanged when under the cap", () => {
@@ -55,5 +55,300 @@ describe("assertSafeFetchUrl (SSRF guard)", () => {
 
   test("rejects an invalid URL", () => {
     expect(() => assertSafeFetchUrl("not a url")).toThrow(/invalid URL/);
+  });
+});
+
+// --- JSON/API mode -------------------------------------------------------
+
+// Build a fetch result shape directly, for pure parseJsonBody tests.
+function jsonResult(opts: {
+  status?: number;
+  contentType?: string;
+  headers?: Record<string, string>;
+  body: string | Uint8Array | ArrayBuffer;
+}) {
+  const { status = 200, contentType, headers = {}, body } = opts;
+  const h = new Headers(headers);
+  if (contentType) h.set("content-type", contentType);
+  const buf = body instanceof ArrayBuffer ? body : typeof body === "string" ? new TextEncoder().encode(body) : body;
+  return { status, headers: h, body: buf.buffer };
+}
+
+describe("parseJsonBody", () => {
+  test("pretty-prints a 2xx JSON body (happy path: just the JSON)", () => {
+    const out = parseJsonBody(jsonResult({
+      status: 200,
+      contentType: "application/json",
+      body: '{"b":2,"a":1}',
+    }));
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.text).toBe('{\n  "b": 2,\n  "a": 1\n}');
+    }
+  });
+
+  test("surfaces BOTH status and body when 4xx carries a JSON error body", () => {
+    const out = parseJsonBody(jsonResult({
+      status: 404,
+      contentType: "application/json",
+      body: '{"error":"model not found"}',
+    }));
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.text).toContain("HTTP 404");
+      expect(out.text).toContain('"error": "model not found"');
+    }
+  });
+
+  test("a non-JSON (HTML) body returns a structured error mentioning Content-Type + status + snippet", () => {
+    const out = parseJsonBody(jsonResult({
+      status: 200,
+      contentType: "text/html; charset=utf-8",
+      body: "<html><body><h1>Not Found</h1></body></html>",
+    }));
+    expect(out.ok).toBe(false);
+    if (!out.ok) {
+      expect(out.error).toContain("HTTP 200");
+      expect(out.error).toContain("text/html");
+      expect(out.error).toMatch(/not valid JSON/);
+      expect(out.error).toContain("<html>");
+    }
+  });
+
+  test("an empty body returns a clear 'empty body' error (not a generic parse error)", () => {
+    const out = parseJsonBody(jsonResult({
+      status: 200,
+      contentType: "application/json",
+      body: "",
+    }));
+    expect(out.ok).toBe(false);
+    if (!out.ok) {
+      expect(out.error).toMatch(/empty body/i);
+      expect(out.error).toContain("HTTP 200");
+    }
+  });
+
+  test("a whitespace-only body is treated as empty", () => {
+    const out = parseJsonBody(jsonResult({
+      status: 204,
+      contentType: "application/json",
+      body: "   \n\t  ",
+    }));
+    expect(out.ok).toBe(false);
+    if (!out.ok) expect(out.error).toMatch(/empty body/i);
+  });
+
+  test("strips a leading UTF-8 BOM before parsing", () => {
+    const body = new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode('{"ok":true}')]);
+    const out = parseJsonBody(jsonResult({
+      status: 200,
+      contentType: "application/json",
+      body,
+    }));
+    expect(out.ok).toBe(true);
+    if (out.ok) expect(out.text).toContain('"ok": true');
+  });
+
+  test("omitted Content-Type on a parse failure is reported as (unknown)", () => {
+    const out = parseJsonBody(jsonResult({
+      status: 200,
+      body: "not json at all",
+    }));
+    expect(out.ok).toBe(false);
+    if (!out.ok) expect(out.error).toContain("Content-Type: (unknown)");
+  });
+
+  test("large JSON exceeding the return cap is truncated with an external marker (invalid JSON)", () => {
+    // Build a JSON body whose pretty-printed form clearly exceeds 60_000 chars.
+    const obj: Record<string, string> = {};
+    for (let i = 0; i < 2000; i++) obj[`key_${i}`] = "x".repeat(60);
+    const body = JSON.stringify(obj);
+    expect(body.length).toBeGreaterThan(60_000); // sanity
+    const out = parseJsonBody(jsonResult({
+      status: 200,
+      contentType: "application/json",
+      body,
+    }));
+    expect(out.ok).toBe(true);
+    if (out.ok) {
+      expect(out.text.length).toBeLessThanOrEqual(60_000);
+      // The marker is appended OUTSIDE the JSON and signals incompleteness.
+      expect(out.text).toMatch(/truncated by zai-research.*incomplete/);
+      // The truncated text is not valid JSON: the marker sits after a partial structure.
+      expect(() => JSON.parse(out.text)).toThrow();
+    }
+  });
+});
+
+// Save/restore the real fetch so mocked fetches stay scoped to their test.
+function withMockedFetch(fn: typeof globalThis.fetch, fn2: () => Promise<void>): () => Promise<void> {
+  return async () => {
+    const original = globalThis.fetch;
+    globalThis.fetch = fn;
+    try {
+      await fn2();
+    } finally {
+      globalThis.fetch = original;
+    }
+  };
+}
+
+describe("fetchBounded", () => {
+  test("returns status + headers + body and does NOT throw on non-2xx", async () => {
+    await withMockedFetch(
+      (() =>
+        Promise.resolve(
+          new Response('{"err":true}', {
+            status: 503,
+            headers: { "content-type": "application/json" },
+          }),
+        )) as typeof globalThis.fetch,
+      async () => {
+        const result = await fetchBounded("https://example.com/x", 1_000_000);
+        expect(result.status).toBe(503);
+        expect(result.headers.get("content-type")).toBe("application/json");
+        expect(new TextDecoder().decode(result.body)).toBe('{"err":true}');
+      },
+    );
+  });
+
+  test("stream-caps the body at maxBytes and rejects oversized responses", async () => {
+    await withMockedFetch(
+      (() => {
+        // Lazy 1KB/chunk stream — fetchBounded must cancel once total > maxBytes.
+        const stream = new ReadableStream<Uint8Array>({
+          pull(controller) {
+            controller.enqueue(new Uint8Array(1024).fill(0x61));
+          },
+        });
+        return Promise.resolve(new Response(stream, { status: 200 }));
+      }) as typeof globalThis.fetch,
+      async () => {
+        await expect(fetchBounded("https://example.com/big", 4000)).rejects.toThrow(
+          /exceeds 4000 byte cap/,
+        );
+      },
+    );
+  });
+});
+
+describe("fetchOneJson (JSON/API mode)", () => {
+  test("returns pretty-printed JSON on a 2xx success", async () => {
+    await withMockedFetch(
+      (() =>
+        Promise.resolve(
+          new Response('{"b":2,"a":1}', {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        )) as typeof globalThis.fetch,
+      async () => {
+        const out = await fetchOneJson("https://example.com/api");
+        expect(out).toBe('{\n  "b": 2,\n  "a": 1\n}');
+      },
+    );
+  });
+
+  test("surfaces BOTH status and body on a 4xx JSON error response", async () => {
+    await withMockedFetch(
+      (() =>
+        Promise.resolve(
+          new Response('{"error":"nope"}', {
+            status: 404,
+            headers: { "content-type": "application/json" },
+          }),
+        )) as typeof globalThis.fetch,
+      async () => {
+        const out = await fetchOneJson("https://example.com/missing");
+        expect(out).toContain("HTTP 404");
+        expect(out).toContain('"error": "nope"');
+      },
+    );
+  });
+
+  test("returns a structured error mentioning Content-Type for a non-JSON (HTML) response", async () => {
+    await withMockedFetch(
+      (() =>
+        Promise.resolve(
+          new Response("<html>nope</html>", {
+            status: 200,
+            headers: { "content-type": "text/html" },
+          }),
+        )) as typeof globalThis.fetch,
+      async () => {
+        const out = await fetchOneJson("https://example.com/html");
+        expect(out).toMatch(/JSON fetch error/);
+        expect(out).toContain("text/html");
+      },
+    );
+  });
+
+  test("returns a clear 'empty body' error for an empty response", async () => {
+    await withMockedFetch(
+      (() =>
+        Promise.resolve(
+          new Response("", { status: 200, headers: { "content-type": "application/json" } }),
+        )) as typeof globalThis.fetch,
+      async () => {
+        const out = await fetchOneJson("https://example.com/empty");
+        expect(out).toMatch(/JSON fetch error/);
+        expect(out).toMatch(/empty body/i);
+      },
+    );
+  });
+
+  test("strips a leading UTF-8 BOM", async () => {
+    const bodyBytes = new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode('{"ok":true}')]);
+    await withMockedFetch(
+      (() =>
+        Promise.resolve(
+          new Response(bodyBytes, {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        )) as typeof globalThis.fetch,
+      async () => {
+        const out = await fetchOneJson("https://example.com/bom");
+        expect(out).toContain('"ok": true');
+      },
+    );
+  });
+
+  test("rejects SSRF targets (loopback) without calling fetch", async () => {
+    let calls = 0;
+    await withMockedFetch(
+      (() => {
+        calls++;
+        return Promise.resolve(new Response(""));
+      }) as typeof globalThis.fetch,
+      async () => {
+        const out = await fetchOneJson("http://127.0.0.1/admin");
+        expect(calls).toBe(0);
+        expect(out).toMatch(/JSON fetch error/);
+        expect(out).toMatch(/SSRF rejected/);
+      },
+    );
+  });
+
+  test("enforces the JSON byte cap and surfaces the overflow as an inline error", async () => {
+    await withMockedFetch(
+      (() => {
+        // Lazy 1MB/chunk stream — exceeds MAX_JSON_BYTES (5 MB) after ~6 pulls,
+        // then fetchBounded cancels the reader.
+        const stream = new ReadableStream<Uint8Array>({
+          pull(controller) {
+            controller.enqueue(new Uint8Array(1024 * 1024).fill(0x61));
+          },
+        });
+        return Promise.resolve(
+          new Response(stream, { status: 200, headers: { "content-type": "application/json" } }),
+        );
+      }) as typeof globalThis.fetch,
+      async () => {
+        const out = await fetchOneJson("https://example.com/huge");
+        expect(out).toMatch(/JSON fetch error/);
+        expect(out).toMatch(/exceeds.*byte cap/);
+      },
+    );
   });
 });
