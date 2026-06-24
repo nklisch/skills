@@ -128,11 +128,20 @@ repointed, rewritten/removed there): `ard.json` vendor map, `docs/ADOPTION.md`
 F2/F3 churn the decomposition serialized for) — F2 leaves the vendoring story
 intact and only redirects the live code paths; F3 then deletes the story.
 
-### Unit 1 — repoint the operational lint invocation
+### Unit 1 — repoint the operational lint invocation + the dispatch.md template
 `skills/research-orchestrator/SKILL.md:86,209`: change
 `plugins/agentic-research/scripts/lint-citations.py` →
 `plugins/agentic-research/ard-core/kernel/lint-citations.py`. Sweep
 `references/*.md` for the same string.
+
+**Plus (peer-surfaced missed live consumer): `templates/dispatch.md`.** The
+orchestrator links the registration template at SKILL.md:236-238
+(`[templates/dispatch.md](../../templates/dispatch.md)`). Unit 5 deletes the
+vendored `templates/dispatch.md`, so this link MUST repoint to
+`ard-core/kernel/templates/dispatch.md` *before* the delete. (Note: that prose
+also says "nine-field" — v0.7 made dispatch **ten** fields; fix the stale count
+while repointing.) Same sweep for any other `templates/{attestation,precis,INDEX}.md`
+orchestrator/reference link.
 
 ### Unit 2 — repoint `refresh-scan.py`'s module import
 `scripts/refresh-scan.py:73-79` `_load_lint_module()` does
@@ -159,24 +168,39 @@ clean break + a major bump, drop it — F4 carries that fork.)*
 
 ### Unit 4 — collapse the 3 discipline copies to 1 (the subtle seam)
 `skills/research-discipline/SKILL.md` is a *skill* (frontmatter + wrapper
-preamble + a verbatim discipline body). The collapse:
-- The SKILL.md **body stops being a verbatim duplicate** of the discipline and
-  instead *references* `ard-core/kernel/discipline.md` as the single source.
-- **The orchestrator's inline instruction (SKILL.md:36-39) MUST be updated.** It
-  currently says "inline the body of the `research-discipline` skill
-  (`skills/research-discipline/SKILL.md`, sections 1–6) verbatim." After the
-  collapse the canonical body lives at `ard-core/kernel/discipline.md` — so the
-  instruction must say "read `ard-core/kernel/discipline.md` and inline it
-  verbatim," or the ARD SPEC §5 "discipline must travel into every authoring
-  sub-context" invariant silently breaks (the orchestrator would inline a pointer,
-  not the discipline). The `references/*.md` say "verbatim research-discipline
-  bundle" generically — they resolve through the orchestrator's updated
-  instruction, so likely no per-file edit (confirm at implement).
-- The 3rd copy, `ard/example/skills/research-discipline.md`, dies with the
-  submodule (root-half) — not this feature's concern.
-- **Acceptance:** `rg -n "vendored verbatim|skills/research-discipline/SKILL.md.*sections 1.6|the body of the research-discipline skill"` finds no stale
-  wording asserting the SKILL.md *contains* the verbatim body; the orchestrator
-  instruction names `ard-core/kernel/discipline.md`.
+preamble + a verbatim discipline body). The collapse repoints **THREE** discipline
+references, not one (peer-surfaced — missing any one silently breaks the ARD SPEC
+§5 "discipline must travel into every authoring sub-context" invariant):
+
+- **(a) the SKILL.md body** stops being a verbatim duplicate and *references*
+  `ard-core/kernel/discipline.md` as the single source.
+- **(b) the orchestrator DISPATCH-composition rule (SKILL.md:36-39)** — currently
+  "inline the body of the `research-discipline` skill, sections 1–6, verbatim" →
+  "read `ard-core/kernel/discipline.md` and inline it verbatim."
+- **(c) the orchestrator LIGHT-PATH rule (SKILL.md:44-46)** — currently "you read
+  it at engagement start (the `research-discipline` skill body)" → read
+  `ard-core/kernel/discipline.md`. **This is the one the first design draft
+  missed** — after (a), "read the skill body" reads the *pointer*, not the
+  discipline. Both the fan-out and no-fan-out paths must name the canonical file.
+- **(d) the `research-discipline` SKILL.md FRONTMATTER (lines 4-10)** — the
+  model-visible `description` says "Vendored verbatim from ARD kernel/discipline.md"
+  and "on the light path, read this skill body explicitly." Both go stale and can
+  misroute future agents → reword to "wraps `ard-core/kernel/discipline.md` (the
+  single source)" / "read `ard-core/kernel/discipline.md`." Also drop the
+  `<!-- ARD-Version: 0.6.0 -->` stamp (the meta-fence F3 retires; here it's just
+  wrong — the body is now v0.7).
+
+The role `references/*.md` say "verbatim research-discipline bundle" generically —
+they resolve through the orchestrator's updated composition rule, so no per-file
+edit (peer-confirmed).
+
+The 3rd file copy, `ard/example/skills/research-discipline.md`, dies with the
+submodule (root-half) — not this feature's concern.
+
+**Acceptance:** (1) `rg -n "vendored verbatim|the body of the research-discipline skill|read (this|the) skill body"` finds no stale wording asserting the SKILL.md
+*contains* the discipline; (2) BOTH orchestrator paths (dispatch + light) name
+`ard-core/kernel/discipline.md`; (3) a discipline-travel smoke check — trace that
+an authoring dispatch composed per the updated rule inlines real §1-6 content.
 
 ### Unit 5 — remove the duplicate vendored copies
 Once Units 1-4 repoint every live consumer, delete the now-orphaned
@@ -187,6 +211,21 @@ orchestrator SKILL.md:279). `scripts/lint-citations.py` is NOT deleted (it's the
 Unit 3 shim now). **Acceptance:** old `scripts/conformance/` gone;
 `ard-core/kernel/conformance/run.py` is the only conformance; the plugin's live
 paths all resolve; nothing imports a deleted path.
+
+**F2/F3 are a non-separately-releasable pair (peer-surfaced).** Deleting
+`scripts/conformance/` (+ the `scripts/catalogs.json`/`schema/` copies) here leaves
+*F3-narrative* references to those paths dangling **until F3 runs**:
+`ard.json:24` (`drift_check` invokes `scripts/conformance/run.py`),
+`docs/ADOPTION.md:79`, `docs/VERSIONING.md:57-59`, `scripts/ard-sync.py:249`. These
+are operational-command strings in the vendoring narrative F3 deletes. F2 must NOT
+repoint them (that's F3's reframe job, and touching them here is the F2/F3 churn
+the decomposition serialized away). Instead: **F2 and F3 land together before any
+release gate** — neither is independently shippable, because between them the
+plugin's docs name a deleted path. This is already enforced structurally
+(`conformance-bump`, the gate-bearing feature, `depends_on` both F2 and F3), but
+state it as an explicit invariant: **do not run `release-deploy` / version-bump
+after F2 but before F3.** F4's commit-everything-first discipline covers it; this
+note makes the "why" legible.
 
 ## Implementation Order
 1. Unit 4 (discipline collapse) — independent of the path repoints; do first so the §5 seam is settled

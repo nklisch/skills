@@ -132,11 +132,47 @@ full source-direct reads). The ledger entries must carry this honestly — do NO
 present search-summary grounding as source-direct (that would itself be the `GR.9`
 failure entry #2 fences). Note it per-entry or as a ledger-header caveat.
 
+## Peer-surfaced design corrections (folded)
+
+1. **Schema 5-vs-6 fields.** The scaffold's `evidence/README.md` says "five
+   fields" and its table omits `grounding`, but `ledger.md`'s template + these
+   entries use `grounding` as a 6th. **Resolution (adopt the peer's option):
+   `grounding` is a REQUIRED citation line that accompanies the five failure-fields,
+   not a sixth failure attribute** — the five fields describe the failure cluster;
+   `grounding` is metadata-about-the-entry (its external warrant). This feature
+   makes a one-line correction to the scaffold-authored `evidence/README.md` to
+   name `grounding` as the required accompanying citation line, aligning it with
+   `ledger.md`. (Small fix to a `done` scaffold file; the feature that surfaced
+   the mismatch owns it.)
+2. **COMMITMENTS is re-render TRACE, not cited substrate.** ARD's own
+   lens-not-substrate discipline (`discipline.md:18`) forbids analytical artifacts
+   as substrate. Entries cite the **external handles** from `references.md`; they
+   name `COMMITMENTS.md` only as the *re-render provenance* (where the prose came
+   from), never as a `[handle]`. No `[COMMITMENTS]` citation anywhere.
+3. **Don't overclaim "source-bound."** `references.md` is bibliographic-only and
+   says raw attestations aren't republished. So the v0.7 empirical handles
+   `{41}`–`{52}` are **`search-summary`** confidence; only `{1}`/`{2}` (W3C PROV
+   standards) are source-direct. The ledger states this explicitly (a confidence
+   caveat per the relevant entries / a ledger-header note) and does NOT imply
+   source-direct attestation-tier grounding.
+4. **No brief-only source leakage.** Names in this feature's brief that do NOT
+   resolve in `references.md` (Linardon, CiteAudit, Microsoft transient-fault,
+   soft-404, scraping escalation) are **omitted from the ledger entries** or marked
+   "uncited background," never presented as grounding. Only `{N}` handles that
+   resolve in `references.md` appear as grounding. (The brief named them as the
+   originating session's reading; the COMMITMENTS trace is narrower and is the
+   authoritative source for what's actually cited.)
+5. **Two more honesty caveats** (peer-added to the three I had): AQ.4's
+   transport-vs-content split is ARD **operational** classification (not
+   tradition-grounded); PR.3 is **deployment-grounded** (no external tradition).
+   Both stated per-entry.
+
 ## Implementation
 Single authoring stride into `ard-core/evidence/ledger.md` (replacing the
-template placeholder with the 5 entries). **No child stories** — one cohesive
-no-code authoring act. *(This is prose-shaped work — it authors a ledger, no code
-surface — but it lives in a `[plugin]` feature for tracking; implement inline.)*
+template placeholder with the 5 entries), plus the one-line `evidence/README.md`
+schema correction (finding 1). **No child stories** — one cohesive no-code
+authoring act. *(Prose-shaped work — authors a ledger, no code surface — in a
+`[plugin]` feature for tracking; implement inline.)*
 
 ## Testing
 - 5 entries present, each with all 6 fields populated.
