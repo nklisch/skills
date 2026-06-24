@@ -1,7 +1,7 @@
 ---
 id: story-zai-fetch-skill-docs-update
 kind: story
-stage: drafting
+stage: implementing
 tags: [plugin, docs, zai-research]
 parent: feature-zai-fetch-content-improvements
 depends_on: [story-zai-fetch-json-api-mode, story-zai-fetch-article-extraction]

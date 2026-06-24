@@ -1,7 +1,7 @@
 ---
 id: story-zai-fetch-article-extraction
 kind: story
-stage: drafting
+stage: implementing
 tags: [plugin, tooling, zai-research]
 parent: feature-zai-fetch-content-improvements
 depends_on: []
