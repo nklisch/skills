@@ -42,15 +42,19 @@ the last feature before the epic's final cross-model review loop.
   feature kept `CATALOGS.md` + `gen-contract.py` in `ard-core/`, confirm
   `catalogs.json` is in sync (`gen-contract.py --check`).
 - **Version bump** — `./scripts/bump-version.sh agentic-research <minor|major>`.
-  **Bump level:** default **minor**, contingent on F2 landing the
-  `scripts/lint-citations.py` compatibility wrapper (peer-surfaced) so the public
-  operator command path is preserved. If F2/operator instead chose to break the
-  public script path, OR treats `ard.json`'s schema as a public adopter contract,
-  this becomes **major** ("plugin restructure" per VERSIONING.md:63 — and document
-  the exception inline if choosing minor pre-1.0). Resolve the final level against
-  what F2 actually landed. Note: `bump-version.sh` auto-commits + pushes and
-  refuses a dirty plugin dir — commit ALL migration work first (CLAUDE.md
-  §Versioning: feature changes must be committed before the bump).
+  **Bump level:** **at least minor.** Two independent arguments push past patch:
+  (1) the absorption silently advances the plugin's ARD content from v0.6.0 →
+  v0.7.0 (new shapes AQ.4/GR.9/PR.3/decision_relevance, `dispatch.md` 9→10 fields,
+  `discipline.md` additions — see the scaffold feature's "v0.7 drift" section) —
+  the plugin gains real framework capability, not just internal restructuring;
+  (2) the structural absorption itself. Default **minor**, contingent on F2 landing
+  the `scripts/lint-citations.py` compat wrapper so the public operator path is
+  preserved. Goes **major** if F2/operator breaks the public script path OR treats
+  `ard.json`'s schema as a public adopter contract ("plugin restructure" per
+  VERSIONING.md:63 — document the exception inline if choosing minor pre-1.0).
+  Resolve against what F2 actually landed. Note: `bump-version.sh` auto-commits +
+  pushes and refuses a dirty plugin dir — commit ALL migration work first
+  (CLAUDE.md §Versioning: feature changes must be committed before the bump).
 
 ## Epic context
 
