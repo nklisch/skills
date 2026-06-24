@@ -152,6 +152,34 @@ export function assertSafeFetchUrl(rawUrl: string): void {
       (a === 0);
     if (isPrivate) throw new Error(`refusing private/loopback/link-local IP: ${host}`);
   }
+  // IPv4-mapped IPv6 literal. URL.hostname normalizes dotted forms like
+  // [::ffff:127.0.0.1] to hex groups ([::ffff:7f00:1]), so handle both.
+  const mappedDotted = host.match(/:ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i);
+  if (mappedDotted) {
+    const [a, b] = mappedDotted[1].split(".").map((n) => Number(n));
+    const isPrivate =
+      a === 10 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      a === 0;
+    if (isPrivate) throw new Error(`refusing IPv4-mapped private/loopback IP: ${host}`);
+  }
+  const mappedHex = host.match(/:ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  if (mappedHex) {
+    const high = Number.parseInt(mappedHex[1], 16);
+    const a = (high >> 8) & 0xff;
+    const b = high & 0xff;
+    const isPrivate =
+      a === 10 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      a === 0;
+    if (isPrivate) throw new Error(`refusing IPv4-mapped private/loopback IP: ${host}`);
+  }
   // IPv6 literal? block ::1, fc00::/7 (unique-local), fe80::/10 (link-local).
   if (host.includes(":")) {
     if (host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe8") || host.startsWith("fe9") || host.startsWith("fea") || host.startsWith("feb")) {
@@ -160,21 +188,8 @@ export function assertSafeFetchUrl(rawUrl: string): void {
   }
 }
 
-/**
- * Fetch a URL with a byte cap + timeout. Streams and aborts if the body
- * exceeds `maxBytes` (so a huge response can't exhaust memory), follows
- * redirects, and returns the structured result. Does NOT throw on non-2xx —
- * callers decide how to handle the status (the JSON/API path needs to inspect
- * status, headers, and 4xx/5xx JSON error bodies).
- */
-export async function fetchBounded(
-  url: string,
-  maxBytes: number,
-  signal?: AbortSignal,
-): Promise<FetchBoundedResult> {
-  const timeout = AbortSignal.timeout(PDF_FETCH_TIMEOUT_MS);
-  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
-  const resp = await fetch(url, { signal: combined, redirect: "follow" });
+/** Read a response body with a byte cap, preserving status + headers. */
+async function readBodyCapped(resp: Response, maxBytes: number): Promise<FetchBoundedResult> {
   const reader = resp.body?.getReader();
   if (!reader) {
     // No streaming body — read it whole, capped.
@@ -203,6 +218,44 @@ export async function fetchBounded(
     off += c.byteLength;
   }
   return { status: resp.status, headers: resp.headers, body: out.buffer };
+}
+
+const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
+const MAX_REDIRECTS = 10;
+
+/**
+ * Fetch a URL with a byte cap + timeout. Streams and aborts if the body
+ * exceeds `maxBytes` (so a huge response can't exhaust memory), follows
+ * redirects manually while re-running the SSRF guard on every `Location`,
+ * and returns the structured result. Does NOT throw on non-2xx — callers
+ * decide how to handle the status (the JSON/API path needs to inspect
+ * status, headers, and 4xx/5xx JSON error bodies).
+ */
+export async function fetchBounded(
+  url: string,
+  maxBytes: number,
+  signal?: AbortSignal,
+): Promise<FetchBoundedResult> {
+  const timeout = AbortSignal.timeout(PDF_FETCH_TIMEOUT_MS);
+  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
+  let currentUrl = url;
+  let redirects = 0;
+  for (;;) {
+    assertSafeFetchUrl(currentUrl);
+    const resp = await fetch(currentUrl, { signal: combined, redirect: "manual" });
+    if (!REDIRECT_STATUS_CODES.has(resp.status)) {
+      return await readBodyCapped(resp, maxBytes);
+    }
+    if (redirects >= MAX_REDIRECTS) {
+      throw new Error(`too many redirects`);
+    }
+    const location = resp.headers.get("location");
+    if (!location) {
+      throw new Error(`redirect without Location header`);
+    }
+    currentUrl = new URL(location, currentUrl).href;
+    redirects++;
+  }
 }
 
 /** Outcome of {@link parseJsonBody}: a successful pretty-printed JSON string, or a structured error. */

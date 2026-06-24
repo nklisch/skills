@@ -23,8 +23,9 @@ Implemented Unit 1 (`return_format: "json"`) plus the prerequisite Unit 0
 - `plugins/zai-research/extensions/index.ts`
   - Refactored `fetchBounded` to module scope; it now returns
     `{ status, headers, body }` instead of `ArrayBuffer`, still
-    stream-caps at `maxBytes`, still uses `redirect: "follow"`, and no
-    longer throws on non-2xx (callers decide).
+    stream-caps at `maxBytes`, follows redirects manually while re-running the
+    SSRF guard on every `Location`, and no longer throws on non-2xx (callers
+    decide).
   - `fetchOnePdf` now reads `result.status` and throws the same
     `HTTP ${status}` message it threw today, so PDF behavior is byte-for-byte
     identical (covered by the existing `pdf.test.ts`).
@@ -86,20 +87,36 @@ Implemented Unit 1 (`return_format: "json"`) plus the prerequisite Unit 0
   (Unit 3) are deliberately out of scope for this story and remain
   `story-zai-fetch-article-extraction` / `story-zai-fetch-skill-docs-update`.
 
+### Codex review follow-up
+
+A Codex review found two SSRF gaps in the widened local-fetch surface:
+
+- `fetchBounded` followed redirects after checking only the initial URL.
+  Fixed by switching to manual redirect handling with a 10-hop limit and
+  re-running `assertSafeFetchUrl` on every redirect `Location`.
+- IPv4-mapped IPv6 literals such as `[::ffff:127.0.0.1]` normalized to hex
+  form and bypassed the private-IP checks. Fixed with dotted + hex
+  IPv4-mapped IPv6 detection and tests.
+
+The same review pass also exposed that the mock-fetch helper in
+`index.test.ts` returned a function instead of executing it, so several fetch
+unit tests were not actually running their assertions. The helper now executes
+its callback and the tests exercise the real paths.
+
 ### Verification
 
-`bun test` in `plugins/zai-research/` → **55 pass / 0 fail**
-(38 pre-existing + 17 new). Existing PDF and MCP suites unchanged.
+`bun test` in `plugins/zai-research/` → **71 pass / 0 fail**.
+Existing PDF and MCP suites remain green.
 
 ```bash
 cd plugins/zai-research && bun test
-# 55 pass, 0 fail, 89 expect() calls
+# 71 pass, 0 fail, 144 expect() calls
 ```
 
 ### Follow-up risks
 
-- The `assertSafeFetchUrl` SSRF guard does not cover DNS-rebinding (a public
-  hostname resolving to a private IP); this is a pre-existing, documented
+- The `assertSafeFetchUrl` SSRF guard still does not cover DNS-rebinding (a
+  public hostname resolving to a private IP); this is a pre-existing, documented
   limitation for the local-fetch surface and is unchanged by this story. The
   JSON mode widens the surface from PDFs to any URL, so the same caveat now
   applies to JSON fetches too — worth noting in the Unit 3 SKILL.md update.

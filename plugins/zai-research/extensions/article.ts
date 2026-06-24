@@ -95,6 +95,15 @@ function normalizePlainText(text: string): string {
  */
 function htmlToPlainText(document: Document, rawHtml: string): string {
   const root = document.body ?? document.documentElement ?? null;
+  if (root) {
+    // Remove non-content descendants before taking textContent; otherwise
+    // inline scripts, styles, noscripts, and iframes leak into the fallback.
+    for (const selector of ["script", "style", "noscript", "iframe", "svg"]) {
+      for (const el of Array.from(root.querySelectorAll(selector))) {
+        el.remove();
+      }
+    }
+  }
   const text = root?.textContent ?? rawHtml.replace(/<[^>]+>/g, " ");
   return normalizePlainText(text || "");
 }

@@ -56,6 +56,9 @@ describe("assertSafeFetchUrl (SSRF guard)", () => {
     ["http://172.16.0.1/", "private 172.16"],
     ["http://172.31.255.255/", "private 172.31"],
     ["http://[::1]/", "loopback v6"],
+    ["http://[::ffff:127.0.0.1]/", "IPv4-mapped loopback"],
+    ["http://[::ffff:169.254.169.254]/", "IPv4-mapped link-local"],
+    ["http://[::ffff:10.0.0.1]/", "IPv4-mapped private 10.x"],
   ] as const)("rejects private/loopback/link-local hosts: %s (%s)", (url) => {
     expect(() => assertSafeFetchUrl(url)).toThrow();
   });
@@ -188,16 +191,14 @@ describe("parseJsonBody", () => {
 });
 
 // Save/restore the real fetch so mocked fetches stay scoped to their test.
-function withMockedFetch(fn: typeof globalThis.fetch, fn2: () => Promise<void>): () => Promise<void> {
-  return async () => {
-    const original = globalThis.fetch;
-    globalThis.fetch = fn;
-    try {
-      await fn2();
-    } finally {
-      globalThis.fetch = original;
-    }
-  };
+async function withMockedFetch(fn: typeof globalThis.fetch, fn2: () => Promise<void>): Promise<void> {
+  const original = globalThis.fetch;
+  globalThis.fetch = fn;
+  try {
+    await fn2();
+  } finally {
+    globalThis.fetch = original;
+  }
 }
 
 describe("fetchBounded", () => {
@@ -237,6 +238,54 @@ describe("fetchBounded", () => {
       },
     );
   });
+
+  test("re-runs SSRF guard on every redirect Location", async () => {
+    let fetchCount = 0;
+    await withMockedFetch(
+      ((input: string | URL | Request) => {
+        fetchCount++;
+        const url = typeof input === "string" ? input : (input as Request).url;
+        if (url === "https://example.com/redirect-me") {
+          return Promise.resolve(
+            new Response("", {
+              status: 302,
+              headers: { location: "http://127.0.0.1/final" },
+            }),
+          );
+        }
+        return Promise.resolve(new Response('{"ok":true}', { status: 200 }));
+      }) as typeof globalThis.fetch,
+      async () => {
+        await expect(fetchBounded("https://example.com/redirect-me", 1_000_000)).rejects.toThrow(
+          /private|loopback|link-local/,
+        );
+        expect(fetchCount).toBe(1); // never followed the redirect to the private IP
+      },
+    );
+  });
+
+  test("follows safe redirects up to a limit", async () => {
+    let fetchCount = 0;
+    await withMockedFetch(
+      ((input: string | URL | Request) => {
+        fetchCount++;
+        const url = typeof input === "string" ? input : (input as Request).url;
+        if (url === "https://example.com/a") {
+          return Promise.resolve(new Response("", { status: 302, headers: { location: "/b" } }));
+        }
+        if (url === "https://example.com/b") {
+          return Promise.resolve(new Response("", { status: 302, headers: { location: "/c" } }));
+        }
+        return Promise.resolve(new Response('{"final":true}', { status: 200 }));
+      }) as typeof globalThis.fetch,
+      async () => {
+        const result = await fetchBounded("https://example.com/a", 1_000_000);
+        expect(result.status).toBe(200);
+        expect(new TextDecoder().decode(result.body)).toBe('{"final":true}');
+        expect(fetchCount).toBe(3);
+      },
+    );
+  });
 });
 
 describe("extractArticle", () => {
@@ -257,6 +306,21 @@ describe("extractArticle", () => {
     expect(markdown.startsWith(ARTICLE_FALLBACK_MARKER)).toBe(true);
     expect(markdown).toContain("Sign in");
     expect(markdown).toContain("Forgot password?");
+  });
+
+  test("fallback plain text strips script and style content", () => {
+    const html = `
+      <html><body>
+        <script>window.SECRET_NOISE = 1;</script>
+        <style>.hidden { display: none; }</style>
+        <p>REAL_BODY_CANARY</p>
+      </body></html>
+    `;
+    const { markdown, fallback } = extractArticle(html);
+    expect(fallback).toBe(true);
+    expect(markdown).toContain("REAL_BODY_CANARY");
+    expect(markdown).not.toContain("SECRET_NOISE");
+    expect(markdown).not.toContain("display: none");
   });
 
   test("falls back when readability latches onto a small non-content block", async () => {
@@ -341,6 +405,39 @@ describe("fetch_content routing (registered tool)", () => {
     };
     expect(params.properties.return_format.enum).toContain("json");
     expect(params.properties.extract.enum).toContain("article");
+  });
+
+  test("registered fetch_content rejects return_format json + extract article as an error", async () => {
+    const { fetch_content } = makePi();
+    const result = await fetch_content.execute(
+      "id",
+      { url: "https://example.com/docs", return_format: "json", extract: "article" },
+      undefined,
+      undefined,
+      {},
+    );
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/mutually exclusive/);
+  });
+
+  test("registered fetch_content ignores extract article for PDF URLs (PDF path wins)", async () => {
+    const { fetch_content } = makePi();
+    await withMockedFetch(
+      (() => Promise.resolve(new Response("", { status: 404 }))) as typeof globalThis.fetch,
+      async () => {
+        const result = await fetch_content.execute(
+          "id",
+          { url: "https://example.com/doc.pdf", extract: "article" },
+          undefined,
+          undefined,
+          {},
+        );
+        // The PDF/local path wins and falls back to webReader; article mode is
+        // not invoked even though extract:"article" was requested.
+        expect(result.content[0].text).not.toMatch(/article fetch error/);
+        expect(result.content[0].text).toMatch(/local=HTTP 404/);
+      },
+    );
   });
 });
 

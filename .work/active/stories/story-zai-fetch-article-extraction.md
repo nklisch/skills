@@ -47,4 +47,13 @@ dependency or a clean heuristic with documented limitations.
 - Discrepancies from design:
   - Tests do not assert on `<h1>` text because `@mozilla/readability` strips the headline from `.content`; the assertion checks for an `## Overview` heading and the canary phrase instead.
   - The malformed-HTML test relaxes the fallback-marker expectation because linkedom/readability can still produce useful output; we only assert no throw and non-empty output.
+- Codex review follow-up:
+  - Fallback full-page text originally used `document.body.textContent`, which
+    could include `<script>`/`<style>` content. The fallback path now removes
+    `script`, `style`, `noscript`, `iframe`, and `svg` before extracting text.
+  - Added registered-tool routing coverage for `return_format: "json"` +
+    `extract: "article"` conflict and PDF URL + `extract: "article"`
+    precedence.
+  - Fixed the shared mock-fetch helper so the fetch-path tests actually execute.
+- Verification: `cd plugins/zai-research && bun test` → **71 pass / 0 fail**.
 - Adjacent issues parked: none.
