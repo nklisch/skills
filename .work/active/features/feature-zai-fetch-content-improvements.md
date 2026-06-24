@@ -1,7 +1,7 @@
 ---
 id: feature-zai-fetch-content-improvements
 kind: feature
-stage: implementing
+stage: review
 tags: [plugin, tooling, zai-research]
 parent: null
 depends_on: []
@@ -330,3 +330,14 @@ folded into the design above:
 - Test plan needed edge cases (BOM, empty body, 4xx-with-body, large JSON
   truncation, false-positive extraction); added them.
 - Version bump should be **minor**; recorded.
+
+## Children complete (2026-06-24)
+
+All child stories are now done and ready for feature review:
+
+- `story-zai-fetch-json-api-mode` — done; JSON/API direct-fetch mode, `fetchBounded` refactor, SSRF hardening, and tests.
+- `story-zai-fetch-article-extraction` — done; readability-based article mode, fixtures, routing tests, and fallback cleanup.
+- `story-zai-fetch-skill-docs-update` — done; tool guidance and `SKILL.md` updated for JSON/API and article modes.
+
+Verification: `cd plugins/zai-research && bun test` → 71 pass / 0 fail.
+

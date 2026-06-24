@@ -1,7 +1,7 @@
 ---
 id: story-zai-fetch-skill-docs-update
 kind: story
-stage: review
+stage: done
 tags: [plugin, docs, zai-research]
 parent: feature-zai-fetch-content-improvements
 depends_on: [story-zai-fetch-json-api-mode, story-zai-fetch-article-extraction]
@@ -36,3 +36,14 @@ when and how to use the new JSON/API and article extraction modes.
 - Discrepancies from design: none.
 - Verification: `cd plugins/zai-research && bun test` → **71 pass / 0 fail**.
 - Adjacent issues parked: none.
+
+## Review (2026-06-24)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Documentation/tool-guidance implementation records green verification (`cd plugins/zai-research && bun test` → 71 pass / 0 fail).
+
