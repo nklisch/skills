@@ -4,7 +4,7 @@ kind: story
 stage: implementing
 tags: [plugin, tooling, zai-research]
 parent: feature-zai-fetch-content-improvements
-depends_on: []
+depends_on: [story-zai-fetch-json-api-mode]
 release_binding: null
 gate_origin: null
 created: 2026-06-23
