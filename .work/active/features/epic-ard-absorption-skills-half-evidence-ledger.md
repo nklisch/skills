@@ -76,3 +76,81 @@ points at this tier as primary warrant — keep the shape coherent with that).
 Each v0.7 cluster has a ledger entry in the agreed shape, grounded in the cited
 sources (honor the research-discipline: source-bound, no recall-filled metadata).
 The reframed docs (F3) can point at a populated, coherent primary-warrant tier.
+
+---
+
+## Design
+
+### Source of truth for the entries — `ard-core/theory/COMMITMENTS.md:31`
+
+The v0.7 grounding is already authored, source-bound, in the ported
+`ard-core/theory/COMMITMENTS.md` (the "v0.7.0 additions" paragraph), with every
+external citation as a `[handle]{N}` resolving against
+`ard-core/theory/references.md` (handles `{41}`–`{52}`). **This feature does NOT
+re-research** — it *re-renders* that already-grounded prose into the five-field
+ledger shape. This is the right relationship: the COMMITMENTS trace is the
+defensibility archaeology; the evidence ledger is the operative primary-warrant
+view. No new citations are invented; entries reuse the existing handles.
+
+### The 5 entries (one per v0.7 cluster)
+
+Each maps a SPEC/CATALOGS shape to its observed warrant. Per the ledger schema
+(`ard-core/evidence/README.md`): recurrence · deployment · observed behavior ·
+mitigation · verification result · grounding.
+
+1. **`AQ.4` — inadequate-attempt blocking** — grounding `{47}`(li-good-abandonment),
+   `{48}`(browne-stopping-rules). Observed: transport-level block (session-gated
+   403 / anti-bot / JS-render) mistaken for content-absence → premature "blocked".
+   Mitigation: acquisition-mode-exhaustion fence (SPEC §4.1) — escalate
+   best-tool→browser-class→authenticated→operator before declaring blocking.
+2. **`GR.9` — metadata recall-sourcing** — grounding `{45}`(chelli: DOI ~16–20%
+   accurate), `{46}`(walters), `{1}{2}`(W3C PROV). Observed: bibliography
+   URL/DOI/date recall-filled rather than read off source. **Mark forward-looking**
+   (recurrence = 1 cluster; the peer caught the over-promotion in v0.7 review).
+   Mitigation: metadata-tier source-bound discipline (SPEC §4.1/§4.2).
+3. **model-diversity verification property** — grounding `{41}`(kim: correlated
+   even across providers), `{42}`(zheng: self-preference), `{43}`(bommasani:
+   monoculture), `{44}`(huang: can't self-correct). Observed: correlated-verifier
+   blind spots. Mitigation: model-diversity as a SPEC §7 property — a **partial**
+   fence (reduces, never eliminates — record the honesty caveat).
+4. **`decision_relevance` / VOI gate** — grounding `{49}`(howard VOI),
+   `{51}`(raiffa-schlaifer EVSI), `{50}`(stigler), `{52}`(wald). Observed:
+   research depth uncalibrated to decision impact. Mitigation: `decision_relevance`
+   registration field + kickoff gate (SPEC §9) — "what decision changes if this
+   finds X?".
+5. **`PR.3` — class-complete sweep** — grounding: the originating deployment's
+   reconciliation-completeness evidence (NOT an external tradition — record as
+   deployment-grounded). Observed: a subset-flagged class whose unflagged siblings
+   persist = non-propagation at the class level. Mitigation: class-complete sweep
+   fence (SPEC §4.8).
+
+### Substrate-confidence honesty (carry from COMMITMENTS)
+
+COMMITMENTS records the v0.7 entries' substrate confidence as **search-summary**
+(bibliographic existence verified; findings engaged via abstract/landing-page, not
+full source-direct reads). The ledger entries must carry this honestly — do NOT
+present search-summary grounding as source-direct (that would itself be the `GR.9`
+failure entry #2 fences). Note it per-entry or as a ledger-header caveat.
+
+## Implementation
+Single authoring stride into `ard-core/evidence/ledger.md` (replacing the
+template placeholder with the 5 entries). **No child stories** — one cohesive
+no-code authoring act. *(This is prose-shaped work — it authors a ledger, no code
+surface — but it lives in a `[plugin]` feature for tracking; implement inline.)*
+
+## Testing
+- 5 entries present, each with all 6 fields populated.
+- Every `[handle]{N}` in the entries resolves in `ard-core/theory/references.md`
+  (no invented handles). Spot-check `{41},{45},{47},{49}` resolve.
+- `GR.9` entry marked forward-looking; model-diversity marked partial fence; v0.7
+  substrate-confidence (search-summary) recorded — the three honesty caveats present.
+- No recall-filled metadata (the discipline the ledger itself warrants).
+
+## Risks
+- **Re-research temptation.** The entries must re-render COMMITMENTS, not
+  re-derive grounding — inventing a citation or upgrading search-summary to
+  source-direct would breach the very disciplines being ledgered. Mitigated by the
+  "reuse existing handles only" rule + the handle-resolution test.
+- **Schema drift vs scaffold.** If the scaffold's `evidence/README.md` schema and
+  these entries disagree on field names, the tier is incoherent. Mitigated by
+  authoring strictly to the landed README schema.
