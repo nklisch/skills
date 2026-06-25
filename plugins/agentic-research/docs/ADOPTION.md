@@ -1,30 +1,22 @@
 # ADOPTION: agentic-research
 
-How the Agentic Research Discipline (ARD) lives inside this plugin. ARD is the
-plugin's **internal, empirically-warranted discipline** — a periodically-distilled
-snapshot of the research practice that generates it. Its single source of truth is
-[`ard-core/`](../ard-core/): `ard-core/SPEC.md` (the architecture — what's invariant)
-and `ard-core/CATALOGS.md` (the baseline inventories) carry the canonical prose;
-`ard-core/kernel/` is the consumed surface the engagement engine runs against;
-`ard-core/evidence/` is the **primary warrant tier** (the observed-failures-and-mitigations
-ledger); `ard-core/theory/` is opt-in archaeology (vocabulary, guardrails, stress-testing,
-not the warrant). ARD is **not** a separate framework the plugin adopts, vendors, or
-version-pins — there is one copy, co-located with the practice that warrants it.
+How the Agentic Research Discipline (ARD) runs in this plugin. ARD's single source
+of truth is [`ard-core/`](../ard-core/): `ard-core/SPEC.md` defines the
+architecture, `ard-core/CATALOGS.md` defines the baseline inventories,
+`ard-core/kernel/` is the consumed surface the engagement engine runs against,
+`ard-core/evidence/` is the primary warrant tier, and `ard-core/theory/` is
+opt-in supplementary rationale.
 
-## Adoption stance
+## Operating stance
 
-- **One source of truth, empirically warranted.** ARD's substance lives at `ard-core/`,
-  warranted by `ard-core/evidence/` (the empirical *practice → observe → improve* loop is
-  the engine; theory is opt-in vocabulary / guardrails / stress-testing, not warrant). The
-  spec is cited by section (e.g. *ARD SPEC §4.2*) and never re-narrated — re-narrating it
-  reintroduces the very drift the discipline fences (*ARD SPEC §4.6/§5*).
-- **Rejected: keep ARD as a separately-published repo, re-imported under a version-pin
-  invariant + byte-vendored copies.** That ceremony earned nothing once external publication
-  was judged effectively dead — only discipline copies to keep byte-identical, a sync script,
-  and a widening gap between the practice and a lagging published port. **Revisit if** a real
-  second adopter / non-Claude harness genuinely needs independent pinning of ARD → re-extract
-  `ard-core/` to a standalone repository; its self-contained two-level structure (`kernel/`
-  + `tools/` + root prose) keeps that an extract-on-demand, not a rebuild.
+- **One source of truth.** ARD's substance lives at `ard-core/`; the spec is cited by
+  section (e.g. *ARD SPEC §4.2*) and not re-narrated in operational docs.
+- **Evidence is primary.** `ard-core/evidence/` records observed failure clusters
+  and the mitigations they warrant. `ard-core/theory/` supplies vocabulary,
+  guardrails, and stress tests, but does not replace the evidence ledger.
+- **Consumed surfaces stay explicit.** The engagement engine reads
+  `ard-core/kernel/` directly: the discipline bundle, templates, generated catalog
+  data, schemas, lint, and conformance suite.
 
 ## Standing up the `.research/` substrate
 
@@ -75,11 +67,10 @@ where a host has none — never broken; the discipline travels by inlining eithe
 plugin ships **no** committed sub-agent definitions. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
 two-substrate picture.
 
-## A note on ARD's portability shape
+## Portability shape
 
 ARD carries its agent-facing substance in portable prose (`SPEC.md` / `CATALOGS.md` /
-`kernel/`), with harness ergonomics kept separate — its demonstration of "portable knowledge
-shared, native ergonomics separate." This repo already embodies that shape at the root (one
-canonical `AGENTS.md`; `.claude/CLAUDE.md` is a symlink to it) and handles three-channel
-portability through the per-plugin `plugin.json` manifests, so the plugin ships **no** sub-agent
-definitions of its own. The shim pattern is preserved as this note, not replicated as structure.
+`kernel/`), with harness ergonomics kept separate. This repo uses one canonical
+`AGENTS.md` and handles three-channel portability through the per-plugin
+`plugin.json` manifests, so the plugin ships **no** committed sub-agent definitions
+of its own.

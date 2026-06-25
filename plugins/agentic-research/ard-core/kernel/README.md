@@ -1,9 +1,17 @@
 <!-- ARD-Version: 0.7.0 -->
 # ARD kernel
 
-The **consumed surface of ARD** (the Agentic Research Discipline) — the cross-harness artifacts the plugin's engagement engine runs against, regardless of agent system. These are **reference implementations subordinate to the specification, not the framework itself**: [SPEC.md](../SPEC.md) (cited here as *ARD SPEC §N*) names the invariants; the artifacts here are runnable renderings of them. The one contract they assume is the `[handle]{N}` citation wire-form + the normative-minimum attestation frontmatter (*ARD SPEC §4.2*). Honor that and everything here runs unchanged.
+The **consumed surface of ARD** (the Agentic Research Discipline) — the
+cross-harness artifacts the plugin's engagement engine runs against, regardless
+of agent system. [SPEC.md](../SPEC.md) (cited here as *ARD SPEC §N*) names the
+invariants; the artifacts here are runnable renderings of them. The one contract
+they assume is the `[handle]{N}` citation wire-form + the normative-minimum
+attestation frontmatter (*ARD SPEC §4.2*). Honor that and everything here runs
+unchanged.
 
-This directory is **self-contained**: it cites ARD's framework surfaces (the **specification** at [SPEC.md](../SPEC.md) and **baseline catalogs** at [CATALOGS.md](../CATALOGS.md)) **by name and section number** (e.g. *ARD SPEC §4.2*, *ARD CATALOGS §3*) as well as by relative path, and the two-level shape keeps the surface extract-on-demand should a real second adopter ever need independent pinning (re-extract `ard-core/` to a standalone repo).
+This directory cites the specification at [SPEC.md](../SPEC.md) and baseline
+catalogs at [CATALOGS.md](../CATALOGS.md) by name and section number (e.g.
+*ARD SPEC §4.2*, *ARD CATALOGS §3*) as well as by relative path.
 
 ## Contents
 
@@ -54,7 +62,9 @@ Adopters in restricted networks should default to `--no-url-check`, and run live
 
 ## Snapshot stamp
 
-Every file here carries a passive `ARD-Version:` stamp — internal provenance recording which ARD snapshot `ard-core/` represents (useful for the revisit-if-second-adopter re-extraction). It is **not an enforced pin**: nothing keys off it. To list it:
+Every file here carries a passive `ARD-Version:` stamp recording the ARD
+discipline surface version for that file. It is **not an enforced pin**: nothing
+keys off it. To list it:
 
 ```
 grep -r ARD-Version .
@@ -64,4 +74,8 @@ Only the `[handle]{N}` wire-form + the normative-minimum attestation frontmatter
 
 ## How the engine wires around this surface
 
-The kernel is the **consumed surface**; the engagement engine wires *around* it — the `research-orchestrator` skill (orchestration, discipline-propagation, verification sub-agents) reads `discipline.md`, runs the lint, and fills the templates. That orchestration topology is a deployment concern layered on top; this surface stays substrate-agnostic so it remains extract-on-demand for a future standalone re-extraction.
+The kernel is the **consumed surface**; the engagement engine wires *around* it
+— the `research-orchestrator` skill (orchestration, discipline propagation,
+verification sub-agents) reads `discipline.md`, runs the lint, and fills the
+templates. That orchestration topology is a deployment concern layered on top;
+this surface stays substrate-agnostic.

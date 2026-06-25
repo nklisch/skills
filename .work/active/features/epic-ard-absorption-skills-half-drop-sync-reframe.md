@@ -16,11 +16,10 @@ updated: 2026-06-25
 ## Brief
 
 Retire the byte-vendoring / dual-pin machinery entirely, and rewrite the plugin's
-identity docs to the absorbed, empirical-first model. After this feature there is
-no `ard-sync.py`, no `adopts` pin, no verbatim meta-fence — and the docs describe
-ARD as the plugin's internal, empirically-warranted discipline (a periodically
-distilled snapshot of practice), not a separately-published framework the plugin
-vendors.
+identity docs to a present-tense, empirical-first model. After this feature there
+is no `ard-sync.py`, no `adopts` pin, no verbatim meta-fence — and the docs
+describe ARD as the plugin's internal, empirically-warranted discipline (read as
+if the plugin was always built this way; no migration/vendoring narrative).
 
 ## Dependencies (both peer-confirmed)
 
@@ -42,10 +41,9 @@ vendors.
   `drift_check`. Decide at design whether anything meaningful survives (e.g. a
   `framework`/`homepage`/snapshot-version record) or the file is retired entirely.
   If a snapshot-version record is kept, it is the **internal** ARD snapshot
-  version (decoupled from plugin semver) — the root-half's versioning sub-decision.
-- **The verbatim meta-fence ENFORCER** — `ard/tools/meta-fences.py` was already
-  NOT ported (the scaffold left it out), so there is no enforcer in the absorbed
-  tree to delete. (`gen-contract.py` SURVIVES — it's the catalogs.json regenerator
+  version, decoupled from plugin semver.
+- **The verbatim meta-fence ENFORCER** — the meta-fence enforcer is not
+  present in `ard-core/`, so there is nothing to delete here. (`gen-contract.py` SURVIVES — it's the catalogs.json regenerator
   per the scaffold's SSOT fork, not a drop.)
 
 ### `ARD-Version` stamp policy (decided — peer-surfaced)
@@ -54,14 +52,14 @@ The `ARD-Version: 0.7.0` stamps in 10 `ard-core/` files (`discipline.md`,
 `kernel/README.md`, the 4 `templates/*`, `lint-citations.py`, `conformance/run.py`,
 `conformance/README.md`, `tools/gen-contract.py`) **are KEPT as passive internal
 snapshot-version metadata** — they record which ARD snapshot `ard-core/`
-represents (useful for the revisit-if-2nd-adopter re-extraction). They are already
-passive (the meta-fence *enforcer* was never ported), so the absorption retires
-the *fence* (enforcement), not the *stamp* (provenance). **Do NOT strip them.**
+represents. They are already
+passive (the meta-fence *enforcer* is not present), so what is retired is the
+*fence* (enforcement), not the *stamp* (provenance). **Do NOT strip them.**
 What changes: any *prose that frames them as a vendoring meta-fence / dual-pin
 artifact* (e.g. `discipline.md:6` "verbatim vendorable artifact per ard.json")
 gets reframed to "internal snapshot metadata"; the stamp lines themselves stay.
-(Rejected: strip all stamps — loses the snapshot-provenance the re-extraction
-escape hatch wants, for no gain since they're already non-enforcing.)
+(Rejected: strip all stamps — loses the snapshot-provenance for no gain, since
+they're already non-enforcing.)
 
 ### Adopter-vendoring language in the conformance surface (in scope — peer-surfaced, pass 2 + 3)
 
@@ -114,9 +112,11 @@ to internal / reference-lint validation phrasing:
   inventory as the worklist; re-run the dangling-link scan after the rewrite and
   assert it's clean (`check-doc-links` over `ard-core/`).
 
-**Name inline (artifacts-defend-themselves-inline discipline):**
-- the **rejected** separate-repo / dual-pin / publication path (and *why* — publication judged dead);
-- the **revisit-if-2nd-adopter** escape hatch (re-extract `ard-core/` to a standalone repo, extract-on-demand not rebuild).
+**Present-tense framing (superseding an earlier draft that named a rejected
+separate-repo path + a re-extraction escape hatch):** the docs do NOT explain any
+prior vendored/separate-framework state or argue why ARD is shaped this way — a
+reader has no such context. Describe what the plugin and ARD ARE, present tense.
+The earlier 'name the rejected path / escape hatch inline' instruction is dropped.
 
 ## Empirical-first reframe content
 
@@ -132,20 +132,15 @@ warrant tier. Point at `ard-core/evidence/` and `ard-core/theory/`.
 
 ## Foundation references
 
-- Root decision note `2026-06-24-ard-absorption-decision`.
 - `plugins/agentic-research/ard.json`, `README.md`, `docs/*`.
 
 ## Verification
 
 No `ard-sync`, `vendored_paths`, `not_yet_vendored`, `drift_check`, or
-vendoring-narrative references survive in the plugin (the **absorbed-identity
-end state** — the authoritative check is the narrowed grep in `## Testing`, not a
-blanket `adopts` sweep: the word `adopts`/`adopted` legitimately survives in
-prose describing that the *plugin* adopted ARD as its internal discipline — only
-the *external version-pin* "adopts ARD vX" phrasing goes). Docs describe the
-absorbed model and name the rejected path + escape hatch inline. `check-doc-links`
-(or the repo's link checker) passes — no dangling links to removed paths or to the
-(root-half) submodule.
+vendoring-narrative references survive in the plugin — the authoritative check is
+the narrowed grep in `## Testing`. Docs read present-tense (no migration/vendoring
+narrative, no rejected-path or escape-hatch justification). `check-doc-links` (or
+the repo's link checker) passes — no dangling links to removed paths.
 
 ---
 
@@ -160,7 +155,7 @@ absorbed model and name the rejected path + escape hatch inline. `check-doc-link
   `scripts/conformance/run.py`). Nothing meaningful survives. Delete the file; its
   consumers (`ard-sync.py`, `test_ard_sync.py`, `ADOPTION.md`, `VERSIONING.md`,
   `README.md`) are all things this feature deletes or rewrites anyway. The
-  internal ARD snapshot-version question is the root-half's call; the plugin's own
+  internal ARD snapshot-version question is out of scope here; the plugin's own
   semver (in the channel manifests) is the only version the plugin needs.
 - **`marketplace.json` carries a STALE "Adopts ARD v0.5.1"** (root
   `.claude-plugin/marketplace.json:45`) — even older than the manifests' v0.6.0.
@@ -214,9 +209,10 @@ source and carry its framing):
    internal discipline; no external version pin). Keep the cross-channel `version`
    fields (plugin semver) in lockstep — they are NOT the ARD version.
 3. **Reframe `README.md`** — the lead ("Adopts ARD v0.6.0 … pinned in ard.json …
-   Upstream framework by Kevoun") → absorbed model; README:32 ("vendored verbatim")
-   → "wraps `ard-core/kernel/discipline.md`" (the F2-flagged drift). Name the
-   rejected separate-repo path + the revisit-if-2nd-adopter escape hatch inline.
+   Upstream framework by Kevoun") → present-tense model; README:32 ("vendored
+   verbatim") → "wraps `ard-core/kernel/discipline.md`" (the F2-flagged drift).
+   Present-tense throughout — no prior-vendored/separate-framework contrast, no
+   rejected-path or escape-hatch justification.
 4. **Reframe `docs/{VERSIONING,ADOPTION,ARCHITECTURE,HANDOFF}.md`** — remove the
    dual-pin / vendor-map tables (ADOPTION's "Vendor-mode taxonomy" §31-39 +
    "Vendor map" §41-56 — both pure vendoring, delete; the rest of ADOPTION is
@@ -237,7 +233,7 @@ source and carry its framing):
    rather than expand F3's scope.
 5. **Rewrite the F1 dangling links** — `ard-core/SPEC.md` (5 targets:
    `VERSIONING.md`, `LICENSE`, `ADOPTING.md`, `example/`, `.research/`) +
-   `ard-core/theory/README.md` (`../.gitignore`), per `ard-core/.dangling-links-inventory.md`.
+   `ard-core/theory/README.md` (`../.gitignore`), per the F1 dangling-link inventory.
    Per-target calls (peer-refined):
    - `.research/` → **repoint to `theory/`** (the trace tier ported there).
    - `example/`, `ADOPTING.md`, `../.gitignore` → **drop** (publication surface /
