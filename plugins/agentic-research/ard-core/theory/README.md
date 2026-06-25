@@ -1,8 +1,14 @@
 # Defensibility trace
 
-The reasoning behind ARD's commitments — so a reader or skeptic can trace *why* each piece of the framework is shaped the way it is, one hop from the [specification](../SPEC.md), which itself reads standalone.
+This is ARD's **opt-in archaeology**: vocabulary, guardrails, and stress-testing
+behind selected commitments, one hop from the [specification](../SPEC.md), which
+itself reads standalone.
 
-This is a **curated defensibility subset**, not the full research substrate: one grounding artifact per major commitment, each earning its place. It **grows by extension** as more commitments earn a ported rationale.
+It is **not the primary warrant tier**. Under the absorbed model, warrant lives in
+[`../evidence/`](../evidence/) — the empirical failure ledger. This directory is
+a curated defensibility subset, not the full research substrate: one grounding
+artifact per major commitment, each earning its place. It **grows by extension**
+as more commitments earn a ported rationale.
 
 ## What's here
 

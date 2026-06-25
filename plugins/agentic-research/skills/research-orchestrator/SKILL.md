@@ -6,8 +6,8 @@ description: >
   topology from the seed (one inline pass to N specialists), and walks the ARD decision-graph at the
   dialed verification depth. Use for any grounded research engagement: focused single-pass, breadth
   survey, multi-specialist decomposition, or program-scale. Honors the ARD SPEC invariants
-  (anti-fabrication floor, verification stack, registration); this is one deployment of ARD on the
-  Claude agent system.
+  (anti-fabrication floor, verification stack, registration); this is one deployment of ARD in a
+  portable agent-skill system.
 ---
 
 # Research Orchestrator
