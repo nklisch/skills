@@ -1,7 +1,7 @@
 ---
 id: story-reframe-research-dials-commissioning-subset
 kind: story
-stage: implementing
+stage: done
 tags: [docs, plugin]
 parent: null
 depends_on: []
@@ -59,3 +59,19 @@ that story fixed Drift 1 (the flatly-wrong "remaining five" arithmetic + the mis
 `decision_relevance` kickoff gate, all inside the agentic-research plugin). This story is
 Drift 2 (defensible-but-imprecise phrasing, cross-plugin). Keeping them separate avoids
 folding an agile-workflow plugin bump into a v0.7-contract PR.
+
+## Done (2026-06-25) — absorbed into PR #28
+
+Not done as separate deferred work: PR #28's multi-model reviewer requested this reframe be
+fixed in-PR (the convert template regenerates AGENTS.md, so the stale wording would recur on
+next bootstrap). Operator chose to fold it in. Commit `5292266` on branch
+`feat/v07-ten-field-registration-propagation`; agile-workflow bumped 0.14.11 → 0.14.12.
+
+Reframed "the registration [block]" → "the commissioning subset of the registration (the four
+scoping fields …)" across AGENTS.md, README.md, agile-workflow `docs/SPEC.md`,
+`skills/convert/SKILL.md` (schema note + the embedded tag-semantics block — the regen source),
+and `skills/feature-design/SKILL.md`. Left `autopilot:166` + `feature-design:24` unchanged
+(epic-vs-feature contrast, not the four-field-block-as-full-registration imprecision).
+
+Cross-model reviewed (Codex, approve, no findings): regen parity between the convert template
+and AGENTS.md confirmed, so the drift will not recur.
