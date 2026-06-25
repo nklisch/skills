@@ -4,7 +4,7 @@ The empirical failure ledger — the primary warrant tier. Each entry records on
 observed failure cluster and the discipline it warrants. Schema + authoring
 discipline in [`README.md`](README.md).
 
-> **Substrate-confidence caveat (whole ledger).** The v0.7 external grounding
+> **Substrate-confidence caveat (whole ledger).** The later external grounding
 > (handles `{41}`–`{52}`) was engaged at **search-summary** confidence —
 > bibliographic existence verified, findings read via abstract / landing-page, not
 > full source-direct reads — *except* the W3C PROV standards `{1}`/`{2}`, which are
@@ -12,7 +12,7 @@ discipline in [`README.md`](README.md).
 > itself warrants (presenting search-summary as source-direct would be the very
 > failure entry GR.9 fences). The grounding handles resolve against
 > [`../theory/references.md`](../theory/references.md); the entries **re-render** the
-> already-grounded `../theory/COMMITMENTS.md` "v0.7.0 additions" trace —
+> already-grounded `../theory/COMMITMENTS.md` later additions trace —
 > COMMITMENTS is re-render provenance, never itself a cited warrant
 > (lens-not-substrate, [`../kernel/discipline.md`](../kernel/discipline.md)).
 

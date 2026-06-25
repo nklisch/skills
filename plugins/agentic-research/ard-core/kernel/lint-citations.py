@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# ARD-Version: 0.7.0
 # Reference implementation — ARD citation-chain lint.
 #
 # A zero-dependency reference implementation of the full lintable catalogue:

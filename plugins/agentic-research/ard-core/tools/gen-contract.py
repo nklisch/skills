@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# ARD-Version: 0.7.0
 # Generate the machine-readable catalog data from canonical prose.
 #
 # CATALOGS.md is the single canonical source (research flows into its prose
@@ -177,10 +176,8 @@ def parse_registration_enums(sec):
 def build(catalogs_md):
     md = open(catalogs_md, encoding="utf-8").read()
     sec = sections(md)
-    m = re.search(r"#\s+ARD\s+—\s+Baseline\s+Catalogs\s+\(v([\d.]+)\)", md)
     return {
         "_comment": "GENERATED from CATALOGS.md by tools/gen-contract.py — do not edit by hand; edit the prose and regenerate.",
-        "catalog_baseline": m.group(1) if m else None,
         "generated_from": "CATALOGS.md",
         "failure_shapes": parse_failure_shapes(sec.get("1", "")),
         "source_classes": parse_source_classes(sec.get("2", "")),
