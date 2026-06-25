@@ -63,16 +63,27 @@ gets reframed to "internal snapshot metadata"; the stamp lines themselves stay.
 (Rejected: strip all stamps — loses the snapshot-provenance the re-extraction
 escape hatch wants, for no gain since they're already non-enforcing.)
 
-### `conformance/README.md` adopter-vendoring language (in scope — peer-surfaced)
+### Adopter-vendoring language in the conformance surface (in scope — peer-surfaced, pass 2 + 3)
 
-`ard-core/kernel/conformance/README.md:4` says "**Vendor this directory** and run
-it against your **vendored or ported** lint" — adopter-facing language from when
-ARD was a published framework. Post-absorption `ard-core/conformance/` is internal.
-**Reframe** the vendor-this / your-ported-lint language to internal-validation
-phrasing. **Leave as-is:** the generic `run.py --lint <path>` "validate your own
-implementation" capability text in `run.py`/`expected.json`/`lint-citations.py` —
-that's the lint's portable self-description (harmless, and editing churns the
-byte-identity story); only the README's *adopter-vendoring framing* is reframed.
+The "a thing adopters vendor / your vendored-or-ported lint" framing appears in
+**three** conformance files (all from when ARD was a published framework others
+adopt). Post-absorption `ard-core/conformance/` is internal — **reframe all three**
+to internal / reference-lint validation phrasing:
+- `conformance/README.md:4` — "**Vendor this directory** and run it against your
+  **vendored or ported** lint".
+- `conformance/expected.json:2` — `_comment`: "Any **vendored or ported** lint
+  must reproduce these" (pass-3 blocker — same framing, must go too).
+- `conformance/run.py:8` — "Any **adopter who vendored or ported**…".
+
+**Genuinely different — LEAVE AS-IS (whitelist with rationale):**
+- The generic `run.py --lint <path>` "validate your own implementation"
+  *capability* text — that's the runner's portable usage, not adopter-vendoring framing.
+- `lint-citations.py:175` "Attestations are **vendored substrate** a compromised
+  or hostile source could…" — this is the **SSRF / untrusted-source threat model**,
+  a different sense of "vendored" (third-party content fetched into the substrate),
+  unrelated to plugin-vendoring. Do not touch.
+- `lint-citations.py:105` "a vendored lint" — borderline-generic capability note;
+  reword only if trivially clear, else leave (low value, churns byte-identity).
 
 ## Docs to reframe (empirical-first identity)
 
