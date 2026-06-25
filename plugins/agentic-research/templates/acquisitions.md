@@ -1,7 +1,7 @@
-<!-- agentic-research operationalization — NOT a vendored ARD artifact (carries no ARD-Version
-     stamp). ARD SPEC §4.1 owns the acquisition-candidate discipline; this campaign-manifest file
-     shape is the plugin's own — the work-band crossing it performs is a deployment concern ARD
-     deliberately leaves unspecified. -->
+<!-- agentic-research operationalization — a deployment artifact, not part of the ARD core surface
+     (carries no ARD-Version stamp). ARD SPEC §4.1 owns the acquisition-candidate discipline; this
+     campaign-manifest file shape is the plugin's own — the work-band crossing it performs is a
+     deployment concern ARD deliberately leaves unspecified. -->
 # Acquisition manifest — template
 
 A campaign's source-acquisition offgas (ARD SPEC §4.1). Lives at

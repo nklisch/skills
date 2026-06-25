@@ -7,12 +7,25 @@ control-space of selectable verification gates, and a `.research/` substrate tie
 `agile-workflow`'s operational `.work/` tier. Citations use the `[handle]{N}`
 convention backed by per-source attestations, enforced by a citation-chain lint.
 
-Adopts **ARD v0.6.0** (pinned in [`ard.json`](ard.json) — the single source of truth
-for the ARD version + vendored-surface map; the plugin's own semver is decoupled).
-Upstream framework by Kevoun: <https://code.s-nc.org/Kevoun/ARD>.
+ARD is **this plugin's internal discipline** — a periodically-distilled snapshot of
+the research practice that generates it, with a single source of truth at
+[`ard-core/`](ard-core/) (`ard-core/kernel/` is the consumed surface; `ard-core/SPEC.md`
++ `CATALOGS.md` carry the canonical prose; `ard-core/evidence/` is the **primary
+warrant tier** — the observed-failures-and-mitigations ledger; `ard-core/theory/` is
+opt-in archaeology). It is not a separate framework the plugin adopts, vendors, or
+version-pins; the plugin's own SemVer is the only version it carries.
+
+> **Why absorbed.** ARD's real engine is the empirical *practice → observe → improve*
+> loop, warranted by `ard-core/evidence/`. **Rejected: keep ARD as a separately-published
+> repo, re-imported into the plugin under a version-pin invariant + byte-vendored copies.**
+> That ceremony earned nothing once external publication was judged effectively dead — only
+> three discipline copies to keep byte-identical, a sync script, and a widening gap between
+> the practice and the lagging published port. **Revisit if** a real second adopter / non-Claude
+> harness genuinely needs independent pinning of ARD → re-extract `ard-core/` to a standalone
+> repository; its self-contained two-level structure keeps that an extract-on-demand, not a rebuild.
 
 > **Adoption status (experimental).** Landed: the `.research/` substrate tier and its
-> conventions, the vendored citation lint + conformance set, the artifact templates, and
+> conventions, the citation lint + conformance set, the artifact templates, and
 > the foundation docs in [`docs/`](docs/) ([ADOPTION](docs/ADOPTION.md) ·
 > [VERSIONING](docs/VERSIONING.md) · [ARCHITECTURE](docs/ARCHITECTURE.md)), the two
 > engagement skills (`research-orchestrator`, `research-discipline`), the `research-view`
@@ -29,9 +42,10 @@ Upstream framework by Kevoun: <https://code.s-nc.org/Kevoun/ARD>.
   discovers fan-out topology from the seed, and walks the ARD decision-graph at the dialed
   verification depth — from a one-agent inline brief to an N-specialist campaign. Dispatches
   the verification roles (specialist, adversarial-reader, evaluator) inline.
-- **`research-discipline`** — the anti-fabrication bundle (ARD `kernel/discipline.md`
-  vendored verbatim). The orchestrator inlines it into every authoring dispatch so the
-  discipline reaches sub-contexts (ARD SPEC §5); on the light path it is read explicitly.
+- **`research-discipline`** — the anti-fabrication bundle. It wraps
+  [`ard-core/kernel/discipline.md`](ard-core/kernel/discipline.md) (the single source). The
+  orchestrator inlines it into every authoring dispatch so the discipline reaches sub-contexts
+  (ARD SPEC §5); on the light path it is read explicitly.
 - **`convert`** — the front half of adoption: discover a repo's pre-existing (non-ARD) research,
   bootstrap the `.research/` substrate, route raw sources to `reference/` and claim-bearing
   syntheses to a holding area, then hand each synthesis to the orchestrator's refresh branch for
@@ -134,4 +148,3 @@ dependency, cross-harness, testable):
   — that needs an attestation-stored content snapshot, a parked enhancement; a reachable source is
   reported `live-unverifiable`, never a fabricated drift. See `docs/HANDOFF.md` §Acquisition-queue
   drain loop. Reuses `lint-citations.py`'s SSRF-hardened probe.
-- **`scripts/ard-sync.py`** — the ARD upstream-version drift check (see `docs/VERSIONING.md`).

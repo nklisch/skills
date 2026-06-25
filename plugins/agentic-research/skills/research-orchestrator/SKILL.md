@@ -379,9 +379,9 @@ silently; the research record stands on its own.
 
 ## Related
 
-- **ARD SPEC** — the invariant architecture: §3 (control-space) · §5 (discipline propagation) · §7 (verification stack) · §8 (dials) · §9 (registration) · §10.1 (decision-graph). Canonical upstream; see `docs/ADOPTION.md`.
-- **ARD CATALOGS** — §4 (adversarial-reader jobs) · §5 (evaluator components) · §6 (decision-point catalog), grounding the role briefs.
-- [`research-discipline`](../research-discipline/SKILL.md) — the verbatim anti-fabrication bundle this orchestrator inlines into every authoring dispatch.
+- **ARD SPEC** — the invariant architecture: §3 (control-space) · §5 (discipline propagation) · §7 (verification stack) · §8 (dials) · §9 (registration) · §10.1 (decision-graph). The plugin's internal discipline; canonical prose at `ard-core/SPEC.md` — see `docs/ADOPTION.md`.
+- **ARD CATALOGS** — §4 (adversarial-reader jobs) · §5 (evaluator components) · §6 (decision-point catalog), grounding the role briefs (`ard-core/CATALOGS.md`).
+- [`research-discipline`](../research-discipline/SKILL.md) — the anti-fabrication bundle (wrapping `ard-core/kernel/discipline.md`, the single source) this orchestrator inlines unaltered into every authoring dispatch.
 - [`research-handoff`](../research-handoff/SKILL.md) — the Arrow 2 emission gate: operator-confirmed `.work/` item emission from actionable research findings.
 - `references/` — the three dispatch role briefs (research-specialist, adversarial-reader, evaluator).
 - `.research/CONVENTIONS.md` — the substrate's frontmatter contracts + the down-gradient read rule.

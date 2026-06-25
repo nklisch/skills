@@ -35,9 +35,11 @@ when no `.work/` substrate is present (precedent: `repo-eval` files `.work/` ite
 substrate exists). Full contract: [HANDOFF.md](HANDOFF.md). The `.research/` tier definition
 itself is the `substrate-tier` feature.
 
-## Our `.research/` vs ARD's
+## The operational `.research/` vs ARD's archaeology tier
 
-ARD's *own* repository uses `.research/` in a narrower sense — a curated "defensibility trace"
-of positions only, bibliographic-only for IP reasons. Here, `.research/` is the **full
-four-tier substrate** (reference → attestation → precis → analysis), the live working tier for
-disciplined research in this repo.
+ARD is the plugin's internal discipline (see [ADOPTION.md](ADOPTION.md)); its reasoning trace
+lives at `ard-core/theory/` as a curated "defensibility trace" of positions only — bibliographic-only
+for IP reasons, opt-in archaeology rather than the warrant. The operational `.research/` substrate
+a deployment runs is the **full four-tier substrate** (reference → attestation → precis → analysis),
+the live working tier for disciplined research in this repo. The empirical warrant behind the
+discipline itself is `ard-core/evidence/` (the observed-failures-and-mitigations ledger).
