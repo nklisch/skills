@@ -1,7 +1,7 @@
 ---
 id: story-record-refresh-verification-scope
 kind: story
-stage: review
+stage: done
 tags: [docs, skill, plugin]
 parent: epic-agentic-research-reengagement
 depends_on: []
@@ -89,4 +89,23 @@ attestation-tier `provenance:` enum. §221 wording cited verbatim as the obligat
 - Cross-checked against SPEC §221 wording; §221 cited — ✅.
 - Conformance still passes — ✅ `57/57`.
 
-Cross-model review (peeragent) pending before advancing past review, per standing instruction.
+## Review (2026-06-25)
+
+Cross-model review (Codex, high effort, fresh context on the branch diff). Verdict: **BLOCK on one
+defect**, §221 substance otherwise confirmed correct.
+
+- **Blocker (fixed):** the record-home was underspecified — the edits said to write the scope "into
+  the superseding artifact's provenance," but `provenance:` is a **required scalar enum**
+  (`source-direct` / `agent-synthesis` / …, SPEC §10.4 + the convert scaffold's required contract).
+  An implementer might overload that scalar and corrupt the contract. **Fix:** named a concrete,
+  distinct **top-level `refresh_verification:` frontmatter field** — a sibling of the existing
+  lineage predicates `supersedes` / `superseded_by` (CATALOGS §268 establishes top-level structural
+  predicates as the pattern), with `delta_reverified` / `grandfathered_prior_verified` sub-keys, and
+  an explicit "not a value of the scalar `provenance:` enum" caveat. Applied to all three spots
+  (step 5 bullet + a YAML example, the Output section, and SKILL §Refresh step 4).
+- **Confirmed correct by the reviewer:** all other §221 obligations captured (delta re-run,
+  grandfathered set, explicit recording, hard-floor gates over delta, auditable scope); the two
+  surfaces consistent; no blanket carry-forward over changed substrate.
+- Conformance re-confirmed after the fix: **57/57**.
+
+Acceptance (c) — "recorded scope auditable, home named" — now met concretely (was the BLOCK).
