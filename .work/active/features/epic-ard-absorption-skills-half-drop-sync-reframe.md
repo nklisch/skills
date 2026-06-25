@@ -1,7 +1,7 @@
 ---
 id: epic-ard-absorption-skills-half-drop-sync-reframe
 kind: feature
-stage: drafting
+stage: implementing
 tags: [plugin]
 parent: epic-ard-absorption-skills-half
 depends_on: [epic-ard-absorption-skills-half-collapse-vendoring, epic-ard-absorption-skills-half-evidence-ledger]
@@ -285,3 +285,23 @@ acceptance (the sweeps below). No parallelizable independent chunk.
 - **A dangling link an absorbed equivalent should fix but I drop.** Mitigated by
   the inventory worklist + judgment per target (repoint where an equivalent exists,
   drop only the genuinely-gone publication surface).
+
+## Implementation notes (2026-06-25)
+
+Implemented across ~17 files. Units 1-2 + AGENTS.md + the sensitive
+`ard-core/kernel/discipline.md` reframe done inline by the lead; the bulk
+doc-reframe (README, docs/*, ard-core internal narrative, conformance framing,
+dangling links) dispatched to one implementation sub-agent with the consensus
+design as spec (breadth + independent write ownership; lead owns verification).
+
+- **Unit 1:** deleted `ard-sync.py`, `test_ard_sync.py`, `ard.json` — no dangling module/manifest ref.
+- **Unit 2:** all 5 manifest occurrences reframed (`.claude-plugin:3`, `.codex-plugin:4,14`, `package.json:4`, root `marketplace.json:45` — the stale v0.5.1) — external version pin dropped.
+- **AGENTS.md:17** (root canonical; `.claude/CLAUDE.md` is a symlink to it, so one edit covered both) reframed.
+- **`ard-core/kernel/discipline.md`** reframed (lead) — §1-8 untouched, `ARD-Version` stamp kept (passive), "vendorable per ard.json" framing → single-source-of-truth + co-located `../SPEC.md` pointer.
+- **Sub-agent (14 files):** README (+ Why-absorbed note w/ rejected path + escape hatch), ADOPTION (2 vendor sections deleted, 6 substrate sections kept), VERSIONING (now owns ARD version policy), ARCHITECTURE, the ard-core internal narrative, the 3 skills/template refs, the 3 conformance adopter-vendoring framings, and the dangling links. HANDOFF.md left unchanged (no vendoring framing; contract preserved).
+
+**Lead-verified (not taking the sub-agent's word):** conformance **57/57**;
+narrowed vendoring grep **clean**; dangling-link scan **0**; ADOPTION substrate
+sections intact (not over-deleted); `lint-citations.py:175` SSRF "vendored
+substrate" correctly untouched; discipline still travels (wrapper + orchestrator
+both name `ard-core/kernel/discipline.md`).

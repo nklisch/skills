@@ -4,15 +4,12 @@
 (ARD) as it lives inside the `agentic-research` plugin. ARD is the plugin's
 internal, empirically-warranted discipline: a periodically-distilled snapshot of
 the practice that generates it — not a separate framework repository, not
-dual-pinned, not byte-vendored.
+separately version-pinned, not byte-copied into the plugin.
 
-> **Migration status.** This tree is the absorption target. The plugin's skills,
-> scripts, and conformance are repointed to reference `ard-core/` directly by the
-> *collapse-vendoring* feature, and the old `scripts/`-vendored copies + the
-> `ard.json` dual-pin + the sync machinery are removed by *drop-sync-reframe*.
-> Until those land, some consumers still read the legacy vendored paths — the
-> wiring described below is the intended end state, not a claim that every
-> consumer is already repointed.
+> **Absorbed.** This tree is the single source of truth. The plugin's skills,
+> scripts, and conformance reference `ard-core/` directly; the old `scripts/`-resident
+> copies, the separate ARD version pin, and the sync machinery are gone. The wiring
+> described below is the landed state.
 
 ## Layout
 
@@ -34,17 +31,18 @@ against any future re-distillation.
 
 ARD's real engine was always the empirical *practice → observe → improve* loop —
 not a philosophical-theory port (which froze at v0.1 while the framework grew six
-versions on empirical pressure). The separate-repo + dual-pin + byte-vendor
+versions on empirical pressure). The separate-repo, two-version-pin, byte-copy
 ceremony served an external-publication ambition that isn't live, and it
 manufactured a distillation/warrant gap: depth lived in the practice, while the
 published framework was a thinned, lagging port. Absorbing collapses that — one
 source of truth, co-located with the practice, empirically warranted (see
 [`evidence/`](evidence/)).
 
-**Rejected: keep ARD as a separately-published repo with dual-pin vendoring into
-the plugin.** It earns nothing once cross-agent/external publication is judged
-dead — only residual ceremony (three discipline copies to keep byte-identical, a
-sync script, a version-pin invariant) and a widening warrant gap.
+**Rejected: keep ARD as a separately-published repo, re-imported into the plugin
+under a separate version pin + byte-identical copies.** It earns nothing once
+cross-agent/external publication is judged dead — only residual ceremony (multiple
+discipline copies to keep byte-identical, a sync script, a version-pin invariant)
+and a widening warrant gap.
 
 ## Revisit if
 

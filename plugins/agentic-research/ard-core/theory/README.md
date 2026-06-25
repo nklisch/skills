@@ -12,6 +12,6 @@ This is a **curated defensibility subset**, not the full research substrate: one
 
 ## What does not travel
 
-- **Raw source fetches** — excluded (see [`.gitignore`](../.gitignore)). Only IP-cleared derived material is committed; per-source-class reproduction limits are respected.
+- **Raw source fetches** — excluded. Only IP-cleared derived material is committed; per-source-class reproduction limits are respected.
 - **Source attestations that merely reproduce external copyrighted material** — the *findings* that defend each commitment are ARD's own (the positions, the control-space model, the failure-shape inventory), so the attestation layer is not reproduced here.
 - **Operational substrate** — the deployment's own decision records and working memory stay in the deployment; the research-tier positions carry the public rationale.
