@@ -160,8 +160,28 @@ over the *current* substrate, at the dialed `verification_rigor`:
    handle to the prior analytical-tier artifact resolves `intra-program-resolved` (clean); the
    pre-flight exclusion is what prevents that, not the lint.
 5. **verify** — adversarial-read (rigor ≥ standard) / evaluate (rigor = full) / spot-check
-   (always), at the dialed rigor over the **new** substrate. The prior artifact's old verdicts do
-   **not** carry forward unexamined — a refresh is a real engagement, not a diff-and-patch.
+   (always), at the dialed rigor. **Incremental re-verification, recorded (ARD SPEC §221).** The
+   stack re-runs over the **delta** — the changed or added substrate (the new/revised citation
+   range) — not the whole artifact; the prior-verified set is **grandfathered**. The hard-floor
+   gates (lint + spot-check) still fire, **over the delta**. The prior artifact's old verdicts do
+   **not** carry forward unexamined where the substrate moved — a refresh is a real engagement, not
+   a diff-and-patch — but a citation the refresh did not touch does not re-pay its verification.
+   - **Record the scope explicitly** so it stays auditable. The superseding artifact carries a
+     top-level `refresh_verification:` frontmatter field (a sibling of the lineage predicates
+     `supersedes` / `superseded_by`, **not** a value of the scalar `provenance:` enum) naming the
+     **delta re-verified** (the handles / citation range the stack ran over this pass) and the
+     **grandfathered set** (the prior-verified handles carried forward unchanged):
+
+     ```yaml
+     provenance: agent-synthesis        # unchanged — the scalar authorial-role enum (SPEC §10.4)
+     supersedes: <prior-artifact-path>
+     refresh_verification:
+       delta_reverified: [<handle>, ...]          # re-run through the stack this pass
+       grandfathered_prior_verified: [<handle>, ...]  # carried forward unchanged
+     ```
+
+     A silent whole-artifact re-verification claim, or un-recorded grandfathering, is the §221
+     failure this fences — the absence of this record is itself the defect, not a stylistic gap.
 
 ## Output: the superseding artifact
 
@@ -170,3 +190,10 @@ The prior artifact is **retained as the historical record** (consistent with ARD
 distinction — refresh re-authors in place over revised substrate; the superseded version remains
 reachable). The output stands on its own clean citation chain; nothing in it cites the prior
 artifact as a source.
+
+The output also carries a top-level **`refresh_verification:`** frontmatter field (ARD SPEC §221) —
+a sibling of `supersedes`, distinct from the scalar `provenance:` enum — recording the delta
+re-verified this pass and the grandfathered prior-verified set carried forward (shape in step 5
+above). This keeps the verification scope auditable — a reader can see exactly *what was re-checked*
+versus *what was inherited*, rather than reading the superseding artifact as a silent whole-artifact
+re-verification.

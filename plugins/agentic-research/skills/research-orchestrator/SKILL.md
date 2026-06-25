@@ -122,8 +122,13 @@ lens-not-substrate guard in the discipline bundle). The branch:
    changed / gap+offgas dead) + extend with new acquisitions; `legacy`: build the chain from scratch
    (no prior attestations exist).
 4. **Resume the normal walk** (attest → synthesize → lint → verify) over the **current** substrate at
-   the dialed rigor. The prior's old verdicts do not carry forward. Output is a superseding artifact
-   with a `supersedes` pointer; the prior is retained as the historical record.
+   the dialed rigor. **Verify incrementally and record the scope (ARD SPEC §221):** the stack re-runs
+   over the **delta** (changed/added substrate), the hard-floor gates fire over that delta, and the
+   superseding artifact carries a top-level `refresh_verification:` frontmatter field (sibling of
+   `supersedes`, not a value of the scalar `provenance:` enum) recording the **delta re-verified** +
+   the **grandfathered** prior-verified set — so the verification scope stays auditable (un-recorded
+   grandfathering is the §221 failure). Output is a superseding artifact with a `supersedes` pointer;
+   the prior is retained as the historical record.
 
 **Input contract** the front-halves call with: `{prior_artifact_path, input_state:
 ard-native|legacy, completes_claims?: [...], intended_output_kind?}`. `intended_output_kind` is
