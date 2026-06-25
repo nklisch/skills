@@ -1,7 +1,11 @@
 <!-- ARD-Version: 0.7.0 -->
 # ARD discipline bundle
 
-The **anti-fabrication discipline** — the load-bearing content that must travel *verbatim* into every research-authoring sub-context (any agent that composes research output without the orchestrator's full context). This file is the injection-ready rendering of *ARD SPEC §4* (the anti-fabrication core) and *ARD SPEC §5* (discipline propagation) — both at [`../SPEC.md`](../SPEC.md), the absorbed spec co-located in `ard-core/`.
+The **anti-fabrication discipline** — the load-bearing content that must travel
+*verbatim* into every research-authoring sub-context (any agent that composes
+research output without the orchestrator's full context). This file is the
+injection-ready rendering of *ARD SPEC §4* (the anti-fabrication core) and *ARD
+SPEC §5* (discipline propagation) — both at [`../SPEC.md`](../SPEC.md).
 
 **This is the single source of truth for the discipline.** The `research-orchestrator` inlines it unaltered into every authoring dispatch (the deployment's propagation mechanism). **Do not re-narrate or summarize it:** paraphrasing the discipline reintroduces exactly the drift it fences (*ARD SPEC §4.6, §5*). The propagation *mechanism* is the deployment's choice; the *content* below is invariant across sub-contexts. Where the bundle names a tier by concept ("the attestation tier"), map it to your own path — that mapping is the only adaptation permitted. *(The `ARD-Version` stamp above is passive snapshot-version metadata, not an enforced fence.)*
 

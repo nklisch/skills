@@ -1,22 +1,8 @@
 # VERSIONING: agentic-research
 
-ARD is the plugin's **internal discipline** (see [ADOPTION.md](ADOPTION.md)), so there is
-**one version that matters: the plugin's own SemVer.** ARD is not a separately-released
-framework the plugin re-imports, so there is no second "adopted ARD version" axis to track or
-re-sync — that machinery (a dual-version pin, a sync tool, per-artifact drift checks) was retired
-when ARD was absorbed.
-
-> **Absorption note (0.5.0 → 0.6.0).** The absorption landed as a **minor** bump:
-> the operator-facing surface — the citation-lint command (`scripts/lint-citations.py`,
-> now a thin shim forwarding to `ard-core/kernel/lint-citations.py`), the skills, the
-> `.research/` substrate, the `[handle]{N}` convention — is unchanged, and the plugin
-> additively gains the ARD v0.7 discipline content (now maintained internally in
-> `ard-core/`). The **one backward-incompatible change** is the removal of the
-> `ard.json` consumer-pin file, which prior docs named a public truth: a consumer
-> that read `ard.json` to discover the adopted ARD version no longer finds it (ARD
-> is internal; there is no external version to discover). That contract served the
-> external-publication audience the absorption judged dead, so it does not force a
-> major pre-1.0 — recorded here as the deliberate exception.
+ARD versions with the plugin. There is **one release version: the plugin's own
+SemVer**, kept in lockstep across `package.json`, `.claude-plugin/plugin.json`,
+and `.codex-plugin/plugin.json`.
 
 ## The plugin's SemVer
 
@@ -32,15 +18,14 @@ plugin's SemVer at the axis its nature warrants (a new catalog member is a patch
 to the `[handle]{N}` wire-form or the normative-minimum attestation frontmatter is a major,
 because existing attestations/citations migrate).
 
-## The internal ARD snapshot stamp
+## The ARD-Version stamp
 
 Ten `ard-core/` files carry a passive `ARD-Version:` stamp (`discipline.md`, `kernel/README.md`,
 the four `templates/*`, `kernel/lint-citations.py`, `kernel/conformance/run.py`,
-`kernel/conformance/README.md`, `tools/gen-contract.py`). It records **which ARD snapshot
-`ard-core/` represents** — useful provenance for the revisit-if-second-adopter re-extraction
-(re-extract `ard-core/` to a standalone repo if a real second adopter ever needs independent
-pinning). It is **passive metadata, not an enforced pin**: nothing keys off it, no drift check runs
-against it, and it is decoupled from the plugin's SemVer. To list it:
+`kernel/conformance/README.md`, `tools/gen-contract.py`). It records the ARD
+discipline surface version carried by those files. It is **passive metadata, not
+an enforced pin**: nothing keys off it, no drift check runs against it, and it is
+decoupled from the plugin's SemVer. To list it:
 
 ```
 grep -rl "ARD-Version:" plugins/agentic-research/ard-core

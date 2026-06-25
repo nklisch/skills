@@ -1,18 +1,9 @@
 # `ard-core/evidence/` — the empirical failure ledger
 
-This is the **primary warrant tier** for the Agentic Research Discipline as
-absorbed into the `agentic-research` plugin. Under the empirical-first model, ARD's
-disciplines are justified by *observed recurring failures and the mitigations that
-fixed them* — not by theory-as-genesis. The theory positions in
-[`../theory/`](../theory/) are opt-in archaeology (vocabulary, guardrails,
-stress-testing); the warrant lives here.
-
-## Why this tier is primary
-
-ARD's real engine was always the empirical *practice → observe → improve* loop.
-The philosophical-theory port froze at v0.1 while the framework grew six versions
-on empirical pressure. Co-locating the ledger with the practice that generates it
-closes the distillation/warrant gap the separate-framework model manufactured.
+This is the **primary warrant tier** for the Agentic Research Discipline. ARD's
+disciplines are warranted by observed recurring failures and the mitigations that
+address them. The theory positions in [`../theory/`](../theory/) provide
+supplementary vocabulary, guardrails, and stress tests; the warrant lives here.
 
 ## Ledger entry shape
 
@@ -53,6 +44,6 @@ Entries honor the research-discipline (`../kernel/discipline.md`):
 
 ## Status
 
-Schema/shape landed by the scaffold feature. The v0.7 grounding entries (AQ.4,
-GR.9/metadata, cross-model verification, decision-relevance/VOI, PR.3
-class-complete-sweep) are seeded by the sibling `evidence-ledger` feature.
+The ledger includes the v0.7 grounding entries for AQ.4, GR.9/metadata,
+cross-model verification, decision-relevance/VOI, and PR.3
+class-complete-sweep.

@@ -70,7 +70,7 @@ def _frontmatter_field(text, key):
 
 # --- import the lint's vetted helpers (single source of truth) -------------
 # lint-citations.py has a hyphen, so import it by path rather than `import lint_citations`.
-# The lint is the absorbed ARD kernel (ard-core/kernel/), not a vendored scripts/ copy —
+# The lint is the ARD kernel (ard-core/kernel/), not a scripts/ copy —
 # load the real module directly (NOT the scripts/lint-citations.py CLI shim, which forwards
 # the command line but does not re-export the SSRF-fence + wire-form symbols used below).
 def _load_lint_module():

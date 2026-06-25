@@ -1,14 +1,14 @@
 # Defensibility trace
 
-This is ARD's **opt-in archaeology**: vocabulary, guardrails, and stress-testing
-behind selected commitments, one hop from the [specification](../SPEC.md), which
-itself reads standalone.
+This is ARD's **supplementary defensibility trace**: vocabulary, guardrails, and
+stress-testing behind selected commitments, one hop from the
+[specification](../SPEC.md), which itself reads standalone.
 
-It is **not the primary warrant tier**. Under the absorbed model, warrant lives in
+It is **not the primary warrant tier**. Warrant lives in
 [`../evidence/`](../evidence/) — the empirical failure ledger. This directory is
 a curated defensibility subset, not the full research substrate: one grounding
 artifact per major commitment, each earning its place. It **grows by extension**
-as more commitments earn a ported rationale.
+as more commitments gain a rationale.
 
 ## What's here
 

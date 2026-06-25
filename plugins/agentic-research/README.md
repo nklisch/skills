@@ -7,33 +7,21 @@ control-space of selectable verification gates, and a `.research/` substrate tie
 `agile-workflow`'s operational `.work/` tier. Citations use the `[handle]{N}`
 convention backed by per-source attestations, enforced by a citation-chain lint.
 
-ARD is **this plugin's internal discipline** — a periodically-distilled snapshot of
-the research practice that generates it, with a single source of truth at
-[`ard-core/`](ard-core/) (`ard-core/kernel/` is the consumed surface; `ard-core/SPEC.md`
-+ `CATALOGS.md` carry the canonical prose; `ard-core/evidence/` is the **primary
-warrant tier** — the observed-failures-and-mitigations ledger; `ard-core/theory/` is
-opt-in archaeology). It is not a separate framework the plugin adopts, vendors, or
-version-pins; the plugin's own SemVer is the only version it carries.
+ARD's single source of truth is [`ard-core/`](ard-core/). `ard-core/SPEC.md`
+and `ard-core/CATALOGS.md` carry the canonical prose, `ard-core/kernel/` is
+the consumed surface used by the engagement engine, `ard-core/evidence/` is the
+primary warrant tier, and `ard-core/theory/` is opt-in supplementary rationale.
+The plugin's own SemVer is the release version for the whole surface.
 
-> **Why absorbed.** ARD's real engine is the empirical *practice → observe → improve*
-> loop, warranted by `ard-core/evidence/`. **Rejected: keep ARD as a separately-published
-> repo, re-imported into the plugin under a version-pin invariant + byte-vendored copies.**
-> That ceremony earned nothing once external publication was judged effectively dead — only
-> three discipline copies to keep byte-identical, a sync script, and a widening gap between
-> the practice and the lagging published port. **Revisit if** a real second adopter / non-Claude
-> harness genuinely needs independent pinning of ARD → re-extract `ard-core/` to a standalone
-> repository; its self-contained two-level structure keeps that an extract-on-demand, not a rebuild.
-
-> **Adoption status (experimental).** Landed: the `.research/` substrate tier and its
-> conventions, the citation lint + conformance set, the artifact templates, and
-> the foundation docs in [`docs/`](docs/) ([ADOPTION](docs/ADOPTION.md) ·
-> [VERSIONING](docs/VERSIONING.md) · [ARCHITECTURE](docs/ARCHITECTURE.md)), the two
-> engagement skills (`research-orchestrator`, `research-discipline`), the `research-view`
-> query binary (the prebuilt per-platform dist binaries land via post-merge CI — see
-> "Prebuilt binaries and CI" below), and the **live** research↔work handoff — both arrows
-> working: the `research_refs`/`research_origin` linkage fields, the `research-handoff`
-> emission skill (Arrow 2), and the commissioning convention (Arrow 1), per
-> [HANDOFF](docs/HANDOFF.md).
+> **Current surface (experimental).** The plugin includes the `.research/`
+> substrate tier and its conventions, the citation lint + conformance set, the
+> artifact templates, the foundation docs in [`docs/`](docs/)
+> ([ADOPTION](docs/ADOPTION.md) · [VERSIONING](docs/VERSIONING.md) ·
+> [ARCHITECTURE](docs/ARCHITECTURE.md)), the two engagement skills
+> (`research-orchestrator`, `research-discipline`), the `research-view` query
+> binary, and the research↔work handoff: the `research_refs`/`research_origin`
+> linkage fields, the `research-handoff` emission skill (Arrow 2), and the
+> commissioning convention (Arrow 1), per [HANDOFF](docs/HANDOFF.md).
 
 ## Skills
 

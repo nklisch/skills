@@ -60,8 +60,8 @@ break the path and take a major bump — surface that fork at the F4 bump decisi
 
 `skills/research-discipline/SKILL.md` is a **skill** (frontmatter + wrapper
 preamble + verbatim discipline body), not a plain kernel file — it cannot be a
-symlink/copy of `ard-core/discipline.md`. The 3rd copy
-(`ard/example/skills/research-discipline.md`) dies with the submodule (root-half).
+symlink/copy of `ard-core/discipline.md`. The 3rd copy lived in the prior
+vendored source's example deployment and is not carried into the plugin.
 
 **Options (resolve at design with the peer's read):**
 - **(a)** Keep the wrapper; its body *references* `ard-core/discipline.md` and
@@ -198,8 +198,8 @@ The role `references/*.md` say "verbatim research-discipline bundle" generically
 they resolve through the orchestrator's updated composition rule, so no per-file
 edit (peer-confirmed).
 
-The 3rd file copy, `ard/example/skills/research-discipline.md`, dies with the
-submodule (root-half) — not this feature's concern.
+The 3rd file copy lived in the prior vendored source's example deployment and is
+not carried into the plugin — not this feature's concern.
 
 **Acceptance:** (1) `rg -n "vendored verbatim|the body of the research-discipline skill|read (this|the) skill body"` finds no stale wording asserting the SKILL.md
 *contains* the discipline; (2) BOTH orchestrator paths (dispatch + light) name

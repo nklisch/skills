@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-24
-updated: 2026-06-24
+updated: 2026-06-25
 ---
 
 # Scaffold `ard-core/` — seed the single source of truth from v0.7.0
@@ -54,14 +54,14 @@ chain is larger. Verified during decomposition:
   `gen-contract.py`.
 - **Plugin prose pervasively cross-references `ARD SPEC §N`** (README, ADOPTION,
   templates, schema, conformance README, orchestrator references). Those `§`
-  pointers resolve via the submodule today; once it's gone they **dangle**
+  pointers resolve against the prior vendored source today; in `ard-core/` they **dangle**
   unless `ard-core/` carries `SPEC.md`.
 - `ard/tools/meta-fences.py` is the verbatim meta-fence (`ARD-Version:` stamping)
   — **dropped** in F3, not ported.
 
 **Resolved (cross-model consensus, pass 2): `ard-core/` carries `CATALOGS.md` +
 `SPEC.md` + `gen-contract.py`.** Rationale: `SPEC.md` resolves the pervasive
-`ARD SPEC §N` prose references after submodule removal; `CATALOGS.md` + the
+`ARD SPEC §N` prose references once the external source is gone; `CATALOGS.md` + the
 generator keep `catalogs.json` a *generated* contract (Single Source of Truth /
 Generated Contracts principles) rather than a frozen vendored blob under a new
 name. **Rejected:** keeping `catalogs.json` as a frozen blob — it only works if
@@ -133,9 +133,8 @@ footnote:
 
 ## Foundation references
 
-- Root decision note `2026-06-24-ard-absorption-decision` (warrant).
 - `plugins/agentic-research/ard.json` — the current dual-pin/vendor map being retired.
-- ARD `b1dc0f3` content under the `ard/` submodule (the seed source).
+- ARD v0.7.0 content (the seed source).
 
 ## Evidence-ledger split (resolved)
 
@@ -230,12 +229,11 @@ warrant tier**.
 
 ### Unit 5: ard-core README
 NEW `ard-core/README.md` — names `ard-core/` as the plugin's internal,
-empirically-warranted SSOT (the absorbed ARD); orients to `kernel/` (consumed
-surface), `evidence/` (primary warrant), `theory/` (opt-in archaeology),
-`SPEC.md`/`CATALOGS.md` (canonical prose). Per readme-discipline: user-facing
-orientation, not a restatement of agent conventions. Names the rejected
-separate-repo path + the revisit-if-2nd-adopter escape hatch (load-bearing inline
-self-defense lands here, reinforced in F3's docs).
+empirically-warranted SSOT; orients to `kernel/` (consumed surface), `evidence/`
+(primary warrant), `theory/` (supplementary trace), `SPEC.md`/`CATALOGS.md`
+(canonical prose). Per readme-discipline: user-facing orientation, not a
+restatement of agent conventions. Present-tense (no prior-vendored/separate-framework
+contrast — superseded by the present-tense decision).
 
 ## Implementation Order
 1. Unit 1 (kernel) — establishes the tree + the conformance anchor
@@ -280,18 +278,17 @@ Implemented inline as one stride. All 7 acceptance criteria pass on first run:
   edits**.
 - **old `scripts/conformance/run.py` → 56/56** unchanged ✓ (copy-not-move; `main` green)
 - theory: 11 positions + 3 infra ✓ · evidence README + ledger ✓ · ard-core README ✓
-- **dangling-link inventory non-empty** ✓ — captured at
-  `ard-core/.dangling-links-inventory.md` (the F3 worklist). Computed set: only
+- **dangling-link inventory non-empty** ✓ — captured for the F3 worklist.
+  Computed set: only
   `SPEC.md` dangles (5 targets: `.research`, `ADOPTING.md`, `LICENSE`,
   `VERSIONING.md`, `example`). `CATALOGS.md` + `kernel/README.md` are clean (their
   links resolve within `ard-core/`) — a finding that *narrows* F3's worklist vs the
   peer's pass-1 estimate (which named `kernel/README.md` as also dangling; on the
   ported tree its links resolve to ported siblings).
 
-Authored files (not verbatim copies): `ard-core/README.md` (absorbed-SSOT
-identity + rejected separate-repo path + revisit-if-2nd-adopter escape hatch),
-`ard-core/evidence/{README.md,ledger.md}` (five-field ledger schema + shaped-empty
-ledger), `ard-core/.dangling-links-inventory.md` (F3 hand-off).
+Authored files (not verbatim copies): `ard-core/README.md` (the tree's orientation
+doc), `ard-core/evidence/{README.md,ledger.md}` (five-field ledger schema +
+shaped-empty ledger), and a dangling-link inventory used as the F3 hand-off.
 
 **Implementation-review fixes (peer pass, job `…c28fc247`, Request-changes → fixed):**
 - **`kernel/conformance/run.py` made executable** — `cp -p` preserved the source's

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 """Compatibility shim for the citation-chain lint.
 
-The canonical lint is the absorbed ARD kernel at
+The canonical lint is the ARD kernel at
 `ard-core/kernel/lint-citations.py`. This shim preserves the documented public
 operator-command path (`plugins/agentic-research/scripts/lint-citations.py ...`)
 by forwarding the command line to the canonical implementation, unchanged.
