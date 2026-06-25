@@ -1,7 +1,7 @@
 ---
 id: feature-zai-fetch-content-paging
 kind: feature
-stage: review
+stage: done
 tags: [plugin, tooling, zai-research]
 parent: null
 depends_on: []
@@ -393,3 +393,17 @@ All three child stories implemented and at `stage: review`:
 **Commits**: `7e5ac71` (core), `7cc70b1` (wiring), `506670e` (skill-docs).
 
 Ready for review.
+
+## Review (2026-06-24)
+
+**Verdict**: Approve (after fixes)
+
+A cross-model code review (Codex `gpt-5.5` @ high, fresh context) ran over the three implementation commits. It raised 1 blocker + 2 important; all were fixed in `80704d9` with regression tests:
+
+- **Blocker (wiring)** — implicit no-window calls windowed >500-line docs that fit the char budget (the 500-line default capped them), violating "fits budget → exact text, no footer." Fixed: implicit calls are now char-budget-bound (line_count unbounded); `fitsWhole` returns the whole doc when it fits. Regression test added (>500 short lines under budget → whole, no footer).
+- **Important (wiring)** — `clampMaxChars` used `value | 0`, a 32-bit coercion that wrapped >2^31 inputs negative → clamped to the floor. Fixed with `Math.trunc`. Regression asserts added.
+- **Important (docs)** — `SKILL.md` overpromised "never cut mid-sentence"; hard-wrapping can split a sentence/word. Softened to describe the actual behavior.
+
+**Verification**: `cd plugins/zai-research && bun test` → **135 pass / 0 fail** (71 original + 47 paging + 15 wiring + 1 schema snapshot + 1 regression). Original 71 (no-regression signal) green.
+
+All three child stories advanced to `stage: done`.

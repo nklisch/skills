@@ -1,7 +1,7 @@
 ---
 id: story-zai-fetch-windowing-core
 kind: story
-stage: review
+stage: done
 tags: [plugin, tooling, zai-research]
 parent: feature-zai-fetch-content-paging
 depends_on: []

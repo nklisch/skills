@@ -1,7 +1,7 @@
 ---
 id: story-zai-fetch-windowing-skill-docs
 kind: story
-stage: review
+stage: done
 tags: [plugin, docs, zai-research]
 parent: feature-zai-fetch-content-paging
 depends_on: [story-zai-fetch-windowing-wiring]
