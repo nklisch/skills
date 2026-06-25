@@ -1,6 +1,6 @@
 {
   "_comment": "GENERATED from CATALOGS.md by tools/gen-contract.py — do not edit by hand; edit the prose and regenerate.",
-  "catalog_baseline": "0.6.0",
+  "catalog_baseline": "0.7.0",
   "generated_from": "CATALOGS.md",
   "failure_shapes": [
     {
@@ -74,6 +74,13 @@
       "fence": "adversarial-read semantic citation-chain walk (job (a)) — verifies not only that the attestation supports the claim but that its gaps / scope section does not deny it; prevention via the honest-gaps-recording attestation discipline (an attestation that records what the source does not confirm is doing its job) — not lint-detectable (the disclaimer is semantic; the handle resolves)"
     },
     {
+      "id": "GR.9",
+      "name": "Metadata recall-sourcing — a bibliographic / provenance metadata value (a per-corpus INDEX or {N}-bibliography entry's Source URL, DOI, or date) committed from training-recall rather than read off the fetched source: correct-from-memory but not present in the attestation. Distinct from GR.2 (whole source unfetched) — here the source is fetched and attested, yet the metadata is recalled",
+      "locus": "GR",
+      "status": "forward-looking",
+      "fence": null
+    },
+    {
       "id": "CX.1",
       "name": "Noise domination — less-relevant retrieved content used over more-relevant",
       "locus": "CX",
@@ -100,6 +107,13 @@
       "locus": "AQ",
       "status": "fenced",
       "fence": "source-bound acquisition-candidate discipline (SPEC.md §4.1) — a proposed source must point at a fetched source that names it as canonical; the recalled-from-training state is forbidden for suggestions as for citations"
+    },
+    {
+      "id": "AQ.4",
+      "name": "Inadequate-attempt blocking — a source declared blocking / unavailable on a shallow acquisition attempt (a single-tool transport block, e.g. a session-gated 403, treated as terminal) when a stronger acquisition mode would succeed; transport-block conflated with content-unavailability",
+      "locus": "AQ",
+      "status": "fenced",
+      "fence": "acquisition-mode-exhaustion discipline (SPEC.md §4.1) — a blocking classification requires either the failure classified as genuine content-unavailability (a hard, not transport / transient, condition) or the available acquisition modes exhausted (best-tool → browser-class → authenticated → operator-escalation)"
     },
     {
       "id": "CO.1",
@@ -155,7 +169,7 @@
       "name": "Non-propagated correction — a correction diagnosed in a synthesis-tier artifact never reaches the downstream artifact it corrects; the record ends up right while the artifact it was meant to fix stays wrong",
       "locus": "PR",
       "status": "fenced",
-      "fence": "the §4.8 downstream-reconciliation obligation, verified at the reconcile decision-point (§6 below) via the spot-check reconciliation-completeness job (§10 below) — completeness spans corrected positions at every tier"
+      "fence": "the §4.8 downstream-reconciliation obligation, verified at the reconcile decision-point (§6 below) via the spot-check reconciliation-completeness job (§10 below) — completeness spans corrected positions at every tier; a class-shaped finding additionally requires a class-complete sweep (every same-class instance across every tier, not only the flagged ones)"
     },
     {
       "id": "WM.1",

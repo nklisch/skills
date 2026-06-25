@@ -91,8 +91,8 @@ trip through uplift.
 ## Net flow
 
 `convert` (locate + scaffold + route) → refresh-entry per synthesis (re-author → authoritative
-tier) → lint (verify). ARD v0.6.0 supplies the rigor-uplift middle step; `convert` is the missing
-front half.
+tier) → lint (verify). The plugin's ARD discipline supplies the rigor-uplift middle step; `convert`
+is the missing front half.
 
 ## Guardrails
 

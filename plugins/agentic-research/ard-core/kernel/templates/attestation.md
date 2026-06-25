@@ -1,4 +1,4 @@
-<!-- ARD-Version: 0.6.0 -->
+<!-- ARD-Version: 0.7.0 -->
 # Attestation — template
 
 A per-source attestation (ARD SPEC §4.2). Lives at `.research/attestation/<handle>.md`. Sits between source fetch and synthesis; synthesis cites it by `[handle]{N}`. The frontmatter below is the **normative minimum** the citation chain depends on; per-source-class fields (ARD CATALOGS §2) are optional extensions.

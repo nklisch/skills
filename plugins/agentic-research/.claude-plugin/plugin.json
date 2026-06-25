@@ -1,7 +1,7 @@
 {
   "name": "agentic-research",
-  "description": "Agentic Research Discipline (ARD) — a framework for grounded, verifiable AI research: a non-erodable anti-fabrication floor, selectable verification gates, and a .research/ substrate tier of attestations and syntheses that parallels .work/. Adopts ARD v0.6.0.",
-  "version": "0.5.0",
+  "description": "Agentic Research Discipline (ARD) — grounded, verifiable AI research: a non-erodable anti-fabrication floor, selectable verification gates, and a .research/ substrate tier of attestations and syntheses that parallels .work/. ARD is the plugin's internal, empirically-warranted discipline (ard-core/).",
+  "version": "0.6.0",
   "author": {
     "name": "Kevoun"
   },

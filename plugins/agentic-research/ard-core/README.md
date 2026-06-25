@@ -1,0 +1,52 @@
+# `ard-core/` — the Agentic Research Discipline, absorbed
+
+`ard-core/` is the **single source of truth** for the Agentic Research Discipline
+(ARD) as it lives inside the `agentic-research` plugin. ARD is the plugin's
+internal, empirically-warranted discipline: a periodically-distilled snapshot of
+the practice that generates it — not a separate framework repository, not
+separately version-pinned, not byte-copied into the plugin.
+
+> **Absorbed.** This tree is the single source of truth. The plugin's skills,
+> scripts, and conformance reference `ard-core/` directly; the old `scripts/`-resident
+> copies, the separate ARD version pin, and the sync machinery are gone. The wiring
+> described below is the landed state.
+
+## Layout
+
+| Path | What it is |
+|---|---|
+| [`SPEC.md`](SPEC.md) | The architecture — what's invariant across adopters. Canonical prose. |
+| [`CATALOGS.md`](CATALOGS.md) | The baseline inventories (failure shapes, source-class shapes, lint patterns, decision points, registration enums). Canonical prose; the generated `kernel/catalogs.json` derives from it. |
+| [`kernel/`](kernel/) | The consumed surface: `discipline.md` (the one anti-fabrication bundle), `catalogs.json` (generated), `lint-citations.py`, `schema/`, `templates/`, `conformance/`. |
+| [`tools/`](tools/) | `gen-contract.py` — regenerates `kernel/catalogs.json` from `CATALOGS.md` (prose is authored; data is generated). |
+| [`evidence/`](evidence/) | The empirical failure ledger — the **primary warrant tier**. |
+| [`theory/`](theory/) | The v0.1 theory positions — **opt-in archaeology** (vocabulary, guardrails, stress-testing), not the warrant. |
+
+The two-level shape (`kernel/` + `tools/` + root prose) preserves the absorbed
+kernel/tool contract: `kernel/conformance/run.py` and `tools/gen-contract.py
+--check` work in place, and the tree stays extractable if a future second
+adopter makes re-distillation or re-extraction worthwhile.
+
+## Why absorbed (and not a separate framework)
+
+ARD's real engine was always the empirical *practice → observe → improve* loop —
+not a philosophical-theory port (which froze at v0.1 while the framework grew six
+versions on empirical pressure). The separate-repo, two-version-pin, byte-copy
+ceremony served an external-publication ambition that isn't live, and it
+manufactured a distillation/warrant gap: depth lived in the practice, while the
+published framework was a thinned, lagging port. Absorbing collapses that — one
+source of truth, co-located with the practice, empirically warranted (see
+[`evidence/`](evidence/)).
+
+**Rejected: keep ARD as a separately-published repo, re-imported into the plugin
+under a separate version pin + byte-identical copies.** It earns nothing once
+cross-agent/external publication is judged dead — only residual ceremony (multiple
+discipline copies to keep byte-identical, a sync script, a version-pin invariant)
+and a widening warrant gap.
+
+## Revisit if
+
+A real second adopter / non-Claude harness genuinely needs independent pinning of
+ARD → **re-extract `ard-core/` to a standalone repository.** The two-level,
+self-contained structure keeps this an extract-on-demand, not a rebuild — which is
+exactly why "absorb" was a safe call over keeping the separation alive on a diet.
