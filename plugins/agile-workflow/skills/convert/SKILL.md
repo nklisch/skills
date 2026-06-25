@@ -549,11 +549,12 @@ more things land — both **omitted** when it is absent (agile-workflow's core s
 agentic-research-agnostic):
 
 1. **Schema** — also advertise the `research_dials:` block in the field list note: a
-   `[research]` item carries its engagement registration in a `research_dials:`
-   nested frontmatter block (`scope_authority`, `verification_rigor`, `intent`,
-   `output_kind`) read by the orchestrator at dispatch. (`work-view` parses only its
-   own known fields and ignores the block harmlessly; it is orchestrator-read, not a
-   `work-view` filter dimension.)
+   `[research]` item carries the **commissioning subset** of its engagement
+   registration in a `research_dials:` nested frontmatter block (the four scoping
+   fields: `scope_authority`, `verification_rigor`, `intent`, `output_kind`) read by
+   the orchestrator at dispatch, which settles the remaining registration fields then.
+   (`work-view` parses only its own known fields and ignores the block harmlessly; it
+   is orchestrator-read, not a `work-view` filter dimension.)
 2. **Tag semantics** — append a `[research]` entry to the Phase 6.5 `### Tag
    semantics` section (and pluralize its intro to "A few tags carry load-bearing
    routing semantics — get these right:"), using this block:
@@ -562,10 +563,11 @@ agentic-research-agnostic):
    - **`[research]`** — a grounded research engagement: an *input* that grounds
      other work (a decision, a design, an adoption call), not a shippable
      deliverable. Routes **cross-plugin** to `agentic-research:research-orchestrator`,
-     not a design-family skill. The work item carries the engagement registration in
-     a `research_dials:` block (scope_authority, verification_rigor, intent,
-     output_kind) — **scoping the item IS the dispatch act**; the orchestrator reads
-     the dials at kickoff. A `[research]` item **does not bind to a release** (it is
+     not a design-family skill. The work item carries the **commissioning subset** of
+     the engagement registration in a `research_dials:` block (the four scoping fields:
+     scope_authority, verification_rigor, intent, output_kind) — **scoping the item IS
+     the dispatch act**; the orchestrator reads those dials at kickoff and settles the
+     rest at dispatch. A `[research]` item **does not bind to a release** (it is
      an input, not a bundle member) and its verification **gates run inline** in the
      orchestrator (it never reaches `release-deploy`). Routes through `feature-design`
      only as the inert-tag fallback.

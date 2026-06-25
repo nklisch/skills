@@ -30,8 +30,9 @@ routes by item kind and tags:
   the authoring lane, not a design step: brief-as-design, no Explore / pre-mortem / question gate)
 - `agentic-research:research-orchestrator` (**cross-plugin**) — `kind: feature` with
   `tags: [research]`. A grounded research engagement is an *input* that grounds other work,
-  not a code design: the orchestrator reads the item's `research_dials:` registration block
-  and runs the ARD walk; gates run inline; it never binds to a release. Requires the
+  not a code design: the orchestrator reads the item's `research_dials:` block (the
+  commissioning subset of the registration) and runs the ARD walk; gates run inline; it
+  never binds to a release. Requires the
   `agentic-research` plugin (without it, `[research]` is an inert project tag — fall through
   to `feature-design`).
 
