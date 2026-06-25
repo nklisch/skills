@@ -16,7 +16,7 @@ ARD still carries its **own content-version** distinct from the plugin's package
   `CATALOGS.md` "(v0.7.0)", `catalogs.json` `catalog_baseline: 0.7.0`, the
   `<!-- ARD-Version: 0.7.0 -->` stamp on every kernel file (templates, conformance, lint,
   schema `x-ard-version`, tools).
-- **Plugin package**: `0.6.2` — the three channel manifests.
+- **Plugin package**: `0.6.1` — the three channel manifests.
 
 Now that the distinction is **internal-only** (no external ARD consumer remains), does the
 separate ARD-Version still earn its place, or should it collapse into the plugin semver?
