@@ -13,6 +13,18 @@ updated: 2026-06-25
 
 # Adopt the Agentic Research Discipline (ARD) as the `agentic-research` plugin
 
+> **Superseded context (read first — closeout note 2026-06-25).** This epic was authored
+> across the v0.2 → v0.4 ARD-adoption vintage and its body describes that world: a *separate*
+> ARD framework repo consumed via an `ard.json` pin / dual-pin / `kernel/` vendoring, with ARD
+> carrying its own content-version (then "v0.3.0"). **All of that is obsolete.** ARD was later
+> **absorbed** into this plugin (no separate repo, no `ard.json`, no vendoring pin; ARD lives at
+> `plugins/agentic-research/ard-core/`), and its content-version was **collapsed into the plugin
+> SemVer** (now `0.6.4`). The §Source, §Upstream evolution — ARD v0.3.0, and the pin/vendoring
+> lines in §Design decisions are preserved as **dated audit trail of the adoption design**, not
+> current architecture. The dated §Review / §Children complete / §Closed sections are accurate
+> point-in-time records. Where any body prose below asserts a present-tense state that conflicts
+> with this note, this note wins.
+
 ## Brief
 Adopt the Agentic Research Discipline (ARD) — authored separately at
 https://code.s-nc.org/Kevoun/ARD — into this repo as a net-new, three-channel
@@ -196,11 +208,11 @@ registration per the "Adding a plugin" checklist (AGENTS.md plugin map +1 row,
 foundation-docs feature.
 
 ## PR scope (this proposal) + named follow-ons
-The PR carries **6 of 7 features** plus three on-branch ARD absorptions (v0.2→v0.3.0 by hand;
-v0.3.0→v0.4.0 and v0.4.0→v0.4.1 tool-driven). **Done:** scaffold, substrate-tier, foundation-docs,
-engagement-engine, ard-sync, work-handoff. The epic remains `implementing` — not because the
-proposal is incomplete, but because two pieces are **deliberately deferred as named
-follow-ons**, not abandoned:
+All **7 features landed.** The proposal cut shipped scaffold, substrate-tier, foundation-docs,
+engagement-engine, ard-sync, and work-handoff together; the two pieces originally framed as
+deferred follow-ons both landed as well (detailed below). (Historical note: at the time this
+section was first written, `research-view` and the live `work-handoff` were still deferred and the
+epic was `implementing` — both have since shipped, and the epic is now `done`.)
 - **`research-view`** — **LANDED.** The Rust query binary over `.research/` (work-view
   parity / ergonomics) shipped via `epic-agentic-research-research-view` (4 stories: core,
   cli, fallback, dist). The committed `dist/<triple>/research-view` binaries land via the
@@ -254,5 +266,15 @@ propagation story lands.
 Advanced `implementing → done`. The v0.7 propagation blocker
 (`story-propagate-v07-ten-field-registration`, peer-approved and merged via PR #28) was advanced to
 `done` in this cleanup and parented here. All 7 child features are `done`; no epic-level review gate
-applies (`## Stage overrides: none`). (Plugin SemVer is now 0.6.4; the epic's older v0.3/v0.4-era
-ARD history above is left as audit trail.)
+applies (`## Stage overrides: none`).
+
+**Epic-surface review at close (cross-model, Codex high effort).** Reviewed the body against the
+completed children rather than rubber-stamping the stage flip. Findings: the body carried
+present-tense falsehoods accreted across the v0.2→v0.4 adoption vintage — "the epic remains
+`implementing`", "6 of 7 features", "deferred follow-ons" (all since landed), and the v0.3-era
+separate-ARD pin / `ard.json` / `kernel/`-vendoring prose (obsolete after the absorption + the
+SemVer collapse, plugin now 0.6.4). Disposition (host + peer agreed): added a top-of-body
+**Superseded context** note and fixed the hard stage/feature-count/deferred contradictions inline;
+preserved the dated §Source / §Upstream evolution / §Review / §Children complete sections as
+legitimate audit trail of the adoption design. A closed epic shouldn't assert false current-state,
+but git + the dated sections remain the journey's record.
