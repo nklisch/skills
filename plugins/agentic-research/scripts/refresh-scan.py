@@ -70,9 +70,12 @@ def _frontmatter_field(text, key):
 
 # --- import the lint's vetted helpers (single source of truth) -------------
 # lint-citations.py has a hyphen, so import it by path rather than `import lint_citations`.
+# The lint is the absorbed ARD kernel (ard-core/kernel/), not a vendored scripts/ copy —
+# load the real module directly (NOT the scripts/lint-citations.py CLI shim, which forwards
+# the command line but does not re-export the SSRF-fence + wire-form symbols used below).
 def _load_lint_module():
     here = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(here, "lint-citations.py")
+    path = os.path.join(here, "..", "ard-core", "kernel", "lint-citations.py")
     spec = importlib.util.spec_from_file_location("lint_citations", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

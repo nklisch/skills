@@ -263,6 +263,33 @@ story boundaries.
 - **Hidden consumer.** A vendored-path reference the grep missed. Mitigated by the
   final `rg` sweep over the whole plugin for `scripts/{catalogs.json,schema,conformance}`.
 
+## Implementation notes (2026-06-25)
+
+All 5 units implemented; acceptance green:
+- **Unit 4 (discipline collapse)** — `research-discipline/SKILL.md` reduced from
+  101 lines (wrapper + verbatim §1-8 body) to a ~22-line wrapper that points at
+  `ard-core/kernel/discipline.md`; frontmatter reworded (no "vendored verbatim");
+  `<!-- ARD-Version: 0.6.0 -->` stamp dropped. Orchestrator BOTH paths repointed:
+  dispatch-composition rule + light-path rule now name `ard-core/kernel/discipline.md`.
+- **Unit 1** — orchestrator lint invocation (×2) → `ard-core/kernel/lint-citations.py`;
+  `templates/dispatch.md` link → `ard-core/kernel/templates/dispatch.md`; "nine-field"
+  → "ten-field".
+- **Unit 2** — `refresh-scan.py:_load_lint_module()` repointed to
+  `../ard-core/kernel/lint-citations.py`; verified it loads + binds the 6 lint
+  symbols (deeper than `--help` — executes the module-level imports).
+- **Unit 3** — `scripts/lint-citations.py` replaced with a `runpy` CLI shim
+  forwarding to the canonical lint; **byte-identical output + exit code** confirmed
+  on a known input. Comment states it is CLI-only (refresh-scan loads the real module).
+- **Unit 5** — deleted `scripts/{catalogs.json, schema/, conformance/}` + the 4
+  vendored kernel templates; **kept `templates/acquisitions.md`** + the shim. No
+  functional consumer pointed at the deleted paths (swept first).
+
+Acceptance: ard-core conformance 57/57; refresh-scan + shim run; no stale
+"vendored verbatim"/"skill body"/"ARD-Version: 0.6.0" wording; both orchestrator
+paths name the canonical discipline; `acquisitions.md` kept. The F3-narrative refs
+(`ard.json`, `docs/ADOPTION.md`, `docs/VERSIONING.md`, `ard-sync.py`) deliberately
+untouched — F3's reframe deletes them; F2+F3 are the non-separately-releasable pair.
+
 ## Other agent review
 
 Cross-model design consensus loop (Codex high-effort, session `…f49e342f27b4`), 2 passes:

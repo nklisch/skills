@@ -200,6 +200,30 @@ authoring act. *(Prose-shaped work — authors a ledger, no code surface — in 
   these entries disagree on field names, the tier is incoherent. Mitigated by
   authoring strictly to the landed README schema.
 
+## Implementation notes (2026-06-25)
+
+Authored the 5 entries into `ard-core/evidence/ledger.md` (re-rendering the
+COMMITMENTS v0.7 trace) + corrected the scaffold `evidence/README.md` schema.
+Acceptance:
+- 5 entries, each with the 5 failure-fields + the `grounding` line ✓
+- all 14 handles (`{1},{2},{41}–{52}`) resolve in `theory/references.md` ✓ (python check)
+- no brief-only sources leaked (Linardon/CiteAudit/Microsoft/soft-404/scraping/Sims absent) ✓
+- honesty caveats present: whole-ledger search-summary caveat, GR.9 forward-looking,
+  model-diversity partial, AQ.4 operational-classification, PR.3 deployment-grounded ✓
+
+**Tier-domain clarification (important):** the ARD citation lint
+(`ard-core/kernel/lint-citations.py`) resolves `[handle]{N}` against the
+**`.research/attestation/` tier**, so running it over the ledger reports
+`unresolved-handle` for every citation. This is **a tier mismatch, not a defect** —
+the ledger (like its re-render source `theory/COMMITMENTS.md`) uses the
+**theory-tier bibliography handle space** (`theory/references.md`), a distinct
+resolution domain from the `.research/` synthesis lint. Confirmed by running the
+lint over `COMMITMENTS.md` itself: identical "14 broken" behavior. The handles
+genuinely resolve in `references.md`. (The lint's `version-number` warns on
+`v0.7.0`/`§4.1` are likewise false positives from the dense notation.) So the
+evidence/theory tier is **not** in the citation-lint's enforcement domain — its
+integrity check is handle-resolution against `references.md`, which passes.
+
 ## Other agent review
 
 Cross-model design consensus loop (Codex high-effort, session `…1a3cdbfc05ad`), 2 passes:

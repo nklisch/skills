@@ -34,15 +34,16 @@ deployment's mechanism is inline-into-dispatch.** Whenever you spawn an authorin
 you compose its prompt through **one mandatory step**:
 
 > **Dispatch composition** = `[verbatim discipline bundle]` + `[role brief]` + `[engagement params]`
-> - **discipline bundle** — the body of the `research-discipline` skill
->   (`skills/research-discipline/SKILL.md`, sections 1–6), inlined **verbatim**. Read it once
->   at engagement start; prepend it to every authoring dispatch. Do not paraphrase it.
+> - **discipline bundle** — `ard-core/kernel/discipline.md` (sections 1–6), inlined
+>   **verbatim**. Read it once at engagement start; prepend it to every authoring dispatch.
+>   Do not paraphrase it. (The `research-discipline` skill is the wrapper that points here —
+>   inline the canonical file, not the wrapper.)
 > - **role brief** — the relevant file under `references/` (`research-specialist.md` /
 >   `adversarial-reader.md` / `evaluator.md`).
 > - **engagement params** — the facet/seed/paths/rigor for this specific dispatch.
 
 On the **light path** (no fan-out) you author inline in your own context, with the discipline
-already present because **you read it at engagement start** (the `research-discipline` skill body —
+already present because **you read it at engagement start** (`ard-core/kernel/discipline.md` —
 read it explicitly; do not assume it is auto-loaded, since skills are not guaranteed to auto-invoke).
 So no separate inlining is needed on the light path. **Never author or dispatch authoring without the
 discipline present** — that is the §5 fence.
@@ -83,7 +84,7 @@ dispatch-time-registration record the settled dials (commissioning item if prese
       ── light (0–1 facet):  attest → synthesize  INLINE (no spawn)
       ── multi (2+ facets):  parallel Agent × N research-specialist (one message)
                               each: attest (per-source files) → synthesize {within}
-  → lint                   python3 plugins/agentic-research/scripts/lint-citations.py <out> --attestation-dir .research/attestation/
+  → lint                   python3 plugins/agentic-research/ard-core/kernel/lint-citations.py <out> --attestation-dir .research/attestation/
   → [CHECKPOINT B]         surface contradictions before the cross-join (multi-path only)
   → synthesize {cross}     lead composition across specialist briefs → parent.md (multi-path)
   → acquisition-offgas     consolidate specialist acquisition candidates → acquisitions.md
@@ -206,7 +207,7 @@ A subset-select gate catalog with a hard-floor core, not a monolithic switch:
   reachability prune — e.g. `evaluate` (the cross-specialist FR.1 fence) is out of a
   single-pass scout's floor because no cross-synthesis artifact exists for it to fence; it
   re-enters the floor of any cross-specialist synthesis shape.
-- **`lint`** — `python3 plugins/agentic-research/scripts/lint-citations.py <synthesis-path> --attestation-dir .research/attestation/`. Default lint-only-warn; `--exit-code-on high` to block. Run before `adversarial-read`.
+- **`lint`** — `python3 plugins/agentic-research/ard-core/kernel/lint-citations.py <synthesis-path> --attestation-dir .research/attestation/`. Default lint-only-warn; `--exit-code-on high` to block. Run before `adversarial-read`.
 - **`adversarial-read`** — dispatch the [adversarial-reader](references/adversarial-reader.md) brief with full access (synthesis + briefs + attestations + lint output). Returns a checklist + `APPROVED`/`NEEDS-REVISION`.
 - **`evaluate`** — dispatch the [evaluator](references/evaluator.md) brief with **isolated context: ONLY the synthesis output + the seed.** Do not pass briefs, attestations, or the decomposition rationale — the isolation is the FR.1 fence, enforced by what you hand it.
 - **`spot-check`** — you (lead, full substrate access) sample across all lint pattern categories + load-bearing semantic claims, consuming lint + adversarial + evaluator findings. Corrections in place.
@@ -233,8 +234,8 @@ When a decomposition lands 7+ facets across 3+ domains, escalate to **program-sc
 
 ## Registration (ARD SPEC §9)
 
-Set the controls at dispatch via the nine-field registration shape in
-[`templates/dispatch.md`](../../templates/dispatch.md). Persistence is a deployment choice
+Set the controls at dispatch via the ten-field registration shape in
+[`ard-core/kernel/templates/dispatch.md`](../../ard-core/kernel/templates/dispatch.md). Persistence is a deployment choice
 (SPEC §9) — and *where* the registration lives tracks whether a work substrate is present:
 
 - **Commissioned by a `[research]` work item** → the registration rides the work item as a
