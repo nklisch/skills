@@ -1,7 +1,7 @@
 ---
 id: feature-zai-fetch-content-paging
 kind: feature
-stage: implementing
+stage: review
 tags: [plugin, tooling, zai-research]
 parent: null
 depends_on: []
@@ -377,3 +377,19 @@ Accepted (folded into Design decisions + Units above):
 - PDF 50-page extraction cap documented as a windowing bound.
 
 Reviewer opinions on locked decisions: **keep 120k cap** (endorsed); suggested default stay 60k for compat — **kept at 30k per explicit user decision**, with fitting-content compat preserved by the footer policy and the medium-doc change documented as intentional.
+
+## Implementation (2026-06-24)
+
+All three child stories implemented and at `stage: review`:
+
+- `story-zai-fetch-windowing-core` — `paging.ts` (`applyWindow` + `PageCache` + `cacheKey`) + 47 tests. Virtual wrapping (no data loss), empty/past-end semantics (incl. the empty+negative-start edge the design missed), `line_count` validation, oversize-refused `PageCache` with UTF-8 byte accounting — all honored.
+- `story-zai-fetch-windowing-wiring` — wired windowing into `fetch_content`'s single-URL text path + 15 wiring tests + 4 `clampMaxChars` unit tests. Closure-scoped `pageCache`; effective-route `windowable` (PDF+json windowable as PDF); `fetchOneForWindow → {text, ok}` (errors not cached); footer policy (no footer for implicit fitting → byte-for-byte backward-compat); `max_chars` reserves overhead; structured `details` (`next_start_line`, `has_more`, …).
+- `story-zai-fetch-windowing-skill-docs` — tool description/guidelines + `SKILL.md` "Window over long content" pattern + 5 guardrails + a full-surface schema-snapshot test.
+
+**Verification**: `cd plugins/zai-research && bun test` → **134 pass / 0 fail** (71 original + 47 paging + 15 wiring + 1 schema snapshot). The original 71 — the no-regression signal — all green.
+
+**As-built deviations** (non-blocking, documented in story bodies): `past_end` gets a distinct footer; `window_ignored_reason` extended with `"fetch_error"`; the windowed-path `details` is narrower than the legacy single-URL shape (documented in `SKILL.md`).
+
+**Commits**: `7e5ac71` (core), `7cc70b1` (wiring), `506670e` (skill-docs).
+
+Ready for review.
