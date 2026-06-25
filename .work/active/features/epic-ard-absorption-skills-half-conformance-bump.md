@@ -136,19 +136,50 @@ first; the bump is the last action. It updates all 3 channel manifests in lockst
 ### Child stories
 **None** — verification + one scripted bump. Single stride.
 
-## Testing (the gate)
-The 6-check acceptance suite above, re-run immediately before the bump:
+## Testing (the gate) — WIDENED per design-review pass 1
+
+The original 6 checks covered ARD/kernel/manifests but missed installability,
+whole-plugin link integrity, and skill validation (peer-surfaced). The gate is now:
 1. `ard-core/kernel/conformance/run.py` → 57/57
 2. `gen-contract.py --check` → in sync
 3. `scripts/lint-citations.py` shim runs (public path preserved)
 4. `scripts/refresh-scan.py` runs (import repointed)
-5. manifests/marketplace reference no deleted path
-6. versions lockstep before bump; +1 minor (or major) after, still lockstep
-Then: `bump-version.sh` succeeds (clean plugin dir), pushes, versions advance in lockstep.
+5. **whole-plugin** deleted-path scan (not manifest-only): no live reference to
+   `ard.json`, `ard-sync`, `scripts/{catalogs.json,schema/,conformance/}`, or the
+   4 removed templates anywhere in the plugin (skills, scripts, docs, ard-core).
+6. versions lockstep before bump; +1 minor after, still lockstep
+7. **local markdown links pass** over the whole plugin (the repo link checker /
+   the dangling scan) — no dangling ref from the reframe.
+8. **skill validators pass** for all 4 skills (`research-orchestrator`,
+   `research-discipline`, `research-handoff`, `convert`) — the collapse + reframe
+   didn't break a SKILL.md.
+9. **`docs/VERSIONING.md` carries the `ard.json` retirement note** (the minor-bump
+   exception — peer-required before a minor bump). ✓ added.
+Then: `bump-version.sh agentic-research minor` succeeds (clean plugin dir),
+versions advance to 0.6.0 in lockstep.
 
 ## Risks
-- **Bump level is a public-contract judgment** — surfaced to the operator (above).
-- **`bump-version.sh` auto-pushes** — an outward-facing action. Confirm the operator
-  wants the push as part of this feature, or run the bump as the deliberate final
-  step with explicit go-ahead. (The epic's final cross-model loop should pass
-  *before* the push, so the pushed version reflects the consensus-reviewed state.)
+- **Bump level is a public-contract judgment** — settled with the operator: minor.
+- **`bump-version.sh` auto-pushes** — settled: push AFTER the epic-level final loop,
+  as the deliberate final act (so the pushed 0.6.0 reflects consensus-reviewed state).
+
+## Release-readiness sequencing (peer-surfaced — PRE-EXISTING, not absorption-caused)
+
+The peer found the committed `research-view/dist/` binaries report stale versions
+(`0.4.0`/`0.1.0` vs the `0.5.0` manifests), so `install-research-view.sh`'s
+version-match check fails on this host. **This is pre-existing** — verified the
+absorption diff does not touch `research-view/` at all (its binaries are refreshed
+by a separate post-merge CI step, last run well before this work). `bump-version.sh`
+deliberately does NOT rebuild dist binaries (it updates manifests + the
+`.research-view-version` stamp + `research-view.sh`, and explicitly says not to
+cut a release until the binary CI refresh lands).
+
+**Consequence for the bump sequence (does NOT block this feature's verify gate):**
+the post-bump release readiness is: epic-level final loop passes → `bump-version.sh
+minor` (bumps + pushes manifests, stamps research-view as `0.6.0`) → **the existing
+research-view binary CI refreshes the prebuilt dist** → installer version-match
+passes → publish/cut. The binary refresh is the existing CI's job, not an inline
+step here. This feature's gate verifies the ABSORPTION's correctness; the stale-binary
+condition is a standing release-pipeline item the bump simply must not get ahead of.
+(If the operator wants the stale binaries fixed as part of this push, that's a
+separate `research-view`-scoped task — flag at the bump, don't fold into the absorption.)

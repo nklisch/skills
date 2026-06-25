@@ -6,6 +6,18 @@ framework the plugin re-imports, so there is no second "adopted ARD version" axi
 re-sync — that machinery (a dual-version pin, a sync tool, per-artifact drift checks) was retired
 when ARD was absorbed.
 
+> **Absorption note (0.5.0 → 0.6.0).** The absorption landed as a **minor** bump:
+> the operator-facing surface — the citation-lint command (`scripts/lint-citations.py`,
+> now a thin shim forwarding to `ard-core/kernel/lint-citations.py`), the skills, the
+> `.research/` substrate, the `[handle]{N}` convention — is unchanged, and the plugin
+> additively gains the ARD v0.7 discipline content (now maintained internally in
+> `ard-core/`). The **one backward-incompatible change** is the removal of the
+> `ard.json` consumer-pin file, which prior docs named a public truth: a consumer
+> that read `ard.json` to discover the adopted ARD version no longer finds it (ARD
+> is internal; there is no external version to discover). That contract served the
+> external-publication audience the absorption judged dead, so it does not force a
+> major pre-1.0 — recorded here as the deliberate exception.
+
 ## The plugin's SemVer
 
 The plugin versions itself on its own cadence across `package.json` + the `.claude-plugin/` and
