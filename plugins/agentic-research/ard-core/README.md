@@ -22,10 +22,10 @@ separately version-pinned, not byte-copied into the plugin.
 | [`evidence/`](evidence/) | The empirical failure ledger — the **primary warrant tier**. |
 | [`theory/`](theory/) | The v0.1 theory positions — **opt-in archaeology** (vocabulary, guardrails, stress-testing), not the warrant. |
 
-The two-level shape (`kernel/` + `tools/` + root prose) mirrors the source it was
-distilled from, so the upstream commands (`kernel/conformance/run.py`,
-`tools/gen-contract.py --check`) work unmodified and the tree stays diff-clean
-against any future re-distillation.
+The two-level shape (`kernel/` + `tools/` + root prose) preserves the absorbed
+kernel/tool contract: `kernel/conformance/run.py` and `tools/gen-contract.py
+--check` work in place, and the tree stays extractable if a future second
+adopter makes re-distillation or re-extraction worthwhile.
 
 ## Why absorbed (and not a separate framework)
 

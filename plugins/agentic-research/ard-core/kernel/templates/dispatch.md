@@ -1,7 +1,14 @@
 <!-- ARD-Version: 0.7.0 -->
 # Dispatch registration — template
 
-The dispatch-time registration declaration (ARD SPEC §9). Sets the controls for an engagement. For a single-pass walk this can live in the conversation transcript; for a multi-specialist or multi-campaign walk, persist it as a `dispatch.md` at the campaign root. The ten fields are always present (a uniform shape prevents silent default drift).
+The dispatch-time registration declaration (ARD SPEC §9). Sets the controls for
+an engagement. The registration's existence is invariant; its persistence form is
+a deployment choice. A single-pass walk can live in the conversation transcript;
+a multi-specialist or multi-campaign walk usually deserves a persisted record.
+Use this template wherever the deployment stores that record (for example,
+`dispatch.md` at a standalone campaign root, or a commissioning work item that
+carries the same controls). The ten fields are always present in a full
+registration shape (a uniform shape prevents silent default drift).
 
 ```yaml
 ---

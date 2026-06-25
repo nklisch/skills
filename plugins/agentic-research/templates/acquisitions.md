@@ -5,9 +5,10 @@
 # Acquisition manifest — template
 
 A campaign's source-acquisition offgas (ARD SPEC §4.1). Lives at
-`.research/analysis/campaigns/<slug>/acquisitions.md`, a peer of `dispatch.md`. The orchestrator
-writes it at synthesis-time from the specialists' acquisition returns — this research-side write is
-the durable record and is unconditional. Promotion into `.work/` (the standing
+`.research/analysis/campaigns/<slug>/acquisitions.md`, in the campaign output
+bundle. The orchestrator writes it at synthesis-time from the specialists'
+acquisition returns — this research-side write is the durable record and is
+unconditional. Promotion into `.work/` (the standing
 `research-acquisition-queue` backlog item) is a **separate, operator-confirmed** step: interactive
 runs ask before writing the queue; autonomous runs surface the candidates and propose promotion at
 the handoff gate rather than writing silently. **Verification-independent** — it does not gate on the
