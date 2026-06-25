@@ -1,7 +1,7 @@
 ---
 id: story-propagate-v07-ten-field-registration
 kind: story
-stage: implementing
+stage: review
 tags: [docs, skill, plugin]
 parent: null
 depends_on: []
@@ -68,3 +68,28 @@ This is the propagation tail of the ARD absorption, not net-new design — the
 contract already exists upstream in `ard-core`; the live skill/docs simply need to
 catch up to v0.7. Pairs with `story-record-refresh-verification-scope` (the other
 v0.7 drift blocker from the same review).
+
+## Implementation (2026-06-25)
+
+Drift-1 fix landed (branch `feat/v07-ten-field-registration-propagation`, commit `1880c27`;
+bump to v0.6.2 in `fdf5e55`). Files: `skills/research-orchestrator/SKILL.md`,
+`docs/HANDOFF.md`, `skills/research-orchestrator/references/refresh-reengagement.md`,
+`README.md`, and the `ard-core/theory/positions/registration-schema-store-pole-earns-its-place.md`
+present-tense field-count refs. Conformance 57/57.
+
+**Peer review at each step (cross-model, Codex high-effort):**
+1. Plan review → approve-with-changes (found 5 missed surfaces; confirmed `decision_relevance`
+   is dispatch-time, not a fifth `research_dials` field; confirmed kickoff-gate placement).
+2. Work-product pass 1 → request changes: refresh miscast as an `intent` enum (it is the SPEC
+   §4.8 recipe); residual theory nine-field language.
+3. Work-product pass 2 → theory fix confirmed; refresh fix incomplete (3 more spots in SKILL.md).
+4. Work-product pass 3 → **Approve.** Refresh-recipe sweep complete; all checks hold.
+
+**Scope split:** Drift 2 (cross-plugin "block-as-registration" phrasing across root AGENTS.md /
+README.md + the agile-workflow convert template) deferred to
+`story-reframe-research-dials-commissioning-subset` — defensible phrasing, not the v0.7 blocker,
+and it would pull in an agile-workflow bump.
+
+This is one of the two blocker-stories the epics `epic-agentic-research` and
+`epic-agentic-research-reengagement` bounced on. The other (`story-record-refresh-verification-scope`)
+must also land before either epic can re-advance to review.

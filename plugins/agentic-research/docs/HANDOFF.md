@@ -77,9 +77,13 @@ research_dials:
 ```
 
 The orchestrator **reads these dials from the commissioning item at kickoff** (confirm/adjust with
-the user, don't re-propose) and runs the engagement; the block carries only the subset the scoping
-act fixes — the orchestrator settles the remaining five registration fields at dispatch, as on any
-standalone walk (they are engagement-time judgment, not scoping decisions). The seed/intent prose
+the user, don't re-propose) and runs the engagement; the block carries only the **commissioning
+subset** the scoping act fixes (these four fields) — the orchestrator settles the remaining six of
+the ten-field registration (ARD SPEC §9) at dispatch, as on any standalone walk (`consumer`,
+`temporal_contract`, `primitives_extends`, `primitives_opts_out`, `decision_relevance`,
+`analytical_artifact_type` — engagement-time judgment, not scoping decisions). **`decision_relevance`
+is the §9 yield-hypothesis depth gate** — drawn from the item body and stated before rigor/fan-out
+are set; it is dispatch-time, not a fifth block field. The seed/intent prose
 and any pre-registered decomposition live in the item **body** (richer than frontmatter); the dials
 live in the **block** (machine-read by the orchestrator). `work-view` tolerates the block harmlessly
 (it parses only its own known fields); the item is discoverable by its `[research]` tag.

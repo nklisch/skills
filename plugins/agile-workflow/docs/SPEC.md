@@ -129,7 +129,7 @@ skill reads this at session start (via the SessionStart hook or directly).
 - perf        throughput, latency, memory — routes to perf-design
 - refactor    behavior-preserving structural change ONLY — fails the black-box test (any observable behavior change for callers) means NOT a refactor — routes to refactor-design
 - prose       no-code-surface deliverable (docs, conventions, copy) — routes to prose-author (lean authoring lane: brief-as-design, inline implement)  # optional — omit if `prose` already means something else in your project (token name may change before v1.0)
-- research    grounded research engagement — an input, not a shippable — routes cross-plugin to agentic-research:research-orchestrator; carries a research_dials: registration block, does not bind to a release, gates run inline (only when the agentic-research plugin is installed)
+- research    grounded research engagement — an input, not a shippable — routes cross-plugin to agentic-research:research-orchestrator; carries a research_dials: block (the commissioning subset of the registration), does not bind to a release, gates run inline (only when the agentic-research plugin is installed)
 
 ## Slug conventions
 <format and prefix rules>

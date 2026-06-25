@@ -147,8 +147,12 @@ it as legacy; the attested claims simply get re-validated rather than rebuilt), 
 After the pre-flight check and the start-state branch, the **normal orchestrator walk resumes**
 over the *current* substrate, at the dialed `verification_rigor`:
 
-1. **KICKOFF** registered `refresh` + `temporal_contract: supersedes-prior` (existing enums). The
-   prior artifact's held claims (read as lens) are the topology to re-engage — not a fresh seed.
+1. **KICKOFF** registered the full ten-field registration (ARD SPEC §9). Refresh is **not** a new
+   `intent` enum — it is the **re-engagement recipe over existing fields** (SPEC §4.8):
+   `temporal_contract: supersedes-prior` (or `re-engage-on-trigger`) + an existing `intent` +
+   the refresh change-mode. The §9 depth gate still binds: state `decision_relevance` — what
+   re-authoring this artifact changes downstream — before rigor/fan-out are set. The prior
+   artifact's held claims (read as lens) are the topology to re-engage — not a fresh seed.
 2. **attest** — per start-state branch above (per-source attestation files, before any prose).
 3. **synthesize** — re-author the artifact over the now-current attestations.
 4. **lint** — `lint-citations.py`; validates the citation chain (every `[handle]{N}` resolves to a

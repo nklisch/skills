@@ -200,9 +200,11 @@ carry load-bearing routing semantics — get these right:
   other work (a decision, a design, an adoption call), not a shippable
   deliverable. Routes **cross-plugin** to `agentic-research:research-orchestrator`
   (the dynamic ARD research orchestrator), not a design-family skill. The work
-  item carries the engagement registration in a `research_dials:` block
-  (scope_authority, verification_rigor, intent, output_kind) — **scoping the item
-  IS the dispatch act**; the orchestrator reads the dials at kickoff. A
+  item carries the **commissioning subset** of the engagement registration in a
+  `research_dials:` block (the four scoping fields: scope_authority,
+  verification_rigor, intent, output_kind) — **scoping the item IS the dispatch
+  act**; the orchestrator reads those dials at kickoff and settles the rest at
+  dispatch. A
   `[research]` item **does not bind to a release** (it is an input, not a bundle
   member) and its verification **gates run inline** in the orchestrator's stack
   (it never reaches `release-deploy`). Requires the `agentic-research` plugin;

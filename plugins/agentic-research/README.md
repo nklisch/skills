@@ -25,11 +25,13 @@ The plugin's own SemVer is the release version for the whole surface.
 
 ## Skills
 
-- **`research-orchestrator`** — the user-invocable engagement entry point. Reads the
-  engagement dials (`scope_authority`, `verification_rigor`), sets them with you at kickoff,
-  discovers fan-out topology from the seed, and walks the ARD decision-graph at the dialed
-  verification depth — from a one-agent inline brief to an N-specialist campaign. Dispatches
-  the verification roles (specialist, adversarial-reader, evaluator) inline.
+- **`research-orchestrator`** — the user-invocable engagement entry point. At kickoff it first
+  settles `decision_relevance` (the yield hypothesis — what downstream decision your finding would
+  change), which gates how much depth the question warrants, then sets the engagement dials
+  (`scope_authority`, `verification_rigor`) and fan-out with you. It discovers fan-out topology
+  from the seed and walks the ARD decision-graph at the dialed verification depth — from a
+  one-agent inline brief to an N-specialist campaign. Dispatches the verification roles
+  (specialist, adversarial-reader, evaluator) inline.
 - **`research-discipline`** — the anti-fabrication bundle. It wraps
   [`ard-core/kernel/discipline.md`](ard-core/kernel/discipline.md) (the single source). The
   orchestrator inlines it into every authoring dispatch so the discipline reaches sub-contexts
