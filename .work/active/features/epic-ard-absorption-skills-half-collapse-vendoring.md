@@ -1,7 +1,7 @@
 ---
 id: epic-ard-absorption-skills-half-collapse-vendoring
 kind: feature
-stage: implementing
+stage: done
 tags: [plugin]
 parent: epic-ard-absorption-skills-half
 depends_on: [epic-ard-absorption-skills-half-scaffold]
@@ -303,3 +303,16 @@ Cross-model design consensus loop (Codex high-effort, session `…f49e342f27b4`)
 - **Pass 2: "No blockers."** One nit (top-level verification overclaimed "no
   dangling refs anywhere" vs the intentional F3-narrative dangles) — fixed.
 - Consensus reached after pass 2; advanced to `implementing`.
+
+**Implementation review (Codex high-effort, fresh session `…35696b725479`), 1 pass:**
+- **"No blockers found."** Comprehensive verification: ran ard-core conformance,
+  `refresh-scan.py --help` + `test_refresh_scan.py` + `test_ard_sync.py`, shim
+  parity. Confirmed: discipline still travels (both dispatch + light paths inline
+  `ard-core/kernel/discipline.md`); no hidden consumer; shim `runpy` forwarding
+  preserves argv/stdout/stderr/`SystemExit`; refresh-scan binds all 6 symbols from
+  ard-core; role briefs resolve through the orchestrator rule; dropping the
+  ARD-Version stamp is fine as the F2/F3 pair.
+- **One doc-drift tracked → F3:** `README.md:32` still says `research-discipline`
+  is "vendored verbatim" — added to the drop-sync-reframe doc-reframe worklist
+  (it's narrative cleanup, F3's lane, not an F2 defect).
+- **Consensus reached (1 pass, no blockers).** Advanced to `done` (consensus=done policy).

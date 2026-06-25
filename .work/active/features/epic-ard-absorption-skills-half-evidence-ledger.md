@@ -1,7 +1,7 @@
 ---
 id: epic-ard-absorption-skills-half-evidence-ledger
 kind: feature
-stage: implementing
+stage: done
 tags: [plugin]
 parent: epic-ard-absorption-skills-half
 depends_on: [epic-ard-absorption-skills-half-scaffold]
@@ -238,3 +238,14 @@ Cross-model design consensus loop (Codex high-effort, session `…1a3cdbfc05ad`)
   section as originating-session notes) — all fixed. Verified `{1}`,`{2}`,`{41}`–`{52}`
   resolve with the intended source-direct/search-summary split.
 - Consensus reached after pass 2; advanced to `implementing`.
+
+**Implementation review (Codex high-effort, session `…0ae1a62a8285`), 2 passes:**
+- **Pass 1: Request small changes** — 2 honesty issues (AQ.4 mislabeled
+  forward-looking — it's a committed fence, only GR.9 is forward-looking;
+  decision_relevance asserted unsupported cross-engagement recurrence) + 1 nit
+  (illustrative `[handle]{41}` in the header tripped naive handle checks). All
+  fixed. Peer confirmed: handles match COMMITMENTS, confidence split correct,
+  tier-mismatch reading correct, no brief-only leakage.
+- **Pass 2: "No blockers. Nits: none."** Verified 5 entries + grounding, 14
+  handles resolve, AQ.4/decision_relevance corrected, header nit gone.
+- **Consensus reached.** Advanced to `done` (consensus=done policy).

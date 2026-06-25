@@ -8,7 +8,7 @@ depends_on: [epic-ard-absorption-skills-half-collapse-vendoring, epic-ard-absorp
 release_binding: null
 gate_origin: null
 created: 2026-06-24
-updated: 2026-06-24
+updated: 2026-06-25
 ---
 
 # Drop the sync machinery + reframe plugin docs to empirical-first
@@ -51,7 +51,11 @@ vendors.
 ## Docs to reframe (empirical-first identity)
 
 - `README.md` — leads today with "Adopts ARD v0.6.0 … pinned in ard.json …
-  Upstream framework by Kevoun." Rewrite to the absorbed model.
+  Upstream framework by Kevoun." Rewrite to the absorbed model. **Also README:32**
+  (flagged by F2's impl review): the `research-discipline` bullet still says
+  "ARD `kernel/discipline.md` vendored verbatim" — reword to "wraps
+  `ard-core/kernel/discipline.md` (the single source)", matching the collapsed
+  SKILL.md F2 landed.
 - `docs/VERSIONING.md`, `docs/ADOPTION.md`, `docs/ARCHITECTURE.md`,
   `docs/HANDOFF.md` — every reference to the dual-pin, the vendor map, the
   workbench/engine split, the byte-parity fence.
