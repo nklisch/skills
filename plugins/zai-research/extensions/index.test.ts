@@ -587,6 +587,10 @@ describe("clampMaxChars", () => {
   test("clamps above 120000 down to 120000", () => {
     expect(clampMaxChars(999_999)).toBe(120_000);
     expect(clampMaxChars(1_000_000)).toBe(120_000);
+    // >2^31: `| 0` would wrap negative and clamp to the floor (1000); Math.trunc
+    // preserves the value so it clamps to the ceiling (120000).
+    expect(clampMaxChars(3_000_000_000)).toBe(120_000);
+    expect(clampMaxChars(Number.MAX_SAFE_INTEGER)).toBe(120_000);
   });
   test("passes through in-range values, floored toward zero", () => {
     expect(clampMaxChars(5_000)).toBe(5_000);
@@ -713,6 +717,28 @@ describe("fetch_content windowing (article mode)", () => {
         expect(result.details?.has_more).toBe(false);
         expect(result.content[0].text).toBe(expected); // byte-for-byte today
         expect(result.content[0].text).not.toMatch(/…\[window:/);
+      },
+    );
+  });
+
+  test("no window + >500 lines but under char budget → whole doc, no footer (char budget binds, not line count)", async () => {
+    // >500 short paragraphs totaling well under the 30k char budget: for an
+    // implicit call the CHAR BUDGET must bind, not the 500-line default —
+    // otherwise this doc would be windowed to 500 lines + footer despite fitting.
+    const paragraphs = Array.from({ length: 600 }, (_, i) => `Paragraph ${i + 1}.`);
+    const html = articleHtml(paragraphs);
+    const expected = extractArticle(html, "https://example.com/docs/many-short").markdown;
+    // Guard: this test only proves the regression if the doc really is >500 lines.
+    expect(expected.split("\n").length).toBeGreaterThan(500);
+    await withMockedFetch(
+      (() => Promise.resolve(new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }))) as typeof globalThis.fetch,
+      async () => {
+        const { fetch_content } = makeWindowingPi();
+        const result = await fetch_content.execute("id", { url: "https://example.com/docs/many-short", extract: "article" }, undefined, undefined, {});
+        expect(result.details?.windowed).toBe(true);
+        expect(result.details?.has_more).toBe(false);
+        expect(result.content[0].text).toBe(expected); // whole doc, byte-for-byte
+        expect(result.content[0].text).not.toMatch(/…\[window:/); // no footer
       },
     );
   });

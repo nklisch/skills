@@ -167,9 +167,11 @@ whose content fits one window returns the text exactly — no footer.
   page's worth of text, so PDF windowing degrades to char-paging — but nothing
   is unreachable.
 - **`max_chars` is the total returned budget**, footer and marker included (a
-  small overhead is reserved inside it). Windows slice at line boundaries, so a
-  window is never cut mid-sentence; if its rendered text would exceed the
-  budget, trailing lines are dropped and `details.truncated_by_char_ceiling` is set.
+  small overhead is reserved inside it). The char ceiling drops trailing *lines*
+  (not a mid-line cut). Note: long source lines are hard-wrapped by character
+  count into virtual sub-lines for lossless coverage, so a virtual-line boundary
+  can split a sentence or word — wrapping is about coverage, not pretty breaks.
+  `details.truncated_by_char_ceiling` is set when trailing lines are dropped.
 - For a GitHub repo, prefer the zread tools over `fetch_content`-ing raw GitHub
   URLs — zread returns structured docs/issues/code, not scraped HTML.
 

@@ -137,14 +137,15 @@ export function truncate(text: string, max = MAX_RETURN_CHARS): string {
  * mirroring how {@link truncate} budgets its marker inside the cap. The windowing
  * path reserves {@link RESERVED_OVERHEAD} for the footer before slicing, so the
  * returned `text + footer ≤ max_chars`. Non-finite / non-number values fall back
- * to {@link DEFAULT_MAX_CHARS}; the value is then floored and clamped to
- * `[MIN_MAX_CHARS, MAX_MAX_CHARS]`.
+ * to {@link DEFAULT_MAX_CHARS}; the value is then truncated (toward zero) and
+ * clamped to `[MIN_MAX_CHARS, MAX_MAX_CHARS]`.
  */
 export function clampMaxChars(value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_MAX_CHARS;
-  // `| 0` floors toward zero (truncate). The clamp range is well inside 32-bit,
-  // so this is safe and matches the spec's `value | 0` formulation.
-  return Math.min(Math.max(value | 0, MIN_MAX_CHARS), MAX_MAX_CHARS);
+  // Math.trunc, NOT `| 0`: `| 0` is a 32-bit coercion, so a huge input like
+  // 3_000_000_000 wraps negative and clamps to the floor (MIN) instead of the
+  // ceiling (MAX). The OUTPUT range is inside 32-bit, but the INPUT is not.
+  return Math.min(Math.max(Math.trunc(value), MIN_MAX_CHARS), MAX_MAX_CHARS);
 }
 
 /**
@@ -645,11 +646,17 @@ export default function zaiResearchExtension(pi: PiApi): void {
       // explicit-window check both read from a typed shape (params is
       // Record<string, unknown>; nested access would otherwise be on unknown).
       const windowParam = params.window as { start_line?: number; line_count?: number } | undefined;
+      const explicitWindow = windowParam != null;
+      // Implicit calls (no `window`) are CHAR-BUDGET-BOUND, not line-count-bound:
+      // return the whole document when it fits `max_chars` (byte-for-byte today),
+      // and only the first budget's-worth + footer when it overflows. The 500-line
+      // default applies to EXPLICIT window calls (agent requesting a window).
+      // Without this, a >500-line doc under the char budget would be windowed to
+      // 500 lines + footer — violating "fits budget → exact text, no footer."
       const spec: WindowSpec = {
         start_line: windowParam?.start_line,
-        line_count: windowParam?.line_count,
+        line_count: explicitWindow ? windowParam?.line_count : Number.MAX_SAFE_INTEGER,
       };
-      const explicitWindow = windowParam != null;
       const key = cacheKey(urls[0], {
         return_format: typeof params.return_format === "string" ? params.return_format : undefined,
         extract: typeof params.extract === "string" ? params.extract : undefined,
