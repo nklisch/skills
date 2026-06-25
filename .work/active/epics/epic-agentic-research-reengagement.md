@@ -1,14 +1,14 @@
 ---
 id: epic-agentic-research-reengagement
 kind: epic
-stage: review
+stage: implementing
 tags: [skill, tooling]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-18
-updated: 2026-06-18
+updated: 2026-06-25
 ---
 
 # Re-engaging research artifacts — legacy import + ARD-native refresh on a shared primitive
@@ -154,3 +154,33 @@ The shared `refresh-entry` doorway + the two front-halves give the full re-engag
 legacy import (authored outside ARD) and ARD-native refresh/enrichment (drift + acquisition drain),
 both re-authoring through one anti-fabrication-fenced primitive. Advanced `implementing → review`;
 ready for `/agile-workflow:release-deploy` or epic review.
+
+## Review (2026-06-25)
+
+**Verdict**: Request changes — bounced `review → implementing`.
+
+Deep epic review (host: Claude Opus) + cross-model peer review (Codex, high effort, job
+`20260625T174848Z`). The three-child decomposition (refresh-entry lynchpin + two front-halves)
+delivered the full re-engagement surface, and the anti-fabrication core is solid — but the
+ARD absorption (#25/#26) to Snapshot 0.7.0 left two v0.7-contract gaps in the live refresh
+surface. Per review policy, contract/foundation drift on the primitive is a blocker.
+
+**Blockers**:
+- Refresh re-verification does not record the verification scope / grandfathered prior-verified
+  set that ARD v0.7 SPEC §221 requires ("un-recorded grandfathering is the failure this fences").
+  → `story-record-refresh-verification-scope`
+- v0.7 ten-field registration + `decision_relevance` absent from the refresh kickoff (the refresh
+  branch registers `refresh` + `supersedes-prior` against the old shape).
+  → `story-propagate-v07-ten-field-registration` (shared with `epic-agentic-research`)
+
+**Important**: none. The LENS-not-substrate guard (§4.6) — `known_lens_paths`, the live-update
+rule, and the mandatory dispatch-composition exclusion — is materially present and was
+independently confirmed by both host and peer; procedural skill enforcement is acceptable for
+this plugin shape.
+
+**Nits** (not items):
+- `refresh-scan.py` exec bit — **fixed inline** this session.
+
+**Notes**: Substrate mode, deep lane, cross-model. The two blockers are post-absorption v0.7
+propagation drift, shared with `epic-agentic-research` (the registration story is common to both).
+Epic closes once both v0.7 stories land.

@@ -1,14 +1,14 @@
 ---
 id: epic-agentic-research
 kind: epic
-stage: review
+stage: implementing
 tags: [plugin]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-03
-updated: 2026-06-04
+updated: 2026-06-25
 ---
 
 # Adopt the Agentic Research Discipline (ARD) as the `agentic-research` plugin
@@ -216,3 +216,35 @@ foundation-docs, ard-sync, work-handoff, research-view). Both formerly-deferred 
 landed — the *live* `.work/`↔`.research/` handoff (separate epic
 `epic-research-work-handoff-live`) and `research-view`. Epic advanced `implementing → review`
 by the research-view deep-review rollup; ready for `/agile-workflow:release-deploy`.
+
+## Review (2026-06-25)
+
+**Verdict**: Request changes — bounced `review → implementing`.
+
+Deep epic review (host: Claude Opus, aggregate-alignment pass) + cross-model peer
+review (Codex, high effort, job `20260625T174848Z`). The seven children delivered
+their briefs at the ARD vintage they were authored against, and the deliverables are
+genuinely live in the plugin — but the **ARD absorption (#25/#26) bumped `ard-core` to
+Snapshot 0.7.0 without propagating the v0.7 registration contract into the live plugin
+surface**, leaving foundation/contract drift. Per review policy, foundation-doc drift is
+a blocker.
+
+**Blockers**:
+- v0.7 ten-field registration + `decision_relevance` kickoff gate absent from the live
+  orchestrator SKILL + HANDOFF (the body still describes a nine-field shape: "four-field
+  commissioning subset + remaining five"). → `story-propagate-v07-ten-field-registration`
+
+**Important**: none beyond the blocker above.
+
+**Nits** (not items):
+- `refresh-scan.py` lacked its exec bit despite a `#!/usr/bin/env python3` shebang —
+  **fixed inline** this session (now `-rwxr-xr-x`, parity with `lint-citations.py`).
+- Epic prose still says "The epic remains `implementing`" and carries v0.3/v0.4-era ARD
+  history; understandable as audit trail, noisy against the absorbed v0.7 tree. Left as-is.
+
+**Notes**: Substrate mode, deep lane, cross-model (different model class via peeragent).
+Verification run by the peer: ard-core conformance 57/57 PASS; lint-citations PASS (0
+broken / 0 thin); research-view --version 0.6.1; refresh_scan tests PASS. The LENS-not-
+substrate guard (§4.6) and the "lint-is-not-a-backstop" handling were independently
+confirmed solid by both host and peer — not a concern. Epic closes once the v0.7
+propagation story lands.
