@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research
 kind: epic
-stage: implementing
+stage: done
 tags: [plugin]
 parent: null
 depends_on: []
@@ -248,3 +248,11 @@ broken / 0 thin); research-view --version 0.6.1; refresh_scan tests PASS. The LE
 substrate guard (§4.6) and the "lint-is-not-a-backstop" handling were independently
 confirmed solid by both host and peer — not a concern. Epic closes once the v0.7
 propagation story lands.
+
+## Closed (2026-06-25)
+
+Advanced `implementing → done`. The v0.7 propagation blocker
+(`story-propagate-v07-ten-field-registration`, peer-approved and merged via PR #28) was advanced to
+`done` in this cleanup and parented here. All 7 child features are `done`; no epic-level review gate
+applies (`## Stage overrides: none`). (Plugin SemVer is now 0.6.4; the epic's older v0.3/v0.4-era
+ARD history above is left as audit trail.)
