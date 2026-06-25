@@ -1,7 +1,7 @@
 ---
 id: epic-ard-absorption-skills-half-conformance-bump
 kind: feature
-stage: drafting
+stage: implementing
 tags: [plugin]
 parent: epic-ard-absorption-skills-half
 depends_on: [epic-ard-absorption-skills-half-collapse-vendoring, epic-ard-absorption-skills-half-drop-sync-reframe]
@@ -96,8 +96,8 @@ end-to-end confirmation, (b) the version bump.
   (no push); run the whole-epic final review; fix any findings; then
   `bump-version.sh` (which auto-pushes) as the deliberate FINAL act, so the
   published 0.6.0 reflects the consensus-reviewed state. This feature therefore
-  splits: **verify-now** (the 6-check gate, at design/impl) + **bump-later** (the
-  post-epic-loop final action).
+  splits: **verify-now** (the widened 9-check gate, at design/impl) + **bump-later**
+  (the post-epic-loop final action).
 
 ### Bump level — rationale (decided minor above)
 
@@ -183,3 +183,24 @@ step here. This feature's gate verifies the ABSORPTION's correctness; the stale-
 condition is a standing release-pipeline item the bump simply must not get ahead of.
 (If the operator wants the stale binaries fixed as part of this push, that's a
 separate `research-view`-scoped task — flag at the bump, don't fold into the absorption.)
+
+## Other agent review
+
+**Design consensus** (Codex high-effort, session `…129172c22fb8`), 2 passes:
+- **Pass 1** — 1 blocker (acceptance misses stale `research-view` dist binaries →
+  installer fails) + 2 important (ard.json-retirement note missing from VERSIONING.md;
+  acceptance too narrow). Resolved: research-view staleness confirmed PRE-EXISTING
+  + CI-handled (out of absorption scope — a release sequencing dependency, not an
+  inline fix); VERSIONING.md note added; gate WIDENED to 9 checks. The widened gate
+  **caught a real bug** — `HANDOFF.md:107` stale backtick `templates/dispatch.md`
+  (deleted by collapse-vendoring; link-checker misses backtick spans) → repointed to
+  `ard-core/kernel/templates/dispatch.md`.
+- **Pass 2: "no blockers — consensus."** Peer independently re-verified all 9 gate
+  checks + the HANDOFF fix + the VERSIONING note + the research-view scope boundary.
+  One nit (stale "6-check" wording) — fixed.
+
+**Verify-now gate: PASSING** (lead + peer verified) — conformance 57/57, gen-check
+in sync, lint shim + refresh-scan run, versions lockstep 0.5.0, whole-plugin
+deleted-path scan clean, 0 dangling links, 4 skill validators pass, VERSIONING
+absorption note present. The **bump-later** action (minor 0.5.0→0.6.0, auto-push)
+is held for the deliberate final step after the epic-level cross-model loop.
