@@ -838,14 +838,16 @@ export default function zaiResearchExtension(pi: PiApi): void {
     name: "fetch_content",
     label: "Fetch Content",
     description:
-      "Fetch and extract readable content from one or more URLs. Defaults to Z.ai webReader markdown for web pages; PDFs are extracted locally; JSON/API endpoints can be fetched directly with return_format:'json'; noisy docs pages can use extract:'article'.",
+      "Fetch and extract readable content from one or more URLs. Defaults to Z.ai webReader markdown for web pages; PDFs are extracted locally; JSON/API endpoints can be fetched directly with return_format:'json'; noisy docs pages can use extract:'article'. Long single-URL text content (markdown/text/article/PDF) is windowed: the first call returns the first ~500 lines plus a footer with the next start line; pass window:{start_line} to continue from a cached blob. JSON and multi-URL batches are not windowed.",
     promptSnippet: "Fetch/extract URL content (web pages, PDFs, JSON APIs, article mode)",
     promptGuidelines: [
       "Use fetch_content to read a page in full after web_search, or to ingest a doc/PDF/API URL the user provided.",
+      "Long single-URL text content (markdown/text/article/PDF) is windowed, not head-truncated. The first call returns the first ~500 lines plus a footer like '…[window: lines 1–500 of 1340 · request line 501 to continue]'; pass window:{start_line: 501} to continue. The fetched blob is cached, so advancing does not re-fetch. Read details.next_start_line (the structured source of truth) rather than parsing the footer.",
+      "max_chars (default 30000, clamped to [1000, 120000]) is the total per-call budget for text + footer. Raise it only when a window is being cut mid-thought and the larger budget is justified; if a window still exceeds it, trailing lines are dropped (details.truncated_by_char_ceiling) and you continue with window:{start_line}.",
       "Use return_format:'json' for REST/JSON API endpoints such as model lists, version metadata, or config schemas — it bypasses webReader and returns parsed JSON.",
       "Use extract:'article' when a docs page returns too much navigation, sidebar, or footer noise; do not combine it with return_format:'json'.",
       "PDFs (by .pdf URL) are extracted locally — no provider needed. PDF URL routing wins over json/article options.",
-      "Pass urls (an array) to fetch several at once; mode options apply to the whole batch, so keep JSON batches homogeneous.",
+      "Pass urls (an array) to fetch several at once; mode options apply to the whole batch, so keep JSON batches homogeneous. Batches and return_format:'json' direct fetches are not windowed — they keep the head-truncate behavior.",
     ],
     parameters: obj({
       url: str("A single URL to fetch."),
@@ -863,7 +865,7 @@ export default function zaiResearchExtension(pi: PiApi): void {
         start_line: num("1-indexed line to start the window at (default 1). Pass next_start_line from a prior call's details to continue. The fetched blob is cached, so advancing does not re-fetch."),
         line_count: num("Number of lines to return in this window (default 500)."),
       }, []),
-      max_chars: num("Total char budget for the returned text + footer (default 30000, clamped to [1000, 120000]). Raise it for long-but-coherent content; windowing still applies past the budget."),
+      max_chars: num("Total char budget for the returned text + footer (default 30000, clamped to [1000, 120000]). If a window exceeds it, trailing lines are dropped at a line boundary (details.truncated_by_char_ceiling) and you continue with window:{start_line}."),
     }, []),
     execute: fetchContentExecute,
   });

@@ -656,6 +656,43 @@ describe("fetch_content windowing schema", () => {
     expect(windowProps.line_count).toBeDefined();
     expect((params.properties.max_chars as { type: string }).type).toBe("number");
   });
+
+  // A full structural snapshot of the documented parameter surface. The presence
+  // test above checks the windowing additions; this one pins the WHOLE shape
+  // (every param key, the routing enums, the window sub-schema, and the
+  // required arrays) so the SKILL.md docs and the registered schema cannot
+  // silently drift apart. Adding or removing a param is an intentional schema
+  // change — update this snapshot and the docs together.
+  test("schema snapshot: full fetch_content parameter surface (regression guard for the docs)", () => {
+    const { fetch_content } = makeWindowingPi();
+    const params = fetch_content.parameters as {
+      properties: Record<string, {
+        type?: string;
+        enum?: string[];
+        properties?: Record<string, { type?: string }>;
+        required?: string[];
+      }>;
+      required?: string[];
+    };
+    // Top-level property set — the documented parameter surface.
+    expect(Object.keys(params.properties).sort()).toEqual(
+      ["extract", "max_chars", "prompt", "return_format", "url", "urls", "window"],
+    );
+    // No param is hard-required at the schema level (url/urls are validated at runtime).
+    expect(params.required ?? []).toEqual([]);
+    // Routing enums pin the documented options.
+    expect(params.properties.return_format?.enum).toEqual(["markdown", "text", "json"]);
+    expect(params.properties.extract?.enum).toEqual(["full", "article"]);
+    // window sub-schema: an object with start_line + line_count, nothing required.
+    const window = params.properties.window;
+    expect(window?.type).toBe("object");
+    expect(Object.keys(window?.properties ?? {}).sort()).toEqual(["line_count", "start_line"]);
+    expect(window?.properties?.start_line?.type).toBe("number");
+    expect(window?.properties?.line_count?.type).toBe("number");
+    expect(window?.required ?? []).toEqual([]);
+    // max_chars is the per-call char budget (a number).
+    expect(params.properties.max_chars?.type).toBe("number");
+  });
 });
 
 describe("fetch_content windowing (article mode)", () => {

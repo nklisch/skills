@@ -42,6 +42,7 @@ Five agent tools that route research through Z.ai, so the agent reaches for
 | Read a page, doc, or PDF in full (found via search or given by the user) | `fetch_content` |
 | Confirm model IDs, version lists, config keys, or other structured API metadata | `fetch_content` with `return_format: "json"` |
 | Strip nav/sidebar/footer noise from a docs page | `fetch_content` with `extract: "article"` |
+| Walk a page/PDF longer than one context window | `fetch_content` with `window` |
 | Understand what a GitHub repo does, its recent changes, known issues | `search_repo_docs` |
 | Map a repo's layout before reading files | `get_repo_structure` |
 | Read a specific file's source from a repo without cloning | `read_repo_file` |
@@ -106,6 +107,22 @@ fetch_content: url="https://example.com/guide"        # webReader → markdown
 fetch_content: url="https://arxiv.org/pdf/1706.03762" # local unpdf → markdown
 ```
 
+**Window over long content:**
+A single-URL text-mode fetch (markdown, text, article, or PDF) that exceeds the
+per-call budget returns the first ~500 lines plus a footer, instead of
+dropping the tail. Walk the rest by passing `window:{start_line}`:
+```
+fetch_content: url="https://example.com/long-spec"                           # → lines 1–500 + footer
+fetch_content: url="https://example.com/long-spec", window={start_line: 501}  # cached, no re-fetch
+```
+The footer reads `…[window: lines 1–500 of 1340 · request line 501 to continue]`.
+Advance by passing `window:{start_line: <next>}`; the fetched blob is cached, so
+later windows do not re-fetch. Read `details.next_start_line` (the structured
+source of truth) rather than parsing the footer. `max_chars` (default 30000,
+clamped to [1000, 120000]) is the total per-call budget for text + footer; raise
+it only when a window is being cut mid-thought. An implicit call (no `window`)
+whose content fits one window returns the text exactly — no footer.
+
 ## Guardrails
 
 - `domain` accepts one whitelist domain (e.g. `docs.z.ai`, `github.com`). Use it
@@ -130,6 +147,29 @@ fetch_content: url="https://arxiv.org/pdf/1706.03762" # local unpdf → markdown
 - Article extraction uses a readability library plus markdown conversion. If it
   cannot identify a viable article, it returns full-page text with a fallback
   marker rather than silently discarding content.
+- **Windowing applies to single-URL text modes only** (markdown, text, article,
+  PDF). `return_format:"json"` direct fetches and multi-URL `urls` batches are
+  NOT windowed — they keep the head-truncate behavior and report
+  `details.window_ignored_reason` (`"json"` or `"batch"`; `"fetch_error"` when a
+  single-URL fetch fails before windowing). A PDF URL with `return_format:"json"`
+  still windows, because PDF precedence wins over JSON routing.
+- **Snapshot drift.** Windowing is stateless-by-shape: line offsets are derived
+  from the fetched blob, not pinned to a token. If a live URL changes between
+  calls, later windows' line numbers drift relative to earlier ones. The cache
+  is best-effort (LRU + TTL); treat offsets as valid only within one walk.
+- **PDF 50-page extraction cap.** Local PDF extraction renders at most the
+  first 50 pages by default. Windowing walks the *extracted* markdown — it
+  cannot retrieve pages beyond that cap; fetch the source another way for those.
+- **Virtual wrapping (no data loss).** Source lines longer than the char budget
+  (e.g. a PDF page collapsed into one giant line) are hard-wrapped into virtual
+  sub-lines before windowing, so line-based addressing reaches every character.
+  `details.total_lines` counts virtual lines; for PDFs a "line" is roughly a
+  page's worth of text, so PDF windowing degrades to char-paging — but nothing
+  is unreachable.
+- **`max_chars` is the total returned budget**, footer and marker included (a
+  small overhead is reserved inside it). Windows slice at line boundaries, so a
+  window is never cut mid-sentence; if its rendered text would exceed the
+  budget, trailing lines are dropped and `details.truncated_by_char_ceiling` is set.
 - For a GitHub repo, prefer the zread tools over `fetch_content`-ing raw GitHub
   URLs — zread returns structured docs/issues/code, not scraped HTML.
 
