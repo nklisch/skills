@@ -1,4 +1,3 @@
-<!-- ARD-Version: 0.7.0 -->
 # Dispatch registration — template
 
 The dispatch-time registration declaration (ARD SPEC §9). Sets the controls for

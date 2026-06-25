@@ -1,4 +1,3 @@
-<!-- ARD-Version: 0.7.0 -->
 # ARD kernel
 
 The **consumed surface of ARD** (the Agentic Research Discipline) — the
@@ -60,17 +59,13 @@ The lint performs **one** network operation: a `source_url` liveness HEAD-check,
 
 Adopters in restricted networks should default to `--no-url-check`, and run liveness — if they want it at all — as a separate, opt-in CI step.
 
-## Snapshot stamp
+## Versioning
 
-Every file here carries a passive `ARD-Version:` stamp recording the ARD
-discipline surface version for that file. It is **not an enforced pin**: nothing
-keys off it. To list it:
-
-```
-grep -r ARD-Version .
-```
-
-Only the `[handle]{N}` wire-form + the normative-minimum attestation frontmatter (*ARD SPEC §4.2*) are architecture; an inventory growth (a new failure-shape, source-class, or lint *matcher*) leaves that assumed contract unchanged. The plugin's own SemVer is the only version that gates releases — see the plugin's [`docs/VERSIONING.md`](../../docs/VERSIONING.md).
+The kernel versions with the plugin's SemVer. Only the `[handle]{N}` wire-form + the
+normative-minimum attestation frontmatter (*ARD SPEC §4.2*) are architecture — a change there is a
+MAJOR bump; an inventory growth (a new failure-shape, source-class, or lint *matcher*) leaves that
+assumed contract unchanged and bumps at a lower axis. See the plugin's
+[`docs/VERSIONING.md`](../../docs/VERSIONING.md) for the discipline-change → SemVer-axis mapping.
 
 ## How the engine wires around this surface
 

@@ -1,6 +1,6 @@
 # Agentic Research Discipline (ARD) — Specification
 
-**Snapshot 0.7.0** · [versioning](../docs/VERSIONING.md)
+[Versioning](../docs/VERSIONING.md)
 
 ARD is a framework for grounded, verifiable, adopter-portable research conducted by or with AI agents. It codifies a research discipline — an anti-fabrication core ([§4](#4-the-anti-fabrication-core-the-hard-floor)), a multi-stage verification stack ([§7](#7-the-verification-stack-the-rigor-control)), and a **control-space** navigated against a non-erodable floor ([§3](#3-the-control-space-model)) — that addresses a documented inventory of agentic research-failure shapes ([§2](#2-the-failures-ard-addresses)). The discipline is the framework's substance; the inventory is the failure-space it is measured against. The shapes are not equally fenced, and ARD is precise about which is which: it **structurally fences anchor-and-drift fabrication** — one prominent shape, and the one whose fence is tightest — *detects*, though does not yet prevent, the highest-frequency adjacent shape (noise domination; [§11](#11-known-limitations)), commits per-shape fences on most of the rest, and leaves a residual set forward-looking. [§11](#11-known-limitations) names honestly what is detected-but-not-prevented.
 

@@ -1,7 +1,7 @@
 ---
 id: feature-collapse-ard-version-into-plugin-semver
 kind: feature
-stage: implementing
+stage: review
 tags: [plugin, docs]
 parent: null
 depends_on: []
@@ -255,6 +255,28 @@ Accepted findings (all folded into the units above):
 - **Version bump is a final mechanical step** after the feature commits land — `bump-version.sh`
   refuses a dirty plugin dir and auto-commits. (Bump is a release-time action, not part of this
   feature's edits; noted so implementation doesn't bump mid-stride.)
+
+## Implementation notes (2026-06-25)
+
+All 5 units landed; 16 files changed under `plugins/agentic-research/`. Gates green:
+- Conformance `run.py` → **57/57** (unchanged — nothing it checks touched the version).
+- `gen-contract.py --check` → **in sync** (JSON regenerated after dropping `catalog_baseline`).
+- Schema + `catalogs.json` both valid JSON; `catalog_baseline` absent.
+- Live-machinery sweep `rg "ARD-Version|x-ard-version|catalog_baseline|Snapshot 0\.7\.0|v0\.7\.0 baseline" plugins/agentic-research` → **empty**.
+- Category B history intact (CATALOGS/SPEC "v0.7 adds…", COMMITMENTS "v0.7.0 additions", 6 ledger
+  refs, 3 positions refs all preserved).
+
+**Operator steer applied mid-implementation:** dropped all "there is no separate ARD content version"
+/ "the plugin SemVer is the single version" framing — a plugin adopter has no prior awareness of a
+dual version, so stating its absence reads as answering an unasked question. VERSIONING.md, the
+kernel README `## Versioning` section, and the SPEC header now state the policy forward-only, with no
+archaeology of the retired snapshot. (This also dropped the planned "frozen historical numbering"
+note in Unit 5 — unnecessary, and it would have *introduced* the dual-version awareness it meant to
+retire. Category-B inline "MINOR inventory/control growth" phrasing is consistent with the SemVer
+axis mapping on its own and needs no disambiguating note.)
+
+Bump deferred: `bump-version.sh` is a release-time action (refuses a dirty dir, auto-commits) — not
+part of this feature's edits. Operator decides release binding + bump axis later.
 
 ## Origin
 

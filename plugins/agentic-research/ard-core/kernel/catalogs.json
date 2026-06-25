@@ -1,6 +1,5 @@
 {
   "_comment": "GENERATED from CATALOGS.md by tools/gen-contract.py — do not edit by hand; edit the prose and regenerate.",
-  "catalog_baseline": "0.7.0",
   "generated_from": "CATALOGS.md",
   "failure_shapes": [
     {

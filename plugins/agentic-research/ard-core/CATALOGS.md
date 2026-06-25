@@ -1,4 +1,4 @@
-# ARD — Baseline Catalogs (v0.7.0)
+# ARD — Baseline Catalogs
 
 The inventory companion to [SPEC.md](SPEC.md), which specifies ARD as a framework for grounded, verifiable research conducted by AI agents — a tunable control-space of always-on checks plus selectable gates. Where the spec names what is **invariant**, this file populates the framework's **current baseline** — the catalogs an adopter starts from and **extends**.
 
@@ -277,4 +277,4 @@ Structural predicates that already live as top-level frontmatter — `parent` (c
 
 ---
 
-*This catalog is the v0.7.0 baseline. Extend it — the lists are designed to grow.*
+*This catalog is the baseline inventory. Extend it — the lists are designed to grow.*
