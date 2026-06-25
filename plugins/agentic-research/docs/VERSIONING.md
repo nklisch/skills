@@ -1,6 +1,6 @@
 # VERSIONING: agentic-research
 
-The plugin has **one version: its own SemVer**, kept in lockstep across `package.json`,
+The plugin versions on its own **SemVer**, kept in lockstep across `package.json`,
 `.claude-plugin/plugin.json`, and `.codex-plugin/plugin.json`. The ARD discipline at `ard-core/`
 versions with it.
 

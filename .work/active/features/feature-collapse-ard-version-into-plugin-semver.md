@@ -1,7 +1,7 @@
 ---
 id: feature-collapse-ard-version-into-plugin-semver
 kind: feature
-stage: review
+stage: done
 tags: [plugin, docs]
 parent: null
 depends_on: []
@@ -277,6 +277,27 @@ axis mapping on its own and needs no disambiguating note.)
 
 Bump deferred: `bump-version.sh` is a release-time action (refuses a dirty dir, auto-commits) — not
 part of this feature's edits. Operator decides release binding + bump axis later.
+
+**Branch:** work lives on `feat/collapse-ard-version-into-plugin-semver` (3 commits: scope →
+feature-design → implement, + the review fix below). `main` was reset back to the park commit — not
+committed to directly.
+
+## Review (2026-06-25)
+
+Cross-model review (Codex, high effort, fresh context on the branch diff). Verdict: **BLOCK on one
+line**, everything else clean.
+
+- **Blocker (fixed):** `docs/VERSIONING.md:3` opened "The plugin has **one version: its own
+  SemVer**" — the exact defensive "one/single version" framing the operator constraint forbids
+  (adopters have no prior dual-version awareness). Reworded to "The plugin versions on its own
+  **SemVer**…" — forward-only, no count assertion. A follow-up plugin-wide sweep for
+  `one version|single version|only version|no separate version` confirmed no other instance.
+- **Confirmed clean by the reviewer:** completeness (no residual `ARD-Version`/`x-ard-version`/
+  `catalog_baseline`/`Snapshot 0.7.0`/`v0.7.0 baseline`); Category B history intact (no diff touched
+  `evidence/` or `theory/`); `gen-contract.py` correct (`re` still needed; no remaining
+  `catalog_baseline` consumer; JSON in sync); SemVer-axis mapping correct.
+- Gates re-confirmed after the fix: conformance 57/57; `gen-contract --check` in sync; defensive-
+  framing sweep clean.
 
 ## Origin
 
