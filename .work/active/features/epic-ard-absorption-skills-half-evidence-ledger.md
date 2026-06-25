@@ -1,14 +1,14 @@
 ---
 id: epic-ard-absorption-skills-half-evidence-ledger
 kind: feature
-stage: drafting
+stage: implementing
 tags: [plugin]
 parent: epic-ard-absorption-skills-half
 depends_on: [epic-ard-absorption-skills-half-scaffold]
 release_binding: null
 gate_origin: null
 created: 2026-06-24
-updated: 2026-06-24
+updated: 2026-06-25
 ---
 
 # Seed `ard-core/evidence/` — the empirical failure ledger (primary warrant tier)
@@ -31,6 +31,15 @@ verification result). Entry quality is the warrant — these justify the
 disciplines empirically, replacing theory-as-genesis.
 
 ## Ledger entries to author (v0.7 grounding)
+
+> **These are ORIGINATING-SESSION NOTES — orientation, NOT the authoritative
+> grounding.** Some names below (Linardon, CiteAudit, Microsoft transient-fault,
+> soft-404, scraping escalation, Sims) come from the originating session's reading
+> and do **NOT** resolve in `references.md`. The AUTHORITATIVE grounding for the
+> ledger entries is the `## Design` section below: only `[handle]{N}` resolving in
+> `ard-core/theory/references.md` (`{41}`–`{52}`, `{1}`, `{2}`) appears as
+> grounding; the rest is uncited background, not warrant. Where this section and
+> the Design section disagree, the Design section wins.
 
 From the v0.7.0 implementation session note + COMMITMENTS:
 
@@ -190,3 +199,18 @@ authoring act. *(Prose-shaped work — authors a ledger, no code surface — in 
 - **Schema drift vs scaffold.** If the scaffold's `evidence/README.md` schema and
   these entries disagree on field names, the tier is incoherent. Mitigated by
   authoring strictly to the landed README schema.
+
+## Other agent review
+
+Cross-model design consensus loop (Codex high-effort, session `…1a3cdbfc05ad`), 2 passes:
+- **Pass 1: Request small edits** — 4 important: schema 5-vs-6 fields mismatch;
+  COMMITMENTS must be re-render trace not cited substrate (lens-not-substrate);
+  "source-bound" overclaim (most handles are `search-summary`, not source-direct);
+  brief-only source names mustn't leak as grounding. All folded — `grounding` is a
+  required accompanying line (scaffold README corrected); COMMITMENTS is provenance
+  only; search-summary confidence stated; brief section marked non-authoritative.
+- **Pass 2: "No blockers."** 3 nits (grounding-line wording for deployment-grounded
+  PR.3; "attestation tier" → "bibliography/attestation tier"; mark the brief
+  section as originating-session notes) — all fixed. Verified `{1}`,`{2}`,`{41}`–`{52}`
+  resolve with the intended source-direct/search-summary split.
+- Consensus reached after pass 2; advanced to `implementing`.

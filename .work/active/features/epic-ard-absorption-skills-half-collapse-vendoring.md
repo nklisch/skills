@@ -1,14 +1,14 @@
 ---
 id: epic-ard-absorption-skills-half-collapse-vendoring
 kind: feature
-stage: drafting
+stage: implementing
 tags: [plugin]
 parent: epic-ard-absorption-skills-half
 depends_on: [epic-ard-absorption-skills-half-scaffold]
 release_binding: null
 gate_origin: null
 created: 2026-06-24
-updated: 2026-06-24
+updated: 2026-06-25
 ---
 
 # Collapse vendoring — repoint plugin consumers at `ard-core/`, remove duplicate copies
@@ -101,8 +101,12 @@ orchestrator and the wrapper.
 ## Verification
 
 Plugin conformance passes reading from `ard-core/` only (old `scripts/` copies
-gone). The lint runs from its new path. No dangling references to removed
-`scripts/`-vendored paths anywhere in the plugin.
+gone). The lint runs from its new path. No dangling **live / functional**
+references to removed `scripts/`-vendored paths. (The F3-narrative refs in
+`ard.json` / `docs/ADOPTION.md` / `docs/VERSIONING.md` / `ard-sync.py` still name
+those paths *until F3 deletes the vendoring narrative* — F2 deliberately leaves
+them; the "no dangling references *anywhere*" sweep is an F3-exit check, not an
+F2 one. See the F2/F3 non-separately-releasable invariant in Unit 5.)
 
 ---
 
@@ -258,3 +262,17 @@ story boundaries.
   shim stating it is CLI-only.
 - **Hidden consumer.** A vendored-path reference the grep missed. Mitigated by the
   final `rg` sweep over the whole plugin for `scripts/{catalogs.json,schema,conformance}`.
+
+## Other agent review
+
+Cross-model design consensus loop (Codex high-effort, session `…f49e342f27b4`), 2 passes:
+- **Pass 1: Request changes** — 2 blockers (light-path discipline ref SKILL.md:44-46
+  still pointed at the wrapper body; `templates/dispatch.md` a missed live
+  orchestrator consumer at SKILL.md:236-238) + 2 important (deleting
+  `scripts/conformance/` dangles F3-narrative command refs; `research-discipline`
+  frontmatter staleness). All folded — Unit 4 now repoints THREE discipline refs +
+  frontmatter; Unit 1 repoints the dispatch template; the F2/F3
+  non-separately-releasable invariant is explicit.
+- **Pass 2: "No blockers."** One nit (top-level verification overclaimed "no
+  dangling refs anywhere" vs the intentional F3-narrative dangles) — fixed.
+- Consensus reached after pass 2; advanced to `implementing`.
