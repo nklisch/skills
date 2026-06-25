@@ -85,7 +85,21 @@ the `lint-citations.py` shim + `refresh-scan.py` smoke-run, manifests reference 
 deleted path, versions lockstep at 0.5.0. So this feature is: (a) a final
 end-to-end confirmation, (b) the version bump.
 
-### Bump level — DECISION REQUIRED (the one real call)
+### Operator decisions (settled 2026-06-25)
+
+- **Bump level: MINOR (0.5.0 → 0.6.0)** + an inline note in `docs/VERSIONING.md`
+  recording the `ard.json` retirement as the one ard.json-reader-breaking change
+  pre-1.0. (Rejected major: the operator-facing surface — the lint command shim,
+  the skills, `.research/`, the citation lint — is intact; the broken `ard.json`
+  contract served the dead external-publication audience.)
+- **Push timing: AFTER the epic-level final cross-model loop.** Verify the gate now
+  (no push); run the whole-epic final review; fix any findings; then
+  `bump-version.sh` (which auto-pushes) as the deliberate FINAL act, so the
+  published 0.6.0 reflects the consensus-reviewed state. This feature therefore
+  splits: **verify-now** (the 6-check gate, at design/impl) + **bump-later** (the
+  post-epic-loop final action).
+
+### Bump level — rationale (decided minor above)
 
 Two independent arguments put it **past patch**:
 1. **v0.6→v0.7 content jump.** The absorption seeded `ard-core/` from v0.7.0, so
