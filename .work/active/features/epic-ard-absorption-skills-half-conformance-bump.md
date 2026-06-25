@@ -1,7 +1,7 @@
 ---
 id: epic-ard-absorption-skills-half-conformance-bump
 kind: feature
-stage: implementing
+stage: done
 tags: [plugin]
 parent: epic-ard-absorption-skills-half
 depends_on: [epic-ard-absorption-skills-half-collapse-vendoring, epic-ard-absorption-skills-half-drop-sync-reframe]

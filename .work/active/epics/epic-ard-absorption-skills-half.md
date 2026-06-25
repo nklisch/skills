@@ -1,7 +1,7 @@
 ---
 id: epic-ard-absorption-skills-half
 kind: epic
-stage: implementing
+stage: done
 tags: [plugin]
 parent: null
 depends_on: []
@@ -238,3 +238,32 @@ A real second adopter / non-Claude harness genuinely needs independent pinning �
 **re-extract `ard-core/` to a standalone repo** (the structure keeps this
 extract-on-demand, not a rebuild). This escape hatch is the reason "absorb" was
 a safe call over the more conservative "keep-separate diet."
+
+## Epic completion (2026-06-25)
+
+**Skills-half COMPLETE.** All 5 features done; each ran the operator's
+loop-to-consensus policy (design loop + implementation loop, cross-model Codex).
+
+**Epic-level final cross-model loop** (Codex high-effort, session `…75fc2f389500`):
+holistic whole-migration coherence review (discipline-travel end-to-end,
+empirical-first coherence, SSOT integrity, cross-cutting consistency, bump-readiness).
+**Verdict: no blockers — coherent and bump-ready.** The pass made 6 coherence fixes
+(committed `…405604f`, lead-reviewed + gate-re-verified): theory/README states it's
+not the primary warrant tier (empirical-first made explicit); dispatch.md +
+acquisitions.md + research-handoff aligned on registration-persistence-is-a-deployment-choice
+(resolving the pre-existing dispatch.md inconsistency); orchestrator "Claude agent
+system" → "portable agent-skill system" (three-channel); ard-core README
+diff-clean → extractable framing.
+
+**Shipped:** `bump-version.sh agentic-research minor` → **v0.6.0** (0.5.0→0.6.0,
+minor per operator: operator surface intact via the lint shim; the one
+ard.json-reader-breaking change noted in VERSIONING.md). Rebased onto origin/main
+(clean — remote had only unrelated zai-research work) and **pushed** (`67dc38e`).
+Post-bump research-view binary CI refresh is the standing release-pipeline step
+(pre-existing, not absorption-scoped).
+
+**Hands off to the root-half** (`epic-ard-absorption` in the SNC monorepo):
+remove the `ard/` submodule, sweep the monorepo `ard/` references, update the 5
+root `.work/` ARD items, archive the published `ard/` repo with a pointer. The
+`ard/` source tree stays available until the root-half runs (the skills-half read
+its `b1dc0f3` seed from it).
