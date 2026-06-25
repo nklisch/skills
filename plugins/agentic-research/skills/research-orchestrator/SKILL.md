@@ -72,11 +72,12 @@ Activate the applicable subset of decision-points in this fixed order:
 
 ```
   → [KICKOFF]              set the dials WITH the user — every path, BEFORE decompose (← turn)
+                           decision_relevance FIRST (§9 yield-hypothesis depth gate) → then rigor → then fan-out
                            commissioned by a [research] work item? READ its research_dials + confirm
-dispatch-time-registration record the settled dials (commissioning item if present; else transcript / dispatch.md)
+dispatch-time-registration record the settled ten-field registration (commissioning item if present; else transcript / dispatch.md)
   → substrate-check        survey .research/ for overlapping prior work; surface the outcome
                            HANDED a prior artifact? → REFRESH BRANCH (see §Refresh re-engagement):
-                           register refresh + supersedes-prior, load prior AS LENS, then resume at attest
+                           register the §4.8 recipe (supersedes-prior + existing intent + refresh change-mode), load prior AS LENS, then resume at attest
   → decompose              emergent: draft ≥3 candidates + comparative assessment + self-flag
                            (scope_authority — set at kickoff — governs emergent-draft vs. honor-declared)
   → [CHECKPOINT A]         confirm the decomposition / framing (multi-path) (← turn)
@@ -108,7 +109,7 @@ prior artifact is a **LENS, not substrate**: it frames *what to re-engage*, but 
 `[handle]{N}` citation target (citing it launders its claims into apparent source-attestation — the
 lens-not-substrate guard in the discipline bundle). The branch:
 
-1. **Register** `refresh` + `temporal_contract: supersedes-prior` (existing enums — no new vocabulary).
+1. **Register** the re-engagement recipe (SPEC §4.8) — `temporal_contract: supersedes-prior` (or `re-engage-on-trigger`) + an existing `intent` + the refresh change-mode; no new `intent` enum, no new vocabulary.
 2. **Pre-flight lens check (the SOLE structural guard).** Build a `known_lens_paths` set on entering
    the branch (the prior artifact + any sibling analytical-tier artifacts loaded as framing), and
    attach a "NEVER cite these paths" exclusion to the **dispatch-composition step** — riding the same
@@ -140,15 +141,26 @@ deliberately absent from `allowed-tools`).
 
 - **Kickoff** (every path, before `decompose`) — propose the dials + reasoning + the
   trade-offs; settle them with the user. Mispositioned dials cost the whole engagement.
+  **The depth gate comes first (ARD SPEC §9).** Before rigor or fan-out is set, state and
+  confirm `decision_relevance` — the **yield hypothesis**: *what downstream decision changes if
+  this finds X?* It is free-text, not an enum. A question whose answer cannot change any decision
+  warrants no depth; the engagement then right-sizes `verification_rigor` and fan-out/`decompose`
+  **to the stated decision**. Order is load-bearing: `decision_relevance` → then rigor → then
+  fan-out. `decision_relevance` is settled at dispatch (sourced from the commissioning item's
+  body when one exists); it is **not** part of the four-field `research_dials:` block.
   **When a `[research]` work item commissioned this engagement** — it carries a
-  `research_dials:` registration block (scope_authority, verification_rigor, intent,
-  output_kind) — the dials are *already set by the act of scoping that item*: read them,
-  confirm/adjust with the user, then proceed; don't re-propose from scratch. Scoping the work
-  item IS the dispatch act (see §Work-coordination entry).
+  `research_dials:` block with the **commissioning subset** of the registration (scope_authority,
+  verification_rigor, intent, output_kind) — those dials are *already set by the act of scoping
+  that item*: read them, confirm/adjust with the user, then proceed; don't re-propose from
+  scratch. Scoping the work item IS the dispatch act (see §Work-coordination entry).
   **Under autonomous delegation** (an autopilot/queue-driver goal dispatched this engagement
   and its contract forbids mid-run questions): the registration-carrying item is the coherent
   case — the dials were user-confirmed at scope time, so kickoff confirmation is already
-  satisfied; state the read dials and proceed. The checkpoints below then degrade to
+  satisfied; state the read dials and proceed. The §9 depth gate still binds: extract an explicit
+  or clearly-stated `decision_relevance` (yield hypothesis) from the commissioning item's body,
+  state it, and proceed — but if none is present or it is ambiguous, **hard-halt** before setting
+  rigor or fan-out (same posture as the no-dials case below); do not infer a yield hypothesis to
+  manufacture depth. The checkpoints below then degrade to
   **surface-and-proceed**: narrate the content, persist the durable half (Checkpoint A's
   decomposition rationale per §10.6; Checkpoint B's contradictions in the synthesis), and
   continue — judgment logged, never silently skipped. This degradation is a **deliberate
@@ -239,10 +251,12 @@ Set the controls at dispatch via the ten-field registration shape in
 (SPEC §9) — and *where* the registration lives tracks whether a work substrate is present:
 
 - **Commissioned by a `[research]` work item** → the registration rides the work item as a
-  `research_dials:` block (the commissioning subset: scope_authority, verification_rigor,
-  intent, output_kind — the fields the scoping act fixes; you settle the remaining five at
-  dispatch as on any standalone walk, since they are engagement-time judgment, not scoping
-  decisions). **Scoping the
+  `research_dials:` block carrying the **commissioning subset** (scope_authority,
+  verification_rigor, intent, output_kind — the four fields the scoping act fixes); you settle
+  the remaining six at dispatch as on any standalone walk (`consumer`, `temporal_contract`,
+  `primitives_extends`, `primitives_opts_out`, `decision_relevance`, `analytical_artifact_type`
+  — engagement-time judgment, not scoping decisions; `decision_relevance` is the §9 depth gate,
+  settled before rigor/fan-out). 4 + 6 = the ten-field shape. **Scoping the
   item IS the dispatch act.** `.research/` then holds *clean output substrate only* — no
   `dispatch.md`. See §Work-coordination entry + `docs/HANDOFF.md` Arrow 1.
 - **Standalone, light / single-pass** → the conversation transcript suffices.
@@ -254,9 +268,10 @@ Set the controls at dispatch via the ten-field registration shape in
 Registration informs the engagement; it is **not** carried into the artifacts' own frontmatter
 (artifacts stand on their own metadata).
 
-A **refresh re-engagement** (handed a prior artifact) registers `refresh` +
-`temporal_contract: supersedes-prior` and additionally records the prior artifact path +
-`input_state` (the refresh input contract above); see §Refresh re-engagement.
+A **refresh re-engagement** (handed a prior artifact) registers the §4.8 re-engagement recipe —
+`temporal_contract: supersedes-prior` + an existing `intent` + the refresh change-mode (not a new
+`intent` enum) — and additionally records the prior artifact path + `input_state` (the refresh
+input contract above); see §Refresh re-engagement.
 
 ## Output paths (this deployment's `.research/` map)
 
@@ -315,9 +330,12 @@ A `.work/` item may commission an engagement and cite it back — two patterns, 
   item on research completion, `depends_on:` a `.work/` commissioning story (not a `.research/`
   slug — `work-view` resolves dep ids only against `.work/` items).
 - **Registration-carrying `[research]` item** — a `[research]`-tagged work item carries the
-  dials in a `research_dials:` block; **scoping it IS the dispatch act**. The orchestrator reads
-  the dials from the commissioning item at kickoff (confirm, don't re-propose), and `.research/`
-  stays clean output substrate (no `dispatch.md`). This is the operational pairing of this
+  **commissioning subset** of the registration in a `research_dials:` block (the four scoping
+  fields); **scoping it IS the dispatch act**. The orchestrator reads those dials from the
+  commissioning item at kickoff (confirm, don't re-propose), settles the remaining registration
+  fields at dispatch — including `decision_relevance`, drawn from the item body and gated per §9
+  before depth is set — and `.research/` stays clean output substrate (no `dispatch.md`). This is
+  the operational pairing of this
   orchestrator with a `[research]` work-nature module.
 
 **Engagement completion closes the commissioning item — this orchestrator owns that
