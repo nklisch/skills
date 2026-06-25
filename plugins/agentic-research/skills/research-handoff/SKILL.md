@@ -30,22 +30,17 @@ Resolve the operator's argument to one or more analysis artifacts:
   (or the campaign dir itself), `hypothesis/<slug>.md`. The slug is the
   `slug:` value in the artifact's YAML frontmatter (or the dir name for campaigns).
 - **Campaign dir** — if the argument is a path like
-  `.research/analysis/campaigns/<slug>/`, read `parent.md` as the synthesis.
-  Read `dispatch.md` only when present: standalone-heavy campaigns use it as
-  the registration fallback, but work-item-commissioned campaigns deliberately
-  keep `.research/` as clean output substrate and carry registration on the
-  commissioning item instead.
+  `.research/analysis/campaigns/<slug>/`, read `parent.md` as the synthesis
+  and `dispatch.md` for the registration (which carries `output_kind`).
 
 From each resolved artifact, extract:
 1. The actionable findings — sections or bullet points that represent
    recommendations, adoption proposals, hypotheses to validate, or implementation
    candidates.
-2. The artifact's `output_kind` field when available (artifact frontmatter, or
-   a campaign `dispatch.md` on the standalone-heavy path). Values that signal
-   actionability: `adoption-recommendations`, `staged-hypothesis`,
-   `recommendation`. Note it — it guides the proposed item kind. If no
-   `output_kind` is present, do not fail: infer actionability from the artifact
-   body, surface that inference in Phase 3, and let the operator confirm or skip.
+2. The artifact's `output_kind` field (from frontmatter or the campaign's
+   `dispatch.md`). Values that signal actionability: `adoption-recommendations`,
+   `staged-hypothesis`, `recommendation`. Note it — it guides the proposed item
+   kind.
 3. The artifact's `slug` — this is the citation key for `research_origin:`.
 4. The artifact file path — this is the body citation target.
 

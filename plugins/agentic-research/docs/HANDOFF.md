@@ -104,7 +104,7 @@ under autonomous delegation. Omission is never a hard-halt; only a present-but-i
 Why this is ARD-conformant: ARD classifies `dispatch-time-registration` as a **tier-M coordination
 act** (CATALOGS §6) whose **persistence is a deployment choice** (SPEC §9). *Where* the dials live
 is below the architecture line — so moving them onto the commissioning work item is a legitimate
-deployment binding, not a divergence. ARD's registration shape (`ard-core/kernel/templates/dispatch.md`) stays
+deployment binding, not a divergence. ARD's registration shape (`templates/dispatch.md`) stays
 substrate-agnostic and verbatim; the work-item carrier is this deployment's binding layered on top.
 
 Consequences of the registration riding the work item:

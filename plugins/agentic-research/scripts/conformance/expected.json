@@ -1,5 +1,5 @@
 {
-  "_comment": "Canonical expected verdicts for the ARD reference lint. Any re-implementation of the lint must reproduce these. Runner: python3 run.py",
+  "_comment": "Canonical expected verdicts for the ARD reference lint. Any vendored or ported lint must reproduce these. Runner: python3 run.py",
   "citations": {
     "resolved-src": "resolved",
     "no-such-handle": "unresolved-handle",
@@ -18,7 +18,6 @@
     "BadCase-Handle": "non-canonical-handle",
     "dup-key-src": "duplicate-frontmatter-key",
     "acq-candidate-src": "acquisition-candidate",
-    "c9-f1-real": "intra-program-resolved",
     "c1-f2-cross": "intra-program-resolved",
     "c9-position-fake": "unresolved-handle"
   },

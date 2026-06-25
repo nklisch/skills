@@ -1,4 +1,4 @@
-<!-- ARD-Version: 0.7.0 -->
+<!-- ARD-Version: 0.6.0 -->
 # Per-corpus INDEX — template
 
 A numbered bibliography of one corpus (ARD SPEC §10.2, reference tier). Lives at `.research/reference/<corpus>/INDEX.md`. The entry number `N` is the anchoring target for `[handle]{N}` citations — **append new entries; never renumber** (renumbering breaks every existing citation).

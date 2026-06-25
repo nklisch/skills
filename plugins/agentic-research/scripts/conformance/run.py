@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# ARD-Version: 0.7.0
+# ARD-Version: 0.6.0
 # ARD lint conformance runner.
 #
 # Runs the lint over the golden fixtures and asserts it reproduces the canonical
 # verdicts in expected.json: every citation status (all 7 broken + 4 non-broken),
-# the GR.5 thin flag, and every lint pattern category. Run this to validate the
-# reference lint, or any re-implementation of it, against ARD's truth (ARD root-0054).
+# the GR.5 thin flag, and every lint pattern category. Any adopter who vendored or
+# ported the lint runs this to validate against ARD's truth (ARD root-0054).
 #
 # Additionally asserts the suppression, --stats, substrate-confidence, and
 # lint-hardening behaviours:
