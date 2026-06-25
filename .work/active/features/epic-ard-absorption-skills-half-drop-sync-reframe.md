@@ -1,7 +1,7 @@
 ---
 id: epic-ard-absorption-skills-half-drop-sync-reframe
 kind: feature
-stage: implementing
+stage: done
 tags: [plugin]
 parent: epic-ard-absorption-skills-half
 depends_on: [epic-ard-absorption-skills-half-collapse-vendoring, epic-ard-absorption-skills-half-evidence-ledger]
@@ -305,3 +305,23 @@ narrowed vendoring grep **clean**; dangling-link scan **0**; ADOPTION substrate
 sections intact (not over-deleted); `lint-citations.py:175` SSRF "vendored
 substrate" correctly untouched; discipline still travels (wrapper + orchestrator
 both name `ard-core/kernel/discipline.md`).
+
+## Other agent review (implementation)
+
+**Design consensus:** 4 passes (Codex, session `…10cc460089c1`) — the most
+thorough of the epic; each pass surfaced real missed surface (repo-wide vendoring
+narrative incl. AGENTS.md + the ard-core internal framing; the ARD-Version stamp
+policy; the conformance-README adopter-vendoring framing; then expected.json/run.py
+consistency). Closed pass 4.
+
+**Implementation review** (Codex high-effort, session `…ce820785d1fd`), 1 pass:
+**Approve with comments.** Verified: conformance 57/57; `expected.json`/`run.py`
+comment-only (no verdict/check changes); `discipline.md` §1-onward byte-hash
+matches parent (must-travel content preserved), stamp kept; marketplace valid JSON;
+plugin versions lockstep 0.5.0; dangling scan clean incl. the new
+`SPEC.md → ../docs/VERSIONING.md` repoint; HANDOFF unchanged.
+- **One nit:** `lint-citations.py:105` "a vendored lint without the data file" — a
+  leftover vendoring phrase (distinct from the SSRF `:175` "vendored substrate" we
+  preserved). Fixed (reworded to "the lint keeps working without the data file");
+  conformance still 57/57; only the intended `:175` SSRF phrase remains.
+- **Consensus reached.** Advanced to `done` (consensus=done policy).

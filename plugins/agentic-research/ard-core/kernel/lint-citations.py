@@ -102,8 +102,8 @@ SEVERITY_RANK = {"high": 3, "medium": 2, "low": 1, "none": 0}
 def load_catalog_config(catalogs_path):
     """Source the pattern-category set + non-broken-status set from the generated
     catalog data. Returns (matchers, non_broken). Falls back to the hardcoded
-    reference set when catalogs.json is missing/unreadable — so a vendored lint
-    without the data file keeps working (backward compatible)."""
+    reference set when catalogs.json is missing/unreadable — so the lint keeps
+    working without the data file (backward compatible)."""
     try:
         with open(catalogs_path, encoding="utf-8") as fh:
             data = json.load(fh)
