@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { truncate, assertSafeFetchUrl, fetchBounded, parseJsonBody, fetchOneJson, fetchOneArticle } from "./index";
+import { truncate, assertSafeFetchUrl, fetchBounded, parseJsonBody, fetchOneJson, fetchOneArticle, clampMaxChars } from "./index";
 import { extractArticle, ARTICLE_FALLBACK_MARKER } from "./article";
 import zaiResearchExtension from "./index";
 import { looksLikePdfUrl } from "./pdf";
@@ -557,6 +557,292 @@ describe("fetchOneJson (JSON/API mode)", () => {
         const out = await fetchOneJson("https://example.com/huge");
         expect(out).toMatch(/JSON fetch error/);
         expect(out).toMatch(/exceeds.*byte cap/);
+      },
+    );
+  });
+});
+
+// --- Windowing wiring (Unit 2 of feature-zai-fetch-content-paging) ---------
+//
+// The windowing path is exercised through the registered fetch_content tool.
+// webReader mode goes through the MCP hub, which these tests do NOT inject, so
+// the testable seam is article mode (raw HTML via globalThis.fetch →
+// fetchBounded) and PDF mode (local fetch → pdfBufferToMarkdown). JSON mode is
+// covered for the IGNORE path (it never windows).
+
+describe("clampMaxChars", () => {
+  test("defaults to 30000 for undefined / null / non-numbers", () => {
+    expect(clampMaxChars(undefined)).toBe(30_000);
+    expect(clampMaxChars(null)).toBe(30_000);
+    expect(clampMaxChars("5000")).toBe(30_000);
+    expect(clampMaxChars(NaN)).toBe(30_000);
+    expect(clampMaxChars(Infinity)).toBe(30_000);
+  });
+  test("clamps below 1000 up to 1000", () => {
+    expect(clampMaxChars(50)).toBe(1_000);
+    expect(clampMaxChars(0)).toBe(1_000);
+    expect(clampMaxChars(-5)).toBe(1_000);
+    expect(clampMaxChars(999)).toBe(1_000);
+  });
+  test("clamps above 120000 down to 120000", () => {
+    expect(clampMaxChars(999_999)).toBe(120_000);
+    expect(clampMaxChars(1_000_000)).toBe(120_000);
+  });
+  test("passes through in-range values, floored toward zero", () => {
+    expect(clampMaxChars(5_000)).toBe(5_000);
+    expect(clampMaxChars(30_000)).toBe(30_000);
+    expect(clampMaxChars(120_000)).toBe(120_000);
+    expect(clampMaxChars(5_000.9)).toBe(5_000);
+  });
+});
+
+// Build an HTML page whose extracted article is the given paragraphs (one per
+// line), large enough to clear the MIN_ARTICLE_CHARS floor so extractArticle
+// doesn't fall back. Turndown renders <p> as paragraphs separated by blank
+// lines, so each paragraph becomes its own markdown line group.
+function articleHtml(paragraphs: string[]): string {
+  const body = paragraphs.map((p) => `      <p>${p}</p>`).join("\n");
+  return `<!doctype html>
+<html><head><title>Doc</title></head>
+<body>
+    <nav><a href="/">Home</a> | <a href="/blog">Blog</a></nav>
+    <main>
+      <h1>Article Title</h1>
+${body}
+    </main>
+    <footer>FOOTER_NOISE_MARK do not want this</footer>
+</body></html>`;
+}
+
+// A registered-tool pi that captures fetch_content with a typed execute. Each
+// call builds a fresh extension → fresh closure-scoped pageCache, so cases never
+// share cache state. (The session_shutdown reset path is exercised separately.)
+function makeWindowingPi() {
+  const tools: Array<{
+    name: string;
+    parameters: unknown;
+    execute: (
+      id: string,
+      params: Record<string, unknown>,
+      signal: AbortSignal | undefined,
+      onUpdate: unknown,
+      ctx: unknown,
+    ) => Promise<{
+      content: Array<{ type: "text"; text: string }>;
+      details?: Record<string, unknown>;
+      isError?: boolean;
+    }>;
+  }> = [];
+  const api = {
+    registerTool: (def: (typeof tools)[number]) => {
+      tools.push(def);
+    },
+    on: () => {},
+  };
+  zaiResearchExtension(api as unknown as Parameters<typeof zaiResearchExtension>[0]);
+  return { fetch_content: tools.find((t) => t.name === "fetch_content")! };
+}
+
+describe("fetch_content windowing schema", () => {
+  test("parameters include window (start_line, line_count) and max_chars", () => {
+    const { fetch_content } = makeWindowingPi();
+    const params = fetch_content.parameters as {
+      properties: Record<string, Record<string, unknown>>;
+    };
+    expect(params.properties.window).toBeDefined();
+    expect((params.properties.window as { type: string }).type).toBe("object");
+    const windowProps = (params.properties.window as { properties: Record<string, unknown> }).properties;
+    expect(windowProps.start_line).toBeDefined();
+    expect(windowProps.line_count).toBeDefined();
+    expect((params.properties.max_chars as { type: string }).type).toBe("number");
+  });
+});
+
+describe("fetch_content windowing (article mode)", () => {
+  test("no window + content fits budget → exact text, no footer (byte-for-byte today)", async () => {
+    const html = articleHtml([
+      "ARTICLE CANARY PHRASE 777 — the lead paragraph of a small doc.",
+      "Second paragraph with enough body to clear the article floor.",
+      "Third paragraph closes out a short, fitting document.",
+    ]);
+    const expected = extractArticle(html, "https://example.com/docs/fit").markdown;
+    await withMockedFetch(
+      (() => Promise.resolve(new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }))) as typeof globalThis.fetch,
+      async () => {
+        const { fetch_content } = makeWindowingPi();
+        const result = await fetch_content.execute("id", { url: "https://example.com/docs/fit", extract: "article" }, undefined, undefined, {});
+        expect(result.details?.windowed).toBe(true);
+        expect(result.details?.cache_hit).toBe(false);
+        expect(result.details?.has_more).toBe(false);
+        expect(result.content[0].text).toBe(expected); // byte-for-byte today
+        expect(result.content[0].text).not.toMatch(/…\[window:/);
+      },
+    );
+  });
+
+  test("content over budget + no window → first window + footer; next_start_line + has_more set", async () => {
+    // Each paragraph ~60 chars; 1000 paragraphs → ~60k markdown, well over the
+    // 30k default budget. The article floor is cleared by total length.
+    const paragraphs = Array.from({ length: 1000 }, (_, i) => `Paragraph number ${i + 1} with padding text to grow the body.`);
+    const html = articleHtml(paragraphs);
+    await withMockedFetch(
+      (() => Promise.resolve(new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }))) as typeof globalThis.fetch,
+      async () => {
+        const { fetch_content } = makeWindowingPi();
+        const result = await fetch_content.execute("id", { url: "https://example.com/docs/long", extract: "article" }, undefined, undefined, {});
+        const details = result.details!;
+        expect(details.windowed).toBe(true);
+        expect(details.has_more).toBe(true);
+        expect(typeof details.next_start_line).toBe("number");
+        expect(details.next_start_line as number).toBeGreaterThan(1);
+        expect(result.content[0].text).toMatch(/…\[window: lines /);
+        expect(result.content[0].text).toMatch(/to continue\]/);
+      },
+    );
+  });
+
+  test("second windowed call on the same URL is a cache hit (no globalThis.fetch)", async () => {
+    const html = articleHtml([
+      "ARTICLE CANARY PHRASE 777 — the lead paragraph of a small doc.",
+      "Second paragraph with enough body to clear the article floor.",
+      "Third paragraph closes out a short, fitting document.",
+    ]);
+    let fetchCalls = 0;
+    const mock = (() => {
+      fetchCalls++;
+      return Promise.resolve(new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }));
+    }) as typeof globalThis.fetch;
+    await withMockedFetch(mock, async () => {
+      const { fetch_content } = makeWindowingPi();
+      // First call: no window → cache miss → fetches.
+      const first = await fetch_content.execute("id", { url: "https://example.com/docs/cached", extract: "article" }, undefined, undefined, {});
+      expect(first.details?.cache_hit).toBe(false);
+      expect(fetchCalls).toBe(1);
+      // Second call: explicit window on the same URL/mode → cache hit → no fetch.
+      const second = await fetch_content.execute("id", { url: "https://example.com/docs/cached", extract: "article", window: { start_line: 2 } }, undefined, undefined, {});
+      expect(fetchCalls).toBe(1); // unchanged — served from cache
+      expect(second.details?.cache_hit).toBe(true);
+      expect(second.details?.windowed).toBe(true);
+    });
+  });
+
+  test("a failed fetch is not cached: a later same-URL call re-fetches", async () => {
+    let fetchCalls = 0;
+    const mock = (() => {
+      fetchCalls++;
+      return Promise.resolve(new Response("<html>error</html>", { status: 502, headers: { "content-type": "text/html" } }));
+    }) as typeof globalThis.fetch;
+    await withMockedFetch(mock, async () => {
+      const { fetch_content } = makeWindowingPi();
+      const first = await fetch_content.execute("id", { url: "https://example.com/docs/down", extract: "article" }, undefined, undefined, {});
+      expect(fetchCalls).toBe(1);
+      expect(first.details?.windowed).toBe(false);
+      expect(first.details?.window_ignored_reason).toBe("fetch_error");
+      expect(first.details?.cache_hit).toBe(false);
+      expect(first.content[0].text).toMatch(/article fetch error/);
+      expect(first.content[0].text).toContain("HTTP 502");
+      // Not cached → the second call must fetch again.
+      const second = await fetch_content.execute("id", { url: "https://example.com/docs/down", extract: "article" }, undefined, undefined, {});
+      expect(fetchCalls).toBe(2);
+      expect(second.details?.cache_hit).toBe(false);
+      expect(second.content[0].text).toMatch(/article fetch error/);
+    });
+  });
+
+  test("max_chars clamps and the returned text + footer stays within the budget", async () => {
+    const paragraphs = Array.from({ length: 1000 }, (_, i) => `Paragraph number ${i + 1} with padding text to grow the body.`);
+    const html = articleHtml(paragraphs);
+    await withMockedFetch(
+      (() => Promise.resolve(new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }))) as typeof globalThis.fetch,
+      async () => {
+        const { fetch_content } = makeWindowingPi();
+        const result = await fetch_content.execute("id", { url: "https://example.com/docs/budget", extract: "article", max_chars: 5_000 }, undefined, undefined, {});
+        const details = result.details!;
+        expect(details.max_chars).toBe(5_000);
+        expect(details.truncated_by_char_ceiling).toBe(true);
+        expect(details.has_more).toBe(true);
+        // text + footer ≤ max_chars (the total budget, footer reserved inside it).
+        expect(result.content[0].text.length).toBeLessThanOrEqual(5_000);
+      },
+    );
+  });
+
+  test("max_chars out-of-range values are clamped in details.max_chars", async () => {
+    const html = articleHtml(["Small article that fits any budget."]);
+    const mock = (() => Promise.resolve(new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }))) as typeof globalThis.fetch;
+    await withMockedFetch(mock, async () => {
+      const { fetch_content } = makeWindowingPi();
+      const tooSmall = await fetch_content.execute("id", { url: "https://example.com/docs/a", extract: "article", max_chars: 50 }, undefined, undefined, {});
+      expect(tooSmall.details?.max_chars).toBe(1_000);
+      const tooBig = await fetch_content.execute("id", { url: "https://example.com/docs/b", extract: "article", max_chars: 999_999 }, undefined, undefined, {});
+      expect(tooBig.details?.max_chars).toBe(120_000);
+      const omitted = await fetch_content.execute("id", { url: "https://example.com/docs/c", extract: "article" }, undefined, undefined, {});
+      expect(omitted.details?.max_chars).toBe(30_000);
+    });
+  });
+
+  test("window past the end → footer-only past_end result", async () => {
+    const html = articleHtml(["A small article with only a few lines of content."]);
+    await withMockedFetch(
+      (() => Promise.resolve(new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }))) as typeof globalThis.fetch,
+      async () => {
+        const { fetch_content } = makeWindowingPi();
+        const result = await fetch_content.execute("id", { url: "https://example.com/docs/short", extract: "article", window: { start_line: 999_999 } }, undefined, undefined, {});
+        const details = result.details!;
+        expect(details.windowed).toBe(true);
+        expect(details.past_end).toBe(true);
+        expect(details.has_more).toBe(false);
+        expect(result.content[0].text).toMatch(/past end of content/);
+      },
+    );
+  });
+});
+
+describe("fetch_content windowing (PDF + json routing)", () => {
+  test("PDF URL with return_format:json is windowable (PDF precedence wins)", async () => {
+    // sample.pdf lives at the plugin-root fixtures dir (extensions/test/fixtures
+    // holds the HTML fixtures); mirror pdf.test.ts's path resolution.
+    const pdfBytes = await readFile(join(import.meta.dir, "..", "test", "fixtures", "sample.pdf"));
+    await withMockedFetch(
+      (() => Promise.resolve(new Response(pdfBytes, { status: 200, headers: { "content-type": "application/pdf" } }))) as typeof globalThis.fetch,
+      async () => {
+        const { fetch_content } = makeWindowingPi();
+        const result = await fetch_content.execute("id", { url: "https://example.com/doc.pdf", return_format: "json" }, undefined, undefined, {});
+        // PDF precedence wins: windowed PDF markdown, NOT a JSON direct fetch.
+        expect(result.details?.windowed).toBe(true);
+        expect(result.details?.cache_hit).toBe(false);
+        expect(result.content[0].text).toContain("Page one zai-research fixture");
+        expect(result.content[0].text).not.toMatch(/JSON fetch error/);
+      },
+    );
+  });
+});
+
+describe("fetch_content windowing (JSON + batch ignore window)", () => {
+  test("single-URL JSON ignores window; windowed=false + window_ignored_reason='json'", async () => {
+    await withMockedFetch(
+      (() => Promise.resolve(new Response('{"b":2,"a":1}', { status: 200, headers: { "content-type": "application/json" } }))) as typeof globalThis.fetch,
+      async () => {
+        const { fetch_content } = makeWindowingPi();
+        const result = await fetch_content.execute("id", { url: "https://example.com/api.json", return_format: "json", window: { start_line: 5 }, max_chars: 5_000 }, undefined, undefined, {});
+        expect(result.details?.windowed).toBe(false);
+        expect(result.details?.window_ignored_reason).toBe("json");
+        expect(result.content[0].text).toContain('"b":2,"a":1');
+      },
+    );
+  });
+
+  test("multi-URL batch ignores window; windowed=false + window_ignored_reason='batch'", async () => {
+    await withMockedFetch(
+      (() => Promise.resolve(new Response('{"ok":true}', { status: 200, headers: { "content-type": "application/json" } }))) as typeof globalThis.fetch,
+      async () => {
+        const { fetch_content } = makeWindowingPi();
+        const result = await fetch_content.execute("id", { urls: ["https://example.com/a.json", "https://example.com/b.json"], return_format: "json", window: { start_line: 5 } }, undefined, undefined, {});
+        expect(result.details?.windowed).toBe(false);
+        expect(result.details?.window_ignored_reason).toBe("batch");
+        // Both URLs surface in the joined batch body.
+        expect(result.content[0].text).toContain("## https://example.com/a.json");
+        expect(result.content[0].text).toContain("## https://example.com/b.json");
       },
     );
   });

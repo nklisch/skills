@@ -21,12 +21,24 @@
 import { createMcpHub, type McpHub } from "./mcp.js";
 import { pdfBufferToMarkdown, looksLikePdfUrl } from "./pdf.js";
 import { extractArticle } from "./article.js";
+import { applyWindow, PageCache, cacheKey } from "./paging.js";
+import type { WindowSpec, WindowResult } from "./paging.js";
 
 const MAX_RETURN_CHARS = 60_000; // cap text returned to the model per tool call
 const MAX_FETCH_URLS = 20; // cap parallel fan-out in fetch_content
 const MAX_PDF_BYTES = 25_000_000; // cap a single local PDF download (25 MB)
 const MAX_JSON_BYTES = 5_000_000; // cap a single JSON/API direct fetch (5 MB)
 const PDF_FETCH_TIMEOUT_MS = 30_000; // timeout for a local PDF / JSON download
+
+// --- Windowing (single-URL text-mode path) --------------------------------
+// Windowing is a NEW path layered on fetch_content's single-URL text modes
+// (webReader HTML, article, PDF markdown). It does NOT replace MAX_RETURN_CHARS
+// above, which still caps web_search, the zread tools, and fetch_content's
+// batch/JSON paths. See `feature-zai-fetch-content-paging` for the design.
+const DEFAULT_MAX_CHARS = 30_000; // total returned budget (text + footer) when max_chars is omitted
+const MIN_MAX_CHARS = 1_000; // floor for the max_chars clamp
+const MAX_MAX_CHARS = 120_000; // hard ceiling for the max_chars clamp
+const RESERVED_OVERHEAD = 256; // footer + marker budget reserved inside max_chars (like truncate)
 
 // UTF-8 BOM bytes (EF BB BF). Some APIs emit a leading BOM; strip it before
 // JSON.parse, which otherwise fails with "Unexpected token \uFEFF".
@@ -116,6 +128,41 @@ export function truncate(text: string, max = MAX_RETURN_CHARS): string {
   const marker = `\n\n…[truncated by zai-research: showing first ${max} of ${text.length} chars]`;
   const budget = Math.max(0, max - marker.length);
   return `${text.slice(0, budget)}${marker}`;
+}
+
+/**
+ * Clamp a caller-supplied `max_chars` to the windowing budget range.
+ *
+ * `max_chars` is the TOTAL returned budget (window text + footer + marker),
+ * mirroring how {@link truncate} budgets its marker inside the cap. The windowing
+ * path reserves {@link RESERVED_OVERHEAD} for the footer before slicing, so the
+ * returned `text + footer ≤ max_chars`. Non-finite / non-number values fall back
+ * to {@link DEFAULT_MAX_CHARS}; the value is then floored and clamped to
+ * `[MIN_MAX_CHARS, MAX_MAX_CHARS]`.
+ */
+export function clampMaxChars(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_MAX_CHARS;
+  // `| 0` floors toward zero (truncate). The clamp range is well inside 32-bit,
+  // so this is safe and matches the spec's `value | 0` formulation.
+  return Math.min(Math.max(value | 0, MIN_MAX_CHARS), MAX_MAX_CHARS);
+}
+
+/**
+ * Human-readable window footer appended to partial or explicit-window results.
+ * Convenience only — the structured `details` (next_start_line, has_more, …) is
+ * the source of truth an agent uses to advance, not this string.
+ *
+ * The `past_end` case gets a distinct message: the standard range footer would
+ * read `lines N+1–N of N` (start > end), which is confusing. The agent-facing
+ * signal is still `details.past_end === true`.
+ */
+export function windowFooter(w: WindowResult): string {
+  if (w.past_end) {
+    return `…[window: past end of content (line ${w.returned.start} requested; ${w.total_lines} total) · no more content]`;
+  }
+  const next = w.returned.end + 1;
+  const charNote = w.truncated_by_char_ceiling ? " · char-ceiling truncated" : "";
+  return `…[window: lines ${w.returned.start}–${w.returned.end} of ${w.total_lines}${charNote} · request line ${next} to continue]`;
 }
 
 /**
@@ -322,11 +369,11 @@ export function parseJsonBody(result: FetchBoundedResult): ParseJsonOutcome {
 }
 
 /**
- * Fetch one URL in article-extraction mode: bounded raw-HTML fetch → UTF-8
- * decode → {@link extractArticle}. SSRF rejection, byte-cap overflow, and
- * HTTP errors are returned as inline `[article fetch error ...]` strings so a
- * batch with one bad URL doesn't sink the rest (per-URL isolation, matching
- * {@link fetchOneJson} and the existing PDF/HTML error wrapping).
+ * Core article fetch returning `{ text, ok }` so the windowing cache can skip
+ * errors — a cached error string would poison subsequent windows for the TTL,
+ * and a concurrent last-write-wins could cache failure over success. The public
+ * {@link fetchOneArticle} wrapper preserves the string-only return shape that
+ * existing callers and tests depend on.
  *
  * Reuses {@link MAX_PDF_BYTES} for the HTML cap in v1 (25 MB is generous for
  * doc pages; a dedicated HTML cap can be split out later if needed). Non-2xx
@@ -334,48 +381,79 @@ export function parseJsonBody(result: FetchBoundedResult): ParseJsonOutcome {
  * templates with no real article, and feeding them to Readability would
  * produce misleading "extraction succeeded" output.
  */
-export async function fetchOneArticle(url: string, signal?: AbortSignal): Promise<string> {
+async function fetchOneArticleResult(
+  url: string,
+  signal?: AbortSignal,
+): Promise<{ text: string; ok: boolean }> {
   try {
     assertSafeFetchUrl(url);
   } catch (err) {
-    return `[article fetch error for ${url}: SSRF rejected: ${(err as Error).message}]`;
+    return { text: `[article fetch error for ${url}: SSRF rejected: ${(err as Error).message}]`, ok: false };
   }
   let result: FetchBoundedResult;
   try {
     result = await fetchBounded(url, MAX_PDF_BYTES, signal);
   } catch (err) {
-    return `[article fetch error for ${url}: ${(err as Error).message}]`;
+    return { text: `[article fetch error for ${url}: ${(err as Error).message}]`, ok: false };
   }
   if (result.status < 200 || result.status >= 300) {
-    return `[article fetch error for ${url}: HTTP ${result.status}]`;
+    return { text: `[article fetch error for ${url}: HTTP ${result.status}]`, ok: false };
   }
   const html = new TextDecoder("utf-8").decode(new Uint8Array(result.body));
   // extractArticle already prefixes the fallback marker when distillation
-  // fails, so we pass `markdown` straight through without re-marking.
+  // fails, so we pass `markdown` straight through without re-marking. A
+  // fallback is still a SUCCESSFUL fetch (real, if lower-quality, content),
+  // so it is cached like any other result.
   const { markdown } = extractArticle(html, url);
-  return markdown;
+  return { text: markdown, ok: true };
 }
 
 /**
- * Fetch one URL in JSON/API mode. SSRF rejection, byte-cap overflow, and
- * parse failures are returned as inline `[JSON fetch error ...]` strings so a
- * batch with one bad URL doesn't sink the rest (per-URL isolation, matching
- * the existing PDF/HTML error wrapping in fetch_content).
+ * Fetch one URL in article-extraction mode: bounded raw-HTML fetch → UTF-8
+ * decode → {@link extractArticle}. SSRF rejection, byte-cap overflow, and HTTP
+ * errors are returned as inline `[article fetch error ...]` strings so a batch
+ * with one bad URL doesn't sink the rest (per-URL isolation, matching
+ * {@link fetchOneJson} and the existing PDF/HTML error wrapping). Thin wrapper
+ * over {@link fetchOneArticleResult}; see that for the full contract.
  */
-export async function fetchOneJson(url: string, signal?: AbortSignal): Promise<string> {
+export async function fetchOneArticle(url: string, signal?: AbortSignal): Promise<string> {
+  return (await fetchOneArticleResult(url, signal)).text;
+}
+
+/**
+ * Core JSON/API fetch returning `{ text, ok }` so the windowing cache can skip
+ * errors (a cached parse failure would be served to later windows for the TTL).
+ * The public {@link fetchOneJson} wrapper preserves the string-only return shape
+ * that existing callers and tests depend on.
+ */
+async function fetchOneJsonResult(
+  url: string,
+  signal?: AbortSignal,
+): Promise<{ text: string; ok: boolean }> {
   try {
     assertSafeFetchUrl(url);
   } catch (err) {
-    return `[JSON fetch error for ${url}: SSRF rejected: ${(err as Error).message}]`;
+    return { text: `[JSON fetch error for ${url}: SSRF rejected: ${(err as Error).message}]`, ok: false };
   }
   let result: FetchBoundedResult;
   try {
     result = await fetchBounded(url, MAX_JSON_BYTES, signal);
   } catch (err) {
-    return `[JSON fetch error for ${url}: ${(err as Error).message}]`;
+    return { text: `[JSON fetch error for ${url}: ${(err as Error).message}]`, ok: false };
   }
   const outcome = parseJsonBody(result);
-  return outcome.ok ? outcome.text : `[JSON fetch error for ${url}: ${outcome.error}]`;
+  return outcome.ok ? { text: outcome.text, ok: true } : { text: `[JSON fetch error for ${url}: ${outcome.error}]`, ok: false };
+}
+
+/**
+ * Fetch one URL in JSON/API mode. SSRF rejection, byte-cap overflow, and parse
+ * failures are returned as inline `[JSON fetch error ...]` strings so a batch
+ * with one bad URL doesn't sink the rest (per-URL isolation, matching the
+ * existing PDF/HTML error wrapping in fetch_content). Thin wrapper over
+ * {@link fetchOneJsonResult}; see that for the full contract.
+ */
+export async function fetchOneJson(url: string, signal?: AbortSignal): Promise<string> {
+  return (await fetchOneJsonResult(url, signal)).text;
 }
 
 /** Resolve the Z.ai API key from the configured zai provider. */
@@ -402,6 +480,12 @@ export default function zaiResearchExtension(pi: PiApi): void {
   // Mutable: refreshed on every tool call so a registry/key change mid-session
   // is picked up (don't pin the first call's context forever).
   let currentRegistry: ModelRegistryLike | undefined;
+  // Windowing cache: closure-scoped (like hub/currentRegistry), NOT module scope,
+  // so each extension instance — and therefore each test's fresh `makePi()` — gets
+  // an isolated cache that never leaks across cases. Reset on session_shutdown
+  // alongside hub. The cache is a transparent internal optimization; callers
+  // never name it (see feature-zai-fetch-content-paging design decisions).
+  let pageCache = new PageCache();
 
   function getHub(ctx: ToolContext): McpHub {
     currentRegistry = ctx.modelRegistry ?? currentRegistry;
@@ -487,7 +571,15 @@ export default function zaiResearchExtension(pi: PiApi): void {
     // HTML/webReader path. JSON mode ignores it (it returns parsed JSON).
     const returnFormat = params.return_format === "text" ? "text" : "markdown";
 
-    const fetchOne = async (url: string): Promise<string> => {
+    // Per-URL fetch returning { text, ok }. The existing fetchOne collapsed
+    // backend errors into ordinary strings (`[webReader error…]`, `[article
+    // fetch error…]`, `[fetch failed…]`); surfacing `ok` lets the windowing path
+    // cache ONLY successful fetches — a cached error would poison subsequent
+    // windows for the TTL. On `!ok` the windowing path returns the inline-error
+    // text WITHOUT caching, preserving today's per-URL error isolation. The
+    // batch path consumes `.text`, which is byte-identical to today's fetchOne
+    // return, so batch behavior is unchanged.
+    const fetchOneForWindow = async (url: string): Promise<{ text: string; ok: boolean }> => {
       // PDF → local provider-free extraction (with SSRF + size guards); on
       // local failure (e.g. a .pdf URL that is actually HTML), fall through to
       // webReader so a false-positive heuristic doesn't strand the URL.
@@ -495,15 +587,17 @@ export default function zaiResearchExtension(pi: PiApi): void {
       // routing is preserved.
       if (looksLikePdfUrl(url)) {
         try {
-          return await fetchOnePdf(url, signal);
+          return { text: await fetchOnePdf(url, signal), ok: true };
         } catch (err) {
           // Local extraction failed — try webReader as a fallback.
           try {
             const args2: Record<string, unknown> = { url, return_format: returnFormat, retain_images: false, with_links_summary: false, with_images_summary: false };
             const res2 = await getHub(ctx).call("web-reader", "webReader", args2, signal);
-            return `[local PDF extraction failed (${(err as Error).message}); webReader fallback]:\n${res2.isError ? res2.text : res2.text}`;
+            // The fallback produced content: cacheable only when webReader itself
+            // did not error. The prefixed note preserves today's text shape.
+            return { text: `[local PDF extraction failed (${(err as Error).message}); webReader fallback]:\n${res2.text}`, ok: !res2.isError };
           } catch (err2) {
-            return `[fetch failed for ${url}: local=${(err as Error).message}; webReader=${(err2 as Error).message}]`;
+            return { text: `[fetch failed for ${url}: local=${(err as Error).message}; webReader=${(err2 as Error).message}]`, ok: false };
           }
         }
       }
@@ -512,14 +606,14 @@ export default function zaiResearchExtension(pi: PiApi): void {
       // not a rendered-docs dump. Per-URL isolated errors so a batch with one
       // bad URL doesn't sink the rest.
       if (wantJson) {
-        return await fetchOneJson(url, signal);
+        return await fetchOneJsonResult(url, signal);
       }
       // Article extraction (raw HTML fetch + readability + turndown). Strips
       // nav/sidebars/footers from noisy doc pages. Per-URL isolated errors.
       // Ignored for PDFs (handled above) and JSON mode (handled above +
       // rejected up front as mutually exclusive).
       if (wantArticle) {
-        return await fetchOneArticle(url, signal);
+        return await fetchOneArticleResult(url, signal);
       }
       // HTML via webReader — isolated per URL so one failure doesn't sink the batch.
       try {
@@ -531,14 +625,103 @@ export default function zaiResearchExtension(pi: PiApi): void {
           with_images_summary: false,
         };
         const res = await getHub(ctx).call("web-reader", "webReader", args, signal);
-        return res.isError ? `[webReader error for ${url}:\n${res.text}]` : res.text;
+        return res.isError ? { text: `[webReader error for ${url}:\n${res.text}]`, ok: false } : { text: res.text, ok: true };
       } catch (err) {
-        return `[webReader failed for ${url}: ${(err as Error).message}]`;
+        return { text: `[webReader failed for ${url}: ${(err as Error).message}]`, ok: false };
       }
     };
 
+    // Windowable follows the EFFECTIVE route, not the raw wantJson flag. PDF
+    // URL precedence wins over return_format:"json" in fetchOneForWindow (a
+    // PDF+json call returns PDF markdown), so a PDF URL with json IS windowable.
+    // Excluded: only the effective JSON direct-fetch path (single-URL,
+    // non-PDF, wantJson) and multi-URL batches (handled below).
+    const windowable = urls.length === 1 && !(wantJson && !looksLikePdfUrl(urls[0]));
+
+    if (windowable) {
+      const maxChars = clampMaxChars(params.max_chars);
+      const contentBudget = maxChars - RESERVED_OVERHEAD;
+      // Narrow the untyped params.window once, so spec construction and the
+      // explicit-window check both read from a typed shape (params is
+      // Record<string, unknown>; nested access would otherwise be on unknown).
+      const windowParam = params.window as { start_line?: number; line_count?: number } | undefined;
+      const spec: WindowSpec = {
+        start_line: windowParam?.start_line,
+        line_count: windowParam?.line_count,
+      };
+      const explicitWindow = windowParam != null;
+      const key = cacheKey(urls[0], {
+        return_format: typeof params.return_format === "string" ? params.return_format : undefined,
+        extract: typeof params.extract === "string" ? params.extract : undefined,
+      });
+
+      let cacheHit = true;
+      let blob = pageCache.get(key);
+      if (!blob) {
+        cacheHit = false;
+        const r = await fetchOneForWindow(urls[0]);
+        if (!r.ok) {
+          // Failed fetch: return the inline-error text WITHOUT caching, so a
+          // later same-URL call re-fetches rather than serving a cached error.
+          // `truncate` mirrors today's single-URL error path (a no-op for the
+          // short error strings, but kept for byte-for-byte fidelity).
+          return {
+            content: [{ type: "text", text: truncate(r.text) || "(no content)" }],
+            details: { urls, windowed: false, window_ignored_reason: "fetch_error", cache_hit: false },
+          };
+        }
+        // total_lines is informational metadata; applyWindow recomputes the
+        // VIRTUAL line count (after wrapping overlong lines) from `text`, so
+        // this raw split count is not used for windowing — stored cheaply to
+        // satisfy the CachedBlob shape.
+        blob = {
+          text: r.text,
+          total_lines: r.text === "" ? 0 : r.text.split("\n").length,
+          fetchedAt: Date.now(),
+        };
+        // PageCache refuses oversize blobs (never leaves the cache over budget);
+        // the blob is still served for THIS call via `w` below.
+        pageCache.set(key, blob);
+      }
+
+      const w = applyWindow(blob.text, spec, contentBudget);
+      // Exact backward-compat for implicit fitting calls: when the caller
+      // supplied NO window AND the whole content fits in one window, return the
+      // text EXACTLY as today — no footer, no window metadata in the text.
+      // (Today's single-URL sub-cap path returns truncate(body), a no-op under
+      // the cap; this preserves it byte-for-byte.)
+      const fitsWhole =
+        !w.past_end &&
+        w.returned.start === 1 &&
+        w.returned.end === w.total_lines &&
+        !w.truncated_by_char_ceiling;
+      const showFooter = explicitWindow || !fitsWhole;
+      const footer = showFooter ? windowFooter(w) : "";
+      const text = w.past_end ? footer : footer ? `${w.text}\n\n${footer}` : w.text;
+      return {
+        content: [{ type: "text", text }],
+        details: {
+          urls,
+          windowed: true,
+          total_lines: w.total_lines,
+          returned: w.returned,
+          next_start_line: w.returned.end + 1,
+          has_more: w.returned.end < w.total_lines,
+          past_end: w.past_end,
+          truncated_by_char_ceiling: w.truncated_by_char_ceiling,
+          cache_hit: cacheHit,
+          requested: spec,
+          max_chars: maxChars,
+        },
+      };
+    }
+
+    // Batch (urls.length > 1) or effective-JSON single-URL: windowing does NOT
+    // apply. Slicing compacted JSON mid-structure yields broken fragments, and
+    // a multi-URL batch is a joined doc — both keep today's head-truncate at
+    // MAX_RETURN_CHARS. window + max_chars are ignored; details reports why.
     try {
-      const results = await Promise.all(urls.map((u) => fetchOne(u)));
+      const results = await Promise.all(urls.map(async (u) => (await fetchOneForWindow(u)).text));
       const body =
         urls.length === 1
           ? results[0]
@@ -547,7 +730,15 @@ export default function zaiResearchExtension(pi: PiApi): void {
               .join("\n\n---\n\n");
       return {
         content: [{ type: "text", text: truncate(body) || "(no content)" }],
-        details: { urls, server: "web-reader", pdfUsed: urls.some(looksLikePdfUrl), jsonMode: wantJson, articleMode: wantArticle },
+        details: {
+          urls,
+          server: "web-reader",
+          pdfUsed: urls.some(looksLikePdfUrl),
+          jsonMode: wantJson,
+          articleMode: wantArticle,
+          windowed: false,
+          window_ignored_reason: urls.length > 1 ? "batch" : "json",
+        },
       };
     } catch (err) {
       return { content: [{ type: "text", text: `fetch_content failed: ${(err as Error).message}` }], isError: true };
@@ -668,6 +859,11 @@ export default function zaiResearchExtension(pi: PiApi): void {
         ["full", "article"],
         'For HTML pages, "full" (default) returns the whole webReader output; "article" fetches raw HTML directly, strips nav/sidebars/footers via readability, and returns markdown. Ignored for PDF URLs and for return_format: "json".',
       ),
+      window: obj({
+        start_line: num("1-indexed line to start the window at (default 1). Pass next_start_line from a prior call's details to continue. The fetched blob is cached, so advancing does not re-fetch."),
+        line_count: num("Number of lines to return in this window (default 500)."),
+      }, []),
+      max_chars: num("Total char budget for the returned text + footer (default 30000, clamped to [1000, 120000]). Raise it for long-but-coherent content; windowing still applies past the budget."),
     }, []),
     execute: fetchContentExecute,
   });
@@ -726,5 +922,9 @@ export default function zaiResearchExtension(pi: PiApi): void {
       await hub.close();
       hub = null;
     }
+    // Drop the windowing cache too — a new session must not serve stale blobs
+    // from the previous one. Reassign (PageCache has no clear()) so any
+    // in-flight reference style stays valid while the closure starts fresh.
+    pageCache = new PageCache();
   });
 }
