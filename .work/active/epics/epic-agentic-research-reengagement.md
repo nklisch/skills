@@ -1,7 +1,7 @@
 ---
 id: epic-agentic-research-reengagement
 kind: epic
-stage: implementing
+stage: done
 tags: [skill, tooling]
 parent: null
 depends_on: []
@@ -184,3 +184,11 @@ this plugin shape.
 **Notes**: Substrate mode, deep lane, cross-model. The two blockers are post-absorption v0.7
 propagation drift, shared with `epic-agentic-research` (the registration story is common to both).
 Epic closes once both v0.7 stories land.
+
+## Closed (2026-06-25)
+
+Advanced `implementing → done`. Both v0.7 blocker stories have landed:
+`story-record-refresh-verification-scope` (§221 refresh-verification scope) merged via PR #31, and
+the shared `story-propagate-v07-ten-field-registration` (peer-approved, merged via PR #28) advanced
+to `done` in this same cleanup. All 4 child features/stories are `done`; no epic-level review gate
+applies (`## Stage overrides: none`).

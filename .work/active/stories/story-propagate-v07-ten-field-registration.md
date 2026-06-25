@@ -1,9 +1,9 @@
 ---
 id: story-propagate-v07-ten-field-registration
 kind: story
-stage: review
+stage: done
 tags: [docs, skill, plugin]
-parent: null
+parent: epic-agentic-research
 depends_on: []
 release_binding: null
 gate_origin: null
@@ -89,6 +89,15 @@ present-tense field-count refs. Conformance 57/57.
 README.md + the agile-workflow convert template) deferred to
 `story-reframe-research-dials-commissioning-subset` — defensible phrasing, not the v0.7 blocker,
 and it would pull in an agile-workflow bump.
+
+## Closeout (2026-06-25)
+
+Advanced `review → done` and parented to `epic-agentic-research` (was orphaned `parent: null`,
+though both epic bodies named it as their shared v0.7 blocker). Work was peer-approved (pass 3:
+"Approve. Refresh-recipe sweep complete; all checks hold.") and the code merged via PR #28; the
+substrate item was simply never advanced past `review`. No further work — this is the formal
+stage transition that lets both `epic-agentic-research` and `epic-agentic-research-reengagement`
+close.
 
 This is one of the two blocker-stories the epics `epic-agentic-research` and
 `epic-agentic-research-reengagement` bounced on. The other (`story-record-refresh-verification-scope`)
