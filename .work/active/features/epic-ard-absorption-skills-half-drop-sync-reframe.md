@@ -125,33 +125,87 @@ links to removed paths or to the (root-half) submodule.
   The reframe replaces it with the absorbed-identity description (no version pin),
   fixing the drift as a side effect.
 
+### Scope expansion (design-review pass 1 — vendoring narrative is repo-wide, not plugin-dir-only)
+
+The first design draft scoped to the plugin dir. The peer found vendoring
+narrative the absorption must reframe in **more places**, including inside the
+`ard-core/` tree itself (those files were copied verbatim from the separate-repo
+source and carry its framing):
+
+- **`AGENTS.md:17` (REPO ROOT, canonical)** — the plugin-map row says
+  agentic-research "vendors ARD's `kernel/` consumption-contract surface, pinned in
+  `plugins/agentic-research/ard.json`." Canonical repo guidance — reframe to the
+  absorbed model (ARD is internal; no `ard.json` pin).
+- **`ard-core/kernel/discipline.md:6`** — the canonical discipline body itself says
+  "This is a `verbatim` vendorable artifact (per `ard.json`)." Now false (no
+  `ard.json`; it IS the source, not a vendorable copy). Reframe — but **carefully**:
+  this is the discipline that gets inlined into dispatches, and it is also a
+  byte-source for any future re-distillation. Reword the vendoring framing to the
+  absorbed reality without disturbing §1-8 (the must-travel content). NB: editing
+  this file changes the conformance/byte-identity story vs the `ard/` source — the
+  scaffold's "byte-identical to source" property is intentionally broken here
+  (absorbed ≠ vendored); note it so a future diff-check doesn't flag it.
+- **`ard-core/kernel/README.md:55`** — a whole "## Vendoring + drift checks"
+  section; reframe/remove.
+- **`ard-core/README.md:9`** — the migration-status note (authored by the scaffold);
+  once F3 lands, the migration IS complete, so soften "the plugin's skills/scripts
+  are repointed BY collapse-vendoring" → "are repointed" (present tense; the
+  hedge is no longer needed post-F2/F3).
+- **`skills/research-orchestrator/SKILL.md:382`** + **`skills/convert/SKILL.md:94`**
+  ("ARD v0.6.0 supplies…") + **`templates/acquisitions.md:1`** (the
+  "NOT a vendored ARD artifact / carries no ARD-Version" comment) — reframe the
+  separate-framework / version-pin / vendoring language.
+
 ### Units
 
 1. **Delete the sync machinery** — `git rm scripts/ard-sync.py
    scripts/tests/test_ard_sync.py ard.json`. Sweep for any remaining import/ref to
    `ard_sync` or `ard.json` (the `tests/` dir may have an `__init__` or runner).
-2. **Reframe the channel manifests + marketplace (4 "Adopts ARD vX" strings)** —
-   `.claude-plugin/plugin.json:3`, `.codex-plugin/plugin.json:4,14` (×2),
-   `package.json:4`, root `.claude-plugin/marketplace.json:45` (the v0.5.1 one).
-   Replace "Adopts ARD v0.X" with the absorbed-identity phrasing (ARD is the
-   plugin's internal discipline; no external version pin). Keep the cross-channel
-   `version` fields (plugin semver) in lockstep — they are NOT the ARD version.
+   **Public-surface note:** `README.md:10` documented `ard.json` as "public truth"
+   — retiring it is part of why the **conformance-bump (F4) bump may be major /
+   needs the pre-1.0 exception note** (already flagged in F4). Name that dependency.
+2. **Reframe the channel manifests + marketplace (4 surfaces / 5 occurrences)** —
+   `.claude-plugin/plugin.json:3`, `.codex-plugin/plugin.json:4` **and** `:14`
+   (two occurrences in this file), `package.json:4`, root
+   `.claude-plugin/marketplace.json:45` (the staler v0.5.1 one). Replace
+   "Adopts ARD v0.X" with the absorbed-identity phrasing (ARD is the plugin's
+   internal discipline; no external version pin). Keep the cross-channel `version`
+   fields (plugin semver) in lockstep — they are NOT the ARD version.
 3. **Reframe `README.md`** — the lead ("Adopts ARD v0.6.0 … pinned in ard.json …
    Upstream framework by Kevoun") → absorbed model; README:32 ("vendored verbatim")
    → "wraps `ard-core/kernel/discipline.md`" (the F2-flagged drift). Name the
    rejected separate-repo path + the revisit-if-2nd-adopter escape hatch inline.
 4. **Reframe `docs/{VERSIONING,ADOPTION,ARCHITECTURE,HANDOFF}.md`** — remove the
-   dual-pin / vendor-map tables (ADOPTION's "vendorable surface" §, VERSIONING's
-   re-sync rows), the workbench/engine split, the byte-parity fence narrative.
+   dual-pin / vendor-map tables (ADOPTION's "Vendor-mode taxonomy" §31-39 +
+   "Vendor map" §41-56 — both pure vendoring, delete; the rest of ADOPTION is
+   real substrate content that SURVIVES: Adoption stance, Standing-up `.research/`,
+   The discipline, The verification floor, Cross-harness degradation), VERSIONING's
+   re-sync rows, the workbench/engine split, the byte-parity fence narrative.
    Repoint any `scripts/{lint-citations,catalogs,conformance,schema}` reference to
    `ard-core/kernel/...`. Describe the absorbed, empirical-first model; point at
    `ard-core/evidence/` (primary warrant) + `ard-core/theory/` (opt-in).
+   **`HANDOFF.md` — touch ONLY vendoring/identity language; preserve the live
+   `.work`↔`.research` contract semantics** (`HANDOFF.md:21` is the working
+   contract — do not disturb it). While here, reconcile a **pre-existing**
+   inconsistency the peer surfaced (independent of vendoring): `research-handoff/SKILL.md:32`
+   still expects a campaign `dispatch.md`, while `research-orchestrator/SKILL.md:241`
+   says a work-item-commissioned engagement carries the registration on the work
+   item (no `dispatch.md`). Align the two — small, but it lives in the same files;
+   if it proves larger than a wording fix, park it as a separate backlog item
+   rather than expand F3's scope.
 5. **Rewrite the F1 dangling links** — `ard-core/SPEC.md` (5 targets:
    `VERSIONING.md`, `LICENSE`, `ADOPTING.md`, `example/`, `.research/`) +
    `ard-core/theory/README.md` (`../.gitignore`), per `ard-core/.dangling-links-inventory.md`.
-   Repoint where an absorbed equivalent exists (`.research/` → `theory/`), drop the
-   rest (`example/`, `ADOPTING.md`, `LICENSE` badge, the gitignore ref). Re-run the
-   full-tree dangling scan → asserts clean.
+   Per-target calls (peer-refined):
+   - `.research/` → **repoint to `theory/`** (the trace tier ported there).
+   - `example/`, `ADOPTING.md`, `../.gitignore` → **drop** (publication surface /
+     source-relative path with no absorbed equivalent).
+   - `VERSIONING.md` → repoint to the plugin's reframed `../../docs/VERSIONING.md`
+     **only if** that doc now owns the internal ARD snapshot/version policy
+     (Unit 4 decides); otherwise **drop** the header link.
+   - `LICENSE` → repoint to the repo/plugin LICENSE **only if** that link is
+     intentionally useful in `ard-core/SPEC.md`; otherwise **drop** the badge.
+   Re-run the full-tree dangling scan → asserts clean.
 
 ### Implementation order
 1. Unit 1 (delete sync machinery + ard.json) — removes the things the docs point at
@@ -164,7 +218,14 @@ serves the single "absorbed identity, no dangling refs" end-state); shared
 acceptance (the sweeps below). No parallelizable independent chunk.
 
 ## Testing
-- **No vendoring-narrative survives:** `rg -i "ard-sync|adopts|vendored_paths|not_yet_vendored|drift_check|dual-pin|byte-identical|byte-parity|meta-fence|vendorable|workbench/engine"` over the plugin → empty (except this feature's own history / the `.work` item).
+- **No vendoring-narrative survives** (NARROWED grep — the broad one false-positives):
+  `rg -i "ard-sync|adopts ARD|vendored_paths|not_yet_vendored|drift_check|dual-pin|meta-fence|vendorable|workbench/engine|pinned in.*ard\.json"` over the plugin + `AGENTS.md` → empty (except the `.work` item itself).
+  **Do NOT grep bare `byte-identical|byte-parity`** — those are valid in
+  `scripts/research-view.sh:22` + `research-view-parity.test.sh:2` (the
+  research-view Rust/bash parity, unrelated to ARD vendoring). **`vendored-source`
+  in `ard-core` is a research-acquisition concept** (a source class), NOT plugin
+  vendoring — whitelist it. Check `byte-identical` hits by hand for ARD-vendoring
+  context only.
 - **No stale "Adopts ARD vX" / "vendored verbatim"** in any manifest, marketplace, README, or doc.
 - **`ard.json`, `scripts/ard-sync.py`, `scripts/tests/test_ard_sync.py` gone.**
 - **Dangling-link scan clean:** the full-tree `ard-core/**/*.md` scan from F1 prints nothing; `check-doc-links` (or the repo checker) passes over the plugin.
