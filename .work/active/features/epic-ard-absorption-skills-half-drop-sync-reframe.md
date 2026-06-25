@@ -43,10 +43,36 @@ vendors.
   `framework`/`homepage`/snapshot-version record) or the file is retired entirely.
   If a snapshot-version record is kept, it is the **internal** ARD snapshot
   version (decoupled from plugin semver) — the root-half's versioning sub-decision.
-- **The verbatim meta-fence** — `ARD-Version:` stamping machinery and any plugin
-  reference to `ard/tools/meta-fences.py`. (`gen-contract.py` is a separate
-  question — it MAY survive in `ard-core/` as the catalogs.json regenerator; that
-  is the scaffold feature's SSOT fork, not a drop here.)
+- **The verbatim meta-fence ENFORCER** — `ard/tools/meta-fences.py` was already
+  NOT ported (the scaffold left it out), so there is no enforcer in the absorbed
+  tree to delete. (`gen-contract.py` SURVIVES — it's the catalogs.json regenerator
+  per the scaffold's SSOT fork, not a drop.)
+
+### `ARD-Version` stamp policy (decided — peer-surfaced)
+
+The `ARD-Version: 0.7.0` stamps in 10 `ard-core/` files (`discipline.md`,
+`kernel/README.md`, the 4 `templates/*`, `lint-citations.py`, `conformance/run.py`,
+`conformance/README.md`, `tools/gen-contract.py`) **are KEPT as passive internal
+snapshot-version metadata** — they record which ARD snapshot `ard-core/`
+represents (useful for the revisit-if-2nd-adopter re-extraction). They are already
+passive (the meta-fence *enforcer* was never ported), so the absorption retires
+the *fence* (enforcement), not the *stamp* (provenance). **Do NOT strip them.**
+What changes: any *prose that frames them as a vendoring meta-fence / dual-pin
+artifact* (e.g. `discipline.md:6` "verbatim vendorable artifact per ard.json")
+gets reframed to "internal snapshot metadata"; the stamp lines themselves stay.
+(Rejected: strip all stamps — loses the snapshot-provenance the re-extraction
+escape hatch wants, for no gain since they're already non-enforcing.)
+
+### `conformance/README.md` adopter-vendoring language (in scope — peer-surfaced)
+
+`ard-core/kernel/conformance/README.md:4` says "**Vendor this directory** and run
+it against your **vendored or ported** lint" — adopter-facing language from when
+ARD was a published framework. Post-absorption `ard-core/conformance/` is internal.
+**Reframe** the vendor-this / your-ported-lint language to internal-validation
+phrasing. **Leave as-is:** the generic `run.py --lint <path>` "validate your own
+implementation" capability text in `run.py`/`expected.json`/`lint-citations.py` —
+that's the lint's portable self-description (harmless, and editing churns the
+byte-identity story); only the README's *adopter-vendoring framing* is reframed.
 
 ## Docs to reframe (empirical-first identity)
 
@@ -61,12 +87,12 @@ vendors.
   workbench/engine split, the byte-parity fence.
 - The `research-discipline` skill's "vendored verbatim from ARD kernel" framing
   (it now wraps `ard-core/discipline.md`, the single source).
-- **Channel manifests + marketplace (peer-surfaced)** — the "Adopts ARD v0.6.0"
-  string also lives in `.codex-plugin/plugin.json:4`, `.claude-plugin/plugin.json:3`,
-  `package.json:4`, and the root `.claude-plugin/marketplace.json:43`. Reframe
-  all four to the absorbed identity (drop the version-pin phrasing, or replace
-  with the internal-snapshot phrasing if the versioning sub-decision keeps a
-  snapshot record). This is the marketplace-facing surface — do not miss it.
+- **Channel manifests + marketplace (peer-surfaced)** — the "Adopts ARD v0.X"
+  string lives across **4 surfaces / 5 occurrences**: `.claude-plugin/plugin.json:3`,
+  `.codex-plugin/plugin.json:4` **and** `:14`, `package.json:4`, root
+  `.claude-plugin/marketplace.json:45` (the staler v0.5.1). Reframe all to the
+  absorbed identity (drop the external version-pin phrasing). The marketplace-facing
+  surface — do not miss it. (See Unit 2 for the authoritative line list.)
 - **Dangling local links in the copied `ard-core/` docs (handed off from F1).**
   The scaffold copies `ard-core/SPEC.md` + `ard-core/kernel/README.md` verbatim,
   which carry markdown links to files the absorption does NOT port (`VERSIONING.md`,
@@ -100,10 +126,15 @@ warrant tier. Point at `ard-core/evidence/` and `ard-core/theory/`.
 
 ## Verification
 
-No `ard-sync`, `adopts`, `vendored_paths`, or meta-fence references survive in
-the plugin. Docs describe the absorbed model and name the rejected path + escape
-hatch inline. `check-doc-links` (or the repo's link checker) passes — no dangling
-links to removed paths or to the (root-half) submodule.
+No `ard-sync`, `vendored_paths`, `not_yet_vendored`, `drift_check`, or
+vendoring-narrative references survive in the plugin (the **absorbed-identity
+end state** — the authoritative check is the narrowed grep in `## Testing`, not a
+blanket `adopts` sweep: the word `adopts`/`adopted` legitimately survives in
+prose describing that the *plugin* adopted ARD as its internal discipline — only
+the *external version-pin* "adopts ARD vX" phrasing goes). Docs describe the
+absorbed model and name the rejected path + escape hatch inline. `check-doc-links`
+(or the repo's link checker) passes — no dangling links to removed paths or to the
+(root-half) submodule.
 
 ---
 
