@@ -395,8 +395,14 @@ describe("fetch_content routing (registered tool)", () => {
       on: () => {},
     };
     zaiResearchExtension(api as unknown as Parameters<typeof zaiResearchExtension>[0]);
-    return { fetch_content: tools.find((t) => t.name === "fetch_content")! };
+    return { tools, fetch_content: tools.find((t) => t.name === "fetch_content")! };
   }
+
+  test("registers provider-scoped zai_web_search instead of generic web_search", () => {
+    const { tools } = makePi();
+    expect(tools.map((t) => t.name)).toContain("zai_web_search");
+    expect(tools.map((t) => t.name)).not.toContain("web_search");
+  });
 
   test("schema includes json return_format and extract params", () => {
     const { fetch_content } = makePi();

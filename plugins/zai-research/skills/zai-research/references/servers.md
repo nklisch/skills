@@ -30,7 +30,7 @@ Web search returning page titles, URLs, summaries, site names, icons.
 | `content_size` | string | `medium` (~400–600 words, default) \| `high` (~2500 words, higher cost). |
 | `location` | string | `cn` (Chinese region) \| `us` (non-Chinese, default). |
 
-Pi tool: **`web_search`** — maps `query`→`search_query`, `recency`→`search_recency_filter`,
+Pi tool: **`zai_web_search`** — maps `query`→`search_query`, `recency`→`search_recency_filter`,
 `domain`→`search_domain_filter`.
 
 ## web-reader → `webReader`

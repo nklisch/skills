@@ -2,7 +2,7 @@
 name: zai-research
 description: >
   Z.ai-powered web research for Pi: web search, URL/PDF/JSON/API reading, and
-  GitHub repo deep-read. Reaches for five agent tools — web_search (Z.ai web
+  GitHub repo deep-read. Reaches for five agent tools — zai_web_search (Z.ai web
   search), fetch_content (webReader pages, local PDF extraction, direct JSON/API
   fetches, and article extraction for noisy docs), search_repo_docs /
   get_repo_structure / read_repo_file (Z.ai zread over GitHub). Use whenever
@@ -16,7 +16,7 @@ description: >
 Five agent tools that route research through Z.ai, so the agent reaches for
 **current sources** instead of trusting possibly-stale training data.
 
-- **`web_search`** — Z.ai web search (`web_search_prime`). Returns page titles,
+- **`zai_web_search`** — Z.ai web search (`web_search_prime`). Returns page titles,
   URLs, summaries. Use `recency` for time-bounded queries, `domain` to restrict
   to a site, `content_size: high` for deeper summaries.
 - **`fetch_content`** — URL reader with four modes:
@@ -38,7 +38,7 @@ Five agent tools that route research through Z.ai, so the agent reaches for
 
 | Situation | Tool |
 |---|---|
-| Current info, version-sensitive API/SDK/model behavior, "what's the latest on X" | `web_search` |
+| Current info, version-sensitive API/SDK/model behavior, "what's the latest on X" | `zai_web_search` |
 | Read a page, doc, or PDF in full (found via search or given by the user) | `fetch_content` |
 | Confirm model IDs, version lists, config keys, or other structured API metadata | `fetch_content` with `return_format: "json"` |
 | Strip nav/sidebar/footer noise from a docs page | `fetch_content` with `extract: "article"` |
@@ -47,14 +47,14 @@ Five agent tools that route research through Z.ai, so the agent reaches for
 | Map a repo's layout before reading files | `get_repo_structure` |
 | Read a specific file's source from a repo without cloning | `read_repo_file` |
 
-The guiding rule: **reach for `web_search` before trusting training data on
+The guiding rule: **reach for `zai_web_search` before trusting training data on
 anything that moves** (models, SDKs, APIs, library versions, recent events), and
 chain `search_repo_docs → get_repo_structure → read_repo_file` to deep-read a
 repo. Cite the URL/repo in your answer.
 
 ## The Z.ai-first research flow
 
-1. **Search first** for current/version-sensitive topics. Prefer `web_search`
+1. **Search first** for current/version-sensitive topics. Prefer `zai_web_search`
    with a tight query (Z.ai recommends ≤70 chars). Add `recency` for news/release
    timing, `domain` for an authoritative source.
 2. **Read in depth** with `fetch_content` on the best result — or choose a
@@ -65,19 +65,19 @@ repo. Cite the URL/repo in your answer.
    For a GitHub repo, skip the clone and use the zread tools.
 3. **Verify before asserting.** Model/API facts change; never state a version
    number, model name, config key, or signature from memory alone when you could
-   have searched or fetched the current source. If `web_search` and training
+   have searched or fetched the current source. If `zai_web_search` and training
    disagree, trust the fresh result and cite it.
 
 ## Patterns
 
 **Pick a library/SDK with current evidence:**
 ```
-web_search: query="Hono vs Express 2026 benchmarks", content_size="high"
+zai_web_search: query="Hono vs Express 2026 benchmarks", content_size="high"
 ```
 
 **Time-bounded "is X released yet":**
 ```
-web_search: query="Z.ai GLM-5.2 release", recency="oneMonth"
+zai_web_search: query="Z.ai GLM-5.2 release", recency="oneMonth"
 ```
 
 **Fetch structured API metadata directly:**

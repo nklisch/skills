@@ -2,7 +2,7 @@
  * zai-research — a pi extension that wraps Z.ai's three remote MCP servers and
  * re-exposes them as pi tools, plus provider-free local PDF extraction:
  *
- *   - web_search       → MCP `web_search_prime` (web search: titles, URLs, summaries)
+ *   - zai_web_search       → MCP `web_search_prime` (web search: titles, URLs, summaries)
  *   - fetch_content    → MCP `webReader` for HTML; local `unpdf` for PDFs
  *   - search_repo_docs → MCP zread `search_doc` (GitHub repo docs/issues/commits)
  *   - get_repo_structure → MCP zread `get_repo_structure`
@@ -33,7 +33,7 @@ const PDF_FETCH_TIMEOUT_MS = 30_000; // timeout for a local PDF / JSON download
 // --- Windowing (single-URL text-mode path) --------------------------------
 // Windowing is a NEW path layered on fetch_content's single-URL text modes
 // (webReader HTML, article, PDF markdown). It does NOT replace MAX_RETURN_CHARS
-// above, which still caps web_search, the zread tools, and fetch_content's
+// above, which still caps zai_web_search, the zread tools, and fetch_content's
 // batch/JSON paths. See `feature-zai-fetch-content-paging` for the design.
 const DEFAULT_MAX_CHARS = 30_000; // total returned budget (text + footer) when max_chars is omitted
 const MIN_MAX_CHARS = 1_000; // floor for the max_chars clamp
@@ -496,7 +496,7 @@ export default function zaiResearchExtension(pi: PiApi): void {
     return hub;
   }
 
-  // --- web_search ---------------------------------------------------------
+  // --- zai_web_search ---------------------------------------------------------
 
   const webSearchExecute: ToolExecute = async (_id, params, signal, _onUpdate, ctx) => {
     const query = String(params.query ?? "").trim();
@@ -521,7 +521,7 @@ export default function zaiResearchExtension(pi: PiApi): void {
         details: { query, server: "web-search-prime", tool: "web_search_prime" },
       };
     } catch (err) {
-      return { content: [{ type: "text", text: `web_search failed: ${(err as Error).message}` }], isError: true };
+      return { content: [{ type: "text", text: `zai_web_search failed: ${(err as Error).message}` }], isError: true };
     }
   };
 
@@ -821,13 +821,13 @@ export default function zaiResearchExtension(pi: PiApi): void {
   // --- register -----------------------------------------------------------
 
   pi.registerTool?.({
-    name: "web_search",
+    name: "zai_web_search",
     label: "Web Search",
     description:
       "Search the web via Z.ai. Returns page titles, URLs, and summaries. Prefer this for current information, library/SDK choices, API usage, version-specific behavior, and anything where the agent's training data may be stale. Pass recency for time-bounded queries and domain to restrict to a site.",
     promptSnippet: "Search the web via Z.ai (current info, library/API/SDK questions)",
     promptGuidelines: [
-      "Use web_search for anything current or version-sensitive before relying on training data — model/SDK/API names and behaviors move fast.",
+      "Use zai_web_search for anything current or version-sensitive before relying on training data — model/SDK/API names and behaviors move fast.",
       "Use domain to restrict to an authoritative site (e.g. domain='docs.z.ai') and recency (oneDay|oneWeek|oneMonth|oneYear) for time-bounded queries.",
       "After searching, use fetch_content to read a result page in full, or the zread tools (search_repo_docs/get_repo_structure/read_repo_file) to deep-read a GitHub repo.",
     ],
@@ -848,7 +848,7 @@ export default function zaiResearchExtension(pi: PiApi): void {
       "Fetch and extract readable content from one or more URLs. Defaults to Z.ai webReader markdown for web pages; PDFs are extracted locally; JSON/API endpoints can be fetched directly with return_format:'json'; noisy docs pages can use extract:'article'. Long single-URL text content (markdown/text/article/PDF) is windowed: the first call returns the first ~500 lines plus a footer with the next start line; pass window:{start_line} to continue from a cached blob. JSON and multi-URL batches are not windowed.",
     promptSnippet: "Fetch/extract URL content (web pages, PDFs, JSON APIs, article mode)",
     promptGuidelines: [
-      "Use fetch_content to read a page in full after web_search, or to ingest a doc/PDF/API URL the user provided.",
+      "Use fetch_content to read a page in full after zai_web_search, or to ingest a doc/PDF/API URL the user provided.",
       "Long single-URL text content (markdown/text/article/PDF) is windowed, not head-truncated. The first call returns the first ~500 lines plus a footer like '…[window: lines 1–500 of 1340 · request line 501 to continue]'; pass window:{start_line: 501} to continue. The fetched blob is cached, so advancing does not re-fetch. Read details.next_start_line (the structured source of truth) rather than parsing the footer.",
       "max_chars (default 30000, clamped to [1000, 120000]) is the total per-call budget for text + footer. Raise it only when a window is being cut mid-thought and the larger budget is justified; if a window still exceeds it, trailing lines are dropped (details.truncated_by_char_ceiling) and you continue with window:{start_line}.",
       "Use return_format:'json' for REST/JSON API endpoints such as model lists, version metadata, or config schemas — it bypasses webReader and returns parsed JSON.",
