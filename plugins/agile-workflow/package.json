@@ -1,6 +1,6 @@
 {
   "name": "@nklisch/pi-agile-workflow",
-  "version": "0.15.2",
+  "version": "0.15.3",
   "description": "Markdown-based work-tracking substrate for AI-driven projects.",
   "author": {
     "name": "nklisch"
