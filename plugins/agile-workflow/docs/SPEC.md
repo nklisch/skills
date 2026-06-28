@@ -422,6 +422,13 @@ The three channel metadata files stay in lockstep on name, version,
 description, repository, and license. Pi-specific runtime surfaces wrap the same
 `.work/` substrate; they do not fork the workflow model.
 
+**Channel parity posture:** when agile-workflow adds or changes Claude/Codex hook
+behavior, Pi must receive a native extension adapter in the same change unless a
+host capability is explicitly impossible. The adapter should call the shared
+hook scripts or read the same generated sources rather than reimplementing rules
+in a parallel language. Drift is guarded by
+`plugins/agile-workflow/scripts/tests/channel-parity.test.sh`.
+
 ## Version strategy
 
 - Plugin version lives in `plugins/agile-workflow/.claude-plugin/plugin.json`
@@ -767,6 +774,31 @@ explicit workflow verbs, or a known item id.
 
 It does not inject `.agents/rules/*.md` or queue snapshots at prompt time. Queue
 state remains available through explicit `work-view`, `/aw`, or board commands.
+
+### Pi hook parity adapter
+
+Pi packages do not consume `hooks/hooks.json`. The Pi package therefore exposes
+`plugins/agile-workflow/extensions/agile-workflow.ts` as a **Pi hook parity
+adapter**. It maps Pi-native events onto the same deterministic hook scripts:
+
+- `session_start` → `prompt-context.py` with `hook_event_name: SessionStart` for
+  epoch reset and work-view self-heal side effects.
+- `session_compact` → `prompt-context.py` with `hook_event_name: PostCompact` for
+  epoch bump side effects.
+- `before_agent_start` → `prompt-context.py` twice: synthetic
+  `hook_event_name: PiBeforeAgentStart` with `force_rules_context: true` to
+  append `.agents/rules/*.md` into Pi's rebuilt-per-turn system prompt, then
+  `hook_event_name: UserPromptSubmit` for the same prompt-gated principles
+  capsules Claude/Codex receive.
+- `tool_result` for mutating tools (`write`, `edit`, `apply_patch`) →
+  `substrate-maintainer.py` with `hook_event_name: PostToolUse`; validation
+  output is appended to the tool result so the next model step sees the same
+  substrate warnings.
+
+This adapter is intentionally thin: `.agents/rules/`, `prompt-context.py`, and
+`substrate-maintainer.py` remain the source of truth across Claude Code, Codex,
+and Pi. Any change to hook behavior must update the adapter and the parity check
+script in the same patch.
 
 ### PostToolUse hook
 

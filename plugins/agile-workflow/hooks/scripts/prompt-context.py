@@ -541,17 +541,22 @@ def rules_unseen(root: Path, payload: dict[str, Any], content_hash: str) -> bool
     return True
 
 
-def emit_rules(root: Path, payload: dict[str, Any]) -> str:
+def emit_rules(root: Path, payload: dict[str, Any], *, force: bool = False) -> str:
     """Return `.agents/rules/` context to inject, or "".
 
-    Used by the SessionStart/PostCompact path only, loading unconditionally to
-    mirror legacy `.claude/rules/`. Dedups once per epoch via ``rules_unseen``.
+    Claude/Codex SessionStart/PostCompact hooks dedup once per epoch via
+    ``rules_unseen`` because hook output is host-managed context. Pi rebuilds the
+    system prompt every turn and has no hooks.json package surface, so its native
+    extension calls the synthetic ``PiBeforeAgentStart`` path with ``force=True``
+    to append the same rules block every turn without mutating hook state.
     """
     enabled, max_bytes = rules_config(root)
     if not enabled:
         return ""
     text, digest = read_rules_dir(root, max_bytes)
-    if not text or not rules_unseen(root, payload, digest):
+    if not text:
+        return ""
+    if not force and not rules_unseen(root, payload, digest):
         return ""
     return text
 
@@ -561,6 +566,15 @@ def main() -> int:
     event = str(payload.get("hook_event_name") or "")
     root = find_substrate_root(payload.get("cwd"))
     if root is None:
+        return 0
+
+    # Pi package parity adapter: Pi has native extension events rather than a
+    # hooks.json surface. The extension calls this synthetic path from
+    # before_agent_start so it can append the exact same .agents/rules block to
+    # Pi's rebuilt-per-turn system prompt without disturbing Claude/Codex epoch
+    # dedup state.
+    if event == "PiBeforeAgentStart":
+        output_context("SessionStart", emit_rules(root, payload, force=True))
         return 0
 
     # Primary rules firing: SessionStart / PostCompact emit `.agents/rules/`

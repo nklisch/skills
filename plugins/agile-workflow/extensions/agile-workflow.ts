@@ -1,9 +1,19 @@
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const STATUS_KEY = "agile-workflow";
 const MAX_OUTPUT_CHARS = 6_000;
 const ITEM_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+const HOOK_TIMEOUT_MS = 5_000;
+const RULES_CONTEXT_HEADER = "## Project Rules (.agents/rules/)";
+const PRINCIPLES_CONTEXT_HEADER = "## Agile Workflow Principles";
+const MUTATING_TOOL_NAMES = new Set(["write", "edit", "apply_patch"]);
+
+const PLUGIN_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+const PROMPT_CONTEXT_SCRIPT = join(PLUGIN_ROOT, "hooks", "scripts", "prompt-context.py");
+const SUBSTRATE_MAINTAINER_SCRIPT = join(PLUGIN_ROOT, "hooks", "scripts", "substrate-maintainer.py");
 
 type PiApi = {
   exec: (
@@ -19,15 +29,44 @@ type PiApi = {
     name: string,
     options: { description: string; handler: (args: string | undefined, ctx: PiContext) => Promise<string> },
   ) => void;
+  on?: (
+    event: string,
+    handler: (event: unknown, ctx: PiContext) => unknown | Promise<unknown>,
+  ) => void;
 };
 
 type PiContext = {
   cwd?: string;
   signal?: AbortSignal;
+  sessionManager?: {
+    getSessionFile?: () => string | undefined;
+  };
   ui?: {
     notify?: (message: string, level?: "info" | "warning" | "error" | "success") => void;
     setStatus?: (key: string, message: string) => void;
     setWidget?: (key: string, lines: string[]) => void;
+  };
+};
+
+type BeforeAgentStartEvent = {
+  prompt?: string;
+  systemPrompt?: string;
+  systemPromptOptions?: { cwd?: string };
+};
+
+type SessionEvent = {
+  reason?: string;
+};
+
+type ToolResultEvent = {
+  toolName?: string;
+  input?: unknown;
+  content?: unknown;
+};
+
+type HookOutput = {
+  hookSpecificOutput?: {
+    additionalContext?: unknown;
   };
 };
 
@@ -36,7 +75,101 @@ type Substrate = {
   workView: string;
 };
 
+function registerHookParity(pi: PiApi): void {
+  // Claude Code and Codex run hooks/hooks.json directly. Pi has no package hook
+  // manifest, so this adapter maps Pi-native events onto the SAME deterministic
+  // Python hook scripts instead of reimplementing workflow rules in TypeScript.
+  // That keeps .agents/rules loading, principles capsules, updated: bumps, and
+  // cheap substrate validation behaviorally aligned across all three channels.
+  pi.on?.("session_start", (event, ctx) => {
+    runPromptContext(
+      {
+        hook_event_name: "SessionStart",
+        source: sessionSource(event),
+        cwd: ctx.cwd,
+        session_id: sessionId(ctx),
+      },
+      ctx.cwd,
+    );
+  });
+
+  pi.on?.("session_compact", (event, ctx) => {
+    runPromptContext(
+      {
+        hook_event_name: "PostCompact",
+        source: "compact",
+        trigger: sessionSource(event),
+        cwd: ctx.cwd,
+        session_id: sessionId(ctx),
+      },
+      ctx.cwd,
+    );
+  });
+
+  pi.on?.("before_agent_start", (rawEvent, ctx) => {
+    const event = (rawEvent ?? {}) as BeforeAgentStartEvent;
+    const cwd = event.systemPromptOptions?.cwd ?? ctx.cwd ?? process.cwd();
+    const session_id = sessionId(ctx);
+    const base = event.systemPrompt ?? "";
+    const parts: string[] = [];
+
+    if (!base.includes(RULES_CONTEXT_HEADER)) {
+      const rules = runPromptContext(
+        {
+          hook_event_name: "PiBeforeAgentStart",
+          source: "pi-before-agent-start",
+          cwd,
+          session_id,
+          force_rules_context: true,
+        },
+        cwd,
+      );
+      if (rules) parts.push(rules);
+    }
+
+    if (!base.includes(PRINCIPLES_CONTEXT_HEADER)) {
+      const principles = runPromptContext(
+        {
+          hook_event_name: "UserPromptSubmit",
+          source: "user",
+          cwd,
+          session_id,
+          prompt: event.prompt ?? "",
+        },
+        cwd,
+      );
+      if (principles) parts.push(principles);
+    }
+
+    if (!parts.length) return;
+    return { systemPrompt: `${base}\n\n${parts.join("\n\n")}` };
+  });
+
+  pi.on?.("tool_result", (rawEvent, ctx) => {
+    const event = (rawEvent ?? {}) as ToolResultEvent;
+    const toolName = String(event.toolName ?? "").toLowerCase();
+    if (!MUTATING_TOOL_NAMES.has(toolName)) return;
+
+    const cwd = ctx.cwd ?? process.cwd();
+    const context = runHookScript(
+      SUBSTRATE_MAINTAINER_SCRIPT,
+      {
+        hook_event_name: "PostToolUse",
+        source: "pi-tool-result",
+        cwd,
+        session_id: sessionId(ctx),
+        tool_input: event.input ?? {},
+      },
+      cwd,
+    );
+    if (!context) return;
+    return appendToolContext(event.content, context);
+  });
+}
+
 export default function agileWorkflowExtension(pi: PiApi) {
+  registerHookParity(pi);
+
   pi.registerCommand("aw", {
     description: "Inspect and navigate the agile-workflow .work substrate",
     handler: async (args, ctx) => {
@@ -101,6 +234,84 @@ export default function agileWorkflowExtension(pi: PiApi) {
       }
     },
   });
+}
+
+function sessionSource(event: unknown): string {
+  const reason = (event as SessionEvent | undefined)?.reason;
+  return typeof reason === "string" && reason ? reason : "startup";
+}
+
+function sessionId(ctx: PiContext): string {
+  try {
+    const file = ctx.sessionManager?.getSessionFile?.();
+    if (file) return file;
+  } catch {
+    // Fail open: hook state dedup is a convenience, never a reason to break a turn.
+  }
+  return "pi-session";
+}
+
+function runPromptContext(payload: Record<string, unknown>, cwd?: string): string {
+  return runHookScript(PROMPT_CONTEXT_SCRIPT, payload, cwd);
+}
+
+function runHookScript(script: string, payload: Record<string, unknown>, cwd?: string): string {
+  if (!existsSync(script)) return "";
+
+  try {
+    const result = spawnSync("python3", [script], {
+      cwd: cwd || process.cwd(),
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PYTHONDONTWRITEBYTECODE: "1",
+        PLUGIN_ROOT,
+        CLAUDE_PLUGIN_ROOT: process.env.CLAUDE_PLUGIN_ROOT || PLUGIN_ROOT,
+      },
+      input: JSON.stringify(payload),
+      stdio: ["pipe", "pipe", "ignore"],
+      timeout: HOOK_TIMEOUT_MS,
+    });
+
+    if (result.error || (typeof result.status === "number" && result.status !== 0)) {
+      return "";
+    }
+    return parseHookContext(result.stdout || "");
+  } catch {
+    return "";
+  }
+}
+
+function parseHookContext(stdout: string): string {
+  const raw = stdout.trim();
+  if (!raw) return "";
+  const line = raw
+    .split(/\r?\n/)
+    .reverse()
+    .find((candidate) => candidate.trim().startsWith("{"));
+  if (!line) return "";
+
+  try {
+    const parsed = JSON.parse(line) as HookOutput;
+    const context = parsed.hookSpecificOutput?.additionalContext;
+    return typeof context === "string" ? context.trim() : "";
+  } catch {
+    return "";
+  }
+}
+
+function appendToolContext(content: unknown, context: string): { content: Array<unknown> } {
+  const note = { type: "text", text: `\n\n${context}` };
+  if (Array.isArray(content)) {
+    return { content: [...content, note] };
+  }
+  if (typeof content === "string" && content) {
+    return { content: [{ type: "text", text: content }, note] };
+  }
+  if (content && typeof content === "object") {
+    return { content: [content, note] };
+  }
+  return { content: [note] };
 }
 
 function findSubstrate(start?: string): Substrate | null {

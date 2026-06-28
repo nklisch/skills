@@ -60,6 +60,12 @@ The root `.claude-plugin/marketplace.json` uses the legacy string-path shape for
 
 Harness-specific surfaces must degrade to absent in other harnesses, never to broken. Do not fork SKILL.md content just to mention a harness; keep portable workflow knowledge shared and put native ergonomics in that harness's metadata or extension layer.
 
+### Channel parity posture
+
+For supported three-channel plugins, behavior is a parity contract, not a best-effort nicety. If Claude Code or Codex gets a hook, injection path, substrate maintainer, prompt nudge, command handoff, or generated context source, Pi gets the native extension equivalent in the same change unless the plugin is explicitly documented as Pi-only or a channel capability is impossible. Prefer shared source files and thin adapters: one rules file, one hook script, one substrate model, with Claude/Codex/Pi surfaces only adapting host event names and UI affordances. When parity cannot be exact, document the degradation and add a check that prevents silent drift.
+
+For agile-workflow specifically, `hooks/hooks.json` is the Claude/Codex surface and `plugins/agile-workflow/extensions/agile-workflow.ts` is the Pi hook parity adapter. Both must route to the same `.agents/rules/`, prompt-context, and substrate-maintainer sources. Run `plugins/agile-workflow/scripts/tests/channel-parity.test.sh` after changing agile-workflow hooks, Pi extensions, package metadata, or rules injection behavior.
+
 For full background on the Codex format, see `docs/research/codex-plugin-format.md` and the auto-loading `.agents/skills/codex-plugin-format/` reference skill. Pi package notes live in `docs/research/pi-package-format.md`.
 
 ## Versioning

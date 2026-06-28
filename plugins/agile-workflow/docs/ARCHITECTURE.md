@@ -497,6 +497,24 @@ model turn sees them.
 
 This is a deterministic command hook — no LLM.
 
+### Pi hook parity adapter
+
+Pi does not load `hooks/hooks.json`, so the Pi package reaches parity through
+`extensions/agile-workflow.ts`. The extension maps Pi lifecycle events to the
+same Python scripts instead of maintaining a TypeScript copy of the rules:
+
+- `before_agent_start` appends the `.agents/rules/*.md` block via the synthetic
+  `PiBeforeAgentStart` prompt-context path, then asks the same script for any
+  prompt-gated principles capsule.
+- `session_start` and `session_compact` call the prompt-context script for the
+  same epoch/self-heal side effects Claude/Codex hooks get.
+- `tool_result` for mutating tools calls `substrate-maintainer.py`, so `updated:`
+  bumps and cheap validation come from the same implementation in all channels.
+
+The parity posture is: one substrate model, one generated rules source, one pair
+of deterministic hook scripts, with each host only adapting event names and UI
+plumbing. `scripts/tests/channel-parity.test.sh` guards that wiring.
+
 ## Gate orchestration
 
 `/release-deploy` orchestrates the gate sequence after items are bound to

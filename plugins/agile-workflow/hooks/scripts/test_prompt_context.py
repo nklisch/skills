@@ -323,6 +323,12 @@ class RulesLoaderTest(unittest.TestCase):
         second = prompt_context.emit_rules(self.root, payload)
         self.assertEqual(second, "")
 
+    def test_emit_force_bypasses_dedup_for_pi_rebuilt_prompt(self) -> None:
+        (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
+        payload = self._payload()
+        self.assertIn("Rule A", prompt_context.emit_rules(self.root, payload, force=True))
+        self.assertIn("Rule A", prompt_context.emit_rules(self.root, payload, force=True))
+
     def test_emit_reinject_on_content_change(self) -> None:
         (self.rules_dir / "a.md").write_text("Rule A", encoding="utf-8")
         payload = self._payload()

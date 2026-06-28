@@ -3,6 +3,7 @@ import {
   chmodSync,
   mkdtempSync,
   mkdirSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -18,6 +19,7 @@ type ExecCall = {
 };
 
 type RegisteredHandler = (args: string | undefined, ctx: TestContext) => Promise<string>;
+type EventHandler = (event: unknown, ctx: TestContext) => unknown | Promise<unknown>;
 
 type TestContext = {
   cwd?: string;
@@ -88,6 +90,7 @@ function makePi(options: {
 } = {}) {
   const execCalls: ExecCall[] = [];
   const sentMessages: Array<{ content: string; options?: { deliverAs?: "followUp" | "steer" | "immediate" } }> = [];
+  const eventHandlers: Record<string, EventHandler[]> = {};
   let handler: RegisteredHandler | null = null;
   const pi: {
     exec: (command: string, args: string[], execOptions?: ExecCall["options"]) => Promise<{
@@ -98,6 +101,7 @@ function makePi(options: {
     }>;
     sendUserMessage?: (content: string, options?: { deliverAs?: "followUp" | "steer" | "immediate" }) => void | Promise<void>;
     registerCommand: (name: string, commandOptions: { handler: RegisteredHandler }) => void;
+    on: (event: string, eventHandler: EventHandler) => void;
   } = {
     exec: async (command: string, args: string[], execOptions?: ExecCall["options"]) => {
       execCalls.push({ command, args, options: execOptions });
@@ -109,6 +113,9 @@ function makePi(options: {
     registerCommand: (name: string, commandOptions: { handler: RegisteredHandler }) => {
       expect(name).toBe("aw");
       handler = commandOptions.handler;
+    },
+    on: (event: string, eventHandler: EventHandler) => {
+      (eventHandlers[event] ??= []).push(eventHandler);
     },
   };
   if ("sendUserMessage" in options) {
@@ -128,8 +135,24 @@ function makePi(options: {
     handler,
     execCalls,
     sentMessages,
+    eventHandlers,
   };
 }
+
+async function fireEvent(
+  handlers: Record<string, EventHandler[]>,
+  eventName: string,
+  event: unknown,
+  ctx: TestContext,
+): Promise<unknown> {
+  let result: unknown;
+  for (const eventHandler of handlers[eventName] ?? []) {
+    const next = await eventHandler(event, ctx);
+    if (next !== undefined) result = next;
+  }
+  return result;
+}
+
 
 describe("/aw command shell", () => {
   test("help does not require a substrate", async () => {
@@ -233,6 +256,111 @@ describe("/aw queue commands", () => {
 
     expect(result.length).toBeLessThan(6_100);
     expect(result).toContain("[truncated 10 chars]");
+  });
+});
+
+describe("Pi hook parity adapter", () => {
+  test("injects shared .agents/rules content and prompt-gated principles", async () => {
+    const substrate = makeSubstrate();
+    mkdirSync(join(substrate.root, ".agents", "rules"), { recursive: true });
+    writeFileSync(
+      join(substrate.root, ".agents", "rules", "agile-workflow.md"),
+      "## Test Rules\n- keep the shared rules source",
+      "utf8",
+    );
+    const { eventHandlers } = makePi();
+
+    const result = await fireEvent(
+      eventHandlers,
+      "before_agent_start",
+      {
+        prompt: "implement story-alpha",
+        systemPrompt: "BASE",
+        systemPromptOptions: { cwd: substrate.root },
+      },
+      { cwd: substrate.root },
+    ) as { systemPrompt: string };
+
+    expect(result.systemPrompt.startsWith("BASE")).toBe(true);
+    expect(result.systemPrompt).toContain("## Project Rules (.agents/rules/)");
+    expect(result.systemPrompt).toContain("keep the shared rules source");
+    expect(result.systemPrompt).toContain("## Agile Workflow Principles");
+    expect(result.systemPrompt).toContain("Code-design capsule");
+  });
+
+  test("forces rules context every Pi turn while honoring CONVENTIONS opt-out", async () => {
+    const substrate = makeSubstrate();
+    mkdirSync(join(substrate.root, ".agents", "rules"), { recursive: true });
+    writeFileSync(join(substrate.root, ".agents", "rules", "project.md"), "## Rules\n- loaded each turn", "utf8");
+    const { eventHandlers } = makePi();
+
+    const first = await fireEvent(
+      eventHandlers,
+      "before_agent_start",
+      { prompt: "explain this repo", systemPrompt: "BASE", systemPromptOptions: { cwd: substrate.root } },
+      { cwd: substrate.root },
+    ) as { systemPrompt: string };
+    const second = await fireEvent(
+      eventHandlers,
+      "before_agent_start",
+      { prompt: "explain this repo", systemPrompt: "BASE", systemPromptOptions: { cwd: substrate.root } },
+      { cwd: substrate.root },
+    ) as { systemPrompt: string };
+
+    expect(first.systemPrompt).toContain("loaded each turn");
+    expect(second.systemPrompt).toContain("loaded each turn");
+
+    writeFileSync(join(substrate.root, ".work", "CONVENTIONS.md"), "rules_context: off\n", "utf8");
+    const disabled = await fireEvent(
+      eventHandlers,
+      "before_agent_start",
+      { prompt: "explain this repo", systemPrompt: "BASE", systemPromptOptions: { cwd: substrate.root } },
+      { cwd: substrate.root },
+    );
+    expect(disabled).toBeUndefined();
+  });
+
+  test("runs substrate maintenance after mutating tools", async () => {
+    const substrate = makeSubstrate();
+    const storyDir = join(substrate.root, ".work", "active", "stories");
+    mkdirSync(storyDir, { recursive: true });
+    const storyPath = join(storyDir, "story-alpha.md");
+    writeFileSync(
+      storyPath,
+      [
+        "---",
+        "id: story-alpha",
+        "stage: implementing",
+        "tags: []",
+        "parent: null",
+        "depends_on: []",
+        "release_binding: null",
+        "gate_origin: null",
+        "created: 2000-01-01",
+        "updated: 2000-01-01",
+        "---",
+        "# Story Alpha",
+      ].join("\n"),
+      "utf8",
+    );
+    const { eventHandlers } = makePi();
+
+    const result = await fireEvent(
+      eventHandlers,
+      "tool_result",
+      {
+        toolName: "edit",
+        input: { path: storyPath },
+        content: [{ type: "text", text: "edited" }],
+      },
+      { cwd: substrate.root },
+    ) as { content: Array<{ type: string; text: string }> };
+
+    const updatedStory = readFileSync(storyPath, "utf8");
+    expect(updatedStory).toMatch(/updated: \d{4}-\d{2}-\d{2}/);
+    expect(updatedStory).not.toContain("updated: 2000-01-01");
+    expect(result.content.at(-1)?.text).toContain("Agile Workflow substrate validation found issues");
+    expect(result.content.at(-1)?.text).toContain("missing required frontmatter fields: kind");
   });
 });
 
