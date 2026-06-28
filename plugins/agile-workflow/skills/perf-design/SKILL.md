@@ -195,11 +195,13 @@ The principles skill auto-loads. Read:
 
 1. Detect language and runtime from the project's source files and build config
 2. Spawn a research sub-agent:
-   - Use the host's read-only research sub-agent path with medium reasoning for
-     known stacks.
+   - Use the host's generic/general-purpose subagent prompted with the explorer
+     capsule from `../principles/references/subagents.md`, at medium reasoning
+     for known stacks.
    - Use high reasoning for unfamiliar runtimes or deeper investigations, and
      strongest reviewer reasoning only for broad, high-risk perf redesigns.
-   - If no sub-agent path is available, keep the same host-local research fallback.
+   - If no generic subagent adapter is available, keep the same host-local
+     research fallback.
    Brief it:
    "Find the recommended profiling tools for <language/runtime>. Return: CPU
    profiler, memory/allocation profiler, I/O/tracing tool, lock/off-CPU profiler,

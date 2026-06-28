@@ -11,14 +11,12 @@ description: >
 # Gate-Tests
 
 You orchestrate a test-quality gate over the items bound to a release. The
-actual analysis runs inside a **deep test scanner agent** (the shipped
-agile-workflow `scanner` role when available); your role is to prepare the
+actual analysis runs inside a **deep test scanner agent** (a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`); your role is to prepare the
 bundle context, dispatch the scanner, and convert the gaps it returns into
 items in the substrate.
 
 Scanner strength is explicit: spawn exactly one source-read-only deep test
-scanner with the strongest inspection/reviewer setting the host exposes. Use the
-shipped agile-workflow `scanner` role when available. Use extra-high reasoning
+scanner with the strongest inspection/reviewer setting the host exposes. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`. Use extra-high reasoning
 only for broad cross-feature releases, complex state machines,
 concurrency-heavy behavior, or repeated test-quality misses. If the host has no
 scanner path, run the analysis inline and record the reduced isolation
@@ -81,7 +79,7 @@ Capture already-tracked findings to feed into the scanner brief.
 ### Phase 3: Dispatch the test-coverage scanner
 
 Spawn ONE source-read-only deep scanner agent with the full analysis brief. Use
-the shipped agile-workflow `scanner` role when available and the strongest
+a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md` and the strongest
 inspection/reviewer setting the host exposes, escalating for broad cross-feature
 releases, complex state machines, concurrency-heavy behavior, or repeated
 test-quality misses. If scanner agents are unavailable, run the analysis

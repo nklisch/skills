@@ -1,7 +1,6 @@
 # Scanner Dispatch — brief template, model diversity, finding schema
 
-Scanners are the workers of an altitude story. Use the shipped agile-workflow `scanner` role when
-available. They are **source-read-only**, **scoped to one component**, and **armed with the lane's
+Scanners are the workers of an altitude story. Use a generic sub-agent prompted with the scanner posture from `../../principles/references/subagents.md`. They are **source-read-only**, **scoped to one component**, and **armed with the lane's
 references**. Their only writes are their assigned artifact files. The orchestrator never re-does
 their work.
 

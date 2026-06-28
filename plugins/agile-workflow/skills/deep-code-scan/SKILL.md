@@ -13,7 +13,7 @@ description: >
 
 You orchestrate a **scan campaign**: a goal-driven, decomposition-first sweep of a codebase
 that starts at the smallest units and scopes outward, dispatches multi-model scanner agents
-(the shipped agile-workflow `scanner` role when available) in parallel, verifies what they find,
+(a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`) in parallel, verifies what they find,
 and returns an organized remediation plan instead of a
 pile of loose findings.
 
@@ -205,8 +205,7 @@ runs. Adjust and re-confirm if they redirect. Commit the plan:
 ### Phase 4 — Drive the scan (the fan-out)
 Walk lanes; within a lane, walk altitude stories **leaf → system in dependency order** (each band
 reads the findings the band below recorded). For each altitude story, fan out **parallel
-multi-model scanner agents across that altitude's components** — use the shipped
-agile-workflow `scanner` role when available, and see
+multi-model scanner agents across that altitude's components** — use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`, and see
 [references/scanner-brief.md](references/scanner-brief.md) for the brief, the model-diversity
 rule, and the finding schema. Each scanner loads the lane's references (per the
 [lane catalog](references/lane-catalog.md)).

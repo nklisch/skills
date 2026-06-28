@@ -12,14 +12,12 @@ description: >
 # Gate-Security
 
 You orchestrate a security gate over the items bound to a release. The actual
-audit runs inside a **deep security scanner agent** (the shipped agile-workflow
-`scanner` role when available); your role is to prepare the bundle context,
+audit runs inside a **deep security scanner agent** (a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`); your role is to prepare the bundle context,
 dispatch the scanner, and convert the findings it returns into items in the
 substrate.
 
 Scanner strength is explicit: spawn exactly one source-read-only deep security
-scanner with the strongest inspection/reviewer setting the host exposes. Use the
-shipped agile-workflow `scanner` role when available. Use extra-high reasoning
+scanner with the strongest inspection/reviewer setting the host exposes. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`. Use extra-high reasoning
 only for auth, crypto, data-loss, broad public API, or large/polyglot release
 bundles. If the host has no scanner path, run the audit inline and
 record the reduced isolation in the release body.
@@ -78,8 +76,7 @@ scanner can be told to skip duplicates.
 
 ### Phase 3: Dispatch the security scanner
 
-Spawn ONE source-read-only deep scanner agent with the full audit brief. Use the
-shipped agile-workflow `scanner` role when available and the strongest
+Spawn ONE source-read-only deep scanner agent with the full audit brief. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md` and the strongest
 inspection/reviewer setting the host exposes, escalating for auth, crypto,
 data-loss, broad public API, or large/polyglot bundles. If scanner agents
 are unavailable, run the audit inline and record the reduced isolation in the

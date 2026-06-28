@@ -200,13 +200,13 @@ The first four scan axes are mandatory. Run them even when a project-specific
 refactor-conventions catalog exists. The catalog adds a fifth scan axis; it
 does not narrow or disable the default refactor judgment.
 
-- Use the host's read-only exploratory sub-agent path with medium reasoning for
+- Use the host's generic/general-purpose subagent prompted with the scanner
+  capsule from `../principles/references/subagents.md`: medium reasoning for
   focused scans, high reasoning for normal refactor discovery, and strongest
   reviewer reasoning only for large or architecture-heavy refactors.
-- For host-specific role names and Pi support limits, load
-  `../principles/references/subagents.md`. Agile-workflow does not ship a
-  generic read-only Explore override, so use an existing deployment-provided
-  read-only role or keep the host-local scan fallback.
+- Agile-workflow does not ship a read-only Explore override, so use an existing
+  deployment-provided read-only role only if it is already available; otherwise
+  keep the host-local scan fallback.
 
 1. **Code Smells** — "Find code that smells off in <area>. Look for: duplicated
    logic across files; long files (>500 lines); deep nesting (>4 levels); god

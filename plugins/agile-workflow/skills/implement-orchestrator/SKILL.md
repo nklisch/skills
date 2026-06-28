@@ -41,22 +41,25 @@ edges make parallel work unsafe.
 
 ### Implementation tier (settle once, before dispatch)
 
-The worker agent type and effort tier are a **dial**, not a silent default.
-Before spawning the first wave, determine the implementation tier:
+The worker subagent posture and effort tier are a **dial**, not a silent
+default. Agile-workflow does not ship an implementation role; each worker is a
+generic subagent prompted with the implementer capsule from
+`../principles/references/subagents.md`. Before spawning the first wave,
+determine the implementation tier:
 
 1. **Honor an explicit choice** — a tier named in the goal/args/user request,
    an autopilot caller note, or a stable project convention (e.g. a
    `.work/CONVENTIONS.md` model note), wins. Use it and skip the question.
 2. **Autopilot mode is non-interactive** — when delegated by an active
    autopilot run, use the tier autopilot settled for the scoped run. If the
-   caller note is missing the tier, fall back to `codex-medium` (or the host
-   runtime's medium/default worker baseline when Codex tiers are unavailable),
-   and state the fallback in the run notes. Do not ask the user from inside an
-   autopilot-driven implementation pass.
+   caller note is missing the tier, fall back to the host runtime's
+   medium/default **baseline** worker capability and state the fallback in the
+   run notes. Do not ask the user from inside an autopilot-driven implementation
+   pass.
 3. **All other modes ask once** — when there is no explicit/project/autopilot
-   choice, ask the user what implementation agent type and tier to use
-   (structured question tool when available), then lock it for the whole run;
-   never re-ask per wave. Pick a **baseline**, **raised**, or **highest** tier
+   choice, ask the user what implementation effort tier to use (structured
+   question tool when available), then lock it for the whole run; never re-ask
+   per wave. Pick a **baseline**, **raised**, or **highest** tier
    by capability, not by name — concrete model resolution per host is in
    [../principles/references/models.md](../principles/references/models.md):
    - **Baseline** = write fidelity at low cost: routine, well-scoped code.
@@ -67,17 +70,16 @@ Before spawning the first wave, determine the implementation tier:
    The vocabulary matches `deep-code-scan`'s scanner-tier dial so the two read
    alike.
 
-Use explicit runtime paths: spawn implementation workers with the settled agent
-type/tier and the host's code-writing sub-agent mechanism. Map routine
-small/single-item bundles to the settled baseline, raise effort within the
-settled agent family for multi-item, cross-module, or orchestration-critical
+Use explicit runtime paths: spawn implementation workers through the host's
+generic/code-writing subagent mechanism, with the settled effort tier and the
+implementer prompt posture from `../principles/references/subagents.md`. Map
+routine small/single-item bundles to the settled baseline, raise effort within
+the same model family for multi-item, cross-module, or orchestration-critical
 bundles, and reserve the highest tier for large cross-feature write paths,
 risky migrations, difficult generated-code reconciliation, or repeated failed
-attempts. Use read-only exploratory sub-agents with the same settled family at
-medium/high reasoning for mapping. If the host provides named roles, load
-`../principles/references/subagents.md` and map write bundles, read-only
-mapping, and same-harness integration checks through that role map. Do not use
-peeragent for routine implementation-worker fanout.
+attempts. Use read-only exploratory subagents prompted with the explorer capsule
+at medium/high reasoning for mapping. Do not use peeragent for routine
+implementation-worker fanout.
 
 In every runtime, make each worker prompt self-contained and require one commit
 per item.
@@ -440,28 +442,23 @@ budget win the bundle is buying.
 
 Spawn one implementation sub-agent per bundle, regardless of bundle size.
 
-Spawn code-writing worker sub-agents using the settled implementation agent
-type/tier from the kickoff decision:
-- `codex-medium` / `sonnet` / host medium-default for small or single-item
-  bundles
-- `codex-high` / `mixed` / host high-effort for multi-item, cross-module, or
-  orchestration-critical bundles when the settled choice allows escalation
-- `codex-xhigh` / `opus` / host highest-effort only for large cross-feature
-  write paths, deep migrations, high-risk reconciliation, or repeated failed
-  attempts, and only when selected explicitly or permitted by the settled tier
-- no model override outside the settled agent type/tier unless the user has
-  named one or the project has a stable model convention
+Spawn code-writing worker subagents through the host's generic/general-purpose
+subagent mechanism, prompted with the implementer capsule and the settled effort
+tier from the kickoff decision:
+- baseline / host medium-default for small or single-item bundles
+- raised / host high-effort for multi-item, cross-module, or orchestration-critical
+  bundles when the settled choice allows escalation
+- highest / host maximum-effort only for large cross-feature write paths, deep
+  migrations, high-risk reconciliation, or repeated failed attempts, and only
+  when selected explicitly or permitted by the settled tier
+- no model override outside the settled family/tier unless the user has named
+  one or the project has a stable model convention
 
-**Pi:**
-
-When hosted in Pi and the agile-workflow role definitions are available, spawn
-`implementor` for each write bundle and `reviewer` for same-harness integration
-checks. Use the deployment's existing `Explore` role for read-only mapping only
-when it is already available; agile-workflow does not ship a generic Explore
-override. If the expected Pi roles are unavailable, keep the bounded work in the
-host session or use the fresh-context fallback already described by the skill.
-Do not assume generic Pi role names are equivalent to these shipped
-agile-workflow roles.
+Use the deployment's existing `Explore` role for read-only mapping only when it
+is already available; agile-workflow does not ship an Explore override or any
+implementation/review roles. If no suitable generic subagent adapter exists,
+keep the bounded work in the host session or use the fresh-context fallback
+already described by the skill.
 
 For waves with multiple bundles, send all in a **single message** with multiple
 sub-agent calls when the runtime supports parallel execution.

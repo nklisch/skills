@@ -27,10 +27,11 @@ Understand what needs investigating and why.
    wrappers, and representative call sites via Read/Glob/Grep. Use an exploratory
    sub-agent only when the integration surface is broad or unclear after that
    probe.
-   - Use the host's read-only exploratory sub-agent path with medium reasoning
+   - Use the host's generic/general-purpose subagent prompted with the explorer
+     capsule from `../principles/references/subagents.md`, at medium reasoning
      by default.
    - Use high or strongest reviewer reasoning for large or complex codebases.
-   - If no sub-agent path is available, keep direct host-local research.
+   - If no generic subagent adapter is available, keep direct host-local research.
 3. Define research questions:
    - What specific problem does this technology need to solve for the project?
    - What constraints must it satisfy? (bundle size, license, runtime, compatibility)

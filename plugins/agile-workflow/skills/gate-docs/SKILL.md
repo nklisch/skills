@@ -18,13 +18,13 @@ assertions can drift from reality or from the intended state they are meant to
 describe.
 
 The actual drift detection runs inside a **deep documentation scanner agent**
-(the shipped agile-workflow `scanner` role when available); your role is to
+(a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`); your role is to
 prepare the bundle context, dispatch the scanner, and convert the findings it
 returns into items that will roll the docs forward.
 
 Scanner strength is explicit: spawn exactly one source-read-only deep
 documentation scanner with the strongest inspection/reviewer setting the host
-exposes. Use the shipped agile-workflow `scanner` role when available. Use
+exposes. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`. Use
 extra-high reasoning for large documentation surfaces or broad API drift. If the
 host has no scanner path, run the audit inline and record the reduced
 isolation in the release body.
@@ -67,7 +67,7 @@ Capture the set of `(doc-file:line, drift-category)` already-tracked findings.
 ### Phase 3: Dispatch the drift-detection scanner
 
 Spawn ONE source-read-only deep scanner agent with the full drift-detection
-brief. Use the shipped agile-workflow `scanner` role when available and the
+brief. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md` and the
 strongest inspection/reviewer setting the host exposes, escalating for large
 documentation surfaces. If scanner agents are unavailable, run the audit
 inline and record the reduced isolation in the release body. The scanner maps

@@ -41,11 +41,11 @@ snapshots (`/aw status`, `/aw ready`) and workflow handoffs (`/aw autopilot`,
 `/aw board`). Pi packages can execute extension code, so install from sources you
 trust.
 
-Agile-workflow also ships optional subagent role definitions for supported
-hosts, including a deep `scanner` role for release gates and scan campaigns
-(distinct from code-search/Explore). Pi support is explicit to
-`@gotgenes/pi-subagents`; other Pi subagent packages are not supported by these
-role files. See `agents/README.md` for Claude, Codex, and Pi loading details.
+Agile-workflow does not ship custom subagent definitions for Pi, Claude Code,
+or Codex. Skills that delegate work prompt the host's existing
+generic/general-purpose subagent mechanism with a structured, task-specific
+brief; see `skills/principles/references/subagents.md` for the shared prompt
+postures.
 
 ### Bootstrap
 

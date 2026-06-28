@@ -609,6 +609,20 @@ live there alongside tag semantics, test integrity, and advisory-review rules.
 
 All skills with their roles, invocability, and triggers.
 
+### Delegation posture
+
+Agile-workflow ships skills, hooks, the Pi `/aw` extension, and substrate tools;
+it does **not** ship custom subagent definitions for Pi, Claude Code, or Codex.
+When a skill needs breadth, isolation, fresh-context review, scanner work, or
+parallel write ownership, it prompts the host's existing generic/general-purpose
+subagent mechanism with a structured task brief. The shared prompt postures live
+in `skills/principles/references/subagents.md`.
+
+A same-harness delegated run is fresh-context by default. It counts as
+cross-model only when the host explicitly spawns the subagent with a different
+model class; otherwise use `peeragent` only when a cross-harness different model
+class is needed and allowed.
+
 ### Bootstrap (user-invocable only)
 
 | Skill | Role | Trigger |

@@ -1,23 +1,9 @@
-import {
-  copyFileSync,
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readlinkSync,
-  rmSync,
-  statSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { homedir } from "node:os";
+import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 const STATUS_KEY = "agile-workflow";
 const MAX_OUTPUT_CHARS = 6_000;
 const ITEM_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
-const BUNDLED_AGENT_FILES = ["designer.md", "implementor.md", "reviewer.md", "scanner.md"] as const;
-const MANAGED_MARKER_SUFFIX = ".agile-workflow-managed";
 
 type PiApi = {
   exec: (
@@ -51,8 +37,6 @@ type Substrate = {
 };
 
 export default function agileWorkflowExtension(pi: PiApi) {
-  syncBundledPiAgents();
-
   pi.registerCommand("aw", {
     description: "Inspect and navigate the agile-workflow .work substrate",
     handler: async (args, ctx) => {
@@ -117,125 +101,6 @@ export default function agileWorkflowExtension(pi: PiApi) {
       }
     },
   });
-}
-
-type AgentSyncResult = {
-  installed: string[];
-  updated: string[];
-  skipped: string[];
-  errors: Array<{ file: string; message: string }>;
-};
-
-export function syncBundledPiAgents(options: {
-  sourceDir?: string;
-  targetDir?: string;
-} = {}): AgentSyncResult {
-  const sourceDir = options.sourceDir ?? bundledPiAgentDir();
-  const targetDir = options.targetDir ?? globalPiAgentDir();
-  const result: AgentSyncResult = {
-    installed: [],
-    updated: [],
-    skipped: [],
-    errors: [],
-  };
-
-  try {
-    mkdirSync(targetDir, { recursive: true });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return {
-      installed: [],
-      updated: [],
-      skipped: [...BUNDLED_AGENT_FILES],
-      errors: BUNDLED_AGENT_FILES.map((file) => ({ file, message })),
-    };
-  }
-
-  for (const file of BUNDLED_AGENT_FILES) {
-    const source = resolve(sourceDir, file);
-    const target = join(targetDir, file);
-    const marker = `${target}${MANAGED_MARKER_SUFFIX}`;
-
-    try {
-      const sourceStat = statOrNull(source);
-      if (!sourceStat?.isFile()) {
-        result.errors.push({ file, message: `missing bundled agent: ${source}` });
-        continue;
-      }
-
-      const targetStat = lstatOrNull(target);
-      if (!targetStat) {
-        installManagedAgent(source, target, marker);
-        result.installed.push(file);
-        continue;
-      }
-
-      if (targetStat.isSymbolicLink()) {
-        const linkTarget = readlinkSync(target);
-        const resolvedTarget = resolve(dirname(target), linkTarget);
-        if (resolvedTarget === source) {
-          result.skipped.push(file);
-          continue;
-        }
-
-        rmSync(target);
-        installManagedAgent(source, target, marker);
-        result.updated.push(file);
-        continue;
-      }
-
-      if (existsSync(marker)) {
-        installManagedCopy(source, target, marker);
-        result.updated.push(file);
-        continue;
-      }
-
-      result.skipped.push(file);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      result.errors.push({ file, message });
-    }
-  }
-
-  return result;
-}
-
-function lstatOrNull(path: string): ReturnType<typeof lstatSync> | null {
-  try {
-    return lstatSync(path);
-  } catch {
-    return null;
-  }
-}
-
-function statOrNull(path: string): ReturnType<typeof statSync> | null {
-  try {
-    return statSync(path);
-  } catch {
-    return null;
-  }
-}
-
-function installManagedAgent(source: string, target: string, marker: string): void {
-  try {
-    symlinkSync(source, target);
-    rmSync(marker, { force: true });
-  } catch {
-    installManagedCopy(source, target, marker);
-  }
-}
-
-function installManagedCopy(source: string, target: string, marker: string): void {
-  copyFileSync(source, target);
-  writeFileSync(marker, `${source}\n`, "utf8");
-}
-
-function bundledPiAgentDir(): string {
-  return resolve(dirname(fileURLToPath(import.meta.url)), "..", "agents", "pi");
-}
-
-function globalPiAgentDir(): string {
-  return join(resolve(process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent")), "agents");
 }
 
 function findSubstrate(start?: string): Substrate | null {

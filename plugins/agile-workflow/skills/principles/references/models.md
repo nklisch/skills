@@ -181,11 +181,11 @@ Always tell the reviewer **not** to recurse back through peeragent's own
 ## 8. Fallbacks when no peer is reachable
 
 When peeragent is unavailable, fails, would be same-class, or the needed class
-isn't reachable: spawn a **fresh max-effort sub-agent** at the highest class
-available to the host (Pi -> agile-workflow `reviewer` for review/adversarial
-passes or `scanner` for inspection passes; Claude -> fresh Opus). Give it **only**
-the artifact + the lens catalog — deliberately not the host's own reasoning — so context isolation buys as much independence as
-possible. Label the pass by the model actually selected at spawn time: cross-model
-only if it is a different model class from the caller; otherwise same-class /
-same-harness fresh-context. Independence is degraded but not absent. For
-host-specific role names, load [subagents.md](subagents.md).
+isn't reachable: spawn a **fresh max-effort generic sub-agent** at the highest
+class available to the host and prompt it with the review or scanner posture from
+[subagents.md](subagents.md). Give it **only** the artifact + the lens catalog —
+deliberately not the host's own reasoning — so context isolation buys as much
+independence as possible. Label the pass by the model actually selected at spawn
+time: cross-model only if it is a different model class from the caller;
+otherwise same-class / same-harness fresh-context. Independence is degraded but
+not absent.

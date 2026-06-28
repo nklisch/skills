@@ -14,20 +14,19 @@ description: >
 You orchestrate a deep, multi-angle hunt for hard-to-find correctness bugs. You detect the
 stack, choose relevant bug domains, dispatch **one deep scanner agent per selected domain in parallel**, and
 either write a scored report (standalone) or produce items in `.work/active/stories/` (gate
-mode). Use the shipped agile-workflow `scanner` role when available. Domain selection is the
+mode). Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`. Domain selection is the
 scope-size gate: do not spawn a scanner for a domain just because it exists in the table. Each
 scanner loads only its domain's reference —
 that's the progressive-disclosure move that keeps each scanner focused and the
 orchestrator's context lean.
 
 Scanner strength is explicit: spawn one source-read-only scanner agent per
-selected domain with high inspection/reviewer reasoning. Use the shipped
-agile-workflow `scanner` role when available. Use extra-high reasoning only for
+selected domain with high inspection/reviewer reasoning. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`. Use extra-high reasoning only for
 concurrency, data-layer, or time bugs in high-risk domains, very large scopes,
 or repeat scans that previously missed issues. These are scanners, not fixers.
-- For host-specific role names and Pi support limits, load
-  `../principles/references/subagents.md`. If the scanner role is unavailable,
-  use the same-host read-only analysis fallback.
+- For the dynamic scanner prompt posture, load
+  `../principles/references/subagents.md`. If no suitable scanner subagent adapter is
+  available, use the same-host read-only analysis fallback.
 
 This skill hunts **correctness** bugs, not vulnerabilities, not perf, not style. Use the
 sibling skills for those.
@@ -114,7 +113,7 @@ Skip the prompt. Default to all domains that touch any file in the bundle.
 For each selected domain, spawn **one parallel scanner agent in a single
 message** so they run concurrently.
 
-Use the shipped agile-workflow `scanner` role when available with high
+Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md` with high
 inspection/reviewer reasoning; escalate to extra-high only for high-risk
 domains, very large scopes, or repeat scans that previously missed issues. If a
 host cannot spawn the scanner role, use the same-host read-only analysis

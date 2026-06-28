@@ -126,12 +126,12 @@ reading.
 
 Spawn one read-only exploratory sub-agent only when the integration surface is still
 unclear or broader than a few obvious files:
-- Use the host's read-only exploratory sub-agent path with medium reasoning by default.
+- Use the host's generic/general-purpose subagent prompted with the explorer capsule from `../principles/references/subagents.md`, at medium reasoning by default.
 - Use high or strongest reviewer reasoning for large or complex codebases.
-- If no sub-agent path is available, keep the bounded mapping in the host session.
-- For host-specific role names and Pi support limits, load
-  `../principles/references/subagents.md`; in Pi, use the shipped
-  agile-workflow roles only when they are available.
+- If no generic subagent adapter is available, keep the bounded mapping in the host session.
+- For the dynamic explorer prompt posture, load
+  `../principles/references/subagents.md`; do not assume named agile-workflow
+  roles are installed.
 
 Brief:
 - "Find all public exports, shared utilities, type definitions, and module

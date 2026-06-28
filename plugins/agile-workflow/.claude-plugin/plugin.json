@@ -6,11 +6,5 @@
     "name": "nklisch"
   },
   "repository": "https://github.com/nklisch/skills",
-  "license": "MIT",
-  "agents": [
-    "./agents/shared/designer.md",
-    "./agents/shared/implementor.md",
-    "./agents/shared/reviewer.md",
-    "./agents/shared/scanner.md"
-  ]
+  "license": "MIT"
 }

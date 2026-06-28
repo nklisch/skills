@@ -24,7 +24,7 @@ systems, GPU programming, compilers — and ask, for the code in front of you:
 
 You detect the stack and workload shape, choose relevant **strategy lenses**,
 dispatch **one deep scanner/scout agent per lens in parallel** (each at the highest
-thinking model available, using the shipped agile-workflow `scanner` role when available),
+thinking model available, using a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`),
 aggregate and rank the candidate ideas, then run the
 whole deck past a **different model class** to prune the weak ideas and surface
 the angles your first pass missed. The output is a ranked deck of *candidate*
@@ -140,9 +140,10 @@ relevant to nearly all code.
 ## Phase 3: Fan-out idea generation
 
 For each selected lens, spawn **one parallel scanner/scout agent in a single message**
-so they run concurrently. Use the shipped agile-workflow `scanner` role when available,
-the host's strongest read-only scout path, and extra-high reasoning when available;
-otherwise use the same-host read-only ideation fallback.
+so they run concurrently. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`,
+the host's generic/general-purpose subagent prompted with the scanner/scout
+posture from `../principles/references/subagents.md`, and extra-high reasoning
+when available; otherwise use the same-host read-only ideation fallback.
 
 ### Scope (passed into every scout)
 

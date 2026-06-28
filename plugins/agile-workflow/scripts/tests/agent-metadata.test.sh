@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# agent-metadata.test.sh - guard agile-workflow harness-specific agent metadata.
+# agent-metadata.test.sh - guard agile-workflow's no-shipped-agents posture.
 
 set -uo pipefail
 
@@ -41,59 +41,25 @@ assert_eq() {
 echo ""
 echo "=== Agile-workflow agent metadata ==="
 
-for role in designer implementor reviewer scanner; do
-  shared="${PLUGIN_ROOT}/agents/shared/${role}.md"
-  claude="${PLUGIN_ROOT}/agents/claude/${role}.md"
-  pi="${PLUGIN_ROOT}/agents/pi/${role}.md"
+assert_true "Agile-workflow ships no custom agent directory" \
+  "[ ! -d '${PLUGIN_ROOT}/agents' ]"
+assert_eq "Claude manifest agents absent" "null" \
+  "$(jq -c '.agents // null' "${PLUGIN_ROOT}/.claude-plugin/plugin.json")"
+assert_eq "Pi package subagents absent" "null" \
+  "$(jq -c '.pi.subagents // null' "${PLUGIN_ROOT}/package.json")"
+assert_eq "Codex manifest agents absent" "null" \
+  "$(jq -c '.agents // null' "${PLUGIN_ROOT}/.codex-plugin/plugin.json")"
+assert_true "Dynamic subagent reference exists" \
+  "[ -f '${PLUGIN_ROOT}/skills/principles/references/subagents.md' ]"
+assert_true "Dynamic subagent reference names general-purpose posture" \
+  "grep -q 'generic/general-purpose subagent' '${PLUGIN_ROOT}/skills/principles/references/subagents.md'"
+assert_true "Dynamic subagent reference rejects shipped role names" \
+  "grep -Eq 'does .{0,8}not.{0,8} ship custom subagent definitions' '${PLUGIN_ROOT}/skills/principles/references/subagents.md'"
 
-  assert_true "Shared ${role} agent exists" "[ -f '$shared' ]"
-  assert_true "Claude ${role} agent exists" "[ -f '$claude' ]"
-  assert_true "Pi ${role} agent exists" "[ -f '$pi' ]"
-  assert_true "Claude ${role} is symlinked to shared" "[ -L '$claude' ]"
-  assert_true "Pi ${role} is symlinked to shared" "[ -L '$pi' ]"
-  assert_eq "Claude ${role} symlink target" "../shared/${role}.md" "$(readlink "$claude")"
-  assert_eq "Pi ${role} symlink target" "../shared/${role}.md" "$(readlink "$pi")"
-  assert_true "Shared ${role} has Claude-compatible name" "grep -q '^name: ${role}$' '$shared'"
-  assert_true "Shared ${role} has description" "grep -q '^description: >$' '$shared'"
-  assert_true "Shared ${role} description is caller-facing" "python3 - '$shared' <<'PY'
-import re, sys
-text = open(sys.argv[1], encoding='utf-8').read()
-match = re.search(r'description: >\n((?:  .+\n)+)', text)
-desc = ' '.join(line.strip() for line in match.group(1).splitlines()) if match else ''
-raise SystemExit(0 if desc.startswith('Use for ') and len(desc) <= 1024 else 1)
-PY"
-  assert_true "Shared ${role} loads principles" "grep -q '/agile-workflow:principles' '$shared'"
-  assert_true "Shared ${role} grounds on VISION in body" "grep -q 'docs/VISION.md' '$shared'"
-  assert_true "Shared ${role} omits tool pinning" "! grep -q '^tools:' '$shared'"
-  assert_true "Shared ${role} omits Pi-only prompt_mode" "! grep -q '^prompt_mode:' '$shared'"
-done
-
-assert_true "Claude/Pi shared agents do not pin tools" \
-  "! grep -H '^tools:' '${PLUGIN_ROOT}'/agents/shared/*.md '${PLUGIN_ROOT}'/agents/claude/*.md '${PLUGIN_ROOT}'/agents/pi/*.md >/dev/null"
-
-for role in aw-designer aw-implementor aw-reviewer aw-scanner; do
-  file="${PLUGIN_ROOT}/agents/codex/${role}.toml"
-  assert_true "Codex ${role} template exists" "[ -f '$file' ]"
-  assert_true "Codex ${role} has name" "grep -q '^name = \"${role}\"$' '$file'"
-  assert_true "Codex ${role} has description" "grep -q '^description = ' '$file'"
-  assert_true "Codex ${role} has developer instructions" "grep -q '^developer_instructions = \"\"\"$' '$file'"
-  assert_true "Codex ${role} description is caller-facing" "python3 - '$file' <<'PY'
-import sys, tomllib
-data = tomllib.loads(open(sys.argv[1], encoding='utf-8').read())
-desc = data.get('description', '')
-raise SystemExit(0 if desc.startswith('Use for ') and len(desc) <= 1024 else 1)
-PY"
-  assert_true "Codex ${role} loads principles" "grep -q '/agile-workflow:principles' '$file'"
-  assert_true "Codex ${role} grounds on VISION in developer instructions" "grep -q 'docs/VISION.md' '$file'"
-done
-
-assert_eq "Claude manifest agents list" \
-  '["./agents/shared/designer.md","./agents/shared/implementor.md","./agents/shared/reviewer.md","./agents/shared/scanner.md"]' \
-  "$(jq -c '.agents' "${PLUGIN_ROOT}/.claude-plugin/plugin.json")"
-assert_eq "Pi package explicitly supports @gotgenes/pi-subagents" "@gotgenes/pi-subagents" \
-  "$(jq -r '.pi.subagents.provider' "${PLUGIN_ROOT}/package.json")"
-assert_eq "Pi package points at shared agent directory" '["./agents/shared"]' \
-  "$(jq -c '.pi.subagents.agents' "${PLUGIN_ROOT}/package.json")"
+assert_true "Skills do not reference removed shipped scanner role" \
+  "! grep -R 'shipped agile-workflow.*scanner' '${PLUGIN_ROOT}/skills' >/dev/null"
+assert_true "Skills do not reference removed role definitions" \
+  "! grep -R 'role definitions are available' '${PLUGIN_ROOT}/skills' >/dev/null"
 
 echo ""
 echo "============================================================"

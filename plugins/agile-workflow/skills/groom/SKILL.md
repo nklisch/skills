@@ -86,10 +86,12 @@ Dispatch **one read-only deep sub-agent** over the backlog item bodies to propos
 - **SUPERSEDED** — a later item (or landed work) obsoletes an earlier one.
 - **MERGEABLE / CLUSTER** — N items that are really one epic/feature.
 
-The sub-agent prompt MUST carry the grounding requirement verbatim: *every proposed classification
-quotes the overlapping text from each item involved; no classification without a citation;
-uncertain pairings are surfaced as questions, not assertions.* If the host has no sub-agent path,
-run the pass inline and record the reduced isolation in the report.
+The sub-agent prompt MUST use the host's generic/general-purpose subagent path
+and carry the grounding requirement verbatim: *every proposed classification
+quotes the overlapping text from each item involved; no classification without a
+citation; uncertain pairings are surfaced as questions, not assertions.* If no
+generic subagent adapter is available, run the pass inline and record the
+reduced isolation in the report.
 
 The user may skip this pass ("groom, mechanical only") — then report STALE / missing-field /
 cites-done only.

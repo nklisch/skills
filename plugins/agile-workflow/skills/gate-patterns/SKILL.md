@@ -15,14 +15,12 @@ description: >
 # Gate-Patterns
 
 You orchestrate a patterns gate over the bundle's code changes. The actual
-pattern discovery runs inside a **deep pattern scanner agent** (the shipped
-agile-workflow `scanner` role when available); your role is to prepare the
+pattern discovery runs inside a **deep pattern scanner agent** (a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`); your role is to prepare the
 bundle context, dispatch the scanner, and write the pattern files + index it
 returns.
 
 Scanner strength is explicit: spawn exactly one source-read-only deep pattern
-scanner with the strongest inspection/reviewer setting the host exposes. Use the
-shipped agile-workflow `scanner` role when available. Use extra-high reasoning
+scanner with the strongest inspection/reviewer setting the host exposes. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`. Use extra-high reasoning
 only for large/polyglot bundles, architecture-wide pattern extraction, or
 conflicting pattern catalogs. If the host has no scanner path, run
 discovery inline and record the reduced isolation in the release body.
@@ -91,7 +89,7 @@ done < /tmp/bundle-items-<version>.txt | sort -u > /tmp/bundle-files-<version>.t
 ### Phase 3: Dispatch the pattern scanner
 
 Spawn ONE source-read-only deep scanner agent with the full discovery brief. Use
-the shipped agile-workflow `scanner` role when available and the strongest
+a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md` and the strongest
 inspection/reviewer setting the host exposes, escalating for large/polyglot
 bundles, architecture-wide pattern extraction, or conflicting catalogs. If
 scanner agents are unavailable, run discovery inline and record the reduced

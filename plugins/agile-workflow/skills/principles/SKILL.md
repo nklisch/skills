@@ -375,13 +375,16 @@ Sub-agents are for breadth, isolation, independent judgment, or parallel
 implementation with clear write ownership. They are not a replacement for
 reading, and they are not automatically better than local read-oriented tools.
 
-When hosted in Pi, native Pi subagents are the preferred same-harness adapter
-when the agile-workflow role definitions are available. Treat those runs as
-fresh-context same-harness delegation, not as cross-model evidence. Keep
-`peeragent` for cross-model or cross-harness advisory/review paths, and fall
-back to direct single-agent execution when the supported adapter is unavailable.
-For the host-specific role names, load
-[references/subagents.md](references/subagents.md).
+Agile-workflow does not ship custom subagent definitions. When delegation is
+useful, prompt the host's existing generic/general-purpose subagent mechanism
+with a structured, task-specific brief. A same-harness subagent is
+fresh-context by default; call it cross-model only when the harness explicitly
+spawns it with a different model class (for example, Pi selecting another
+provider/model for the subagent). Keep `peeragent` for cross-model or
+cross-harness advisory/review paths when the harness cannot provide the needed
+different model class itself, and fall back to direct single-agent execution
+when no suitable subagent adapter is available. For the prompt skeleton and
+posture capsules, load [references/subagents.md](references/subagents.md).
 
 Before spawning read-only exploratory/discovery sub-agents, do a local scope-size probe:
 
@@ -404,7 +407,7 @@ Choose the lightest mechanism that will produce better evidence:
 | One bounded area but uncertain patterns or call sites | Use one focused exploratory sub-agent, then spot-check key files yourself. |
 | Several independent surfaces with different questions | Use parallel exploratory sub-agents, one per surface/question. |
 | Implementation work with independent write ownership | Fan out by ownership and dependency layer; do not use item count alone as the parallelism signal. |
-| Deep audit/review where fresh context is the point | Spawn the dedicated audit/review sub-agent described by that skill; in Pi, prefer the agile-workflow `reviewer` role before same-class inline fallback. |
+| Deep audit/review where fresh context is the point | Spawn a generic sub-agent with the skill's reviewer/scanner prompt posture and explicit output schema; if unavailable, use the skill's inline fallback. |
 
 Parallel Explore only pays for itself when the prompts are genuinely different.
 Three agents asking the same broad question usually return duplicated shallow
@@ -515,13 +518,13 @@ select a different model/provider for the reviewer. The value of a peer is
 **independent blind spots**, not a more authoritative answer, so the reviewer
 must be a different class than the host before you label the pass cross-model. If
 `peeragent` would use the same model class, do not use `peer` or `peer-review`;
-instead spawn a **fresh sub-agent at the strongest appropriate model available to
-the host** — never review inline in the host's own context, which is anchored on
-the work it just produced. Under Pi, the agile-workflow `reviewer` role may serve
-either path depending on how it is spawned: cross-model when the caller selects a
-different model class, otherwise same-harness / same-class fresh-context. If the
-spawned reviewer's model class is uncertain, label it fresh-context, not
-cross-model.
+instead spawn a **fresh generic sub-agent at the strongest appropriate model
+available to the host**, prompted with the reviewer posture from
+[references/subagents.md](references/subagents.md) — never review inline in the
+host's own context, which is anchored on the work it just produced. Label the
+pass cross-model only when the caller intentionally selected a different model
+class for that subagent; if the spawned reviewer's model class is uncertain,
+label it fresh-context, not cross-model.
 
 Explicit user instructions and project-level `AGENTS.md` / `CLAUDE.md` review
 rules override this policy. If they require review, follow them. If they opt out
@@ -551,9 +554,10 @@ for the model classes that fill each role):
   their disagreements are themselves signal.
 - Reviewing a completed **feature or epic** at `stage: review` (the `review`
   skill's deep lane): run the lens review in a fresh context — a different-class
-  `peer-review` when reachable; otherwise the agile-workflow `reviewer` role
-  spawned with a different model class when the host can do that; otherwise the
-  strongest same-harness fresh-context reviewer available.
+  `peer-review` when reachable; otherwise a generic sub-agent prompted with the
+  reviewer posture from [references/subagents.md](references/subagents.md),
+  cross-model only when the host can spawn it with a different model class;
+  otherwise the strongest same-harness fresh-context reviewer available.
   **Stories skip this** entirely; they fast-advance on `implement`'s
   verification.
 - End of an autopilot run, after the scoped queue appears drained and before
@@ -593,7 +597,7 @@ a few minutes is not a failure. Do not halt the queue for an advisory review
 failure.
 
 The final autopilot completion review is stricter: it must succeed through a
-different-model `peer-review` loop, an agile-workflow `reviewer` spawned as a
+different-model `peer-review` loop, a generic sub-agent prompted as a
 fresh-context reviewer (cross-model when the caller selects a different model
 class, otherwise same-harness), or another supported fresh-context fallback
 before the run reports `complete`. For deep/complex scope that means clearing

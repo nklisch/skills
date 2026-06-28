@@ -29,8 +29,7 @@ opt-in (not in the default `gates_for_release` list): an install with no rule li
 to check, and that is by design, not an error.
 
 Scanner strength is explicit: spawn exactly one source-read-only deep refactor
-scanner with the strongest inspection/reviewer setting the host exposes. Use the
-shipped agile-workflow `scanner` role when available. Use extra-high reasoning
+scanner with the strongest inspection/reviewer setting the host exposes. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`. Use extra-high reasoning
 for large/polyglot release bundles or when multiple libraries carry dense rule
 sets. If the host has no scanner path, run the scan inline and record
 the reduced isolation in the release body.
@@ -127,11 +126,11 @@ scanner brief so it skips duplicates.
 ### Phase 3: Dispatch the refactor scanner
 
 If at least one library was discovered, spawn ONE source-read-only deep scanner
-agent with the full scan brief. Use the shipped agile-workflow `scanner` role
-when available and the strongest inspection/reviewer setting the host exposes,
-escalating for large/polyglot bundles or dense rule sets. If scanner agents
-are unavailable, run the scan inline and record the reduced isolation in the
-release body.
+agent with the full scan brief. Use a generic sub-agent prompted with the scanner
+posture from `../principles/references/subagents.md` and the strongest
+inspection/reviewer setting the host exposes, escalating for large/polyglot
+bundles or dense rule sets. If scanner agents are unavailable, run the scan
+inline and record the reduced isolation in the release body.
 
 The scanner checks all rules from all libraries in one pass per file, returning structured
 findings. Dispatching one scanner with the full library set (rather than one per library) avoids

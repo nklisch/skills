@@ -1,1 +1,0 @@
-../shared/scanner.md

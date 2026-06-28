@@ -181,9 +181,9 @@ Then choose the dispatch size:
   questions across separate areas: spawn parallel read-only exploratory sub-agents.
 
 For exploratory fanout:
-- Use the host's read-only exploratory sub-agent path with medium reasoning by default.
+- Use the host's generic/general-purpose subagent prompted with the explorer capsule from `../principles/references/subagents.md`, at medium reasoning by default.
 - Use high or strongest reviewer reasoning for large or complex codebases.
-- If no sub-agent path is available, keep the bounded mapping in the host session.
+- If no generic subagent adapter is available, keep the bounded mapping in the host session.
 
 Possible prompts:
 1. **Codebase Structure** — directory layout, modules, entry points, exports

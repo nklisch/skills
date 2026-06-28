@@ -86,8 +86,9 @@ exploratory fanout.
 
 Spawn **one** read-only exploratory sub-agent only when the batch spans unclear
 code areas or you cannot confidently name the natural seams from direct reading.
-Use the host's medium-effort read-only exploration path. If no sub-agent path is
-available, keep the area-map in the host session.
+Use the host's generic/general-purpose subagent prompted with the explorer
+capsule from `../principles/references/subagents.md`, at medium effort. If no
+generic subagent adapter is available, keep the area-map in the host session.
 Give it:
 - The list of targeted backlog ideas (id + brief, one per line)
 - A one-paragraph summary of the foundation docs from Phase B2

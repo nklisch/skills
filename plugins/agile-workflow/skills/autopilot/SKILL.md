@@ -98,14 +98,15 @@ Only active items are candidates. Backlog items must be promoted through
 `scope` before autopilot can touch them.
 
 **Settle the implementation tier once, here at kickoff** — don't let it default
-silently per wave. If the goal/args/user named a tier (or the project fixes one in
-`.work/CONVENTIONS.md`), honor it. Otherwise, when the goal permits interaction, ask
-once (structured question tool: `sonnet`/`mixed`/`opus`, or Codex `codex-medium`/`codex-high`/
-`codex-xhigh`) and lock it for the whole run. Under an autonomous goal contract that
-forbids mid-run questions, use the `implement-orchestrator` default and **state the
-tier in the run summary** so a cheap-tier drain is never a silent surprise. Pass the
-settled tier down in the Phase 4 caller note so `implement-orchestrator` does not
-re-ask.
+silently per wave. If the goal/args/user named a tier (or the project fixes one
+in `.work/CONVENTIONS.md`), honor it. Otherwise, when the goal permits
+interaction, ask once for a capability tier — **baseline**, **raised**, or
+**highest** — and lock it for the whole run. The host resolves that capability to
+its available generic subagent model/effort at dispatch time. Under an autonomous
+goal contract that forbids mid-run questions, use the `implement-orchestrator`
+default and **state the tier in the run summary** so a cheap-tier drain is never
+a silent surprise. Pass the settled tier down in the Phase 4 caller note so
+`implement-orchestrator` does not re-ask.
 
 ### Phase 2: Build The Queue
 
@@ -188,10 +189,10 @@ Routing:
   fast-advances on `implement`'s verification with no peer pass; a **feature** or
   **epic** gets a fresh-context deep review — cross-model via peeragent when a
   different class is reachable (two classes paired across the advisory→adversarial
-  phases for deep/complex scope; see `principles/references/models.md`), else an
-  agile-workflow `reviewer` spawned with the strongest appropriate model
-  available (cross-model only if that model is a different class), else a fresh
-  top-class sub-agent)
+  phases for deep/complex scope; see `principles/references/models.md`), else a
+  generic sub-agent prompted as a reviewer from `principles/references/subagents.md`
+  with the strongest appropriate model available (cross-model only if that model
+  is a different class), else a fresh top-class sub-agent)
 
 The delegated skill owns its internal workflow and stage transition. After it
 returns, rebuild the queue from disk rather than relying on cached state.
@@ -271,14 +272,13 @@ When the scoped queue appears drained:
    "complete" premature. A top-tier reasoning peer may take 10 to 30 minutes for a
    large completion review; do not classify a quiet, still-running process as
    hung after only a few minutes.
-3. If peeragent would use the same model class, do not use `peer-review`; use the
-   supported `reviewer` role from `principles/references/subagents.md` when
-   available, spawned with the strongest appropriate model. Record it as
-   cross-model only if that spawned model is a different class; otherwise record
-   same-harness fresh-context.
-4. If peer-review is unavailable, use the supported `reviewer` role from
-   `principles/references/subagents.md` when available, otherwise the local
-   inline review fallback.
+3. If peeragent would use the same model class, do not use `peer-review`; spawn
+   a generic sub-agent prompted as a reviewer from
+   `principles/references/subagents.md` when available, with the strongest
+   appropriate model. Record it as cross-model only if that spawned model is a
+   different class; otherwise record same-harness fresh-context.
+4. If peer-review is unavailable, use that same generic reviewer-subagent path
+   when available, otherwise the local inline review fallback.
    If the selected final-review path fails, do not report completion; mark the
    run blocked on final review and include the failure reason. Do not invent a
    pass.

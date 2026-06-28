@@ -162,10 +162,11 @@ Then choose the dispatch size:
   interactions: spawn parallel read-only exploratory sub-agents.
 
 For exploratory fanout:
-- Use the host's read-only exploratory sub-agent path with medium reasoning by default.
+- Use the host's generic/general-purpose subagent prompted with the explorer
+  capsule from `../principles/references/subagents.md`, at medium reasoning by
+  default.
 - Use high or strongest reviewer reasoning for large or complex codebases.
-- If no sub-agent path is available, keep direct
-  host-local mapping.
+- If no generic subagent adapter is available, keep direct host-local mapping.
 
 Possible prompts:
 1. **Existing surface in this epic's area** — what modules, components, or

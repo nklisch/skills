@@ -12,15 +12,13 @@ description: >
 # Gate-Cruft
 
 You orchestrate a cruft gate over the items bound to a release. The actual
-scan runs inside a **deep cleanup scanner agent** (the shipped agile-workflow
-`scanner` role when available); your role is to prepare the bundle context,
+scan runs inside a **deep cleanup scanner agent** (a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`); your role is to prepare the bundle context,
 dispatch the scanner, and convert the findings it returns into items in the
 substrate. Findings get `gate_origin: cruft`,
 `tags: [cleanup]`, with severity tier shaping the stage.
 
 Scanner strength is explicit: spawn exactly one source-read-only deep cleanup
-scanner with the strongest inspection/reviewer setting the host exposes. Use the
-shipped agile-workflow `scanner` role when available. Use extra-high reasoning
+scanner with the strongest inspection/reviewer setting the host exposes. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`. Use extra-high reasoning
 for large or polyglot release bundles. If the host has no scanner path,
 run the audit inline and record the reduced isolation in the release body.
 
@@ -62,8 +60,7 @@ into the scanner brief.
 
 ### Phase 3: Dispatch the cruft scanner
 
-Spawn ONE source-read-only deep scanner agent with the full scan brief. Use the
-shipped agile-workflow `scanner` role when available and the strongest
+Spawn ONE source-read-only deep scanner agent with the full scan brief. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md` and the strongest
 inspection/reviewer setting the host exposes, escalating for large or polyglot
 bundles. If scanner agents are unavailable, run the audit inline and record
 the reduced isolation in the release body. The scanner does ecosystem detection,

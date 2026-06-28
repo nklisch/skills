@@ -123,9 +123,11 @@ Then choose the dispatch size:
   infrastructure questions: spawn parallel read-only exploratory sub-agents.
 
 For exploratory fanout:
-- Use the host's read-only exploratory sub-agent path with medium reasoning by default.
+- Use the host's generic/general-purpose subagent prompted with the explorer
+  capsule from `../principles/references/subagents.md`, at medium reasoning by
+  default.
 - Use high or strongest reviewer reasoning for large or complex codebases.
-- If no sub-agent path is available, keep direct host-local mapping.
+- If no generic subagent adapter is available, keep direct host-local mapping.
 
 Possible prompts:
 1. **Surfaces & journeys** — entry points (CLI, HTTP routes, exported modules),
@@ -407,11 +409,10 @@ Run `--bootstrap` to seed one."
 
 ### Phase A2: Dispatch audit scanner
 
-Spawn ONE deep scanner agent with the audit brief. Use the shipped
-agile-workflow `scanner` role when available and the host's source-read-only
+Spawn ONE deep scanner agent with the audit brief. Use a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md` and the host's source-read-only
 deep inspection path with high reviewer reasoning; use extra-high reasoning only
 for large suites, complex mock-boundary audits, or repeated escaped tautologies.
-If no scanner/sub-agent path is available, run the audit inline and record the
+If no generic scanner subagent adapter is available, run the audit inline and record the
 reduced isolation in the feature body.
 
 The scanner reads test files (NOT implementation code — that's how tautologies
