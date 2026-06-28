@@ -505,7 +505,8 @@ same Python scripts instead of maintaining a TypeScript copy of the rules:
 
 - `before_agent_start` appends the `.agents/rules/*.md` block via the synthetic
   `PiBeforeAgentStart` prompt-context path, then asks the same script for any
-  prompt-gated principles capsule.
+  prompt-gated principles capsule and injects that capsule as a visible Pi
+  message (`customType: agile-workflow-principles`).
 - `session_start` and `session_compact` call the prompt-context script for the
   same epoch/self-heal side effects Claude/Codex hooks get.
 - `tool_result` for mutating tools calls `substrate-maintainer.py`, so `updated:`

@@ -279,13 +279,19 @@ describe("Pi hook parity adapter", () => {
         systemPromptOptions: { cwd: substrate.root },
       },
       { cwd: substrate.root },
-    ) as { systemPrompt: string };
+    ) as {
+      systemPrompt: string;
+      message: { customType: string; content: string; display: boolean };
+    };
 
     expect(result.systemPrompt.startsWith("BASE")).toBe(true);
     expect(result.systemPrompt).toContain("## Project Rules (.agents/rules/)");
     expect(result.systemPrompt).toContain("keep the shared rules source");
-    expect(result.systemPrompt).toContain("## Agile Workflow Principles");
-    expect(result.systemPrompt).toContain("Code-design capsule");
+    expect(result.systemPrompt).not.toContain("## Agile Workflow Principles");
+    expect(result.message.customType).toBe("agile-workflow-principles");
+    expect(result.message.display).toBe(true);
+    expect(result.message.content).toContain("## Agile Workflow Principles");
+    expect(result.message.content).toContain("Code-design capsule");
   });
 
   test("forces rules context every Pi turn while honoring CONVENTIONS opt-out", async () => {

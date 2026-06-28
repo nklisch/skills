@@ -54,6 +54,15 @@ type BeforeAgentStartEvent = {
   systemPromptOptions?: { cwd?: string };
 };
 
+type BeforeAgentStartResult = {
+  systemPrompt?: string;
+  message?: {
+    customType: string;
+    content: string;
+    display: boolean;
+  };
+};
+
 type SessionEvent = {
   reason?: string;
 };
@@ -106,12 +115,12 @@ function registerHookParity(pi: PiApi): void {
     );
   });
 
-  pi.on?.("before_agent_start", (rawEvent, ctx) => {
+  pi.on?.("before_agent_start", (rawEvent, ctx): BeforeAgentStartResult | undefined => {
     const event = (rawEvent ?? {}) as BeforeAgentStartEvent;
     const cwd = event.systemPromptOptions?.cwd ?? ctx.cwd ?? process.cwd();
     const session_id = sessionId(ctx);
     const base = event.systemPrompt ?? "";
-    const parts: string[] = [];
+    const result: BeforeAgentStartResult = {};
 
     if (!base.includes(RULES_CONTEXT_HEADER)) {
       const rules = runPromptContext(
@@ -124,10 +133,13 @@ function registerHookParity(pi: PiApi): void {
         },
         cwd,
       );
-      if (rules) parts.push(rules);
+      if (rules) {
+        result.systemPrompt = `${base}\n\n${rules}`;
+      }
     }
 
-    if (!base.includes(PRINCIPLES_CONTEXT_HEADER)) {
+    const effectivePrompt = result.systemPrompt ?? base;
+    if (!effectivePrompt.includes(PRINCIPLES_CONTEXT_HEADER)) {
       const principles = runPromptContext(
         {
           hook_event_name: "UserPromptSubmit",
@@ -138,11 +150,22 @@ function registerHookParity(pi: PiApi): void {
         },
         cwd,
       );
-      if (principles) parts.push(principles);
+      if (principles) {
+        // Hook-specific context in Claude/Codex lands as an injected context
+        // message, not as invisible permanent instructions. Use the same shape
+        // in Pi so the model can actually see prompt-gated principles capsules
+        // in the conversation stream while keeping the bulky rules block in the
+        // rebuilt system prompt.
+        result.message = {
+          customType: "agile-workflow-principles",
+          content: principles,
+          display: true,
+        };
+      }
     }
 
-    if (!parts.length) return;
-    return { systemPrompt: `${base}\n\n${parts.join("\n\n")}` };
+    if (!result.systemPrompt && !result.message) return;
+    return result;
   });
 
   pi.on?.("tool_result", (rawEvent, ctx) => {

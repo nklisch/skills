@@ -87,6 +87,8 @@ assert_true "Pi extension uses synthetic PiBeforeAgentStart rules path" \
   "grep -q 'PiBeforeAgentStart' '${PI_EXTENSION}' && grep -q 'PiBeforeAgentStart' '${PROMPT_CONTEXT}'"
 assert_true "prompt-context supports forced rules for Pi rebuilt prompts" \
   "grep -q 'force_rules_context' '${PI_EXTENSION}' && grep -q 'force: bool = False' '${PROMPT_CONTEXT}'"
+assert_true "Pi extension injects principles as visible hook-context message" \
+  "grep -q 'agile-workflow-principles' '${PI_EXTENSION}'"
 
 assert_true "Pi tests cover before_agent_start parity" \
   "grep -q 'before_agent_start' '${PI_TEST}' && grep -q 'shared .agents/rules content' '${PI_TEST}'"

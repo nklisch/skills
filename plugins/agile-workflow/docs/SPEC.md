@@ -789,7 +789,9 @@ adapter**. It maps Pi-native events onto the same deterministic hook scripts:
   `hook_event_name: PiBeforeAgentStart` with `force_rules_context: true` to
   append `.agents/rules/*.md` into Pi's rebuilt-per-turn system prompt, then
   `hook_event_name: UserPromptSubmit` for the same prompt-gated principles
-  capsules Claude/Codex receive.
+  capsules Claude/Codex receive. Principles are returned as an injected Pi
+  message (`customType: agile-workflow-principles`) rather than hidden permanent
+  instructions, matching hook-specific context visibility.
 - `tool_result` for mutating tools (`write`, `edit`, `apply_patch`) →
   `substrate-maintainer.py` with `hook_event_name: PostToolUse`; validation
   output is appended to the tool result so the next model step sees the same
