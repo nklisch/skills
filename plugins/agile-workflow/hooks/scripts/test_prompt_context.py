@@ -361,6 +361,18 @@ class RulesLoaderTest(unittest.TestCase):
         self.assertNotIn("Rule A", printed)
         self.assertNotIn("Agile Workflow Snapshot", printed)
 
+    def test_short_workflow_command_emits_principles(self) -> None:
+        payload = self._payload(cwd=str(self.root), prompt="implement")
+        out = io.StringIO()
+        with mock.patch.object(
+            prompt_context.sys, "stdin", io.StringIO(json.dumps(payload))
+        ), mock.patch.object(prompt_context.sys, "stdout", out):
+            rc = prompt_context.main()
+        self.assertEqual(rc, 0)
+        printed = out.getvalue()
+        self.assertIn("Agile Workflow Principles", printed)
+        self.assertIn("Code-design capsule", printed)
+
     def test_main_sessionstart_emits_rules(self) -> None:
         (self.rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")
         payload = {

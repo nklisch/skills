@@ -34,6 +34,14 @@ ITEM_VERB_RE = re.compile(
     r"\b(implement|fix|patch|design|scope|park|refactor|perf|optimi[sz]e|review|verdict|done)\b",
     re.IGNORECASE,
 )
+# A one-word imperative like "implement" is a high-intent workflow command in
+# an agile-workflow-enabled repo. Earlier gating required an explicit noun
+# ("implement item"), which was too conservative: the hook is already gated by
+# `.work/CONVENTIONS.md`, and principles capsules are small + per-session deduped.
+SHORT_WORKFLOW_COMMAND_RE = re.compile(
+    r"^\s*(implement|fix|patch|design|scope|park|refactor|review|done|release|deploy|gate|convert|ideate|epicize|autopilot|perf|optimi[sz]e)\s*[.!?]*\s*$",
+    re.IGNORECASE,
+)
 WORKFLOW_NOUN_RE = re.compile(r"\b(epic|feature|story|item|items|backlog|ready|queue|stage|workflow)\b", re.IGNORECASE)
 ITEM_REF_SHAPE_RE = re.compile(r"\b[a-z0-9]+-[a-z0-9][a-z0-9-]*\b", re.IGNORECASE)
 REVIEW_STAGE_RE = re.compile(r"\b(at|in)\s+review\b|\breview\s+(queue|everything|all)\b", re.IGNORECASE)
@@ -307,6 +315,8 @@ def cheap_action_candidate(prompt: str) -> bool:
         return False
     if SLASH_RE.search(prompt) or SKILL_MENTION_RE.search(prompt):
         return True
+    if SHORT_WORKFLOW_COMMAND_RE.search(prompt):
+        return True
     if QUEUE_QUERY_RE.search(prompt):
         return True
     if STRONG_ACTION_RE.search(prompt):
@@ -325,6 +335,8 @@ def is_actionable(prompt: str, matched_ids: set[str]) -> bool:
     if matched_ids:
         return True
     if SLASH_RE.search(prompt) or SKILL_MENTION_RE.search(prompt):
+        return True
+    if SHORT_WORKFLOW_COMMAND_RE.search(prompt):
         return True
     if QUEUE_QUERY_RE.search(prompt) or STRONG_ACTION_RE.search(prompt):
         return True

@@ -294,6 +294,21 @@ describe("Pi hook parity adapter", () => {
     expect(result.message.content).toContain("Code-design capsule");
   });
 
+  test("treats bare high-intent workflow verbs as actionable", async () => {
+    const substrate = makeSubstrate();
+    const { eventHandlers } = makePi();
+
+    const result = await fireEvent(
+      eventHandlers,
+      "before_agent_start",
+      { prompt: "implement", systemPrompt: "BASE", systemPromptOptions: { cwd: substrate.root } },
+      { cwd: substrate.root },
+    ) as { message: { content: string } };
+
+    expect(result.message.content).toContain("## Agile Workflow Principles");
+    expect(result.message.content).toContain("Code-design capsule");
+  });
+
   test("forces rules context every Pi turn while honoring CONVENTIONS opt-out", async () => {
     const substrate = makeSubstrate();
     mkdirSync(join(substrate.root, ".agents", "rules"), { recursive: true });
