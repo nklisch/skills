@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-config-boundary-contract
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, docs]
 parent: feature-sandbox-first-party-bwrap
 depends_on: [story-pi-sandbox-buildbwrapargs, story-pi-sandbox-drop-asrt-dep]
@@ -106,3 +106,13 @@ from overclaiming what it protects.
 - Blk-4 resolved: additive inspector merging now treats an absent global `scanFields` plus existing global secret shapes as implicit scan-all (`"*"`). Project `scanFields` can union with explicit global field lists, but cannot narrow global/default all-field coverage to a smaller per-tool list.
 - Sub-1 resolved: `validateConfig()` now compiles `tools.inspector.allowlist.regexes` at load time, so malformed allowlist regexes become parse/validation errors and fail closed during session start instead of throwing later in `tool_call`.
 - Verification after round 3 fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (56 pass / 0 fail).
+
+## Review (2026-07-01)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate fast lane. Implementation verification recorded by implement (56/56 `bun test` passing across the feature, clean `pi install` verified). Round-1/2/3 Phase-8 adversarial review findings that touched this story were fixed and regression-tested. Advanced review -> done.

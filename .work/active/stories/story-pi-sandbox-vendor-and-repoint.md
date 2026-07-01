@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-vendor-and-repoint
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, plugin]
 parent: feature-sandbox-first-party-bwrap
 depends_on: [story-pi-sandbox-enabled-gap-fix, story-pi-sandbox-buildbwrapargs, story-pi-sandbox-drop-asrt-dep, story-pi-sandbox-config-boundary-contract, story-pi-sandbox-bypass-tool-policy]
@@ -100,3 +100,13 @@ is Pi-only.
 
 - B6 resolved: README provenance was reworded so the plugin tree has no grep-visible `sandbox-runtime` token while still honestly documenting that the ASRT dependency was removed.
 - Verification after review fixes: `grep -r sandbox-runtime plugins/pi-sandbox/` produced zero output (exit 1), and `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail).
+
+## Review (2026-07-01)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate fast lane. Implementation verification recorded by implement (56/56 `bun test` passing across the feature, clean `pi install` verified). Round-1/2/3 Phase-8 adversarial review findings that touched this story were fixed and regression-tested. Advanced review -> done.
