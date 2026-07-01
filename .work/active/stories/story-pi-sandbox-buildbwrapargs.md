@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-buildbwrapargs
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: feature-sandbox-first-party-bwrap
 depends_on: []
@@ -111,3 +111,13 @@ Scoped verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` pa
 - Blk-B resolved: deny overlays are now emitted in one canonical parent-first pass, so child protections are mounted after parent masks and win under bwrap's later-argument precedence. A denyWrite child under a denyRead parent inherits the read mask instead of re-exposing host contents; denyRead+denyWrite child directories become empty read-only masks.
 - Rationale: config order is untrusted and cannot determine security precedence. Sorting canonical deny overlays by path depth ascending makes parent masks land first and child remounts land last, closing both `denyRead:["secret/sub","secret"]` and reversed-order cases.
 - Verification after round 2 fixes: added pure argv-order coverage plus live bwrap regressions for both denyRead orderings; `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (53 pass / 0 fail); `grep -r sandbox-runtime plugins/pi-sandbox/` returned no matches.
+
+## Review (2026-07-01)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate fast lane. Implementation verification recorded by implement (56/56 `bun test` passing across the feature, clean `pi install` verified). Round-1/2/3 Phase-8 adversarial review findings that touched this story were fixed and regression-tested. Advanced review -> done.

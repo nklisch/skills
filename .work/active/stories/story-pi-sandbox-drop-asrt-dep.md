@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-drop-asrt-dep
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: feature-sandbox-first-party-bwrap
 depends_on: [story-pi-sandbox-buildbwrapargs]
@@ -57,3 +57,13 @@ error rather than silently running unsandboxed.
 
 - B6 resolved: README provenance no longer contains the literal removed package token; it now says the ASRT dependency was removed without reintroducing a grep-visible dependency reference.
 - Verification after review fixes: `grep -r sandbox-runtime plugins/pi-sandbox/` produced zero output (exit 1), and `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail).
+
+## Review (2026-07-01)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate fast lane. Implementation verification recorded by implement (56/56 `bun test` passing across the feature, clean `pi install` verified). Round-1/2/3 Phase-8 adversarial review findings that touched this story were fixed and regression-tested. Advanced review -> done.

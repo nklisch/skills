@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-bypass-tool-policy
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: feature-sandbox-first-party-bwrap
 depends_on: [story-pi-sandbox-config-boundary-contract]
@@ -73,3 +73,13 @@ Verification:
 - Blk-3 resolved: moved the secret-shape inspector into the pure config helper layer and hardened it to scan every regex match for each shape/field with a global `exec` loop. An allowlisted or low-entropy first match no longer skips later matches of the same shape; block shapes stop on the first confirmed later secret, and redact shapes replace each confirmed match while leaving allowlisted placeholders intact.
 - Rationale: the tool-call inspector is part of the shell-bypass egress mitigation, so the scan contract must be complete per field rather than “first candidate only.” Keeping the implementation pure lets the regression tests exercise real inspector behavior without importing Pi runtime/typebox surfaces.
 - Verification after round 3 fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (56 pass / 0 fail).
+
+## Review (2026-07-01)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate fast lane. Implementation verification recorded by implement (56/56 `bun test` passing across the feature, clean `pi install` verified). Round-1/2/3 Phase-8 adversarial review findings that touched this story were fixed and regression-tested. Advanced review -> done.

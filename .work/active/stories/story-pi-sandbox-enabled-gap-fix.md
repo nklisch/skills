@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-enabled-gap-fix
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: feature-sandbox-first-party-bwrap
 depends_on: []
@@ -42,3 +42,13 @@ if ((pi.getFlag("no-sandbox") as boolean) || disabledViaConfig) {
 Land mode: verified the source already carried the intended `disabledViaConfig` state and bash execute guard. I factored the guard predicate into the pure `shouldBypassSandbox(noSandboxFlag, disabledViaConfig)` helper so the module-internal decision is regression-testable without importing Pi core or `typebox`.
 
 Scoped verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (3 tests, 4 assertions). The tests cover `enabled:false` bypass, `enabled:true` sandbox path preservation, and `--no-sandbox` bypass precedence.
+
+## Review (2026-07-01)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate fast lane. Implementation verification recorded by implement (56/56 `bun test` passing across the feature, clean `pi install` verified). Round-1/2/3 Phase-8 adversarial review findings that touched this story were fixed and regression-tested. Advanced review -> done.
