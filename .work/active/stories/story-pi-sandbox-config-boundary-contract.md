@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-config-boundary-contract
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, docs]
 parent: feature-sandbox-first-party-bwrap
 depends_on: [story-pi-sandbox-buildbwrapargs, story-pi-sandbox-drop-asrt-dep]
@@ -41,15 +41,45 @@ from overclaiming what it protects.
 
 ## Acceptance Criteria
 
-- [ ] Config parser has no ASRT type dependency.
-- [ ] Existing global and project config load paths still work:
+- [x] Config parser has no ASRT type dependency.
+- [x] Existing global and project config load paths still work:
       `~/.pi/agent/extensions/sandbox.json` and `<cwd>/.pi/sandbox.json`.
-- [ ] Legacy ASRT-only fields produce explicit warning or fail-closed error;
+- [x] Legacy ASRT-only fields produce explicit warning or fail-closed error;
       none are silently accepted as effective protection.
-- [ ] `filter` config fails closed with a message pointing to the deferred
+- [x] `filter` config fails closed with a message pointing to the deferred
       filter backlog item.
-- [ ] README includes a `Security boundary / non-goals` section covering Pi
+- [x] README includes a `Security boundary / non-goals` section covering Pi
       extension trust, background/monitor, mesh/tool egress, and open-network
       limitations.
-- [ ] `/sandbox` command reports mode, fail-closed reason, unsupported legacy
+- [x] `/sandbox` command reports mode, fail-closed reason, unsupported legacy
       fields, and known bypass mitigation state.
+
+## Implementation notes
+
+- Factored first-party sandbox config types, defaults, parsing, additive merge,
+  legacy-field diagnostics, and `/sandbox` command formatting into
+  `plugins/pi-sandbox/extensions/sandbox-config.ts`. The parser imports no ASRT
+  types or runtime and tests import this pure helper module to avoid `typebox`.
+- Legacy field decisions: `ignoreViolations` and
+  `enableWeakerNestedSandbox` are ASRT-only internals and are warned/ignored;
+  `filesystem.allowGitConfig` has no first-party equivalent in this release and
+  is warned/ignored; `httpProxyPort` and `socksProxyPort` are ASRT filter-proxy
+  machinery and are warned/ignored while filter support is deferred. None are
+  carried into the effective config object.
+- `network.mode=filter` remains a recognized strict mode, but config loading and
+  bwrap init now include the deferred backlog pointer
+  `.work/backlog/idea-pi-sandbox-filter-tcp-proxy.md` and fail closed instead
+  of silently treating filtered egress as open.
+- Preserved additive-only project merge semantics: projects can add deny lists,
+  narrow allow lists, raise network strictness, and tighten tool policy; attempts
+  to disable the sandbox or loosen network/tool policy are ignored and surfaced
+  as warnings.
+- Added `plugins/pi-sandbox/README.md` with a substantive
+  `Security boundary / non-goals` section: Pi extensions/packages are trusted and
+  unsandboxed; `background`/`monitor` are pending integration; `agent_send`, web
+  search, subagents, and provider requests are not OS-sandboxed command
+  surfaces; `open` network mode leaves host networking intact.
+- Extended `/sandbox` output to include state, mode, fail-closed reason,
+  unsupported legacy field warnings, and known bypass mitigation state.
+- Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passes
+  (28 pass / 0 fail).

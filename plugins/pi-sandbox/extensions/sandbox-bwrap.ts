@@ -1,6 +1,7 @@
 import { accessSync, constants as fsConstants, existsSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { delimiter, isAbsolute, join, resolve } from "node:path";
+import { FILTER_DEFERRED_BACKLOG_ITEM } from "./sandbox-config";
 
 export type NetworkMode = "open" | "filter" | "block";
 
@@ -19,7 +20,7 @@ export function shouldBypassSandbox(noSandboxFlag: boolean, disabledViaConfig: b
 
 export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	if (opts.networkMode === "filter") {
-		throw new Error("Sandbox network.mode=filter is deferred for the first-party bwrap backend; fail-closed instead of silently opening network access.");
+		throw new Error(`Sandbox network.mode=filter is deferred for the first-party bwrap backend; fail-closed instead of silently opening network access. Track filter support in ${FILTER_DEFERRED_BACKLOG_ITEM}.`);
 	}
 
 	const cwd = canonicalizeExistingPath(normalizeConfiguredPath(opts.cwd, opts.cwd)) ?? resolve(opts.cwd);
@@ -124,7 +125,7 @@ export function validateBwrapInit(opts: {
 		return {
 			ok: false,
 			reason: "filter-deferred",
-			message: "Sandbox network.mode=filter is deferred for the first-party bwrap backend. Bash is fail-closed instead of silently opening network access; use network.mode=open or block, or restart with --no-sandbox.",
+			message: `Sandbox network.mode=filter is deferred for the first-party bwrap backend. Bash is fail-closed instead of silently opening network access; use network.mode=open or block, or restart with --no-sandbox. Track filter support in ${FILTER_DEFERRED_BACKLOG_ITEM}.`,
 			status: "🔒 Sandbox: FAIL-CLOSED (network filter deferred) — file tools still hardened",
 		};
 	}
