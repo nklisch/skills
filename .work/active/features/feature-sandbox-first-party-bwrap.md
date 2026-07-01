@@ -1,7 +1,7 @@
 ---
 id: feature-sandbox-first-party-bwrap
 kind: feature
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -423,3 +423,30 @@ Implementation notes: added `osSandboxUnavailable` runtime state in
 updated tests and README/package metadata. Verification: `bun test
 plugins/pi-sandbox/extensions/sandbox.test.ts` passed (66 pass / 0 fail), and
 `grep -r sandbox-runtime plugins/pi-sandbox/` produced no output.
+
+## Review (2026-07-01) — graceful-degrade scope amendment
+
+**Verdict**: Approve with comments (re-confirmation after scope amendment)
+
+The feature was re-opened to `implementing` for a cross-platform scope amendment
+(commit `548d04c`): non-Linux hosts (macOS/Windows) no longer fail-close bash —
+they get a third state, **OS-sandbox-unavailable degrade** — unsandboxed bash +
+user_bash, but the in-process file-tool policy + tool-egress policy + secret
+inspector stay active. This unblocks installation for a maintainer/contributors
+on Windows and macOS without bricking bash.
+
+**Blockers**: none. Confirmed in a fresh-context re-review (APPROVED):
+- `unsupported-platform` → degrade; Linux `bwrap-missing` / `filter-deferred` →
+  fail-closed (the distinction holds — Linux without bwrap still fail-closes).
+- `bash`/`user_bash` fall through ONLY for operator-bypass or
+  `osSandboxUnavailable`; fail-closed still blocks.
+- Tool-egress + secret inspector still run in degrade (not skipped like
+  operator-bypass).
+- `/sandbox` reports the degraded state distinctly.
+- README honestly documents Linux bwrap vs non-Linux degrade vs fail-closed vs
+  full operator-bypass. No overclaiming.
+- No regression to the approved fail-closed / operator-bypass / additive-only
+  contract. 78/78 pi-sandbox tests pass; `grep -r sandbox-runtime` empty.
+
+**Notes**: Substrate deep lane (focused re-confirmation), fresh-context
+`openai-codex/gpt-5.5`. The feature advances back to `done`.
