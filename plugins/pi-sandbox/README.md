@@ -1,14 +1,14 @@
 # Pi Sandbox
 
-First-party Linux bubblewrap sandbox for pi. The package hardens pi's LLM/tool `bash` path and interactive `user_bash` (`!`/`!!`) path with `bwrap`, enforces `read`/`write`/`edit` file policy in-process, and adds a tool-egress policy for known bypass surfaces. RPC/API mode's direct `bash` command is a known residual bypass in current pi core; see Security boundary / non-goals.
+First-party sandbox hardening for pi. On Linux, the package runs pi's mediated LLM/tool `bash` path and interactive `user_bash` (`!`/`!!`) path through `bwrap`; on macOS/Windows, that OS-level bash sandbox gracefully degrades to local unsandboxed bash while keeping the in-process `read`/`write`/`edit` file policy, tool-egress policy, and secret inspector active. RPC/API mode's direct `bash` command is a known residual bypass in current pi core; see Security boundary / non-goals.
 
 ## Requirements
 
-- Linux host.
-- `bwrap` (`bubblewrap`) installed and available on `PATH` before the pi session starts.
+- Linux hosts get the full OS-level bash sandbox and must have `bwrap` (`bubblewrap`) installed and available on `PATH` before the pi session starts.
+- macOS and Windows hosts gracefully degrade: mediated LLM/tool `bash` and interactive `user_bash` run through pi's normal local shell backend, while the in-process file-tool policy, tool-egress policy, and secret inspector remain active.
 - Pi loads this as a Pi package from `package.json`; it is intentionally Pi-only and has no Claude Code or Codex plugin manifests.
 
-If the sandbox is enabled but the host is unsupported, `bwrap` is missing, config is invalid, or `network.mode=filter` is selected, the mediated LLM/tool `bash` path and interactive `user_bash` (`!`/`!!`) fail closed. The file-tool policy still runs in-process. This fail-closed claim does not cover RPC/API mode's direct `bash` command.
+If the sandbox is enabled on Linux but `bwrap` is missing, config is invalid, or `network.mode=filter` is selected, the mediated LLM/tool `bash` path and interactive `user_bash` (`!`/`!!`) fail closed. The file-tool policy still runs in-process. This fail-closed claim does not cover RPC/API mode's direct `bash` command. Non-Linux hosts do not fail closed solely because `bwrap` is unavailable; they enter the graceful-degrade state described above.
 
 ## Install
 
@@ -52,6 +52,7 @@ The status line should include `🔒 Sandbox:` when the extension reaches sessio
 - `🔒 Sandbox: net open, 2 write paths, file tools hardened`
 - `🔒 Sandbox: net block (0 domains), 2 write paths, file tools hardened`
 - `🔒 Sandbox: FAIL-CLOSED (...) — file tools still hardened`
+- `🔒 Sandbox: OS bash sandbox unavailable on darwin; in-process file/tool policy active`
 
 Use `--no-sandbox` only as an explicit operator bypass during local migration or break-glass recovery:
 
@@ -59,7 +60,7 @@ Use `--no-sandbox` only as an explicit operator bypass during local migration or
 pi --no-sandbox
 ```
 
-`--no-sandbox` is a full intentional bypass for this extension: mediated LLM/tool `bash` and interactive `user_bash` fall through to pi's normal local shell backend, the tool-egress gate is not applied, and `read`/`write`/`edit` use a permissive no-op file policy. A global `enabled:false` config has the same operator-disable semantics. This is different from a real initialization failure: fail-closed states keep file tools hardened and block mediated bash instead of falling through.
+`--no-sandbox` is a full intentional bypass for this extension: mediated LLM/tool `bash` and interactive `user_bash` fall through to pi's normal local shell backend, the tool-egress gate is not applied, and `read`/`write`/`edit` use a permissive no-op file policy. A global `enabled:false` config has the same operator-disable semantics. This is different from a real initialization failure, which keeps file tools hardened and blocks mediated bash instead of falling through, and from the non-Linux graceful-degrade state, which lets bash fall through but keeps file/tool policy and the secret inspector active.
 
 ## Configuration
 
@@ -113,16 +114,17 @@ This plugin makes the common interactive/model shell path and file-tool path saf
 
 What it hardens:
 
-- The registered LLM/tool `bash` path runs through the first-party Linux `bwrap` backend when the sandbox initializes.
-- Interactive `user_bash` (`!`/`!!`) receives the same sandboxed bash operations when initialized, and returns a blocking bash result instead of falling through to the local backend when initialization fails or is still pending.
-- The `read`, `write`, and `edit` tools enforce the configured file policy in-process, so file-tool protections remain active even when bash is fail-closed.
+- On Linux, the registered LLM/tool `bash` path runs through the first-party `bwrap` backend when the sandbox initializes.
+- On Linux, interactive `user_bash` (`!`/`!!`) receives the same sandboxed bash operations when initialized, and returns a blocking bash result instead of falling through to the local backend when initialization fails or is still pending.
+- On macOS/Windows, OS-level bash sandboxing is unavailable; mediated bash and `user_bash` run unsandboxed through pi's local backend, but the in-process file-tool policy, tool-egress policy, and secret inspector remain active.
+- The `read`, `write`, and `edit` tools enforce the configured file policy in-process, so file-tool protections remain active even when bash is fail-closed or the OS bash sandbox is unavailable.
 - `network.mode=block` air-gaps sandboxed bash with a network namespace. `network.mode=open` leaves host networking intact for sandboxed bash while still applying file and env policy.
 - Sandboxed bash receives a minimal child environment (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`) instead of provider tokens.
 
 Intentional disable paths:
 
 - `--no-sandbox` and global `enabled:false` are operator bypasses, not hardened modes. They make mediated LLM/tool `bash` and interactive `user_bash` use pi's normal local backend, skip this extension's tool-egress gate, and install a permissive file-tool policy so `read`/`write`/`edit` behave like normal pi file tools.
-- Fail-closed states are not bypasses. Missing `bwrap`, invalid config, unsupported hosts, and deferred `network.mode=filter` block mediated LLM/tool `bash` plus interactive `user_bash` and keep file tools hardened.
+- Fail-closed states are not bypasses. On Linux, missing `bwrap`, invalid config, and deferred `network.mode=filter` block mediated LLM/tool `bash` plus interactive `user_bash` and keep file tools hardened. Unsupported non-Linux hosts are a distinct graceful-degrade state, not fail-closed and not a full bypass.
 
 Non-goals and known gaps:
 
@@ -133,7 +135,7 @@ Non-goals and known gaps:
 - `network.mode=open` is not an egress boundary. It intentionally gives sandboxed bash the host's normal network access.
 - `network.mode=filter` is recognized as a deferred strict mode and fails closed rather than silently degrading to open networking.
 
-Use this plugin as defense-in-depth for mediated shell commands and file access, not as a promise that arbitrary extensions, RPC/API commands, tools, agents, or provider calls are confined by an operating-system sandbox.
+Use this plugin as defense-in-depth for mediated shell commands and file access. On non-Linux hosts, treat it as in-process policy defense only: arbitrary shell commands are not confined by an operating-system sandbox, though file tools and tool-egress gates still run.
 
 ## Known bypass mitigation: background / monitor
 

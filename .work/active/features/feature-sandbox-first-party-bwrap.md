@@ -1,7 +1,7 @@
 ---
 id: feature-sandbox-first-party-bwrap
 kind: feature
-stage: done
+stage: review
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -392,3 +392,34 @@ integration); `grep -r sandbox-runtime plugins/pi-sandbox/` empty; clean
 `pi install` verified in a throwaway HOME. Not archived pending operator
 decision (feature body retained for the draft-PR description); CONVENTIONS.md
 default `delete-refs` would otherwise archive to a bodyless stub.
+
+## Scope amendment (PR-prep: graceful degrade)
+
+Cross-platform install safety amendment: non-Linux hosts no longer enter the
+fail-closed mediated-bash state solely because the first-party `bwrap` backend is
+unavailable. The extension now distinguishes three runtime states:
+
+1. **Linux fail-closed** — config parse/validation errors, Linux missing `bwrap`,
+   and deferred `network.mode=filter` still block mediated LLM/tool `bash` and
+   interactive `user_bash`, while keeping in-process file/tool policy hardened.
+2. **Operator bypass** — `--no-sandbox` and global/operator `enabled:false`
+   remain full bypasses: mediated bash/user_bash fall through, tool-egress policy
+   is skipped, and file tools use the permissive no-op policy.
+3. **OS-sandbox-unavailable graceful degrade** — macOS/Windows run mediated
+   bash/user_bash through pi's local unsandboxed backend, but keep the configured
+   in-process `read`/`write`/`edit` file policy, tool-egress policy, and secret
+   inspector active.
+
+Rationale: a Pi package installed in a cross-platform repository must not brick
+bash for macOS/Windows users by default. Linux remains fail-closed when the user
+asked for an OS sandbox and the Linux backend cannot initialize; non-Linux has no
+first-party backend yet, so the safer product behavior is a clearly reported
+partial hardening state rather than a broken shell or a silent full bypass.
+
+Implementation notes: added `osSandboxUnavailable` runtime state in
+`extensions/sandbox.ts`; factored `decidePlatformState()` and
+`shouldBypassBashSandbox()` in `extensions/sandbox-bwrap.ts`; extended
+`decideUserBash()` and `/sandbox` diagnostics in `extensions/sandbox-config.ts`;
+updated tests and README/package metadata. Verification: `bun test
+plugins/pi-sandbox/extensions/sandbox.test.ts` passed (66 pass / 0 fail), and
+`grep -r sandbox-runtime plugins/pi-sandbox/` produced no output.

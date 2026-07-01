@@ -18,6 +18,10 @@ export function shouldBypassSandbox(noSandboxFlag: boolean, disabledViaConfig: b
 	return noSandboxFlag || disabledViaConfig;
 }
 
+export function shouldBypassBashSandbox(noSandboxFlag: boolean, disabledViaConfig: boolean, osSandboxUnavailable: boolean): boolean {
+	return shouldBypassSandbox(noSandboxFlag, disabledViaConfig) || osSandboxUnavailable;
+}
+
 export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	if (opts.networkMode === "filter") {
 		throw new Error(`Sandbox network.mode=filter is deferred for the first-party bwrap backend; fail-closed instead of silently opening network access. Track filter support in ${FILTER_DEFERRED_BACKLOG_ITEM}.`);
@@ -98,6 +102,36 @@ export type BwrapInitValidation =
 	| { ok: true }
 	| { ok: false; reason: "unsupported-platform" | "bwrap-missing" | "filter-deferred"; message: string; status: string };
 
+export type BwrapPlatformState =
+	| { state: "ok" }
+	| { state: "degrade"; reason: "unsupported-platform"; platform: NodeJS.Platform; message: string; status: string }
+	| { state: "fail-closed"; reason: "bwrap-missing" | "filter-deferred"; message: string; status: string };
+
+export function decidePlatformState(opts: {
+	platform?: NodeJS.Platform;
+	env?: NodeJS.ProcessEnv;
+	networkMode: NetworkMode;
+	bwrapAvailable?: boolean;
+}): BwrapPlatformState {
+	const validation = validateBwrapInit(opts);
+	if (validation.ok) return { state: "ok" };
+	if (validation.reason === "unsupported-platform") {
+		return {
+			state: "degrade",
+			reason: validation.reason,
+			platform: opts.platform ?? process.platform,
+			message: validation.message,
+			status: validation.status,
+		};
+	}
+	return {
+		state: "fail-closed",
+		reason: validation.reason,
+		message: validation.message,
+		status: validation.status,
+	};
+}
+
 export function validateBwrapInit(opts: {
 	platform?: NodeJS.Platform;
 	env?: NodeJS.ProcessEnv;
@@ -105,12 +139,21 @@ export function validateBwrapInit(opts: {
 	bwrapAvailable?: boolean;
 }): BwrapInitValidation {
 	const platform = opts.platform ?? process.platform;
+	if (opts.networkMode === "filter") {
+		return {
+			ok: false,
+			reason: "filter-deferred",
+			message: `Sandbox network.mode=filter is deferred for the first-party bwrap backend. Bash is fail-closed instead of silently opening network access; use network.mode=open or block, or restart with --no-sandbox. Track filter support in ${FILTER_DEFERRED_BACKLOG_ITEM}.`,
+			status: "🔒 Sandbox: FAIL-CLOSED (network filter deferred) — file tools still hardened",
+		};
+	}
+
 	if (platform !== "linux") {
 		return {
 			ok: false,
 			reason: "unsupported-platform",
-			message: `Sandbox not supported on ${platform}; fail-closed. Use --no-sandbox to bypass.`,
-			status: "🔒 Sandbox: FAIL-CLOSED (unsupported platform)",
+			message: `Sandbox OS backend unavailable on ${platform}; bash runs unsandboxed, file/tool policy still enforced.`,
+			status: `🔒 Sandbox: OS bash sandbox unavailable on ${platform}; in-process file/tool policy active`,
 		};
 	}
 
@@ -121,15 +164,6 @@ export function validateBwrapInit(opts: {
 			reason: "bwrap-missing",
 			message: "Sandbox initialization failed: bwrap is not available on PATH. Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.",
 			status: "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened",
-		};
-	}
-
-	if (opts.networkMode === "filter") {
-		return {
-			ok: false,
-			reason: "filter-deferred",
-			message: `Sandbox network.mode=filter is deferred for the first-party bwrap backend. Bash is fail-closed instead of silently opening network access; use network.mode=open or block, or restart with --no-sandbox. Track filter support in ${FILTER_DEFERRED_BACKLOG_ITEM}.`,
-			status: "🔒 Sandbox: FAIL-CLOSED (network filter deferred) — file tools still hardened",
 		};
 	}
 
