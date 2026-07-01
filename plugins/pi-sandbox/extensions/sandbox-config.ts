@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { NetworkMode } from "./sandbox-bwrap";
+import { decidePlatformState, type NetworkMode } from "./sandbox-bwrap";
 
 // CONFIG_DIR_NAME is hardcoded because pi's TS loader can't resolve the
 // package-barrel re-export (".d.ts" declares it but dist/index.js omits it)
@@ -144,6 +144,57 @@ export function createUserBashBlockResult(message: string): BlockedUserBashEvent
 export const SHELL_BYPASS_TOOLS = ["background", "monitor"] as const;
 export const SHELL_BYPASS_DEFAULT_POLICY: ToolPolicy = "confirm";
 
+export interface BypassToolIntegrationState {
+	backgroundTasksSandbox: "active" | "inactive" | "blocked";
+	reason?: string;
+}
+
+export const DEFAULT_BYPASS_TOOL_INTEGRATION_STATE: BypassToolIntegrationState = {
+	backgroundTasksSandbox: "inactive",
+	reason: "background-tasks sandbox integration has not been proven active",
+};
+
+export interface BackgroundTasksIntegrationDecisionInput {
+	config: SandboxConfig;
+	parseErrors?: string[];
+	failClosedReasons?: string[];
+	platform?: NodeJS.Platform;
+	bwrapAvailable?: boolean;
+	env?: NodeJS.ProcessEnv;
+}
+
+export function decideBackgroundTasksIntegrationState(input: BackgroundTasksIntegrationDecisionInput): BypassToolIntegrationState {
+	const parseErrors = input.parseErrors ?? [];
+	if (parseErrors.length > 0) {
+		return { backgroundTasksSandbox: "blocked", reason: `config parse error(s): ${parseErrors.join("; ")}` };
+	}
+	if (input.config.enabled === false) {
+		return { backgroundTasksSandbox: "inactive", reason: "sandbox disabled by config" };
+	}
+	const integration = input.config.backgroundTasks?.sandboxIntegration ?? "auto";
+	if (integration === "off") {
+		return { backgroundTasksSandbox: "inactive", reason: "backgroundTasks.sandboxIntegration is off" };
+	}
+	const failClosedReasons = input.failClosedReasons ?? [];
+	if (failClosedReasons.length > 0) {
+		return { backgroundTasksSandbox: "blocked", reason: failClosedReasons.join("; ") };
+	}
+	const networkMode = input.config.network?.mode ?? "open";
+	const platformState = decidePlatformState({
+		networkMode,
+		platform: input.platform,
+		bwrapAvailable: input.bwrapAvailable,
+		env: input.env,
+	});
+	if (platformState.state === "ok") {
+		return { backgroundTasksSandbox: "active", reason: "Linux bwrap integration ready" };
+	}
+	if (platformState.state === "degrade") {
+		return { backgroundTasksSandbox: "inactive", reason: platformState.message };
+	}
+	return { backgroundTasksSandbox: "blocked", reason: platformState.message };
+}
+
 const TOOL_POLICY_RANK: Record<ToolPolicy, number> = { allow: 0, auto: 1, confirm: 2, block: 3 };
 
 function stricterToolPolicy(a: ToolPolicy, b: ToolPolicy): ToolPolicy {
@@ -151,18 +202,25 @@ function stricterToolPolicy(a: ToolPolicy, b: ToolPolicy): ToolPolicy {
 }
 
 /**
- * Add first-release mitigation defaults for tools that can spawn shell commands
- * outside the sandboxed built-in bash path. Explicit per-tool rules are
- * preserved; missing rules default to at least `confirm` (or a stricter global
- * default such as `block`). Project config can only tighten these rules via
- * mergeProjectAdditive.
+ * Add state-aware defaults for tools that can spawn shell commands outside the
+ * built-in bash path. When background-tasks bwrap integration is provably
+ * active, missing rules follow the normal tool default (usually `allow`). In
+ * every inactive/blocked/uncertain state, background and monitor are floored at
+ * `confirm` (or a stricter configured policy such as `block`). Project config
+ * can only tighten these fallback rules via mergeProjectAdditive.
  */
-export function applyBypassToolDefaults(tools: ToolRules | undefined): ToolRules {
+export function applyBypassToolDefaults(
+	tools: ToolRules | undefined,
+	state: BypassToolIntegrationState = DEFAULT_BYPASS_TOOL_INTEGRATION_STATE,
+): ToolRules {
 	const defaultPolicy = tools?.default ?? "allow";
 	const rules: Record<string, ToolPolicy> = { ...(tools?.rules ?? {}) };
 	for (const toolName of SHELL_BYPASS_TOOLS) {
-		if (rules[toolName] === undefined) {
-			rules[toolName] = stricterToolPolicy(defaultPolicy, SHELL_BYPASS_DEFAULT_POLICY);
+		const configuredPolicy = rules[toolName] ?? defaultPolicy;
+		if (state.backgroundTasksSandbox === "active") {
+			rules[toolName] = configuredPolicy;
+		} else {
+			rules[toolName] = stricterToolPolicy(configuredPolicy, SHELL_BYPASS_DEFAULT_POLICY);
 		}
 	}
 	return { ...tools, default: defaultPolicy, rules };
@@ -175,8 +233,13 @@ export interface ToolPolicyDecision {
 }
 
 /** Pure tool-egress policy decision used by the runtime hook and tests. */
-export function decideToolPolicy(name: string, tools: ToolRules | undefined, hasUI: boolean): ToolPolicyDecision {
-	const effectiveTools = applyBypassToolDefaults(tools);
+export function decideToolPolicy(
+	name: string,
+	tools: ToolRules | undefined,
+	hasUI: boolean,
+	state: BypassToolIntegrationState = DEFAULT_BYPASS_TOOL_INTEGRATION_STATE,
+): ToolPolicyDecision {
+	const effectiveTools = applyBypassToolDefaults(tools, state);
 	const policy = effectiveTools.rules?.[name] ?? effectiveTools.default ?? "allow";
 	if (policy === "allow") return { action: "allow", policy };
 	if (policy === "block") {
@@ -555,8 +618,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 	// Merge defaults <- global <- project, but make project ADDITIVE-ONLY:
 	// it may tighten (more denyRead, fewer allowedDomains, narrower allowWrite)
 	// but never weaken global policy. Weakening attempts are ignored + warned.
-	const mergedGlobalBase = deepMerge(deepMerge(DEFAULT_CONFIG, globalConfig), {});
-	const mergedGlobal = { ...mergedGlobalBase, tools: applyBypassToolDefaults(mergedGlobalBase.tools) };
+	const mergedGlobal = deepMerge(deepMerge(DEFAULT_CONFIG, globalConfig), {});
 	const additiveWarnings: string[] = [];
 	const merged = mergeProjectAdditive(mergedGlobal, projectConfig, additiveWarnings);
 
@@ -766,11 +828,15 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 		const mergedRules: Record<string, ToolPolicy> = { ...baseRules };
 		for (const [name, policy] of Object.entries(project.tools.rules ?? {})) {
 			const current = mergedRules[name] ?? baseTools.default ?? "allow";
-			if (rank[policy] > rank[current]) {
+			const bypassFloor = (SHELL_BYPASS_TOOLS as readonly string[]).includes(name) ? SHELL_BYPASS_DEFAULT_POLICY : undefined;
+			const effectiveCurrent = bypassFloor ? stricterToolPolicy(current, bypassFloor) : current;
+			if (rank[policy] > rank[effectiveCurrent]) {
 				mergedRules[name] = policy;
-			} else if (rank[policy] < rank[current] && baseRules[name] === current) {
-				// project trying to lower a globally-set policy -> ignore + warn
-				warns.push(`project tried to loosen tool policy for "${name}" (${current} -> ${policy}); ignored (additive-only).`);
+			} else if (rank[policy] === rank[effectiveCurrent] && rank[policy] > rank[current]) {
+				mergedRules[name] = policy;
+			} else if (rank[policy] < rank[effectiveCurrent]) {
+				// project trying to lower a globally-set or fail-closed default policy -> ignore + warn
+				warns.push(`project tried to loosen tool policy for "${name}" (${effectiveCurrent} -> ${policy}); ignored (additive-only).`);
 			}
 		}
 		const projDefault = project.tools.default;
@@ -863,6 +929,7 @@ export interface SandboxCommandState {
 	osSandboxUnavailable?: boolean;
 	osSandboxUnavailablePlatform?: string | null;
 	lastFailClosedReason?: string | null;
+	backgroundTasksIntegration?: BypassToolIntegrationState;
 }
 
 export interface SandboxCommandContext {
@@ -898,8 +965,22 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 					? "enabled"
 					: "disabled/not initialized";
 	const mode = config.network?.mode ?? "open";
-	const effectiveToolRules = applyBypassToolDefaults(config.tools);
+	const backgroundTasksIntegration: BypassToolIntegrationState = computedFailClosed
+		? { backgroundTasksSandbox: "blocked", reason: failReasons.length > 0 ? failReasons.join("; ") : "sandbox fail-closed" }
+		: state.backgroundTasksIntegration ?? (
+			state.disabledViaConfig
+				? { backgroundTasksSandbox: "inactive", reason: "sandbox disabled by config" }
+				: state.osSandboxUnavailable
+					? { backgroundTasksSandbox: "inactive", reason: `unsupported platform: ${formatPlatformName(state.osSandboxUnavailablePlatform)}` }
+					: decideBackgroundTasksIntegrationState({
+						config,
+						parseErrors,
+						failClosedReasons,
+					})
+		);
+	const effectiveToolRules = applyBypassToolDefaults(config.tools, backgroundTasksIntegration);
 	const bypassToolPolicy = SHELL_BYPASS_TOOLS.map((name) => `${name}=${effectiveToolRules.rules?.[name] ?? effectiveToolRules.default ?? "allow"}`).join(", ");
+	const backgroundTasksLine = formatBackgroundTasksIntegration(backgroundTasksIntegration);
 	const legacy = legacyFieldWarnings.length > 0 ? legacyFieldWarnings : ["(none)"];
 	const warnings = [...globWarnings, ...additiveWarnings];
 
@@ -925,8 +1006,11 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 		"  Hardened by this plugin: LLM/tool bash, interactive user_bash, read, write, edit.",
 		"  File-tool policy is in-process and remains active when mediated bash is fail-closed or the OS bash sandbox is unavailable.",
 		"  RPC/API direct bash is not mediated by pi extensions in current pi core.",
+		`  Background tasks sandbox: ${backgroundTasksLine}`,
 		`  Bypass tools: ${bypassToolPolicy}`,
-		"  Not OS-sandboxed here: Pi extensions/packages, RPC/API direct bash, background, monitor, agent_send, web/search tools, subagents, and provider requests.",
+		backgroundTasksIntegration.backgroundTasksSandbox === "active"
+			? "  Not OS-sandboxed here: Pi extensions/packages, RPC/API direct bash, agent_send, web/search tools, subagents, and provider requests."
+			: "  Not OS-sandboxed here: Pi extensions/packages, RPC/API direct bash, background, monitor, agent_send, web/search tools, subagents, and provider requests.",
 		"  open network mode leaves host networking intact for sandboxed bash.",
 		"",
 		"Tool egress policy:",
@@ -946,6 +1030,13 @@ function formatPlatformName(platform: string | null | undefined): string {
 	if (platform === "darwin") return "macOS";
 	if (platform === "win32") return "Windows";
 	return platform;
+}
+
+function formatBackgroundTasksIntegration(state: BypassToolIntegrationState): string {
+	const suffix = state.reason ? ` (${state.reason})` : "";
+	if (state.backgroundTasksSandbox === "active") return `active${suffix}`;
+	if (state.backgroundTasksSandbox === "blocked") return `blocked${suffix}`;
+	return `inactive${suffix}`;
 }
 
 function validateOptionalStringArray(value: unknown, path: string, errors: string[]): void {

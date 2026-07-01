@@ -19,6 +19,7 @@ import {
 	applyBypassToolDefaults,
 	createSandboxCommandHandler,
 	createUserBashBlockResult,
+	decideBackgroundTasksIntegrationState,
 	decideToolPolicy,
 	decideUserBash,
 	deepMerge,
@@ -28,6 +29,7 @@ import {
 	scrubEnv,
 	validateConfig,
 	type LoadedConfig,
+	type BypassToolIntegrationState,
 	type SandboxConfig,
 } from "./sandbox-config";
 import {
@@ -476,19 +478,58 @@ describe("config boundary contract", () => {
 		expect(addToWarnings.join("\n")).toContain("drop inspector scanFields for \"agent_send\" (body)");
 	});
 
-	test("bypass-tool defaults require confirmation for background and monitor", () => {
-		const rules = applyBypassToolDefaults({ default: "allow", rules: {} });
+	test("bypass-tool defaults allow background and monitor only when integration is active", () => {
+		const active: BypassToolIntegrationState = { backgroundTasksSandbox: "active", reason: "Linux bwrap integration ready" };
+		const inactive: BypassToolIntegrationState = { backgroundTasksSandbox: "inactive", reason: "integration off" };
+		const blocked: BypassToolIntegrationState = { backgroundTasksSandbox: "blocked", reason: "bwrap missing" };
 
-		expect(rules.rules?.background).toBe("confirm");
-		expect(rules.rules?.monitor).toBe("confirm");
+		expect(applyBypassToolDefaults({ default: "allow", rules: {} }, active).rules).toMatchObject({
+			background: "allow",
+			monitor: "allow",
+		});
+		expect(applyBypassToolDefaults({ default: "allow", rules: {} }, inactive).rules).toMatchObject({
+			background: "confirm",
+			monitor: "confirm",
+		});
+		expect(applyBypassToolDefaults({ default: "allow", rules: {} }, blocked).rules).toMatchObject({
+			background: "confirm",
+			monitor: "confirm",
+		});
+		expect(applyBypassToolDefaults({ default: "block", rules: {} }, active).rules?.background).toBe("block");
+		expect(applyBypassToolDefaults({ default: "allow", rules: { background: "block" } }, active).rules?.background).toBe("block");
 	});
 
-	test("project config cannot lower global bypass-tool policy but can tighten it", () => {
+	test("background-tasks integration state covers the policy matrix inputs", () => {
+		const baseConfig: SandboxConfig = { ...DEFAULT_CONFIG, enabled: true, network: { mode: "open" }, backgroundTasks: { sandboxIntegration: "auto" } };
+
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: true })).toMatchObject({
+			backgroundTasksSandbox: "active",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: { ...baseConfig, backgroundTasks: { sandboxIntegration: "off" } }, platform: "linux", bwrapAvailable: true })).toMatchObject({
+			backgroundTasksSandbox: "inactive",
+			reason: "backgroundTasks.sandboxIntegration is off",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "darwin", bwrapAvailable: false })).toMatchObject({
+			backgroundTasksSandbox: "inactive",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: false })).toMatchObject({
+			backgroundTasksSandbox: "blocked",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: { ...baseConfig, network: { mode: "filter" } }, platform: "linux", bwrapAvailable: true })).toMatchObject({
+			backgroundTasksSandbox: "blocked",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, parseErrors: ["project: invalid JSON"] })).toMatchObject({
+			backgroundTasksSandbox: "blocked",
+			reason: "config parse error(s): project: invalid JSON",
+		});
+	});
+
+	test("project config cannot lower bypass-tool fallback policy but can tighten it", () => {
 		const loosenWarnings: string[] = [];
 		const loosened = mergeProjectAdditive(
 			{
 				enabled: true,
-				tools: applyBypassToolDefaults({ default: "allow", rules: { background: "confirm", monitor: "block" } }),
+				tools: { default: "allow", rules: { background: "confirm", monitor: "block" } },
 			},
 			{ tools: { rules: { background: "allow", monitor: "allow" } } },
 			loosenWarnings,
@@ -503,9 +544,9 @@ describe("config boundary contract", () => {
 		const tightened = mergeProjectAdditive(
 			{
 				enabled: true,
-				tools: applyBypassToolDefaults({ default: "allow", rules: { background: "confirm", monitor: "confirm" } }),
+				tools: { default: "allow", rules: {} },
 			},
-			{ tools: { rules: { background: "block" } } },
+			{ tools: { rules: { background: "block", monitor: "confirm" } } },
 			tightenWarnings,
 		);
 
@@ -515,8 +556,9 @@ describe("config boundary contract", () => {
 	});
 
 	test("confirm bypass-tool policy fails closed when no UI is available", () => {
-		const background = decideToolPolicy("background", { default: "allow", rules: { background: "confirm" } }, false);
-		const monitor = decideToolPolicy("monitor", { default: "allow", rules: { monitor: "confirm" } }, false);
+		const inactive: BypassToolIntegrationState = { backgroundTasksSandbox: "inactive", reason: "integration off" };
+		const background = decideToolPolicy("background", { default: "allow", rules: { background: "confirm" } }, false, inactive);
+		const monitor = decideToolPolicy("monitor", { default: "allow", rules: { monitor: "confirm" } }, false, inactive);
 
 		expect(background.action).toBe("block");
 		expect(background.reason).toContain("requires confirmation");
@@ -524,15 +566,18 @@ describe("config boundary contract", () => {
 		expect(monitor.reason).toContain("requires confirmation");
 	});
 
-	test("loadConfig applies bypass-tool defaults to the effective tool policy", async () => {
+	test("loadConfig keeps raw bypass-tool config and applies state at decision time", async () => {
 		const cwd = await makeTempDir();
 		const loaded = loadConfig(cwd, { agentDir: join(cwd, "missing-agent-dir") });
+		const active: BypassToolIntegrationState = { backgroundTasksSandbox: "active", reason: "Linux bwrap" };
+		const inactive: BypassToolIntegrationState = { backgroundTasksSandbox: "inactive", reason: "unsupported platform" };
 
-		expect(loaded.config.tools?.rules?.background).toBe("confirm");
-		expect(loaded.config.tools?.rules?.monitor).toBe("confirm");
+		expect(loaded.config.tools?.rules?.background).toBeUndefined();
+		expect(applyBypassToolDefaults(loaded.config.tools, active).rules?.background).toBe("allow");
+		expect(applyBypassToolDefaults(loaded.config.tools, inactive).rules?.background).toBe("confirm");
 	});
 
-	test("loadConfig preserves an intentional global bypass-tool opt-out", async () => {
+	test("loadConfig preserves global bypass-tool rules while inactive state still floors allow to confirm", async () => {
 		const cwd = await makeTempDir();
 		const agentDir = await makeTempDir();
 		await mkdir(join(agentDir, "extensions"), { recursive: true });
@@ -541,12 +586,15 @@ describe("config boundary contract", () => {
 		}));
 
 		const loaded = loadConfig(cwd, { agentDir });
+		const inactive: BypassToolIntegrationState = { backgroundTasksSandbox: "inactive", reason: "integration off" };
 
 		expect(loaded.config.tools?.rules?.background).toBe("allow");
 		expect(loaded.config.tools?.rules?.monitor).toBe("block");
+		expect(applyBypassToolDefaults(loaded.config.tools, inactive).rules?.background).toBe("confirm");
+		expect(applyBypassToolDefaults(loaded.config.tools, inactive).rules?.monitor).toBe("block");
 	});
 
-	test("loadConfig blocks project attempts to lower default bypass-tool confirmation", async () => {
+	test("loadConfig blocks project attempts to lower bypass-tool fallback confirmation", async () => {
 		const cwd = await makeTempDir();
 		const agentDir = await makeTempDir();
 		await mkdir(join(cwd, ".pi"), { recursive: true });
@@ -555,19 +603,22 @@ describe("config boundary contract", () => {
 		}));
 
 		const loaded = loadConfig(cwd, { agentDir });
+		const inactive: BypassToolIntegrationState = { backgroundTasksSandbox: "inactive", reason: "integration off" };
 
-		expect(loaded.config.tools?.rules?.background).toBe("confirm");
-		expect(loaded.config.tools?.rules?.monitor).toBe("confirm");
+		expect(loaded.config.tools?.rules?.background).toBeUndefined();
+		expect(loaded.config.tools?.rules?.monitor).toBeUndefined();
+		expect(applyBypassToolDefaults(loaded.config.tools, inactive).rules?.background).toBe("confirm");
+		expect(applyBypassToolDefaults(loaded.config.tools, inactive).rules?.monitor).toBe("confirm");
 		expect(loaded.additiveWarnings.join("\n")).toContain("background");
 		expect(loaded.additiveWarnings.join("\n")).toContain("monitor");
 	});
 
-	test("loadConfig lets projects tighten bypass tools to block", async () => {
+	test("loadConfig lets projects tighten bypass tools to confirm or block", async () => {
 		const cwd = await makeTempDir();
 		const agentDir = await makeTempDir();
 		await mkdir(join(cwd, ".pi"), { recursive: true });
 		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({
-			tools: { rules: { background: "block" } },
+			tools: { rules: { background: "block", monitor: "confirm" } },
 		}));
 
 		const loaded = loadConfig(cwd, { agentDir });
@@ -838,6 +889,7 @@ describe("config boundary contract", () => {
 		expect(output).toContain("Known bypass mitigation state");
 		expect(output).toContain("Hardened by this plugin: LLM/tool bash, interactive user_bash, read, write, edit.");
 		expect(output).toContain("RPC/API direct bash is not mediated by pi extensions in current pi core.");
+		expect(output).toContain("Background tasks sandbox: blocked");
 		expect(output).toContain("Bypass tools: background=confirm, monitor=confirm");
 		expect(output).toContain("Pi extensions/packages");
 		expect(output).toContain("background=confirm");
@@ -873,7 +925,30 @@ describe("config boundary contract", () => {
 
 		const degradeOutput = degradeNotifications.join("\n");
 		expect(degradeOutput).toContain("State: OS bash sandbox unavailable (macOS) — in-process file/tool policy active");
+		expect(degradeOutput).toContain("Background tasks sandbox: inactive (unsupported platform: macOS)");
+		expect(degradeOutput).toContain("Bypass tools: background=confirm, monitor=confirm");
 		expect(degradeOutput).toContain("File-tool policy is in-process and remains active when mediated bash is fail-closed or the OS bash sandbox is unavailable.");
+
+		const activeNotifications: string[] = [];
+		const activeHandler = createSandboxCommandHandler({
+			getState: () => ({
+				failClosed: false,
+				sandboxEnabled: true,
+				sandboxInitialized: true,
+				disabledViaConfig: false,
+				backgroundTasksIntegration: { backgroundTasksSandbox: "active", reason: "Linux bwrap integration ready" },
+			}),
+			load: () => ({
+				...loaded,
+				config: { ...loaded.config, network: { mode: "open", allowedDomains: [], deniedDomains: [] }, tools: { default: "allow", rules: {} } },
+				failClosedReasons: [],
+			}),
+		});
+
+		await activeHandler(null, { cwd: "/fixture", ui: { notify: (message) => activeNotifications.push(message) } });
+		const activeOutput = activeNotifications.join("\n");
+		expect(activeOutput).toContain("Background tasks sandbox: active (Linux bwrap integration ready)");
+		expect(activeOutput).toContain("Bypass tools: background=allow, monitor=allow");
 	});
 });
 
