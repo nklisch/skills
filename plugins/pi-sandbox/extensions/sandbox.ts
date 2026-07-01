@@ -27,7 +27,15 @@ import { access as fsAccess, readFile as fsReadFile, writeFile as fsWriteFile, m
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { SandboxManager, type NetworkConfig, type SandboxRuntimeConfig } from "@anthropic-ai/sandbox-runtime";
-import { shouldBypassSandbox, type NetworkMode } from "./sandbox-bwrap";
+import {
+	buildBwrapArgs,
+	buildMinimalEnv,
+	bwrapIsAvailable,
+	canonicalizeExistingPath,
+	normalizeConfiguredPath,
+	shouldBypassSandbox,
+	type NetworkMode,
+} from "./sandbox-bwrap";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
 	type BashOperations,
@@ -186,9 +194,8 @@ function expandTilde(p: string): string {
  * matching ASRT's behavior of treating relative paths as cwd-relative.
  */
 function normalizePathForCheck(rawPath: string, cwd: string): string {
-	const expanded = expandTilde(rawPath);
-	if (!isAbsolute(expanded)) return resolve(cwd, expanded);
-	return expanded;
+	const normalized = normalizeConfiguredPath(rawPath, cwd);
+	return canonicalizeExistingPath(normalized) ?? normalized;
 }
 
 /** True if `target` is equal to or nested under `dir`. Handles dir/file equality. */
@@ -500,6 +507,7 @@ interface SandboxPolicy {
 	denyWrite: string[];
 	allowWrite: string[];
 	cwd: string;
+	networkMode: NetworkMode;
 	toolRules?: ToolRules;
 }
 
@@ -556,7 +564,8 @@ function makeEditOperations(cwd: string, policy: SandboxPolicy): EditOperations 
 }
 
 function enforceDenyRead(absolutePath: string, cwd: string, policy: SandboxPolicy): void {
-	const { denied, matched } = matchesDenyList(absolutePath, policy.denyRead, cwd);
+	const target = canonicalizeExistingPath(absolutePath) ?? absolutePath;
+	const { denied, matched } = matchesDenyList(target, policy.denyRead, cwd);
 	if (denied) {
 		throw new Error(
 			`Access denied (sandbox denyRead): "${absolutePath}" matches "${matched}". The sandbox blocks reads of configured sensitive paths.`,
@@ -565,15 +574,16 @@ function enforceDenyRead(absolutePath: string, cwd: string, policy: SandboxPolic
 }
 
 function enforceWritePolicy(absolutePath: string, cwd: string, policy: SandboxPolicy): void {
+	const target = canonicalizeExistingPath(absolutePath) ?? absolutePath;
 	// denyWrite takes precedence.
-	const { denied, matched } = matchesDenyList(absolutePath, policy.denyWrite, cwd);
+	const { denied, matched } = matchesDenyList(target, policy.denyWrite, cwd);
 	if (denied) {
 		throw new Error(
 			`Access denied (sandbox denyWrite): "${absolutePath}" matches "${matched}". The sandbox blocks writes to configured protected paths.`,
 		);
 	}
 	// Then allowWrite: the target must be within an allowWrite path.
-	if (!isWithinAllowWrite(absolutePath, policy.allowWrite, cwd)) {
+	if (!isWithinAllowWrite(target, policy.allowWrite, cwd)) {
 		throw new Error(
 			`Access denied (sandbox allowWrite): "${absolutePath}" is outside the writable allowlist. Writes are confined to allowWrite paths.`,
 		);
@@ -591,13 +601,29 @@ function createSandboxedBashOps(): BashOperations {
 				throw new Error(`Working directory does not exist: ${cwd}`);
 			}
 
-			const wrappedCommand = await SandboxManager.wrapWithSandbox(command);
+			const policy = activePolicyFor(cwd);
+			const minimalEnv = buildMinimalEnv(process.env);
+			const bwrapArgs = [
+				...buildBwrapArgs({
+					cwd,
+					denyRead: policy.denyRead,
+					denyWrite: policy.denyWrite,
+					allowWrite: policy.allowWrite,
+					networkMode: policy.networkMode,
+					env: minimalEnv,
+				}),
+				"--",
+				"bash",
+				"-c",
+				command,
+			];
 
 			return new Promise((resolve, reject) => {
-				const child = spawn("bash", ["-c", wrappedCommand], {
+				const child = spawn("bwrap", bwrapArgs, {
 					cwd,
 					detached: true,
 					stdio: ["ignore", "pipe", "pipe"],
+					env: minimalEnv,
 				});
 
 				let timedOut = false;
@@ -886,7 +912,7 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		const platform = process.platform;
-		if (platform !== "darwin" && platform !== "linux") {
+		if (platform !== "linux") {
 			failClosed = true;
 			ctx.ui.notify(`Sandbox not supported on ${platform}; fail-closed. Use --no-sandbox to bypass.`, "error");
 			return;
@@ -908,6 +934,8 @@ export default function (pi: ExtensionAPI) {
 			ctx.ui.notify(`Scrubbed ${scrubbed.length} secret env var(s) from process: ${scrubbed.join(", ")}`, "info");
 		}
 
+		const netMode = config.network?.mode ?? "filter";
+
 		// Always set the file-tool policy, even before bwrap init succeeds —
 		// the read/write/edit tools use it in-process and hold independently.
 		sandboxPolicy = {
@@ -915,9 +943,24 @@ export default function (pi: ExtensionAPI) {
 			denyWrite: config.filesystem?.denyWrite ?? [],
 			allowWrite: config.filesystem?.allowWrite ?? [],
 			cwd: ctx.cwd,
+			networkMode: netMode,
 			toolRules: config.tools,
 		};
 		activePolicy = sandboxPolicy;
+
+		if (!bwrapIsAvailable(process.env)) {
+			failClosed = true;
+			ctx.ui.notify("Sandbox initialization failed: bwrap is not available on PATH. Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.", "error");
+			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened"));
+			return;
+		}
+
+		if (netMode === "filter") {
+			failClosed = true;
+			ctx.ui.notify("Sandbox network.mode=filter is deferred for the first-party bwrap backend. Bash is fail-closed instead of silently opening network access; use network.mode=open or block, or restart with --no-sandbox.", "error");
+			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (network filter deferred) — file tools still hardened"));
+			return;
+		}
 
 		try {
 			const configExt = config as unknown as {
@@ -933,7 +976,6 @@ export default function (pi: ExtensionAPI) {
 			// so `network` must be a present object even in open mode. The filesystem
 			// bind-mounts (readConfig/writeConfig) are generated regardless of mode,
 			// so denyRead/denyWrite/allowWrite hold in every mode.
-			const netMode = config.network?.mode ?? "filter";
 			const initParams: Parameters<typeof SandboxManager.initialize>[0] = {
 				filesystem: config.filesystem,
 				ignoreViolations: configExt.ignoreViolations,
@@ -1037,6 +1079,7 @@ function activePolicyFor(cwd: string): SandboxPolicy {
 		denyWrite: [".env", ".env.*", "*.pem", "*.key", "~/.ssh", "~/.aws", "~/.gnupg"],
 		allowWrite: [".", "/tmp"],
 		cwd,
+		networkMode: "block",
 	};
 }
 
