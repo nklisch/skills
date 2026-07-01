@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-vendor-and-repoint
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: feature-sandbox-first-party-bwrap
 depends_on: [story-pi-sandbox-enabled-gap-fix, story-pi-sandbox-buildbwrapargs, story-pi-sandbox-drop-asrt-dep, story-pi-sandbox-config-boundary-contract, story-pi-sandbox-bypass-tool-policy]
@@ -57,17 +57,41 @@ is Pi-only.
 
 ## Acceptance Criteria
 
-- [ ] `plugins/pi-sandbox/` exists with `extensions/sandbox.ts`, `package.json`,
+- [x] `plugins/pi-sandbox/` exists with `extensions/sandbox.ts`, `package.json`,
       and `README.md`.
-- [ ] Package manifest uses Pi package shape and peer dependencies for Pi core
+- [x] Package manifest uses Pi package shape and peer dependencies for Pi core
       imports / `typebox`.
-- [ ] No `.claude-plugin/` or `.codex-plugin/` directories exist under
+- [x] No `.claude-plugin/` or `.codex-plugin/` directories exist under
       `plugins/pi-sandbox/`.
-- [ ] `pi install /home/agent/projects/skills/plugins/pi-sandbox` loads the
+- [x] `pi install /home/agent/projects/skills/plugins/pi-sandbox` loads the
       extension from the package manifest alone in a clean test context.
-- [ ] Fresh Pi launch can load the vendored extension and report `🔒 Sandbox:`
+- [x] Fresh Pi launch can load the vendored extension and report `🔒 Sandbox:`
       status.
-- [ ] Capability tests for open/block builder, file tools, env, `/proc`, and
+- [x] Capability tests for open/block builder, file tools, env, `/proc`, and
       bypass-tool policy pass against the vendored package.
-- [ ] Optional local migration docs explain how to replace any old
+- [x] Optional local migration docs explain how to replace any old
       `~/.pi/agent/extensions/sandbox` path or `--no-sandbox` workaround.
+
+## Implementation notes
+
+- Files changed:
+  - `plugins/pi-sandbox/package.json`
+  - `plugins/pi-sandbox/README.md`
+  - `plugins/pi-sandbox/extensions/package.json`
+  - `plugins/pi-sandbox/extensions/sandbox-file-policy.ts`
+  - `plugins/pi-sandbox/extensions/sandbox.ts`
+  - `plugins/pi-sandbox/extensions/sandbox.test.ts`
+- Tests added:
+  - Package-manifest test confirming the Pi package root keeps `pi.extensions: ["./extensions"]`, peers on `@earendil-works/pi-coding-agent`/`typebox`, and the nested extension manifest exposes only `./sandbox.ts`.
+  - In-process file-tool policy tests for `enforceDenyRead`, `enforceWritePolicy`, `makeReadOperations`, `makeWriteOperations`, and `makeEditOperations`.
+- Verification:
+  - Confirmed `plugins/pi-sandbox/` contains `extensions/sandbox.ts`, `package.json`, and `README.md`.
+  - Confirmed no `plugins/pi-sandbox/.claude-plugin/` or `plugins/pi-sandbox/.codex-plugin/` directories exist.
+  - `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` → 41 pass / 0 fail.
+  - `bun build plugins/pi-sandbox/extensions/sandbox.ts --external @earendil-works/pi-coding-agent --external typebox --outdir /tmp/pi-sandbox-load-check` → bundled 6 modules successfully.
+  - Clean install context: `HOME=$(mktemp -d) PI_TELEMETRY=0 PI_SKIP_VERSION_CHECK=1 /home/agent/.local/bin/pi install /home/agent/projects/skills/plugins/pi-sandbox --no-approve` → `Installed /home/agent/projects/skills/plugins/pi-sandbox`; `pi list --no-approve` showed the package resolving to `/home/agent/projects/skills/plugins/pi-sandbox`.
+  - Fresh launch/load check: in a clean temp `HOME` with `~/.pi/agent/extensions/sandbox.json` set to `{"network":{"mode":"open"}}`, started `pi` in a pseudo-terminal from the installed package. Startup reported `Sandbox initialized (bash + read/write/edit hardened; network: open)` and status `🔒 Sandbox: net open, 2 write paths, file tools hardened` with no extension load errors.
+- Discrepancies from design:
+  - The root package manifest keeps the requested `pi.extensions: ["./extensions"]`, but a nested `plugins/pi-sandbox/extensions/package.json` is required so Pi's directory discovery loads only `sandbox.ts`. Without it, Pi attempts to load helper/test modules (`sandbox-bwrap.ts`, `sandbox-config.ts`, `sandbox-file-policy.ts`, `sandbox.test.ts`) as extension factories and fails. This is a package-level compatibility fix that preserves the requested root manifest shape while making the real `pi install` criterion pass.
+  - README git guidance documents Pi's current package-root git behavior honestly: this monorepo subdirectory can be installed from a git checkout via local path; direct `pi install git:...` works when the package is published/mirrored as a package root.
+- Adjacent issues parked: none.
