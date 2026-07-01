@@ -25,17 +25,18 @@ container or Pi's needs.
 
 This feature drops ASRT and vendors a **Pi-only, Linux-only, first-party bwrap
 sandbox plugin** into `plugins/pi-sandbox/` as `@nklisch/pi-sandbox`. The first
-release is deliberately re-scoped to the hard core: sandboxed `bash`/`user_bash`,
-in-process `read`/`write`/`edit` policy, tool-egress policy, and **network modes
+release is deliberately re-scoped to the hard core: sandboxed tool-registry
+`bash` plus interactive `user_bash`, in-process `read`/`write`/`edit` policy,
+tool-egress policy, and **network modes
 `open` and `block` only**. `filter` mode is deferred to a backlog spike because
 the TCP-loopback proxy topology is not yet a reliable design.
 
 The goal is not to create a complete Pi trust boundary. Pi extensions run with
 full user permissions, and tools not mediated by this extension can still egress
 unless blocked by tool policy. The initial product claim is narrower: make the
-common shell/file-tool path meaningfully safer for credentials and project
-secrets, fail closed when the OS sandbox cannot be established, and document the
-remaining bypasses plainly.
+common interactive/model shell path and file-tool path meaningfully safer for
+credentials and project secrets, fail closed when the OS sandbox cannot be
+established for mediated bash, and document the remaining bypasses plainly.
 
 ## Rescope decision — 2026-07-01
 
@@ -103,7 +104,7 @@ Surviving Pi-specific surface:
 
 ### In scope
 
-- Linux `bwrap` sandbox for the built-in `bash` override and `user_bash`.
+- Linux `bwrap` sandbox for the registered LLM/tool `bash` override and interactive `user_bash`.
 - In-process access control for `read`, `write`, and `edit`.
 - Tool-egress policy for arbitrary Pi tools via `tool_call`.
 - Network modes:
@@ -117,6 +118,7 @@ Surviving Pi-specific surface:
 
 - A malicious or compromised Pi extension. Pi packages execute arbitrary code.
 - Tools not mediated by this extension unless blocked by tool policy.
+- RPC/API mode's direct `bash` command in current pi core; it bypasses both the registered tool and `user_bash` event.
 - `background` and `monitor` command execution until the background-tasks plugin
   consumes the same bwrap helper. Initial mitigation: default block/confirm.
 - `agent_send`, web search, subagents, and provider requests as OS-sandboxed
@@ -276,7 +278,7 @@ Repository deliverables do not require committing operator-local settings.
 ## Risks
 
 - **Operational fail-closed friction**: Linux hosts without usable bwrap will lose
-  bash until users intentionally disable the sandbox. Mitigate with clear status
+  mediated bash until users intentionally disable the sandbox. Mitigate with clear status
   and docs.
 - **Write-policy complexity**: bwrap mount semantics are subtle. Mount order and
   cwd-contained tests are mandatory.
@@ -340,6 +342,16 @@ Verification after review fixes: `bun test plugins/pi-sandbox/extensions/sandbox
 
 A deep-lane substrate review found one blocking fail-closed breach: the `user_bash` hook returned `undefined` when the sandbox was uninitialized or fail-closed, which let pi fall through to the normal unsandboxed local backend for `!`/`!!` commands. Fixed by factoring the pure `decideUserBash()` routing decision and making only intentional bypasses (`--no-sandbox` or `enabled:false`) return fall-through; fail-closed and uninitialized states now return a full replacement `BashResult` (`{ result: { output, exitCode: 1, cancelled: false, truncated: false } }`) so pi treats the event as handled and blocks the command.
 
-Also tightened intentional-disable behavior and docs. Judgment call: make `--no-sandbox` and global/operator `enabled:false` symmetric full extension disables, matching the disable-as-operator-disable direction already tracked for follow-up. Those paths now install a permissive no-op file policy before returning, while real init failures still install/retain restrictive fail-closed policy. README now states plainly that intentional disables bypass bash/user_bash, file policy, and tool-egress policy, and that missing bwrap/invalid config/unsupported hosts/deferred filter remain hardened fail-closed states.
+Also tightened intentional-disable behavior and docs. Judgment call: make `--no-sandbox` and global/operator `enabled:false` symmetric full extension disables, matching the disable-as-operator-disable direction already tracked for follow-up. Those paths now install a permissive no-op file policy before returning, while real init failures still install/retain restrictive fail-closed policy. README now states plainly that intentional disables bypass mediated bash/user_bash, file policy, and tool-egress policy, and that missing bwrap/invalid config/unsupported hosts/deferred filter remain hardened fail-closed states for mediated bash.
 
 Verification after this fix: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (61 pass / 0 fail); `grep -r sandbox-runtime plugins/pi-sandbox/` produced zero matches (exit 1).
+
+Second deep-review follow-up: **Case B — RPC/API bash is not interceptable by this extension in current pi core**. Verified against the installed pi core source before changing docs:
+
+- `dist/modes/rpc/rpc-client.js:246-247` sends RPC bash as `{ type: "bash", command }`.
+- `dist/modes/rpc/rpc-mode.js:430-433` handles `case "bash"` by calling `session.executeBash(command.command, undefined, { excludeFromContext })`; it does not invoke a registered tool.
+- `dist/core/agent-session.js:2082-2089` implements `executeBash()` by calling `executeBashWithOperations(..., options?.operations ?? createLocalBashOperations({ shellPath }), ...)`, so an RPC call with no `operations` uses pi's local shell backend.
+- `dist/modes/interactive/interactive-mode.js:4691-4695` emits the `user_bash` event from `handleBashCommand()`, and source search found no RPC caller of `emitUserBash`.
+- `dist/core/extensions/types.d.ts:759-763` allows custom `BashOperations` only as a `UserBashEventResult`; `dist/core/extensions/types.d.ts:850-855` exposes `tool_call`, `tool_result`, `user_bash`, `input`, and `registerTool`, but no `executeBash` override or global bash-operations hook.
+
+Because the extension cannot mediate that pi-core direct executor path, the fix is honest boundary documentation rather than a fake interception. README language now scopes bash protection to the mediated LLM/tool `bash` path and interactive `user_bash`, documents RPC/API direct `bash` as a known residual bypass, and tells operators who need bash sandboxing to avoid/restrict RPC/API bash access. `/sandbox` diagnostics now also name RPC/API direct bash as not mediated by current pi core, and the existing diagnostics test asserts that wording. No interception test was added because there is no extension hook to assert against.
