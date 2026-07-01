@@ -1,7 +1,7 @@
 ---
 id: idea-background-tasks-sandbox-integration
 created: 2026-06-29
-updated: 2026-06-29
+updated: 2026-07-01
 tags: [security]
 ---
 
@@ -93,3 +93,7 @@ wrapped command string — a drop-in before the existing `spawn`/`exec` calls.
 ## Update 2026-07-01 — superseded approach (ASRT dropped)
 
 The `SandboxManager.wrapWithSandbox()` approach proposed here is **superseded** by `feature-sandbox-first-party-bwrap`: ASRT is dropped entirely, so `wrapWithSandbox` no longer exists. Background-tasks spawn sites (`background` tool ~`background-tasks.ts:531`, `monitor` ~`background-tasks.ts:694`) should instead route through the new first-party `buildBwrapArgs()` from `@nklisch/pi-sandbox` once that extension lands. This item's *problem statement* (background/monitor bypass the sandbox) remains valid and open; only the proposed affordance changes. Re-scope when the pi-sandbox plugin is vendored — the spawn sites will wrap their command string through the same `buildBwrapArgs()` + `spawn("bwrap", ...)` path the bash tool uses.
+
+## Update 2026-07-01 — initial pi-sandbox mitigation
+
+The first pi-sandbox release is now re-scoped to `open`/`block` only and will not integrate background-tasks directly. To avoid silently shipping a bypass, `feature-sandbox-first-party-bwrap` now includes active story `story-pi-sandbox-bypass-tool-policy`: the sandbox extension should block or require confirmation for `background`/`monitor` by default while this integration remains backlog work. This item remains the proper follow-up for true sandboxed background/monitor execution.

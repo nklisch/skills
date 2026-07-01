@@ -8,42 +8,76 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-01
+updated: 2026-07-01
 ---
 
-# First-party `buildBwrapArgs()` — the core re-arch
+# First-party `buildBwrapArgs()` core hardening
 
 ## Scope
 
-Replace `SandboxManager.wrapWithSandbox(command)` (the only per-command ASRT call, `createSandboxedBashOps().exec`) with a first-party `buildBwrapArgs(config, cwd)` that emits the bwrap argv. Executes via the existing `spawn("bash", ["-c", wrapped])` pattern (now `spawn("bwrap", [...argv, "bash", "-c", command])`). This fixes breakages #1 (stub leak) and #2 (brick) by skipping non-existent deny paths entirely (no `findFirstNonExistentComponent`).
+Replace `SandboxManager.wrapWithSandbox(command)` with a first-party Linux bwrap
+argv builder in `plugins/pi-sandbox/extensions/sandbox.ts`. This story owns the
+actual security contract for sandboxed `bash` and `user_bash`: path
+normalization, mount order, write policy, PID/proc isolation, network `open` /
+`block`, and minimal child environment.
 
-## Unit
+`filter` mode is **not** part of this story. If requested in config, first release
+fails closed with a deferred-mode diagnostic instead of silently loosening to
+`open`.
 
-**File**: `plugins/pi-sandbox/extensions/sandbox.ts` — new `buildBwrapArgs()` + the `createSandboxedBashOps().exec` call site.
+## Builder contract
 
-```ts
-interface BwrapConfig {
-  denyRead: string[]; allowWrite: string[]; denyWrite: string[];
-  cwd: string; networkMode: "open" | "filter" | "block";
-}
-function buildBwrapArgs(config: BwrapConfig): string[] {
-  const args = ["--new-session", "--die-with-parent", "--ro-bind", "/", "/", "--dev", "/dev"];
-  for (const p of config.denyRead) {
-    const abs = resolve(p);
-    if (!existsSync(abs)) continue;
-    if (statSync(abs).isDirectory()) args.push("--tmpfs", abs);
-    else args.push("--ro-bind", "/dev/null", abs);
-  }
-  args.push("--bind", config.cwd, config.cwd);
-  if (config.networkMode === "block") args.push("--unshare-net");
-  return args;
-}
-```
+### Platform
+
+- Linux only.
+- Verify `bwrap` is available before marking the sandbox initialized.
+- Missing `bwrap` or unsupported platform fail closed unless the operator chose
+  `--no-sandbox` or `enabled:false`.
+
+### Path normalization
+
+- Expand `~` with `homedir()`.
+- Resolve relative config paths against the session cwd.
+- Canonicalize existing paths with `realpathSync.native` before bwrap emission.
+- Skip non-existent deny paths; never bind `/dev/null` over a missing component.
+
+### Mount order
+
+Order is load-bearing and must be tested:
+
+1. `--ro-bind / /`
+2. `--dev /dev`, `--unshare-pid`, `--proc /proc`
+3. writable allow mounts for existing `allowWrite` roots, including cwd only if
+   `.`/cwd is allowed
+4. read-only `denyWrite` overlays for existing protected files/dirs
+5. `denyRead` overlays last: existing dirs `--tmpfs`; existing files
+   `--ro-bind /dev/null`
+6. `--unshare-net` only for `network.mode:"block"`
+
+### Environment
+
+Sandboxed bash must not inherit provider/auth secrets. Use `--clearenv` and/or a
+minimal `spawn` env allowlist. Preserve only non-secret basics such as `PATH`,
+`HOME`, `TERM`, `LANG`, `LC_*`, and `TMPDIR` when present.
 
 ## Acceptance Criteria
 
-- [ ] T4: non-existent deny paths → zero stub files (clean dir, run command, `ls -A` empty).
-- [ ] T3: existing secret dir → `--tmpfs`, contents unreadable, host intact.
-- [ ] T5: existing secret file → `--ro-bind /dev/null`, reads empty/denied.
-- [ ] No `findFirstNonExistentComponent` / hardcoded `.claude/commands` / `.claude/agents`.
-- [ ] starmods (clean dir) → no stubs; patchbay (existing `.git` dir) → `--tmpfs`, no `ENOTDIR`.
-- [ ] `block`: `--unshare-net` applied, 127.0.0.1 unreachable (T2). `open`: host network intact.
+- [ ] Non-existent deny paths produce zero host stubs.
+- [ ] Denied directory inside cwd is masked after cwd/allow mounts; host contents
+      remain intact.
+- [ ] Denied file inside cwd is masked after cwd/allow mounts.
+- [ ] Existing `.git` directory is masked without file-stubbing and without
+      `ENOTDIR` bricking.
+- [ ] `allowWrite` permits configured writable roots for bash.
+- [ ] `denyWrite` prevents bash writes to protected existing files/dirs.
+- [ ] `block` mode adds `--unshare-net` and cannot reach a localhost listener.
+- [ ] `open` mode adds no network namespace and preserves normal host network.
+- [ ] PID namespace + fresh `/proc` are active; host process metadata is not
+      visible through the sandboxed `/proc`.
+- [ ] Sandboxed bash env omits provider/auth secrets such as `OPENAI_API_KEY`,
+      `ANTHROPIC_*`, and `ZAI_API_KEY`.
+- [ ] Relative config paths resolve against session cwd, not package cwd.
+- [ ] Symlink-to-denied-path behavior is tested and either blocked or explicitly
+      documented as a residual gap.
+- [ ] No `findFirstNonExistentComponent`, no hardcoded `.claude/commands`, and
+      no hardcoded `.claude/agents` deny behavior.
