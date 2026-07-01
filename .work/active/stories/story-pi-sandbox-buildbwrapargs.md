@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-buildbwrapargs
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox]
 parent: feature-sandbox-first-party-bwrap
 depends_on: []
@@ -62,22 +62,35 @@ minimal `spawn` env allowlist. Preserve only non-secret basics such as `PATH`,
 
 ## Acceptance Criteria
 
-- [ ] Non-existent deny paths produce zero host stubs.
-- [ ] Denied directory inside cwd is masked after cwd/allow mounts; host contents
+- [x] Non-existent deny paths produce zero host stubs.
+- [x] Denied directory inside cwd is masked after cwd/allow mounts; host contents
       remain intact.
-- [ ] Denied file inside cwd is masked after cwd/allow mounts.
-- [ ] Existing `.git` directory is masked without file-stubbing and without
+- [x] Denied file inside cwd is masked after cwd/allow mounts.
+- [x] Existing `.git` directory is masked without file-stubbing and without
       `ENOTDIR` bricking.
-- [ ] `allowWrite` permits configured writable roots for bash.
-- [ ] `denyWrite` prevents bash writes to protected existing files/dirs.
-- [ ] `block` mode adds `--unshare-net` and cannot reach a localhost listener.
-- [ ] `open` mode adds no network namespace and preserves normal host network.
-- [ ] PID namespace + fresh `/proc` are active; host process metadata is not
+- [x] `allowWrite` permits configured writable roots for bash.
+- [x] `denyWrite` prevents bash writes to protected existing files/dirs.
+- [x] `block` mode adds `--unshare-net` and cannot reach a localhost listener.
+- [x] `open` mode adds no network namespace and preserves normal host network.
+- [x] PID namespace + fresh `/proc` are active; host process metadata is not
       visible through the sandboxed `/proc`.
-- [ ] Sandboxed bash env omits provider/auth secrets such as `OPENAI_API_KEY`,
+- [x] Sandboxed bash env omits provider/auth secrets such as `OPENAI_API_KEY`,
       `ANTHROPIC_*`, and `ZAI_API_KEY`.
-- [ ] Relative config paths resolve against session cwd, not package cwd.
-- [ ] Symlink-to-denied-path behavior is tested and either blocked or explicitly
+- [x] Relative config paths resolve against session cwd, not package cwd.
+- [x] Symlink-to-denied-path behavior is tested and either blocked or explicitly
       documented as a residual gap.
-- [ ] No `findFirstNonExistentComponent`, no hardcoded `.claude/commands`, and
+- [x] No `findFirstNonExistentComponent`, no hardcoded `.claude/commands`, and
       no hardcoded `.claude/agents` deny behavior.
+
+## Implementation notes
+
+Implemented a first-party Linux `buildBwrapArgs()` in `plugins/pi-sandbox/extensions/sandbox-bwrap.ts` and wired `createSandboxedBashOps()` to spawn `bwrap ... -- bash -c <command>` directly instead of using `SandboxManager.wrapWithSandbox`. ASRT `initialize()`/`reset()` lifecycle remains in place for the next story to remove.
+
+Security decisions:
+- `network.mode: "filter"` now fails closed with an explicit deferred-mode diagnostic rather than silently becoming open.
+- `bwrap` availability is checked before marking the sandbox initialized; unsupported non-Linux platforms remain fail-closed unless the operator chooses `--no-sandbox` or `enabled:false`.
+- Existing config paths are expanded/resolved against the session cwd and canonicalized with `realpathSync.native`; missing deny paths are skipped for bwrap mounts, so no host stubs are created.
+- Symlink-to-denied-path is blocked by canonical-target masking; the test covers a cwd symlink pointing at an external denied directory.
+- Sandboxed bash uses both `--clearenv`/`--setenv` and a minimal spawn env allowlist (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`) so provider/auth secrets never reach the child.
+
+Scoped verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (18 tests, 61 assertions), including pure argv/order tests and live bwrap integration for allowWrite, denyWrite, denyRead masks, `.git` directory masking, open/block network, fresh `/proc`, minimal env, and symlink masking. Syntax/loadability check also passed via `bun build plugins/pi-sandbox/extensions/sandbox.ts --external @anthropic-ai/sandbox-runtime --external @earendil-works/pi-coding-agent --external typebox --outdir /tmp/pi-sandbox-build-check`.
