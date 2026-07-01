@@ -1,7 +1,7 @@
 ---
 id: feature-sandbox-first-party-bwrap
 kind: feature
-stage: implementing
+stage: review
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -286,3 +286,37 @@ Repository deliverables do not require committing operator-local settings.
   tool policy is a mitigation, not a full fix.
 - **Filter pressure**: users may expect allowlisted networking. The first release
   intentionally refuses that mode rather than shipping a fragile proxy.
+
+## Implementation summary — autopilot run 2026-07-01 (raised tier)
+
+All 6 child stories advanced to `stage: review` via implement-orchestrator, one
+single-worker bundle per wave (serialized — single security-critical file).
+Bootstrap: the target file was copied from the operator-local backup into
+`plugins/pi-sandbox/extensions/sandbox.ts` before wave 1 (the enabled-gap-fix
+traveled with the copy in land mode).
+
+- `story-pi-sandbox-enabled-gap-fix` — verified land-mode fix + regression test.
+- `story-pi-sandbox-buildbwrapargs` — first-party `buildBwrapArgs()` in
+  `extensions/sandbox-bwrap.ts`; ordered ro-bind/dev/proc/allow/deny/tmpfs
+  mounts, `--clearenv` + minimal env allowlist, `open`/`block` network, fail
+  closed on `filter`, no host stubs for non-existent deny paths.
+- `story-pi-sandbox-drop-asrt-dep` — ASRT import/lifecycle/package dep fully
+  removed; first-party config types (`SandboxFilesystem`/`SandboxNetwork`/
+  `SandboxConfig`); `grep -r sandbox-runtime plugins/pi-sandbox/` empty.
+- `story-pi-sandbox-config-boundary-contract` — first-party config module
+  (`extensions/sandbox-config.ts`), additive-only merge, legacy ASRT fields
+  warned+ignored, `/sandbox` reports mode/fail-closed/legacy/bypass state,
+  README `Security boundary / non-goals` section.
+- `story-pi-sandbox-bypass-tool-policy` — `background`/`monitor` default
+  `confirm` (fail closed when no UI), additive-only, `/sandbox` reports it,
+  README mitigation section + follow-up link.
+- `story-pi-sandbox-vendor-and-repoint` — `@nklisch/pi-sandbox@0.1.0` Pi-only
+  package, peer deps on pi-core + typebox, no Claude/Codex manifests,
+  `pi install` verified in a clean HOME, fresh launch reports
+  `🔒 Sandbox: net open, 2 write paths, file tools hardened`, README complete
+  (install/usage/config/network/boundary/bypass/migration/provenance).
+
+Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` → 41 pass
+/ 0 fail (pure unit + bwrap integration: env scrub, /proc isolation, block-mode
+network denial, deny-mount ordering, .git masking, symlink-to-denied).
+Cross-cutting deviations: none. Ready for review.
