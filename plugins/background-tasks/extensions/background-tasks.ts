@@ -338,6 +338,36 @@ type BackgroundSpawnDecision =
     message: string;
   };
 
+type MonitorPollDecision =
+  | {
+    mode: "sandboxed";
+    sandbox: Extract<SandboxedSpawnArgsResult, { state: "ok" }>;
+    cwd: string;
+    message?: string;
+  }
+  | {
+    mode: "unsandboxed";
+    reason: "sandbox-absent" | "sandbox-degraded";
+    cwd: string;
+    message?: string;
+  }
+  | {
+    mode: "fail-closed";
+    reason: string;
+    message: string;
+  };
+
+interface ShellRunOptions {
+  command: string;
+  cwd: string;
+  timeoutMs: number;
+  signal?: AbortSignal;
+  sandbox?: SandboxedSpawnArgsResult | null;
+  piExec?: PiApi["exec"];
+  onChildSpawn?: (child: ChildProcess) => void;
+  onChildClose?: () => void;
+}
+
 function failClosedDecision(reason: string, message: string): BackgroundSpawnDecision {
   return { mode: "fail-closed", reason, message };
 }
@@ -392,6 +422,114 @@ function decideBackgroundSpawn(input: {
         }),
       );
   }
+}
+
+function decideMonitorPoll(input: {
+  command: string;
+  cwd: string;
+  sandbox: SandboxSpawnResolver;
+}): MonitorPollDecision {
+  switch (input.sandbox.state) {
+    case "absent":
+      return { mode: "unsandboxed", reason: "sandbox-absent", cwd: input.cwd };
+    case "broken":
+      return { mode: "fail-closed", reason: "sandbox-helper-broken", message: input.sandbox.message };
+    case "loaded": {
+      const result = input.sandbox.buildSandboxedSpawnArgs({ command: input.command, cwd: input.cwd });
+      switch (result.state) {
+        case "ok":
+          return { mode: "sandboxed", sandbox: result, cwd: result.cwd, message: result.message };
+        case "degraded":
+          return { mode: "unsandboxed", reason: "sandbox-degraded", cwd: result.cwd, message: result.message };
+        case "fail-closed":
+          return { mode: "fail-closed", reason: result.reason, message: result.message };
+      }
+    }
+  }
+}
+
+function killChildProcessGroup(child: ChildProcess, signal: NodeJS.Signals): boolean {
+  try {
+    if (child.pid) process.kill(-child.pid, signal);
+    else child.kill(signal);
+    return true;
+  } catch {
+    try {
+      child.kill(signal);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
+  if (opts.sandbox?.state !== "ok") {
+    if (!opts.piExec) throw new Error("monitor needs pi.exec, which is unavailable in this runtime.");
+    return opts.piExec("/bin/sh", ["-c", opts.command], { timeout: opts.timeoutMs, cwd: opts.cwd, signal: opts.signal });
+  }
+
+  return new Promise((resolve) => {
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    let timedOut = false;
+    let abortListener: (() => void) | undefined;
+    let killTimer: ReturnType<typeof setTimeout> | undefined;
+    const child = spawn(opts.sandbox.executable, [...opts.sandbox.args, opts.command], {
+      cwd: opts.sandbox.cwd,
+      env: opts.sandbox.env,
+      detached: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    const timeoutTimer = setTimeout(() => {
+      timedOut = true;
+      killChildProcessGroup(child, "SIGTERM");
+      killTimer = setTimeout(() => {
+        if (!settled) killChildProcessGroup(child, "SIGKILL");
+      }, 250);
+    }, opts.timeoutMs);
+
+    const cleanup = () => {
+      clearTimeout(timeoutTimer);
+      if (killTimer) clearTimeout(killTimer);
+      if (abortListener) opts.signal?.removeEventListener("abort", abortListener);
+      opts.onChildClose?.();
+    };
+
+    const finish = (result: ExecResult) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(result);
+    };
+
+    abortListener = () => {
+      timedOut = true;
+      killChildProcessGroup(child, "SIGTERM");
+      killTimer = setTimeout(() => {
+        if (!settled) killChildProcessGroup(child, "SIGKILL");
+      }, 250);
+    };
+    opts.signal?.addEventListener("abort", abortListener, { once: true });
+    if (opts.signal?.aborted) abortListener();
+
+    child.stdout?.on("data", (data: Buffer | string) => {
+      stdout += typeof data === "string" ? data : data.toString("utf8");
+    });
+    child.stderr?.on("data", (data: Buffer | string) => {
+      stderr += typeof data === "string" ? data : data.toString("utf8");
+    });
+    child.once("spawn", () => opts.onChildSpawn?.(child));
+    child.once("error", (err) => {
+      finish({ stdout, stderr: `${stderr}${err.message}`, code: null });
+    });
+    child.once("close", (code, signal) => {
+      const timeoutNote = timedOut ? `monitor poll exceeded ${opts.timeoutMs}ms and was terminated${signal ? ` by ${signal}` : ""}\n` : "";
+      finish({ stdout, stderr: `${stderr}${timeoutNote}`, code, killed: timedOut });
+    });
+  });
 }
 
 function waitForChildSpawn(child: ChildProcess): Promise<void> {
@@ -749,12 +887,6 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
     if (!command) {
       return { content: [{ type: "text", text: "command is required." }], isError: true };
     }
-    if (!pi.exec) {
-      return {
-        content: [{ type: "text", text: "monitor needs pi.exec, which is unavailable in this runtime." }],
-        isError: true,
-      };
-    }
     const label = params.label ? String(params.label) : slugify(command);
     const rawInterval = Number(params.interval_seconds ?? DEFAULT_MONITOR_INTERVAL_S);
     const intervalSeconds = Number.isFinite(rawInterval) && rawInterval >= MIN_MONITOR_INTERVAL_S
@@ -782,6 +914,26 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
           isError: true,
         };
       }
+    }
+
+    const cwd = ctx.cwd ?? process.cwd();
+    const sandbox = await resolveSandboxSpawn();
+    const pollDecision = decideMonitorPoll({ command, cwd, sandbox });
+    if (pollDecision.mode === "fail-closed") {
+      return {
+        content: [{ type: "text", text: `Sandbox refused to start monitor command: ${pollDecision.message}` }],
+        details: { sandbox: "blocked", reason: pollDecision.reason },
+        isError: true,
+      };
+    }
+    if (pollDecision.mode === "unsandboxed" && !pi.exec) {
+      return {
+        content: [{ type: "text", text: "monitor needs pi.exec, which is unavailable in this runtime." }],
+        isError: true,
+      };
+    }
+    if (pollDecision.mode === "unsandboxed" && pollDecision.reason === "sandbox-degraded" && pollDecision.message) {
+      console.error(`[background-tasks] sandbox degraded for monitor command: ${pollDecision.message}`);
     }
 
     const job: Job = {
@@ -824,21 +976,36 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       job.polling = true;
       let result: ExecResult;
       try {
-        // Route through /bin/sh -c explicitly. pi.exec uses spawn() with
-        // shell:false, so passing the raw command as the program name only
-        // works for bare binaries (true/false); anything with shell syntax
-        // (echo X, test -f X && echo Y, pipelines, redirects) ENOENTs and
-        // yields empty stdout — which silently breaks stdout_matches and
-        // starved exit-based polls of real output. Mirrors the background
-        // tool's `spawn(command, { shell: "/bin/sh" })`.
-        result = await pi.exec!("/bin/sh", ["-c", command], {
-          timeout: Math.max(5, intervalSeconds) * 1000,
-          cwd: ctx.cwd ?? process.cwd(),
+        // Unsandboxed/degraded monitors preserve the existing pi.exec route
+        // through /bin/sh -c. Sandboxed monitors cannot use pi.exec because the
+        // local PiApi slice has no env option; they direct-spawn bwrap with the
+        // pi-sandbox-owned minimal env and argv prefix prepared once at monitor
+        // start.
+        result = await runShellOnce({
+          command,
+          cwd: pollDecision.cwd,
+          timeoutMs: Math.max(5, intervalSeconds) * 1000,
+          signal: _signal,
+          sandbox: pollDecision.mode === "sandboxed" ? pollDecision.sandbox : null,
+          piExec: pi.exec,
+          onChildSpawn: (child) => {
+            job.child = child;
+            job.pid = child.pid;
+          },
+          onChildClose: () => {
+            job.child = undefined;
+            job.pid = undefined;
+            if (job.status === "cancelling") {
+              job.status = "cancelled";
+              finalize(job);
+            }
+          },
         });
       } catch (err) {
         result = { stderr: (err as Error).message, code: null };
+      } finally {
+        job.polling = false;
       }
-      job.polling = false;
       if (job.status !== "running") return; // cancelled/timed out mid-poll
 
       const out = `${result.stdout ?? ""}${result.stderr ?? ""}`;
@@ -907,7 +1074,14 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
           text: `Started monitor #${job.id} "${label}" — polling every ${intervalSeconds}s (timeout ${timeoutSeconds}s) until ${satisfyOn}${patternRaw ? ` matching /${patternRaw}/` : ""}. I'll be woken when it's satisfied or times out; read the result with the jobs tool. Cancel with jobs (action=cancel, jobId=${job.id}).`,
         },
       ],
-      details: { jobId: job.id, status: "running", satisfyOn, intervalSeconds, timeoutSeconds },
+      details: {
+        jobId: job.id,
+        status: "running",
+        satisfyOn,
+        intervalSeconds,
+        timeoutSeconds,
+        sandbox: pollDecision.mode === "sandboxed" ? "active" : pollDecision.reason === "sandbox-degraded" ? "degraded" : "absent",
+      },
     };
   };
 
@@ -1121,8 +1295,8 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
   });
 }
 
-export { MAX_RETAINED_JOBS, clipToWidth, JobPanel, decideBackgroundSpawn };
-export type { BackgroundTasksExtensionOptions, BackgroundSpawnDecision, SandboxSpawnResolver };
+export { MAX_RETAINED_JOBS, clipToWidth, JobPanel, decideBackgroundSpawn, decideMonitorPoll, runShellOnce };
+export type { BackgroundTasksExtensionOptions, BackgroundSpawnDecision, MonitorPollDecision, SandboxSpawnResolver };
 
 // --- Theme shim (avoids importing the real Theme type) -------------------
 
