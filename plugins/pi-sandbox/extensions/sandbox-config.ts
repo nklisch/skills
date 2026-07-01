@@ -147,7 +147,7 @@ export interface EnvScrubConfig {
 export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: EnvScrubConfig } = {
 	enabled: true,
 	network: {
-		mode: "filter",
+		mode: "open",
 		allowedDomains: [
 			"npmjs.org",
 			"*.npmjs.org",
@@ -188,6 +188,73 @@ export interface LoadedConfig {
 	additiveWarnings: string[];
 }
 
+const NETWORK_MODES = new Set(["open", "block", "filter"]);
+const TOOL_POLICIES = new Set(["allow", "auto", "confirm", "block"]);
+const SECRET_ACTIONS = new Set(["block", "redact"]);
+const INSPECTOR_NO_MATCH_ACTIONS = new Set(["allow", "block"]);
+
+/** Validate untrusted sandbox JSON before it reaches merge/init logic. */
+export function validateConfig(config: unknown): string[] {
+	const errors: string[] = [];
+	if (!isRecord(config)) return ["config must be a JSON object"];
+
+	if (config.enabled !== undefined && typeof config.enabled !== "boolean") {
+		errors.push("enabled must be a boolean");
+	}
+
+	if (config.filesystem !== undefined) {
+		if (!isRecord(config.filesystem)) {
+			errors.push("filesystem must be an object");
+		} else {
+			validateOptionalStringArray(config.filesystem.denyRead, "filesystem.denyRead", errors);
+			validateOptionalStringArray(config.filesystem.denyWrite, "filesystem.denyWrite", errors);
+			validateOptionalStringArray(config.filesystem.allowWrite, "filesystem.allowWrite", errors);
+		}
+	}
+
+	if (config.network !== undefined) {
+		if (!isRecord(config.network)) {
+			errors.push("network must be an object");
+		} else {
+			if (config.network.mode !== undefined && (typeof config.network.mode !== "string" || !NETWORK_MODES.has(config.network.mode))) {
+				errors.push('network.mode must be one of "open", "block", or "filter"');
+			}
+			validateOptionalStringArray(config.network.allowedDomains, "network.allowedDomains", errors);
+			validateOptionalStringArray(config.network.deniedDomains, "network.deniedDomains", errors);
+		}
+	}
+
+	if (config.tools !== undefined) {
+		if (!isRecord(config.tools)) {
+			errors.push("tools must be an object");
+		} else {
+			validateOptionalToolPolicy(config.tools.default, "tools.default", errors);
+			if (config.tools.rules !== undefined) {
+				if (!isRecord(config.tools.rules)) {
+					errors.push("tools.rules must be an object");
+				} else {
+					for (const [name, value] of Object.entries(config.tools.rules)) {
+						validateOptionalToolPolicy(value, `tools.rules.${name}`, errors);
+					}
+				}
+			}
+			validateInspector(config.tools.inspector, errors);
+		}
+	}
+
+	if (config.envScrub !== undefined) {
+		if (!isRecord(config.envScrub)) {
+			errors.push("envScrub must be an object");
+		} else {
+			validateOptionalStringArray(config.envScrub.names, "envScrub.names", errors);
+			validateOptionalStringArray(config.envScrub.patterns, "envScrub.patterns", errors);
+			validateOptionalStringArray(config.envScrub.keep, "envScrub.keep", errors);
+		}
+	}
+
+	return errors;
+}
+
 interface LoadConfigOptions {
 	agentDir?: string;
 }
@@ -207,8 +274,14 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 
 	if (existsSync(globalConfigPath)) {
 		try {
-			globalConfig = JSON.parse(readFileSync(globalConfigPath, "utf-8"));
-			legacyFieldWarnings.push(...collectLegacyFieldWarnings("global", globalConfig));
+			const parsed = JSON.parse(readFileSync(globalConfigPath, "utf-8"));
+			const validationErrors = validateConfig(parsed);
+			if (validationErrors.length > 0) {
+				parseErrors.push(...validationErrors.map((error) => `global (${globalConfigPath}): ${error}`));
+			} else {
+				globalConfig = parsed;
+				legacyFieldWarnings.push(...collectLegacyFieldWarnings("global", globalConfig));
+			}
 		} catch (e) {
 			// Fail-closed: record the error. We refuse to run with an unparseable
 			// global config rather than silently dropping denyRead entries.
@@ -218,8 +291,14 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 
 	if (existsSync(projectConfigPath)) {
 		try {
-			projectConfig = JSON.parse(readFileSync(projectConfigPath, "utf-8"));
-			legacyFieldWarnings.push(...collectLegacyFieldWarnings("project", projectConfig));
+			const parsed = JSON.parse(readFileSync(projectConfigPath, "utf-8"));
+			const validationErrors = validateConfig(parsed);
+			if (validationErrors.length > 0) {
+				parseErrors.push(...validationErrors.map((error) => `project (${projectConfigPath}): ${error}`));
+			} else {
+				projectConfig = parsed;
+				legacyFieldWarnings.push(...collectLegacyFieldWarnings("project", projectConfig));
+			}
 		} catch (e) {
 			parseErrors.push(`project (${projectConfigPath}): ${e instanceof Error ? e.message : e}`);
 		}
@@ -246,7 +325,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 	}
 
 	const failClosedReasons: string[] = [];
-	if (merged.enabled !== false && (merged.network?.mode ?? "filter") === "filter") {
+	if (merged.enabled !== false && (merged.network?.mode ?? "open") === "filter") {
 		failClosedReasons.push(
 			`network.mode=filter is deferred for the first-party bwrap backend; bash fails closed instead of treating filtered egress as open. Use network.mode=open or network.mode=block, or implement ${FILTER_DEFERRED_BACKLOG_ITEM}.`,
 		);
@@ -260,7 +339,7 @@ export function deepMerge(base: SandboxConfig, overrides: Partial<SandboxConfig>
 
 	if (overrides.enabled !== undefined) result.enabled = overrides.enabled;
 	if (overrides.network) {
-		const baseMode = base.network?.mode ?? "filter";
+		const baseMode = base.network?.mode ?? "open";
 		const overrideMode = overrides.network.mode;
 		// deepMerge is base<-global: override wins. (Project additive narrowing
 		// is enforced separately in mergeProjectAdditive.)
@@ -360,7 +439,7 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 	// repo cannot relax a global filter/block to open.
 	if (project.network?.mode) {
 		const modeRank: Record<NetworkMode, number> = { open: 0, filter: 1, block: 2 };
-		const current = result.network?.mode ?? "filter";
+		const current = result.network?.mode ?? "open";
 		const requested = project.network.mode;
 		if (modeRank[requested] > modeRank[current]) {
 			result.network = { ...result.network, mode: requested };
@@ -415,17 +494,25 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 		} else if (projDefault && rank[projDefault] < rank[finalDefault]) {
 			warns.push(`project tried to loosen tool default (${finalDefault} -> ${projDefault}); ignored (additive-only).`);
 		}
-		// inspector: project can ADD secret shapes (union) and tighten onNoMatch
-		// (allow -> block), never remove shapes or loosen onNoMatch. scanFields
-		// are merged per-tool (project can narrow a tool's scanned fields, but
-		// cannot widen a narrowed global setting — intersection of field lists).
+		// inspector: project can ADD new secret shapes and tighten onNoMatch
+		// (allow -> block), never remove/override global shapes or loosen
+		// onNoMatch. scanFields are additive-only narrowing: a project may
+		// intersect a global field list, but cannot widen it to "*" or reduce a
+		// tool's scanned fields to empty.
 		let mergedInspector = baseTools.inspector;
 		if (project.tools.inspector) {
 			const baseInsp = baseTools.inspector ?? {};
 			const projInsp = project.tools.inspector;
-			// secrets: union by name (project adds new shapes; same-name = project overrides pattern/action)
-			const baseSecrets = new Map((baseInsp.secrets ?? []).map((s) => [s.name, s]));
-			for (const s of projInsp.secrets ?? []) baseSecrets.set(s.name, s);
+			const mergedSecrets: SecretShape[] = [...(baseInsp.secrets ?? [])];
+			const baseSecretNames = new Set(mergedSecrets.map((s) => s.name));
+			for (const s of projInsp.secrets ?? []) {
+				if (baseSecretNames.has(s.name)) {
+					warns.push(`project tried to override inspector secret shape "${s.name}"; ignored (additive-only).`);
+					continue;
+				}
+				baseSecretNames.add(s.name);
+				mergedSecrets.push(s);
+			}
 			// onNoMatch: tighten only (allow -> block)
 			const baseOnNoMatch = baseInsp.onNoMatch ?? "allow";
 			let finalOnNoMatch = baseOnNoMatch;
@@ -433,15 +520,38 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 			else if (projInsp.onNoMatch === "allow" && baseOnNoMatch === "block") {
 				warns.push(`project tried to loosen inspector onNoMatch (block -> allow); ignored (additive-only).`);
 			}
-			// scanFields: merge per-tool; if both define a tool's fields, intersect (project narrows)
+			// scanFields: project may narrow, but never widen or silently empty.
 			const mergedScan: Record<string, string[] | "*"> = { ...(baseInsp.scanFields ?? {}) };
 			for (const [tool, fields] of Object.entries(projInsp.scanFields ?? {})) {
 				const baseFields = mergedScan[tool];
-				if (baseFields === undefined) mergedScan[tool] = fields;
-				else if (baseFields === "*" || fields === "*") mergedScan[tool] = fields;
-				else mergedScan[tool] = fields.filter((f) => (baseFields as string[]).includes(f));
+				if (Array.isArray(fields) && fields.length === 0) {
+					warns.push(`project tried to empty inspector scanFields for "${tool}"; ignored (additive-only).`);
+					continue;
+				}
+				if (baseFields === undefined) {
+					mergedScan[tool] = fields;
+				} else if (baseFields === "*") {
+					mergedScan[tool] = fields;
+				} else if (fields === "*") {
+					warns.push(`project tried to widen inspector scanFields for "${tool}" to "*"; ignored (additive-only).`);
+				} else {
+					const narrowed = fields.filter((f) => baseFields.includes(f));
+					if (narrowed.length === 0) {
+						warns.push(`project tried to empty inspector scanFields for "${tool}"; ignored (additive-only).`);
+					} else {
+						mergedScan[tool] = narrowed;
+					}
+				}
 			}
-			mergedInspector = { secrets: [...baseSecrets.values()], onNoMatch: finalOnNoMatch, scanFields: mergedScan };
+			if (projInsp.allowlist) {
+				warns.push(`project tried to add inspector allowlist entries; ignored (additive-only).`);
+			}
+			mergedInspector = {
+				...baseInsp,
+				secrets: mergedSecrets,
+				onNoMatch: finalOnNoMatch,
+				scanFields: Object.keys(mergedScan).length > 0 ? mergedScan : undefined,
+			};
 		}
 		result.tools = { default: finalDefault, rules: mergedRules, ...(mergedInspector ? { inspector: mergedInspector } : {}) };
 	}
@@ -491,7 +601,7 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 			: state.sandboxEnabled && state.sandboxInitialized
 				? "enabled"
 				: "disabled/not initialized";
-	const mode = config.network?.mode ?? "filter";
+	const mode = config.network?.mode ?? "open";
 	const effectiveToolRules = applyBypassToolDefaults(config.tools);
 	const bypassToolPolicy = SHELL_BYPASS_TOOLS.map((name) => `${name}=${effectiveToolRules.rules?.[name] ?? effectiveToolRules.default ?? "allow"}`).join(", ");
 	const legacy = legacyFieldWarnings.length > 0 ? legacyFieldWarnings : ["(none)"];
@@ -532,6 +642,76 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 /** The first-party bwrap backend does not support glob denyWrite matching. Detect glob patterns so we can warn. */
 function isGlobPattern(p: string): boolean {
 	return /[*?]/.test(p);
+}
+
+function validateOptionalStringArray(value: unknown, path: string, errors: string[]): void {
+	if (value === undefined) return;
+	if (!Array.isArray(value)) {
+		errors.push(`${path} must be an array of strings`);
+		return;
+	}
+	value.forEach((entry, index) => {
+		if (typeof entry !== "string") errors.push(`${path}[${index}] must be a string`);
+	});
+}
+
+function validateOptionalToolPolicy(value: unknown, path: string, errors: string[]): void {
+	if (value === undefined) return;
+	if (typeof value !== "string" || !TOOL_POLICIES.has(value)) {
+		errors.push(`${path} must be one of "allow", "auto", "confirm", or "block"`);
+	}
+}
+
+function validateInspector(value: unknown, errors: string[]): void {
+	if (value === undefined) return;
+	if (!isRecord(value)) {
+		errors.push("tools.inspector must be an object");
+		return;
+	}
+	if (value.onNoMatch !== undefined && (typeof value.onNoMatch !== "string" || !INSPECTOR_NO_MATCH_ACTIONS.has(value.onNoMatch))) {
+		errors.push('tools.inspector.onNoMatch must be one of "allow" or "block"');
+	}
+	if (value.secrets !== undefined) {
+		if (!Array.isArray(value.secrets)) {
+			errors.push("tools.inspector.secrets must be an array");
+		} else {
+			value.secrets.forEach((secret, index) => validateSecretShape(secret, `tools.inspector.secrets[${index}]`, errors));
+		}
+	}
+	if (value.scanFields !== undefined) {
+		if (!isRecord(value.scanFields)) {
+			errors.push("tools.inspector.scanFields must be an object");
+		} else {
+			for (const [tool, fields] of Object.entries(value.scanFields)) {
+				if (fields === "*") continue;
+				validateOptionalStringArray(fields, `tools.inspector.scanFields.${tool}`, errors);
+			}
+		}
+	}
+	if (value.allowlist !== undefined) {
+		if (!isRecord(value.allowlist)) {
+			errors.push("tools.inspector.allowlist must be an object");
+		} else {
+			validateOptionalStringArray(value.allowlist.stopwords, "tools.inspector.allowlist.stopwords", errors);
+			validateOptionalStringArray(value.allowlist.regexes, "tools.inspector.allowlist.regexes", errors);
+		}
+	}
+}
+
+function validateSecretShape(value: unknown, path: string, errors: string[]): void {
+	if (!isRecord(value)) {
+		errors.push(`${path} must be an object`);
+		return;
+	}
+	if (typeof value.name !== "string" || value.name.length === 0) errors.push(`${path}.name must be a non-empty string`);
+	if (typeof value.pattern !== "string" || value.pattern.length === 0) errors.push(`${path}.pattern must be a non-empty string`);
+	if (typeof value.action !== "string" || !SECRET_ACTIONS.has(value.action)) {
+		errors.push(`${path}.action must be one of "block" or "redact"`);
+	}
+	if (value.secretGroup !== undefined && typeof value.secretGroup !== "number") errors.push(`${path}.secretGroup must be a number`);
+	if (value.entropy !== undefined && typeof value.entropy !== "number") errors.push(`${path}.entropy must be a number`);
+	validateOptionalStringArray(value.keywords, `${path}.keywords`, errors);
+	if (value.flags !== undefined && typeof value.flags !== "string") errors.push(`${path}.flags must be a string`);
 }
 
 function collectLegacyFieldWarnings(source: "global" | "project", value: unknown): string[] {

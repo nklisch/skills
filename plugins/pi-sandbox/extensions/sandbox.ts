@@ -48,6 +48,7 @@ import {
 	type ToolRules,
 } from "./sandbox-config";
 import {
+	createFailClosedPolicy,
 	makeEditOperations,
 	makeReadOperations,
 	makeWriteOperations,
@@ -61,18 +62,18 @@ const loadPiConfig = (cwd: string) => loadConfig(cwd, { agentDir: getAgentDir() 
  * Network egress lever. Decouples the filesystem sandbox from the network
  * namespace so the read/write protections hold regardless of network posture.
  *
- * - `"filter"` (default): deferred in the first-party bwrap backend. The
- *   extension fails closed instead of silently treating it as `open`.
- * - `"open"`: no network namespace. bash gets the host's normal network
- *   (registry fetches, web fetches, anything) — but the filesystem denyRead/
- * denyWrite/allowWrite bind-mounts and the in-process read/write/edit guards
- *   STILL apply. Use when the allowlist is harming legitimate workflows
+ * - `"open"` (default): no network namespace. bash gets the host's normal
+ *   network (registry fetches, web fetches, anything) — but the filesystem
+ *   denyRead/denyWrite/allowWrite bind-mounts and the in-process read/write/edit
+ *   guards STILL apply. Use when the allowlist is harming legitimate workflows
  *   (pub.dev, research source fetches) and the read-leak protections alone are
  *   the goal. The tool_call egress gate (umans_web_search/agent_send/...) is
  *   in-process and stays active in every mode.
  * - `"block"`: bwrap `--unshare-net` = fully air-gapped bash.
  *   Paranoia mode (e.g. handling raw untrusted content); nothing reaches the
  *   network, allowlist is ignored.
+ * - `"filter"`: deferred in the first-party bwrap backend. The extension fails
+ *   closed instead of silently treating it as `open`.
  *
  * The lever mirrors the tool-egress policy vocabulary (allow/auto/confirm/block):
  * a graduated, config-driven posture rather than a binary on/off.
@@ -329,8 +330,9 @@ export default function (pi: ExtensionAPI) {
 	// path), block = return {block:true, reason}, confirm = human-approval gate
 	// (degrades to block when no dialog-capable UI is available).
 	pi.on("tool_call", async (event, ctx) => {
-		if (!activePolicy) return; // sandbox not enabled/initialized yet -> no in-process tool policy to apply
-		const rules = activePolicy.toolRules;
+		if (shouldBypassSandbox(pi.getFlag("no-sandbox") as boolean, disabledViaConfig)) return;
+		const policy = activePolicy ?? activePolicyFor((ctx as { cwd?: string }).cwd ?? localCwd);
+		const rules = policy.toolRules;
 		const name = event.toolName;
 		const decision = decideToolPolicy(name, rules, Boolean(ctx.ui && ctx.hasUI));
 		if (decision.action === "allow") return;
@@ -377,6 +379,8 @@ export default function (pi: ExtensionAPI) {
 		lastFailClosedReason = null;
 		sandboxEnabled = false;
 		sandboxInitialized = false;
+		sandboxPolicy = null;
+		activePolicy = null;
 
 		const noSandbox = pi.getFlag("no-sandbox") as boolean;
 
@@ -388,10 +392,14 @@ export default function (pi: ExtensionAPI) {
 
 		const { config, parseErrors, globWarnings, legacyFieldWarnings, additiveWarnings } = loadPiConfig(ctx.cwd);
 
-		// Fail-closed on config parse errors.
+		// Fail-closed on config parse/validation errors. Install the restrictive
+		// in-process policy before returning so read/write/edit and tool_call do
+		// not fall back to permissive startup behavior.
 		if (parseErrors.length > 0) {
 			failClosed = true;
 			lastFailClosedReason = `config parse error(s): ${parseErrors.join("; ")}`;
+			sandboxPolicy = createFailClosedPolicy(ctx.cwd);
+			activePolicy = sandboxPolicy;
 			const msg = `Sandbox config parse error(s):\n${parseErrors.join("\n")}\nBash + file tools are fail-closed until fixed.`;
 			ctx.ui.notify(msg, "error");
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (config parse error)"));
@@ -425,7 +433,7 @@ export default function (pi: ExtensionAPI) {
 			ctx.ui.notify(`Scrubbed ${scrubbed.length} secret env var(s) from process: ${scrubbed.join(", ")}`, "info");
 		}
 
-		const netMode = config.network?.mode ?? "filter";
+		const netMode = config.network?.mode ?? "open";
 
 		// Always set the file-tool policy, even before bwrap init succeeds —
 		// the read/write/edit tools use it in-process and hold independently.
@@ -498,19 +506,13 @@ export default function (pi: ExtensionAPI) {
 
 /**
  * Return the active file-tool policy. If the sandbox hasn't initialized yet
- * (e.g. a read is attempted before session_start completes), fall back to a
- * restrictive default: deny reads of nothing, allow writes only to cwd+tmp.
- * This keeps the tool usable during startup without opening a hole.
+ * (e.g. a read is attempted before session_start completes), fall back to the
+ * same restrictive fail-closed policy used for invalid config: block all reads,
+ * writes, and tool egress until a real policy is installed.
  */
 function activePolicyFor(cwd: string): SandboxPolicy {
 	if (activePolicy) return activePolicy;
-	return {
-		denyRead: [],
-		denyWrite: [".env", ".env.*", "*.pem", "*.key", "~/.ssh", "~/.aws", "~/.gnupg"],
-		allowWrite: [".", "/tmp"],
-		cwd,
-		networkMode: "block",
-	};
+	return createFailClosedPolicy(cwd);
 }
 
 /**

@@ -1,6 +1,6 @@
-import { constants as fsConstants } from "node:fs";
+import { constants as fsConstants, existsSync } from "node:fs";
 import { access as fsAccess, mkdir as fsMkdir, readFile as fsReadFile, writeFile as fsWriteFile } from "node:fs/promises";
-import { isAbsolute, relative } from "node:path";
+import { basename, dirname, isAbsolute, join, relative } from "node:path";
 import { canonicalizeExistingPath, normalizeConfiguredPath, type NetworkMode } from "./sandbox-bwrap";
 import type { ToolRules } from "./sandbox-config";
 
@@ -12,6 +12,18 @@ export interface SandboxPolicy {
 	cwd: string;
 	networkMode: NetworkMode;
 	toolRules?: ToolRules;
+}
+
+/** Restrictive policy used whenever config parsing/validation fails or startup policy is absent. */
+export function createFailClosedPolicy(cwd: string): SandboxPolicy {
+	return {
+		denyRead: ["/"],
+		denyWrite: ["/"],
+		allowWrite: [],
+		cwd,
+		networkMode: "block",
+		toolRules: { default: "block", rules: {} },
+	};
 }
 
 /** Minimal structural operation contracts accepted by pi's built-in file tools. */
@@ -92,12 +104,21 @@ export function enforceDenyRead(absolutePath: string, cwd: string, policy: Sandb
 }
 
 export function enforceWritePolicy(absolutePath: string, cwd: string, policy: SandboxPolicy): void {
-	const target = canonicalizeExistingPath(absolutePath) ?? absolutePath;
+	const target = resolveTargetForWritePolicy(absolutePath);
 	// denyWrite takes precedence.
-	const { denied, matched } = matchesDenyList(target, policy.denyWrite, cwd);
-	if (denied) {
+	const writeDenied = matchesDenyList(target, policy.denyWrite, cwd);
+	if (writeDenied.denied) {
 		throw new Error(
-			`Access denied (sandbox denyWrite): "${absolutePath}" matches "${matched}". The sandbox blocks writes to configured protected paths.`,
+			`Access denied (sandbox denyWrite): "${absolutePath}" matches "${writeDenied.matched}". The sandbox blocks writes to configured protected paths.`,
+		);
+	}
+	// A read-denied path must not become writable through a symlink or mkdir of a
+	// non-existent child: the bwrap layer masks denyRead paths, and the in-process
+	// file tools should preserve that secrecy boundary too.
+	const readDenied = matchesDenyList(target, policy.denyRead, cwd);
+	if (readDenied.denied) {
+		throw new Error(
+			`Access denied (sandbox denyRead): "${absolutePath}" matches "${readDenied.matched}". The sandbox blocks writes into read-denied paths.`,
 		);
 	}
 	// Then allowWrite: the target must be within an allowWrite path.
@@ -106,6 +127,29 @@ export function enforceWritePolicy(absolutePath: string, cwd: string, policy: Sa
 			`Access denied (sandbox allowWrite): "${absolutePath}" is outside the writable allowlist. Writes are confined to allowWrite paths.`,
 		);
 	}
+}
+
+/**
+ * Resolve a write target through the nearest existing ancestor. This closes the
+ * common symlink hole for new files: `link/new.txt` does not exist, but `link`
+ * may point into a denied host directory, so policy checks must run against the
+ * canonical parent plus the missing suffix.
+ */
+function resolveTargetForWritePolicy(absolutePath: string): string {
+	const existing = canonicalizeExistingPath(absolutePath);
+	if (existing) return existing;
+
+	let parent = dirname(absolutePath);
+	let suffix = basename(absolutePath);
+	while (!existsSync(parent)) {
+		const nextParent = dirname(parent);
+		if (nextParent === parent) return absolutePath;
+		suffix = join(basename(parent), suffix);
+		parent = nextParent;
+	}
+
+	const canonicalParent = canonicalizeExistingPath(parent);
+	return canonicalParent ? join(canonicalParent, suffix) : absolutePath;
 }
 
 /** True if `target` is equal to or nested under `dir`. Handles dir/file equality. */

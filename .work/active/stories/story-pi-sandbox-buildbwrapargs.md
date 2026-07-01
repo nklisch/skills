@@ -94,3 +94,9 @@ Security decisions:
 - Sandboxed bash uses both `--clearenv`/`--setenv` and a minimal spawn env allowlist (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`) so provider/auth secrets never reach the child.
 
 Scoped verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (18 tests, 61 assertions), including pure argv/order tests and live bwrap integration for allowWrite, denyWrite, denyRead masks, `.git` directory masking, open/block network, fresh `/proc`, minimal env, and symlink masking. Syntax/loadability check also passed via `bun build plugins/pi-sandbox/extensions/sandbox.ts --external @anthropic-ai/sandbox-runtime --external @earendil-works/pi-coding-agent --external typebox --outdir /tmp/pi-sandbox-build-check`.
+
+## Review fixes (Phase 8 final peer review)
+
+- B1 resolved: invalid `network.mode` is now schema-validated during config load, so bogus modes fail closed before `validateBwrapInit()` / `buildBwrapArgs()` can observe an invalid mode as open networking.
+- B3 resolved: denyRead+denyWrite directory intersections are now masked with `--tmpfs` followed by `--remount-ro`, preventing writes into a hidden tmpfs. Added pure argv-order coverage and a live bwrap regression where `echo ok > secret/new.txt` fails while host contents remain intact.
+- Verification after review fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail).

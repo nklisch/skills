@@ -34,13 +34,18 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 		args.push("--bind", mount, mount);
 	}
 
-	for (const mount of existingCanonicalMounts(opts.denyWrite, cwd)) {
+	const denyWriteMounts = existingCanonicalMounts(opts.denyWrite, cwd);
+	const denyWriteSet = new Set(denyWriteMounts);
+	for (const mount of denyWriteMounts) {
 		args.push("--ro-bind", mount, mount);
 	}
 
 	for (const mount of existingCanonicalMounts(opts.denyRead, cwd)) {
 		if (statSync(mount).isDirectory()) {
 			args.push("--tmpfs", mount);
+			if (denyWriteSet.has(mount)) {
+				args.push("--remount-ro", mount);
+			}
 		} else {
 			args.push("--ro-bind", "/dev/null", mount);
 		}

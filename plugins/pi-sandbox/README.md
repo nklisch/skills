@@ -66,7 +66,7 @@ Config is JSON and is merged from:
 1. Global: `~/.pi/agent/extensions/sandbox.json`
 2. Project-local: `<project>/.pi/sandbox.json`
 
-Project-local config is additive-only. It may tighten policy, but it cannot loosen a global/default posture. For example, a project can add `denyRead` entries, add `denyWrite` entries, narrow `allowWrite`, move networking from `open` to `block`, or raise a tool policy from `confirm` to `block`; it cannot disable the sandbox, expand writable paths, or lower a blocked tool to allowed.
+Project-local config is additive-only. It may tighten policy, but it cannot loosen a global/default posture. The default network mode is `open` for the first release. For example, a project can add `denyRead` entries, add `denyWrite` entries, narrow `allowWrite`, move networking from `open` to `block`, or raise a tool policy from `confirm` to `block`; it cannot disable the sandbox, expand writable paths, or lower a blocked tool to allowed.
 
 Minimal hardened example:
 
@@ -101,7 +101,7 @@ Notes:
 
 ## Network modes
 
-- `open`: sandboxed bash uses the host network. Filesystem/env/tool policy still applies.
+- `open` (default): sandboxed bash uses the host network. Filesystem/env/tool policy still applies.
 - `block`: sandboxed bash runs with `--unshare-net` and has no network access.
 - `filter`: deferred. The extension recognizes this mode but fails closed rather than silently treating it as `open`. Follow-up work is tracked in `.work/backlog/idea-pi-sandbox-filter-tcp-proxy.md`.
 
@@ -149,4 +149,4 @@ If you carried old ASRT config fields, delete them rather than relying on them. 
 
 ## Provenance
 
-This package is derived from pi's MIT-licensed `examples/extensions/sandbox/` extension shape. The ASRT dependency (`@anthropic-ai/sandbox-runtime`) has been removed. The first-party `bwrap` argument builder, config boundary, in-process file-tool policy, and bypass-tool mitigation are original MIT-licensed code in this repository.
+This package is derived from pi's MIT-licensed `examples/extensions/sandbox/` extension shape. The ASRT dependency has been removed. The first-party `bwrap` argument builder, config boundary, in-process file-tool policy, and bypass-tool mitigation are original MIT-licensed code in this repository.

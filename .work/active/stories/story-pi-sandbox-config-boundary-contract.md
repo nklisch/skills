@@ -83,3 +83,11 @@ from overclaiming what it protects.
   unsupported legacy field warnings, and known bypass mitigation state.
 - Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passes
   (28 pass / 0 fail).
+
+## Review fixes (Phase 8 final peer review)
+
+- B1 resolved: added pure `validateConfig(config): string[]` boundary validation and wired `loadConfig()` to treat validation failures like parse errors. Unknown network modes, invalid tool policies, and non-string filesystem/network arrays now fail closed with actionable messages.
+- B2 resolved: parse/validation errors now install a restrictive fail-closed policy (`denyRead:["/"], denyWrite:["/"], allowWrite:[], tools.default:"block"`) before session start returns; the startup fallback policy uses the same restrictive posture.
+- B5 resolved: project inspector config is additive-only. Same-name project secret shapes are rejected/warned instead of overriding global shapes, `scanFields` may narrow by intersection only, and empty/widening merges are warned and ignored.
+- S1 resolved: default `network.mode` is now `open`, so a no-config install initializes in the first release's permissive network posture while projects can still tighten to `block` or request deferred `filter` fail-closed behavior.
+- Verification after review fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail).

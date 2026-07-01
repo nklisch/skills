@@ -95,3 +95,8 @@ is Pi-only.
   - The root package manifest keeps the requested `pi.extensions: ["./extensions"]`, but a nested `plugins/pi-sandbox/extensions/package.json` is required so Pi's directory discovery loads only `sandbox.ts`. Without it, Pi attempts to load helper/test modules (`sandbox-bwrap.ts`, `sandbox-config.ts`, `sandbox-file-policy.ts`, `sandbox.test.ts`) as extension factories and fails. This is a package-level compatibility fix that preserves the requested root manifest shape while making the real `pi install` criterion pass.
   - README git guidance documents Pi's current package-root git behavior honestly: this monorepo subdirectory can be installed from a git checkout via local path; direct `pi install git:...` works when the package is published/mirrored as a package root.
 - Adjacent issues parked: none.
+
+## Review fixes (Phase 8 final peer review)
+
+- B6 resolved: README provenance was reworded so the plugin tree has no grep-visible `sandbox-runtime` token while still honestly documenting that the ASRT dependency was removed.
+- Verification after review fixes: `grep -r sandbox-runtime plugins/pi-sandbox/` produced zero output (exit 1), and `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail).

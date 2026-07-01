@@ -18,10 +18,12 @@ import {
 	deepMerge,
 	loadConfig,
 	mergeProjectAdditive,
+	validateConfig,
 	type LoadedConfig,
 	type SandboxConfig,
 } from "./sandbox-config";
 import {
+	createFailClosedPolicy,
 	enforceDenyRead,
 	enforceWritePolicy,
 	makeEditOperations,
@@ -233,6 +235,67 @@ describe("config boundary contract", () => {
 		expect(warnings.join("\n")).toContain("loosen tool policy");
 	});
 
+	test("project inspector cannot override global secret shapes", () => {
+		const warnings: string[] = [];
+		const merged = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: {
+					default: "allow",
+					rules: {},
+					inspector: {
+						secrets: [{ name: "token", pattern: "tok_[a-z]+", action: "block" }],
+					},
+				},
+			},
+			{
+				tools: {
+					inspector: {
+						secrets: [
+							{ name: "token", pattern: "does-not-match", action: "redact" },
+							{ name: "new-token", pattern: "new_[a-z]+", action: "redact" },
+						],
+					},
+				},
+			},
+			warnings,
+		);
+
+		expect(merged.tools?.inspector?.secrets).toEqual([
+			{ name: "token", pattern: "tok_[a-z]+", action: "block" },
+			{ name: "new-token", pattern: "new_[a-z]+", action: "redact" },
+		]);
+		expect(warnings.join("\n")).toContain("override inspector secret shape \"token\"");
+	});
+
+	test("project inspector scanFields can narrow but cannot empty or widen", () => {
+		const narrowWarnings: string[] = [];
+		const narrowed = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: { default: "allow", rules: {}, inspector: { scanFields: { bash: ["command", "cwd"] } } },
+			},
+			{ tools: { inspector: { scanFields: { bash: ["command"] } } } },
+			narrowWarnings,
+		);
+		expect(narrowed.tools?.inspector?.scanFields?.bash).toEqual(["command"]);
+		expect(narrowWarnings).toEqual([]);
+
+		const emptyWarnings: string[] = [];
+		const emptied = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: { default: "allow", rules: {}, inspector: { scanFields: { bash: ["command", "cwd"], read: ["path"] } } },
+			},
+			{ tools: { inspector: { scanFields: { bash: ["path"], read: "*" } } } },
+			emptyWarnings,
+		);
+		expect(emptied.tools?.inspector?.scanFields?.bash).toEqual(["command", "cwd"]);
+		expect(emptied.tools?.inspector?.scanFields?.read).toEqual(["path"]);
+		expect(emptyWarnings.join("\n")).toContain("empty inspector scanFields for \"bash\"");
+		expect(emptyWarnings.join("\n")).toContain("widen inspector scanFields for \"read\"");
+	});
+
 	test("bypass-tool defaults require confirmation for background and monitor", () => {
 		const rules = applyBypassToolDefaults({ default: "allow", rules: {} });
 
@@ -381,6 +444,66 @@ describe("config boundary contract", () => {
 
 		expect(loaded.config.enabled).toBe(true);
 		expect(loaded.parseErrors).toEqual([]);
+	});
+
+	test("no config defaults to open networking and can initialize", async () => {
+		const cwd = await makeTempDir();
+		const loaded = loadConfig(cwd, { agentDir: join(cwd, "missing-agent-dir") });
+		const validation = validateBwrapInit({ networkMode: loaded.config.network?.mode ?? "open", platform: "linux", bwrapAvailable: true });
+
+		expect(loaded.parseErrors).toEqual([]);
+		expect(loaded.failClosedReasons).toEqual([]);
+		expect(loaded.config.network?.mode).toBe("open");
+		expect(validation.ok).toBe(true);
+	});
+
+	test("validateConfig rejects unknown modes, invalid policies, and non-string arrays", () => {
+		const errors = validateConfig({
+			filesystem: { denyRead: ["ok", 42], denyWrite: "secret" },
+			network: { mode: "bogus", allowedDomains: ["example.com", false] },
+			tools: { default: "maybe", rules: { background: "bogus" } },
+		});
+
+		expect(errors.join("\n")).toContain("network.mode");
+		expect(errors.join("\n")).toContain("tools.default");
+		expect(errors.join("\n")).toContain("tools.rules.background");
+		expect(errors.join("\n")).toContain("filesystem.denyRead[1]");
+		expect(errors.join("\n")).toContain("filesystem.denyWrite");
+		expect(errors.join("\n")).toContain("network.allowedDomains[1]");
+	});
+
+	test("invalid network mode and tool policy load as fail-closed parse errors", async () => {
+		const bogusModeCwd = await makeTempDir();
+		const bogusToolCwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(bogusModeCwd, ".pi"), { recursive: true });
+		await mkdir(join(bogusToolCwd, ".pi"), { recursive: true });
+		await writeFile(join(bogusModeCwd, ".pi", "sandbox.json"), JSON.stringify({ network: { mode: "bogus" } }));
+		await writeFile(join(bogusToolCwd, ".pi", "sandbox.json"), JSON.stringify({ tools: { rules: { background: "bogus" } } }));
+
+		const bogusMode = loadConfig(bogusModeCwd, { agentDir });
+		const bogusTool = loadConfig(bogusToolCwd, { agentDir });
+
+		expect(bogusMode.parseErrors.join("\n")).toContain("network.mode");
+		expect(bogusTool.parseErrors.join("\n")).toContain("tools.rules.background");
+	});
+
+	test("parse errors use restrictive fail-closed file and bypass-tool policy", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(cwd, ".pi", "sandbox.json"), "{ not valid json");
+		await writeFile(join(cwd, "public.txt"), "public");
+
+		const loaded = loadConfig(cwd, { agentDir: join(cwd, "missing-agent-dir") });
+		const policy = createFailClosedPolicy(cwd);
+		const readOps = makeReadOperations(cwd, policy);
+		const background = decideToolPolicy("background", policy.toolRules, false);
+		const monitor = decideToolPolicy("monitor", policy.toolRules, false);
+
+		expect(loaded.parseErrors.join("\n")).toContain("project");
+		await expect(readOps.readFile(join(cwd, "public.txt"))).rejects.toThrow(/denyRead/);
+		expect(background.action).toBe("block");
+		expect(monitor.action).toBe("block");
 	});
 
 	test("legacy ASRT-only fields produce warnings and are not effective config", async () => {
@@ -539,6 +662,26 @@ describe("in-process file-tool policy", () => {
 		await expect(ops.mkdir(join(cwd, "protected", "nested"))).rejects.toThrow(/denyWrite/);
 	});
 
+	test("write operations resolve nearest existing symlink parent before policy checks", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "denied-write"));
+		await mkdir(join(cwd, "denied-read"));
+		await symlink(join(cwd, "denied-write"), join(cwd, "write-link"));
+		await symlink(join(cwd, "denied-read"), join(cwd, "read-link"));
+		const ops = makeWriteOperations(cwd, {
+			cwd,
+			denyRead: ["denied-read"],
+			denyWrite: ["denied-write"],
+			allowWrite: ["."],
+			networkMode: "open",
+		});
+
+		await expect(ops.writeFile(join(cwd, "write-link", "new.txt"), "nope")).rejects.toThrow(/denyWrite/);
+		await expect(ops.writeFile(join(cwd, "read-link", "new.txt"), "nope")).rejects.toThrow(/denyRead/);
+		await expect(ops.mkdir(join(cwd, "write-link", "nested"))).rejects.toThrow(/denyWrite/);
+		await expect(ops.mkdir(join(cwd, "read-link", "nested"))).rejects.toThrow(/denyRead/);
+	});
+
 	test("edit operations require both read and write permission", async () => {
 		const cwd = await makeTempDir();
 		await mkdir(join(cwd, "writable"));
@@ -632,6 +775,24 @@ describe("buildBwrapArgs", () => {
 
 		expectSequence(args, ["--tmpfs", join(cwd, "secret-dir")]);
 		expectSequence(args, ["--ro-bind", "/dev/null", join(cwd, "secret-file")]);
+	});
+
+	test("denyRead plus denyWrite directories are masked read-only", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret"));
+
+		const args = buildBwrapArgs({
+			cwd,
+			allowWrite: ["."],
+			denyWrite: ["secret"],
+			denyRead: ["secret"],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+
+		const tmpfs = expectSequence(args, ["--tmpfs", join(cwd, "secret")]);
+		const remount = expectSequence(args, ["--remount-ro", join(cwd, "secret")]);
+		expect(tmpfs).toBeLessThan(remount);
 	});
 
 	test("open and block network modes map to the expected bwrap argv", async () => {
@@ -746,6 +907,23 @@ describe("bwrap integration", () => {
 		expect(result.exitCode).toBe(0);
 		expect(await readFile(join(cwd, "secret-dir", "inside.txt"), "utf8")).toBe("secret\n");
 		expect(await readFile(join(cwd, "secret-file"), "utf8")).toBe("secret\n");
+	});
+
+	integrationTest("denyRead plus denyWrite directory mask is not writable", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret"));
+		await writeFile(join(cwd, "secret", "inside.txt"), "secret\n");
+
+		const result = runSandboxed("echo ok > secret/new.txt", {
+			cwd,
+			allowWrite: ["."],
+			denyRead: ["secret"],
+			denyWrite: ["secret"],
+			networkMode: "open",
+		});
+
+		expect(result.exitCode).not.toBe(0);
+		expect(await readFile(join(cwd, "secret", "inside.txt"), "utf8")).toBe("secret\n");
 	});
 
 	integrationTest("existing .git directory is masked as a directory without ENOTDIR bricking", async () => {

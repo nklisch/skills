@@ -52,3 +52,8 @@ error rather than silently running unsandboxed.
 - Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (21 pass / 0 fail). `grep -r sandbox-runtime plugins/pi-sandbox/` returned zero hits (grep exit 1, no output). Additional grep for `SandboxRuntimeConfig|NetworkConfig|SandboxManager|wrapWithSandbox` returned no matches.
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+
+## Review fixes (Phase 8 final peer review)
+
+- B6 resolved: README provenance no longer contains the literal removed package token; it now says the ASRT dependency was removed without reintroducing a grep-visible dependency reference.
+- Verification after review fixes: `grep -r sandbox-runtime plugins/pi-sandbox/` produced zero output (exit 1), and `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail).
