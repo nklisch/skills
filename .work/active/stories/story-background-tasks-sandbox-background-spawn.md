@@ -1,7 +1,7 @@
 ---
 id: story-background-tasks-sandbox-background-spawn
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: feature-background-tasks-sandbox-integration
 depends_on: [story-background-tasks-sandbox-import-config]
@@ -61,17 +61,28 @@ Fallback branches:
 
 ## Implementation notes
 
-- Add `waitForChildSpawn(child): Promise<void>` that resolves on the child `spawn` event and rejects on an early `error`. This lets the tool call return an immediate error for bwrap spawn failures instead of claiming the job started.
-- Keep `detached:true`. The child pid is the `bwrap` pid; existing `process.kill(-pid, sig)` targets the bwrap process group. Bubblewrap propagates termination to the wrapped process namespace, and the negative-pid kill covers bwrap plus its child process group.
-- Store `job.pid = child.pid` after successful spawn exactly as today.
-- Include non-sensitive details such as `details.sandbox = "active" | "degraded" | "absent"` if useful, but never include command output in wakes.
-- Do not send env overrides directly in the sandboxed branch; use only the helper-returned minimal env.
+- Files changed:
+  - `plugins/background-tasks/extensions/background-tasks.ts`
+  - `plugins/background-tasks/extensions/background-tasks.test.ts`
+- Spawn-decision branches:
+  - resolver `absent` -> current unsandboxed `/bin/sh` spawn with `{ ...process.env, ...envAdd }`.
+  - helper `degraded` -> current unsandboxed `/bin/sh` spawn using the helper-returned normal env; logs the non-sensitive degrade reason.
+  - helper `ok` -> `spawn("bwrap", [...args, command], { cwd, env: helperMinimalEnv, detached:true, stdio:["ignore","pipe","pipe"] })` with no process env merge.
+  - resolver `broken`, helper `fail-closed`, or early `bwrap` spawn error -> `isError:true`, no job registration, no unsandboxed fallback.
+- Lifecycle preservation: the existing job object, `job.child`, `job.pid`, stdout/stderr buffering, wake-on-pattern, `exit`/`error` handlers, cancellation, shutdown cleanup, pruning, and trusted output-free wakes remain downstream of the single spawn decision. The tracked pid is still the actual detached child pid; in sandboxed mode that pid is the `bwrap` pid.
+- Tests added:
+  - Pure unit coverage for absent, ok, degraded, broken, and fail-closed spawn decisions.
+  - Tool-level fail-closed regression for helper refusal and early `bwrap` spawn error (no marker file, no job).
+  - Real bwrap integration coverage for denyRead masking, secret env filtering, block-mode localhost network isolation, and cancellation/kill lifecycle.
+- Kill-lifecycle proof: on this Linux box with bwrap 0.11.0, the integration test starts a sandboxed command that ignores `SIGTERM`, sleeps, and would write `bg-kill-marker-*` if orphaned. `jobs(action=cancel)` drives the existing negative-pgid kill path, escalates as needed, reports `cancelled`, emits no completion wake, and the marker remains absent after the post-kill wait. This proves `process.kill(-child.pid, ...)` against the bwrap process group terminates the wrapped command rather than orphaning it.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
 
 ## Acceptance criteria
 
-- [ ] On Linux with helper `ok`, the background tool spawns `bwrap` with `[..., "--", "bash", "-c", command]` and minimal env.
-- [ ] With helper absent/degraded, behavior matches today's `/bin/sh` spawn and env merge.
-- [ ] With helper fail-closed or broken import, the tool returns `isError:true`, creates no job, and does not run the command unsandboxed.
-- [ ] Existing wake-on-pattern, output buffering, terminal wake, pruning, and shutdown tests remain green.
-- [ ] Real bwrap integration test (skipped when `bwrap` is unavailable) proves a sandboxed background command cannot read a configured `denyRead` path.
-- [ ] Real bwrap integration test (skipped when `bwrap` is unavailable) proves cancelling a sandboxed `sleep` job terminates the wrapped command and reports `cancelled` rather than leaving an orphan.
+- [x] On Linux with helper `ok`, the background tool spawns `bwrap` with `[..., "--", "bash", "-c", command]` and minimal env.
+- [x] With helper absent/degraded, behavior matches today's `/bin/sh` spawn and env merge.
+- [x] With helper fail-closed or broken import, the tool returns `isError:true`, creates no job, and does not run the command unsandboxed.
+- [x] Existing wake-on-pattern, output buffering, terminal wake, pruning, and shutdown tests remain green.
+- [x] Real bwrap integration test (skipped when `bwrap` is unavailable) proves a sandboxed background command cannot read a configured `denyRead` path.
+- [x] Real bwrap integration test (skipped when `bwrap` is unavailable) proves cancelling a sandboxed `sleep` job terminates the wrapped command and reports `cancelled` rather than leaving an orphan.
