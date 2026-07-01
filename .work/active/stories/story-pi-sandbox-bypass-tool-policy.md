@@ -62,3 +62,8 @@ Implemented the first-release shell-bypass mitigation in the pure config/policy 
 Verification:
 
 - `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` — 35 pass / 0 fail.
+
+## Review fixes (Phase 8 final peer review)
+
+- B2 resolved: config parse/validation errors now install an active fail-closed tool policy before returning from `session_start`, so `tool_call` blocks `background` and `monitor` instead of no-oping when config is invalid. The no-active-policy fallback is also restrictive.
+- Verification after review fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail).

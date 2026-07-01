@@ -320,3 +320,18 @@ Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` → 41 pa
 / 0 fail (pure unit + bwrap integration: env scrub, /proc isolation, block-mode
 network denial, deny-mount ordering, .git masking, symlink-to-denied).
 Cross-cutting deviations: none. Ready for review.
+
+## Review fixes (Phase 8 final peer review)
+
+Accepted fresh-context final-review findings B1-B6 and S1-S2 have been resolved in-place while keeping this feature and its child stories at `stage: review`:
+
+- B1: config validation now rejects unknown network modes, invalid tool policy values, and non-string policy arrays at load time.
+- B2: config parse/validation failure installs a restrictive active policy for file tools and tool-call egress before returning.
+- B3: denyRead+denyWrite directory intersections are now read-only masks, verified by live bwrap regression.
+- B4: in-process write policy resolves nearest existing symlink parents before deny/allow checks, including mkdir paths.
+- B5: project inspector config is additive-only for secret shapes and scan fields.
+- B6: `plugins/pi-sandbox/README.md` provenance was reworded so `grep -r sandbox-runtime plugins/pi-sandbox/` is honestly empty.
+- S1: default network mode is `open`; `filter` remains an explicit deferred fail-closed mode.
+- S2: root `AGENTS.md` plugin map now lists `plugins/pi-sandbox/` and says there are ten plugins.
+
+Verification after review fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail); `grep -r sandbox-runtime plugins/pi-sandbox/` produced zero output (exit 1).
