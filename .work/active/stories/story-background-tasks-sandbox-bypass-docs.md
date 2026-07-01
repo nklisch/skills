@@ -110,6 +110,15 @@ export function applyBypassToolDefaults(
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
 
+## Review-driven correction (deep review 2026-07-01)
+
+Policy matrix tightened: `decideBackgroundTasksIntegrationState()` now requires
+a loaded background-tasks runtime handshake in addition to pi-sandbox's own
+Linux+bwrap/config preconditions before the bypass-tool floor relaxes to
+`allow`. Missing, absent, broken, or malformed handshakes remain `inactive`, so
+`background`/`monitor` stay `confirm`/fail-closed. Tests now cover loaded,
+undefined, absent, broken, and non-Linux cases.
+
 ## Review (2026-07-01)
 
 **Verdict**: Approve - story verified by implement; fast-lane advance

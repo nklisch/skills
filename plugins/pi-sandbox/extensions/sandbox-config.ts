@@ -154,6 +154,41 @@ export const DEFAULT_BYPASS_TOOL_INTEGRATION_STATE: BypassToolIntegrationState =
 	reason: "background-tasks sandbox integration has not been proven active",
 };
 
+/**
+ * Same-process capability handshake published by background-tasks.
+ *
+ * Contract key: Symbol.for("@nklisch/pi-sandbox.background-tasks-integration").
+ * Use Symbol.for (not Symbol()) so independently loaded extension modules share
+ * one globalThis property key inside the same pi process.
+ */
+export const BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL_DESCRIPTION = "@nklisch/pi-sandbox.background-tasks-integration";
+export const BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL = Symbol.for(BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL_DESCRIPTION);
+
+export type BackgroundTasksSandboxIntegrationHandshake =
+	| { integrated: true; bridgeState: "loaded" }
+	| { integrated: false; reason: "absent" | "broken"; bridgeState?: "absent" | "broken"; message?: string };
+
+export function readBackgroundTasksIntegrationHandshake(): unknown {
+	return (globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL];
+}
+
+function decideBackgroundTasksHandshakeState(handshake: unknown): BypassToolIntegrationState {
+	if (handshake && typeof handshake === "object") {
+		const value = handshake as { integrated?: unknown; bridgeState?: unknown; reason?: unknown; message?: unknown };
+		if (value.integrated === true && value.bridgeState === "loaded") {
+			return { backgroundTasksSandbox: "active", reason: "Linux bwrap integration ready and background-tasks bridge handshake loaded" };
+		}
+		if (value.integrated === false && (value.reason === "absent" || value.reason === "broken")) {
+			const message = typeof value.message === "string" && value.message.length > 0 ? `: ${value.message}` : "";
+			return { backgroundTasksSandbox: "inactive", reason: `background-tasks sandbox bridge ${value.reason}${message}` };
+		}
+	}
+	if (handshake === undefined) {
+		return { backgroundTasksSandbox: "inactive", reason: "background-tasks sandbox integration handshake missing" };
+	}
+	return { backgroundTasksSandbox: "inactive", reason: "background-tasks sandbox integration handshake invalid" };
+}
+
 export interface BackgroundTasksIntegrationDecisionInput {
 	config: SandboxConfig;
 	parseErrors?: string[];
@@ -161,6 +196,7 @@ export interface BackgroundTasksIntegrationDecisionInput {
 	platform?: NodeJS.Platform;
 	bwrapAvailable?: boolean;
 	env?: NodeJS.ProcessEnv;
+	backgroundTasksHandshake?: unknown;
 }
 
 export function decideBackgroundTasksIntegrationState(input: BackgroundTasksIntegrationDecisionInput): BypassToolIntegrationState {
@@ -187,7 +223,7 @@ export function decideBackgroundTasksIntegrationState(input: BackgroundTasksInte
 		env: input.env,
 	});
 	if (platformState.state === "ok") {
-		return { backgroundTasksSandbox: "active", reason: "Linux bwrap integration ready" };
+		return decideBackgroundTasksHandshakeState(input.backgroundTasksHandshake);
 	}
 	if (platformState.state === "degrade") {
 		return { backgroundTasksSandbox: "inactive", reason: platformState.message };
