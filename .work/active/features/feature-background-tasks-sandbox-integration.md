@@ -1,7 +1,7 @@
 ---
 id: feature-background-tasks-sandbox-integration
 kind: feature
-stage: review
+stage: done
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: [feature-sandbox-first-party-bwrap]
@@ -498,3 +498,36 @@ regressions cover loaded/undefined/absent/broken handshakes, precondition
 fail-closed behavior, and real background-tasks handshake publication.
 `grep -r sandbox-runtime plugins/pi-sandbox/ plugins/background-tasks/` remains
 empty.
+
+## Review (2026-07-01)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none remaining.
+- Deep review round 1 found the bypass-tool policy `allow` was based only on
+  pi-sandbox readiness, not proof that the loaded background-tasks is
+  integrated (version-skew/absent-bridge fail-open hole). Fixed in `6199313`:
+  a versioned runtime capability handshake over a shared
+  `Symbol.for("@nklisch/pi-sandbox.background-tasks-integration")` key.
+  background-tasks publishes its resolved bridge state (loaded/absent/broken)
+  to `globalThis`; pi-sandbox reads it (refreshed at `tool_call` time to avoid
+  a session_start ordering race) and only sets integration `active` (→ `allow`)
+  when the handshake reports `{integrated:true, bridgeState:"loaded"}` AND
+  pi-sandbox's own preconditions hold. Every other case (undefined/absent/broken
+  handshake, non-Linux, off, fail-closed) → `inactive` → `confirm`/fail-closed.
+  Confirmed-resolved in a focused re-review (APPROVED).
+
+**Important**: none. (One substantive — a cross-package publish→read
+integration test is missing; the two sides are tested separately. Filed as
+backlog `idea-bgtasks-sandbox-handshake-cross-pkg-test` — correct by
+inspection, not blocking.)
+
+**Nits**: none.
+
+**Notes**: Substrate deep lane, fresh-context `openai-codex/gpt-5.5` (xhigh) —
+different model class from the umans orchestrator. One convergence round to
+APPROVED. Verification: 145/145 tests across pi-sandbox + background-tasks
+(pure unit + real bwrap integration: kill-lifecycle, denyRead, block-network,
+secret-env omission, monitor per-poll timeout, handshake publish/read);
+`grep -r sandbox-runtime` empty. Not archived (feature body retained for the
+draft-PR description).
