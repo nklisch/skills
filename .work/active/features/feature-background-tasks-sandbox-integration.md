@@ -1,7 +1,7 @@
 ---
 id: feature-background-tasks-sandbox-integration
 kind: feature
-stage: drafting
+stage: implementing
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: [feature-sandbox-first-party-bwrap]
@@ -136,3 +136,303 @@ the extension lifecycle.
   a pi tool, not a bash subprocess, so bwrap does not touch it.
 - A macOS `sandbox-exec` or Windows native backend for background/monitor
   (real sandboxing stays Linux-only; non-Linux degrades).
+
+## Design decisions
+
+- **Policy acquisition**: pi-sandbox will expose a new `buildSandboxedSpawnArgs()` helper under `@nklisch/pi-sandbox/sandbox-spawn`; background-tasks will call that helper and will not parse or merge sandbox policy itself. This keeps config validation, additive merge, platform state, fail-closed decisions, and bwrap args in pi-sandbox as the single source of truth.
+- **Helper state model**: the helper returns a discriminated union with `state: "ok" | "degraded" | "fail-closed"`. `ok` means spawn `bwrap`; `degraded` means intentionally run unsandboxed (non-Linux, sandbox disabled, or integration off); `fail-closed` means refuse the tool call and do not fall back to `/bin/sh`.
+- **Env overrides**: background `env` overrides are merged over `process.env` before policy application, but the sandboxed branch passes only `buildMinimalEnv()` allowlisted keys (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`). Non-allowlisted overrides and provider tokens are dropped. Degraded/off branches keep today's normal env merge.
+- **Detached kill lifecycle**: keep `detached:true` and the existing negative-pgid kill/timeout machinery. In the sandboxed branch the tracked pid is the `bwrap` pid; `process.kill(-child.pid, sig)` signals the bwrap process group, and bwrap termination tears down the wrapped command namespace. Add a real bwrap cancellation test to prove no wrapped sleep is left behind.
+- **Config flag placement**: use the existing pi-sandbox config file rather than inventing a background-tasks config file. Add `backgroundTasks: { sandboxIntegration: "auto" | "off" }` to `SandboxConfig`, loaded from `~/.pi/agent/extensions/sandbox.json` and `<cwd>/.pi/sandbox.json`, defaulting to `"auto"`. Additive merge ranks `off < auto`: global/operator config may opt out with `off`; project config may tighten `off -> auto` but cannot loosen default/global `auto -> off`.
+- **Bypass-tool mitigation matrix**: relax pi-sandbox's default `background`/`monitor` tool policy to `allow` only when active Linux bwrap integration is provable (valid config, sandbox enabled, `sandboxIntegration:"auto"`, Linux, bwrap available, network `open`/`block`). Keep `confirm`/no-UI fail-closed for integration off, non-Linux degrade, missing bwrap, `filter`, invalid config, or uncertain state. This policy is enforced in pi-sandbox's `tool_call` gate using the same state calculation as the spawn helper.
+- **Dispatch rationale**: direct-read only. The feature is security-critical but bounded to two plugin extensions, two package manifests, and existing tests; local reads covered the spawn sites, lifecycle, bwrap helper, config merge, and bypass policy without needing exploratory sub-agents.
+
+## Architectural choice
+
+### Options considered
+
+1. **Duplicate sandbox config loading inside background-tasks**. background-tasks could read `~/.pi/agent/extensions/sandbox.json` and `<cwd>/.pi/sandbox.json` directly, then call `buildBwrapArgs()`. This is straightforward locally but duplicates validation, additive merge, platform decisions, and fail-closed semantics in a second package. That duplication is unacceptable for a security boundary.
+2. **Expose active pi-sandbox policy as a mutable accessor**. pi-sandbox could export an `activePolicy()`-style function and background-tasks could compose bwrap args. This avoids duplicate parsing but couples background-tasks to extension lifecycle state, breaks tests outside a running pi session, and still makes background-tasks understand policy shape.
+3. **Expose a spawn contract helper from pi-sandbox**. pi-sandbox owns config loading, platform decision, minimal env, and bwrap args, returning either a ready-to-spawn bwrap prefix or a refusal/degrade state. background-tasks only chooses between `spawn("bwrap", ...)`, current behavior, or error.
+
+Chosen: **Option 3**. It gives the cleanest port between plugins: background-tasks supplies `{ command, cwd, envAdd }`; pi-sandbox returns a small spawn contract. The security-sensitive policy interpretation has one owner.
+
+## Implementation Units
+
+### Unit 1: pi-sandbox exported spawn helper
+
+**Story**: `story-background-tasks-sandbox-spawn-helper`
+
+**Files**:
+- `plugins/pi-sandbox/extensions/sandbox-spawn.ts`
+- `plugins/pi-sandbox/extensions/sandbox-config.ts`
+- `plugins/pi-sandbox/extensions/sandbox.test.ts`
+- `plugins/pi-sandbox/package.json`
+
+```ts
+export type BackgroundTasksSandboxIntegration = "auto" | "off";
+
+export interface BackgroundTasksSandboxConfig {
+	sandboxIntegration?: BackgroundTasksSandboxIntegration;
+}
+
+export interface SandboxSpawnOptions {
+	command: string;
+	cwd: string;
+	envAdd?: NodeJS.ProcessEnv;
+	baseEnv?: NodeJS.ProcessEnv;
+	agentDir?: string;
+	platform?: NodeJS.Platform;
+	bwrapAvailable?: boolean;
+}
+
+export type SandboxedSpawnArgsResult =
+	| {
+		state: "ok";
+		integration: "active";
+		executable: "bwrap";
+		args: string[];
+		cwd: string;
+		env: NodeJS.ProcessEnv;
+		message?: string;
+	}
+	| {
+		state: "degraded";
+		integration: "inactive";
+		reason: "integration-off" | "sandbox-disabled" | "unsupported-platform";
+		executable: null;
+		args: [];
+		cwd: string;
+		env: NodeJS.ProcessEnv;
+		message: string;
+	}
+	| {
+		state: "fail-closed";
+		integration: "blocked";
+		reason: "config-parse-error" | "filter-deferred" | "bwrap-missing" | "bwrap-build-error";
+		executable: null;
+		args: [];
+		cwd: string;
+		env: NodeJS.ProcessEnv;
+		message: string;
+		errors?: string[];
+	};
+
+export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpawnArgsResult;
+```
+
+**Implementation notes**:
+- Load config with `loadConfig(opts.cwd, { agentDir: opts.agentDir })`.
+- For `ok`, return `args` ending in `--`, `bash`, `-c`; callers append the command as the final argument.
+- Use `buildMinimalEnv({ ...baseEnv, ...envAdd })` for the sandboxed branch and return normal merged env for degraded branches.
+- Add package exports:
+
+```json
+"exports": {
+  "./bwrap": "./extensions/sandbox-bwrap.ts",
+  "./sandbox-spawn": "./extensions/sandbox-spawn.ts",
+  "./sandbox-config": "./extensions/sandbox-config.ts"
+}
+```
+
+**Acceptance criteria**:
+- `ok` state produces bwrap args and minimal env on Linux with bwrap available.
+- invalid config, `filter`, and missing bwrap fail closed.
+- non-Linux, sandbox disabled, and integration off degrade honestly.
+- env filtering drops non-allowlisted overrides.
+
+### Unit 2: background-tasks optional peer dependency and guarded resolver
+
+**Story**: `story-background-tasks-sandbox-import-config`
+
+**Files**:
+- `plugins/background-tasks/package.json`
+- `plugins/background-tasks/extensions/background-tasks.ts`
+- `plugins/background-tasks/extensions/background-tasks.test.ts`
+
+```ts
+type SandboxedSpawnArgsResult = import("@nklisch/pi-sandbox/sandbox-spawn").SandboxedSpawnArgsResult;
+type BuildSandboxedSpawnArgs = typeof import("@nklisch/pi-sandbox/sandbox-spawn").buildSandboxedSpawnArgs;
+
+type SandboxSpawnResolver =
+	| { state: "absent" }
+	| { state: "loaded"; buildSandboxedSpawnArgs: BuildSandboxedSpawnArgs }
+	| { state: "broken"; message: string };
+
+interface BackgroundTasksExtensionOptions {
+	sandboxResolver?: () => Promise<SandboxSpawnResolver>;
+}
+
+export default function backgroundTasksExtension(pi: PiApi, options?: BackgroundTasksExtensionOptions): void;
+```
+
+**Implementation notes**:
+- `peerDependenciesMeta.@nklisch/pi-sandbox.optional = true`.
+- Cache the dynamic import result in the extension closure.
+- Missing optional package means current behavior; broken import means fail closed with a tool error.
+- No separate background-tasks config file; the flag is in pi-sandbox config and interpreted by the helper.
+
+**Acceptance criteria**:
+- background-tasks works without pi-sandbox installed.
+- tests can inject loaded/absent/broken resolver states.
+- broken helper import does not run commands unsandboxed.
+
+### Unit 3: background tool bwrap spawn path
+
+**Story**: `story-background-tasks-sandbox-background-spawn`
+
+**Files**:
+- `plugins/background-tasks/extensions/background-tasks.ts`
+- `plugins/background-tasks/extensions/background-tasks.test.ts`
+
+```ts
+async function prepareSandboxedSpawn(input: {
+	command: string;
+	cwd: string;
+	envAdd?: NodeJS.ProcessEnv;
+}): Promise<SandboxedSpawnArgsResult | { state: "absent" } | { state: "broken"; message: string }>;
+
+function waitForChildSpawn(child: ChildProcess): Promise<void>;
+```
+
+Sandboxed branch:
+
+```ts
+const child = spawn(sandbox.executable, [...sandbox.args, command], {
+	cwd: sandbox.cwd,
+	env: sandbox.env,
+	detached: true,
+	stdio: ["ignore", "pipe", "pipe"],
+});
+await waitForChildSpawn(child);
+```
+
+**Implementation notes**:
+- Keep the current `/bin/sh` spawn exactly for absent/degraded states.
+- Return `isError:true` before job creation for fail-closed/broken states.
+- Attach stdout/stderr, wake-on-pattern, exit handling, job registry, and shutdown behavior after successful spawn.
+- Include a real bwrap cancellation test (skip when bwrap missing).
+
+**Acceptance criteria**:
+- active integration spawns `bwrap`, not `/bin/sh`.
+- denied paths are not readable from background jobs.
+- cancelling a sandboxed background job kills the wrapped command.
+- current behavior remains unchanged when helper is absent or degraded.
+
+### Unit 4: monitor bwrap poll path
+
+**Story**: `story-background-tasks-sandbox-monitor-spawn`
+
+**Files**:
+- `plugins/background-tasks/extensions/background-tasks.ts`
+- `plugins/background-tasks/extensions/background-tasks.test.ts`
+
+```ts
+interface ShellRunOptions {
+	command: string;
+	cwd: string;
+	timeoutMs: number;
+	signal?: AbortSignal;
+	sandbox?: SandboxedSpawnArgsResult | null;
+	piExec?: PiApi["exec"];
+}
+
+async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult>;
+```
+
+**Implementation notes**:
+- `pi.exec` has no env option in the local API slice, so the sandboxed monitor branch must use direct `spawn("bwrap", ...)` to enforce the minimal bwrap process env.
+- Prepare the sandbox result once when starting the monitor; use it on every tick.
+- Store `job.child`/`job.pid` only while a direct-spawn poll is in flight and clear them on close so cancel can kill the current bwrap poll.
+- Preserve recursive `setTimeout` after each poll and the `job.polling` non-overlap guard.
+
+**Acceptance criteria**:
+- active integration runs every poll under `bwrap ... -- bash -c <command>`.
+- absent/degraded states keep the current `pi.exec("/bin/sh", ["-c", command])` behavior.
+- fail-closed/broken states return an immediate error and schedule no monitor.
+- all satisfy modes work from direct-spawn stdout/stderr/code.
+- canceling an in-flight sandboxed poll terminates the bwrap process group.
+
+### Unit 5: bypass-tool policy matrix and docs
+
+**Story**: `story-background-tasks-sandbox-bypass-docs`
+
+**Files**:
+- `plugins/pi-sandbox/extensions/sandbox-config.ts`
+- `plugins/pi-sandbox/extensions/sandbox.ts`
+- `plugins/pi-sandbox/extensions/sandbox.test.ts`
+- `plugins/pi-sandbox/README.md`
+- `plugins/background-tasks/README.md`
+
+```ts
+export interface BypassToolIntegrationState {
+	backgroundTasksSandbox: "active" | "inactive" | "blocked";
+	reason?: string;
+}
+
+export function applyBypassToolDefaults(
+	tools: ToolRules | undefined,
+	state?: BypassToolIntegrationState,
+): ToolRules;
+```
+
+**Implementation notes**:
+- Default `background`/`monitor` to `allow` only for active Linux bwrap integration.
+- Default them to `confirm` for inactive/degraded/blocked/uncertain states; no-UI confirmation remains fail-closed.
+- `/sandbox` must report integration state and effective policy.
+- Create `plugins/background-tasks/README.md` if absent.
+
+**Acceptance criteria**:
+- tests cover active, off, non-Linux, missing bwrap, filter, invalid config, and project-loosening attempts.
+- docs show `backgroundTasks.sandboxIntegration` config, Linux-only real sandboxing, non-Linux degrade, and fail-closed defaults.
+
+## Implementation Order
+
+1. `story-background-tasks-sandbox-spawn-helper` — pi-sandbox helper, config flag, package exports.
+2. `story-background-tasks-sandbox-import-config` — optional peer dependency and guarded dynamic import in background-tasks.
+3. `story-background-tasks-sandbox-background-spawn` — route long-running background jobs through the helper.
+4. `story-background-tasks-sandbox-monitor-spawn` — route monitor polls through direct bwrap spawn. This is serialized after background spawn because both stories edit `background-tasks.ts`/tests and the monitor runner should reuse the spawn/error-handling primitives from Unit 3.
+5. `story-background-tasks-sandbox-bypass-docs` — relax/retain bypass tool policy by proven integration state and update docs.
+
+Cycle check: planned story IDs were checked with `.work/bin/work-view --blocking <story-id>` before writing dependencies; no blockers/cycles were reported.
+
+## Testing
+
+### Unit tests
+
+- `plugins/pi-sandbox/extensions/sandbox.test.ts`
+  - `buildSandboxedSpawnArgs` returns `ok`, `degraded`, and `fail-closed` states.
+  - env allowlist drops secrets and preserves allowed keys.
+  - `backgroundTasks.sandboxIntegration` validates and merges additively.
+  - package metadata exposes the new subpaths.
+  - bypass policy matrix defaults to allow only in active Linux integration state.
+- `plugins/background-tasks/extensions/background-tasks.test.ts`
+  - resolver absent -> current background/monitor behavior.
+  - resolver broken/fail-closed -> `isError:true`, no job, no spawn.
+  - resolver ok -> background and monitor call `spawn("bwrap", ...)` with appended command and minimal env.
+  - monitor direct-spawn path preserves all four satisfy modes and broken-poll diagnostics.
+
+### Integration tests
+
+Skip real bwrap tests when not Linux or `bwrap --version` fails.
+
+- sandboxed background job cannot read a configured `denyRead` file.
+- sandboxed monitor poll cannot read a configured `denyRead` file.
+- `network.mode:"block"` prevents a monitor/background command from reaching a localhost listener.
+- cancelling a sandboxed background `sleep` job terminates the wrapped command and reaches `cancelled` without a completion wake.
+- cancelling a monitor while a bwrap poll is in flight kills the current bwrap process group.
+
+### Regression tests
+
+- Existing background trusted wake messages still never include command output.
+- Existing monitor `/bin/sh -c` shell-syntax regression tests still pass in absent/degraded mode.
+- Existing pi-sandbox `user_bash`, file-policy, config, and bwrap tests stay green.
+
+## Risks
+
+- **Monitor `pi.exec` seam**: `pi.exec` does not expose `env`, so trying to run `bwrap` through it would leave the bwrap process with inherited env. Mitigation: direct-spawn monitor polls in the sandboxed branch and test stdout/stderr/code parity against current `pi.exec` behavior.
+- **bwrap kill lifecycle**: the job registry now tracks the bwrap pid, not the shell pid. Mitigation: keep `detached:true`, kill the negative process group, and add real bwrap cancellation tests for background and in-flight monitor polls.
+- **Policy relaxation race**: pi-sandbox's `tool_call` gate runs before background/monitor execute. Mitigation: relax to `allow` only when startup can prove the same Linux bwrap integration state the helper would return; otherwise keep `confirm`/fail-closed.
+- **Optional import ambiguity**: a missing optional peer is a supported degrade, but a broken installed helper must not fail open. Mitigation: distinguish missing package errors from other dynamic-import errors and treat broken imports as tool errors.
+- **Config opt-out weakening**: `sandboxIntegration:"off"` is an operator bypass and must not be available as a project-local weakening. Mitigation: additive merge ranks `off < auto`; project-local config cannot loosen active/default integration.
+- **Cross-plugin package exports**: exporting TS subpaths from a Pi package is new for `pi-sandbox`. Mitigation: package metadata tests plus background-tasks import tests pin the resolver path.
