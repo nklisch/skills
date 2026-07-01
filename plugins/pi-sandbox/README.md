@@ -19,3 +19,9 @@ Non-goals and known gaps:
 - `network.mode=filter` is recognized as a deferred strict mode and fails closed rather than silently degrading to open networking. Track the TCP proxy/filter work in `.work/backlog/idea-pi-sandbox-filter-tcp-proxy.md`.
 
 Use this plugin as defense-in-depth for shell commands and file access, not as a promise that arbitrary extensions, tools, agents, or provider calls are confined by an operating-system sandbox.
+
+## Known bypass mitigation: background / monitor
+
+`background` and `monitor` are known shell-bypass tools: today they can spawn commands outside the overridden built-in `bash` tool. The sandbox extension mitigates that gap by defaulting both tool-egress policies to `confirm` when the sandbox is enabled. In a non-interactive/no-UI session, confirmation fails closed and the call is blocked. Operators who want a stricter posture can set them to `block`; an intentional global opt-out can set a rule to `allow`, but project-local config can only tighten, not loosen, a global/default `confirm` or `block` rule.
+
+This is only a first-release mitigation, not real background-tasks sandbox integration. The remaining integration work is tracked in `.work/backlog/idea-background-tasks-sandbox-integration.md`.

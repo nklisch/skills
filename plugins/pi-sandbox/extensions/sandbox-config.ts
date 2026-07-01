@@ -80,6 +80,61 @@ export interface ToolRules {
 	inspector?: ToolInspector;
 }
 
+export const SHELL_BYPASS_TOOLS = ["background", "monitor"] as const;
+export const SHELL_BYPASS_DEFAULT_POLICY: ToolPolicy = "confirm";
+
+const TOOL_POLICY_RANK: Record<ToolPolicy, number> = { allow: 0, auto: 1, confirm: 2, block: 3 };
+
+function stricterToolPolicy(a: ToolPolicy, b: ToolPolicy): ToolPolicy {
+	return TOOL_POLICY_RANK[a] >= TOOL_POLICY_RANK[b] ? a : b;
+}
+
+/**
+ * Add first-release mitigation defaults for tools that can spawn shell commands
+ * outside the sandboxed built-in bash path. Explicit per-tool rules are
+ * preserved; missing rules default to at least `confirm` (or a stricter global
+ * default such as `block`). Project config can only tighten these rules via
+ * mergeProjectAdditive.
+ */
+export function applyBypassToolDefaults(tools: ToolRules | undefined): ToolRules {
+	const defaultPolicy = tools?.default ?? "allow";
+	const rules: Record<string, ToolPolicy> = { ...(tools?.rules ?? {}) };
+	for (const toolName of SHELL_BYPASS_TOOLS) {
+		if (rules[toolName] === undefined) {
+			rules[toolName] = stricterToolPolicy(defaultPolicy, SHELL_BYPASS_DEFAULT_POLICY);
+		}
+	}
+	return { ...tools, default: defaultPolicy, rules };
+}
+
+export interface ToolPolicyDecision {
+	action: "allow" | "block" | "confirm" | "auto";
+	policy: ToolPolicy;
+	reason?: string;
+}
+
+/** Pure tool-egress policy decision used by the runtime hook and tests. */
+export function decideToolPolicy(name: string, tools: ToolRules | undefined, hasUI: boolean): ToolPolicyDecision {
+	const effectiveTools = applyBypassToolDefaults(tools);
+	const policy = effectiveTools.rules?.[name] ?? effectiveTools.default ?? "allow";
+	if (policy === "allow") return { action: "allow", policy };
+	if (policy === "block") {
+		return {
+			action: "block",
+			policy,
+			reason: `Blocked by sandbox tool policy: "${name}" is configured as block. This tool is not permitted under the current sandbox egress policy.`,
+		};
+	}
+	if (policy === "confirm" && !hasUI) {
+		return {
+			action: "block",
+			policy,
+			reason: `Blocked by sandbox tool policy: "${name}" requires confirmation, but no dialog UI is available.`,
+		};
+	}
+	return { action: policy, policy };
+}
+
 export interface EnvScrubConfig {
 	/** Exact env-var names to delete from process.env at session_start. */
 	names?: string[];
@@ -173,7 +228,8 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 	// Merge defaults <- global <- project, but make project ADDITIVE-ONLY:
 	// it may tighten (more denyRead, fewer allowedDomains, narrower allowWrite)
 	// but never weaken global policy. Weakening attempts are ignored + warned.
-	const mergedGlobal = deepMerge(deepMerge(DEFAULT_CONFIG, globalConfig), {});
+	const mergedGlobalBase = deepMerge(deepMerge(DEFAULT_CONFIG, globalConfig), {});
+	const mergedGlobal = { ...mergedGlobalBase, tools: applyBypassToolDefaults(mergedGlobalBase.tools) };
 	const additiveWarnings: string[] = [];
 	const merged = mergeProjectAdditive(mergedGlobal, projectConfig, additiveWarnings);
 
@@ -339,7 +395,7 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 	// default back. A project cannot set default=allow if the global
 	// default is auto/confirm/block.
 	if (project.tools) {
-		const rank: Record<ToolPolicy, number> = { allow: 0, auto: 1, confirm: 2, block: 3 };
+		const rank = TOOL_POLICY_RANK;
 		const baseTools = result.tools ?? { default: "allow" as ToolPolicy, rules: {} };
 		const baseRules = baseTools.rules ?? {};
 		const mergedRules: Record<string, ToolPolicy> = { ...baseRules };
@@ -436,6 +492,8 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 				? "enabled"
 				: "disabled/not initialized";
 	const mode = config.network?.mode ?? "filter";
+	const effectiveToolRules = applyBypassToolDefaults(config.tools);
+	const bypassToolPolicy = SHELL_BYPASS_TOOLS.map((name) => `${name}=${effectiveToolRules.rules?.[name] ?? effectiveToolRules.default ?? "allow"}`).join(", ");
 	const legacy = legacyFieldWarnings.length > 0 ? legacyFieldWarnings : ["(none)"];
 	const warnings = [...globWarnings, ...additiveWarnings];
 
@@ -460,12 +518,13 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 		"Known bypass mitigation state:",
 		"  Hardened by this plugin: bash, read, write, edit.",
 		"  File-tool policy is in-process and remains active when bash is fail-closed.",
+		`  Bypass tools: ${bypassToolPolicy}`,
 		"  Not OS-sandboxed here: Pi extensions/packages, background, monitor, agent_send, web/search tools, subagents, and provider requests.",
 		"  open network mode leaves host networking intact for sandboxed bash.",
 		"",
 		"Tool egress policy:",
-		`  default: ${config.tools?.default ?? "allow"}`,
-		`  rules: ${Object.entries(config.tools?.rules ?? {}).map(([k, v]) => `${k}=${v}`).join(", ") || "(none)"}`,
+		`  default: ${effectiveToolRules.default ?? "allow"}`,
+		`  rules: ${Object.entries(effectiveToolRules.rules ?? {}).map(([k, v]) => `${k}=${v}`).join(", ") || "(none)"}`,
 		...(warnings.length > 0 ? ["", "Warnings:", ...warnings.map((warning) => `  ${warning}`)] : []),
 	].join("\n");
 }

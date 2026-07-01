@@ -12,7 +12,9 @@ import {
 import {
 	DEFAULT_CONFIG,
 	FILTER_DEFERRED_BACKLOG_ITEM,
+	applyBypassToolDefaults,
 	createSandboxCommandHandler,
+	decideToolPolicy,
 	deepMerge,
 	loadConfig,
 	mergeProjectAdditive,
@@ -206,6 +208,106 @@ describe("config boundary contract", () => {
 		expect(warnings.join("\n")).toContain("loosen tool policy");
 	});
 
+	test("bypass-tool defaults require confirmation for background and monitor", () => {
+		const rules = applyBypassToolDefaults({ default: "allow", rules: {} });
+
+		expect(rules.rules?.background).toBe("confirm");
+		expect(rules.rules?.monitor).toBe("confirm");
+	});
+
+	test("project config cannot lower global bypass-tool policy but can tighten it", () => {
+		const loosenWarnings: string[] = [];
+		const loosened = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: applyBypassToolDefaults({ default: "allow", rules: { background: "confirm", monitor: "block" } }),
+			},
+			{ tools: { rules: { background: "allow", monitor: "allow" } } },
+			loosenWarnings,
+		);
+
+		expect(loosened.tools?.rules?.background).toBe("confirm");
+		expect(loosened.tools?.rules?.monitor).toBe("block");
+		expect(loosenWarnings.join("\n")).toContain("background");
+		expect(loosenWarnings.join("\n")).toContain("monitor");
+
+		const tightenWarnings: string[] = [];
+		const tightened = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: applyBypassToolDefaults({ default: "allow", rules: { background: "confirm", monitor: "confirm" } }),
+			},
+			{ tools: { rules: { background: "block" } } },
+			tightenWarnings,
+		);
+
+		expect(tightened.tools?.rules?.background).toBe("block");
+		expect(tightened.tools?.rules?.monitor).toBe("confirm");
+		expect(tightenWarnings).toEqual([]);
+	});
+
+	test("confirm bypass-tool policy fails closed when no UI is available", () => {
+		const background = decideToolPolicy("background", { default: "allow", rules: { background: "confirm" } }, false);
+		const monitor = decideToolPolicy("monitor", { default: "allow", rules: { monitor: "confirm" } }, false);
+
+		expect(background.action).toBe("block");
+		expect(background.reason).toContain("requires confirmation");
+		expect(monitor.action).toBe("block");
+		expect(monitor.reason).toContain("requires confirmation");
+	});
+
+	test("loadConfig applies bypass-tool defaults to the effective tool policy", async () => {
+		const cwd = await makeTempDir();
+		const loaded = loadConfig(cwd, { agentDir: join(cwd, "missing-agent-dir") });
+
+		expect(loaded.config.tools?.rules?.background).toBe("confirm");
+		expect(loaded.config.tools?.rules?.monitor).toBe("confirm");
+	});
+
+	test("loadConfig preserves an intentional global bypass-tool opt-out", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			tools: { rules: { background: "allow", monitor: "block" } },
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.config.tools?.rules?.background).toBe("allow");
+		expect(loaded.config.tools?.rules?.monitor).toBe("block");
+	});
+
+	test("loadConfig blocks project attempts to lower default bypass-tool confirmation", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({
+			tools: { rules: { background: "allow", monitor: "allow" } },
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.config.tools?.rules?.background).toBe("confirm");
+		expect(loaded.config.tools?.rules?.monitor).toBe("confirm");
+		expect(loaded.additiveWarnings.join("\n")).toContain("background");
+		expect(loaded.additiveWarnings.join("\n")).toContain("monitor");
+	});
+
+	test("loadConfig lets projects tighten bypass tools to block", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({
+			tools: { rules: { background: "block" } },
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.config.tools?.rules?.background).toBe("block");
+		expect(loaded.config.tools?.rules?.monitor).toBe("confirm");
+	});
+
 	test("loadConfig reads global and project paths and merges them additively", async () => {
 		const cwd = await makeTempDir();
 		const agentDir = await makeTempDir();
@@ -341,9 +443,10 @@ describe("config boundary contract", () => {
 		expect(output).toContain("Mode: filter");
 		expect(output).toContain("ignoreViolations");
 		expect(output).toContain("Known bypass mitigation state");
+		expect(output).toContain("Bypass tools: background=confirm, monitor=confirm");
 		expect(output).toContain("Pi extensions/packages");
-		expect(output).toContain("background");
-		expect(output).toContain("monitor");
+		expect(output).toContain("background=confirm");
+		expect(output).toContain("monitor=confirm");
 		expect(output).toContain("agent_send");
 		expect(output).toContain("web/search tools");
 		expect(output).toContain("subagents");
