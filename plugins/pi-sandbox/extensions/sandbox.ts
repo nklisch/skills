@@ -27,6 +27,7 @@ import { access as fsAccess, readFile as fsReadFile, writeFile as fsWriteFile, m
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { SandboxManager, type NetworkConfig, type SandboxRuntimeConfig } from "@anthropic-ai/sandbox-runtime";
+import { shouldBypassSandbox, type NetworkMode } from "./sandbox-bwrap";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
 	type BashOperations,
@@ -67,7 +68,6 @@ import { Type } from "typebox";
  * The lever mirrors the tool-egress policy vocabulary (allow/auto/confirm/block):
  * a graduated, config-driven posture rather than a binary on/off.
  */
-export type NetworkMode = "open" | "filter" | "block";
 
 /** Extension config. `network.mode` is OUR layer; the rest of `network` is
  * passed through to ASRT when mode is filter/block. */
@@ -683,7 +683,7 @@ export default function (pi: ExtensionAPI) {
 		async execute(id, params, signal, onUpdate, _ctx) {
 			// If explicitly disabled via --no-sandbox or config, run unsandboxed.
 			// This is the ONLY path to unsandboxed bash, and it's operator-chosen.
-			if ((pi.getFlag("no-sandbox") as boolean) || disabledViaConfig) {
+			if (shouldBypassSandbox(pi.getFlag("no-sandbox") as boolean, disabledViaConfig)) {
 				return localBash.execute(id, params, signal, onUpdate);
 			}
 
