@@ -1,7 +1,7 @@
 ---
 id: idea-package-pi-sandbox-extension
 created: 2026-06-29
-updated: 2026-06-29
+updated: 2026-07-01
 tags: [security, packaging]
 ---
 
@@ -64,4 +64,4 @@ DO-NOT-SHIP) and required conditions should feed the scope/design of this packag
 
 ## Update 2026-07-01 — superseded by `feature-sandbox-first-party-bwrap`
 
-The adversarial review has landed (`~/SNC/.memory/sandbox-adversarial-review.md`). ASRT produced three independent breakages (per-command host stub leak, bricking collision, UDS seccomp block), each rooted in Claude-Code assumptions that don't fit a pi project on this dev container. **ASRT is dropped entirely** — not kept as `optionalDependencies` as this item originally assumed. The re-arch vendors a first-party bwrap arg builder (~150 lines) into `plugins/pi-sandbox/` as `@nklisch/pi-sandbox`, Pi-only. See `~/projects/skills/.work/active/features/feature-sandbox-first-party-bwrap.md` (design-of-record) and its 5 child stories. This item is superseded; the vendoring lands as story `story-pi-sandbox-vendor-and-repoint`.
+The adversarial review has landed (`~/SNC/.memory/sandbox-adversarial-review.md`). ASRT produced three independent breakages (per-command host stub leak, bricking collision, UDS seccomp block), each rooted in Claude-Code assumptions that don't fit a pi project on this dev container. **ASRT is dropped entirely** — not kept as `optionalDependencies` as this item originally assumed. The re-arch vendors a first-party bwrap arg builder into `plugins/pi-sandbox/` as `@nklisch/pi-sandbox`, Pi-only. The first release is re-scoped to Linux `open`/`block` only; `filter` mode moved to `.work/backlog/idea-pi-sandbox-filter-tcp-proxy.md`. See `~/projects/skills/.work/active/features/feature-sandbox-first-party-bwrap.md` (design-of-record) and its active child stories. This item is superseded; the vendoring lands as story `story-pi-sandbox-vendor-and-repoint`.
