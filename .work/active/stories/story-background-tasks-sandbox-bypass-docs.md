@@ -1,7 +1,7 @@
 ---
 id: story-background-tasks-sandbox-bypass-docs
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin, documentation]
 parent: feature-background-tasks-sandbox-integration
 depends_on: [story-background-tasks-sandbox-background-spawn, story-background-tasks-sandbox-monitor-spawn]
@@ -78,9 +78,34 @@ export function applyBypassToolDefaults(
 
 ## Acceptance criteria
 
-- [ ] `/sandbox` reports the background-tasks sandbox integration state and the effective background/monitor policy.
-- [ ] On Linux active integration, default background/monitor policy is `allow` unless global/project config tightens it.
-- [ ] Integration off, non-Linux degrade, missing bwrap, filter mode, and invalid config keep `confirm`/fail-closed behavior by default.
-- [ ] Additive merge prevents project-local config from loosening default/global active policy.
-- [ ] pi-sandbox README and background-tasks README document the integration, flag, Linux-only real sandboxing, fail-closed behavior, and policy matrix.
-- [ ] Tests cover every row of the policy matrix.
+- [x] `/sandbox` reports the background-tasks sandbox integration state and the effective background/monitor policy.
+- [x] On Linux active integration, default background/monitor policy is `allow` unless global/project config tightens it.
+- [x] Integration off, non-Linux degrade, missing bwrap, filter mode, and invalid config keep `confirm`/fail-closed behavior by default.
+- [x] Additive merge prevents project-local config from loosening default/global active policy.
+- [x] pi-sandbox README and background-tasks README document the integration, flag, Linux-only real sandboxing, fail-closed behavior, and policy matrix.
+- [x] Tests cover every row of the policy matrix.
+
+## Implementation notes
+
+- Files changed:
+  - `plugins/pi-sandbox/extensions/sandbox-config.ts`
+  - `plugins/pi-sandbox/extensions/sandbox.ts`
+  - `plugins/pi-sandbox/extensions/sandbox.test.ts`
+  - `plugins/pi-sandbox/README.md`
+  - `plugins/background-tasks/README.md`
+- Tests added/updated:
+  - State-aware bypass-tool defaults: active integration defaults `background`/`monitor` to `allow`; inactive/blocked states floor them to `confirm`.
+  - Pure background-tasks integration-state matrix: active Linux+bwrap+auto, `off`, non-Linux degrade, missing bwrap, `filter`, and invalid config.
+  - Additive project merge behavior: project-local `allow` attempts for bypass tools are ignored/warned; `confirm`/`block` tightening is preserved.
+  - `/sandbox` diagnostics: reports `Background tasks sandbox: ...` plus effective bypass policy for blocked, non-Linux inactive, and active states.
+- Policy mechanism/rationale:
+  - Chose the feature-design path: pi-sandbox computes a local `BypassToolIntegrationState` from the same config/platform/bwrap preconditions as `buildSandboxedSpawnArgs()` instead of trusting a separate cross-extension mutable signal.
+  - The tool-egress gate passes that state to `decideToolPolicy()`. `applyBypassToolDefaults()` now defaults `background`/`monitor` to normal policy (`allow` under default config) only when the state is `active`; otherwise it floors them at `confirm` or stricter.
+  - This proves the Linux+bwrap+`sandboxIntegration:"auto"` preconditions that the background-tasks helper uses. If any precondition is missing, unknown, degraded, or fail-closed, the policy stays confirm/fail-closed.
+- Documentation changes:
+  - `plugins/pi-sandbox/README.md` now describes real Linux background/monitor sandbox integration, the `backgroundTasks.sandboxIntegration` flag, the policy matrix, non-Linux/fail-closed fallback, and `/sandbox` diagnostics.
+  - Created `plugins/background-tasks/README.md` documenting the optional `@nklisch/pi-sandbox` peer, `sandboxIntegration:"auto"|"off"`, Linux-only real sandboxing, fail-closed/helper-broken behavior, graceful non-Linux degrade, and the resolved backlog item.
+- Verification:
+  - `bun test plugins/pi-sandbox/extensions/sandbox.test.ts plugins/background-tasks/extensions/background-tasks.test.ts plugins/background-tasks/extensions/sandbox-bridge.test.ts plugins/pi-sandbox/extensions/sandbox-spawn.test.ts` — 143 pass, 0 fail.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.

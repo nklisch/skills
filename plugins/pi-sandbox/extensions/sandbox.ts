@@ -17,9 +17,10 @@
  * and `edit` tools. Current pi-core RPC/API `bash` calls `executeBash()`
  * directly instead of routing through this tool or the `user_bash` event, so
  * RPC/API bash is a documented residual bypass. Other pi tools (subagent,
- * agent_send, umans_web_search) are not OS-sandboxed here. Known shell-bypass
- * tools (background/monitor) are mitigated by the in-process tool egress
- * policy until first-party bwrap integration lands.
+ * agent_send, umans_web_search) are not OS-sandboxed here. The background and
+ * monitor tools get state-aware treatment: the egress policy relaxes only when
+ * the Linux background-tasks bwrap integration is provably active, and stays
+ * confirm/fail-closed otherwise.
  *
  * Config files (merged, project takes precedence but is ADDITIVE-ONLY):
  * - ~/.pi/agent/extensions/sandbox.json (global)
@@ -49,11 +50,13 @@ import {
 	SANDBOX_UNINITIALIZED_MESSAGE,
 	createSandboxCommandHandler,
 	createUserBashBlockResult,
+	decideBackgroundTasksIntegrationState,
 	decideToolPolicy,
 	decideUserBash,
 	inspectToolInput,
 	loadConfig,
 	scrubEnv,
+	type BypassToolIntegrationState,
 } from "./sandbox-config";
 import {
 	createFailClosedPolicy,
@@ -208,6 +211,10 @@ export default function (pi: ExtensionAPI) {
 	let osSandboxUnavailablePlatform: string | null = null;
 	let lastFailClosedReason: string | null = null;
 	let sandboxPolicy: SandboxPolicy | null = null;
+	let backgroundTasksIntegrationState: BypassToolIntegrationState = {
+		backgroundTasksSandbox: "inactive",
+		reason: "sandbox not initialized",
+	};
 
 	// --- bash tool: fail-closed when sandbox didn't init ---
 	pi.registerTool({
@@ -358,7 +365,7 @@ export default function (pi: ExtensionAPI) {
 		const policy = activePolicy ?? activePolicyFor((ctx as { cwd?: string }).cwd ?? localCwd);
 		const rules = policy.toolRules;
 		const name = event.toolName;
-		const decision = decideToolPolicy(name, rules, Boolean(ctx.ui && ctx.hasUI));
+		const decision = decideToolPolicy(name, rules, Boolean(ctx.ui && ctx.hasUI), backgroundTasksIntegrationState);
 		if (decision.action === "allow") return;
 		if (decision.action === "block") {
 			return { block: true, reason: decision.reason };
@@ -407,6 +414,10 @@ export default function (pi: ExtensionAPI) {
 		sandboxInitialized = false;
 		sandboxPolicy = null;
 		activePolicy = null;
+		backgroundTasksIntegrationState = {
+			backgroundTasksSandbox: "inactive",
+			reason: "sandbox not initialized",
+		};
 
 		const noSandbox = pi.getFlag("no-sandbox") as boolean;
 
@@ -414,11 +425,15 @@ export default function (pi: ExtensionAPI) {
 			sandboxEnabled = false;
 			sandboxPolicy = createPermissivePolicy(ctx.cwd);
 			activePolicy = sandboxPolicy;
+			backgroundTasksIntegrationState = {
+				backgroundTasksSandbox: "inactive",
+				reason: "sandbox disabled via --no-sandbox",
+			};
 			ctx.ui.notify("Sandbox disabled via --no-sandbox", "warning");
 			return;
 		}
 
-		const { config, parseErrors, globWarnings, legacyFieldWarnings, additiveWarnings } = loadPiConfig(ctx.cwd);
+		const { config, parseErrors, globWarnings, legacyFieldWarnings, additiveWarnings, failClosedReasons } = loadPiConfig(ctx.cwd);
 
 		// Fail-closed on config parse/validation errors. Install the restrictive
 		// in-process policy before returning so read/write/edit and tool_call do
@@ -428,6 +443,7 @@ export default function (pi: ExtensionAPI) {
 			lastFailClosedReason = `config parse error(s): ${parseErrors.join("; ")}`;
 			sandboxPolicy = createFailClosedPolicy(ctx.cwd);
 			activePolicy = sandboxPolicy;
+			backgroundTasksIntegrationState = decideBackgroundTasksIntegrationState({ config, parseErrors });
 			const msg = `Sandbox config parse error(s):\n${parseErrors.join("\n")}\nBash + file tools are fail-closed until fixed.`;
 			ctx.ui.notify(msg, "error");
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (config parse error)"));
@@ -443,6 +459,7 @@ export default function (pi: ExtensionAPI) {
 			disabledViaConfig = true;
 			sandboxPolicy = createPermissivePolicy(ctx.cwd);
 			activePolicy = sandboxPolicy;
+			backgroundTasksIntegrationState = decideBackgroundTasksIntegrationState({ config });
 			ctx.ui.notify("Sandbox disabled via config", "info");
 			return;
 		}
@@ -478,6 +495,11 @@ export default function (pi: ExtensionAPI) {
 		activePolicy = sandboxPolicy;
 
 		const platformState = decidePlatformState({ networkMode: netMode, env: process.env });
+		backgroundTasksIntegrationState = decideBackgroundTasksIntegrationState({
+			config,
+			failClosedReasons,
+			env: process.env,
+		});
 		if (platformState.state === "degrade") {
 			osSandboxUnavailable = true;
 			osSandboxUnavailablePlatform = platformState.platform;
@@ -485,6 +507,13 @@ export default function (pi: ExtensionAPI) {
 			sandboxInitialized = false;
 			failClosed = false;
 			lastFailClosedReason = null;
+			backgroundTasksIntegrationState = decideBackgroundTasksIntegrationState({
+				config,
+				failClosedReasons,
+				env: process.env,
+				platform: platformState.platform,
+				bwrapAvailable: false,
+			});
 			ctx.ui.notify(platformState.message, "info");
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", platformState.status));
 			return;
@@ -492,6 +521,11 @@ export default function (pi: ExtensionAPI) {
 		if (platformState.state === "fail-closed") {
 			failClosed = true;
 			lastFailClosedReason = platformState.message;
+			backgroundTasksIntegrationState = decideBackgroundTasksIntegrationState({
+				config,
+				failClosedReasons,
+				env: process.env,
+			});
 			ctx.ui.notify(platformState.message, "error");
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", platformState.status));
 			return;
@@ -501,6 +535,11 @@ export default function (pi: ExtensionAPI) {
 		sandboxInitialized = true;
 		failClosed = false;
 		lastFailClosedReason = null;
+		backgroundTasksIntegrationState = decideBackgroundTasksIntegrationState({
+			config,
+			failClosedReasons,
+			env: process.env,
+		});
 
 		const networkCount = config.network?.allowedDomains?.length ?? 0;
 		const writeCount = config.filesystem?.allowWrite?.length ?? 0;
@@ -531,6 +570,10 @@ export default function (pi: ExtensionAPI) {
 		lastFailClosedReason = null;
 		sandboxPolicy = null;
 		activePolicy = null;
+		backgroundTasksIntegrationState = {
+			backgroundTasksSandbox: "inactive",
+			reason: "session shutdown",
+		};
 	});
 
 	pi.registerCommand("sandbox", {
@@ -545,6 +588,7 @@ export default function (pi: ExtensionAPI) {
 				osSandboxUnavailable,
 				osSandboxUnavailablePlatform,
 				lastFailClosedReason,
+				backgroundTasksIntegration: backgroundTasksIntegrationState,
 			}),
 		}),
 	});

@@ -76,6 +76,9 @@ Minimal hardened example:
 ```json
 {
   "enabled": true,
+  "backgroundTasks": {
+    "sandboxIntegration": "auto"
+  },
   "filesystem": {
     "denyRead": ["~/.ssh", "~/.aws", "~/.gnupg", ".env"],
     "allowWrite": [".", "/tmp"],
@@ -87,8 +90,7 @@ Minimal hardened example:
   "tools": {
     "default": "allow",
     "rules": {
-      "background": "confirm",
-      "monitor": "confirm"
+      "agent_send": "confirm"
     }
   }
 }
@@ -100,6 +102,7 @@ Notes:
 - Existing paths are canonicalized before comparison and before `bwrap` mounts.
 - Non-existent deny paths are skipped by the `bwrap` layer so the sandbox never creates host stubs.
 - Linux `bwrap` cannot enforce glob-shaped `denyWrite` entries; the extension warns when it sees them.
+- `backgroundTasks.sandboxIntegration` defaults to `"auto"`. Set it to `"off"` only as an explicit operator bypass for background/monitor sandboxing; project-local config cannot loosen a global/default `"auto"` posture to `"off"`.
 - ASRT-only config fields such as `ignoreViolations`, `enableWeakerNestedSandbox`, `httpProxyPort`, `socksProxyPort`, and `filesystem.allowGitConfig` are ignored with warnings.
 
 ## Network modes
@@ -120,6 +123,7 @@ What it hardens:
 - The `read`, `write`, and `edit` tools enforce the configured file policy in-process, so file-tool protections remain active even when bash is fail-closed or the OS bash sandbox is unavailable.
 - `network.mode=block` air-gaps sandboxed bash with a network namespace. `network.mode=open` leaves host networking intact for sandboxed bash while still applying file and env policy.
 - Sandboxed bash receives a minimal child environment (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`) instead of provider tokens.
+- When `@nklisch/pi-background-tasks` is also installed on Linux with `backgroundTasks.sandboxIntegration:"auto"`, its `background` and `monitor` tools use the pi-sandbox bwrap helper too. In that active state, pi-sandbox's tool-egress default for those two tools relaxes to `allow` because their shell commands are now actually sandboxed.
 
 Intentional disable paths:
 
@@ -130,18 +134,37 @@ Non-goals and known gaps:
 
 - Pi extensions and installed Pi packages are trusted code. They run with the user's normal permissions and are not sandboxed by this plugin.
 - RPC/API mode's direct `bash` command is a known residual bypass in current pi core. It calls `AgentSession.executeBash()` directly with pi's local bash operations, bypassing both the registered `bash` tool and the `user_bash` extension event. This extension cannot sandbox or fail-close that path until pi core exposes an interception hook; operators who require bash sandboxing should avoid or restrict RPC/API bash access.
-- `background` and `monitor` currently spawn outside the overridden tool-registry `bash` path until the background-tasks integration lands. Track that gap in `.work/backlog/idea-background-tasks-sandbox-integration.md`.
+- `background` and `monitor` have real Linux bwrap integration when `@nklisch/pi-background-tasks` is installed and `backgroundTasks.sandboxIntegration:"auto"` is active. They are still not OS-sandboxed on non-Linux hosts, when the integration is off, or when pi-sandbox is fail-closed; the tool-egress policy stays at `confirm`/fail-closed in those states.
 - `agent_send`, web/search tools, subagents, and provider/model requests are not OS-sandboxed command surfaces. They may perform network or provider egress according to their own implementations and any in-process tool policy configured by Pi.
 - `network.mode=open` is not an egress boundary. It intentionally gives sandboxed bash the host's normal network access.
 - `network.mode=filter` is recognized as a deferred strict mode and fails closed rather than silently degrading to open networking.
 
 Use this plugin as defense-in-depth for mediated shell commands and file access. On non-Linux hosts, treat it as in-process policy defense only: arbitrary shell commands are not confined by an operating-system sandbox, though file tools and tool-egress gates still run.
 
-## Known bypass mitigation: background / monitor
+## Background / monitor integration and bypass policy
 
-`background` and `monitor` are known shell-bypass tools: today they can spawn commands outside the overridden tool-registry `bash` path. The sandbox extension mitigates that gap by defaulting both tool-egress policies to `confirm` when the sandbox is enabled. In a non-interactive/no-UI session, confirmation fails closed and the call is blocked. Operators who want a stricter posture can set them to `block`; an intentional global opt-out can set a rule to `allow`, but project-local config can only tighten, not loosen, a global/default `confirm` or `block` rule.
+`background` and `monitor` used to be residual shell-bypass tools because they spawned commands outside the overridden tool-registry `bash` path. That is now real sandbox integration on Linux: when `@nklisch/pi-background-tasks` is installed, `@nklisch/pi-sandbox` is available, `backgroundTasks.sandboxIntegration` is `"auto"`, `bwrap` is available, config is valid, and `network.mode` is `"open"` or `"block"`, background and monitor commands run through the same pi-sandbox bwrap helper and minimal environment as mediated `bash`.
 
-This is only a first-release mitigation, not real background-tasks sandbox integration. The remaining integration work is tracked in `.work/backlog/idea-background-tasks-sandbox-integration.md`.
+The tool-egress default is state-aware and fail-closed when the integration is not provably active:
+
+| State | Default `background`/`monitor` policy | Rationale |
+|---|---|---|
+| Linux + pi-sandbox enabled + `backgroundTasks.sandboxIntegration:"auto"` + `bwrap` available + `network.mode:"open"`/`"block"` + valid config | `allow` | Real bwrap integration is active; the tool call no longer bypasses sandboxed shell policy. |
+| `@nklisch/pi-background-tasks` absent | no tool call exists | pi-sandbox has no background/monitor tools to gate. |
+| pi-sandbox absent | no pi-sandbox policy | background-tasks degrades to its normal unsandboxed behavior because no sandbox policy exists. |
+| `backgroundTasks.sandboxIntegration:"off"` | `confirm` unless a stricter `block` policy is configured | Explicit operator opt-out restores bypass risk. In no-UI sessions, `confirm` blocks. |
+| non-Linux graceful degrade | `confirm` unless stricter | Shell commands are not OS-sandboxed on macOS/Windows. |
+| Linux missing `bwrap`, `network.mode:"filter"`, invalid config, or sandbox fail-closed/uninitialized | `confirm` or stricter fail-closed block | The sandbox cannot prove real background/monitor confinement; do not silently allow. |
+| project-local attempt to loosen `confirm`/`block` to `allow` | ignored with a warning | Project config is additive-only and cannot weaken operator/default security. |
+
+`/sandbox` reports both lines operators should check:
+
+```text
+Background tasks sandbox: active (Linux bwrap integration ready)
+Bypass tools: background=allow, monitor=allow
+```
+
+or, for example, `inactive (...)` / `blocked (...)` with `background=confirm, monitor=confirm` when the integration is not active. Operators can always tighten the policy to `block`. The backlog item `.work/backlog/idea-background-tasks-sandbox-integration.md` is resolved by this integration; keep it only as historical substrate context until the release collapses items.
 
 ## Migration
 
