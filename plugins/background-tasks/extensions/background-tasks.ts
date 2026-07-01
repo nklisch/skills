@@ -45,7 +45,13 @@
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
-import { createCachedSandboxResolver, type SandboxedSpawnArgsResult, type SandboxSpawnResolver } from "./sandbox-bridge";
+import {
+  createCachedSandboxResolver,
+  publishBrokenSandboxIntegrationHandshake,
+  publishSandboxIntegrationHandshake,
+  type SandboxedSpawnArgsResult,
+  type SandboxSpawnResolver,
+} from "./sandbox-bridge";
 
 // --- Keybinding matcher (sync, optional) ---------------------------------
 //
@@ -554,7 +560,17 @@ function waitForChildSpawn(child: ChildProcess): Promise<void> {
 // --- Extension ------------------------------------------------------------
 
 export default function backgroundTasksExtension(pi: PiApi, options: BackgroundTasksExtensionOptions = {}): void {
-  const resolveSandboxSpawn = createCachedSandboxResolver(options.sandboxResolver);
+  const resolveSandboxSpawnRaw = createCachedSandboxResolver(options.sandboxResolver);
+  const resolveSandboxSpawn = async (): Promise<SandboxSpawnResolver> => {
+    try {
+      const resolved = await resolveSandboxSpawnRaw();
+      publishSandboxIntegrationHandshake(resolved);
+      return resolved;
+    } catch (err) {
+      publishBrokenSandboxIntegrationHandshake(err instanceof Error ? err.message : String(err));
+      throw err;
+    }
+  };
   const jobs = new Map<number, Job>();
   let nextId = 1;
   let shuttingDown = false;
@@ -1259,6 +1275,12 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       if (ctx.mode === "tui" && ctx.ui?.custom) openJobPanel(ctx.ui);
       else ctx.ui?.notify?.("Interactive panel is TUI-only; use the jobs tool instead.", "warning");
     },
+  });
+
+  pi.on?.("session_start", () => {
+    void resolveSandboxSpawn().catch((err) => {
+      console.error(`[background-tasks] sandbox bridge probe failed: ${(err as Error).message}`);
+    });
   });
 
   // --- Session-start system-prompt nudge ---------------------------------

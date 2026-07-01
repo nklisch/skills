@@ -102,6 +102,17 @@ async function resolveSandboxSpawnBuilder(): Promise<SandboxSpawnResolver> {
 - `bun test plugins/background-tasks/extensions/background-tasks.test.ts` — 35 pass / 0 fail.
 - `bun test plugins/pi-sandbox/extensions/sandbox-spawn.test.ts` — 11 pass / 0 fail (confirms `backgroundTasks.sandboxIntegration` is honored by the helper).
 
+## Review-driven correction (deep review 2026-07-01)
+
+Bridge publish added: `sandbox-bridge.ts` documents and publishes the
+same-process handshake at
+`globalThis[Symbol.for("@nklisch/pi-sandbox.background-tasks-integration")]`
+whenever the optional pi-sandbox helper probe resolves. Loaded publishes
+`{ integrated: true, bridgeState: "loaded" }`; absent/broken publish explicit
+`integrated:false` reasons. The extension also probes at `session_start` so
+pi-sandbox can prove the current background-tasks runtime is integrated before
+relaxing bypass-tool policy.
+
 ## Review (2026-07-01)
 
 **Verdict**: Approve - story verified by implement; fast-lane advance

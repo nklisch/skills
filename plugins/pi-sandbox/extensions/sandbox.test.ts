@@ -499,26 +499,39 @@ describe("config boundary contract", () => {
 		expect(applyBypassToolDefaults({ default: "allow", rules: { background: "block" } }, active).rules?.background).toBe("block");
 	});
 
-	test("background-tasks integration state covers the policy matrix inputs", () => {
+	test("background-tasks integration state requires platform readiness and loaded bridge handshake", () => {
 		const baseConfig: SandboxConfig = { ...DEFAULT_CONFIG, enabled: true, network: { mode: "open" }, backgroundTasks: { sandboxIntegration: "auto" } };
+		const loadedHandshake = { integrated: true, bridgeState: "loaded" };
 
-		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: true })).toMatchObject({
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: true, backgroundTasksHandshake: loadedHandshake })).toMatchObject({
 			backgroundTasksSandbox: "active",
 		});
-		expect(decideBackgroundTasksIntegrationState({ config: { ...baseConfig, backgroundTasks: { sandboxIntegration: "off" } }, platform: "linux", bwrapAvailable: true })).toMatchObject({
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: true })).toMatchObject({
+			backgroundTasksSandbox: "inactive",
+			reason: "background-tasks sandbox integration handshake missing",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: true, backgroundTasksHandshake: { integrated: false, reason: "absent" } })).toMatchObject({
+			backgroundTasksSandbox: "inactive",
+			reason: "background-tasks sandbox bridge absent",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: true, backgroundTasksHandshake: { integrated: false, reason: "broken" } })).toMatchObject({
+			backgroundTasksSandbox: "inactive",
+			reason: "background-tasks sandbox bridge broken",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "darwin", bwrapAvailable: false, backgroundTasksHandshake: loadedHandshake })).toMatchObject({
+			backgroundTasksSandbox: "inactive",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: { ...baseConfig, backgroundTasks: { sandboxIntegration: "off" } }, platform: "linux", bwrapAvailable: true, backgroundTasksHandshake: loadedHandshake })).toMatchObject({
 			backgroundTasksSandbox: "inactive",
 			reason: "backgroundTasks.sandboxIntegration is off",
 		});
-		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "darwin", bwrapAvailable: false })).toMatchObject({
-			backgroundTasksSandbox: "inactive",
-		});
-		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: false })).toMatchObject({
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: false, backgroundTasksHandshake: loadedHandshake })).toMatchObject({
 			backgroundTasksSandbox: "blocked",
 		});
-		expect(decideBackgroundTasksIntegrationState({ config: { ...baseConfig, network: { mode: "filter" } }, platform: "linux", bwrapAvailable: true })).toMatchObject({
+		expect(decideBackgroundTasksIntegrationState({ config: { ...baseConfig, network: { mode: "filter" } }, platform: "linux", bwrapAvailable: true, backgroundTasksHandshake: loadedHandshake })).toMatchObject({
 			backgroundTasksSandbox: "blocked",
 		});
-		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, parseErrors: ["project: invalid JSON"] })).toMatchObject({
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, parseErrors: ["project: invalid JSON"], backgroundTasksHandshake: loadedHandshake })).toMatchObject({
 			backgroundTasksSandbox: "blocked",
 			reason: "config parse error(s): project: invalid JSON",
 		});

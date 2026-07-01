@@ -1,5 +1,15 @@
-import { describe, expect, test } from "bun:test";
-import { createCachedSandboxResolver, createSandboxBridge, isMissingOptionalSandboxPackage, type BuildSandboxedSpawnArgs } from "./sandbox-bridge";
+import { afterEach, describe, expect, test } from "bun:test";
+import {
+  BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL,
+  createCachedSandboxResolver,
+  createSandboxBridge,
+  isMissingOptionalSandboxPackage,
+  type BuildSandboxedSpawnArgs,
+} from "./sandbox-bridge";
+
+afterEach(() => {
+  delete (globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL];
+});
 
 describe("sandbox bridge", () => {
   test("classifies a missing optional pi-sandbox peer as absent", async () => {
@@ -49,6 +59,46 @@ describe("sandbox bridge", () => {
     const helper = await bridge.getSandboxSpawnHelper();
     expect(helper.available).toBe(true);
     if (helper.available) expect(helper.buildSandboxedSpawnArgs).toBe(fakeBuilder);
+  });
+
+  test("publishes the loaded sandbox bridge handshake to the global symbol", async () => {
+    const fakeBuilder = (() => ({ state: "ok", integration: "active" })) as unknown as BuildSandboxedSpawnArgs;
+    const bridge = createSandboxBridge(async () => ({ buildSandboxedSpawnArgs: fakeBuilder }));
+
+    await bridge.resolveSandboxSpawnBuilder();
+
+    expect((globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL]).toEqual({
+      integrated: true,
+      bridgeState: "loaded",
+    });
+  });
+
+  test("publishes absent and broken sandbox bridge handshakes", async () => {
+    const missing = Object.assign(new Error("Cannot find package '@nklisch/pi-sandbox' from '/tmp/test.ts'"), {
+      code: "ERR_MODULE_NOT_FOUND",
+    });
+    const absentBridge = createSandboxBridge(async () => {
+      throw missing;
+    });
+
+    await absentBridge.resolveSandboxSpawnBuilder();
+    expect((globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL]).toEqual({
+      integrated: false,
+      reason: "absent",
+      bridgeState: "absent",
+    });
+
+    const brokenBridge = createSandboxBridge(async () => {
+      throw new Error("sandbox-spawn helper exploded during evaluation");
+    });
+
+    await brokenBridge.resolveSandboxSpawnBuilder();
+    expect((globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL]).toMatchObject({
+      integrated: false,
+      reason: "broken",
+      bridgeState: "broken",
+      message: "sandbox-spawn helper exploded during evaluation",
+    });
   });
 
   test("treats a module without buildSandboxedSpawnArgs as broken", async () => {

@@ -13,6 +13,20 @@ export type SandboxSpawnHelper =
   | { available: true; buildSandboxedSpawnArgs: BuildSandboxedSpawnArgs }
   | { available: false; reason: "absent" | "broken"; message: string };
 
+/**
+ * Same-process capability handshake consumed by @nklisch/pi-sandbox.
+ *
+ * Contract key: Symbol.for("@nklisch/pi-sandbox.background-tasks-integration").
+ * The global symbol registry is required so the independently loaded packages
+ * resolve the same property key across module boundaries.
+ */
+export const BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL_DESCRIPTION = "@nklisch/pi-sandbox.background-tasks-integration";
+export const BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL = Symbol.for(BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL_DESCRIPTION);
+
+export type BackgroundTasksSandboxIntegrationHandshake =
+  | { integrated: true; bridgeState: "loaded" }
+  | { integrated: false; reason: "absent" | "broken"; bridgeState: "absent" | "broken"; message?: string };
+
 type SandboxSpawnImport = Pick<SandboxSpawnModule, "buildSandboxedSpawnArgs">;
 export type SandboxSpawnImportFn = () => Promise<Partial<SandboxSpawnImport>>;
 
@@ -58,6 +72,29 @@ async function probeSandboxSpawnBuilder(importFn: SandboxSpawnImportFn): Promise
   }
 }
 
+export function handshakeFromSandboxResolver(resolved: SandboxSpawnResolver): BackgroundTasksSandboxIntegrationHandshake {
+  switch (resolved.state) {
+    case "loaded":
+      return { integrated: true, bridgeState: "loaded" };
+    case "absent":
+      return { integrated: false, reason: "absent", bridgeState: "absent" };
+    case "broken":
+      return { integrated: false, reason: "broken", bridgeState: "broken", message: resolved.message };
+  }
+}
+
+export function publishSandboxIntegrationHandshake(resolved: SandboxSpawnResolver): BackgroundTasksSandboxIntegrationHandshake {
+  const handshake = handshakeFromSandboxResolver(resolved);
+  (globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL] = handshake;
+  return handshake;
+}
+
+export function publishBrokenSandboxIntegrationHandshake(message: string): BackgroundTasksSandboxIntegrationHandshake {
+  const handshake: BackgroundTasksSandboxIntegrationHandshake = { integrated: false, reason: "broken", bridgeState: "broken", message };
+  (globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL] = handshake;
+  return handshake;
+}
+
 export function createSandboxBridge(importFn: SandboxSpawnImportFn = defaultImportSandboxSpawn): {
   resolveSandboxSpawnBuilder: () => Promise<SandboxSpawnResolver>;
   getSandboxSpawnHelper: () => Promise<SandboxSpawnHelper>;
@@ -65,7 +102,13 @@ export function createSandboxBridge(importFn: SandboxSpawnImportFn = defaultImpo
   let cached: Promise<SandboxSpawnResolver> | undefined;
 
   const resolveSandboxSpawnBuilder = (): Promise<SandboxSpawnResolver> => {
-    cached ??= probeSandboxSpawnBuilder(importFn);
+    cached ??= probeSandboxSpawnBuilder(importFn).then((resolved) => {
+      publishSandboxIntegrationHandshake(resolved);
+      return resolved;
+    }, (err) => {
+      publishBrokenSandboxIntegrationHandshake(errorMessage(err));
+      throw err;
+    });
     return cached;
   };
 

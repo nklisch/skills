@@ -467,3 +467,34 @@ Verification: 143/143 tests across pi-sandbox + background-tasks suites (pure
 unit + real bwrap integration: kill-lifecycle, denyRead, block-network,
 secret-env omission, per-poll timeout). `grep -r sandbox-runtime` empty.
 Cross-cutting deviations: none. Ready for review.
+
+## Review fix (deep review 2026-07-01)
+
+Blocking finding fixed: pi-sandbox previously relaxed `background`/`monitor` to
+`allow` from its own Linux+bwrap/config readiness alone, without proof that the
+loaded background-tasks package had resolved and was using the sandbox bridge.
+That left an older/non-integrated background-tasks package, or a current package
+whose optional peer resolved `absent`/`broken`, able to run unsandboxed while the
+pi-sandbox tool gate allowed the call.
+
+Fix: background-tasks now publishes a versioned same-process capability
+handshake on `globalThis[Symbol.for("@nklisch/pi-sandbox.background-tasks-integration")]`
+after resolving the sandbox bridge probe. Shape is `{ integrated: true,
+bridgeState: "loaded" }` for a loaded helper and `{ integrated: false,
+reason: "absent"|"broken", bridgeState: ... }` otherwise. pi-sandbox reads the
+same `Symbol.for` key and marks integration `active` only when its own
+preconditions (valid config, Linux, bwrap, open/block network, auto integration)
+AND the loaded handshake are both present. Missing, absent, broken, or malformed
+handshakes stay `inactive`, so bypass tools remain `confirm`/fail-closed.
+
+Rationale: intentionally skipped a helper-version check for v1. The exported
+helper surface is already pinned by the required `buildSandboxedSpawnArgs`
+function probe; adding an unowned package-version/package-json read would add
+fragility without preventing this review finding. The fail-closed handshake shape
+can grow a `helperVersion` later if the helper contract changes.
+
+Additional verification: full 4-file suite now reports 145 pass / 0 fail; new
+regressions cover loaded/undefined/absent/broken handshakes, precondition
+fail-closed behavior, and real background-tasks handshake publication.
+`grep -r sandbox-runtime plugins/pi-sandbox/ plugins/background-tasks/` remains
+empty.
