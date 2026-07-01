@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-bypass-tool-policy
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox]
 parent: feature-sandbox-first-party-bwrap
 depends_on: [story-pi-sandbox-config-boundary-contract]
@@ -39,12 +39,26 @@ remaining follow-up integration.
 
 ## Acceptance Criteria
 
-- [ ] With sandbox enabled and default config, `background` cannot run a shell
+- [x] With sandbox enabled and default config, `background` cannot run a shell
       command without block/confirmation.
-- [ ] With sandbox enabled and no UI, `background` and `monitor` fail closed if
+- [x] With sandbox enabled and no UI, `background` and `monitor` fail closed if
       their policy is `confirm`.
-- [ ] Project config cannot lower a global `background`/`monitor` policy from
+- [x] Project config cannot lower a global `background`/`monitor` policy from
       `block`/`confirm` to `allow`.
-- [ ] `/sandbox` output lists the bypass-tool policy state.
-- [ ] README explicitly says this is a mitigation, not real background-tasks
+- [x] `/sandbox` output lists the bypass-tool policy state.
+- [x] README explicitly says this is a mitigation, not real background-tasks
       sandbox integration.
+
+## Implementation notes
+
+Implemented the first-release shell-bypass mitigation in the pure config/policy layer:
+
+- Added `applyBypassToolDefaults()` in `plugins/pi-sandbox/extensions/sandbox-config.ts` with known bypass tools `background` and `monitor` defaulting to `confirm`.
+- Wired defaults into `loadConfig()` after global config is merged and before project additive-only merge. Rationale: this makes the effective global/default policy include bypass-tool rules, so project config cannot lower the default `confirm` to `allow`; projects can still tighten to `block`. A deliberate operator global rule can still opt out with `allow`.
+- Added `decideToolPolicy()` as a pure helper and routed the runtime `tool_call` hook through it. The existing confirmation behavior remains: `confirm` with no dialog-capable UI returns a block decision/fail-closed reason.
+- Extended `/sandbox` output with `Bypass tools: background=<policy>, monitor=<policy>` so operators can see the effective mitigation state.
+- Updated `plugins/pi-sandbox/README.md` with a dedicated background/monitor mitigation section, explicitly stating this is not real background-tasks bwrap integration and linking `.work/backlog/idea-background-tasks-sandbox-integration.md`.
+
+Verification:
+
+- `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` — 35 pass / 0 fail.

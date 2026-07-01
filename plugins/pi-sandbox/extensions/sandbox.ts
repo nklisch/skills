@@ -11,9 +11,10 @@
  * refuses to run, but file-tool policy is still enforced, not bypassed).
  *
  * Note: this extension overrides the built-in `bash`, `read`, `write`, and
- * `edit` tools. Other pi tools (subagent, agent_send, umans_web_search,
- * background/monitor) are NOT mediated here — see the known-gaps section in
- * the session note.
+ * `edit` tools. Other pi tools (subagent, agent_send, umans_web_search) are
+ * not OS-sandboxed here. Known shell-bypass tools (background/monitor) are
+ * mitigated by the in-process tool egress policy until first-party bwrap
+ * integration lands.
  *
  * Config files (merged, project takes precedence but is ADDITIVE-ONLY):
  * - ~/.pi/agent/extensions/sandbox.json (global)
@@ -48,6 +49,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import {
 	createSandboxCommandHandler,
+	decideToolPolicy,
 	loadConfig,
 	type EnvScrubConfig,
 	type SecretAction,
@@ -465,23 +467,17 @@ export default function (pi: ExtensionAPI) {
 	// path), block = return {block:true, reason}, confirm = human-approval gate
 	// (degrades to block when no dialog-capable UI is available).
 	pi.on("tool_call", async (event, ctx) => {
-		const rules = activePolicy?.toolRules;
-		if (!rules) return; // no tool policy configured -> allow all
+		if (!activePolicy) return; // sandbox not enabled/initialized yet -> no in-process tool policy to apply
+		const rules = activePolicy.toolRules;
 		const name = event.toolName;
-		const policy = rules.rules?.[name] ?? rules.default ?? "allow";
-		if (policy === "allow") return;
-		if (policy === "block") {
-			return {
-				block: true,
-				reason: `Blocked by sandbox tool policy: "${name}" is configured as block. This tool is not permitted under the current sandbox egress policy.`,
-			};
+		const decision = decideToolPolicy(name, rules, Boolean(ctx.ui && ctx.hasUI));
+		if (decision.action === "allow") return;
+		if (decision.action === "block") {
+			return { block: true, reason: decision.reason };
 		}
-		if (policy === "confirm") {
+		if (decision.action === "confirm") {
 			if (!ctx.ui || !ctx.hasUI) {
-				return {
-					block: true,
-					reason: `Blocked by sandbox tool policy: "${name}" requires confirmation, but no dialog UI is available.`,
-				};
+				return { block: true, reason: decision.reason ?? `Blocked by sandbox tool policy: "${name}" requires confirmation, but no dialog UI is available.` };
 			}
 			const inputSummary = summarizeToolInput(name, event.input);
 			const approved = await ctx.ui.confirm(
@@ -496,11 +492,11 @@ export default function (pi: ExtensionAPI) {
 			}
 			return; // approved -> allow
 		}
-		if (policy === "auto") {
+		if (decision.action === "auto") {
 			// Defer to the secret-shape inspector. Runs synchronously in-process:
 			// the secret never enters a judgment context (no agent, no second
 			// transcript). Returns allow / block / redact-and-allow.
-			const verdict = inspectToolInput(name, event.input, rules.inspector);
+			const verdict = inspectToolInput(name, event.input, rules?.inspector);
 			if (verdict.action === "block") {
 				return {
 					block: true,
