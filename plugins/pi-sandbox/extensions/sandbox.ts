@@ -3,12 +3,15 @@
  *
  * Uses a first-party Linux bubblewrap backend to enforce filesystem and
  * network restrictions on pi tool bash/user_bash commands at the OS level.
+ * On non-Linux hosts, that OS backend gracefully degrades: bash/user_bash run
+ * through pi's local shell backend while the in-process policy below stays on.
  *
  * Additionally registers hardened `read`/`write`/`edit` tools that enforce
  * the same denyRead/denyWrite/allowWrite policy at the tool-I/O layer. These
  * checks run IN-PROCESS and are independent of whether bwrap initialized —
  * so they hold even on sandbox-init failure (fail-closed: the bwrap layer
- * refuses to run, but file-tool policy is still enforced, not bypassed).
+ * refuses to run, but file-tool policy is still enforced, not bypassed) and
+ * on non-Linux graceful degrade (bash unsandboxed, file/tool policy active).
  *
  * Note: this extension overrides the tool-registry `bash`, `read`, `write`,
  * and `edit` tools. Current pi-core RPC/API `bash` calls `executeBash()`
@@ -28,8 +31,9 @@ import { existsSync } from "node:fs";
 import {
 	buildBwrapArgs,
 	buildMinimalEnv,
+	decidePlatformState,
+	shouldBypassBashSandbox,
 	shouldBypassSandbox,
-	validateBwrapInit,
 } from "./sandbox-bwrap";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
@@ -200,6 +204,8 @@ export default function (pi: ExtensionAPI) {
 	let sandboxInitialized = false;
 	let failClosed = false;
 	let disabledViaConfig = false;
+	let osSandboxUnavailable = false;
+	let osSandboxUnavailablePlatform: string | null = null;
 	let lastFailClosedReason: string | null = null;
 	let sandboxPolicy: SandboxPolicy | null = null;
 
@@ -208,10 +214,11 @@ export default function (pi: ExtensionAPI) {
 		...localBash,
 		label: "bash (sandboxed)",
 		async execute(id, params, signal, onUpdate, _ctx) {
-			// If explicitly disabled via --no-sandbox or config, run unsandboxed.
-			// This is the only unsandboxed path through this registered bash tool,
-			// and it's operator-chosen. RPC/API bash is not routed here by pi core.
-			if (shouldBypassSandbox(pi.getFlag("no-sandbox") as boolean, disabledViaConfig)) {
+			// Intentional operator bypasses and OS-backend graceful degrade both run
+			// bash through pi's local shell backend. Only the operator bypasses also
+			// disable file/tool policy; OS degrade keeps those in-process gates active.
+			// RPC/API bash is not routed here by pi core.
+			if (shouldBypassBashSandbox(pi.getFlag("no-sandbox") as boolean, disabledViaConfig, osSandboxUnavailable)) {
 				return localBash.execute(id, params, signal, onUpdate);
 			}
 
@@ -329,6 +336,7 @@ export default function (pi: ExtensionAPI) {
 		const decision = decideUserBash({
 			noSandbox: pi.getFlag("no-sandbox") as boolean,
 			disabledViaConfig,
+			osSandboxUnavailable,
 			failClosed,
 			sandboxEnabled,
 			sandboxInitialized,
@@ -392,6 +400,8 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
 		failClosed = false;
 		disabledViaConfig = false;
+		osSandboxUnavailable = false;
+		osSandboxUnavailablePlatform = null;
 		lastFailClosedReason = null;
 		sandboxEnabled = false;
 		sandboxInitialized = false;
@@ -467,12 +477,23 @@ export default function (pi: ExtensionAPI) {
 		};
 		activePolicy = sandboxPolicy;
 
-		const initValidation = validateBwrapInit({ networkMode: netMode, env: process.env });
-		if (!initValidation.ok) {
+		const platformState = decidePlatformState({ networkMode: netMode, env: process.env });
+		if (platformState.state === "degrade") {
+			osSandboxUnavailable = true;
+			osSandboxUnavailablePlatform = platformState.platform;
+			sandboxEnabled = false;
+			sandboxInitialized = false;
+			failClosed = false;
+			lastFailClosedReason = null;
+			ctx.ui.notify(platformState.message, "info");
+			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", platformState.status));
+			return;
+		}
+		if (platformState.state === "fail-closed") {
 			failClosed = true;
-			lastFailClosedReason = initValidation.message;
-			ctx.ui.notify(initValidation.message, "error");
-			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", initValidation.status));
+			lastFailClosedReason = platformState.message;
+			ctx.ui.notify(platformState.message, "error");
+			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", platformState.status));
 			return;
 		}
 
@@ -504,6 +525,9 @@ export default function (pi: ExtensionAPI) {
 		sandboxEnabled = false;
 		sandboxInitialized = false;
 		failClosed = false;
+		disabledViaConfig = false;
+		osSandboxUnavailable = false;
+		osSandboxUnavailablePlatform = null;
 		lastFailClosedReason = null;
 		sandboxPolicy = null;
 		activePolicy = null;
@@ -518,6 +542,8 @@ export default function (pi: ExtensionAPI) {
 				sandboxEnabled,
 				sandboxInitialized,
 				disabledViaConfig,
+				osSandboxUnavailable,
+				osSandboxUnavailablePlatform,
 				lastFailClosedReason,
 			}),
 		}),

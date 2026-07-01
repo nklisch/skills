@@ -86,13 +86,14 @@ export const SANDBOX_UNINITIALIZED_MESSAGE = "Sandbox not yet initialized. If th
 export interface UserBashDecisionInput {
 	noSandbox: boolean;
 	disabledViaConfig: boolean;
+	osSandboxUnavailable?: boolean;
 	failClosed: boolean;
 	sandboxEnabled: boolean;
 	sandboxInitialized: boolean;
 }
 
 export type UserBashDecision =
-	| { action: "bypass" }
+	| { action: "bypass"; reason?: string }
 	| { action: "block-failclosed"; reason: string }
 	| { action: "block-uninitialized"; reason: string }
 	| { action: "sandboxed" };
@@ -106,9 +107,15 @@ export interface BlockedUserBashEventResult {
 	};
 }
 
-/** Pure user_bash routing decision. Undefined/fall-through is allowed only for intentional bypasses. */
+/** Pure user_bash routing decision. Undefined/fall-through is allowed for intentional bypasses and OS-backend graceful degrade. */
 export function decideUserBash(input: UserBashDecisionInput): UserBashDecision {
 	if (input.noSandbox || input.disabledViaConfig) return { action: "bypass" };
+	if (input.osSandboxUnavailable) {
+		return {
+			action: "bypass",
+			reason: "OS bash sandbox backend unavailable; user_bash runs through pi's local shell backend while in-process file/tool policy remains active.",
+		};
+	}
 	if (input.failClosed) return { action: "block-failclosed", reason: SANDBOX_FAIL_CLOSED_MESSAGE };
 	if (!input.sandboxEnabled || !input.sandboxInitialized) return { action: "block-uninitialized", reason: SANDBOX_UNINITIALIZED_MESSAGE };
 	return { action: "sandboxed" };
@@ -810,6 +817,8 @@ export interface SandboxCommandState {
 	sandboxEnabled: boolean;
 	sandboxInitialized: boolean;
 	disabledViaConfig: boolean;
+	osSandboxUnavailable?: boolean;
+	osSandboxUnavailablePlatform?: string | null;
 	lastFailClosedReason?: string | null;
 }
 
@@ -840,9 +849,11 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 		? "FAIL-CLOSED"
 		: state.disabledViaConfig
 			? "disabled via config"
-			: state.sandboxEnabled && state.sandboxInitialized
-				? "enabled"
-				: "disabled/not initialized";
+			: state.osSandboxUnavailable
+				? `OS bash sandbox unavailable (${formatPlatformName(state.osSandboxUnavailablePlatform)}) — in-process file/tool policy active`
+				: state.sandboxEnabled && state.sandboxInitialized
+					? "enabled"
+					: "disabled/not initialized";
 	const mode = config.network?.mode ?? "open";
 	const effectiveToolRules = applyBypassToolDefaults(config.tools);
 	const bypassToolPolicy = SHELL_BYPASS_TOOLS.map((name) => `${name}=${effectiveToolRules.rules?.[name] ?? effectiveToolRules.default ?? "allow"}`).join(", ");
@@ -869,7 +880,7 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 		"",
 		"Known bypass mitigation state:",
 		"  Hardened by this plugin: LLM/tool bash, interactive user_bash, read, write, edit.",
-		"  File-tool policy is in-process and remains active when mediated bash is fail-closed.",
+		"  File-tool policy is in-process and remains active when mediated bash is fail-closed or the OS bash sandbox is unavailable.",
 		"  RPC/API direct bash is not mediated by pi extensions in current pi core.",
 		`  Bypass tools: ${bypassToolPolicy}`,
 		"  Not OS-sandboxed here: Pi extensions/packages, RPC/API direct bash, background, monitor, agent_send, web/search tools, subagents, and provider requests.",
@@ -885,6 +896,13 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 /** The first-party bwrap backend does not support glob denyWrite matching. Detect glob patterns so we can warn. */
 function isGlobPattern(p: string): boolean {
 	return /[*?]/.test(p);
+}
+
+function formatPlatformName(platform: string | null | undefined): string {
+	if (!platform) return "unknown platform";
+	if (platform === "darwin") return "macOS";
+	if (platform === "win32") return "Windows";
+	return platform;
 }
 
 function validateOptionalStringArray(value: unknown, path: string, errors: string[]): void {

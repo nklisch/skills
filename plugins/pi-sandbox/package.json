@@ -1,7 +1,7 @@
 {
   "name": "@nklisch/pi-sandbox",
   "version": "0.1.0",
-  "description": "First-party Linux bubblewrap sandbox for pi — hardened bash/file-tool paths with open/block network modes and tool-egress policy.",
+  "description": "First-party pi sandbox hardening — Linux bwrap for mediated bash, graceful non-Linux file/tool-policy degrade, and tool-egress policy.",
   "author": {
     "name": "nklisch"
   },

@@ -5,6 +5,8 @@ import { join, resolve } from "node:path";
 import {
 	buildBwrapArgs,
 	buildMinimalEnv,
+	decidePlatformState,
+	shouldBypassBashSandbox,
 	shouldBypassSandbox,
 	type BuildBwrapArgsOptions,
 	validateBwrapInit,
@@ -109,6 +111,11 @@ describe("sandbox enabled/disabled bypass guard", () => {
 		expect(shouldBypassSandbox(true, false)).toBe(true);
 		expect(shouldBypassSandbox(true, true)).toBe(true);
 	});
+
+	test("OS backend graceful degrade bypasses only bash sandboxing", () => {
+		expect(shouldBypassBashSandbox(false, false, true)).toBe(true);
+		expect(shouldBypassSandbox(false, false)).toBe(false);
+	});
 });
 
 describe("user_bash routing", () => {
@@ -148,6 +155,31 @@ describe("user_bash routing", () => {
 		})).toEqual({ action: "bypass" });
 	});
 
+	test("OS backend graceful degrade falls through for user_bash without becoming fail-closed", () => {
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: false,
+			osSandboxUnavailable: true,
+			failClosed: false,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({
+			action: "bypass",
+			reason: "OS bash sandbox backend unavailable; user_bash runs through pi's local shell backend while in-process file/tool policy remains active.",
+		});
+	});
+
+	test("fail-closed still blocks user_bash when OS backend is available", () => {
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: false,
+			osSandboxUnavailable: false,
+			failClosed: true,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({ action: "block-failclosed", reason: SANDBOX_FAIL_CLOSED_MESSAGE });
+	});
+
 	test("healthy user_bash state chooses sandboxed operations", () => {
 		expect(decideUserBash({
 			noSandbox: false,
@@ -173,6 +205,31 @@ describe("user_bash routing", () => {
 });
 
 describe("extension init validation", () => {
+	test("platform state separates non-Linux degrade from Linux fail-closed states", () => {
+		expect(decidePlatformState({ networkMode: "open", platform: "darwin", bwrapAvailable: false })).toEqual({
+			state: "degrade",
+			reason: "unsupported-platform",
+			platform: "darwin",
+			message: "Sandbox OS backend unavailable on darwin; bash runs unsandboxed, file/tool policy still enforced.",
+			status: "🔒 Sandbox: OS bash sandbox unavailable on darwin; in-process file/tool policy active",
+		});
+		expect(decidePlatformState({ networkMode: "open", platform: "linux", bwrapAvailable: true })).toEqual({ state: "ok" });
+		expect(decidePlatformState({ networkMode: "open", platform: "linux", bwrapAvailable: false }).state).toBe("fail-closed");
+		expect(decidePlatformState({ networkMode: "filter", platform: "linux", bwrapAvailable: true }).state).toBe("fail-closed");
+	});
+
+	test("unsupported platforms degrade instead of failing closed", () => {
+		const validation = validateBwrapInit({ networkMode: "open", platform: "win32", bwrapAvailable: false });
+
+		expect(validation.ok).toBe(false);
+		if (!validation.ok) {
+			expect(validation.reason).toBe("unsupported-platform");
+			expect(validation.message).toContain("bash runs unsandboxed");
+			expect(validation.message).toContain("file/tool policy still enforced");
+			expect(validation.message).not.toContain("fail-closed");
+		}
+	});
+
 	test("filter mode fails closed before initialization", () => {
 		const validation = validateBwrapInit({ networkMode: "filter", platform: "linux", bwrapAvailable: true });
 
@@ -790,6 +847,33 @@ describe("config boundary contract", () => {
 		expect(output).toContain("subagents");
 		expect(output).toContain("provider requests");
 		expect(output).toContain("open network mode leaves host networking intact");
+
+		const degradeNotifications: string[] = [];
+		const degradeLoaded: LoadedConfig = {
+			...loaded,
+			config: {
+				...loaded.config,
+				network: { mode: "open", allowedDomains: [], deniedDomains: [] },
+			},
+			failClosedReasons: [],
+		};
+		const degradeHandler = createSandboxCommandHandler({
+			getState: () => ({
+				failClosed: false,
+				sandboxEnabled: false,
+				sandboxInitialized: false,
+				disabledViaConfig: false,
+				osSandboxUnavailable: true,
+				osSandboxUnavailablePlatform: "darwin",
+			}),
+			load: () => degradeLoaded,
+		});
+
+		await degradeHandler(null, { cwd: "/fixture", ui: { notify: (message) => degradeNotifications.push(message) } });
+
+		const degradeOutput = degradeNotifications.join("\n");
+		expect(degradeOutput).toContain("State: OS bash sandbox unavailable (macOS) — in-process file/tool policy active");
+		expect(degradeOutput).toContain("File-tool policy is in-process and remains active when mediated bash is fail-closed or the OS bash sandbox is unavailable.");
 	});
 });
 
