@@ -41,11 +41,9 @@ import {
 import {
 	createSandboxCommandHandler,
 	decideToolPolicy,
+	inspectToolInput,
 	loadConfig,
 	scrubEnv,
-	type SecretAction,
-	type ToolInspector,
-	type ToolRules,
 } from "./sandbox-config";
 import {
 	createFailClosedPolicy,
@@ -417,9 +415,9 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 
-		// Scrub orphaned secret env vars from process.env BEFORE any bash/subprocess
-		// can spawn. pi's provider env-key allowlist (the vars pi actually reads
-		// for auth) is passed as `keep` so active auth paths are never broken.
+		// Scrub secret env vars from process.env BEFORE any bash/subprocess can
+		// spawn. pi's provider env-key list is passed as a preferred keep set, but
+		// explicit scrub names/patterns still win so config remains fail-safe.
 		const piEnvKeyKeep = [
 			"ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AZURE_OPENAI_API_KEY",
 			"GEMINI_API_KEY", "GOOGLE_CLOUD_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS",
@@ -536,160 +534,3 @@ function summarizeToolInput(name: string, input: Record<string, unknown>): strin
 	return parts.join("\n");
 }
 
-/**
- * Result of inspecting a tool's input for secret shapes.
- * - allow: no secret matched, and onNoMatch=allow (or a redaction was applied)
- * - block: a secret matched with action=block, or no match with onNoMatch=block
- */
-interface InspectionVerdict {
-	action: "allow" | "block";
-	reason: string;
-}
-
-/**
- * Shannon entropy in bits/char. Matches gitleaks' `shannonEntropy`.
- * High for random tokens (~4.5+), low for dictionary/placeholder strings (~2-3).
- */
-function shannonEntropy(data: string): number {
-	if (data.length === 0) return 0;
-	const counts = new Map<string, number>();
-	for (const ch of data) counts.set(ch, (counts.get(ch) ?? 0) + 1);
-	const inv = 1 / data.length;
-	let entropy = 0;
-	for (const count of counts.values()) {
-		const freq = count * inv;
-		entropy -= freq * Math.log2(freq);
-	}
-	return entropy;
-}
-
-interface CompiledShape {
-	name: string;
-	re: RegExp;
-	action: SecretAction;
-	secretGroup: number;
-	entropy: number | undefined;
-	keywords: string[] | undefined;
-}
-
-interface CompiledAllowlist {
-	stopwords: Set<string>;
-	regexes: RegExp[];
-}
-
-/**
- * Inspect a tool's input against the configured secret shapes (gitleaks model).
- *
- * Pipeline per field: keyword pre-filter → regex (extracts a capture group) →
- * entropy check on the captured candidate → allowlist check. A candidate is
- * a secret only if it passes ALL of: keyword present (if configured), regex
- * matches, entropy ≥ threshold (if configured), not allowlisted.
- *
- * Synchronous, in-process: the secret is matched by regex/entropy only and
- * never enters a judgment context (no agent, no second transcript). On a
- * `redact` match, mutates `input[field]` in place to strip the matched bytes,
- * then allows. On a `block` match, returns block. On no match, returns onNoMatch.
- *
- * Scans string-valued fields. By default scans ALL string fields ("*"), which
- * is paranoia-first; validated effective config may restrict per-tool fields,
- * but project merges cannot drop global/default scan coverage.
- */
-function inspectToolInput(
-	toolName: string,
-	input: Record<string, unknown>,
-	inspector: ToolInspector | undefined,
-): InspectionVerdict {
-	if (!inspector || !inspector.secrets || inspector.secrets.length === 0) {
-		return { action: "allow", reason: "no inspector configured" };
-	}
-	const onNoMatch = inspector.onNoMatch ?? "allow";
-
-	// Compile shapes once.
-	const shapes: CompiledShape[] = inspector.secrets.map((s) => ({
-		name: s.name,
-		re: new RegExp(s.pattern, s.flags ?? "gu"),
-		action: s.action,
-		secretGroup: s.secretGroup ?? 0,
-		entropy: s.entropy,
-		keywords: s.keywords,
-	}));
-	// Compile allowlist.
-	const allowlist: CompiledAllowlist = {
-		stopwords: new Set((inspector.allowlist?.stopwords ?? []).map((w) => w.toLowerCase())),
-		regexes: (inspector.allowlist?.regexes ?? []).map((r) => new RegExp(r, "iu")),
-	};
-
-	// Determine which fields to scan.
-	const scanFields = inspector.scanFields ?? {};
-	const toolFields = scanFields[toolName];
-	const scanAll =
-		toolFields === "*" ||
-		(toolFields === undefined && (scanFields["*"] === "*" || Object.keys(scanFields).length === 0));
-	const fieldList = scanAll ? null : (toolFields ?? scanFields["*"] ?? null);
-
-	const isAllowed = (candidate: string): boolean =>
-		allowlist.stopwords.has(candidate.toLowerCase()) ||
-		allowlist.regexes.some((r) => {
-			r.lastIndex = 0;
-			return r.test(candidate);
-		});
-
-	for (const [field, value] of Object.entries(input)) {
-		if (fieldList && !fieldList.includes(field)) continue;
-		// Stringify the value: strings as-is, objects/arrays via JSON, numbers skipped.
-		let text: string | null = null;
-		if (typeof value === "string") text = value;
-		else if (value !== null && typeof value === "object") {
-			try { text = JSON.stringify(value); } catch { text = null; }
-		} else continue;
-		if (text === null) continue;
-
-		for (const shape of shapes) {
-			// Keyword pre-filter: skip the rule if no keyword is present.
-			if (shape.keywords && shape.keywords.length > 0) {
-				const lower = text.toLowerCase();
-				if (!shape.keywords.some((kw) => lower.includes(kw.toLowerCase()))) continue;
-			}
-
-			shape.re.lastIndex = 0;
-			const match = shape.re.exec(text);
-			if (!match) continue;
-
-			// Extract the candidate from the configured capture group.
-			const candidate = (shape.secretGroup < match.length ? match[shape.secretGroup] : match[0]) ?? match[0];
-			if (!candidate) continue;
-
-			// Entropy gate: candidate must exceed the threshold (when set).
-			if (shape.entropy !== undefined) {
-				const ent = shannonEntropy(candidate);
-				if (ent < shape.entropy) continue; // looks random enough? no -> skip
-			}
-
-			// Allowlist: known placeholders/examples are not secrets.
-			if (isAllowed(candidate)) continue;
-
-			// Confirmed secret.
-			if (shape.action === "block") {
-				return {
-					action: "block",
-					reason: `secret shape "${shape.name}" matched in field "${field}" of tool "${toolName}"`,
-				};
-			}
-			// redact: strip the matched substring in place, then continue scanning
-			// other shapes (a field may carry more than one secret).
-			shape.re.lastIndex = 0;
-			const redacted = text.replace(shape.re, `[REDACTED:${shape.name}]`);
-			if (typeof value === "string") {
-				(input as Record<string, unknown>)[field] = redacted;
-			} else {
-				try { (input as Record<string, unknown>)[field] = JSON.parse(redacted); } catch { (input as Record<string, unknown>)[field] = redacted; }
-			}
-			text = redacted; // continue scanning the redacted text for further shapes
-		}
-	}
-
-	return {
-		action: onNoMatch,
-		reason: onNoMatch === "block" ? `no configured secret matched, but inspector onNoMatch=block` : "",
-	};
-}

@@ -67,3 +67,9 @@ Verification:
 
 - B2 resolved: config parse/validation errors now install an active fail-closed tool policy before returning from `session_start`, so `tool_call` blocks `background` and `monitor` instead of no-oping when config is invalid. The no-active-policy fallback is also restrictive.
 - Verification after review fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail).
+
+### Round 3 adversarial-review fixes
+
+- Blk-3 resolved: moved the secret-shape inspector into the pure config helper layer and hardened it to scan every regex match for each shape/field with a global `exec` loop. An allowlisted or low-entropy first match no longer skips later matches of the same shape; block shapes stop on the first confirmed later secret, and redact shapes replace each confirmed match while leaving allowlisted placeholders intact.
+- Rationale: the tool-call inspector is part of the shell-bypass egress mitigation, so the scan contract must be complete per field rather than “first candidate only.” Keeping the implementation pure lets the regression tests exercise real inspector behavior without importing Pi runtime/typebox surfaces.
+- Verification after round 3 fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (56 pass / 0 fail).
