@@ -1,7 +1,7 @@
 ---
 id: story-background-tasks-sandbox-monitor-spawn
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: feature-background-tasks-sandbox-integration
 depends_on: [story-background-tasks-sandbox-background-spawn]
@@ -55,9 +55,20 @@ Behavior:
 
 ## Acceptance criteria
 
-- [ ] On helper `ok`, monitor ticks spawn `bwrap ... -- bash -c <command>` with minimal env and no `pi.exec` call.
-- [ ] On helper absent/degraded, monitor uses the existing `pi.exec("/bin/sh", ["-c", command])` path and all current monitor behavior remains green.
-- [ ] On helper fail-closed or broken import, monitor returns `isError:true`, creates no job, and does not schedule repeated polls.
-- [ ] `stdout_matches`, `stdout_not_matches`, `exit_zero`, and `exit_nonzero` evaluate direct-spawn results identically to current `pi.exec` results.
-- [ ] Cancelling a monitor while a bwrap poll is in flight kills the bwrap process group and reaches `cancelled` or an honest terminal state.
-- [ ] Real bwrap integration test (skipped when unavailable) proves a monitor command cannot read a configured `denyRead` path and that `network.mode:"block"` prevents reaching a localhost listener.
+- [x] On helper `ok`, monitor ticks spawn `bwrap ... -- bash -c <command>` with minimal env and no `pi.exec` call.
+- [x] On helper absent/degraded, monitor uses the existing `pi.exec("/bin/sh", ["-c", command])` path and all current monitor behavior remains green.
+- [x] On helper fail-closed or broken import, monitor returns `isError:true`, creates no job, and does not schedule repeated polls.
+- [x] `stdout_matches`, `stdout_not_matches`, `exit_zero`, and `exit_nonzero` evaluate direct-spawn results identically to current `pi.exec` results.
+- [x] Cancelling a monitor while a bwrap poll is in flight kills the bwrap process group and reaches `cancelled` or an honest terminal state.
+- [x] Real bwrap integration test (skipped when unavailable) proves a monitor command cannot read a configured `denyRead` path and that `network.mode:"block"` prevents reaching a localhost listener.
+
+### Completed implementation notes
+
+- Files changed: `plugins/background-tasks/extensions/background-tasks.ts`, `plugins/background-tasks/extensions/background-tasks.test.ts`.
+- Backend: monitor resolves sandbox mode once at kickoff. `absent`/`degraded` keeps the existing `pi.exec("/bin/sh", ["-c", command], { timeout, cwd })` per-poll path; helper `ok` uses direct `spawn("bwrap", [...args, command], { cwd:sandbox.cwd, env:sandbox.env, detached:true, stdio:["ignore","pipe","pipe"] })`; helper `broken`/`fail-closed` returns `isError:true` before creating a job.
+- Poll semantics preserved: recursive post-poll `setTimeout`, `job.polling` non-overlap guard with `finally`, all four satisfy modes, stdout/stderr buffering, trusted wake messages, timeout handling, and the existing consecutive `command not found` broken-poll heuristic.
+- Lifecycle: direct-spawn polls store `job.child`/`job.pid` only while bwrap is in flight; `jobs cancel` kills the bwrap process group and clears the child on close. Per-poll timeout/abort sends SIGTERM then SIGKILL to the bwrap process group.
+- Tests added: monitor sandbox decision unit tests; `runShellOnce` unsandboxed `pi.exec` regression; fail-closed/off monitor regressions; real bwrap monitor tests for `exit_zero`, `denyRead`, `network.mode:"block"`, env secret omission, in-flight cancel, and per-poll timeout kill.
+- Verification: `bun test plugins/background-tasks/extensions/background-tasks.test.ts plugins/background-tasks/extensions/sandbox-bridge.test.ts` passed (65 pass, 0 fail). The background-tasks suite alone passed 58 tests with real bwrap integration on this Linux host.
+- Discrepancies from design: dependency `story-background-tasks-sandbox-background-spawn` is at `stage:review` rather than terminal done; autopilot delegation explicitly authorized proceeding with that dependency state. The local runner includes optional `onChildSpawn`/`onChildClose` callbacks in addition to the specified `ShellRunOptions` fields so monitor cancellation can track the transient bwrap child without re-resolving sandbox state per poll.
+- Adjacent issues parked: none.

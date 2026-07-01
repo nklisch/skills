@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import backgroundTasksExtension, { MAX_RETAINED_JOBS, clipToWidth, decideBackgroundSpawn, JobPanel, type SandboxSpawnResolver } from "./background-tasks";
+import backgroundTasksExtension, { MAX_RETAINED_JOBS, clipToWidth, decideBackgroundSpawn, decideMonitorPoll, JobPanel, runShellOnce, type SandboxSpawnResolver } from "./background-tasks";
 import type { BuildSandboxedSpawnArgs } from "./sandbox-bridge";
 import { buildSandboxedSpawnArgs } from "../../pi-sandbox/extensions/sandbox-spawn";
 
@@ -296,6 +296,104 @@ describe("background sandbox spawn decision", () => {
   });
 });
 
+describe("monitor sandbox poll decision", () => {
+  const okBuilder = ((opts) => ({
+    state: "ok",
+    integration: "active",
+    executable: "bwrap",
+    args: ["--ro-bind", "/", "/", "--", "bash", "-c"],
+    cwd: opts.cwd,
+    env: { PATH: "/usr/bin" },
+  })) as BuildSandboxedSpawnArgs;
+
+  test("uses current pi.exec semantics when the optional helper is absent", () => {
+    const decision = decideMonitorPoll({
+      command: "echo hi",
+      cwd: "/tmp",
+      sandbox: { state: "absent" },
+    });
+
+    expect(decision).toMatchObject({ mode: "unsandboxed", reason: "sandbox-absent", cwd: "/tmp" });
+  });
+
+  test("uses the helper's bwrap args and env when sandbox is ok", () => {
+    const decision = decideMonitorPoll({
+      command: "echo sandboxed",
+      cwd: "/tmp",
+      sandbox: { state: "loaded", buildSandboxedSpawnArgs: okBuilder },
+    });
+
+    expect(decision.mode).toBe("sandboxed");
+    if (decision.mode !== "sandboxed") throw new Error("expected sandboxed");
+    expect(decision.sandbox.executable).toBe("bwrap");
+    expect(decision.sandbox.args.slice(-3)).toEqual(["--", "bash", "-c"]);
+    expect(decision.sandbox.env).toEqual({ PATH: "/usr/bin" });
+  });
+
+  test("degraded helper results keep the pi.exec branch", () => {
+    const degradedBuilder = ((opts) => ({
+      state: "degraded",
+      integration: "inactive",
+      reason: "integration-off",
+      executable: null,
+      args: [],
+      cwd: opts.cwd,
+      env: { ...process.env },
+      message: "operator opt-out",
+    })) as BuildSandboxedSpawnArgs;
+
+    const decision = decideMonitorPoll({
+      command: "echo hi",
+      cwd: "/tmp",
+      sandbox: { state: "loaded", buildSandboxedSpawnArgs: degradedBuilder },
+    });
+
+    expect(decision).toMatchObject({ mode: "unsandboxed", reason: "sandbox-degraded", message: "operator opt-out" });
+  });
+
+  test("broken imports and fail-closed helper states refuse to monitor", () => {
+    const broken = decideMonitorPoll({
+      command: "echo should-not-run",
+      cwd: "/tmp",
+      sandbox: { state: "broken", message: "helper import failed" },
+    });
+    expect(broken).toMatchObject({ mode: "fail-closed", reason: "sandbox-helper-broken" });
+
+    const failClosedBuilder = (() => ({
+      state: "fail-closed",
+      integration: "blocked",
+      reason: "bwrap-missing",
+      executable: null,
+      args: [],
+      cwd: "/tmp",
+      env: {},
+      message: "bwrap is missing",
+    })) as BuildSandboxedSpawnArgs;
+    const failClosed = decideMonitorPoll({
+      command: "echo should-not-run",
+      cwd: "/tmp",
+      sandbox: { state: "loaded", buildSandboxedSpawnArgs: failClosedBuilder },
+    });
+    expect(failClosed).toMatchObject({ mode: "fail-closed", reason: "bwrap-missing" });
+  });
+
+  test("runShellOnce keeps the unsandboxed branch on pi.exec /bin/sh -c", async () => {
+    const calls: Array<{ command: string; args: string[]; timeout?: number; cwd?: string }> = [];
+    const result = await runShellOnce({
+      command: "echo hi",
+      cwd: "/tmp",
+      timeoutMs: 1234,
+      piExec: async (command, args, options) => {
+        calls.push({ command, args, timeout: options?.timeout, cwd: options?.cwd });
+        return { stdout: "hi\n", code: 0 };
+      },
+    });
+
+    expect(result).toEqual({ stdout: "hi\n", code: 0 });
+    expect(calls).toEqual([{ command: "/bin/sh", args: ["-c", "echo hi"], timeout: 1234, cwd: "/tmp" }]);
+  });
+});
+
 describe("background tool", () => {
   test("starts a job, returns immediately with an id, and wakes on exit with a custom trusted (output-free) message", async () => {
     const { tools, wakes, userMessages } = makeFakePi();
@@ -570,7 +668,279 @@ describe("background bwrap integration", () => {
   }, 12000);
 });
 
+describe("monitor bwrap integration", () => {
+  bwrapIntegrationTest("polls exit_zero through bwrap", async () => {
+    const cwd = await makeTempDir();
+    const agentDir = await makeTempDir("background-tasks-agent-");
+    await writeProjectSandboxConfig(cwd, { filesystem: { allowWrite: ["."] } });
+    const { tools } = makeFakePi(undefined, { sandboxResolver: isolatedSandboxResolver(agentDir) });
+    const mon = tools.get("monitor")!;
+    const ctx = { ...makeContext(), cwd };
+
+    const started = (await mon.execute(
+      "c1",
+      { command: "true", satisfy_on: "exit_zero", interval_seconds: 1, timeout_seconds: 5, label: "sandbox-exit-zero" },
+      undefined,
+      undefined,
+      ctx,
+    )) as { details: { jobId: number; sandbox: string } };
+
+    expect(started.details.sandbox).toBe("active");
+    await waitFor(() => jobStatus(tools, ctx, started.details.jobId).then((s) => (s === "satisfied" ? s : undefined)));
+  });
+
+  bwrapIntegrationTest("cannot read a configured denyRead path", async () => {
+    const cwd = await makeTempDir();
+    const agentDir = await makeTempDir("background-tasks-agent-");
+    await writeProjectSandboxConfig(cwd, { filesystem: { denyRead: ["secret.txt"], allowWrite: ["."] } });
+    await writeFile(join(cwd, "secret.txt"), "SUPER-SECRET\n");
+    const { tools } = makeFakePi(undefined, { sandboxResolver: isolatedSandboxResolver(agentDir) });
+    const mon = tools.get("monitor")!;
+    const ctx = { ...makeContext(), cwd };
+
+    const started = (await mon.execute(
+      "c1",
+      {
+        command: "if [ ! -s secret.txt ]; then echo denied; else echo LEAK:$(cat secret.txt); fi",
+        satisfy_on: "stdout_matches",
+        pattern: "denied",
+        interval_seconds: 1,
+        timeout_seconds: 5,
+        label: "monitor-deny-read",
+      },
+      undefined,
+      undefined,
+      ctx,
+    )) as { details: { jobId: number; sandbox: string } };
+
+    expect(started.details.sandbox).toBe("active");
+    await waitFor(() => jobStatus(tools, ctx, started.details.jobId).then((s) => (s === "satisfied" ? s : undefined)));
+    const tail = await jobTail(tools, ctx, started.details.jobId);
+    expect(tail).toContain("denied");
+    expect(tail).not.toContain("SUPER-SECRET");
+  });
+
+  bwrapIntegrationTest("cannot reach a localhost listener when network mode is block", async () => {
+    const cwd = await makeTempDir();
+    const agentDir = await makeTempDir("background-tasks-agent-");
+    await writeProjectSandboxConfig(cwd, { network: { mode: "block" }, filesystem: { allowWrite: ["."] } });
+    let accepted = 0;
+    const server = createServer((socket) => {
+      accepted++;
+      socket.end("hello");
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const port = (server.address() as AddressInfo).port;
+    try {
+      const { tools } = makeFakePi(undefined, { sandboxResolver: isolatedSandboxResolver(agentDir) });
+      const mon = tools.get("monitor")!;
+      const ctx = { ...makeContext(), cwd };
+
+      const started = (await mon.execute(
+        "c1",
+        {
+          command: `bash -c 'cat < /dev/tcp/127.0.0.1/${port}'`,
+          satisfy_on: "exit_nonzero",
+          interval_seconds: 1,
+          timeout_seconds: 5,
+          label: "monitor-blocked-network",
+        },
+        undefined,
+        undefined,
+        ctx,
+      )) as { details: { jobId: number; sandbox: string } };
+
+      expect(started.details.sandbox).toBe("active");
+      await waitFor(() => jobStatus(tools, ctx, started.details.jobId).then((s) => (s === "satisfied" ? s : undefined)));
+      expect(accepted).toBe(0);
+    } finally {
+      server.close();
+    }
+  });
+
+  bwrapIntegrationTest("omits provider secrets from monitor poll env", async () => {
+    const cwd = await makeTempDir();
+    const agentDir = await makeTempDir("background-tasks-agent-");
+    await writeProjectSandboxConfig(cwd, { filesystem: { allowWrite: ["."] } });
+    const oldSecret = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "fake-secret-token";
+    try {
+      const { tools } = makeFakePi(undefined, { sandboxResolver: isolatedSandboxResolver(agentDir) });
+      const mon = tools.get("monitor")!;
+      const ctx = { ...makeContext(), cwd };
+
+      const started = (await mon.execute(
+        "c1",
+        {
+          command: "printf 'secret=%s\\n' \"$OPENAI_API_KEY\"",
+          satisfy_on: "stdout_matches",
+          pattern: "secret=",
+          interval_seconds: 1,
+          timeout_seconds: 5,
+          label: "monitor-env-filter",
+        },
+        undefined,
+        undefined,
+        ctx,
+      )) as { details: { jobId: number; sandbox: string } };
+
+      expect(started.details.sandbox).toBe("active");
+      await waitFor(() => jobStatus(tools, ctx, started.details.jobId).then((s) => (s === "satisfied" ? s : undefined)));
+      const tail = await jobTail(tools, ctx, started.details.jobId);
+      expect(tail).toContain("secret=");
+      expect(tail).not.toContain("fake-secret-token");
+    } finally {
+      if (oldSecret === undefined) delete process.env.OPENAI_API_KEY;
+      else process.env.OPENAI_API_KEY = oldSecret;
+    }
+  });
+
+  bwrapIntegrationTest("cancelling an in-flight sandboxed monitor poll kills the bwrap process group", async () => {
+    const cwd = await makeTempDir();
+    const agentDir = await makeTempDir("background-tasks-agent-");
+    await writeProjectSandboxConfig(cwd, { filesystem: { allowWrite: ["."] } });
+    const marker = join(cwd, "monitor-cancel-marker.txt");
+    const { tools, wakes } = makeFakePi(undefined, { sandboxResolver: isolatedSandboxResolver(agentDir) });
+    const mon = tools.get("monitor")!;
+    const jobs = tools.get("jobs")!;
+    const ctx = { ...makeContext(), cwd };
+    const startedAt = Date.now();
+
+    const started = (await mon.execute(
+      "c1",
+      {
+        command: "trap '' TERM; sleep 30; echo done > monitor-cancel-marker.txt",
+        satisfy_on: "stdout_matches",
+        pattern: "NEVER",
+        interval_seconds: 1,
+        timeout_seconds: 60,
+        label: "monitor-cancel-sandbox",
+      },
+      undefined,
+      undefined,
+      ctx,
+    )) as { details: { jobId: number; sandbox: string } };
+
+    expect(started.details.sandbox).toBe("active");
+    const cancelRes = (await jobs.execute("c2", { action: "cancel", jobId: started.details.jobId }, undefined, undefined, ctx)) as {
+      details: { status: string };
+    };
+    expect(cancelRes.details.status).toBe("cancelled");
+
+    const remainingWait = Math.max(0, 6500 - (Date.now() - startedAt));
+    await sleep(remainingWait);
+    expect(existsSync(marker)).toBe(false);
+    expect(wakes).toHaveLength(0);
+  }, 12000);
+
+  bwrapIntegrationTest("per-poll timeout kills an overrunning sandboxed command", async () => {
+    const cwd = await makeTempDir();
+    const agentDir = await makeTempDir("background-tasks-agent-");
+    await writeProjectSandboxConfig(cwd, { filesystem: { allowWrite: ["."] } });
+    const marker = join(cwd, "monitor-timeout-marker.txt");
+    const { tools } = makeFakePi(undefined, { sandboxResolver: isolatedSandboxResolver(agentDir) });
+    const mon = tools.get("monitor")!;
+    const ctx = { ...makeContext(), cwd };
+    const startedAt = Date.now();
+
+    const started = (await mon.execute(
+      "c1",
+      {
+        command: "trap '' TERM; sleep 30; echo done > monitor-timeout-marker.txt",
+        satisfy_on: "stdout_matches",
+        pattern: "NEVER",
+        interval_seconds: 1,
+        timeout_seconds: 2,
+        label: "monitor-poll-timeout",
+      },
+      undefined,
+      undefined,
+      ctx,
+    )) as { details: { jobId: number; sandbox: string } };
+
+    expect(started.details.sandbox).toBe("active");
+    await waitFor(() => jobStatus(tools, ctx, started.details.jobId).then((s) => (s === "timeout" ? s : undefined)), { timeoutMs: 9000 });
+    expect(Date.now() - startedAt).toBeLessThan(8500);
+    expect(existsSync(marker)).toBe(false);
+    const tail = await jobTail(tools, ctx, started.details.jobId);
+    expect(tail).toContain("monitor poll exceeded");
+  }, 12000);
+});
+
 describe("monitor tool", () => {
+  test("fails closed without creating a job when the sandbox helper refuses monitor polls", async () => {
+    const cwd = await makeTempDir();
+    const marker = join(cwd, "monitor-should-not-exist.txt");
+    const failClosedBuilder = (() => ({
+      state: "fail-closed",
+      integration: "blocked",
+      reason: "bwrap-missing",
+      executable: null,
+      args: [],
+      cwd,
+      env: {},
+      message: "bwrap is missing",
+    })) as BuildSandboxedSpawnArgs;
+    const { tools, wakes } = makeFakePi(undefined, {
+      sandboxResolver: async () => ({ state: "loaded", buildSandboxedSpawnArgs: failClosedBuilder }),
+    });
+    const mon = tools.get("monitor")!;
+    const ctx = { ...makeContext(), cwd };
+
+    const res = (await mon.execute(
+      "c1",
+      { command: `echo ran > ${marker}`, satisfy_on: "exit_zero", interval_seconds: 1, timeout_seconds: 5 },
+      undefined,
+      undefined,
+      ctx,
+    )) as { isError?: boolean; content: Array<{ text: string }>; details?: Record<string, unknown> };
+
+    expect(res.isError).toBe(true);
+    expect(res.content[0].text).toContain("Sandbox refused");
+    expect(res.details?.sandbox).toBe("blocked");
+    expect(existsSync(marker)).toBe(false);
+    expect(wakes).toHaveLength(0);
+    const list = (await tools.get("jobs")!.execute("c2", { action: "list" }, undefined, undefined, ctx)) as {
+      content: Array<{ text: string }>;
+    };
+    expect(list.content[0].text).toContain("No background jobs");
+  });
+
+  test("uses pi.exec unchanged when sandbox integration is off", async () => {
+    const cwd = await makeTempDir();
+    const degradedBuilder = ((opts) => ({
+      state: "degraded",
+      integration: "inactive",
+      reason: "integration-off",
+      executable: null,
+      args: [],
+      cwd: opts.cwd,
+      env: { ...process.env },
+      message: "operator opt-out",
+    })) as BuildSandboxedSpawnArgs;
+    const calls: Array<{ command: string; args: string[] }> = [];
+    const { tools, wakes } = makeFakePi(async (command, args) => {
+      calls.push({ command, args });
+      return { stdout: "READY\n", code: 0 };
+    }, {
+      sandboxResolver: async () => ({ state: "loaded", buildSandboxedSpawnArgs: degradedBuilder }),
+    });
+    const mon = tools.get("monitor")!;
+
+    const res = (await mon.execute(
+      "c1",
+      { command: "echo READY", satisfy_on: "stdout_matches", pattern: "READY", interval_seconds: 1, timeout_seconds: 5 },
+      undefined,
+      undefined,
+      { ...makeContext(), cwd },
+    )) as { details: { sandbox: string } };
+
+    expect(res.details.sandbox).toBe("degraded");
+    const wake = await waitFor(() => wakes[0]);
+    expect(wake.content).toContain("satisfied");
+    expect(calls).toEqual([{ command: "/bin/sh", args: ["-c", "echo READY"] }]);
+  });
+
   test("wakes on satisfy_on stdout_matches with a custom message and keeps output out of the wake", async () => {
     const { tools, wakes, userMessages } = makeFakePi();
     const mon = tools.get("monitor")!;
