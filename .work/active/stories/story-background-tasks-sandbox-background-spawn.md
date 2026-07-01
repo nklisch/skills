@@ -1,7 +1,7 @@
 ---
 id: story-background-tasks-sandbox-background-spawn
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, plugin]
 parent: feature-background-tasks-sandbox-integration
 depends_on: [story-background-tasks-sandbox-import-config]
@@ -86,3 +86,13 @@ Fallback branches:
 - [x] Existing wake-on-pattern, output buffering, terminal wake, pruning, and shutdown tests remain green.
 - [x] Real bwrap integration test (skipped when `bwrap` is unavailable) proves a sandboxed background command cannot read a configured `denyRead` path.
 - [x] Real bwrap integration test (skipped when `bwrap` is unavailable) proves cancelling a sandboxed `sleep` job terminates the wrapped command and reports `cancelled` rather than leaving an orphan.
+
+## Review (2026-07-01)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate fast lane. Implementation verification recorded by implement (143/143 tests passing across the pi-sandbox + background-tasks suites incl. real bwrap integration: kill-lifecycle, denyRead, block-network, secret-env). Advanced review -> done.

@@ -1,7 +1,7 @@
 ---
 id: story-background-tasks-sandbox-monitor-spawn
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, plugin]
 parent: feature-background-tasks-sandbox-integration
 depends_on: [story-background-tasks-sandbox-background-spawn]
@@ -72,3 +72,13 @@ Behavior:
 - Verification: `bun test plugins/background-tasks/extensions/background-tasks.test.ts plugins/background-tasks/extensions/sandbox-bridge.test.ts` passed (65 pass, 0 fail). The background-tasks suite alone passed 58 tests with real bwrap integration on this Linux host.
 - Discrepancies from design: dependency `story-background-tasks-sandbox-background-spawn` is at `stage:review` rather than terminal done; autopilot delegation explicitly authorized proceeding with that dependency state. The local runner includes optional `onChildSpawn`/`onChildClose` callbacks in addition to the specified `ShellRunOptions` fields so monitor cancellation can track the transient bwrap child without re-resolving sandbox state per poll.
 - Adjacent issues parked: none.
+
+## Review (2026-07-01)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate fast lane. Implementation verification recorded by implement (143/143 tests passing across the pi-sandbox + background-tasks suites incl. real bwrap integration: kill-lifecycle, denyRead, block-network, secret-env). Advanced review -> done.

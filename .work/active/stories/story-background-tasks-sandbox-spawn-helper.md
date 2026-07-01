@@ -1,7 +1,7 @@
 ---
 id: story-background-tasks-sandbox-spawn-helper
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, plugin]
 parent: feature-background-tasks-sandbox-integration
 depends_on: []
@@ -123,3 +123,13 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 - Added package export subpaths for `./bwrap`, `./sandbox-spawn`, and `./sandbox-config` using `{ "types": "./extensions/*.ts", "import": "./extensions/*.ts" }`. Pi extension loading remains through the `pi.extensions` manifest, not the exports map.
 - Added typebox-free tests in `plugins/pi-sandbox/extensions/sandbox-spawn.test.ts` covering ok env filtering, degraded states, fail-closed states, additive config merge, validation, and package export metadata.
 - Verification: `bun test plugins/pi-sandbox/extensions/sandbox-spawn.test.ts` (11 pass) and `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` (66 pass).
+
+## Review (2026-07-01)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate fast lane. Implementation verification recorded by implement (143/143 tests passing across the pi-sandbox + background-tasks suites incl. real bwrap integration: kill-lifecycle, denyRead, block-network, secret-env). Advanced review -> done.
