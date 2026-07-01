@@ -45,7 +45,7 @@
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
-import { createCachedSandboxResolver, type SandboxSpawnResolver } from "./sandbox-bridge";
+import { createCachedSandboxResolver, type SandboxedSpawnArgsResult, type SandboxSpawnResolver } from "./sandbox-bridge";
 
 // --- Keybinding matcher (sync, optional) ---------------------------------
 //
@@ -316,14 +316,107 @@ function formatJobLine(job: Job): string {
   return `#${job.id} ${mark} [${job.status}${exit}] ${job.kind} "${job.label}" (${fmtDuration(elapseMs(job))})`;
 }
 
+type BackgroundSpawnDecision =
+  | {
+    mode: "sandboxed";
+    executable: "bwrap";
+    args: string[];
+    cwd: string;
+    env: NodeJS.ProcessEnv;
+    message?: string;
+  }
+  | {
+    mode: "unsandboxed";
+    reason: "sandbox-absent" | "sandbox-degraded";
+    cwd: string;
+    env: NodeJS.ProcessEnv;
+    message?: string;
+  }
+  | {
+    mode: "fail-closed";
+    reason: string;
+    message: string;
+  };
+
+function failClosedDecision(reason: string, message: string): BackgroundSpawnDecision {
+  return { mode: "fail-closed", reason, message };
+}
+
+function decideFromSandboxResult(command: string, result: SandboxedSpawnArgsResult): BackgroundSpawnDecision {
+  switch (result.state) {
+    case "ok":
+      return {
+        mode: "sandboxed",
+        executable: result.executable,
+        args: [...result.args, command],
+        cwd: result.cwd,
+        env: result.env,
+        message: result.message,
+      };
+    case "degraded":
+      return {
+        mode: "unsandboxed",
+        reason: "sandbox-degraded",
+        cwd: result.cwd,
+        env: result.env,
+        message: result.message,
+      };
+    case "fail-closed":
+      return failClosedDecision(result.reason, result.message);
+  }
+}
+
+function decideBackgroundSpawn(input: {
+  command: string;
+  cwd: string;
+  envAdd?: NodeJS.ProcessEnv;
+  sandbox: SandboxSpawnResolver;
+}): BackgroundSpawnDecision {
+  switch (input.sandbox.state) {
+    case "absent":
+      return {
+        mode: "unsandboxed",
+        reason: "sandbox-absent",
+        cwd: input.cwd,
+        env: { ...process.env, ...(input.envAdd ?? {}) },
+      };
+    case "broken":
+      return failClosedDecision("sandbox-helper-broken", input.sandbox.message);
+    case "loaded":
+      return decideFromSandboxResult(
+        input.command,
+        input.sandbox.buildSandboxedSpawnArgs({
+          command: input.command,
+          cwd: input.cwd,
+          envAdd: input.envAdd,
+        }),
+      );
+  }
+}
+
+function waitForChildSpawn(child: ChildProcess): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      child.off("spawn", onSpawn);
+      child.off("error", onError);
+    };
+    const onSpawn = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = (err: Error) => {
+      cleanup();
+      reject(err);
+    };
+    child.once("spawn", onSpawn);
+    child.once("error", onError);
+  });
+}
+
 // --- Extension ------------------------------------------------------------
 
 export default function backgroundTasksExtension(pi: PiApi, options: BackgroundTasksExtensionOptions = {}): void {
   const resolveSandboxSpawn = createCachedSandboxResolver(options.sandboxResolver);
-  // The spawn sites are wired in follow-up stories; keep the optional import
-  // resolver cached in this extension closure now so future background/monitor
-  // poll paths do not re-import the optional peer on every tick.
-  void resolveSandboxSpawn;
   const jobs = new Map<number, Job>();
   let nextId = 1;
   let shuttingDown = false;
@@ -526,6 +619,19 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       }
     }
 
+    const sandbox = await resolveSandboxSpawn();
+    const spawnDecision = decideBackgroundSpawn({ command, cwd, envAdd, sandbox });
+    if (spawnDecision.mode === "fail-closed") {
+      return {
+        content: [{ type: "text", text: `Sandbox refused to start background command: ${spawnDecision.message}` }],
+        details: { sandbox: "blocked", reason: spawnDecision.reason },
+        isError: true,
+      };
+    }
+    if (spawnDecision.mode === "unsandboxed" && spawnDecision.reason === "sandbox-degraded" && spawnDecision.message) {
+      console.error(`[background-tasks] sandbox degraded for background command: ${spawnDecision.message}`);
+    }
+
     const job: Job = {
       id: nextId++,
       kind: "background",
@@ -538,13 +644,32 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       patternSource: wakePatternRaw,
     };
 
-    const child = spawn(command, {
-      shell: "/bin/sh",
-      cwd,
-      env: { ...process.env, ...envAdd },
-      detached: true,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    let child: ChildProcess;
+    try {
+      if (spawnDecision.mode === "sandboxed") {
+        child = spawn(spawnDecision.executable, spawnDecision.args, {
+          cwd: spawnDecision.cwd,
+          env: spawnDecision.env,
+          detached: true,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        await waitForChildSpawn(child);
+      } else {
+        child = spawn(command, {
+          shell: "/bin/sh",
+          cwd: spawnDecision.cwd,
+          env: spawnDecision.env,
+          detached: true,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+      }
+    } catch (err) {
+      return {
+        content: [{ type: "text", text: `Sandbox failed to start background command: ${(err as Error).message}` }],
+        details: { sandbox: "blocked", reason: "sandbox-spawn-error" },
+        isError: true,
+      };
+    }
     job.child = child;
     job.pid = child.pid;
 
@@ -607,7 +732,12 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
           text: `Started background job #${job.id} "${label}". I'll be woken with the result when it exits${patternNote}; read the output with the jobs tool. Use jobs (action=cancel, jobId=${job.id}) to stop it.`,
         },
       ],
-      details: { jobId: job.id, status: "running", pid: job.pid },
+      details: {
+        jobId: job.id,
+        status: "running",
+        pid: job.pid,
+        sandbox: spawnDecision.mode === "sandboxed" ? "active" : spawnDecision.reason === "sandbox-degraded" ? "degraded" : "absent",
+      },
     };
   };
 
@@ -991,8 +1121,8 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
   });
 }
 
-export { MAX_RETAINED_JOBS, clipToWidth, JobPanel };
-export type { BackgroundTasksExtensionOptions, SandboxSpawnResolver };
+export { MAX_RETAINED_JOBS, clipToWidth, JobPanel, decideBackgroundSpawn };
+export type { BackgroundTasksExtensionOptions, BackgroundSpawnDecision, SandboxSpawnResolver };
 
 // --- Theme shim (avoids importing the real Theme type) -------------------
 

@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import backgroundTasksExtension, { MAX_RETAINED_JOBS, clipToWidth, JobPanel } from "./background-tasks";
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createServer, type AddressInfo } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import backgroundTasksExtension, { MAX_RETAINED_JOBS, clipToWidth, decideBackgroundSpawn, JobPanel, type SandboxSpawnResolver } from "./background-tasks";
+import type { BuildSandboxedSpawnArgs } from "./sandbox-bridge";
+import { buildSandboxedSpawnArgs } from "../../pi-sandbox/extensions/sandbox-spawn";
 
 // A minimal Job-shaped stub for JobPanel tests (only the fields render reads).
 type JobStub = {
@@ -69,7 +76,10 @@ function makeContext(): TestContext {
   return ctx;
 }
 
-function makeFakePi(injectedExec?: (command: string, args: string[]) => Promise<ExecResult>) {
+function makeFakePi(
+  injectedExec?: (command: string, args: string[]) => Promise<ExecResult>,
+  options: { sandboxResolver?: () => Promise<SandboxSpawnResolver> } = {},
+) {
   const tools = new Map<string, RegisteredTool>();
   const wakes: Wake[] = [];
   const userMessages: Wake[] = [];
@@ -118,8 +128,40 @@ function makeFakePi(injectedExec?: (command: string, args: string[]) => Promise<
     },
   };
 
-  backgroundTasksExtension(pi);
+  backgroundTasksExtension(pi, options);
   return { pi, tools, wakes, userMessages, entries, shutdownHandlers, handlers };
+}
+
+const tempDirs: string[] = [];
+const isLinux = process.platform === "linux";
+const hasBwrap = isLinux && Bun.spawnSync(["bwrap", "--version"], { stdout: "pipe", stderr: "pipe" }).success;
+const bwrapIntegrationTest = isLinux && hasBwrap ? test : test.skip;
+
+async function makeTempDir(prefix = "background-tasks-test-"): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+}
+
+async function writeProjectSandboxConfig(cwd: string, config: Record<string, unknown>): Promise<void> {
+  await mkdir(join(cwd, ".pi"), { recursive: true });
+  await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify(config, null, 2));
+}
+
+function isolatedSandboxResolver(agentDir: string): () => Promise<SandboxSpawnResolver> {
+  return async () => ({
+    state: "loaded",
+    buildSandboxedSpawnArgs: ((opts) => buildSandboxedSpawnArgs({
+      ...opts,
+      agentDir,
+      platform: "linux",
+      bwrapAvailable: true,
+    })) as BuildSandboxedSpawnArgs,
+  });
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function waitFor<T>(
@@ -144,9 +186,114 @@ async function jobStatus(tools: Map<string, RegisteredTool>, ctx: TestContext, i
   return m ? m[1] : "";
 }
 
+async function jobTail(tools: Map<string, RegisteredTool>, ctx: TestContext, id: number): Promise<string> {
+  const res = (await tools.get("jobs")!.execute("c", { action: "tail", jobId: id, lines: 40 }, undefined, undefined, ctx)) as {
+    content: Array<{ text: string }>;
+  };
+  return res.content[0].text;
+}
+
 afterEach(async () => {
   // Give any stray timers/processes a brief tick to clear between tests.
   await new Promise((r) => setTimeout(r, 30));
+  while (tempDirs.length > 0) {
+    const dir = tempDirs.pop()!;
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+describe("background sandbox spawn decision", () => {
+  const okBuilder = ((opts) => ({
+    state: "ok",
+    integration: "active",
+    executable: "bwrap",
+    args: ["--ro-bind", "/", "/", "--", "bash", "-c"],
+    cwd: opts.cwd,
+    env: { PATH: "/usr/bin" },
+  })) as BuildSandboxedSpawnArgs;
+
+  test("uses current unsandboxed spawn semantics when the optional helper is absent", () => {
+    const decision = decideBackgroundSpawn({
+      command: "echo hi",
+      cwd: "/tmp",
+      envAdd: { EXTRA_ENV_FOR_TEST: "present" },
+      sandbox: { state: "absent" },
+    });
+
+    expect(decision.mode).toBe("unsandboxed");
+    if (decision.mode !== "unsandboxed") throw new Error("expected unsandboxed");
+    expect(decision.reason).toBe("sandbox-absent");
+    expect(decision.cwd).toBe("/tmp");
+    expect(decision.env.EXTRA_ENV_FOR_TEST).toBe("present");
+  });
+
+  test("uses bwrap argv and helper env when the sandbox helper returns ok", () => {
+    const decision = decideBackgroundSpawn({
+      command: "echo sandboxed",
+      cwd: "/tmp",
+      envAdd: { OPENAI_API_KEY: "must-not-merge" },
+      sandbox: { state: "loaded", buildSandboxedSpawnArgs: okBuilder },
+    });
+
+    expect(decision.mode).toBe("sandboxed");
+    if (decision.mode !== "sandboxed") throw new Error("expected sandboxed");
+    expect(decision.executable).toBe("bwrap");
+    expect(decision.args.slice(-4)).toEqual(["--", "bash", "-c", "echo sandboxed"]);
+    expect(decision.env).toEqual({ PATH: "/usr/bin" });
+    expect(decision.env.OPENAI_API_KEY).toBeUndefined();
+  });
+
+  test("degraded helper results keep the current unsandboxed env merge", () => {
+    const degradedBuilder = ((opts) => ({
+      state: "degraded",
+      integration: "inactive",
+      reason: "integration-off",
+      executable: null,
+      args: [],
+      cwd: opts.cwd,
+      env: { ...process.env, ...(opts.envAdd ?? {}) },
+      message: "operator opt-out",
+    })) as BuildSandboxedSpawnArgs;
+
+    const decision = decideBackgroundSpawn({
+      command: "echo hi",
+      cwd: "/tmp",
+      envAdd: { OPENAI_API_KEY: "kept-unsandboxed" },
+      sandbox: { state: "loaded", buildSandboxedSpawnArgs: degradedBuilder },
+    });
+
+    expect(decision.mode).toBe("unsandboxed");
+    if (decision.mode !== "unsandboxed") throw new Error("expected unsandboxed");
+    expect(decision.reason).toBe("sandbox-degraded");
+    expect(decision.message).toContain("operator opt-out");
+    expect(decision.env.OPENAI_API_KEY).toBe("kept-unsandboxed");
+  });
+
+  test("broken imports and fail-closed helper states refuse to spawn", () => {
+    const broken = decideBackgroundSpawn({
+      command: "echo should-not-run",
+      cwd: "/tmp",
+      sandbox: { state: "broken", message: "helper import failed" },
+    });
+    expect(broken).toMatchObject({ mode: "fail-closed", reason: "sandbox-helper-broken" });
+
+    const failClosedBuilder = (() => ({
+      state: "fail-closed",
+      integration: "blocked",
+      reason: "bwrap-missing",
+      executable: null,
+      args: [],
+      cwd: "/tmp",
+      env: {},
+      message: "bwrap is missing",
+    })) as BuildSandboxedSpawnArgs;
+    const failClosed = decideBackgroundSpawn({
+      command: "echo should-not-run",
+      cwd: "/tmp",
+      sandbox: { state: "loaded", buildSandboxedSpawnArgs: failClosedBuilder },
+    });
+    expect(failClosed).toMatchObject({ mode: "fail-closed", reason: "bwrap-missing" });
+  });
 });
 
 describe("background tool", () => {
@@ -224,6 +371,74 @@ describe("background tool", () => {
     expect(wakes.length).toBe(0);
   });
 
+  test("fails closed without creating a job when the sandbox helper refuses the spawn", async () => {
+    const cwd = await makeTempDir();
+    const marker = join(cwd, "should-not-exist.txt");
+    const failClosedBuilder = (() => ({
+      state: "fail-closed",
+      integration: "blocked",
+      reason: "bwrap-missing",
+      executable: null,
+      args: [],
+      cwd,
+      env: {},
+      message: "bwrap is missing",
+    })) as BuildSandboxedSpawnArgs;
+    const { tools, wakes } = makeFakePi(undefined, {
+      sandboxResolver: async () => ({ state: "loaded", buildSandboxedSpawnArgs: failClosedBuilder }),
+    });
+    const bg = tools.get("background")!;
+
+    const res = (await bg.execute("c1", { command: `echo ran > ${marker}` }, undefined, undefined, { ...makeContext(), cwd })) as {
+      isError?: boolean;
+      content: Array<{ text: string }>;
+      details?: Record<string, unknown>;
+    };
+
+    expect(res.isError).toBe(true);
+    expect(res.content[0].text).toContain("Sandbox refused");
+    expect(res.details?.sandbox).toBe("blocked");
+    expect(existsSync(marker)).toBe(false);
+    expect(wakes).toHaveLength(0);
+    const list = (await tools.get("jobs")!.execute("c2", { action: "list" }, undefined, undefined, { ...makeContext(), cwd })) as {
+      content: Array<{ text: string }>;
+    };
+    expect(list.content[0].text).toContain("No background jobs");
+  });
+
+  test("fails closed without creating a job when spawning bwrap itself errors", async () => {
+    const cwd = await makeTempDir();
+    const marker = join(cwd, "bwrap-spawn-error-marker.txt");
+    const okButUnspawnableBuilder = ((opts) => ({
+      state: "ok",
+      integration: "active",
+      executable: "bwrap",
+      args: ["--", "bash", "-c"],
+      cwd: opts.cwd,
+      env: { PATH: "/definitely-no-bwrap-here" },
+    })) as BuildSandboxedSpawnArgs;
+    const { tools, wakes } = makeFakePi(undefined, {
+      sandboxResolver: async () => ({ state: "loaded", buildSandboxedSpawnArgs: okButUnspawnableBuilder }),
+    });
+    const bg = tools.get("background")!;
+
+    const res = (await bg.execute("c1", { command: `echo ran > ${marker}` }, undefined, undefined, { ...makeContext(), cwd })) as {
+      isError?: boolean;
+      content: Array<{ text: string }>;
+      details?: Record<string, unknown>;
+    };
+
+    expect(res.isError).toBe(true);
+    expect(res.content[0].text).toContain("Sandbox failed to start");
+    expect(res.details?.reason).toBe("sandbox-spawn-error");
+    expect(existsSync(marker)).toBe(false);
+    expect(wakes).toHaveLength(0);
+    const list = (await tools.get("jobs")!.execute("c2", { action: "list" }, undefined, undefined, { ...makeContext(), cwd })) as {
+      content: Array<{ text: string }>;
+    };
+    expect(list.content[0].text).toContain("No background jobs");
+  });
+
   test("notify fires on terminal state (M3/L1 fallback wiring)", async () => {
     const { tools } = makeFakePi();
     const bg = tools.get("background")!;
@@ -233,6 +448,126 @@ describe("background tool", () => {
     expect(n).toBeTruthy();
     expect(n!.level).toBe("success");
   });
+});
+
+describe("background bwrap integration", () => {
+  bwrapIntegrationTest("cannot read a configured denyRead path", async () => {
+    const cwd = await makeTempDir();
+    const agentDir = await makeTempDir("background-tasks-agent-");
+    await writeProjectSandboxConfig(cwd, { filesystem: { denyRead: ["secret.txt"], allowWrite: ["."] } });
+    await writeFile(join(cwd, "secret.txt"), "SUPER-SECRET\n");
+    const { tools } = makeFakePi(undefined, { sandboxResolver: isolatedSandboxResolver(agentDir) });
+    const bg = tools.get("background")!;
+    const ctx = { ...makeContext(), cwd };
+
+    const started = (await bg.execute(
+      "c1",
+      { command: "if [ ! -s secret.txt ]; then echo denied; else echo LEAK:$(cat secret.txt); fi", label: "deny-read" },
+      undefined,
+      undefined,
+      ctx,
+    )) as { details: { jobId: number; sandbox: string } };
+
+    expect(started.details.sandbox).toBe("active");
+    await waitFor(() => jobStatus(tools, ctx, started.details.jobId).then((s) => (s === "completed" ? s : undefined)));
+    const tail = await jobTail(tools, ctx, started.details.jobId);
+    expect(tail).toContain("denied");
+    expect(tail).not.toContain("SUPER-SECRET");
+    expect(await readFile(join(cwd, "secret.txt"), "utf8")).toBe("SUPER-SECRET\n");
+  });
+
+  bwrapIntegrationTest("drops non-allowlisted secret env overrides in sandboxed background jobs", async () => {
+    const cwd = await makeTempDir();
+    const agentDir = await makeTempDir("background-tasks-agent-");
+    await writeProjectSandboxConfig(cwd, { filesystem: { allowWrite: ["."] } });
+    const { tools } = makeFakePi(undefined, { sandboxResolver: isolatedSandboxResolver(agentDir) });
+    const bg = tools.get("background")!;
+    const ctx = { ...makeContext(), cwd };
+
+    const started = (await bg.execute(
+      "c1",
+      {
+        command: "printf 'key=%s term=%s\\n' \"$OPENAI_API_KEY\" \"$TERM\"",
+        label: "env-filter",
+        env: { OPENAI_API_KEY: "fake-secret-token", TERM: "xterm-256color" },
+      },
+      undefined,
+      undefined,
+      ctx,
+    )) as { details: { jobId: number; sandbox: string } };
+
+    expect(started.details.sandbox).toBe("active");
+    await waitFor(() => jobStatus(tools, ctx, started.details.jobId).then((s) => (s === "completed" ? s : undefined)));
+    const tail = await jobTail(tools, ctx, started.details.jobId);
+    expect(tail).toContain("key= term=xterm-256color");
+    expect(tail).not.toContain("fake-secret-token");
+  });
+
+  bwrapIntegrationTest("cannot reach a localhost listener when network mode is block", async () => {
+    const cwd = await makeTempDir();
+    const agentDir = await makeTempDir("background-tasks-agent-");
+    await writeProjectSandboxConfig(cwd, { network: { mode: "block" }, filesystem: { allowWrite: ["."] } });
+    let accepted = 0;
+    const server = createServer((socket) => {
+      accepted++;
+      socket.end("hello");
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const port = (server.address() as AddressInfo).port;
+    try {
+      const { tools } = makeFakePi(undefined, { sandboxResolver: isolatedSandboxResolver(agentDir) });
+      const bg = tools.get("background")!;
+      const ctx = { ...makeContext(), cwd };
+
+      const started = (await bg.execute(
+        "c1",
+        { command: `bash -c 'cat < /dev/tcp/127.0.0.1/${port}'`, label: "blocked-network" },
+        undefined,
+        undefined,
+        ctx,
+      )) as { details: { jobId: number; sandbox: string } };
+
+      expect(started.details.sandbox).toBe("active");
+      await waitFor(() => jobStatus(tools, ctx, started.details.jobId).then((s) => (s === "failed" ? s : undefined)));
+      expect(accepted).toBe(0);
+    } finally {
+      server.close();
+    }
+  });
+
+  bwrapIntegrationTest("cancelling a sandboxed background job kills the wrapped command namespace", async () => {
+    const cwd = await makeTempDir();
+    const agentDir = await makeTempDir("background-tasks-agent-");
+    await writeProjectSandboxConfig(cwd, { filesystem: { allowWrite: ["."] } });
+    const markerName = `bg-kill-marker-${process.pid}-${Date.now()}`;
+    const marker = join(cwd, markerName);
+    const { tools, wakes } = makeFakePi(undefined, { sandboxResolver: isolatedSandboxResolver(agentDir) });
+    const bg = tools.get("background")!;
+    const jobs = tools.get("jobs")!;
+    const ctx = { ...makeContext(), cwd };
+
+    const startedAt = Date.now();
+    const started = (await bg.execute(
+      "c1",
+      { command: `trap '' TERM; sleep 5; echo done > ${markerName}`, label: "sandbox-kill" },
+      undefined,
+      undefined,
+      ctx,
+    )) as { details: { jobId: number; sandbox: string } };
+
+    expect(started.details.sandbox).toBe("active");
+    const cancelRes = (await jobs.execute("c2", { action: "cancel", jobId: started.details.jobId }, undefined, undefined, ctx)) as {
+      details: { status: string };
+      content: Array<{ text: string }>;
+    };
+    expect(cancelRes.details.status).toBe("cancelled");
+    expect(cancelRes.content[0].text).toContain("sandbox-kill");
+
+    const remainingWait = Math.max(0, 6500 - (Date.now() - startedAt));
+    await sleep(remainingWait);
+    expect(existsSync(marker)).toBe(false);
+    expect(wakes).toHaveLength(0);
+  }, 12000);
 });
 
 describe("monitor tool", () => {
