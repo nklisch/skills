@@ -1,7 +1,7 @@
 ---
 id: story-background-tasks-sandbox-bypass-docs
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, plugin, documentation]
 parent: feature-background-tasks-sandbox-integration
 depends_on: [story-background-tasks-sandbox-background-spawn, story-background-tasks-sandbox-monitor-spawn]
@@ -109,3 +109,13 @@ export function applyBypassToolDefaults(
   - `bun test plugins/pi-sandbox/extensions/sandbox.test.ts plugins/background-tasks/extensions/background-tasks.test.ts plugins/background-tasks/extensions/sandbox-bridge.test.ts plugins/pi-sandbox/extensions/sandbox-spawn.test.ts` — 143 pass, 0 fail.
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+
+## Review (2026-07-01)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate fast lane. Implementation verification recorded by implement (143/143 tests passing across the pi-sandbox + background-tasks suites incl. real bwrap integration: kill-lifecycle, denyRead, block-network, secret-env). Advanced review -> done.

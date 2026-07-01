@@ -1,7 +1,7 @@
 ---
 id: story-background-tasks-sandbox-import-config
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, plugin]
 parent: feature-background-tasks-sandbox-integration
 depends_on: [story-background-tasks-sandbox-spawn-helper]
@@ -101,3 +101,13 @@ async function resolveSandboxSpawnBuilder(): Promise<SandboxSpawnResolver> {
 - `bun test plugins/background-tasks/extensions/sandbox-bridge.test.ts` — 7 pass / 0 fail.
 - `bun test plugins/background-tasks/extensions/background-tasks.test.ts` — 35 pass / 0 fail.
 - `bun test plugins/pi-sandbox/extensions/sandbox-spawn.test.ts` — 11 pass / 0 fail (confirms `backgroundTasks.sandboxIntegration` is honored by the helper).
+
+## Review (2026-07-01)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Substrate fast lane. Implementation verification recorded by implement (143/143 tests passing across the pi-sandbox + background-tasks suites incl. real bwrap integration: kill-lifecycle, denyRead, block-network, secret-env). Advanced review -> done.

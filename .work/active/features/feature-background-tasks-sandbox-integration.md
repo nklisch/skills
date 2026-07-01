@@ -1,7 +1,7 @@
 ---
 id: feature-background-tasks-sandbox-integration
 kind: feature
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: [feature-sandbox-first-party-bwrap]
@@ -436,3 +436,34 @@ Skip real bwrap tests when not Linux or `bwrap --version` fails.
 - **Optional import ambiguity**: a missing optional peer is a supported degrade, but a broken installed helper must not fail open. Mitigation: distinguish missing package errors from other dynamic-import errors and treat broken imports as tool errors.
 - **Config opt-out weakening**: `sandboxIntegration:"off"` is an operator bypass and must not be available as a project-local weakening. Mitigation: additive merge ranks `off < auto`; project-local config cannot loosen active/default integration.
 - **Cross-plugin package exports**: exporting TS subpaths from a Pi package is new for `pi-sandbox`. Mitigation: package metadata tests plus background-tasks import tests pin the resolver path.
+
+## Implementation summary — autopilot run 2026-07-01 (raised tier)
+
+All 5 child stories advanced to `stage: review` via implement-orchestrator
+(serialized single-worker waves — cross-plugin integration, mostly shared
+files → width 1), then fast-lane to `done`.
+
+- `story-background-tasks-sandbox-spawn-helper` — pi-sandbox `buildSandboxedSpawnArgs()`
+  helper (ok/fail-closed/degraded states) + package `exports` subpath
+  (`./sandbox-spawn`, `./bwrap`, `./sandbox-config`) + `backgroundTasks.sandboxIntegration`
+  config flag (additive-only: project cannot loosen auto→off).
+- `story-background-tasks-sandbox-import-config` — optional peer dep
+  (`peerDependenciesMeta.optional`) + guarded dynamic `import()` bridge
+  (`sandbox-bridge.ts`); degrades cleanly on absent/broken pi-sandbox.
+- `story-background-tasks-sandbox-background-spawn` — `background` spawn wired
+  through bwrap (ok) / unsandboxed (degraded) / error (fail-closed); job
+  lifecycle preserved; kill-lifecycle PROVEN (process.kill(-pgid) terminates
+  the bwrap namespace — marker never created).
+- `story-background-tasks-sandbox-monitor-spawn` — `monitor` per-poll execution
+  direct-spawns bwrap (sandboxed) vs `pi.exec` (unsandboxed); all polling
+  semantics preserved (exit_zero/nonzero, stdout_matches/not_matches, interval,
+  timeout, early-wake, non-overlap).
+- `story-background-tasks-sandbox-bypass-docs` — policy matrix (allow when
+  integration active, confirm otherwise), `/sandbox` reports integration
+  state, both READMEs document the integration honestly (Linux-only real
+  sandboxing, fail-closed default, graceful non-Linux degrade).
+
+Verification: 143/143 tests across pi-sandbox + background-tasks suites (pure
+unit + real bwrap integration: kill-lifecycle, denyRead, block-network,
+secret-env omission, per-poll timeout). `grep -r sandbox-runtime` empty.
+Cross-cutting deviations: none. Ready for review.
