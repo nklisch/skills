@@ -1,7 +1,7 @@
 ---
 id: feature-sandbox-first-party-bwrap
 kind: feature
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -355,3 +355,40 @@ Second deep-review follow-up: **Case B — RPC/API bash is not interceptable by 
 - `dist/core/extensions/types.d.ts:759-763` allows custom `BashOperations` only as a `UserBashEventResult`; `dist/core/extensions/types.d.ts:850-855` exposes `tool_call`, `tool_result`, `user_bash`, `input`, and `registerTool`, but no `executeBash` override or global bash-operations hook.
 
 Because the extension cannot mediate that pi-core direct executor path, the fix is honest boundary documentation rather than a fake interception. README language now scopes bash protection to the mediated LLM/tool `bash` path and interactive `user_bash`, documents RPC/API direct `bash` as a known residual bypass, and tells operators who need bash sandboxing to avoid/restrict RPC/API bash access. `/sandbox` diagnostics now also name RPC/API direct bash as not mediated by current pi core, and the existing diagnostics test asserts that wording. No interception test was added because there is no extension hook to assert against.
+
+## Review (2026-07-01)
+
+**Verdict**: Approve with comments
+
+**Blockers**: none remaining.
+- Deep review round 1 found a fail-closed breach on the `user_bash` (`!`/`!!`)
+  path (returned `undefined` → Pi fell through to unsandboxed local bash).
+  Fixed in `f4620f3`: `user_bash` now routes through `decideUserBash()` and
+  returns an explicit `UserBashEventResult` block (`createUserBashBlockResult`,
+  grounded in pi core `dist/core/extensions/types.d.ts:759-763`) for
+  fail-closed/uninitialized; intentional `--no-sandbox`/`enabled:false` still
+  fall through. Same fix installed a permissive no-op file policy for those
+  intentional disables and made the README honest about bypass scope.
+- Deep review round 2 found RPC/API `bash` bypasses the sandbox (pi core
+  `session.executeBash()` runs direct, no extension hook). Verified Case B — a
+  genuine pi-core architectural limitation, not interceptable. Fixed in
+  `bdbea57` by documenting RPC/API direct bash as a residual bypass in the
+  README (intro, fail-closed scope, non-goals), narrowing the bash-protection
+  claims to mediated LLM/tool `bash` + interactive `user_bash`, and surfacing
+  it in the `/sandbox` diagnostic. The package no longer overclaims bash
+  protection in RPC mode.
+
+**Important**: none. (`enabled:false` file-policy behavior was addressed by
+the `f4620f3` fix; `allowWrite` canonical narrowing remains a backlog item —
+`idea-pi-sandbox-allowwrite-canonical-narrowing` — out of scope here.)
+
+**Nits**: none.
+
+**Notes**: Substrate deep lane, fresh-context `openai-codex/gpt-5.5` (xhigh)
+— different model class from the umans orchestrator, satisfying the
+advisory→adversarial cross-model requirement. Two convergence rounds to a
+clean APPROVE. Verification: `bun test` 61/61 pass (pure unit + real bwrap
+integration); `grep -r sandbox-runtime plugins/pi-sandbox/` empty; clean
+`pi install` verified in a throwaway HOME. Not archived pending operator
+decision (feature body retained for the draft-PR description); CONVENTIONS.md
+default `delete-refs` would otherwise archive to a bodyless stub.
