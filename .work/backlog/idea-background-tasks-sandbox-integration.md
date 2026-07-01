@@ -87,3 +87,9 @@ wrapped command string — a drop-in before the existing `spawn`/`exec` calls.
 - The mesh (`agent_send`) exfil channel — a separate concern; `agent_send` is a pi
   tool, not a bash subprocess, so bubblewrap does not touch it. Worth a separate
   backlog item if not already tracked.
+
+---
+
+## Update 2026-07-01 — superseded approach (ASRT dropped)
+
+The `SandboxManager.wrapWithSandbox()` approach proposed here is **superseded** by `feature-sandbox-first-party-bwrap`: ASRT is dropped entirely, so `wrapWithSandbox` no longer exists. Background-tasks spawn sites (`background` tool ~`background-tasks.ts:531`, `monitor` ~`background-tasks.ts:694`) should instead route through the new first-party `buildBwrapArgs()` from `@nklisch/pi-sandbox` once that extension lands. This item's *problem statement* (background/monitor bypass the sandbox) remains valid and open; only the proposed affordance changes. Re-scope when the pi-sandbox plugin is vendored — the spawn sites will wrap their command string through the same `buildBwrapArgs()` + `spawn("bwrap", ...)` path the bash tool uses.
