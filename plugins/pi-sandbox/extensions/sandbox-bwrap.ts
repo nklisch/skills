@@ -34,20 +34,18 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 		args.push("--bind", mount, mount);
 	}
 
-	const denyWriteMounts = existingCanonicalMounts(opts.denyWrite, cwd);
-	const denyWriteSet = new Set(denyWriteMounts);
-	for (const mount of denyWriteMounts) {
-		args.push("--ro-bind", mount, mount);
-	}
-
-	for (const mount of existingCanonicalMounts(opts.denyRead, cwd)) {
-		if (statSync(mount).isDirectory()) {
-			args.push("--tmpfs", mount);
-			if (denyWriteSet.has(mount)) {
-				args.push("--remount-ro", mount);
+	for (const mount of existingDenyOverlays(opts.denyRead, opts.denyWrite, cwd)) {
+		if (mount.denyRead) {
+			if (mount.isDirectory) {
+				args.push("--tmpfs", mount.path);
+				if (mount.denyWrite) {
+					args.push("--remount-ro", mount.path);
+				}
+			} else {
+				args.push("--ro-bind", "/dev/null", mount.path);
 			}
 		} else {
-			args.push("--ro-bind", "/dev/null", mount);
+			args.push("--ro-bind", mount.path, mount.path);
 		}
 	}
 
@@ -148,6 +146,41 @@ function existingCanonicalMounts(rawPaths: string[], cwd: string): string[] {
 		mounts.push(canonical);
 	}
 	return mounts;
+}
+
+interface DenyOverlay {
+	path: string;
+	denyRead: boolean;
+	denyWrite: boolean;
+	isDirectory: boolean;
+}
+
+function existingDenyOverlays(denyRead: string[], denyWrite: string[], cwd: string): DenyOverlay[] {
+	const readMounts = existingCanonicalMounts(denyRead, cwd);
+	const writeMounts = existingCanonicalMounts(denyWrite, cwd);
+	const readSet = new Set(readMounts);
+	const writeSet = new Set(writeMounts);
+	const paths = [...new Set([...readMounts, ...writeMounts])];
+
+	return paths
+		.map((path) => ({
+			path,
+			// A denyWrite child under a denyRead parent must not be re-exposed by a
+			// later ro-bind of the original child. Treat denyRead as inherited from
+			// canonical ancestors, then remount the child as an empty read-only mask.
+			denyRead: readSet.has(path) || hasAncestor(path, readMounts),
+			denyWrite: writeSet.has(path),
+			isDirectory: statSync(path).isDirectory(),
+		}))
+		.sort((a, b) => pathDepth(a.path) - pathDepth(b.path) || a.path.localeCompare(b.path));
+}
+
+function hasAncestor(path: string, ancestors: string[]): boolean {
+	return ancestors.some((ancestor) => path !== ancestor && path.startsWith(`${ancestor}/`));
+}
+
+function pathDepth(path: string): number {
+	return path.split("/").filter(Boolean).length;
 }
 
 function expandTilde(path: string): string {

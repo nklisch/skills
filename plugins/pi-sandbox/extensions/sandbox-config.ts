@@ -467,6 +467,18 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 		};
 	}
 
+	// envScrub: project can only ADD exact names, patterns, and keep-list
+	// exceptions. Adding scrub targets tightens child-process exposure;
+	// adding keep entries protects runtime-required vars from broad patterns.
+	if (project.envScrub) {
+		const baseScrub = result.envScrub;
+		result.envScrub = {
+			names: [...new Set([...(baseScrub?.names ?? []), ...(project.envScrub.names ?? [])])],
+			patterns: [...new Set([...(baseScrub?.patterns ?? []), ...(project.envScrub.patterns ?? [])])],
+			keep: [...new Set([...(baseScrub?.keep ?? []), ...(project.envScrub.keep ?? [])])],
+		};
+	}
+
 	// tools: project can only TIGHTEN. Additive by policy rank:
 	// allow < auto < confirm < block. Project may raise a tool's policy,
 	// never lower it. It may also narrow the default (e.g. global
@@ -496,9 +508,10 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 		}
 		// inspector: project can ADD new secret shapes and tighten onNoMatch
 		// (allow -> block), never remove/override global shapes or loosen
-		// onNoMatch. scanFields are additive-only narrowing: a project may
-		// intersect a global field list, but cannot widen it to "*" or reduce a
-		// tool's scanned fields to empty.
+		// onNoMatch. scanFields are additive-only coverage: a project may add
+		// fields to scan, but can never remove fields requested by global/default
+		// policy. Effective per-tool scanFields are the union of global/default
+		// and project fields; "*" remains "*".
 		let mergedInspector = baseTools.inspector;
 		if (project.tools.inspector) {
 			const baseInsp = baseTools.inspector ?? {};
@@ -520,27 +533,31 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 			else if (projInsp.onNoMatch === "allow" && baseOnNoMatch === "block") {
 				warns.push(`project tried to loosen inspector onNoMatch (block -> allow); ignored (additive-only).`);
 			}
-			// scanFields: project may narrow, but never widen or silently empty.
+			// scanFields: project additions are a union with any tool-specific
+			// global intent, or the global "*" default when no tool-specific entry
+			// exists. A project list that omits global fields is kept from narrowing
+			// the effective coverage and warned.
 			const mergedScan: Record<string, string[] | "*"> = { ...(baseInsp.scanFields ?? {}) };
 			for (const [tool, fields] of Object.entries(projInsp.scanFields ?? {})) {
-				const baseFields = mergedScan[tool];
 				if (Array.isArray(fields) && fields.length === 0) {
 					warns.push(`project tried to empty inspector scanFields for "${tool}"; ignored (additive-only).`);
 					continue;
 				}
+
+				const baseFields = mergedScan[tool] ?? mergedScan["*"];
 				if (baseFields === undefined) {
 					mergedScan[tool] = fields;
-				} else if (baseFields === "*") {
-					mergedScan[tool] = fields;
-				} else if (fields === "*") {
-					warns.push(`project tried to widen inspector scanFields for "${tool}" to "*"; ignored (additive-only).`);
-				} else {
-					const narrowed = fields.filter((f) => baseFields.includes(f));
-					if (narrowed.length === 0) {
-						warns.push(`project tried to empty inspector scanFields for "${tool}"; ignored (additive-only).`);
-					} else {
-						mergedScan[tool] = narrowed;
+				} else if (baseFields === "*" || fields === "*") {
+					if (baseFields === "*" && fields !== "*") {
+						warns.push(`project tried to narrow inspector scanFields for "${tool}" from "*"; ignored (additive-only).`);
 					}
+					mergedScan[tool] = "*";
+				} else {
+					const missingBaseFields = baseFields.filter((field) => !fields.includes(field));
+					if (missingBaseFields.length > 0) {
+						warns.push(`project tried to drop inspector scanFields for "${tool}" (${missingBaseFields.join(", ")}); using union (additive-only).`);
+					}
+					mergedScan[tool] = [...baseFields, ...fields.filter((field) => !baseFields.includes(field))];
 				}
 			}
 			if (projInsp.allowlist) {
@@ -712,6 +729,37 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 	if (value.entropy !== undefined && typeof value.entropy !== "number") errors.push(`${path}.entropy must be a number`);
 	validateOptionalStringArray(value.keywords, `${path}.keywords`, errors);
 	if (value.flags !== undefined && typeof value.flags !== "string") errors.push(`${path}.flags must be a string`);
+	if (typeof value.pattern === "string" && value.pattern.length > 0 && (value.flags === undefined || typeof value.flags === "string")) {
+		try {
+			new RegExp(value.pattern, value.flags ?? "gu");
+		} catch (e) {
+			errors.push(`${path}.pattern must compile as a JavaScript RegExp${e instanceof Error ? ` (${e.message})` : ""}`);
+		}
+	}
+}
+
+/**
+ * Scrub secret-bearing env vars from process.env at session_start.
+ * Provider/runtime keep entries and config keep entries are both honored.
+ */
+export function scrubEnv(config: EnvScrubConfig | undefined, keep: string[]): string[] {
+	if (!config || (!config.names?.length && !config.patterns?.length)) return [];
+	const keepSet = new Set([...keep, ...(config.keep ?? [])]);
+	const compiledPatterns = (config.patterns ?? []).map((p) => {
+		const re = p.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
+		return new RegExp(`^${re}$`, "i");
+	});
+	const scrubbed: string[] = [];
+	for (const name of Object.keys(process.env)) {
+		if (keepSet.has(name)) continue;
+		const hitByName = config.names?.includes(name);
+		const hitByPattern = compiledPatterns.some((re) => re.test(name));
+		if (hitByName || hitByPattern) {
+			delete process.env[name];
+			scrubbed.push(name);
+		}
+	}
+	return scrubbed;
 }
 
 function collectLegacyFieldWarnings(source: "global" | "project", value: unknown): string[] {
