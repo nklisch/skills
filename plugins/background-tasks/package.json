@@ -16,6 +16,14 @@
     "agent-skills",
     "background-tasks"
   ],
+  "peerDependencies": {
+    "@nklisch/pi-sandbox": "*"
+  },
+  "peerDependenciesMeta": {
+    "@nklisch/pi-sandbox": {
+      "optional": true
+    }
+  },
   "pi": {
     "extensions": [
       "./extensions"

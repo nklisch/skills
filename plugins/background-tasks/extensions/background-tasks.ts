@@ -45,6 +45,7 @@
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
+import { createCachedSandboxResolver, type SandboxSpawnResolver } from "./sandbox-bridge";
 
 // --- Keybinding matcher (sync, optional) ---------------------------------
 //
@@ -218,6 +219,10 @@ type PiApi = {
   ) => void;
 };
 
+interface BackgroundTasksExtensionOptions {
+  sandboxResolver?: () => Promise<SandboxSpawnResolver>;
+}
+
 // --- Job registry ---------------------------------------------------------
 
 type JobKind = "background" | "monitor";
@@ -313,7 +318,12 @@ function formatJobLine(job: Job): string {
 
 // --- Extension ------------------------------------------------------------
 
-export default function backgroundTasksExtension(pi: PiApi): void {
+export default function backgroundTasksExtension(pi: PiApi, options: BackgroundTasksExtensionOptions = {}): void {
+  const resolveSandboxSpawn = createCachedSandboxResolver(options.sandboxResolver);
+  // The spawn sites are wired in follow-up stories; keep the optional import
+  // resolver cached in this extension closure now so future background/monitor
+  // poll paths do not re-import the optional peer on every tick.
+  void resolveSandboxSpawn;
   const jobs = new Map<number, Job>();
   let nextId = 1;
   let shuttingDown = false;
@@ -982,6 +992,7 @@ export default function backgroundTasksExtension(pi: PiApi): void {
 }
 
 export { MAX_RETAINED_JOBS, clipToWidth, JobPanel };
+export type { BackgroundTasksExtensionOptions, SandboxSpawnResolver };
 
 // --- Theme shim (avoids importing the real Theme type) -------------------
 
