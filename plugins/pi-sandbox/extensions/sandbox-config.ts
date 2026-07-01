@@ -23,6 +23,13 @@ export interface SandboxNetwork {
 	deniedDomains?: string[];
 }
 
+export type BackgroundTasksSandboxIntegration = "auto" | "off";
+
+export interface BackgroundTasksSandboxConfig {
+	/** "auto" routes background-tasks through bwrap when available; "off" is an operator opt-out. */
+	sandboxIntegration?: BackgroundTasksSandboxIntegration;
+}
+
 /** Extension config for the first-party bwrap backend and in-process tool guards. */
 export interface SandboxConfig {
 	enabled?: boolean;
@@ -30,6 +37,7 @@ export interface SandboxConfig {
 	network?: SandboxNetwork;
 	tools?: ToolRules;
 	envScrub?: EnvScrubConfig;
+	backgroundTasks?: BackgroundTasksSandboxConfig;
 }
 
 /** Per-tool egress policy, applied via the `tool_call` event. */
@@ -369,8 +377,11 @@ export interface EnvScrubConfig {
 	keep?: string[];
 }
 
-export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: EnvScrubConfig } = {
+export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: EnvScrubConfig; backgroundTasks?: BackgroundTasksSandboxConfig } = {
 	enabled: true,
+	backgroundTasks: {
+		sandboxIntegration: "auto",
+	},
 	network: {
 		mode: "open",
 		allowedDomains: [
@@ -414,6 +425,7 @@ export interface LoadedConfig {
 }
 
 const NETWORK_MODES = new Set(["open", "block", "filter"]);
+const BACKGROUND_TASKS_SANDBOX_INTEGRATIONS = new Set(["auto", "off"]);
 const TOOL_POLICIES = new Set(["allow", "auto", "confirm", "block"]);
 const SECRET_ACTIONS = new Set(["block", "redact"]);
 const INSPECTOR_NO_MATCH_ACTIONS = new Set(["allow", "block"]);
@@ -464,6 +476,17 @@ export function validateConfig(config: unknown): string[] {
 				}
 			}
 			validateInspector(config.tools.inspector, errors);
+		}
+	}
+
+	if (config.backgroundTasks !== undefined) {
+		if (!isRecord(config.backgroundTasks)) {
+			errors.push("backgroundTasks must be an object");
+		} else if (config.backgroundTasks.sandboxIntegration !== undefined) {
+			const integration = config.backgroundTasks.sandboxIntegration;
+			if (typeof integration !== "string" || !BACKGROUND_TASKS_SANDBOX_INTEGRATIONS.has(integration)) {
+				errors.push('backgroundTasks.sandboxIntegration must be one of "auto" or "off"');
+			}
 		}
 	}
 
@@ -594,6 +617,12 @@ export function deepMerge(base: SandboxConfig, overrides: Partial<SandboxConfig>
 			inspector: overrides.tools.inspector ?? baseTools.inspector,
 		};
 	}
+	if (overrides.backgroundTasks) {
+		result.backgroundTasks = {
+			...base.backgroundTasks,
+			sandboxIntegration: overrides.backgroundTasks.sandboxIntegration ?? base.backgroundTasks?.sandboxIntegration,
+		};
+	}
 
 	const extOverrides = overrides as { envScrub?: EnvScrubConfig };
 	const extResult = result as { envScrub?: EnvScrubConfig };
@@ -691,6 +720,20 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 			...result.network,
 			allowedDomains: project.network.allowedDomains.filter((p) => globalAllow.has(p)),
 		};
+	}
+
+	// backgroundTasks.sandboxIntegration: project-local config may only tighten.
+	// Rank is off < auto: disabling integration loosens the background/monitor
+	// sandbox boundary, so a project cannot turn a global/default auto posture off.
+	if (project.backgroundTasks?.sandboxIntegration) {
+		const integrationRank: Record<BackgroundTasksSandboxIntegration, number> = { off: 0, auto: 1 };
+		const current = result.backgroundTasks?.sandboxIntegration ?? "auto";
+		const requested = project.backgroundTasks.sandboxIntegration;
+		if (integrationRank[requested] > integrationRank[current]) {
+			result.backgroundTasks = { ...result.backgroundTasks, sandboxIntegration: requested };
+		} else if (integrationRank[requested] < integrationRank[current]) {
+			warns.push(`project tried to loosen backgroundTasks.sandboxIntegration (${current} -> ${requested}); ignored (additive-only).`);
+		}
 	}
 
 	// envScrub: project can only ADD exact names/patterns (scrub more).

@@ -1,7 +1,7 @@
 ---
 id: story-background-tasks-sandbox-spawn-helper
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: feature-background-tasks-sandbox-integration
 depends_on: []
@@ -106,11 +106,20 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 
 ## Acceptance criteria
 
-- [ ] `buildSandboxedSpawnArgs({ cwd, command, bwrapAvailable:true, platform:"linux" })` returns `state:"ok"`, `executable:"bwrap"`, args ending in `["--", "bash", "-c"]`, and minimal env.
-- [ ] `envAdd` allowlisted keys (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`) survive in `ok`; non-allowlisted keys such as `OPENAI_API_KEY` and arbitrary secrets are absent.
-- [ ] invalid sandbox JSON returns `fail-closed/config-parse-error` and does not return runnable args.
-- [ ] `network.mode:"filter"` returns `fail-closed/filter-deferred`.
-- [ ] Linux with missing bwrap returns `fail-closed/bwrap-missing`.
-- [ ] non-Linux returns `degraded/unsupported-platform` with normal merged env.
-- [ ] `backgroundTasks.sandboxIntegration:"off"` returns `degraded/integration-off`.
-- [ ] package metadata exports the helper subpath and existing tests stay green.
+- [x] `buildSandboxedSpawnArgs({ cwd, command, bwrapAvailable:true, platform:"linux" })` returns `state:"ok"`, `executable:"bwrap"`, args ending in `["--", "bash", "-c"]`, and minimal env.
+- [x] `envAdd` allowlisted keys (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`) survive in `ok`; non-allowlisted keys such as `OPENAI_API_KEY` and arbitrary secrets are absent.
+- [x] invalid sandbox JSON returns `fail-closed/config-parse-error` and does not return runnable args.
+- [x] `network.mode:"filter"` returns `fail-closed/filter-deferred`.
+- [x] Linux with missing bwrap returns `fail-closed/bwrap-missing`.
+- [x] non-Linux returns `degraded/unsupported-platform` with normal merged env.
+- [x] `backgroundTasks.sandboxIntegration:"off"` returns `degraded/integration-off`.
+- [x] package metadata exports the helper subpath and existing tests stay green.
+
+### Completed implementation notes
+
+- Added `plugins/pi-sandbox/extensions/sandbox-spawn.ts` with `buildSandboxedSpawnArgs(opts)` returning a discriminated `ok` / `degraded` / `fail-closed` spawn contract. The ok contract returns `executable: "bwrap"` and args ending at `["--", "bash", "-c"]`; callers append `opts.command` as the final argv item so the helper does not embed shell text into the reusable prefix.
+- The helper owns config acquisition via `loadConfig(opts.cwd, { agentDir })`, treats parse errors/filter/missing bwrap/build errors as fail-closed, degrades only for `sandboxIntegration:"off"`, `enabled:false`, or non-Linux unsupported platform, and filters sandboxed env through `buildMinimalEnv` after applying `envAdd` over `baseEnv`.
+- Added `backgroundTasks.sandboxIntegration: "auto" | "off"` to pi-sandbox config with default `auto`. Additive merge ranks `off < auto`: a global/operator config may opt out with `off`, but a project-local `off` against default/global `auto` is a loosening attempt and is ignored with an additive warning; a project may tighten global `off` back to `auto`.
+- Added package export subpaths for `./bwrap`, `./sandbox-spawn`, and `./sandbox-config` using `{ "types": "./extensions/*.ts", "import": "./extensions/*.ts" }`. Pi extension loading remains through the `pi.extensions` manifest, not the exports map.
+- Added typebox-free tests in `plugins/pi-sandbox/extensions/sandbox-spawn.test.ts` covering ok env filtering, degraded states, fail-closed states, additive config merge, validation, and package export metadata.
+- Verification: `bun test plugins/pi-sandbox/extensions/sandbox-spawn.test.ts` (11 pass) and `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` (66 pass).
