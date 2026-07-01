@@ -90,6 +90,48 @@ export function bwrapIsAvailable(env: NodeJS.ProcessEnv = process.env): boolean 
 	return findExecutableOnPath("bwrap", env) !== null;
 }
 
+export type BwrapInitValidation =
+	| { ok: true }
+	| { ok: false; reason: "unsupported-platform" | "bwrap-missing" | "filter-deferred"; message: string; status: string };
+
+export function validateBwrapInit(opts: {
+	platform?: NodeJS.Platform;
+	env?: NodeJS.ProcessEnv;
+	networkMode: NetworkMode;
+	bwrapAvailable?: boolean;
+}): BwrapInitValidation {
+	const platform = opts.platform ?? process.platform;
+	if (platform !== "linux") {
+		return {
+			ok: false,
+			reason: "unsupported-platform",
+			message: `Sandbox not supported on ${platform}; fail-closed. Use --no-sandbox to bypass.`,
+			status: "🔒 Sandbox: FAIL-CLOSED (unsupported platform)",
+		};
+	}
+
+	const available = opts.bwrapAvailable ?? bwrapIsAvailable(opts.env ?? process.env);
+	if (!available) {
+		return {
+			ok: false,
+			reason: "bwrap-missing",
+			message: "Sandbox initialization failed: bwrap is not available on PATH. Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.",
+			status: "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened",
+		};
+	}
+
+	if (opts.networkMode === "filter") {
+		return {
+			ok: false,
+			reason: "filter-deferred",
+			message: "Sandbox network.mode=filter is deferred for the first-party bwrap backend. Bash is fail-closed instead of silently opening network access; use network.mode=open or block, or restart with --no-sandbox.",
+			status: "🔒 Sandbox: FAIL-CLOSED (network filter deferred) — file tools still hardened",
+		};
+	}
+
+	return { ok: true };
+}
+
 function existingCanonicalMounts(rawPaths: string[], cwd: string): string[] {
 	const seen = new Set<string>();
 	const mounts: string[] = [];

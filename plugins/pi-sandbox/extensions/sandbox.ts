@@ -1,9 +1,8 @@
 /**
  * Sandbox Extension - OS-level sandboxing for bash + file tools
  *
- * Uses @anthropic-ai/sandbox-runtime to enforce filesystem and network
- * restrictions on bash commands at the OS level (sandbox-exec on macOS,
- * bubblewrap on Linux).
+ * Uses a first-party Linux bubblewrap backend to enforce filesystem and
+ * network restrictions on bash commands at the OS level.
  *
  * Additionally registers hardened `read`/`write`/`edit` tools that enforce
  * the same denyRead/denyWrite/allowWrite policy at the tool-I/O layer. These
@@ -26,15 +25,14 @@ import { constants as fsConstants, existsSync, readFileSync, statSync } from "no
 import { access as fsAccess, readFile as fsReadFile, writeFile as fsWriteFile, mkdir as fsMkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { SandboxManager, type NetworkConfig, type SandboxRuntimeConfig } from "@anthropic-ai/sandbox-runtime";
 import {
 	buildBwrapArgs,
 	buildMinimalEnv,
-	bwrapIsAvailable,
 	canonicalizeExistingPath,
 	normalizeConfiguredPath,
 	shouldBypassSandbox,
 	type NetworkMode,
+	validateBwrapInit,
 } from "./sandbox-bwrap";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
@@ -59,9 +57,8 @@ import { Type } from "typebox";
  * Network egress lever. Decouples the filesystem sandbox from the network
  * namespace so the read/write protections hold regardless of network posture.
  *
- * - `"filter"` (default): ASRT `--unshare-net` + domain allowlist proxy.
- *   bash can only reach `network.allowedDomains`. The historical mode; use
- *   when you want exfil-containment as a defense-in-depth layer.
+ * - `"filter"` (default): deferred in the first-party bwrap backend. The
+ *   extension fails closed instead of silently treating it as `open`.
  * - `"open"`: no network namespace. bash gets the host's normal network
  *   (registry fetches, web fetches, anything) — but the filesystem denyRead/
  * denyWrite/allowWrite bind-mounts and the in-process read/write/edit guards
@@ -69,7 +66,7 @@ import { Type } from "typebox";
  *   (pub.dev, research source fetches) and the read-leak protections alone are
  *   the goal. The tool_call egress gate (umans_web_search/agent_send/...) is
  *   in-process and stays active in every mode.
- * - `"block"`: ASRT `--unshare-net` with NO proxy = fully air-gapped bash.
+ * - `"block"`: bwrap `--unshare-net` = fully air-gapped bash.
  *   Paranoia mode (e.g. handling raw untrusted content); nothing reaches the
  *   network, allowlist is ignored.
  *
@@ -77,11 +74,26 @@ import { Type } from "typebox";
  * a graduated, config-driven posture rather than a binary on/off.
  */
 
-/** Extension config. `network.mode` is OUR layer; the rest of `network` is
- * passed through to ASRT when mode is filter/block. */
-interface SandboxConfig extends SandboxRuntimeConfig {
+interface SandboxFilesystem {
+	denyRead?: string[];
+	denyWrite?: string[];
+	allowWrite?: string[];
+	allowGitConfig?: boolean;
+}
+
+interface SandboxNetwork {
+	mode?: NetworkMode;
+	allowedDomains?: string[];
+	deniedDomains?: string[];
+}
+
+/** Extension config for the first-party bwrap backend and in-process tool guards. */
+interface SandboxConfig {
 	enabled?: boolean;
-	network?: NetworkConfig & { mode?: NetworkMode };
+	filesystem?: SandboxFilesystem;
+	network?: SandboxNetwork;
+	tools?: ToolRules;
+	envScrub?: EnvScrubConfig;
 }
 
 
@@ -191,7 +203,7 @@ function expandTilde(p: string): string {
 /**
  * Normalize a config path to an absolute path for comparison.
  * `~` is expanded; relative paths resolve against `cwd` (for read) —
- * matching ASRT's behavior of treating relative paths as cwd-relative.
+ * matching the sandbox config contract of treating relative paths as cwd-relative.
  */
 function normalizePathForCheck(rawPath: string, cwd: string): string {
 	const normalized = normalizeConfiguredPath(rawPath, cwd);
@@ -225,7 +237,7 @@ function isWithinAllowWrite(target: string, allowList: string[], cwd: string): b
 	return false;
 }
 
-/** Linux does not support glob matching in ASRT. Detect glob patterns so we can warn. */
+/** The first-party bwrap backend does not support glob denyWrite matching. Detect glob patterns so we can warn. */
 function isGlobPattern(p: string): boolean {
 	return /[*?]/.test(p);
 }
@@ -883,6 +895,11 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_start", async (_event, ctx) => {
+		failClosed = false;
+		disabledViaConfig = false;
+		sandboxEnabled = false;
+		sandboxInitialized = false;
+
 		const noSandbox = pi.getFlag("no-sandbox") as boolean;
 
 		if (noSandbox) {
@@ -908,13 +925,6 @@ export default function (pi: ExtensionAPI) {
 			sandboxEnabled = false;
 			disabledViaConfig = true;
 			ctx.ui.notify("Sandbox disabled via config", "info");
-			return;
-		}
-
-		const platform = process.platform;
-		if (platform !== "linux") {
-			failClosed = true;
-			ctx.ui.notify(`Sandbox not supported on ${platform}; fail-closed. Use --no-sandbox to bypass.`, "error");
 			return;
 		}
 
@@ -948,95 +958,42 @@ export default function (pi: ExtensionAPI) {
 		};
 		activePolicy = sandboxPolicy;
 
-		if (!bwrapIsAvailable(process.env)) {
+		const initValidation = validateBwrapInit({ networkMode: netMode, env: process.env });
+		if (!initValidation.ok) {
 			failClosed = true;
-			ctx.ui.notify("Sandbox initialization failed: bwrap is not available on PATH. Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.", "error");
-			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened"));
+			ctx.ui.notify(initValidation.message, "error");
+			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", initValidation.status));
 			return;
 		}
 
-		if (netMode === "filter") {
-			failClosed = true;
-			ctx.ui.notify("Sandbox network.mode=filter is deferred for the first-party bwrap backend. Bash is fail-closed instead of silently opening network access; use network.mode=open or block, or restart with --no-sandbox.", "error");
-			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (network filter deferred) — file tools still hardened"));
-			return;
-		}
+		sandboxEnabled = true;
+		sandboxInitialized = true;
+		failClosed = false;
 
-		try {
-			const configExt = config as unknown as {
-				ignoreViolations?: Record<string, string[]>;
-				enableWeakerNestedSandbox?: boolean;
-			};
-
-			// Network lever (network.mode): decouples the filesystem sandbox from
-			// the network namespace. ASRT gates --unshare-net on whether the
-			// `allowedDomains` KEY is present in the network object (an empty array
-			// counts as present = "block all"; an ABSENT key = false = no namespace).
-			// initialize() always derefs config.network.httpProxyPort/socksProxyPort,
-			// so `network` must be a present object even in open mode. The filesystem
-			// bind-mounts (readConfig/writeConfig) are generated regardless of mode,
-			// so denyRead/denyWrite/allowWrite hold in every mode.
-			const initParams: Parameters<typeof SandboxManager.initialize>[0] = {
-				filesystem: config.filesystem,
-				ignoreViolations: configExt.ignoreViolations,
-				enableWeakerNestedSandbox: configExt.enableWeakerNestedSandbox,
-			};
-			if (netMode === "filter" || netMode === "block") {
-				// filter = configured allowlist + proxy. block = empty allowedDomains
-				// (ASRT air-gaps with no proxy).
-				initParams.network =
-					netMode === "block"
-						? { ...config.network, allowedDomains: [], deniedDomains: [] }
-						: config.network;
-			} else {
-				// mode "open": present-but-keyless network object. config.network exists
-				// (so initialize() can deref .httpProxyPort -> undefined -> starts local
-				// proxies harmlessly), but allowedDomains is ABSENT so hasNetworkConfig
-				// is false -> no --unshare-net, host network intact. Do NOT pass
-				// allowedDomains:[] here — that is `!== undefined` and turns the
-				// namespace ON as "block all".
-				initParams.network = {};
-			}
-
-			await SandboxManager.initialize(initParams);
-
-			sandboxEnabled = true;
-			sandboxInitialized = true;
-
-			const networkCount = config.network?.allowedDomains?.length ?? 0;
-			const writeCount = config.filesystem?.allowWrite?.length ?? 0;
-			const netLabel =
-				netMode === "open"
-					? "net open"
-					: netMode === "block"
-						? `net block (0 domains)`
-						: `net filter ${networkCount} domains`;
-			ctx.ui.setStatus(
-				"sandbox",
-				ctx.ui.theme.fg("accent", `🔒 Sandbox: ${netLabel}, ${writeCount} write paths, file tools hardened`),
-			);
-			ctx.ui.notify(
-				`Sandbox initialized (bash + read/write/edit hardened; network: ${netMode})`,
-				"info",
-			);
-		} catch (err) {
-			// FAIL-CLOSED: do not silently fall back to unsandboxed bash.
-			// File-tool policy (set above) still applies.
-			failClosed = true;
-			const msg = `Sandbox initialization failed: ${err instanceof Error ? err.message : err}. Bash is fail-closed. File-tool policy still enforced. Fix and /reload, or restart with --no-sandbox.`;
-			ctx.ui.notify(msg, "error");
-			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (init error) — file tools still hardened"));
-		}
+		const networkCount = config.network?.allowedDomains?.length ?? 0;
+		const writeCount = config.filesystem?.allowWrite?.length ?? 0;
+		const netLabel =
+			netMode === "open"
+				? "net open"
+				: netMode === "block"
+					? `net block (0 domains)`
+					: `net filter ${networkCount} domains`;
+		ctx.ui.setStatus(
+			"sandbox",
+			ctx.ui.theme.fg("accent", `🔒 Sandbox: ${netLabel}, ${writeCount} write paths, file tools hardened`),
+		);
+		ctx.ui.notify(
+			`Sandbox initialized (bash + read/write/edit hardened; network: ${netMode})`,
+			"info",
+		);
 	});
 
 	pi.on("session_shutdown", async () => {
-		if (sandboxInitialized) {
-			try {
-				await SandboxManager.reset();
-			} catch {
-				// Ignore cleanup errors
-			}
-		}
+		// First-party bwrap runs per command and leaves no shared runtime state to reset.
+		sandboxEnabled = false;
+		sandboxInitialized = false;
+		sandboxPolicy = null;
+		activePolicy = null;
 	});
 
 	pi.registerCommand("sandbox", {

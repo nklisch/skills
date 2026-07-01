@@ -7,6 +7,7 @@ import {
 	buildMinimalEnv,
 	shouldBypassSandbox,
 	type BuildBwrapArgsOptions,
+	validateBwrapInit,
 } from "./sandbox-bwrap";
 
 const tempDirs: string[] = [];
@@ -78,6 +79,43 @@ describe("sandbox enabled/disabled bypass guard", () => {
 	test("--no-sandbox bypasses regardless of config state", () => {
 		expect(shouldBypassSandbox(true, false)).toBe(true);
 		expect(shouldBypassSandbox(true, true)).toBe(true);
+	});
+});
+
+describe("extension init validation", () => {
+	test("filter mode fails closed before initialization", () => {
+		const validation = validateBwrapInit({ networkMode: "filter", platform: "linux", bwrapAvailable: true });
+
+		expect(validation.ok).toBe(false);
+		if (!validation.ok) {
+			expect(validation.reason).toBe("filter-deferred");
+			expect(validation.message).toContain("network.mode=filter is deferred");
+			expect(validation.message).toContain("fail-closed");
+		}
+	});
+
+	test("missing bwrap fails closed before initialization", () => {
+		const validation = validateBwrapInit({ networkMode: "open", platform: "linux", bwrapAvailable: false });
+
+		expect(validation.ok).toBe(false);
+		if (!validation.ok) {
+			expect(validation.reason).toBe("bwrap-missing");
+			expect(validation.message).toContain("bwrap is not available");
+			expect(validation.message).toContain("fail-closed");
+		}
+	});
+});
+
+describe("package metadata", () => {
+	test("does not declare the removed external sandbox dependency", async () => {
+		const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8")) as {
+			dependencies?: Record<string, string>;
+			optionalDependencies?: Record<string, string>;
+		};
+		const forbiddenDependency = ["@anthropic-ai", "sandbox" + "-runtime"].join("/");
+
+		expect(packageJson.dependencies?.[forbiddenDependency]).toBeUndefined();
+		expect(packageJson.optionalDependencies?.[forbiddenDependency]).toBeUndefined();
 	});
 });
 
