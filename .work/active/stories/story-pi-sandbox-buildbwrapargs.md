@@ -49,10 +49,15 @@ Order is load-bearing and must be tested:
 2. `--dev /dev`, `--unshare-pid`, `--proc /proc`
 3. writable allow mounts for existing `allowWrite` roots, including cwd only if
    `.`/cwd is allowed
-4. read-only `denyWrite` overlays for existing protected files/dirs
-5. `denyRead` overlays last: existing dirs `--tmpfs`; existing files
-   `--ro-bind /dev/null`
-6. `--unshare-net` only for `network.mode:"block"`
+4. deny overlays for existing protected files/dirs in one canonical
+   parent-first pass (path depth ascending), so child protections are emitted
+   after parent masks and win under bwrap's later-argument precedence:
+   - `denyWrite` only: `--ro-bind <path> <path>`
+   - `denyRead` directory: `--tmpfs <path>`
+   - `denyRead` file: `--ro-bind /dev/null <path>`
+   - `denyRead` + `denyWrite` directory: `--tmpfs <path>` then
+     `--remount-ro <path>`
+5. `--unshare-net` only for `network.mode:"block"`
 
 ### Environment
 
@@ -100,3 +105,9 @@ Scoped verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` pa
 - B1 resolved: invalid `network.mode` is now schema-validated during config load, so bogus modes fail closed before `validateBwrapInit()` / `buildBwrapArgs()` can observe an invalid mode as open networking.
 - B3 resolved: denyRead+denyWrite directory intersections are now masked with `--tmpfs` followed by `--remount-ro`, preventing writes into a hidden tmpfs. Added pure argv-order coverage and a live bwrap regression where `echo ok > secret/new.txt` fails while host contents remain intact.
 - Verification after review fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail).
+
+### Round 2 adversarial-review fixes
+
+- Blk-B resolved: deny overlays are now emitted in one canonical parent-first pass, so child protections are mounted after parent masks and win under bwrap's later-argument precedence. A denyWrite child under a denyRead parent inherits the read mask instead of re-exposing host contents; denyRead+denyWrite child directories become empty read-only masks.
+- Rationale: config order is untrusted and cannot determine security precedence. Sorting canonical deny overlays by path depth ascending makes parent masks land first and child remounts land last, closing both `denyRead:["secret/sub","secret"]` and reversed-order cases.
+- Verification after round 2 fixes: added pure argv-order coverage plus live bwrap regressions for both denyRead orderings; `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (53 pass / 0 fail); `grep -r sandbox-runtime plugins/pi-sandbox/` returned no matches.

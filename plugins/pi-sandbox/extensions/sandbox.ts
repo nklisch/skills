@@ -42,7 +42,7 @@ import {
 	createSandboxCommandHandler,
 	decideToolPolicy,
 	loadConfig,
-	type EnvScrubConfig,
+	scrubEnv,
 	type SecretAction,
 	type ToolInspector,
 	type ToolRules,
@@ -516,36 +516,6 @@ function activePolicyFor(cwd: string): SandboxPolicy {
 }
 
 /**
- * Scrub secret-bearing env vars from process.env at session_start, so child
- * bash/subprocesses can't `echo $TOKEN` into the transcript. The scrub runs in
- * the pi process itself — it does NOT touch other processes (e.g. a separate
- * Claude Code session). pi reads auth from auth.json (OAuth) or a specific
- * provider env-key allowlist (ANTHROPIC_API_KEY, OPENAI_API_KEY, ...); any
- * other secret-shaped env var (the orphaned ANTHROPIC_AUTH_TOKEN, project
- * *_TOKEN vars, etc.) is not used by pi and is safe to strip here.
- */
-function scrubEnv(config: EnvScrubConfig | undefined, keep: string[]): string[] {
-	if (!config || (!config.names?.length && !config.patterns?.length)) return [];
-	const keepSet = new Set(keep);
-	const compiledPatterns = (config.patterns ?? []).map((p) => {
-		// Convert glob (* and ?) to regex. Case-insensitive.
-		const re = p.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
-		return new RegExp(`^${re}$`, "i");
-	});
-	const scrubbed: string[] = [];
-	for (const name of Object.keys(process.env)) {
-		if (keepSet.has(name)) continue;
-		const hitByName = config.names?.includes(name);
-		const hitByPattern = compiledPatterns.some((re) => re.test(name));
-		if (hitByName || hitByPattern) {
-			delete process.env[name];
-			scrubbed.push(name);
-		}
-	}
-	return scrubbed;
-}
-
-/**
  * Build a short, safe summary of a tool's input for the confirm dialog.
  * Never includes file contents — only paths/commands/identifiers, truncated.
  * Used only when policy is "confirm", so the user can see what they're approving.
@@ -621,7 +591,8 @@ interface CompiledAllowlist {
  * then allows. On a `block` match, returns block. On no match, returns onNoMatch.
  *
  * Scans string-valued fields. By default scans ALL string fields ("*"), which
- * is paranoia-first; config can narrow per-tool via inspector.scanFields.
+ * is paranoia-first; validated effective config may restrict per-tool fields,
+ * but project merges cannot drop global/default scan coverage.
  */
 function inspectToolInput(
 	toolName: string,

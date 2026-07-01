@@ -18,6 +18,7 @@ import {
 	deepMerge,
 	loadConfig,
 	mergeProjectAdditive,
+	scrubEnv,
 	validateConfig,
 	type LoadedConfig,
 	type SandboxConfig,
@@ -268,32 +269,43 @@ describe("config boundary contract", () => {
 		expect(warnings.join("\n")).toContain("override inspector secret shape \"token\"");
 	});
 
-	test("project inspector scanFields can narrow but cannot empty or widen", () => {
-		const narrowWarnings: string[] = [];
-		const narrowed = mergeProjectAdditive(
+	test("project inspector scanFields union with global coverage and warn on narrowing attempts", () => {
+		const wildcardWarnings: string[] = [];
+		const wildcard = mergeProjectAdditive(
 			{
 				enabled: true,
-				tools: { default: "allow", rules: {}, inspector: { scanFields: { bash: ["command", "cwd"] } } },
+				tools: { default: "allow", rules: {}, inspector: { scanFields: { "*": "*" } } },
 			},
-			{ tools: { inspector: { scanFields: { bash: ["command"] } } } },
-			narrowWarnings,
+			{ tools: { inspector: { scanFields: { agent_send: ["to"] } } } },
+			wildcardWarnings,
 		);
-		expect(narrowed.tools?.inspector?.scanFields?.bash).toEqual(["command"]);
-		expect(narrowWarnings).toEqual([]);
+		expect(wildcard.tools?.inspector?.scanFields?.["*"]).toBe("*");
+		expect(wildcard.tools?.inspector?.scanFields?.agent_send).toBe("*");
+		expect(wildcardWarnings.join("\n")).toContain("narrow inspector scanFields for \"agent_send\"");
 
-		const emptyWarnings: string[] = [];
-		const emptied = mergeProjectAdditive(
+		const subsetWarnings: string[] = [];
+		const subset = mergeProjectAdditive(
 			{
 				enabled: true,
-				tools: { default: "allow", rules: {}, inspector: { scanFields: { bash: ["command", "cwd"], read: ["path"] } } },
+				tools: { default: "allow", rules: {}, inspector: { scanFields: { agent_send: ["body", "to"] } } },
 			},
-			{ tools: { inspector: { scanFields: { bash: ["path"], read: "*" } } } },
-			emptyWarnings,
+			{ tools: { inspector: { scanFields: { agent_send: ["to"] } } } },
+			subsetWarnings,
 		);
-		expect(emptied.tools?.inspector?.scanFields?.bash).toEqual(["command", "cwd"]);
-		expect(emptied.tools?.inspector?.scanFields?.read).toEqual(["path"]);
-		expect(emptyWarnings.join("\n")).toContain("empty inspector scanFields for \"bash\"");
-		expect(emptyWarnings.join("\n")).toContain("widen inspector scanFields for \"read\"");
+		expect(subset.tools?.inspector?.scanFields?.agent_send).toEqual(["body", "to"]);
+		expect(subsetWarnings.join("\n")).toContain("drop inspector scanFields for \"agent_send\" (body)");
+
+		const addWarnings: string[] = [];
+		const added = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: { default: "allow", rules: {}, inspector: { scanFields: { agent_send: ["body"] } } },
+			},
+			{ tools: { inspector: { scanFields: { agent_send: ["body", "query"] } } } },
+			addWarnings,
+		);
+		expect(added.tools?.inspector?.scanFields?.agent_send).toEqual(["body", "query"]);
+		expect(addWarnings).toEqual([]);
 	});
 
 	test("bypass-tool defaults require confirmation for background and monitor", () => {
@@ -413,6 +425,7 @@ describe("config boundary contract", () => {
 				allowedDomains: ["a.example", "b.example"],
 				deniedDomains: ["bad.example"],
 			},
+			envScrub: { names: ["GLOBAL_SECRET"], patterns: ["GLOBAL_*"], keep: ["GLOBAL_KEEP"] },
 		}));
 		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({
 			filesystem: {
@@ -425,6 +438,7 @@ describe("config boundary contract", () => {
 				allowedDomains: ["a.example", "evil.example"],
 				deniedDomains: ["worse.example"],
 			},
+			envScrub: { names: ["PROJECT_SECRET"], patterns: ["PROJECT_*"], keep: ["PROJECT_KEEP"] },
 		}));
 
 		const loaded = loadConfig(cwd, { agentDir });
@@ -436,6 +450,39 @@ describe("config boundary contract", () => {
 		expect(loaded.config.network?.mode).toBe("block");
 		expect(loaded.config.network?.allowedDomains).toEqual(["a.example"]);
 		expect(loaded.config.network?.deniedDomains).toEqual(["bad.example", "worse.example"]);
+		expect(loaded.config.envScrub?.names).toEqual(["ANTHROPIC_AUTH_TOKEN", "GLOBAL_SECRET", "PROJECT_SECRET"]);
+		expect(loaded.config.envScrub?.patterns).toEqual(["GLOBAL_*", "PROJECT_*"]);
+		expect(loaded.config.envScrub?.keep).toEqual(["GLOBAL_KEEP", "PROJECT_KEEP"]);
+	});
+
+	test("scrubEnv honors config keep entries even when a pattern matches", () => {
+		const scrubbedName = "PI_SANDBOX_TEST_REMOVE_TOKEN";
+		const keptByConfig = "PI_SANDBOX_TEST_KEEP_TOKEN";
+		const keptByProvider = "PI_SANDBOX_TEST_PROVIDER_TOKEN";
+		const previous = {
+			scrubbed: process.env[scrubbedName],
+			configKept: process.env[keptByConfig],
+			providerKept: process.env[keptByProvider],
+		};
+		try {
+			process.env[scrubbedName] = "remove-me";
+			process.env[keptByConfig] = "keep-me";
+			process.env[keptByProvider] = "provider-keep-me";
+
+			const scrubbed = scrubEnv({ patterns: ["PI_SANDBOX_TEST_*_TOKEN"], keep: [keptByConfig] }, [keptByProvider]);
+
+			expect(scrubbed).toEqual([scrubbedName]);
+			expect(process.env[scrubbedName]).toBeUndefined();
+			expect(process.env[keptByConfig]).toBe("keep-me");
+			expect(process.env[keptByProvider]).toBe("provider-keep-me");
+		} finally {
+			if (previous.scrubbed === undefined) delete process.env[scrubbedName];
+			else process.env[scrubbedName] = previous.scrubbed;
+			if (previous.configKept === undefined) delete process.env[keptByConfig];
+			else process.env[keptByConfig] = previous.configKept;
+			if (previous.providerKept === undefined) delete process.env[keptByProvider];
+			else process.env[keptByProvider] = previous.providerKept;
+		}
 	});
 
 	test("loadConfig does not crash when the global config path is absent", async () => {
@@ -457,11 +504,15 @@ describe("config boundary contract", () => {
 		expect(validation.ok).toBe(true);
 	});
 
-	test("validateConfig rejects unknown modes, invalid policies, and non-string arrays", () => {
+	test("validateConfig rejects unknown modes, invalid policies, non-string arrays, and invalid inspector regexes", () => {
 		const errors = validateConfig({
 			filesystem: { denyRead: ["ok", 42], denyWrite: "secret" },
 			network: { mode: "bogus", allowedDomains: ["example.com", false] },
-			tools: { default: "maybe", rules: { background: "bogus" } },
+			tools: {
+				default: "maybe",
+				rules: { background: "bogus" },
+				inspector: { secrets: [{ name: "broken", pattern: "[", action: "block" }] },
+			},
 		});
 
 		expect(errors.join("\n")).toContain("network.mode");
@@ -470,22 +521,30 @@ describe("config boundary contract", () => {
 		expect(errors.join("\n")).toContain("filesystem.denyRead[1]");
 		expect(errors.join("\n")).toContain("filesystem.denyWrite");
 		expect(errors.join("\n")).toContain("network.allowedDomains[1]");
+		expect(errors.join("\n")).toContain("tools.inspector.secrets[0].pattern must compile");
 	});
 
-	test("invalid network mode and tool policy load as fail-closed parse errors", async () => {
+	test("invalid network mode, tool policy, and inspector regex load as fail-closed parse errors", async () => {
 		const bogusModeCwd = await makeTempDir();
 		const bogusToolCwd = await makeTempDir();
+		const bogusRegexCwd = await makeTempDir();
 		const agentDir = await makeTempDir();
 		await mkdir(join(bogusModeCwd, ".pi"), { recursive: true });
 		await mkdir(join(bogusToolCwd, ".pi"), { recursive: true });
+		await mkdir(join(bogusRegexCwd, ".pi"), { recursive: true });
 		await writeFile(join(bogusModeCwd, ".pi", "sandbox.json"), JSON.stringify({ network: { mode: "bogus" } }));
 		await writeFile(join(bogusToolCwd, ".pi", "sandbox.json"), JSON.stringify({ tools: { rules: { background: "bogus" } } }));
+		await writeFile(join(bogusRegexCwd, ".pi", "sandbox.json"), JSON.stringify({
+			tools: { inspector: { secrets: [{ name: "broken", pattern: "[", action: "block" }] } },
+		}));
 
 		const bogusMode = loadConfig(bogusModeCwd, { agentDir });
 		const bogusTool = loadConfig(bogusToolCwd, { agentDir });
+		const bogusRegex = loadConfig(bogusRegexCwd, { agentDir });
 
 		expect(bogusMode.parseErrors.join("\n")).toContain("network.mode");
 		expect(bogusTool.parseErrors.join("\n")).toContain("tools.rules.background");
+		expect(bogusRegex.parseErrors.join("\n")).toContain("tools.inspector.secrets[0].pattern must compile");
 	});
 
 	test("parse errors use restrictive fail-closed file and bypass-tool policy", async () => {
@@ -732,10 +791,40 @@ describe("buildBwrapArgs", () => {
 		expect(dev).toBeLessThan(proc);
 		expect(proc).toBeLessThan(cwdBind);
 		expect(cwdBind).toBeLessThan(writableBind);
-		expect(writableBind).toBeLessThan(denyWrite);
-		expect(denyWrite).toBeLessThan(denyDir);
-		expect(denyDir).toBeLessThan(gitDir);
-		expect(gitDir).toBeLessThan(network);
+		for (const overlay of [denyWrite, denyDir, gitDir]) {
+			expect(writableBind).toBeLessThan(overlay);
+			expect(overlay).toBeLessThan(network);
+		}
+	});
+
+	test("nested deny overlays are emitted parent-first so child protections win", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret", "sub"), { recursive: true });
+
+		const childFirst = buildBwrapArgs({
+			cwd,
+			allowWrite: ["."],
+			denyRead: ["secret/sub", "secret"],
+			denyWrite: ["secret/sub"],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+		const parentFirst = buildBwrapArgs({
+			cwd,
+			allowWrite: ["."],
+			denyRead: ["secret", "secret/sub"],
+			denyWrite: ["secret/sub"],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+
+		for (const args of [childFirst, parentFirst]) {
+			const parentMask = expectSequence(args, ["--tmpfs", join(cwd, "secret")]);
+			const childMask = expectSequence(args, ["--tmpfs", join(cwd, "secret", "sub")]);
+			const childReadOnly = expectSequence(args, ["--remount-ro", join(cwd, "secret", "sub")]);
+			expect(parentMask).toBeLessThan(childMask);
+			expect(childMask).toBeLessThan(childReadOnly);
+		}
 	});
 
 	test("skips non-existent deny paths without host stubs", async () => {
@@ -924,6 +1013,26 @@ describe("bwrap integration", () => {
 
 		expect(result.exitCode).not.toBe(0);
 		expect(await readFile(join(cwd, "secret", "inside.txt"), "utf8")).toBe("secret\n");
+	});
+
+	integrationTest("nested denyRead parent cannot hide child denyWrite protection", async () => {
+		for (const denyRead of [["secret/sub", "secret"], ["secret", "secret/sub"]]) {
+			const cwd = await makeTempDir();
+			await mkdir(join(cwd, "secret", "sub"), { recursive: true });
+			await writeFile(join(cwd, "secret", "sub", "inside.txt"), "secret\n");
+
+			const result = runSandboxed("printf started && mkdir -p secret/sub && ! (echo ok > secret/sub/new.txt)", {
+				cwd,
+				allowWrite: ["."],
+				denyRead,
+				denyWrite: ["secret/sub"],
+				networkMode: "open",
+			});
+
+			expect(text(result.stdout)).toContain("started");
+			expect(result.exitCode).toBe(0);
+			expect(await readFile(join(cwd, "secret", "sub", "inside.txt"), "utf8")).toBe("secret\n");
+		}
 	});
 
 	integrationTest("existing .git directory is masked as a directory without ENOTDIR bricking", async () => {

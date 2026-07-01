@@ -91,3 +91,10 @@ from overclaiming what it protects.
 - B5 resolved: project inspector config is additive-only. Same-name project secret shapes are rejected/warned instead of overriding global shapes, `scanFields` may narrow by intersection only, and empty/widening merges are warned and ignored.
 - S1 resolved: default `network.mode` is now `open`, so a no-config install initializes in the first release's permissive network posture while projects can still tighten to `block` or request deferred `filter` fail-closed behavior.
 - Verification after review fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail).
+
+### Round 2 adversarial-review fixes
+
+- Blk-A resolved: inspector `scanFields` project merge is now coverage-additive. Effective per-tool fields are the union of global/default intent and project additions; a global `"*"` stays `"*"`. Project attempts to omit global fields are warned and cannot narrow scanning coverage, closing the `agent_send.body` bypass case.
+- Sub-A resolved: config validation now compiles every inspector secret `pattern` with its configured flags (default `gu`) at load time. Invalid regex sources/flags become parse errors and fail closed during session start instead of throwing later in `tool_call`.
+- Sub-B resolved: project `envScrub` now merges additively for `names`, `patterns`, and `keep`; runtime scrubbing honors both Pi provider keep entries and config `keep` entries so required variables are not removed by broad patterns.
+- Verification after round 2 fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (53 pass / 0 fail); `grep -r sandbox-runtime plugins/pi-sandbox/` returned no matches.
