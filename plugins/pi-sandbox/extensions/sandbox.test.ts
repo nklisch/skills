@@ -12,9 +12,13 @@ import {
 import {
 	DEFAULT_CONFIG,
 	FILTER_DEFERRED_BACKLOG_ITEM,
+	SANDBOX_FAIL_CLOSED_MESSAGE,
+	SANDBOX_UNINITIALIZED_MESSAGE,
 	applyBypassToolDefaults,
 	createSandboxCommandHandler,
+	createUserBashBlockResult,
 	decideToolPolicy,
+	decideUserBash,
 	deepMerge,
 	inspectToolInput,
 	loadConfig,
@@ -26,6 +30,7 @@ import {
 } from "./sandbox-config";
 import {
 	createFailClosedPolicy,
+	createPermissivePolicy,
 	enforceDenyRead,
 	enforceWritePolicy,
 	makeEditOperations,
@@ -103,6 +108,67 @@ describe("sandbox enabled/disabled bypass guard", () => {
 	test("--no-sandbox bypasses regardless of config state", () => {
 		expect(shouldBypassSandbox(true, false)).toBe(true);
 		expect(shouldBypassSandbox(true, true)).toBe(true);
+	});
+});
+
+describe("user_bash routing", () => {
+	test("fail-closed and uninitialized states return block decisions, not fall-through", () => {
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: false,
+			failClosed: true,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({ action: "block-failclosed", reason: SANDBOX_FAIL_CLOSED_MESSAGE });
+
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: false,
+			failClosed: false,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({ action: "block-uninitialized", reason: SANDBOX_UNINITIALIZED_MESSAGE });
+	});
+
+	test("intentional bypasses are the only user_bash fall-through decisions", () => {
+		expect(decideUserBash({
+			noSandbox: true,
+			disabledViaConfig: false,
+			failClosed: true,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({ action: "bypass" });
+
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: true,
+			failClosed: true,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({ action: "bypass" });
+	});
+
+	test("healthy user_bash state chooses sandboxed operations", () => {
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: false,
+			failClosed: false,
+			sandboxEnabled: true,
+			sandboxInitialized: true,
+		})).toEqual({ action: "sandboxed" });
+	});
+
+	test("block result uses pi user_bash full BashResult replacement shape", () => {
+		const result = createUserBashBlockResult(SANDBOX_FAIL_CLOSED_MESSAGE);
+
+		expect(result).toEqual({
+			result: {
+				output: `${SANDBOX_FAIL_CLOSED_MESSAGE}\n`,
+				exitCode: 1,
+				cancelled: false,
+				truncated: false,
+			},
+		});
 	});
 });
 
@@ -763,6 +829,20 @@ describe("in-process file-tool policy", () => {
 			networkMode: "open",
 		};
 	}
+
+	test("permissive policy allows file-tool operations for intentional sandbox disable", async () => {
+		const cwd = await makeTempDir();
+		const outside = await makeTempDir();
+		await writeFile(join(cwd, "readable.txt"), "readable");
+		const outsidePath = join(outside, "outside.txt");
+		const policy = createPermissivePolicy(cwd);
+		const readOps = makeReadOperations(cwd, policy);
+		const writeOps = makeWriteOperations(cwd, policy);
+
+		expect((await readOps.readFile(join(cwd, "readable.txt"))).toString()).toBe("readable");
+		await writeOps.writeFile(outsidePath, "outside");
+		expect(await readFile(outsidePath, "utf8")).toBe("outside");
+	});
 
 	test("enforceDenyRead blocks configured files and directories", async () => {
 		const cwd = await makeTempDir();

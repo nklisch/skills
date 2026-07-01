@@ -80,6 +80,52 @@ export interface ToolRules {
 	inspector?: ToolInspector;
 }
 
+export const SANDBOX_FAIL_CLOSED_MESSAGE = "Sandbox failed to initialize and is fail-closed. Fix the error above and /reload, or restart with --no-sandbox to bypass (not recommended).";
+export const SANDBOX_UNINITIALIZED_MESSAGE = "Sandbox not yet initialized. If this persists, /reload or restart pi. Use --no-sandbox only if you intentionally want to bypass.";
+
+export interface UserBashDecisionInput {
+	noSandbox: boolean;
+	disabledViaConfig: boolean;
+	failClosed: boolean;
+	sandboxEnabled: boolean;
+	sandboxInitialized: boolean;
+}
+
+export type UserBashDecision =
+	| { action: "bypass" }
+	| { action: "block-failclosed"; reason: string }
+	| { action: "block-uninitialized"; reason: string }
+	| { action: "sandboxed" };
+
+export interface BlockedUserBashEventResult {
+	result: {
+		output: string;
+		exitCode: number;
+		cancelled: false;
+		truncated: false;
+	};
+}
+
+/** Pure user_bash routing decision. Undefined/fall-through is allowed only for intentional bypasses. */
+export function decideUserBash(input: UserBashDecisionInput): UserBashDecision {
+	if (input.noSandbox || input.disabledViaConfig) return { action: "bypass" };
+	if (input.failClosed) return { action: "block-failclosed", reason: SANDBOX_FAIL_CLOSED_MESSAGE };
+	if (!input.sandboxEnabled || !input.sandboxInitialized) return { action: "block-uninitialized", reason: SANDBOX_UNINITIALIZED_MESSAGE };
+	return { action: "sandboxed" };
+}
+
+/** Pi's user_bash hook blocks by returning a full BashResult replacement. */
+export function createUserBashBlockResult(message: string): BlockedUserBashEventResult {
+	return {
+		result: {
+			output: `${message}\n`,
+			exitCode: 1,
+			cancelled: false,
+			truncated: false,
+		},
+	};
+}
+
 export const SHELL_BYPASS_TOOLS = ["background", "monitor"] as const;
 export const SHELL_BYPASS_DEFAULT_POLICY: ToolPolicy = "confirm";
 

@@ -335,3 +335,11 @@ Accepted fresh-context final-review findings B1-B6 and S1-S2 have been resolved 
 - S2: root `AGENTS.md` plugin map now lists `plugins/pi-sandbox/` and says there are ten plugins.
 
 Verification after review fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (50 pass / 0 fail); `grep -r sandbox-runtime plugins/pi-sandbox/` produced zero output (exit 1).
+
+## Review fix (deep review 2026-07-01)
+
+A deep-lane substrate review found one blocking fail-closed breach: the `user_bash` hook returned `undefined` when the sandbox was uninitialized or fail-closed, which let pi fall through to the normal unsandboxed local backend for `!`/`!!` commands. Fixed by factoring the pure `decideUserBash()` routing decision and making only intentional bypasses (`--no-sandbox` or `enabled:false`) return fall-through; fail-closed and uninitialized states now return a full replacement `BashResult` (`{ result: { output, exitCode: 1, cancelled: false, truncated: false } }`) so pi treats the event as handled and blocks the command.
+
+Also tightened intentional-disable behavior and docs. Judgment call: make `--no-sandbox` and global/operator `enabled:false` symmetric full extension disables, matching the disable-as-operator-disable direction already tracked for follow-up. Those paths now install a permissive no-op file policy before returning, while real init failures still install/retain restrictive fail-closed policy. README now states plainly that intentional disables bypass bash/user_bash, file policy, and tool-egress policy, and that missing bwrap/invalid config/unsupported hosts/deferred filter remain hardened fail-closed states.
+
+Verification after this fix: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (61 pass / 0 fail); `grep -r sandbox-runtime plugins/pi-sandbox/` produced zero matches (exit 1).
