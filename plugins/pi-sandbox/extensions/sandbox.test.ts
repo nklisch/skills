@@ -16,6 +16,7 @@ import {
 	createSandboxCommandHandler,
 	decideToolPolicy,
 	deepMerge,
+	inspectToolInput,
 	loadConfig,
 	mergeProjectAdditive,
 	scrubEnv,
@@ -236,6 +237,34 @@ describe("config boundary contract", () => {
 		expect(warnings.join("\n")).toContain("loosen tool policy");
 	});
 
+	test("network mode additive rank treats fail-closed filter as stricter than block", () => {
+		const cases: Array<{
+			globalMode: "open" | "block" | "filter";
+			projectMode: "open" | "block" | "filter";
+			expectedMode: "open" | "block" | "filter";
+			warned: boolean;
+		}> = [
+			{ globalMode: "filter", projectMode: "block", expectedMode: "filter", warned: true },
+			{ globalMode: "open", projectMode: "block", expectedMode: "block", warned: false },
+			{ globalMode: "open", projectMode: "filter", expectedMode: "filter", warned: false },
+			{ globalMode: "block", projectMode: "filter", expectedMode: "filter", warned: false },
+			{ globalMode: "block", projectMode: "open", expectedMode: "block", warned: true },
+		];
+
+		for (const { globalMode, projectMode, expectedMode, warned } of cases) {
+			const warnings: string[] = [];
+			const merged = mergeProjectAdditive(
+				{ enabled: true, network: { mode: globalMode } },
+				{ network: { mode: projectMode } },
+				warnings,
+			);
+
+			expect(merged.network?.mode).toBe(expectedMode);
+			if (warned) expect(warnings.join("\n")).toContain(`loosen network.mode (${globalMode} -> ${projectMode})`);
+			else expect(warnings).toEqual([]);
+		}
+	});
+
 	test("project inspector cannot override global secret shapes", () => {
 		const warnings: string[] = [];
 		const merged = mergeProjectAdditive(
@@ -270,6 +299,22 @@ describe("config boundary contract", () => {
 	});
 
 	test("project inspector scanFields union with global coverage and warn on narrowing attempts", () => {
+		const implicitWarnings: string[] = [];
+		const implicitAll = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: {
+					default: "allow",
+					rules: {},
+					inspector: { secrets: [{ name: "token", pattern: "tok_[A-Za-z0-9]+", action: "block" }] },
+				},
+			},
+			{ tools: { inspector: { scanFields: { agent_send: ["to"] } } } },
+			implicitWarnings,
+		);
+		expect(implicitAll.tools?.inspector?.scanFields?.agent_send).toBe("*");
+		expect(implicitWarnings.join("\n")).toContain("narrow inspector scanFields for \"agent_send\" from \"*\"");
+
 		const wildcardWarnings: string[] = [];
 		const wildcard = mergeProjectAdditive(
 			{
@@ -283,29 +328,29 @@ describe("config boundary contract", () => {
 		expect(wildcard.tools?.inspector?.scanFields?.agent_send).toBe("*");
 		expect(wildcardWarnings.join("\n")).toContain("narrow inspector scanFields for \"agent_send\"");
 
-		const subsetWarnings: string[] = [];
-		const subset = mergeProjectAdditive(
+		const addQueryWarnings: string[] = [];
+		const addQuery = mergeProjectAdditive(
 			{
 				enabled: true,
 				tools: { default: "allow", rules: {}, inspector: { scanFields: { agent_send: ["body", "to"] } } },
 			},
-			{ tools: { inspector: { scanFields: { agent_send: ["to"] } } } },
-			subsetWarnings,
+			{ tools: { inspector: { scanFields: { agent_send: ["query"] } } } },
+			addQueryWarnings,
 		);
-		expect(subset.tools?.inspector?.scanFields?.agent_send).toEqual(["body", "to"]);
-		expect(subsetWarnings.join("\n")).toContain("drop inspector scanFields for \"agent_send\" (body)");
+		expect(addQuery.tools?.inspector?.scanFields?.agent_send).toEqual(["body", "to", "query"]);
+		expect(addQueryWarnings.join("\n")).toContain("drop inspector scanFields for \"agent_send\" (body, to)");
 
-		const addWarnings: string[] = [];
-		const added = mergeProjectAdditive(
+		const addToWarnings: string[] = [];
+		const addTo = mergeProjectAdditive(
 			{
 				enabled: true,
 				tools: { default: "allow", rules: {}, inspector: { scanFields: { agent_send: ["body"] } } },
 			},
-			{ tools: { inspector: { scanFields: { agent_send: ["body", "query"] } } } },
-			addWarnings,
+			{ tools: { inspector: { scanFields: { agent_send: ["to"] } } } },
+			addToWarnings,
 		);
-		expect(added.tools?.inspector?.scanFields?.agent_send).toEqual(["body", "query"]);
-		expect(addWarnings).toEqual([]);
+		expect(addTo.tools?.inspector?.scanFields?.agent_send).toEqual(["body", "to"]);
+		expect(addToWarnings.join("\n")).toContain("drop inspector scanFields for \"agent_send\" (body)");
 	});
 
 	test("bypass-tool defaults require confirmation for background and monitor", () => {
@@ -455,33 +500,40 @@ describe("config boundary contract", () => {
 		expect(loaded.config.envScrub?.keep).toEqual(["GLOBAL_KEEP", "PROJECT_KEEP"]);
 	});
 
-	test("scrubEnv honors config keep entries even when a pattern matches", () => {
-		const scrubbedName = "PI_SANDBOX_TEST_REMOVE_TOKEN";
-		const keptByConfig = "PI_SANDBOX_TEST_KEEP_TOKEN";
-		const keptByProvider = "PI_SANDBOX_TEST_PROVIDER_TOKEN";
+	test("scrubEnv scrubs names and patterns even when keep lists include them", () => {
+		const defaultScrubbed = "ANTHROPIC_AUTH_TOKEN";
+		const projectScrubbed = "PI_SANDBOX_TEST_MY_VAR";
+		const keptNonScrubbed = "PI_SANDBOX_TEST_KEEP_SAFE";
 		const previous = {
-			scrubbed: process.env[scrubbedName],
-			configKept: process.env[keptByConfig],
-			providerKept: process.env[keptByProvider],
+			defaultScrubbed: process.env[defaultScrubbed],
+			projectScrubbed: process.env[projectScrubbed],
+			keptNonScrubbed: process.env[keptNonScrubbed],
 		};
 		try {
-			process.env[scrubbedName] = "remove-me";
-			process.env[keptByConfig] = "keep-me";
-			process.env[keptByProvider] = "provider-keep-me";
+			process.env[defaultScrubbed] = "remove-default";
+			process.env[projectScrubbed] = "remove-project";
+			process.env[keptNonScrubbed] = "keep-safe";
 
-			const scrubbed = scrubEnv({ patterns: ["PI_SANDBOX_TEST_*_TOKEN"], keep: [keptByConfig] }, [keptByProvider]);
+			const scrubbed = scrubEnv(
+				{
+					names: ["ANTHROPIC_AUTH_TOKEN", "PI_SANDBOX_TEST_MY_VAR"],
+					keep: ["ANTHROPIC_AUTH_TOKEN", "PI_SANDBOX_TEST_MY_VAR", keptNonScrubbed],
+				},
+				[],
+			);
 
-			expect(scrubbed).toEqual([scrubbedName]);
-			expect(process.env[scrubbedName]).toBeUndefined();
-			expect(process.env[keptByConfig]).toBe("keep-me");
-			expect(process.env[keptByProvider]).toBe("provider-keep-me");
+			expect(scrubbed).toContain(defaultScrubbed);
+			expect(scrubbed).toContain(projectScrubbed);
+			expect(process.env[defaultScrubbed]).toBeUndefined();
+			expect(process.env[projectScrubbed]).toBeUndefined();
+			expect(process.env[keptNonScrubbed]).toBe("keep-safe");
 		} finally {
-			if (previous.scrubbed === undefined) delete process.env[scrubbedName];
-			else process.env[scrubbedName] = previous.scrubbed;
-			if (previous.configKept === undefined) delete process.env[keptByConfig];
-			else process.env[keptByConfig] = previous.configKept;
-			if (previous.providerKept === undefined) delete process.env[keptByProvider];
-			else process.env[keptByProvider] = previous.providerKept;
+			if (previous.defaultScrubbed === undefined) delete process.env[defaultScrubbed];
+			else process.env[defaultScrubbed] = previous.defaultScrubbed;
+			if (previous.projectScrubbed === undefined) delete process.env[projectScrubbed];
+			else process.env[projectScrubbed] = previous.projectScrubbed;
+			if (previous.keptNonScrubbed === undefined) delete process.env[keptNonScrubbed];
+			else process.env[keptNonScrubbed] = previous.keptNonScrubbed;
 		}
 	});
 
@@ -511,7 +563,10 @@ describe("config boundary contract", () => {
 			tools: {
 				default: "maybe",
 				rules: { background: "bogus" },
-				inspector: { secrets: [{ name: "broken", pattern: "[", action: "block" }] },
+				inspector: {
+					secrets: [{ name: "broken", pattern: "[", action: "block" }],
+					allowlist: { regexes: ["["] },
+				},
 			},
 		});
 
@@ -522,29 +577,37 @@ describe("config boundary contract", () => {
 		expect(errors.join("\n")).toContain("filesystem.denyWrite");
 		expect(errors.join("\n")).toContain("network.allowedDomains[1]");
 		expect(errors.join("\n")).toContain("tools.inspector.secrets[0].pattern must compile");
+		expect(errors.join("\n")).toContain("tools.inspector.allowlist.regexes[0] must compile");
 	});
 
 	test("invalid network mode, tool policy, and inspector regex load as fail-closed parse errors", async () => {
 		const bogusModeCwd = await makeTempDir();
 		const bogusToolCwd = await makeTempDir();
 		const bogusRegexCwd = await makeTempDir();
+		const bogusAllowlistCwd = await makeTempDir();
 		const agentDir = await makeTempDir();
 		await mkdir(join(bogusModeCwd, ".pi"), { recursive: true });
 		await mkdir(join(bogusToolCwd, ".pi"), { recursive: true });
 		await mkdir(join(bogusRegexCwd, ".pi"), { recursive: true });
+		await mkdir(join(bogusAllowlistCwd, ".pi"), { recursive: true });
 		await writeFile(join(bogusModeCwd, ".pi", "sandbox.json"), JSON.stringify({ network: { mode: "bogus" } }));
 		await writeFile(join(bogusToolCwd, ".pi", "sandbox.json"), JSON.stringify({ tools: { rules: { background: "bogus" } } }));
 		await writeFile(join(bogusRegexCwd, ".pi", "sandbox.json"), JSON.stringify({
 			tools: { inspector: { secrets: [{ name: "broken", pattern: "[", action: "block" }] } },
 		}));
+		await writeFile(join(bogusAllowlistCwd, ".pi", "sandbox.json"), JSON.stringify({
+			tools: { inspector: { allowlist: { regexes: ["["] } } },
+		}));
 
 		const bogusMode = loadConfig(bogusModeCwd, { agentDir });
 		const bogusTool = loadConfig(bogusToolCwd, { agentDir });
 		const bogusRegex = loadConfig(bogusRegexCwd, { agentDir });
+		const bogusAllowlist = loadConfig(bogusAllowlistCwd, { agentDir });
 
 		expect(bogusMode.parseErrors.join("\n")).toContain("network.mode");
 		expect(bogusTool.parseErrors.join("\n")).toContain("tools.rules.background");
 		expect(bogusRegex.parseErrors.join("\n")).toContain("tools.inspector.secrets[0].pattern must compile");
+		expect(bogusAllowlist.parseErrors.join("\n")).toContain("tools.inspector.allowlist.regexes[0] must compile");
 	});
 
 	test("parse errors use restrictive fail-closed file and bypass-tool policy", async () => {
@@ -659,6 +722,34 @@ describe("config boundary contract", () => {
 		expect(output).toContain("subagents");
 		expect(output).toContain("provider requests");
 		expect(output).toContain("open network mode leaves host networking intact");
+	});
+});
+
+describe("tool input inspector", () => {
+	test("block shapes scan past an allowlisted first match to a later secret", () => {
+		const input: Record<string, unknown> = { body: "tok_example tok_R4nd0mSecret9999" };
+
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "token", pattern: "tok_[A-Za-z0-9]+", action: "block" }],
+			allowlist: { stopwords: ["tok_example"] },
+		});
+
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain("secret shape \"token\" matched");
+	});
+
+	test("redact shapes scan all matches and redact each confirmed secret", () => {
+		const input: Record<string, unknown> = {
+			body: "tok_example tok_R4nd0mSecret9999 tok_AnotherSecret8888",
+		};
+
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "token", pattern: "tok_[A-Za-z0-9]+", action: "redact" }],
+			allowlist: { stopwords: ["tok_example"] },
+		});
+
+		expect(verdict.action).toBe("allow");
+		expect(input.body).toBe("tok_example [REDACTED:token] [REDACTED:token]");
 	});
 });
 

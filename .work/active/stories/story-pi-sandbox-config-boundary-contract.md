@@ -98,3 +98,11 @@ from overclaiming what it protects.
 - Sub-A resolved: config validation now compiles every inspector secret `pattern` with its configured flags (default `gu`) at load time. Invalid regex sources/flags become parse errors and fail closed during session start instead of throwing later in `tool_call`.
 - Sub-B resolved: project `envScrub` now merges additively for `names`, `patterns`, and `keep`; runtime scrubbing honors both Pi provider keep entries and config `keep` entries so required variables are not removed by broad patterns.
 - Verification after round 2 fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (53 pass / 0 fail); `grep -r sandbox-runtime plugins/pi-sandbox/` returned no matches.
+
+### Round 3 adversarial-review fixes
+
+- Blk-1 resolved: changed the additive-only network strictness rank to `open < block < filter`. Rationale: in this release `filter` is fail-closed while `block` still runs air-gapped bash, so a project-level `block` request must not downgrade a global fail-closed `filter` posture.
+- Blk-2 resolved: env scrubbing now treats exact scrub names and scrub patterns as stronger than provider/config `keep` entries. Project config can add `names`/`patterns` to scrub more, but `keep` can no longer preserve `ANTHROPIC_AUTH_TOKEN` or any other name matched by an effective scrub rule.
+- Blk-4 resolved: additive inspector merging now treats an absent global `scanFields` plus existing global secret shapes as implicit scan-all (`"*"`). Project `scanFields` can union with explicit global field lists, but cannot narrow global/default all-field coverage to a smaller per-tool list.
+- Sub-1 resolved: `validateConfig()` now compiles `tools.inspector.allowlist.regexes` at load time, so malformed allowlist regexes become parse/validation errors and fail closed during session start instead of throwing later in `tool_call`.
+- Verification after round 3 fixes: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` passed (56 pass / 0 fail).

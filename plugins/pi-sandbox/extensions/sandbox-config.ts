@@ -135,12 +135,184 @@ export function decideToolPolicy(name: string, tools: ToolRules | undefined, has
 	return { action: policy, policy };
 }
 
+export interface InspectionVerdict {
+	action: "allow" | "block";
+	reason: string;
+}
+
+interface CompiledShape {
+	name: string;
+	re: RegExp;
+	action: SecretAction;
+	secretGroup: number;
+	entropy: number | undefined;
+	keywords: string[] | undefined;
+}
+
+interface CompiledAllowlist {
+	stopwords: Set<string>;
+	regexes: RegExp[];
+}
+
+/**
+ * Shannon entropy in bits/char. Matches gitleaks' `shannonEntropy`.
+ * High for random tokens (~4.5+), low for dictionary/placeholder strings (~2-3).
+ */
+function shannonEntropy(data: string): number {
+	if (data.length === 0) return 0;
+	const counts = new Map<string, number>();
+	for (const ch of data) counts.set(ch, (counts.get(ch) ?? 0) + 1);
+	const inv = 1 / data.length;
+	let entropy = 0;
+	for (const count of counts.values()) {
+		const freq = count * inv;
+		entropy -= freq * Math.log2(freq);
+	}
+	return entropy;
+}
+
+function withGlobalFlag(flags: string | undefined): string {
+	const effective = flags ?? "gu";
+	return effective.includes("g") ? effective : `${effective}g`;
+}
+
+function advanceStringIndex(text: string, index: number, unicode: boolean): number {
+	if (!unicode || index + 1 >= text.length) return index + 1;
+	const first = text.charCodeAt(index);
+	if (first < 0xd800 || first > 0xdbff) return index + 1;
+	const second = text.charCodeAt(index + 1);
+	return second >= 0xdc00 && second <= 0xdfff ? index + 2 : index + 1;
+}
+
+/**
+ * Inspect a tool's input against the configured secret shapes (gitleaks model).
+ *
+ * Pipeline per field: keyword pre-filter → regex (extracts a capture group) →
+ * entropy check on the captured candidate → allowlist check. A candidate is
+ * a secret only if it passes ALL of: keyword present (if configured), regex
+ * matches, entropy ≥ threshold (if configured), not allowlisted.
+ *
+ * Synchronous, in-process: the secret is matched by regex/entropy only and
+ * never enters a judgment context (no agent, no second transcript). On a
+ * `redact` match, mutates `input[field]` in place to strip each confirmed
+ * match, then allows. On a `block` match, returns block. On no match, returns
+ * onNoMatch.
+ *
+ * Scans string-valued fields. By default scans ALL string fields ("*"), which
+ * is paranoia-first; validated effective config may restrict per-tool fields,
+ * but project merges cannot drop global/default scan coverage.
+ */
+export function inspectToolInput(
+	toolName: string,
+	input: Record<string, unknown>,
+	inspector: ToolInspector | undefined,
+): InspectionVerdict {
+	if (!inspector || !inspector.secrets || inspector.secrets.length === 0) {
+		return { action: "allow", reason: "no inspector configured" };
+	}
+	const onNoMatch = inspector.onNoMatch ?? "allow";
+
+	const shapes: CompiledShape[] = inspector.secrets.map((s) => ({
+		name: s.name,
+		re: new RegExp(s.pattern, withGlobalFlag(s.flags)),
+		action: s.action,
+		secretGroup: s.secretGroup ?? 0,
+		entropy: s.entropy,
+		keywords: s.keywords,
+	}));
+	const allowlist: CompiledAllowlist = {
+		stopwords: new Set((inspector.allowlist?.stopwords ?? []).map((w) => w.toLowerCase())),
+		regexes: (inspector.allowlist?.regexes ?? []).map((r) => new RegExp(r, "iu")),
+	};
+
+	const scanFields = inspector.scanFields ?? {};
+	const toolFields = scanFields[toolName];
+	const scanAll =
+		toolFields === "*" ||
+		(toolFields === undefined && (scanFields["*"] === "*" || Object.keys(scanFields).length === 0));
+	const fieldList = scanAll ? null : (toolFields ?? scanFields["*"] ?? null);
+
+	const isAllowed = (candidate: string): boolean =>
+		allowlist.stopwords.has(candidate.toLowerCase()) ||
+		allowlist.regexes.some((r) => {
+			r.lastIndex = 0;
+			return r.test(candidate);
+		});
+
+	for (const [field, value] of Object.entries(input)) {
+		if (fieldList && !fieldList.includes(field)) continue;
+		let text: string | null = null;
+		if (typeof value === "string") text = value;
+		else if (value !== null && typeof value === "object") {
+			try { text = JSON.stringify(value); } catch { text = null; }
+		} else continue;
+		if (text === null) continue;
+
+		for (const shape of shapes) {
+			if (shape.keywords && shape.keywords.length > 0) {
+				const lower = text.toLowerCase();
+				if (!shape.keywords.some((kw) => lower.includes(kw.toLowerCase()))) continue;
+			}
+
+			shape.re.lastIndex = 0;
+			const redactRanges: Array<{ start: number; end: number }> = [];
+			let match: RegExpExecArray | null;
+			while ((match = shape.re.exec(text)) !== null) {
+				const fullMatch = match[0] ?? "";
+				const start = match.index;
+				const end = start + fullMatch.length;
+				if (fullMatch.length === 0) {
+					shape.re.lastIndex = advanceStringIndex(text, shape.re.lastIndex, shape.re.unicode);
+				}
+
+				const candidate = (shape.secretGroup < match.length ? match[shape.secretGroup] : match[0]) ?? match[0];
+				if (!candidate) continue;
+
+				if (shape.entropy !== undefined) {
+					const ent = shannonEntropy(candidate);
+					if (ent < shape.entropy) continue;
+				}
+
+				if (isAllowed(candidate)) continue;
+
+				if (shape.action === "block") {
+					return {
+						action: "block",
+						reason: `secret shape "${shape.name}" matched in field "${field}" of tool "${toolName}"`,
+					};
+				}
+				redactRanges.push({ start, end });
+			}
+
+			if (redactRanges.length > 0) {
+				let redacted = text;
+				for (let i = redactRanges.length - 1; i >= 0; i -= 1) {
+					const range = redactRanges[i];
+					if (!range) continue;
+					redacted = `${redacted.slice(0, range.start)}[REDACTED:${shape.name}]${redacted.slice(range.end)}`;
+				}
+				if (typeof value === "string") {
+					(input as Record<string, unknown>)[field] = redacted;
+				} else {
+					try { (input as Record<string, unknown>)[field] = JSON.parse(redacted); } catch { (input as Record<string, unknown>)[field] = redacted; }
+				}
+				text = redacted;
+			}
+		}
+	}
+
+	return {
+		action: onNoMatch,
+		reason: onNoMatch === "block" ? `no configured secret matched, but inspector onNoMatch=block` : "",
+	};
+}
+
 export interface EnvScrubConfig {
 	/** Exact env-var names to delete from process.env at session_start. */
 	names?: string[];
 	/** Glob patterns for env-var names to delete (e.g. "*_TOKEN", "ANTHROPIC_*"). Applied case-insensitively. */
 	patterns?: string[];
-	/** A KEEP allowlist: names here are never scrubbed even if a pattern matches. Use to protect vars pi actually needs. */
+	/** Names the provider/runtime prefers to keep when they are not scrub targets. Scrub names/patterns always win. */
 	keep?: string[];
 }
 
@@ -373,9 +545,9 @@ export function deepMerge(base: SandboxConfig, overrides: Partial<SandboxConfig>
 	const extOverrides = overrides as { envScrub?: EnvScrubConfig };
 	const extResult = result as { envScrub?: EnvScrubConfig };
 	if (extOverrides.envScrub) {
-		// Merge: union names + patterns; union keep (more kept = safer). Project
-		// may add to scrub lists but not remove (additive-only is enforced in
-		// mergeProjectAdditive; here we just don't lose the field).
+		// Merge: union names + patterns; retain keep entries as operator metadata.
+		// Runtime scrubbing is fail-safe: an exact name or pattern match always
+		// wins over keep, so keep cannot preserve a configured scrub target.
 		const baseScrub = (base as { envScrub?: EnvScrubConfig }).envScrub;
 		extResult.envScrub = {
 			names: [...new Set([...(baseScrub?.names ?? []), ...(extOverrides.envScrub.names ?? [])])],
@@ -434,11 +606,12 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 		};
 	}
 
-	// network.mode: project can only RAISE the rank (open < filter < block),
-	// never lower it. Symmetric to the tool-policy rank rule below: a hostile
-	// repo cannot relax a global filter/block to open.
+	// network.mode: project can only RAISE the first-release strictness rank
+	// (open < block < filter). `filter` is currently fail-closed, so it is
+	// stricter than runnable air-gapped `block`; a project cannot downgrade a
+	// global fail-closed filter posture to block.
 	if (project.network?.mode) {
-		const modeRank: Record<NetworkMode, number> = { open: 0, filter: 1, block: 2 };
+		const modeRank: Record<NetworkMode, number> = { open: 0, block: 1, filter: 2 };
 		const current = result.network?.mode ?? "open";
 		const requested = project.network.mode;
 		if (modeRank[requested] > modeRank[current]) {
@@ -467,9 +640,9 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 		};
 	}
 
-	// envScrub: project can only ADD exact names, patterns, and keep-list
-	// exceptions. Adding scrub targets tightens child-process exposure;
-	// adding keep entries protects runtime-required vars from broad patterns.
+	// envScrub: project can only ADD exact names/patterns (scrub more).
+	// Keep entries are retained only for non-scrubbed names; exact names and
+	// patterns always win at runtime so a project cannot preserve a scrub target.
 	if (project.envScrub) {
 		const baseScrub = result.envScrub;
 		result.envScrub = {
@@ -477,6 +650,11 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 			patterns: [...new Set([...(baseScrub?.patterns ?? []), ...(project.envScrub.patterns ?? [])])],
 			keep: [...new Set([...(baseScrub?.keep ?? []), ...(project.envScrub.keep ?? [])])],
 		};
+		for (const keepName of project.envScrub.keep ?? []) {
+			if (envNameMatchesScrubConfig(keepName, result.envScrub)) {
+				warns.push(`project envScrub.keep "${keepName}" matches a scrub name/pattern; scrub wins over keep.`);
+			}
+		}
 	}
 
 	// tools: project can only TIGHTEN. Additive by policy rank:
@@ -533,10 +711,11 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 			else if (projInsp.onNoMatch === "allow" && baseOnNoMatch === "block") {
 				warns.push(`project tried to loosen inspector onNoMatch (block -> allow); ignored (additive-only).`);
 			}
-			// scanFields: project additions are a union with any tool-specific
-			// global intent, or the global "*" default when no tool-specific entry
-			// exists. A project list that omits global fields is kept from narrowing
-			// the effective coverage and warned.
+			// scanFields: project additions are a union with explicit global
+			// field lists. Any global/default all-field coverage remains "*".
+			// Critically, a missing global scanFields entry with existing global
+			// secrets is an implicit scan-all runtime default, not a gap a project
+			// can narrow to a smaller field list.
 			const mergedScan: Record<string, string[] | "*"> = { ...(baseInsp.scanFields ?? {}) };
 			for (const [tool, fields] of Object.entries(projInsp.scanFields ?? {})) {
 				if (Array.isArray(fields) && fields.length === 0) {
@@ -544,7 +723,7 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 					continue;
 				}
 
-				const baseFields = mergedScan[tool] ?? mergedScan["*"];
+				const baseFields = effectiveBaseScanFieldsForTool(baseInsp, tool);
 				if (baseFields === undefined) {
 					mergedScan[tool] = fields;
 				} else if (baseFields === "*" || fields === "*") {
@@ -711,6 +890,16 @@ function validateInspector(value: unknown, errors: string[]): void {
 		} else {
 			validateOptionalStringArray(value.allowlist.stopwords, "tools.inspector.allowlist.stopwords", errors);
 			validateOptionalStringArray(value.allowlist.regexes, "tools.inspector.allowlist.regexes", errors);
+			if (Array.isArray(value.allowlist.regexes)) {
+				value.allowlist.regexes.forEach((regex, index) => {
+					if (typeof regex !== "string") return;
+					try {
+						new RegExp(regex, "iu");
+					} catch (e) {
+						errors.push(`tools.inspector.allowlist.regexes[${index}] must compile as a JavaScript RegExp${e instanceof Error ? ` (${e.message})` : ""}`);
+					}
+				});
+			}
 		}
 	}
 }
@@ -731,33 +920,47 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 	if (value.flags !== undefined && typeof value.flags !== "string") errors.push(`${path}.flags must be a string`);
 	if (typeof value.pattern === "string" && value.pattern.length > 0 && (value.flags === undefined || typeof value.flags === "string")) {
 		try {
-			new RegExp(value.pattern, value.flags ?? "gu");
+			new RegExp(value.pattern, withGlobalFlag(value.flags));
 		} catch (e) {
 			errors.push(`${path}.pattern must compile as a JavaScript RegExp${e instanceof Error ? ` (${e.message})` : ""}`);
 		}
 	}
 }
 
+function effectiveBaseScanFieldsForTool(inspector: ToolInspector, tool: string): string[] | "*" | undefined {
+	const explicit = inspector.scanFields?.[tool] ?? inspector.scanFields?.["*"];
+	if (explicit !== undefined) return explicit;
+	return (inspector.secrets?.length ?? 0) > 0 ? "*" : undefined;
+}
+
+function compileEnvScrubPatterns(patterns: string[] | undefined): RegExp[] {
+	return (patterns ?? []).map((p) => {
+		const re = p.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
+		return new RegExp(`^${re}$`, "i");
+	});
+}
+
+function envNameMatchesScrubConfig(name: string, config: EnvScrubConfig | undefined, compiledPatterns = compileEnvScrubPatterns(config?.patterns)): boolean {
+	return Boolean(config?.names?.includes(name) || compiledPatterns.some((re) => re.test(name)));
+}
+
 /**
  * Scrub secret-bearing env vars from process.env at session_start.
- * Provider/runtime keep entries and config keep entries are both honored.
+ * Exact scrub names and scrub patterns always win over provider/config keep;
+ * keep entries only preserve variables that do not match a scrub rule.
  */
 export function scrubEnv(config: EnvScrubConfig | undefined, keep: string[]): string[] {
 	if (!config || (!config.names?.length && !config.patterns?.length)) return [];
 	const keepSet = new Set([...keep, ...(config.keep ?? [])]);
-	const compiledPatterns = (config.patterns ?? []).map((p) => {
-		const re = p.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
-		return new RegExp(`^${re}$`, "i");
-	});
+	const compiledPatterns = compileEnvScrubPatterns(config.patterns);
 	const scrubbed: string[] = [];
 	for (const name of Object.keys(process.env)) {
-		if (keepSet.has(name)) continue;
-		const hitByName = config.names?.includes(name);
-		const hitByPattern = compiledPatterns.some((re) => re.test(name));
-		if (hitByName || hitByPattern) {
+		if (envNameMatchesScrubConfig(name, config, compiledPatterns)) {
 			delete process.env[name];
 			scrubbed.push(name);
+			continue;
 		}
+		if (keepSet.has(name)) continue;
 	}
 	return scrubbed;
 }
