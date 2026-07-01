@@ -1,8 +1,8 @@
 /**
- * Sandbox Extension - OS-level sandboxing for bash + file tools
+ * Sandbox Extension - OS-level sandboxing for mediated bash + file tools
  *
  * Uses a first-party Linux bubblewrap backend to enforce filesystem and
- * network restrictions on bash commands at the OS level.
+ * network restrictions on pi tool bash/user_bash commands at the OS level.
  *
  * Additionally registers hardened `read`/`write`/`edit` tools that enforce
  * the same denyRead/denyWrite/allowWrite policy at the tool-I/O layer. These
@@ -10,11 +10,13 @@
  * so they hold even on sandbox-init failure (fail-closed: the bwrap layer
  * refuses to run, but file-tool policy is still enforced, not bypassed).
  *
- * Note: this extension overrides the built-in `bash`, `read`, `write`, and
- * `edit` tools. Other pi tools (subagent, agent_send, umans_web_search) are
- * not OS-sandboxed here. Known shell-bypass tools (background/monitor) are
- * mitigated by the in-process tool egress policy until first-party bwrap
- * integration lands.
+ * Note: this extension overrides the tool-registry `bash`, `read`, `write`,
+ * and `edit` tools. Current pi-core RPC/API `bash` calls `executeBash()`
+ * directly instead of routing through this tool or the `user_bash` event, so
+ * RPC/API bash is a documented residual bypass. Other pi tools (subagent,
+ * agent_send, umans_web_search) are not OS-sandboxed here. Known shell-bypass
+ * tools (background/monitor) are mitigated by the in-process tool egress
+ * policy until first-party bwrap integration lands.
  *
  * Config files (merged, project takes precedence but is ADDITIVE-ONLY):
  * - ~/.pi/agent/extensions/sandbox.json (global)
@@ -207,7 +209,8 @@ export default function (pi: ExtensionAPI) {
 		label: "bash (sandboxed)",
 		async execute(id, params, signal, onUpdate, _ctx) {
 			// If explicitly disabled via --no-sandbox or config, run unsandboxed.
-			// This is the ONLY path to unsandboxed bash, and it's operator-chosen.
+			// This is the only unsandboxed path through this registered bash tool,
+			// and it's operator-chosen. RPC/API bash is not routed here by pi core.
 			if (shouldBypassSandbox(pi.getFlag("no-sandbox") as boolean, disabledViaConfig)) {
 				return localBash.execute(id, params, signal, onUpdate);
 			}

@@ -779,6 +779,8 @@ describe("config boundary contract", () => {
 		expect(output).toContain("Mode: filter");
 		expect(output).toContain("ignoreViolations");
 		expect(output).toContain("Known bypass mitigation state");
+		expect(output).toContain("Hardened by this plugin: LLM/tool bash, interactive user_bash, read, write, edit.");
+		expect(output).toContain("RPC/API direct bash is not mediated by pi extensions in current pi core.");
 		expect(output).toContain("Bypass tools: background=confirm, monitor=confirm");
 		expect(output).toContain("Pi extensions/packages");
 		expect(output).toContain("background=confirm");
