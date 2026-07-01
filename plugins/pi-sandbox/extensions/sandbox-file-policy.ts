@@ -26,6 +26,18 @@ export function createFailClosedPolicy(cwd: string): SandboxPolicy {
 	};
 }
 
+/** Permissive policy used only for explicit operator disable paths. */
+export function createPermissivePolicy(cwd: string): SandboxPolicy {
+	return {
+		denyRead: [],
+		denyWrite: [],
+		allowWrite: ["/"],
+		cwd,
+		networkMode: "open",
+		toolRules: { default: "allow", rules: {} },
+	};
+}
+
 /** Minimal structural operation contracts accepted by pi's built-in file tools. */
 export interface SandboxReadOperations {
 	access(absolutePath: string): Promise<void>;

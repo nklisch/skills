@@ -39,14 +39,19 @@ import {
 	getAgentDir,
 } from "@earendil-works/pi-coding-agent";
 import {
+	SANDBOX_FAIL_CLOSED_MESSAGE,
+	SANDBOX_UNINITIALIZED_MESSAGE,
 	createSandboxCommandHandler,
+	createUserBashBlockResult,
 	decideToolPolicy,
+	decideUserBash,
 	inspectToolInput,
 	loadConfig,
 	scrubEnv,
 } from "./sandbox-config";
 import {
 	createFailClosedPolicy,
+	createPermissivePolicy,
 	makeEditOperations,
 	makeReadOperations,
 	makeWriteOperations,
@@ -212,7 +217,7 @@ export default function (pi: ExtensionAPI) {
 					content: [
 						{
 							type: "text",
-							text: "Sandbox failed to initialize and is fail-closed. Fix the error above and /reload, or restart with --no-sandbox to bypass (not recommended).",
+							text: SANDBOX_FAIL_CLOSED_MESSAGE,
 						},
 					],
 					isError: true,
@@ -226,7 +231,7 @@ export default function (pi: ExtensionAPI) {
 					content: [
 						{
 							type: "text",
-							text: "Sandbox not yet initialized. If this persists, /reload or restart pi. Use --no-sandbox only if you intentionally want to bypass.",
+							text: SANDBOX_UNINITIALIZED_MESSAGE,
 						},
 					],
 					isError: true,
@@ -318,7 +323,17 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("user_bash", () => {
-		if (!sandboxEnabled || !sandboxInitialized || failClosed) return;
+		const decision = decideUserBash({
+			noSandbox: pi.getFlag("no-sandbox") as boolean,
+			disabledViaConfig,
+			failClosed,
+			sandboxEnabled,
+			sandboxInitialized,
+		});
+		if (decision.action === "bypass") return;
+		if (decision.action === "block-failclosed" || decision.action === "block-uninitialized") {
+			return createUserBashBlockResult(decision.reason);
+		}
 		return { operations: createSandboxedBashOps() };
 	});
 
@@ -384,6 +399,8 @@ export default function (pi: ExtensionAPI) {
 
 		if (noSandbox) {
 			sandboxEnabled = false;
+			sandboxPolicy = createPermissivePolicy(ctx.cwd);
+			activePolicy = sandboxPolicy;
 			ctx.ui.notify("Sandbox disabled via --no-sandbox", "warning");
 			return;
 		}
@@ -411,6 +428,8 @@ export default function (pi: ExtensionAPI) {
 		if (!config.enabled) {
 			sandboxEnabled = false;
 			disabledViaConfig = true;
+			sandboxPolicy = createPermissivePolicy(ctx.cwd);
+			activePolicy = sandboxPolicy;
 			ctx.ui.notify("Sandbox disabled via config", "info");
 			return;
 		}

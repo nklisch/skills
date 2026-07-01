@@ -8,7 +8,7 @@ First-party Linux bubblewrap sandbox for pi. The package hardens pi's common `ba
 - `bwrap` (`bubblewrap`) installed and available on `PATH` before the pi session starts.
 - Pi loads this as a Pi package from `package.json`; it is intentionally Pi-only and has no Claude Code or Codex plugin manifests.
 
-If the sandbox is enabled but the host is unsupported, `bwrap` is missing, config is invalid, or `network.mode=filter` is selected, bash fails closed. The file-tool policy still runs in-process.
+If the sandbox is enabled but the host is unsupported, `bwrap` is missing, config is invalid, or `network.mode=filter` is selected, `bash` and `user_bash` (`!`/`!!`) fail closed. The file-tool policy still runs in-process.
 
 ## Install
 
@@ -59,6 +59,8 @@ Use `--no-sandbox` only as an explicit operator bypass during local migration or
 pi --no-sandbox
 ```
 
+`--no-sandbox` is a full intentional bypass for this extension: `bash` and `user_bash` fall through to pi's normal local shell backend, the tool-egress gate is not applied, and `read`/`write`/`edit` use a permissive no-op file policy. A global `enabled:false` config has the same operator-disable semantics. This is different from a real initialization failure: fail-closed states keep file tools hardened and block bash instead of falling through.
+
 ## Configuration
 
 Config is JSON and is merged from:
@@ -66,7 +68,7 @@ Config is JSON and is merged from:
 1. Global: `~/.pi/agent/extensions/sandbox.json`
 2. Project-local: `<project>/.pi/sandbox.json`
 
-Project-local config is additive-only. It may tighten policy, but it cannot loosen a global/default posture. The default network mode is `open` for the first release. For example, a project can add `denyRead` entries, add `denyWrite` entries, narrow `allowWrite`, move networking from `open` to `block`, or raise a tool policy from `confirm` to `block`; it cannot disable the sandbox, expand writable paths, or lower a blocked tool to allowed.
+Project-local config is additive-only. It may tighten policy, but it cannot loosen a global/default posture. The default network mode is `open` for the first release. For example, a project can add `denyRead` entries, add `denyWrite` entries, narrow `allowWrite`, move networking from `open` to `block`, or raise a tool policy from `confirm` to `block`; it cannot disable the sandbox, expand writable paths, or lower a blocked tool to allowed. A global/operator config may set `enabled:false` as an intentional full extension disable; project-local config cannot use `enabled:false` to loosen a global enabled policy.
 
 Minimal hardened example:
 
@@ -112,10 +114,15 @@ This plugin makes the common shell and file-tool path safer; it is not a complet
 What it hardens:
 
 - The built-in `bash` command path runs through the first-party Linux `bwrap` backend when the sandbox initializes.
-- `user_bash` receives the same sandboxed bash operations.
+- `user_bash` receives the same sandboxed bash operations when initialized, and returns a blocking bash result instead of falling through to the local backend when initialization fails or is still pending.
 - The `read`, `write`, and `edit` tools enforce the configured file policy in-process, so file-tool protections remain active even when bash is fail-closed.
 - `network.mode=block` air-gaps sandboxed bash with a network namespace. `network.mode=open` leaves host networking intact for sandboxed bash while still applying file and env policy.
 - Sandboxed bash receives a minimal child environment (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`) instead of provider tokens.
+
+Intentional disable paths:
+
+- `--no-sandbox` and global `enabled:false` are operator bypasses, not hardened modes. They make `bash`/`user_bash` use pi's normal local backend, skip this extension's tool-egress gate, and install a permissive file-tool policy so `read`/`write`/`edit` behave like normal pi file tools.
+- Fail-closed states are not bypasses. Missing `bwrap`, invalid config, unsupported hosts, and deferred `network.mode=filter` block `bash`/`user_bash` and keep file tools hardened.
 
 Non-goals and known gaps:
 
