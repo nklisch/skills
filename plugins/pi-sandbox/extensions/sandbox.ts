@@ -21,7 +21,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { constants as fsConstants, existsSync, readFileSync, statSync } from "node:fs";
+import { constants as fsConstants, existsSync, statSync } from "node:fs";
 import { access as fsAccess, readFile as fsReadFile, writeFile as fsWriteFile, mkdir as fsMkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -46,12 +46,17 @@ import {
 	type WriteOperations,
 	getAgentDir,
 } from "@earendil-works/pi-coding-agent";
-// CONFIG_DIR_NAME is hardcoded because pi's TS loader can't resolve the
-// package-barrel re-export (".d.ts" declares it but dist/index.js omits it)
-// and subpath imports through the package name resolve against dist/index.js
-// as a base path. Value is fixed in the package's piConfig.configDir.
-const CONFIG_DIR_NAME = ".pi";
+import {
+	createSandboxCommandHandler,
+	loadConfig,
+	type EnvScrubConfig,
+	type SecretAction,
+	type ToolInspector,
+	type ToolRules,
+} from "./sandbox-config";
 import { Type } from "typebox";
+
+const loadPiConfig = (cwd: string) => loadConfig(cwd, { agentDir: getAgentDir() });
 
 /**
  * Network egress lever. Decouples the filesystem sandbox from the network
@@ -73,121 +78,6 @@ import { Type } from "typebox";
  * The lever mirrors the tool-egress policy vocabulary (allow/auto/confirm/block):
  * a graduated, config-driven posture rather than a binary on/off.
  */
-
-interface SandboxFilesystem {
-	denyRead?: string[];
-	denyWrite?: string[];
-	allowWrite?: string[];
-	allowGitConfig?: boolean;
-}
-
-interface SandboxNetwork {
-	mode?: NetworkMode;
-	allowedDomains?: string[];
-	deniedDomains?: string[];
-}
-
-/** Extension config for the first-party bwrap backend and in-process tool guards. */
-interface SandboxConfig {
-	enabled?: boolean;
-	filesystem?: SandboxFilesystem;
-	network?: SandboxNetwork;
-	tools?: ToolRules;
-	envScrub?: EnvScrubConfig;
-}
-
-
-/** Per-tool egress policy, applied via the `tool_call` event. */
-type ToolPolicy = "allow" | "block" | "confirm" | "auto";
-
-/** Action the inspector takes when a secret shape matches. */
-type SecretAction = "block" | "redact";
-
-interface SecretShape {
-	name: string;
-	/** RegExp source string. Applied with the `flags` (default "gu"). Do NOT use inline `(?i)` — JS rejects it; set `flags: "giu"` instead. */
-	pattern: string;
-	action: SecretAction;
-	/** Capture group index holding the candidate secret. Default 0 (whole match). */
-	secretGroup?: number;
-	/** Min Shannon entropy (bits/char) the captured group must exceed to count as a secret. */
-	entropy?: number;
-	/** Keyword pre-filter: if set, the rule only runs when at least one keyword is present (case-insensitive substring). Cheap false-positive gate. */
-	keywords?: string[];
-	/** RegExp flags. Default "gu". Use "giu" for case-insensitive matching. */
-	flags?: string;
-}
-
-interface SecretAllowlist {
-	/** Candidate strings that are never secrets (placeholders, examples). Matched against the captured group. */
-	stopwords?: string[];
-	/** Regexes; if any matches the captured group, the candidate is ignored. */
-	regexes?: string[];
-}
-
-interface ToolInspector {
-	/** Secret shapes to match against scanned fields. */
-	secrets?: SecretShape[];
-	/** What to do when no secret matches. Default: "allow". */
-	onNoMatch?: "allow" | "block";
-	/** Per-tool field allowlist to scan. "*" (default) = scan all string-valued fields. */
-	scanFields?: Record<string, string[] | "*">;
-	/** Global allowlist: candidates matching these are never secrets. */
-	allowlist?: SecretAllowlist;
-}
-
-interface ToolRules {
-	/** Default policy for any tool not listed in `rules`. Default: "allow". */
-	default?: ToolPolicy;
-	/** Per-tool rules. Key = tool name (built-in or extension-registered). */
-	rules?: Record<string, ToolPolicy>;
-	/** Inspector config for `auto`-policy tools. */
-	inspector?: ToolInspector;
-}
-
-interface EnvScrubConfig {
-	/** Exact env-var names to delete from process.env at session_start. */
-	names?: string[];
-	/** Glob patterns for env-var names to delete (e.g. "*_TOKEN", "ANTHROPIC_*"). Applied case-insensitively. */
-	patterns?: string[];
-	/** A KEEP allowlist: names here are never scrubbed even if a pattern matches. Use to protect vars pi actually needs. */
-	keep?: string[];
-}
-
-const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: EnvScrubConfig } = {
-	enabled: true,
-	network: {
-		mode: "filter",
-		allowedDomains: [
-			"npmjs.org",
-			"*.npmjs.org",
-			"registry.npmjs.org",
-			"registry.yarnpkg.com",
-			"pypi.org",
-			"*.pypi.org",
-			"github.com",
-			"*.github.com",
-			"api.github.com",
-			"raw.githubusercontent.com",
-		],
-		deniedDomains: [],
-	},
-	filesystem: {
-		denyRead: ["~/.ssh", "~/.aws", "~/.gnupg"],
-		allowWrite: [".", "/tmp"],
-		denyWrite: [".env", ".env.*", "*.pem", "*.key"],
-	},
-	tools: {
-		default: "allow",
-		rules: {},
-	},
-	envScrub: {
-		// Known orphan-secret env vars not read by pi's auth path. `ANTHROPIC_AUTH_TOKEN`
-		// is a stale Claude Code leftover; pi reads ANTHROPIC_OAUTH_TOKEN/ANTHROPIC_API_KEY
-		// for the anthropic provider, and auth.json (OAuth) for umans/openai-codex.
-		names: ["ANTHROPIC_AUTH_TOKEN"],
-	},
-};
 
 // ---------------------------------------------------------------------------
 // Path expansion + matching helpers
@@ -235,278 +125,6 @@ function isWithinAllowWrite(target: string, allowList: string[], cwd: string): b
 		if (isWithinOrEqual(target, normalized)) return true;
 	}
 	return false;
-}
-
-/** The first-party bwrap backend does not support glob denyWrite matching. Detect glob patterns so we can warn. */
-function isGlobPattern(p: string): boolean {
-	return /[*?]/.test(p);
-}
-
-// ---------------------------------------------------------------------------
-// Config loading (fail-closed on parse error; project additive-only)
-// ---------------------------------------------------------------------------
-
-interface LoadedConfig {
-	config: SandboxConfig;
-	parseErrors: string[];
-	globWarnings: string[];
-}
-
-function loadConfig(cwd: string): LoadedConfig {
-	const projectConfigPath = join(cwd, CONFIG_DIR_NAME, "sandbox.json");
-	const globalConfigPath = join(getAgentDir(), "extensions", "sandbox.json");
-
-	const parseErrors: string[] = [];
-	let globalConfig: Partial<SandboxConfig> = {};
-	let projectConfig: Partial<SandboxConfig> = {};
-
-	if (existsSync(globalConfigPath)) {
-		try {
-			globalConfig = JSON.parse(readFileSync(globalConfigPath, "utf-8"));
-		} catch (e) {
-			// Fail-closed: record the error. We refuse to run with an unparseable
-			// global config rather than silently dropping denyRead entries.
-			parseErrors.push(`global (${globalConfigPath}): ${e instanceof Error ? e.message : e}`);
-		}
-	}
-
-	if (existsSync(projectConfigPath)) {
-		try {
-			projectConfig = JSON.parse(readFileSync(projectConfigPath, "utf-8"));
-		} catch (e) {
-			parseErrors.push(`project (${projectConfigPath}): ${e instanceof Error ? e.message : e}`);
-		}
-	}
-
-	// Merge defaults <- global <- project, but make project ADDITIVE-ONLY:
-	// it may tighten (more denyRead, fewer allowedDomains, narrower allowWrite)
-	// but never weaken global policy. Weakening attempts are ignored + warned.
-	const mergedGlobal = deepMerge(deepMerge(DEFAULT_CONFIG, globalConfig), {});
-	const merged = mergeProjectAdditive(mergedGlobal, projectConfig);
-
-	// Detect inert glob patterns in denyWrite (Linux can't enforce them).
-	const globWarnings: string[] = [];
-	if (process.platform === "linux") {
-		const denyWrite = merged.filesystem?.denyWrite ?? [];
-		const globs = denyWrite.filter(isGlobPattern);
-		if (globs.length > 0) {
-			globWarnings.push(
-				`Linux cannot enforce glob denyWrite patterns: ${globs.join(", ")}. Replace with literal dirs/files.`,
-			);
-		}
-	}
-
-	return { config: merged, parseErrors, globWarnings };
-}
-
-function deepMerge(base: SandboxConfig, overrides: Partial<SandboxConfig>): SandboxConfig {
-	const result: SandboxConfig = { ...base };
-
-	if (overrides.enabled !== undefined) result.enabled = overrides.enabled;
-	if (overrides.network) {
-		const baseMode = base.network?.mode ?? "filter";
-		const overrideMode = overrides.network.mode;
-		// deepMerge is base<-global: override wins. (Project additive narrowing
-		// is enforced separately in mergeProjectAdditive.)
-		result.network = {
-			...base.network,
-			mode: overrideMode ?? baseMode,
-			allowedDomains: overrides.network.allowedDomains ?? base.network?.allowedDomains,
-			deniedDomains: overrides.network.deniedDomains ?? base.network?.deniedDomains,
-		};
-	}
-	if (overrides.filesystem) {
-		result.filesystem = {
-			...base.filesystem,
-			denyRead: overrides.filesystem.denyRead ?? base.filesystem?.denyRead,
-			allowWrite: overrides.filesystem.allowWrite ?? base.filesystem?.allowWrite,
-			denyWrite: overrides.filesystem.denyWrite ?? base.filesystem?.denyWrite,
-			allowGitConfig: overrides.filesystem.allowGitConfig ?? base.filesystem?.allowGitConfig,
-		};
-	}
-	if (overrides.tools) {
-		const baseTools = base.tools ?? { default: "allow" as ToolPolicy, rules: {} };
-		result.tools = {
-			default: overrides.tools.default ?? baseTools.default,
-			rules: { ...baseTools.rules, ...overrides.tools.rules },
-			// Carry the inspector through the global merge. The additive-only
-			// project merge (mergeProjectAdditive) is where tightening is enforced;
-			// here we just don't lose it.
-			inspector: overrides.tools.inspector ?? baseTools.inspector,
-		};
-	}
-
-	const extOverrides = overrides as {
-		ignoreViolations?: Record<string, string[]>;
-		enableWeakerNestedSandbox?: boolean;
-		envScrub?: EnvScrubConfig;
-	};
-	const extResult = result as { ignoreViolations?: Record<string, string[]>; enableWeakerNestedSandbox?: boolean; envScrub?: EnvScrubConfig };
-
-	if (extOverrides.ignoreViolations) {
-		extResult.ignoreViolations = extOverrides.ignoreViolations;
-	}
-	if (extOverrides.enableWeakerNestedSandbox !== undefined) {
-		extResult.enableWeakerNestedSandbox = extOverrides.enableWeakerNestedSandbox;
-	}
-	if (extOverrides.envScrub) {
-		// Merge: union names + patterns; union keep (more kept = safer). Project
-		// may add to scrub lists but not remove (additive-only is enforced in
-		// mergeProjectAdditive; here we just don't lose the field).
-		const baseScrub = (base as { envScrub?: EnvScrubConfig }).envScrub;
-		extResult.envScrub = {
-			names: [...new Set([...(baseScrub?.names ?? []), ...(extOverrides.envScrub.names ?? [])])],
-			patterns: [...new Set([...(baseScrub?.patterns ?? []), ...(extOverrides.envScrub.patterns ?? [])])],
-			keep: [...new Set([...(baseScrub?.keep ?? []), ...(extOverrides.envScrub.keep ?? [])])],
-		};
-	}
-
-	return result;
-}
-
-/**
- * Merge project config as additive-only restrictions on top of global.
- * Project may ADD denyRead/denyWrite/deniedDomains entries and REMOVE
- * allowedDomains/allowWrite entries (tightening), but may not REMOVE
- * deny entries or ADD allow entries (weakening). Weakening attempts are
- * dropped and warned via console.error.
- */
-function mergeProjectAdditive(global: SandboxConfig, project: Partial<SandboxConfig>): SandboxConfig {
-	if (!project || Object.keys(project).length === 0) return global;
-
-	const result: SandboxConfig = deepMerge(global, {});
-	const warns: string[] = [];
-
-	// Project may NOT disable the sandbox or re-enable allowGitConfig if global is off.
-	if (project.enabled === false && global.enabled !== false) {
-		warns.push(`project tried to disable sandbox; ignored (additive-only policy).`);
-	}
-	if (project.filesystem?.allowGitConfig === true && global.filesystem?.allowGitConfig === false) {
-		warns.push(`project tried to enable allowGitConfig; ignored (additive-only policy).`);
-	}
-
-	// denyRead: project can only ADD entries (union).
-	if (project.filesystem?.denyRead) {
-		const existing = new Set(result.filesystem?.denyRead ?? []);
-		const merged = [...(result.filesystem?.denyRead ?? [])];
-		for (const p of project.filesystem.denyRead) {
-			if (!existing.has(p)) merged.push(p);
-		}
-		result.filesystem = { ...result.filesystem, denyRead: merged };
-	}
-
-	// denyWrite: project can only ADD entries (union).
-	if (project.filesystem?.denyWrite) {
-		const existing = new Set(result.filesystem?.denyWrite ?? []);
-		const merged = [...(result.filesystem?.denyWrite ?? [])];
-		for (const p of project.filesystem.denyWrite) {
-			if (!existing.has(p)) merged.push(p);
-		}
-		result.filesystem = { ...result.filesystem, denyWrite: merged };
-	}
-
-	// allowWrite: project can only REMOVE entries (intersect with global).
-	if (project.filesystem?.allowWrite) {
-		const globalAllow = new Set(result.filesystem?.allowWrite ?? []);
-		result.filesystem = {
-			...result.filesystem,
-			allowWrite: project.filesystem.allowWrite.filter((p) => globalAllow.has(p)),
-		};
-	}
-
-	// network.mode: project can only RAISE the rank (open < filter < block),
-	// never lower it. Symmetric to the tool-policy rank rule below: a hostile
-	// repo cannot relax a global filter/block to open.
-	if (project.network?.mode) {
-		const modeRank: Record<NetworkMode, number> = { open: 0, filter: 1, block: 2 };
-		const current = result.network?.mode ?? "filter";
-		const requested = project.network.mode;
-		if (modeRank[requested] > modeRank[current]) {
-			result.network = { ...result.network, mode: requested };
-		} else if (modeRank[requested] < modeRank[current]) {
-			warns.push(`project tried to loosen network.mode (${current} -> ${requested}); ignored (additive-only).`);
-		}
-	}
-
-	// deniedDomains: project can only ADD (union).
-	if (project.network?.deniedDomains) {
-		const existing = new Set(result.network?.deniedDomains ?? []);
-		const merged = [...(result.network?.deniedDomains ?? [])];
-		for (const p of project.network.deniedDomains) {
-			if (!existing.has(p)) merged.push(p);
-		}
-		result.network = { ...result.network, deniedDomains: merged };
-	}
-
-	// allowedDomains: project can only REMOVE (intersect with global).
-	if (project.network?.allowedDomains) {
-		const globalAllow = new Set(result.network?.allowedDomains ?? []);
-		result.network = {
-			...result.network,
-			allowedDomains: project.network.allowedDomains.filter((p) => globalAllow.has(p)),
-		};
-	}
-
-	// tools: project can only TIGHTEN. Additive by policy rank:
-	// allow < auto < confirm < block. Project may raise a tool's policy,
-	// never lower it. It may also narrow the default (e.g. global
-	// default=allow -> project default=block), but not widen a tightened
-	// default back. A project cannot set default=allow if the global
-	// default is auto/confirm/block.
-	if (project.tools) {
-		const rank: Record<ToolPolicy, number> = { allow: 0, auto: 1, confirm: 2, block: 3 };
-		const baseTools = result.tools ?? { default: "allow" as ToolPolicy, rules: {} };
-		const baseRules = baseTools.rules ?? {};
-		const mergedRules: Record<string, ToolPolicy> = { ...baseRules };
-		for (const [name, policy] of Object.entries(project.tools.rules ?? {})) {
-			const current = mergedRules[name] ?? baseTools.default ?? "allow";
-			if (rank[policy] > rank[current]) {
-				mergedRules[name] = policy;
-			} else if (rank[policy] < rank[current] && baseRules[name] === current) {
-				// project trying to lower a globally-set policy -> ignore + warn
-				warns.push(`project tried to loosen tool policy for "${name}" (${current} -> ${policy}); ignored (additive-only).`);
-			}
-		}
-		const projDefault = project.tools.default;
-		let finalDefault = baseTools.default ?? "allow";
-		if (projDefault && rank[projDefault] > rank[finalDefault]) {
-			finalDefault = projDefault;
-		} else if (projDefault && rank[projDefault] < rank[finalDefault]) {
-			warns.push(`project tried to loosen tool default (${finalDefault} -> ${projDefault}); ignored (additive-only).`);
-		}
-		// inspector: project can ADD secret shapes (union) and tighten onNoMatch
-		// (allow -> block), never remove shapes or loosen onNoMatch. scanFields
-		// are merged per-tool (project can narrow a tool's scanned fields, but
-		// cannot widen a narrowed global setting — intersection of field lists).
-		let mergedInspector = baseTools.inspector;
-		if (project.tools.inspector) {
-			const baseInsp = baseTools.inspector ?? {};
-			const projInsp = project.tools.inspector;
-			// secrets: union by name (project adds new shapes; same-name = project overrides pattern/action)
-			const baseSecrets = new Map((baseInsp.secrets ?? []).map((s) => [s.name, s]));
-			for (const s of projInsp.secrets ?? []) baseSecrets.set(s.name, s);
-			// onNoMatch: tighten only (allow -> block)
-			const baseOnNoMatch = baseInsp.onNoMatch ?? "allow";
-			let finalOnNoMatch = baseOnNoMatch;
-			if (projInsp.onNoMatch === "block" && baseOnNoMatch !== "block") finalOnNoMatch = "block";
-			else if (projInsp.onNoMatch === "allow" && baseOnNoMatch === "block") {
-				warns.push(`project tried to loosen inspector onNoMatch (block -> allow); ignored (additive-only).`);
-			}
-			// scanFields: merge per-tool; if both define a tool's fields, intersect (project narrows)
-			const mergedScan: Record<string, string[] | "*"> = { ...(baseInsp.scanFields ?? {}) };
-			for (const [tool, fields] of Object.entries(projInsp.scanFields ?? {})) {
-				const baseFields = mergedScan[tool];
-				if (baseFields === undefined) mergedScan[tool] = fields;
-				else if (baseFields === "*" || fields === "*") mergedScan[tool] = fields;
-				else mergedScan[tool] = fields.filter((f) => (baseFields as string[]).includes(f));
-			}
-			mergedInspector = { secrets: [...baseSecrets.values()], onNoMatch: finalOnNoMatch, scanFields: mergedScan };
-		}
-		result.tools = { default: finalDefault, rules: mergedRules, ...(mergedInspector ? { inspector: mergedInspector } : {}) };
-	}
-
-	for (const w of warns) console.error(`[sandbox] ${w}`);
-	return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -712,6 +330,7 @@ export default function (pi: ExtensionAPI) {
 	let sandboxInitialized = false;
 	let failClosed = false;
 	let disabledViaConfig = false;
+	let lastFailClosedReason: string | null = null;
 	let sandboxPolicy: SandboxPolicy | null = null;
 
 	// --- bash tool: fail-closed when sandbox didn't init ---
@@ -897,6 +516,7 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
 		failClosed = false;
 		disabledViaConfig = false;
+		lastFailClosedReason = null;
 		sandboxEnabled = false;
 		sandboxInitialized = false;
 
@@ -908,18 +528,21 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 
-		const { config, parseErrors, globWarnings } = loadConfig(ctx.cwd);
+		const { config, parseErrors, globWarnings, legacyFieldWarnings, additiveWarnings } = loadPiConfig(ctx.cwd);
 
 		// Fail-closed on config parse errors.
 		if (parseErrors.length > 0) {
 			failClosed = true;
+			lastFailClosedReason = `config parse error(s): ${parseErrors.join("; ")}`;
 			const msg = `Sandbox config parse error(s):\n${parseErrors.join("\n")}\nBash + file tools are fail-closed until fixed.`;
 			ctx.ui.notify(msg, "error");
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (config parse error)"));
 			return;
 		}
 
+		for (const w of legacyFieldWarnings) ctx.ui.notify(w, "warning");
 		for (const w of globWarnings) ctx.ui.notify(w, "warning");
+		for (const w of additiveWarnings) ctx.ui.notify(w, "warning");
 
 		if (!config.enabled) {
 			sandboxEnabled = false;
@@ -961,6 +584,7 @@ export default function (pi: ExtensionAPI) {
 		const initValidation = validateBwrapInit({ networkMode: netMode, env: process.env });
 		if (!initValidation.ok) {
 			failClosed = true;
+			lastFailClosedReason = initValidation.message;
 			ctx.ui.notify(initValidation.message, "error");
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", initValidation.status));
 			return;
@@ -969,6 +593,7 @@ export default function (pi: ExtensionAPI) {
 		sandboxEnabled = true;
 		sandboxInitialized = true;
 		failClosed = false;
+		lastFailClosedReason = null;
 
 		const networkCount = config.network?.allowedDomains?.length ?? 0;
 		const writeCount = config.filesystem?.allowWrite?.length ?? 0;
@@ -992,34 +617,24 @@ export default function (pi: ExtensionAPI) {
 		// First-party bwrap runs per command and leaves no shared runtime state to reset.
 		sandboxEnabled = false;
 		sandboxInitialized = false;
+		failClosed = false;
+		lastFailClosedReason = null;
 		sandboxPolicy = null;
 		activePolicy = null;
 	});
 
 	pi.registerCommand("sandbox", {
 		description: "Show sandbox configuration",
-		handler: async (_args, ctx) => {
-			const { config } = loadConfig(ctx.cwd);
-			const lines = [
-				"Sandbox Configuration:",
-				`  State: ${failClosed ? "FAIL-CLOSED" : sandboxEnabled ? "enabled" : "disabled"}`,
-				"",
-				"Network:",
-				`  Allowed: ${config.network?.allowedDomains?.join(", ") || "(none)"}`,
-				`  Denied: ${config.network?.deniedDomains?.join(", ") || "(none)"}`,
-				"",
-				"Filesystem:",
-				`  Deny Read: ${config.filesystem?.denyRead?.join(", ") || "(none)"}`,
-				`  Allow Write: ${config.filesystem?.allowWrite?.join(", ") || "(none)"}`,
-				`  Deny Write: ${config.filesystem?.denyWrite?.join(", ") || "(none)"}`,
-				"",
-				"Tools hardened: bash, read, write, edit",
-				"Tool egress policy:",
-				`  default: ${config.tools?.default ?? "allow"}`,
-				`  rules: ${Object.entries(config.tools?.rules ?? {}).map(([k, v]) => `${k}=${v}`).join(", ") || "(none)"}`,
-			];
-			ctx.ui.notify(lines.join("\n"), "info");
-		},
+		handler: createSandboxCommandHandler({
+			load: loadPiConfig,
+			getState: () => ({
+				failClosed,
+				sandboxEnabled,
+				sandboxInitialized,
+				disabledViaConfig,
+				lastFailClosedReason,
+			}),
+		}),
 	});
 }
 

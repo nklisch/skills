@@ -9,6 +9,16 @@ import {
 	type BuildBwrapArgsOptions,
 	validateBwrapInit,
 } from "./sandbox-bwrap";
+import {
+	DEFAULT_CONFIG,
+	FILTER_DEFERRED_BACKLOG_ITEM,
+	createSandboxCommandHandler,
+	deepMerge,
+	loadConfig,
+	mergeProjectAdditive,
+	type LoadedConfig,
+	type SandboxConfig,
+} from "./sandbox-config";
 
 const tempDirs: string[] = [];
 const bwrapPath = "/usr/bin/bwrap";
@@ -116,6 +126,229 @@ describe("package metadata", () => {
 
 		expect(packageJson.dependencies?.[forbiddenDependency]).toBeUndefined();
 		expect(packageJson.optionalDependencies?.[forbiddenDependency]).toBeUndefined();
+	});
+});
+
+describe("config boundary contract", () => {
+	test("deepMerge strips ASRT-only fields instead of carrying inert security knobs", () => {
+		const legacyConfig = {
+			ignoreViolations: { bash: ["legacy"] },
+			enableWeakerNestedSandbox: true,
+			httpProxyPort: 8080,
+			socksProxyPort: 1080,
+			filesystem: {
+				allowGitConfig: true,
+				denyRead: ["secret"],
+			},
+			network: {
+				mode: "open",
+				httpProxyPort: 8080,
+				socksProxyPort: 1080,
+			},
+		} as Partial<SandboxConfig> & Record<string, unknown>;
+
+		const merged = deepMerge(DEFAULT_CONFIG, legacyConfig);
+
+		expect((merged as Record<string, unknown>).ignoreViolations).toBeUndefined();
+		expect((merged as Record<string, unknown>).enableWeakerNestedSandbox).toBeUndefined();
+		expect((merged as Record<string, unknown>).httpProxyPort).toBeUndefined();
+		expect((merged as Record<string, unknown>).socksProxyPort).toBeUndefined();
+		expect((merged.filesystem as Record<string, unknown>).allowGitConfig).toBeUndefined();
+		expect((merged.network as Record<string, unknown>).httpProxyPort).toBeUndefined();
+		expect((merged.network as Record<string, unknown>).socksProxyPort).toBeUndefined();
+	});
+
+	test("mergeProjectAdditive lets projects tighten but not loosen global policy", () => {
+		const warnings: string[] = [];
+		const merged = mergeProjectAdditive(
+			{
+				enabled: true,
+				filesystem: {
+					denyRead: ["global-secret"],
+					denyWrite: ["global-protected"],
+					allowWrite: [".", "allowed"],
+				},
+				network: {
+					mode: "filter",
+					allowedDomains: ["a.example", "b.example"],
+					deniedDomains: ["bad.example"],
+				},
+				tools: { default: "confirm", rules: { bash: "block" } },
+			},
+			{
+				enabled: false,
+				filesystem: {
+					denyRead: ["project-secret"],
+					denyWrite: ["project-protected"],
+					allowWrite: ["allowed", "new-allow"],
+				},
+				network: {
+					mode: "open",
+					allowedDomains: ["a.example", "evil.example"],
+					deniedDomains: ["worse.example"],
+				},
+				tools: { default: "allow", rules: { bash: "allow", read: "block" } },
+			},
+			warnings,
+		);
+
+		expect(merged.enabled).toBe(true);
+		expect(merged.filesystem?.denyRead).toEqual(["global-secret", "project-secret"]);
+		expect(merged.filesystem?.denyWrite).toEqual(["global-protected", "project-protected"]);
+		expect(merged.filesystem?.allowWrite).toEqual(["allowed"]);
+		expect(merged.network?.mode).toBe("filter");
+		expect(merged.network?.allowedDomains).toEqual(["a.example"]);
+		expect(merged.network?.deniedDomains).toEqual(["bad.example", "worse.example"]);
+		expect(merged.tools?.default).toBe("confirm");
+		expect(merged.tools?.rules).toEqual({ bash: "block", read: "block" });
+		expect(warnings.join("\n")).toContain("disable sandbox");
+		expect(warnings.join("\n")).toContain("loosen network.mode");
+		expect(warnings.join("\n")).toContain("loosen tool policy");
+	});
+
+	test("loadConfig reads global and project paths and merges them additively", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			enabled: true,
+			filesystem: {
+				denyRead: ["global-secret"],
+				denyWrite: ["global-protected"],
+				allowWrite: [".", "allowed"],
+			},
+			network: {
+				mode: "open",
+				allowedDomains: ["a.example", "b.example"],
+				deniedDomains: ["bad.example"],
+			},
+		}));
+		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({
+			filesystem: {
+				denyRead: ["project-secret"],
+				denyWrite: ["project-protected"],
+				allowWrite: ["allowed", "new-allow"],
+			},
+			network: {
+				mode: "block",
+				allowedDomains: ["a.example", "evil.example"],
+				deniedDomains: ["worse.example"],
+			},
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.parseErrors).toEqual([]);
+		expect(loaded.config.filesystem?.denyRead).toEqual(["global-secret", "project-secret"]);
+		expect(loaded.config.filesystem?.denyWrite).toEqual(["global-protected", "project-protected"]);
+		expect(loaded.config.filesystem?.allowWrite).toEqual(["allowed"]);
+		expect(loaded.config.network?.mode).toBe("block");
+		expect(loaded.config.network?.allowedDomains).toEqual(["a.example"]);
+		expect(loaded.config.network?.deniedDomains).toEqual(["bad.example", "worse.example"]);
+	});
+
+	test("loadConfig does not crash when the global config path is absent", async () => {
+		const cwd = await makeTempDir();
+		const loaded = loadConfig(cwd, { agentDir: join(cwd, "missing-agent-dir") });
+
+		expect(loaded.config.enabled).toBe(true);
+		expect(loaded.parseErrors).toEqual([]);
+	});
+
+	test("legacy ASRT-only fields produce warnings and are not effective config", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({
+			ignoreViolations: { bash: ["legacy"] },
+			enableWeakerNestedSandbox: true,
+			httpProxyPort: 8080,
+			socksProxyPort: 1080,
+			filesystem: {
+				allowGitConfig: true,
+			},
+			network: {
+				mode: "open",
+				httpProxyPort: 8080,
+				socksProxyPort: 1080,
+			},
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+		const warnings = loaded.legacyFieldWarnings.join("\n");
+
+		expect(warnings).toContain("ignoreViolations");
+		expect(warnings).toContain("enableWeakerNestedSandbox");
+		expect(warnings).toContain("allowGitConfig");
+		expect(warnings).toContain("httpProxyPort");
+		expect(warnings).toContain("socksProxyPort");
+		expect((loaded.config as Record<string, unknown>).ignoreViolations).toBeUndefined();
+		expect((loaded.config as Record<string, unknown>).enableWeakerNestedSandbox).toBeUndefined();
+		expect((loaded.config.filesystem as Record<string, unknown>).allowGitConfig).toBeUndefined();
+		expect((loaded.config.network as Record<string, unknown>).httpProxyPort).toBeUndefined();
+		expect((loaded.config.network as Record<string, unknown>).socksProxyPort).toBeUndefined();
+	});
+
+	test("filter mode fails closed with an actionable backlog pointer", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({ network: { mode: "filter" } }));
+
+		const loaded = loadConfig(cwd, { agentDir });
+		const validation = validateBwrapInit({ networkMode: "filter", platform: "linux", bwrapAvailable: true });
+
+		expect(loaded.failClosedReasons.join("\n")).toContain(FILTER_DEFERRED_BACKLOG_ITEM);
+		expect(validation.ok).toBe(false);
+		if (!validation.ok) {
+			expect(validation.reason).toBe("filter-deferred");
+			expect(validation.message).toContain(FILTER_DEFERRED_BACKLOG_ITEM);
+		}
+	});
+
+	test("sandbox command reports mode, fail-closed reason, legacy fields, and bypass state", async () => {
+		const notifications: string[] = [];
+		const loaded: LoadedConfig = {
+			config: {
+				enabled: true,
+				network: { mode: "filter", allowedDomains: ["example.com"], deniedDomains: [] },
+				filesystem: { denyRead: ["~/.ssh"], allowWrite: ["."], denyWrite: [".env"] },
+				tools: { default: "allow", rules: { agent_send: "confirm" } },
+			},
+			parseErrors: [],
+			globWarnings: [],
+			legacyFieldWarnings: ["project: ignoreViolations is ignored"],
+			failClosedReasons: [`network.mode=filter deferred; see ${FILTER_DEFERRED_BACKLOG_ITEM}`],
+			additiveWarnings: [],
+		};
+		const handler = createSandboxCommandHandler({
+			getState: () => ({
+				failClosed: true,
+				sandboxEnabled: false,
+				sandboxInitialized: false,
+				disabledViaConfig: false,
+				lastFailClosedReason: "network filter deferred",
+			}),
+			load: () => loaded,
+		});
+
+		await handler(null, { cwd: "/fixture", ui: { notify: (message) => notifications.push(message) } });
+
+		const output = notifications.join("\n");
+		expect(output).toContain("State: FAIL-CLOSED");
+		expect(output).toContain("Fail-closed reason");
+		expect(output).toContain("Mode: filter");
+		expect(output).toContain("ignoreViolations");
+		expect(output).toContain("Known bypass mitigation state");
+		expect(output).toContain("Pi extensions/packages");
+		expect(output).toContain("background");
+		expect(output).toContain("monitor");
+		expect(output).toContain("agent_send");
+		expect(output).toContain("web/search tools");
+		expect(output).toContain("subagents");
+		expect(output).toContain("provider requests");
+		expect(output).toContain("open network mode leaves host networking intact");
 	});
 });
 
