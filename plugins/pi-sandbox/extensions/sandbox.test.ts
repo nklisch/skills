@@ -21,6 +21,14 @@ import {
 	type LoadedConfig,
 	type SandboxConfig,
 } from "./sandbox-config";
+import {
+	enforceDenyRead,
+	enforceWritePolicy,
+	makeEditOperations,
+	makeReadOperations,
+	makeWriteOperations,
+	type SandboxPolicy,
+} from "./sandbox-file-policy";
 
 const tempDirs: string[] = [];
 const bwrapPath = "/usr/bin/bwrap";
@@ -128,6 +136,23 @@ describe("package metadata", () => {
 
 		expect(packageJson.dependencies?.[forbiddenDependency]).toBeUndefined();
 		expect(packageJson.optionalDependencies?.[forbiddenDependency]).toBeUndefined();
+	});
+
+	test("package manifest exposes only the extension entrypoint", async () => {
+		const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8")) as {
+			pi?: { extensions?: string[] };
+			peerDependencies?: Record<string, string>;
+			keywords?: string[];
+		};
+		const extensionPackageJson = JSON.parse(await readFile(new URL("./package.json", import.meta.url), "utf8")) as {
+			pi?: { extensions?: string[] };
+		};
+
+		expect(packageJson.keywords).toContain("pi-package");
+		expect(packageJson.peerDependencies?.["@earendil-works/pi-coding-agent"]).toBe("*");
+		expect(packageJson.peerDependencies?.typebox).toBe("*");
+		expect(packageJson.pi?.extensions).toEqual(["./extensions"]);
+		expect(extensionPackageJson.pi?.extensions).toEqual(["./sandbox.ts"]);
 	});
 });
 
@@ -452,6 +477,81 @@ describe("config boundary contract", () => {
 		expect(output).toContain("subagents");
 		expect(output).toContain("provider requests");
 		expect(output).toContain("open network mode leaves host networking intact");
+	});
+});
+
+describe("in-process file-tool policy", () => {
+	function policyFor(cwd: string): SandboxPolicy {
+		return {
+			cwd,
+			denyRead: ["secret-dir", "secret.txt"],
+			denyWrite: ["protected", "protected.txt"],
+			allowWrite: ["writable"],
+			networkMode: "open",
+		};
+	}
+
+	test("enforceDenyRead blocks configured files and directories", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret-dir"));
+		await writeFile(join(cwd, "secret-dir", "inside.txt"), "secret");
+		await writeFile(join(cwd, "secret.txt"), "secret");
+		const policy = policyFor(cwd);
+
+		expect(() => enforceDenyRead(join(cwd, "secret-dir", "inside.txt"), cwd, policy)).toThrow(/denyRead/);
+		expect(() => enforceDenyRead(join(cwd, "secret.txt"), cwd, policy)).toThrow(/denyRead/);
+	});
+
+	test("enforceWritePolicy applies denyWrite before allowWrite and confines writes to allowWrite", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "writable"));
+		await mkdir(join(cwd, "protected"));
+		await writeFile(join(cwd, "protected.txt"), "original");
+		const policy = { ...policyFor(cwd), allowWrite: ["."] };
+
+		expect(() => enforceWritePolicy(join(cwd, "protected", "new.txt"), cwd, policy)).toThrow(/denyWrite/);
+		expect(() => enforceWritePolicy(join(cwd, "protected.txt"), cwd, policy)).toThrow(/denyWrite/);
+		expect(() => enforceWritePolicy(join(cwd, "elsewhere.txt"), cwd, policyFor(cwd))).toThrow(/allowWrite/);
+		expect(() => enforceWritePolicy(join(cwd, "writable", "ok.txt"), cwd, policyFor(cwd))).not.toThrow();
+	});
+
+	test("read operations enforce denyRead on both access and readFile", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "writable"));
+		await writeFile(join(cwd, "writable", "allowed.txt"), "allowed");
+		await writeFile(join(cwd, "secret.txt"), "secret");
+		const ops = makeReadOperations(cwd, policyFor(cwd));
+
+		await expect(ops.readFile(join(cwd, "secret.txt"))).rejects.toThrow(/denyRead/);
+		await expect(ops.access(join(cwd, "secret.txt"))).rejects.toThrow(/denyRead/);
+		expect((await ops.readFile(join(cwd, "writable", "allowed.txt"))).toString()).toBe("allowed");
+	});
+
+	test("write operations enforce allowWrite and denyWrite for files and mkdir", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "writable"));
+		await mkdir(join(cwd, "protected"));
+		const ops = makeWriteOperations(cwd, policyFor(cwd));
+
+		await ops.writeFile(join(cwd, "writable", "ok.txt"), "ok");
+		expect(await readFile(join(cwd, "writable", "ok.txt"), "utf8")).toBe("ok");
+		await expect(ops.writeFile(join(cwd, "outside.txt"), "nope")).rejects.toThrow(/allowWrite/);
+		await expect(ops.mkdir(join(cwd, "protected", "nested"))).rejects.toThrow(/denyWrite/);
+	});
+
+	test("edit operations require both read and write permission", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "writable"));
+		await mkdir(join(cwd, "secret-dir"));
+		await writeFile(join(cwd, "writable", "doc.txt"), "before");
+		await writeFile(join(cwd, "secret-dir", "doc.txt"), "secret");
+		const ops = makeEditOperations(cwd, policyFor(cwd));
+
+		expect((await ops.readFile(join(cwd, "writable", "doc.txt"))).toString()).toBe("before");
+		await ops.writeFile(join(cwd, "writable", "doc.txt"), "after");
+		expect(await readFile(join(cwd, "writable", "doc.txt"), "utf8")).toBe("after");
+		await expect(ops.readFile(join(cwd, "secret-dir", "doc.txt"))).rejects.toThrow(/denyRead/);
+		await expect(ops.access(join(cwd, "protected.txt"))).rejects.toThrow(/denyWrite/);
 	});
 });
 

@@ -22,29 +22,20 @@
  */
 
 import { spawn } from "node:child_process";
-import { constants as fsConstants, existsSync, statSync } from "node:fs";
-import { access as fsAccess, readFile as fsReadFile, writeFile as fsWriteFile, mkdir as fsMkdir } from "node:fs/promises";
-import { homedir } from "node:os";
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { existsSync } from "node:fs";
 import {
 	buildBwrapArgs,
 	buildMinimalEnv,
-	canonicalizeExistingPath,
-	normalizeConfiguredPath,
 	shouldBypassSandbox,
-	type NetworkMode,
 	validateBwrapInit,
 } from "./sandbox-bwrap";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
 	type BashOperations,
-	type EditOperations,
-	type ReadOperations,
 	createBashTool,
 	createEditTool,
 	createReadTool,
 	createWriteTool,
-	type WriteOperations,
 	getAgentDir,
 } from "@earendil-works/pi-coding-agent";
 import {
@@ -56,6 +47,12 @@ import {
 	type ToolInspector,
 	type ToolRules,
 } from "./sandbox-config";
+import {
+	makeEditOperations,
+	makeReadOperations,
+	makeWriteOperations,
+	type SandboxPolicy,
+} from "./sandbox-file-policy";
 import { Type } from "typebox";
 
 const loadPiConfig = (cwd: string) => loadConfig(cwd, { agentDir: getAgentDir() });
@@ -82,145 +79,10 @@ const loadPiConfig = (cwd: string) => loadConfig(cwd, { agentDir: getAgentDir() 
  */
 
 // ---------------------------------------------------------------------------
-// Path expansion + matching helpers
-// ---------------------------------------------------------------------------
-
-/** Expand `~` to the home directory. */
-function expandTilde(p: string): string {
-	if (p === "~") return homedir();
-	if (p.startsWith("~/")) return join(homedir(), p.slice(2));
-	return p;
-}
-
-/**
- * Normalize a config path to an absolute path for comparison.
- * `~` is expanded; relative paths resolve against `cwd` (for read) —
- * matching the sandbox config contract of treating relative paths as cwd-relative.
- */
-function normalizePathForCheck(rawPath: string, cwd: string): string {
-	const normalized = normalizeConfiguredPath(rawPath, cwd);
-	return canonicalizeExistingPath(normalized) ?? normalized;
-}
-
-/** True if `target` is equal to or nested under `dir`. Handles dir/file equality. */
-function isWithinOrEqual(target: string, dir: string): boolean {
-	if (target === dir) return true;
-	const rel = relative(dir, target);
-	return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
-}
-
-/** True if `target` matches any entry in a deny list (exact or prefix). */
-function matchesDenyList(target: string, denyList: string[], cwd: string): { denied: boolean; matched?: string } {
-	for (const pattern of denyList) {
-		const normalized = normalizePathForCheck(pattern, cwd);
-		if (isWithinOrEqual(target, normalized)) {
-			return { denied: true, matched: pattern };
-		}
-	}
-	return { denied: false };
-}
-
-/** True if `target` is within any allowWrite entry. */
-function isWithinAllowWrite(target: string, allowList: string[], cwd: string): boolean {
-	for (const pattern of allowList) {
-		const normalized = normalizePathForCheck(pattern, cwd);
-		if (isWithinOrEqual(target, normalized)) return true;
-	}
-	return false;
-}
-
-// ---------------------------------------------------------------------------
 // Hardened file-tool operations (enforce denyRead/denyWrite/allowWrite in-process)
 // ---------------------------------------------------------------------------
 
-/** Shared policy state — set at session_start, read by the tool operations. */
-interface SandboxPolicy {
-	denyRead: string[];
-	denyWrite: string[];
-	allowWrite: string[];
-	cwd: string;
-	networkMode: NetworkMode;
-	toolRules?: ToolRules;
-}
-
 let activePolicy: SandboxPolicy | null = null;
-
-function makeReadOperations(cwd: string, policy: SandboxPolicy): ReadOperations {
-	return {
-		async access(absolutePath: string) {
-			enforceDenyRead(absolutePath, cwd, policy);
-			await fsAccess(absolutePath, fsConstants.R_OK);
-		},
-		async readFile(absolutePath: string) {
-			// Re-check at read time in case the access check was bypassed upstream.
-			enforceDenyRead(absolutePath, cwd, policy);
-			return fsReadFile(absolutePath);
-		},
-	};
-}
-
-function makeWriteOperations(cwd: string, policy: SandboxPolicy): WriteOperations {
-	return {
-		async writeFile(absolutePath: string, _content: string) {
-			enforceWritePolicy(absolutePath, cwd, policy);
-			await fsWriteFile(absolutePath, _content, "utf-8");
-		},
-		async mkdir(dir: string) {
-			// mkdir is called for the parent dir of the target. The target itself
-			// was already checked by writeFile, but we also block mkdir into a
-			// denied path (e.g. creating ~/.ssh/ when ~/.ssh is denyWrited).
-			enforceWritePolicy(dir, cwd, policy);
-			await fsMkdir(dir, { recursive: true });
-		},
-	};
-}
-
-function makeEditOperations(cwd: string, policy: SandboxPolicy): EditOperations {
-	return {
-		async readFile(absolutePath: string) {
-			// edit reads the file before writing — both must be allowed.
-			enforceDenyRead(absolutePath, cwd, policy);
-			enforceWritePolicy(absolutePath, cwd, policy);
-			return fsReadFile(absolutePath);
-		},
-		async writeFile(absolutePath: string, content: string) {
-			enforceWritePolicy(absolutePath, cwd, policy);
-			await fsWriteFile(absolutePath, content, "utf-8");
-		},
-		async access(absolutePath: string) {
-			enforceDenyRead(absolutePath, cwd, policy);
-			enforceWritePolicy(absolutePath, cwd, policy);
-			await fsAccess(absolutePath, fsConstants.R_OK | fsConstants.W_OK);
-		},
-	};
-}
-
-function enforceDenyRead(absolutePath: string, cwd: string, policy: SandboxPolicy): void {
-	const target = canonicalizeExistingPath(absolutePath) ?? absolutePath;
-	const { denied, matched } = matchesDenyList(target, policy.denyRead, cwd);
-	if (denied) {
-		throw new Error(
-			`Access denied (sandbox denyRead): "${absolutePath}" matches "${matched}". The sandbox blocks reads of configured sensitive paths.`,
-		);
-	}
-}
-
-function enforceWritePolicy(absolutePath: string, cwd: string, policy: SandboxPolicy): void {
-	const target = canonicalizeExistingPath(absolutePath) ?? absolutePath;
-	// denyWrite takes precedence.
-	const { denied, matched } = matchesDenyList(target, policy.denyWrite, cwd);
-	if (denied) {
-		throw new Error(
-			`Access denied (sandbox denyWrite): "${absolutePath}" matches "${matched}". The sandbox blocks writes to configured protected paths.`,
-		);
-	}
-	// Then allowWrite: the target must be within an allowWrite path.
-	if (!isWithinAllowWrite(target, policy.allowWrite, cwd)) {
-		throw new Error(
-			`Access denied (sandbox allowWrite): "${absolutePath}" is outside the writable allowlist. Writes are confined to allowWrite paths.`,
-		);
-	}
-}
 
 // ---------------------------------------------------------------------------
 // Sandboxed bash operations
