@@ -6,7 +6,10 @@ import { FILTER_DEFERRED_BACKLOG_ITEM } from "./sandbox-config";
 export type NetworkMode = "open" | "filter" | "block";
 
 export interface BuildBwrapArgsOptions {
+	/** Command working directory inside the sandbox; used only for --chdir/spawn cwd. */
 	cwd: string;
+	/** Trusted session/project cwd for resolving relative filesystem policy paths. Defaults to process.cwd(), never to cwd. */
+	configCwd?: string;
 	denyRead: string[];
 	denyWrite: string[];
 	allowWrite: string[];
@@ -27,7 +30,9 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 		throw new Error(`Sandbox network.mode=filter is deferred for the first-party bwrap backend; fail-closed instead of silently opening network access. Track filter support in ${FILTER_DEFERRED_BACKLOG_ITEM}.`);
 	}
 
-	const cwd = canonicalizeExistingPath(normalizeConfiguredPath(opts.cwd, opts.cwd)) ?? resolve(opts.cwd);
+	const commandCwd = canonicalizeExistingPath(resolve(opts.cwd)) ?? resolve(opts.cwd);
+	const securityCwdRaw = opts.configCwd ?? process.cwd();
+	const securityCwd = canonicalizeExistingPath(resolve(securityCwdRaw)) ?? resolve(securityCwdRaw);
 	const args = buildBwrapEnvArgs(opts.env ?? process.env);
 
 	args.push("--ro-bind", "/", "/");
@@ -35,11 +40,11 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	args.push("--unshare-pid", "--proc", "/proc");
 	args.push("--die-with-parent");
 
-	for (const mount of existingCanonicalMounts(opts.allowWrite, cwd)) {
+	for (const mount of existingCanonicalMounts(opts.allowWrite, securityCwd)) {
 		args.push("--bind", mount, mount);
 	}
 
-	for (const mount of existingDenyOverlays(opts.denyRead, opts.denyWrite, cwd)) {
+	for (const mount of existingDenyOverlays(opts.denyRead, opts.denyWrite, securityCwd)) {
 		if (mount.denyRead) {
 			if (mount.isDirectory) {
 				args.push("--tmpfs", mount.path);
@@ -58,7 +63,7 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 		args.push("--unshare-net");
 	}
 
-	args.push("--chdir", cwd);
+	args.push("--chdir", commandCwd);
 	return args;
 }
 

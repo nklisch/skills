@@ -403,7 +403,10 @@ function decideFromSandboxResult(command: string, result: SandboxedSpawnArgsResu
 
 function decideBackgroundSpawn(input: {
   command: string;
+  /** Per-call command cwd; may be caller-controlled and only affects where the command runs. */
   cwd: string;
+  /** Trusted session/project cwd for sandbox config and relative filesystem policy. */
+  configCwd?: string;
   envAdd?: NodeJS.ProcessEnv;
   sandbox: SandboxSpawnResolver;
 }): BackgroundSpawnDecision {
@@ -423,6 +426,7 @@ function decideBackgroundSpawn(input: {
         input.sandbox.buildSandboxedSpawnArgs({
           command: input.command,
           cwd: input.cwd,
+          configCwd: input.configCwd ?? process.cwd(),
           envAdd: input.envAdd,
         }),
       );
@@ -431,7 +435,10 @@ function decideBackgroundSpawn(input: {
 
 function decideMonitorPoll(input: {
   command: string;
+  /** Per-call command cwd; may be caller-controlled and only affects where the command runs. */
   cwd: string;
+  /** Trusted session/project cwd for sandbox config and relative filesystem policy. */
+  configCwd?: string;
   sandbox: SandboxSpawnResolver;
 }): MonitorPollDecision {
   switch (input.sandbox.state) {
@@ -440,7 +447,7 @@ function decideMonitorPoll(input: {
     case "broken":
       return { mode: "fail-closed", reason: "sandbox-helper-broken", message: input.sandbox.message };
     case "loaded": {
-      const result = input.sandbox.buildSandboxedSpawnArgs({ command: input.command, cwd: input.cwd });
+      const result = input.sandbox.buildSandboxedSpawnArgs({ command: input.command, cwd: input.cwd, configCwd: input.configCwd ?? process.cwd() });
       switch (result.state) {
         case "ok":
           return { mode: "sandboxed", sandbox: result, cwd: result.cwd, message: result.message };
@@ -738,7 +745,8 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
     if (!command) {
       return { content: [{ type: "text", text: "command is required." }], isError: true };
     }
-    const cwd = params.cwd ? String(params.cwd) : ctx.cwd ?? process.cwd();
+    const sessionCwd = ctx.cwd ?? process.cwd();
+    const cwd = params.cwd ? String(params.cwd) : sessionCwd;
     const label = params.label ? String(params.label) : slugify(command);
     const wakePatternRaw = params.wake_on_pattern ? String(params.wake_on_pattern) : undefined;
     const envAdd = (params.env ?? {}) as Record<string, string>;
@@ -756,7 +764,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
     }
 
     const sandbox = await resolveSandboxSpawn();
-    const spawnDecision = decideBackgroundSpawn({ command, cwd, envAdd, sandbox });
+    const spawnDecision = decideBackgroundSpawn({ command, cwd, configCwd: sessionCwd, envAdd, sandbox });
     if (spawnDecision.mode === "fail-closed") {
       return {
         content: [{ type: "text", text: `Sandbox refused to start background command: ${spawnDecision.message}` }],
@@ -914,9 +922,10 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       }
     }
 
-    const cwd = ctx.cwd ?? process.cwd();
+    const sessionCwd = ctx.cwd ?? process.cwd();
+    const cwd = params.cwd ? String(params.cwd) : sessionCwd;
     const sandbox = await resolveSandboxSpawn();
-    const pollDecision = decideMonitorPoll({ command, cwd, sandbox });
+    const pollDecision = decideMonitorPoll({ command, cwd, configCwd: sessionCwd, sandbox });
     if (pollDecision.mode === "fail-closed") {
       return {
         content: [{ type: "text", text: `Sandbox refused to start monitor command: ${pollDecision.message}` }],
@@ -1038,9 +1047,10 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
         job.exitCode = result.code ?? undefined;
         job.status = "satisfied";
         notify("success", `monitor #${job.id} "${label}" satisfied (${satisfyOn})`);
-        // Trusted wake: no command output and no user-supplied label.
+        // Trusted wake: only id and status/exit. NO command output, label, or
+        // satisfy_on (all caller/output-controlled; injected via steer).
         wake(
-          `[monitor #${job.id} satisfied: ${satisfyOn}, exit ${result.code ?? "?"}]. Read the result with the jobs tool (action=tail, jobId=${job.id}).`,
+          `[monitor #${job.id} satisfied: exit ${result.code ?? "?"}]. Read the result with the jobs tool (action=tail, jobId=${job.id}).`,
         );
         finalize(job);
         return;
@@ -1050,7 +1060,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
         job.status = "timeout";
         notify("warning", `monitor #${job.id} "${label}" timed out after ${timeoutSeconds}s`);
         wake(
-          `[monitor #${job.id} timed out after ${timeoutSeconds}s without satisfying ${satisfyOn}]. Read the last poll with the jobs tool (action=tail, jobId=${job.id}).`,
+          `[monitor #${job.id} timed out without satisfying its condition]. Read the last poll with the jobs tool (action=tail, jobId=${job.id}).`,
         );
         finalize(job);
         return;
@@ -1219,6 +1229,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
     ],
     parameters: obj({
       command: str("Shell command polled on each tick under /bin/sh."),
+      cwd: str("Working directory. Defaults to the current project."),
       satisfy_on: strEnum(["exit_zero", "exit_nonzero", "stdout_matches", "stdout_not_matches"], "Condition that satisfies the monitor. stdout_matches/stdout_not_matches require pattern."),
       pattern: str("Regexp used by stdout_matches / stdout_not_matches."),
       interval_seconds: num(`Poll interval in seconds (floored at ${MIN_MONITOR_INTERVAL_S}). Default ${DEFAULT_MONITOR_INTERVAL_S}.`),

@@ -82,7 +82,7 @@ function runSandboxed(
 ): ReturnType<typeof Bun.spawnSync> {
 	const minimalEnv = buildMinimalEnv(env);
 	const args = [
-		...buildBwrapArgs({ ...opts, env: minimalEnv }),
+		...buildBwrapArgs({ ...opts, configCwd: opts.configCwd ?? opts.cwd, env: minimalEnv }),
 		"--",
 		"bash",
 		"-c",
@@ -1193,6 +1193,7 @@ describe("buildBwrapArgs", () => {
 
 		const args = buildBwrapArgs({
 			cwd,
+			configCwd: cwd,
 			allowWrite: [".", "writable"],
 			denyWrite: ["secret-file"],
 			denyRead: ["secret-dir", ".git"],
@@ -1226,6 +1227,7 @@ describe("buildBwrapArgs", () => {
 		const cwd = await makeTempDir();
 		const args = buildBwrapArgs({
 			cwd,
+			configCwd: cwd,
 			allowWrite: [],
 			denyRead: [],
 			denyWrite: [],
@@ -1243,6 +1245,7 @@ describe("buildBwrapArgs", () => {
 
 		const childFirst = buildBwrapArgs({
 			cwd,
+			configCwd: cwd,
 			allowWrite: ["."],
 			denyRead: ["secret/sub", "secret"],
 			denyWrite: ["secret/sub"],
@@ -1251,6 +1254,7 @@ describe("buildBwrapArgs", () => {
 		});
 		const parentFirst = buildBwrapArgs({
 			cwd,
+			configCwd: cwd,
 			allowWrite: ["."],
 			denyRead: ["secret", "secret/sub"],
 			denyWrite: ["secret/sub"],
@@ -1274,6 +1278,7 @@ describe("buildBwrapArgs", () => {
 
 		const args = buildBwrapArgs({
 			cwd,
+			configCwd: cwd,
 			allowWrite: [],
 			denyRead: ["missing-read"],
 			denyWrite: ["missing-write"],
@@ -1295,6 +1300,7 @@ describe("buildBwrapArgs", () => {
 
 		const args = buildBwrapArgs({
 			cwd,
+			configCwd: cwd,
 			allowWrite: ["."],
 			denyWrite: [],
 			denyRead: ["secret-dir", "secret-file"],
@@ -1312,6 +1318,7 @@ describe("buildBwrapArgs", () => {
 
 		const args = buildBwrapArgs({
 			cwd,
+			configCwd: cwd,
 			allowWrite: ["."],
 			denyWrite: ["secret"],
 			denyRead: ["secret"],
@@ -1326,8 +1333,8 @@ describe("buildBwrapArgs", () => {
 
 	test("open and block network modes map to the expected bwrap argv", async () => {
 		const cwd = await makeTempDir();
-		const openArgs = buildBwrapArgs({ cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open", env: { PATH: "/usr/bin" } });
-		const blockArgs = buildBwrapArgs({ cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block", env: { PATH: "/usr/bin" } });
+		const openArgs = buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open", env: { PATH: "/usr/bin" } });
+		const blockArgs = buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block", env: { PATH: "/usr/bin" } });
 
 		expect(openArgs).not.toContain("--unshare-net");
 		expect(blockArgs).toContain("--unshare-net");
@@ -1335,7 +1342,7 @@ describe("buildBwrapArgs", () => {
 
 	test("filter mode fails closed instead of silently loosening to open", async () => {
 		const cwd = await makeTempDir();
-		expect(() => buildBwrapArgs({ cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "filter", env: { PATH: "/usr/bin" } })).toThrow(/filter is deferred/);
+		expect(() => buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "filter", env: { PATH: "/usr/bin" } })).toThrow(/filter is deferred/);
 	});
 
 	test("relative config paths resolve against the session cwd", async () => {
@@ -1345,6 +1352,7 @@ describe("buildBwrapArgs", () => {
 
 		const args = buildBwrapArgs({
 			cwd,
+			configCwd: cwd,
 			allowWrite: [],
 			denyWrite: [],
 			denyRead: ["relative-secret"],
@@ -1365,6 +1373,7 @@ describe("buildBwrapArgs", () => {
 
 		const args = buildBwrapArgs({
 			cwd,
+			configCwd: cwd,
 			allowWrite: ["."],
 			denyWrite: [],
 			denyRead: ["secret-link"],
@@ -1510,8 +1519,8 @@ describe("bwrap integration", () => {
 		try {
 			const port = server.port;
 			const command = `: < /dev/tcp/127.0.0.1/${port}`;
-			const openResult = runSandboxed(command, { cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open" });
-			const blockResult = runSandboxed(command, { cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block" });
+			const openResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open" });
+			const blockResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block" });
 
 			expect(openResult.exitCode).toBe(0);
 			expect(blockResult.exitCode).not.toBe(0);
