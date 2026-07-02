@@ -80,6 +80,13 @@ function makeFakePi(
   injectedExec?: (command: string, args: string[]) => Promise<ExecResult>,
   options: { sandboxResolver?: () => Promise<SandboxSpawnResolver> } = {},
 ) {
+  // Default the sandbox resolver to `absent` so monitor/background tests exercise
+  // the fake pi.exec path (the unsandboxed route) unless a test explicitly opts
+  // into sandbox coverage via `options.sandboxResolver`. Without this default,
+  // tests on a host that has @nklisch/pi-sandbox installed + bwrap available would
+  // route polls through the real bwrap backend, bypassing the injected fake
+  // exec and breaking test isolation.
+  const sandboxResolver = options.sandboxResolver ?? (() => Promise.resolve({ state: "absent" } as SandboxSpawnResolver));
   const tools = new Map<string, RegisteredTool>();
   const wakes: Wake[] = [];
   const userMessages: Wake[] = [];
@@ -128,7 +135,7 @@ function makeFakePi(
     },
   };
 
-  backgroundTasksExtension(pi, options);
+    backgroundTasksExtension(pi, { ...options, sandboxResolver });
   return { pi, tools, wakes, userMessages, entries, shutdownHandlers, handlers };
 }
 

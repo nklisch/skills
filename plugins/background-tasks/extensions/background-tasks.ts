@@ -814,9 +814,10 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       appendBuffer(job, text);
       if (wakeOnPattern && !job.patternFired && wakeOnPattern.test(text)) {
         job.patternFired = true;
-        // Trusted wake: no command output, just id + the matched fact.
+        // Trusted wake: no command output and no user-supplied label (label is
+        // attacker-controlled and injected via steer; the agent reads it via jobs).
         wake(
-          `[background job #${job.id} "${label}" matched its wake_on_pattern — still running]. Read output with the jobs tool (action=tail, jobId=${job.id}).`,
+          `[background job #${job.id} matched its wake_on_pattern — still running]. Read output with the jobs tool (action=tail, jobId=${job.id}).`,
         );
       }
     };
@@ -836,9 +837,10 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       job.status = ok ? "completed" : "failed";
       const reason = signal ? `signal ${signal}` : `exit ${code ?? "?"}`;
       notify(ok ? "success" : "error", `background job #${job.id} "${label}" finished: ${reason}`);
-      // Trusted wake: only id, label, and the status word. NO command output.
+      // Trusted wake: only id and the status word. NO command output and NO
+      // user-supplied label (both are attacker-controlled; injected via steer).
       wake(
-        `[background job #${job.id} "${label}" finished: ${reason}]. Read its output with the jobs tool (action=tail, jobId=${job.id}).`,
+        `[background job #${job.id} finished: ${reason}]. Read its output with the jobs tool (action=tail, jobId=${job.id}).`,
       );
       finalize(job);
     });
@@ -847,7 +849,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       job.status = "failed";
       notify("error", `background job #${job.id} "${label}" failed to spawn: ${err.message}`);
       wake(
-        `[background job #${job.id} "${label}" failed to spawn: ${err.message}]. No command output was produced.`,
+        `[background job #${job.id} failed to spawn: ${err.message}]. No command output was produced.`,
       );
       finalize(job);
     });
@@ -1026,7 +1028,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
         const hint = `every poll failed to run its command (command not found in stderr). The poll command likely references a missing/typo'd binary or tool`;
         notify("error", `monitor #${job.id} "${label}" aborting: ${hint}. Check the poll command.`);
         wake(
-          `[monitor #${job.id} "${label}" aborted after ${job.pollFailures} consecutive broken polls: ${hint}. Read the last poll with the jobs tool (action=tail, jobId=${job.id}) and fix the command.`,
+          `[monitor #${job.id} aborted after ${job.pollFailures} consecutive broken polls: ${hint}. Read the last poll with the jobs tool (action=tail, jobId=${job.id}) and fix the command.`,
         );
         finalize(job);
         return;
@@ -1036,9 +1038,9 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
         job.exitCode = result.code ?? undefined;
         job.status = "satisfied";
         notify("success", `monitor #${job.id} "${label}" satisfied (${satisfyOn})`);
-        // Trusted wake: no command output.
+        // Trusted wake: no command output and no user-supplied label.
         wake(
-          `[monitor #${job.id} "${label}" satisfied: ${satisfyOn}, exit ${result.code ?? "?"}]. Read the result with the jobs tool (action=tail, jobId=${job.id}).`,
+          `[monitor #${job.id} satisfied: ${satisfyOn}, exit ${result.code ?? "?"}]. Read the result with the jobs tool (action=tail, jobId=${job.id}).`,
         );
         finalize(job);
         return;
@@ -1048,7 +1050,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
         job.status = "timeout";
         notify("warning", `monitor #${job.id} "${label}" timed out after ${timeoutSeconds}s`);
         wake(
-          `[monitor #${job.id} "${label}" timed out after ${timeoutSeconds}s without satisfying ${satisfyOn}]. Read the last poll with the jobs tool (action=tail, jobId=${job.id}).`,
+          `[monitor #${job.id} timed out after ${timeoutSeconds}s without satisfying ${satisfyOn}]. Read the last poll with the jobs tool (action=tail, jobId=${job.id}).`,
         );
         finalize(job);
         return;
