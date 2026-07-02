@@ -15,13 +15,13 @@ If the sandbox is enabled on Linux but `bwrap` is missing, config is invalid, or
 Local checkout install:
 
 ```bash
-pi install /home/agent/projects/skills/plugins/pi-sandbox
+pi install -l ./plugins/pi-sandbox
 ```
 
 One-shot local load without writing settings:
 
 ```bash
-pi -e /home/agent/projects/skills/plugins/pi-sandbox
+pi -e ./plugins/pi-sandbox
 ```
 
 Git-sourced install from this repository checkout:
@@ -171,7 +171,8 @@ or, for example, `inactive (...)` / `blocked (...)` with `background=confirm, mo
 If you previously loaded an operator-local copy such as `~/.pi/agent/extensions/sandbox`, replace that path with this package install:
 
 ```bash
-pi install /home/agent/projects/skills/plugins/pi-sandbox
+pi install npm:@nklisch/pi-sandbox
+# or: pi install -l ./plugins/pi-sandbox
 ```
 
 Then remove the old local extension path from `~/.pi/agent/settings.json` only after a fresh pi launch reports `🔒 Sandbox:` from this package. Do not commit operator-local settings to this repository.

@@ -95,30 +95,30 @@ the extension lifecycle.
 
 ## Acceptance Criteria
 
-- [ ] `background` spawns through `bwrap` via the pi-sandbox builder when
+- [x] `background` spawns through `bwrap` via the pi-sandbox builder when
       pi-sandbox is installed + initialized + `sandboxIntegration:"auto"` on
       Linux.
-- [ ] `monitor` polls through `bwrap` via the pi-sandbox builder under the
+- [x] `monitor` polls through `bwrap` via the pi-sandbox builder under the
       same conditions.
-- [ ] When pi-sandbox is absent OR `sandboxIntegration:"off"`, background/
+- [x] When pi-sandbox is absent OR `sandboxIntegration:"off"`, background/
       monitor behave exactly as today (no sandbox, no error).
-- [ ] When the sandbox is on but the bwrap spawn throws, the `background`/
+- [x] When the sandbox is on but the bwrap spawn throws, the `background`/
       `monitor` call **fails closed** (returns an error, does not run
       unsandboxed) — unless the operator set `sandboxIntegration:"off"`.
-- [ ] On non-Linux hosts, background/monitor run unsandboxed (graceful
+- [x] On non-Linux hosts, background/monitor run unsandboxed (graceful
       degrade) and the tool-egress `confirm` mitigation still applies.
-- [ ] `background` `env` overrides do not leak secrets excluded by the
+- [x] `background` `env` overrides do not leak secrets excluded by the
       sandbox minimal-env allowlist / env-scrub policy.
-- [ ] `background` job kill/timeout (`process.kill(-pgid)`) still works when
+- [x] `background` job kill/timeout (`process.kill(-pgid)`) still works when
       the child is a bwrap process.
-- [ ] `@nklisch/pi-sandbox` package.json gains an `exports` subpath exposing
+- [x] `@nklisch/pi-sandbox` package.json gains an `exports` subpath exposing
       the pure builder (+ types) for cross-plugin import.
-- [ ] `@nklisch/pi-background-tasks` package.json declares
+- [x] `@nklisch/pi-background-tasks` package.json declares
       `@nklisch/pi-sandbox` as an optional peer dependency.
-- [ ] README (background-tasks and/or pi-sandbox) documents the integration,
+- [x] README (background-tasks and/or pi-sandbox) documents the integration,
       the `sandboxIntegration` flag, the Linux-only real-sandboxing limit, and
       the fail-closed default.
-- [ ] Once real integration lands, the pi-sandbox bypass-tool `confirm`
+- [x] Once real integration lands, the pi-sandbox bypass-tool `confirm`
       mitigation for `background`/`monitor` is revisited: the default may
       relax to `allow` when integration is active, but must stay `confirm`/
       fail-closed when integration is off or on non-Linux. Document the

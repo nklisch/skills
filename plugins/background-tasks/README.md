@@ -11,7 +11,9 @@ Wake messages are extension-authored and contain only job ids/status. Command ou
 ## Install
 
 ```bash
-pi install /home/agent/projects/skills/plugins/background-tasks
+pi install npm:@nklisch/pi-background-tasks
+# or from a local checkout of this repo:
+pi install -l ./plugins/background-tasks
 ```
 
 The package is Pi-only. It has no Claude Code or Codex runtime surface because the detached job registry and wake channel are Pi extension behavior.

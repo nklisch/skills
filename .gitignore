@@ -19,3 +19,6 @@ node_modules/
 
 # deep-code-scan in-flight scanner packets; final summaries live in .work items.
 .work/scan-artifacts/
+
+# local pi agent session/runtime state (per-machine; never commit)
+.pi/
