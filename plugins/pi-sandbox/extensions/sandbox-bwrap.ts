@@ -33,6 +33,7 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	args.push("--ro-bind", "/", "/");
 	args.push("--dev", "/dev");
 	args.push("--unshare-pid", "--proc", "/proc");
+	args.push("--die-with-parent");
 
 	for (const mount of existingCanonicalMounts(opts.allowWrite, cwd)) {
 		args.push("--bind", mount, mount);
@@ -223,15 +224,15 @@ function expandTilde(path: string): string {
 	return path;
 }
 
-function findExecutableOnPath(command: string, env: NodeJS.ProcessEnv): string | null {
+export function findExecutableOnPath(command: string, env: NodeJS.ProcessEnv): string | null {
 	const pathValue = env.PATH;
 	if (!pathValue) return null;
 	for (const directory of pathValue.split(delimiter)) {
-		if (!directory) continue;
+		if (!directory || !isAbsolute(directory)) continue;
 		const candidate = join(directory, command);
 		try {
 			accessSync(candidate, fsConstants.X_OK);
-			return candidate;
+			return realpathSync.native(candidate);
 		} catch {
 			// Continue searching PATH.
 		}

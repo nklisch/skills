@@ -2,6 +2,7 @@ import {
 	buildBwrapArgs,
 	buildMinimalEnv,
 	decidePlatformState,
+	findExecutableOnPath,
 	type NetworkMode,
 } from "./sandbox-bwrap";
 import { loadConfig } from "./sandbox-config";
@@ -13,6 +14,7 @@ export {
 	buildMinimalEnv,
 	bwrapIsAvailable,
 	decidePlatformState,
+	findExecutableOnPath,
 	validateBwrapInit,
 	type BuildBwrapArgsOptions,
 	type NetworkMode,
@@ -22,7 +24,9 @@ export interface SandboxSpawnOptions {
 	/** Raw shell command the caller will append after the returned `bash -c` argv prefix. */
 	command: string;
 	cwd: string;
+	/** User-supplied child env additions. These may affect the wrapped command's PATH, never wrapper lookup. */
 	envAdd?: NodeJS.ProcessEnv;
+	/** Trusted wrapper-resolution env. Defaults to the real process env; do not pass user-merged env here. */
 	baseEnv?: NodeJS.ProcessEnv;
 	agentDir?: string;
 	platform?: NodeJS.Platform;
@@ -33,8 +37,8 @@ export type SandboxedSpawnArgsResult =
 	| {
 		state: "ok";
 		integration: "active";
-		executable: "bwrap";
-		/** bwrap args ending in ["--", "bash", "-c"]. Callers append `command` as the final argv item. */
+		executable: string;
+		/** Absolute bwrap path; wrapper resolution uses trusted PATH, never user envAdd PATH. */
 		args: string[];
 		cwd: string;
 		/** Minimal allowlisted environment only. */
@@ -74,7 +78,9 @@ export type SandboxedSpawnArgsResult =
  * command is not embedded into the reusable prefix.
  */
 export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpawnArgsResult {
-	const normalEnv: NodeJS.ProcessEnv = { ...(opts.baseEnv ?? process.env), ...(opts.envAdd ?? {}) };
+	const trustedEnv: NodeJS.ProcessEnv = opts.baseEnv ?? process.env;
+	const normalEnv: NodeJS.ProcessEnv = { ...trustedEnv, ...(opts.envAdd ?? {}) };
+	const bwrapExecutable = opts.bwrapAvailable === false ? null : findExecutableOnPath("bwrap", trustedEnv);
 	const loaded = loadConfig(opts.cwd, { agentDir: opts.agentDir });
 	const env = normalEnv;
 
@@ -136,9 +142,9 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 	const networkMode: NetworkMode = loaded.config.network?.mode ?? "open";
 	const platformState = decidePlatformState({
 		platform: opts.platform,
-		env: normalEnv,
+		env: trustedEnv,
 		networkMode,
-		bwrapAvailable: opts.bwrapAvailable,
+		bwrapAvailable: opts.bwrapAvailable ?? bwrapExecutable !== null,
 	});
 
 	if (platformState.state === "degrade") {
@@ -168,6 +174,20 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 		};
 	}
 
+	if (!bwrapExecutable) {
+		return {
+			state: "fail-closed",
+			integration: "blocked",
+			reason: "bwrap-missing",
+			executable: null,
+			args: [],
+			cwd: opts.cwd,
+			env,
+			message: "Sandbox initialization failed: bwrap is not available on trusted PATH. Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.",
+			errors: ["bwrap is not available on trusted PATH"],
+		};
+	}
+
 	const minimalEnv = buildMinimalEnv(normalEnv);
 	try {
 		const args = [
@@ -186,7 +206,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 		return {
 			state: "ok",
 			integration: "active",
-			executable: "bwrap",
+			executable: bwrapExecutable,
 			args,
 			cwd: opts.cwd,
 			env: minimalEnv,

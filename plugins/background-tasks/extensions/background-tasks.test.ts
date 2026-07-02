@@ -637,35 +637,35 @@ describe("background bwrap integration", () => {
     const cwd = await makeTempDir();
     const agentDir = await makeTempDir("background-tasks-agent-");
     await writeProjectSandboxConfig(cwd, { filesystem: { allowWrite: ["."] } });
-    const markerName = `bg-kill-marker-${process.pid}-${Date.now()}`;
-    const marker = join(cwd, markerName);
     const { tools, wakes } = makeFakePi(undefined, { sandboxResolver: isolatedSandboxResolver(agentDir) });
     const bg = tools.get("background")!;
     const jobs = tools.get("jobs")!;
     const ctx = { ...makeContext(), cwd };
 
-    const startedAt = Date.now();
-    const started = (await bg.execute(
-      "c1",
-      { command: `trap '' TERM; sleep 5; echo done > ${markerName}`, label: "sandbox-kill" },
-      undefined,
-      undefined,
-      ctx,
-    )) as { details: { jobId: number; sandbox: string } };
+    for (let i = 0; i < 3; i++) {
+      const markerName = `bg-kill-marker-${process.pid}-${Date.now()}-${i}`;
+      const marker = join(cwd, markerName);
+      const started = (await bg.execute(
+        `c${i}`,
+        { command: `trap '' TERM; sleep 2; echo done > ${markerName}`, label: `sandbox-kill-${i}` },
+        undefined,
+        undefined,
+        ctx,
+      )) as { details: { jobId: number; sandbox: string } };
 
-    expect(started.details.sandbox).toBe("active");
-    const cancelRes = (await jobs.execute("c2", { action: "cancel", jobId: started.details.jobId }, undefined, undefined, ctx)) as {
-      details: { status: string };
-      content: Array<{ text: string }>;
-    };
-    expect(cancelRes.details.status).toBe("cancelled");
-    expect(cancelRes.content[0].text).toContain("sandbox-kill");
+      expect(started.details.sandbox).toBe("active");
+      const cancelRes = (await jobs.execute(`cancel-${i}`, { action: "cancel", jobId: started.details.jobId }, undefined, undefined, ctx)) as {
+        details: { status: string };
+        content: Array<{ text: string }>;
+      };
+      expect(cancelRes.details.status).toBe("cancelled");
+      expect(cancelRes.content[0].text).toContain(`sandbox-kill-${i}`);
 
-    const remainingWait = Math.max(0, 6500 - (Date.now() - startedAt));
-    await sleep(remainingWait);
-    expect(existsSync(marker)).toBe(false);
+      await sleep(3000);
+      expect(existsSync(marker)).toBe(false);
+    }
     expect(wakes).toHaveLength(0);
-  }, 12000);
+  }, 15000);
 });
 
 describe("monitor bwrap integration", () => {

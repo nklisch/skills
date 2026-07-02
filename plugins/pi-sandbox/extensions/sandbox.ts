@@ -33,6 +33,7 @@ import {
 	buildBwrapArgs,
 	buildMinimalEnv,
 	decidePlatformState,
+	findExecutableOnPath,
 	shouldBypassBashSandbox,
 	shouldBypassSandbox,
 } from "./sandbox-bwrap";
@@ -112,6 +113,10 @@ function createSandboxedBashOps(): BashOperations {
 
 			const policy = activePolicyFor(cwd);
 			const minimalEnv = buildMinimalEnv(process.env);
+			const bwrapExecutable = findExecutableOnPath("bwrap", process.env);
+			if (!bwrapExecutable) {
+				throw new Error("Sandbox initialization failed: bwrap is not available on trusted PATH.");
+			}
 			const bwrapArgs = [
 				...buildBwrapArgs({
 					cwd,
@@ -128,7 +133,7 @@ function createSandboxedBashOps(): BashOperations {
 			];
 
 			return new Promise((resolve, reject) => {
-				const child = spawn("bwrap", bwrapArgs, {
+				const child = spawn(bwrapExecutable, bwrapArgs, {
 					cwd,
 					detached: true,
 					stdio: ["ignore", "pipe", "pipe"],
@@ -588,16 +593,19 @@ export default function (pi: ExtensionAPI) {
 		description: "Show sandbox configuration",
 		handler: createSandboxCommandHandler({
 			load: loadPiConfig,
-			getState: () => ({
-				failClosed,
-				sandboxEnabled,
-				sandboxInitialized,
-				disabledViaConfig,
-				osSandboxUnavailable,
-				osSandboxUnavailablePlatform,
-				lastFailClosedReason,
-				backgroundTasksIntegration: backgroundTasksIntegrationState,
-			}),
+			getState: () => {
+				const backgroundTasksIntegration = refreshBackgroundTasksIntegrationState();
+				return {
+					failClosed,
+					sandboxEnabled,
+					sandboxInitialized,
+					disabledViaConfig,
+					osSandboxUnavailable,
+					osSandboxUnavailablePlatform,
+					lastFailClosedReason,
+					backgroundTasksIntegration,
+				};
+			},
 		}),
 	});
 }

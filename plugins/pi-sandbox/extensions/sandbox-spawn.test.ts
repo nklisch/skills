@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 import { loadConfig, validateConfig } from "./sandbox-config";
-import { buildSandboxedSpawnArgs } from "./sandbox-spawn";
+import { buildSandboxedSpawnArgs, findExecutableOnPath } from "./sandbox-spawn";
 
 const tempDirs: string[] = [];
 
@@ -56,7 +57,8 @@ describe("buildSandboxedSpawnArgs", () => {
 
 		expect(result.state).toBe("ok");
 		if (result.state !== "ok") throw new Error(`expected ok, got ${result.state}`);
-		expect(result.executable).toBe("bwrap");
+		expect(result.executable).toBe(findExecutableOnPath("bwrap", { PATH: "/usr/bin" }));
+		expect(isAbsolute(result.executable)).toBe(true);
 		expect(sequenceIndex(result.args, ["--ro-bind", "/", "/"])).toBeGreaterThanOrEqual(0);
 		expect(result.args.slice(-3)).toEqual(["--", "bash", "-c"]);
 		expect(result.args).not.toContain("echo ok");
@@ -83,6 +85,48 @@ describe("buildSandboxedSpawnArgs", () => {
 		expect(result.env.TERM).toBe("xterm-256color");
 		expect(result.env.LC_ALL).toBe("C");
 		expect(result.env.FOO_SECRET).toBeUndefined();
+	});
+
+	test("resolves the bwrap wrapper from trusted PATH, not user envAdd PATH", async () => {
+		const realBwrap = findExecutableOnPath("bwrap", process.env);
+		if (!realBwrap) throw new Error("expected bwrap on trusted PATH for PATH-poisoning regression test");
+		const cwd = await makeTempDir();
+		const agentDir = await makeAgentDir();
+		const attackerDir = await makeTempDir();
+		const marker = join(cwd, "fake-bwrap-ran.txt");
+		const secret = join(cwd, "secret.txt");
+		const leak = join(cwd, "secret-leaked.txt");
+		const fakeBwrap = join(attackerDir, "bwrap");
+		await writeFile(secret, "SUPER-SECRET\n");
+		await writeFile(fakeBwrap, `#!/bin/sh\necho fake > ${JSON.stringify(marker)}\ncat ${JSON.stringify(secret)} > ${JSON.stringify(leak)} 2>/dev/null\nexit 0\n`);
+		await chmod(fakeBwrap, 0o755);
+
+		const poisonedPath = `${attackerDir}${delimiter}${process.env.PATH ?? dirname(realBwrap)}`;
+		const result = buildSandboxedSpawnArgs({
+			command: "cat secret.txt",
+			cwd,
+			agentDir,
+			platform: "linux",
+			baseEnv: process.env,
+			envAdd: { PATH: poisonedPath },
+		});
+
+		expect(result.state).toBe("ok");
+		if (result.state !== "ok") throw new Error(`expected ok, got ${result.state}`);
+		expect(result.executable).toBe(realBwrap);
+		expect(result.executable).not.toBe(fakeBwrap);
+		expect(result.executable.startsWith(attackerDir)).toBe(false);
+		expect(isAbsolute(result.executable)).toBe(true);
+		expect(result.env.PATH?.startsWith(`${attackerDir}${delimiter}`)).toBe(true);
+
+		const probe = Bun.spawnSync([result.executable, "--version"], {
+			env: result.env,
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		expect(probe.success).toBe(true);
+		expect(existsSync(marker)).toBe(false);
+		expect(existsSync(leak)).toBe(false);
 	});
 
 	test("degrades for a global operator integration opt-out", async () => {
@@ -237,22 +281,34 @@ describe("backgroundTasks sandboxIntegration config", () => {
 });
 
 describe("package metadata exports", () => {
-	test("exposes bwrap, sandbox-spawn, and sandbox-config subpaths", async () => {
+	test("exposes only the sandbox-spawn subpath", async () => {
 		const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8")) as {
 			exports?: Record<string, { types?: string; import?: string } | string>;
 		};
 
-		expect(packageJson.exports?.["./bwrap"]).toEqual({
-			types: "./extensions/sandbox-bwrap.ts",
-			import: "./extensions/sandbox-bwrap.ts",
+		expect(packageJson.exports).toEqual({
+			"./sandbox-spawn": {
+				types: "./extensions/sandbox-spawn.ts",
+				import: "./extensions/sandbox-spawn.ts",
+			},
 		});
-		expect(packageJson.exports?.["./sandbox-spawn"]).toEqual({
-			types: "./extensions/sandbox-spawn.ts",
-			import: "./extensions/sandbox-spawn.ts",
+		expect(packageJson.exports?.["./bwrap"]).toBeUndefined();
+		expect(packageJson.exports?.["./sandbox-config"]).toBeUndefined();
+	});
+
+	test("runtime package subpath resolves buildSandboxedSpawnArgs", async () => {
+		const sandboxCwd = await makeTempDir();
+		const scopeDir = join(sandboxCwd, "node_modules", "@nklisch");
+		await mkdir(scopeDir, { recursive: true });
+		await symlink(resolve(new URL("..", import.meta.url).pathname), join(scopeDir, "pi-sandbox"));
+
+		const script = `const mod = await import("@nklisch/pi-sandbox/sandbox-spawn");\nif (typeof mod.buildSandboxedSpawnArgs !== "function") {\n  console.error("buildSandboxedSpawnArgs missing");\n  process.exit(2);\n}\n`;
+		const result = Bun.spawnSync([process.execPath, "--eval", script], {
+			cwd: sandboxCwd,
+			stdout: "pipe",
+			stderr: "pipe",
 		});
-		expect(packageJson.exports?.["./sandbox-config"]).toEqual({
-			types: "./extensions/sandbox-config.ts",
-			import: "./extensions/sandbox-config.ts",
-		});
+		const stderr = Buffer.from(result.stderr).toString("utf8");
+		expect(result.exitCode, stderr || "subpath import failed").toBe(0);
 	});
 });
