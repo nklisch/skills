@@ -50,9 +50,7 @@ the initial decomposition too broad and under-specified. Accepted corrections:
   normalization, writable allow mounts, deny overlays applied last.
 - **Preserve or explicitly define bash write policy**. `allowWrite` and
   `denyWrite` cannot remain decorative fields.
-- **Mitigate known bypass tools**. `background` and `monitor` stay unsandboxed
-  until the background-tasks plugin integrates with this helper, so the sandbox
-  default policy must block/confirm them rather than silently allowing a bypass.
+- **Mitigate known bypass tools**. `background` and `monitor` were initially mitigated with a tool-egress `confirm` policy until the background-tasks plugin integrated with this helper; that integration has since landed (see `feature-background-tasks-sandbox-integration`) — `background`/`monitor` now route through the bwrap backend on Linux when both plugins are installed, and the `confirm` mitigation remains as the fallback when integration is inactive or on non-Linux.
 - **Add a config/boundary contract**. ASRT-shaped legacy fields must be warned or
   rejected, not silently kept as inert security theater.
 - **Package as a real Pi package**. The plugin must be installable from its own
@@ -119,8 +117,7 @@ Surviving Pi-specific surface:
 - A malicious or compromised Pi extension. Pi packages execute arbitrary code.
 - Tools not mediated by this extension unless blocked by tool policy.
 - RPC/API mode's direct `bash` command in current pi core; it bypasses both the registered tool and `user_bash` event.
-- `background` and `monitor` command execution until the background-tasks plugin
-  consumes the same bwrap helper. Initial mitigation: default block/confirm.
+- `background` and `monitor` command execution — **resolved** by `feature-background-tasks-sandbox-integration` (real bwrap integration on Linux; `confirm` mitigation remains as the fallback when integration is inactive or on non-Linux). The original backlog item `.work/backlog/idea-background-tasks-sandbox-integration.md` was promoted to that feature and is now `done`.
 - `agent_send`, web search, subagents, and provider requests as OS-sandboxed
   surfaces. They are governed only by tool policy/inspector rules.
 - `filter` allowlist networking. Deferred.
