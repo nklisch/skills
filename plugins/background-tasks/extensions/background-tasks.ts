@@ -38,13 +38,20 @@
  *   - monitor polls via recursive setTimeout scheduled AFTER each poll
  *     completes, with an in-flight guard, so polls never overlap regardless
  *     of how long pi.exec takes. interval_seconds is floored at MIN_INTERVAL.
- *   - cancel/shutdown send SIGTERM to the child's process group, wait a grace
- *     period for exit, then SIGKILL the group if it survives, and record the
- *     outcome honestly. A job that won't die is reported, not silently
- *     marked cancelled.
+ *   - cancel/shutdown send SIGKILL to the child's process group and wait for
+ *     the group to disappear before recording `cancelled`; a job that won't
+ *     die within the bounded reap window is reported as `kill_failed`, not
+ *     silently marked cancelled.
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
+import {
+  createCachedSandboxResolver,
+  publishBrokenSandboxIntegrationHandshake,
+  publishSandboxIntegrationHandshake,
+  type SandboxedSpawnArgsResult,
+  type SandboxSpawnResolver,
+} from "./sandbox-bridge";
 
 // --- Keybinding matcher (sync, optional) ---------------------------------
 //
@@ -94,7 +101,6 @@ const DEFAULT_MONITOR_TIMEOUT_S = 600;
 const MIN_MONITOR_INTERVAL_S = 1; // floor; sub-second polls flood commands
 const MONITOR_POLL_FAIL_THRESHOLD = 3; // consecutive failed polls -> early diagnostic timeout
 const DEFAULT_TAIL_LINES = 40;
-const CANCEL_GRACE_MS = 4_000; // SIGTERM grace before SIGKILL
 const KILL_GRACE_MS = 2_000; // post-SIGKILL reap window before declaring kill_failed
 const MAX_RETAINED_JOBS = 50; // prune oldest terminal jobs above this count
 const PAGING_TAIL_LINES = 200; // lines of output shown per job in the view panel
@@ -103,7 +109,7 @@ const PAGING_TAIL_LINES = 200; // lines of output shown per job in the view pane
 //
 // A short, agent-facing explainer appended to the system prompt every turn so
 // the agent reaches for background/monitor (and distinguishes them from
-// peeragent/subagent delegation) instead of reflexively blocking on `bash`.
+// subagent delegation) instead of reflexively blocking on `bash`.
 // Header is also the idempotency sentinel.
 const SYSTEM_PROMPT_EXPLAINER_HEADER = "## Long-Running & Concurrent Work";
 const SYSTEM_PROMPT_EXPLAINER = `${SYSTEM_PROMPT_EXPLAINER_HEADER}
@@ -112,7 +118,7 @@ This harness wakes you asynchronously. When you launch work that runs detached, 
 
 ### Do
 - **\`background\`** — run a long shell command detached and keep working; you're woken on exit. Use for anything that may run more than a few seconds (test suites, builds, deploys, watch/serve, CI runs) AND for **launching multiple instances in parallel** (fan out N jobs, keep doing other work, harvest results via \`jobs\` as each finishes). The whole point: long-running async work you step away from while you produce in parallel.
-- **\`monitor\`** — the SANCTIONED poller. Polls a command on an interval until a *condition* holds, then wakes you. Use it over \`background\` when you're waiting on a state, not a single exit: CI going green, PR reviewer status, a file/port/log line, a \`peeragent --async\` job flipping to done.
+- **\`monitor\`** — the SANCTIONED poller. Polls a command on an interval until a *condition* holds, then wakes you. Use it over \`background\` when you're waiting on a state, not a single exit: CI going green, PR reviewer status, a file/port/log line, an external async job flipping to done.
 - After a wake, read output with \`jobs\` (action=tail) — it is never auto-delivered.
 
 ### Don't
@@ -121,7 +127,7 @@ This harness wakes you asynchronously. When you launch work that runs detached, 
 - **Do NOT sleep in \`bash\` to wait for a condition.** That's exactly what \`monitor\` is for, and it's non-blocking.
 
 ### Delegation vs. backgrounding (conditional — only if your harness has these)
-- If you have a **cross-harness peer** tool (e.g. peeragent's \/peer\`), it delegates a focused pass (implement/review/research) to a *different* model. It can run \`--async\`; watch its job with \`monitor\` while you keep working.
+- If you have a **cross-harness peer** tool, it may delegate a focused pass (implement/review/research) to a *different* model. It may run asynchronously; watch its job with \`monitor\` while you keep working.
 - If you have an **internal sub-agent** tool, use THAT (not a cross-harness peer) for parallel work that stays inside this harness.
 - Backgrounding a SHELL command (this plugin) is neither of those — it runs a process, not an agent. If you're unsure which exists in your harness, check before delegating.`;
 
@@ -218,12 +224,16 @@ type PiApi = {
   ) => void;
 };
 
+interface BackgroundTasksExtensionOptions {
+  sandboxResolver?: () => Promise<SandboxSpawnResolver>;
+}
+
 // --- Job registry ---------------------------------------------------------
 
 type JobKind = "background" | "monitor";
 type JobStatus =
   | "running"
-  | "cancelling" // SIGTERM sent; awaiting exit or grace-expiry SIGKILL
+  | "cancelling" // SIGKILL sent; awaiting process-group disappearance
   | "completed"
   | "failed"
   | "cancelled"
@@ -311,9 +321,274 @@ function formatJobLine(job: Job): string {
   return `#${job.id} ${mark} [${job.status}${exit}] ${job.kind} "${job.label}" (${fmtDuration(elapseMs(job))})`;
 }
 
+type BackgroundSpawnDecision =
+  | {
+    mode: "sandboxed";
+    executable: string;
+    args: string[];
+    cwd: string;
+    env: NodeJS.ProcessEnv;
+    message?: string;
+  }
+  | {
+    mode: "unsandboxed";
+    reason: "sandbox-absent" | "sandbox-degraded";
+    cwd: string;
+    env: NodeJS.ProcessEnv;
+    message?: string;
+  }
+  | {
+    mode: "fail-closed";
+    reason: string;
+    message: string;
+  };
+
+type MonitorPollDecision =
+  | {
+    mode: "sandboxed";
+    sandbox: Extract<SandboxedSpawnArgsResult, { state: "ok" }>;
+    cwd: string;
+    message?: string;
+  }
+  | {
+    mode: "unsandboxed";
+    reason: "sandbox-absent" | "sandbox-degraded";
+    cwd: string;
+    message?: string;
+  }
+  | {
+    mode: "fail-closed";
+    reason: string;
+    message: string;
+  };
+
+interface ShellRunOptions {
+  command: string;
+  cwd: string;
+  timeoutMs: number;
+  signal?: AbortSignal;
+  sandbox?: SandboxedSpawnArgsResult | null;
+  piExec?: PiApi["exec"];
+  onChildSpawn?: (child: ChildProcess) => void;
+  onChildClose?: () => void;
+}
+
+function failClosedDecision(reason: string, message: string): BackgroundSpawnDecision {
+  return { mode: "fail-closed", reason, message };
+}
+
+function decideFromSandboxResult(command: string, result: SandboxedSpawnArgsResult): BackgroundSpawnDecision {
+  switch (result.state) {
+    case "ok":
+      return {
+        mode: "sandboxed",
+        executable: result.executable,
+        args: [...result.args, command],
+        cwd: result.cwd,
+        env: result.env,
+        message: result.message,
+      };
+    case "degraded":
+      return {
+        mode: "unsandboxed",
+        reason: "sandbox-degraded",
+        cwd: result.cwd,
+        env: result.env,
+        message: result.message,
+      };
+    case "fail-closed":
+      return failClosedDecision(result.reason, result.message);
+  }
+}
+
+function decideBackgroundSpawn(input: {
+  command: string;
+  /** Per-call command cwd; may be caller-controlled and only affects where the command runs. */
+  cwd: string;
+  /** Trusted session/project cwd for sandbox config and relative filesystem policy. */
+  configCwd?: string;
+  envAdd?: NodeJS.ProcessEnv;
+  sandbox: SandboxSpawnResolver;
+}): BackgroundSpawnDecision {
+  switch (input.sandbox.state) {
+    case "absent":
+      return {
+        mode: "unsandboxed",
+        reason: "sandbox-absent",
+        cwd: input.cwd,
+        env: { ...process.env, ...(input.envAdd ?? {}) },
+      };
+    case "broken":
+      return failClosedDecision("sandbox-helper-broken", input.sandbox.message);
+    case "loaded":
+      return decideFromSandboxResult(
+        input.command,
+        input.sandbox.buildSandboxedSpawnArgs({
+          command: input.command,
+          cwd: input.cwd,
+          configCwd: input.configCwd ?? process.cwd(),
+          envAdd: input.envAdd,
+        }),
+      );
+  }
+}
+
+function decideMonitorPoll(input: {
+  command: string;
+  /** Per-call command cwd; may be caller-controlled and only affects where the command runs. */
+  cwd: string;
+  /** Trusted session/project cwd for sandbox config and relative filesystem policy. */
+  configCwd?: string;
+  sandbox: SandboxSpawnResolver;
+}): MonitorPollDecision {
+  switch (input.sandbox.state) {
+    case "absent":
+      return { mode: "unsandboxed", reason: "sandbox-absent", cwd: input.cwd };
+    case "broken":
+      return { mode: "fail-closed", reason: "sandbox-helper-broken", message: input.sandbox.message };
+    case "loaded": {
+      const result = input.sandbox.buildSandboxedSpawnArgs({ command: input.command, cwd: input.cwd, configCwd: input.configCwd ?? process.cwd() });
+      switch (result.state) {
+        case "ok":
+          return { mode: "sandboxed", sandbox: result, cwd: result.cwd, message: result.message };
+        case "degraded":
+          return { mode: "unsandboxed", reason: "sandbox-degraded", cwd: result.cwd, message: result.message };
+        case "fail-closed":
+          return { mode: "fail-closed", reason: result.reason, message: result.message };
+      }
+    }
+  }
+}
+
+function isNoSuchProcess(err: unknown): boolean {
+  return (err as { code?: unknown })?.code === "ESRCH";
+}
+
+function signalProcessGroup(pgid: number | undefined, child: ChildProcess, signal: NodeJS.Signals): "sent" | "gone" | "failed" {
+  if (pgid) {
+    try {
+      process.kill(-pgid, signal);
+      return "sent";
+    } catch (err) {
+      if (isNoSuchProcess(err)) return "gone";
+    }
+  }
+  try {
+    child.kill(signal);
+    return "sent";
+  } catch (err) {
+    return isNoSuchProcess(err) ? "gone" : "failed";
+  }
+}
+
+function processGroupExists(pgid: number | undefined): boolean {
+  if (!pgid) return false;
+  try {
+    process.kill(-pgid, 0);
+    return true;
+  } catch (err) {
+    return !isNoSuchProcess(err);
+  }
+}
+
+function killChildProcessGroup(child: ChildProcess, signal: NodeJS.Signals): boolean {
+  return signalProcessGroup(child.pid, child, signal) !== "failed";
+}
+
+async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
+  if (opts.sandbox?.state !== "ok") {
+    if (!opts.piExec) throw new Error("monitor needs pi.exec, which is unavailable in this runtime.");
+    return opts.piExec("/bin/sh", ["-c", opts.command], { timeout: opts.timeoutMs, cwd: opts.cwd, signal: opts.signal });
+  }
+
+  return new Promise((resolve) => {
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    let timedOut = false;
+    let abortListener: (() => void) | undefined;
+    const child = spawn(opts.sandbox.executable, [...opts.sandbox.args, opts.command], {
+      cwd: opts.sandbox.cwd,
+      env: opts.sandbox.env,
+      detached: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    const timeoutTimer = setTimeout(() => {
+      timedOut = true;
+      killChildProcessGroup(child, "SIGKILL");
+    }, opts.timeoutMs);
+
+    const cleanup = () => {
+      clearTimeout(timeoutTimer);
+      if (abortListener) opts.signal?.removeEventListener("abort", abortListener);
+      opts.onChildClose?.();
+    };
+
+    const finish = (result: ExecResult) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(result);
+    };
+
+    abortListener = () => {
+      timedOut = true;
+      killChildProcessGroup(child, "SIGKILL");
+    };
+    opts.signal?.addEventListener("abort", abortListener, { once: true });
+    if (opts.signal?.aborted) abortListener();
+
+    child.stdout?.on("data", (data: Buffer | string) => {
+      stdout += typeof data === "string" ? data : data.toString("utf8");
+    });
+    child.stderr?.on("data", (data: Buffer | string) => {
+      stderr += typeof data === "string" ? data : data.toString("utf8");
+    });
+    child.once("spawn", () => opts.onChildSpawn?.(child));
+    child.once("error", (err) => {
+      finish({ stdout, stderr: `${stderr}${err.message}`, code: null });
+    });
+    child.once("close", (code, signal) => {
+      const timeoutNote = timedOut ? `monitor poll exceeded ${opts.timeoutMs}ms and was terminated${signal ? ` by ${signal}` : ""}\n` : "";
+      finish({ stdout, stderr: `${stderr}${timeoutNote}`, code, killed: timedOut });
+    });
+  });
+}
+
+function waitForChildSpawn(child: ChildProcess): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      child.off("spawn", onSpawn);
+      child.off("error", onError);
+    };
+    const onSpawn = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = (err: Error) => {
+      cleanup();
+      reject(err);
+    };
+    child.once("spawn", onSpawn);
+    child.once("error", onError);
+  });
+}
+
 // --- Extension ------------------------------------------------------------
 
-export default function backgroundTasksExtension(pi: PiApi): void {
+export default function backgroundTasksExtension(pi: PiApi, options: BackgroundTasksExtensionOptions = {}): void {
+  const resolveSandboxSpawnRaw = createCachedSandboxResolver(options.sandboxResolver);
+  const resolveSandboxSpawn = async (): Promise<SandboxSpawnResolver> => {
+    try {
+      const resolved = await resolveSandboxSpawnRaw();
+      publishSandboxIntegrationHandshake(resolved);
+      return resolved;
+    } catch (err) {
+      publishBrokenSandboxIntegrationHandshake(err instanceof Error ? err.message : String(err));
+      throw err;
+    }
+  };
   const jobs = new Map<number, Job>();
   let nextId = 1;
   let shuttingDown = false;
@@ -411,12 +686,12 @@ export default function backgroundTasksExtension(pi: PiApi): void {
   }
 
   /**
-   * Stop a running job: SIGTERM its process group, wait for exit within a grace
-   * window, then SIGKILL the group if it survived, waiting up to a second short
-   * window for reaping. Records the HONEST outcome — cancelled (clean exit on
-   * SIGTERM or reaped after SIGKILL) or kill_failed (still alive after SIGKILL).
-   * Routes every terminal transition through finalize() so pruning/visuals fire.
-   * Idempotent for an already-terminal job. Resolves once terminal.
+   * Stop a running job by killing the whole process group with SIGKILL and
+   * waiting until the group is actually gone. Cancellation is an operator kill
+   * request, not a graceful shutdown request: giving an adversarial shell a
+   * SIGTERM grace can let `trap TERM; sleep ...; echo marker` run after the
+   * wrapper exits. Terminal state is recorded only after the process group is
+   * gone or after a bounded SIGKILL reap window reports kill_failed.
    */
   async function cancelJob(job: Job): Promise<void> {
     if (job.status !== "running" && job.status !== "cancelling") return;
@@ -433,24 +708,11 @@ export default function backgroundTasksExtension(pi: PiApi): void {
     job.status = "cancelling";
     const pid = job.pid;
     const child = job.child;
-    const tryKill = (sig: NodeJS.Signals): boolean => {
-      try {
-        process.kill(-pid, sig); // negative pid = the whole process group
-        return true;
-      } catch {
-        try {
-          child.kill(sig);
-          return true;
-        } catch {
-          return false; // already dead
-        }
-      }
-    };
-    const waitForExit = (ms: number): Promise<boolean> =>
+    const waitForGroupExit = (ms: number): Promise<boolean> =>
       new Promise((resolve) => {
         const deadline = Date.now() + ms;
         const tick = () => {
-          if (job.status !== "cancelling") return resolve(true); // exit handler reaped it
+          if (!processGroupExists(pid)) return resolve(true);
           if (Date.now() >= deadline) return resolve(false);
           // NOTE: do NOT unref this timer. Once the child exits it becomes the
           // only ref'd handle; an unref'd poll would let the loop drain and the
@@ -460,35 +722,19 @@ export default function backgroundTasksExtension(pi: PiApi): void {
         tick();
       });
 
-    tryKill("SIGTERM");
-    if (await waitForExit(CANCEL_GRACE_MS)) {
-      if (job.status === "cancelling") {
-        job.status = "cancelled";
-        finalize(job);
-      }
+    const killed = signalProcessGroup(pid, child, "SIGKILL");
+    if (killed === "failed") {
+      job.status = "kill_failed";
+      finalize(job);
       return;
     }
-    if (job.status !== "cancelling") return; // reaped mid-window
-    // Still alive after SIGTERM grace — escalate to SIGKILL and wait for reaping.
-    const killed = tryKill("SIGKILL");
-    if (!killed) {
-      // Group was already gone (race with exit). Treat as cancelled.
+    if (killed === "gone" || await waitForGroupExit(KILL_GRACE_MS)) {
       job.status = "cancelled";
       finalize(job);
       return;
     }
-    if (await waitForExit(KILL_GRACE_MS)) {
-      if (job.status === "cancelling") {
-        job.status = "cancelled";
-        finalize(job);
-      }
-      return;
-    }
-    // SIGKILL did not reap the group within the window — record honestly.
-    if (job.status === "cancelling") {
-      job.status = "kill_failed";
-      finalize(job);
-    }
+    job.status = "kill_failed";
+    finalize(job);
   }
 
   // --- background tool ----------------------------------------------------
@@ -499,7 +745,8 @@ export default function backgroundTasksExtension(pi: PiApi): void {
     if (!command) {
       return { content: [{ type: "text", text: "command is required." }], isError: true };
     }
-    const cwd = params.cwd ? String(params.cwd) : ctx.cwd ?? process.cwd();
+    const sessionCwd = ctx.cwd ?? process.cwd();
+    const cwd = params.cwd ? String(params.cwd) : sessionCwd;
     const label = params.label ? String(params.label) : slugify(command);
     const wakePatternRaw = params.wake_on_pattern ? String(params.wake_on_pattern) : undefined;
     const envAdd = (params.env ?? {}) as Record<string, string>;
@@ -516,6 +763,19 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       }
     }
 
+    const sandbox = await resolveSandboxSpawn();
+    const spawnDecision = decideBackgroundSpawn({ command, cwd, configCwd: sessionCwd, envAdd, sandbox });
+    if (spawnDecision.mode === "fail-closed") {
+      return {
+        content: [{ type: "text", text: `Sandbox refused to start background command: ${spawnDecision.message}` }],
+        details: { sandbox: "blocked", reason: spawnDecision.reason },
+        isError: true,
+      };
+    }
+    if (spawnDecision.mode === "unsandboxed" && spawnDecision.reason === "sandbox-degraded" && spawnDecision.message) {
+      console.error(`[background-tasks] sandbox degraded for background command: ${spawnDecision.message}`);
+    }
+
     const job: Job = {
       id: nextId++,
       kind: "background",
@@ -528,13 +788,32 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       patternSource: wakePatternRaw,
     };
 
-    const child = spawn(command, {
-      shell: "/bin/sh",
-      cwd,
-      env: { ...process.env, ...envAdd },
-      detached: true,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    let child: ChildProcess;
+    try {
+      if (spawnDecision.mode === "sandboxed") {
+        child = spawn(spawnDecision.executable, spawnDecision.args, {
+          cwd: spawnDecision.cwd,
+          env: spawnDecision.env,
+          detached: true,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        await waitForChildSpawn(child);
+      } else {
+        child = spawn(command, {
+          shell: "/bin/sh",
+          cwd: spawnDecision.cwd,
+          env: spawnDecision.env,
+          detached: true,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+      }
+    } catch (err) {
+      return {
+        content: [{ type: "text", text: `Sandbox failed to start background command: ${(err as Error).message}` }],
+        details: { sandbox: "blocked", reason: "sandbox-spawn-error" },
+        isError: true,
+      };
+    }
     job.child = child;
     job.pid = child.pid;
 
@@ -543,9 +822,10 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       appendBuffer(job, text);
       if (wakeOnPattern && !job.patternFired && wakeOnPattern.test(text)) {
         job.patternFired = true;
-        // Trusted wake: no command output, just id + the matched fact.
+        // Trusted wake: no command output and no user-supplied label (label is
+        // attacker-controlled and injected via steer; the agent reads it via jobs).
         wake(
-          `[background job #${job.id} "${label}" matched its wake_on_pattern — still running]. Read output with the jobs tool (action=tail, jobId=${job.id}).`,
+          `[background job #${job.id} matched its wake_on_pattern — still running]. Read output with the jobs tool (action=tail, jobId=${job.id}).`,
         );
       }
     };
@@ -555,10 +835,8 @@ export default function backgroundTasksExtension(pi: PiApi): void {
     child.on("exit", (code, signal) => {
       if (job.status === "cancelled" || job.status === "kill_failed") return; // cancellation owns terminal state
       if (job.status === "cancelling") {
-        // Reaped during cancellation (SIGTERM or SIGKILL worked) — mark cancelled.
-        job.status = "cancelled";
+        // Cancellation owns terminal state after it verifies the process group is gone.
         job.exitCode = code ?? null;
-        finalize(job);
         return;
       }
       if (job.status !== "running") return; // already finalized (double-fire guard)
@@ -567,9 +845,10 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       job.status = ok ? "completed" : "failed";
       const reason = signal ? `signal ${signal}` : `exit ${code ?? "?"}`;
       notify(ok ? "success" : "error", `background job #${job.id} "${label}" finished: ${reason}`);
-      // Trusted wake: only id, label, and the status word. NO command output.
+      // Trusted wake: only id and the status word. NO command output and NO
+      // user-supplied label (both are attacker-controlled; injected via steer).
       wake(
-        `[background job #${job.id} "${label}" finished: ${reason}]. Read its output with the jobs tool (action=tail, jobId=${job.id}).`,
+        `[background job #${job.id} finished: ${reason}]. Read its output with the jobs tool (action=tail, jobId=${job.id}).`,
       );
       finalize(job);
     });
@@ -578,7 +857,7 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       job.status = "failed";
       notify("error", `background job #${job.id} "${label}" failed to spawn: ${err.message}`);
       wake(
-        `[background job #${job.id} "${label}" failed to spawn: ${err.message}]. No command output was produced.`,
+        `[background job #${job.id} failed to spawn: ${err.message}]. No command output was produced.`,
       );
       finalize(job);
     });
@@ -597,7 +876,12 @@ export default function backgroundTasksExtension(pi: PiApi): void {
           text: `Started background job #${job.id} "${label}". I'll be woken with the result when it exits${patternNote}; read the output with the jobs tool. Use jobs (action=cancel, jobId=${job.id}) to stop it.`,
         },
       ],
-      details: { jobId: job.id, status: "running", pid: job.pid },
+      details: {
+        jobId: job.id,
+        status: "running",
+        pid: job.pid,
+        sandbox: spawnDecision.mode === "sandboxed" ? "active" : spawnDecision.reason === "sandbox-degraded" ? "degraded" : "absent",
+      },
     };
   };
 
@@ -608,12 +892,6 @@ export default function backgroundTasksExtension(pi: PiApi): void {
     const command = String(params.command ?? "").trim();
     if (!command) {
       return { content: [{ type: "text", text: "command is required." }], isError: true };
-    }
-    if (!pi.exec) {
-      return {
-        content: [{ type: "text", text: "monitor needs pi.exec, which is unavailable in this runtime." }],
-        isError: true,
-      };
     }
     const label = params.label ? String(params.label) : slugify(command);
     const rawInterval = Number(params.interval_seconds ?? DEFAULT_MONITOR_INTERVAL_S);
@@ -642,6 +920,27 @@ export default function backgroundTasksExtension(pi: PiApi): void {
           isError: true,
         };
       }
+    }
+
+    const sessionCwd = ctx.cwd ?? process.cwd();
+    const cwd = params.cwd ? String(params.cwd) : sessionCwd;
+    const sandbox = await resolveSandboxSpawn();
+    const pollDecision = decideMonitorPoll({ command, cwd, configCwd: sessionCwd, sandbox });
+    if (pollDecision.mode === "fail-closed") {
+      return {
+        content: [{ type: "text", text: `Sandbox refused to start monitor command: ${pollDecision.message}` }],
+        details: { sandbox: "blocked", reason: pollDecision.reason },
+        isError: true,
+      };
+    }
+    if (pollDecision.mode === "unsandboxed" && !pi.exec) {
+      return {
+        content: [{ type: "text", text: "monitor needs pi.exec, which is unavailable in this runtime." }],
+        isError: true,
+      };
+    }
+    if (pollDecision.mode === "unsandboxed" && pollDecision.reason === "sandbox-degraded" && pollDecision.message) {
+      console.error(`[background-tasks] sandbox degraded for monitor command: ${pollDecision.message}`);
     }
 
     const job: Job = {
@@ -684,21 +983,33 @@ export default function backgroundTasksExtension(pi: PiApi): void {
       job.polling = true;
       let result: ExecResult;
       try {
-        // Route through /bin/sh -c explicitly. pi.exec uses spawn() with
-        // shell:false, so passing the raw command as the program name only
-        // works for bare binaries (true/false); anything with shell syntax
-        // (echo X, test -f X && echo Y, pipelines, redirects) ENOENTs and
-        // yields empty stdout — which silently breaks stdout_matches and
-        // starved exit-based polls of real output. Mirrors the background
-        // tool's `spawn(command, { shell: "/bin/sh" })`.
-        result = await pi.exec!("/bin/sh", ["-c", command], {
-          timeout: Math.max(5, intervalSeconds) * 1000,
-          cwd: ctx.cwd ?? process.cwd(),
+        // Unsandboxed/degraded monitors preserve the existing pi.exec route
+        // through /bin/sh -c. Sandboxed monitors cannot use pi.exec because the
+        // local PiApi slice has no env option; they direct-spawn bwrap with the
+        // pi-sandbox-owned minimal env and argv prefix prepared once at monitor
+        // start.
+        result = await runShellOnce({
+          command,
+          cwd: pollDecision.cwd,
+          timeoutMs: Math.max(5, intervalSeconds) * 1000,
+          signal: _signal,
+          sandbox: pollDecision.mode === "sandboxed" ? pollDecision.sandbox : null,
+          piExec: pi.exec,
+          onChildSpawn: (child) => {
+            job.child = child;
+            job.pid = child.pid;
+          },
+          onChildClose: () => {
+            job.child = undefined;
+            job.pid = undefined;
+            // Cancellation verifies process-group death before recording terminal state.
+          },
         });
       } catch (err) {
         result = { stderr: (err as Error).message, code: null };
+      } finally {
+        job.polling = false;
       }
-      job.polling = false;
       if (job.status !== "running") return; // cancelled/timed out mid-poll
 
       const out = `${result.stdout ?? ""}${result.stderr ?? ""}`;
@@ -726,7 +1037,7 @@ export default function backgroundTasksExtension(pi: PiApi): void {
         const hint = `every poll failed to run its command (command not found in stderr). The poll command likely references a missing/typo'd binary or tool`;
         notify("error", `monitor #${job.id} "${label}" aborting: ${hint}. Check the poll command.`);
         wake(
-          `[monitor #${job.id} "${label}" aborted after ${job.pollFailures} consecutive broken polls: ${hint}. Read the last poll with the jobs tool (action=tail, jobId=${job.id}) and fix the command.`,
+          `[monitor #${job.id} aborted after ${job.pollFailures} consecutive broken polls: ${hint}. Read the last poll with the jobs tool (action=tail, jobId=${job.id}) and fix the command.`,
         );
         finalize(job);
         return;
@@ -736,9 +1047,10 @@ export default function backgroundTasksExtension(pi: PiApi): void {
         job.exitCode = result.code ?? undefined;
         job.status = "satisfied";
         notify("success", `monitor #${job.id} "${label}" satisfied (${satisfyOn})`);
-        // Trusted wake: no command output.
+        // Trusted wake: only id and status/exit. NO command output, label, or
+        // satisfy_on (all caller/output-controlled; injected via steer).
         wake(
-          `[monitor #${job.id} "${label}" satisfied: ${satisfyOn}, exit ${result.code ?? "?"}]. Read the result with the jobs tool (action=tail, jobId=${job.id}).`,
+          `[monitor #${job.id} satisfied: exit ${result.code ?? "?"}]. Read the result with the jobs tool (action=tail, jobId=${job.id}).`,
         );
         finalize(job);
         return;
@@ -748,7 +1060,7 @@ export default function backgroundTasksExtension(pi: PiApi): void {
         job.status = "timeout";
         notify("warning", `monitor #${job.id} "${label}" timed out after ${timeoutSeconds}s`);
         wake(
-          `[monitor #${job.id} "${label}" timed out after ${timeoutSeconds}s without satisfying ${satisfyOn}]. Read the last poll with the jobs tool (action=tail, jobId=${job.id}).`,
+          `[monitor #${job.id} timed out without satisfying its condition]. Read the last poll with the jobs tool (action=tail, jobId=${job.id}).`,
         );
         finalize(job);
         return;
@@ -767,7 +1079,14 @@ export default function backgroundTasksExtension(pi: PiApi): void {
           text: `Started monitor #${job.id} "${label}" — polling every ${intervalSeconds}s (timeout ${timeoutSeconds}s) until ${satisfyOn}${patternRaw ? ` matching /${patternRaw}/` : ""}. I'll be woken when it's satisfied or times out; read the result with the jobs tool. Cancel with jobs (action=cancel, jobId=${job.id}).`,
         },
       ],
-      details: { jobId: job.id, status: "running", satisfyOn, intervalSeconds, timeoutSeconds },
+      details: {
+        jobId: job.id,
+        status: "running",
+        satisfyOn,
+        intervalSeconds,
+        timeoutSeconds,
+        sandbox: pollDecision.mode === "sandboxed" ? "active" : pollDecision.reason === "sandbox-degraded" ? "degraded" : "absent",
+      },
     };
   };
 
@@ -910,6 +1229,7 @@ export default function backgroundTasksExtension(pi: PiApi): void {
     ],
     parameters: obj({
       command: str("Shell command polled on each tick under /bin/sh."),
+      cwd: str("Working directory. Defaults to the current project."),
       satisfy_on: strEnum(["exit_zero", "exit_nonzero", "stdout_matches", "stdout_not_matches"], "Condition that satisfies the monitor. stdout_matches/stdout_not_matches require pattern."),
       pattern: str("Regexp used by stdout_matches / stdout_not_matches."),
       interval_seconds: num(`Poll interval in seconds (floored at ${MIN_MONITOR_INTERVAL_S}). Default ${DEFAULT_MONITOR_INTERVAL_S}.`),
@@ -947,6 +1267,12 @@ export default function backgroundTasksExtension(pi: PiApi): void {
     },
   });
 
+  pi.on?.("session_start", () => {
+    void resolveSandboxSpawn().catch((err) => {
+      console.error(`[background-tasks] sandbox bridge probe failed: ${(err as Error).message}`);
+    });
+  });
+
   // --- Session-start system-prompt nudge ---------------------------------
   //
   // Append the explainer every turn. Why every turn rather than a one-shot
@@ -969,8 +1295,8 @@ export default function backgroundTasksExtension(pi: PiApi): void {
   });
 
   // Clean up every spawned child / timer on shutdown so we never leak processes.
-  // Await cancellations so SIGTERM/SIGKILL escalation actually completes before
-  // the process tears down (a fire-and-forget timer could be killed mid-escalate).
+  // Await cancellations so process-group SIGKILL and bounded reaping complete before
+  // the process tears down (a fire-and-forget timer could be killed mid-reap).
   pi.on?.("session_shutdown", async () => {
     shuttingDown = true;
     await Promise.all(
@@ -981,7 +1307,8 @@ export default function backgroundTasksExtension(pi: PiApi): void {
   });
 }
 
-export { MAX_RETAINED_JOBS, clipToWidth, JobPanel };
+export { MAX_RETAINED_JOBS, clipToWidth, JobPanel, decideBackgroundSpawn, decideMonitorPoll, runShellOnce };
+export type { BackgroundTasksExtensionOptions, BackgroundSpawnDecision, MonitorPollDecision, SandboxSpawnResolver };
 
 // --- Theme shim (avoids importing the real Theme type) -------------------
 

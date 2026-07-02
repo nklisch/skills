@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "pi": {
+    "extensions": [
+      "./sandbox.ts"
+    ]
+  }
+}
