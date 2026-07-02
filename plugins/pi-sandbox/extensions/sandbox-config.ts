@@ -500,7 +500,7 @@ export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: Env
 	filesystem: {
 		denyRead: ["~/.ssh", "~/.aws", "~/.gnupg"],
 		allowWrite: [".", "/tmp"],
-		denyWrite: [".env", ".env.*", "*.pem", "*.key"],
+		denyWrite: [".env"],
 	},
 	tools: {
 		default: "allow",
@@ -665,7 +665,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 		const globs = denyWrite.filter(isGlobPattern);
 		if (globs.length > 0) {
 			globWarnings.push(
-				`Linux cannot enforce glob denyWrite patterns: ${globs.join(", ")}. Replace with literal dirs/files.`,
+				`Linux bwrap cannot enforce glob denyWrite patterns and treats them as INERT (no protection): ${globs.join(", ")}. Replace with literal dirs/files, or remove them.`,
 			);
 		}
 	}
