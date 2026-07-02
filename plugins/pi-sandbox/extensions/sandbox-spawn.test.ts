@@ -7,6 +7,9 @@ import { loadConfig, validateConfig } from "./sandbox-config";
 import { buildSandboxedSpawnArgs, findExecutableOnPath } from "./sandbox-spawn";
 
 const tempDirs: string[] = [];
+const isLinux = process.platform === "linux";
+const hasBwrap = isLinux && Bun.spawnSync(["bwrap", "--version"], { stdout: "pipe", stderr: "pipe" }).success;
+const bwrapIntegrationTest = isLinux && hasBwrap ? test : test.skip;
 
 async function makeTempDir(): Promise<string> {
 	const dir = await mkdtemp(join(tmpdir(), "pi-sandbox-spawn-test-"));
@@ -44,6 +47,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		const result = buildSandboxedSpawnArgs({
 			command: "echo ok",
 			cwd,
+			configCwd: cwd,
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
@@ -72,6 +76,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		const result = buildSandboxedSpawnArgs({
 			command: "env",
 			cwd,
+			configCwd: cwd,
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
@@ -105,6 +110,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		const result = buildSandboxedSpawnArgs({
 			command: "cat secret.txt",
 			cwd,
+			configCwd: cwd,
 			agentDir,
 			platform: "linux",
 			baseEnv: process.env,
@@ -135,6 +141,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		const result = buildSandboxedSpawnArgs({
 			command: "echo unsandboxed",
 			cwd,
+			configCwd: cwd,
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
@@ -157,6 +164,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		const result = buildSandboxedSpawnArgs({
 			command: "echo unsupported",
 			cwd,
+			configCwd: cwd,
 			agentDir,
 			platform: "darwin",
 			bwrapAvailable: false,
@@ -184,6 +192,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		const result = buildSandboxedSpawnArgs({
 			command: "echo blocked",
 			cwd,
+			configCwd: cwd,
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
@@ -206,6 +215,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		const result = buildSandboxedSpawnArgs({
 			command: "echo blocked",
 			cwd,
+			configCwd: cwd,
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: false,
@@ -231,6 +241,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		const result = buildSandboxedSpawnArgs({
 			command: "echo blocked",
 			cwd,
+			configCwd: cwd,
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
@@ -245,6 +256,103 @@ describe("buildSandboxedSpawnArgs", () => {
 			args: [],
 		});
 		expect(result.errors?.join("\n")).toContain("project");
+	});
+
+	test("trusted configCwd, not caller cwd, controls config loading and relative allowWrite mounts", async () => {
+		const configCwd = await makeTempDir();
+		const agentDir = await makeAgentDir();
+		await mkdir(join(configCwd, ".pi"), { recursive: true });
+		await writeFile(join(configCwd, "secret.txt"), "SUPER-SECRET\n");
+		await writeFile(join(configCwd, ".pi", "sandbox.json"), JSON.stringify({
+			network: { mode: "block" },
+			filesystem: { allowWrite: ["."], denyRead: ["secret.txt"] },
+		}));
+
+		const result = buildSandboxedSpawnArgs({
+			command: "id",
+			cwd: "/",
+			configCwd,
+			agentDir,
+			platform: "linux",
+			bwrapAvailable: true,
+			baseEnv: { PATH: "/usr/bin" },
+		});
+
+		expect(result.state).toBe("ok");
+		if (result.state !== "ok") throw new Error(`expected ok, got ${result.state}`);
+		expect(sequenceIndex(result.args, ["--bind", "/", "/"])).toBe(-1);
+		expect(sequenceIndex(result.args, ["--bind", configCwd, configCwd])).toBeGreaterThanOrEqual(0);
+		expect(sequenceIndex(result.args, ["--ro-bind", "/dev/null", join(configCwd, "secret.txt")])).toBeGreaterThanOrEqual(0);
+		expect(result.args).toContain("--unshare-net");
+		expect(sequenceIndex(result.args, ["--chdir", "/"])).toBeGreaterThanOrEqual(0);
+	});
+
+	test("caller cwd controls only --chdir while allowWrite dot resolves against configCwd", async () => {
+		const configCwd = await makeTempDir();
+		const agentDir = await makeAgentDir();
+		const commandCwd = "/some/path";
+
+		const result = buildSandboxedSpawnArgs({
+			command: "pwd",
+			cwd: commandCwd,
+			configCwd,
+			agentDir,
+			platform: "linux",
+			bwrapAvailable: true,
+			baseEnv: { PATH: "/usr/bin" },
+		});
+
+		expect(result.state).toBe("ok");
+		if (result.state !== "ok") throw new Error(`expected ok, got ${result.state}`);
+		expect(sequenceIndex(result.args, ["--chdir", commandCwd])).toBeGreaterThanOrEqual(0);
+		expect(sequenceIndex(result.args, ["--bind", configCwd, configCwd])).toBeGreaterThanOrEqual(0);
+		expect(sequenceIndex(result.args, ["--bind", "/", "/"])).toBe(-1);
+	});
+});
+
+describe("buildSandboxedSpawnArgs bwrap integration", () => {
+	bwrapIntegrationTest("caller cwd slash cannot expand writes or bypass trusted denyRead config", async () => {
+		const configCwd = await makeTempDir();
+		const agentDir = await makeAgentDir();
+		const secret = join(configCwd, "secret.txt");
+		const rootProbe = `/pi-sandbox-root-write-probe-${process.pid}-${Date.now()}`;
+		await mkdir(join(configCwd, ".pi"), { recursive: true });
+		await writeFile(secret, "SUPER-SECRET\n");
+		await writeFile(join(configCwd, ".pi", "sandbox.json"), JSON.stringify({
+			filesystem: { allowWrite: ["."], denyRead: ["secret.txt"] },
+		}));
+
+		const result = buildSandboxedSpawnArgs({
+			command: "ignored until appended by caller",
+			cwd: "/",
+			configCwd,
+			agentDir,
+			platform: "linux",
+			baseEnv: process.env,
+		});
+
+		expect(result.state).toBe("ok");
+		if (result.state !== "ok") throw new Error(`expected ok, got ${result.state}`);
+		expect(sequenceIndex(result.args, ["--bind", "/", "/"])).toBe(-1);
+		expect(sequenceIndex(result.args, ["--bind", configCwd, configCwd])).toBeGreaterThanOrEqual(0);
+		expect(sequenceIndex(result.args, ["--chdir", "/"])).toBeGreaterThanOrEqual(0);
+
+		const command = `printf 'pwd=%s\\n' "$PWD"; if [ ! -s ${JSON.stringify(secret)} ]; then echo denied; else echo LEAK:$(cat ${JSON.stringify(secret)}); fi; if touch ${JSON.stringify(rootProbe)} 2>/dev/null; then echo ROOT_WRITABLE; else echo ROOT_NOT_WRITABLE; fi`;
+		const run = Bun.spawnSync([result.executable, ...result.args, command], {
+			cwd: result.cwd,
+			env: result.env,
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		const stdout = Buffer.from(run.stdout).toString("utf8");
+		const stderr = Buffer.from(run.stderr).toString("utf8");
+
+		expect(run.exitCode, stderr).toBe(0);
+		expect(stdout).toContain("pwd=/");
+		expect(stdout).toContain("denied");
+		expect(stdout).toContain("ROOT_NOT_WRITABLE");
+		expect(stdout).not.toContain("SUPER-SECRET");
+		expect(existsSync(rootProbe)).toBe(false);
 	});
 });
 

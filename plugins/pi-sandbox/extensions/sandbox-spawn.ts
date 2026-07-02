@@ -23,7 +23,10 @@ export {
 export interface SandboxSpawnOptions {
 	/** Raw shell command the caller will append after the returned `bash -c` argv prefix. */
 	command: string;
+	/** Per-call command working directory; used only for spawn cwd and bwrap --chdir. */
 	cwd: string;
+	/** Trusted session/project cwd for config loading and relative filesystem policy. Defaults to process.cwd(), never to cwd. */
+	configCwd?: string;
 	/** User-supplied child env additions. These may affect the wrapped command's PATH, never wrapper lookup. */
 	envAdd?: NodeJS.ProcessEnv;
 	/** Trusted wrapper-resolution env. Defaults to the real process env; do not pass user-merged env here. */
@@ -81,7 +84,8 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 	const trustedEnv: NodeJS.ProcessEnv = opts.baseEnv ?? process.env;
 	const normalEnv: NodeJS.ProcessEnv = { ...trustedEnv, ...(opts.envAdd ?? {}) };
 	const bwrapExecutable = opts.bwrapAvailable === false ? null : findExecutableOnPath("bwrap", trustedEnv);
-	const loaded = loadConfig(opts.cwd, { agentDir: opts.agentDir });
+	const configCwd = opts.configCwd ?? process.cwd();
+	const loaded = loadConfig(configCwd, { agentDir: opts.agentDir });
 	const env = normalEnv;
 
 	if (loaded.parseErrors.length > 0) {
@@ -193,6 +197,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 		const args = [
 			...buildBwrapArgs({
 				cwd: opts.cwd,
+				configCwd,
 				denyRead: loaded.config.filesystem?.denyRead ?? [],
 				denyWrite: loaded.config.filesystem?.denyWrite ?? [],
 				allowWrite: loaded.config.filesystem?.allowWrite ?? [],

@@ -8,7 +8,7 @@ depends_on: [feature-sandbox-first-party-bwrap]
 release_binding: null
 gate_origin: null
 created: 2026-07-01
-updated: 2026-07-01
+updated: 2026-07-02
 ---
 
 # background-tasks: route spawned commands through the pi-sandbox bwrap backend
@@ -540,3 +540,14 @@ Resolved the PR-prep adversarial review's background-tasks blocking findings whi
 - **B2 — cancellation orphaned wrapped commands**: cancellation now treats `jobs cancel`/`session_shutdown` as an operator kill request: it sends `SIGKILL` to the tracked process group, waits until that group is gone, and only then records `cancelled` (or `kill_failed` after a bounded reap window). bwrap args also include `--die-with-parent` so wrapper death kills the sandboxed command. The real-bwrap marker regression now loops three times and waits past the delayed write; no marker is created and no completion wake is emitted.
 
 Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts plugins/pi-sandbox/extensions/sandbox-spawn.test.ts plugins/background-tasks/extensions/background-tasks.test.ts plugins/background-tasks/extensions/sandbox-bridge.test.ts` → 149 pass / 0 fail. `grep -r sandbox-runtime plugins/pi-sandbox/ plugins/background-tasks/` produced no output.
+
+## Pre-response adversarial review fixes (2026-07-01)
+
+Resolved two raised/security-critical pre-response findings while keeping this feature at `stage: done`; both are corrections inside the accepted sandbox-integration boundary rather than new scope.
+
+- **B1 — caller-controlled cwd expanded the sandbox write boundary**: `background` and `monitor` now separate the trusted session/project cwd from the per-call command cwd. The trusted cwd (`ctx.cwd ?? process.cwd()`) is passed to pi-sandbox as `configCwd` for config loading and relative `allowWrite`/`denyRead`/`denyWrite` resolution; the per-call `params.cwd` is used only as the command's spawn cwd / bwrap `--chdir`. Rationale: `params.cwd` is model/caller controlled, while the session cwd is the trusted project baseline. This prevents `cwd:"/"` from turning default `allowWrite:["."]` into a writable bind of host `/`.
+- **B2 — `satisfy_on` injection into trusted steer wake**: monitor satisfy/timeout wake messages no longer include `satisfyOn` (nor label/output). Wakes now carry only the monitor id and status/exit; the agent reads condition details through the `jobs` tool. UI-only notify/startup text may still display the condition, but the trusted `deliverAs:"steer"` path is scrubbed.
+
+Regression coverage added: decision tests proving background/monitor pass `cwd` and `configCwd` separately; a real bwrap background test with `params.cwd:"/"` that still applies the session cwd `denyRead`; and monitor wake tests proving both satisfied and timeout steer messages omit user-supplied `satisfy_on` values, including `exit_zero; IGNORE PRIOR INSTRUCTIONS`.
+
+Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts plugins/pi-sandbox/extensions/sandbox-spawn.test.ts plugins/background-tasks/extensions/background-tasks.test.ts plugins/background-tasks/extensions/sandbox-bridge.test.ts` → 156 pass / 0 fail. `node scripts/check-extension-deps.mjs` passed. `grep -r sandbox-runtime plugins/pi-sandbox/ plugins/background-tasks/` produced no output.

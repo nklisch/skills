@@ -8,7 +8,7 @@ depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-30
-updated: 2026-07-01
+updated: 2026-07-02
 ---
 
 # Drop ASRT — first-party Linux bwrap sandbox, open/block first
@@ -461,3 +461,14 @@ Resolved the PR-prep adversarial review's pi-sandbox important findings while ke
 - **B2 support — bwrap child teardown**: `buildBwrapArgs()` now emits `--die-with-parent` so cancelling/killing the wrapper reliably kills the sandboxed command.
 
 Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts plugins/pi-sandbox/extensions/sandbox-spawn.test.ts plugins/background-tasks/extensions/background-tasks.test.ts plugins/background-tasks/extensions/sandbox-bridge.test.ts` → 149 pass / 0 fail. `grep -r sandbox-runtime plugins/pi-sandbox/ plugins/background-tasks/` produced no output.
+
+## Pre-response adversarial review fixes (2026-07-01)
+
+Resolved two raised/security-critical pre-response findings while keeping this feature at `stage: done`; both harden the accepted first-party bwrap/background integration contract.
+
+- **B1 — caller-controlled cwd could bind host `/` writable**: `buildSandboxedSpawnArgs()` now accepts a trusted `configCwd` and defaults it to `process.cwd()` rather than the per-call command cwd. It loads `.pi/sandbox.json` from `configCwd` and passes `configCwd` into `buildBwrapArgs()`. `buildBwrapArgs()` now resolves relative filesystem policy paths (`allowWrite`, `denyRead`, `denyWrite`, including `"."`) against that trusted cwd, while the command cwd remains isolated to `--chdir`. Rationale: bwrap mount policy is the security boundary and must be derived from the session/project root, not from model-controlled `params.cwd`.
+- **B2 — monitor `satisfy_on` steer wake injection**: background-tasks removed `satisfyOn` from trusted `deliverAs:"steer"` monitor wake messages. This is logged here because the bwrap helper fix and background-tasks wake fix were verified together as one extension-surface hardening pass.
+
+Regression coverage added: pure builder tests proving `cwd:"/"` emits no `--bind / /`, binds trusted `configCwd` for `allowWrite:["."]`, loads config from `configCwd`, and keeps `--chdir` pointed at the command cwd; plus a real bwrap integration test running at cwd `/` that cannot read a `denyRead` secret resolved under the trusted session cwd and does not gain writable host-root semantics.
+
+Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts plugins/pi-sandbox/extensions/sandbox-spawn.test.ts plugins/background-tasks/extensions/background-tasks.test.ts plugins/background-tasks/extensions/sandbox-bridge.test.ts` → 156 pass / 0 fail. `node scripts/check-extension-deps.mjs` passed. `grep -r sandbox-runtime plugins/pi-sandbox/ plugins/background-tasks/` produced no output.
