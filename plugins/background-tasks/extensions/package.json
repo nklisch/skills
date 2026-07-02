@@ -1,0 +1,8 @@
+{
+	"private": true,
+	"pi": {
+		"extensions": [
+			"./background-tasks.ts"
+		]
+	}
+}
