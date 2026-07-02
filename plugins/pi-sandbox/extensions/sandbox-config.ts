@@ -1035,7 +1035,7 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 		`  Allow Write: ${config.filesystem?.allowWrite?.join(", ") || "(none)"}`,
 		`  Deny Write: ${config.filesystem?.denyWrite?.join(", ") || "(none)"}`,
 		"",
-		"Unsupported legacy ASRT fields:",
+		"Unsupported legacy config fields:",
 		...legacy.map((warning) => `  ${warning}`),
 		"",
 		"Known bypass mitigation state:",
@@ -1045,8 +1045,8 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 		`  Background tasks sandbox: ${backgroundTasksLine}`,
 		`  Bypass tools: ${bypassToolPolicy}`,
 		backgroundTasksIntegration.backgroundTasksSandbox === "active"
-			? "  Not OS-sandboxed here: Pi extensions/packages, RPC/API direct bash, agent_send, web/search tools, subagents, and provider requests."
-			: "  Not OS-sandboxed here: Pi extensions/packages, RPC/API direct bash, background, monitor, agent_send, web/search tools, subagents, and provider requests.",
+			? "  Not OS-sandboxed here: Pi extensions/packages, RPC/API direct bash, web/search tools, subagents, and provider requests."
+			: "  Not OS-sandboxed here: Pi extensions/packages, RPC/API direct bash, background, monitor, web/search tools, subagents, and provider requests.",
 		"  open network mode leaves host networking intact for sandboxed bash.",
 		"",
 		"Tool egress policy:",
@@ -1204,25 +1204,25 @@ function collectLegacyFieldWarnings(source: "global" | "project", value: unknown
 	if (!isRecord(value)) return [];
 	const warnings: string[] = [];
 	if (Object.hasOwn(value, "ignoreViolations")) {
-		warnings.push(`${source}: ignoreViolations is an ASRT-only internal bypass list and is ignored by the first-party sandbox.`);
+		warnings.push(`${source}: ignoreViolations is not a recognized field and is ignored by the first-party sandbox.`);
 	}
 	if (Object.hasOwn(value, "enableWeakerNestedSandbox")) {
-		warnings.push(`${source}: enableWeakerNestedSandbox is an ASRT-only internal knob and is ignored by the first-party sandbox.`);
+		warnings.push(`${source}: enableWeakerNestedSandbox is not a recognized field and is ignored by the first-party sandbox.`);
 	}
 	if (Object.hasOwn(value, "httpProxyPort")) {
-		warnings.push(`${source}: httpProxyPort belongs to ASRT filter proxy support; network.mode=filter is deferred (${FILTER_DEFERRED_BACKLOG_ITEM}), so the knob is ignored.`);
+		warnings.push(`${source}: httpProxyPort is not a recognized field; network.mode=filter is deferred (${FILTER_DEFERRED_BACKLOG_ITEM}), so proxy-port knobs are ignored.`);
 	}
 	if (Object.hasOwn(value, "socksProxyPort")) {
-		warnings.push(`${source}: socksProxyPort belongs to ASRT filter proxy support; network.mode=filter is deferred (${FILTER_DEFERRED_BACKLOG_ITEM}), so the knob is ignored.`);
+		warnings.push(`${source}: socksProxyPort is not a recognized field; network.mode=filter is deferred (${FILTER_DEFERRED_BACKLOG_ITEM}), so proxy-port knobs are ignored.`);
 	}
 	if (isRecord(value.filesystem) && Object.hasOwn(value.filesystem, "allowGitConfig")) {
 		warnings.push(`${source}: filesystem.allowGitConfig has no first-party equivalent in this release and is ignored; .git remains governed by denyRead/denyWrite/allowWrite.`);
 	}
 	if (isRecord(value.network) && Object.hasOwn(value.network, "httpProxyPort")) {
-		warnings.push(`${source}: network.httpProxyPort belongs to ASRT filter proxy support; network.mode=filter is deferred (${FILTER_DEFERRED_BACKLOG_ITEM}), so the knob is ignored.`);
+		warnings.push(`${source}: network.httpProxyPort is not a recognized field; network.mode=filter is deferred (${FILTER_DEFERRED_BACKLOG_ITEM}), so proxy-port knobs are ignored.`);
 	}
 	if (isRecord(value.network) && Object.hasOwn(value.network, "socksProxyPort")) {
-		warnings.push(`${source}: network.socksProxyPort belongs to ASRT filter proxy support; network.mode=filter is deferred (${FILTER_DEFERRED_BACKLOG_ITEM}), so the knob is ignored.`);
+		warnings.push(`${source}: network.socksProxyPort is not a recognized field; network.mode=filter is deferred (${FILTER_DEFERRED_BACKLOG_ITEM}), so proxy-port knobs are ignored.`);
 	}
 	return warnings;
 }

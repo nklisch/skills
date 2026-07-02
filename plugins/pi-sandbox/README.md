@@ -54,7 +54,7 @@ The status line should include `🔒 Sandbox:` when the extension reaches sessio
 - `🔒 Sandbox: FAIL-CLOSED (...) — file tools still hardened`
 - `🔒 Sandbox: OS bash sandbox unavailable on darwin; in-process file/tool policy active`
 
-Use `--no-sandbox` only as an explicit operator bypass during local migration or break-glass recovery:
+Use `--no-sandbox` only as an explicit operator bypass for break-glass recovery or sandbox troubleshooting:
 
 ```bash
 pi --no-sandbox
@@ -90,7 +90,7 @@ Minimal hardened example:
   "tools": {
     "default": "allow",
     "rules": {
-      "agent_send": "confirm"
+      "subagent": "confirm"
     }
   }
 }
@@ -103,7 +103,7 @@ Notes:
 - Non-existent deny paths are skipped by the `bwrap` layer so the sandbox never creates host stubs.
 - Linux `bwrap` cannot enforce glob-shaped `denyWrite` entries; the extension warns when it sees them.
 - `backgroundTasks.sandboxIntegration` defaults to `"auto"`. Set it to `"off"` only as an explicit operator bypass for background/monitor sandboxing; project-local config cannot loosen a global/default `"auto"` posture to `"off"`.
-- ASRT-only config fields such as `ignoreViolations`, `enableWeakerNestedSandbox`, `httpProxyPort`, `socksProxyPort`, and `filesystem.allowGitConfig` are ignored with warnings.
+- Config fields not recognized by this package's first-party contract are ignored with warnings and are not treated as active security controls.
 
 ## Network modes
 
@@ -135,7 +135,7 @@ Non-goals and known gaps:
 - Pi extensions and installed Pi packages are trusted code. They run with the user's normal permissions and are not sandboxed by this plugin.
 - RPC/API mode's direct `bash` command is a known residual bypass in current pi core. It calls `AgentSession.executeBash()` directly with pi's local bash operations, bypassing both the registered `bash` tool and the `user_bash` extension event. This extension cannot sandbox or fail-close that path until pi core exposes an interception hook; operators who require bash sandboxing should avoid or restrict RPC/API bash access.
 - `background` and `monitor` have real Linux bwrap integration when `@nklisch/pi-background-tasks` is installed and `backgroundTasks.sandboxIntegration:"auto"` is active. They are still not OS-sandboxed on non-Linux hosts, when the integration is off, or when pi-sandbox is fail-closed; the tool-egress policy stays at `confirm`/fail-closed in those states.
-- `agent_send`, web/search tools, subagents, and provider/model requests are not OS-sandboxed command surfaces. They may perform network or provider egress according to their own implementations and any in-process tool policy configured by Pi.
+- Web/search tools, subagents, and provider/model requests are not OS-sandboxed command surfaces. They may perform network or provider egress according to their own implementations and any in-process tool policy configured by Pi.
 - `network.mode=open` is not an egress boundary. It intentionally gives sandboxed bash the host's normal network access.
 - `network.mode=filter` is recognized as a deferred strict mode and fails closed rather than silently degrading to open networking.
 
@@ -143,7 +143,7 @@ Use this plugin as defense-in-depth for mediated shell commands and file access.
 
 ## Background / monitor integration and bypass policy
 
-`background` and `monitor` used to be residual shell-bypass tools because they spawned commands outside the overridden tool-registry `bash` path. That is now real sandbox integration on Linux: when `@nklisch/pi-background-tasks` is installed, `@nklisch/pi-sandbox` is available, `backgroundTasks.sandboxIntegration` is `"auto"`, `bwrap` is available, config is valid, and `network.mode` is `"open"` or `"block"`, background and monitor commands run through the same pi-sandbox bwrap helper and minimal environment as mediated `bash`.
+`background` and `monitor` can spawn commands outside the overridden tool-registry `bash` path, so this package integrates with `@nklisch/pi-background-tasks` on Linux: when `@nklisch/pi-background-tasks` is installed, `@nklisch/pi-sandbox` is available, `backgroundTasks.sandboxIntegration` is `"auto"`, `bwrap` is available, config is valid, and `network.mode` is `"open"` or `"block"`, background and monitor commands run through the same pi-sandbox bwrap helper and minimal environment as mediated `bash`.
 
 The tool-egress default is state-aware and fail-closed when the integration is not provably active:
 
@@ -172,8 +172,8 @@ After installing, start pi normally. A fresh launch reports `🔒 Sandbox:` in t
 
 If you need to disable the sandbox for a break-glass session (for example, debugging a bwrap failure on a host where the sandbox can't initialize), start pi with `--no-sandbox`, or set `"enabled": false` in the sandbox config. These are intentional operator bypasses; the default is sandbox-on.
 
-Config fields that don't map to this package's first-party contract (for example, fields carried over from a different sandbox extension) are warned about and are not treated as active security controls — remove them from your config.
+Unsupported config fields are warned about and are not treated as active security controls — remove or correct them in your config.
 
 ## Provenance
 
-This package is derived from pi's MIT-licensed `examples/extensions/sandbox/` extension shape. The ASRT dependency has been removed. The first-party `bwrap` argument builder, config boundary, in-process file-tool policy, and bypass-tool mitigation are original MIT-licensed code in this repository.
+This package is derived from pi's MIT-licensed `examples/extensions/sandbox/` extension shape. The first-party `bwrap` argument builder, config boundary, in-process file-tool policy, and bypass-tool mitigation are original MIT-licensed code in this repository.

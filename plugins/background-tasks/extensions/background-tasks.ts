@@ -109,7 +109,7 @@ const PAGING_TAIL_LINES = 200; // lines of output shown per job in the view pane
 //
 // A short, agent-facing explainer appended to the system prompt every turn so
 // the agent reaches for background/monitor (and distinguishes them from
-// peeragent/subagent delegation) instead of reflexively blocking on `bash`.
+// subagent delegation) instead of reflexively blocking on `bash`.
 // Header is also the idempotency sentinel.
 const SYSTEM_PROMPT_EXPLAINER_HEADER = "## Long-Running & Concurrent Work";
 const SYSTEM_PROMPT_EXPLAINER = `${SYSTEM_PROMPT_EXPLAINER_HEADER}
@@ -118,7 +118,7 @@ This harness wakes you asynchronously. When you launch work that runs detached, 
 
 ### Do
 - **\`background\`** — run a long shell command detached and keep working; you're woken on exit. Use for anything that may run more than a few seconds (test suites, builds, deploys, watch/serve, CI runs) AND for **launching multiple instances in parallel** (fan out N jobs, keep doing other work, harvest results via \`jobs\` as each finishes). The whole point: long-running async work you step away from while you produce in parallel.
-- **\`monitor\`** — the SANCTIONED poller. Polls a command on an interval until a *condition* holds, then wakes you. Use it over \`background\` when you're waiting on a state, not a single exit: CI going green, PR reviewer status, a file/port/log line, a \`peeragent --async\` job flipping to done.
+- **\`monitor\`** — the SANCTIONED poller. Polls a command on an interval until a *condition* holds, then wakes you. Use it over \`background\` when you're waiting on a state, not a single exit: CI going green, PR reviewer status, a file/port/log line, an external async job flipping to done.
 - After a wake, read output with \`jobs\` (action=tail) — it is never auto-delivered.
 
 ### Don't
@@ -127,7 +127,7 @@ This harness wakes you asynchronously. When you launch work that runs detached, 
 - **Do NOT sleep in \`bash\` to wait for a condition.** That's exactly what \`monitor\` is for, and it's non-blocking.
 
 ### Delegation vs. backgrounding (conditional — only if your harness has these)
-- If you have a **cross-harness peer** tool (e.g. peeragent's \/peer\`), it delegates a focused pass (implement/review/research) to a *different* model. It can run \`--async\`; watch its job with \`monitor\` while you keep working.
+- If you have a **cross-harness peer** tool, it may delegate a focused pass (implement/review/research) to a *different* model. It may run asynchronously; watch its job with \`monitor\` while you keep working.
 - If you have an **internal sub-agent** tool, use THAT (not a cross-harness peer) for parallel work that stays inside this harness.
 - Backgrounding a SHELL command (this plugin) is neither of those — it runs a process, not an agent. If you're unsure which exists in your harness, check before delegating.`;
 
