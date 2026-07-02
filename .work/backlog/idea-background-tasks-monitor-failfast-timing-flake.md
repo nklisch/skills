@@ -67,3 +67,16 @@ counter resets on a transient broken poll).
 
 - The cancel-lifecycle test (`9190ms`) itself is correct and must stay; it's
   just a heavy neighbor that loads the machine. Don't weaken it.
+
+## Update 2026-07-02 — RETRACTED: this was a regression, not a pre-existing flake
+
+This backlog item's premise is **incorrect**. The two monitor tests pass on
+`origin/main` and failed only on the pi-sandbox PR head — they were a real
+regression introduced by the `runShellOnce` refactor, not a pre-existing
+load-sensitive flake. Root cause: `makeFakePi` did not stub the sandbox
+resolver, so on a host with `@nklisch/pi-sandbox` + bwrap installed, monitor
+polls routed through the real bwrap backend instead of the injected fake
+`pi.exec`, breaking test isolation. Fixed in commit (this PR) by defaulting
+the test sandbox resolver to `{state:"absent"}`. **Do not action this item as
+written** — the tests are green again. Filing a corrected note only; this
+item can be closed/archived as invalid.
