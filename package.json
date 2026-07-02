@@ -12,10 +12,13 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@earendil-works/pi-coding-agent": "^0.80.3",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@mozilla/readability": "^0.6.0",
+    "@nklisch/pi-sandbox": "file:./plugins/pi-sandbox",
     "linkedom": "^0.18.12",
     "turndown": "^7.2.4",
+    "typebox": "^1.1.38",
     "unpdf": "^1.6.2"
   },
   "keywords": [
@@ -28,6 +31,7 @@
     "agentic-research",
     "agent-coordination",
     "background-tasks",
+    "pi-sandbox",
     "zai-research"
   ],
   "pi": {

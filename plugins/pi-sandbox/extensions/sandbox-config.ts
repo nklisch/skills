@@ -926,7 +926,7 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 					mergedScan[tool] = fields;
 				} else if (baseFields === "*" || fields === "*") {
 					if (baseFields === "*" && fields !== "*") {
-						warns.push(`project tried to narrow inspector scanFields for "${tool}" from "*"; ignored (additive-only).`);
+						warns.push(`project tried to narrow inspector scanFields for "${tool}" away from all-fields ("*"); ignored (additive-only).`);
 					}
 					mergedScan[tool] = "*";
 				} else {
