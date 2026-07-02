@@ -18,17 +18,9 @@
   ],
   "type": "module",
   "exports": {
-    "./bwrap": {
-      "types": "./extensions/sandbox-bwrap.ts",
-      "import": "./extensions/sandbox-bwrap.ts"
-    },
     "./sandbox-spawn": {
       "types": "./extensions/sandbox-spawn.ts",
       "import": "./extensions/sandbox-spawn.ts"
-    },
-    "./sandbox-config": {
-      "types": "./extensions/sandbox-config.ts",
-      "import": "./extensions/sandbox-config.ts"
     }
   },
   "peerDependencies": {

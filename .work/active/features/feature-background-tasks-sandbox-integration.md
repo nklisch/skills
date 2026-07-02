@@ -531,3 +531,12 @@ APPROVED. Verification: 145/145 tests across pi-sandbox + background-tasks
 secret-env omission, monitor per-poll timeout, handshake publish/read);
 `grep -r sandbox-runtime` empty. Not archived (feature body retained for the
 draft-PR description).
+
+## Full-surface review fixes (2026-07-01)
+
+Resolved the PR-prep adversarial review's background-tasks blocking findings while keeping this feature at `stage: done` because the fixes are review-driven corrections inside the accepted sandbox-integration criteria.
+
+- **B1 — PATH-poisoned bwrap wrapper bypass**: pi-sandbox's spawn helper now resolves the bwrap wrapper from trusted `baseEnv`/`process.env` before merging user `envAdd`, and returns an absolute executable path. background-tasks already spawns `result.executable`, so a user-supplied `env.PATH` can still reach the wrapped command's child environment but cannot select the bwrap wrapper.
+- **B2 — cancellation orphaned wrapped commands**: cancellation now treats `jobs cancel`/`session_shutdown` as an operator kill request: it sends `SIGKILL` to the tracked process group, waits until that group is gone, and only then records `cancelled` (or `kill_failed` after a bounded reap window). bwrap args also include `--die-with-parent` so wrapper death kills the sandboxed command. The real-bwrap marker regression now loops three times and waits past the delayed write; no marker is created and no completion wake is emitted.
+
+Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts plugins/pi-sandbox/extensions/sandbox-spawn.test.ts plugins/background-tasks/extensions/background-tasks.test.ts plugins/background-tasks/extensions/sandbox-bridge.test.ts` → 149 pass / 0 fail. `grep -r sandbox-runtime plugins/pi-sandbox/ plugins/background-tasks/` produced no output.

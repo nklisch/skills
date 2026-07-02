@@ -38,10 +38,10 @@
  *   - monitor polls via recursive setTimeout scheduled AFTER each poll
  *     completes, with an in-flight guard, so polls never overlap regardless
  *     of how long pi.exec takes. interval_seconds is floored at MIN_INTERVAL.
- *   - cancel/shutdown send SIGTERM to the child's process group, wait a grace
- *     period for exit, then SIGKILL the group if it survives, and record the
- *     outcome honestly. A job that won't die is reported, not silently
- *     marked cancelled.
+ *   - cancel/shutdown send SIGKILL to the child's process group and wait for
+ *     the group to disappear before recording `cancelled`; a job that won't
+ *     die within the bounded reap window is reported as `kill_failed`, not
+ *     silently marked cancelled.
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
@@ -101,7 +101,6 @@ const DEFAULT_MONITOR_TIMEOUT_S = 600;
 const MIN_MONITOR_INTERVAL_S = 1; // floor; sub-second polls flood commands
 const MONITOR_POLL_FAIL_THRESHOLD = 3; // consecutive failed polls -> early diagnostic timeout
 const DEFAULT_TAIL_LINES = 40;
-const CANCEL_GRACE_MS = 4_000; // SIGTERM grace before SIGKILL
 const KILL_GRACE_MS = 2_000; // post-SIGKILL reap window before declaring kill_failed
 const MAX_RETAINED_JOBS = 50; // prune oldest terminal jobs above this count
 const PAGING_TAIL_LINES = 200; // lines of output shown per job in the view panel
@@ -234,7 +233,7 @@ interface BackgroundTasksExtensionOptions {
 type JobKind = "background" | "monitor";
 type JobStatus =
   | "running"
-  | "cancelling" // SIGTERM sent; awaiting exit or grace-expiry SIGKILL
+  | "cancelling" // SIGKILL sent; awaiting process-group disappearance
   | "completed"
   | "failed"
   | "cancelled"
@@ -325,7 +324,7 @@ function formatJobLine(job: Job): string {
 type BackgroundSpawnDecision =
   | {
     mode: "sandboxed";
-    executable: "bwrap";
+    executable: string;
     args: string[];
     cwd: string;
     env: NodeJS.ProcessEnv;
@@ -454,19 +453,39 @@ function decideMonitorPoll(input: {
   }
 }
 
-function killChildProcessGroup(child: ChildProcess, signal: NodeJS.Signals): boolean {
-  try {
-    if (child.pid) process.kill(-child.pid, signal);
-    else child.kill(signal);
-    return true;
-  } catch {
+function isNoSuchProcess(err: unknown): boolean {
+  return (err as { code?: unknown })?.code === "ESRCH";
+}
+
+function signalProcessGroup(pgid: number | undefined, child: ChildProcess, signal: NodeJS.Signals): "sent" | "gone" | "failed" {
+  if (pgid) {
     try {
-      child.kill(signal);
-      return true;
-    } catch {
-      return false;
+      process.kill(-pgid, signal);
+      return "sent";
+    } catch (err) {
+      if (isNoSuchProcess(err)) return "gone";
     }
   }
+  try {
+    child.kill(signal);
+    return "sent";
+  } catch (err) {
+    return isNoSuchProcess(err) ? "gone" : "failed";
+  }
+}
+
+function processGroupExists(pgid: number | undefined): boolean {
+  if (!pgid) return false;
+  try {
+    process.kill(-pgid, 0);
+    return true;
+  } catch (err) {
+    return !isNoSuchProcess(err);
+  }
+}
+
+function killChildProcessGroup(child: ChildProcess, signal: NodeJS.Signals): boolean {
+  return signalProcessGroup(child.pid, child, signal) !== "failed";
 }
 
 async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
@@ -481,7 +500,6 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
     let settled = false;
     let timedOut = false;
     let abortListener: (() => void) | undefined;
-    let killTimer: ReturnType<typeof setTimeout> | undefined;
     const child = spawn(opts.sandbox.executable, [...opts.sandbox.args, opts.command], {
       cwd: opts.sandbox.cwd,
       env: opts.sandbox.env,
@@ -491,15 +509,11 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
 
     const timeoutTimer = setTimeout(() => {
       timedOut = true;
-      killChildProcessGroup(child, "SIGTERM");
-      killTimer = setTimeout(() => {
-        if (!settled) killChildProcessGroup(child, "SIGKILL");
-      }, 250);
+      killChildProcessGroup(child, "SIGKILL");
     }, opts.timeoutMs);
 
     const cleanup = () => {
       clearTimeout(timeoutTimer);
-      if (killTimer) clearTimeout(killTimer);
       if (abortListener) opts.signal?.removeEventListener("abort", abortListener);
       opts.onChildClose?.();
     };
@@ -513,10 +527,7 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
 
     abortListener = () => {
       timedOut = true;
-      killChildProcessGroup(child, "SIGTERM");
-      killTimer = setTimeout(() => {
-        if (!settled) killChildProcessGroup(child, "SIGKILL");
-      }, 250);
+      killChildProcessGroup(child, "SIGKILL");
     };
     opts.signal?.addEventListener("abort", abortListener, { once: true });
     if (opts.signal?.aborted) abortListener();
@@ -668,12 +679,12 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
   }
 
   /**
-   * Stop a running job: SIGTERM its process group, wait for exit within a grace
-   * window, then SIGKILL the group if it survived, waiting up to a second short
-   * window for reaping. Records the HONEST outcome — cancelled (clean exit on
-   * SIGTERM or reaped after SIGKILL) or kill_failed (still alive after SIGKILL).
-   * Routes every terminal transition through finalize() so pruning/visuals fire.
-   * Idempotent for an already-terminal job. Resolves once terminal.
+   * Stop a running job by killing the whole process group with SIGKILL and
+   * waiting until the group is actually gone. Cancellation is an operator kill
+   * request, not a graceful shutdown request: giving an adversarial shell a
+   * SIGTERM grace can let `trap TERM; sleep ...; echo marker` run after the
+   * wrapper exits. Terminal state is recorded only after the process group is
+   * gone or after a bounded SIGKILL reap window reports kill_failed.
    */
   async function cancelJob(job: Job): Promise<void> {
     if (job.status !== "running" && job.status !== "cancelling") return;
@@ -690,24 +701,11 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
     job.status = "cancelling";
     const pid = job.pid;
     const child = job.child;
-    const tryKill = (sig: NodeJS.Signals): boolean => {
-      try {
-        process.kill(-pid, sig); // negative pid = the whole process group
-        return true;
-      } catch {
-        try {
-          child.kill(sig);
-          return true;
-        } catch {
-          return false; // already dead
-        }
-      }
-    };
-    const waitForExit = (ms: number): Promise<boolean> =>
+    const waitForGroupExit = (ms: number): Promise<boolean> =>
       new Promise((resolve) => {
         const deadline = Date.now() + ms;
         const tick = () => {
-          if (job.status !== "cancelling") return resolve(true); // exit handler reaped it
+          if (!processGroupExists(pid)) return resolve(true);
           if (Date.now() >= deadline) return resolve(false);
           // NOTE: do NOT unref this timer. Once the child exits it becomes the
           // only ref'd handle; an unref'd poll would let the loop drain and the
@@ -717,35 +715,19 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
         tick();
       });
 
-    tryKill("SIGTERM");
-    if (await waitForExit(CANCEL_GRACE_MS)) {
-      if (job.status === "cancelling") {
-        job.status = "cancelled";
-        finalize(job);
-      }
+    const killed = signalProcessGroup(pid, child, "SIGKILL");
+    if (killed === "failed") {
+      job.status = "kill_failed";
+      finalize(job);
       return;
     }
-    if (job.status !== "cancelling") return; // reaped mid-window
-    // Still alive after SIGTERM grace — escalate to SIGKILL and wait for reaping.
-    const killed = tryKill("SIGKILL");
-    if (!killed) {
-      // Group was already gone (race with exit). Treat as cancelled.
+    if (killed === "gone" || await waitForGroupExit(KILL_GRACE_MS)) {
       job.status = "cancelled";
       finalize(job);
       return;
     }
-    if (await waitForExit(KILL_GRACE_MS)) {
-      if (job.status === "cancelling") {
-        job.status = "cancelled";
-        finalize(job);
-      }
-      return;
-    }
-    // SIGKILL did not reap the group within the window — record honestly.
-    if (job.status === "cancelling") {
-      job.status = "kill_failed";
-      finalize(job);
-    }
+    job.status = "kill_failed";
+    finalize(job);
   }
 
   // --- background tool ----------------------------------------------------
@@ -844,10 +826,8 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
     child.on("exit", (code, signal) => {
       if (job.status === "cancelled" || job.status === "kill_failed") return; // cancellation owns terminal state
       if (job.status === "cancelling") {
-        // Reaped during cancellation (SIGTERM or SIGKILL worked) — mark cancelled.
-        job.status = "cancelled";
+        // Cancellation owns terminal state after it verifies the process group is gone.
         job.exitCode = code ?? null;
-        finalize(job);
         return;
       }
       if (job.status !== "running") return; // already finalized (double-fire guard)
@@ -1011,10 +991,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
           onChildClose: () => {
             job.child = undefined;
             job.pid = undefined;
-            if (job.status === "cancelling") {
-              job.status = "cancelled";
-              finalize(job);
-            }
+            // Cancellation verifies process-group death before recording terminal state.
           },
         });
       } catch (err) {
@@ -1305,8 +1282,8 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
   });
 
   // Clean up every spawned child / timer on shutdown so we never leak processes.
-  // Await cancellations so SIGTERM/SIGKILL escalation actually completes before
-  // the process tears down (a fire-and-forget timer could be killed mid-escalate).
+  // Await cancellations so process-group SIGKILL and bounded reaping complete before
+  // the process tears down (a fire-and-forget timer could be killed mid-reap).
   pi.on?.("session_shutdown", async () => {
     shuttingDown = true;
     await Promise.all(

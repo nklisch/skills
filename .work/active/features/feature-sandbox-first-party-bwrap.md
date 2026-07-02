@@ -450,3 +450,17 @@ on Windows and macOS without bricking bash.
 
 **Notes**: Substrate deep lane (focused re-confirmation), fresh-context
 `openai-codex/gpt-5.5`. The feature advances back to `done`.
+
+## Full-surface review fixes (2026-07-01)
+
+Resolved the PR-prep adversarial review's pi-sandbox important findings while keeping this feature at `stage: done`; these are entrypoint/diagnostic/package-surface hardening corrections within the accepted first-party bwrap scope.
+
+- **I1 — stale `/sandbox` handshake cache**: the `/sandbox` command now refreshes the background-tasks bridge handshake immediately before formatting diagnostics, so the command reports the live same-process integration state instead of the session-start cache.
+- **I2 — over-broad exports**: `plugins/pi-sandbox/package.json` now exposes only `./sandbox-spawn`; the internal `./bwrap` and `./sandbox-config` subpaths were removed from the public package contract.
+- **I3 — missing entrypoint coverage**: added a typebox/pi-core-free fake-Pi registration test that dynamically imports `extensions/sandbox.ts`, verifies `no-sandbox`, the `bash`/`read`/`write`/`edit` overrides, `/sandbox` command registration, and a no-config `session_start` path.
+- **I4 — hardcoded `/usr/bin/bwrap` tests**: bwrap integration tests now probe and execute `bwrap` via `PATH` rather than assuming `/usr/bin/bwrap`.
+- **I5 — runtime subpath resolution**: added a runtime package-resolution test that symlinks `@nklisch/pi-sandbox` into a temporary `node_modules` and dynamically imports `@nklisch/pi-sandbox/sandbox-spawn`, asserting `buildSandboxedSpawnArgs` is exported.
+- **B1 support — trusted wrapper resolution**: exported the absolute-path `findExecutableOnPath()` helper through `./sandbox-spawn`; `buildSandboxedSpawnArgs()` uses it against trusted env only and returns an absolute bwrap executable path.
+- **B2 support — bwrap child teardown**: `buildBwrapArgs()` now emits `--die-with-parent` so cancelling/killing the wrapper reliably kills the sandboxed command.
+
+Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts plugins/pi-sandbox/extensions/sandbox-spawn.test.ts plugins/background-tasks/extensions/background-tasks.test.ts plugins/background-tasks/extensions/sandbox-bridge.test.ts` → 149 pass / 0 fail. `grep -r sandbox-runtime plugins/pi-sandbox/ plugins/background-tasks/` produced no output.

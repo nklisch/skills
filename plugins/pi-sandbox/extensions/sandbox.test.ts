@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -44,7 +44,7 @@ import {
 } from "./sandbox-file-policy";
 
 const tempDirs: string[] = [];
-const bwrapPath = "/usr/bin/bwrap";
+const bwrapPath = "bwrap";
 const isLinux = process.platform === "linux";
 const hasBwrap = isLinux && Bun.spawnSync([bwrapPath, "--version"], { stdout: "pipe", stderr: "pipe" }).success;
 const integrationTest = isLinux && hasBwrap ? test : test.skip;
@@ -282,6 +282,86 @@ describe("package metadata", () => {
 		expect(packageJson.peerDependencies?.typebox).toBe("*");
 		expect(packageJson.pi?.extensions).toEqual(["./extensions"]);
 		expect(extensionPackageJson.pi?.extensions).toEqual(["./sandbox.ts"]);
+	});
+});
+
+describe("sandbox extension entrypoint", () => {
+	async function loadSandboxEntrypoint(agentDir: string): Promise<(pi: unknown) => void> {
+		const tool = (name: string) => ({
+			name,
+			description: `${name} stub`,
+			parameters: {},
+			execute: async () => ({ content: [{ type: "text", text: "stub" }] }),
+		});
+		mock.module("@earendil-works/pi-coding-agent", () => ({
+			getAgentDir: () => agentDir,
+			createBashTool: () => tool("bash"),
+			createReadTool: () => tool("read"),
+			createWriteTool: () => tool("write"),
+			createEditTool: () => tool("edit"),
+		}));
+		mock.module("typebox", () => ({
+			Type: {
+				Object: (properties: unknown, options?: unknown) => ({ type: "object", properties, ...(options as Record<string, unknown> | undefined) }),
+				String: (options?: unknown) => ({ type: "string", ...(options as Record<string, unknown> | undefined) }),
+				Number: (options?: unknown) => ({ type: "number", ...(options as Record<string, unknown> | undefined) }),
+				Optional: (schema: unknown) => ({ ...(schema as Record<string, unknown>), optional: true }),
+				Array: (items: unknown, options?: unknown) => ({ type: "array", items, ...(options as Record<string, unknown> | undefined) }),
+			},
+		}));
+		return (await import(`${new URL("./sandbox.ts", import.meta.url).href}?entrypoint=${Date.now()}`)).default as (pi: unknown) => void;
+	}
+
+	test("loads, registers sandboxed tool overrides and command, and refreshes /sandbox handshake state", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		const flags: string[] = [];
+		const tools: string[] = [];
+		const commands = new Map<string, { handler: (args: string | undefined, ctx: unknown) => Promise<void> | void }>();
+		const handlers = new Map<string, Array<(event: unknown, ctx: unknown) => Promise<void> | void>>();
+		const notifications: string[] = [];
+		const statuses: Array<{ key: string; message: string | undefined }> = [];
+		const pi = {
+			registerFlag: (name: string) => flags.push(name),
+			getFlag: () => false,
+			registerTool: (def: { name: string }) => tools.push(def.name),
+			registerCommand: (name: string, options: { handler: (args: string | undefined, ctx: unknown) => Promise<void> | void }) => commands.set(name, options),
+			on: (event: string, handler: (event: unknown, ctx: unknown) => Promise<void> | void) => {
+				(handlers.get(event) ?? (handlers.set(event, []), handlers.get(event)!)).push(handler);
+			},
+		};
+		const ctx = {
+			cwd,
+			hasUI: false,
+			ui: {
+				notify: (message: string) => notifications.push(message),
+				setStatus: (key: string, message: string | undefined) => statuses.push({ key, message }),
+				theme: { fg: (_name: string, text: string) => text },
+				confirm: async () => false,
+			},
+		};
+		const handshakeKey = Symbol.for("@nklisch/pi-sandbox.background-tasks-integration");
+		delete (globalThis as typeof globalThis & Record<symbol, unknown>)[handshakeKey];
+		try {
+			const extension = await loadSandboxEntrypoint(agentDir);
+			extension(pi);
+
+			expect(flags).toContain("no-sandbox");
+			expect(tools).toEqual(expect.arrayContaining(["bash", "read", "write", "edit"]));
+			expect(commands.has("sandbox")).toBe(true);
+			expect(handlers.get("session_start")?.length).toBeGreaterThan(0);
+
+			for (const handler of handlers.get("session_start") ?? []) {
+				await handler({ reason: "startup" }, ctx);
+			}
+			expect(statuses.length + notifications.length).toBeGreaterThan(0);
+
+			(globalThis as typeof globalThis & Record<symbol, unknown>)[handshakeKey] = { integrated: true, bridgeState: "loaded" };
+			await commands.get("sandbox")!.handler(undefined, ctx);
+			expect(notifications.at(-1)).toContain("Background tasks sandbox: active");
+		} finally {
+			delete (globalThis as typeof globalThis & Record<symbol, unknown>)[handshakeKey];
+		}
 	});
 });
 
@@ -1140,6 +1220,21 @@ describe("buildBwrapArgs", () => {
 			expect(writableBind).toBeLessThan(overlay);
 			expect(overlay).toBeLessThan(network);
 		}
+	});
+
+	test("adds bwrap die-with-parent so wrapper death kills the wrapped command", async () => {
+		const cwd = await makeTempDir();
+		const args = buildBwrapArgs({
+			cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+
+		expect(args).toContain("--die-with-parent");
+		expect(sequenceIndex(args, ["--unshare-pid", "--proc", "/proc"])).toBeGreaterThanOrEqual(0);
 	});
 
 	test("nested deny overlays are emitted parent-first so child protections win", async () => {
