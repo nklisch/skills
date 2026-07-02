@@ -57,8 +57,6 @@ Bypass tools: background=allow, monitor=allow
 
 If that line says `inactive` or `blocked`, the commands are not being sandboxed and pi-sandbox keeps the bypass policy at `confirm`/fail-closed by default.
 
-The older substrate backlog item `.work/backlog/idea-background-tasks-sandbox-integration.md` is implemented by this integration; it remains only as historical context until the release process archives or collapses it.
-
 ## Usage patterns
 
 ```text
