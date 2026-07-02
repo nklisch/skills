@@ -518,7 +518,7 @@ describe("config boundary contract", () => {
 			implicitWarnings,
 		);
 		expect(implicitAll.tools?.inspector?.scanFields?.agent_send).toBe("*");
-		expect(implicitWarnings.join("\n")).toContain("narrow inspector scanFields for \"agent_send\" from \"*\"");
+		expect(implicitWarnings.join("\n")).toContain("narrow inspector scanFields for \"agent_send\" away from all-fields");
 
 		const wildcardWarnings: string[] = [];
 		const wildcard = mergeProjectAdditive(
