@@ -17,7 +17,7 @@
  * and `edit` tools. Current pi-core RPC/API `bash` calls `executeBash()`
  * directly instead of routing through this tool or the `user_bash` event, so
  * RPC/API bash is a documented residual bypass. Other pi tools (subagent,
- * agent_send, umans_web_search) are not OS-sandboxed here. The background and
+ * provider/web-search tools) are not OS-sandboxed here. The background and
  * monitor tools get state-aware treatment: the egress policy relaxes only when
  * the Linux background-tasks bwrap integration is provably active, and stays
  * confirm/fail-closed otherwise.
@@ -82,7 +82,7 @@ const loadPiConfig = (cwd: string) => loadConfig(cwd, { agentDir: getAgentDir() 
  *   denyRead/denyWrite/allowWrite bind-mounts and the in-process read/write/edit
  *   guards STILL apply. Use when the allowlist is harming legitimate workflows
  *   (pub.dev, research source fetches) and the read-leak protections alone are
- *   the goal. The tool_call egress gate (umans_web_search/agent_send/...) is
+ *   the goal. The tool_call egress gate for provider/web-search and other
  *   in-process and stays active in every mode.
  * - `"block"`: bwrap `--unshare-net` = fully air-gapped bash.
  *   Paranoia mode (e.g. handling raw untrusted content); nothing reaches the
