@@ -164,22 +164,15 @@ Background tasks sandbox: active (Linux bwrap integration ready)
 Bypass tools: background=allow, monitor=allow
 ```
 
-or, for example, `inactive (...)` / `blocked (...)` with `background=confirm, monitor=confirm` when the integration is not active. Operators can always tighten the policy to `block`. The backlog item `.work/backlog/idea-background-tasks-sandbox-integration.md` is resolved by this integration; keep it only as historical substrate context until the release collapses items.
+or, for example, `inactive (...)` / `blocked (...)` with `background=confirm, monitor=confirm` when the integration is not active. Operators can always tighten the policy to `block`.
 
-## Migration
+## First-time setup
 
-If you previously loaded an operator-local copy such as `~/.pi/agent/extensions/sandbox`, replace that path with this package install:
+After installing, start pi normally. A fresh launch reports `🔒 Sandbox:` in the status line once the extension initializes.
 
-```bash
-pi install npm:@nklisch/pi-sandbox
-# or: pi install -l ./plugins/pi-sandbox
-```
+If you need to disable the sandbox for a break-glass session (for example, debugging a bwrap failure on a host where the sandbox can't initialize), start pi with `--no-sandbox`, or set `"enabled": false` in the sandbox config. These are intentional operator bypasses; the default is sandbox-on.
 
-Then remove the old local extension path from `~/.pi/agent/settings.json` only after a fresh pi launch reports `🔒 Sandbox:` from this package. Do not commit operator-local settings to this repository.
-
-If you had been starting pi with `--no-sandbox` as a workaround for the ASRT-backed extension, remove the flag after installing this package and setting `network.mode` to either `open` or `block`. Keep `--no-sandbox` only for deliberate break-glass sessions.
-
-If you carried old ASRT config fields, delete them rather than relying on them. This package warns about ASRT-only fields and does not treat them as active security controls.
+Config fields that don't map to this package's first-party contract (for example, fields carried over from a different sandbox extension) are warned about and are not treated as active security controls — remove them from your config.
 
 ## Provenance
 
