@@ -658,14 +658,23 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 	const additiveWarnings: string[] = [];
 	const merged = mergeProjectAdditive(mergedGlobal, projectConfig, additiveWarnings);
 
-	// Detect inert glob patterns in denyWrite (Linux can't enforce them).
+	// Detect glob-shaped filesystem policy entries. The bwrap layer cannot mount
+	// globs (it needs literal paths), so they provide NO protection to sandboxed
+	// bash. The in-process read/write/edit tools DO enforce globs, so they still
+	// protect file-tool I/O — but operators relying on them for bash protection
+	// are silently exposed. Warn for both denyRead and denyWrite globs.
 	const globWarnings: string[] = [];
 	if (process.platform === "linux") {
-		const denyWrite = merged.filesystem?.denyWrite ?? [];
-		const globs = denyWrite.filter(isGlobPattern);
-		if (globs.length > 0) {
+		const denyReadGlobs = (merged.filesystem?.denyRead ?? []).filter(isGlobPattern);
+		const denyWriteGlobs = (merged.filesystem?.denyWrite ?? []).filter(isGlobPattern);
+		if (denyReadGlobs.length > 0) {
 			globWarnings.push(
-				`Linux bwrap cannot enforce glob denyWrite patterns and treats them as INERT (no protection): ${globs.join(", ")}. Replace with literal dirs/files, or remove them.`,
+				`Glob denyRead patterns are enforced by the in-process read tool but NOT by sandboxed bash (bwrap cannot mount globs): ${denyReadGlobs.join(", ")}. Replace with literal dirs/files if bash must be blocked from these paths.`,
+			);
+		}
+		if (denyWriteGlobs.length > 0) {
+			globWarnings.push(
+				`Glob denyWrite patterns are enforced by the in-process write/edit tools but NOT by sandboxed bash (bwrap cannot mount globs): ${denyWriteGlobs.join(", ")}. Replace with literal dirs/files if bash must be blocked from writing these paths.`,
 			);
 		}
 	}
