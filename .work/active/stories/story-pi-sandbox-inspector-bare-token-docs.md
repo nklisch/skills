@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-inspector-bare-token-docs
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, documentation]
 parent: feature-pi-sandbox-inspector-hardening
 depends_on: []
@@ -39,3 +39,16 @@ inline during the implementing stride, not as a separate story).
 ## Files
 
 - `plugins/pi-sandbox/README.md` — inspector section + config examples
+
+## Implementation notes
+
+- Files changed:
+  - `plugins/pi-sandbox/README.md` — added "Tool-egress secret inspector" section
+    documenting what the inspector catches, the bare-token gap (Q3b), how to add a
+    custom provider shape (with config example), and the `^[A-Za-z]+$` allowlist
+    footgun (Q4b).
+- Unit 4 (operator config edit, inline): removed `^[A-Za-z]+$` from
+  `~/.pi/agent/extensions/sandbox.json` `tools.inspector.allowlist.regexes`. This is
+  operator config on this host, not repo code — not committed (it's outside the repo).
+- Discrepancies: none.
+- Adjacent issues parked: none.
