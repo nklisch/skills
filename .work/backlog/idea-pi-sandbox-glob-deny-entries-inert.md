@@ -38,6 +38,25 @@ Partially drained in the 0.1.0 audit pass (commit 25c2b48):
   Needs fail-closed on missing deny entries under writable ancestors, or sandbox-only
   masks. This is problem 3 below.
 
+## Review (fresh-context gpt-5.5, 2026-07-05)
+
+- ❌ **Glob bypassable via symlink/realpath mismatch (G1, deferred):**
+  `enforceDenyRead`/`enforceWritePolicy` pass only the canonicalized target into
+  glob matching, but `globToRegex` builds from the non-canonical configured path.
+  A symlinked leaf (`key.pem -> key`) canonicalizes to `key`, so the `*.pem` deny
+  glob misses. Fix: match against both the lexical absolute path AND the canonical
+  target. **Not yet fixed.**
+- ⚠️ **`allowWrite` globs silently file-tool-only:** bwrap can't mount globs, so an
+  `allowWrite:["*.log"]` is inert at the bwrap layer but enforced in-process. No
+  warning. Low severity (unusual config), deferred.
+- ℹ️ Comment says `*.pem` matches "any `.pem` leaf anywhere" but the regex is
+  non-recursive (`*` = `[^/]*`, so `sub/secret.pem` is NOT matched). Comment is
+  misleading; semantics are correct for cwd-relative leaf globs. Fix: update the
+  comment.
+
+Verdict: glob expansion works for the common case but has a symlink-evastion hole
+(G1) that should be fixed before this item can advance to done.
+
 ## Problem
 
 `matchesDenyList` / `isWithinAllowWrite` in `sandbox-file-policy.ts` do pure string-prefix
