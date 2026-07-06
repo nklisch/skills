@@ -183,6 +183,27 @@ describe("buildSandboxedSpawnArgs", () => {
 		expect(result.message).toContain("OS backend unavailable");
 	});
 
+	test("degraded modes strip provider secret env vars from the inherited env", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeAgentDir();
+		const result = buildSandboxedSpawnArgs({
+			command: "echo hi",
+			cwd,
+			configCwd: cwd,
+			agentDir,
+			platform: "darwin",
+			bwrapAvailable: false,
+			baseEnv: { PATH: "/usr/bin", OPENAI_API_KEY: "sk-leak", ZAI_API_KEY: "zai-leak", HOME: "/tmp" },
+		});
+		expect(result.state).toBe("degraded");
+		// Provider secrets must not reach the unsandboxed child env.
+		expect(result.env.OPENAI_API_KEY).toBeUndefined();
+		expect(result.env.ZAI_API_KEY).toBeUndefined();
+		// Non-secret env is preserved.
+		expect(result.env.PATH).toBe("/usr/bin");
+		expect(result.env.HOME).toBe("/tmp");
+	});
+
 	test("fails closed when network filter mode is requested", async () => {
 		const cwd = await makeTempDir();
 		const agentDir = await makeAgentDir();

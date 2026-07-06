@@ -8,6 +8,27 @@ import {
 import { loadConfig } from "./sandbox-config";
 import type { BackgroundTasksSandboxIntegration } from "./sandbox-config";
 
+/** Env-var names known to carry provider/runtime secrets. In degraded/unsandboxed
+ * spawn modes these are stripped from the inherited env so a background or monitor
+ * command running without bwrap confinement cannot exfiltrate provider credentials
+ * via the child process environment. The healthy bwrap path uses buildMinimalEnv
+ * instead and never inherits these. */
+const PROVIDER_SECRET_ENV_NAMES = [
+	"ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN",
+	"OPENAI_API_KEY", "AZURE_OPENAI_API_KEY",
+	"GEMINI_API_KEY", "GOOGLE_CLOUD_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS",
+	"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_PROFILE", "AWS_BEARER_TOKEN_BEDROCK",
+	"COPILOT_GITHUB_TOKEN", "HF_TOKEN", "MISTRAL_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY",
+	"OPENROUTER_API_KEY", "TOGETHER_API_KEY", "FIREWORKS_API_KEY", "CEREBRAS_API_KEY",
+	"NVIDIA_API_KEY", "XAI_API_KEY", "ZAI_API_KEY", "AI_GATEWAY_API_KEY",
+];
+
+function stripProviderSecrets(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+	const stripped: NodeJS.ProcessEnv = { ...env };
+	for (const name of PROVIDER_SECRET_ENV_NAMES) delete stripped[name];
+	return stripped;
+}
+
 export type { BackgroundTasksSandboxConfig, BackgroundTasksSandboxIntegration } from "./sandbox-config";
 export {
 	buildBwrapArgs,
@@ -111,7 +132,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 			executable: null,
 			args: [],
 			cwd: opts.cwd,
-			env,
+			env: stripProviderSecrets(env),
 			message: "Background-tasks sandbox integration is off by sandbox config; running unsandboxed by explicit operator opt-out.",
 		};
 	}
@@ -124,7 +145,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 			executable: null,
 			args: [],
 			cwd: opts.cwd,
-			env,
+			env: stripProviderSecrets(env),
 			message: "Sandbox is disabled by config; running background-tasks command unsandboxed.",
 		};
 	}
@@ -159,7 +180,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 			executable: null,
 			args: [],
 			cwd: opts.cwd,
-			env,
+			env: stripProviderSecrets(env),
 			message: platformState.message,
 		};
 	}

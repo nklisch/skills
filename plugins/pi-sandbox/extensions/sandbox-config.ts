@@ -387,9 +387,15 @@ export function inspectToolInput(
 
 	const scanFields = inspector.scanFields ?? {};
 	const toolFields = scanFields[toolName];
+	// "*":"*" means scan ALL string fields. This is all-field coverage that
+	// applies EVEN WHEN a tool has an explicit field list — the explicit list
+	// ADDS fields to scan (it does not narrow away the global all-fields rule).
+	// Only an explicit non-"*" array narrows coverage to the listed fields.
+	const globalAllFields = scanFields["*"] === "*";
 	const scanAll =
+		globalAllFields ||
 		toolFields === "*" ||
-		(toolFields === undefined && (scanFields["*"] === "*" || Object.keys(scanFields).length === 0));
+		(toolFields === undefined && Object.keys(scanFields).length === 0);
 	const fieldList = scanAll ? null : (toolFields ?? scanFields["*"] ?? null);
 
 	const isAllowed = (candidate: string): boolean =>
@@ -1217,6 +1223,10 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 }
 
 function effectiveBaseScanFieldsForTool(inspector: ToolInspector, tool: string): string[] | "*" | undefined {
+	// "*":"*" is all-field coverage that applies to every tool, even ones with
+	// an explicit field list. An explicit per-tool list adds fields; it does not
+	// narrow away the global all-fields rule.
+	if (inspector.scanFields?.["*"] === "*") return "*";
 	const explicit = inspector.scanFields?.[tool] ?? inspector.scanFields?.["*"];
 	if (explicit !== undefined) return explicit;
 	return (inspector.secrets?.length ?? 0) > 0 ? "*" : undefined;
