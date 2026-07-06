@@ -305,10 +305,13 @@ export interface InspectionVerdict {
 
 const MAX_SCAN_LENGTH = 10_000;
 // Scan long fields in overlapping bounded windows: the window cap preserves the
-// regex ReDoS guard, while the overlap catches API-key-shaped secrets split
-// across a boundary. 256 chars is intentionally generous for provider tokens
-// (<100 chars in the bundled guidance) without materially increasing work.
-const SCAN_WINDOW_OVERLAP = 256;
+// regex ReDoS guard, while the overlap catches secrets split across a window
+// boundary. Sized to cover realistic long secret shapes the inspector supports
+// — API keys (<100), JWTs (hundreds), and PEM private-key blocks (~1670 base64
+// chars). A secret LONGER than this overlap can still evade if split across a
+// boundary; the proper fix is a per-shape overlap sized to each shape's max
+// match length (tracked separately, not derivable from an arbitrary regex).
+const SCAN_WINDOW_OVERLAP = 2048;
 // Redaction itself must also be bounded: a pathological project-supplied
 // one-character redact rule should not expand a large field into megabytes of
 // replacement markers. Scanning still walks every window; this cap only limits
@@ -484,17 +487,18 @@ export function inspectToolInput(
 
 		for (const shape of shapes) {
 			const redactRanges: RedactRange[] = [];
+			// Keyword pre-filter gates the whole field, not per window: an attacker can
+			// pad between a keyword and the secret to push them into separate windows,
+			// defeating a per-window gate (keyword in window N, secret beyond the
+			// overlap in window N+1 -> secret's window has no keyword -> shape skipped).
+			if (shape.keywords && shape.keywords.length > 0) {
+				const lower = text.toLowerCase();
+				if (!shape.keywords.some((kw) => lower.includes(kw.toLowerCase()))) continue;
+			}
+
 			const stride = Math.max(1, MAX_SCAN_LENGTH - SCAN_WINDOW_OVERLAP);
 			for (let offset = 0; offset < text.length; offset += stride) {
 				const window = text.slice(offset, offset + MAX_SCAN_LENGTH);
-
-				if (shape.keywords && shape.keywords.length > 0) {
-					const lower = window.toLowerCase();
-					if (!shape.keywords.some((kw) => lower.includes(kw.toLowerCase()))) {
-						if (offset + MAX_SCAN_LENGTH >= text.length) break;
-						continue;
-					}
-				}
 
 				shape.re.lastIndex = 0;
 				let match: RegExpExecArray | null;

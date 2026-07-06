@@ -99,4 +99,46 @@ describe("tool input inspector chunked scanning", () => {
 		expect(verdict.action).toBe("allow");
 		expect(input.body).toBe(`${prefix}[REDACTED:api-key]${suffix}`);
 	});
+
+	test("keyword pre-filter gates the whole field, not per window (B1-2)", () => {
+		// A keyword at byte 9_700 and a secret beyond the scan overlap at byte ~10_050
+		// must still match: the keyword is checked against the full field text once,
+		// not the per-window slice. Before the fix the secret's window had no keyword
+		// and the shape was skipped -> secret evaded.
+		const keyword = "OPENAI_API_KEY";
+		const secretOffset = MAX_SCAN_LENGTH + 50;
+		const input: Record<string, unknown> = {
+			body: `${"x".repeat(9_700)}${keyword}${"x".repeat(secretOffset - 9_700 - keyword.length)}${SECRET}${".".repeat(5_000)}`,
+		};
+
+		const verdict = inspectToolInput("agent_send", input, redactingInspector());
+
+		expect(verdict.action).toBe("allow");
+		expect(input.body).not.toContain(SECRET);
+		expect(redactionCount(input.body)).toBe(1);
+	});
+
+	test("a long (>256) secret split across a window boundary is caught (B1-3)", () => {
+		// The token must start before the next window's start (so it isn't fully in
+		// window N+1) and extend past window N's end (so it isn't fully in window N).
+		// Under the old 256 overlap (stride 9744): window 0 [0,10000) sees `sk-` +
+		// 397 A's (< 400 -> no match); window 1 [9744,19744) sees A's with no `sk-`
+		// prefix -> no match -> secret MISSED. Under the raised 2048 overlap
+		// (stride 7952): window 1 [7952,17952) fully contains the token -> caught.
+		const longToken = `sk-${"A".repeat(500)}`;
+		const inspector: ToolInspector = {
+			secrets: [{ name: "long-token", pattern: "sk-[A-Za-z0-9]{400,}", action: "redact" }],
+			onNoMatch: "allow",
+		};
+		const splitAt = 9_600; // < stride-old (9744), so window 1 (old) misses the `sk-` prefix
+		const input: Record<string, unknown> = {
+			body: `${"x".repeat(splitAt)}${longToken}${".".repeat(MAX_SCAN_LENGTH)}`,
+		};
+
+		const verdict = inspectToolInput("agent_send", input, inspector);
+
+		expect(verdict.action).toBe("allow");
+		expect(input.body).not.toContain(longToken);
+		expect((input.body as string).match(/\[REDACTED:long-token\]/g)?.length ?? 0).toBe(1);
+	});
 });
