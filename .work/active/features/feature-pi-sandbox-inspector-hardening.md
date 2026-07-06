@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-inspector-hardening
 kind: feature
-stage: implementing
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -264,3 +264,9 @@ inter-deps). Unit 4 is a config edit done with the implementing stride.
   pathological patterns. Documented residual; the analyzer rejects known shapes
   at load, and the cap bounds the input size. A worker timeout (Q1c) is the
   future escalation if this proves insufficient.
+
+## Review
+
+Verdict: Approve - all 3 child stories done (redos-guard, entropy-minlength, bare-token-docs);
+feature verified via child verification (173 tests green). Feature advanced to done.
+Design decisions (Q1-Q4) all implemented per spec.
