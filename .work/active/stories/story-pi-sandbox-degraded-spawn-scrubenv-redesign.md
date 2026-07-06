@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-degraded-spawn-scrubenv-redesign
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -111,3 +111,9 @@ the two "env leaks via non-bwrap spawn paths" gaps.
 - Discrepancy:
   - `scrubEnv` utility remains in `sandbox-config.ts` (unused by session startup) for compatibility with
     existing tests/utilization; startup no longer relies on process-wide env deletion.
+
+## Review
+
+Verdict: Approve - story verified by implement (168 tests green); fast-lane advance.
+scrubEnv no longer mutates global process.env; stripProviderSecrets now config-extensible;
+test parameterized across all 3 degrade paths. No blockers.

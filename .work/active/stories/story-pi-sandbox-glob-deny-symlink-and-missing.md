@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-glob-deny-symlink-and-missing
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -134,3 +134,9 @@ the glob detection/warning in `sandbox-config.ts` + the non-existent-path skip i
   fail-closing — fail-closed on every missing deny path would be too aggressive
   (operators list deny paths defensively). The warning surfaces the bash gap.
 - Adjacent issues parked: none.
+
+## Review
+
+Verdict: Approve - story verified by implement (168 tests green); fast-lane advance.
+G1 symlink-evastion fix confirmed by repro test; non-existent-deny + allowWrite-glob
+warnings added honestly. No blockers.
