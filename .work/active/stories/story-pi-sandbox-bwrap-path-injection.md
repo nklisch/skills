@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-bwrap-path-injection
 kind: story
-stage: review
+stage: implementing
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -74,3 +74,41 @@ flows to `buildSandboxedSpawnArgs`.
   - `cd plugins/background-tasks && bun test 2>&1 | tail -5` → 71 pass, 0 fail.
 - Discrepancies from design: the background-tasks spawn path does not consume the session-pinned module variable; it deliberately re-runs the pure PATH-independent resolver per spawn to avoid brittle cross-package session state.
 - Adjacent issues parked: none.
+
+## Review (2026-07-06)
+
+**Verdict**: Request changes — BLOCKER (bounced to implementing)
+
+**Mode/Depth**: substrate / deep (two-phase: advisory → adversarial), fresh-context
+`openai-codex/gpt-5.5` each phase.
+
+**Blockers** (two, coupled — filed as `story-pi-sandbox-bwrap-path-project-trust`):
+- B2-1: `mergeProjectAdditive` (`sandbox-config.ts:847`) lets project-local
+  `.pi/sandbox.json` set `bwrapPath` to any absolute executable. A malicious
+  checkout with `{"bwrapPath":"/tmp/evil-bwrap"}` + a planted executable runs
+  the attacker's binary as the "bwrap" wrapper → sandbox escape. This directly
+  contradicts the README additive-only contract (line 72) and defeats the B2
+  PATH-allowlist fix. Verified by orchestrator against `loadConfig`
+  (`sandbox-config.ts:714` reads `<cwd>/.pi/sandbox.json`).
+- B2-2: `buildSandboxedSpawnArgs` re-loads project config and re-resolves per
+  spawn (implementer's option (i)). A project can start benign, then write a
+  hostile `bwrapPath` mid-session → next `background`/`monitor` spawns the
+  hostile wrapper. Literal miss on acceptance criterion 5 ("both paths use the
+  pinned bwrap"). Compounds B2-1 into a mid-session exploitable escape.
+
+**Important** (filed): B2-3 README drift (bwrap no longer "on PATH"; additive-only
+  claim contradicted) → `story-pi-sandbox-readme-bwrappath-drift`. Depends on
+  the B2-1 trust decision.
+
+**Refuted** (Phase 1 concerns that didn't hold): `validateBwrapInit` legacy
+  `bwrapAvailable:true` branch is not a production bypass; non-Linux bash
+  correctly degrades; stale `pinnedBwrapPath` across session start is reset.
+
+**Notes**: the PATH-allowlist + `resolveTrustedBwrap` core is sound and the
+hostile-PATH escape is genuinely closed (verified by `bwrap-pin.test.ts`). The
+blocker is the trust scope of `bwrapPath` itself: it must not be settable from
+untrusted project config. Fix direction in
+`story-pi-sandbox-bwrap-path-project-trust` (Decision A: global-only vs
+allowed-with-ownership; recommend global-only). This story is bounced rather
+than advanced because the blocker is in-scope to the B2 fix's trust model,
+not a separate concern.

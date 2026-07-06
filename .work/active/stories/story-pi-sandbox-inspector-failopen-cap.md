@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-inspector-failopen-cap
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -70,3 +70,35 @@ the fix must not reintroduce the synchronous-hang risk on huge inputs.
 - Verification: `cd plugins/pi-sandbox && bun test 2>&1 | tail -8` (121 pass); `cd plugins/background-tasks && bun test 2>&1 | tail -5` (71 pass).
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+
+## Review (2026-07-06)
+
+**Verdict**: Approve (with follow-ups filed)
+
+**Mode/Depth**: substrate / deep (two-phase: advisory → adversarial), fresh-context
+`openai-codex/gpt-5.5` each phase. Same-class-across-phases limitation recorded
+(umans reserved for orchestration; no Claude/Gemini subagent path in-harness).
+
+**Blockers**: none remaining (two were found and fixed inline in `501d68b`):
+- B1-2 (keyword pre-filter per-window → whole-field): fixed. Test added; the
+  keyword now gates the full field text before the window loop, closing the
+  padding-separates-keyword-from-secret evasion.
+- B1-3 (256-char overlap too small for long secrets): mitigated by raising the
+  overlap to 2048, covering realistic PEM/JWT-shaped secrets. Test added and
+  verified to fail under the old 256 overlap / pass under 2048. The proper
+  per-shape fix filed separately.
+
+**Important** (filed as follow-up stories):
+- B1-1 redaction-cap silent tail-secret leak → `story-pi-sandbox-inspector-redact-cap-overflow`
+  (design choice: fail-closed vs diagnostic vs raise-cap)
+- B1-3 per-shape overlap + B1-4 ReDoS test honesty → `story-pi-sandbox-inspector-redos-test-honesty`
+
+**Nits**: stale test name "capped to 10k characters before regex scan"
+(`sandbox.test.ts:1131`); redaction cap counts ranges before dedup.
+
+**Notes**: the two inline fixes are committed in `501d68b` with regression
+tests. 123 pi-sandbox + 71 background-tasks green. The chunked-scan core
+(windowed scan, global-coordinate redaction, ReDoS per-window cap) is sound;
+the review found the refactor's newly-introduced auxiliary logic (keyword
+placement, overlap sizing, redaction cap) needed correction, not the core
+approach.
