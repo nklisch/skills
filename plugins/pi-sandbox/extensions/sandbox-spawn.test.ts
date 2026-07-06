@@ -4,7 +4,7 @@ import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs
 import { tmpdir } from "node:os";
 import { delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 import { loadConfig, validateConfig } from "./sandbox-config";
-import { buildSandboxedSpawnArgs, findExecutableOnPath } from "./sandbox-spawn";
+import { PROVIDER_SECRET_ENV_NAMES, buildSandboxedSpawnArgs, findExecutableOnPath } from "./sandbox-spawn";
 
 const tempDirs: string[] = [];
 const isLinux = process.platform === "linux";
@@ -183,26 +183,89 @@ describe("buildSandboxedSpawnArgs", () => {
 		expect(result.message).toContain("OS backend unavailable");
 	});
 
-	test("degraded modes strip provider secret env vars from the inherited env", async () => {
-		const cwd = await makeTempDir();
-		const agentDir = await makeAgentDir();
-		const result = buildSandboxedSpawnArgs({
-			command: "echo hi",
-			cwd,
-			configCwd: cwd,
-			agentDir,
-			platform: "darwin",
+	type DegradeModeCase = {
+		name: "integration-off" | "sandbox-disabled" | "unsupported-platform";
+		platform: NodeJS.Platform;
+		bwrapAvailable: boolean;
+		agentConfig?: Record<string, unknown>;
+		projectConfig?: Record<string, unknown>;
+	};
+
+	for (const caseData of [
+		{
+			name: "integration-off" as const,
+			platform: "linux" as const,
+			bwrapAvailable: true,
+			agentConfig: {
+				backgroundTasks: { sandboxIntegration: "off" },
+				envScrub: { names: ["PI_SANDBOX_TEST_CUSTOM_NAME"], patterns: ["CUSTOM_SECRET_*"] },
+			},
+		},
+		{
+			name: "sandbox-disabled" as const,
+			platform: "linux" as const,
+			bwrapAvailable: true,
+			agentConfig: {
+				enabled: false,
+				envScrub: { names: ["PI_SANDBOX_TEST_CUSTOM_NAME"], patterns: ["CUSTOM_SECRET_*"] },
+			},
+		},
+		{
+			name: "unsupported-platform" as const,
+			platform: "darwin" as const,
 			bwrapAvailable: false,
-			baseEnv: { PATH: "/usr/bin", OPENAI_API_KEY: "sk-leak", ZAI_API_KEY: "zai-leak", HOME: "/tmp" },
+			agentConfig: {
+				envScrub: { names: ["PI_SANDBOX_TEST_CUSTOM_NAME"], patterns: ["CUSTOM_SECRET_*"] },
+			},
+		},
+	] as DegradeModeCase[]) {
+		test(`degraded modes strip provider secret env vars: ${caseData.name}`, async () => {
+			const { name, platform, bwrapAvailable, agentConfig, projectConfig } = caseData;
+			const cwd = await makeTempDir();
+			const agentDir = await makeAgentDir(agentConfig);
+			if (projectConfig) {
+				await mkdir(join(cwd, ".pi"), { recursive: true });
+				await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify(projectConfig));
+			}
+
+			const baseProviderEnv: NodeJS.ProcessEnv = {};
+			for (const envName of PROVIDER_SECRET_ENV_NAMES) {
+				baseProviderEnv[envName] = `${envName}-leak`;
+			}
+			const result = buildSandboxedSpawnArgs({
+				command: "echo hi",
+				cwd,
+				configCwd: cwd,
+				agentDir,
+				platform,
+				bwrapAvailable,
+				baseEnv: {
+					...baseProviderEnv,
+					CUSTOM_SECRET_TOKEN: "custom-pattern-match",
+					PI_SANDBOX_TEST_CUSTOM_NAME: "custom-name-match",
+					CUSTOM_KEEP: "kept-in-degrade",
+					PATH: "/usr/bin",
+					HOME: "/tmp",
+				},
+			});
+
+			expect(result.state).toBe("degraded");
+			expect(result).toMatchObject({
+				integration: "inactive",
+				reason: name,
+				executable: null,
+				args: [],
+			});
+			expect(result.env.PATH).toBe("/usr/bin");
+			expect(result.env.HOME).toBe("/tmp");
+			expect(result.env.CUSTOM_KEEP).toBe("kept-in-degrade");
+			for (const envName of PROVIDER_SECRET_ENV_NAMES) {
+				expect((result.env as NodeJS.ProcessEnv)[envName]).toBeUndefined();
+			}
+			expect(result.env.CUSTOM_SECRET_TOKEN).toBeUndefined();
+			expect(result.env.PI_SANDBOX_TEST_CUSTOM_NAME).toBeUndefined();
 		});
-		expect(result.state).toBe("degraded");
-		// Provider secrets must not reach the unsandboxed child env.
-		expect(result.env.OPENAI_API_KEY).toBeUndefined();
-		expect(result.env.ZAI_API_KEY).toBeUndefined();
-		// Non-secret env is preserved.
-		expect(result.env.PATH).toBe("/usr/bin");
-		expect(result.env.HOME).toBe("/tmp");
-	});
+	}
 
 	test("fails closed when network filter mode is requested", async () => {
 		const cwd = await makeTempDir();
