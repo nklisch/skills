@@ -1,13 +1,15 @@
 ---
 id: idea-bgtasks-sandbox-handshake-cross-pkg-test
 kind: story
-stage: backlog
+stage: done
 tags: [security, sandbox, testing]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-01
+updated: 2026-07-05
+git_ref: 0db276b
 ---
 
 # Cross-package handshake integration test for background-tasks sandbox integration
