@@ -300,6 +300,8 @@ export interface InspectionVerdict {
 	reason: string;
 }
 
+const MAX_SCAN_LENGTH = 10_000;
+
 interface CompiledShape {
 	name: string;
 	re: RegExp;
@@ -334,6 +336,25 @@ function shannonEntropy(data: string): number {
 function withGlobalFlag(flags: string | undefined): string {
 	const effective = flags ?? "gu";
 	return effective.includes("g") ? effective : `${effective}g`;
+}
+
+/**
+ * Narrow, heuristic ReDoS risk check for regular expressions configured in the
+ * inspector and allowlist. False accepts are preferred over false rejects because
+ * this is an optional guard, not a formal regex analyzer.
+ */
+function isSafeRegex(pattern: string): { safe: boolean; reason?: string } {
+	// Reject immediate nested quantifier-on-group forms: (a+)+, (a*)+, (a?)+, (a{2,})+
+	// The full ReDoS problem space is undecidable; this heuristic is a narrow
+	// first-pass filter and is intentionally conservative in what it rejects.
+	if (/\([^)]*[+*?][^)]*\)[+*?{]/.test(pattern)) {
+		return { safe: false, reason: "nested quantifier (ReDoS risk)" };
+	}
+
+	// Residual risk: short, crafted alternation/overlap patterns such as
+	// `(a|a)+` or backreference-coupled constructions may still be expensive.
+	// Those are handled by runtime input caps and explicit operator review paths.
+	return { safe: true };
 }
 
 function advanceStringIndex(text: string, index: number, unicode: boolean): number {
@@ -413,6 +434,7 @@ export function inspectToolInput(
 			try { text = JSON.stringify(value); } catch { text = null; }
 		} else continue;
 		if (text === null) continue;
+		if (text.length > MAX_SCAN_LENGTH) text = text.slice(0, MAX_SCAN_LENGTH);
 
 		for (const shape of shapes) {
 			if (shape.keywords && shape.keywords.length > 0) {
@@ -436,7 +458,9 @@ export function inspectToolInput(
 
 				if (shape.entropy !== undefined) {
 					const ent = shannonEntropy(candidate);
-					if (ent < shape.entropy) continue;
+					const MIN_SECRET_LENGTH = 20;
+					if (ent < shape.entropy && candidate.length < MIN_SECRET_LENGTH) continue;
+					// else: low-entropy but long enough to be suspicious — still a candidate, so continue processing
 				}
 
 				if (isAllowed(candidate)) continue;
@@ -1218,6 +1242,11 @@ function validateInspector(value: unknown, errors: string[]): void {
 						new RegExp(regex, "iu");
 					} catch (e) {
 						errors.push(`tools.inspector.allowlist.regexes[${index}] must compile as a JavaScript RegExp${e instanceof Error ? ` (${e.message})` : ""}`);
+						return;
+					}
+					const safety = isSafeRegex(regex);
+					if (!safety.safe) {
+						errors.push(`tools.inspector.allowlist.regexes[${index}] is unsafe: ${safety.reason} (${regex})`);
 					}
 				});
 			}
@@ -1244,6 +1273,11 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 			new RegExp(value.pattern, withGlobalFlag(value.flags));
 		} catch (e) {
 			errors.push(`${path}.pattern must compile as a JavaScript RegExp${e instanceof Error ? ` (${e.message})` : ""}`);
+			return;
+		}
+		const safety = isSafeRegex(value.pattern);
+		if (!safety.safe) {
+			errors.push(`${path}.pattern is unsafe for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: ${safety.reason} (${value.pattern})`);
 		}
 	}
 }
