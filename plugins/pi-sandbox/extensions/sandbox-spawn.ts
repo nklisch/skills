@@ -5,7 +5,7 @@ import {
 	findExecutableOnPath,
 	type NetworkMode,
 } from "./sandbox-bwrap";
-import { loadConfig } from "./sandbox-config";
+import { loadConfig, type EnvScrubConfig } from "./sandbox-config";
 import type { BackgroundTasksSandboxIntegration } from "./sandbox-config";
 
 /** Env-var names known to carry provider/runtime secrets. In degraded/unsandboxed
@@ -13,7 +13,7 @@ import type { BackgroundTasksSandboxIntegration } from "./sandbox-config";
  * command running without bwrap confinement cannot exfiltrate provider credentials
  * via the child process environment. The healthy bwrap path uses buildMinimalEnv
  * instead and never inherits these. */
-const PROVIDER_SECRET_ENV_NAMES = [
+export const PROVIDER_SECRET_ENV_NAMES = [
 	"ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN",
 	"OPENAI_API_KEY", "AZURE_OPENAI_API_KEY",
 	"GEMINI_API_KEY", "GOOGLE_CLOUD_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS",
@@ -23,9 +23,26 @@ const PROVIDER_SECRET_ENV_NAMES = [
 	"NVIDIA_API_KEY", "XAI_API_KEY", "ZAI_API_KEY", "AI_GATEWAY_API_KEY",
 ];
 
-function stripProviderSecrets(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-	const stripped: NodeJS.ProcessEnv = { ...env };
-	for (const name of PROVIDER_SECRET_ENV_NAMES) delete stripped[name];
+function compileEnvScrubPatterns(patterns: string[] | undefined): RegExp[] {
+	return (patterns ?? []).map((pattern) => {
+		const regexSource = pattern
+			.replace(/[.+^${}()|[\]\\]/g, "\\$&")
+			.replace(/\*/g, ".*")
+			.replace(/\?/g, ".");
+		return new RegExp(`^${regexSource}$`, "i");
+	});
+}
+
+function stripProviderSecrets(env: NodeJS.ProcessEnv, envScrub: EnvScrubConfig | undefined): NodeJS.ProcessEnv {
+	const scrubNames = new Set<string>(PROVIDER_SECRET_ENV_NAMES);
+	for (const name of envScrub?.names ?? []) scrubNames.add(name);
+	const patterns = compileEnvScrubPatterns(envScrub?.patterns);
+	const stripped = { ...env };
+	for (const name of Object.keys(stripped)) {
+		if (scrubNames.has(name) || patterns.some((pattern) => pattern.test(name))) {
+			delete stripped[name];
+		}
+	}
 	return stripped;
 }
 
@@ -132,7 +149,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 			executable: null,
 			args: [],
 			cwd: opts.cwd,
-			env: stripProviderSecrets(env),
+			env: stripProviderSecrets(env, loaded.config.envScrub),
 			message: "Background-tasks sandbox integration is off by sandbox config; running unsandboxed by explicit operator opt-out.",
 		};
 	}
@@ -145,7 +162,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 			executable: null,
 			args: [],
 			cwd: opts.cwd,
-			env: stripProviderSecrets(env),
+			env: stripProviderSecrets(env, loaded.config.envScrub),
 			message: "Sandbox is disabled by config; running background-tasks command unsandboxed.",
 		};
 	}
@@ -180,7 +197,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 			executable: null,
 			args: [],
 			cwd: opts.cwd,
-			env: stripProviderSecrets(env),
+			env: stripProviderSecrets(env, loaded.config.envScrub),
 			message: platformState.message,
 		};
 	}

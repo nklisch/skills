@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-degraded-spawn-scrubenv-redesign
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -93,3 +93,21 @@ Distinct from the file-policy items — this is the env-construction surface in
 `sandbox-spawn.ts` and the env-scrub surface in `sandbox.ts`/`sandbox-config.ts`. Pairs
 with the documented RPC/API direct-bash bypass (a known non-goal in current pi core) as
 the two "env leaks via non-bwrap spawn paths" gaps.
+
+## Implementation notes
+
+- Files changed:
+  - `plugins/pi-sandbox/extensions/sandbox.ts`
+  - `plugins/pi-sandbox/extensions/sandbox-spawn.ts`
+  - `plugins/pi-sandbox/extensions/sandbox-spawn.test.ts`
+- Changes made:
+  - Removed the `session_start` `scrubEnv` call so `process.env` is no longer mutated at startup.
+  - Kept per-child env hardening in `buildSandboxedSpawnArgs` and changed `stripProviderSecrets`
+    to accept loaded `config.envScrub` and strip names + glob patterns in addition to the built-in
+    provider-secret list.
+  - Extended degraded-mode secret-scrub tests to cover `integration-off`, `sandbox-disabled`, and
+    `unsupported-platform` and validate configured `envScrub` names/patterns plus all built-in provider
+    names are removed.
+- Discrepancy:
+  - `scrubEnv` utility remains in `sandbox-config.ts` (unused by session startup) for compatibility with
+    existing tests/utilization; startup no longer relies on process-wide env deletion.

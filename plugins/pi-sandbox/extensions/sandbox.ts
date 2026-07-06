@@ -57,7 +57,6 @@ import {
 	inspectToolInput,
 	loadConfig,
 	readBackgroundTasksIntegrationHandshake,
-	scrubEnv,
 	type BackgroundTasksIntegrationDecisionInput,
 	type BypassToolIntegrationState,
 } from "./sandbox-config";
@@ -484,22 +483,8 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 
-		// Scrub secret env vars from process.env BEFORE any bash/subprocess can
-		// spawn. pi's provider env-key list is passed as a preferred keep set, but
-		// explicit scrub names/patterns still win so config remains fail-safe.
-		const piEnvKeyKeep = [
-			"ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AZURE_OPENAI_API_KEY",
-			"GEMINI_API_KEY", "GOOGLE_CLOUD_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS",
-			"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_PROFILE", "AWS_BEARER_TOKEN_BEDROCK",
-			"COPILOT_GITHUB_TOKEN", "HF_TOKEN", "MISTRAL_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY",
-			"OPENROUTER_API_KEY", "TOGETHER_API_KEY", "FIREWORKS_API_KEY", "CEREBRAS_API_KEY",
-			"NVIDIA_API_KEY", "XAI_API_KEY", "ZAI_API_KEY", "AI_GATEWAY_API_KEY",
-		];
-		const scrubbed = scrubEnv(config.envScrub, piEnvKeyKeep);
-		if (scrubbed.length > 0) {
-			ctx.ui.notify(`Scrubbed ${scrubbed.length} secret env var(s) from process: ${scrubbed.join(", ")}`, "info");
-		}
-
+		// session_start intentionally leaves process.env untouched. Degraded spawn
+		// paths now perform per-child env scrubbing in sandbox-spawn.ts.
 		const netMode = config.network?.mode ?? "open";
 
 		// Always set the file-tool policy, even before bwrap init succeeds —
