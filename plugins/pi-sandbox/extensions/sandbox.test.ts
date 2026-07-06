@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { realpathSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
 	buildBwrapArgs,
 	buildMinimalEnv,
 	decidePlatformState,
+	findExecutableOnPath,
 	shouldBypassBashSandbox,
 	shouldBypassSandbox,
 	type BuildBwrapArgsOptions,
@@ -1260,11 +1263,48 @@ describe("buildBwrapArgs", () => {
 		});
 		expect(args).toContain("--unshare-net");
 		// Docker / D-Bus / X11 socket dirs must be masked with tmpfs so a blocked
-		// sandbox cannot reach host IPC services.
-		for (const socketDir of ["/run", "/var/run", "/tmp/.X11-unix"]) {
-			expect(args).toContain(socketDir);
-			expect(args[args.indexOf(socketDir) - 1]).toBe("--tmpfs");
-		}
+		// sandbox cannot reach host IPC services. /run is always masked; /var/run
+		// is masked only when it is NOT a symlink to /run (systemd dedup).
+		expect(args).toContain("/run");
+		expect(args[args.indexOf("/run") - 1]).toBe("--tmpfs");
+		expect(args).toContain("/tmp/.X11-unix");
+		// /var/run and /run must not both be emitted when they resolve to the same
+		// canonical path — bwrap cannot mount tmpfs on a symlink target and the
+		// whole block-mode spawn would fail with exit 1.
+		const tmpfsTargets = args.filter((_, i) => args[i - 1] === "--tmpfs");
+		const canonical = (p: string) => {
+			try { return realpathSync(p); } catch { return p; }
+		};
+		const distinct = new Set(tmpfsTargets.map(canonical));
+		expect(tmpfsTargets.length).toBe(distinct.size);
+	});
+
+	test("block mode actually spawns bwrap without failing (regression: /var/run symlink)", async () => {
+		// On systemd Linux /var/run -> /run. bwrap --tmpfs /var/run fails with
+		// "Can't mount tmpfs on .../var/run" and the spawn exits 1. This test runs
+		// the real bwrap binary so the arg-list-only check above can't mask a real
+		// mount failure. Skipped when bwrap is unavailable.
+		const bwrap = findExecutableOnPath("bwrap", process.env);
+		if (!bwrap) return; // non-Linux graceful degrade
+		const cwd = await makeTempDir();
+		const args = [
+			...buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: [],
+				denyRead: [],
+				denyWrite: [],
+				networkMode: "block",
+				env: { PATH: "/usr/bin", HOME: "/tmp", TMPDIR: "/tmp" },
+			}),
+			"--",
+			"bash",
+			"-c",
+			"echo BLOCK_MODE_OK",
+		];
+		const result = spawnSync(bwrap, args, { encoding: "utf8" });
+		expect(result.status).toBe(0);
+		expect(result.stdout.trim()).toBe("BLOCK_MODE_OK");
 	});
 
 	test("open mode does not add Unix-socket masks (host net intact)", async () => {
