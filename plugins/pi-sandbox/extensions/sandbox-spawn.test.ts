@@ -92,9 +92,9 @@ describe("buildSandboxedSpawnArgs", () => {
 		expect(result.env.FOO_SECRET).toBeUndefined();
 	});
 
-	test("resolves the bwrap wrapper from trusted PATH, not user envAdd PATH", async () => {
-		const realBwrap = findExecutableOnPath("bwrap", process.env);
-		if (!realBwrap) throw new Error("expected bwrap on trusted PATH for PATH-poisoning regression test");
+	test("resolves the bwrap wrapper from the trusted allowlist, not user envAdd PATH", async () => {
+		const realBwrap = findExecutableOnPath("bwrap", { PATH: "/usr/bin:/bin" });
+		if (!realBwrap) throw new Error("expected bwrap in the trusted allowlist for PATH-poisoning regression test");
 		const cwd = await makeTempDir();
 		const agentDir = await makeAgentDir();
 		const attackerDir = await makeTempDir();

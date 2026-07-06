@@ -33,6 +33,8 @@ export interface BackgroundTasksSandboxConfig {
 /** Extension config for the first-party bwrap backend and in-process tool guards. */
 export interface SandboxConfig {
 	enabled?: boolean;
+	/** Absolute path to a trusted bwrap binary. When set, this overrides the default /usr/bin/bwrap, /bin/bwrap allowlist. */
+	bwrapPath?: string;
 	filesystem?: SandboxFilesystem;
 	network?: SandboxNetwork;
 	tools?: ToolRules;
@@ -219,6 +221,7 @@ export function decideBackgroundTasksIntegrationState(input: BackgroundTasksInte
 	const platformState = decidePlatformState({
 		networkMode,
 		platform: input.platform,
+		bwrapPath: input.config.bwrapPath,
 		bwrapAvailable: input.bwrapAvailable,
 		env: input.env,
 	});
@@ -580,6 +583,10 @@ export function validateConfig(config: unknown): string[] {
 		errors.push("enabled must be a boolean");
 	}
 
+	if (config.bwrapPath !== undefined && typeof config.bwrapPath !== "string") {
+		errors.push("bwrapPath must be a string");
+	}
+
 	if (config.filesystem !== undefined) {
 		if (!isRecord(config.filesystem)) {
 			errors.push("filesystem must be an object");
@@ -760,6 +767,7 @@ export function deepMerge(base: SandboxConfig, overrides: Partial<SandboxConfig>
 	const result: SandboxConfig = { ...base };
 
 	if (overrides.enabled !== undefined) result.enabled = overrides.enabled;
+	if (overrides.bwrapPath !== undefined) result.bwrapPath = overrides.bwrapPath;
 	if (overrides.network) {
 		const baseMode = base.network?.mode ?? "open";
 		const overrideMode = overrides.network.mode;
@@ -831,6 +839,13 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 	// Project may NOT disable the sandbox.
 	if (project.enabled === false && global.enabled !== false) {
 		warns.push(`project tried to disable sandbox; ignored (additive-only policy).`);
+	}
+
+	// bwrapPath is an explicit operator pin. Project-local config may set it so
+	// custom per-project bwrap installs work; resolution still requires an
+	// absolute, executable path at session_start and bypasses PATH entirely.
+	if (project.bwrapPath !== undefined) {
+		result.bwrapPath = project.bwrapPath;
 	}
 
 	// denyRead: project can only ADD entries (union).

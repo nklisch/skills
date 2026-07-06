@@ -33,7 +33,7 @@ import {
 	buildBwrapArgs,
 	buildMinimalEnv,
 	decidePlatformState,
-	findExecutableOnPath,
+	resolveTrustedBwrap,
 	shouldBypassBashSandbox,
 	shouldBypassSandbox,
 } from "./sandbox-bwrap";
@@ -98,6 +98,13 @@ const loadPiConfig = (cwd: string) => loadConfig(cwd, { agentDir: getAgentDir() 
 // ---------------------------------------------------------------------------
 
 let activePolicy: SandboxPolicy | null = null;
+let pinnedBwrapPath: string | null = null;
+let bwrapPinError: string | null = null;
+
+function formatTrustedBwrapFailure(resolution: { reason: string; rejectedPath?: string }): string {
+	const rejected = resolution.rejectedPath ? ` Rejected path: ${resolution.rejectedPath}.` : "";
+	return `Sandbox initialization failed: ${resolution.reason}.${rejected} Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.`;
+}
 
 // ---------------------------------------------------------------------------
 // Sandboxed bash operations
@@ -112,9 +119,9 @@ function createSandboxedBashOps(): BashOperations {
 
 			const policy = activePolicyFor(cwd);
 			const minimalEnv = buildMinimalEnv(process.env);
-			const bwrapExecutable = findExecutableOnPath("bwrap", process.env);
+			const bwrapExecutable = pinnedBwrapPath;
 			if (!bwrapExecutable) {
-				throw new Error("Sandbox initialization failed: bwrap is not available on trusted PATH.");
+				throw new Error(bwrapPinError ?? "Sandbox initialization failed: no pinned trusted bwrap path is available. Bash is fail-closed. File-tool policy still enforced.");
 			}
 			const bwrapArgs = [
 				...buildBwrapArgs({
@@ -430,6 +437,8 @@ export default function (pi: ExtensionAPI) {
 		sandboxInitialized = false;
 		sandboxPolicy = null;
 		activePolicy = null;
+		pinnedBwrapPath = null;
+		bwrapPinError = null;
 		backgroundTasksIntegrationDecisionBase = null;
 		backgroundTasksIntegrationState = {
 			backgroundTasksSandbox: "inactive",
@@ -500,7 +509,22 @@ export default function (pi: ExtensionAPI) {
 		};
 		activePolicy = sandboxPolicy;
 
-		const platformState = decidePlatformState({ networkMode: netMode, env: process.env });
+		if (process.platform === "linux") {
+			const bwrapResolution = resolveTrustedBwrap({ bwrapPath: config.bwrapPath, env: process.env });
+			if (!bwrapResolution.ok) {
+				failClosed = true;
+				bwrapPinError = formatTrustedBwrapFailure(bwrapResolution);
+				lastFailClosedReason = bwrapPinError;
+				backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
+				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+				ctx.ui.notify(bwrapPinError, "error");
+				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened"));
+				return;
+			}
+			pinnedBwrapPath = bwrapResolution.path;
+		}
+
+		const platformState = decidePlatformState({ networkMode: netMode, env: process.env, bwrapPath: config.bwrapPath });
 		backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 		backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
 		if (platformState.state === "degrade") {
@@ -568,6 +592,8 @@ export default function (pi: ExtensionAPI) {
 		lastFailClosedReason = null;
 		sandboxPolicy = null;
 		activePolicy = null;
+		pinnedBwrapPath = null;
+		bwrapPinError = null;
 		backgroundTasksIntegrationDecisionBase = null;
 		backgroundTasksIntegrationState = {
 			backgroundTasksSandbox: "inactive",

@@ -3,6 +3,7 @@ import {
 	buildMinimalEnv,
 	decidePlatformState,
 	findExecutableOnPath,
+	resolveTrustedBwrap,
 	type NetworkMode,
 } from "./sandbox-bwrap";
 import { loadConfig, type EnvScrubConfig } from "./sandbox-config";
@@ -67,10 +68,11 @@ export interface SandboxSpawnOptions {
 	configCwd?: string;
 	/** User-supplied child env additions. These may affect the wrapped command's PATH, never wrapper lookup. */
 	envAdd?: NodeJS.ProcessEnv;
-	/** Trusted wrapper-resolution env. Defaults to the real process env; do not pass user-merged env here. */
+	/** Trusted base env for the wrapped command. bwrap lookup ignores PATH and uses sandbox.bwrapPath or the system allowlist. */
 	baseEnv?: NodeJS.ProcessEnv;
 	agentDir?: string;
 	platform?: NodeJS.Platform;
+	/** Test/diagnostic override for platform readiness; production callers should omit this. */
 	bwrapAvailable?: boolean;
 }
 
@@ -79,7 +81,7 @@ export type SandboxedSpawnArgsResult =
 		state: "ok";
 		integration: "active";
 		executable: string;
-		/** Absolute bwrap path; wrapper resolution uses trusted PATH, never user envAdd PATH. */
+		/** Absolute trusted bwrap path from sandbox.bwrapPath or the system allowlist; PATH is never consulted. */
 		args: string[];
 		cwd: string;
 		/** Minimal allowlisted environment only. */
@@ -121,7 +123,6 @@ export type SandboxedSpawnArgsResult =
 export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpawnArgsResult {
 	const trustedEnv: NodeJS.ProcessEnv = opts.baseEnv ?? process.env;
 	const normalEnv: NodeJS.ProcessEnv = { ...trustedEnv, ...(opts.envAdd ?? {}) };
-	const bwrapExecutable = opts.bwrapAvailable === false ? null : findExecutableOnPath("bwrap", trustedEnv);
 	const configCwd = opts.configCwd ?? process.cwd();
 	const loaded = loadConfig(configCwd, { agentDir: opts.agentDir });
 	const env = normalEnv;
@@ -186,7 +187,8 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 		platform: opts.platform,
 		env: trustedEnv,
 		networkMode,
-		bwrapAvailable: opts.bwrapAvailable ?? bwrapExecutable !== null,
+		bwrapPath: loaded.config.bwrapPath,
+		bwrapAvailable: opts.bwrapAvailable,
 	});
 
 	if (platformState.state === "degrade") {
@@ -216,7 +218,12 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 		};
 	}
 
-	if (!bwrapExecutable) {
+	const bwrapResolution = opts.bwrapAvailable === false
+		? { ok: false as const, reason: "trusted bwrap is not available from the configured path or system allowlist", rejectedPath: undefined }
+		: resolveTrustedBwrap({ bwrapPath: loaded.config.bwrapPath, env: trustedEnv });
+	if (!bwrapResolution.ok) {
+		const rejected = bwrapResolution.rejectedPath ? ` Rejected path: ${bwrapResolution.rejectedPath}.` : "";
+		const message = `Sandbox initialization failed: ${bwrapResolution.reason}.${rejected} Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.`;
 		return {
 			state: "fail-closed",
 			integration: "blocked",
@@ -225,11 +232,12 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 			args: [],
 			cwd: opts.cwd,
 			env,
-			message: "Sandbox initialization failed: bwrap is not available on trusted PATH. Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.",
-			errors: ["bwrap is not available on trusted PATH"],
+			message,
+			errors: [message],
 		};
 	}
 
+	const bwrapExecutable = bwrapResolution.path;
 	const minimalEnv = buildMinimalEnv(normalEnv);
 	try {
 		const args = [
