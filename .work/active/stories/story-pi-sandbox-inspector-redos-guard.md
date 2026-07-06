@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-inspector-redos-guard
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: feature-pi-sandbox-inspector-hardening
 depends_on: []
@@ -55,3 +55,7 @@ heuristic, and acceptance criteria.
 - Documented remaining gaps inline in code comments: short crafted alternation/overlap
   patterns are not fully detected by the simple tokenizer and remain covered by the
   scan cap plus operational review.
+
+## Review
+
+Verdict: Approve - story verified by implement (173 tests green); fast-lane advance.

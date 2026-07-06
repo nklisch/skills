@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-inspector-entropy-minlength
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: feature-pi-sandbox-inspector-hardening
 depends_on: []
@@ -54,3 +54,7 @@ entirely) and tuning notes.
 
 - Updated `inspectToolInput` in `plugins/pi-sandbox/extensions/sandbox-config.ts` to apply entropy as a soft signal: low-entropy values are skipped only when below threshold **and** shorter than `MIN_SECRET_LENGTH = 20`; longer low-entropy matches continue to be treated as potential secrets.
 - Added three focused tests in `plugins/pi-sandbox/extensions/sandbox.test.ts` validating: (`token=aaaaaaaaaaaaaaaaaaaa` blocks), (`password=changeme` allows), and provider-prefix (`sk-ant-...`) match remains blocked via a no-entropy shape.
+
+## Review
+
+Verdict: Approve - story verified by implement (173 tests green); fast-lane advance.
