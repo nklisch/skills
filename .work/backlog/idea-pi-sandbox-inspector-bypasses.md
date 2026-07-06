@@ -20,7 +20,25 @@ inspector deep dive). All findings are code-cited against `sandbox-config.ts`
 `inspectToolInput` / `decideToolPolicy` / `effectiveBaseScanFieldsForTool` and the live
 global `~/.pi/agent/extensions/sandbox.json` inspector config.
 
-## Problem
+## Status (2026-07-05)
+
+Partially drained in the 0.1.0 audit pass:
+
+- ✅ **scanFields shadowing** — fixed. `"*":"*"` now applies to every tool even
+  when it has an explicit field list (the explicit list adds fields, never
+  narrows all-field coverage). `inspectToolInput` and
+  `effectiveBaseScanFieldsForTool` both updated.
+- ⏳ **ReDoS guard** — deferred. Needs a safe-regex analyzer or worker timeout;
+  larger design surface.
+- ⏳ **alphabetic allowlist `^[A-Za-z]+$`** — operator-config concern, not a
+  code default. The package ships no `inspector.allowlist` in `DEFAULT_CONFIG`;
+  the regex lives only in the operator's `~/.pi/agent/extensions/sandbox.json`.
+  Document as a footgun; removal is an operator action.
+- ⏳ **entropy as hard bypass** — deferred. Needs redesign (scoring vs. allow).
+- ⏳ **keyword pre-filter misses bare tokens** — deferred. Needs a bare-token
+  detector design.
+
+## Original problem
 
 Several independent holes in the `auto`-policy secret inspector:
 

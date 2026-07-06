@@ -1,11 +1,25 @@
 ---
 id: idea-package-pi-sandbox-extension
-created: 2026-06-29
-updated: 2026-07-01
+kind: story
+stage: done
 tags: [security, packaging]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
+created: 2026-06-29
+updated: 2026-07-05
+git_ref: feat/pi-sandbox-first-party-bwrap
 ---
 
 # Package the pi sandbox example as a supported Pi-only plugin
+
+## Resolution
+
+Done. The plugin ships at `plugins/pi-sandbox/` as `@nklisch/pi-sandbox`
+(v0.1.0) with `package.json`, the `./sandbox-spawn` subpath export, the
+first-party bwrap extension, and README. Distributed as a Pi package
+(`pi install -l ./plugins/pi-sandbox`).
 
 ## Capture
 
