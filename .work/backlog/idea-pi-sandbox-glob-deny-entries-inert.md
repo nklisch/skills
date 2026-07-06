@@ -1,7 +1,7 @@
 ---
 id: idea-pi-sandbox-glob-deny-entries-inert
 kind: story
-stage: done
+stage: backlog
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -22,6 +22,21 @@ directly against the in-process policy module. The glob entries in the live glob
 not guard live secrets on this host, so this is a **correctness bug** (config says "deny",
 sandbox silently doesn't) rather than an active secret-exposure incident here. It would
 become a live exposure on any host that genuinely relies on glob deny entries.
+
+## Status (2026-07-05)
+
+Partially drained in the 0.1.0 audit pass (commit 25c2b48):
+
+- ✅ **Glob `denyWrite` inert in in-process policy** — fixed. `matchesDenyList`/
+  `isWithinAllowWrite` now expand globs via `globToRegex`.
+- ✅ **Glob `denyRead` inert + unwarned** — fixed. Glob detection in `loadConfig`
+  now covers `denyRead` and the warning text is honest about both layers
+  (in-process enforces; bwrap cannot mount globs).
+- ⏳ **Non-existent deny paths silently skipped** — UNFIXED. `existingCanonicalMounts`
+  still drops paths where `canonicalizeExistingPath === null`, so `denyWrite:[".env"]`
+  provides no protection if `.env` doesn't yet exist (sandboxed bash can create it).
+  Needs fail-closed on missing deny entries under writable ancestors, or sandbox-only
+  masks. This is problem 3 below.
 
 ## Problem
 
