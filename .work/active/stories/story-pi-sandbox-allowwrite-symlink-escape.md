@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-allowwrite-symlink-escape
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -72,7 +72,18 @@ should confirm which behavior is intended.
 
 ## Acceptance criteria
 
-- [ ] A project symlink `link -> /etc` does NOT make `/etc/passwd` writable via `link/passwd`
-- [ ] A project symlink `link -> /home/agent/cache` does make writes through `link/` work IF `/home/agent/cache` is itself in allowWrite (the resolved target is allowed)
-- [ ] `deny` matching is unchanged (still catches symlinked leaves via lexical name — the G1 fix holds)
-- [ ] Glob allowWrite entries match the canonical target only
+- [x] A project symlink `link -> /etc` does NOT make `/etc/passwd` writable via `link/passwd`
+- [x] A project symlink `link -> /home/agent/cache` does make writes through `link/` work IF `/home/agent/cache` is itself in allowWrite (the resolved target is allowed)
+- [x] `deny` matching is unchanged (still catches symlinked leaves via lexical name — the G1 fix holds)
+- [x] Glob allowWrite entries match the canonical target only
+
+## Implementation notes
+
+- Files changed: `plugins/pi-sandbox/extensions/sandbox-file-policy.ts`; added `plugins/pi-sandbox/extensions/allowwrite-canonical.test.ts`.
+- API-cleanup choice: chose **(B)** and removed the dead `lexicalPath` parameter from module-private `isWithinAllowWrite`. `grep` found only the single internal caller in `enforceWritePolicy`, so keeping a dead parameter would only preserve the unsafe mental model.
+- Branches removed: `isWithinAllowWrite` no longer accepts `re.test(lexicalPath)` for glob allowWrite entries and no longer accepts `isWithinOrEqual(lexicalPath, normalized)` for path allowWrite entries. It now checks only the canonical target returned by `resolveTargetForWritePolicy` against normalized/canonical allow entries.
+- Deny unchanged: `matchesDenyList` still tests both canonical target and lexical path for exact/prefix and glob entries, preserving the G1 behavior that catches symlinked leaves by lexical name.
+- Acceptance coverage: `allowwrite-canonical.test.ts` asserts `link -> /etc` blocks `link/passwd`; `link -> <cache-dir>` is allowed when the resolved cache dir is allowlisted (and when the symlink allow entry canonicalizes to that dir); lexical glob `*.log`/`link/*.log` no longer authorizes symlink targets outside the canonical allow set; and a new file through `link -> /etc` is denied after nearest-existing-ancestor resolution.
+- Tests: `cd plugins/pi-sandbox && bun test 2>&1 | tail -8` passed (113 tests); `cd plugins/background-tasks && bun test 2>&1 | tail -5` passed (71 tests).
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
