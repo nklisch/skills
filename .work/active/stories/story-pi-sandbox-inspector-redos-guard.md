@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-inspector-redos-guard
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox]
 parent: feature-pi-sandbox-inspector-hardening
 depends_on: []
@@ -41,3 +41,17 @@ heuristic, and acceptance criteria.
 - `plugins/pi-sandbox/extensions/sandbox-config.ts` — `isSafeRegex`, call sites in
   `validateSecretShape` + `validateInspector`, input cap in `inspectToolInput`
 - `plugins/pi-sandbox/extensions/sandbox.test.ts` — tests for the four criteria
+
+## Implementation notes
+
+- Added a narrow, heuristic `isSafeRegex` check in `sandbox-config.ts` to fail closed on
+  regexes that contain immediate nested quantifiers after a quantified capture group
+  (e.g. `(a+)+`, `(a*)+`, `(a{2,})+`) and report the `tools.inspector...` path with
+  the shape name and `nested quantifier (ReDoS risk)`.
+- Added an allowlist regex safety check at the same boundary so unsafe entries fail
+  config load in `validateInspector` with the same static reason.
+- Capped `inspectToolInput` to `MAX_SCAN_LENGTH = 10_000` before iterating the
+  regex loop so large fields in auto-policy tools are bounded before regex execution.
+- Documented remaining gaps inline in code comments: short crafted alternation/overlap
+  patterns are not fully detected by the simple tokenizer and remain covered by the
+  scan cap plus operational review.
