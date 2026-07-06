@@ -1,0 +1,61 @@
+---
+id: idea-pi-sandbox-real-bwrap-ci-gate
+kind: story
+stage: backlog
+tags: [security, sandbox, testing]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
+created: 2026-07-06
+updated: 2026-07-06
+---
+
+# Release CI must fail if real-bwrap tests skip (M8)
+
+## Source
+
+Surfaced in the 2026-07-06 v0.1.0 readiness adversarial review
+(background-tasks/tests deep-dive). CONFIRMED medium test-quality gap.
+
+## Problem
+
+Real-bwrap tests exist (`sandbox.test.ts:1611`, `background-tasks.test.ts:609`,
+`sandbox-spawn.test.ts:398`) and are correctly conditional:
+`hasBwrap ? test : test.skip`. But this means CI/release validation running on
+a host without bwrap silently skips the actual sandbox-execution tests, leaving
+only argv/pure-unit assertions. A mount-order or real-bwrap regression like the
+`/var/run` issue (R1) can ship again because the real-bwrap test that would
+catch it never ran.
+
+The R1 regression specifically shipped because the original test only checked
+the arg list, not a real bwrap run. The real-bwrap test was added later — but
+it's skippable, so the next regression has the same escape hatch.
+
+## Fix direction
+
+Add a release CI job/container with bwrap installed that **fails if any
+real-bwrap test is skipped**. Keep local skips (developers without bwrap
+shouldn't be blocked), but require real-bwrap execution for release readiness.
+
+Two parts:
+1. A CI matrix entry on Linux with bwrap installed (the runtime dep).
+2. A test harness or CI step that detects skipped bwrap tests and fails the
+   release build (e.g. parse the test output for `skip` count > 0 in the
+   bwrap-tagged tests, or assert in a guard test that `hasBwrap` is true).
+
+## Design ambiguity (surface for orchestrator)
+
+- **(a) CI-only gate** — a release CI job that fails on skip. No local impact.
+- **(b) Build-time guard test** — a test that asserts bwrap is available and
+  fails (not skips) when it's missing, gated behind a `RELEASE=1` env var.
+  Forces developers to install bwrap for release builds.
+
+(a) is less intrusive; (b) catches the case where someone runs release tests
+locally without bwrap.
+
+## Acceptance (when scoped)
+
+- [ ] Release CI runs on Linux with bwrap installed
+- [ ] A skipped real-bwrap test fails the release CI job
+- [ ] Local dev without bwrap still passes (skips allowed)
