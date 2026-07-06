@@ -133,8 +133,8 @@ export function enforceWritePolicy(absolutePath: string, cwd: string, policy: Sa
 			`Access denied (sandbox denyRead): "${absolutePath}" matches "${readDenied.matched}". The sandbox blocks writes into read-denied paths.`,
 		);
 	}
-	// Then allowWrite: the target must be within an allowWrite path.
-	if (!isWithinAllowWrite(target, absolutePath, policy.allowWrite, cwd)) {
+	// Then allowWrite: the canonical target must be within an allowWrite path.
+	if (!isWithinAllowWrite(target, policy.allowWrite, cwd)) {
 		throw new Error(
 			`Access denied (sandbox allowWrite): "${absolutePath}" is outside the writable allowlist. Writes are confined to allowWrite paths.`,
 		);
@@ -216,17 +216,18 @@ function matchesDenyList(target: string, lexicalPath: string, denyList: string[]
 	return { denied: false };
 }
 
-/** True if `target` is within any allowWrite entry (exact, prefix, or glob).
- * Globs are tested against both the canonical target and the lexical path. */
-function isWithinAllowWrite(target: string, lexicalPath: string, allowList: string[], cwd: string): boolean {
+/** True if the canonical `target` is within any allowWrite entry (exact, prefix, or glob).
+ * Unlike deny lists, allowWrite intentionally ignores the lexical path so symlinks
+ * cannot widen the writable set beyond their resolved target. */
+function isWithinAllowWrite(target: string, allowList: string[], cwd: string): boolean {
 	for (const pattern of allowList) {
 		if (isGlobPattern(pattern)) {
 			const re = globToRegex(pattern, cwd);
-			if (re.test(target) || re.test(lexicalPath)) return true;
+			if (re.test(target)) return true;
 			continue;
 		}
 		const normalized = normalizePathForCheck(pattern, cwd);
-		if (isWithinOrEqual(target, normalized) || isWithinOrEqual(lexicalPath, normalized)) return true;
+		if (isWithinOrEqual(target, normalized)) return true;
 	}
 	return false;
 }
