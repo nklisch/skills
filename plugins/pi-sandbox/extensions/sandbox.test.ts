@@ -1247,6 +1247,41 @@ describe("buildBwrapArgs", () => {
 		}
 	});
 
+	test("block mode masks host Unix-socket dirs to prevent IPC escape", async () => {
+		const cwd = await makeTempDir();
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "block",
+			env: { PATH: "/usr/bin" },
+		});
+		expect(args).toContain("--unshare-net");
+		// Docker / D-Bus / X11 socket dirs must be masked with tmpfs so a blocked
+		// sandbox cannot reach host IPC services.
+		for (const socketDir of ["/run", "/var/run", "/tmp/.X11-unix"]) {
+			expect(args).toContain(socketDir);
+			expect(args[args.indexOf(socketDir) - 1]).toBe("--tmpfs");
+		}
+	});
+
+	test("open mode does not add Unix-socket masks (host net intact)", async () => {
+		const cwd = await makeTempDir();
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+		expect(args).not.toContain("--unshare-net");
+		expect(args).not.toContain("/run");
+	});
+
 	test("adds bwrap die-with-parent so wrapper death kills the wrapped command", async () => {
 		const cwd = await makeTempDir();
 		const args = buildBwrapArgs({
