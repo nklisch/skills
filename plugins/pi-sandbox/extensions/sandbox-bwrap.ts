@@ -61,6 +61,14 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 
 	if (opts.networkMode === "block") {
 		args.push("--unshare-net");
+		// `--unshare-net` blocks TCP/UDP but leaves host filesystem Unix sockets
+		// reachable (Docker /var/run/docker.sock, D-Bus /run/dbus/system_bus_socket,
+		// X11 /tmp/.X11-unix). Mask the socket-heavy runtime dirs with tmpfs so a
+		// blocked sandbox cannot escape via host IPC. These are no-ops on hosts
+		// where the dirs don't exist (tmpfs creates an empty mount point).
+		for (const socketDir of ["/run", "/var/run", "/tmp/.X11-unix"]) {
+			args.push("--tmpfs", socketDir);
+		}
 	}
 
 	args.push("--chdir", commandCwd);
