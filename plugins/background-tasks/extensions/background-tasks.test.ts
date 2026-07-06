@@ -992,8 +992,13 @@ describe("monitor tool", () => {
     expect(list.content[0].text).toContain("No background jobs");
   });
 
-  test("uses pi.exec unchanged when sandbox integration is off", async () => {
+  test("uses direct-spawn with stripped env when sandbox integration is off (degraded)", async () => {
     const cwd = await makeTempDir();
+    // Degraded builder returns a provider-secret-stripped env (as the real
+    // buildSandboxedSpawnArgs does in degraded mode). The monitor must
+    // direct-spawn /bin/sh -c with that env rather than calling pi.exec (which
+    // has no env option and would inherit the full process.env).
+    const strippedEnv = { PATH: "/usr/bin", HOME: "/tmp" };
     const degradedBuilder = ((opts) => ({
       state: "degraded",
       integration: "inactive",
@@ -1001,12 +1006,12 @@ describe("monitor tool", () => {
       executable: null,
       args: [],
       cwd: opts.cwd,
-      env: { ...process.env },
+      env: strippedEnv,
       message: "operator opt-out",
     })) as BuildSandboxedSpawnArgs;
-    const calls: Array<{ command: string; args: string[] }> = [];
+    const execCalls: Array<{ command: string; args: string[] }> = [];
     const { tools, wakes } = makeFakePi(async (command, args) => {
-      calls.push({ command, args });
+      execCalls.push({ command, args });
       return { stdout: "READY\n", code: 0 };
     }, {
       sandboxResolver: async () => ({ state: "loaded", buildSandboxedSpawnArgs: degradedBuilder }),
@@ -1024,7 +1029,9 @@ describe("monitor tool", () => {
     expect(res.details.sandbox).toBe("degraded");
     const wake = await waitFor(() => wakes[0]);
     expect(wake.content).toContain("satisfied");
-    expect(calls).toEqual([{ command: "/bin/sh", args: ["-c", "echo READY"] }]);
+    // Degraded monitor direct-spawns /bin/sh -c with the stripped env; it does
+    // NOT call pi.exec (which would inherit the full process.env).
+    expect(execCalls).toEqual([]);
   });
 
   test("wakes on satisfy_on stdout_matches with a custom message and keeps output out of the wake", async () => {
