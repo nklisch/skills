@@ -1,7 +1,7 @@
 ---
 id: idea-pi-sandbox-degraded-spawn-env-leak
 kind: story
-stage: done
+stage: backlog
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -19,6 +19,21 @@ git_ref: 564e8a9
 Surfaced in the 2026-07-05 full security audit of `plugins/pi-sandbox/` (env/secret-surface
 deep dive). Lower priority than the in-process file-policy gaps because the healthy
 Linux+bwrap path correctly uses `buildMinimalEnv`; the leak is in the degrade/fail paths.
+
+## Status (2026-07-05)
+
+Partially drained in the 0.1.0 audit pass (commit 564e8a9):
+
+- ✅ **Degraded background/monitor returns full inherited env** — fixed.
+  `buildSandboxedSpawnArgs` now strips known provider secret env vars in all
+  three degrade paths (integration-off, sandbox-disabled, unsupported-platform).
+  The healthy bwrap path was already safe via `buildMinimalEnv`.
+- ⏳ **`scrubEnv` mutates global `process.env`** — UNFIXED. `scrubEnv` still does
+  `delete process.env[name]` process-wide at `session_start`, and broad glob
+  patterns (e.g. `ANTHROPIC_*`) can match live auth vars and break env-backed
+  provider auth. Needs redesign to per-child env construction only, or
+  warn/fail-closed when a scrub pattern matches a known provider key. This is
+  problem 2 below.
 
 ## Problem
 
