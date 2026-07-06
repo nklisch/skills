@@ -1,13 +1,15 @@
 ---
 id: idea-pi-sandbox-allowwrite-canonical-narrowing
 kind: story
-stage: backlog
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-01
+updated: 2026-07-05
+git_ref: 3d98d2c
 ---
 
 # `allowWrite` additive merge uses raw exact strings, not canonical containment

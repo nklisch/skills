@@ -1,7 +1,7 @@
 ---
 id: idea-pi-sandbox-default-denyread-credential-gaps
 kind: story
-stage: backlog
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -9,6 +9,7 @@ release_binding: null
 gate_origin: null
 created: 2026-07-05
 updated: 2026-07-05
+git_ref: 3d98d2c
 ---
 
 # Default `denyRead` does not protect pi's credential store or other common credential files
