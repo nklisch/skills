@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
-import { decidePlatformState, type NetworkMode } from "./sandbox-bwrap";
+import { join, relative, isAbsolute } from "node:path";
+import { canonicalizeExistingPath, decidePlatformState, normalizeConfiguredPath, type NetworkMode } from "./sandbox-bwrap";
 
 // CONFIG_DIR_NAME is hardcoded because pi's TS loader can't resolve the
 // package-barrel re-export (".d.ts" declares it but dist/index.js omits it)
@@ -498,7 +498,18 @@ export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: Env
 		deniedDomains: [],
 	},
 	filesystem: {
-		denyRead: ["~/.ssh", "~/.aws", "~/.gnupg"],
+		denyRead: [
+			"~/.ssh",
+			"~/.aws",
+			"~/.gnupg",
+			"~/.pi/agent/auth.json",
+			"~/.pi/agent/sessions",
+			"~/.config/gh",
+			"~/.git-credentials",
+			"~/.netrc",
+			"~/.npmrc",
+			"~/.docker/config.json",
+		],
 		allowWrite: [".", "/tmp"],
 		denyWrite: [".env"],
 	},
@@ -656,7 +667,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 	// but never weaken global policy. Weakening attempts are ignored + warned.
 	const mergedGlobal = deepMerge(deepMerge(DEFAULT_CONFIG, globalConfig), {});
 	const additiveWarnings: string[] = [];
-	const merged = mergeProjectAdditive(mergedGlobal, projectConfig, additiveWarnings);
+	const merged = mergeProjectAdditive(mergedGlobal, projectConfig, additiveWarnings, cwd);
 
 	// Detect glob-shaped filesystem policy entries. The bwrap layer cannot mount
 	// globs (it needs literal paths), so they provide NO protection to sandboxed
@@ -755,7 +766,7 @@ export function deepMerge(base: SandboxConfig, overrides: Partial<SandboxConfig>
  * deny entries or ADD allow entries (weakening). Weakening attempts are
  * dropped and warned via console.error.
  */
-export function mergeProjectAdditive(global: SandboxConfig, project: Partial<SandboxConfig>, warnings: string[] = []): SandboxConfig {
+export function mergeProjectAdditive(global: SandboxConfig, project: Partial<SandboxConfig>, warnings: string[] = [], cwd: string = process.cwd()): SandboxConfig {
 	if (!project || Object.keys(project).length === 0) return global;
 
 	const result: SandboxConfig = deepMerge(global, {});
@@ -786,13 +797,33 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 		result.filesystem = { ...result.filesystem, denyWrite: merged };
 	}
 
-	// allowWrite: project can only REMOVE entries (intersect with global).
+	// allowWrite: project can only NARROW (tighten) the global writable set.
+	// A project entry is accepted if it is EQUAL TO or NESTED WITHIN any global
+	// allowWrite entry (canonical containment, not raw exact-string match). An
+	// entry that widens beyond global (outside every global entry) is rejected +
+	// warned. This lets a project narrow `["."]` to `["plugins"]` instead of
+	// silently getting `[]`.
 	if (project.filesystem?.allowWrite) {
-		const globalAllow = new Set(result.filesystem?.allowWrite ?? []);
-		result.filesystem = {
-			...result.filesystem,
-			allowWrite: project.filesystem.allowWrite.filter((p) => globalAllow.has(p)),
-		};
+		const globalAllow = result.filesystem?.allowWrite ?? [];
+		const globalCanonical = globalAllow.map((p) => canonicalizeAllowWriteEntry(p, cwd)).filter(Boolean) as string[];
+		const accepted: string[] = [];
+		const rejected: string[] = [];
+		for (const p of project.filesystem.allowWrite) {
+			const canonical = canonicalizeAllowWriteEntry(p, cwd);
+			if (!canonical) {
+				rejected.push(p);
+				continue;
+			}
+			if (globalCanonical.some((g) => canonical === g || isNestedUnder(canonical, g))) {
+				accepted.push(p);
+			} else {
+				rejected.push(p);
+			}
+		}
+		for (const p of rejected) {
+			warns.push(`project allowWrite "${p}" is outside the global writable set; ignored (additive-only).`);
+		}
+		result.filesystem = { ...result.filesystem, allowWrite: accepted };
 	}
 
 	// network.mode: project can only RAISE the first-release strictness rank
@@ -1063,6 +1094,20 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 		`  rules: ${Object.entries(effectiveToolRules.rules ?? {}).map(([k, v]) => `${k}=${v}`).join(", ") || "(none)"}`,
 		...(warnings.length > 0 ? ["", "Warnings:", ...warnings.map((warning) => `  ${warning}`)] : []),
 	].join("\n");
+}
+
+/** Canonicalize an allowWrite entry for containment comparison. Returns the
+ * realpath if the path exists, else the normalized absolute path. */
+function canonicalizeAllowWriteEntry(rawPath: string, cwd: string): string | null {
+	const normalized = normalizeConfiguredPath(rawPath, cwd);
+	return canonicalizeExistingPath(normalized) ?? normalized;
+}
+
+/** True if `path` is strictly nested under `ancestor` (not equal, not a sibling). */
+function isNestedUnder(path: string, ancestor: string): boolean {
+	if (path === ancestor) return false;
+	const rel = relative(ancestor, path);
+	return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
 }
 
 /** The first-party bwrap backend does not support glob denyWrite matching. Detect glob patterns so we can warn. */

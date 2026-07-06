@@ -431,7 +431,7 @@ describe("config boundary contract", () => {
 		expect(merged.enabled).toBe(true);
 		expect(merged.filesystem?.denyRead).toEqual(["global-secret", "project-secret"]);
 		expect(merged.filesystem?.denyWrite).toEqual(["global-protected", "project-protected"]);
-		expect(merged.filesystem?.allowWrite).toEqual(["allowed"]);
+		expect(merged.filesystem?.allowWrite).toEqual(["allowed", "new-allow"]);
 		expect(merged.network?.mode).toBe("filter");
 		expect(merged.network?.allowedDomains).toEqual(["a.example"]);
 		expect(merged.network?.deniedDomains).toEqual(["bad.example", "worse.example"]);
@@ -440,6 +440,30 @@ describe("config boundary contract", () => {
 		expect(warnings.join("\n")).toContain("disable sandbox");
 		expect(warnings.join("\n")).toContain("loosen network.mode");
 		expect(warnings.join("\n")).toContain("loosen tool policy");
+	});
+
+	test("mergeProjectAdditive narrows allowWrite by canonical containment, not raw exact string", async () => {
+		// A project may narrow global allowWrite to a subpath (nested-under) without
+		// being silently rejected as `[]`. Widening beyond global is rejected + warned.
+		const tmp = await mkdtemp(join(tmpdir(), "aw-narrow-"));
+		await mkdir(join(tmp, "plugins"), { recursive: true });
+		await mkdir(join(tmp, "allowed"), { recursive: true });
+		const global = {
+			enabled: true as const,
+			filesystem: { denyRead: ["~/.ssh"], allowWrite: [".", "allowed"], denyWrite: [".env"] },
+		};
+		const warns: string[] = [];
+		const narrowed = mergeProjectAdditive(global, { filesystem: { allowWrite: ["plugins"] } }, warns, tmp);
+		expect(narrowed.filesystem?.allowWrite).toEqual(["plugins"]);
+		expect(warns.join("\n")).not.toContain("plugins");
+
+		// Widening to a path outside every global entry is rejected.
+		const widenWarns: string[] = [];
+		const widened = mergeProjectAdditive(global, { filesystem: { allowWrite: ["/etc"] } }, widenWarns, tmp);
+		expect(widened.filesystem?.allowWrite).toEqual([]);
+		expect(widenWarns.join("\n")).toContain("outside the global writable set");
+
+		await rm(tmp, { recursive: true, force: true });
 	});
 
 	test("network mode additive rank treats fail-closed filter as stricter than block", () => {
@@ -758,7 +782,7 @@ describe("config boundary contract", () => {
 		expect(loaded.parseErrors).toEqual([]);
 		expect(loaded.config.filesystem?.denyRead).toEqual(["global-secret", "project-secret"]);
 		expect(loaded.config.filesystem?.denyWrite).toEqual(["global-protected", "project-protected"]);
-		expect(loaded.config.filesystem?.allowWrite).toEqual(["allowed"]);
+		expect(loaded.config.filesystem?.allowWrite).toEqual(["allowed", "new-allow"]);
 		expect(loaded.config.network?.mode).toBe("block");
 		expect(loaded.config.network?.allowedDomains).toEqual(["a.example"]);
 		expect(loaded.config.network?.deniedDomains).toEqual(["bad.example", "worse.example"]);
