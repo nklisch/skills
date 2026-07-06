@@ -122,6 +122,73 @@ export function bwrapIsAvailable(env: NodeJS.ProcessEnv = process.env): boolean 
 	return findExecutableOnPath("bwrap", env) !== null;
 }
 
+const TRUSTED_BWRAP_ALLOWLIST = ["/usr/bin/bwrap", "/bin/bwrap"] as const;
+
+export type TrustedBwrapResolution =
+	| { ok: true; path: string }
+	| { ok: false; reason: string; rejectedPath?: string };
+
+/**
+ * Resolve the bwrap executable from trusted inputs only.
+ *
+ * `env` is accepted for call-site symmetry and tests, but PATH is deliberately
+ * ignored: execution uses either an explicit absolute config pin or the fixed
+ * system allowlist below.
+ */
+export function resolveTrustedBwrap(opts: { bwrapPath?: string; env?: NodeJS.ProcessEnv } = {}): TrustedBwrapResolution {
+	if (opts.bwrapPath !== undefined) {
+		if (!isAbsolute(opts.bwrapPath)) {
+			return {
+				ok: false,
+				reason: `configured bwrapPath must be an absolute path: ${opts.bwrapPath}`,
+				rejectedPath: opts.bwrapPath,
+			};
+		}
+		if (!existsSync(opts.bwrapPath)) {
+			return {
+				ok: false,
+				reason: `configured bwrapPath does not exist: ${opts.bwrapPath}`,
+				rejectedPath: opts.bwrapPath,
+			};
+		}
+		let realPath: string;
+		try {
+			realPath = realpathSync.native(opts.bwrapPath);
+		} catch (e) {
+			return {
+				ok: false,
+				reason: `configured bwrapPath could not be resolved: ${opts.bwrapPath}${e instanceof Error ? ` (${e.message})` : ""}`,
+				rejectedPath: opts.bwrapPath,
+			};
+		}
+		try {
+			accessSync(realPath, fsConstants.X_OK);
+			return { ok: true, path: realPath };
+		} catch {
+			return {
+				ok: false,
+				reason: `configured bwrapPath is not executable: ${realPath}`,
+				rejectedPath: realPath,
+			};
+		}
+	}
+
+	for (const candidate of TRUSTED_BWRAP_ALLOWLIST) {
+		if (!existsSync(candidate)) continue;
+		try {
+			accessSync(candidate, fsConstants.X_OK);
+			return { ok: true, path: realpathSync.native(candidate) };
+		} catch {
+			// Continue to the next allowlisted system path.
+		}
+	}
+
+	return {
+		ok: false,
+		reason: `no trusted bwrap found in allowlist [${TRUSTED_BWRAP_ALLOWLIST.join(", ")}]`,
+	};
+}
+
 export type BwrapInitValidation =
 	| { ok: true }
 	| { ok: false; reason: "unsupported-platform" | "bwrap-missing" | "filter-deferred"; message: string; status: string };
@@ -135,6 +202,7 @@ export function decidePlatformState(opts: {
 	platform?: NodeJS.Platform;
 	env?: NodeJS.ProcessEnv;
 	networkMode: NetworkMode;
+	bwrapPath?: string;
 	bwrapAvailable?: boolean;
 }): BwrapPlatformState {
 	const validation = validateBwrapInit(opts);
@@ -160,6 +228,7 @@ export function validateBwrapInit(opts: {
 	platform?: NodeJS.Platform;
 	env?: NodeJS.ProcessEnv;
 	networkMode: NetworkMode;
+	bwrapPath?: string;
 	bwrapAvailable?: boolean;
 }): BwrapInitValidation {
 	const platform = opts.platform ?? process.platform;
@@ -181,12 +250,25 @@ export function validateBwrapInit(opts: {
 		};
 	}
 
-	const available = opts.bwrapAvailable ?? bwrapIsAvailable(opts.env ?? process.env);
-	if (!available) {
+	if (opts.bwrapAvailable !== undefined && opts.bwrapPath === undefined) {
+		if (!opts.bwrapAvailable) {
+			return {
+				ok: false,
+				reason: "bwrap-missing",
+				message: "Sandbox initialization failed: trusted bwrap is not available from the configured path or system allowlist. Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.",
+				status: "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened",
+			};
+		}
+		return { ok: true };
+	}
+
+	const trustedBwrap = resolveTrustedBwrap({ bwrapPath: opts.bwrapPath, env: opts.env });
+	if (!trustedBwrap.ok) {
+		const rejected = trustedBwrap.rejectedPath ? ` Rejected path: ${trustedBwrap.rejectedPath}.` : "";
 		return {
 			ok: false,
 			reason: "bwrap-missing",
-			message: "Sandbox initialization failed: bwrap is not available on PATH. Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.",
+			message: `Sandbox initialization failed: ${trustedBwrap.reason}.${rejected} Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.`,
 			status: "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened",
 		};
 	}
