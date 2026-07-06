@@ -53,3 +53,21 @@ in `network.mode=block`.
 Pairs with the `block-mode-unix-socket-leak` item as the two "default posture exposes more
 than intended" gaps. The tmpfs-`HOME` fix is the higher-leverage option but is a bigger
 behavior change; expanding `denyRead` is the minimal safe default.
+
+## Implementation
+
+Landed in `3d98d2c` — `DEFAULT_CONFIG.filesystem.denyRead` expanded with
+`~/.pi/agent/auth.json`, `~/.pi/agent/sessions`, `~/.config/gh`,
+`~/.git-credentials`, `~/.netrc`, `~/.npmrc`, `~/.docker/config.json`.
+
+## Review (fresh-context gpt-5.5, 2026-07-05)
+
+- ✅ Tilde expansion correct via `normalizeConfiguredPath`; additive merge unaffected.
+- ⚠️ Missing `~/.kube`, `~/.config/gcloud`, `~/.azure` (cloud credential stores) —
+  deferred; same class of gap, follow-up.
+- ⚠️ Existing global `denyRead` overrides don't inherit new defaults — `deepMerge`
+  replaces rather than unions, so a user with an existing global config won't get
+  the new `auth.json` protection. Deferred; needs a default-plus-global merge or a
+  warning when global omits built-in credential denies.
+
+Verdict: core fix sound; two follow-up gaps filed inline above.

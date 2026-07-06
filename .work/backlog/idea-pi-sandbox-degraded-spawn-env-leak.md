@@ -35,6 +35,25 @@ Partially drained in the 0.1.0 audit pass (commit 564e8a9):
   warn/fail-closed when a scrub pattern matches a known provider key. This is
   problem 2 below.
 
+## Review (fresh-context gpt-5.5, 2026-07-05)
+
+- ❌ **Degraded monitor ignored sanitized env (R2, fixed in `5d2aa1a`):**
+  `decideMonitorPoll` discarded `result.env`, so degraded monitors ran via
+  `pi.exec` (no env option) and inherited full `process.env`. The background
+  tool was fixed; monitor was not. **Fixed:** carry sanitized env through
+  `MonitorPollDecision` and direct-spawn `/bin/sh -c` with it from
+  `runShellOnce` when `degradedEnv` is set.
+- ⚠️ **`stripProviderSecrets` is hardcoded, not config-extensible (G2, deferred):**
+  Only the static built-in list is stripped; `envScrub.names`/`patterns` are
+  ignored in degraded spawn. Custom provider keys or `*_TOKEN` vars still leak.
+  Fix: reuse loaded `envScrub` config in the strip. **Not yet fixed.**
+- ⚠️ **Test covers only 1 of 3 degrade paths (G3, deferred):** the new test only
+  exercises `unsupported-platform`; doesn't cover `integration-off` or
+  `sandbox-disabled`. **Not yet fixed.**
+
+Verdict: background fixed; monitor regression fixed; strip-list extensibility and
+test coverage are deferred follow-ups.
+
 ## Problem
 
 Two related env-surface findings:

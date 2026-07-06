@@ -48,3 +48,27 @@ filesystem concern, not a network one.
 Distinct from the `default-denyread-credential-gaps` item (file reads) — this is about
 IPC/socket escape in the supposedly air-gapped mode. One focused fix in
 `buildBwrapArgs` for the `block` branch.
+
+## Implementation
+
+Initial fix landed in `9f9a051` — masked `/run`, `/var/run`, `/tmp/.X11-unix`
+with tmpfs in the block branch.
+
+## Review (fresh-context gpt-5.5, 2026-07-05)
+
+- ❌ **REGRESSION (R1, fixed):** `/var/run` is a symlink to `/run` on systemd
+  Linux; `bwrap --tmpfs /var/run` fails with `Can't mount tmpfs on .../var/run`
+  and the whole block-mode spawn exits 1. The original test only checked the
+  arg list, not a real bwrap run, so it didn't catch it. **Fixed in `be93b0c`:**
+  resolve each mask path through realpath and emit one tmpfs per distinct
+  canonical target; added a regression test that actually runs bwrap.
+- ⚠️ **Incomplete mask (deferred):** `/tmp/ssh-*/agent.*`, `/tmp/dbus-*`,
+  `/var/tmp/*`, and sockets under bind-mounted project paths remain reachable.
+  Masking `/run`+`/tmp/.X11-unix` is partial. A private tmpfs `/tmp`+`/var/tmp`
+  in block mode is the fuller fix — deferred (behavior change, needs design).
+- ⚠️ **Nonexistent mask paths (deferred):** tmpfs on a missing path under a
+  writable parent can create a host mountpoint stub. Should `existsSync`-check
+  before emitting. Deferred.
+
+Verdict: regression fixed; mask is partial but the shipped fix is correct for
+the three dirs it covers. Remaining socket surface is a follow-up.

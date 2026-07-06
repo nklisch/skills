@@ -52,3 +52,23 @@ asserting the end-to-end publish→read→decide path for the `loaded` / `absent
   are the same `Symbol.for` instance.
 - Drives the real publish (background-tasks bridge probe) and the real read
   (pi-sandbox decision) and asserts the active/inactive verdict per case.
+
+## Implementation
+
+Landed in `0db276b` — `sandbox-handshake-integration.test.ts`.
+
+## Review (fresh-context gpt-5.5, 2026-07-05)
+
+- ✅ Symbol contract verified (`===` across both packages); would catch a
+  `Symbol()` vs `Symbol.for()` regression.
+- ✅ loaded/absent/broken cases all covered with assertions on the resulting
+  `backgroundTasksSandbox` state.
+- ⚠️ Uses `createSandboxBridge` with a fake `importFn` + imports pi-sandbox
+  internals directly, so it does NOT catch a broken `@nklisch/pi-sandbox/sandbox-spawn`
+  package export or default import resolution failure. It's a contract test,
+  not a full package-boundary integration test. Low severity — the split tests
+  already cover each side; this adds the cross-side contract. A separate
+  package-boundary test is a follow-up.
+
+Verdict: test sound for its stated purpose; scope clarified as contract-level
+rather than full package-resolution.
