@@ -874,6 +874,31 @@ describe("config boundary contract", () => {
 		expect(errors.join("\n")).toContain("tools.inspector.allowlist.regexes[0] must compile");
 	});
 
+	test("validateConfig rejects unsafe nested-quantifier regexes and allows simple safe allowlist patterns", () => {
+		const unsafe = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [{ name: "redos", pattern: "(a+)+", action: "redact" }],
+					allowlist: { regexes: ["(a+)+"] },
+				},
+			},
+		});
+		expect(unsafe.join("\n")).toContain('tools.inspector.secrets[0].pattern is unsafe for shape "redos"');
+		expect(unsafe.join("\n")).toContain("nested quantifier");
+		expect(unsafe.join("\n")).toContain("tools.inspector.allowlist.regexes[0] is unsafe");
+
+		const safe = validateConfig({
+			tools: {
+				inspector: {
+					allowlist: { regexes: ["^[A-Za-z]+$"] },
+					secrets: [{ name: "alpha", pattern: "^[A-Za-z]+$", action: "redact" }],
+				},
+			},
+		});
+		expect(safe.join("\n")).not.toContain("unsafe");
+		expect(safe.join("\n")).not.toContain("must compile");
+	});
+
 	test("invalid network mode, tool policy, and inspector regex load as fail-closed parse errors", async () => {
 		const bogusModeCwd = await makeTempDir();
 		const bogusToolCwd = await makeTempDir();
@@ -1098,6 +1123,83 @@ describe("tool input inspector", () => {
 
 		expect(verdict.action).toBe("allow");
 		expect(input.body).toBe("tok_example [REDACTED:token] [REDACTED:token]");
+	});
+
+	test("auto-policy input scanning is capped to 10k characters before regex scan", () => {
+		const input: Record<string, unknown> = {
+			body: `${"a".repeat(100_000)}X`,
+		};
+
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "any-a", pattern: "a", action: "redact" }],
+		});
+
+		expect(verdict.action).toBe("allow");
+		const redacted = input.body;
+		expect(typeof redacted).toBe("string");
+		const redactionCount = (redacted as string).match(/\[REDACTED:any-a\]/g)?.length ?? 0;
+		expect(redactionCount).toBe(10_000);
+	});
+
+	test("entropy-gated low-entropy candidates still block when long enough", () => {
+		const inspector = {
+			secrets: [
+				{
+					name: "generic-assignment",
+					pattern: "\\b(?:token|password)=([A-Za-z0-9-_.+@]+)",
+					action: "block" as const,
+					entropy: 3,
+					keywords: ["token", "password"],
+					secretGroup: 1,
+				},
+			],
+		};
+
+		const verdict = inspectToolInput("agent_send", { body: "token=aaaaaaaaaaaaaaaaaaaa" }, inspector);
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain("secret shape \"generic-assignment\" matched");
+	});
+
+	test("short low-entropy generic candidates are skipped", () => {
+		const inspector = {
+			secrets: [
+				{
+					name: "generic-assignment",
+					pattern: "\\b(?:token|password)=([A-Za-z0-9-_.+@]+)",
+					action: "block" as const,
+					entropy: 3,
+					keywords: ["token", "password"],
+					secretGroup: 1,
+				},
+			],
+		};
+
+		const verdict = inspectToolInput("agent_send", { body: "password=changeme" }, inspector);
+		expect(verdict.action).toBe("allow");
+	});
+
+	test("provider-prefix shape with no entropy still blocks", () => {
+		const inspector = {
+			secrets: [
+				{
+					name: "generic-assignment",
+					pattern: "\\b(?:token|password)=([A-Za-z0-9-_.+@]+)",
+					action: "block" as const,
+					entropy: 3,
+					keywords: ["token", "password"],
+					secretGroup: 1,
+				},
+				{
+					name: "provider-anthropic",
+					pattern: "sk-ant-[A-Za-z0-9_-]+",
+					action: "block" as const,
+				},
+			],
+		};
+
+		const verdict = inspectToolInput("agent_send", { body: "sk-ant-aaaaaaaaaaaaaaaaaaaaaa" }, inspector);
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain("secret shape \"provider-anthropic\" matched");
 	});
 });
 
