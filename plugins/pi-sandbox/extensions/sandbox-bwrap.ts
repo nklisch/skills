@@ -64,10 +64,20 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 		// `--unshare-net` blocks TCP/UDP but leaves host filesystem Unix sockets
 		// reachable (Docker /var/run/docker.sock, D-Bus /run/dbus/system_bus_socket,
 		// X11 /tmp/.X11-unix). Mask the socket-heavy runtime dirs with tmpfs so a
-		// blocked sandbox cannot escape via host IPC. These are no-ops on hosts
-		// where the dirs don't exist (tmpfs creates an empty mount point).
-		for (const socketDir of ["/run", "/var/run", "/tmp/.X11-unix"]) {
-			args.push("--tmpfs", socketDir);
+		// blocked sandbox cannot escape via host IPC.
+		//
+		// Dedupe symlink-equivalent paths: on systemd Linux /var/run is a symlink to
+		// /run, and bwrap cannot mount tmpfs on a symlink target inside the new root
+		// (it fails with "Can't mount tmpfs on .../var/run: No such file or directory",
+		// breaking the whole block-mode spawn). Resolve each candidate through
+		// realpath and emit one tmpfs per distinct canonical target.
+		const socketDirs = ["/run", "/var/run", "/tmp/.X11-unix"];
+		const seen = new Set<string>();
+		for (const dir of socketDirs) {
+			const canonical = canonicalizeExistingPath(dir) ?? dir;
+			if (seen.has(canonical)) continue;
+			seen.add(canonical);
+			args.push("--tmpfs", canonical);
 		}
 	}
 
