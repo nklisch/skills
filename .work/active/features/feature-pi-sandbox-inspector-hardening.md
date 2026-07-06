@@ -1,17 +1,17 @@
 ---
-id: idea-pi-sandbox-inspector-bypasses
-kind: story
-stage: backlog
+id: feature-pi-sandbox-inspector-hardening
+kind: feature
+stage: drafting
 tags: [security, sandbox]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-05
-updated: 2026-07-05
+updated: 2026-07-06
 ---
 
-# Tool-egress secret inspector has multiple bypass / DoS holes
+# Harden the tool-egress secret inspector (ReDoS, entropy, bare-token)
 
 ## Source
 

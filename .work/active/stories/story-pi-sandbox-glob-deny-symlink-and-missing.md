@@ -1,18 +1,20 @@
 ---
-id: idea-pi-sandbox-glob-deny-entries-inert
+id: story-pi-sandbox-glob-deny-symlink-and-missing
 kind: story
-stage: backlog
+stage: implementing
 tags: [security, sandbox]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-05
-updated: 2026-07-05
+updated: 2026-07-06
 git_ref: 25c2b48
 ---
 
-# Glob-shaped `denyRead`/`denyWrite` entries are silently inert in the in-process file-tool policy
+# Finish glob deny enforcement: symlink matching + non-existent deny fail-closed
+
+## Brief `denyRead`/`denyWrite` entries are silently inert in the in-process file-tool policy
 
 ## Source
 

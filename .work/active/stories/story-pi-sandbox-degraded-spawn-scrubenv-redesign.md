@@ -1,18 +1,18 @@
 ---
-id: idea-pi-sandbox-degraded-spawn-env-leak
+id: story-pi-sandbox-degraded-spawn-scrubenv-redesign
 kind: story
-stage: backlog
+stage: implementing
 tags: [security, sandbox]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-05
-updated: 2026-07-05
+updated: 2026-07-06
 git_ref: 564e8a9
 ---
 
-# Degraded background/monitor spawn returns full inherited env; `scrubEnv` mutates global process.env
+# Degraded spawn env: per-child scrubEnv + config-extensible strip + test coverage spawn returns full inherited env; `scrubEnv` mutates global process.env
 
 ## Source
 
