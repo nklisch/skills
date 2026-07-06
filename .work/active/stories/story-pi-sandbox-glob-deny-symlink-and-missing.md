@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-glob-deny-symlink-and-missing
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -109,3 +109,28 @@ Two compounding gaps:
 Single coherent fix unit: the deny-entry enforcement path in `sandbox-file-policy.ts` +
 the glob detection/warning in `sandbox-config.ts` + the non-existent-path skip in
 `sandbox-bwrap.ts`. All three are "a configured deny silently fails to deny."
+
+## Implementation notes
+
+- Files changed:
+  - `plugins/pi-sandbox/extensions/sandbox-file-policy.ts` — G1 fix:
+    `matchesDenyList`/`isWithinAllowWrite` now take both the canonical target
+    AND the lexical absolute path; globs and prefix checks test both, so a
+    symlinked leaf (`key.pem -> key`) is caught by `*.pem` via its lexical name.
+    Callers `enforceDenyRead`/`enforceWritePolicy` updated to pass both.
+  - `plugins/pi-sandbox/extensions/sandbox-file-policy.ts` — comment fix:
+    corrected the misleading "any `.pem` leaf anywhere" wording; `*.pem` matches
+    `.pem` leaves directly under cwd, NOT nested under subdirs.
+  - `plugins/pi-sandbox/extensions/sandbox-config.ts` — non-existent deny warning:
+    `loadConfig` now emits `missingDenyWarnings` for deny entries that don't exist
+    on disk (bwrap can't mask them; in-process tools still enforce). Also added
+    allowWrite-glob warning. `LoadedConfig` + `formatSandboxCommandOutput` updated.
+  - `plugins/pi-sandbox/extensions/sandbox.ts` — session_start emits the new
+    `missingDenyWarnings`.
+- Tests added:
+  - `glob deny catches a symlinked leaf via its lexical name (G1)` — repro for
+    the symlink-evastion hole.
+- Discrepancies from design: none. The non-existent-deny fix warns rather than
+  fail-closing — fail-closed on every missing deny path would be too aggressive
+  (operators list deny paths defensively). The warning surfaces the bash gap.
+- Adjacent issues parked: none.
