@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-inspector-bare-token-docs
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, documentation]
 parent: feature-pi-sandbox-inspector-hardening
 depends_on: []
@@ -52,3 +52,7 @@ inline during the implementing stride, not as a separate story).
   operator config on this host, not repo code — not committed (it's outside the repo).
 - Discrepancies: none.
 - Adjacent issues parked: none.
+
+## Review
+
+Verdict: Approve - story verified by implement (173 tests green); fast-lane advance.
