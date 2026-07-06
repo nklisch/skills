@@ -984,6 +984,7 @@ describe("config boundary contract", () => {
 			},
 			parseErrors: [],
 			globWarnings: [],
+			missingDenyWarnings: [],
 			legacyFieldWarnings: ["project: ignoreViolations is ignored"],
 			failClosedReasons: [`network.mode=filter deferred; see ${FILTER_DEFERRED_BACKLOG_ITEM}`],
 			additiveWarnings: [],
@@ -1191,6 +1192,26 @@ describe("in-process file-tool policy", () => {
 		await expect(ops.writeFile(join(cwd, "read-link", "new.txt"), "nope")).rejects.toThrow(/denyRead/);
 		await expect(ops.mkdir(join(cwd, "write-link", "nested"))).rejects.toThrow(/denyWrite/);
 		await expect(ops.mkdir(join(cwd, "read-link", "nested"))).rejects.toThrow(/denyRead/);
+	});
+
+	test("glob deny catches a symlinked leaf via its lexical name (G1)", async () => {
+		// A symlinked leaf (key.pem -> key) canonicalizes to `key`, so a `*.pem`
+		// glob deny would miss it if matched only against the canonical target.
+		// The matcher must test the lexical absolute path too.
+		const cwd = await makeTempDir();
+		await writeFile(join(cwd, "key"), "real-key-content");
+		await symlink("key", join(cwd, "key.pem"));
+		const policy = {
+			cwd,
+			denyRead: ["~/.ssh"],
+			denyWrite: ["*.pem", "*.key"],
+			allowWrite: ["."],
+			networkMode: "open" as const,
+		};
+		// Writing the symlinked key.pem must block on *.pem via its lexical name.
+		await expect(makeWriteOperations(cwd, policy).writeFile(join(cwd, "key.pem"), "x")).rejects.toThrow(/denyWrite.*\*\.pem/);
+		// Reading must block on *.pem via lexical name.
+		await expect(makeReadOperations(cwd, { ...policy, denyRead: ["*.pem"] }).readFile(join(cwd, "key.pem"))).rejects.toThrow(/denyRead.*\*\.pem/);
 	});
 
 	test("edit operations require both read and write permission", async () => {

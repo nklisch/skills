@@ -107,7 +107,7 @@ export function makeEditOperations(cwd: string, policy: SandboxPolicy): SandboxE
 
 export function enforceDenyRead(absolutePath: string, cwd: string, policy: SandboxPolicy): void {
 	const target = canonicalizeExistingPath(absolutePath) ?? absolutePath;
-	const { denied, matched } = matchesDenyList(target, policy.denyRead, cwd);
+	const { denied, matched } = matchesDenyList(target, absolutePath, policy.denyRead, cwd);
 	if (denied) {
 		throw new Error(
 			`Access denied (sandbox denyRead): "${absolutePath}" matches "${matched}". The sandbox blocks reads of configured sensitive paths.`,
@@ -118,7 +118,7 @@ export function enforceDenyRead(absolutePath: string, cwd: string, policy: Sandb
 export function enforceWritePolicy(absolutePath: string, cwd: string, policy: SandboxPolicy): void {
 	const target = resolveTargetForWritePolicy(absolutePath);
 	// denyWrite takes precedence.
-	const writeDenied = matchesDenyList(target, policy.denyWrite, cwd);
+	const writeDenied = matchesDenyList(target, absolutePath, policy.denyWrite, cwd);
 	if (writeDenied.denied) {
 		throw new Error(
 			`Access denied (sandbox denyWrite): "${absolutePath}" matches "${writeDenied.matched}". The sandbox blocks writes to configured protected paths.`,
@@ -127,14 +127,14 @@ export function enforceWritePolicy(absolutePath: string, cwd: string, policy: Sa
 	// A read-denied path must not become writable through a symlink or mkdir of a
 	// non-existent child: the bwrap layer masks denyRead paths, and the in-process
 	// file tools should preserve that secrecy boundary too.
-	const readDenied = matchesDenyList(target, policy.denyRead, cwd);
+	const readDenied = matchesDenyList(target, absolutePath, policy.denyRead, cwd);
 	if (readDenied.denied) {
 		throw new Error(
 			`Access denied (sandbox denyRead): "${absolutePath}" matches "${readDenied.matched}". The sandbox blocks writes into read-denied paths.`,
 		);
 	}
 	// Then allowWrite: the target must be within an allowWrite path.
-	if (!isWithinAllowWrite(target, policy.allowWrite, cwd)) {
+	if (!isWithinAllowWrite(target, absolutePath, policy.allowWrite, cwd)) {
 		throw new Error(
 			`Access denied (sandbox allowWrite): "${absolutePath}" is outside the writable allowlist. Writes are confined to allowWrite paths.`,
 		);
@@ -179,9 +179,10 @@ function isGlobPattern(p: string): boolean {
 
 /** Convert a glob pattern (`*`/`?`) to an anchored RegExp matching a whole path.
  * `*` matches within a single path segment (NOT `/`); `?` matches one non-`/` char.
- * This matches the common deny-glob intent (`*.pem` → any `.pem` leaf anywhere).
- * The glob is expanded against cwd first, so a relative `*.pem` resolves to
- * `<cwd>/*.pem`; an absolute `~/.ssh/*.pem` resolves against home. */
+ * A relative `*.pem` resolves to `<cwd>/*.pem` (matches `.pem` leaves directly
+ * under cwd, NOT nested under subdirs — `sub/secret.pem` is NOT matched). An
+ * absolute `~/.ssh/*.pem` resolves against home. For recursive matching, list
+ * the parent dir explicitly. */
 function globToRegex(glob: string, cwd: string): RegExp {
 	const expanded = normalizeConfiguredPath(glob, cwd);
 	let re = "";
@@ -194,32 +195,38 @@ function globToRegex(glob: string, cwd: string): RegExp {
 	return new RegExp(`^${re}$`);
 }
 
-/** True if `target` matches any entry in a deny list (exact, prefix, or glob). */
-function matchesDenyList(target: string, denyList: string[], cwd: string): { denied: boolean; matched?: string } {
+/** True if `target` matches any entry in a deny list (exact, prefix, or glob).
+ * Globs are tested against BOTH the canonical target and the lexical absolute
+ * path, so a symlinked leaf (`key.pem -> key`) is still caught by `*.pem` via
+ * its lexical name even though its realpath canonicalizes to `key`. */
+function matchesDenyList(target: string, lexicalPath: string, denyList: string[], cwd: string): { denied: boolean; matched?: string } {
 	for (const pattern of denyList) {
 		if (isGlobPattern(pattern)) {
-			if (globToRegex(pattern, cwd).test(target)) {
+			const re = globToRegex(pattern, cwd);
+			if (re.test(target) || re.test(lexicalPath)) {
 				return { denied: true, matched: pattern };
 			}
 			continue;
 		}
 		const normalized = normalizePathForCheck(pattern, cwd);
-		if (isWithinOrEqual(target, normalized)) {
+		if (isWithinOrEqual(target, normalized) || isWithinOrEqual(lexicalPath, normalized)) {
 			return { denied: true, matched: pattern };
 		}
 	}
 	return { denied: false };
 }
 
-/** True if `target` is within any allowWrite entry (exact, prefix, or glob). */
-function isWithinAllowWrite(target: string, allowList: string[], cwd: string): boolean {
+/** True if `target` is within any allowWrite entry (exact, prefix, or glob).
+ * Globs are tested against both the canonical target and the lexical path. */
+function isWithinAllowWrite(target: string, lexicalPath: string, allowList: string[], cwd: string): boolean {
 	for (const pattern of allowList) {
 		if (isGlobPattern(pattern)) {
-			if (globToRegex(pattern, cwd).test(target)) return true;
+			const re = globToRegex(pattern, cwd);
+			if (re.test(target) || re.test(lexicalPath)) return true;
 			continue;
 		}
 		const normalized = normalizePathForCheck(pattern, cwd);
-		if (isWithinOrEqual(target, normalized)) return true;
+		if (isWithinOrEqual(target, normalized) || isWithinOrEqual(lexicalPath, normalized)) return true;
 	}
 	return false;
 }

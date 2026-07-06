@@ -451,7 +451,7 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 
-		const { config, parseErrors, globWarnings, legacyFieldWarnings, additiveWarnings, failClosedReasons } = loadPiConfig(ctx.cwd);
+		const { config, parseErrors, globWarnings, missingDenyWarnings, legacyFieldWarnings, additiveWarnings, failClosedReasons } = loadPiConfig(ctx.cwd);
 		backgroundTasksIntegrationDecisionBase = { config, parseErrors, failClosedReasons, env: process.env };
 
 		// Fail-closed on config parse/validation errors. Install the restrictive
@@ -471,6 +471,7 @@ export default function (pi: ExtensionAPI) {
 
 		for (const w of legacyFieldWarnings) ctx.ui.notify(w, "warning");
 		for (const w of globWarnings) ctx.ui.notify(w, "warning");
+		for (const w of missingDenyWarnings) ctx.ui.notify(w, "warning");
 		for (const w of additiveWarnings) ctx.ui.notify(w, "warning");
 
 		if (!config.enabled) {

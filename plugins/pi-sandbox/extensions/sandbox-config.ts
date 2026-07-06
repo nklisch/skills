@@ -535,6 +535,7 @@ export interface LoadedConfig {
 	config: SandboxConfig;
 	parseErrors: string[];
 	globWarnings: string[];
+	missingDenyWarnings: string[];
 	legacyFieldWarnings: string[];
 	failClosedReasons: string[];
 	additiveWarnings: string[];
@@ -694,6 +695,31 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 				`Glob denyWrite patterns are enforced by the in-process write/edit tools but NOT by sandboxed bash (bwrap cannot mount globs): ${denyWriteGlobs.join(", ")}. Replace with literal dirs/files if bash must be blocked from writing these paths.`,
 			);
 		}
+		const allowWriteGlobs = (merged.filesystem?.allowWrite ?? []).filter(isGlobPattern);
+		if (allowWriteGlobs.length > 0) {
+			globWarnings.push(
+				`Glob allowWrite patterns are enforced by the in-process write/edit tools but NOT by sandboxed bash (bwrap cannot mount globs): ${allowWriteGlobs.join(", ")}. Replace with literal dirs/files if bash must be able to write these paths.`,
+			);
+		}
+	}
+
+	// Warn on non-existent deny entries: bwrap silently skips paths that don't
+	// exist (it cannot mount an overlay on a missing path), so a denyWrite:[".env"]
+	// provides NO protection if .env doesn't yet exist — sandboxed bash can create
+	// it. The in-process file tools still enforce the deny for read/write/edit, but
+	// bash is exposed. Surface this so operators know bash protection is absent.
+	const missingDenyWarnings: string[] = [];
+	if (process.platform === "linux") {
+		const denyEntries = [...(merged.filesystem?.denyRead ?? []), ...(merged.filesystem?.denyWrite ?? [])];
+		for (const entry of denyEntries) {
+			if (isGlobPattern(entry)) continue; // globs warned above
+			const normalized = normalizeConfiguredPath(entry, cwd);
+			if (!existsSync(normalized)) {
+				missingDenyWarnings.push(
+					`Deny entry "${entry}" does not exist on disk; bwrap cannot mask it, so sandboxed bash is NOT blocked from creating/reading it. The in-process read/write/edit tools still enforce it. Create the path or remove the entry if bash protection is not needed.`,
+				);
+			}
+		}
 	}
 
 	const failClosedReasons: string[] = [];
@@ -703,7 +729,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 		);
 	}
 
-	return { config: merged, parseErrors, globWarnings, legacyFieldWarnings, failClosedReasons, additiveWarnings };
+	return { config: merged, parseErrors, globWarnings, missingDenyWarnings, legacyFieldWarnings, failClosedReasons, additiveWarnings };
 }
 
 export function deepMerge(base: SandboxConfig, overrides: Partial<SandboxConfig>): SandboxConfig {
@@ -1030,7 +1056,7 @@ export function createSandboxCommandHandler(opts: {
 }
 
 export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxCommandState): string {
-	const { config, parseErrors, globWarnings, legacyFieldWarnings, failClosedReasons, additiveWarnings } = loaded;
+	const { config, parseErrors, globWarnings, missingDenyWarnings, legacyFieldWarnings, failClosedReasons, additiveWarnings } = loaded;
 	const computedFailClosed = state.failClosed || parseErrors.length > 0 || failClosedReasons.length > 0;
 	const failReasons = [
 		...(state.lastFailClosedReason ? [state.lastFailClosedReason] : []),
@@ -1064,7 +1090,7 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 	const bypassToolPolicy = SHELL_BYPASS_TOOLS.map((name) => `${name}=${effectiveToolRules.rules?.[name] ?? effectiveToolRules.default ?? "allow"}`).join(", ");
 	const backgroundTasksLine = formatBackgroundTasksIntegration(backgroundTasksIntegration);
 	const legacy = legacyFieldWarnings.length > 0 ? legacyFieldWarnings : ["(none)"];
-	const warnings = [...globWarnings, ...additiveWarnings];
+	const warnings = [...globWarnings, ...missingDenyWarnings, ...additiveWarnings];
 
 	return [
 		"Sandbox Configuration:",
