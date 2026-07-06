@@ -354,6 +354,10 @@ type MonitorPollDecision =
     mode: "unsandboxed";
     reason: "sandbox-absent" | "sandbox-degraded";
     cwd: string;
+    /** Env for the unsandboxed /bin/sh -c poll. When degraded, this is the
+     * provider-secret-stripped env from buildSandboxedSpawnArgs so monitor
+     * commands cannot exfiltrate credentials even when not OS-sandboxed. */
+    env?: NodeJS.ProcessEnv;
     message?: string;
   }
   | {
@@ -368,6 +372,10 @@ interface ShellRunOptions {
   timeoutMs: number;
   signal?: AbortSignal;
   sandbox?: SandboxedSpawnArgsResult | null;
+  /** When set and sandbox is not ok, runShellOnce direct-spawns /bin/sh -c with
+   * this env instead of pi.exec (which has no env option). Used to carry the
+   * provider-secret-stripped env for degraded monitors. */
+  degradedEnv?: NodeJS.ProcessEnv;
   piExec?: PiApi["exec"];
   onChildSpawn?: (child: ChildProcess) => void;
   onChildClose?: () => void;
@@ -452,7 +460,7 @@ function decideMonitorPoll(input: {
         case "ok":
           return { mode: "sandboxed", sandbox: result, cwd: result.cwd, message: result.message };
         case "degraded":
-          return { mode: "unsandboxed", reason: "sandbox-degraded", cwd: result.cwd, message: result.message };
+          return { mode: "unsandboxed", reason: "sandbox-degraded", cwd: result.cwd, env: result.env, message: result.message };
         case "fail-closed":
           return { mode: "fail-closed", reason: result.reason, message: result.message };
       }
@@ -497,6 +505,36 @@ function killChildProcessGroup(child: ChildProcess, signal: NodeJS.Signals): boo
 
 async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
   if (opts.sandbox?.state !== "ok") {
+    // When a degraded env is provided (pi-sandbox stripped provider secrets),
+    // direct-spawn /bin/sh -c with it instead of pi.exec, which has no env
+    // option and would inherit the full process.env.
+    if (opts.degradedEnv) {
+      return new Promise((resolve) => {
+        const child = spawn("/bin/sh", ["-c", opts.command], {
+          cwd: opts.cwd,
+          env: opts.degradedEnv,
+          detached: true,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        let stdout = "";
+        let stderr = "";
+        const timer = setTimeout(() => killChildProcessGroup(child, "SIGKILL"), opts.timeoutMs);
+        const onAbort = () => killChildProcessGroup(child, "SIGKILL");
+        opts.signal?.addEventListener("abort", onAbort, { once: true });
+        child.stdout?.on("data", (d) => { stdout += d; });
+        child.stderr?.on("data", (d) => { stderr += d; });
+        child.on("close", (code) => {
+          clearTimeout(timer);
+          opts.signal?.removeEventListener("abort", onAbort);
+          opts.onChildSpawn?.(child);
+          resolve({ code, stdout, stderr });
+        });
+        child.on("error", (err) => {
+          clearTimeout(timer);
+          resolve({ code: 1, stdout, stderr: String(err) });
+        });
+      });
+    }
     if (!opts.piExec) throw new Error("monitor needs pi.exec, which is unavailable in this runtime.");
     return opts.piExec("/bin/sh", ["-c", opts.command], { timeout: opts.timeoutMs, cwd: opts.cwd, signal: opts.signal });
   }
@@ -994,6 +1032,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
           timeoutMs: Math.max(5, intervalSeconds) * 1000,
           signal: _signal,
           sandbox: pollDecision.mode === "sandboxed" ? pollDecision.sandbox : null,
+          degradedEnv: pollDecision.mode === "unsandboxed" ? pollDecision.env : undefined,
           piExec: pi.exec,
           onChildSpawn: (child) => {
             job.child = child;
