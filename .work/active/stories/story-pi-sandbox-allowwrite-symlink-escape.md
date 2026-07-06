@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-allowwrite-symlink-escape
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -87,3 +87,27 @@ should confirm which behavior is intended.
 - Tests: `cd plugins/pi-sandbox && bun test 2>&1 | tail -8` passed (113 tests); `cd plugins/background-tasks && bun test 2>&1 | tail -5` passed (71 tests).
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+
+## Review (2026-07-06)
+
+**Verdict**: Approve
+
+**Mode/Depth**: substrate / deep (two-phase: advisory → adversarial), fresh-context
+`openai-codex/gpt-5.5` each phase.
+
+**Blockers**: none.
+**Important**: one non-blocking availability nit, NOT filed as a story (it
+is a pre-existing glob/cwd canonicalization question exposed, not introduced,
+by B3, and is availability-only — acceptable as a documented v0.1.0 residual):
+- B3-1 glob `allowWrite` false-denies when session cwd has a symlink component
+  (`sandbox-file-policy.ts:186,225-226`): glob regex built from lexical cwd,
+  target is canonical. If cwd is itself a symlink, `allowWrite:["*.log"]`
+denies legitimate writes. Non-glob entries use canonical
+  `normalizePathForCheck` and are unaffected. No write-escape direction.
+
+**Nits**: none.
+
+**Notes**: the static symlink-escape fix is correct and complete. The
+canonical-only asymmetry (deny catches more via lexical, allowWrite can't
+widen beyond the real target) holds as designed. G1 deny-list symlink fix
+confirmed preserved by a dedicated regression test.
