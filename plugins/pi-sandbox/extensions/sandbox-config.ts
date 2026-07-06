@@ -304,6 +304,21 @@ export interface InspectionVerdict {
 }
 
 const MAX_SCAN_LENGTH = 10_000;
+// Scan long fields in overlapping bounded windows: the window cap preserves the
+// regex ReDoS guard, while the overlap catches API-key-shaped secrets split
+// across a boundary. 256 chars is intentionally generous for provider tokens
+// (<100 chars in the bundled guidance) without materially increasing work.
+const SCAN_WINDOW_OVERLAP = 256;
+// Redaction itself must also be bounded: a pathological project-supplied
+// one-character redact rule should not expand a large field into megabytes of
+// replacement markers. Scanning still walks every window; this cap only limits
+// how many redact mutations are applied for one shape in one field.
+const MAX_REDACTIONS_PER_SHAPE = MAX_SCAN_LENGTH;
+
+interface RedactRange {
+	start: number;
+	end: number;
+}
 
 interface CompiledShape {
 	name: string;
@@ -368,6 +383,32 @@ function advanceStringIndex(text: string, index: number, unicode: boolean): numb
 	return second >= 0xdc00 && second <= 0xdfff ? index + 2 : index + 1;
 }
 
+function normalizeRedactRanges(ranges: RedactRange[]): RedactRange[] {
+	const sorted = ranges
+		.filter((range) => range.end > range.start)
+		.sort((a, b) => a.start - b.start || a.end - b.end);
+	const normalized: RedactRange[] = [];
+	for (const range of sorted) {
+		const previous = normalized.at(-1);
+		if (previous && range.start < previous.end) {
+			previous.end = Math.max(previous.end, range.end);
+			continue;
+		}
+		normalized.push({ start: range.start, end: range.end });
+	}
+	return normalized;
+}
+
+function applyRedactRanges(text: string, ranges: RedactRange[], replacement: string): string {
+	let redacted = "";
+	let cursor = 0;
+	for (const range of ranges) {
+		redacted += `${text.slice(cursor, range.start)}${replacement}`;
+		cursor = range.end;
+	}
+	return `${redacted}${text.slice(cursor)}`;
+}
+
 /**
  * Inspect a tool's input against the configured secret shapes (gitleaks model).
  *
@@ -382,9 +423,12 @@ function advanceStringIndex(text: string, index: number, unicode: boolean): numb
  * match, then allows. On a `block` match, returns block. On no match, returns
  * onNoMatch.
  *
- * Scans string-valued fields. By default scans ALL string fields ("*"), which
- * is paranoia-first; validated effective config may restrict per-tool fields,
- * but project merges cannot drop global/default scan coverage.
+ * Scans string-valued fields in bounded overlapping windows rather than
+ * truncating long values, so a secret anywhere in a large field is still
+ * inspected while each regex invocation remains capped. By default scans ALL
+ * string fields ("*"), which is paranoia-first; validated effective config may
+ * restrict per-tool fields, but project merges cannot drop global/default scan
+ * coverage.
  */
 export function inspectToolInput(
 	toolName: string,
@@ -437,53 +481,60 @@ export function inspectToolInput(
 			try { text = JSON.stringify(value); } catch { text = null; }
 		} else continue;
 		if (text === null) continue;
-		if (text.length > MAX_SCAN_LENGTH) text = text.slice(0, MAX_SCAN_LENGTH);
 
 		for (const shape of shapes) {
-			if (shape.keywords && shape.keywords.length > 0) {
-				const lower = text.toLowerCase();
-				if (!shape.keywords.some((kw) => lower.includes(kw.toLowerCase()))) continue;
+			const redactRanges: RedactRange[] = [];
+			const stride = Math.max(1, MAX_SCAN_LENGTH - SCAN_WINDOW_OVERLAP);
+			for (let offset = 0; offset < text.length; offset += stride) {
+				const window = text.slice(offset, offset + MAX_SCAN_LENGTH);
+
+				if (shape.keywords && shape.keywords.length > 0) {
+					const lower = window.toLowerCase();
+					if (!shape.keywords.some((kw) => lower.includes(kw.toLowerCase()))) {
+						if (offset + MAX_SCAN_LENGTH >= text.length) break;
+						continue;
+					}
+				}
+
+				shape.re.lastIndex = 0;
+				let match: RegExpExecArray | null;
+				while ((match = shape.re.exec(window)) !== null) {
+					const fullMatch = match[0] ?? "";
+					const start = offset + match.index;
+					const end = start + fullMatch.length;
+					if (fullMatch.length === 0) {
+						shape.re.lastIndex = advanceStringIndex(window, shape.re.lastIndex, shape.re.unicode);
+					}
+
+					const candidate = (shape.secretGroup < match.length ? match[shape.secretGroup] : match[0]) ?? match[0];
+					if (!candidate) continue;
+
+					if (shape.entropy !== undefined) {
+						const ent = shannonEntropy(candidate);
+						const MIN_SECRET_LENGTH = 20;
+						if (ent < shape.entropy && candidate.length < MIN_SECRET_LENGTH) continue;
+						// else: low-entropy but long enough to be suspicious — still a candidate, so continue processing
+					}
+
+					if (isAllowed(candidate)) continue;
+
+					if (shape.action === "block") {
+						return {
+							action: "block",
+							reason: `secret shape "${shape.name}" matched in field "${field}" of tool "${toolName}"`,
+						};
+					}
+					if (redactRanges.length < MAX_REDACTIONS_PER_SHAPE) {
+						redactRanges.push({ start, end });
+					}
+				}
+
+				if (offset + MAX_SCAN_LENGTH >= text.length) break;
 			}
 
-			shape.re.lastIndex = 0;
-			const redactRanges: Array<{ start: number; end: number }> = [];
-			let match: RegExpExecArray | null;
-			while ((match = shape.re.exec(text)) !== null) {
-				const fullMatch = match[0] ?? "";
-				const start = match.index;
-				const end = start + fullMatch.length;
-				if (fullMatch.length === 0) {
-					shape.re.lastIndex = advanceStringIndex(text, shape.re.lastIndex, shape.re.unicode);
-				}
-
-				const candidate = (shape.secretGroup < match.length ? match[shape.secretGroup] : match[0]) ?? match[0];
-				if (!candidate) continue;
-
-				if (shape.entropy !== undefined) {
-					const ent = shannonEntropy(candidate);
-					const MIN_SECRET_LENGTH = 20;
-					if (ent < shape.entropy && candidate.length < MIN_SECRET_LENGTH) continue;
-					// else: low-entropy but long enough to be suspicious — still a candidate, so continue processing
-				}
-
-				if (isAllowed(candidate)) continue;
-
-				if (shape.action === "block") {
-					return {
-						action: "block",
-						reason: `secret shape "${shape.name}" matched in field "${field}" of tool "${toolName}"`,
-					};
-				}
-				redactRanges.push({ start, end });
-			}
-
-			if (redactRanges.length > 0) {
-				let redacted = text;
-				for (let i = redactRanges.length - 1; i >= 0; i -= 1) {
-					const range = redactRanges[i];
-					if (!range) continue;
-					redacted = `${redacted.slice(0, range.start)}[REDACTED:${shape.name}]${redacted.slice(range.end)}`;
-				}
+			const normalizedRedactRanges = normalizeRedactRanges(redactRanges);
+			if (normalizedRedactRanges.length > 0) {
+				const redacted = applyRedactRanges(text, normalizedRedactRanges, `[REDACTED:${shape.name}]`);
 				if (typeof value === "string") {
 					(input as Record<string, unknown>)[field] = redacted;
 				} else {
