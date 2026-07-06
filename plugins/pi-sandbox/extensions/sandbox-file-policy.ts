@@ -171,9 +171,38 @@ function isWithinOrEqual(target: string, dir: string): boolean {
 	return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
 }
 
-/** True if `target` matches any entry in a deny list (exact or prefix). */
+/** Detect glob-shaped filesystem policy entries (`*`/`?`). The bwrap layer cannot
+ * mount these, but the in-process file-tool layer enforces them below. */
+function isGlobPattern(p: string): boolean {
+	return /[*?]/.test(p);
+}
+
+/** Convert a glob pattern (`*`/`?`) to an anchored RegExp matching a whole path.
+ * `*` matches within a single path segment (NOT `/`); `?` matches one non-`/` char.
+ * This matches the common deny-glob intent (`*.pem` → any `.pem` leaf anywhere).
+ * The glob is expanded against cwd first, so a relative `*.pem` resolves to
+ * `<cwd>/*.pem`; an absolute `~/.ssh/*.pem` resolves against home. */
+function globToRegex(glob: string, cwd: string): RegExp {
+	const expanded = normalizeConfiguredPath(glob, cwd);
+	let re = "";
+	for (let i = 0; i < expanded.length; i += 1) {
+		const ch = expanded[i];
+		if (ch === "*") re += "[^/]*";
+		else if (ch === "?") re += "[^/]";
+		else re += ch.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+	}
+	return new RegExp(`^${re}$`);
+}
+
+/** True if `target` matches any entry in a deny list (exact, prefix, or glob). */
 function matchesDenyList(target: string, denyList: string[], cwd: string): { denied: boolean; matched?: string } {
 	for (const pattern of denyList) {
+		if (isGlobPattern(pattern)) {
+			if (globToRegex(pattern, cwd).test(target)) {
+				return { denied: true, matched: pattern };
+			}
+			continue;
+		}
 		const normalized = normalizePathForCheck(pattern, cwd);
 		if (isWithinOrEqual(target, normalized)) {
 			return { denied: true, matched: pattern };
@@ -182,9 +211,13 @@ function matchesDenyList(target: string, denyList: string[], cwd: string): { den
 	return { denied: false };
 }
 
-/** True if `target` is within any allowWrite entry. */
+/** True if `target` is within any allowWrite entry (exact, prefix, or glob). */
 function isWithinAllowWrite(target: string, allowList: string[], cwd: string): boolean {
 	for (const pattern of allowList) {
+		if (isGlobPattern(pattern)) {
+			if (globToRegex(pattern, cwd).test(target)) return true;
+			continue;
+		}
 		const normalized = normalizePathForCheck(pattern, cwd);
 		if (isWithinOrEqual(target, normalized)) return true;
 	}
