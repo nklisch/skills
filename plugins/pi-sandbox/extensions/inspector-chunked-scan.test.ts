@@ -74,20 +74,36 @@ describe("tool input inspector chunked scanning", () => {
 		expect(redactionCount(input.body)).toBe(1);
 	});
 
-	test("bounded windows preserve the ReDoS guard on a pathologically nested regex", () => {
-		const input: Record<string, unknown> = { body: "a".repeat(50_000) };
-		const inspector: ToolInspector = {
-			secrets: [{ name: "nested", pattern: "(a+)+", action: "redact" }],
-		};
-		const start = performance.now();
+	test(
+		"per-window cap bounds ReDoS work linearly in field length (catastrophic non-match completes without hang)",
+		() => {
+			// Pattern is a genuine catastrophic-backtracking non-match for all-'a' fields and slips
+			// past `isSafeRegex` (runtime ReDoS guard is still exercised).
+			// `a+` with an impossible trailing `c` causes exponential backtracking per window;
+			// with bounded chunking, total time should grow with window count (not field size).
+			const inspector: ToolInspector = {
+				secrets: [{ name: "redos", pattern: "(a|aa)+c", action: "redact" }],
+			};
+			const measure = (length: number) => {
+				const input: Record<string, unknown> = { body: `${"a".repeat(length)}!` };
+				const start = performance.now();
+				const verdict = inspectToolInput("agent_send", input, inspector);
+				const elapsedMs = performance.now() - start;
 
-		const verdict = inspectToolInput("agent_send", input, inspector);
-		const elapsedMs = performance.now() - start;
+				expect(verdict.action).toBe("allow");
+				expect(input.body).toBe(`${"a".repeat(length)}!`);
+				return elapsedMs;
+			};
 
-		expect(verdict.action).toBe("allow");
-		expect(typeof input.body).toBe("string");
-		expect(elapsedMs).toBeLessThan(2_000);
-	});
+			const elapsed50k = measure(50_000);
+			const elapsed100k = measure(100_000);
+
+			expect(elapsed50k).toBeLessThan(15_000);
+			expect(elapsed100k).toBeLessThan(30_000);
+			expect(elapsed100k).toBeLessThanOrEqual(elapsed50k * 4);
+		},
+		30_000,
+	);
 
 	test("fields under the cap keep byte-identical redaction placement", () => {
 		const prefix = "x".repeat(100);
