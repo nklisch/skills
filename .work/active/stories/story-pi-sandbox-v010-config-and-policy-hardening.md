@@ -181,3 +181,10 @@ is the safe-regex analyzer? two-pass redact semantics?) worth surfacing.
 cross-extension seam. M5/M6/M7 touch the background-tasks seam but are no-op when
 sandbox is off (M5 only fires with the flag set; M6's broken path only when
 installed; M7's await is negligible when sandbox is absent).
+
+#### M7 implementation notes
+- Files changed: `plugins/background-tasks/extensions/background-tasks.ts`, `plugins/background-tasks/extensions/background-tasks.test.ts`.
+- Implementation: `session_start` now awaits the sandbox bridge probe and logs after the awaited failure path, preserving the broken-handshake publish behavior in `resolveSandboxSpawn()`.
+- Tests added: `session-start sandbox bridge handshake > session_start awaits the sandbox bridge probe before no-UI tool_call gating`, which runs pi-sandbox `session_start`, verifies background-tasks `session_start` remains pending until the probe resolves, then runs a no-UI `tool_call` and confirms the refreshed handshake allows `background`.
+- Discrepancies from design: none.
+- Verification: `cd plugins/background-tasks && bun test` passed (73 tests).

@@ -1354,10 +1354,12 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
     },
   });
 
-  pi.on?.("session_start", () => {
-    void resolveSandboxSpawn().catch((err) => {
+  pi.on?.("session_start", async () => {
+    try {
+      await resolveSandboxSpawn();
+    } catch (err) {
       console.error(`[background-tasks] sandbox bridge probe failed: ${(err as Error).message}`);
-    });
+    }
   });
 
   // --- Session-start system-prompt nudge ---------------------------------
