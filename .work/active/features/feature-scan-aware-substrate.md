@@ -1,14 +1,14 @@
 ---
 id: feature-scan-aware-substrate
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-13
-updated: 2026-06-13
+updated: 2026-07-07
 ---
 
 # Scan-aware substrate (paired with the deep-code-scan skill)
@@ -59,3 +59,19 @@ Ships in the same rollout as the `deep-code-scan` skill so the skill's assumptio
   unit) + 31 (core integration) + 4 (doc-tests), 0 failed. New tests mirror the research_origin
   suite across parse/filter/args/integration, plus a `[scan]`-exclusion test in actionable.rs and a
   feed-serialization assertion. `--scan-origin scan-demo` verified end-to-end on the golden fixture.
+
+## Review (2026-07-06)
+
+**Verdict**: Approve with comments
+
+**Mode/Depth**: substrate / deep (two-phase: advisory → adversarial), fresh-context `openai-codex/gpt-5.5`.
+
+**Blockers**: none.
+
+**Important** (filed as backlog):
+- Bash fallback (`scripts/work-view.sh`) is not scan-aware — no `--scan-origin` flag, no `[scan]`-tag exclusion from actionable. Since `install-work-view.sh` can install the fallback on unsupported platforms, the "structural guarantee" isn't universal. → `idea-scan-aware-bash-fallback-parity`
+- Managed AGENTS/frontmatter summaries (convert SKILL.md) omit `scan_origin` — `convert --update` can regenerate project instructions missing a first-class field. → `idea-convert-managed-summary-scan-origin`
+
+**Nits**: stale test-count note in the item body (older cargo counts; current run is 156+103+77+31+4).
+
+**Notes**: Rust implementation faithfully mirrors `research_origin` across parse/filter/args/integration/feed; `[scan]`-exclusion uses exact tag equality (doesn't over-exclude). Cargo suite re-run green. deep-code-scan consumer exists and relies on this substrate. The two important findings are distribution/doc-parity gaps, not capability gaps — the Rust core is sound. Filed as backlog; not blocking v0.1.0-class advancement.

@@ -151,7 +151,7 @@ M-times-N redundant file reads and allows cross-library finding deduplication.
 >
 > For each library `<tag>` (e.g. `structural`, `wcag-aa`):
 >
-> **Library: `<tag>`** (source: `{project}/.agents/skills/scan-<name>/` or `{project}/.claude/skills/scan-<name>/`)
+> **Library: `<tag>`** (source: `<resolved library path>` — the configured root the library was discovered from, which may be a project default `{project}/.agents/skills/scan-<name>/`, `{project}/.claude/skills/scan-<name>/`, or a shared/absolute root from `gate_refactor_scan_library_roots`)
 > ```
 > <full SKILL.md content>
 > ```

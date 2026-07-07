@@ -1,14 +1,14 @@
 ---
 id: feature-autopilot-impl-tier
 kind: feature
-stage: review
+stage: done
 tags: [tooling]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-13
-updated: 2026-06-13
+updated: 2026-07-07
 ---
 
 # Autopilot / implement-orchestrator implementation-tier interview
@@ -40,3 +40,18 @@ ask once and lock it for the run, rather than silently defaulting to `sonnet` (C
 ## Implementation notes
 Skill-doc change only (no code). Vocabulary aligned with `deep-code-scan`'s scanner-tier dial.
 Implemented this session; at `stage: review` awaiting a review/bind pass.
+
+## Review (2026-07-06)
+
+**Verdict**: Approve with comments
+
+**Mode/Depth**: substrate / deep (two-phase: advisory → adversarial), fresh-context `openai-codex/gpt-5.5`.
+
+**Blockers**: none.
+
+**Important** (filed as backlog):
+- The "vocabulary matches deep-code-scan's scanner-tier dial" claim is overstated: implement-orchestrator asks for `baseline | raised | highest` while deep-code-scan's scanner tier is a concrete model enum (`opus | mixed | sonnet | codex-high | ...`). Behavior is workable; the claim should say it mirrors the *settle-a-tier-dial-once pattern*, not the exact vocabulary. → `idea-impl-tier-vocabulary-claim-fix`
+
+**Nits**: none.
+
+**Notes**: skill-doc-only change; the "ask once, lock for the run, pass via caller note" contract is clear and actionable. Autonomous-contract fallback (default + report) correctly prevents silent cheap-tier drain. Acceptance criteria met. The vocabulary mismatch is a prose-precision issue, not a behavior bug — filed as backlog, not blocking.

@@ -1,14 +1,14 @@
 ---
 id: feature-gate-configurability
 kind: feature
-stage: review
+stage: done
 tags: [prose, skill, plugin]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-07-07
 ---
 
 # Gate configurability for release findings and refactor scan roots
@@ -108,3 +108,30 @@ Design decisions:
   `CHANGELOG.md` so bootstrap/release docs stay consistent with the skill
   contracts.
 - Adjacent issues parked: none.
+
+## Review (2026-07-06)
+
+**Verdict**: Approve (blocker fixed inline, important fixed inline)
+
+**Mode/Depth**: substrate / deep (two-phase: advisory → adversarial), fresh-context `openai-codex/gpt-5.5`.
+
+**Blockers** (1, fixed inline in this review stride):
+- ARCHITECTURE.md gate table omitted `gate-refactor` while the new routing prose
+  referenced it (line 544 "docs/cruft/refactor use confidence"). Added an opt-in
+  `gate-refactor` row to the Gate-as-item-producer table covering scan-rule
+  libraries, `gate_origin: refactor`, library-declared routing tags, and
+  configurable roots. Rolling-foundation drift closed.
+
+**Important** (1, fixed inline):
+- gate-refactor scanner packet hard-coded default source roots in the library
+  source label. Replaced with `<resolved library path>` noting it may be a
+  project default OR a shared/absolute root from `gate_refactor_scan_library_roots`.
+
+**Nits**: none.
+
+**Notes**: prose-first feature; no code. Both Discussion #14 (findings routing
+tier key) and #15 (scan-rule library roots) implemented faithfully. Default
+fallback preserves current behavior for projects that don't set the new keys
+(no breaking change). `convert-content-integrity.test.sh` re-run: 42 passed.
+Project config can loosen routing (incl. `skip`) — acceptable posture since the
+project already owns `gates_for_release` and can omit gates; not a security bypass.

@@ -534,6 +534,7 @@ and produces new items rather than emitting a pass/fail report:
 | `gate-cruft` | Dead code introduced or revealed by the bundle | Items with `gate_origin: cruft`, tagged `[cleanup]` |
 | `gate-docs` | Foundation-doc alignment with the bundle's behavior changes | Items with `gate_origin: docs`, tagged `[documentation]` — enforces rolling-foundation |
 | `gate-patterns` | Reusable patterns that emerged in the bundle | Detailed pattern-skill files in `.agents/skills/patterns/` (single source of truth) with optional Claude mirror, the generated hook-loaded `.agents/rules/patterns.md` digest (slug+one-liner index pointing back at the skill, with banner + source hash), plus a tracking item with `gate_origin: patterns` |
+| `gate-refactor` *(opt-in)* | Bundle's changed files against loaded scan-rule libraries (roots configurable via `gate_refactor_scan_library_roots`) | Items with `gate_origin: refactor`; routing tag declared per library (`findings-route: refactor` → tagged `[refactor]`, else untagged → feature-design) |
 
 For gates that emit findings as items, placement flows through
 `gate_finding_routing` in `.work/CONVENTIONS.md` after the gate normalizes its
