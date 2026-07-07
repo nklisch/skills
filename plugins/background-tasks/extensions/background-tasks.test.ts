@@ -7,6 +7,7 @@ import { join } from "node:path";
 import backgroundTasksExtension, { MAX_RETAINED_JOBS, clipToWidth, decideBackgroundSpawn, decideMonitorPoll, JobPanel, runShellOnce, type SandboxSpawnResolver } from "./background-tasks";
 import type { BuildSandboxedSpawnArgs } from "./sandbox-bridge";
 import { buildSandboxedSpawnArgs } from "../../pi-sandbox/extensions/sandbox-spawn";
+import { makeBwrapIntegrationTest } from "../../pi-sandbox/extensions/sandbox-bwrap-test";
 
 // A minimal Job-shaped stub for JobPanel tests (only the fields render reads).
 type JobStub = {
@@ -142,7 +143,7 @@ function makeFakePi(
 const tempDirs: string[] = [];
 const isLinux = process.platform === "linux";
 const hasBwrap = isLinux && Bun.spawnSync(["bwrap", "--version"], { stdout: "pipe", stderr: "pipe" }).success;
-const bwrapIntegrationTest = isLinux && hasBwrap ? test : test.skip;
+const bwrapIntegrationTest = makeBwrapIntegrationTest({ isLinux, hasBwrap });
 
 async function makeTempDir(prefix = "background-tasks-test-"): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), prefix));

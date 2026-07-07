@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-real-bwrap-ci-gate
 kind: story
-stage: drafting
+stage: review
 tags: [security, sandbox, testing]
 parent: null
 depends_on: []
@@ -52,7 +52,7 @@ Two parts:
   Forces developers to install bwrap for release builds.
 
 (a) is less intrusive; (b) catches the case where someone runs release tests
-locally without bwrap.
+without bwrap.
 
 ## Acceptance (when scoped)
 
@@ -86,3 +86,36 @@ Refinements from the design review:
 
 **Stance check**: CI-only; no operator config. Honors "no-op unless opted in" —
 the gate only runs in CI with the env var set.
+
+## Implementation notes
+
+- Added shared helper `plugins/pi-sandbox/extensions/sandbox-bwrap-test.ts` to
+  centralize bwrap test gating.
+- Added focused helper verification test
+  `plugins/pi-sandbox/extensions/sandbox-bwrap-test.test.ts` that forces
+guard mode with `hasBwrap: false` and verifies the missing-bwrap path throws.
+- Updated all three real-bwrap integration test sites to use `makeBwrapIntegrationTest`:
+  - `plugins/pi-sandbox/extensions/sandbox.test.ts`
+  - `plugins/pi-sandbox/extensions/sandbox-spawn.test.ts`
+  - `plugins/background-tasks/extensions/background-tasks.test.ts`
+- Added CI workflow
+  `.github/workflows/sandbox-bwrap-gate.yml` on `ubuntu-latest` with
+  `apt-get install -y bubblewrap`, `bwrap --version`, then
+  `cd plugins/pi-sandbox && bun test` and
+  `cd plugins/background-tasks && bun test` under
+  `PI_SANDBOX_REQUIRE_BWRAP=1`.
+- Added `PI_SANDBOX_REQUIRE_BWRAP=1` fail-fast behavior in CI while preserving
+  local skip behavior when the env is unset.
+
+### Verification
+
+```bash
+cd plugins/pi-sandbox && bun test 2>&1 | tail -4
+# CI-unset baseline
+
+PI_SANDBOX_REQUIRE_BWRAP=1 bun test 2>&1 | tail -4
+# require flag forces full bwrap run checks
+
+bun test plugins/pi-sandbox/extensions/sandbox-bwrap-test.test.ts
+# forced-mode assertion covers "set to require + missing bwrap -> failure" path
+```
