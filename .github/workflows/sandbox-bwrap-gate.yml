@@ -66,7 +66,12 @@ jobs:
 
       - name: Verify bwrap can actually create a namespace
         run: |
-          bwrap --unshare-pid --proc /proc --die-with-parent /bin/sh -c 'echo bwrap-namespace-ok'
+          # Match the real buildBwrapArgs shape: --ro-bind / / and --dev /dev
+          # must precede --unshare-pid so /bin/sh is reachable inside the new
+          # root. A bare `bwrap --unshare-pid --proc /proc ... /bin/sh` fails
+          # with "execvp /bin/sh: No such file or directory" because the root
+          # filesystem isn't mounted.
+          bwrap --ro-bind / / --dev /dev --unshare-pid --proc /proc --die-with-parent /bin/sh -c 'echo bwrap-namespace-ok'
           echo "bwrap namespace creation confirmed"
 
       - name: Run pi-sandbox tests with bwrap required
