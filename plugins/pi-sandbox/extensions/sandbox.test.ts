@@ -1044,6 +1044,60 @@ describe("config boundary contract", () => {
 		expect(safe.join("\n")).not.toContain("must compile");
 	});
 
+	test("validateConfig rejects counted nested quantifiers and overlapping quantified alternation (M3)", () => {
+		const unsafe = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [
+						{ name: "counted-inner", pattern: "(a{1,2})+", action: "block" },
+						{ name: "counted-outer", pattern: "(a+){1,3}", action: "block" },
+						{ name: "overlap", pattern: "(a|aa)+", action: "block" },
+					],
+					allowlist: { regexes: ["(a|aa)+"] },
+				},
+			},
+		});
+		const joined = unsafe.join("\n");
+
+		expect(joined).toContain('tools.inspector.secrets[0].pattern is unsafe for shape "counted-inner"');
+		expect(joined).toContain('tools.inspector.secrets[1].pattern is unsafe for shape "counted-outer"');
+		expect(joined).toContain('tools.inspector.secrets[2].pattern is unsafe for shape "overlap"');
+		expect(joined).toContain("overlapping alternation");
+		expect(joined).toContain("tools.inspector.allowlist.regexes[0] is unsafe");
+
+		const safe = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [{ name: "assignment", pattern: "(key|token|secret)-[a-z]+", action: "block" }],
+				},
+			},
+		});
+		expect(safe).toEqual([]);
+	});
+
+	test("skipRegexSafetyCheck bypasses the narrow regex heuristic for shapes and allowlists (M3)", () => {
+		const skipped = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [{ name: "accepted-risk", pattern: "(a|aa)+", action: "block", skipRegexSafetyCheck: true }],
+					allowlist: { regexes: ["(a+)+"], skipRegexSafetyCheck: true },
+				},
+			},
+		});
+		expect(skipped).toEqual([]);
+
+		const badSkipType = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [{ name: "bad", pattern: "a", action: "block", skipRegexSafetyCheck: "yes" }],
+					allowlist: { regexes: ["a"], skipRegexSafetyCheck: "yes" },
+				},
+			},
+		});
+		expect(badSkipType.join("\n")).toContain("tools.inspector.secrets[0].skipRegexSafetyCheck must be a boolean");
+		expect(badSkipType.join("\n")).toContain("tools.inspector.allowlist.skipRegexSafetyCheck must be a boolean");
+	});
+
 	test("invalid network mode, tool policy, and inspector regex load as fail-closed parse errors", async () => {
 		const bogusModeCwd = await makeTempDir();
 		const bogusToolCwd = await makeTempDir();
