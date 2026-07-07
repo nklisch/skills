@@ -1,7 +1,7 @@
 ---
 id: story-fix-work-view-dist-version-drift
 kind: story
-stage: implementing
+stage: drafting
 tags: [bug, tooling]
 parent: null
 depends_on: []
