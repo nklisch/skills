@@ -412,6 +412,52 @@ function applyRedactRanges(text: string, ranges: RedactRange[], replacement: str
 	return `${redacted}${text.slice(cursor)}`;
 }
 
+function scanSecretShape(text: string, shape: CompiledShape, isAllowed: (candidate: string) => boolean, stopAfterFirst = false): RedactRange[] {
+	const ranges: RedactRange[] = [];
+	// Keyword pre-filter gates the whole field, not per window: an attacker can
+	// pad between a keyword and the secret to push them into separate windows,
+	// defeating a per-window gate (keyword in window N, secret beyond the
+	// overlap in window N+1 -> secret's window has no keyword -> shape skipped).
+	if (shape.keywords && shape.keywords.length > 0) {
+		const lower = text.toLowerCase();
+		if (!shape.keywords.some((kw) => lower.includes(kw.toLowerCase()))) return ranges;
+	}
+
+	const stride = Math.max(1, MAX_SCAN_LENGTH - SCAN_WINDOW_OVERLAP);
+	for (let offset = 0; offset < text.length; offset += stride) {
+		const window = text.slice(offset, offset + MAX_SCAN_LENGTH);
+
+		shape.re.lastIndex = 0;
+		let match: RegExpExecArray | null;
+		while ((match = shape.re.exec(window)) !== null) {
+			const fullMatch = match[0] ?? "";
+			const start = offset + match.index;
+			const end = start + fullMatch.length;
+			if (fullMatch.length === 0) {
+				shape.re.lastIndex = advanceStringIndex(window, shape.re.lastIndex, shape.re.unicode);
+			}
+
+			const candidate = (shape.secretGroup < match.length ? match[shape.secretGroup] : match[0]) ?? match[0];
+			if (!candidate) continue;
+
+			if (shape.entropy !== undefined) {
+				const ent = shannonEntropy(candidate);
+				const MIN_SECRET_LENGTH = 20;
+				if (ent < shape.entropy && candidate.length < MIN_SECRET_LENGTH) continue;
+				// else: low-entropy but long enough to be suspicious — still a candidate, so continue processing
+			}
+
+			if (isAllowed(candidate)) continue;
+
+			ranges.push({ start, end });
+			if (stopAfterFirst) return ranges;
+		}
+
+		if (offset + MAX_SCAN_LENGTH >= text.length) break;
+	}
+	return ranges;
+}
+
 /**
  * Inspect a tool's input against the configured secret shapes (gitleaks model).
  *
@@ -485,59 +531,25 @@ export function inspectToolInput(
 		} else continue;
 		if (text === null) continue;
 
+		const originalText = text;
 		for (const shape of shapes) {
-			const redactRanges: RedactRange[] = [];
-			// Keyword pre-filter gates the whole field, not per window: an attacker can
-			// pad between a keyword and the secret to push them into separate windows,
-			// defeating a per-window gate (keyword in window N, secret beyond the
-			// overlap in window N+1 -> secret's window has no keyword -> shape skipped).
-			if (shape.keywords && shape.keywords.length > 0) {
-				const lower = text.toLowerCase();
-				if (!shape.keywords.some((kw) => lower.includes(kw.toLowerCase()))) continue;
+			if (shape.action !== "block") continue;
+			const blockRanges = scanSecretShape(originalText, shape, isAllowed, true);
+			if (blockRanges.length > 0) {
+				return {
+					action: "block",
+					reason: `secret shape "${shape.name}" matched in field "${field}" of tool "${toolName}"`,
+				};
 			}
+		}
 
-			const stride = Math.max(1, MAX_SCAN_LENGTH - SCAN_WINDOW_OVERLAP);
-			for (let offset = 0; offset < text.length; offset += stride) {
-				const window = text.slice(offset, offset + MAX_SCAN_LENGTH);
-
-				shape.re.lastIndex = 0;
-				let match: RegExpExecArray | null;
-				while ((match = shape.re.exec(window)) !== null) {
-					const fullMatch = match[0] ?? "";
-					const start = offset + match.index;
-					const end = start + fullMatch.length;
-					if (fullMatch.length === 0) {
-						shape.re.lastIndex = advanceStringIndex(window, shape.re.lastIndex, shape.re.unicode);
-					}
-
-					const candidate = (shape.secretGroup < match.length ? match[shape.secretGroup] : match[0]) ?? match[0];
-					if (!candidate) continue;
-
-					if (shape.entropy !== undefined) {
-						const ent = shannonEntropy(candidate);
-						const MIN_SECRET_LENGTH = 20;
-						if (ent < shape.entropy && candidate.length < MIN_SECRET_LENGTH) continue;
-						// else: low-entropy but long enough to be suspicious — still a candidate, so continue processing
-					}
-
-					if (isAllowed(candidate)) continue;
-
-					if (shape.action === "block") {
-						return {
-							action: "block",
-							reason: `secret shape "${shape.name}" matched in field "${field}" of tool "${toolName}"`,
-						};
-					}
-					// Collect every match range; the cap is enforced AFTER dedup below so
-					// overlap duplicates don't consume it. If dedup'd ranges exceed the cap,
-					// we fail-closed (block) rather than silently allowing tail secrets
-					// through unredacted — a matched secret must never egress.
-					redactRanges.push({ start, end });
-				}
-
-				if (offset + MAX_SCAN_LENGTH >= text.length) break;
-			}
-
+		for (const shape of shapes) {
+			if (shape.action !== "redact") continue;
+			// Collect every match range; the cap is enforced AFTER dedup below so
+			// overlap duplicates don't consume it. If dedup'd ranges exceed the cap,
+			// we fail-closed (block) rather than silently allowing tail secrets
+			// through unredacted — a matched secret must never egress.
+			const redactRanges = scanSecretShape(text, shape, isAllowed);
 			const normalizedRedactRanges = normalizeRedactRanges(redactRanges);
 			if (normalizedRedactRanges.length > MAX_REDACTIONS_PER_SHAPE) {
 				// The redaction cap is a DoS guard on redaction work, not a security
