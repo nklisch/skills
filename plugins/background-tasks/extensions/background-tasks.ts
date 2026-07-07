@@ -96,6 +96,7 @@ const STATUS_KEY = "background-tasks";
 const WAKE_CUSTOM_TYPE = "background-tasks:wake";
 const MAX_TAIL_CHARS = 6_000; // hard cap on anything sent back to the model
 const MAX_BUFFER_CHARS = 200_000; // rolling in-memory buffer per job
+const MAX_POLL_OUTPUT_CHARS = 2_000_000; // per-poll stdout+stderr cap; kills child to prevent OOM
 const DEFAULT_MONITOR_INTERVAL_S = 10;
 const DEFAULT_MONITOR_TIMEOUT_S = 600;
 const MIN_MONITOR_INTERVAL_S = 1; // floor; sub-second polls flood commands
@@ -296,6 +297,32 @@ function appendBuffer(job: Job, chunk: string): void {
   if (job.buffer.length > MAX_BUFFER_CHARS) {
     job.buffer = job.buffer.slice(job.buffer.length - MAX_BUFFER_CHARS);
   }
+}
+
+/**
+ * Bounded stdout/stderr accumulator for a single poll. Returns true once the
+ * combined output exceeds MAX_POLL_OUTPUT_CHARS, so the caller can kill the
+ * child and return a diagnostic instead of OOMing the Pi process. A noisy
+ * monitor command (e.g. `yes X`) can emit hundreds of MB during a single
+ * poll's timeout window; the per-job rolling buffer cap (appendBuffer) only
+ * applies AFTER the poll finishes, so this per-poll cap is the OOM guard.
+ */
+function makeBoundedAccumulator(): { append: (chunk: string) => boolean; text: () => string } {
+  let buf = "";
+  let overflow = false;
+  return {
+    append(chunk: string) {
+      if (overflow) return true;
+      buf += chunk;
+      if (buf.length > MAX_POLL_OUTPUT_CHARS) {
+        overflow = true;
+        buf = `${buf.slice(0, MAX_POLL_OUTPUT_CHARS)}\n[monitor poll output exceeded ${MAX_POLL_OUTPUT_CHARS} chars; child terminated to prevent OOM]`;
+        return true;
+      }
+      return false;
+    },
+    text: () => buf,
+  };
 }
 
 function elapseMs(job: Job): number {
@@ -512,8 +539,9 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
     // option and would inherit the full process.env.
     if (opts.degradedEnv) {
       return new Promise((resolve) => {
-        let stdout = "";
-        let stderr = "";
+        const stdoutAcc = makeBoundedAccumulator();
+        const stderrAcc = makeBoundedAccumulator();
+        let outputOverflow = false;
         let settled = false;
         let timedOut = false;
         let abortListener: (() => void) | undefined;
@@ -555,18 +583,25 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
         if (opts.signal?.aborted) abortListener();
 
         child.stdout?.on("data", (data: Buffer | string) => {
-          stdout += typeof data === "string" ? data : data.toString("utf8");
+          if (stdoutAcc.append(typeof data === "string" ? data : data.toString("utf8"))) {
+            outputOverflow = true;
+            killChildProcessGroup(child, "SIGKILL");
+          }
         });
         child.stderr?.on("data", (data: Buffer | string) => {
-          stderr += typeof data === "string" ? data : data.toString("utf8");
+          if (stderrAcc.append(typeof data === "string" ? data : data.toString("utf8"))) {
+            outputOverflow = true;
+            killChildProcessGroup(child, "SIGKILL");
+          }
         });
         child.once("spawn", () => opts.onChildSpawn?.(child));
         child.once("error", (err) => {
-          finish({ stdout, stderr: `${stderr}${err.message}`, code: null });
+          finish({ stdout: stdoutAcc.text(), stderr: `${stderrAcc.text()}${err.message}`, code: null });
         });
         child.once("close", (code, signal) => {
           const timeoutNote = timedOut ? `monitor poll exceeded ${opts.timeoutMs}ms and was terminated${signal ? ` by ${signal}` : ""}\n` : "";
-          finish({ stdout, stderr: `${stderr}${timeoutNote}`, code, killed: timedOut });
+          const overflowNote = outputOverflow ? `[output exceeded ${MAX_POLL_OUTPUT_CHARS} chars; child terminated to prevent OOM]\n` : "";
+          finish({ stdout: stdoutAcc.text(), stderr: `${stderrAcc.text()}${overflowNote}${timeoutNote}`, code, killed: timedOut || outputOverflow });
         });
       });
     }
@@ -575,8 +610,9 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
   }
 
   return new Promise((resolve) => {
-    let stdout = "";
-    let stderr = "";
+    const stdoutAcc = makeBoundedAccumulator();
+    const stderrAcc = makeBoundedAccumulator();
+    let outputOverflow = false;
     let settled = false;
     let timedOut = false;
     let abortListener: (() => void) | undefined;
@@ -613,18 +649,25 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
     if (opts.signal?.aborted) abortListener();
 
     child.stdout?.on("data", (data: Buffer | string) => {
-      stdout += typeof data === "string" ? data : data.toString("utf8");
+      if (stdoutAcc.append(typeof data === "string" ? data : data.toString("utf8"))) {
+        outputOverflow = true;
+        killChildProcessGroup(child, "SIGKILL");
+      }
     });
     child.stderr?.on("data", (data: Buffer | string) => {
-      stderr += typeof data === "string" ? data : data.toString("utf8");
+      if (stderrAcc.append(typeof data === "string" ? data : data.toString("utf8"))) {
+        outputOverflow = true;
+        killChildProcessGroup(child, "SIGKILL");
+      }
     });
     child.once("spawn", () => opts.onChildSpawn?.(child));
     child.once("error", (err) => {
-      finish({ stdout, stderr: `${stderr}${err.message}`, code: null });
+      finish({ stdout: stdoutAcc.text(), stderr: `${stderrAcc.text()}${err.message}`, code: null });
     });
     child.once("close", (code, signal) => {
       const timeoutNote = timedOut ? `monitor poll exceeded ${opts.timeoutMs}ms and was terminated${signal ? ` by ${signal}` : ""}\n` : "";
-      finish({ stdout, stderr: `${stderr}${timeoutNote}`, code, killed: timedOut });
+      const overflowNote = outputOverflow ? `[output exceeded ${MAX_POLL_OUTPUT_CHARS} chars; child terminated to prevent OOM]\n` : "";
+      finish({ stdout: stdoutAcc.text(), stderr: `${stderrAcc.text()}${overflowNote}${timeoutNote}`, code, killed: timedOut || outputOverflow });
     });
   });
 }

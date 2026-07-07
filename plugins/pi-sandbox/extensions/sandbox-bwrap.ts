@@ -39,14 +39,27 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 
 	args.push("--ro-bind", "/", "/");
 	args.push("--dev", "/dev");
-	// --unshare-user is required for unprivileged bwrap (non-setuid binary) to
-	// create the pid/net namespaces below. Without it, bwrap works only on hosts
-	// that allow unprivileged user namespaces (most dev machines) and fails on
-	// restricted runners (e.g. GitHub Actions ubuntu-latest, which blocks userns
-	// by default). Adding it unconditionally is the standard, correct invocation.
-	args.push("--unshare-user");
+	// --unshare-pid on a non-setuid bwrap (the apt package on Ubuntu/Debian)
+	// implicitly creates a user namespace — that is how it obtains CAP_SYS_ADMIN
+	// to make the pid namespace. We do NOT pass --unshare-user: it is redundant
+	// on hosts that allow unprivileged userns and does NOT help on hosts that
+	// block it (it would just fail the same way). Hosts that restrict
+	// unprivileged user namespaces (e.g. Ubuntu 24.04's AppArmor gate,
+	// kernel.apparmor_restrict_unprivileged_userns=1, the default on GitHub
+	// Actions ubuntu-latest) must clear that gate at the environment level —
+	// see .github/workflows/sandbox-bwrap-gate.yml — not via a bwrap arg.
 	args.push("--unshare-pid", "--proc", "/proc");
 	args.push("--die-with-parent");
+
+	// Hardlink-alias escape guard: bwrap path overlays protect a pathname, not
+	// the underlying inode. A hardlink alias inside an allowWrite root reaches
+	// the same inode as a denied file, so a write through the alias modifies the
+	// denied file and a read through the alias reads the denied file's contents
+	// — both denyRead and denyWrite are bypassed. We cannot mask every alias
+	// without scanning the entire allowWrite tree, so fail closed: refuse to
+	// start the sandbox when a denied regular file has nlink > 1. The operator
+	// must break the hardlink (copy the file) or remove it from the deny list.
+	assertNoHardlinkedDeniedFiles(opts.denyRead, opts.denyWrite, securityCwd);
 
 	for (const mount of existingCanonicalMounts(opts.allowWrite, securityCwd)) {
 		args.push("--bind", mount, mount);
@@ -304,6 +317,37 @@ interface DenyOverlay {
 	denyRead: boolean;
 	denyWrite: boolean;
 	isDirectory: boolean;
+}
+
+/**
+ * Fail closed when a denied regular file has multiple hard links (nlink > 1).
+ * bwrap path overlays protect a pathname, not the underlying inode, so a
+ * hardlink alias inside an allowWrite root can read/modify a denied file
+ * through the alias. We cannot mask every alias without scanning the whole
+ * allowWrite tree, so refuse to start instead. Directories are skipped (a
+ * hardlink to a directory is not possible on most filesystems; their nlink
+ * counts subdirectory entries, not aliases).
+ */
+function assertNoHardlinkedDeniedFiles(denyRead: string[], denyWrite: string[], cwd: string): void {
+	const checked = new Set<string>();
+	for (const list of [denyRead, denyWrite]) {
+		for (const rawPath of list) {
+			const canonical = canonicalizeExistingPath(normalizeConfiguredPath(rawPath, cwd));
+			if (!canonical || checked.has(canonical)) continue;
+			checked.add(canonical);
+			let st: ReturnType<typeof statSync>;
+			try {
+				st = statSync(canonical);
+			} catch {
+				continue; // absent path — existingDenyOverlays will skip it too
+			}
+			if (st.isFile() && st.nlink > 1) {
+				throw new Error(
+					`Sandbox refuse-to-start: denied file "${canonical}" has ${st.nlink} hard links. A hardlink alias inside an allowWrite root can bypass the denyRead/denyWrite overlay (bwrap protects pathnames, not inodes). Break the hardlink (copy the file) or remove it from the deny list before enabling the sandbox.`,
+				);
+			}
+		}
+	}
 }
 
 function existingDenyOverlays(denyRead: string[], denyWrite: string[], cwd: string): DenyOverlay[] {

@@ -380,6 +380,15 @@ function isSafeRegex(pattern: string): { safe: boolean; reason?: string } {
 			return { safe: false, reason: "overlapping alternation in quantified group (ReDoS risk)" };
 		}
 	}
+	// Backreferences (\1, \2, ...) make apparent-max-length estimation unsound:
+	// the matched length is the length of whatever the captured group matched, not
+	// a fixed property of the pattern. A pattern like ([A-Za-z0-9]{4096})\1 has an
+	// apparent max of 4097 but an actual match of 8192, evading the windowed scan.
+	// Reject backreferences outright — operators should express the repetition
+	// explicitly with a bounded quantifier (e.g. [A-Za-z0-9]{8192}).
+	if (/\\[1-9]\d?/.test(pattern)) {
+		return { safe: false, reason: "backreference in pattern (apparent-length estimation is unsound; express repetition with a bounded quantifier instead)" };
+	}
 	return { safe: true };
 }
 
@@ -574,6 +583,18 @@ function scanSecretShape(text: string, shape: CompiledShape, isAllowed: (candida
 				shape.re.lastIndex = advanceStringIndex(window, shape.re.lastIndex, shape.re.unicode);
 			}
 
+			// Runtime over-length fail-closed: if a match exceeds the shape's
+			// maxLength, the windowed scan cannot guarantee the full secret was
+			// captured (it may straddle a window boundary and leak its tail).
+			// Config validation rejects unbounded patterns, but a bounded pattern
+			// can still match longer than its declared maxLength if the estimation
+			// was imprecise. Signal an over-length match via a sentinel range so
+			// the caller blocks rather than emit a partial redaction.
+			if (fullMatch.length > shape.maxLength) {
+				ranges.push({ start: -1, end: -1 });
+				return ranges;
+			}
+
 			const candidate = (shape.secretGroup < match.length ? match[shape.secretGroup] : match[0]) ?? match[0];
 			if (!candidate) continue;
 
@@ -673,6 +694,14 @@ export function inspectToolInput(
 		for (const shape of shapes) {
 			if (shape.action !== "block") continue;
 			const blockRanges = scanSecretShape(originalText, shape, isAllowed, true);
+			// Over-length sentinel: a match exceeded maxLength, so the windowed scan
+			// cannot guarantee full capture. Block rather than risk a tail leak.
+			if (blockRanges.some((r) => r.start === -1)) {
+				return {
+					action: "block",
+					reason: `secret shape "${shape.name}" matched longer than maxLength ${shape.maxLength} in field "${field}" of tool "${toolName}"; failing closed because the windowed scan cannot guarantee the full secret was captured`,
+				};
+			}
 			if (blockRanges.length > 0) {
 				return {
 					action: "block",
@@ -681,13 +710,24 @@ export function inspectToolInput(
 			}
 		}
 
+		// Collect redact ranges for ALL redact shapes against the ORIGINAL text
+		// before mutating. Applying shapes sequentially to already-mutated text
+		// lets a shorter shape destroy the evidence a longer shape needs: e.g.
+		// `sk-[A-Za-z0-9]{20}` redacts the first 20 chars of a 40-char token, then
+		// `sk-[A-Za-z0-9]{40}` no longer matches and the 20-char tail egresses.
+		// Union all ranges across shapes, then apply once.
+		interface ShapeRedaction { shape: CompiledShape; ranges: RedactRange[]; }
+		const shapeRedactions: ShapeRedaction[] = [];
+		let totalRanges = 0;
 		for (const shape of shapes) {
 			if (shape.action !== "redact") continue;
-			// Collect every match range; the cap is enforced AFTER dedup below so
-			// overlap duplicates don't consume it. If dedup'd ranges exceed the cap,
-			// we fail-closed (block) rather than silently allowing tail secrets
-			// through unredacted — a matched secret must never egress.
-			const redactRanges = scanSecretShape(text, shape, isAllowed);
+			const redactRanges = scanSecretShape(originalText, shape, isAllowed);
+			if (redactRanges.some((r) => r.start === -1)) {
+				return {
+					action: "block",
+					reason: `secret shape "${shape.name}" matched longer than maxLength ${shape.maxLength} in field "${field}" of tool "${toolName}"; failing closed because the windowed scan cannot guarantee the full secret was captured`,
+				};
+			}
 			const normalizedRedactRanges = normalizeRedactRanges(redactRanges);
 			if (normalizedRedactRanges.length > MAX_REDACTIONS_PER_SHAPE) {
 				// The redaction cap is a DoS guard on redaction work, not a security
@@ -701,13 +741,41 @@ export function inspectToolInput(
 				};
 			}
 			if (normalizedRedactRanges.length > 0) {
-				const redacted = applyRedactRanges(text, normalizedRedactRanges, `[REDACTED:${shape.name}]`);
-				if (typeof value === "string") {
-					(input as Record<string, unknown>)[field] = redacted;
-				} else {
-					try { (input as Record<string, unknown>)[field] = JSON.parse(redacted); } catch { (input as Record<string, unknown>)[field] = redacted; }
-				}
-				text = redacted;
+				shapeRedactions.push({ shape, ranges: normalizedRedactRanges });
+				totalRanges += normalizedRedactRanges.length;
+			}
+		}
+
+		if (shapeRedactions.length > 0) {
+			// Merge all ranges across shapes into one sorted list, then apply in a
+			// single pass. When ranges from different shapes overlap, the
+			// earliest-scanned shape's replacement wins (its range sorts first by
+			// start, then by insertion order). This preserves the per-shape
+			// replacement label while guaranteeing no secret tail survives.
+			interface MergedRange { start: number; end: number; label: string; }
+			const merged: MergedRange[] = [];
+			for (const { shape, ranges } of shapeRedactions) {
+				for (const r of ranges) merged.push({ start: r.start, end: r.end, label: `[REDACTED:${shape.name}]` });
+			}
+			merged.sort((a, b) => a.start - b.start);
+			// Drop ranges fully covered by an earlier range (earlier start wins).
+			const deduped: MergedRange[] = [];
+			for (const r of merged) {
+				const last = deduped[deduped.length - 1];
+				if (last && r.end <= last.end) continue; // fully covered
+				deduped.push(r);
+			}
+			let redacted = "";
+			let cursor = 0;
+			for (const r of deduped) {
+				redacted += `${originalText.slice(cursor, r.start)}${r.label}`;
+				cursor = Math.max(cursor, r.end);
+			}
+			redacted += originalText.slice(cursor);
+			if (typeof value === "string") {
+				(input as Record<string, unknown>)[field] = redacted;
+			} else {
+				try { (input as Record<string, unknown>)[field] = JSON.parse(redacted); } catch { (input as Record<string, unknown>)[field] = redacted; }
 			}
 		}
 	}
@@ -905,7 +973,6 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 			} else {
 				globalConfig = parsed;
 				legacyFieldWarnings.push(...collectLegacyFieldWarnings("global", globalConfig));
-				collectSecretShapeErrors("global", globalConfig, parseErrors);
 			}
 		} catch (e) {
 			// Fail-closed: record the error. We refuse to run with an unparseable
@@ -923,7 +990,6 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 			} else {
 				projectConfig = parsed;
 				legacyFieldWarnings.push(...collectLegacyFieldWarnings("project", projectConfig));
-				collectSecretShapeErrors("project", projectConfig, parseErrors);
 			}
 		} catch (e) {
 			parseErrors.push(`project (${projectConfigPath}): ${e instanceof Error ? e.message : e}`);
@@ -1581,6 +1647,19 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 				errors.push(`${path}.pattern is unsafe for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: ${safety.reason} (${value.pattern})`);
 			}
 		}
+		// Apparent-length check: a pattern whose match length is not bounded above
+		// (open-ended +, *, {n,}) cannot be guaranteed to fit within a scan window,
+		// so an over-long match can straddle a window boundary and leak its tail.
+		// This runs in both validateConfig (in-memory) and loadConfig (file-based,
+		// via collectSecretShapeErrors) so the two paths stay consistent.
+		const maxLength = typeof value.maxLength === "number" ? value.maxLength : SCAN_WINDOW_OVERLAP_DEFAULT;
+		const apparentMax = estimateRegexApparentMaxLength(value.pattern);
+		const name = typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)";
+		if (apparentMax === undefined) {
+			errors.push(`${path}.pattern has an unbounded match length (open-ended quantifier +, *, or {n,}) for shape ${name}; bound it (e.g. {1,64}) so the full match fits within maxLength ${maxLength} and one scan window.`);
+		} else if (apparentMax > maxLength) {
+			errors.push(`${path}.pattern appears to match up to ${apparentMax} code units for shape ${name}, exceeding maxLength ${maxLength}; set maxLength >= ${apparentMax} (and < ${MAX_SCAN_LENGTH}) so the full regex match fits within one scan window, or tighten the pattern.`);
+		}
 	}
 }
 
@@ -1605,45 +1684,32 @@ function envNameMatchesScrubConfig(name: string, config: EnvScrubConfig | undefi
 	return Boolean(config?.names?.includes(name) || compiledPatterns.some((re) => re.test(name)));
 }
 
-function collectSecretShapeErrors(source: "global" | "project", value: unknown, errors: string[]): void {
-	if (!isRecord(value) || !isRecord(value.tools) || !isRecord(value.tools.inspector)) return;
-	const secrets = value.tools.inspector.secrets;
-	if (!Array.isArray(secrets)) return;
-	secrets.forEach((secret, index) => {
-		if (!isRecord(secret) || typeof secret.pattern !== "string") return;
-		const maxLength = typeof secret.maxLength === "number" ? secret.maxLength : SCAN_WINDOW_OVERLAP_DEFAULT;
-		const apparentMax = estimateRegexApparentMaxLength(secret.pattern);
-		if (apparentMax !== undefined && apparentMax > maxLength) {
-			const name = typeof secret.name === "string" && secret.name.length > 0 ? `"${secret.name}"` : `at index ${index}`;
-			// Fail-closed: a pattern whose apparent max match length exceeds the
-			// effective window overlap can evade the scanner when split across a
-			// window boundary. The operator MUST declare maxLength >= apparentMax
-			// (which raises the per-shape overlap) so the full match fits in a window.
-			// Warn-only would let the secret egress if the operator missed the warning.
-			errors.push(`${source}: tools.inspector.secrets[${index}] shape ${name} pattern appears to match up to ${apparentMax} code units, exceeding maxLength ${maxLength}; set maxLength >= ${apparentMax} (and < ${MAX_SCAN_LENGTH}) so the full regex match fits within one scan window, or tighten the pattern.`);
-		}
-	});
-}
-
 function estimateRegexApparentMaxLength(pattern: string): number | undefined {
-	const parseSequence = (start: number, terminator?: string): { length: number; index: number } => {
-		let total = 0;
-		let branchMax = 0;
+	const parseSequence = (start: number, terminator?: string): { length: number | undefined; index: number } => {
+		let total: number | undefined = 0;
+		let branchMax: number | undefined = 0;
 		let i = start;
 		while (i < pattern.length) {
 			const ch = pattern[i];
 			if (terminator && ch === terminator) break;
 			if (ch === "|") {
-				branchMax = Math.max(branchMax, total);
+				if (total === undefined || branchMax === undefined) branchMax = undefined;
+				else branchMax = Math.max(branchMax, total);
 				total = 0;
 				i += 1;
 				continue;
 			}
 			const atom = parseAtom(i);
 			const quantified = applyBoundedQuantifier(atom.length, atom.index);
-			total += quantified.length;
+			if (quantified === undefined) return { length: undefined, index: i };
+			if (total === undefined || quantified.length === undefined) {
+				total = undefined;
+			} else {
+				total += quantified.length;
+			}
 			i = quantified.index;
 		}
+		if (total === undefined || branchMax === undefined) return { length: undefined, index: i };
 		return { length: Math.max(branchMax, total), index: i };
 	};
 
@@ -1669,15 +1735,21 @@ function estimateRegexApparentMaxLength(pattern: string): number | undefined {
 				innerStart += marker === "<" ? 3 : 2;
 			}
 			const inner = parseSequence(innerStart, ")");
-			return { length: inner.length, index: Math.min(pattern.length, inner.index + 1) };
+			return { length: inner.length ?? 0, index: Math.min(pattern.length, inner.index + 1) };
 		}
 		if ("^$".includes(ch)) return { length: 0, index: start + 1 };
 		return { length: 1, index: start + 1 };
 	};
 
-	const applyBoundedQuantifier = (atomLength: number, start: number): { length: number; index: number } => {
+	const applyBoundedQuantifier = (atomLength: number, start: number): { length: number; index: number } | undefined => {
 		const ch = pattern[start];
-		if (ch === "?" || ch === "*" || ch === "+") return { length: atomLength, index: start + 1 };
+		// Open-ended quantifiers (+, *, {n,}) match an unbounded number of times.
+		// Returning undefined propagates up as an unbounded apparent length, which
+		// the config validator rejects: a secret shape whose match length is not
+		// bounded above cannot be guaranteed to fit within a scan window, so an
+		// over-long match can straddle a window boundary and leak its tail. The
+		// operator MUST bound the quantifier (e.g. {20,128}) so the full match fits.
+		if (ch === "?" || ch === "*" || ch === "+") return undefined;
 		if (ch !== "{") return { length: atomLength, index: start };
 		const end = pattern.indexOf("}", start + 1);
 		if (end === -1) return { length: atomLength, index: start };
@@ -1686,6 +1758,8 @@ function estimateRegexApparentMaxLength(pattern: string): number | undefined {
 		if (!parts.every((part) => part === "" || /^\d+$/.test(part))) return { length: atomLength, index: start };
 		const upperRaw = parts.length === 1 ? parts[0] : parts[1];
 		const fallbackRaw = parts[0];
+		// {n,} (open upper bound) is unbounded — same as +/*.
+		if (parts.length === 2 && upperRaw === "") return undefined;
 		const multiplier = upperRaw ? Number(upperRaw) : fallbackRaw ? Number(fallbackRaw) : 1;
 		return { length: atomLength * multiplier, index: end + 1 };
 	};

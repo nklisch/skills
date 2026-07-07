@@ -36,8 +36,32 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
+      # ubuntu-latest is now 24.04, which sets
+      # kernel.apparmor_restrict_unprivileged_userns=1 by default. The apt
+      # bubblewrap package is non-setuid, so it needs an unprivileged user
+      # namespace to create the pid/net namespaces (--unshare-pid/--unshare-net).
+      # AppArmor blocks that, and every real-bwrap integration test fails at
+      # namespace creation (2-8ms) even though `bwrap --version` passes. This is
+      # the same gate openai/codex-action#77 (2026-03) and anthropics/claude-code#55585
+      # (2026-05) clear. It is an environment fix, not a bwrap-arg change: no
+      # bwrap flag can bypass a kernel userns restriction.
+      - name: Allow unprivileged user namespaces for bwrap
+        run: |
+          if [ -w /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          fi
+          # Some runners also gate the legacy clone knob.
+          if [ -w /proc/sys/kernel/unprivileged_userns_clone ]; then
+            echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
+          fi
+
       - name: Verify bubblewrap executes
         run: bwrap --version
+
+      - name: Verify bwrap can actually create a namespace
+        run: |
+          bwrap --unshare-pid --proc /proc --die-with-parent /bin/sh -c 'echo bwrap-namespace-ok'
+          echo "bwrap namespace creation confirmed"
 
       - name: Run pi-sandbox tests with bwrap required
         run: |
