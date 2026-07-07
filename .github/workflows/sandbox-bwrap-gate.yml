@@ -36,22 +36,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bubblewrap
 
-      # ubuntu-latest is now 24.04, which sets
-      # kernel.apparmor_restrict_unprivileged_userns=1 by default. The apt
-      # bubblewrap package is non-setuid, so it needs an unprivileged user
-      # namespace to create the pid/net namespaces (--unshare-pid/--unshare-net).
-      # AppArmor blocks that, and every real-bwrap integration test fails at
-      # namespace creation (2-8ms) even though `bwrap --version` passes. This is
-      # the same gate openai/codex-action#77 (2026-03) and anthropics/claude-code#55585
-      # (2026-05) clear. It is an environment fix, not a bwrap-arg change: no
-      # bwrap flag can bypass a kernel userns restriction.
       - name: Allow unprivileged user namespaces for bwrap
         run: |
-          if [ -w /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+          # ubuntu-latest is now 24.04, which sets
+          # kernel.apparmor_restrict_unprivileged_userns=1 by default. The apt
+          # bubblewrap package is non-setuid, so it needs an unprivileged user
+          # namespace to create the pid/net namespaces (--unshare-pid/--unshare-net).
+          # AppArmor blocks that, and every real-bwrap integration test fails at
+          # namespace creation (2-8ms) even though `bwrap --version` passes. This is
+          # the same gate openai/codex-action#77 (2026-03) and anthropics/claude-code#55585
+          # (2026-05) clear. It is an environment fix, not a bwrap-arg change: no
+          # bwrap flag can bypass a kernel userns restriction.
+          #
+          # Guard on file existence, NOT writability: the runner user is non-root,
+          # so [ -w /proc/sys/... ] is always false and the sudo tee never ran —
+          # which is why the namespace smoke step below failed with
+          # "setting up uid map: Permission denied". sudo can write it; the test
+          # must not short-circuit before sudo gets the chance.
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
             echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
           fi
           # Some runners also gate the legacy clone knob.
-          if [ -w /proc/sys/kernel/unprivileged_userns_clone ]; then
+          if [ -f /proc/sys/kernel/unprivileged_userns_clone ]; then
             echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
           fi
 
