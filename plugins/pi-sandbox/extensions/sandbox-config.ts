@@ -96,7 +96,7 @@ export interface ToolRules {
 	inspector?: ToolInspector;
 }
 
-export const SANDBOX_FAIL_CLOSED_MESSAGE = "Sandbox failed to initialize and is fail-closed. Fix the error above and /reload, or restart with --no-sandbox to bypass (not recommended).";
+export const SANDBOX_FAIL_CLOSED_MESSAGE = "Sandbox failed to initialize and is fail-closed. Fix the error above and /reload, or restart with --no-sandbox for a full extension bypass (bwrap + in-process file/egress/inspector gates).";
 export const SANDBOX_UNINITIALIZED_MESSAGE = "Sandbox not yet initialized. If this persists, /reload or restart pi. Use --no-sandbox only if you intentionally want to bypass.";
 
 export interface UserBashDecisionInput {

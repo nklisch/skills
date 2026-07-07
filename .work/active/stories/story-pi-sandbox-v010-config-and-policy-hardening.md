@@ -216,3 +216,11 @@ installed; M7's await is negligible when sandbox is absent).
 - Tests added: validation coverage for `(a{1,2})+`, `(a+){1,3}`, `(a|aa)+`, allowlist regex safety, the safe assignment pattern, and shape/allowlist `skipRegexSafetyCheck` (including type validation).
 - Discrepancies from design: allowlist escape hatch is modeled as `tools.inspector.allowlist.skipRegexSafetyCheck`, applying to all allowlist regexes, because the existing allowlist regex config is a string array rather than per-regex objects.
 - Verification: `cd plugins/pi-sandbox && bun test extensions/sandbox.test.ts -t "M3|unsafe nested|regex heuristic|validateConfig"` passed (6 tests).
+
+#### M5 implementation notes
+- Files changed: `plugins/pi-sandbox/extensions/sandbox.ts`, `plugins/pi-sandbox/extensions/sandbox-bwrap.ts`, `plugins/pi-sandbox/extensions/sandbox-spawn.ts`, `plugins/pi-sandbox/extensions/sandbox-config.ts`, `plugins/pi-sandbox/README.md`.
+- Implementation: updated `registerFlag("no-sandbox")` to describe the full disable semantics (OS bash sandbox plus in-process file/egress/inspector protections). Audited every fail-closed diagnostic that previously advised `--no-sandbox`, changing each to explicitly clarify it is a full extension bypass and disables both bwrap and in-process gate protections.
+- Discrepancies from design: none.
+- Verification:
+  - `grep` audit completed: no stale diagnostic text keeps `restart with --no-sandbox` without the full-bypass clarification.
+  - `cd plugins/pi-sandbox && bun test 2>&1 | tail -4` passed.
