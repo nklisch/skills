@@ -1,14 +1,14 @@
 ---
 id: story-pi-sandbox-inspector-redos-test-honesty
 kind: story
-stage: drafting
+stage: review
 tags: [security, sandbox, testing]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-07
 ---
 
 # ReDoS regression test overclaims + per-shape window overlap (B1-3, B1-4)
@@ -69,6 +69,19 @@ exercise the catastrophic case.
 
 - [ ] A secret shape longer than the global overlap cannot evade the scanner
       via a window-boundary split (per chosen B1-3 approach)
-- [ ] The ReDoS test exercises a genuine catastrophic-backtracking case, or
+- [x] The ReDoS test exercises a genuine catastrophic-backtracking case, or
       is honestly renamed/clarified
 - [ ] No regression to the existing chunked-scan tests
+
+## Implementation notes
+
+- Chosen catastrophic pattern: `(a|aa)+c` with a 50K/100K all-`a` payload plus
+  a trailing `!` to force a non-match. This pattern is intentionally outside
+  the narrow `isSafeRegex` static guard while still passing validation, so it
+  exercises runtime chunked-scan bounding instead of config validation behavior.
+- Replaced the old over-claiming test with a timing assertion that proves the
+  chunk window cap bounds ReDoS work in practice: both 50K and 100K fields must
+  complete quickly, and 100K must complete within 4× of the 50K elapsed time to
+  demonstrate approximately linear growth with window count.
+- B1-3 (`maxLength` per-shape overlap strategy) is intentionally left for
+  separate dispatch and not changed in this story.
