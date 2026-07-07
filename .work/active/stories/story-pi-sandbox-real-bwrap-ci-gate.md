@@ -1,14 +1,14 @@
 ---
-id: idea-pi-sandbox-real-bwrap-ci-gate
+id: story-pi-sandbox-real-bwrap-ci-gate
 kind: story
-stage: backlog
+stage: drafting
 tags: [security, sandbox, testing]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-07
 ---
 
 # Release CI must fail if real-bwrap tests skip (M8)

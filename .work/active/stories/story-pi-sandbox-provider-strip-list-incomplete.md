@@ -1,14 +1,14 @@
 ---
-id: idea-pi-sandbox-provider-strip-list-incomplete
+id: story-pi-sandbox-provider-strip-list-incomplete
 kind: story
-stage: backlog
+stage: drafting
 tags: [security, sandbox]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-07
 ---
 
 # Provider secret strip list incomplete for current Pi providers (H2)

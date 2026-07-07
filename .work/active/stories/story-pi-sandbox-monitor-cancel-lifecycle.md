@@ -1,14 +1,14 @@
 ---
-id: idea-pi-sandbox-monitor-cancel-lifecycle
+id: story-pi-sandbox-monitor-cancel-lifecycle
 kind: story
-stage: backlog
+stage: drafting
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-07
 ---
 
 # Monitor cancellation reports `cancelled` while the poll process keeps running (H1)
