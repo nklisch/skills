@@ -15,7 +15,7 @@ import {
 	type BuildBwrapArgsOptions,
 	validateBwrapInit,
 } from "./sandbox-bwrap";
-import { makeBwrapIntegrationTest } from "./sandbox-bwrap-test";
+import { makeBwrapIntegrationTest } from "./sandbox-bwrap.test";
 import {
 	DEFAULT_CONFIG,
 	FILTER_DEFERRED_BACKLOG_ITEM,
