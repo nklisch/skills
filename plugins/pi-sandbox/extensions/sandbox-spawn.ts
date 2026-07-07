@@ -13,15 +13,50 @@ import type { BackgroundTasksSandboxIntegration } from "./sandbox-config";
  * spawn modes these are stripped from the inherited env so a background or monitor
  * command running without bwrap confinement cannot exfiltrate provider credentials
  * via the child process environment. The healthy bwrap path uses buildMinimalEnv
- * instead and never inherits these. */
+ * instead and never inherits these. This list is a non-configurable floor;
+ * envScrub can only add project/operator-specific names and patterns. */
 export const PROVIDER_SECRET_ENV_NAMES = [
-	"ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN",
-	"OPENAI_API_KEY", "AZURE_OPENAI_API_KEY",
-	"GEMINI_API_KEY", "GOOGLE_CLOUD_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS",
-	"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_PROFILE", "AWS_BEARER_TOKEN_BEDROCK",
-	"COPILOT_GITHUB_TOKEN", "HF_TOKEN", "MISTRAL_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY",
-	"OPENROUTER_API_KEY", "TOGETHER_API_KEY", "FIREWORKS_API_KEY", "CEREBRAS_API_KEY",
-	"NVIDIA_API_KEY", "XAI_API_KEY", "ZAI_API_KEY", "AI_GATEWAY_API_KEY",
+	"ANTHROPIC_OAUTH_TOKEN",
+	"ANTHROPIC_API_KEY",
+	"ANTHROPIC_AUTH_TOKEN",
+	"ANT_LING_API_KEY",
+	"OPENAI_API_KEY",
+	"AZURE_OPENAI_API_KEY",
+	"GEMINI_API_KEY",
+	"GOOGLE_CLOUD_API_KEY",
+	"GOOGLE_APPLICATION_CREDENTIALS",
+	"AWS_ACCESS_KEY_ID",
+	"AWS_SECRET_ACCESS_KEY",
+	"AWS_SESSION_TOKEN",
+	"AWS_SECURITY_TOKEN",
+	"AWS_BEARER_TOKEN_BEDROCK",
+	"AWS_CONTAINER_AUTHORIZATION_TOKEN",
+	"AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE",
+	"AWS_WEB_IDENTITY_TOKEN_FILE",
+	"COPILOT_GITHUB_TOKEN",
+	"HF_TOKEN",
+	"MISTRAL_API_KEY",
+	"GROQ_API_KEY",
+	"DEEPSEEK_API_KEY",
+	"OPENROUTER_API_KEY",
+	"TOGETHER_API_KEY",
+	"FIREWORKS_API_KEY",
+	"CEREBRAS_API_KEY",
+	"NVIDIA_API_KEY",
+	"XAI_API_KEY",
+	"ZAI_API_KEY",
+	"ZAI_CODING_CN_API_KEY",
+	"AI_GATEWAY_API_KEY",
+	"MINIMAX_API_KEY",
+	"MINIMAX_CN_API_KEY",
+	"MOONSHOT_API_KEY",
+	"KIMI_API_KEY",
+	"OPENCODE_API_KEY",
+	"CLOUDFLARE_API_KEY",
+	"XIAOMI_API_KEY",
+	"XIAOMI_TOKEN_PLAN_CN_API_KEY",
+	"XIAOMI_TOKEN_PLAN_AMS_API_KEY",
+	"XIAOMI_TOKEN_PLAN_SGP_API_KEY",
 ];
 
 function compileEnvScrubPatterns(patterns: string[] | undefined): RegExp[] {

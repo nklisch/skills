@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-provider-strip-list-incomplete
 kind: story
-stage: drafting
+stage: review
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -90,3 +90,11 @@ Refinements from the design review:
 
 **Stance check**: only runs in the degraded spawn env (pi-sandbox active). No-op
 when sandbox is off.
+
+## Implementation notes
+- Dispatch rationale: direct-read only; the touched surface was the static degraded-spawn strip list plus a focused regression test.
+- Files changed: `plugins/pi-sandbox/extensions/sandbox-spawn.ts`, `plugins/pi-sandbox/extensions/provider-strip-list.test.ts`.
+- Tests added: `provider-strip-list.test.ts` covers every API-key env var reported by pi-ai's public `findEnvKeys` over `getBuiltinProviders()`, and separately asserts the AWS ambient secret-value floor plus non-secret AWS config exclusions.
+- Discrepancies from design: none. `findEnvKeys` is reachable only through the installed dist file rather than a package-exported subpath, but the test uses the exported `findEnvKeys` function and not the private env map.
+- Verification: `cd plugins/pi-sandbox && bun test 2>&1 | tail -8` → 126 pass, 0 fail; `cd plugins/background-tasks && bun test 2>&1 | tail -3` → 71 pass, 0 fail.
+- Adjacent issues parked: none.
