@@ -795,8 +795,8 @@ describe("config boundary contract", () => {
 		const loaded = loadConfig(cwd, { agentDir });
 
 		expect(loaded.parseErrors).toEqual([]);
-		expect(loaded.config.filesystem?.denyRead).toEqual(["global-secret", "project-secret"]);
-		expect(loaded.config.filesystem?.denyWrite).toEqual(["global-protected", "project-protected"]);
+		expect(loaded.config.filesystem?.denyRead).toEqual([...(DEFAULT_CONFIG.filesystem?.denyRead ?? []), "global-secret", "project-secret"]);
+		expect(loaded.config.filesystem?.denyWrite).toEqual([...(DEFAULT_CONFIG.filesystem?.denyWrite ?? []), "global-protected", "project-protected"]);
 		expect(loaded.config.filesystem?.allowWrite).toEqual(["allowed", "new-allow"]);
 		expect(loaded.config.network?.mode).toBe("block");
 		expect(loaded.config.network?.allowedDomains).toEqual(["a.example"]);
@@ -841,6 +841,34 @@ describe("config boundary contract", () => {
 			if (previous.keptNonScrubbed === undefined) delete process.env[keptNonScrubbed];
 			else process.env[keptNonScrubbed] = previous.keptNonScrubbed;
 		}
+	});
+
+	test("loadConfig unions global deny lists with defaults unless explicitly emptied (M1)", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			filesystem: {
+				denyRead: ["~/.ssh", "global-secret"],
+				denyWrite: ["global-protected"],
+			},
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.parseErrors).toEqual([]);
+		expect(loaded.config.filesystem?.denyRead).toEqual([...(DEFAULT_CONFIG.filesystem?.denyRead ?? []), "global-secret"]);
+		expect(loaded.config.filesystem?.denyWrite).toEqual([...(DEFAULT_CONFIG.filesystem?.denyWrite ?? []), "global-protected"]);
+
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			filesystem: { denyRead: [], denyWrite: [] },
+		}));
+
+		const emptied = loadConfig(cwd, { agentDir });
+
+		expect(emptied.parseErrors).toEqual([]);
+		expect(emptied.config.filesystem?.denyRead).toEqual([]);
+		expect(emptied.config.filesystem?.denyWrite).toEqual([]);
 	});
 
 	test("loadConfig does not crash when the global config path is absent", async () => {

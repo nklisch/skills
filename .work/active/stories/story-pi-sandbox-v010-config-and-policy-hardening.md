@@ -195,3 +195,10 @@ installed; M7's await is negligible when sandbox is absent).
 - Tests added: `tool input inspector > block pass scans original input before redact shapes mutate it (M4)` verifies a prior redact shape cannot erase the text required by a later block shape and that blocked input remains unmutated.
 - Discrepancies from design: none.
 - Verification: `cd plugins/pi-sandbox && bun test extensions/sandbox.test.ts -t "tool input inspector"` passed (7 tests).
+
+#### M1 implementation notes
+- Files changed: `plugins/pi-sandbox/extensions/sandbox-config.ts`, `plugins/pi-sandbox/extensions/sandbox.test.ts`.
+- Implementation: added a dedicated global-config merge path for filesystem deny lists. Global `denyRead` and `denyWrite` now preserve built-in defaults first and dedupe global additions, while explicit empty arrays (`[]`) intentionally replace the deny list with nothing. `allowWrite` keeps its existing replace/narrow semantics.
+- Tests added/updated: `loadConfig unions global deny lists with defaults unless explicitly emptied (M1)` covers default inheritance, dedupe, and the explicit-empty escape hatch; the existing global+project merge test now expects inherited defaults before global/project additions.
+- Discrepancies from design: none.
+- Verification: `cd plugins/pi-sandbox && bun test extensions/sandbox.test.ts -t "loadConfig reads global|unions global deny|config boundary contract"` passed (28 tests).
