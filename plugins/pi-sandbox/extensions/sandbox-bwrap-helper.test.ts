@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { assertBwrapRequiredForIntegration, resolveBwrapMode } from "./sandbox-bwrap-test";
+import { assertBwrapRequiredForIntegration, resolveBwrapMode } from "./sandbox-bwrap.test";
 
 describe("sandbox bwrap test guard", () => {
 	test("treats present bwrap as runnable", () => {

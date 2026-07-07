@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 import { loadConfig, validateConfig } from "./sandbox-config";
 import { PROVIDER_SECRET_ENV_NAMES, buildSandboxedSpawnArgs, findExecutableOnPath } from "./sandbox-spawn";
-import { makeBwrapIntegrationTest } from "./sandbox-bwrap-test";
+import { makeBwrapIntegrationTest } from "./sandbox-bwrap.test";
 
 const tempDirs: string[] = [];
 const isLinux = process.platform === "linux";
