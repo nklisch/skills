@@ -108,7 +108,7 @@ Notes:
 ## Network modes
 
 - `open` (default): sandboxed bash uses the host network. Filesystem/env/tool policy still applies.
-- `block`: sandboxed bash runs with `--unshare-net` and has no network access.
+- `block`: sandboxed bash runs with `--unshare-net`, has no network access, and masks host IPC-heavy runtime/temp paths with private tmpfs mounts (`/run`, `/var/run`, `/tmp`, `/var/tmp`, and X11 temp socket paths). `TMPDIR` is forced to `/tmp` so temp-using commands write into the private sandbox temp dir instead of a host-provided path.
 - `filter`: deferred. The extension recognizes this mode but fails closed rather than silently treating it as `open`. Follow-up work is tracked in `.work/backlog/idea-pi-sandbox-filter-tcp-proxy.md`.
 
 ## Security boundary / non-goals
@@ -121,8 +121,8 @@ What it hardens:
 - On Linux, interactive `user_bash` (`!`/`!!`) receives the same sandboxed bash operations when initialized, and returns a blocking bash result instead of falling through to the local backend when initialization fails or is still pending.
 - On macOS/Windows, OS-level bash sandboxing is unavailable; mediated bash and `user_bash` run unsandboxed through pi's local backend, but the in-process file-tool policy, tool-egress policy, and secret inspector remain active.
 - The `read`, `write`, and `edit` tools enforce the configured file policy in-process, so file-tool protections remain active even when bash is fail-closed or the OS bash sandbox is unavailable.
-- `network.mode=block` air-gaps sandboxed bash with a network namespace. `network.mode=open` leaves host networking intact for sandboxed bash while still applying file and env policy.
-- Sandboxed bash receives a minimal child environment (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`) instead of provider tokens.
+- `network.mode=block` air-gaps sandboxed bash with a network namespace and private tmpfs mounts over host IPC-heavy temp/runtime directories. `network.mode=open` leaves host networking and host temp/socket paths intact for sandboxed bash while still applying file and env policy.
+- Sandboxed bash receives a minimal child environment (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`) instead of provider tokens. In `network.mode=block`, `TMPDIR` is always set to `/tmp` regardless of the host value.
 - When `@nklisch/pi-background-tasks` is also installed on Linux with `backgroundTasks.sandboxIntegration:"auto"`, its `background` and `monitor` tools use the pi-sandbox bwrap helper too. In that active state, pi-sandbox's tool-egress default for those two tools relaxes to `allow` because their shell commands are now actually sandboxed.
 
 Intentional disable paths:
@@ -136,7 +136,8 @@ Non-goals and known gaps:
 - RPC/API mode's direct `bash` command is a known residual bypass in current pi core. It calls `AgentSession.executeBash()` directly with pi's local bash operations, bypassing both the registered `bash` tool and the `user_bash` extension event. This extension cannot sandbox or fail-close that path until pi core exposes an interception hook; operators who require bash sandboxing should avoid or restrict RPC/API bash access.
 - `background` and `monitor` have real Linux bwrap integration when `@nklisch/pi-background-tasks` is installed and `backgroundTasks.sandboxIntegration:"auto"` is active. They are still not OS-sandboxed on non-Linux hosts, when the integration is off, or when pi-sandbox is fail-closed; the tool-egress policy stays at `confirm`/fail-closed in those states.
 - Web/search tools, subagents, and provider/model requests are not OS-sandboxed command surfaces. They may perform network or provider egress according to their own implementations and any in-process tool policy configured by Pi.
-- `network.mode=open` is not an egress boundary. It intentionally gives sandboxed bash the host's normal network access.
+- `network.mode=open` is not an egress boundary. It intentionally gives sandboxed bash the host's normal network access and does not hide host Unix sockets under `/tmp` or `/var/tmp`.
+- `network.mode=block` private `/tmp` and `/var/tmp` tmpfs mounts override `allowWrite`/`denyWrite` expectations for those host paths: writes go to sandbox-private memory, not host files. bwrap creates these tmpfs mounts with ordinary directory permissions rather than sticky `1777`; this is acceptable for the single-user sandbox model but does not preserve multi-user `/tmp` semantics. bwrap also does not apply a size cap to these tmpfs mounts, so a sandboxed command can still consume memory by filling its private temp filesystem.
 - `network.mode=filter` is recognized as a deferred strict mode and fails closed rather than silently degrading to open networking.
 
 Use this plugin as defense-in-depth for mediated shell commands and file access. On non-Linux hosts, treat it as in-process policy defense only: arbitrary shell commands are not confined by an operating-system sandbox, though file tools and tool-egress gates still run.

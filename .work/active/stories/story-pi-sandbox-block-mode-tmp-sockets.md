@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-block-mode-tmp-sockets
 kind: story
-stage: drafting
+stage: review
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -54,9 +54,9 @@ worth considering.
 
 ## Acceptance (when scoped)
 
-- [ ] A socket under `/tmp/ssh-*` or `/tmp/dbus-*` is NOT reachable in block mode
-- [ ] Sandboxed commands that need a temp dir still work (TMPDIR set, or /tmp writable)
-- [ ] The block-mode behavior is documented honestly (air-gap vs network-blocked)
+- [x] A socket under `/tmp/ssh-*` or `/tmp/dbus-*` is NOT reachable in block mode
+- [x] Sandboxed commands that need a temp dir still work (TMPDIR set, or /tmp writable)
+- [x] The block-mode behavior is documented honestly (air-gap vs network-blocked)
 
 ## Hardened design (post adversarial design review, 2026-07-07)
 
@@ -85,3 +85,13 @@ Refinements from the design review:
 **Stance check**: block mode is an explicit sandbox opt-in (`network.mode:"block"`),
 so the no-op-by-default constraint doesn't apply — this only activates when the
 operator has configured the sandbox.
+
+## Implementation notes
+
+- Files changed: `plugins/pi-sandbox/extensions/sandbox-bwrap.ts`, `plugins/pi-sandbox/extensions/sandbox.test.ts`, `plugins/pi-sandbox/README.md`.
+- Block-mode mount order: host allowWrite binds are still emitted first, then block mode adds private tmpfs masks for `/run`, canonical `/var/run`, `/tmp`, `/var/tmp`, and `/tmp/.X11-unix`. This means `allowWrite:["/tmp"]` cannot re-expose host `/tmp`; `/var/run` retains canonical dedupe to avoid bwrap symlink mount failures.
+- TMPDIR handling: `buildBwrapArgs()` now forces `TMPDIR=/tmp` only for `networkMode:"block"`, while open mode preserves the minimal inherited value. Runtime bwrap coverage verifies `mktemp -d` works inside the private `/tmp`.
+- Real-bwrap proof: added an integration test that creates a live Unix socket under host `/tmp/ssh-*`, verifies open mode can connect to it, then verifies block mode attempts the same connection and fails with `ENOENT` because `/tmp` is private tmpfs.
+- Documentation: README now states that block mode uses private temp/runtime tmpfs mounts, documents `TMPDIR=/tmp`, and calls out the sticky-bit and unbounded-tmpfs-size residuals.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
