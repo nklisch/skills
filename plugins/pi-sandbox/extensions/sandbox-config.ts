@@ -393,7 +393,10 @@ function quantifiedGroups(pattern: string): Array<{ inner: string; quantifier: s
 		if (quantifier) {
 			groups.push({ inner: pattern.slice(i + 1, end).replace(/^\?(?::|[=!]|<[=!])/, ""), quantifier });
 		}
-		i = end;
+		// Do NOT skip past the group (i = end): a quantified group nested inside an
+		// unquantified wrapper (e.g. ^((a|aa)+)$) must still be inspected. Continue
+		// scanning from i+1 so inner groups are found. (Skipping to `end` was the
+		// M3 wrapper-bypass bug — it hid unsafe inner quantified groups.)
 	}
 	return groups;
 }
@@ -1558,8 +1561,8 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 	if (value.maxLength !== undefined) {
 		if (!Number.isInteger(value.maxLength) || value.maxLength <= 0) {
 			errors.push(`${path}.maxLength must be a positive integer`);
-		} else if (value.maxLength > MAX_SCAN_LENGTH) {
-			errors.push(`${path}.maxLength must be <= ${MAX_SCAN_LENGTH} because a full regex match must fit within one scan window`);
+		} else if (value.maxLength >= MAX_SCAN_LENGTH) {
+			errors.push(`${path}.maxLength must be < ${MAX_SCAN_LENGTH} (a full regex match must fit within one scan window with overlap to spare; maxLength === MAX_SCAN_LENGTH forces stride=1 byte-by-byte scanning)`);
 		}
 	}
 	if (typeof value.pattern === "string" && value.pattern.length > 0 && (value.flags === undefined || typeof value.flags === "string")) {

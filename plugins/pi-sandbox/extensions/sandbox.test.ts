@@ -51,7 +51,13 @@ import {
 const tempDirs: string[] = [];
 const bwrapPath = "bwrap";
 const isLinux = process.platform === "linux";
-const hasBwrap = isLinux && Bun.spawnSync([bwrapPath, "--version"], { stdout: "pipe", stderr: "pipe" }).success;
+const hasBwrap = isLinux && (() => {
+	try {
+		return Bun.spawnSync([bwrapPath, "--version"], { stdout: "pipe", stderr: "pipe" }).success;
+	} catch {
+		return false;
+	}
+})();
 const integrationTest = makeBwrapIntegrationTest({ isLinux, hasBwrap });
 
 async function makeTempDir(): Promise<string> {
@@ -990,6 +996,7 @@ describe("config boundary contract", () => {
 						{ name: "zero", pattern: "a", action: "block", maxLength: 0 },
 						{ name: "fractional", pattern: "b", action: "block", maxLength: 1.5 },
 						{ name: "too-long", pattern: "c", action: "block", maxLength: 10_001 },
+						{ name: "at-cap", pattern: "d", action: "block", maxLength: 10_000 },
 					],
 				},
 			},
@@ -997,7 +1004,8 @@ describe("config boundary contract", () => {
 
 		expect(errors.join("\n")).toContain("tools.inspector.secrets[0].maxLength must be a positive integer");
 		expect(errors.join("\n")).toContain("tools.inspector.secrets[1].maxLength must be a positive integer");
-		expect(errors.join("\n")).toContain("tools.inspector.secrets[2].maxLength must be <= 10000");
+		expect(errors.join("\n")).toContain("tools.inspector.secrets[2].maxLength must be < 10000");
+		expect(errors.join("\n")).toContain("tools.inspector.secrets[3].maxLength must be < 10000");
 	});
 
 	test("loadConfig warns when a secret pattern appears longer than its maxLength (B1-3)", async () => {
@@ -1649,13 +1657,12 @@ describe("buildBwrapArgs", () => {
 		expect(blockArgs).not.toContain("/host/tmp");
 	});
 
-	test("block mode actually spawns bwrap without failing (regression: /var/run symlink)", async () => {
+	integrationTest("block mode actually spawns bwrap without failing (regression: /var/run symlink)", async () => {
 		// On systemd Linux /var/run -> /run. bwrap --tmpfs /var/run fails with
 		// "Can't mount tmpfs on .../var/run" and the spawn exits 1. This test runs
 		// the real bwrap binary so the arg-list-only check above can't mask a real
 		// mount failure. Skipped when bwrap is unavailable.
 		const bwrap = findExecutableOnPath("bwrap", process.env);
-		if (!bwrap) return; // non-Linux graceful degrade
 		const cwd = await makeRepoTempDir();
 		const args = [
 			...buildBwrapArgs({

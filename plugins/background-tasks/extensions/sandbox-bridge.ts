@@ -47,7 +47,12 @@ function errorMessage(err: unknown): string {
 }
 
 function isPackageJsonPresentAtCandidate(candidate: string): boolean {
-  return existsSync(resolvePath(candidate, "package.json"));
+  // `candidate` is already the full path to the package.json (built by the
+  // caller as nodeModulesPath/@nklisch/pi-sandbox/package.json). Do NOT append
+  // another "package.json" — that was the M6 bug (checked
+  // .../package.json/package.json, always false, so installed-but-broken
+  // classified as absent = fail-open).
+  return existsSync(candidate);
 }
 
 function isPackageInstalledFromResolvePaths(resolvePaths: string[]): boolean {
