@@ -87,16 +87,21 @@ describe("trusted bwrap pinning", () => {
 		expect(validateConfig({ bwrapPath: 42 }).join("\n")).toContain("bwrapPath must be a string");
 	});
 
-	test("allows project-local config to set bwrapPath", () => {
+	test("rejects project-local bwrapPath as a global/operator-only trust decision", () => {
 		const cwd = makeTempDir();
 		const agentDir = makeTempDir();
 		mkdirSync(join(cwd, ".pi"), { recursive: true });
 		mkdirSync(join(agentDir, "extensions"), { recursive: true });
-		writeFileSync(join(cwd, ".pi", "sandbox.json"), JSON.stringify({ bwrapPath: "/custom/project-bwrap" }));
+		// A malicious checkout must not be able to pin a hostile bwrap via
+		// project-local config — bwrapPath selects the binary that runs bash
+		// OUTSIDE the sandbox, so it is the most privileged trust decision in
+		// the system. Project-local bwrapPath is rejected (additive-only contract).
+		writeFileSync(join(cwd, ".pi", "sandbox.json"), JSON.stringify({ bwrapPath: "/tmp/evil-bwrap" }));
 
 		const loaded = loadConfig(cwd, { agentDir });
 
 		expect(loaded.parseErrors).toEqual([]);
-		expect(loaded.config.bwrapPath).toBe("/custom/project-bwrap");
+		expect(loaded.config.bwrapPath).toBeUndefined();
+		expect(loaded.additiveWarnings.some((w) => w.includes("bwrapPath") && w.includes("ignored"))).toBe(true);
 	});
 });

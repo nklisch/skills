@@ -1125,20 +1125,22 @@ describe("tool input inspector", () => {
 		expect(input.body).toBe("tok_example [REDACTED:token] [REDACTED:token]");
 	});
 
-	test("auto-policy input scanning is capped to 10k characters before regex scan", () => {
+	test("redact-cap overflow fails closed instead of leaking tail secrets (B1-1)", () => {
+		// A redact-action shape matching more than MAX_REDACTIONS_PER_SHAPE unique
+		// ranges must block rather than silently allow tail matches through
+		// unredacted. Previously the cap dropped tail ranges but still allowed —
+		// a real secret after 10K decoys would egress unredacted. Now it fails closed.
 		const input: Record<string, unknown> = {
-			body: `${"a".repeat(100_000)}X`,
+			body: "a".repeat(100_000),
 		};
 
 		const verdict = inspectToolInput("agent_send", input, {
 			secrets: [{ name: "any-a", pattern: "a", action: "redact" }],
 		});
 
-		expect(verdict.action).toBe("allow");
-		const redacted = input.body;
-		expect(typeof redacted).toBe("string");
-		const redactionCount = (redacted as string).match(/\[REDACTED:any-a\]/g)?.length ?? 0;
-		expect(redactionCount).toBe(10_000);
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain("redaction cap exceeded");
+		expect(verdict.reason).toContain("any-a");
 	});
 
 	test("entropy-gated low-entropy candidates still block when long enough", () => {

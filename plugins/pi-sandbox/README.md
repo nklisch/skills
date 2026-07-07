@@ -4,7 +4,7 @@ First-party sandbox hardening for pi. On Linux, the package runs pi's mediated L
 
 ## Requirements
 
-- Linux hosts get the full OS-level bash sandbox and must have `bwrap` (`bubblewrap`) installed and available on `PATH` before the pi session starts.
+- Linux hosts get the full OS-level bash sandbox and must have `bwrap` (`bubblewrap`) installed at one of the trusted system paths (`/usr/bin/bwrap`, `/bin/bwrap`) before the pi session starts, or pinned explicitly via the global `sandbox.bwrapPath` config field. `bwrap` is never resolved from `PATH` — a hostile `PATH` cannot substitute a fake wrapper.
 - macOS and Windows hosts gracefully degrade: mediated LLM/tool `bash` and interactive `user_bash` run through pi's normal local shell backend, while the in-process file-tool policy, tool-egress policy, and secret inspector remain active.
 - Pi loads this as a Pi package from `package.json`; it is intentionally Pi-only and has no Claude Code or Codex plugin manifests.
 
@@ -69,7 +69,7 @@ Config is JSON and is merged from:
 1. Global: `~/.pi/agent/extensions/sandbox.json`
 2. Project-local: `<project>/.pi/sandbox.json`
 
-Project-local config is additive-only. It may tighten policy, but it cannot loosen a global/default posture. The default network mode is `open` for the first release. For example, a project can add `denyRead` entries, add `denyWrite` entries, narrow `allowWrite`, move networking from `open` to `block`, or raise a tool policy from `confirm` to `block`; it cannot disable the sandbox, expand writable paths, or lower a blocked tool to allowed. A global/operator config may set `enabled:false` as an intentional full extension disable; project-local config cannot use `enabled:false` to loosen a global enabled policy.
+Project-local config is additive-only. It may tighten policy, but it cannot loosen a global/default posture. The default network mode is `open` for the first release. For example, a project can add `denyRead` entries, add `denyWrite` entries, narrow `allowWrite`, move networking from `open` to `block`, or raise a tool policy from `confirm` to `block`; it cannot disable the sandbox, expand writable paths, or lower a blocked tool to allowed. A global/operator config may set `enabled:false` as an intentional full extension disable; project-local config cannot use `enabled:false` to loosen a global enabled policy. `sandbox.bwrapPath` is global/operator-only: it selects the binary that runs bash outside the sandbox (the wrapper that creates the sandbox), so it is the most privileged trust decision in the system — project-local attempts to set `bwrapPath` are rejected with a warning. Operators who need a custom `bwrap` install set it in global config.
 
 Minimal hardened example:
 

@@ -1,14 +1,14 @@
 ---
 id: story-pi-sandbox-readme-bwrappath-drift
 kind: story
-stage: drafting
+stage: done
 tags: [docs, sandbox, prose]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-07
 ---
 
 # README drifted: bwrap no longer "on PATH"; bwrapPath additive-only claim (B2-3)
@@ -56,7 +56,22 @@ first (the doc must reflect the chosen trust model).
 
 ## Acceptance criteria
 
-- [ ] README bwrap-resolution description matches implementation (allowlist +
+- [x] README bwrap-resolution description matches implementation (allowlist +
       configured override, not PATH)
-- [ ] README additive-only contract section is accurate w.r.t. `bwrapPath`
-- [ ] No other README assertions contradicted by the B1/B2/B3 fixes
+- [x] README additive-only contract section is accurate w.r.t. `bwrapPath`
+- [x] No other README assertions contradicted by the B1/B2/B3 fixes
+
+## Implementation notes
+
+- Implemented inline alongside the B2-1 trust decision (the doc must reflect
+  the chosen trust model, so the two were coupled). Line 7 updated: `bwrap`
+  is resolved from the trusted system allowlist (`/usr/bin/bwrap`,
+  `/bin/bwrap`) or the global `sandbox.bwrapPath` config field, never from
+  `PATH`; a hostile `PATH` cannot substitute a fake wrapper. Line 72 updated:
+  the additive-only contract section explicitly calls out `bwrapPath` as
+  global/operator-only (the most privileged trust decision — it selects the
+  binary that runs bash outside the sandbox), with project-local attempts
+  rejected with a warning.
+- Verified no other README assertions are contradicted by the B1/B2/B3 fixes.
+- Verification: 124 pi-sandbox + 71 background-tasks green (doc-only change,
+  no test impact).

@@ -528,15 +528,28 @@ export function inspectToolInput(
 							reason: `secret shape "${shape.name}" matched in field "${field}" of tool "${toolName}"`,
 						};
 					}
-					if (redactRanges.length < MAX_REDACTIONS_PER_SHAPE) {
-						redactRanges.push({ start, end });
-					}
+					// Collect every match range; the cap is enforced AFTER dedup below so
+					// overlap duplicates don't consume it. If dedup'd ranges exceed the cap,
+					// we fail-closed (block) rather than silently allowing tail secrets
+					// through unredacted — a matched secret must never egress.
+					redactRanges.push({ start, end });
 				}
 
 				if (offset + MAX_SCAN_LENGTH >= text.length) break;
 			}
 
 			const normalizedRedactRanges = normalizeRedactRanges(redactRanges);
+			if (normalizedRedactRanges.length > MAX_REDACTIONS_PER_SHAPE) {
+				// The redaction cap is a DoS guard on redaction work, not a security
+				// boundary. If a field has more unique secret-shaped matches than we
+				// can safely redact, refuse the call rather than allow tail secrets
+				// to egress unredacted. The operator should refine the shape or
+				// allowlist the false positives.
+				return {
+					action: "block",
+					reason: `secret shape "${shape.name}" matched more than ${MAX_REDACTIONS_PER_SHAPE} times in field "${field}" of tool "${toolName}"; redaction cap exceeded, failing closed to prevent tail-secret leakage`,
+				};
+			}
 			if (normalizedRedactRanges.length > 0) {
 				const redacted = applyRedactRanges(text, normalizedRedactRanges, `[REDACTED:${shape.name}]`);
 				if (typeof value === "string") {
@@ -896,11 +909,16 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 		warns.push(`project tried to disable sandbox; ignored (additive-only policy).`);
 	}
 
-	// bwrapPath is an explicit operator pin. Project-local config may set it so
-	// custom per-project bwrap installs work; resolution still requires an
-	// absolute, executable path at session_start and bypasses PATH entirely.
+	// bwrapPath is a global/operator-only trust decision: it selects the binary
+	// that runs bash OUTSIDE the sandbox (it is the wrapper that creates the
+	// sandbox). Project-local config is untrusted (a malicious checkout) and must
+	// not be able to pin a hostile bwrap — that would be a sandbox escape that
+	// contradicts the additive-only contract. Reject project-local bwrapPath;
+	// operators who need a custom bwrap set it in global config. This also closes
+	// the mid-session TOCTOU: a project writing .pi/sandbox.json with a hostile
+	// bwrapPath after session_start cannot change the spawn path.
 	if (project.bwrapPath !== undefined) {
-		result.bwrapPath = project.bwrapPath;
+		warns.push(`project tried to set bwrapPath; ignored (global/operator-only trust decision — bwrapPath selects the sandbox binary and cannot be set from untrusted project config).`);
 	}
 
 	// denyRead: project can only ADD entries (union).
