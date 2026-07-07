@@ -1034,6 +1034,63 @@ describe("monitor tool", () => {
     expect(execCalls).toEqual([]);
   });
 
+  test("cancelling an in-flight degraded monitor poll kills the direct-spawn shell", async () => {
+    const cwd = await makeTempDir();
+    const startedMarker = join(cwd, "degraded-monitor-started.txt");
+    const doneMarker = join(cwd, "degraded-monitor-done.txt");
+    const strippedEnv = { PATH: process.env.PATH ?? "/usr/bin:/bin", HOME: "/tmp" };
+    const degradedBuilder = ((opts) => ({
+      state: "degraded",
+      integration: "inactive",
+      reason: "integration-off",
+      executable: null,
+      args: [],
+      cwd: opts.cwd,
+      env: strippedEnv,
+      message: "operator opt-out",
+    })) as BuildSandboxedSpawnArgs;
+    const execCalls: Array<{ command: string; args: string[] }> = [];
+    const { tools, wakes } = makeFakePi(async (command, args) => {
+      execCalls.push({ command, args });
+      return { stdout: "", code: 1 };
+    }, {
+      sandboxResolver: async () => ({ state: "loaded", buildSandboxedSpawnArgs: degradedBuilder }),
+    });
+    const mon = tools.get("monitor")!;
+    const jobs = tools.get("jobs")!;
+    const ctx = { ...makeContext(), cwd };
+
+    const started = (await mon.execute(
+      "c1",
+      {
+        command: "printf started > degraded-monitor-started.txt; sleep 2; printf done > degraded-monitor-done.txt",
+        satisfy_on: "stdout_matches",
+        pattern: "NEVER",
+        interval_seconds: 1,
+        timeout_seconds: 30,
+        label: "monitor-cancel-degraded",
+      },
+      undefined,
+      undefined,
+      ctx,
+    )) as { details: { jobId: number; sandbox: string } };
+
+    expect(started.details.sandbox).toBe("degraded");
+    await waitFor(() => (existsSync(startedMarker) ? true : undefined), { timeoutMs: 3000 });
+
+    const cancelRes = (await jobs.execute("c2", { action: "cancel", jobId: started.details.jobId }, undefined, undefined, ctx)) as {
+      details: { status: string };
+      content: Array<{ text: string }>;
+    };
+    expect(cancelRes.details.status).toBe("cancelled");
+    expect(cancelRes.content[0].text).toContain("monitor-cancel-degraded");
+
+    await sleep(2600);
+    expect(existsSync(doneMarker)).toBe(false);
+    expect(execCalls).toEqual([]);
+    expect(wakes).toHaveLength(0);
+  }, 8000);
+
   test("wakes on satisfy_on stdout_matches with a custom message and keeps output out of the wake", async () => {
     const { tools, wakes, userMessages } = makeFakePi();
     const mon = tools.get("monitor")!;

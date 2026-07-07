@@ -57,6 +57,8 @@ Bypass tools: background=allow, monitor=allow
 
 If that line says `inactive` or `blocked`, the commands are not being sandboxed and pi-sandbox keeps the bypass policy at `confirm`/fail-closed by default.
 
+Known residual: when `@nklisch/pi-sandbox` is not installed, `monitor` polls use Pi's `pi.exec` path. Those polls do not expose a child process handle to background-tasks, so `jobs action=cancel` can mark the monitor cancelled between polls but cannot reliably kill a command already mid-poll. Install `@nklisch/pi-sandbox` for cancellable in-flight monitor polls.
+
 ## Usage patterns
 
 ```text
