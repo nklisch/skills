@@ -51,3 +51,42 @@ plugin metadata.
 Trigger the post-bump `Build work-view binaries` workflow for the current
 manifest version with `commit_binaries=true`, then refresh the tracked dogfood
 `.work/bin/work-view` from the verified Linux x86_64 musl artifact.
+
+## Implementation constraint (2026-07-06)
+
+**Status: NOT in-session-drainable — requires a CI workflow trigger.**
+
+Verified the drift: manifests report `0.15.3` but all 4 committed dist binaries
++ the dogfood `.work/bin/work-view` report `0.14.12`. The
+`work-view-dist-version.test.sh` guard fails (6 failures).
+
+The rebuild requires cross-compiling 4 target triples:
+- `x86_64-unknown-linux-musl`
+- `aarch64-unknown-linux-musl`
+- `x86_64-apple-darwin`
+- `aarch64-apple-darwin`
+
+This host has only `x86_64-unknown-linux-gnu` installed (no musl, no darwin
+targets, no `cargo-zigbuild`). The rebuild is owned by the
+`.github/workflows/build-work-view.yml` workflow (runs on dedicated runners:
+macos for darwin, ubuntu for musl), triggered via `workflow_dispatch` with
+`commit_binaries=true`, OR by a push that matches the workflow's path triggers.
+
+### Fix path (CI-driven, not inline)
+
+1. Trigger `build-work-view.yml` (push to the branch, or manual dispatch with
+   `commit_binaries=true`) once the branch is pushed.
+2. The workflow builds all 4 triples, runs the size-budget + version checks, and
+   commits the refreshed binaries to `dist/`.
+3. Refresh the dogfood `.work/bin/work-view` from the verified
+   `x86_64-unknown-linux-musl` artifact (or `cargo build --release` natively if
+   the gnu target suffices for local dogfooding — but the committed dist must be
+   the musl cross-compile).
+4. Re-run `work-view-dist-version.test.sh` to confirm green.
+
+### Note
+
+This is blocked on pushing the branch (the workflow runs on push/dispatch, not
+locally). The session note's gate ("do NOT push until the 3 blockers are fixed")
+is now satisfied — pushing unblocks this via CI. Filing as a known residual
+until the push + CI cycle completes.
