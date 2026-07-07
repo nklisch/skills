@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-monitor-cancel-lifecycle
 kind: story
-stage: drafting
+stage: review
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: []
@@ -78,3 +78,10 @@ Refinements from the design review:
 which only happens via pi-sandbox's strip-env. Sandbox off → `pi.exec` path
 (unchanged, the 5b residual). So this is no-op-by-default; it only activates when
 pi-sandbox is opted in.
+
+## Implementation notes
+- Files changed: `plugins/background-tasks/extensions/background-tasks.ts`, `plugins/background-tasks/extensions/background-tasks.test.ts`, `plugins/background-tasks/README.md`.
+- Tests added: `monitor tool > cancelling an in-flight degraded monitor poll kills the direct-spawn shell` exercises cancel-during-poll on the degraded direct-spawn path and asserts no completion marker is written.
+- Discrepancies from design: none; the absent pi-sandbox / `pi.exec` mid-poll cancellation gap remains documented as a known residual.
+- Adjacent issues parked: none.
+- Verification: `cd plugins/background-tasks && bun test` passed (72 tests).

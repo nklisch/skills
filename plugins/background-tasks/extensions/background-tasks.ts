@@ -264,6 +264,7 @@ type Job = {
   satisfyOn?: string;
   pattern?: string;
   polling?: boolean; // in-flight guard so monitor polls never overlap
+  pollAbortController?: AbortController; // per-job cancellation for the current in-flight monitor poll
   pollFailures?: number; // consecutive polls with empty stdout or non-zero exit
   timer?: ReturnType<typeof setTimeout>;
 };
@@ -377,6 +378,7 @@ interface ShellRunOptions {
    * provider-secret-stripped env for degraded monitors. */
   degradedEnv?: NodeJS.ProcessEnv;
   piExec?: PiApi["exec"];
+  onChildCreated?: (child: ChildProcess) => void;
   onChildSpawn?: (child: ChildProcess) => void;
   onChildClose?: () => void;
 }
@@ -510,28 +512,61 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
     // option and would inherit the full process.env.
     if (opts.degradedEnv) {
       return new Promise((resolve) => {
+        let stdout = "";
+        let stderr = "";
+        let settled = false;
+        let timedOut = false;
+        let abortListener: (() => void) | undefined;
         const child = spawn("/bin/sh", ["-c", opts.command], {
           cwd: opts.cwd,
           env: opts.degradedEnv,
           detached: true,
           stdio: ["ignore", "pipe", "pipe"],
         });
-        let stdout = "";
-        let stderr = "";
-        const timer = setTimeout(() => killChildProcessGroup(child, "SIGKILL"), opts.timeoutMs);
-        const onAbort = () => killChildProcessGroup(child, "SIGKILL");
-        opts.signal?.addEventListener("abort", onAbort, { once: true });
-        child.stdout?.on("data", (d) => { stdout += d; });
-        child.stderr?.on("data", (d) => { stderr += d; });
-        child.on("close", (code) => {
-          clearTimeout(timer);
-          opts.signal?.removeEventListener("abort", onAbort);
-          opts.onChildSpawn?.(child);
-          resolve({ code, stdout, stderr });
+
+        // child.pid is available immediately after spawn() returns on the
+        // successful path. Track it synchronously so jobs(action=cancel) can
+        // target an in-flight degraded monitor poll before it closes.
+        opts.onChildCreated?.(child);
+
+        const timeoutTimer = setTimeout(() => {
+          timedOut = true;
+          killChildProcessGroup(child, "SIGKILL");
+        }, opts.timeoutMs);
+
+        const cleanup = () => {
+          clearTimeout(timeoutTimer);
+          if (abortListener) opts.signal?.removeEventListener("abort", abortListener);
+          opts.onChildClose?.();
+        };
+
+        const finish = (result: ExecResult) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolve(result);
+        };
+
+        abortListener = () => {
+          timedOut = true;
+          killChildProcessGroup(child, "SIGKILL");
+        };
+        opts.signal?.addEventListener("abort", abortListener, { once: true });
+        if (opts.signal?.aborted) abortListener();
+
+        child.stdout?.on("data", (data: Buffer | string) => {
+          stdout += typeof data === "string" ? data : data.toString("utf8");
         });
-        child.on("error", (err) => {
-          clearTimeout(timer);
-          resolve({ code: 1, stdout, stderr: String(err) });
+        child.stderr?.on("data", (data: Buffer | string) => {
+          stderr += typeof data === "string" ? data : data.toString("utf8");
+        });
+        child.once("spawn", () => opts.onChildSpawn?.(child));
+        child.once("error", (err) => {
+          finish({ stdout, stderr: `${stderr}${err.message}`, code: null });
+        });
+        child.once("close", (code, signal) => {
+          const timeoutNote = timedOut ? `monitor poll exceeded ${opts.timeoutMs}ms and was terminated${signal ? ` by ${signal}` : ""}\n` : "";
+          finish({ stdout, stderr: `${stderr}${timeoutNote}`, code, killed: timedOut });
         });
       });
     }
@@ -737,8 +772,13 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       clearTimeout(job.timer);
       job.timer = undefined;
     }
+    const pollAbortController = job.pollAbortController;
+    pollAbortController?.abort();
     if (!job.child || !job.pid) {
-      // monitor (no child process) — terminal immediately.
+      // Between monitor polls (or the pi.exec residual path with no child handle)
+      // there is no process group for this extension to reap. Record the user's
+      // cancellation immediately; any in-flight pi.exec observes the abort signal
+      // only if the host runtime supports it.
       job.status = "cancelled";
       finalize(job);
       return;
@@ -1019,21 +1059,28 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
     const tick = async (): Promise<void> => {
       if (job.status !== "running" || job.polling) return;
       job.polling = true;
+      const pollAbortController = new AbortController();
+      job.pollAbortController = pollAbortController;
       let result: ExecResult;
       try {
         // Unsandboxed/degraded monitors preserve the existing pi.exec route
         // through /bin/sh -c. Sandboxed monitors cannot use pi.exec because the
         // local PiApi slice has no env option; they direct-spawn bwrap with the
         // pi-sandbox-owned minimal env and argv prefix prepared once at monitor
-        // start.
+        // start. Cancellation uses a per-job AbortController rather than the
+        // monitor tool call's signal so jobs(action=cancel) owns the lifecycle.
         result = await runShellOnce({
           command,
           cwd: pollDecision.cwd,
           timeoutMs: Math.max(5, intervalSeconds) * 1000,
-          signal: _signal,
+          signal: pollAbortController.signal,
           sandbox: pollDecision.mode === "sandboxed" ? pollDecision.sandbox : null,
           degradedEnv: pollDecision.mode === "unsandboxed" ? pollDecision.env : undefined,
           piExec: pi.exec,
+          onChildCreated: (child) => {
+            job.child = child;
+            job.pid = child.pid;
+          },
           onChildSpawn: (child) => {
             job.child = child;
             job.pid = child.pid;
@@ -1047,6 +1094,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       } catch (err) {
         result = { stderr: (err as Error).message, code: null };
       } finally {
+        if (job.pollAbortController === pollAbortController) job.pollAbortController = undefined;
         job.polling = false;
       }
       if (job.status !== "running") return; // cancelled/timed out mid-poll
