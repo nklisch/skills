@@ -46,9 +46,12 @@ describe("background-tasks ↔ pi-sandbox handshake integration", () => {
 		const missing = Object.assign(new Error("Cannot find package '@nklisch/pi-sandbox' from '/tmp/test.ts'"), {
 			code: "ERR_MODULE_NOT_FOUND",
 		});
-		const bridge = createSandboxBridge(async () => {
-			throw missing;
-		});
+		const bridge = createSandboxBridge(
+			async () => {
+				throw missing;
+			},
+			() => false,
+		);
 		await bridge.resolveSandboxSpawnBuilder();
 
 		const rawHandshake = readBackgroundTasksIntegrationHandshake();
@@ -83,8 +86,9 @@ describe("background-tasks ↔ pi-sandbox handshake integration", () => {
 			integrated: false,
 			reason: "broken",
 			bridgeState: "broken",
-			message: "sandbox-spawn helper exploded during evaluation",
 		});
+		expect((rawHandshake as { message?: string }).message).toContain("pi-sandbox is installed but broken");
+		expect((rawHandshake as { message?: string }).message).toContain("exploded during evaluation");
 
 		const config: SandboxConfig = { ...DEFAULT_CONFIG, enabled: true, network: { mode: "open" }, backgroundTasks: { sandboxIntegration: "auto" } };
 		const decided = decideBackgroundTasksIntegrationState({

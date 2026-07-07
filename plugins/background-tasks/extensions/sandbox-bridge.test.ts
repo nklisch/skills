@@ -16,9 +16,12 @@ describe("sandbox bridge", () => {
     const missing = Object.assign(new Error("Cannot find package '@nklisch/pi-sandbox' from '/tmp/test.ts'"), {
       code: "ERR_MODULE_NOT_FOUND",
     });
-    const bridge = createSandboxBridge(async () => {
-      throw missing;
-    });
+    const bridge = createSandboxBridge(
+      async () => {
+        throw missing;
+      },
+      () => false,
+    );
 
     const resolved = await bridge.resolveSandboxSpawnBuilder();
     expect(resolved).toEqual({ state: "absent" });
@@ -32,19 +35,26 @@ describe("sandbox bridge", () => {
   });
 
   test("classifies a throwing installed helper as broken without crashing", async () => {
-    const bridge = createSandboxBridge(async () => {
-      throw new Error("sandbox-spawn helper exploded during evaluation");
-    });
+    const bridge = createSandboxBridge(
+      async () => {
+        throw new Error("sandbox-spawn helper exploded during evaluation");
+      },
+      () => true,
+    );
 
     const resolved = await bridge.resolveSandboxSpawnBuilder();
     expect(resolved.state).toBe("broken");
-    if (resolved.state === "broken") expect(resolved.message).toContain("exploded");
+    if (resolved.state === "broken") {
+      expect(resolved.message).toContain("pi-sandbox is installed but broken");
+      expect(resolved.message).toContain("exploded during evaluation");
+    }
 
     const helper = await bridge.getSandboxSpawnHelper();
     expect(helper.available).toBe(false);
     if (!helper.available) {
       expect(helper.reason).toBe("broken");
-      expect(helper.message).toContain("exploded");
+      expect(helper.message).toContain("pi-sandbox is installed but broken");
+      expect(helper.message).toContain("exploded during evaluation");
     }
   });
 
@@ -73,13 +83,57 @@ describe("sandbox bridge", () => {
     });
   });
 
+  test("classifies an installed package with missing helper file as broken", async () => {
+    const missing = Object.assign(new Error("Cannot find module '/tmp/node_modules/@nklisch/pi-sandbox/extensions/sandbox-spawn.ts'"), {
+      code: "MODULE_NOT_FOUND",
+    });
+    const bridge = createSandboxBridge(
+      async () => {
+        throw missing;
+      },
+      () => true,
+    );
+
+    const resolved = await bridge.resolveSandboxSpawnBuilder();
+    expect(resolved.state).toBe("broken");
+    if (resolved.state === "broken") {
+      expect(resolved.message).toContain("pi-sandbox is installed but broken");
+      expect(resolved.message).toContain("sandbox-spawn.ts");
+    }
+  });
+
+  test("classifies a missing internal dependency inside an installed package as broken", async () => {
+    const missing = Object.assign(
+      new Error("Cannot find package 'typebox' from '/tmp/node_modules/@nklisch/pi-sandbox/extensions/sandbox-spawn.ts'"),
+      {
+        code: "ERR_MODULE_NOT_FOUND",
+      },
+    );
+    const bridge = createSandboxBridge(
+      async () => {
+        throw missing;
+      },
+      () => true,
+    );
+
+    const resolved = await bridge.resolveSandboxSpawnBuilder();
+    expect(resolved.state).toBe("broken");
+    if (resolved.state === "broken") {
+      expect(resolved.message).toContain("pi-sandbox is installed but broken");
+      expect(resolved.message).toContain("typebox");
+    }
+  });
+
   test("publishes absent and broken sandbox bridge handshakes", async () => {
     const missing = Object.assign(new Error("Cannot find package '@nklisch/pi-sandbox' from '/tmp/test.ts'"), {
       code: "ERR_MODULE_NOT_FOUND",
     });
-    const absentBridge = createSandboxBridge(async () => {
-      throw missing;
-    });
+    const absentBridge = createSandboxBridge(
+      async () => {
+        throw missing;
+      },
+      () => false,
+    );
 
     await absentBridge.resolveSandboxSpawnBuilder();
     expect((globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL]).toEqual({
@@ -88,16 +142,23 @@ describe("sandbox bridge", () => {
       bridgeState: "absent",
     });
 
-    const brokenBridge = createSandboxBridge(async () => {
-      throw new Error("sandbox-spawn helper exploded during evaluation");
-    });
+    const brokenBridge = createSandboxBridge(
+      async () => {
+        throw new Error("sandbox-spawn helper exploded during evaluation");
+      },
+      () => true,
+    );
 
     await brokenBridge.resolveSandboxSpawnBuilder();
     expect((globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL]).toMatchObject({
       integrated: false,
       reason: "broken",
       bridgeState: "broken",
-      message: "sandbox-spawn helper exploded during evaluation",
+    });
+    expect(
+      (globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL],
+    ).toMatchObject({
+      message: expect.stringContaining("pi-sandbox is installed but broken"),
     });
   });
 
@@ -126,6 +187,7 @@ describe("sandbox bridge", () => {
         Object.assign(new Error("Cannot find package '@nklisch/pi-sandbox' from '/tmp/test.ts'"), {
           code: "ERR_MODULE_NOT_FOUND",
         }),
+        () => false,
       ),
     ).toBe(true);
 
@@ -134,6 +196,16 @@ describe("sandbox bridge", () => {
         Object.assign(new Error("Package subpath './sandbox-spawn' is not defined by exports in @nklisch/pi-sandbox"), {
           code: "ERR_PACKAGE_PATH_NOT_EXPORTED",
         }),
+        () => true,
+      ),
+    ).toBe(false);
+
+    expect(
+      isMissingOptionalSandboxPackage(
+        Object.assign(new Error("Cannot find module '/tmp/node_modules/@nklisch/pi-sandbox/extensions/missing.ts' from '/tmp/test.ts'"), {
+          code: "MODULE_NOT_FOUND",
+        }),
+        () => true,
       ),
     ).toBe(false);
   });

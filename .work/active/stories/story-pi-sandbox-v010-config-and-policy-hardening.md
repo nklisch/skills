@@ -161,6 +161,22 @@ is the safe-regex analyzer? two-pass redact semantics?) worth surfacing.
 - Message the fail-closed clearly: "pi-sandbox is installed but broken;
   install is incomplete. Fail-closed. Reinstall or restart with --no-sandbox."
 
+#### M6 implementation notes
+- Files changed: `plugins/background-tasks/extensions/sandbox-bridge.ts`, `plugins/background-tasks/extensions/sandbox-bridge.test.ts`.
+- Implementation:
+  - `sandbox-bridge.ts` now probes package presence by resolving search roots from
+    `createRequire("@nklisch/pi-sandbox").resolve.paths(...)` and checking
+    `existsSync(resolve(nodeModulesPath, "@nklisch/pi-sandbox/package.json"))`.
+  - If package-root presence is true, helper import failure is treated as broken
+    (fail-closed) and includes the explicit message:
+    `pi-sandbox is installed but broken; install is incomplete. Fail-closed. Reinstall
+    or restart with --no-sandbox.`
+  - `isMissingOptionalSandboxPackage` now only returns absent when package-root
+    presence is false; it still filters to pi-sandbox-relevant errors only.
+  - Added bridge tests for installed-package helper-file missing (broken), installed
+    package with missing internal dependency (broken), and missing peer (no-op).
+- Discrepancies from design: none.
+
 ### M7 — handshake race
 **Decision: async-await the probe in background-tasks session_start.**
 - Make background-tasks `session_start` handler async and `await` the sandbox
