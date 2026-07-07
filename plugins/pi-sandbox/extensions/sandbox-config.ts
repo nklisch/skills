@@ -905,7 +905,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 			} else {
 				globalConfig = parsed;
 				legacyFieldWarnings.push(...collectLegacyFieldWarnings("global", globalConfig));
-				additiveWarnings.push(...collectSecretShapeWarnings("global", globalConfig));
+				collectSecretShapeErrors("global", globalConfig, parseErrors);
 			}
 		} catch (e) {
 			// Fail-closed: record the error. We refuse to run with an unparseable
@@ -923,7 +923,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 			} else {
 				projectConfig = parsed;
 				legacyFieldWarnings.push(...collectLegacyFieldWarnings("project", projectConfig));
-				additiveWarnings.push(...collectSecretShapeWarnings("project", projectConfig));
+				collectSecretShapeErrors("project", projectConfig, parseErrors);
 			}
 		} catch (e) {
 			parseErrors.push(`project (${projectConfigPath}): ${e instanceof Error ? e.message : e}`);
@@ -1557,6 +1557,9 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 	if (value.entropy !== undefined && typeof value.entropy !== "number") errors.push(`${path}.entropy must be a number`);
 	validateOptionalStringArray(value.keywords, `${path}.keywords`, errors);
 	if (value.flags !== undefined && typeof value.flags !== "string") errors.push(`${path}.flags must be a string`);
+	if (typeof value.flags === "string" && value.flags.includes("y")) {
+		errors.push(`${path}.flags must not include the sticky "y" flag: chunked scanning resets regex lastIndex to 0 per window, so a sticky regex only matches at position 0 of each window and misses secrets placed elsewhere. Use the default "gu" or "giu".`);
+	}
 	if (value.skipRegexSafetyCheck !== undefined && typeof value.skipRegexSafetyCheck !== "boolean") errors.push(`${path}.skipRegexSafetyCheck must be a boolean`);
 	if (value.maxLength !== undefined) {
 		if (!Number.isInteger(value.maxLength) || value.maxLength <= 0) {
@@ -1602,21 +1605,24 @@ function envNameMatchesScrubConfig(name: string, config: EnvScrubConfig | undefi
 	return Boolean(config?.names?.includes(name) || compiledPatterns.some((re) => re.test(name)));
 }
 
-function collectSecretShapeWarnings(source: "global" | "project", value: unknown): string[] {
-	if (!isRecord(value) || !isRecord(value.tools) || !isRecord(value.tools.inspector)) return [];
+function collectSecretShapeErrors(source: "global" | "project", value: unknown, errors: string[]): void {
+	if (!isRecord(value) || !isRecord(value.tools) || !isRecord(value.tools.inspector)) return;
 	const secrets = value.tools.inspector.secrets;
-	if (!Array.isArray(secrets)) return [];
-	const warnings: string[] = [];
+	if (!Array.isArray(secrets)) return;
 	secrets.forEach((secret, index) => {
 		if (!isRecord(secret) || typeof secret.pattern !== "string") return;
 		const maxLength = typeof secret.maxLength === "number" ? secret.maxLength : SCAN_WINDOW_OVERLAP_DEFAULT;
 		const apparentMax = estimateRegexApparentMaxLength(secret.pattern);
 		if (apparentMax !== undefined && apparentMax > maxLength) {
 			const name = typeof secret.name === "string" && secret.name.length > 0 ? `"${secret.name}"` : `at index ${index}`;
-			warnings.push(`${source}: tools.inspector.secrets[${index}] shape ${name} pattern appears to match up to ${apparentMax} code units, exceeding maxLength ${maxLength}; set maxLength to the full regex match length (match[0]) or tighten the pattern.`);
+			// Fail-closed: a pattern whose apparent max match length exceeds the
+			// effective window overlap can evade the scanner when split across a
+			// window boundary. The operator MUST declare maxLength >= apparentMax
+			// (which raises the per-shape overlap) so the full match fits in a window.
+			// Warn-only would let the secret egress if the operator missed the warning.
+			errors.push(`${source}: tools.inspector.secrets[${index}] shape ${name} pattern appears to match up to ${apparentMax} code units, exceeding maxLength ${maxLength}; set maxLength >= ${apparentMax} (and < ${MAX_SCAN_LENGTH}) so the full regex match fits within one scan window, or tighten the pattern.`);
 		}
 	});
-	return warnings;
 }
 
 function estimateRegexApparentMaxLength(pattern: string): number | undefined {
