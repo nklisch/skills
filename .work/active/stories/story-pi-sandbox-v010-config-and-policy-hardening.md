@@ -1,14 +1,14 @@
 ---
-id: idea-pi-sandbox-v010-config-and-policy-hardening
+id: story-pi-sandbox-v010-config-and-policy-hardening
 kind: story
-stage: backlog
+stage: drafting
 tags: [security, sandbox]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-07
 ---
 
 # v0.1.0 config + policy hardening (Mediums from readiness review)
