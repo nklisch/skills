@@ -1008,7 +1008,7 @@ describe("config boundary contract", () => {
 		expect(errors.join("\n")).toContain("tools.inspector.secrets[3].maxLength must be < 10000");
 	});
 
-	test("loadConfig warns when a secret pattern appears longer than its maxLength (B1-3)", async () => {
+	test("loadConfig fails closed when a secret pattern appears longer than its maxLength (B1-3)", async () => {
 		const cwd = await makeTempDir();
 		const agentDir = await makeTempDir();
 		await mkdir(join(agentDir, "extensions"), { recursive: true });
@@ -1022,9 +1022,32 @@ describe("config boundary contract", () => {
 
 		const loaded = loadConfig(cwd, { agentDir });
 
+		// Fail-closed: a pattern whose apparent max match length exceeds the
+		// effective window overlap can evade the scanner when split across a
+		// window boundary. The operator MUST declare maxLength >= apparentMax.
+		expect(loaded.parseErrors.length).toBeGreaterThan(0);
+		expect(loaded.parseErrors.join("\n")).toContain("shape \"overlong\" pattern appears to match up to");
+		expect(loaded.parseErrors.join("\n")).toContain("exceeding maxLength 4096");
+		expect(loaded.parseErrors.join("\n")).toContain("set maxLength");
+	});
+
+	test("loadConfig accepts an overlong pattern when maxLength covers the apparent match (B1-3)", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			tools: {
+				inspector: {
+					secrets: [{ name: "overlong", pattern: "sk-A{4097}", action: "block", maxLength: 4100 }],
+				},
+			},
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		// Declaring maxLength >= apparentMax raises the per-shape overlap so the
+		// full match fits in a window; the config loads clean.
 		expect(loaded.parseErrors).toEqual([]);
-		expect(loaded.additiveWarnings.join("\n")).toContain("shape \"overlong\" pattern appears to match up to");
-		expect(loaded.additiveWarnings.join("\n")).toContain("exceeding maxLength 4096");
 	});
 
 	test("validateConfig rejects unsafe nested-quantifier regexes and allows simple safe allowlist patterns", () => {

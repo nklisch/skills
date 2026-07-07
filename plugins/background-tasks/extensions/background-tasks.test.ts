@@ -142,7 +142,13 @@ function makeFakePi(
 
 const tempDirs: string[] = [];
 const isLinux = process.platform === "linux";
-const hasBwrap = isLinux && Bun.spawnSync(["bwrap", "--version"], { stdout: "pipe", stderr: "pipe" }).success;
+const hasBwrap = isLinux && (() => {
+	try {
+		return Bun.spawnSync(["bwrap", "--version"], { stdout: "pipe", stderr: "pipe" }).success;
+	} catch {
+		return false;
+	}
+})();
 const bwrapIntegrationTest = makeBwrapIntegrationTest({ isLinux, hasBwrap });
 
 async function makeTempDir(prefix = "background-tasks-test-"): Promise<string> {
