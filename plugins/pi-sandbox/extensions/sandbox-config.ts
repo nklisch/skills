@@ -61,6 +61,8 @@ export interface SecretShape {
 	keywords?: string[];
 	/** RegExp flags. Default "gu". Use "giu" for case-insensitive matching. */
 	flags?: string;
+	/** Maximum expected full regex match length (`match[0]`), in JS string code units. Default 4096; must fit within one 10K scan window. */
+	maxLength?: number;
 }
 
 export interface SecretAllowlist {
@@ -305,13 +307,12 @@ export interface InspectionVerdict {
 
 const MAX_SCAN_LENGTH = 10_000;
 // Scan long fields in overlapping bounded windows: the window cap preserves the
-// regex ReDoS guard, while the overlap catches secrets split across a window
-// boundary. Sized to cover realistic long secret shapes the inspector supports
-// — API keys (<100), JWTs (hundreds), and PEM private-key blocks (~1670 base64
-// chars). A secret LONGER than this overlap can still evade if split across a
-// boundary; the proper fix is a per-shape overlap sized to each shape's max
-// match length (tracked separately, not derivable from an arbitrary regex).
-const SCAN_WINDOW_OVERLAP = 2048;
+// regex ReDoS guard, while per-shape overlap catches secrets split across a
+// window boundary. The default covers realistic long secret shapes the inspector
+// supports — API keys (<100), JWTs (hundreds), and PEM private-key blocks (~2K).
+// Operators can raise a shape's overlap with SecretShape.maxLength when a full
+// regex match (`match[0]`) can legitimately exceed this default.
+const SCAN_WINDOW_OVERLAP_DEFAULT = 4096;
 // Redaction itself must also be bounded: a pathological project-supplied
 // one-character redact rule should not expand a large field into megabytes of
 // replacement markers. Scanning still walks every window; this cap only limits
@@ -330,6 +331,7 @@ interface CompiledShape {
 	secretGroup: number;
 	entropy: number | undefined;
 	keywords: string[] | undefined;
+	maxLength: number;
 }
 
 interface CompiledAllowlist {
@@ -423,7 +425,8 @@ function scanSecretShape(text: string, shape: CompiledShape, isAllowed: (candida
 		if (!shape.keywords.some((kw) => lower.includes(kw.toLowerCase()))) return ranges;
 	}
 
-	const stride = Math.max(1, MAX_SCAN_LENGTH - SCAN_WINDOW_OVERLAP);
+	const overlap = Math.max(SCAN_WINDOW_OVERLAP_DEFAULT, shape.maxLength);
+	const stride = Math.max(1, MAX_SCAN_LENGTH - overlap);
 	for (let offset = 0; offset < text.length; offset += stride) {
 		const window = text.slice(offset, offset + MAX_SCAN_LENGTH);
 
@@ -496,6 +499,7 @@ export function inspectToolInput(
 		secretGroup: s.secretGroup ?? 0,
 		entropy: s.entropy,
 		keywords: s.keywords,
+		maxLength: s.maxLength ?? SCAN_WINDOW_OVERLAP_DEFAULT,
 	}));
 	const allowlist: CompiledAllowlist = {
 		stopwords: new Set((inspector.allowlist?.stopwords ?? []).map((w) => w.toLowerCase())),
@@ -745,6 +749,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 
 	const parseErrors: string[] = [];
 	const legacyFieldWarnings: string[] = [];
+	const additiveWarnings: string[] = [];
 	let globalConfig: Partial<SandboxConfig> = {};
 	let projectConfig: Partial<SandboxConfig> = {};
 
@@ -757,6 +762,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 			} else {
 				globalConfig = parsed;
 				legacyFieldWarnings.push(...collectLegacyFieldWarnings("global", globalConfig));
+				additiveWarnings.push(...collectSecretShapeWarnings("global", globalConfig));
 			}
 		} catch (e) {
 			// Fail-closed: record the error. We refuse to run with an unparseable
@@ -774,6 +780,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 			} else {
 				projectConfig = parsed;
 				legacyFieldWarnings.push(...collectLegacyFieldWarnings("project", projectConfig));
+				additiveWarnings.push(...collectSecretShapeWarnings("project", projectConfig));
 			}
 		} catch (e) {
 			parseErrors.push(`project (${projectConfigPath}): ${e instanceof Error ? e.message : e}`);
@@ -784,7 +791,6 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 	// it may tighten (more denyRead, fewer allowedDomains, narrower allowWrite)
 	// but never weaken global policy. Weakening attempts are ignored + warned.
 	const mergedGlobal = deepMerge(deepMerge(DEFAULT_CONFIG, globalConfig), {});
-	const additiveWarnings: string[] = [];
 	const merged = mergeProjectAdditive(mergedGlobal, projectConfig, additiveWarnings, cwd);
 
 	// Detect glob-shaped filesystem policy entries. The bwrap layer cannot mount
@@ -1368,6 +1374,13 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 	if (value.entropy !== undefined && typeof value.entropy !== "number") errors.push(`${path}.entropy must be a number`);
 	validateOptionalStringArray(value.keywords, `${path}.keywords`, errors);
 	if (value.flags !== undefined && typeof value.flags !== "string") errors.push(`${path}.flags must be a string`);
+	if (value.maxLength !== undefined) {
+		if (!Number.isInteger(value.maxLength) || value.maxLength <= 0) {
+			errors.push(`${path}.maxLength must be a positive integer`);
+		} else if (value.maxLength > MAX_SCAN_LENGTH) {
+			errors.push(`${path}.maxLength must be <= ${MAX_SCAN_LENGTH} because a full regex match must fit within one scan window`);
+		}
+	}
 	if (typeof value.pattern === "string" && value.pattern.length > 0 && (value.flags === undefined || typeof value.flags === "string")) {
 		try {
 			new RegExp(value.pattern, withGlobalFlag(value.flags));
@@ -1401,6 +1414,95 @@ function compileEnvScrubPatterns(patterns: string[] | undefined): RegExp[] {
 
 function envNameMatchesScrubConfig(name: string, config: EnvScrubConfig | undefined, compiledPatterns = compileEnvScrubPatterns(config?.patterns)): boolean {
 	return Boolean(config?.names?.includes(name) || compiledPatterns.some((re) => re.test(name)));
+}
+
+function collectSecretShapeWarnings(source: "global" | "project", value: unknown): string[] {
+	if (!isRecord(value) || !isRecord(value.tools) || !isRecord(value.tools.inspector)) return [];
+	const secrets = value.tools.inspector.secrets;
+	if (!Array.isArray(secrets)) return [];
+	const warnings: string[] = [];
+	secrets.forEach((secret, index) => {
+		if (!isRecord(secret) || typeof secret.pattern !== "string") return;
+		const maxLength = typeof secret.maxLength === "number" ? secret.maxLength : SCAN_WINDOW_OVERLAP_DEFAULT;
+		const apparentMax = estimateRegexApparentMaxLength(secret.pattern);
+		if (apparentMax !== undefined && apparentMax > maxLength) {
+			const name = typeof secret.name === "string" && secret.name.length > 0 ? `"${secret.name}"` : `at index ${index}`;
+			warnings.push(`${source}: tools.inspector.secrets[${index}] shape ${name} pattern appears to match up to ${apparentMax} code units, exceeding maxLength ${maxLength}; set maxLength to the full regex match length (match[0]) or tighten the pattern.`);
+		}
+	});
+	return warnings;
+}
+
+function estimateRegexApparentMaxLength(pattern: string): number | undefined {
+	const parseSequence = (start: number, terminator?: string): { length: number; index: number } => {
+		let total = 0;
+		let branchMax = 0;
+		let i = start;
+		while (i < pattern.length) {
+			const ch = pattern[i];
+			if (terminator && ch === terminator) break;
+			if (ch === "|") {
+				branchMax = Math.max(branchMax, total);
+				total = 0;
+				i += 1;
+				continue;
+			}
+			const atom = parseAtom(i);
+			const quantified = applyBoundedQuantifier(atom.length, atom.index);
+			total += quantified.length;
+			i = quantified.index;
+		}
+		return { length: Math.max(branchMax, total), index: i };
+	};
+
+	const parseAtom = (start: number): { length: number; index: number } => {
+		const ch = pattern[start];
+		if (ch === "\\") return { length: start + 1 < pattern.length ? 1 : 0, index: Math.min(pattern.length, start + 2) };
+		if (ch === "[") {
+			let i = start + 1;
+			while (i < pattern.length) {
+				if (pattern[i] === "\\") {
+					i += 2;
+					continue;
+				}
+				if (pattern[i] === "]") return { length: 1, index: i + 1 };
+				i += 1;
+			}
+			return { length: 1, index: pattern.length };
+		}
+		if (ch === "(") {
+			let innerStart = start + 1;
+			if (pattern[innerStart] === "?") {
+				const marker = pattern[innerStart + 1];
+				innerStart += marker === "<" ? 3 : 2;
+			}
+			const inner = parseSequence(innerStart, ")");
+			return { length: inner.length, index: Math.min(pattern.length, inner.index + 1) };
+		}
+		if ("^$".includes(ch)) return { length: 0, index: start + 1 };
+		return { length: 1, index: start + 1 };
+	};
+
+	const applyBoundedQuantifier = (atomLength: number, start: number): { length: number; index: number } => {
+		const ch = pattern[start];
+		if (ch === "?" || ch === "*" || ch === "+") return { length: atomLength, index: start + 1 };
+		if (ch !== "{") return { length: atomLength, index: start };
+		const end = pattern.indexOf("}", start + 1);
+		if (end === -1) return { length: atomLength, index: start };
+		const quantifier = pattern.slice(start + 1, end);
+		const parts = quantifier.split(",");
+		if (!parts.every((part) => part === "" || /^\d+$/.test(part))) return { length: atomLength, index: start };
+		const upperRaw = parts.length === 1 ? parts[0] : parts[1];
+		const fallbackRaw = parts[0];
+		const multiplier = upperRaw ? Number(upperRaw) : fallbackRaw ? Number(fallbackRaw) : 1;
+		return { length: atomLength * multiplier, index: end + 1 };
+	};
+
+	try {
+		return parseSequence(0).length;
+	} catch {
+		return undefined;
+	}
 }
 
 /**

@@ -886,6 +886,43 @@ describe("config boundary contract", () => {
 		expect(errors.join("\n")).toContain("tools.inspector.allowlist.regexes[0] must compile");
 	});
 
+	test("validateConfig rejects impossible or non-positive secret maxLength values (B1-3)", () => {
+		const errors = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [
+						{ name: "zero", pattern: "a", action: "block", maxLength: 0 },
+						{ name: "fractional", pattern: "b", action: "block", maxLength: 1.5 },
+						{ name: "too-long", pattern: "c", action: "block", maxLength: 10_001 },
+					],
+				},
+			},
+		});
+
+		expect(errors.join("\n")).toContain("tools.inspector.secrets[0].maxLength must be a positive integer");
+		expect(errors.join("\n")).toContain("tools.inspector.secrets[1].maxLength must be a positive integer");
+		expect(errors.join("\n")).toContain("tools.inspector.secrets[2].maxLength must be <= 10000");
+	});
+
+	test("loadConfig warns when a secret pattern appears longer than its maxLength (B1-3)", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			tools: {
+				inspector: {
+					secrets: [{ name: "overlong", pattern: "sk-A{4097}", action: "block" }],
+				},
+			},
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.parseErrors).toEqual([]);
+		expect(loaded.additiveWarnings.join("\n")).toContain("shape \"overlong\" pattern appears to match up to");
+		expect(loaded.additiveWarnings.join("\n")).toContain("exceeding maxLength 4096");
+	});
+
 	test("validateConfig rejects unsafe nested-quantifier regexes and allows simple safe allowlist patterns", () => {
 		const unsafe = validateConfig({
 			tools: {
