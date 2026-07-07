@@ -258,7 +258,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 		: resolveTrustedBwrap({ bwrapPath: loaded.config.bwrapPath, env: trustedEnv });
 	if (!bwrapResolution.ok) {
 		const rejected = bwrapResolution.rejectedPath ? ` Rejected path: ${bwrapResolution.rejectedPath}.` : "";
-		const message = `Sandbox initialization failed: ${bwrapResolution.reason}.${rejected} Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.`;
+		const message = `Sandbox initialization failed: ${bwrapResolution.reason}.${rejected} Bash is fail-closed. File-tool/egress/inspector protections remain active. Fix bwrap or restart with --no-sandbox for a full extension bypass (bwrap + file-tool/egress/inspector gates).`;
 		return {
 			state: "fail-closed",
 			integration: "blocked",

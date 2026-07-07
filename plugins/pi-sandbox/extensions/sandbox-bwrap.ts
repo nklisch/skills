@@ -241,7 +241,7 @@ export function validateBwrapInit(opts: {
 		return {
 			ok: false,
 			reason: "filter-deferred",
-			message: `Sandbox network.mode=filter is deferred for the first-party bwrap backend. Bash is fail-closed instead of silently opening network access; use network.mode=open or block, or restart with --no-sandbox. Track filter support in ${FILTER_DEFERRED_BACKLOG_ITEM}.`,
+			message: `Sandbox network.mode=filter is deferred for the first-party bwrap backend. Bash is fail-closed instead of silently opening network access; use network.mode=open or block, or restart with --no-sandbox for a full extension bypass (bwrap + file-tool/egress/inspector gates). Track filter support in ${FILTER_DEFERRED_BACKLOG_ITEM}.`,
 			status: "🔒 Sandbox: FAIL-CLOSED (network filter deferred) — file tools still hardened",
 		};
 	}
@@ -260,7 +260,7 @@ export function validateBwrapInit(opts: {
 			return {
 				ok: false,
 				reason: "bwrap-missing",
-				message: "Sandbox initialization failed: trusted bwrap is not available from the configured path or system allowlist. Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.",
+				message: "Sandbox initialization failed: trusted bwrap is not available from the configured path or system allowlist. Bash is fail-closed. File-tool/egress/inspector protections remain active. Fix bwrap or restart with --no-sandbox for a full extension bypass (bwrap + file-tool/egress/inspector gates).",
 				status: "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened",
 			};
 		}
@@ -273,7 +273,7 @@ export function validateBwrapInit(opts: {
 		return {
 			ok: false,
 			reason: "bwrap-missing",
-			message: `Sandbox initialization failed: ${trustedBwrap.reason}.${rejected} Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.`,
+			message: `Sandbox initialization failed: ${trustedBwrap.reason}.${rejected} Bash is fail-closed. File-tool/egress/inspector protections remain active. Fix bwrap or restart with --no-sandbox for a full extension bypass (bwrap + file-tool/egress/inspector gates).`,
 			status: "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened",
 		};
 	}

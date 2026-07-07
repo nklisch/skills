@@ -103,7 +103,7 @@ let bwrapPinError: string | null = null;
 
 function formatTrustedBwrapFailure(resolution: { reason: string; rejectedPath?: string }): string {
 	const rejected = resolution.rejectedPath ? ` Rejected path: ${resolution.rejectedPath}.` : "";
-	return `Sandbox initialization failed: ${resolution.reason}.${rejected} Bash is fail-closed. File-tool policy still enforced. Fix bwrap or restart with --no-sandbox.`;
+	return `Sandbox initialization failed: ${resolution.reason}.${rejected} Bash is fail-closed. File-tool/egress/inspector protections remain active. Fix bwrap or restart with --no-sandbox for a full extension bypass (bwrap + file-tool/egress/inspector gates).`;
 }
 
 // ---------------------------------------------------------------------------
@@ -205,7 +205,7 @@ function createSandboxedBashOps(): BashOperations {
 
 export default function (pi: ExtensionAPI) {
 	pi.registerFlag("no-sandbox", {
-		description: "Disable OS-level sandboxing for bash commands",
+		description: "Disable ALL pi-sandbox protections (OS-level bash sandboxing and in-process file/egress/inspector gates)",
 		type: "boolean",
 		default: false,
 	});
