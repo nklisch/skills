@@ -33,7 +33,9 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	const commandCwd = canonicalizeExistingPath(resolve(opts.cwd)) ?? resolve(opts.cwd);
 	const securityCwdRaw = opts.configCwd ?? process.cwd();
 	const securityCwd = canonicalizeExistingPath(resolve(securityCwdRaw)) ?? resolve(securityCwdRaw);
-	const args = buildBwrapEnvArgs(opts.env ?? process.env);
+	const sourceEnv = opts.env ?? process.env;
+	const childEnv = opts.networkMode === "block" ? { ...sourceEnv, TMPDIR: "/tmp" } : sourceEnv;
+	const args = buildBwrapEnvArgs(childEnv);
 
 	args.push("--ro-bind", "/", "/");
 	args.push("--dev", "/dev");
@@ -63,15 +65,18 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 		args.push("--unshare-net");
 		// `--unshare-net` blocks TCP/UDP but leaves host filesystem Unix sockets
 		// reachable (Docker /var/run/docker.sock, D-Bus /run/dbus/system_bus_socket,
-		// X11 /tmp/.X11-unix). Mask the socket-heavy runtime dirs with tmpfs so a
-		// blocked sandbox cannot escape via host IPC.
+		// ssh-agent /tmp/ssh-*/agent.*, X11 /tmp/.X11-unix). Mask the socket-heavy
+		// runtime and temp dirs with tmpfs so a blocked sandbox cannot escape via
+		// host IPC. These mounts intentionally happen after allowWrite binds above:
+		// even an explicit allowWrite:["/tmp"] must not re-expose the host temp dir in
+		// block mode.
 		//
 		// Dedupe symlink-equivalent paths: on systemd Linux /var/run is a symlink to
 		// /run, and bwrap cannot mount tmpfs on a symlink target inside the new root
 		// (it fails with "Can't mount tmpfs on .../var/run: No such file or directory",
 		// breaking the whole block-mode spawn). Resolve each candidate through
 		// realpath and emit one tmpfs per distinct canonical target.
-		const socketDirs = ["/run", "/var/run", "/tmp/.X11-unix"];
+		const socketDirs = ["/run", "/var/run", "/tmp", "/var/tmp", "/tmp/.X11-unix"];
 		const seen = new Set<string>();
 		for (const dir of socketDirs) {
 			const canonical = canonicalizeExistingPath(dir) ?? dir;

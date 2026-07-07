@@ -2,6 +2,7 @@ import { afterEach, describe, expect, mock, test } from "bun:test";
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { realpathSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
@@ -58,6 +59,12 @@ async function makeTempDir(): Promise<string> {
 	return dir;
 }
 
+async function makeRepoTempDir(): Promise<string> {
+	const dir = await mkdtemp(resolve(".pi-sandbox-test-"));
+	tempDirs.push(dir);
+	return dir;
+}
+
 afterEach(async () => {
 	while (tempDirs.length > 0) {
 		const dir = tempDirs.pop();
@@ -101,6 +108,10 @@ function runSandboxed(
 
 function text(buffer: Buffer | Uint8Array): string {
 	return Buffer.from(buffer).toString("utf8");
+}
+
+function shellQuote(value: string): string {
+	return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
 describe("sandbox enabled/disabled bypass guard", () => {
@@ -1377,22 +1388,26 @@ describe("buildBwrapArgs", () => {
 
 	test("block mode masks host Unix-socket dirs to prevent IPC escape", async () => {
 		const cwd = await makeTempDir();
+		const tmp = realpathSync("/tmp");
 		const args = buildBwrapArgs({
 			cwd,
 			configCwd: cwd,
-			allowWrite: [],
+			allowWrite: ["/tmp"],
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "block",
 			env: { PATH: "/usr/bin" },
 		});
 		expect(args).toContain("--unshare-net");
-		// Docker / D-Bus / X11 socket dirs must be masked with tmpfs so a blocked
-		// sandbox cannot reach host IPC services. /run is always masked; /var/run
-		// is masked only when it is NOT a symlink to /run (systemd dedup).
-		expect(args).toContain("/run");
-		expect(args[args.indexOf("/run") - 1]).toBe("--tmpfs");
-		expect(args).toContain("/tmp/.X11-unix");
+		// Docker / D-Bus / ssh-agent / X11 socket dirs must be masked with tmpfs so
+		// a blocked sandbox cannot reach host IPC services. /run is always masked;
+		// /var/run is masked only when it is NOT a symlink to /run (systemd dedup).
+		for (const dir of ["/run", tmp, "/tmp/.X11-unix"]) {
+			expectSequence(args, ["--tmpfs", dir]);
+		}
+		expectSequence(args, ["--bind", tmp, tmp]);
+		expectSequence(args, ["--tmpfs", tmp]);
+		expect(sequenceIndex(args, ["--bind", tmp, tmp])).toBeLessThan(sequenceIndex(args, ["--tmpfs", tmp]));
 		// /var/run and /run must not both be emitted when they resolve to the same
 		// canonical path — bwrap cannot mount tmpfs on a symlink target and the
 		// whole block-mode spawn would fail with exit 1.
@@ -1401,7 +1416,34 @@ describe("buildBwrapArgs", () => {
 			try { return realpathSync(p); } catch { return p; }
 		};
 		const distinct = new Set(tmpfsTargets.map(canonical));
+		expect(distinct.has(canonical("/var/tmp"))).toBe(true);
 		expect(tmpfsTargets.length).toBe(distinct.size);
+	});
+
+	test("block mode forces TMPDIR to the private /tmp tmpfs", async () => {
+		const cwd = await makeTempDir();
+		const openArgs = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			env: { PATH: "/usr/bin", TMPDIR: "/host/tmp" },
+		});
+		const blockArgs = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "block",
+			env: { PATH: "/usr/bin", TMPDIR: "/host/tmp" },
+		});
+
+		expectSequence(openArgs, ["--setenv", "TMPDIR", "/host/tmp"]);
+		expectSequence(blockArgs, ["--setenv", "TMPDIR", "/tmp"]);
+		expect(blockArgs).not.toContain("/host/tmp");
 	});
 
 	test("block mode actually spawns bwrap without failing (regression: /var/run symlink)", async () => {
@@ -1411,7 +1453,7 @@ describe("buildBwrapArgs", () => {
 		// mount failure. Skipped when bwrap is unavailable.
 		const bwrap = findExecutableOnPath("bwrap", process.env);
 		if (!bwrap) return; // non-Linux graceful degrade
-		const cwd = await makeTempDir();
+		const cwd = await makeRepoTempDir();
 		const args = [
 			...buildBwrapArgs({
 				cwd,
@@ -1726,7 +1768,7 @@ describe("bwrap integration", () => {
 	});
 
 	integrationTest("block mode cannot reach a localhost listener and open mode can", async () => {
-		const cwd = await makeTempDir();
+		const cwd = await makeRepoTempDir();
 		const server = Bun.listen({
 			hostname: "127.0.0.1",
 			port: 0,
@@ -1751,6 +1793,71 @@ describe("bwrap integration", () => {
 		} finally {
 			server.stop(true);
 		}
+	});
+
+	integrationTest("block mode cannot reach host Unix sockets under /tmp", async () => {
+		const cwd = await makeRepoTempDir();
+		const socketDir = await mkdtemp(join(tmpdir(), "ssh-pi-sandbox-test-"));
+		tempDirs.push(socketDir);
+		const socketPath = join(socketDir, `agent.${process.pid}`);
+		const clientPath = join(cwd, "socket-client.mjs");
+		await writeFile(clientPath, `
+import { createConnection } from "node:net";
+const socketPath = process.argv[2];
+const socket = createConnection(socketPath);
+const timeout = setTimeout(() => {
+	console.error("timeout");
+	socket.destroy();
+	process.exit(3);
+}, 1000);
+socket.once("connect", () => {
+	clearTimeout(timeout);
+	socket.end();
+	process.exit(0);
+});
+socket.once("error", (error) => {
+	clearTimeout(timeout);
+	console.error(error.code ?? error.message);
+	process.exit(2);
+});
+`);
+
+		const server = createServer((socket) => {
+			socket.end("ok");
+		});
+		await new Promise<void>((resolveListen, rejectListen) => {
+			server.once("error", rejectListen);
+			server.listen(socketPath, () => {
+				server.off("error", rejectListen);
+				resolveListen();
+			});
+		});
+
+		try {
+			const command = `${shellQuote(process.execPath)} ${shellQuote(clientPath)} ${shellQuote(socketPath)}`;
+			const openResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open" });
+			const blockResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block" });
+
+			expect(openResult.exitCode).toBe(0);
+			expect(blockResult.exitCode).not.toBe(0);
+			expect(text(blockResult.stderr)).toContain("ENOENT");
+		} finally {
+			await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
+		}
+	});
+
+	integrationTest("block mode forces TMPDIR to a writable private /tmp", async () => {
+		const cwd = await makeRepoTempDir();
+		const result = runSandboxed("test \"$TMPDIR\" = /tmp && dir=$(mktemp -d) && case \"$dir\" in /tmp/*) touch \"$dir/file\" ;; *) exit 9 ;; esac", {
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "block",
+		}, { ...process.env, TMPDIR: "/host/tmp" });
+
+		expect(result.exitCode).toBe(0);
 	});
 
 	integrationTest("PID namespace and fresh /proc hide host process metadata", async () => {
