@@ -141,4 +141,25 @@ describe("tool input inspector chunked scanning", () => {
 		expect(input.body).not.toContain(longToken);
 		expect((input.body as string).match(/\[REDACTED:long-token\]/g)?.length ?? 0).toBe(1);
 	});
+
+	test("redact-cap overflow fails closed and blocks a real secret after decoys (B1-1)", () => {
+		// The original B1-1 bug: 10K decoy matches consumed the redaction cap,
+		// then a real secret was scanned but not pushed to redactRanges and the
+		// call allowed — the real key egressed unredacted. Now the cap is enforced
+		// AFTER dedup and overflow fails closed (block), so the real secret cannot
+		// survive. Uses a shape that matches both decoys and the real key.
+		const decoy = "sk-AAAAAAAAAAAAAAAAAAAA"; // 23 chars, matches sk-[A-Za-z0-9]{20,}
+		const realKey = "sk-BBBBBBBBBBBBBBBBBBBB";
+		// Need > 10K unique dedup'd ranges across all windows. At ~434 matches per
+		// 10K window (stride 7952), ~24 windows of decoys clears the cap.
+		const decoys = decoy.repeat(24_000); // ~552K chars -> > 10K ranges post-dedup
+		const input: Record<string, unknown> = { body: `${decoys}${realKey}` };
+
+		const verdict = inspectToolInput("agent_send", input, redactingInspector());
+
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain("redaction cap exceeded");
+		// The real key must not have egressed unredacted (blocked, so input is untouched).
+		expect(input.body).toContain(realKey); // untouched because blocked, not because allowed
+	});
 });

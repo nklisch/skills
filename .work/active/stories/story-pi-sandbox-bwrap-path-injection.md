@@ -1,14 +1,14 @@
 ---
 id: story-pi-sandbox-bwrap-path-injection
 kind: story
-stage: implementing
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-07
 ---
 
 # bwrap resolved from untrusted process.env.PATH (blocker B2)
@@ -106,9 +106,22 @@ flows to `buildSandboxedSpawnArgs`.
 
 **Notes**: the PATH-allowlist + `resolveTrustedBwrap` core is sound and the
 hostile-PATH escape is genuinely closed (verified by `bwrap-pin.test.ts`). The
-blocker is the trust scope of `bwrapPath` itself: it must not be settable from
-untrusted project config. Fix direction in
-`story-pi-sandbox-bwrap-path-project-trust` (Decision A: global-only vs
+blocker was the trust scope of `bwrapPath` itself: it must not be settable from
+untrusted project config. Fix direction in `story-pi-sandbox-bwrap-path-project-trust` (Decision A: global-only vs
 allowed-with-ownership; recommend global-only). This story is bounced rather
 than advanced because the blocker is in-scope to the B2 fix's trust model,
 not a separate concern.
+
+## Re-review (2026-07-06)
+
+**Verdict**: Approve → done.
+
+The blocker (B2-1/B2-2) is resolved by `story-pi-sandbox-bwrap-path-project-trust`
+(decision (a) global-only): `mergeProjectAdditive` now rejects project-local
+`bwrapPath` with an additive-only warning, closing both the direct project-config
+escape (B2-1) and the mid-session TOCTOU (B2-2 — project config can no longer set
+`bwrapPath` at all, so writing `.pi/sandbox.json` mid-session cannot change the
+spawn path; the spawn re-resolution's option-(i) purity is preserved without
+needing the handshake thread). The stale test fixture asserting project-local
+`bwrapPath` was accepted is rewritten to assert rejection. README reconciled
+(`story-pi-sandbox-readme-bwrappath-drift`). Verification: 124 + 71 green.

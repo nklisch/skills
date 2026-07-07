@@ -1,14 +1,14 @@
 ---
 id: story-pi-sandbox-inspector-redact-cap-overflow
 kind: story
-stage: drafting
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-06
-updated: 2026-07-06
+updated: 2026-07-07
 ---
 
 # Redaction cap silently leaks tail secrets (B1-1)
@@ -69,9 +69,28 @@ fail-closed default.
 
 ## Acceptance criteria
 
-- [ ] A real secret placed after 10K decoy matches of the same `redact` shape
+- [x] A real secret placed after 10K decoy matches of the same `redact` shape
       does NOT survive unredacted into the tool output
-- [ ] The cap's DoS purpose is preserved (a pathological redact rule doesn't
+- [x] The cap's DoS purpose is preserved (a pathological redact rule doesn't
       expand a field unboundedly)
-- [ ] The chosen behavior is documented with rationale
-- [ ] A regression test covers the 10K-decoys-then-real-key case
+- [x] The chosen behavior is documented with rationale
+- [x] A regression test covers the 10K-decoys-then-real-key case
+
+## Implementation notes
+
+- Decision: **(a) fail-closed on overflow**. When `normalizeRedactRanges`
+  yields more than `MAX_REDACTIONS_PER_SHAPE` unique ranges, the inspector
+  returns `block` with a reason naming the shape, field, and cap. A matched
+  secret never egresses.
+- Folded in (c)'s dedup-before-counting fix: the cap is now checked AFTER
+  `normalizeRedactRanges` dedup, so overlap-duplicate ranges don't consume the
+  cap before 10K unique redactions. (c) alone doesn't close the hole, but it's
+  correct regardless.
+- Tests: the stale fixture `auto-policy input scanning is capped to 10k
+  characters before regex scan` (which asserted the old silent-truncate +
+  allow behavior) is rewritten as `redact-cap overflow fails closed instead
+  of leaking tail secrets (B1-1)`, asserting `block` + the cap-exceeded reason.
+  A dedicated B1-1 regression test in `inspector-chunked-scan.test.ts` proves
+  the actual attack (10K+ decoys then a real key) is blocked, and is verified
+  to fail under the old code (returns `allow`) / pass under the fix.
+- Verification: 124 pi-sandbox + 71 background-tasks green.
