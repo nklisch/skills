@@ -63,6 +63,8 @@ export interface SecretShape {
 	flags?: string;
 	/** Maximum expected full regex match length (`match[0]`), in JS string code units. Default 4096; must fit within one 10K scan window. */
 	maxLength?: number;
+	/** Advanced escape hatch: skip the narrow ReDoS heuristic for this shape. Runtime scan-window caps still apply. */
+	skipRegexSafetyCheck?: boolean;
 }
 
 export interface SecretAllowlist {
@@ -70,6 +72,8 @@ export interface SecretAllowlist {
 	stopwords?: string[];
 	/** Regexes; if any matches the captured group, the candidate is ignored. */
 	regexes?: string[];
+	/** Advanced escape hatch: skip the narrow ReDoS heuristic for allowlist regexes. Runtime scan-window caps still apply. */
+	skipRegexSafetyCheck?: boolean;
 }
 
 export interface ToolInspector {
@@ -363,21 +367,148 @@ function withGlobalFlag(flags: string | undefined): string {
 
 /**
  * Narrow, heuristic ReDoS risk check for regular expressions configured in the
- * inspector and allowlist. False accepts are preferred over false rejects because
- * this is an optional guard, not a formal regex analyzer.
+ * inspector and allowlist. This is not a sound regex analyzer: the runtime
+ * per-window scan cap is the primary backstop, and `skipRegexSafetyCheck` lets
+ * advanced operators accept the residual risk for a specific config entry.
  */
 function isSafeRegex(pattern: string): { safe: boolean; reason?: string } {
-	// Reject immediate nested quantifier-on-group forms: (a+)+, (a*)+, (a?)+, (a{2,})+
-	// The full ReDoS problem space is undecidable; this heuristic is a narrow
-	// first-pass filter and is intentionally conservative in what it rejects.
-	if (/\([^)]*[+*?][^)]*\)[+*?{]/.test(pattern)) {
-		return { safe: false, reason: "nested quantifier (ReDoS risk)" };
+	for (const group of quantifiedGroups(pattern)) {
+		if (containsQuantifier(group.inner)) {
+			return { safe: false, reason: "nested quantifier in quantified group (ReDoS risk)" };
+		}
+		if (hasOverlappingAlternation(group.inner)) {
+			return { safe: false, reason: "overlapping alternation in quantified group (ReDoS risk)" };
+		}
 	}
-
-	// Residual risk: short, crafted alternation/overlap patterns such as
-	// `(a|a)+` or backreference-coupled constructions may still be expensive.
-	// Those are handled by runtime input caps and explicit operator review paths.
 	return { safe: true };
+}
+
+function quantifiedGroups(pattern: string): Array<{ inner: string; quantifier: string }> {
+	const groups: Array<{ inner: string; quantifier: string }> = [];
+	for (let i = 0; i < pattern.length; i += 1) {
+		if (pattern[i] !== "(" || isEscaped(pattern, i) || isInsideCharacterClass(pattern, i)) continue;
+		const end = findGroupEnd(pattern, i);
+		if (end === -1) continue;
+		const quantifier = readGroupQuantifier(pattern, end + 1);
+		if (quantifier) {
+			groups.push({ inner: pattern.slice(i + 1, end).replace(/^\?(?::|[=!]|<[=!])/, ""), quantifier });
+		}
+		i = end;
+	}
+	return groups;
+}
+
+function findGroupEnd(pattern: string, start: number): number {
+	let depth = 0;
+	let inClass = false;
+	for (let i = start; i < pattern.length; i += 1) {
+		const ch = pattern[i];
+		if (isEscaped(pattern, i)) continue;
+		if (ch === "[" && !inClass) {
+			inClass = true;
+			continue;
+		}
+		if (ch === "]" && inClass) {
+			inClass = false;
+			continue;
+		}
+		if (inClass) continue;
+		if (ch === "(") depth += 1;
+		else if (ch === ")") {
+			depth -= 1;
+			if (depth === 0) return i;
+		}
+	}
+	return -1;
+}
+
+function readGroupQuantifier(pattern: string, index: number): string | null {
+	const ch = pattern[index];
+	if (ch === "+" || ch === "*" || ch === "?") return ch;
+	if (ch !== "{") return null;
+	const end = pattern.indexOf("}", index + 1);
+	if (end === -1) return null;
+	const body = pattern.slice(index + 1, end);
+	return /^\d+(?:,\d*)?$/.test(body) ? pattern.slice(index, end + 1) : null;
+}
+
+function containsQuantifier(pattern: string): boolean {
+	for (let i = 0; i < pattern.length; i += 1) {
+		if (isEscaped(pattern, i) || isInsideCharacterClass(pattern, i)) continue;
+		const ch = pattern[i];
+		if (ch === "+" || ch === "*" || ch === "?") return true;
+		if (ch === "{" && readGroupQuantifier(pattern, i)) return true;
+	}
+	return false;
+}
+
+function hasOverlappingAlternation(pattern: string): boolean {
+	const branches = splitTopLevelAlternation(pattern).map(literalPrefixForOverlap).filter((branch) => branch.length > 0);
+	for (let i = 0; i < branches.length; i += 1) {
+		for (let j = 0; j < branches.length; j += 1) {
+			if (i !== j && branches[j].startsWith(branches[i])) return true;
+		}
+	}
+	return false;
+}
+
+function splitTopLevelAlternation(pattern: string): string[] {
+	const branches: string[] = [];
+	let start = 0;
+	let depth = 0;
+	let inClass = false;
+	for (let i = 0; i < pattern.length; i += 1) {
+		const ch = pattern[i];
+		if (isEscaped(pattern, i)) continue;
+		if (ch === "[" && !inClass) {
+			inClass = true;
+			continue;
+		}
+		if (ch === "]" && inClass) {
+			inClass = false;
+			continue;
+		}
+		if (inClass) continue;
+		if (ch === "(") depth += 1;
+		else if (ch === ")") depth = Math.max(0, depth - 1);
+		else if (ch === "|" && depth === 0) {
+			branches.push(pattern.slice(start, i));
+			start = i + 1;
+		}
+	}
+	branches.push(pattern.slice(start));
+	return branches;
+}
+
+function literalPrefixForOverlap(pattern: string): string {
+	let prefix = "";
+	for (let i = 0; i < pattern.length; i += 1) {
+		const ch = pattern[i];
+		if (ch === "\\" && i + 1 < pattern.length) {
+			prefix += pattern[i + 1];
+			i += 1;
+			continue;
+		}
+		if ("^$.*+?{}[]()|".includes(ch)) break;
+		prefix += ch;
+	}
+	return prefix;
+}
+
+function isEscaped(pattern: string, index: number): boolean {
+	let slashCount = 0;
+	for (let i = index - 1; i >= 0 && pattern[i] === "\\"; i -= 1) slashCount += 1;
+	return slashCount % 2 === 1;
+}
+
+function isInsideCharacterClass(pattern: string, index: number): boolean {
+	let inClass = false;
+	for (let i = 0; i < index; i += 1) {
+		if (isEscaped(pattern, i)) continue;
+		if (pattern[i] === "[" && !inClass) inClass = true;
+		else if (pattern[i] === "]" && inClass) inClass = false;
+	}
+	return inClass;
 }
 
 function advanceStringIndex(text: string, index: number, unicode: boolean): number {
@@ -1381,8 +1512,11 @@ function validateInspector(value: unknown, errors: string[]): void {
 		if (!isRecord(value.allowlist)) {
 			errors.push("tools.inspector.allowlist must be an object");
 		} else {
-			rejectUnknownKeys(value.allowlist, "tools.inspector.allowlist", new Set(["stopwords", "regexes"]), errors);
+			rejectUnknownKeys(value.allowlist, "tools.inspector.allowlist", new Set(["stopwords", "regexes", "skipRegexSafetyCheck"]), errors);
 			validateOptionalStringArray(value.allowlist.stopwords, "tools.inspector.allowlist.stopwords", errors);
+			if (value.allowlist.skipRegexSafetyCheck !== undefined && typeof value.allowlist.skipRegexSafetyCheck !== "boolean") {
+				errors.push("tools.inspector.allowlist.skipRegexSafetyCheck must be a boolean");
+			}
 			validateOptionalStringArray(value.allowlist.regexes, "tools.inspector.allowlist.regexes", errors);
 			if (Array.isArray(value.allowlist.regexes)) {
 				value.allowlist.regexes.forEach((regex, index) => {
@@ -1393,9 +1527,11 @@ function validateInspector(value: unknown, errors: string[]): void {
 						errors.push(`tools.inspector.allowlist.regexes[${index}] must compile as a JavaScript RegExp${e instanceof Error ? ` (${e.message})` : ""}`);
 						return;
 					}
-					const safety = isSafeRegex(regex);
-					if (!safety.safe) {
-						errors.push(`tools.inspector.allowlist.regexes[${index}] is unsafe: ${safety.reason} (${regex})`);
+					if (value.allowlist.skipRegexSafetyCheck !== true) {
+						const safety = isSafeRegex(regex);
+						if (!safety.safe) {
+							errors.push(`tools.inspector.allowlist.regexes[${index}] is unsafe: ${safety.reason} (${regex})`);
+						}
 					}
 				});
 			}
@@ -1408,7 +1544,7 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 		errors.push(`${path} must be an object`);
 		return;
 	}
-	rejectUnknownKeys(value, path, new Set(["name", "pattern", "action", "secretGroup", "entropy", "keywords", "flags", "maxLength"]), errors);
+	rejectUnknownKeys(value, path, new Set(["name", "pattern", "action", "secretGroup", "entropy", "keywords", "flags", "maxLength", "skipRegexSafetyCheck"]), errors);
 	if (typeof value.name !== "string" || value.name.length === 0) errors.push(`${path}.name must be a non-empty string`);
 	if (typeof value.pattern !== "string" || value.pattern.length === 0) errors.push(`${path}.pattern must be a non-empty string`);
 	if (typeof value.action !== "string" || !SECRET_ACTIONS.has(value.action)) {
@@ -1418,6 +1554,7 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 	if (value.entropy !== undefined && typeof value.entropy !== "number") errors.push(`${path}.entropy must be a number`);
 	validateOptionalStringArray(value.keywords, `${path}.keywords`, errors);
 	if (value.flags !== undefined && typeof value.flags !== "string") errors.push(`${path}.flags must be a string`);
+	if (value.skipRegexSafetyCheck !== undefined && typeof value.skipRegexSafetyCheck !== "boolean") errors.push(`${path}.skipRegexSafetyCheck must be a boolean`);
 	if (value.maxLength !== undefined) {
 		if (!Number.isInteger(value.maxLength) || value.maxLength <= 0) {
 			errors.push(`${path}.maxLength must be a positive integer`);
@@ -1432,9 +1569,11 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 			errors.push(`${path}.pattern must compile as a JavaScript RegExp${e instanceof Error ? ` (${e.message})` : ""}`);
 			return;
 		}
-		const safety = isSafeRegex(value.pattern);
-		if (!safety.safe) {
-			errors.push(`${path}.pattern is unsafe for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: ${safety.reason} (${value.pattern})`);
+		if (value.skipRegexSafetyCheck !== true) {
+			const safety = isSafeRegex(value.pattern);
+			if (!safety.safe) {
+				errors.push(`${path}.pattern is unsafe for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: ${safety.reason} (${value.pattern})`);
+			}
 		}
 	}
 }

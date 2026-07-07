@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-v010-config-and-policy-hardening
 kind: story
-stage: drafting
+stage: review
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -209,3 +209,10 @@ installed; M7's await is negligible when sandbox is absent).
 - Tests added: unknown-field validation coverage for every known-schema level plus dynamic-map non-rejection, load-config source/path parse-error coverage for `global: network.mdoe`-style typos, and legacy ASRT warning coverage.
 - Discrepancies from design: extended the known-schema check to inspector secret shapes and allowlist entries as statically-checkable nested config; dynamic tool-name maps remain explicitly exempt.
 - Verification: `cd plugins/pi-sandbox && bun test extensions/sandbox.test.ts -t "M2|unknown-field|legacy ASRT|validateConfig"` passed (7 tests).
+
+#### M3 implementation notes
+- Files changed: `plugins/pi-sandbox/extensions/sandbox-config.ts`, `plugins/pi-sandbox/extensions/sandbox.test.ts`.
+- Implementation: replaced the overclaiming `isSafeRegex` comment with a narrow-heuristic description and extended the heuristic to reject quantified groups that contain quantifiers (including counted quantifiers and counted outer quantifiers) plus quantified groups with overlapping alternation branches such as `(a|aa)+`. Legitimate alternation outside a quantified group, such as `(key|token|secret)-[a-z]+`, remains accepted. Added `skipRegexSafetyCheck?: boolean` to secret shapes and inspector allowlist regex config as an explicit operator escape hatch; runtime scan-window caps still apply.
+- Tests added: validation coverage for `(a{1,2})+`, `(a+){1,3}`, `(a|aa)+`, allowlist regex safety, the safe assignment pattern, and shape/allowlist `skipRegexSafetyCheck` (including type validation).
+- Discrepancies from design: allowlist escape hatch is modeled as `tools.inspector.allowlist.skipRegexSafetyCheck`, applying to all allowlist regexes, because the existing allowlist regex config is a string array rather than per-regex objects.
+- Verification: `cd plugins/pi-sandbox && bun test extensions/sandbox.test.ts -t "M3|unsafe nested|regex heuristic|validateConfig"` passed (6 tests).
