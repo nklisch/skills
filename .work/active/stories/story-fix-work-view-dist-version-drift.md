@@ -1,8 +1,14 @@
 ---
-id: bug-work-view-dist-version-drift-0147
-created: 2026-06-21
-updated: 2026-06-21
+id: story-fix-work-view-dist-version-drift
+kind: story
+stage: implementing
 tags: [bug, tooling]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
+created: 2026-06-21
+updated: 2026-07-07
 ---
 
 # Refresh stale work-view dist binaries for current manifest

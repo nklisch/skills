@@ -1,8 +1,14 @@
 ---
-id: bug-install-work-view-fallback-gating
+id: story-fix-install-work-view-fallback-gating
+kind: story
+stage: implementing
+tags: [bug, tooling]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
 created: 2026-06-20
-updated: 2026-06-20
-tags: []
+updated: 2026-07-07
 ---
 
 # install-work-view.sh never reaches the bash fallback on prebuilt failure

@@ -1,7 +1,14 @@
 ---
-id: bug-release-deploy-unbound-query-empty-string
+id: story-fix-release-deploy-unbound-query
+kind: story
+stage: implementing
+tags: [bug, tooling]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
 created: 2026-06-03
-tags: [tooling, bug]
+updated: 2026-07-07
 ---
 
 # release-deploy "unbound done items" query uses `--release ""` (returns nothing)
