@@ -202,3 +202,10 @@ installed; M7's await is negligible when sandbox is absent).
 - Tests added/updated: `loadConfig unions global deny lists with defaults unless explicitly emptied (M1)` covers default inheritance, dedupe, and the explicit-empty escape hatch; the existing global+project merge test now expects inherited defaults before global/project additions.
 - Discrepancies from design: none.
 - Verification: `cd plugins/pi-sandbox && bun test extensions/sandbox.test.ts -t "loadConfig reads global|unions global deny|config boundary contract"` passed (28 tests).
+
+#### M2 implementation notes
+- Files changed: `plugins/pi-sandbox/extensions/sandbox-config.ts`, `plugins/pi-sandbox/extensions/sandbox.test.ts`.
+- Implementation: config validation now fails closed on unknown statically-checkable keys at the top level, `filesystem`, `network`, `tools`, `tools.inspector`, inspector secret shapes, inspector allowlist, `envScrub`, and `backgroundTasks`. Dynamic-key maps (`tools.rules.<tool>` and `tools.inspector.scanFields.<tool>`) remain value-validated without rejecting unknown tool names. Legacy ASRT fields remain grandfathered warnings.
+- Tests added: unknown-field validation coverage for every known-schema level plus dynamic-map non-rejection, load-config source/path parse-error coverage for `global: network.mdoe`-style typos, and legacy ASRT warning coverage.
+- Discrepancies from design: extended the known-schema check to inspector secret shapes and allowlist entries as statically-checkable nested config; dynamic tool-name maps remain explicitly exempt.
+- Verification: `cd plugins/pi-sandbox && bun test extensions/sandbox.test.ts -t "M2|unknown-field|legacy ASRT|validateConfig"` passed (7 tests).

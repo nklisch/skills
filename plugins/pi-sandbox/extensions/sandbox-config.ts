@@ -663,6 +663,8 @@ export function validateConfig(config: unknown): string[] {
 	const errors: string[] = [];
 	if (!isRecord(config)) return ["config must be a JSON object"];
 
+	rejectUnknownKeys(config, "", new Set(["enabled", "bwrapPath", "filesystem", "network", "tools", "envScrub", "backgroundTasks", "ignoreViolations", "enableWeakerNestedSandbox", "httpProxyPort", "socksProxyPort"]), errors);
+
 	if (config.enabled !== undefined && typeof config.enabled !== "boolean") {
 		errors.push("enabled must be a boolean");
 	}
@@ -675,6 +677,7 @@ export function validateConfig(config: unknown): string[] {
 		if (!isRecord(config.filesystem)) {
 			errors.push("filesystem must be an object");
 		} else {
+			rejectUnknownKeys(config.filesystem, "filesystem", new Set(["denyRead", "denyWrite", "allowWrite", "allowGitConfig"]), errors);
 			validateOptionalStringArray(config.filesystem.denyRead, "filesystem.denyRead", errors);
 			validateOptionalStringArray(config.filesystem.denyWrite, "filesystem.denyWrite", errors);
 			validateOptionalStringArray(config.filesystem.allowWrite, "filesystem.allowWrite", errors);
@@ -685,6 +688,7 @@ export function validateConfig(config: unknown): string[] {
 		if (!isRecord(config.network)) {
 			errors.push("network must be an object");
 		} else {
+			rejectUnknownKeys(config.network, "network", new Set(["mode", "allowedDomains", "deniedDomains", "httpProxyPort", "socksProxyPort"]), errors);
 			if (config.network.mode !== undefined && (typeof config.network.mode !== "string" || !NETWORK_MODES.has(config.network.mode))) {
 				errors.push('network.mode must be one of "open", "block", or "filter"');
 			}
@@ -697,6 +701,7 @@ export function validateConfig(config: unknown): string[] {
 		if (!isRecord(config.tools)) {
 			errors.push("tools must be an object");
 		} else {
+			rejectUnknownKeys(config.tools, "tools", new Set(["default", "rules", "inspector"]), errors);
 			validateOptionalToolPolicy(config.tools.default, "tools.default", errors);
 			if (config.tools.rules !== undefined) {
 				if (!isRecord(config.tools.rules)) {
@@ -714,10 +719,13 @@ export function validateConfig(config: unknown): string[] {
 	if (config.backgroundTasks !== undefined) {
 		if (!isRecord(config.backgroundTasks)) {
 			errors.push("backgroundTasks must be an object");
-		} else if (config.backgroundTasks.sandboxIntegration !== undefined) {
-			const integration = config.backgroundTasks.sandboxIntegration;
-			if (typeof integration !== "string" || !BACKGROUND_TASKS_SANDBOX_INTEGRATIONS.has(integration)) {
-				errors.push('backgroundTasks.sandboxIntegration must be one of "auto" or "off"');
+		} else {
+			rejectUnknownKeys(config.backgroundTasks, "backgroundTasks", new Set(["sandboxIntegration"]), errors);
+			if (config.backgroundTasks.sandboxIntegration !== undefined) {
+				const integration = config.backgroundTasks.sandboxIntegration;
+				if (typeof integration !== "string" || !BACKGROUND_TASKS_SANDBOX_INTEGRATIONS.has(integration)) {
+					errors.push('backgroundTasks.sandboxIntegration must be one of "auto" or "off"');
+				}
 			}
 		}
 	}
@@ -726,6 +734,7 @@ export function validateConfig(config: unknown): string[] {
 		if (!isRecord(config.envScrub)) {
 			errors.push("envScrub must be an object");
 		} else {
+			rejectUnknownKeys(config.envScrub, "envScrub", new Set(["names", "patterns", "keep"]), errors);
 			validateOptionalStringArray(config.envScrub.names, "envScrub.names", errors);
 			validateOptionalStringArray(config.envScrub.patterns, "envScrub.patterns", errors);
 			validateOptionalStringArray(config.envScrub.keep, "envScrub.keep", errors);
@@ -1314,6 +1323,15 @@ function formatBackgroundTasksIntegration(state: BypassToolIntegrationState): st
 	return `inactive${suffix}`;
 }
 
+function rejectUnknownKeys(value: Record<string, unknown>, path: string, knownKeys: Set<string>, errors: string[]): void {
+	for (const key of Object.keys(value)) {
+		if (!knownKeys.has(key)) {
+			const fieldPath = path ? `${path}.${key}` : key;
+			errors.push(`${fieldPath} is not a recognized config field`);
+		}
+	}
+}
+
 function validateOptionalStringArray(value: unknown, path: string, errors: string[]): void {
 	if (value === undefined) return;
 	if (!Array.isArray(value)) {
@@ -1338,6 +1356,7 @@ function validateInspector(value: unknown, errors: string[]): void {
 		errors.push("tools.inspector must be an object");
 		return;
 	}
+	rejectUnknownKeys(value, "tools.inspector", new Set(["secrets", "onNoMatch", "scanFields", "allowlist"]), errors);
 	if (value.onNoMatch !== undefined && (typeof value.onNoMatch !== "string" || !INSPECTOR_NO_MATCH_ACTIONS.has(value.onNoMatch))) {
 		errors.push('tools.inspector.onNoMatch must be one of "allow" or "block"');
 	}
@@ -1362,6 +1381,7 @@ function validateInspector(value: unknown, errors: string[]): void {
 		if (!isRecord(value.allowlist)) {
 			errors.push("tools.inspector.allowlist must be an object");
 		} else {
+			rejectUnknownKeys(value.allowlist, "tools.inspector.allowlist", new Set(["stopwords", "regexes"]), errors);
 			validateOptionalStringArray(value.allowlist.stopwords, "tools.inspector.allowlist.stopwords", errors);
 			validateOptionalStringArray(value.allowlist.regexes, "tools.inspector.allowlist.regexes", errors);
 			if (Array.isArray(value.allowlist.regexes)) {
@@ -1388,6 +1408,7 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 		errors.push(`${path} must be an object`);
 		return;
 	}
+	rejectUnknownKeys(value, path, new Set(["name", "pattern", "action", "secretGroup", "entropy", "keywords", "flags", "maxLength"]), errors);
 	if (typeof value.name !== "string" || value.name.length === 0) errors.push(`${path}.name must be a non-empty string`);
 	if (typeof value.pattern !== "string" || value.pattern.length === 0) errors.push(`${path}.pattern must be a non-empty string`);
 	if (typeof value.action !== "string" || !SECRET_ACTIONS.has(value.action)) {
