@@ -1,14 +1,14 @@
 ---
 id: story-fix-background-wake-custom-message
 kind: story
-stage: review
+stage: done
 tags: [bug, plugin]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-22
-updated: 2026-06-22
+updated: 2026-07-07
 ---
 
 # Fix background-task wake delivery attribution
@@ -36,3 +36,14 @@ Route wake-ups through a `background-tasks:wake` custom message with `triggerTur
 - `bun test` — 107 pass.
 - `python3 /home/nathan/.codex/skills/.system/skill-creator/scripts/quick_validate.py plugins/background-tasks/skills/background-tasks` — valid.
 - `git diff --check` — clean.
+
+## Review (2026-07-06)
+
+**Verdict**: Approve - story verified by implement; fast-lane advance.
+
+**Blockers**: none. **Important**: none. **Nits**: none.
+
+**Notes**: fast lane. Confirmed the fix is in the tree (`background-tasks.ts:96,685` —
+`WAKE_CUSTOM_TYPE = "background-tasks:wake"`, `pi.sendMessage(...)` path).
+`cd plugins/background-tasks && bun test` re-run: 71 pass, 0 fail. Implementation
+notes + verification record present and green.

@@ -1,14 +1,14 @@
 ---
 id: story-gate-stub-regate-alignment
 kind: story
-stage: review
+stage: done
 tags: [release-gates]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-06-11
-updated: 2026-06-11
+updated: 2026-07-07
 ---
 
 # Align gate bundle-gathers with re-gate semantics; Phase 7 honors terminal-tier retention
@@ -41,3 +41,19 @@ Two follow-through fixes to `b116fda`'s re-gate ruling and SPEC §Terminal-tier 
   (bug-scan's adapted to its bullet context, same semantics).
 - `convert-content-integrity.test.sh` and `convert-install-routing.test.sh` pass.
 - A `retain-bodies` deployment walking Phase 7 as written keeps all bodies on disk.
+
+## Review (2026-07-06)
+
+**Verdict**: Approve - story verified; fast-lane advance.
+
+**Blockers**: none. **Important**: none. **Nits**: the item had no `## Implementation
+notes` section at review (the work was done but undocumented); advancing on
+verified acceptance criteria rather than a verification record.
+
+**Notes**: fast lane. The story body itself documents the fix in prose above the
+acceptance criteria (Phase 7 mode-aware disposal, `mkdir -p` guard, suite-doc
+drift sweep). Verified the work is in the tree: `grep -rln no-re-gate
+plugins/agile-workflow/` returns no matches (criterion 1 met);
+`scripts/tests/convert-content-integrity.test.sh` → 42 passed, 0 failed;
+`scripts/tests/convert-install-routing.test.sh` → 12 passed, 0 failed (criteria 3
+met). No test or skill-validator run regressed.
