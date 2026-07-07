@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-provider-strip-list-incomplete
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -98,3 +98,16 @@ when sandbox is off.
 - Discrepancies from design: none. `findEnvKeys` is reachable only through the installed dist file rather than a package-exported subpath, but the test uses the exported `findEnvKeys` function and not the private env map.
 - Verification: `cd plugins/pi-sandbox && bun test 2>&1 | tail -8` → 126 pass, 0 fail; `cd plugins/background-tasks && bun test 2>&1 | tail -3` → 71 pass, 0 fail.
 - Adjacent issues parked: none.
+
+## Review (2026-07-07)
+
+**Verdict**: Approve (adversarial result review; blockers fixed inline in 93d230a)
+
+**Mode/Depth**: substrate / adversarial result review, fresh-context gpt-5.5
+(two parallel passes: config cluster + integration cluster). Blockers found
+were verified reproducible, then fixed inline.
+
+**Notes**: see commit 93d230a for the specific blockers fixed per item. The
+adversarial review caught 4 real reproducible blockers (M3 wrapper bypass, M6
+path bug, H2 AWS container creds, M8 ENOENT crash) + 2 importants (B1-3 cap,
+H3 cwd) that the implementation tests missed — all resolved before advancement.

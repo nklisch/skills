@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-monitor-cancel-lifecycle
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: []
@@ -85,3 +85,16 @@ pi-sandbox is opted in.
 - Discrepancies from design: none; the absent pi-sandbox / `pi.exec` mid-poll cancellation gap remains documented as a known residual.
 - Adjacent issues parked: none.
 - Verification: `cd plugins/background-tasks && bun test` passed (72 tests).
+
+## Review (2026-07-07)
+
+**Verdict**: Approve (adversarial result review; blockers fixed inline in 93d230a)
+
+**Mode/Depth**: substrate / adversarial result review, fresh-context gpt-5.5
+(two parallel passes: config cluster + integration cluster). Blockers found
+were verified reproducible, then fixed inline.
+
+**Notes**: see commit 93d230a for the specific blockers fixed per item. The
+adversarial review caught 4 real reproducible blockers (M3 wrapper bypass, M6
+path bug, H2 AWS container creds, M8 ENOENT crash) + 2 importants (B1-3 cap,
+H3 cwd) that the implementation tests missed — all resolved before advancement.

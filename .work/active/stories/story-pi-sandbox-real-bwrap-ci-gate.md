@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-real-bwrap-ci-gate
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, testing]
 parent: null
 depends_on: []
@@ -119,3 +119,16 @@ PI_SANDBOX_REQUIRE_BWRAP=1 bun test 2>&1 | tail -4
 bun test plugins/pi-sandbox/extensions/sandbox-bwrap-test.test.ts
 # forced-mode assertion covers "set to require + missing bwrap -> failure" path
 ```
+
+## Review (2026-07-07)
+
+**Verdict**: Approve (adversarial result review; blockers fixed inline in 93d230a)
+
+**Mode/Depth**: substrate / adversarial result review, fresh-context gpt-5.5
+(two parallel passes: config cluster + integration cluster). Blockers found
+were verified reproducible, then fixed inline.
+
+**Notes**: see commit 93d230a for the specific blockers fixed per item. The
+adversarial review caught 4 real reproducible blockers (M3 wrapper bypass, M6
+path bug, H2 AWS container creds, M8 ENOENT crash) + 2 importants (B1-3 cap,
+H3 cwd) that the implementation tests missed — all resolved before advancement.
