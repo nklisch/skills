@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-inspector-per-shape-overlap
 kind: story
-stage: drafting
+stage: review
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -93,3 +93,12 @@ Refinements from the design review:
   bounded (more overlap = more windows, but each window is still capped).
 
 **Stance check**: inspector is pi-sandbox's own config; no cross-extension seam.
+
+## Implementation notes
+- Files changed: `plugins/pi-sandbox/extensions/sandbox-config.ts`, `plugins/pi-sandbox/extensions/inspector-chunked-scan.test.ts`, `plugins/pi-sandbox/extensions/sandbox.test.ts`.
+- Implementation: added `SecretShape.maxLength` as the expected full regex match length (`match[0]`) with default `4096`, positive-integer validation, and a hard cap of `MAX_SCAN_LENGTH` (`10_000`). Compiled shapes now carry `maxLength`, and the shared scanner uses per-shape overlap `max(4096, shape.maxLength)` so long shapes do not globally slow short shapes. Added best-effort overlong-pattern warnings (literal/bounded-quantifier heuristic) into `LoadedConfig.additiveWarnings`.
+- Tests added: chunked scanner coverage for default 4096 boundary catches and explicit `maxLength` >4096 boundary catches; config validation coverage for impossible/non-positive `maxLength`; config-load warning coverage for an overlong pattern.
+- Test maintenance: updated the existing B1-1 redaction-cap fixture to separate decoy tokens with a non-matching byte, because the greedy token regex otherwise produced one merged range rather than the intended >10K unique ranges.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
+- Verification: `cd plugins/pi-sandbox && bun test extensions/inspector-chunked-scan.test.ts extensions/sandbox.test.ts -t "B1-3|maxLength|chunked scanning"` passed (15 tests).

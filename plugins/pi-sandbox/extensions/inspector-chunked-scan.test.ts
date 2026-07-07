@@ -74,6 +74,38 @@ describe("tool input inspector chunked scanning", () => {
 		expect(redactionCount(input.body)).toBe(1);
 	});
 
+	test("default 4096 maxLength catches a PEM-sized secret split across the old 2048-overlap boundary", () => {
+		const longSecret = `BEGIN-${"A".repeat(3000)}-END`;
+		const input: Record<string, unknown> = {
+			body: `${"x".repeat(7_800)}${longSecret}${".".repeat(MAX_SCAN_LENGTH)}`,
+		};
+
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "pem-sized", pattern: "BEGIN-A{3000}-END", action: "redact" }],
+			onNoMatch: "allow",
+		});
+
+		expect(verdict.action).toBe("allow");
+		expect(input.body).not.toContain(longSecret);
+		expect(input.body).toContain("[REDACTED:pem-sized]");
+	});
+
+	test("per-shape maxLength catches a >4096-char secret split across a window boundary", () => {
+		const longSecret = `sk-${"A".repeat(5000)}`;
+		const input: Record<string, unknown> = {
+			body: `${"x".repeat(5_500)}${longSecret}${".".repeat(MAX_SCAN_LENGTH)}`,
+		};
+
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "long-token", pattern: "sk-A{5000}", action: "redact", maxLength: longSecret.length }],
+			onNoMatch: "allow",
+		});
+
+		expect(verdict.action).toBe("allow");
+		expect(input.body).not.toContain(longSecret);
+		expect(input.body).toContain("[REDACTED:long-token]");
+	});
+
 	test(
 		"per-window cap bounds ReDoS work linearly in field length (catastrophic non-match completes without hang)",
 		() => {
@@ -166,9 +198,9 @@ describe("tool input inspector chunked scanning", () => {
 		// survive. Uses a shape that matches both decoys and the real key.
 		const decoy = "sk-AAAAAAAAAAAAAAAAAAAA"; // 23 chars, matches sk-[A-Za-z0-9]{20,}
 		const realKey = "sk-BBBBBBBBBBBBBBBBBBBB";
-		// Need > 10K unique dedup'd ranges across all windows. At ~434 matches per
-		// 10K window (stride 7952), ~24 windows of decoys clears the cap.
-		const decoys = decoy.repeat(24_000); // ~552K chars -> > 10K ranges post-dedup
+		// Keep decoys separated by a non-matching byte so the greedy token regex
+		// produces many unique ranges rather than one giant merged range.
+		const decoys = `${decoy} `.repeat(24_000); // > 10K ranges post-dedup
 		const input: Record<string, unknown> = { body: `${decoys}${realKey}` };
 
 		const verdict = inspectToolInput("agent_send", input, redactingInspector());
