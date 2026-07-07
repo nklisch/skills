@@ -914,6 +914,74 @@ describe("config boundary contract", () => {
 		expect(errors.join("\n")).toContain("tools.inspector.allowlist.regexes[0] must compile");
 	});
 
+	test("validateConfig fails closed on unknown statically-checkable fields but allows dynamic tool maps (M2)", () => {
+		const errors = validateConfig({
+			enabeld: true,
+			filesystem: { denyRead: [], denyRaed: [] },
+			network: { mdoe: "block" },
+			tools: {
+				defualt: "allow",
+				rules: { unknownToolName: "block" },
+				inspector: {
+					onNoMtach: "block",
+					scanFields: { unknownToolName: ["body"] },
+					secrets: [{ name: "token", pattern: "tok_[a-z]+", action: "block", maxLenght: 20 }],
+					allowlist: { regexes: ["^example$"], regex: ["typo"] },
+				},
+			},
+			envScrub: { names: [], patterms: [] },
+			backgroundTasks: { sandboxIntegratoin: "auto" },
+		});
+		const joined = errors.join("\n");
+
+		expect(joined).toContain("enabeld is not a recognized config field");
+		expect(joined).toContain("filesystem.denyRaed is not a recognized config field");
+		expect(joined).toContain("network.mdoe is not a recognized config field");
+		expect(joined).toContain("tools.defualt is not a recognized config field");
+		expect(joined).toContain("tools.inspector.onNoMtach is not a recognized config field");
+		expect(joined).toContain("tools.inspector.secrets[0].maxLenght is not a recognized config field");
+		expect(joined).toContain("tools.inspector.allowlist.regex is not a recognized config field");
+		expect(joined).toContain("envScrub.patterms is not a recognized config field");
+		expect(joined).toContain("backgroundTasks.sandboxIntegratoin is not a recognized config field");
+		expect(joined).not.toContain("tools.rules.unknownToolName is not a recognized config field");
+		expect(joined).not.toContain("tools.inspector.scanFields.unknownToolName is not a recognized config field");
+	});
+
+	test("loadConfig reports unknown-field parse errors with source and path (M2)", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			network: { mdoe: "block" },
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.parseErrors.join("\n")).toContain("global (");
+		expect(loaded.parseErrors.join("\n")).toContain("network.mdoe is not a recognized config field");
+	});
+
+	test("legacy ASRT fields remain warnings instead of unknown-field errors (M2)", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			ignoreViolations: { bash: ["legacy"] },
+			enableWeakerNestedSandbox: true,
+			httpProxyPort: 8080,
+			socksProxyPort: 1080,
+			filesystem: { allowGitConfig: true },
+			network: { httpProxyPort: 8080, socksProxyPort: 1080 },
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.parseErrors).toEqual([]);
+		expect(loaded.legacyFieldWarnings.join("\n")).toContain("ignoreViolations");
+		expect(loaded.legacyFieldWarnings.join("\n")).toContain("filesystem.allowGitConfig");
+		expect(loaded.legacyFieldWarnings.join("\n")).toContain("network.httpProxyPort");
+	});
+
 	test("validateConfig rejects impossible or non-positive secret maxLength values (B1-3)", () => {
 		const errors = validateConfig({
 			tools: {
