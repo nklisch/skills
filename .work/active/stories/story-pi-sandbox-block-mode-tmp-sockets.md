@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-block-mode-tmp-sockets
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -95,3 +95,16 @@ operator has configured the sandbox.
 - Documentation: README now states that block mode uses private temp/runtime tmpfs mounts, documents `TMPDIR=/tmp`, and calls out the sticky-bit and unbounded-tmpfs-size residuals.
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+
+## Review (2026-07-07)
+
+**Verdict**: Approve (adversarial result review; blockers fixed inline in 93d230a)
+
+**Mode/Depth**: substrate / adversarial result review, fresh-context gpt-5.5
+(two parallel passes: config cluster + integration cluster). Blockers found
+were verified reproducible, then fixed inline.
+
+**Notes**: see commit 93d230a for the specific blockers fixed per item. The
+adversarial review caught 4 real reproducible blockers (M3 wrapper bypass, M6
+path bug, H2 AWS container creds, M8 ENOENT crash) + 2 importants (B1-3 cap,
+H3 cwd) that the implementation tests missed — all resolved before advancement.
