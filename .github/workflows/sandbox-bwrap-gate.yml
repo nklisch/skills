@@ -1,0 +1,41 @@
+name: Sandbox bwrap gate
+
+on:
+  pull_request:
+    paths:
+      - "plugins/pi-sandbox/**"
+      - "plugins/background-tasks/**"
+      - ".github/workflows/sandbox-bwrap-gate.yml"
+  workflow_dispatch:
+
+jobs:
+  bwrap-gate:
+    name: Real bwrap integration gate
+    runs-on: ubuntu-latest
+    env:
+      PI_SANDBOX_REQUIRE_BWRAP: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install bubblewrap
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+
+      - name: Verify bubblewrap executes
+        run: bwrap --version
+
+      - name: Run pi-sandbox tests with bwrap required
+        run: |
+          cd plugins/pi-sandbox
+          bun test
+
+      - name: Run background-tasks tests with bwrap required
+        run: |
+          cd plugins/background-tasks
+          bun test

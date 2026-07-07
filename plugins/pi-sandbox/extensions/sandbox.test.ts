@@ -15,6 +15,7 @@ import {
 	type BuildBwrapArgsOptions,
 	validateBwrapInit,
 } from "./sandbox-bwrap";
+import { makeBwrapIntegrationTest } from "./sandbox-bwrap-test";
 import {
 	DEFAULT_CONFIG,
 	FILTER_DEFERRED_BACKLOG_ITEM,
@@ -51,7 +52,7 @@ const tempDirs: string[] = [];
 const bwrapPath = "bwrap";
 const isLinux = process.platform === "linux";
 const hasBwrap = isLinux && Bun.spawnSync([bwrapPath, "--version"], { stdout: "pipe", stderr: "pipe" }).success;
-const integrationTest = isLinux && hasBwrap ? test : test.skip;
+const integrationTest = makeBwrapIntegrationTest({ isLinux, hasBwrap });
 
 async function makeTempDir(): Promise<string> {
 	const dir = await mkdtemp(join(tmpdir(), "pi-sandbox-test-"));
