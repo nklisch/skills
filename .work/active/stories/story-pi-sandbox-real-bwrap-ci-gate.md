@@ -59,3 +59,30 @@ locally without bwrap.
 - [ ] Release CI runs on Linux with bwrap installed
 - [ ] A skipped real-bwrap test fails the release CI job
 - [ ] Local dev without bwrap still passes (skips allowed)
+
+## Hardened design (post adversarial design review, 2026-07-07)
+
+**Decision: (a) CI-only gate, env-guarded (not output parsing).**
+
+Refinements from the design review:
+- **Use an env guard, not skip-output parsing** (which is brittle — bun output
+  format changes, skip count includes unrelated skips). Add a
+  `PI_SANDBOX_REQUIRE_BWRAP=1` env var that the test helpers check: when set,
+  real-bwrap tests FAIL (not skip) if bwrap is absent. When unset (local dev),
+  they skip as today.
+- **Convert all real-bwrap test sites to honor the env**: `sandbox.test.ts:1611`,
+  `background-tasks.test.ts:609`, `sandbox-spawn.test.ts:398`. Also convert any
+  real-bwrap test that early-`return`s on absent bwrap (doesn't show as skipped)
+  into a guarded failure/skip consistently.
+- **CI workflow**: add a dedicated job (or extend an existing extension workflow —
+  NOT `build-work-view.yml`, which is agile-workflow-specific) that runs on
+  `ubuntu-latest` with `bubblewrap` installed and `PI_SANDBOX_REQUIRE_BWRAP=1` set.
+  Run on PRs touching pi-sandbox/background-tasks + on release.
+- **bwrap in CI**: `apt-get install bubblewrap` works on `ubuntu-latest` VMs
+  (user namespaces available); container jobs may restrict it — use a VM runner,
+  not a container, and verify bwrap actually executes (not just installs).
+- **Release-only vs PR**: run on PRs touching the sandbox surface (catches
+  regressions early) — the env guard makes local dev unaffected.
+
+**Stance check**: CI-only; no operator config. Honors "no-op unless opted in" —
+the gate only runs in CI with the env var set.
