@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile, link } from "node:fs/promises";
 import { realpathSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:net";
@@ -1026,9 +1026,10 @@ describe("config boundary contract", () => {
 		// effective window overlap can evade the scanner when split across a
 		// window boundary. The operator MUST declare maxLength >= apparentMax.
 		expect(loaded.parseErrors.length).toBeGreaterThan(0);
-		expect(loaded.parseErrors.join("\n")).toContain("shape \"overlong\" pattern appears to match up to");
+		expect(loaded.parseErrors.join("\n")).toContain("shape \"overlong\"");
+		expect(loaded.parseErrors.join("\n")).toContain("appears to match up to");
 		expect(loaded.parseErrors.join("\n")).toContain("exceeding maxLength 4096");
-		expect(loaded.parseErrors.join("\n")).toContain("set maxLength");
+		expect(loaded.parseErrors.join("\n")).toContain("maxLength");
 	});
 
 	test("loadConfig accepts an overlong pattern when maxLength covers the apparent match (B1-3)", async () => {
@@ -1048,6 +1049,41 @@ describe("config boundary contract", () => {
 		// Declaring maxLength >= apparentMax raises the per-shape overlap so the
 		// full match fits in a window; the config loads clean.
 		expect(loaded.parseErrors).toEqual([]);
+	});
+
+	test("validateConfig rejects open-ended quantifiers as unbounded match length (re-review #1)", () => {
+		// An open-ended quantifier (+, *, {n,}) has an unbounded match length: a
+		// secret can be arbitrarily long and straddle a scan-window boundary,
+		// leaking its tail unredacted. The operator MUST bound the quantifier.
+		for (const pattern of ["sk-[A-Za-z0-9]{20,}", "tok_[a-z]+", "^[A-Za-z]*$"]) {
+			const errors = validateConfig({
+				tools: {
+					inspector: { secrets: [{ name: "s", pattern, action: "redact" }] },
+				},
+			});
+			expect(errors.join("\n")).toContain("unbounded match length");
+		}
+		// A bounded quantifier is accepted.
+		const ok = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "s", pattern: "sk-[A-Za-z0-9]{20,128}", action: "redact" }] },
+			},
+		});
+		expect(ok).toEqual([]);
+	});
+
+	test("validateConfig rejects backreferences as unsound apparent-length (re-review #3)", () => {
+		// A backreference (\1) makes apparent-length estimation unsound: the
+		// matched length depends on what the captured group matched, not a fixed
+		// property of the pattern. `([A-Za-z0-9]{4096})\1` appears to be 4097 but
+		// matches 8192, evading the windowed scan. Reject outright.
+		const errors = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "repeated", pattern: "([A-Za-z0-9]{4096})\\1", action: "block" }] },
+			},
+		});
+		expect(errors.join("\n")).toContain("backreference");
+		expect(errors.join("\n")).toContain("unsafe");
 	});
 
 	test("validateConfig rejects unsafe nested-quantifier regexes and allows simple safe allowlist patterns", () => {
@@ -1099,19 +1135,25 @@ describe("config boundary contract", () => {
 		const safe = validateConfig({
 			tools: {
 				inspector: {
-					secrets: [{ name: "assignment", pattern: "(key|token|secret)-[a-z]+", action: "block" }],
+					secrets: [{ name: "assignment", pattern: "(key|token|secret)-[a-z]{1,64}", action: "block" }],
 				},
 			},
 		});
-		expect(safe).toEqual([]);
+		expect(safe.join("\n")).not.toContain("unsafe");
+		expect(safe.join("\n")).not.toContain("must compile");
+		expect(safe.join("\n")).not.toContain("unbounded");
 	});
 
 	test("skipRegexSafetyCheck bypasses the narrow regex heuristic for shapes and allowlists (M3)", () => {
+		// skipRegexSafetyCheck bypasses the ReDoS heuristic (nested quantifiers,
+		// overlapping alternation) but NOT the apparent-length check: an unbounded
+		// pattern still leaks its tail across a window boundary regardless of ReDoS
+		// risk. Use a bounded-but-ReDoS-unsafe pattern to isolate the bypass.
 		const skipped = validateConfig({
 			tools: {
 				inspector: {
-					secrets: [{ name: "accepted-risk", pattern: "(a|aa)+", action: "block", skipRegexSafetyCheck: true }],
-					allowlist: { regexes: ["(a+)+"], skipRegexSafetyCheck: true },
+					secrets: [{ name: "accepted-risk", pattern: "(a|aa){1,5}", action: "block", skipRegexSafetyCheck: true }],
+					allowlist: { regexes: ["(a+){1,5}"], skipRegexSafetyCheck: true },
 				},
 			},
 		});
@@ -1882,6 +1924,56 @@ describe("buildBwrapArgs", () => {
 
 		expectSequence(args, ["--tmpfs", join(outside, "secret-dir")]);
 		expect(args).not.toContain(join(cwd, "secret-link"));
+	});
+
+	test("refuses to start when a denied regular file has a hardlink alias (re-review)", async () => {
+		// bwrap path overlays protect a pathname, not the underlying inode. A
+		// hardlink alias inside an allowWrite root reaches the same inode as a
+		// denied file, bypassing both denyRead and denyWrite. Fail closed (throw)
+		// rather than start a sandbox whose deny overlay can be sidestepped.
+		const cwd = await makeTempDir();
+		await writeFile(join(cwd, ".env"), "secret");
+		await link(join(cwd, ".env"), join(cwd, "alias")); // hardlink: same inode, nlink=2
+
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: [],
+				denyWrite: [".env"],
+				networkMode: "open",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/hard links/);
+
+		// denyRead variant: reading through the alias would leak the secret too.
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: [".env"],
+				denyWrite: [],
+				networkMode: "open",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/hard links/);
+
+		// A non-hardlinked denied file starts normally.
+		const cleanCwd = await makeTempDir();
+		await writeFile(join(cleanCwd, ".env"), "secret");
+		expect(() =>
+			buildBwrapArgs({
+				cwd: cleanCwd,
+				configCwd: cleanCwd,
+				allowWrite: ["."],
+				denyRead: [],
+				denyWrite: [".env"],
+				networkMode: "open",
+				env: { PATH: "/usr/bin" },
+			}),
+		).not.toThrow();
 	});
 });
 

@@ -73,3 +73,28 @@ Found 3 more blockers, all fixed inline (`7f2cdaa`):
 2. **Diagnose CI-2** from GitHub CI logs; likely bwrap-in-CI execution issue or cascade from CI-1.
 3. **Fresh re-review** (operator's request): once CI is green, run another full 4-surface adversarial pass over the final state (the re-review found blockers each time, so one more after the CI fixes is warranted before publish).
 4. Do NOT bump version (v0.1.0 unpublished). Do NOT push agile-workflow work to the sandbox PR.
+
+---
+
+## Update 2026-07-07 (later): fresh 4-surface adversarial re-review + CI-2 root cause
+
+**CI-1** was already fixed before this pass (`747c8a1`: renamed `sandbox-bwrap-test.ts` → `sandbox-bwrap.test.ts`; `check-extension-deps` passes).
+
+**CI-2 root cause (the `--unshare-user` commit `e2148e4` was a MISDIAGNOSIS):** the commit claimed GH Actions "restricts unprivileged user namespaces" and that `--unshare-user` is "what makes bwrap work at all on restricted hosts." That reasoning is backwards: `--unshare-user` doesn't *bypass* a userns restriction, it *requires* one. The real root cause (web-confirmed, date-sensitive): `ubuntu-latest` is now 24.04, which sets `kernel.apparmor_restrict_unprivileged_userns=1` by default, blocking the non-setuid apt bwrap from creating *any* namespace. The authoritative fix (openai/codex-action#77, 2026-03; anthropics/claude-code#55585, 2026-05) is a CI-side sysctl, not a bwrap arg. **Fix applied:** reverted `--unshare-user` from `buildBwrapArgs`; added an AppArmor-gate-clear step + a real namespace-creation smoke step to `sandbox-bwrap-gate.yml`. Local: 152 pi-sandbox + 76 background-tasks green with `PI_SANDBOX_REQUIRE_BWRAP=1`. **Upstream CI greenness still unverified** (gh not authed locally) — operator must confirm the PR checks pass before publish.
+
+**Fresh 4-surface adversarial re-review (4 parallel fresh gpt-5.5, high thinking):** ALL 4 returned BLOCKED. 6 new blockers found, all confirmed via local repro and fixed inline:
+
+1. **File policy: dangling symlink leaf escape** (`sandbox-file-policy.ts`) — a symlink whose target doesn't yet exist fell through `canonicalizeExistingPath` (uses `existsSync`, follows symlinks → false) and was treated as a new in-cwd file; `writeFile` followed the symlink and created the target inside `denyRead` / outside `allowWrite`. **Fix:** `resolveTargetForWritePolicy` now `lstatSync`s the path and `readlinkSync`s the target before the parent-walk. 3 regression tests added.
+2. **bwrap: hardlink alias bypass** (`sandbox-bwrap.ts`) — bwrap path overlays protect pathnames, not inodes; a hardlink alias inside `allowWrite` reaches the same inode as a denied file, bypassing both `denyRead` and `denyWrite`. **Fix:** `assertNoHardlinkedDeniedFiles` fail-closed guard — refuses to start when a denied regular file has `nlink > 1`. Regression test added.
+3. **Inspector: open-ended quantifier leaks secret tail** (`sandbox-config.ts`) — `sk-[A-Za-z0-9]{20,}` estimated apparent-max as 23 (treating `+`/`*`/`{n,}` as 1 occurrence), accepted with default maxLength 4096; a 5000-char match leaked a 503-char tail across a window boundary. **Fix:** `estimateRegexApparentMaxLength` now returns `undefined` (unbounded) for open-ended quantifiers; `validateSecretShape` rejects unbounded patterns (config-load + `validateConfig`); runtime `match[0].length > maxLength` fail-closed in `scanSecretShape`. 2 regression tests.
+4. **Inspector: short redact shape destroys longer shape evidence** (`sandbox-config.ts`) — applying redact shapes sequentially to mutated text let a shorter shape destroy the prefix a longer shape needed; the longer shape no longer matched and its tail egressed. **Fix:** all redact ranges across all redact shapes are now collected against `originalText` and applied in one union pass. Regression test added.
+5. **Inspector: backreference bypasses maxLength** (`sandbox-config.ts`) — `([A-Za-z0-9]{4096})\1` estimated apparent-max as 4097 but matched 8192, evading the windowed scan. **Fix:** `isSafeRegex` now rejects backreferences outright (apparent-length estimation is unsound for them). Regression test added.
+6. **bgtasks: unbounded monitor poll output OOM** (`background-tasks.ts`) — `runShellOnce` accumulated stdout/stderr with unbounded `+=` during each poll; the per-job `MAX_BUFFER_CHARS` cap only applied *after* the poll finished, so a noisy command (`yes X`) could OOM the Pi process mid-poll. **Fix:** `makeBoundedAccumulator` caps per-poll output at `MAX_POLL_OUTPUT_CHARS` (2M) and kills the child on overflow. Both degraded and sandboxed paths updated. Regression test added.
+
+**Latent / not-reachable-in-v0.1.0 (documented, not fixed):**
+- File policy `policy.cwd` vs `ctx.cwd` — the policy core reinterprets relative `allowWrite`/`denyRead` entries against the per-call `ctx.cwd` instead of `policy.cwd`. NOT reachable in the current pi runtime: `SessionManager.cwd` is set once at construction and only read via `getCwd()` (no `setCwd`), so `ctx.cwd` is immutable per session and always equals session-start cwd. Defensive hardening for a future runtime, not a v0.1.0 blocker.
+- bgtasks nits (sync child publish in sandboxed path, pending-spawn registry window, `jobs tail` uninspected output channel, no active-job concurrency bound) — hardening, not blockers.
+
+**Test count:** 152 pi-sandbox + 76 background-tasks = 228 green locally (was 219; +9 regression tests for the 6 new blockers). `check-extension-deps` passes.
+
+**Commits this pass:** (to be committed) — revert `--unshare-user` + AppArmor CI fix; dangling-symlink-leaf fix; hardlink fail-closed guard; inspector open-ended-quantifier + backreference + union-redaction + runtime over-length fixes; bgtasks per-poll output cap. All with regression tests.

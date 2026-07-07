@@ -1098,6 +1098,60 @@ describe("monitor tool", () => {
     expect(wakes).toHaveLength(0);
   }, 8000);
 
+  test("a noisy monitor poll output is capped and the child killed to prevent OOM (re-review)", async () => {
+    // A command that emits unbounded output (e.g. `yes`) during a single poll
+    // used to accumulate in an unbounded string, OOMing the Pi process before
+    // the per-job rolling buffer cap applied. The per-poll accumulator must cap
+    // stdout/stderr and kill the child once the cap is exceeded.
+    const strippedEnv = { PATH: process.env.PATH ?? "/usr/bin:/bin", HOME: "/tmp" };
+    const degradedBuilder = ((opts) => ({
+      state: "degraded",
+      integration: "inactive",
+      reason: "integration-off",
+      executable: null,
+      args: [],
+      cwd: opts.cwd,
+      env: strippedEnv,
+      message: "operator opt-out",
+    })) as BuildSandboxedSpawnArgs;
+    const { tools, wakes } = makeFakePi(undefined, {
+      sandboxResolver: async () => ({ state: "loaded", buildSandboxedSpawnArgs: degradedBuilder }),
+    });
+    const mon = tools.get("monitor")!;
+    const ctx = { ...makeContext(), cwd: "/tmp" };
+
+    const res = (await mon.execute(
+      "c1",
+      {
+        // Emit far more than MAX_POLL_OUTPUT_CHARS (2M). `yes` writes ~10MB/s;
+        // a 5s poll with a 2M cap should hit the cap well before timeout.
+        command: "yes X",
+        satisfy_on: "stdout_matches",
+        pattern: "NEVER",
+        interval_seconds: 1,
+        timeout_seconds: 5,
+        label: "monitor-oom-cap",
+      },
+      undefined,
+      undefined,
+      ctx,
+    )) as { details: { status: string } };
+
+    expect(res.details.status).toBe("running");
+    const wake = await waitFor(() => wakes[0], { timeoutMs: 15_000 });
+    // The wake fires on timeout (no match). The job buffer must be bounded —
+    // if the cap failed, the process would OOM before reaching here.
+    expect(wake).toBeTruthy();
+    const tail = await (async () => {
+      const jobs = tools.get("jobs")!;
+      const r = (await jobs.execute("c2", { action: "tail", jobId: 1, lines: 5 }, undefined, undefined, ctx)) as { content: Array<{ text: string }> };
+      return r.content[0]?.text ?? "";
+    })();
+    // The overflow diagnostic must appear in the captured output.
+    expect(tail).toContain("output exceeded");
+    expect(tail).toContain("terminated to prevent OOM");
+  }, 20_000);
+
   test("wakes on satisfy_on stdout_matches with a custom message and keeps output out of the wake", async () => {
     const { tools, wakes, userMessages } = makeFakePi();
     const mon = tools.get("monitor")!;

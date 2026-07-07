@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { enforceDenyRead, enforceWritePolicy, type SandboxPolicy } from "./sandbox-file-policy";
@@ -83,5 +83,44 @@ describe("allowWrite canonical target confinement", () => {
 		symlinkSync("/etc", join(cwd, "link"), "dir");
 
 		expectAllowWriteDenied(join(cwd, "link", "new.txt"), cwd, policyFor(cwd, { allowWrite: ["."] }));
+	});
+
+	test("dangling symlink leaf to a denyRead target is blocked (not treated as a new in-cwd file)", () => {
+		// Regression: a symlink whose target does not yet exist used to fall through
+		// canonicalizeExistingPath (existsSync follows symlinks → false) and be
+		// treated as an ordinary new file under its lexical parent, so writeFile
+		// followed the symlink and created the target inside denyRead / outside
+		// allowWrite. The write-policy resolver must readlink the symlink first.
+		const cwd = makeTempDir();
+		const outside = makeTempDir();
+		const deniedDir = join(outside, ".ssh");
+		mkdirSync(deniedDir, { recursive: true });
+		// Dangling symlink: target /outside/.ssh/new_key does not exist yet.
+		symlinkSync(join(deniedDir, "new_key"), join(cwd, "link"));
+
+		expect(() => enforceWritePolicy(join(cwd, "link"), cwd, policyFor(cwd, { allowWrite: ["."], denyRead: [deniedDir] }))).toThrow(
+			/denyRead/,
+		);
+	});
+
+	test("dangling symlink leaf to a path outside allowWrite is blocked even without denyRead", () => {
+		const cwd = makeTempDir();
+		const outside = makeTempDir();
+		symlinkSync(join(outside, "escape.txt"), join(cwd, "link"));
+
+		expectAllowWriteDenied(join(cwd, "link"), cwd, policyFor(cwd, { allowWrite: ["."] }));
+	});
+
+	test("dangling symlink leaf into an allowed canonical directory remains writable", () => {
+		// Positive control: a dangling symlink whose target resolves into an
+		// allowWrite directory must still be writable (the fix must not over-block).
+		const cwd = makeTempDir();
+		const allowedSub = join(cwd, "sub");
+		mkdirSync(allowedSub, { recursive: true });
+		// Dangling symlink: target cwd/sub/real.txt does not exist yet, but its
+		// parent (cwd/sub) is allowed via allowWrite:["."] and canonicalizes in-cwd.
+		symlinkSync(join(allowedSub, "real.txt"), join(cwd, "link"));
+
+		expectWriteAllowed(join(cwd, "link"), cwd, policyFor(cwd, { allowWrite: ["."] }));
 	});
 });

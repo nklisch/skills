@@ -1,6 +1,6 @@
-import { constants as fsConstants, existsSync } from "node:fs";
+import { constants as fsConstants, existsSync, lstatSync, readlinkSync } from "node:fs";
 import { access as fsAccess, mkdir as fsMkdir, readFile as fsReadFile, writeFile as fsWriteFile } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, relative } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { canonicalizeExistingPath, normalizeConfiguredPath, type NetworkMode } from "./sandbox-bwrap";
 import type { ToolRules } from "./sandbox-config";
 
@@ -150,6 +150,27 @@ export function enforceWritePolicy(absolutePath: string, cwd: string, policy: Sa
 function resolveTargetForWritePolicy(absolutePath: string): string {
 	const existing = canonicalizeExistingPath(absolutePath);
 	if (existing) return existing;
+
+	// Dangling-symlink-leaf escape: `canonicalizeExistingPath` uses `existsSync`,
+	// which follows symlinks and returns false when the target is absent. So a
+	// symlink whose target does not yet exist (e.g. `repo/link -> /home/u/.ssh/k`)
+	// falls through to the lexical parent-walk below, which treats `link` as an
+	// ordinary new file under its lexical parent — never resolving the symlink's
+	// readlink target. A subsequent writeFile follows the symlink and creates the
+	// target outside allowWrite / inside denyRead. Resolve the symlink target
+	// explicitly before the parent-walk so the same canonicalization applies to it.
+	try {
+		if (lstatSync(absolutePath).isSymbolicLink()) {
+			const target = readlinkSync(absolutePath);
+			const resolvedTarget = isAbsolute(target) ? target : resolve(dirname(absolutePath), target);
+			// Recurse: the target may itself be a symlink, or may now exist (canonicalize
+			// it), or may still be absent (walk its own nearest existing ancestor).
+			return resolveTargetForWritePolicy(resolvedTarget);
+		}
+	} catch {
+		// lstat throws for ENOENT (truly absent path, not a symlink) — fall through
+		// to the parent-walk, which is the correct path for a plain new file.
+	}
 
 	let parent = dirname(absolutePath);
 	let suffix = basename(absolutePath);

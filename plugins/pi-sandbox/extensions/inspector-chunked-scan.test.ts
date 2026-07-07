@@ -210,4 +210,45 @@ describe("tool input inspector chunked scanning", () => {
 		// The real key must not have egressed unredacted (blocked, so input is untouched).
 		expect(input.body).toContain(realKey); // untouched because blocked, not because allowed
 	});
+
+	test("runtime over-length match fails closed instead of leaking the tail (re-review #1)", () => {
+		// A bounded pattern whose actual match exceeds maxLength (because apparent-
+		// length estimation was imprecise or the operator under-declared maxLength)
+		// must block rather than emit a partial redaction that leaks the tail. The
+		// config validator rejects unbounded patterns, but this is the runtime
+		// defense for bounded-but-oversized matches.
+		const material = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".repeat(81).slice(0, 5000);
+		const token = `sk-${material}`; // 5003 chars, exceeds default maxLength 4096
+		const input: Record<string, unknown> = {
+			body: `${"x".repeat(5_500)}${token}${".".repeat(1_000)}`,
+		};
+		// Direct inspectToolInput call bypasses config validation, so the pattern
+		// is accepted at runtime; the over-length match must still fail closed.
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "api", pattern: "sk-[A-Za-z0-9]{20,}", action: "redact" }],
+			onNoMatch: "allow",
+		});
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain("longer than maxLength");
+	});
+
+	test("overlapping redact shapes union against original text so no tail survives (re-review #2)", () => {
+		// A shorter redact shape applied first used to destroy the evidence a
+		// longer redact shape needed: `sk-[A-Za-z0-9]{20}` redacted the first 20
+		// chars, then `sk-[A-Za-z0-9]{40}` no longer matched and the 20-char tail
+		// egressed. Now all redact ranges are collected against the original text
+		// and applied in one union pass.
+		const token = `sk-${"ABCDEFGHIJKLMNOPQRSTUVWXYZabcd1234567890".slice(0, 40)}`;
+		const input: Record<string, unknown> = { body: token };
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [
+				{ name: "short", pattern: "sk-[A-Za-z0-9]{20}", action: "redact" },
+				{ name: "long", pattern: "sk-[A-Za-z0-9]{40}", action: "redact" },
+			],
+			onNoMatch: "allow",
+		});
+		expect(verdict.action).toBe("allow");
+		expect(input.body).not.toContain(token.slice(3)); // no secret tail survives
+		expect(input.body).toContain("[REDACTED:");
+	});
 });
