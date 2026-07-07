@@ -63,3 +63,33 @@ the window overlap to `max(shape.maxLength)` across configured shapes.**
 - [ ] An overlong-pattern warning fires when a shape's pattern statically
       exceeds the effective overlap without an explicit `maxLength`
 - [ ] Existing inspector tests still pass (backward-compatible default)
+
+## Hardened design (post adversarial design review, 2026-07-07)
+
+Refinements from the design review:
+- **`maxLength` = full regex match length (`match[0]`), not `secretGroup` length.**
+  Redaction/block ranges are based on `match[0]`; a capture group may be short
+  while the full regex spans boundary context. Document this on the field.
+- **Cap `maxLength` at `MAX_SCAN_LENGTH` (10_000).** A shape declaring
+  `maxLength > 10_000` cannot be satisfied by windowed scanning (the full match
+  can't fit in any 10K window). Reject with a config-load error naming the shape,
+  rather than degenerating to byte-by-byte scanning (stride=1 explosion).
+- **`maxLength` is a positive integer** (JS string code units). Validate in
+  `validateSecretShape`.
+- **Per-shape, not global, scan overlap.** The review flagged that
+  `max(...maxLengths)` globally lowers stride for every shape. Better: each
+  shape scans with its own effective overlap (`max(SCAN_WINDOW_OVERLAP_DEFAULT,
+  shape.maxLength)`). Shapes with different lengths use different strides; a
+  long shape doesn't slow short shapes. (Slightly more complex per-shape loop,
+  but avoids the global slowdown.)
+- **"Static overlong" detection is heuristic** (literal-char count + bounded
+  quantifiers) and best-effort. Compare the shape's apparent max against its OWN
+  declared/default `maxLength` (not the global). Warn when a pattern appears to
+  exceed its `maxLength` (likely mis-declared). Don't over-engineer the analyzer.
+- **Warning channel**: reuse the existing `additiveWarnings` / `globWarnings`
+  pattern. Add to `LoadedConfig`'s warnings if a generic channel isn't present.
+- **Backward-compat**: default raised 2048→4096 (covers PEM ~2K + header/footer).
+  Existing configs without `maxLength` keep working; the cost increase is
+  bounded (more overlap = more windows, but each window is still capped).
+
+**Stance check**: inspector is pi-sandbox's own config; no cross-extension seam.

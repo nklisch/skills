@@ -77,3 +77,107 @@ is the safe-regex analyzer? two-pass redact semantics?) worth surfacing.
 - [ ] M5: `--no-sandbox` description is honest about what it disables
 - [ ] M6: missing export-target file classifies as broken (fail-closed)
 - [ ] M7: no-UI first-call background/monitor does not block on handshake race
+
+## Hardened designs (post adversarial design review, 2026-07-07)
+
+### M1 — global replaces default deny lists
+**Decision: (2b) explicit `[]` = replace, absent = inherit defaults (via `Object.hasOwn`).**
+- `Object.hasOwn(globalConfig.filesystem, "denyRead")` distinguishes omitted
+  (→ union with DEFAULT_CONFIG) from explicit `[]` (→ replace with nothing).
+- Apply to `denyRead` AND `denyWrite` (both are deny lists; union makes sense).
+  Do NOT touch `allowWrite` (unioning defaults back in WIDENS an operator-
+  narrowed config — unsafe; allowWrite stays replace-semantics).
+- Preserve default-first order + dedupe (defaults first, then global additions).
+- `deepMerge` is the wrong abstraction for this — add a dedicated global-merge
+  path for deny lists that does the hasOwn check. Don't overload deepMerge.
+- "Warn when omitting built-ins" is dropped (too noisy per the review; the
+  operator is sophisticated and union-by-default is safe without nagging).
+
+### M2 — unknown config fields silently ignored
+**Decision: (1b) fail-closed on statically-checkable unknown keys; warn on dynamic-key objects.**
+- Fail-closed (config parse error) on unknown keys at: top level, `filesystem`,
+  `network`, `tools`, `tools.inspector`, `envScrub`, `backgroundTasks`. These
+  have a known schema; a typo (`network.mdoe`) is a real error.
+- Do NOT warn/fail on `tools.rules.<tool>` (tool names are dynamic) or
+  `tools.inspector.scanFields.<tool>` (tool names are dynamic) — document these
+  as not-catchable.
+- Legacy known-unknown fields (the ASRT fields) stay as warnings (grandfathered).
+- Include the source/path in errors: `global: network.mdoe`.
+- The current validator returns only errors; a warn path needs a separate
+  warning collector OR fold warns into the existing `additiveWarnings` channel
+  for the warn cases. Fail-closed cases go in `errors` (existing).
+- Add `maxLength` (B1-3) and any M1 escape-hatch keys to the known schema.
+
+### M3 — isSafeRegex strictness
+**Decision: (3b) extended rejection + per-shape `skipRegexSafetyCheck` escape hatch.**
+- Extend rejection: `(X)+` where X contains a quantifier (nested-quantifier-on-
+  group, current) PLUS `(X)+` where X is an alternation containing overlapping
+  branches (e.g. `(a|aa)+`) PLUS `(X){m,n}` where X contains a quantifier.
+- Narrow the detection to avoid false-positives on legitimate patterns like
+  `(key|token|secret)-[a-z]+` (the alternation isn't INSIDE a quantified group).
+  Match alternation inside a *quantified* group specifically.
+- Add `skipRegexSafetyCheck?: boolean` to `SecretShape` (and the allowlist regex
+  config) — an escape hatch for advanced operators who accept the ReDoS risk.
+  Default false.
+- Fix the overclaiming comment: state the heuristic is narrow, the runtime
+  per-window cap is the primary backstop, and `skipRegexSafetyCheck` opts out.
+- **Don't pretend the analyzer is sound** — it's a first-pass filter; the B1-4
+  runtime cap is the real defense.
+
+### M4 — redact-before-block shape ordering
+**Decision: (a) two-pass against original text.**
+- **Pass 1 (block decision)**: scan every `block`-action shape against the
+  ORIGINAL unmutated text. If ANY block shape matches, return `block` immediately
+  (don't apply any redactions; leave `input` unmutated).
+- **Pass 2 (redact)**: if no block matched, scan `redact`-action shapes and apply
+  redactions as today (sequential per-shape mutation).
+- **Shared scanner helper**: the block pre-pass and the redact pass MUST share
+  one scan helper (keyword filter, entropy, allowlist, chunking, B1-3 overlap) —
+  don't duplicate the scan logic or it'll drift.
+- **Block always wins** over overlapping redact matches (state explicitly).
+- **Blocked calls leave `input` unmutated** (new behavior — currently a block
+  short-circuits before mutation anyway, so this is already true).
+- Preserve `onNoMatch` behavior and the redaction-cap fail-closed (B1-1).
+
+### M5 — --no-sandbox scope
+**Decision: (b) document honestly; no flag split.**
+- Update `registerFlag("no-sandbox")` description to say it disables ALL
+  pi-sandbox protections (OS bash sandbox AND in-process egress/inspector gate).
+- Update EVERY fail-closed diagnostic that says "restart with --no-sandbox" to
+  say it's a full extension bypass (not just bwrap). Audit sandbox.ts,
+  sandbox-bwrap.ts, sandbox-config.ts, sandbox-spawn.ts.
+- README is mostly honest already; verify and patch the stale surfaces.
+
+### M6 — broken-as-absent
+**Decision: fail-closed on broken, no-op on absent (package-root presence probe).**
+- **Probe package-root presence** (not error-message matching): check
+  `existsSync(resolve(nodeModulesPath, "@nklisch/pi-sandbox/package.json"))`.
+  If the package.json doesn't exist → absent (no-op, unsandboxed fallback). If it
+  exists but the subpath import fails → broken (fail-closed).
+- Do NOT use `import("@nklisch/pi-sandbox/package.json")` (exports-sensitive —
+  the package doesn't export `"."` or `./package.json`); use a direct fs probe.
+- Add tests for: missing exported target file (broken), missing internal
+  dependency (broken), vs truly-absent package (no-op).
+- Message the fail-closed clearly: "pi-sandbox is installed but broken;
+  install is incomplete. Fail-closed. Reinstall or restart with --no-sandbox."
+
+### M7 — handshake race
+**Decision: async-await the probe in background-tasks session_start.**
+- Make background-tasks `session_start` handler async and `await` the sandbox
+  probe (the `resolveSandboxSpawnBuilder()` promise). This blocks session_start
+  until the handshake is published, so no `tool_call` can arrive before it.
+- **Catch errors after awaiting** — preserve the current "publish broken handshake
+  + log" behavior on probe failure (don't let a broken probe crash session_start).
+- Latency: local dynamic-import/probe, negligible. If worried, a short bounded
+  timeout — but that creates more states; prefer the unbounded await (the probe
+  is local and fast).
+- **Test the real ordering**: run both extensions' session_start, then simulate
+  a no-UI tool_call. Tool-execute tests alone miss the gate race.
+- pi-sandbox refreshes handshake during tool_call, so even if its own
+  session_start saw "missing" (extension load order), the first tool_call reads
+  the later-published value. The await closes the race for the no-UI first-call case.
+
+**Stance check (M-cluster)**: all pi-sandbox's own config/policy (M1-M4) — no
+cross-extension seam. M5/M6/M7 touch the background-tasks seam but are no-op when
+sandbox is off (M5 only fires with the flag set; M6's broken path only when
+installed; M7's await is negligible when sandbox is absent).
