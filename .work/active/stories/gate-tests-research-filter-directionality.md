@@ -1,7 +1,7 @@
 ---
 id: gate-tests-research-filter-directionality
 kind: story
-stage: review
+stage: done
 tags: [testing]
 parent: null
 depends_on: []
@@ -62,3 +62,15 @@ under `crates/cli/tests/fixtures/golden/.work/active/stories/`
   - `cd plugins/agile-workflow/work-view && cargo test 2>&1 | tail -15`
   - `cd plugins/agile-workflow && bash scripts/tests/convert-content-integrity.test.sh 2>&1 | tail -5`
 
+
+## Review (2026-07-06)
+
+**Verdict**: Approve - story verified; fast-lane advance.
+
+**Blockers**: none. **Important**: none. **Nits**: none.
+
+**Notes**: fast lane. Re-ran `cd plugins/agile-workflow/work-view && cargo test`:
+371 pass (was 369; +2 directionality tests), 0 fail. Convert-content-integrity
+(42) + convert-install-routing (12) pass with the new story-research-2.md
+fixture. The negative assertions close the e2e-seam gap (the two filter flags
+are now provably not swapped through the full flag→filter→item path).

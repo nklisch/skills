@@ -1,7 +1,7 @@
 ---
 id: gate-docs-substrate-binary-generalize
 kind: story
-stage: review
+stage: done
 tags: [documentation]
 parent: null
 depends_on: []
@@ -58,3 +58,14 @@ Verification against reality:
 - Confirmed `plugins/agentic-research/research-view` is Rust core+cli and has no board/axum surface.
 - Confirmed `plugins/agentic-research/scripts/install-research-view.sh` mirrors work-view's prebuilt + fallback install flow.
 - Confirmed `scripts/bump-version.sh` projects lockstep version strings for both binaries (`.work-view-version`, `.research-view-version`, and Bash literals).
+
+## Review (2026-07-06)
+
+**Verdict**: Approve - story verified; fast-lane advance.
+
+**Blockers**: none. **Important**: none. **Nits**: none.
+
+**Notes**: fast lane. Doc-only change; verified the skill parses (120 lines, under
+the 300 practical cap) and that doc claims match the tree (research-view has no
+board surface; install-research-view.sh + bump-version.sh generalized as
+described). Implementation notes present.
