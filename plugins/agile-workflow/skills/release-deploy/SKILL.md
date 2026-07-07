@@ -88,8 +88,8 @@ If the release is at `stage: planned`:
 1. **Active done candidates (straggler sweep).** Projects typically bind items as they pass
    review — the item carries `release_binding` before flipping `done` — so this gather only
    sweeps done items the en-route binding missed. Show items at `stage: done` without a
-   `release_binding`. Note `--release ""` is NOT an unbound filter (work-view skips an empty
-   value entirely); filter the frontmatter directly. When the `agentic-research` plugin is
+   `release_binding` via `--release null` (the `Match::IsNull` filter — NOT `--release ""`, which
+   work-view skips as an empty value and matches nothing). When the `agentic-research` plugin is
    installed, also exclude `tags: [research]` items here — before the user-facing
    confirmation — via work-view's real tag parse (never a hand-rolled tags regex):
    ```bash
@@ -104,10 +104,9 @@ If the release is at `stage: planned`:
    if [ "$agentic_research_installed" = true ]; then
      research_paths=$(.work/bin/work-view --tag research --paths | sort)
    fi
-   .work/bin/work-view --stage done --paths | while IFS= read -r item; do
+   .work/bin/work-view --stage done --release null --paths | while IFS= read -r item; do
      [ -n "$research_paths" ] && printf '%s\n' "$research_paths" | grep -qxF "$item" && continue
-     binding=$(grep -m1 '^release_binding:' "$item" | awk '{print $2}')
-     { [ "$binding" = "null" ] || [ -z "$binding" ]; } && echo "$item"
+     echo "$item"
    done
    ```
    (Research engagements are inputs that ground other work, not release members; they never
