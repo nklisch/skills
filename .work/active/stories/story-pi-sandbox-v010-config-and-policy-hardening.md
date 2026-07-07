@@ -188,3 +188,10 @@ installed; M7's await is negligible when sandbox is absent).
 - Tests added: `session-start sandbox bridge handshake > session_start awaits the sandbox bridge probe before no-UI tool_call gating`, which runs pi-sandbox `session_start`, verifies background-tasks `session_start` remains pending until the probe resolves, then runs a no-UI `tool_call` and confirms the refreshed handshake allows `background`.
 - Discrepancies from design: none.
 - Verification: `cd plugins/background-tasks && bun test` passed (73 tests).
+
+#### M4 implementation notes
+- Files changed: `plugins/pi-sandbox/extensions/sandbox-config.ts`, `plugins/pi-sandbox/extensions/sandbox.test.ts`.
+- Implementation: `inspectToolInput` now uses a shared `scanSecretShape` helper for both block and redact passes. Block-action shapes scan the original unmutated field text first; any block match returns immediately and leaves `input` unchanged. Redact-action shapes run only after the block pre-pass finds no match and continue to apply redactions sequentially with the existing redaction-cap fail-closed behavior.
+- Tests added: `tool input inspector > block pass scans original input before redact shapes mutate it (M4)` verifies a prior redact shape cannot erase the text required by a later block shape and that blocked input remains unmutated.
+- Discrepancies from design: none.
+- Verification: `cd plugins/pi-sandbox && bun test extensions/sandbox.test.ts -t "tool input inspector"` passed (7 tests).

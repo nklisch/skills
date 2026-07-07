@@ -1137,6 +1137,21 @@ describe("tool input inspector", () => {
 		expect(input.body).toBe("tok_example [REDACTED:token] [REDACTED:token]");
 	});
 
+	test("block pass scans original input before redact shapes mutate it (M4)", () => {
+		const input: Record<string, unknown> = { body: "token=sk-secret-1234" };
+
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [
+				{ name: "redactor", pattern: "sk-secret-[0-9]+", action: "redact" },
+				{ name: "blocker", pattern: "token=sk-secret-[0-9]+", action: "block" },
+			],
+		});
+
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain('secret shape "blocker" matched');
+		expect(input.body).toBe("token=sk-secret-1234");
+	});
+
 	test("redact-cap overflow fails closed instead of leaking tail secrets (B1-1)", () => {
 		// A redact-action shape matching more than MAX_REDACTIONS_PER_SHAPE unique
 		// ranges must block rather than silently allow tail matches through
