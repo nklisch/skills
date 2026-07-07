@@ -18,7 +18,15 @@ export type BwrapGuardResult = {
 };
 
 function isBwrapPresent(isLinux: boolean): boolean {
-	return isLinux && Bun.spawnSync([BWRAP_COMMAND, "--version"], { stdout: "pipe", stderr: "pipe" }).success;
+	if (!isLinux) return false;
+	// Bun.spawnSync throws ENOENT when the binary is absent (e.g. local dev without
+	// bwrap, or a stripped PATH in tests). Catch and treat as absent so local dev
+	// skips real-bwrap tests instead of crashing at module load (the M8 bug).
+	try {
+		return Bun.spawnSync([BWRAP_COMMAND, "--version"], { stdout: "pipe", stderr: "pipe" }).success;
+	} catch {
+		return false;
+	}
 }
 
 export function resolveBwrapMode(overrides: BwrapGuardOverride = {}): BwrapGuardResult {

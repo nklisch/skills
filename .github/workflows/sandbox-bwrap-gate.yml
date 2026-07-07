@@ -6,6 +6,15 @@ on:
       - "plugins/pi-sandbox/**"
       - "plugins/background-tasks/**"
       - ".github/workflows/sandbox-bwrap-gate.yml"
+  push:
+    branches: [ main, "feat/**" ]
+    paths:
+      - "plugins/pi-sandbox/**"
+      - "plugins/background-tasks/**"
+      - ".github/workflows/sandbox-bwrap-gate.yml"
+    tags: [ "v*" ]
+  release:
+    types: [ created, published ]
   workflow_dispatch:
 
 jobs:
