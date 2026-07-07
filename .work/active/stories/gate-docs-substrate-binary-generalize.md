@@ -1,14 +1,14 @@
 ---
 id: gate-docs-substrate-binary-generalize
 kind: story
-stage: drafting
+stage: review
 tags: [documentation]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: docs
 created: 2026-06-04
-updated: 2026-06-04
+updated: 2026-07-07
 ---
 
 # substrate-binary skill presents work-view as THE singular binary; research-view is now a 2nd instance
@@ -41,3 +41,20 @@ work-view over `.work/` (agile-workflow, CLI + board) and research-view over
 `bump-version.sh` lockstep as the shared pattern (install targets
 `.work/bin/work-view` vs `.research/bin/research-view`). Add research-view triggers
 to the description. Keep the board/asset-embedding sections marked work-view-only.
+
+## Implementation notes
+Generalized `.agents/skills/substrate-binary/SKILL.md` from a work-view singular narrative to a shared substrate-binary pattern with two explicit instances:
+`work-view` (agile-workflow CLI + board) and `research-view` (agentic-research CLI only).
+
+Broad updates:
+- Expanded frontmatter triggers to include `research-view`, `research-view CLI`, and `.research query core`.
+- Reframed the title/intro to name both instances and clarify shared architecture,
+  `bump-version.sh` lockstep, and distribution rationale.
+- Reworked the Distribution/install section as a shared pattern with explicit instance install targets:
+  `.work/bin/work-view` and `.research/bin/research-view`.
+- Marked web asset/board guidance as work-view-only because research-view has no board/axum surface.
+
+Verification against reality:
+- Confirmed `plugins/agentic-research/research-view` is Rust core+cli and has no board/axum surface.
+- Confirmed `plugins/agentic-research/scripts/install-research-view.sh` mirrors work-view's prebuilt + fallback install flow.
+- Confirmed `scripts/bump-version.sh` projects lockstep version strings for both binaries (`.work-view-version`, `.research-view-version`, and Bash literals).
