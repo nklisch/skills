@@ -1,3 +1,7 @@
+import { createRequire } from "node:module";
+import { existsSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
+
 type SandboxSpawnModule = typeof import("@nklisch/pi-sandbox/sandbox-spawn");
 
 export type SandboxedSpawnArgsResult = import("@nklisch/pi-sandbox/sandbox-spawn").SandboxedSpawnArgsResult;
@@ -34,8 +38,30 @@ async function defaultImportSandboxSpawn(): Promise<Partial<SandboxSpawnImport>>
   return import("@nklisch/pi-sandbox/sandbox-spawn");
 }
 
+const PI_SANDBOX_PACKAGE_NAME = "@nklisch/pi-sandbox";
+const PI_SANDBOX_FAILURE_MESSAGE =
+  "pi-sandbox is installed but broken; install is incomplete. Fail-closed. Reinstall or restart with --no-sandbox.";
+
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+function isPackageJsonPresentAtCandidate(candidate: string): boolean {
+  return existsSync(resolvePath(candidate, "package.json"));
+}
+
+function isPackageInstalledFromResolvePaths(resolvePaths: string[]): boolean {
+  return resolvePaths.some((nodeModulesPath) => isPackageJsonPresentAtCandidate(resolvePath(nodeModulesPath, PI_SANDBOX_PACKAGE_NAME, "package.json")));
+}
+
+function isPiSandboxPackageInstalled(): boolean {
+  const require = createRequire(import.meta.url);
+  return isPackageInstalledFromResolvePaths(require.resolve.paths(PI_SANDBOX_PACKAGE_NAME) ?? []);
+}
+
+function formatBrokenPiSandboxMessage(message: string): string {
+  if (message.includes("pi-sandbox is installed but broken")) return message;
+  return `${PI_SANDBOX_FAILURE_MESSAGE} ${message}`;
 }
 
 /**
@@ -44,22 +70,25 @@ function errorMessage(err: unknown): string {
  * present-but-broken helper is reported separately so spawn integration can fail
  * closed when the spawn sites are wired.
  */
-export function isMissingOptionalSandboxPackage(err: unknown): boolean {
+export function isMissingOptionalSandboxPackage(err: unknown, isPackageInstalled: () => boolean = isPiSandboxPackageInstalled): boolean {
   const rec = err as { code?: unknown; message?: unknown };
   const code = typeof rec.code === "string" ? rec.code : undefined;
   const message = typeof rec.message === "string" ? rec.message : errorMessage(err);
-  if (!message.includes("@nklisch/pi-sandbox")) return false;
-  if (message.includes("Package subpath") || code === "ERR_PACKAGE_PATH_NOT_EXPORTED") return false;
-  return (
-    message.includes("Cannot find package") ||
-    message.includes("Cannot find module") ||
-    message.includes("Module not found") ||
-    code === "ERR_MODULE_NOT_FOUND" ||
-    code === "MODULE_NOT_FOUND"
-  );
+
+  if (!message.includes(PI_SANDBOX_PACKAGE_NAME)) return false;
+
+  if (code === "ERR_PACKAGE_PATH_NOT_EXPORTED" && message.includes("Package subpath")) {
+    return false;
+  }
+
+  if (!isPackageInstalled()) {
+    return message.includes("Cannot find package") || message.includes("Cannot find module") || message.includes("Module not found") || code === "ERR_MODULE_NOT_FOUND" || code === "MODULE_NOT_FOUND";
+  }
+
+  return false;
 }
 
-async function probeSandboxSpawnBuilder(importFn: SandboxSpawnImportFn): Promise<SandboxSpawnResolver> {
+async function probeSandboxSpawnBuilder(importFn: SandboxSpawnImportFn, isPackageInstalled: () => boolean = isPiSandboxPackageInstalled): Promise<SandboxSpawnResolver> {
   try {
     const mod = await importFn();
     if (typeof mod.buildSandboxedSpawnArgs !== "function") {
@@ -67,8 +96,8 @@ async function probeSandboxSpawnBuilder(importFn: SandboxSpawnImportFn): Promise
     }
     return { state: "loaded", buildSandboxedSpawnArgs: mod.buildSandboxedSpawnArgs };
   } catch (err) {
-    if (isMissingOptionalSandboxPackage(err)) return { state: "absent" };
-    return { state: "broken", message: errorMessage(err) };
+    if (isMissingOptionalSandboxPackage(err, isPackageInstalled)) return { state: "absent" };
+    return { state: "broken", message: formatBrokenPiSandboxMessage(errorMessage(err)) };
   }
 }
 
@@ -95,14 +124,17 @@ export function publishBrokenSandboxIntegrationHandshake(message: string): Backg
   return handshake;
 }
 
-export function createSandboxBridge(importFn: SandboxSpawnImportFn = defaultImportSandboxSpawn): {
+export function createSandboxBridge(
+  importFn: SandboxSpawnImportFn = defaultImportSandboxSpawn,
+  isPackageInstalled: () => boolean = isPiSandboxPackageInstalled,
+): {
   resolveSandboxSpawnBuilder: () => Promise<SandboxSpawnResolver>;
   getSandboxSpawnHelper: () => Promise<SandboxSpawnHelper>;
 } {
   let cached: Promise<SandboxSpawnResolver> | undefined;
 
   const resolveSandboxSpawnBuilder = (): Promise<SandboxSpawnResolver> => {
-    cached ??= probeSandboxSpawnBuilder(importFn).then((resolved) => {
+    cached ??= probeSandboxSpawnBuilder(importFn, isPackageInstalled).then((resolved) => {
       publishSandboxIntegrationHandshake(resolved);
       return resolved;
     }, (err) => {
