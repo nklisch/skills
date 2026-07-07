@@ -1872,6 +1872,7 @@ fn scope_default_excludes_terminal_tiers() {
         "feat-b",
         "story-alpha-1",
         "story-research-1",
+        "story-research-2",
         "idea-backlog",
     ] {
         assert!(
@@ -1885,7 +1886,7 @@ fn scope_default_excludes_terminal_tiers() {
             "default scope must hide terminal {id}; ids: {ids:?}"
         );
     }
-    assert_eq!(count_of(&["--count"]), 6, "default = 6 non-terminal items");
+    assert_eq!(count_of(&["--count"]), 7, "default = 7 non-terminal items");
 }
 
 #[test]
@@ -1899,6 +1900,7 @@ fn scope_all_includes_every_tier() {
         "feat-b",
         "story-alpha-1",
         "story-research-1",
+        "story-research-2",
         "idea-backlog",
         "feat-done",
         "feat-shipped",
@@ -1909,7 +1911,7 @@ fn scope_all_includes_every_tier() {
             "--scope all should include {id}; ids: {ids:?}"
         );
     }
-    assert_eq!(count_of(&["--scope", "all", "--count"]), 9);
+    assert_eq!(count_of(&["--scope", "all", "--count"]), 10);
 }
 
 #[test]
@@ -2001,6 +2003,7 @@ fn implicit_widen_gate_reaches_terminal_tier() {
 // ── --research-origin / --research-refs filters ───────────────────────────────
 //
 // story-research-1.md has research_origin: ard-pos-x and research_refs: [ard-pos-x].
+// story-research-2.md has disjoint research_origin: ard-pos-y and research_refs: [ard-pos-z].
 // All other golden fixture items have neither field set.
 
 #[test]
@@ -2045,6 +2048,40 @@ fn research_refs_filter_selects_matching_item() {
     assert!(
         !stdout.contains("epic-alpha"),
         "--research-refs ard-pos-x should not match items whose research_refs lacks the slug; stdout: {stdout}"
+    );
+}
+
+#[test]
+fn research_origin_filter_is_directionally_distinct_from_refs() {
+    let (origin_out, _, origin_code) = run(&["--research-origin", "ard-pos-y", "--paths"]);
+    assert_eq!(origin_code, 0);
+    assert!(
+        origin_out.contains("story-research-2"),
+        "--research-origin ard-pos-y should select the fixture by origin; stdout: {origin_out}"
+    );
+
+    let (refs_out, _, refs_code) = run(&["--research-refs", "ard-pos-y", "--paths"]);
+    assert_eq!(refs_code, 0);
+    assert!(
+        !refs_out.contains("story-research-2"),
+        "--research-refs ard-pos-y should not select the fixture; stdout: {refs_out}"
+    );
+}
+
+#[test]
+fn research_refs_filter_is_directionally_distinct_from_origin() {
+    let (refs_out, _, refs_code) = run(&["--research-refs", "ard-pos-z", "--paths"]);
+    assert_eq!(refs_code, 0);
+    assert!(
+        refs_out.contains("story-research-2"),
+        "--research-refs ard-pos-z should select the fixture by ref; stdout: {refs_out}"
+    );
+
+    let (origin_out, _, origin_code) = run(&["--research-origin", "ard-pos-z", "--paths"]);
+    assert_eq!(origin_code, 0);
+    assert!(
+        !origin_out.contains("story-research-2"),
+        "--research-origin ard-pos-z should not select the fixture; stdout: {origin_out}"
     );
 }
 

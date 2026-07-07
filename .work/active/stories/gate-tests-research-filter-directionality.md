@@ -1,14 +1,14 @@
 ---
 id: gate-tests-research-filter-directionality
 kind: story
-stage: drafting
+stage: review
 tags: [testing]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: tests
 created: 2026-06-04
-updated: 2026-06-04
+updated: 2026-07-07
 ---
 
 # --research-origin / --research-refs not disambiguated end-to-end (shared fixture slug)
@@ -45,3 +45,20 @@ does NOT.
 ## Test location (suggested)
 `plugins/agile-workflow/work-view/crates/cli/tests/integration.rs` + a new fixture
 under `crates/cli/tests/fixtures/golden/.work/active/stories/`
+
+## Implementation discovery
+- Added a second fixture `story-research-2.md` with disjoint research slugs:
+  `research_origin: ard-pos-y` and `research_refs: [ard-pos-z]`, matching the same
+  frontmatter shape as `story-research-1.md`.
+- Added end-to-end directionality coverage in `integration.rs` using `--paths` for
+  both positive and opposite-direction negative assertions.
+- Updated fixture-count assertions to account for the extra active item in the
+  shared fixture set.
+
+## Implementation notes
+- Tests added: `research_origin_filter_is_directionally_distinct_from_refs`,
+  `research_refs_filter_is_directionally_distinct_from_origin`.
+- Verification run:
+  - `cd plugins/agile-workflow/work-view && cargo test 2>&1 | tail -15`
+  - `cd plugins/agile-workflow && bash scripts/tests/convert-content-integrity.test.sh 2>&1 | tail -5`
+
