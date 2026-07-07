@@ -790,7 +790,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 	// Merge defaults <- global <- project, but make project ADDITIVE-ONLY:
 	// it may tighten (more denyRead, fewer allowedDomains, narrower allowWrite)
 	// but never weaken global policy. Weakening attempts are ignored + warned.
-	const mergedGlobal = deepMerge(deepMerge(DEFAULT_CONFIG, globalConfig), {});
+	const mergedGlobal = mergeGlobalConfig(DEFAULT_CONFIG, globalConfig);
 	const merged = mergeProjectAdditive(mergedGlobal, projectConfig, additiveWarnings, cwd);
 
 	// Detect glob-shaped filesystem policy entries. The bwrap layer cannot mount
@@ -847,6 +847,29 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 	}
 
 	return { config: merged, parseErrors, globWarnings, missingDenyWarnings, legacyFieldWarnings, failClosedReasons, additiveWarnings };
+}
+
+function mergeGlobalConfig(base: SandboxConfig, global: Partial<SandboxConfig>): SandboxConfig {
+	const result = deepMerge(base, global);
+	const globalFilesystem = global.filesystem;
+	if (globalFilesystem && Object.hasOwn(globalFilesystem, "denyRead")) {
+		result.filesystem = {
+			...result.filesystem,
+			denyRead: mergeGlobalDenyList(base.filesystem?.denyRead ?? [], globalFilesystem.denyRead ?? []),
+		};
+	}
+	if (globalFilesystem && Object.hasOwn(globalFilesystem, "denyWrite")) {
+		result.filesystem = {
+			...result.filesystem,
+			denyWrite: mergeGlobalDenyList(base.filesystem?.denyWrite ?? [], globalFilesystem.denyWrite ?? []),
+		};
+	}
+	return result;
+}
+
+function mergeGlobalDenyList(defaults: string[], configured: string[]): string[] {
+	if (configured.length === 0) return [];
+	return [...new Set([...defaults, ...configured])];
 }
 
 export function deepMerge(base: SandboxConfig, overrides: Partial<SandboxConfig>): SandboxConfig {
