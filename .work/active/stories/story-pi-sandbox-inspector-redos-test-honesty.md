@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-inspector-redos-test-honesty
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, testing]
 parent: null
 depends_on: []
@@ -85,3 +85,16 @@ exercise the catastrophic case.
   demonstrate approximately linear growth with window count.
 - B1-3 (`maxLength` per-shape overlap strategy) is intentionally left for
   separate dispatch and not changed in this story.
+
+## Review (2026-07-06)
+
+**Verdict**: Approve - story verified; fast-lane advance (B1-4 sub-item).
+
+**Blockers**: none. **Important**: B1-3 (per-shape maxLength overlap) intentionally
+left undone — schema-change design choice pending operator decision, separate
+dispatch. **Nits**: none.
+
+**Notes**: fast lane. Re-ran `cd plugins/pi-sandbox && bun test`: 124 pass, 0 fail
+(suite runtime now ~15s due to the genuine catastrophic-regex test adding ~10s —
+expected and acceptable for a ReDoS-guard test). Implementation notes + verification
+present. B1-4 acceptance criterion met; B1-3 criterion intentionally unchecked.
