@@ -39,6 +39,12 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 
 	args.push("--ro-bind", "/", "/");
 	args.push("--dev", "/dev");
+	// --unshare-user is required for unprivileged bwrap (non-setuid binary) to
+	// create the pid/net namespaces below. Without it, bwrap works only on hosts
+	// that allow unprivileged user namespaces (most dev machines) and fails on
+	// restricted runners (e.g. GitHub Actions ubuntu-latest, which blocks userns
+	// by default). Adding it unconditionally is the standard, correct invocation.
+	args.push("--unshare-user");
 	args.push("--unshare-pid", "--proc", "/proc");
 	args.push("--die-with-parent");
 
