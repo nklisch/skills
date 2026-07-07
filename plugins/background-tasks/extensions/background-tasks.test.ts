@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer, type AddressInfo } from "node:net";
@@ -1409,6 +1409,113 @@ describe("lifecycle", () => {
     // (cancelling immediately, cancelled/kill_failed once SIGKILL resolves).
     const st = after.content[0].text.match(/\[[a-z_]+/)?.[0] ?? "";
     expect(["[cancelling", "[cancelled", "[kill_failed"]).toContain(st);
+  });
+});
+
+describe("session-start sandbox bridge handshake", () => {
+  async function loadSandboxEntrypoint(agentDir: string): Promise<(pi: unknown) => void> {
+    const tool = (name: string) => ({
+      name,
+      description: `${name} stub`,
+      parameters: {},
+      execute: async () => ({ content: [{ type: "text", text: "stub" }] }),
+    });
+    mock.module("@earendil-works/pi-coding-agent", () => ({
+      getAgentDir: () => agentDir,
+      createBashTool: () => tool("bash"),
+      createReadTool: () => tool("read"),
+      createWriteTool: () => tool("write"),
+      createEditTool: () => tool("edit"),
+    }));
+    mock.module("typebox", () => ({
+      Type: {
+        Object: (properties: unknown, options?: unknown) => ({ type: "object", properties, ...(options as Record<string, unknown> | undefined) }),
+        String: (options?: unknown) => ({ type: "string", ...(options as Record<string, unknown> | undefined) }),
+        Number: (options?: unknown) => ({ type: "number", ...(options as Record<string, unknown> | undefined) }),
+        Optional: (schema: unknown) => ({ ...(schema as Record<string, unknown>), optional: true }),
+        Array: (items: unknown, options?: unknown) => ({ type: "array", items, ...(options as Record<string, unknown> | undefined) }),
+      },
+    }));
+    return (await import(`${new URL("../../pi-sandbox/extensions/sandbox.ts", import.meta.url).href}?m7=${Date.now()}`)).default as (pi: unknown) => void;
+  }
+
+  test("session_start awaits the sandbox bridge probe before no-UI tool_call gating", async () => {
+    const cwd = await makeTempDir();
+    const agentDir = await makeTempDir("background-tasks-agent-");
+    const handshakeKey = Symbol.for("@nklisch/pi-sandbox.background-tasks-integration");
+    delete (globalThis as typeof globalThis & Record<symbol, unknown>)[handshakeKey];
+
+    let releaseResolver!: () => void;
+    let resolverStarted!: () => void;
+    const resolverStartedPromise = new Promise<void>((resolve) => { resolverStarted = resolve; });
+    const resolverReleasePromise = new Promise<void>((resolve) => { releaseResolver = resolve; });
+    const okBuilder = ((opts) => ({
+      state: "ok",
+      integration: "active",
+      executable: "bwrap",
+      args: ["--", "bash", "-c"],
+      cwd: opts.cwd,
+      env: { PATH: "/usr/bin:/bin" },
+    })) as BuildSandboxedSpawnArgs;
+
+    const tools = new Map<string, RegisteredTool>();
+    const handlers: Record<string, Array<(event: unknown, ctx: TestContext & { hasUI?: boolean }) => unknown>> = {};
+    const flags = new Map<string, unknown>();
+    const pi = {
+      registerFlag: (name: string, options: { default?: unknown }) => flags.set(name, options.default),
+      getFlag: (name: string) => flags.get(name),
+      registerTool: (def: RegisteredTool) => { tools.set(def.name, def); },
+      registerCommand: () => {},
+      appendEntry: () => {},
+      sendMessage: () => {},
+      exec: async () => ({ stdout: "", code: 0 }),
+      on: (event: string, handler: (event: unknown, ctx: TestContext & { hasUI?: boolean }) => unknown) => {
+        (handlers[event] ??= []).push(handler);
+      },
+    };
+    const ctx = {
+      ...makeContext(),
+      cwd,
+      hasUI: false,
+      ui: {
+        ...makeContext().ui!,
+        theme: { fg: (_name: string, text: string) => text },
+        confirm: async () => false,
+      },
+    } as TestContext & { hasUI: boolean; ui: NonNullable<TestContext["ui"]> & { theme: { fg: (name: string, text: string) => string }; confirm: () => Promise<boolean> } };
+
+    try {
+      const sandboxExtension = await loadSandboxEntrypoint(agentDir);
+      sandboxExtension(pi);
+      backgroundTasksExtension(pi, {
+        sandboxResolver: async () => {
+          resolverStarted();
+          await resolverReleasePromise;
+          return { state: "loaded", buildSandboxedSpawnArgs: okBuilder };
+        },
+      });
+
+      const sessionHandlers = handlers["session_start"] ?? [];
+      expect(sessionHandlers.length).toBeGreaterThanOrEqual(2);
+      await sessionHandlers[0]({ reason: "startup" }, ctx);
+
+      const backgroundSessionStart = Promise.resolve(sessionHandlers[1]({ reason: "startup" }, ctx));
+      await resolverStartedPromise;
+      const beforeRelease = await Promise.race([
+        backgroundSessionStart.then(() => "resolved"),
+        sleep(25).then(() => "pending"),
+      ]);
+      expect(beforeRelease).toBe("pending");
+
+      releaseResolver();
+      await backgroundSessionStart;
+      expect((globalThis as typeof globalThis & Record<symbol, unknown>)[handshakeKey]).toEqual({ integrated: true, bridgeState: "loaded" });
+
+      const gateResult = await Promise.resolve(handlers["tool_call"]![0]({ toolName: "background", input: { command: "echo hi" } }, ctx));
+      expect(gateResult).toBeUndefined();
+    } finally {
+      delete (globalThis as typeof globalThis & Record<symbol, unknown>)[handshakeKey];
+    }
   });
 });
 
