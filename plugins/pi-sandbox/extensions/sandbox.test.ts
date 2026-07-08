@@ -1179,6 +1179,34 @@ describe("config boundary contract", () => {
 		expect(ok).toEqual([]);
 	});
 
+	test("property escape \\p{...} with bounded quantifier is accepted and oversized is rejected (redesign loop 7)", () => {
+		// \p{L}{1,5} is bounded and valid.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "p", pattern: "\\p{L}{1,5}", flags: "gu", action: "redact", maxLength: 10 }] } } });
+		expect(ok).toEqual([]);
+		// \p{L}{1,12000} under gu has max 24000 (astral x2) > maxLength 100 → reject.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "u", pattern: "BEGIN-\\p{L}{1,12000}-END", flags: "gu", action: "redact", maxLength: 100 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("astral-capable atom under u flag counts as 2 code units in max (redesign loop 7)", () => {
+		// .{1,6000} under gu: max is 6000*2=12000 > maxLength 6010 → reject.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "dot", pattern: "BEGIN-.{1,6000}-END", flags: "gu", action: "redact", maxLength: 6010 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("lookaround capture with secretGroup !== 0 is rejected (redesign loop 7)", () => {
+		// (?=(...)) with secretGroup:1 — the capture lives inside a lookahead whose
+		// match[0] is zero-width. The max check bounds match[0], not the capture, so a
+		// capture longer than the scan window can fit while never matching any window.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "look", pattern: "(?=(BEGIN-[A-Z]{12000}-END))", flags: "gu", action: "redact", secretGroup: 1, maxLength: 1 }] } } });
+		expect(errors.join("\n")).toContain("with a lookaround");
+		// secretGroup: 0 with a lookaround is fine (match[0] is what's bounded).
+		// Under gu, [A-Z] is conservatively counted as 2 code units/atom (astral-capable
+		// class), so max = 40*2 = 80; maxLength must cover that.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "look0", pattern: "(?=BEGIN-)[A-Z]{40}", flags: "gu", action: "redact", maxLength: 80 }] } } });
+		expect(ok).toEqual([]);
+	});
+
 	test("estimateRegexMinLength preserves atom min for bounded quantifier (redesign loop 5)", () => {
 		// (sk-AAAAAAAAAA){1,3} has a minimum match of 13 (one repetition of the 13-char
 		// group), not 0 or 1. Under-declaring maxLength=5 must be rejected — otherwise the

@@ -506,7 +506,16 @@ function estimateRegexMinLength(pattern: string): number | undefined {
  * (reject everything that could exceed maxLength). Overestimation is safe here
  * — it false-rejects configs the operator can tighten, rather than leaking.
  */
-function estimateRegexMaxLength(pattern: string): number {
+function estimateRegexMaxLength(pattern: string, flags?: string): number {
+	// Under the 'u' (unicode) flag, astral-capable atoms (. and any character
+	// class / property escape) can match one Unicode code point whose JS string
+	// length is 2. Count them conservatively as 2 so the upper bound never
+	// underestimates. (Literal astral code points in the pattern are 2 units
+	// under 'u' too, but those are already consumed as multi-char atoms by the
+	// loop since they're >1 char wide in the pattern string — the risk is the
+	// single-char atoms like '.' and classes.)
+	const unicode = flags !== undefined && flags.includes("u");
+	const atomUpperBound = unicode ? 2 : 1;
 	const parse = (start: number, terminator?: string): { length: number; index: number } => {
 		let total = 0;
 		let branchMax = 0;
@@ -516,14 +525,24 @@ function estimateRegexMaxLength(pattern: string): number {
 			const ch = pattern[i];
 			if (terminator && ch === terminator) break;
 			if (ch === "|") { branchMax = Math.max(branchMax, total); total = 0; hasBranch = true; i += 1; continue; }
-			let atomMax = 1;
+			let atomMax = atomUpperBound;
 			let next = i + 1;
-			if (ch === "\\") { atomMax = 1; next = Math.min(pattern.length, i + 2); }
+			if (ch === "\\") {
+				const esc = pattern[i + 1];
+				if (esc === "b" || esc === "B") { atomMax = 0; next = Math.min(pattern.length, i + 2); }
+				// Property escapes \p{...} / \P{...}: consume through the closing brace
+				// so the {...} body isn't mis-parsed as a quantifier.
+				else if (esc === "p" || esc === "P") {
+					const braceEnd = pattern.indexOf("}", i + 3);
+					atomMax = atomUpperBound; next = (braceEnd === -1 ? pattern.length : braceEnd + 1);
+				} else { atomMax = 1; next = Math.min(pattern.length, i + 2); }
+			}
 			else if (ch === "[") {
 				let j = i + 1;
 				while (j < pattern.length && pattern[j] !== "]") { if (pattern[j] === "\\") j += 2; else j += 1; }
-				atomMax = 1; next = j + 1;
-			} else if (ch === "(") {
+				atomMax = atomUpperBound; next = j + 1;
+			} else if (ch === ".") { atomMax = atomUpperBound; next = i + 1; }
+			else if (ch === "(") {
 				let innerStart = i + 1;
 				if (pattern[innerStart] === "?") {
 					const marker = pattern[innerStart + 1];
@@ -542,18 +561,22 @@ function estimateRegexMaxLength(pattern: string): number {
 			// Quantifier
 			const q = pattern[next];
 			if (q === "*" || q === "+") return { length: Infinity, index: i }; // unbounded
-			if (q === "?") { atomMax = atomMax; next += 1; } // 0 or 1 — keep atomMax
+			if (q === "?") { next += 1; } // 0 or 1 — keep atomMax
 			else if (q === "{") {
 				const end = pattern.indexOf("}", next + 1);
 				if (end !== -1) {
 					const parts = pattern.slice(next + 1, end).split(",");
 					const upperRaw = parts.length === 1 ? parts[0] : parts[1];
 					if (upperRaw === "" || upperRaw === undefined) return { length: Infinity, index: i }; // {n,} unbounded
-					atomMax *= Number(upperRaw);
+					const upper = Number(upperRaw);
+					// Non-numeric / NaN / non-finite upper → conservative reject (parse error).
+					if (!Number.isFinite(upper) || upper < 0) return { length: Infinity, index: i };
+					atomMax *= upper;
 					next = end + 1;
 				}
 			}
 			if (pattern[next] === "?") next += 1; // lazy suffix
+			if (!Number.isFinite(atomMax)) return { length: Infinity, index: i };
 			total += atomMax;
 			i = next;
 		}
@@ -561,10 +584,27 @@ function estimateRegexMaxLength(pattern: string): number {
 	};
 	try {
 		const result = parse(0);
-		return result.length;
+		return Number.isFinite(result.length) ? result.length : Infinity;
 	} catch {
 		return Infinity; // parse error → conservative reject
 	}
+}
+
+/**
+ * Detect lookaround groups ((?=) (?!) (?<=) (?<!)) — used to reject
+ * secretGroup !== 0 configs whose selected capture lives inside a lookaround.
+ * A lookaround's match[0] is zero-width, so the capture can exceed the scan
+ * window while the max-length check (which bounds match[0]) passes.
+ */
+function containsLookaround(pattern: string): boolean {
+	for (let i = 0; i < pattern.length; i += 1) {
+		const ch = pattern[i];
+		if (ch === "\\") { i += 1; continue; } // skip escape
+		if (ch !== "(") continue;
+		if (pattern[i + 1] === "?" && (pattern[i + 2] === "=" || pattern[i + 2] === "!")) return true;
+		if (pattern[i + 1] === "?" && pattern[i + 2] === "<" && (pattern[i + 3] === "=" || pattern[i + 3] === "!")) return true;
+	}
+	return false;
 }
 
 /**
@@ -1939,11 +1979,20 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 			// (Infinity for unbounded quantifiers like +/*/{n,}; sum for bounded). Reject
 			// when the maximum exceeds maxLength. This is the counterpart to the min
 			// check: min catches under-declaration, max catches over-window variable-length.
-			const maxLength = estimateRegexMaxLength(value.pattern);
+			const maxLength = estimateRegexMaxLength(value.pattern, typeof value.flags === "string" ? value.flags : undefined);
 			if (maxLength === Infinity) {
 				errors.push(`${path}.pattern has an unbounded maximum match length (open-ended quantifier +, *, or {n,}) for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: a match can exceed any scan window and leak its tail. Bound the quantifier (e.g. {1,128}) so the full match fits within maxLength ${value.maxLength}.`);
 			} else if (maxLength > value.maxLength) {
 				errors.push(`${path}.maxLength ${value.maxLength} is smaller than the pattern's maximum match length ${maxLength} for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: a real match can exceed maxLength and straddle scan windows, leaking its tail. Set maxLength >= ${maxLength} (and < ${MAX_SCAN_LENGTH}), or tighten the pattern.`);
+			}
+			// Lookaround capture check: if secretGroup !== 0 and the pattern contains a
+			// lookaround, the selected capture can live inside the lookaround where
+			// match[0] is zero-width. The max-length check above bounds match[0], NOT
+			// the capture, so a capture longer than the scan window can fit in the
+			// (zero-width) match while never matching any window → the runtime 'd'-flag
+			// sentinel never fires and the secret leaks. Reject conservatively.
+			if (typeof value.secretGroup === "number" && value.secretGroup !== 0 && containsLookaround(value.pattern)) {
+				errors.push(`${path}.secretGroup ${value.secretGroup} with a lookaround group for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: a capture inside a lookaround can exceed the scan window while match[0] stays zero-width, so the runtime capture-span sentinel never fires and the secret leaks. Move the capture outside the lookaround, or use secretGroup: 0.`);
 			}
 		}
 	}
