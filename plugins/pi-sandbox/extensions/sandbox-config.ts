@@ -753,6 +753,34 @@ function containsLookaround(pattern: string): boolean {
 }
 
 /**
+ * Detect context-sensitive zero-width assertions: ^, $, \b, \B. These depend
+ * on input boundaries (or word boundaries), not window boundaries — so in
+ * chunked scanning they match at window starts/ends even when the input
+ * doesn't start/end there, causing false positives. The `m` (multiline) flag
+ * makes ^/$ match at line breaks, but windowing still splits lines, so the
+ * same problem applies. Reject these in chunked shapes for v0.1.0.
+ */
+function containsContextSensitiveAssertion(pattern: string): boolean {
+	let inClass = false;
+	for (let i = 0; i < pattern.length; i += 1) {
+		const ch = pattern[i];
+		if (inClass) {
+			if (ch === "\\") { i += 1; continue; }
+			if (ch === "]") inClass = false;
+			continue;
+		}
+		if (ch === "[") { inClass = true; continue; }
+		if (ch === "\\") {
+			const next = pattern[i + 1];
+			if (next === "b" || next === "B") return true;
+			i += 1; continue;
+		}
+		if (ch === "^" || ch === "$") return true;
+	}
+	return false;
+}
+
+/**
  * Detect backreferences — numeric (\1) and named (\k<name>) — unconditionally,
  * independent of skipRegexSafetyCheck. A backreference's match length depends on
  * what the captured group matched, so apparent-length estimation is unsound: a
@@ -1094,7 +1122,17 @@ function scanSecretShape(text: string, shape: CompiledShape, isAllowed: (candida
 				return ranges;
 			}
 
-			const candidate = (shape.secretGroup < match.length ? match[shape.secretGroup] : match[0]) ?? match[0];
+			// When secretGroup !== 0, the selected capture must exist and participate.
+			// If it's undefined (alternation branch didn't capture), skip this match —
+			// do NOT fall back to match[0], which would false-positive on the whole match.
+			let candidate: string;
+			if (shape.secretGroup !== 0) {
+				const captured = shape.secretGroup < match.length ? match[shape.secretGroup] : undefined;
+				if (captured === undefined || captured === null) continue; // group didn't participate
+				candidate = captured;
+			} else {
+				candidate = match[0] ?? "";
+			}
 			if (!candidate) continue;
 
 			// Capture-outside-match sentinel: for secretGroup !== 0, the captured
@@ -2233,8 +2271,20 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 			// the capture, so a capture longer than the scan window can fit in the
 			// (zero-width) match while never matching any window → the runtime 'd'-flag
 			// sentinel never fires and the secret leaks. Reject conservatively.
-			if (typeof value.secretGroup === "number" && value.secretGroup !== 0 && containsLookaround(value.pattern)) {
-				errors.push(`${path}.secretGroup ${value.secretGroup} with a lookaround group for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: a capture inside a lookaround can exceed the scan window while match[0] stays zero-width, so the runtime capture-span sentinel never fires and the secret leaks. Move the capture outside the lookaround, or use secretGroup: 0.`);
+			// Lookaround ban (v0.1.0): reject ALL lookaround groups ((?=) (?!) (?<=) (?<!))
+			// in secret shapes, not just secretGroup !== 0. A lookaround's assertion
+			// context can exceed the scan window even when match[0] is short — e.g.
+			// SECRET(?=A{12000}) has match[0]=6 but needs 12006 chars of context, so
+			// no 10K window satisfies the assertion and the regex never matches,
+			// leaking SECRET. The max estimator bounds match[0], not assertion context.
+			if (containsLookaround(value.pattern)) {
+				errors.push(`${path}.pattern contains a lookaround for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: a lookaround's assertion context can exceed the scan window even when match[0] is short, so the regex never matches any window and the secret leaks. Remove the lookaround for v0.1.0.`);
+			}
+			// Context-sensitive assertions (^, $, \b, \B) depend on input boundaries, not
+			// window boundaries — in chunked scanning they match at window starts/ends
+			// even when the input doesn't start/end there, causing false positives.
+			if (containsContextSensitiveAssertion(value.pattern)) {
+				errors.push(`${path}.pattern contains a context-sensitive assertion (^, $, \b, or \B) for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: these match at input boundaries, but chunked scanning splits the input into windows where window starts/ends aren't input starts/ends, causing false-positive matches. Remove the assertion for v0.1.0.`);
 			}
 		}
 	}

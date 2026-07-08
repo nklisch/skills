@@ -1136,15 +1136,13 @@ describe("config boundary contract", () => {
 		expect(verdict.action).toBe("block");
 	});
 
-	test("estimateRegexMinLength handles zero-width assertions and named groups (redesign loop 5)", () => {
-		// \b is zero-width (0 chars), so \bsk-[A-Z]{40}\b has min length 43, not 45.
-		// Named groups (?<name>...) skip the name. Lookahead (?=...) is zero-width.
-		// These must not cause false-positive rejection when maxLength equals the
-		// actual match length.
+	test("estimateRegexMinLength handles named groups (redesign loop 5)", () => {
+		// Named groups (?<name>...) skip the name marker. These must not cause
+		// false-positive rejection when maxLength equals the actual match length.
+		// (\b, ^, $, and lookaround are now rejected by the context-sensitive
+		// assertion ban — tested separately.)
 		const cases = [
-			{ pattern: "\\bsk-[A-Z]{40}\\b", maxLength: 43 },
 			{ pattern: "(?<token>sk-[A-Z]{40})", maxLength: 43 },
-			{ pattern: "(?=sk-)[A-Za-z0-9-]{43}", maxLength: 43 },
 		];
 		for (const { pattern, maxLength } of cases) {
 			const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "s", pattern, action: "redact", maxLength }] } } });
@@ -1194,16 +1192,15 @@ describe("config boundary contract", () => {
 		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
 	});
 
-	test("lookaround capture with secretGroup !== 0 is rejected (redesign loop 7)", () => {
-		// (?=(...)) with secretGroup:1 — the capture lives inside a lookahead whose
-		// match[0] is zero-width. The max check bounds match[0], not the capture, so a
-		// capture longer than the scan window can fit while never matching any window.
+	test("lookaround is rejected in secret shapes (redesign loop 7 + final review)", () => {
+		// ALL lookarounds are rejected (v0.1.0): a lookaround's assertion context can
+		// exceed the scan window even when match[0] is short, so the regex never
+		// matches any window and the secret leaks.
 		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "look", pattern: "(?=(BEGIN-[A-Z]{12000}-END))", flags: "gu", action: "redact", secretGroup: 1, maxLength: 1 }] } } });
-		expect(errors.join("\n")).toContain("with a lookaround");
-		// secretGroup: 0 with a lookaround is fine (match[0] is what's bounded).
-		// [A-Z] is a positive ASCII-only class → 1 code unit/atom, so max = 40.
-		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "look0", pattern: "(?=BEGIN-)[A-Z]{40}", flags: "gu", action: "redact", maxLength: 43 }] } } });
-		expect(ok).toEqual([]);
+		expect(errors.join("\n")).toContain("lookaround");
+		// Even secretGroup: 0 with a lookaround is rejected (assertion context leak).
+		const errors0 = validateConfig({ tools: { inspector: { secrets: [{ name: "look0", pattern: "(?=BEGIN-)[A-Z]{40}", flags: "gu", action: "redact", maxLength: 43 }] } } });
+		expect(errors0.join("\n")).toContain("lookaround");
 	});
 
 	test("omitted flags default to gu for max estimation (redesign loop 8)", () => {
@@ -1328,9 +1325,7 @@ describe("config boundary contract", () => {
 			// alternation with different lengths
 			{ pattern: "(abc|de){2}", flags: "g", ml: 6 },
 			{ pattern: "(a|bb){2,3}", flags: "g", ml: 6 },
-			// anchors (zero-width)
-			{ pattern: "^a$", flags: "g", ml: 1 },
-			{ pattern: "\\bsk-\\b", flags: "g", ml: 3 },
+			// (\b, ^, $ are now rejected by the context-sensitive assertion ban)
 		];
 		for (const { pattern, flags, ml } of accept) {
 			const errs = validateConfig({ tools: { inspector: { secrets: [{ name: "t", pattern, flags, action: "redact", maxLength: ml }] } } });
@@ -1380,6 +1375,39 @@ describe("config boundary contract", () => {
 		// Reverse: group named "a", backref with escaped name \k<\u0061>
 		const e2 = validateConfig({ tools: { inspector: { secrets: [{ name: "en2", pattern: "(?<a>[A-Z]{6000})\\k<\\u0061>", flags: "gu", action: "redact", maxLength: 6004 }] } } });
 		expect(e2.join("\n")).toContain("backreference");
+	});
+
+	test("lookaround context leak: all lookarounds rejected (final review)", () => {
+		// SECRET(?=A{12000}) has match[0]=6 but needs 12006 chars of context — no
+		// 10K window satisfies the assertion, so the regex never matches and SECRET
+		// leaks. The max estimator bounds match[0], not assertion context.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "la", pattern: "SECRET(?=A{12000})", flags: "gu", action: "redact", maxLength: 6 }] } } });
+		expect(e1.join("\n")).toContain("lookaround");
+		// Even secretGroup: 0 with lookaround is rejected.
+		const e2 = validateConfig({ tools: { inspector: { secrets: [{ name: "la0", pattern: "(?<=A{5})SECRET", flags: "gu", action: "redact", maxLength: 6 }] } } });
+		expect(e2.join("\n")).toContain("lookaround");
+	});
+
+	test("context-sensitive assertions (^ $ \b \B) rejected in chunked shapes (final review)", () => {
+		// ^SECRET matches at window starts, not input starts → false positives.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "anchor", pattern: "^SECRET", flags: "gu", action: "block", maxLength: 7 }] } } });
+		expect(e1.join("\n")).toContain("context-sensitive assertion");
+		const e2 = validateConfig({ tools: { inspector: { secrets: [{ name: "wb", pattern: "\\bSECRET\\b", flags: "gu", action: "block", maxLength: 7 }] } } });
+		expect(e2.join("\n")).toContain("context-sensitive assertion");
+		const e3 = validateConfig({ tools: { inspector: { secrets: [{ name: "end", pattern: "SECRET$", flags: "gu", action: "block", maxLength: 7 }] } } });
+		expect(e3.join("\n")).toContain("context-sensitive assertion");
+	});
+
+	test("unmatched secretGroup does not fall back to match[0] (final review)", () => {
+		// (?:token=(sk-[A-Z]{4})|status=ok) with secretGroup:1 — when "status=ok"
+		// matches, group 1 didn't participate. Must NOT fall back to match[0].
+		const cfg = { secrets: [{ name: "alt", pattern: "(?:token=(sk-[A-Z]{4})|status=ok)", flags: "gu", action: "block", secretGroup: 1, maxLength: 13 }] };
+		// status=ok → group 1 undefined → skip, don't block
+		const v1 = inspectToolInput("agent_send", { body: "status=ok" }, { ...cfg, onNoMatch: "allow" });
+		expect(v1.action).toBe("allow");
+		// token=sk-AAAA → group 1 participated → block
+		const v2 = inspectToolInput("agent_send", { body: "token=sk-AAAA" }, { ...cfg, onNoMatch: "allow" });
+		expect(v2.action).toBe("block");
 	});
 
 	test("estimateRegexMinLength preserves atom min for bounded quantifier (redesign loop 5)", () => {
