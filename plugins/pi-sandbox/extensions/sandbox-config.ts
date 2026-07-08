@@ -436,6 +436,48 @@ function astralLiteralLen(pattern: string, i: number): { len: number; next: numb
  * This closes a leak where {,002} was mis-parsed as max=2 but is a 25-char
  * literal under non-u flags.
  */
+
+/**
+ * Parse an escape atom starting at pattern[i] === "\\". Returns the atom's min
+ * and max code-unit length and the index past the escape, so the caller can
+ * apply a following quantifier to the WHOLE escape (not a hex digit inside it).
+ * Handles: \b/\B (0-width), \p{...}/\P{...} (property escape, astral-capable
+ * under u), \u{HEX...} (code point escape — 2 units if >0xFFFF under u),
+ * \uHHHH (4-hex — 2 if surrogate pair under u), \xHH (2-hex — 1 unit),
+ * \D/\S/\W (complement, astral-capable under u), and default (1 unit).
+ * `atomUpperBound` is 2 under u, 1 otherwise (for astral-capable atoms).
+ */
+function parseEscapeAtom(pattern: string, i: number, unicode: boolean, atomUpperBound: number): { min: number; max: number; next: number } {
+	const esc = pattern[i + 1];
+	// Zero-width assertions: \b, \B consume 0 chars.
+	if (esc === "b" || esc === "B") return { min: 0, max: 0, next: Math.min(pattern.length, i + 2) };
+	// Property escapes \p{...} / \P{...}: consume through the closing brace.
+	if (esc === "p" || esc === "P") {
+		const braceEnd = pattern.indexOf("}", i + 3);
+		return { min: 1, max: atomUpperBound, next: (braceEnd === -1 ? pattern.length : braceEnd + 1) };
+	}
+	// Code point escape \u{HEX...} (only valid under u): consume through }.
+	// Conservatively count as astral-capable (2) — the hex value could be >0xFFFF.
+	if (unicode && esc === "u" && pattern[i + 2] === "{") {
+		const braceEnd = pattern.indexOf("}", i + 3);
+		return { min: 1, max: atomUpperBound, next: (braceEnd === -1 ? pattern.length : braceEnd + 1) };
+	}
+	// \uHHHH (4 hex digits): consume all 6 chars. Under u, could be a surrogate
+	// (high half of an astral) — conservatively count as astral-capable (2).
+	if (esc === "u" && /[0-9a-fA-F]/.test(pattern[i + 2])) {
+		return { min: 1, max: unicode ? atomUpperBound : 1, next: Math.min(pattern.length, i + 6) };
+	}
+	// \xHH (2 hex digits): consume all 4 chars. 1 code unit (BMP).
+	if (esc === "x" && /[0-9a-fA-F]/.test(pattern[i + 2])) {
+		return { min: 1, max: 1, next: Math.min(pattern.length, i + 4) };
+	}
+	// Complement class escapes \D/\S/\W: astral-capable under u.
+	if (unicode && (esc === "D" || esc === "S" || esc === "W")) {
+		return { min: 1, max: atomUpperBound, next: Math.min(pattern.length, i + 2) };
+	}
+	// Default escape (\d, \w, \n, etc.): 1 code unit.
+	return { min: 1, max: 1, next: Math.min(pattern.length, i + 2) };
+}
 function parseBracedQuantifier(pattern: string, braceOpen: number): { lower: number; upper: number; next: number } | undefined {
 	const end = pattern.indexOf("}", braceOpen + 1);
 	if (end === -1) return undefined; // no closing brace → literal {
@@ -474,14 +516,8 @@ function estimateRegexMinLength(pattern: string): number | undefined {
 			const astral = astralLiteralLen(pattern, i);
 			if (astral) { atomMin = 1; next = astral.next; }
 			if (ch === "\\") {
-				const esc = pattern[i + 1];
-				// Zero-width assertions: \b, \B consume 0 chars.
-				if (esc === "b" || esc === "B") { atomMin = 0; next = i + 2; }
-				// Property escapes \p{...} / \P{...}: consume through the closing brace.
-				else if (esc === "p" || esc === "P") {
-					const braceEnd = pattern.indexOf("}", i + 3);
-					atomMin = 1; next = (braceEnd === -1 ? pattern.length : braceEnd + 1);
-				} else { atomMin = 1; next = Math.min(pattern.length, i + 2); }
+				const esc = parseEscapeAtom(pattern, i, false, 1);
+				atomMin = esc.min; next = esc.next;
 			}
 			else if (ch === "[") {
 				let j = i + 1;
@@ -579,18 +615,8 @@ function estimateRegexMaxLength(pattern: string, flags?: string): number {
 			// and non-astral escapes are 1. Astral literals in the pattern (>0xFFFF)
 			// are surrogate pairs (2 chars) consumed as two 1-unit atoms — conservative.
 			if (ch === "\\") {
-				const esc = pattern[i + 1];
-				if (esc === "b" || esc === "B") { atomMax = 0; next = Math.min(pattern.length, i + 2); }
-				// Property escapes \p{...} / \P{...}: consume through the closing brace
-				// so the {...} body isn't mis-parsed as a quantifier.
-				else if (esc === "p" || esc === "P") {
-					const braceEnd = pattern.indexOf("}", i + 3);
-					atomMax = atomUpperBound; next = (braceEnd === -1 ? pattern.length : braceEnd + 1);
-				} else if (unicode && (esc === "D" || esc === "S" || esc === "W")) {
-				// Complement class escapes match any non-digit/non-space/non-word, which
-				// includes astral code points under 'u'. Count as astral-capable.
-				atomMax = atomUpperBound; next = Math.min(pattern.length, i + 2);
-			} else { atomMax = 1; next = Math.min(pattern.length, i + 2); }
+				const esc = parseEscapeAtom(pattern, i, unicode, atomUpperBound);
+				atomMax = esc.max; next = esc.next;
 			}
 			else if (ch === "[") {
 				let j = i + 1;
