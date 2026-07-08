@@ -30,6 +30,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import {
+	assertNoHardlinkedDeniedFiles,
 	buildBwrapArgs,
 	buildMinimalEnv,
 	decidePlatformState,
@@ -499,9 +500,29 @@ export default function (pi: ExtensionAPI) {
 
 		// Always set the file-tool policy, even before bwrap init succeeds —
 		// the read/write/edit tools use it in-process and hold independently.
+		// Hardlink-alias guard: the in-process file tools (enforceDenyRead /
+		// enforceWritePolicy) use pathname/canonical-realpath checks, which cannot
+		// distinguish a hardlink alias from the denied file (same inode, different
+		// pathname). Fail closed at policy installation if any denied file (explicit
+		// or inside a denied directory) has nlink > 1 — the same guard buildBwrapArgs
+		// runs for the bwrap path, so both surfaces stay consistent.
+		const denyRead = config.filesystem?.denyRead ?? [];
+		const denyWrite = config.filesystem?.denyWrite ?? [];
+		try {
+			assertNoHardlinkedDeniedFiles(denyRead, denyWrite, ctx.cwd);
+		} catch (e) {
+			failClosed = true;
+			lastFailClosedReason = e instanceof Error ? e.message : String(e);
+			sandboxPolicy = createFailClosedPolicy(ctx.cwd);
+			activePolicy = sandboxPolicy;
+			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+			ctx.ui.notify(`Sandbox fail-closed: ${e instanceof Error ? e.message : e}`, "error");
+			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (hardlink alias)"));
+			return;
+		}
 		sandboxPolicy = {
-			denyRead: config.filesystem?.denyRead ?? [],
-			denyWrite: config.filesystem?.denyWrite ?? [],
+			denyRead,
+			denyWrite,
 			allowWrite: config.filesystem?.allowWrite ?? [],
 			cwd: ctx.cwd,
 			networkMode: netMode,

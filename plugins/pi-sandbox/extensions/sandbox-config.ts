@@ -380,16 +380,38 @@ function isSafeRegex(pattern: string): { safe: boolean; reason?: string } {
 			return { safe: false, reason: "overlapping alternation in quantified group (ReDoS risk)" };
 		}
 	}
-	// Backreferences (\1, \2, ...) make apparent-max-length estimation unsound:
-	// the matched length is the length of whatever the captured group matched, not
-	// a fixed property of the pattern. A pattern like ([A-Za-z0-9]{4096})\1 has an
-	// apparent max of 4097 but an actual match of 8192, evading the windowed scan.
-	// Reject backreferences outright — operators should express the repetition
-	// explicitly with a bounded quantifier (e.g. [A-Za-z0-9]{8192}).
-	if (/\\[1-9]\d?/.test(pattern)) {
-		return { safe: false, reason: "backreference in pattern (apparent-length estimation is unsound; express repetition with a bounded quantifier instead)" };
-	}
+	// Backreferences are checked unconditionally in validateSecretShape (see
+	// containsBackreference), NOT here, because skipRegexSafetyCheck must NOT
+	// bypass the backreference ban: a backreference defeats apparent-length
+	// estimation (a security property, not a ReDoS heuristic) and can leak a
+	// secret across a window boundary regardless of ReDoS risk.
 	return { safe: true };
+}
+
+/**
+ * Detect backreferences — numeric (\1) and named (\k<name>) — unconditionally,
+ * independent of skipRegexSafetyCheck. A backreference's match length depends on
+ * what the captured group matched, so apparent-length estimation is unsound: a
+ * pattern like ([A-Za-z0-9]{4096})\1 appears to be 4097 but matches 8192,
+ * evading the windowed scan. Respects escaping (\\1 is a literal, not a
+ * backref) and character classes ([\1] is a literal, not a backref).
+ */
+function containsBackreference(pattern: string): boolean {
+	for (let i = 0; i < pattern.length; i += 1) {
+		const ch = pattern[i];
+		if (ch !== "\\") continue;
+		const next = pattern[i + 1];
+		// Numeric backreference: \1 through \99 (but not \0, which is a null).
+		if (next >= "1" && next <= "9") return true;
+		// Named backreference: \k<name> or \k'name'.
+		if (next === "k") {
+			const after = pattern[i + 2];
+			if (after === "<" || after === "'") return true;
+		}
+		// Skip the escaped char so \\1 (escaped backslash + 1) isn't a false positive.
+		i += 1;
+	}
+	return false;
 }
 
 function quantifiedGroups(pattern: string): Array<{ inner: string; quantifier: string }> {
@@ -828,6 +850,7 @@ export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: Env
 			"~/.netrc",
 			"~/.npmrc",
 			"~/.docker/config.json",
+			".env",
 		],
 		allowWrite: [".", "/tmp"],
 		denyWrite: [".env"],
@@ -1647,13 +1670,19 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 				errors.push(`${path}.pattern is unsafe for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: ${safety.reason} (${value.pattern})`);
 			}
 		}
+		// Backreference ban is UNCONDITIONAL (not bypassed by skipRegexSafetyCheck):
+		// a backreference defeats apparent-length estimation regardless of ReDoS
+		// risk, and can leak a secret across a window boundary.
+		if (containsBackreference(value.pattern)) {
+			errors.push(`${path}.pattern contains a backreference for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: apparent-length estimation is unsound (the match length depends on the captured group, not the pattern). Express repetition with a bounded quantifier instead (${value.pattern})`);
+		}
 		// Apparent-length check: a pattern whose match length is not bounded above
 		// (open-ended +, *, {n,}) cannot be guaranteed to fit within a scan window,
 		// so an over-long match can straddle a window boundary and leak its tail.
 		// This runs in both validateConfig (in-memory) and loadConfig (file-based,
 		// via collectSecretShapeErrors) so the two paths stay consistent.
 		const maxLength = typeof value.maxLength === "number" ? value.maxLength : SCAN_WINDOW_OVERLAP_DEFAULT;
-		const apparentMax = estimateRegexApparentMaxLength(value.pattern);
+		const apparentMax = estimateRegexApparentMaxLength(value.pattern, value.flags);
 		const name = typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)";
 		if (apparentMax === undefined) {
 			errors.push(`${path}.pattern has an unbounded match length (open-ended quantifier +, *, or {n,}) for shape ${name}; bound it (e.g. {1,64}) so the full match fits within maxLength ${maxLength} and one scan window.`);
@@ -1684,7 +1713,15 @@ function envNameMatchesScrubConfig(name: string, config: EnvScrubConfig | undefi
 	return Boolean(config?.names?.includes(name) || compiledPatterns.some((re) => re.test(name)));
 }
 
-function estimateRegexApparentMaxLength(pattern: string): number | undefined {
+function estimateRegexApparentMaxLength(pattern: string, flags?: string): number | undefined {
+	// Under the `u` (unicode) flag, `.` and character classes match code POINTS,
+	// which for astral characters (e.g. emoji) are 2 JS string code units. The
+	// scan window is measured in code units (text.slice), so an astral-capable atom
+	// can consume 2 code units per match. Be conservative: count astral-capable
+	// atoms as 2 under `u` so the apparent max reflects the worst-case code-unit
+	// length and the window-fit check is sound.
+	const unicode = flags?.includes("u") ?? true; // default flags are "gu"
+	const atomUnit = (literal: boolean): number => (unicode && !literal ? 2 : 1);
 	const parseSequence = (start: number, terminator?: string): { length: number | undefined; index: number } => {
 		let total: number | undefined = 0;
 		let branchMax: number | undefined = 0;
@@ -1715,7 +1752,7 @@ function estimateRegexApparentMaxLength(pattern: string): number | undefined {
 
 	const parseAtom = (start: number): { length: number; index: number } => {
 		const ch = pattern[start];
-		if (ch === "\\") return { length: start + 1 < pattern.length ? 1 : 0, index: Math.min(pattern.length, start + 2) };
+		if (ch === "\\") return { length: 1, index: Math.min(pattern.length, start + 2) }; // escape: literal code unit
 		if (ch === "[") {
 			let i = start + 1;
 			while (i < pattern.length) {
@@ -1723,10 +1760,10 @@ function estimateRegexApparentMaxLength(pattern: string): number | undefined {
 					i += 2;
 					continue;
 				}
-				if (pattern[i] === "]") return { length: 1, index: i + 1 };
+				if (pattern[i] === "]") return { length: atomUnit(false), index: i + 1 };
 				i += 1;
 			}
-			return { length: 1, index: pattern.length };
+			return { length: atomUnit(false), index: pattern.length };
 		}
 		if (ch === "(") {
 			let innerStart = start + 1;
@@ -1738,7 +1775,8 @@ function estimateRegexApparentMaxLength(pattern: string): number | undefined {
 			return { length: inner.length ?? 0, index: Math.min(pattern.length, inner.index + 1) };
 		}
 		if ("^$".includes(ch)) return { length: 0, index: start + 1 };
-		return { length: 1, index: start + 1 };
+		if (ch === ".") return { length: atomUnit(false), index: start + 1 };
+		return { length: 1, index: start + 1 }; // literal char: 1 code unit
 	};
 
 	const applyBoundedQuantifier = (atomLength: number, start: number): { length: number; index: number } | undefined => {
