@@ -425,6 +425,31 @@ function astralLiteralLen(pattern: string, i: number): { len: number; next: numb
 	}
 	return undefined;
 }
+
+/**
+ * Strictly parse a braced quantifier body at pattern[braceOpen+1 .. close].
+ * ECMAScript grammar: {n}, {n,}, {n,m} where n,m are decimal integers (\d+).
+ * Returns { lower, upper, next } where upper is Infinity for {n,}.
+ * Returns undefined when the body is NOT a valid quantifier — in that case JS
+ * (non-u mode) treats the {...} text as a LITERAL, so the caller must NOT
+ * consume it as a quantifier (it contributes its literal char count instead).
+ * This closes a leak where {,002} was mis-parsed as max=2 but is a 25-char
+ * literal under non-u flags.
+ */
+function parseBracedQuantifier(pattern: string, braceOpen: number): { lower: number; upper: number; next: number } | undefined {
+	const end = pattern.indexOf("}", braceOpen + 1);
+	if (end === -1) return undefined; // no closing brace → literal {
+	const body = pattern.slice(braceOpen + 1, end);
+	// Valid forms: \d+ | \d+, | \d+,\d+  (NOT {,m} — needs a leading n)
+	const match = /^(\d+)(,(\d*)?)?$/.exec(body);
+	if (!match) return undefined;
+	const lower = parseInt(match[1], 10);
+	let upper: number;
+	if (match[2] === undefined) upper = lower; // {n}
+	else if (match[3] === "") upper = Infinity; // {n,}
+	else upper = parseInt(match[3], 10); // {n,m}
+	return { lower, upper, next: end + 1 };
+}
 function estimateRegexMinLength(pattern: string): number | undefined {
 	const parse = (start: number, terminator?: string): { length: number; index: number } | undefined => {
 		let total = 0;
@@ -495,13 +520,12 @@ function estimateRegexMinLength(pattern: string): number | undefined {
 			if (q === "*" || q === "?") { atomMin = 0; next += 1; }
 			else if (q === "+") { /* min is one repetition of the atom — atomMin stays as-is (the atom's own min) */ next += 1; }
 			else if (q === "{") {
-				const end = pattern.indexOf("}", next + 1);
-				if (end !== -1) {
-					const parts = pattern.slice(next + 1, end).split(",");
-					const lower = parts[0] ? parseInt(parts[0], 10) : 0;
-					atomMin *= (Number.isFinite(lower) ? lower : 0);
-					next = end + 1;
+				const parsed = parseBracedQuantifier(pattern, next);
+				if (parsed !== undefined) {
+					atomMin *= parsed.lower;
+				next = parsed.next;
 				}
+				// else: invalid quantifier body → literal { (don't consume)
 			}
 			// Lazy quantifier suffix (?) — consume it, doesn't change the min.
 			if (pattern[next] === "?") next += 1;
@@ -609,16 +633,15 @@ function estimateRegexMaxLength(pattern: string, flags?: string): number {
 			if (q === "*" || q === "+") return { length: Infinity, index: i }; // unbounded
 			if (q === "?") { next += 1; } // 0 or 1 — keep atomMax
 			else if (q === "{") {
-				const end = pattern.indexOf("}", next + 1);
-				if (end !== -1) {
-					const parts = pattern.slice(next + 1, end).split(",");
-					const upperRaw = parts.length === 1 ? parts[0] : parts[1];
-					if (upperRaw === "" || upperRaw === undefined) return { length: Infinity, index: i }; // {n,} unbounded
-					const upper = Number(upperRaw);
-					// Non-numeric / NaN / non-finite upper → conservative reject (parse error).
-					if (!Number.isFinite(upper) || upper < 0) return { length: Infinity, index: i };
-					atomMax *= upper;
-					next = end + 1;
+				const parsed = parseBracedQuantifier(pattern, next);
+				if (parsed === undefined) {
+					// invalid quantifier body → literal {; don't consume. The literal
+					// chars will be counted on subsequent iterations (each 1 unit).
+				} else if (parsed.upper === Infinity) {
+					return { length: Infinity, index: i }; // {n,} unbounded
+				} else {
+					atomMax *= parsed.upper;
+					next = parsed.next;
 				}
 			}
 			if (pattern[next] === "?") next += 1; // lazy suffix
