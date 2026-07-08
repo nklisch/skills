@@ -1,4 +1,4 @@
-import { accessSync, constants as fsConstants, existsSync, realpathSync, statSync } from "node:fs";
+import { accessSync, constants as fsConstants, existsSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { delimiter, isAbsolute, join, resolve } from "node:path";
 import { FILTER_DEFERRED_BACKLOG_ITEM } from "./sandbox-config";
@@ -324,11 +324,15 @@ interface DenyOverlay {
  * bwrap path overlays protect a pathname, not the underlying inode, so a
  * hardlink alias inside an allowWrite root can read/modify a denied file
  * through the alias. We cannot mask every alias without scanning the whole
- * allowWrite tree, so refuse to start instead. Directories are skipped (a
- * hardlink to a directory is not possible on most filesystems; their nlink
- * counts subdirectory entries, not aliases).
+ * allowWrite tree, so refuse to start instead.
+ *
+ * This covers BOTH explicitly-denied regular files AND regular files inside
+ * denied directories: a denied directory's tmpfs/ro-bind overlay protects
+ * the directory pathname, but a hardlink alias to a file inside it (created
+ * before the sandbox started) reaches the same inode outside the overlay.
+ * Walk denied directories recursively and check every contained regular file.
  */
-function assertNoHardlinkedDeniedFiles(denyRead: string[], denyWrite: string[], cwd: string): void {
+export function assertNoHardlinkedDeniedFiles(denyRead: string[], denyWrite: string[], cwd: string): void {
 	const checked = new Set<string>();
 	for (const list of [denyRead, denyWrite]) {
 		for (const rawPath of list) {
@@ -341,11 +345,47 @@ function assertNoHardlinkedDeniedFiles(denyRead: string[], denyWrite: string[], 
 			} catch {
 				continue; // absent path — existingDenyOverlays will skip it too
 			}
-			if (st.isFile() && st.nlink > 1) {
-				throw new Error(
-					`Sandbox refuse-to-start: denied file "${canonical}" has ${st.nlink} hard links. A hardlink alias inside an allowWrite root can bypass the denyRead/denyWrite overlay (bwrap protects pathnames, not inodes). Break the hardlink (copy the file) or remove it from the deny list before enabling the sandbox.`,
-				);
+			if (st.isFile()) {
+				checkHardlink(canonical, st);
+			} else if (st.isDirectory()) {
+				walkForHardlinks(canonical, checked);
 			}
+		}
+	}
+}
+
+/** Throw if a regular file has nlink > 1. */
+function checkHardlink(path: string, st: ReturnType<typeof statSync>): void {
+	if (st.isFile() && st.nlink > 1) {
+		throw new Error(
+			`Sandbox refuse-to-start: denied file "${path}" has ${st.nlink} hard links. A hardlink alias inside an allowWrite root can bypass the denyRead/denyWrite overlay (bwrap protects pathnames, not inodes). Break the hardlink (copy the file) or remove it from the deny list before enabling the sandbox.`,
+		);
+	}
+}
+
+/** Recursively walk a directory and fail closed on any hardlinked regular file. */
+function walkForHardlinks(dir: string, visited: Set<string>): void {
+	let entries: ReturnType<typeof readdirSync>;
+	try {
+		entries = readdirSync(dir, { withFileTypes: true });
+	} catch {
+		return; // unreadable — existingDenyOverlays will mask it with tmpfs
+	}
+	for (const entry of entries) {
+		const child = join(dir, entry.name);
+		if (visited.has(child)) continue;
+		visited.add(child);
+		let st: ReturnType<typeof statSync>;
+		try {
+			st = statSync(child);
+		} catch {
+			continue; // unreadable entry — skip
+		}
+		// checkHardlink throws on nlink > 1 — must NOT be inside the stat try/catch.
+		if (st.isFile()) {
+			checkHardlink(child, st);
+		} else if (st.isDirectory()) {
+			walkForHardlinks(child, visited);
 		}
 	}
 }

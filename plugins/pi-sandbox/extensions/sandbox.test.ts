@@ -6,6 +6,7 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
+	assertNoHardlinkedDeniedFiles,
 	buildBwrapArgs,
 	buildMinimalEnv,
 	decidePlatformState,
@@ -1083,7 +1084,49 @@ describe("config boundary contract", () => {
 			},
 		});
 		expect(errors.join("\n")).toContain("backreference");
-		expect(errors.join("\n")).toContain("unsafe");
+	});
+
+	test("backreference ban is NOT bypassed by skipRegexSafetyCheck (re-review loop 2)", () => {
+		// skipRegexSafetyCheck bypasses the ReDoS heuristic, but NOT the backreference
+		// ban: a backreference defeats apparent-length estimation regardless of ReDoS
+		// risk, and can leak a secret across a window boundary.
+		const errors = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "repeat", pattern: "([A-Za-z0-9]{6000})\\1", action: "redact", maxLength: 6005, skipRegexSafetyCheck: true }] },
+			},
+		});
+		expect(errors.join("\n")).toContain("backreference");
+	});
+
+	test("validateConfig rejects named backreferences \\k<name> (re-review loop 2)", () => {
+		const errors = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "named", pattern: "(?<half>[A-Za-z0-9]{6000})\\k<half>", action: "redact" }] },
+			},
+		});
+		expect(errors.join("\n")).toContain("backreference");
+	});
+
+	test("validateConfig rejects unicode u-flag patterns whose code-unit match exceeds maxLength (re-review loop 2)", () => {
+		// Under the `u` flag, `.` matches code POINTS: an astral char (emoji) is 2
+		// JS code units. The scan window is measured in code units, so a pattern like
+		// `api=(.{6000})` with `gu` can match 12000 code units while the apparent-
+		// length estimator (code-unit-naive) would count 6000. The estimator must be
+		// flag-aware and count astral-capable atoms as 2 under `u`.
+		const errors = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "unicode-api", pattern: "api=(.{6000})", flags: "gu", action: "redact", secretGroup: 1, maxLength: 6004 }] },
+			},
+		});
+		expect(errors.join("\n")).toContain("appears to match up to 1200");
+		expect(errors.join("\n")).toContain("exceeding maxLength 6004");
+		// A non-unicode pattern with the same shape is accepted (atoms count as 1).
+		const ok = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "ascii-api", pattern: "api=(.{6000})", flags: "g", action: "redact", secretGroup: 1, maxLength: 6004 }] },
+			},
+		});
+		expect(ok).toEqual([]);
 	});
 
 	test("validateConfig rejects unsafe nested-quantifier regexes and allows simple safe allowlist patterns", () => {
@@ -1619,6 +1662,20 @@ describe("in-process file-tool policy", () => {
 		await expect(ops.readFile(join(cwd, "secret-dir", "doc.txt"))).rejects.toThrow(/denyRead/);
 		await expect(ops.access(join(cwd, "protected.txt"))).rejects.toThrow(/denyWrite/);
 	});
+
+	test("hardlink alias to a denied file bypasses in-process policy — guard at session_start (re-review loop 2)", async () => {
+		// The in-process file tools use pathname/canonical-realpath checks, which
+		// cannot distinguish a hardlink alias (same inode, different pathname). The
+		// session_start hardlink guard (assertNoHardlinkedDeniedFiles) must fail
+		// closed before installing the policy. This test documents that the guard
+		// fires; without it, readFile(alias) would leak the denied file's contents
+		// and writeFile(alias) would mutate it.
+		const cwd = await makeTempDir();
+		await writeFile(join(cwd, ".env"), "SECRET");
+		await link(join(cwd, ".env"), join(cwd, "alias"));
+		expect(() => assertNoHardlinkedDeniedFiles([".env"], [], cwd)).toThrow(/hard links/);
+		expect(() => assertNoHardlinkedDeniedFiles([], [".env"], cwd)).toThrow(/hard links/);
+	});
 });
 
 describe("buildBwrapArgs", () => {
@@ -1970,6 +2027,60 @@ describe("buildBwrapArgs", () => {
 				allowWrite: ["."],
 				denyRead: [],
 				denyWrite: [".env"],
+				networkMode: "open",
+				env: { PATH: "/usr/bin" },
+			}),
+		).not.toThrow();
+	});
+
+	test("refuses to start when a file inside a denied DIRECTORY has a hardlink alias (re-review loop 2)", async () => {
+		// A denied directory's tmpfs/ro-bind overlay protects the directory
+		// pathname, but a hardlink alias to a file inside it (created before the
+		// sandbox started) reaches the same inode outside the overlay. The guard
+		// must walk denied directories recursively, not just check explicitly-denied
+		// files.
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret"));
+		await writeFile(join(cwd, "secret", "file"), "TOPSECRET");
+		await link(join(cwd, "secret", "file"), join(cwd, "alias")); // hardlink inside the denied dir
+
+		// denyRead via directory: reading through the alias would leak.
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: ["secret"],
+				denyWrite: [],
+				networkMode: "open",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/hard links/);
+
+		// denyWrite via directory: writing through the alias would mutate.
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: [],
+				denyWrite: ["secret"],
+				networkMode: "open",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/hard links/);
+
+		// A denied directory with no hardlinks starts normally.
+		const cleanCwd = await makeTempDir();
+		await mkdir(join(cleanCwd, "secret"));
+		await writeFile(join(cleanCwd, "secret", "file"), "secret");
+		expect(() =>
+			buildBwrapArgs({
+				cwd: cleanCwd,
+				configCwd: cleanCwd,
+				allowWrite: ["."],
+				denyRead: ["secret"],
+				denyWrite: [],
 				networkMode: "open",
 				env: { PATH: "/usr/bin" },
 			}),
