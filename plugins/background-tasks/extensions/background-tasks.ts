@@ -606,7 +606,19 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
       });
     }
     if (!opts.piExec) throw new Error("monitor needs pi.exec, which is unavailable in this runtime.");
-    return opts.piExec("/bin/sh", ["-c", opts.command], { timeout: opts.timeoutMs, cwd: opts.cwd, signal: opts.signal });
+    // Cap pi.exec output post-hoc: the direct-spawn paths use makeBoundedAccumulator
+    // during streaming, but pi.exec buffers internally and only returns strings on
+    // completion. A noisy command (yes X) could OOM the Pi process via pi.exec's
+    // internal buffer before this cap applies. The direct-spawn path is preferred
+    // when a sandbox or degraded env is available; this is the last-resort cap.
+    const result = await opts.piExec("/bin/sh", ["-c", opts.command], { timeout: opts.timeoutMs, cwd: opts.cwd, signal: opts.signal });
+    const cap = MAX_POLL_OUTPUT_CHARS;
+    let overflowed = false;
+    let stdout = result.stdout ?? "";
+    let stderr = result.stderr ?? "";
+    if (stdout.length > cap) { stdout = `${stdout.slice(0, cap)}\n[monitor poll output exceeded ${cap} chars; truncated to prevent OOM]`; overflowed = true; }
+    if (stderr.length > cap) { stderr = `${stderr.slice(0, cap)}\n[monitor poll output exceeded ${cap} chars; truncated to prevent OOM]`; overflowed = true; }
+    return { ...result, stdout, stderr, killed: result.killed || overflowed };
   }
 
   return new Promise((resolve) => {

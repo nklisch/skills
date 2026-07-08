@@ -453,8 +453,24 @@ describe("monitor sandbox poll decision", () => {
       },
     });
 
-    expect(result).toEqual({ stdout: "hi\n", code: 0 });
+    expect(result).toEqual({ stdout: "hi\n", code: 0, stderr: "", killed: false });
     expect(calls).toEqual([{ command: "/bin/sh", args: ["-c", "echo hi"], timeout: 1234, cwd: "/tmp" }]);
+  });
+
+  test("runShellOnce caps pi.exec output to prevent OOM (re-review loop 3)", async () => {
+    // The pi.exec (sandbox-absent) path buffers internally and returns strings on
+    // completion. A noisy command could OOM the Pi process before the per-job
+    // rolling buffer cap applies. Cap stdout/stderr post-hoc.
+    const huge = "X".repeat(3_000_000); // > MAX_POLL_OUTPUT_CHARS (2M)
+    const result = await runShellOnce({
+      command: "yes X",
+      cwd: "/tmp",
+      timeoutMs: 1234,
+      piExec: async () => ({ stdout: huge, stderr: huge, code: 0 }),
+    });
+    expect(result.stdout!.length).toBeLessThan(huge.length);
+    expect(result.stdout!).toContain("truncated to prevent OOM");
+    expect(result.killed).toBe(true);
   });
 });
 

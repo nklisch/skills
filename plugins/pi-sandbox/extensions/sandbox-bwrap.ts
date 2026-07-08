@@ -1,6 +1,6 @@
-import { accessSync, constants as fsConstants, existsSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { accessSync, constants as fsConstants, existsSync, lstatSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, isAbsolute, join, resolve } from "node:path";
+import { basename, delimiter, dirname, isAbsolute, join, resolve } from "node:path";
 import { FILTER_DEFERRED_BACKLOG_ITEM } from "./sandbox-config";
 
 export type NetworkMode = "open" | "filter" | "block";
@@ -336,6 +336,15 @@ export function assertNoHardlinkedDeniedFiles(denyRead: string[], denyWrite: str
 	const checked = new Set<string>();
 	for (const list of [denyRead, denyWrite]) {
 		for (const rawPath of list) {
+			// Glob deny entries (e.g. "*.pem") cannot be canonicalized as a literal
+			// path — normalizeConfiguredPath turns them into `<cwd>/*.pem`, which
+			// doesn't exist. Expand them by scanning the glob's parent dir for matching
+			// files and checking each for hardlinks. Without this, a hardlink alias to
+			// a glob-denied file (secret.pem hardlinked as alias) bypasses the guard.
+			if (/[?*]/.test(rawPath)) {
+				expandGlobAndCheckHardlinks(rawPath, cwd, checked);
+				continue;
+			}
 			const canonical = canonicalizeExistingPath(normalizeConfiguredPath(rawPath, cwd));
 			if (!canonical || checked.has(canonical)) continue;
 			checked.add(canonical);
@@ -354,6 +363,54 @@ export function assertNoHardlinkedDeniedFiles(denyRead: string[], denyWrite: str
 	}
 }
 
+/**
+ * Expand a glob deny entry (e.g. `*.pem`, `sub/*.key`) by scanning the glob's
+ * parent directory for matching files and checking each for hardlinks. Uses
+ * the same single-segment glob semantics as globToRegex (`*` matches within a
+ * path segment, not `/`). Does NOT follow symlinks (lstatSync).
+ */
+function expandGlobAndCheckHardlinks(glob: string, cwd: string, checked: Set<string>): void {
+	const expanded = normalizeConfiguredPath(glob, cwd);
+	const globDir = dirname(expanded);
+	const baseName = basename(expanded);
+	// Build a regex from just the basename (the glob is single-segment per dir level).
+	const re = globToRegexFromBase(baseName);
+	let entries: ReturnType<typeof readdirSync>;
+	try {
+		entries = readdirSync(globDir, { withFileTypes: true });
+	} catch {
+		return; // glob parent doesn't exist or is unreadable — no matches
+	}
+	for (const entry of entries) {
+		if (!re.test(entry.name)) continue;
+		const child = join(globDir, entry.name);
+		if (checked.has(child)) continue;
+		checked.add(child);
+		let st: ReturnType<typeof lstatSync>;
+		try {
+			st = lstatSync(child);
+		} catch {
+			continue; // concurrent deletion
+		}
+		if (st.isFile()) {
+			checkHardlink(child, st);
+		}
+		// Symlinks and dirs are skipped — only real files matching the glob are checked.
+	}
+}
+
+/** Convert a single-segment glob basename to an anchored RegExp. */
+function globToRegexFromBase(glob: string): RegExp {
+	let re = "";
+	for (let i = 0; i < glob.length; i += 1) {
+		const ch = glob[i];
+		if (ch === "*") re += "[^/]*";
+		else if (ch === "?") re += "[^/]";
+		else re += ch.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+	}
+	return new RegExp(`^${re}$`);
+}
+
 /** Throw if a regular file has nlink > 1. */
 function checkHardlink(path: string, st: ReturnType<typeof statSync>): void {
 	if (st.isFile() && st.nlink > 1) {
@@ -363,25 +420,46 @@ function checkHardlink(path: string, st: ReturnType<typeof statSync>): void {
 	}
 }
 
-/** Recursively walk a directory and fail closed on any hardlinked regular file. */
+/**
+ * Recursively walk a denied directory and fail closed on any hardlinked regular
+ * file. Uses lstatSync (NOT statSync) so symlinks are NOT followed: a denied
+ * directory containing a symlink to /usr or a cycle does NOT cause unbounded
+ * traversal. Symlinks inside a denied dir are irrelevant to the hardlink guard
+ * anyway — the bwrap overlay masks the dir, and a hardlink alias points to a
+ * real inode, not a symlink target.
+ *
+ * Fail-closed on EACCES/EPERM (unreadable): we cannot verify there are no
+ * hardlink aliases, so refuse to start. ENOENT (concurrent deletion) is the
+ * accepted TOCTOU residual and is skipped.
+ */
 function walkForHardlinks(dir: string, visited: Set<string>): void {
 	let entries: ReturnType<typeof readdirSync>;
 	try {
 		entries = readdirSync(dir, { withFileTypes: true });
-	} catch {
-		return; // unreadable — existingDenyOverlays will mask it with tmpfs
+	} catch (e) {
+		const code = (e as NodeJS.ErrnoException).code;
+		if (code === "ENOENT") return; // concurrent deletion — TOCTOU residual
+		throw new Error(
+			`Sandbox refuse-to-start: cannot inspect denied directory "${dir}" for hardlink aliases (${code ?? "unknown error"}). A hardlink alias inside an allowWrite root can bypass the denyRead/denyWrite overlay, and an unreadable denied directory cannot be verified safe. Fix the directory permissions or remove it from the deny list before enabling the sandbox.`,
+		);
 	}
 	for (const entry of entries) {
 		const child = join(dir, entry.name);
 		if (visited.has(child)) continue;
 		visited.add(child);
-		let st: ReturnType<typeof statSync>;
+		let st: ReturnType<typeof lstatSync>;
 		try {
-			st = statSync(child);
-		} catch {
-			continue; // unreadable entry — skip
+			st = lstatSync(child);
+		} catch (e) {
+			const code = (e as NodeJS.ErrnoException).code;
+			if (code === "ENOENT") continue; // concurrent deletion — TOCTOU residual
+			throw new Error(
+				`Sandbox refuse-to-start: cannot stat denied entry "${child}" (${code ?? "unknown error"}). An unreadable entry under a denied directory cannot be verified safe against hardlink-alias bypass. Fix the permissions or remove the path from the deny list.`,
+			);
 		}
-		// checkHardlink throws on nlink > 1 — must NOT be inside the stat try/catch.
+		// Only check real files and recurse into real directories. Symlinks are
+		// skipped (lstatSync does not follow them): a hardlink alias points to a
+		// real inode, and following symlinks would traverse unbounded host trees.
 		if (st.isFile()) {
 			checkHardlink(child, st);
 		} else if (st.isDirectory()) {
