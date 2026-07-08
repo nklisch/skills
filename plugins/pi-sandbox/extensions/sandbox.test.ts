@@ -1009,7 +1009,28 @@ describe("config boundary contract", () => {
 		expect(errors.join("\n")).toContain("tools.inspector.secrets[3].maxLength must be < 10000");
 	});
 
-	test("loadConfig fails closed when a secret pattern appears longer than its maxLength (B1-3)", async () => {
+	test("maxLength is required — config without it fails closed (redesign)", () => {
+		// The windowed scan uses maxLength as the per-shape overlap so a full match
+		// always fits within one window. Without it, the scanner cannot guarantee a
+		// straddling match is fully captured, and a truncated redaction would leak.
+		const errors = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "s", pattern: "sk-[A-Za-z0-9]{20,128}", action: "redact" }] },
+			},
+		});
+		expect(errors.join("\n")).toContain("maxLength is required");
+	});
+
+	test("maxLength accepts a bounded pattern with a valid declaration (redesign)", () => {
+		const ok = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "s", pattern: "sk-[A-Za-z0-9]{20,128}", action: "redact", maxLength: 131 }] },
+			},
+		});
+		expect(ok).toEqual([]);
+	});
+
+	test("loadConfig fails closed when maxLength is missing (redesign)", async () => {
 		const cwd = await makeTempDir();
 		const agentDir = await makeTempDir();
 		await mkdir(join(agentDir, "extensions"), { recursive: true });
@@ -1020,20 +1041,12 @@ describe("config boundary contract", () => {
 				},
 			},
 		}));
-
 		const loaded = loadConfig(cwd, { agentDir });
-
-		// Fail-closed: a pattern whose apparent max match length exceeds the
-		// effective window overlap can evade the scanner when split across a
-		// window boundary. The operator MUST declare maxLength >= apparentMax.
 		expect(loaded.parseErrors.length).toBeGreaterThan(0);
-		expect(loaded.parseErrors.join("\n")).toContain("shape \"overlong\"");
-		expect(loaded.parseErrors.join("\n")).toContain("appears to match up to");
-		expect(loaded.parseErrors.join("\n")).toContain("exceeding maxLength 4096");
-		expect(loaded.parseErrors.join("\n")).toContain("maxLength");
+		expect(loaded.parseErrors.join("\n")).toContain("maxLength is required");
 	});
 
-	test("loadConfig accepts an overlong pattern when maxLength covers the apparent match (B1-3)", async () => {
+	test("loadConfig accepts a pattern with maxLength declared (redesign)", async () => {
 		const cwd = await makeTempDir();
 		const agentDir = await makeTempDir();
 		await mkdir(join(agentDir, "extensions"), { recursive: true });
@@ -1044,52 +1057,20 @@ describe("config boundary contract", () => {
 				},
 			},
 		}));
-
 		const loaded = loadConfig(cwd, { agentDir });
-
-		// Declaring maxLength >= apparentMax raises the per-shape overlap so the
-		// full match fits in a window; the config loads clean.
 		expect(loaded.parseErrors).toEqual([]);
 	});
 
-	test("validateConfig rejects open-ended quantifiers as unbounded match length (re-review #1)", () => {
-		// An open-ended quantifier (+, *, {n,}) has an unbounded match length: a
-		// secret can be arbitrarily long and straddle a scan-window boundary,
-		// leaking its tail unredacted. The operator MUST bound the quantifier.
-		for (const pattern of ["sk-[A-Za-z0-9]{20,}", "tok_[a-z]+", "^[A-Za-z]*$"]) {
-			const errors = validateConfig({
-				tools: {
-					inspector: { secrets: [{ name: "s", pattern, action: "redact" }] },
-				},
-			});
-			expect(errors.join("\n")).toContain("unbounded match length");
-		}
-		// A bounded quantifier is accepted.
-		const ok = validateConfig({
-			tools: {
-				inspector: { secrets: [{ name: "s", pattern: "sk-[A-Za-z0-9]{20,128}", action: "redact" }] },
-			},
-		});
-		expect(ok).toEqual([]);
-	});
-
-	test("validateConfig rejects backreferences as unsound apparent-length (re-review #3)", () => {
-		// A backreference (\1) makes apparent-length estimation unsound: the
-		// matched length depends on what the captured group matched, not a fixed
-		// property of the pattern. `([A-Za-z0-9]{4096})\1` appears to be 4097 but
-		// matches 8192, evading the windowed scan. Reject outright.
+	test("validateConfig rejects backreferences unconditionally (redesign)", () => {
 		const errors = validateConfig({
 			tools: {
-				inspector: { secrets: [{ name: "repeated", pattern: "([A-Za-z0-9]{4096})\\1", action: "block" }] },
+				inspector: { secrets: [{ name: "repeated", pattern: "([A-Za-z0-9]{4096})\\1", action: "block", maxLength: 9000 }] },
 			},
 		});
 		expect(errors.join("\n")).toContain("backreference");
 	});
 
-	test("backreference ban is NOT bypassed by skipRegexSafetyCheck (re-review loop 2)", () => {
-		// skipRegexSafetyCheck bypasses the ReDoS heuristic, but NOT the backreference
-		// ban: a backreference defeats apparent-length estimation regardless of ReDoS
-		// risk, and can leak a secret across a window boundary.
+	test("backreference ban is NOT bypassed by skipRegexSafetyCheck (redesign)", () => {
 		const errors = validateConfig({
 			tools: {
 				inspector: { secrets: [{ name: "repeat", pattern: "([A-Za-z0-9]{6000})\\1", action: "redact", maxLength: 6005, skipRegexSafetyCheck: true }] },
@@ -1098,81 +1079,19 @@ describe("config boundary contract", () => {
 		expect(errors.join("\n")).toContain("backreference");
 	});
 
-	test("validateConfig rejects named backreferences \\k<name> (re-review loop 2)", () => {
+	test("validateConfig rejects named backreferences \\k<name> (redesign)", () => {
 		const errors = validateConfig({
 			tools: {
-				inspector: { secrets: [{ name: "named", pattern: "(?<half>[A-Za-z0-9]{6000})\\k<half>", action: "redact" }] },
+				inspector: { secrets: [{ name: "named", pattern: "(?<half>[A-Za-z0-9]{6000})\\k<half>", action: "redact", maxLength: 9999 }] },
 			},
 		});
 		expect(errors.join("\n")).toContain("backreference");
 	});
 
-	test("validateConfig rejects unicode u-flag patterns whose code-unit match exceeds maxLength (re-review loop 2)", () => {
-		// Under the `u` flag, `.` matches code POINTS: an astral char (emoji) is 2
-		// JS code units. The scan window is measured in code units, so a pattern like
-		// `api=(.{6000})` with `gu` can match 12000 code units while the apparent-
-		// length estimator (code-unit-naive) would count 6000. The estimator must be
-		// flag-aware and count astral-capable atoms as 2 under `u`.
-		const errors = validateConfig({
-			tools: {
-				inspector: { secrets: [{ name: "unicode-api", pattern: "api=(.{6000})", flags: "gu", action: "redact", secretGroup: 1, maxLength: 6004 }] },
-			},
-		});
-		expect(errors.join("\n")).toContain("appears to match up to 1200");
-		expect(errors.join("\n")).toContain("exceeding maxLength 6004");
-		// A non-unicode pattern with the same shape is accepted (atoms count as 1).
-		const ok = validateConfig({
-			tools: {
-				inspector: { secrets: [{ name: "ascii-api", pattern: "api=(.{6000})", flags: "g", action: "redact", secretGroup: 1, maxLength: 6004 }] },
-			},
-		});
-		expect(ok).toEqual([]);
-	});
-
-	test("ASCII-only char classes count as 1 under gu, not 2 (re-review loop 3)", () => {
-		// A char class like [A-Za-z0-9] only matches ASCII even under the `u` flag,
-		// so it should count as 1 code unit, not 2. Counting it as 2 would false-
-		// reject valid bounded ASCII tokens whose apparent length exceeds maxLength.
-		const ok = validateConfig({
-			tools: {
-				inspector: { secrets: [{ name: "long-ascii", pattern: "sk-[A-Za-z0-9]{6000}", action: "redact", maxLength: 6003 }] },
-			},
-		});
-		expect(ok).toEqual([]);
-		// An astral-capable class ([^a-z]) still counts as 2.
-		const astral = validateConfig({
-			tools: {
-				inspector: { secrets: [{ name: "astral", pattern: "sk-[^a-z]{6000}", flags: "gu", action: "redact", maxLength: 6003 }] },
-			},
-		});
-		expect(astral.join("\n")).toContain("appears to match up to 1200");
-	});
-
-	test("validateConfig rejects unicode escape atoms \D/\S/\W/\p under u (re-review loop 3)", () => {
-		// Under `u`, \D/\S/\W/\p{...} can match astral code points (2 units), but
-		// the estimator previously counted all escapes as 1. \d/\w/\s stay 1.
-		const leaky = validateConfig({
-			tools: {
-				inspector: { secrets: [{ name: "non-digit", pattern: "api=\\D{6000}", flags: "gu", action: "redact", maxLength: 6004 }] },
-			},
-		});
-		expect(leaky.join("\n")).toContain("appears to match up to 1200");
-		const ok = validateConfig({
-			tools: {
-				inspector: { secrets: [{ name: "digit", pattern: "api=\\d{6000}", flags: "gu", action: "redact", maxLength: 6004 }] },
-			},
-		});
-		expect(ok).toEqual([]);
-	});
-
-	test("zero-width full match (lookahead) with a captured secret fails closed (re-review loop 3)", () => {
-		// A lookahead like (?=(sk-[A-Z]{40})) has match[0].length === 0, so the
-		// redact range would be zero-length and dropped — leaking the captured
-		// secret. The scanner cannot redact a capture group not contained in
-		// match[0]; fail closed rather than emit a no-op redaction.
+	test("zero-width full match (lookahead) with a captured secret fails closed at runtime (redesign)", () => {
 		const input: Record<string, unknown> = { body: "prefix sk-" + "A".repeat(40) + " suffix" };
 		const verdict = inspectToolInput("agent_send", input, {
-			secrets: [{ name: "lookahead", pattern: "(?=(sk-[A-Z]{40}))", action: "redact", secretGroup: 1 }],
+			secrets: [{ name: "lookahead", pattern: "(?=(sk-[A-Z]{40}))", action: "redact", secretGroup: 1, maxLength: 64 }],
 			onNoMatch: "allow",
 		});
 		expect(verdict.action).toBe("block");
@@ -1244,7 +1163,7 @@ describe("config boundary contract", () => {
 		const skipped = validateConfig({
 			tools: {
 				inspector: {
-					secrets: [{ name: "accepted-risk", pattern: "(a|aa){1,5}", action: "block", skipRegexSafetyCheck: true }],
+					secrets: [{ name: "accepted-risk", pattern: "(a|aa){1,5}", action: "block", maxLength: 5, skipRegexSafetyCheck: true }],
 					allowlist: { regexes: ["(a+){1,5}"], skipRegexSafetyCheck: true },
 				},
 			},
@@ -1254,7 +1173,7 @@ describe("config boundary contract", () => {
 		const badSkipType = validateConfig({
 			tools: {
 				inspector: {
-					secrets: [{ name: "bad", pattern: "a", action: "block", skipRegexSafetyCheck: "yes" }],
+					secrets: [{ name: "bad", pattern: "a", action: "block", maxLength: 1, skipRegexSafetyCheck: "yes" }],
 					allowlist: { regexes: ["a"], skipRegexSafetyCheck: "yes" },
 				},
 			},
