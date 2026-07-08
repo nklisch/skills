@@ -1351,6 +1351,37 @@ describe("config boundary contract", () => {
 		expect(uOctal.length).toBeGreaterThan(0);
 	});
 
+	test("malformed non-u control escape counts as 2-char literal (redesign loop 15)", () => {
+		// \c without a letter under non-u matches the literal 2-char string "\c".
+		// The estimator must count it as 2 units, not 1 (default escape), or a
+		// quantified (\c){5001} match of 10002 units leaks across scan windows.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "mc", pattern: "(\\c){5001}", flags: "g", action: "redact", maxLength: 5001 }] } } });
+		expect(e1.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// Valid \cA is still 1 unit.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "vc", pattern: "\\cA{5}", flags: "g", action: "redact", maxLength: 5 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("out-of-range octal escapes use ECMAScript width rules (redesign loop 15)", () => {
+		// \400: leading 4-7 consumes at most 2 digits, so \40 + "0" = 2 units.
+		// The estimator must not consume all 3 digits as one atom.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "oo", pattern: "(\\400){5001}", flags: "g", action: "redact", maxLength: 5001 }] } } });
+		expect(e1.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// Valid \377 (leading 0-3, 3 digits) is still 1 unit.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "vo", pattern: "\\377", flags: "g", action: "redact", maxLength: 1 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("escaped named-group identifiers are normalized for backref detection (redesign loop 15)", () => {
+		// (?<\u0061>...) normalizes to group name "a" in JS, so \k<a> is a real backref.
+		// analyzeGroups must normalize the name, or containsBackreference misses it.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "en", pattern: "(?<\\u0061>[A-Z]{6000})\\k<a>", flags: "gu", action: "redact", maxLength: 6004 }] } } });
+		expect(e1.join("\n")).toContain("backreference");
+		// Reverse: group named "a", backref with escaped name \k<\u0061>
+		const e2 = validateConfig({ tools: { inspector: { secrets: [{ name: "en2", pattern: "(?<a>[A-Z]{6000})\\k<\\u0061>", flags: "gu", action: "redact", maxLength: 6004 }] } } });
+		expect(e2.join("\n")).toContain("backreference");
+	});
+
 	test("estimateRegexMinLength preserves atom min for bounded quantifier (redesign loop 5)", () => {
 		// (sk-AAAAAAAAAA){1,3} has a minimum match of 13 (one repetition of the 13-char
 		// group), not 0 or 1. Under-declaring maxLength=5 must be rejected — otherwise the

@@ -454,6 +454,10 @@ function parseEscapeAtom(pattern: string, i: number, unicode: boolean, atomUpper
 	// Control escape \cX (X must be A-Za-z): matches the control char (1 code unit).
 	// Consume \c + the letter so a following quantifier binds to the whole escape.
 	if (esc === "c" && /[A-Za-z]/.test(pattern[i + 2])) return { min: 1, max: 1, next: i + 3 };
+	// Malformed \c (no following letter) under non-u: JS treats it as matching the
+	// literal 2-char string "\c" (backslash + c). Under u it's a syntax error.
+	// Count as 2 code units so the estimator doesn't underestimate.
+	if (!unicode && esc === "c") return { min: 2, max: 2, next: i + 2 };
 	// Property escapes \p{...} / \P{...}: ONLY valid under the 'u' flag AND with a
 	// closing brace. Without 'u', \p is a legacy identity escape (1 char), and
 	// the {...} is a literal/quantifier — fall through to default so the { isn't
@@ -497,16 +501,19 @@ function parseEscapeAtom(pattern: string, i: number, unicode: boolean, atomUpper
 	if (unicode && (esc === "D" || esc === "S" || esc === "W")) {
 		return { min: 1, max: atomUpperBound, next: Math.min(pattern.length, i + 2) };
 	}
-	// Legacy octal escapes (non-u only): \0, \1-\7, \1-\77, \1-\377 (up to 3
-	// octal digits). Under u these are syntax errors (caught by RegExp compilation).
+	// Legacy octal escapes (non-u only): \0, \1-\7, \1-\77, \1-\377.
+	// Under u these are syntax errors (caught by RegExp compilation).
 	// A real backreference (\N where group N exists) is already rejected by
 	// containsBackreference before the estimator runs, so any \N reaching here is
 	// an octal escape. Consume the full octal sequence so trailing digits aren't
 	// mis-parsed as separate literals/quantifiers.
+	// ECMAScript width rules: leading 0-3 may consume up to 3 octal digits (max \377);
+	// leading 4-7 consumes at most 2 digits (max \77, since \400+ overflows a byte
+	// and JS splits \40 + "0").
 	if (!unicode && esc >= "0" && esc <= "7") {
+		let maxDigits = (esc <= "3") ? 3 : 2;
 		let next = i + 2;
-		// \0 can be followed by up to 2 more octal digits; \1-\7 by up to 2 more.
-		while (next < pattern.length && next < i + 4 && pattern[next] >= "0" && pattern[next] <= "7") next += 1;
+		while (next < pattern.length && next < i + 1 + maxDigits && pattern[next] >= "0" && pattern[next] <= "7") next += 1;
 		return { min: 1, max: 1, next };
 	}
 	// Default escape (\d, \w, \n, \p-without-u, \u-without-4-hex, etc.): 1 code unit.
@@ -761,6 +768,35 @@ function containsLookaround(pattern: string): boolean {
  * or \k<name> where name exists) from a legacy octal/identity escape — the
  * latter is NOT a backreference and is safe for length estimation.
  */
+/**
+ * Normalize a regex identifier (named-group name or named-backref name) by
+ * resolving \uHHHH and \u{...} escapes to their literal chars. JS normalizes
+ * these in identifiers, so (?<\u0061>...) and (?<a>...) are the same group.
+ * Without normalization, \k<a> wouldn't match a group named \u0061.
+ */
+function normalizeRegexName(raw: string): string {
+	let result = "";
+	let i = 0;
+	while (i < raw.length) {
+		if (raw[i] === "\\" && raw[i + 1] === "u") {
+			if (raw[i + 2] === "{") {
+				const end = raw.indexOf("}", i + 3);
+				if (end !== -1) {
+					const cp = parseInt(raw.slice(i + 3, end), 16);
+					if (Number.isFinite(cp)) result += String.fromCodePoint(cp);
+					i = end + 1; continue;
+				}
+			} else if (/^[0-9a-fA-F]{4}/.test(raw.slice(i + 2, i + 6))) {
+				const cp = parseInt(raw.slice(i + 2, i + 6), 16);
+				result += String.fromCharCode(cp);
+				i += 6; continue;
+			}
+		}
+		result += raw[i];
+		i += 1;
+	}
+	return result;
+}
 function analyzeGroups(pattern: string): { count: number; names: Set<string> } {
 	let count = 0;
 	const names = new Set<string>();
@@ -783,7 +819,7 @@ function analyzeGroups(pattern: string): { count: number; names: Set<string> } {
 				if (afterLt === "=" || afterLt === "!") continue; // (?<= (?<!
 				// (?<name>...) is a capturing group — count it and record the name.
 				const nameEnd = pattern.indexOf(">", i + 3);
-				if (nameEnd !== -1) names.add(pattern.slice(i + 3, nameEnd));
+				if (nameEnd !== -1) names.add(normalizeRegexName(pattern.slice(i + 3, nameEnd)));
 			}
 		}
 		count += 1;
@@ -828,7 +864,7 @@ function containsBackreference(pattern: string): boolean {
 				const close = after === "<" ? ">" : "'";
 				const nameEnd = pattern.indexOf(close, i + 3);
 				if (nameEnd !== -1) {
-					const name = pattern.slice(i + 3, nameEnd);
+					const name = normalizeRegexName(pattern.slice(i + 3, nameEnd));
 					if (namedGroups.has(name)) return true; // real named backref
 					i = nameEnd; // skip the whole \k<name> (identity escape under non-u)
 					continue;
