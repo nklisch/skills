@@ -1152,15 +1152,42 @@ describe("config boundary contract", () => {
 		}
 	});
 
-	test("estimateRegexMinLength preserves atom min for + quantifier (redesign loop 5)", () => {
-		// (sk-AAAAAAAAAA)+ has a minimum match of 13 (one repetition of the 13-char
-		// group), not 1. Under-declaring maxLength=5 must be rejected — otherwise the
+	test("variable-length match exceeding maxLength is rejected by max check (redesign loop 6)", () => {
+		// {1,12000} has a small min (8) but a huge max (12007). The min check passes,
+		// but a real match of 12007 chars can't fit in any 10K scan window — the regex
+		// sees only a truncated prefix, no sentinel fires, and the secret leaks. The
+		// max-length check rejects this.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "long", pattern: "BEGIN-[A-Z]{1,12000}-END", action: "redact", maxLength: 100 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("unbounded quantifier (+, *, {n,}) is rejected by max check (redesign loop 6)", () => {
+		for (const pattern of ["sk-[A-Z]+", "sk-[A-Z]*", "sk-[A-Z]{1,}"]) {
+			const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "s", pattern, action: "redact", maxLength: 128 }] } } });
+			expect(errors.join("\n")).toContain("unbounded maximum match length");
+		}
+	});
+
+	test("negative secretGroup is rejected (redesign loop 6)", () => {
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "bad", pattern: "prefix(?=(sk-[A-Z]{40}))", action: "redact", secretGroup: -1, maxLength: 6 }] } } });
+		expect(errors.join("\n")).toContain("secretGroup must be a non-negative integer");
+	});
+
+	test("backreference inside character class is not a false positive (redesign loop 6)", () => {
+		// [\\1A-Z] — \\1 inside a char class is a literal, not a backref.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "ctrl", pattern: "[\\\\1A-Z]{4}", flags: "g", action: "redact", maxLength: 4 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("estimateRegexMinLength preserves atom min for bounded quantifier (redesign loop 5)", () => {
+		// (sk-AAAAAAAAAA){1,3} has a minimum match of 13 (one repetition of the 13-char
+		// group), not 0 or 1. Under-declaring maxLength=5 must be rejected — otherwise the
 		// 13-char match straddles windows and leaks. The old code set atomMin=1 for +
-		// regardless of the atom's own length.
-		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "repeat", pattern: "(sk-AAAAAAAAAA)+", action: "redact", maxLength: 5 }] } } });
+		// regardless of the atom's own length; the fix preserves the atom's own min.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "repeat", pattern: "(sk-AAAAAAAAAA){1,3}", action: "redact", maxLength: 5 }] } } });
 		expect(errors.join("\n")).toContain("smaller than the pattern's minimum match length");
-		// Correct maxLength (>= 13) is accepted.
-		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "repeat", pattern: "(sk-AAAAAAAAAA)+", action: "redact", maxLength: 13 }] } } });
+		// Correct maxLength (>= max 39) is accepted.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "repeat", pattern: "(sk-AAAAAAAAAA){1,3}", action: "redact", maxLength: 39 }] } } });
 		expect(ok).toEqual([]);
 	});
 
@@ -1230,7 +1257,7 @@ describe("config boundary contract", () => {
 		const skipped = validateConfig({
 			tools: {
 				inspector: {
-					secrets: [{ name: "accepted-risk", pattern: "(a|aa){1,5}", action: "block", maxLength: 5, skipRegexSafetyCheck: true }],
+					secrets: [{ name: "accepted-risk", pattern: "(a|aa){1,5}", action: "block", maxLength: 10, skipRegexSafetyCheck: true }],
 					allowlist: { regexes: ["(a+){1,5}"], skipRegexSafetyCheck: true },
 				},
 			},

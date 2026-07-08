@@ -493,6 +493,81 @@ function estimateRegexMinLength(pattern: string): number | undefined {
 }
 
 /**
+ * Compute the MAXIMUM possible match length (in code units) for a regex pattern,
+ * or Infinity if unbounded. This is a CONSERVATIVE upper bound: it may overestimate
+ * (e.g. counts \b as 0, astral-capable atoms as 1 since we only need a sound
+ * upper bound for the window-fit check), but never underestimate. Used to reject
+ * patterns whose maximum match exceeds maxLength (the match can straddle scan
+ * windows and leak its tail). Infinity = unbounded (open-ended quantifier) → reject.
+ *
+ * This is deliberately conservative and simple: unlike the old fragile estimator
+ * (which tried to be precise about astral code units and was a persistent source
+ * of blockers), this only needs to be SOUND (never underestimate) and COMPLETE
+ * (reject everything that could exceed maxLength). Overestimation is safe here
+ * — it false-rejects configs the operator can tighten, rather than leaking.
+ */
+function estimateRegexMaxLength(pattern: string): number {
+	const parse = (start: number, terminator?: string): { length: number; index: number } => {
+		let total = 0;
+		let branchMax = 0;
+		let hasBranch = false;
+		let i = start;
+		while (i < pattern.length) {
+			const ch = pattern[i];
+			if (terminator && ch === terminator) break;
+			if (ch === "|") { branchMax = Math.max(branchMax, total); total = 0; hasBranch = true; i += 1; continue; }
+			let atomMax = 1;
+			let next = i + 1;
+			if (ch === "\\") { atomMax = 1; next = Math.min(pattern.length, i + 2); }
+			else if (ch === "[") {
+				let j = i + 1;
+				while (j < pattern.length && pattern[j] !== "]") { if (pattern[j] === "\\") j += 2; else j += 1; }
+				atomMax = 1; next = j + 1;
+			} else if (ch === "(") {
+				let innerStart = i + 1;
+				if (pattern[innerStart] === "?") {
+					const marker = pattern[innerStart + 1];
+					if (marker === ":" || marker === "=" || marker === "!") innerStart += 2;
+					else if (marker === "<") {
+						const afterLt = pattern[innerStart + 2];
+						if (afterLt === "=" || afterLt === "!") innerStart += 3;
+						else { const nameEnd = pattern.indexOf(">", innerStart + 2); innerStart = (nameEnd === -1 ? pattern.length : nameEnd + 1); }
+					}
+				}
+				const inner = parse(innerStart, ")");
+				const isLookaround = pattern[i + 1] === "?" && (pattern[i + 2] === "=" || pattern[i + 2] === "!" || (pattern[i + 2] === "<" && (pattern[i + 3] === "=" || pattern[i + 3] === "!")));
+				atomMax = isLookaround ? 0 : inner.length;
+				next = Math.min(pattern.length, inner.index + 1);
+			} else if ("^$".includes(ch)) { atomMax = 0; next = i + 1; }
+			// Quantifier
+			const q = pattern[next];
+			if (q === "*" || q === "+") return { length: Infinity, index: i }; // unbounded
+			if (q === "?") { atomMax = atomMax; next += 1; } // 0 or 1 — keep atomMax
+			else if (q === "{") {
+				const end = pattern.indexOf("}", next + 1);
+				if (end !== -1) {
+					const parts = pattern.slice(next + 1, end).split(",");
+					const upperRaw = parts.length === 1 ? parts[0] : parts[1];
+					if (upperRaw === "" || upperRaw === undefined) return { length: Infinity, index: i }; // {n,} unbounded
+					atomMax *= Number(upperRaw);
+					next = end + 1;
+				}
+			}
+			if (pattern[next] === "?") next += 1; // lazy suffix
+			total += atomMax;
+			i = next;
+		}
+		return { length: hasBranch ? Math.max(branchMax, total) : total, index: i };
+	};
+	try {
+		const result = parse(0);
+		return result.length;
+	} catch {
+		return Infinity; // parse error → conservative reject
+	}
+}
+
+/**
  * Detect backreferences — numeric (\1) and named (\k<name>) — unconditionally,
  * independent of skipRegexSafetyCheck. A backreference's match length depends on
  * what the captured group matched, so apparent-length estimation is unsound: a
@@ -501,10 +576,17 @@ function estimateRegexMinLength(pattern: string): number | undefined {
  * backref) and character classes ([\1] is a literal, not a backref).
  */
 function containsBackreference(pattern: string): boolean {
+	let inClass = false;
 	for (let i = 0; i < pattern.length; i += 1) {
 		const ch = pattern[i];
+		if (ch === "[") { inClass = true; continue; }
+		if (ch === "]" && inClass) { inClass = false; continue; }
+		if (inClass) continue; // inside a char class, \1 is a literal, not a backref
 		if (ch !== "\\") continue;
+		// We're at a backslash. Check what follows.
 		const next = pattern[i + 1];
+		// Escaped backslash (\\) — skip both chars so the next char isn't treated as a backref.
+		if (next === "\\") { i += 1; continue; }
 		// Numeric backreference: \1 through \99 (but not \0, which is a null).
 		if (next >= "1" && next <= "9") return true;
 		// Named backreference: \k<name> or \k'name'.
@@ -512,7 +594,7 @@ function containsBackreference(pattern: string): boolean {
 			const after = pattern[i + 2];
 			if (after === "<" || after === "'") return true;
 		}
-		// Skip the escaped char so \\1 (escaped backslash + 1) isn't a false positive.
+		// Other escapes (\d, \w, \n, etc.) — skip the escaped char.
 		i += 1;
 	}
 	return false;
@@ -1786,7 +1868,11 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 	if (typeof value.action !== "string" || !SECRET_ACTIONS.has(value.action)) {
 		errors.push(`${path}.action must be one of "block" or "redact"`);
 	}
-	if (value.secretGroup !== undefined && typeof value.secretGroup !== "number") errors.push(`${path}.secretGroup must be a number`);
+	if (value.secretGroup !== undefined) {
+		if (typeof value.secretGroup !== "number" || !Number.isInteger(value.secretGroup) || value.secretGroup < 0) {
+			errors.push(`${path}.secretGroup must be a non-negative integer`);
+		}
+	}
 	if (value.entropy !== undefined && typeof value.entropy !== "number") errors.push(`${path}.entropy must be a number`);
 	validateOptionalStringArray(value.keywords, `${path}.keywords`, errors);
 	if (value.flags !== undefined && typeof value.flags !== "string") errors.push(`${path}.flags must be a string`);
@@ -1845,6 +1931,19 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 			const minLength = estimateRegexMinLength(value.pattern);
 			if (minLength !== undefined && minLength > value.maxLength) {
 				errors.push(`${path}.maxLength ${value.maxLength} is smaller than the pattern's minimum match length ${minLength} for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: a real match will exceed maxLength and straddle scan windows, leaking its tail. Set maxLength >= ${minLength} (and < ${MAX_SCAN_LENGTH}).`);
+			}
+			// Maximum-length check: a pattern whose MAXIMUM match exceeds maxLength can
+			// produce a match that straddles scan windows (the regex sees only a
+			// truncated prefix in each window, so neither the over-length sentinel nor
+			// a full redaction fires — the secret leaks). The maximum is conservative
+			// (Infinity for unbounded quantifiers like +/*/{n,}; sum for bounded). Reject
+			// when the maximum exceeds maxLength. This is the counterpart to the min
+			// check: min catches under-declaration, max catches over-window variable-length.
+			const maxLength = estimateRegexMaxLength(value.pattern);
+			if (maxLength === Infinity) {
+				errors.push(`${path}.pattern has an unbounded maximum match length (open-ended quantifier +, *, or {n,}) for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: a match can exceed any scan window and leak its tail. Bound the quantifier (e.g. {1,128}) so the full match fits within maxLength ${value.maxLength}.`);
+			} else if (maxLength > value.maxLength) {
+				errors.push(`${path}.maxLength ${value.maxLength} is smaller than the pattern's maximum match length ${maxLength} for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: a real match can exceed maxLength and straddle scan windows, leaking its tail. Set maxLength >= ${maxLength} (and < ${MAX_SCAN_LENGTH}), or tighten the pattern.`);
 			}
 		}
 	}
