@@ -114,7 +114,7 @@ describe("tool input inspector chunked scanning", () => {
 			// `a+` with an impossible trailing `c` causes exponential backtracking per window;
 			// with bounded chunking, total time should grow with window count (not field size).
 			const inspector: ToolInspector = {
-				secrets: [{ name: "redos", pattern: "(a|aa)+c", action: "redact" }],
+				secrets: [{ name: "redos", pattern: "(a|aa)+c", action: "redact", maxLength: 100 }],
 			};
 			const measure = (length: number) => {
 				const input: Record<string, unknown> = { body: `${"a".repeat(length)}!` };
@@ -249,6 +249,29 @@ describe("tool input inspector chunked scanning", () => {
 		});
 		expect(verdict.action).toBe("allow");
 		expect(input.body).not.toContain(token.slice(3)); // no secret tail survives
+		expect(input.body).toContain("[REDACTED:");
+	});
+
+	test("a secret straddling a window boundary is fully captured (redesign)", () => {
+		// With overlap = 2*maxLength, a match of length L ≤ maxLength that straddles
+		// a window edge is fully visible in the next window (which starts 2*maxLength
+		// before the current window's end). Without the 2x overlap, the match could
+		// start before the next window's start and be missed entirely.
+		const MAX_SCAN_LENGTH = 10_000;
+		const maxLength = 128;
+		const stride = MAX_SCAN_LENGTH - 2 * maxLength; // 9744
+		const secret = `sk-${"A".repeat(50)}`; // 53 chars, matches sk-[A-Z]{40,128}
+		// Place the secret so it straddles window 0's end: matchEnd > MAX_SCAN_LENGTH.
+		const matchStart = 9960; // matchEnd = 9960+53 = 10013 > 10000
+		const input: Record<string, unknown> = {
+			body: `${"x".repeat(matchStart)}${secret}${"y".repeat(500)}`,
+		};
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "straddle", pattern: "sk-[A-Z]{40,128}", action: "redact", maxLength }],
+			onNoMatch: "allow",
+		});
+		expect(verdict.action).toBe("allow");
+		expect(input.body).not.toContain(secret);
 		expect(input.body).toContain("[REDACTED:");
 	});
 });

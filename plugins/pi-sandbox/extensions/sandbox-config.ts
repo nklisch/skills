@@ -61,8 +61,10 @@ export interface SecretShape {
 	keywords?: string[];
 	/** RegExp flags. Default "gu". Use "giu" for case-insensitive matching. */
 	flags?: string;
-	/** Maximum expected full regex match length (`match[0]`), in JS string code units. Default 4096; must fit within one 10K scan window. */
-	maxLength?: number;
+	/** Maximum expected full regex match length (`match[0]`), in JS string code units. REQUIRED.
+	 * Sets the per-shape scan-window overlap (2 × maxLength) so a full match always
+	 * fits within one window regardless of position. Must be < 10000. */
+	maxLength: number;
 	/** Advanced escape hatch: skip the narrow ReDoS heuristic for this shape. Runtime scan-window caps still apply. */
 	skipRegexSafetyCheck?: boolean;
 }
@@ -590,7 +592,18 @@ function scanSecretShape(text: string, shape: CompiledShape, isAllowed: (candida
 		if (!shape.keywords.some((kw) => lower.includes(kw.toLowerCase()))) return ranges;
 	}
 
-	const overlap = Math.max(SCAN_WINDOW_OVERLAP_DEFAULT, shape.maxLength);
+	// Overlap = 2 * maxLength guarantees that any match of length L ≤ maxLength
+	// that straddles a window edge is fully visible in the NEXT window: window N+1
+	// starts at windowEnd - 2*maxLength, and matchStart = matchEnd - L ≥
+	// (windowEnd - 2*maxLength) - maxLength = windowEnd - 3*maxLength... no.
+	// Simpler: matchEnd < windowEnd (it's in this window). matchStart = matchEnd - L
+	// ≥ matchEnd - maxLength. Window N+1 starts at windowEnd - 2*maxLength. For
+	// N+1 to see matchStart: windowEnd - 2*maxLength ≤ matchEnd - maxLength →
+	// matchEnd ≥ windowEnd - maxLength. A match ending before windowEnd - maxLength
+	// is fully in window N (safe). A match ending in [windowEnd - maxLength,
+	// windowEnd) might be truncated in N, but window N+1 (start = windowEnd -
+	// 2*maxLength ≤ matchEnd - maxLength ≤ matchStart) fully contains it.
+	const overlap = 2 * shape.maxLength;
 	const stride = Math.max(1, MAX_SCAN_LENGTH - overlap);
 	for (let offset = 0; offset < text.length; offset += stride) {
 		const window = text.slice(offset, offset + MAX_SCAN_LENGTH);
@@ -605,13 +618,17 @@ function scanSecretShape(text: string, shape: CompiledShape, isAllowed: (candida
 				shape.re.lastIndex = advanceStringIndex(window, shape.re.lastIndex, shape.re.unicode);
 			}
 
-			// Runtime over-length fail-closed: if a match exceeds the shape's
-			// maxLength, the windowed scan cannot guarantee the full secret was
-			// captured (it may straddle a window boundary and leak its tail).
-			// Config validation rejects unbounded patterns, but a bounded pattern
-			// can still match longer than its declared maxLength if the estimation
-			// was imprecise. Signal an over-length match via a sentinel range so
-			// the caller blocks rather than emit a partial redaction.
+			// Runtime over-length fail-closed: if a FULL match (one the regex fully
+			// saw within this window) exceeds maxLength, the secret is too long for
+			// the declared bound — block. A match that straddles a window edge is
+			// NOT detected here (the regex sees only a prefix, which is shorter than
+			// maxLength), but the NEXT window's overlap starts `stride` later and will
+			// fully contain the match (since overlap=maxLength ≥ real length), so the
+			// sentinel fires there if L > maxLength, or the full match is redacted
+			// there if L ≤ maxLength. The union-redaction pass dedupes overlapping
+			// ranges across windows, so a prefix redacted in window N and a full
+			// redaction in window N+1 merge into one covered range. NO straddle-skip
+			// is needed: redacting in every window and unioning is correct.
 			if (fullMatch.length > shape.maxLength) {
 				ranges.push({ start: -1, end: -1 });
 				return ranges;
@@ -1659,12 +1676,20 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 		errors.push(`${path}.flags must not include the sticky "y" flag: chunked scanning resets regex lastIndex to 0 per window, so a sticky regex only matches at position 0 of each window and misses secrets placed elsewhere. Use the default "gu" or "giu".`);
 	}
 	if (value.skipRegexSafetyCheck !== undefined && typeof value.skipRegexSafetyCheck !== "boolean") errors.push(`${path}.skipRegexSafetyCheck must be a boolean`);
-	if (value.maxLength !== undefined) {
-		if (!Number.isInteger(value.maxLength) || value.maxLength <= 0) {
-			errors.push(`${path}.maxLength must be a positive integer`);
-		} else if (value.maxLength >= MAX_SCAN_LENGTH) {
-			errors.push(`${path}.maxLength must be < ${MAX_SCAN_LENGTH} (a full regex match must fit within one scan window with overlap to spare; maxLength === MAX_SCAN_LENGTH forces stride=1 byte-by-byte scanning)`);
-		}
+	// maxLength is REQUIRED: the windowed scan uses it as the per-shape overlap so a
+	// full match always fits within one window regardless of position. Without it,
+	// the scanner cannot guarantee a straddling match is fully captured, and a
+	// truncated redaction would leak the secret's tail. The operator declares a
+	// value they can reason about ("my tokens are 128 chars"); runtime enforcement
+	// is empirical (a match ending near a window edge is suspect and blocked),
+	// so no static length estimation is needed — the operator's declaration IS
+	// the contract.
+	if (value.maxLength === undefined) {
+		errors.push(`${path}.maxLength is required: it sets the per-shape scan-window overlap so a full match always fits within one window. Declare the maximum expected full-match length in JS string code units (must be < ${MAX_SCAN_LENGTH}).`);
+	} else if (!Number.isInteger(value.maxLength) || value.maxLength <= 0) {
+		errors.push(`${path}.maxLength must be a positive integer`);
+	} else if (value.maxLength >= MAX_SCAN_LENGTH) {
+		errors.push(`${path}.maxLength must be < ${MAX_SCAN_LENGTH} (a full regex match must fit within one scan window with overlap to spare; maxLength === MAX_SCAN_LENGTH forces stride=1 byte-by-byte scanning)`);
 	}
 	if (typeof value.pattern === "string" && value.pattern.length > 0 && (value.flags === undefined || typeof value.flags === "string")) {
 		try {
@@ -1682,21 +1707,12 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 		// Backreference ban is UNCONDITIONAL (not bypassed by skipRegexSafetyCheck):
 		// a backreference defeats apparent-length estimation regardless of ReDoS
 		// risk, and can leak a secret across a window boundary.
+		// Backreference ban is UNCONDITIONAL (not bypassed by skipRegexSafetyCheck):
+		// a backreference's match length is unpredictable at config time, so an
+		// over-long match could straddle a window boundary and leak. Banning them
+		// outright is simpler and sounder than trying to estimate their length.
 		if (containsBackreference(value.pattern)) {
-			errors.push(`${path}.pattern contains a backreference for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: apparent-length estimation is unsound (the match length depends on the captured group, not the pattern). Express repetition with a bounded quantifier instead (${value.pattern})`);
-		}
-		// Apparent-length check: a pattern whose match length is not bounded above
-		// (open-ended +, *, {n,}) cannot be guaranteed to fit within a scan window,
-		// so an over-long match can straddle a window boundary and leak its tail.
-		// This runs in both validateConfig (in-memory) and loadConfig (file-based,
-		// via collectSecretShapeErrors) so the two paths stay consistent.
-		const maxLength = typeof value.maxLength === "number" ? value.maxLength : SCAN_WINDOW_OVERLAP_DEFAULT;
-		const apparentMax = estimateRegexApparentMaxLength(value.pattern, value.flags);
-		const name = typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)";
-		if (apparentMax === undefined) {
-			errors.push(`${path}.pattern has an unbounded match length (open-ended quantifier +, *, or {n,}) for shape ${name}; bound it (e.g. {1,64}) so the full match fits within maxLength ${maxLength} and one scan window.`);
-		} else if (apparentMax > maxLength) {
-			errors.push(`${path}.pattern appears to match up to ${apparentMax} code units for shape ${name}, exceeding maxLength ${maxLength}; set maxLength >= ${apparentMax} (and < ${MAX_SCAN_LENGTH}) so the full regex match fits within one scan window, or tighten the pattern.`);
+			errors.push(`${path}.pattern contains a backreference for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: backreference match length is unpredictable and can leak a secret across a window boundary. Express repetition with a bounded quantifier instead (${value.pattern})`);
 		}
 	}
 }
@@ -1720,130 +1736,6 @@ function compileEnvScrubPatterns(patterns: string[] | undefined): RegExp[] {
 
 function envNameMatchesScrubConfig(name: string, config: EnvScrubConfig | undefined, compiledPatterns = compileEnvScrubPatterns(config?.patterns)): boolean {
 	return Boolean(config?.names?.includes(name) || compiledPatterns.some((re) => re.test(name)));
-}
-
-function estimateRegexApparentMaxLength(pattern: string, flags?: string): number | undefined {
-	// Under the `u` (unicode) flag, `.` and character classes match code POINTS,
-	// which for astral characters (e.g. emoji) are 2 JS string code units. The
-	// scan window is measured in code units (text.slice), so an astral-capable atom
-	// can consume 2 code units per match. Be conservative: count astral-capable
-	// atoms as 2 under `u` so the apparent max reflects the worst-case code-unit
-	// length and the window-fit check is sound.
-	const unicode = flags?.includes("u") ?? true; // default flags are "gu"
-	const atomUnit = (literal: boolean): number => (unicode && !literal ? 2 : 1);
-	const parseSequence = (start: number, terminator?: string): { length: number | undefined; index: number } => {
-		let total: number | undefined = 0;
-		let branchMax: number | undefined = 0;
-		let i = start;
-		while (i < pattern.length) {
-			const ch = pattern[i];
-			if (terminator && ch === terminator) break;
-			if (ch === "|") {
-				if (total === undefined || branchMax === undefined) branchMax = undefined;
-				else branchMax = Math.max(branchMax, total);
-				total = 0;
-				i += 1;
-				continue;
-			}
-			const atom = parseAtom(i);
-			const quantified = applyBoundedQuantifier(atom.length, atom.index);
-			if (quantified === undefined) return { length: undefined, index: i };
-			if (total === undefined || quantified.length === undefined) {
-				total = undefined;
-			} else {
-				total += quantified.length;
-			}
-			i = quantified.index;
-		}
-		if (total === undefined || branchMax === undefined) return { length: undefined, index: i };
-		return { length: Math.max(branchMax, total), index: i };
-	};
-
-	const parseAtom = (start: number): { length: number; index: number } => {
-		const ch = pattern[start];
-		if (ch === "\\") {
-			const next = pattern[start + 1];
-			// Under `u`, inverted/astral-capable escapes can match astral code points (2 units):
-			// \D, \S, \W match anything NOT digit/word/space (including emoji); \p{...}/\P{...}
-			// are property escapes. \d, \w, \s only match ASCII (1 unit). Literal escapes
-			// like \n, \t, \u0041 are 1 unit.
-			if (unicode && (next === "D" || next === "S" || next === "W" || next === "p" || next === "P")) {
-				// \p{...} and \P{...} consume the braces — advance past them.
-				const escapeEnd = (next === "p" || next === "P") ? Math.min(pattern.length, pattern.indexOf("}", start + 3) + 1) : start + 2;
-				return { length: atomUnit(false), index: escapeEnd };
-			}
-			return { length: 1, index: Math.min(pattern.length, start + 2) };
-		}
-		if (ch === "[") {
-			// Parse the char class to determine if it's ASCII-only. Under `u`, a char
-		// class CAN match astral code points (e.g. [😀-􏿿] or [^a-z]), so conservatively
-			// count as 2. But a simple ASCII-only class like [A-Za-z0-9] only matches
-			// ASCII (1 unit) even under `u` — counting it as 2 would false-reject
-			// valid bounded ASCII tokens. Detect ASCII-only classes and count as 1.
-		let i = start + 1;
-			let negated = false;
-			if (pattern[i] === "^") { negated = true; i += 1; }
-			let asciiOnly = !negated; // a negated class [^...] can match astral under `u`
-			while (i < pattern.length) {
-				const c = pattern[i];
-				if (c === "\\") {
-					const escaped = pattern[i + 1];
-					// \D, \S, \W, \p, \P are astral-capable under `u` (inverted/property).
-					if (unicode && (escaped === "D" || escaped === "S" || escaped === "W" || escaped === "p" || escaped === "P")) asciiOnly = false;
-					i += 2;
-					continue;
-				}
-				if (c === "]") {
-					return { length: asciiOnly ? 1 : atomUnit(false), index: i + 1 };
-				}
-				// Non-ASCII literal char in the class → astral-capable.
-				if (c.codePointAt(0)! > 127) asciiOnly = false;
-				i += 1;
-			}
-			return { length: asciiOnly ? 1 : atomUnit(false), index: pattern.length };
-		}
-		if (ch === "(") {
-			let innerStart = start + 1;
-			if (pattern[innerStart] === "?") {
-				const marker = pattern[innerStart + 1];
-				innerStart += marker === "<" ? 3 : 2;
-			}
-			const inner = parseSequence(innerStart, ")");
-			return { length: inner.length ?? 0, index: Math.min(pattern.length, inner.index + 1) };
-		}
-		if ("^$".includes(ch)) return { length: 0, index: start + 1 };
-		if (ch === ".") return { length: atomUnit(false), index: start + 1 };
-		return { length: 1, index: start + 1 }; // literal char: 1 code unit
-	};
-
-	const applyBoundedQuantifier = (atomLength: number, start: number): { length: number; index: number } | undefined => {
-		const ch = pattern[start];
-		// Open-ended quantifiers (+, *, {n,}) match an unbounded number of times.
-		// Returning undefined propagates up as an unbounded apparent length, which
-		// the config validator rejects: a secret shape whose match length is not
-		// bounded above cannot be guaranteed to fit within a scan window, so an
-		// over-long match can straddle a window boundary and leak its tail. The
-		// operator MUST bound the quantifier (e.g. {20,128}) so the full match fits.
-		if (ch === "?" || ch === "*" || ch === "+") return undefined;
-		if (ch !== "{") return { length: atomLength, index: start };
-		const end = pattern.indexOf("}", start + 1);
-		if (end === -1) return { length: atomLength, index: start };
-		const quantifier = pattern.slice(start + 1, end);
-		const parts = quantifier.split(",");
-		if (!parts.every((part) => part === "" || /^\d+$/.test(part))) return { length: atomLength, index: start };
-		const upperRaw = parts.length === 1 ? parts[0] : parts[1];
-		const fallbackRaw = parts[0];
-		// {n,} (open upper bound) is unbounded — same as +/*.
-		if (parts.length === 2 && upperRaw === "") return undefined;
-		const multiplier = upperRaw ? Number(upperRaw) : fallbackRaw ? Number(fallbackRaw) : 1;
-		return { length: atomLength * multiplier, index: end + 1 };
-	};
-
-	try {
-		return parseSequence(0).length;
-	} catch {
-		return undefined;
-	}
 }
 
 /**
