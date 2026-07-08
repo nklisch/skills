@@ -525,8 +525,11 @@ function estimateRegexMaxLength(pattern: string, flags?: string): number {
 			const ch = pattern[i];
 			if (terminator && ch === terminator) break;
 			if (ch === "|") { branchMax = Math.max(branchMax, total); total = 0; hasBranch = true; i += 1; continue; }
-			let atomMax = atomUpperBound;
+			let atomMax = 1;
 			let next = i + 1;
+			// Under the 'u' flag, astral-capable atoms can match 2 code units. Literals
+			// and non-astral escapes are 1. Astral literals in the pattern (>0xFFFF)
+			// are surrogate pairs (2 chars) consumed as two 1-unit atoms — conservative.
 			if (ch === "\\") {
 				const esc = pattern[i + 1];
 				if (esc === "b" || esc === "B") { atomMax = 0; next = Math.min(pattern.length, i + 2); }
@@ -535,12 +538,31 @@ function estimateRegexMaxLength(pattern: string, flags?: string): number {
 				else if (esc === "p" || esc === "P") {
 					const braceEnd = pattern.indexOf("}", i + 3);
 					atomMax = atomUpperBound; next = (braceEnd === -1 ? pattern.length : braceEnd + 1);
-				} else { atomMax = 1; next = Math.min(pattern.length, i + 2); }
+				} else if (unicode && (esc === "D" || esc === "S" || esc === "W")) {
+				// Complement class escapes match any non-digit/non-space/non-word, which
+				// includes astral code points under 'u'. Count as astral-capable.
+				atomMax = atomUpperBound; next = Math.min(pattern.length, i + 2);
+			} else { atomMax = 1; next = Math.min(pattern.length, i + 2); }
 			}
 			else if (ch === "[") {
 				let j = i + 1;
-				while (j < pattern.length && pattern[j] !== "]") { if (pattern[j] === "\\") j += 2; else j += 1; }
-				atomMax = atomUpperBound; next = j + 1;
+				let astralCapable = false;
+				if (pattern[j] === "^") { astralCapable = true; j += 1; } // negated class matches astral
+				while (j < pattern.length && pattern[j] !== "]") {
+					if (pattern[j] === "\\") {
+						const esc = pattern[j + 1];
+						if (esc === "p" || esc === "P" || esc === "D" || esc === "S" || esc === "W" || esc === "u" || esc === "x") {
+							// \p{...}, \P{...}, complement classes, \uHHHH, \xHH can reach astral (\u with high value)
+							astralCapable = true;
+						}
+						j += 2;
+					} else if (pattern.charCodeAt(j) > 0x7F) {
+						astralCapable = true; // non-ASCII literal
+						j += 1;
+					} else { j += 1; }
+				}
+				atomMax = (unicode && astralCapable) ? atomUpperBound : 1;
+				next = j + 1;
 			} else if (ch === ".") { atomMax = atomUpperBound; next = i + 1; }
 			else if (ch === "(") {
 				let innerStart = i + 1;
@@ -597,9 +619,13 @@ function estimateRegexMaxLength(pattern: string, flags?: string): number {
  * window while the max-length check (which bounds match[0]) passes.
  */
 function containsLookaround(pattern: string): boolean {
+	let inClass = false;
 	for (let i = 0; i < pattern.length; i += 1) {
 		const ch = pattern[i];
 		if (ch === "\\") { i += 1; continue; } // skip escape
+		if (ch === "[") { inClass = true; continue; }
+		if (ch === "]" && inClass) { inClass = false; continue; }
+		if (inClass) continue; // inside a char class, (?= is a literal, not a lookaround
 		if (ch !== "(") continue;
 		if (pattern[i + 1] === "?" && (pattern[i + 2] === "=" || pattern[i + 2] === "!")) return true;
 		if (pattern[i + 1] === "?" && pattern[i + 2] === "<" && (pattern[i + 3] === "=" || pattern[i + 3] === "!")) return true;
@@ -1979,7 +2005,10 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 			// (Infinity for unbounded quantifiers like +/*/{n,}; sum for bounded). Reject
 			// when the maximum exceeds maxLength. This is the counterpart to the min
 			// check: min catches under-declaration, max catches over-window variable-length.
-			const maxLength = estimateRegexMaxLength(value.pattern, typeof value.flags === "string" ? value.flags : undefined);
+			// Use withGlobalFlag so omitted flags default to "gu" (matching the runtime
+			// regex compilation at scan time). This matters for astral accounting:\t		// estimateRegexMaxLength counts astral-capable atoms as 2 code units under
+			// the 'u' flag, and the runtime always uses 'u' (via withGlobalFlag default).
+			const maxLength = estimateRegexMaxLength(value.pattern, withGlobalFlag(value.flags));
 			if (maxLength === Infinity) {
 				errors.push(`${path}.pattern has an unbounded maximum match length (open-ended quantifier +, *, or {n,}) for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: a match can exceed any scan window and leak its tail. Bound the quantifier (e.g. {1,128}) so the full match fits within maxLength ${value.maxLength}.`);
 			} else if (maxLength > value.maxLength) {
