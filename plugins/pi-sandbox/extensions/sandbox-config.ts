@@ -2284,7 +2284,7 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 			// window boundaries — in chunked scanning they match at window starts/ends
 			// even when the input doesn't start/end there, causing false positives.
 			if (containsContextSensitiveAssertion(value.pattern)) {
-				errors.push(`${path}.pattern contains a context-sensitive assertion (^, $, \b, or \B) for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: these match at input boundaries, but chunked scanning splits the input into windows where window starts/ends aren't input starts/ends, causing false-positive matches. Remove the assertion for v0.1.0.`);
+				errors.push(`${path}.pattern contains a context-sensitive assertion (^, $, \\b, or \\B) for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: these match at input boundaries, but chunked scanning splits the input into windows where window starts/ends aren't input starts/ends, causing false-positive matches. Remove the assertion for v0.1.0.`);
 			}
 		}
 	}
