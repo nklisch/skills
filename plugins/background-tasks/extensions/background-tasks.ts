@@ -922,6 +922,45 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       patternSource: wakePatternRaw,
     };
 
+    const attachJobLifecycle = (): void => {
+      const handleChunk = (data: Buffer | string): void => {
+        const text = typeof data === "string" ? data : data.toString("utf8");
+        appendBuffer(job, text);
+        if (wakeOnPattern && !job.patternFired && wakeOnPattern.test(text)) {
+          job.patternFired = true;
+          wake(
+            `[background job #${job.id} matched its wake_on_pattern — still running]. Read output with the jobs tool (action=tail, jobId=${job.id}).`,
+          );
+        }
+      };
+      child.stdout?.on("data", handleChunk);
+      child.stderr?.on("data", handleChunk);
+      child.on("exit", (code, signal) => {
+        if (job.status === "cancelled" || job.status === "kill_failed") return;
+        if (job.status === "cancelling") { job.exitCode = code ?? null; return; }
+        if (job.status !== "running") return;
+        job.exitCode = code;
+        const ok = code === 0;
+        job.status = ok ? "completed" : "failed";
+        const reason = signal ? `signal ${signal}` : `exit ${code ?? "?"}`;
+        notify(ok ? "success" : "error", `background job #${job.id} "${label}" finished: ${reason}`);
+        wake(`[background job #${job.id} finished: ${reason}]. Read its output with the jobs tool (action=tail, jobId=${job.id}).`);
+        finalize(job);
+      });
+      child.on("error", (err) => {
+        if (job.status !== "running" && job.status !== "cancelling") return;
+        job.status = "failed";
+        // Only wake/notify if the job was registered (spawn succeeded enough to
+        // enter the registry). Pre-registration spawn errors (waitForChildSpawn
+        // rejected) are handled by the catch block, not here — waking for an
+        // unregistered job would surprise the caller who got an error result.
+        if (!jobs.has(job.id)) { finalize(job); return; }
+        notify("error", `background job #${job.id} "${label}" failed to spawn: ${err.message}`);
+        wake(`[background job #${job.id} failed to spawn: ${err.message}]. No command output was produced.`);
+        finalize(job);
+      });
+    };
+
     let child: ChildProcess;
     try {
       if (spawnDecision.mode === "sandboxed") {
@@ -931,6 +970,14 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
           detached: true,
           stdio: ["ignore", "pipe", "pipe"],
         });
+        // Attach lifecycle listeners BEFORE awaiting spawn confirmation. A fast-
+        // exiting child (e.g. `true`) can emit exit before waitForChildSpawn
+        // resolves; attaching early ensures the job finalizes. The job is NOT
+        // registered in the jobs map yet — if spawn errors, the 'error' listener
+        // finalizes an unregistered job (harmless), and no phantom job remains.
+        job.child = child;
+        job.pid = child.pid;
+        attachJobLifecycle();
         await waitForChildSpawn(child);
       } else {
         child = spawn(command, {
@@ -948,56 +995,17 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
         isError: true,
       };
     }
+    // Register the job now (sandboxed path waited for spawn confirmation above;
+    // unsandboxed path spawns synchronously). Listeners were attached before the
+    // await in the sandboxed path, or just below for the unsandboxed path.
     job.child = child;
     job.pid = child.pid;
-
-    const handleChunk = (data: Buffer | string): void => {
-      const text = typeof data === "string" ? data : data.toString("utf8");
-      appendBuffer(job, text);
-      if (wakeOnPattern && !job.patternFired && wakeOnPattern.test(text)) {
-        job.patternFired = true;
-        // Trusted wake: no command output and no user-supplied label (label is
-        // attacker-controlled and injected via steer; the agent reads it via jobs).
-        wake(
-          `[background job #${job.id} matched its wake_on_pattern — still running]. Read output with the jobs tool (action=tail, jobId=${job.id}).`,
-        );
-      }
-    };
-    child.stdout?.on("data", handleChunk);
-    child.stderr?.on("data", handleChunk);
-
-    child.on("exit", (code, signal) => {
-      if (job.status === "cancelled" || job.status === "kill_failed") return; // cancellation owns terminal state
-      if (job.status === "cancelling") {
-        // Cancellation owns terminal state after it verifies the process group is gone.
-        job.exitCode = code ?? null;
-        return;
-      }
-      if (job.status !== "running") return; // already finalized (double-fire guard)
-      job.exitCode = code;
-      const ok = code === 0;
-      job.status = ok ? "completed" : "failed";
-      const reason = signal ? `signal ${signal}` : `exit ${code ?? "?"}`;
-      notify(ok ? "success" : "error", `background job #${job.id} "${label}" finished: ${reason}`);
-      // Trusted wake: only id and the status word. NO command output and NO
-      // user-supplied label (both are attacker-controlled; injected via steer).
-      wake(
-        `[background job #${job.id} finished: ${reason}]. Read its output with the jobs tool (action=tail, jobId=${job.id}).`,
-      );
-      finalize(job);
-    });
-    child.on("error", (err) => {
-      if (job.status !== "running" && job.status !== "cancelling") return;
-      job.status = "failed";
-      notify("error", `background job #${job.id} "${label}" failed to spawn: ${err.message}`);
-      wake(
-        `[background job #${job.id} failed to spawn: ${err.message}]. No command output was produced.`,
-      );
-      finalize(job);
-    });
-
-    jobs.set(job.id, job);
-    snapshot();
+    if (!jobs.has(job.id)) {
+      jobs.set(job.id, job);
+      snapshot();
+      // Unsandboxed path attaches listeners here; sandboxed already did above.
+      if (spawnDecision.mode !== "sandboxed") attachJobLifecycle();
+    }
     refreshVisuals();
 
     const patternNote = wakeOnPattern
