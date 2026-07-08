@@ -1273,6 +1273,24 @@ describe("config boundary contract", () => {
 		expect(ok).toEqual([]);
 	});
 
+	test("malformed non-u escapes are not over-consumed as atoms (redesign loop 12)", () => {
+		// \u0{5000} under g (non-u): \u0 is a legacy identity escape (matches "u"),
+		// {5000} binds to the literal "0". Match = "u"+5000 zeros = 5001. The estimator
+		// must NOT consume \u0 as a 6-char \uHHHH escape (only first hex checked) —
+		// it must fall through to default (2-char escape) so {5000} binds correctly.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "bad-u", pattern: "\\u0{5000}", flags: "g", action: "block", maxLength: 4 }] } } });
+		expect(e1.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// \x4{5000} under g: \x4 is legacy, {5000} binds to "4".
+		const e2 = validateConfig({ tools: { inspector: { secrets: [{ name: "bad-x", pattern: "\\x4{5000}", flags: "g", action: "block", maxLength: 6 }] } } });
+		expect(e2.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// \p{LONG under g (non-u): \p is legacy identity escape, { is literal.
+		const e3 = validateConfig({ tools: { inspector: { secrets: [{ name: "bad-p", pattern: "\\p{LONG", flags: "g", action: "block", maxLength: 1 }] } } });
+		expect(e3.length).toBeGreaterThan(0);
+		// Well-formed \uHHHH (BMP) is accepted.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "bmp", pattern: "\\u0041{5}", flags: "gu", action: "redact", maxLength: 5 }] } } });
+		expect(ok).toEqual([]);
+	});
+
 	test("estimateRegexMinLength preserves atom min for bounded quantifier (redesign loop 5)", () => {
 		// (sk-AAAAAAAAAA){1,3} has a minimum match of 13 (one repetition of the 13-char
 		// group), not 0 or 1. Under-declaring maxLength=5 must be rejected — otherwise the

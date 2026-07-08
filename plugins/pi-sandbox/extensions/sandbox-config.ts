@@ -451,10 +451,13 @@ function parseEscapeAtom(pattern: string, i: number, unicode: boolean, atomUpper
 	const esc = pattern[i + 1];
 	// Zero-width assertions: \b, \B consume 0 chars.
 	if (esc === "b" || esc === "B") return { min: 0, max: 0, next: Math.min(pattern.length, i + 2) };
-	// Property escapes \p{...} / \P{...}: consume through the closing brace.
-	if (esc === "p" || esc === "P") {
+	// Property escapes \p{...} / \P{...}: ONLY valid under the 'u' flag AND with a
+	// closing brace. Without 'u', \p is a legacy identity escape (1 char), and
+	// the {...} is a literal/quantifier — fall through to default so the { isn't
+	// swallowed. Without a closing brace, also fall through (invalid property escape).
+	if (unicode && (esc === "p" || esc === "P")) {
 		const braceEnd = pattern.indexOf("}", i + 3);
-		return { min: 1, max: atomUpperBound, next: (braceEnd === -1 ? pattern.length : braceEnd + 1) };
+		if (braceEnd !== -1) return { min: 1, max: atomUpperBound, next: braceEnd + 1 };
 	}
 	// Code point escape \u{HEX...} (only valid under u): consume through }.
 	// Conservatively count as astral-capable (2) — the hex value could be >0xFFFF.
@@ -462,20 +465,36 @@ function parseEscapeAtom(pattern: string, i: number, unicode: boolean, atomUpper
 		const braceEnd = pattern.indexOf("}", i + 3);
 		return { min: 1, max: atomUpperBound, next: (braceEnd === -1 ? pattern.length : braceEnd + 1) };
 	}
-	// \uHHHH (4 hex digits): consume all 6 chars. Under u, could be a surrogate
-	// (high half of an astral) — conservatively count as astral-capable (2).
-	if (esc === "u" && /[0-9a-fA-F]/.test(pattern[i + 2])) {
-		return { min: 1, max: unicode ? atomUpperBound : 1, next: Math.min(pattern.length, i + 6) };
+	// \uHHHH (4 hex digits): ONLY valid when all 4 chars after \u are hex.
+	// Otherwise (e.g. \u0{5000} under non-u) \u is a legacy identity escape and
+	// the following chars are literals/quantifiers — fall through to default.
+	// Under u, a high-surrogate value (0xD800-0xDBFF) must pair with a following
+	// low-surrogate \uHHHH to form ONE astral code point (2 units). Consume both.
+	// A lone high surrogate under u is a syntax error → conservative (Infinity).
+	if (esc === "u" && /^[0-9a-fA-F]{4}/.test(pattern.slice(i + 2, i + 6))) {
+		const hex = parseInt(pattern.slice(i + 2, i + 6), 16);
+		const isHighSurrogate = hex >= 0xD800 && hex <= 0xDBFF;
+		if (unicode && isHighSurrogate) {
+			// Peek for a following low-surrogate \uHHHH (0xDC00-0xDFFF).
+			if (pattern[i + 6] === "\\" && pattern[i + 7] === "u" && /^[0-9a-fA-F]{4}/.test(pattern.slice(i + 8, i + 12))) {
+				const lowHex = parseInt(pattern.slice(i + 8, i + 12), 16);
+				if (lowHex >= 0xDC00 && lowHex <= 0xDFFF) {
+					return { min: 1, max: atomUpperBound, next: i + 12 }; // pair = 2 units
+				}
+			}
+			return { min: 1, max: atomUpperBound, next: i + 6 }; // lone high surrogate — conservative 2
+		}
+		return { min: 1, max: 1, next: i + 6 }; // BMP value (incl. lone low surrogate)
 	}
-	// \xHH (2 hex digits): consume all 4 chars. 1 code unit (BMP).
-	if (esc === "x" && /[0-9a-fA-F]/.test(pattern[i + 2])) {
-		return { min: 1, max: 1, next: Math.min(pattern.length, i + 4) };
+	// \xHH (2 hex digits): ONLY valid when both chars after \x are hex.
+	if (esc === "x" && /^[0-9a-fA-F]{2}/.test(pattern.slice(i + 2, i + 4))) {
+		return { min: 1, max: 1, next: i + 4 };
 	}
 	// Complement class escapes \D/\S/\W: astral-capable under u.
 	if (unicode && (esc === "D" || esc === "S" || esc === "W")) {
 		return { min: 1, max: atomUpperBound, next: Math.min(pattern.length, i + 2) };
 	}
-	// Default escape (\d, \w, \n, etc.): 1 code unit.
+	// Default escape (\d, \w, \n, \p-without-u, \u-without-4-hex, etc.): 1 code unit.
 	return { min: 1, max: 1, next: Math.min(pattern.length, i + 2) };
 }
 function parseBracedQuantifier(pattern: string, braceOpen: number): { lower: number; upper: number; next: number } | undefined {
