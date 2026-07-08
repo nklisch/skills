@@ -441,7 +441,10 @@ describe("monitor sandbox poll decision", () => {
     expect(failClosed).toMatchObject({ mode: "fail-closed", reason: "bwrap-missing" });
   });
 
-  test("runShellOnce keeps the unsandboxed branch on pi.exec /bin/sh -c", async () => {
+  test("runShellOnce keeps the unsandboxed branch on pi.exec /bin/sh -c (no signal)", async () => {
+    // When no signal is provided, the sandbox-absent path uses pi.exec (direct-spawn
+    // requires a signal for AbortController wiring). With a signal, direct-spawn
+    // is used instead to bound output during streaming (pi.exec buffers unbounded).
     const calls: Array<{ command: string; args: string[]; timeout?: number; cwd?: string }> = [];
     const result = await runShellOnce({
       command: "echo hi",
@@ -457,10 +460,13 @@ describe("monitor sandbox poll decision", () => {
     expect(calls).toEqual([{ command: "/bin/sh", args: ["-c", "echo hi"], timeout: 1234, cwd: "/tmp" }]);
   });
 
-  test("runShellOnce caps pi.exec output to prevent OOM (re-review loop 3)", async () => {
+  test("runShellOnce caps pi.exec output post-hoc (known residual)", async () => {
     // The pi.exec (sandbox-absent) path buffers internally and returns strings on
-    // completion. A noisy command could OOM the Pi process before the per-job
-    // rolling buffer cap applies. Cap stdout/stderr post-hoc.
+    // completion. A noisy command could OOM the Pi process before the post-hoc cap
+    // applies — this is a known v0.1.0 residual (the 5b pi.exec path). The post-hoc
+    // cap truncates the returned strings to prevent unbounded buffer growth in the
+    // job registry. The direct-spawn path (sandboxed/degraded) uses
+    // makeBoundedAccumulator for streaming cap.
     const huge = "X".repeat(3_000_000); // > MAX_POLL_OUTPUT_CHARS (2M)
     const result = await runShellOnce({
       command: "yes X",

@@ -368,18 +368,35 @@ export function assertNoHardlinkedDeniedFiles(denyRead: string[], denyWrite: str
  * parent directory for matching files and checking each for hardlinks. Uses
  * the same single-segment glob semantics as globToRegex (`*` matches within a
  * path segment, not `/`). Does NOT follow symlinks (lstatSync).
+ *
+ * LIMITATION: only the BASENAME segment may contain glob chars (e.g. `*.pem`,
+ * `sub/*.key`). If a PARENT segment contains a glob (e.g. `secrets-x/*.pem`),
+ * the guard cannot enumerate matches without a full recursive glob walk — fail
+ * closed instead. Also fail closed on EACCES (cannot verify safe).
  */
 function expandGlobAndCheckHardlinks(glob: string, cwd: string, checked: Set<string>): void {
 	const expanded = normalizeConfiguredPath(glob, cwd);
 	const globDir = dirname(expanded);
 	const baseName = basename(expanded);
+	// If the parent directory path itself contains glob chars, we cannot enumerate
+	// matches without a full recursive glob expansion. Fail closed rather than
+	// silently skip (which would leave a hardlink-alias bypass open).
+	if (/[?*]/.test(globDir)) {
+		throw new Error(
+			`Sandbox refuse-to-start: glob deny entry "${glob}" has glob characters in a parent directory path ("${globDir}"). The hardlink guard cannot enumerate matches without a recursive glob walk, and skipping would leave a hardlink-alias bypass open. Use a literal parent path or list the denied files explicitly.`,
+		);
+	}
 	// Build a regex from just the basename (the glob is single-segment per dir level).
 	const re = globToRegexFromBase(baseName);
 	let entries: ReturnType<typeof readdirSync>;
 	try {
 		entries = readdirSync(globDir, { withFileTypes: true });
-	} catch {
-		return; // glob parent doesn't exist or is unreadable — no matches
+	} catch (e) {
+		const code = (e as NodeJS.ErrnoException).code;
+		if (code === "ENOENT") return; // parent doesn't exist — no matches
+		throw new Error(
+			`Sandbox refuse-to-start: cannot inspect glob parent "${globDir}" for deny entry "${glob}" (${code ?? "unknown error"}). An unreadable glob parent cannot be verified safe against hardlink-alias bypass. Fix the permissions or use a literal path.`,
+		);
 	}
 	for (const entry of entries) {
 		if (!re.test(entry.name)) continue;

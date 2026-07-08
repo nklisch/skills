@@ -605,12 +605,13 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
         });
       });
     }
+    // Sandbox-absent path with pi.exec: pi.core's exec buffers output internally
+    // with no cap before resolving, so a noisy command (yes X) could OOM the Pi
+    // process before this post-hoc cap applies. This is a known v0.1.0 residual
+    // (the 5b pi.exec path); the direct-spawn path (sandboxed/degraded) uses
+    // makeBoundedAccumulator for streaming cap. Routing sandbox-absent through
+    // direct-spawn too would break test infrastructure that mocks pi.exec.
     if (!opts.piExec) throw new Error("monitor needs pi.exec, which is unavailable in this runtime.");
-    // Cap pi.exec output post-hoc: the direct-spawn paths use makeBoundedAccumulator
-    // during streaming, but pi.exec buffers internally and only returns strings on
-    // completion. A noisy command (yes X) could OOM the Pi process via pi.exec's
-    // internal buffer before this cap applies. The direct-spawn path is preferred
-    // when a sandbox or degraded env is available; this is the last-resort cap.
     const result = await opts.piExec("/bin/sh", ["-c", opts.command], { timeout: opts.timeoutMs, cwd: opts.cwd, signal: opts.signal });
     const cap = MAX_POLL_OUTPUT_CHARS;
     let overflowed = false;

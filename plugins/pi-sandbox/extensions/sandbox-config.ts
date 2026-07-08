@@ -391,6 +391,67 @@ function isSafeRegex(pattern: string): { safe: boolean; reason?: string } {
 }
 
 /**
+ * Compute the MINIMUM possible match length (in code units) for a regex pattern.
+ * This is a SOUND lower bound: the actual match is always >= this length. Unlike
+ * the maximum (which required the fragile estimator we removed), the minimum is
+ * trivially computable: each quantifier contributes its lower bound (n for {n,m},
+ * 1 for +, 0 for * and ?, 1 for a literal/charclass/.). Used to reject operators
+ * who under-declare maxLength (real min > maxLength means the match straddles
+ * windows and no sentinel fires).
+ */
+function estimateRegexMinLength(pattern: string): number | undefined {
+	const parse = (start: number, terminator?: string): { length: number; index: number } | undefined => {
+		let total = 0;
+		let branchMin = Infinity;
+		let hasBranch = false;
+		let i = start;
+		while (i < pattern.length) {
+			const ch = pattern[i];
+			if (terminator && ch === terminator) break;
+			if (ch === "|") {
+				branchMin = Math.min(branchMin, total);
+				total = 0;
+				hasBranch = true;
+				i += 1;
+				continue;
+			}
+			// Parse an atom.
+			let atomMin = 1;
+			let next = i + 1;
+			if (ch === "\\") { atomMin = 1; next = Math.min(pattern.length, i + 2); }
+			else if (ch === "[") {
+				let j = i + 1;
+				while (j < pattern.length && pattern[j] !== "]") { if (pattern[j] === "\\") j += 2; else j += 1; }
+				atomMin = 1; next = j + 1;
+			} else if (ch === "(") {
+				let innerStart = i + 1;
+				if (pattern[innerStart] === "?") { const m = pattern[innerStart + 1]; innerStart += m === "<" ? 3 : 2; }
+				const inner = parse(innerStart, ")");
+				if (inner === undefined) return undefined;
+				atomMin = inner.length; next = Math.min(pattern.length, inner.index + 1);
+			} else if ("^$".includes(ch)) { atomMin = 0; next = i + 1; }
+			// Quantifier
+			const q = pattern[next];
+			if (q === "*" || q === "?") { atomMin = 0; next += 1; }
+			else if (q === "+") { atomMin = 1; next += 1; }
+			else if (q === "{") {
+				const end = pattern.indexOf("}", next + 1);
+				if (end !== -1) {
+					const parts = pattern.slice(next + 1, end).split(",");
+					const lower = parts[0] ? parseInt(parts[0], 10) : 0;
+					atomMin *= (Number.isFinite(lower) ? lower : 0);
+					next = end + 1;
+				}
+			}
+			total += atomMin;
+			i = next;
+		}
+		return { length: hasBranch ? Math.min(branchMin, total) : total, index: i };
+	};
+	try { return parse(0)?.length; } catch { return undefined; }
+}
+
+/**
  * Detect backreferences — numeric (\1) and named (\k<name>) — unconditionally,
  * independent of skipRegexSafetyCheck. A backreference's match length depends on
  * what the captured group matched, so apparent-length estimation is unsound: a
@@ -639,10 +700,16 @@ function scanSecretShape(text: string, shape: CompiledShape, isAllowed: (candida
 
 			// Zero-width full match (e.g. lookahead (?=(sk-...))): match[0].length === 0,
 			// so the redact range {start, start} is zero-length and would be dropped —
-			// leaking the captured secret. The scanner cannot redact a capture group
-			// that isn't contained in match[0]. Fail closed rather than emit a no-op
-			// redaction that leaves the secret in place.
+			// leaking the captured secret. Also catches the partial-prefix case
+			// (prefix(?=(secret))): match[0] is "prefix", but the captured candidate is
+			// OUTSIDE match[0]. The redact range covers only the prefix, leaking the
+			// secret. Fail closed when secretGroup !== 0 and the candidate isn't a
+			// substring of match[0] (we can't safely redact a capture outside the match).
 			if (fullMatch.length === 0 && candidate.length > 0) {
+				ranges.push({ start: -1, end: -1 });
+				return ranges;
+			}
+			if (shape.secretGroup !== 0 && candidate.length > 0 && !fullMatch.includes(candidate)) {
 				ranges.push({ start: -1, end: -1 });
 				return ranges;
 			}
@@ -1713,6 +1780,21 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 		// outright is simpler and sounder than trying to estimate their length.
 		if (containsBackreference(value.pattern)) {
 			errors.push(`${path}.pattern contains a backreference for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: backreference match length is unpredictable and can leak a secret across a window boundary. Express repetition with a bounded quantifier instead (${value.pattern})`);
+		}
+		// Minimum-length check: the 2x overlap guarantees that a match of length
+		// L <= maxLength is fully captured in some window. But if the operator
+		// UNDER-declares maxLength (real min match > maxLength), the match straddles
+		// multiple windows and no sentinel fires (the regex sees only a truncated
+		// prefix in each). The MINIMUM match length is a sound, easily-computed
+		// property (unlike the maximum, which required the fragile estimator we
+		// removed): each quantifier contributes its lower bound. Reject when the
+		// pattern's minimum match length exceeds maxLength — the operator's
+		// declaration is provably too small.
+		if (typeof value.maxLength === "number") {
+			const minLength = estimateRegexMinLength(value.pattern);
+			if (minLength !== undefined && minLength > value.maxLength) {
+				errors.push(`${path}.maxLength ${value.maxLength} is smaller than the pattern's minimum match length ${minLength} for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: a real match will exceed maxLength and straddle scan windows, leaking its tail. Set maxLength >= ${minLength} (and < ${MAX_SCAN_LENGTH}).`);
+			}
 		}
 	}
 }

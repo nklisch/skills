@@ -1097,6 +1097,30 @@ describe("config boundary contract", () => {
 		expect(verdict.action).toBe("block");
 	});
 
+	test("maxLength smaller than the pattern's minimum match length is rejected (redesign)", () => {
+		// The 2x overlap guarantees a match of L <= maxLength is captured. But if the
+		// operator under-declares maxLength (real min match > maxLength), the match
+		// straddles multiple windows and no sentinel fires. The MINIMUM match length
+		// is a sound, easily-computed property; reject when it exceeds maxLength.
+		const errors = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "underdeclared", pattern: "sk-A{298}", action: "redact", maxLength: 100 }] },
+			},
+		});
+		expect(errors.join("\n")).toContain("smaller than the pattern's minimum match length");
+	});
+
+	test("non-zero-width lookahead prefix with secretGroup outside match[0] fails closed (redesign)", () => {
+		// prefix(?=(sk-...)) has match[0] = "prefix", but the captured candidate
+		// (sk-...) is OUTSIDE match[0]. Redacting only the prefix leaks the secret.
+		const input: Record<string, unknown> = { body: "prefix" + "sk-" + "A".repeat(40) };
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "lookahead-prefix", pattern: "prefix(?=(sk-[A-Z]{40}))", action: "redact", secretGroup: 1, maxLength: 64 }],
+			onNoMatch: "allow",
+		});
+		expect(verdict.action).toBe("block");
+	});
+
 	test("validateConfig rejects unsafe nested-quantifier regexes and allows simple safe allowlist patterns", () => {
 		const unsafe = validateConfig({
 			tools: {
@@ -2134,6 +2158,26 @@ describe("buildBwrapArgs", () => {
 				env: { PATH: "/usr/bin" },
 			}),
 		).not.toThrow();
+	});
+
+	test("glob deny with glob in parent path fails closed (re-review loop 4)", async () => {
+		// A glob like `secrets-x/*.pem` has glob chars in a parent segment. The
+		// guard cannot enumerate matches without a recursive glob walk; fail closed
+		// rather than silently skip (which would leave a hardlink bypass open).
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret"));
+		await writeFile(join(cwd, "secret", "key.pem"), "SECRET");
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: ["secret-*/  *.pem".replace(" ", "")],
+				denyWrite: [],
+				networkMode: "open",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/glob characters in a parent directory path/);
 	});
 });
 
