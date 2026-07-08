@@ -408,6 +408,23 @@ function isSafeRegex(pattern: string): { safe: boolean; reason?: string } {
  * past the name marker. Lazy quantifiers (? after a quantifier, e.g. {1,5}?) are
  * consumed. Property escapes \p{...} consume through the closing brace.
  */
+
+/**
+ * If pattern[i] is a high surrogate (0xD800-0xDBFF) followed by a low surrogate
+ * (0xDC00-0xDFFF), return { len: 2, next: i+2 } — the pair is one Unicode code
+ * point whose JS string length is 2. Used by both estimators so a quantifier
+ * after an astral literal (e.g. 😀{5000}) binds to the whole code point, not
+ * just the low surrogate. Only meaningful under the 'u' flag (without it, JS
+ * treats surrogates as separate code units), but harmless to call always.
+ */
+function astralLiteralLen(pattern: string, i: number): { len: number; next: number } | undefined {
+	const code = pattern.charCodeAt(i);
+	if (code >= 0xD800 && code <= 0xDBFF) {
+		const next = pattern.charCodeAt(i + 1);
+		if (next >= 0xDC00 && next <= 0xDFFF) return { len: 2, next: i + 2 };
+	}
+	return undefined;
+}
 function estimateRegexMinLength(pattern: string): number | undefined {
 	const parse = (start: number, terminator?: string): { length: number; index: number } | undefined => {
 		let total = 0;
@@ -427,6 +444,10 @@ function estimateRegexMinLength(pattern: string): number | undefined {
 			// Parse an atom.
 			let atomMin = 1;
 			let next = i + 1;
+			// Astral literal (surrogate pair): one code point, min length 1, but the
+			// quantifier must bind to the whole pair — advance next past both surrogates.
+			const astral = astralLiteralLen(pattern, i);
+			if (astral) { atomMin = 1; next = astral.next; }
 			if (ch === "\\") {
 				const esc = pattern[i + 1];
 				// Zero-width assertions: \b, \B consume 0 chars.
@@ -527,6 +548,9 @@ function estimateRegexMaxLength(pattern: string, flags?: string): number {
 			if (ch === "|") { branchMax = Math.max(branchMax, total); total = 0; hasBranch = true; i += 1; continue; }
 			let atomMax = 1;
 			let next = i + 1;
+			// Astral literal (surrogate pair): 2 code units, quantifier binds to whole pair.
+			const astral = astralLiteralLen(pattern, i);
+			if (astral) { atomMax = 2; next = astral.next; }
 			// Under the 'u' flag, astral-capable atoms can match 2 code units. Literals
 			// and non-astral escapes are 1. Astral literals in the pattern (>0xFFFF)
 			// are surrogate pairs (2 chars) consumed as two 1-unit atoms — conservative.
@@ -622,10 +646,13 @@ function containsLookaround(pattern: string): boolean {
 	let inClass = false;
 	for (let i = 0; i < pattern.length; i += 1) {
 		const ch = pattern[i];
-		if (ch === "\\") { i += 1; continue; } // skip escape
+		if (inClass) {
+			if (ch === "\\") { i += 1; continue; }
+			if (ch === "]") inClass = false;
+			continue;
+		}
 		if (ch === "[") { inClass = true; continue; }
-		if (ch === "]" && inClass) { inClass = false; continue; }
-		if (inClass) continue; // inside a char class, (?= is a literal, not a lookaround
+		if (ch === "\\") { i += 1; continue; } // skip escape
 		if (ch !== "(") continue;
 		if (pattern[i + 1] === "?" && (pattern[i + 2] === "=" || pattern[i + 2] === "!")) return true;
 		if (pattern[i + 1] === "?" && pattern[i + 2] === "<" && (pattern[i + 3] === "=" || pattern[i + 3] === "!")) return true;
@@ -645,22 +672,22 @@ function containsBackreference(pattern: string): boolean {
 	let inClass = false;
 	for (let i = 0; i < pattern.length; i += 1) {
 		const ch = pattern[i];
+		if (inClass) {
+			// Inside a char class, skip escapes (so \] doesn't close the class) and
+			// never treat \1 as a backref (it's a literal in a class).
+			if (ch === "\\") { i += 1; continue; }
+			if (ch === "]") inClass = false;
+			continue;
+		}
 		if (ch === "[") { inClass = true; continue; }
-		if (ch === "]" && inClass) { inClass = false; continue; }
-		if (inClass) continue; // inside a char class, \1 is a literal, not a backref
 		if (ch !== "\\") continue;
-		// We're at a backslash. Check what follows.
 		const next = pattern[i + 1];
-		// Escaped backslash (\\) — skip both chars so the next char isn't treated as a backref.
-		if (next === "\\") { i += 1; continue; }
-		// Numeric backreference: \1 through \99 (but not \0, which is a null).
+		if (next === "\\") { i += 1; continue; } // escaped backslash
 		if (next >= "1" && next <= "9") return true;
-		// Named backreference: \k<name> or \k'name'.
 		if (next === "k") {
 			const after = pattern[i + 2];
 			if (after === "<" || after === "'") return true;
 		}
-		// Other escapes (\d, \w, \n, etc.) — skip the escaped char.
 		i += 1;
 	}
 	return false;
@@ -1944,6 +1971,9 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 	if (value.flags !== undefined && typeof value.flags !== "string") errors.push(`${path}.flags must be a string`);
 	if (typeof value.flags === "string" && value.flags.includes("y")) {
 		errors.push(`${path}.flags must not include the sticky "y" flag: chunked scanning resets regex lastIndex to 0 per window, so a sticky regex only matches at position 0 of each window and misses secrets placed elsewhere. Use the default "gu" or "giu".`);
+	}
+	if (typeof value.flags === "string" && value.flags.includes("v")) {
+		errors.push(`${path}.flags must not include the unicodeSets "v" flag: the "v" flag enables Unicode sets (\q{...}, string properties like \p{RGI_Emoji}) that can match multi-code-point strings of unbounded length, which the length estimator cannot soundly bound. Use the default "gu" or "giu" instead.`);
 	}
 	if (value.skipRegexSafetyCheck !== undefined && typeof value.skipRegexSafetyCheck !== "boolean") errors.push(`${path}.skipRegexSafetyCheck must be a boolean`);
 	// maxLength is REQUIRED: the windowed scan uses it as the per-shape overlap so a

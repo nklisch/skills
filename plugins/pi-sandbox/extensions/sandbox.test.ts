@@ -1225,6 +1225,26 @@ describe("config boundary contract", () => {
 		expect(ok).toEqual([]);
 	});
 
+	test("astral literal quantifier is counted as 2 code units under default gu (redesign loop 9)", () => {
+		// 😀{5000} is 5000 astral code points = 10000 code units. The estimator must
+		// bind the quantifier to the whole surrogate pair (2 units), not the low
+		// surrogate alone. Default flags → gu → astral accounting applies.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "astral-literal", pattern: "BEGIN-😀{5000}-END", action: "redact", maxLength: 5011 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("v flag (unicode sets) is rejected (redesign loop 9)", () => {
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "v-dot", pattern: "BEGIN-.{5}-END", flags: "gv", action: "redact", maxLength: 20 }] } } });
+		expect(errors.join("\n")).toContain('must not include the unicodeSets "v" flag');
+	});
+
+	test("backref detector does not false-positive on escaped ] in char class (redesign loop 9)", () => {
+		// [\]\1A-Z] — \] is an escaped ] (doesn't close the class), \1 is a literal
+		// inside the class, not a backreference. Source escaping: \\ = one backslash.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "class", pattern: "[\\]\\1A-Z]{4}", flags: "g", action: "redact", maxLength: 4 }] } } });
+		expect(ok).toEqual([]);
+	});
+
 	test("estimateRegexMinLength preserves atom min for bounded quantifier (redesign loop 5)", () => {
 		// (sk-AAAAAAAAAA){1,3} has a minimum match of 13 (one repetition of the 13-char
 		// group), not 0 or 1. Under-declaring maxLength=5 must be rejected — otherwise the
