@@ -1201,9 +1201,27 @@ describe("config boundary contract", () => {
 		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "look", pattern: "(?=(BEGIN-[A-Z]{12000}-END))", flags: "gu", action: "redact", secretGroup: 1, maxLength: 1 }] } } });
 		expect(errors.join("\n")).toContain("with a lookaround");
 		// secretGroup: 0 with a lookaround is fine (match[0] is what's bounded).
-		// Under gu, [A-Z] is conservatively counted as 2 code units/atom (astral-capable
-		// class), so max = 40*2 = 80; maxLength must cover that.
-		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "look0", pattern: "(?=BEGIN-)[A-Z]{40}", flags: "gu", action: "redact", maxLength: 80 }] } } });
+		// [A-Z] is a positive ASCII-only class → 1 code unit/atom, so max = 40.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "look0", pattern: "(?=BEGIN-)[A-Z]{40}", flags: "gu", action: "redact", maxLength: 43 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("omitted flags default to gu for max estimation (redesign loop 8)", () => {
+		// .{6000} with omitted flags: runtime compiles as gu, so the validator must
+		// also estimate under u — . is astral-capable (2 code units) → max 12000 > 6010.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "dot", pattern: "BEGIN-.{6000}-END", action: "redact", maxLength: 6010 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("complement class escapes (\\S \\D \\W) count as astral-capable under u (redesign loop 8)", () => {
+		// \S{6000} under gu: complement class matches astral → 2*6000 = 12000 > 6020.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "nonspace", pattern: "BEGIN-\\S{6000}-END", flags: "gu", action: "redact", maxLength: 6020 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("containsLookaround does not false-positive on lookaround-like text in char class (redesign loop 8)", () => {
+		// [(?=] — (?= is literal text inside a char class, not a lookaround.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "class-prefix", pattern: "[(?=](sk-[A-Z]{40})", action: "redact", secretGroup: 1, maxLength: 44 }] } } });
 		expect(ok).toEqual([]);
 	});
 
