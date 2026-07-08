@@ -451,6 +451,9 @@ function parseEscapeAtom(pattern: string, i: number, unicode: boolean, atomUpper
 	const esc = pattern[i + 1];
 	// Zero-width assertions: \b, \B consume 0 chars.
 	if (esc === "b" || esc === "B") return { min: 0, max: 0, next: Math.min(pattern.length, i + 2) };
+	// Control escape \cX (X must be A-Za-z): matches the control char (1 code unit).
+	// Consume \c + the letter so a following quantifier binds to the whole escape.
+	if (esc === "c" && /[A-Za-z]/.test(pattern[i + 2])) return { min: 1, max: 1, next: i + 3 };
 	// Property escapes \p{...} / \P{...}: ONLY valid under the 'u' flag AND with a
 	// closing brace. Without 'u', \p is a legacy identity escape (1 char), and
 	// the {...} is a literal/quantifier — fall through to default so the { isn't
@@ -493,6 +496,18 @@ function parseEscapeAtom(pattern: string, i: number, unicode: boolean, atomUpper
 	// Complement class escapes \D/\S/\W: astral-capable under u.
 	if (unicode && (esc === "D" || esc === "S" || esc === "W")) {
 		return { min: 1, max: atomUpperBound, next: Math.min(pattern.length, i + 2) };
+	}
+	// Legacy octal escapes (non-u only): \0, \1-\7, \1-\77, \1-\377 (up to 3
+	// octal digits). Under u these are syntax errors (caught by RegExp compilation).
+	// A real backreference (\N where group N exists) is already rejected by
+	// containsBackreference before the estimator runs, so any \N reaching here is
+	// an octal escape. Consume the full octal sequence so trailing digits aren't
+	// mis-parsed as separate literals/quantifiers.
+	if (!unicode && esc >= "0" && esc <= "7") {
+		let next = i + 2;
+		// \0 can be followed by up to 2 more octal digits; \1-\7 by up to 2 more.
+		while (next < pattern.length && next < i + 4 && pattern[next] >= "0" && pattern[next] <= "7") next += 1;
+		return { min: 1, max: 1, next };
 	}
 	// Default escape (\d, \w, \n, \p-without-u, \u-without-4-hex, etc.): 1 code unit.
 	return { min: 1, max: 1, next: Math.min(pattern.length, i + 2) };
@@ -738,7 +753,46 @@ function containsLookaround(pattern: string): boolean {
  * evading the windowed scan. Respects escaping (\\1 is a literal, not a
  * backref) and character classes ([\1] is a literal, not a backref).
  */
+/**
+ * Count capturing groups AND extract named-group names. A '(' that is part of
+ * a non-capturing/lookaround group (?: / (?= / (?! / (?<= / (?<! is NOT a capture.
+ * (?<name>...) is a capture AND records the name. Escapes and char classes are
+ * respected. Used to distinguish a real backreference (\N where group N exists,
+ * or \k<name> where name exists) from a legacy octal/identity escape — the
+ * latter is NOT a backreference and is safe for length estimation.
+ */
+function analyzeGroups(pattern: string): { count: number; names: Set<string> } {
+	let count = 0;
+	const names = new Set<string>();
+	let inClass = false;
+	for (let i = 0; i < pattern.length; i += 1) {
+		const ch = pattern[i];
+		if (inClass) {
+			if (ch === "\\") { i += 1; continue; }
+			if (ch === "]") inClass = false;
+			continue;
+		}
+		if (ch === "\\") { i += 1; continue; }
+		if (ch === "[") { inClass = true; continue; }
+		if (ch !== "(") continue;
+		if (pattern[i + 1] === "?") {
+			const marker = pattern[i + 2];
+			if (marker === ":" || marker === "=" || marker === "!") continue; // (?: (?= (?!
+			if (marker === "<") {
+				const afterLt = pattern[i + 3];
+				if (afterLt === "=" || afterLt === "!") continue; // (?<= (?<!
+				// (?<name>...) is a capturing group — count it and record the name.
+				const nameEnd = pattern.indexOf(">", i + 3);
+				if (nameEnd !== -1) names.add(pattern.slice(i + 3, nameEnd));
+			}
+		}
+		count += 1;
+	}
+	return { count, names };
+}
+
 function containsBackreference(pattern: string): boolean {
+	const { count: groupCount, names: namedGroups } = analyzeGroups(pattern);
 	let inClass = false;
 	for (let i = 0; i < pattern.length; i += 1) {
 		const ch = pattern[i];
@@ -753,10 +807,33 @@ function containsBackreference(pattern: string): boolean {
 		if (ch !== "\\") continue;
 		const next = pattern[i + 1];
 		if (next === "\\") { i += 1; continue; } // escaped backslash
-		if (next >= "1" && next <= "9") return true;
+		if (next >= "1" && next <= "9") {
+			// \N is a backreference ONLY if group N exists; otherwise it's a legacy
+			// octal escape (\1 = \x01) which has a fixed length and is safe.
+			// Parse the full decimal number (\10, \99, etc.).
+			let numStr = next;
+			let j = i + 2;
+			while (j < pattern.length && pattern[j] >= "0" && pattern[j] <= "9") { numStr += pattern[j]; j += 1; }
+			const num = parseInt(numStr, 10);
+			if (num >= 1 && num <= groupCount) return true; // real backreference
+			i = j - 1; // skip the digits (octal escape)
+			continue;
+		}
 		if (next === "k") {
 			const after = pattern[i + 2];
-			if (after === "<" || after === "'") return true;
+			if (after === "<" || after === "'") {
+				// \k<name> is a named backreference ONLY if a named group with that name
+				// exists. Under non-u, \k<foo> without a matching group is an identity
+				// escape (matches 'k<foo>'); under u it's a syntax error (caught at compile).
+				const close = after === "<" ? ">" : "'";
+				const nameEnd = pattern.indexOf(close, i + 3);
+				if (nameEnd !== -1) {
+					const name = pattern.slice(i + 3, nameEnd);
+					if (namedGroups.has(name)) return true; // real named backref
+					i = nameEnd; // skip the whole \k<name> (identity escape under non-u)
+					continue;
+				}
+			}
 		}
 		i += 1;
 	}
