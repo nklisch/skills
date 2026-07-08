@@ -1152,6 +1152,18 @@ describe("config boundary contract", () => {
 		}
 	});
 
+	test("estimateRegexMinLength preserves atom min for + quantifier (redesign loop 5)", () => {
+		// (sk-AAAAAAAAAA)+ has a minimum match of 13 (one repetition of the 13-char
+		// group), not 1. Under-declaring maxLength=5 must be rejected — otherwise the
+		// 13-char match straddles windows and leaks. The old code set atomMin=1 for +
+		// regardless of the atom's own length.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "repeat", pattern: "(sk-AAAAAAAAAA)+", action: "redact", maxLength: 5 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's minimum match length");
+		// Correct maxLength (>= 13) is accepted.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "repeat", pattern: "(sk-AAAAAAAAAA)+", action: "redact", maxLength: 13 }] } } });
+		expect(ok).toEqual([]);
+	});
+
 	test("validateConfig rejects unsafe nested-quantifier regexes and allows simple safe allowlist patterns", () => {
 		const unsafe = validateConfig({
 			tools: {

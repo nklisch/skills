@@ -472,7 +472,7 @@ function estimateRegexMinLength(pattern: string): number | undefined {
 			// Quantifier
 			const q = pattern[next];
 			if (q === "*" || q === "?") { atomMin = 0; next += 1; }
-			else if (q === "+") { atomMin = 1; next += 1; }
+			else if (q === "+") { /* min is one repetition of the atom — atomMin stays as-is (the atom's own min) */ next += 1; }
 			else if (q === "{") {
 				const end = pattern.indexOf("}", next + 1);
 				if (end !== -1) {
