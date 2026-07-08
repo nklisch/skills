@@ -1304,6 +1304,53 @@ describe("config boundary contract", () => {
 		expect(ok3).toEqual([]);
 	});
 
+	test("systematic escape-form matrix (redesign loop 14 systematic pass)", () => {
+		// Enumerate escape forms × flags × quantifiers. Each must be accepted with
+		// the correct maxLength (sound: no false-positive; complete: no leak).
+		const accept = [
+			// \cX control escape: \cA = \x01 (1 unit), {5} binds to whole escape
+			{ pattern: "\\cA{5}", flags: "g", ml: 5 },
+			{ pattern: "\\cA{5}", flags: "gu", ml: 5 },
+			// \k<name> without matching group under non-u: identity escape (matches 'k<foo>')
+			{ pattern: "\\k<foo>", flags: "g", ml: 6 },
+			// \0 null escape
+			{ pattern: "\\0{5}", flags: "g", ml: 5 },
+			{ pattern: "\\0{5}", flags: "gu", ml: 5 },
+			// multi-digit octal under non-u: \123 = \x53 = 'S' (1 unit)
+			{ pattern: "\\123", flags: "g", ml: 1 },
+			{ pattern: "\\12", flags: "g", ml: 1 },
+			// \f \v \t single-char escapes
+			{ pattern: "\\f\\v\\t", flags: "g", ml: 3 },
+			// char class edges
+			{ pattern: "[\\b]{5}", flags: "g", ml: 5 }, // backspace in class
+			{ pattern: "[[]{2}", flags: "g", ml: 2 }, // nested [ literal
+			{ pattern: "[^]{5}", flags: "gu", ml: 10 }, // negated empty = any (astral under u)
+			// alternation with different lengths
+			{ pattern: "(abc|de){2}", flags: "g", ml: 6 },
+			{ pattern: "(a|bb){2,3}", flags: "g", ml: 6 },
+			// anchors (zero-width)
+			{ pattern: "^a$", flags: "g", ml: 1 },
+			{ pattern: "\\bsk-\\b", flags: "g", ml: 3 },
+		];
+		for (const { pattern, flags, ml } of accept) {
+			const errs = validateConfig({ tools: { inspector: { secrets: [{ name: "t", pattern, flags, action: "redact", maxLength: ml }] } } });
+			expect(errs).toEqual([]);
+		}
+		// Real backreferences are still rejected
+		const reject = [
+			{ pattern: "(a)\\1", flags: "g", ml: 2 }, // numeric backref
+			{ pattern: "(?<x>a)\\k<x>", flags: "g", ml: 2 }, // named backref
+			{ pattern: "(\\d)\\1", flags: "g", ml: 2 },
+		];
+		for (const { pattern, flags, ml } of reject) {
+			const errs = validateConfig({ tools: { inspector: { secrets: [{ name: "t", pattern, flags, action: "redact", maxLength: ml }] } } });
+			expect(errs.join("\n")).toContain("backreference");
+		}
+		// Octal under u is a syntax error (rejected by RegExp compilation)
+		const uOctal = validateConfig({ tools: { inspector: { secrets: [{ name: "t", pattern: "\\123", flags: "gu", action: "redact", maxLength: 1 }] } } });
+		expect(uOctal.length).toBeGreaterThan(0);
+	});
+
 	test("estimateRegexMinLength preserves atom min for bounded quantifier (redesign loop 5)", () => {
 		// (sk-AAAAAAAAAA){1,3} has a minimum match of 13 (one repetition of the 13-char
 		// group), not 0 or 1. Under-declaring maxLength=5 must be rejected — otherwise the
