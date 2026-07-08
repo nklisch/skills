@@ -1291,6 +1291,19 @@ describe("config boundary contract", () => {
 		expect(ok).toEqual([]);
 	});
 
+	test("min-length estimator is unicode-aware for u-mode escapes (redesign loop 13)", () => {
+		// \u{10FFFF} under gu is one astral code point (2 code units). The min
+		// estimator must consume the whole \u{...} escape (not treat \u as a 2-char
+		// legacy escape and count {10FFFF} as literal text). Previously it hardcoded
+		// unicode=false, so it over-counted and false-rejected valid configs.
+		const ok1 = validateConfig({ tools: { inspector: { secrets: [{ name: "emoji", pattern: "\\u{10FFFF}", flags: "gu", action: "redact", maxLength: 2 }] } } });
+		expect(ok1).toEqual([]);
+		const ok2 = validateConfig({ tools: { inspector: { secrets: [{ name: "letter", pattern: "\\p{L}", flags: "gu", action: "redact", maxLength: 2 }] } } });
+		expect(ok2).toEqual([]);
+		const ok3 = validateConfig({ tools: { inspector: { secrets: [{ name: "e2", pattern: "\\u{1F600}", flags: "gu", action: "redact", maxLength: 2 }] } } });
+		expect(ok3).toEqual([]);
+	});
+
 	test("estimateRegexMinLength preserves atom min for bounded quantifier (redesign loop 5)", () => {
 		// (sk-AAAAAAAAAA){1,3} has a minimum match of 13 (one repetition of the 13-char
 		// group), not 0 or 1. Under-declaring maxLength=5 must be rejected — otherwise the
