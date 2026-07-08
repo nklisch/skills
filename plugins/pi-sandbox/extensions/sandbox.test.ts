@@ -1245,6 +1245,19 @@ describe("config boundary contract", () => {
 		expect(ok).toEqual([]);
 	});
 
+	test("malformed braced quantifier is treated as literal, not a quantifier (redesign loop 10)", () => {
+		// {,000...2} is NOT a valid quantifier (no leading n). Under non-u flags,
+		// JS treats A{,000...2} as a 25-char literal. The estimator must NOT parse
+		// it as max=2 — it must count the literal chars (25 > maxLength 2 → reject).
+		const zeros = "0".repeat(20);
+		const secret = `A{,${zeros}2}`; // 25 chars, literal under "g"
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "lit", pattern: secret, flags: "g", action: "redact", maxLength: 2 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// A valid quantifier {1,3} still works.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "q", pattern: "a{1,3}", action: "redact", maxLength: 3 }] } } });
+		expect(ok).toEqual([]);
+	});
+
 	test("estimateRegexMinLength preserves atom min for bounded quantifier (redesign loop 5)", () => {
 		// (sk-AAAAAAAAAA){1,3} has a minimum match of 13 (one repetition of the 13-char
 		// group), not 0 or 1. Under-declaring maxLength=5 must be rejected — otherwise the
