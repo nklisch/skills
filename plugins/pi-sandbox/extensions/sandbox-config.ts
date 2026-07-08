@@ -511,7 +511,9 @@ function parseBracedQuantifier(pattern: string, braceOpen: number): { lower: num
 	else upper = parseInt(match[3], 10); // {n,m}
 	return { lower, upper, next: end + 1 };
 }
-function estimateRegexMinLength(pattern: string): number | undefined {
+function estimateRegexMinLength(pattern: string, flags?: string): number | undefined {
+	const unicode = flags !== undefined && flags.includes("u");
+	const atomUpperBound = unicode ? 2 : 1;
 	const parse = (start: number, terminator?: string): { length: number; index: number } | undefined => {
 		let total = 0;
 		let branchMin = Infinity;
@@ -535,7 +537,7 @@ function estimateRegexMinLength(pattern: string): number | undefined {
 			const astral = astralLiteralLen(pattern, i);
 			if (astral) { atomMin = 1; next = astral.next; }
 			if (ch === "\\") {
-				const esc = parseEscapeAtom(pattern, i, false, 1);
+				const esc = parseEscapeAtom(pattern, i, unicode, atomUpperBound);
 				atomMin = esc.min; next = esc.next;
 			}
 			else if (ch === "[") {
@@ -2092,7 +2094,7 @@ function validateSecretShape(value: unknown, path: string, errors: string[]): vo
 		// pattern's minimum match length exceeds maxLength — the operator's
 		// declaration is provably too small.
 		if (typeof value.maxLength === "number") {
-			const minLength = estimateRegexMinLength(value.pattern);
+			const minLength = estimateRegexMinLength(value.pattern, withGlobalFlag(value.flags));
 			if (minLength !== undefined && minLength > value.maxLength) {
 				errors.push(`${path}.maxLength ${value.maxLength} is smaller than the pattern's minimum match length ${minLength} for shape ${typeof value.name === "string" && value.name.length > 0 ? `"${value.name}"` : "(unnamed)"}: a real match will exceed maxLength and straddle scan windows, leaking its tail. Set maxLength >= ${minLength} (and < ${MAX_SCAN_LENGTH}).`);
 			}
