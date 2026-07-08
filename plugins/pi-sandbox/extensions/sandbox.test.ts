@@ -1258,6 +1258,21 @@ describe("config boundary contract", () => {
 		expect(ok).toEqual([]);
 	});
 
+	test("escaped astral Unicode literals with quantifiers are counted correctly (redesign loop 11)", () => {
+		// \u{1F600}{5001} under gu: the \u{...} is one astral code point (2 units),
+		// {5001} binds to the whole escape → max 10002 > 9000 → reject. Previously the
+		// estimator treated \u as a 1-unit escape and {1F600} as literal text, so
+		// {5001} bound to the wrong atom and the match leaked.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "emoji", pattern: "\\u{1F600}{5001}", flags: "gu", action: "redact", maxLength: 9000 }] } } });
+		expect(e1.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// \uD83D\uDE00{5001} — escaped surrogate pair, each \uHHHH is astral-capable under u.
+		const e2 = validateConfig({ tools: { inspector: { secrets: [{ name: "sp", pattern: "\\uD83D\\uDE00{5001}", flags: "gu", action: "redact", maxLength: 9000 }] } } });
+		expect(e2.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// A bounded \u{...} is accepted.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "ok", pattern: "\\u{1F600}{1,5}", flags: "gu", action: "redact", maxLength: 10 }] } } });
+		expect(ok).toEqual([]);
+	});
+
 	test("estimateRegexMinLength preserves atom min for bounded quantifier (redesign loop 5)", () => {
 		// (sk-AAAAAAAAAA){1,3} has a minimum match of 13 (one repetition of the 13-char
 		// group), not 0 or 1. Under-declaring maxLength=5 must be rejected — otherwise the
