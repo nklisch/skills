@@ -127,6 +127,7 @@ function createSandboxedBashOps(): BashOperations {
 			const bwrapArgs = [
 				...buildBwrapArgs({
 					cwd,
+					configCwd: policy.cwd,
 					denyRead: policy.denyRead,
 					denyWrite: policy.denyWrite,
 					allowWrite: policy.allowWrite,

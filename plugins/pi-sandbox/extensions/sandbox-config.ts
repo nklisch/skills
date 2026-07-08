@@ -363,8 +363,12 @@ function shannonEntropy(data: string): number {
 }
 
 function withGlobalFlag(flags: string | undefined): string {
+	// Always include 'g' (global, for exec loop) and 'd' (indices, for capture-group
+	// span checks in the capture-outside-match sentinel). The operator's 'u'/'i'
+	// flags are preserved; 'g' is added if missing.
 	const effective = flags ?? "gu";
-	return effective.includes("g") ? effective : `${effective}g`;
+	const withG = effective.includes("g") ? effective : `${effective}g`;
+	return withG.includes("d") ? withG : `${withG}d`;
 }
 
 /**
@@ -398,6 +402,11 @@ function isSafeRegex(pattern: string): { safe: boolean; reason?: string } {
  * 1 for +, 0 for * and ?, 1 for a literal/charclass/.). Used to reject operators
  * who under-declare maxLength (real min > maxLength means the match straddles
  * windows and no sentinel fires).
+ *
+ * Zero-width assertions (\b, \B, ^, $, lookahead (?=, lookbehind (?<=) consume
+ * 0 chars. Named-group syntax (?<name>...) and non-capturing (?:...) are parsed
+ * past the name marker. Lazy quantifiers (? after a quantifier, e.g. {1,5}?) are
+ * consumed. Property escapes \p{...} consume through the closing brace.
  */
 function estimateRegexMinLength(pattern: string): number | undefined {
 	const parse = (start: number, terminator?: string): { length: number; index: number } | undefined => {
@@ -418,17 +427,47 @@ function estimateRegexMinLength(pattern: string): number | undefined {
 			// Parse an atom.
 			let atomMin = 1;
 			let next = i + 1;
-			if (ch === "\\") { atomMin = 1; next = Math.min(pattern.length, i + 2); }
+			if (ch === "\\") {
+				const esc = pattern[i + 1];
+				// Zero-width assertions: \b, \B consume 0 chars.
+				if (esc === "b" || esc === "B") { atomMin = 0; next = i + 2; }
+				// Property escapes \p{...} / \P{...}: consume through the closing brace.
+				else if (esc === "p" || esc === "P") {
+					const braceEnd = pattern.indexOf("}", i + 3);
+					atomMin = 1; next = (braceEnd === -1 ? pattern.length : braceEnd + 1);
+				} else { atomMin = 1; next = Math.min(pattern.length, i + 2); }
+			}
 			else if (ch === "[") {
 				let j = i + 1;
 				while (j < pattern.length && pattern[j] !== "]") { if (pattern[j] === "\\") j += 2; else j += 1; }
 				atomMin = 1; next = j + 1;
 			} else if (ch === "(") {
 				let innerStart = i + 1;
-				if (pattern[innerStart] === "?") { const m = pattern[innerStart + 1]; innerStart += m === "<" ? 3 : 2; }
+				if (pattern[innerStart] === "?") {
+					const marker = pattern[innerStart + 1];
+					if (marker === ":" || marker === "=" || marker === "!") {
+						// Non-capturing (?:...) or lookahead (?=...) / (?!...)
+						innerStart += 2;
+					} else if (marker === "<") {
+						const afterLt = pattern[innerStart + 2];
+						if (afterLt === "=" || afterLt === "!") {
+							// Lookbehind (?<=...) / (?<!...)
+							innerStart += 3;
+						} else {
+							// Named capture (?<name>...): skip past the name to find '>'
+							const nameEnd = pattern.indexOf(">", innerStart + 2);
+							innerStart = (nameEnd === -1 ? pattern.length : nameEnd + 1);
+						}
+					}
+				}
 				const inner = parse(innerStart, ")");
 				if (inner === undefined) return undefined;
-				atomMin = inner.length; next = Math.min(pattern.length, inner.index + 1);
+				// Lookahead/lookbehind are zero-width: their match length doesn't add to
+				// the outer match. Heuristic: if the group started with ?= or ?!, it's
+				// zero-width. (Lookbehind ?<= / ?<! are also zero-width.)
+				const isLookaround = pattern[i + 1] === "?" && (pattern[i + 2] === "=" || pattern[i + 2] === "!" || (pattern[i + 2] === "<" && (pattern[i + 3] === "=" || pattern[i + 3] === "!")));
+				atomMin = isLookaround ? 0 : inner.length;
+				next = Math.min(pattern.length, inner.index + 1);
 			} else if ("^$".includes(ch)) { atomMin = 0; next = i + 1; }
 			// Quantifier
 			const q = pattern[next];
@@ -443,6 +482,8 @@ function estimateRegexMinLength(pattern: string): number | undefined {
 					next = end + 1;
 				}
 			}
+			// Lazy quantifier suffix (?) — consume it, doesn't change the min.
+			if (pattern[next] === "?") next += 1;
 			total += atomMin;
 			i = next;
 		}
@@ -698,20 +739,30 @@ function scanSecretShape(text: string, shape: CompiledShape, isAllowed: (candida
 			const candidate = (shape.secretGroup < match.length ? match[shape.secretGroup] : match[0]) ?? match[0];
 			if (!candidate) continue;
 
-			// Zero-width full match (e.g. lookahead (?=(sk-...))): match[0].length === 0,
-			// so the redact range {start, start} is zero-length and would be dropped —
-			// leaking the captured secret. Also catches the partial-prefix case
-			// (prefix(?=(secret))): match[0] is "prefix", but the captured candidate is
-			// OUTSIDE match[0]. The redact range covers only the prefix, leaking the
-			// secret. Fail closed when secretGroup !== 0 and the candidate isn't a
-			// substring of match[0] (we can't safely redact a capture outside the match).
-			if (fullMatch.length === 0 && candidate.length > 0) {
-				ranges.push({ start: -1, end: -1 });
-				return ranges;
-			}
-			if (shape.secretGroup !== 0 && candidate.length > 0 && !fullMatch.includes(candidate)) {
-				ranges.push({ start: -1, end: -1 });
-				return ranges;
+			// Capture-outside-match sentinel: for secretGroup !== 0, the captured
+			// candidate must be INSIDE match[0]'s span. If it's outside (e.g. a
+			// lookahead capture), redacting match[0] leaks the captured secret. Use
+			// the 'd' (indices) flag for positional span checking — substring
+			// inclusion (fullMatch.includes(candidate)) is bypassable when the
+			// captured text duplicates a substring of match[0].
+			if (shape.secretGroup !== 0 && candidate.length > 0) {
+				const indices = match.indices;
+				if (indices && shape.secretGroup < indices.length) {
+					const captureSpan = indices[shape.secretGroup];
+					const matchSpan = indices[0];
+					if (captureSpan && matchSpan) {
+						// The capture must be fully within [matchStart, matchEnd).
+						if (captureSpan[0] < matchSpan[0] || captureSpan[1] > matchSpan[1]) {
+							ranges.push({ start: -1, end: -1 });
+							return ranges;
+						}
+					}
+				} else {
+					// No indices available — can't prove the capture is inside match[0].
+					// Fail closed.
+					ranges.push({ start: -1, end: -1 });
+					return ranges;
+				}
 			}
 
 			if (shape.entropy !== undefined) {

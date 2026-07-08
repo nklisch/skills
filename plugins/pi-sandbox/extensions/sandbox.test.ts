@@ -1121,6 +1121,37 @@ describe("config boundary contract", () => {
 		expect(verdict.action).toBe("block");
 	});
 
+	test("duplicate-text lookahead capture outside match[0] fails closed (redesign loop 5)", () => {
+		// sk-[A-Z]{40}(?=(sk-[A-Z]{40})) — the lookahead captures a SECOND copy of
+		// the secret. The old substring-inclusion check (fullMatch.includes(candidate))
+		// passed because the captured text duplicates a prefix of match[0], leaking
+		// the lookahead copy. The 'd' (indices) flag gives positional spans; block when
+		// the capture span is outside match[0]'s span.
+		const s = "sk-" + "A".repeat(40);
+		const input: Record<string, unknown> = { body: s + s };
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "dup-lookahead", pattern: "sk-[A-Z]{40}(?=(sk-[A-Z]{40}))", action: "redact", secretGroup: 1, maxLength: 43 }],
+			onNoMatch: "allow",
+		});
+		expect(verdict.action).toBe("block");
+	});
+
+	test("estimateRegexMinLength handles zero-width assertions and named groups (redesign loop 5)", () => {
+		// \b is zero-width (0 chars), so \bsk-[A-Z]{40}\b has min length 43, not 45.
+		// Named groups (?<name>...) skip the name. Lookahead (?=...) is zero-width.
+		// These must not cause false-positive rejection when maxLength equals the
+		// actual match length.
+		const cases = [
+			{ pattern: "\\bsk-[A-Z]{40}\\b", maxLength: 43 },
+			{ pattern: "(?<token>sk-[A-Z]{40})", maxLength: 43 },
+			{ pattern: "(?=sk-)[A-Za-z0-9-]{43}", maxLength: 43 },
+		];
+		for (const { pattern, maxLength } of cases) {
+			const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "s", pattern, action: "redact", maxLength }] } } });
+			expect(errors.join("\n")).not.toContain("smaller than the pattern's minimum match length");
+		}
+	});
+
 	test("validateConfig rejects unsafe nested-quantifier regexes and allows simple safe allowlist patterns", () => {
 		const unsafe = validateConfig({
 			tools: {
