@@ -620,6 +620,16 @@ function scanSecretShape(text: string, shape: CompiledShape, isAllowed: (candida
 			const candidate = (shape.secretGroup < match.length ? match[shape.secretGroup] : match[0]) ?? match[0];
 			if (!candidate) continue;
 
+			// Zero-width full match (e.g. lookahead (?=(sk-...))): match[0].length === 0,
+			// so the redact range {start, start} is zero-length and would be dropped —
+			// leaking the captured secret. The scanner cannot redact a capture group
+			// that isn't contained in match[0]. Fail closed rather than emit a no-op
+			// redaction that leaves the secret in place.
+			if (fullMatch.length === 0 && candidate.length > 0) {
+				ranges.push({ start: -1, end: -1 });
+				return ranges;
+			}
+
 			if (shape.entropy !== undefined) {
 				const ent = shannonEntropy(candidate);
 				const MIN_SECRET_LENGTH = 20;
@@ -850,7 +860,6 @@ export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: Env
 			"~/.netrc",
 			"~/.npmrc",
 			"~/.docker/config.json",
-			".env",
 		],
 		allowWrite: [".", "/tmp"],
 		denyWrite: [".env"],
@@ -1752,18 +1761,46 @@ function estimateRegexApparentMaxLength(pattern: string, flags?: string): number
 
 	const parseAtom = (start: number): { length: number; index: number } => {
 		const ch = pattern[start];
-		if (ch === "\\") return { length: 1, index: Math.min(pattern.length, start + 2) }; // escape: literal code unit
+		if (ch === "\\") {
+			const next = pattern[start + 1];
+			// Under `u`, inverted/astral-capable escapes can match astral code points (2 units):
+			// \D, \S, \W match anything NOT digit/word/space (including emoji); \p{...}/\P{...}
+			// are property escapes. \d, \w, \s only match ASCII (1 unit). Literal escapes
+			// like \n, \t, \u0041 are 1 unit.
+			if (unicode && (next === "D" || next === "S" || next === "W" || next === "p" || next === "P")) {
+				// \p{...} and \P{...} consume the braces — advance past them.
+				const escapeEnd = (next === "p" || next === "P") ? Math.min(pattern.length, pattern.indexOf("}", start + 3) + 1) : start + 2;
+				return { length: atomUnit(false), index: escapeEnd };
+			}
+			return { length: 1, index: Math.min(pattern.length, start + 2) };
+		}
 		if (ch === "[") {
-			let i = start + 1;
+			// Parse the char class to determine if it's ASCII-only. Under `u`, a char
+		// class CAN match astral code points (e.g. [😀-􏿿] or [^a-z]), so conservatively
+			// count as 2. But a simple ASCII-only class like [A-Za-z0-9] only matches
+			// ASCII (1 unit) even under `u` — counting it as 2 would false-reject
+			// valid bounded ASCII tokens. Detect ASCII-only classes and count as 1.
+		let i = start + 1;
+			let negated = false;
+			if (pattern[i] === "^") { negated = true; i += 1; }
+			let asciiOnly = !negated; // a negated class [^...] can match astral under `u`
 			while (i < pattern.length) {
-				if (pattern[i] === "\\") {
+				const c = pattern[i];
+				if (c === "\\") {
+					const escaped = pattern[i + 1];
+					// \D, \S, \W, \p, \P are astral-capable under `u` (inverted/property).
+					if (unicode && (escaped === "D" || escaped === "S" || escaped === "W" || escaped === "p" || escaped === "P")) asciiOnly = false;
 					i += 2;
 					continue;
 				}
-				if (pattern[i] === "]") return { length: atomUnit(false), index: i + 1 };
+				if (c === "]") {
+					return { length: asciiOnly ? 1 : atomUnit(false), index: i + 1 };
+				}
+				// Non-ASCII literal char in the class → astral-capable.
+				if (c.codePointAt(0)! > 127) asciiOnly = false;
 				i += 1;
 			}
-			return { length: atomUnit(false), index: pattern.length };
+			return { length: asciiOnly ? 1 : atomUnit(false), index: pattern.length };
 		}
 		if (ch === "(") {
 			let innerStart = start + 1;

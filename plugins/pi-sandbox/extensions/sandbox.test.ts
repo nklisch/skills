@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile, link } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile, link, chmod } from "node:fs/promises";
 import { realpathSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:net";
@@ -1129,6 +1129,55 @@ describe("config boundary contract", () => {
 		expect(ok).toEqual([]);
 	});
 
+	test("ASCII-only char classes count as 1 under gu, not 2 (re-review loop 3)", () => {
+		// A char class like [A-Za-z0-9] only matches ASCII even under the `u` flag,
+		// so it should count as 1 code unit, not 2. Counting it as 2 would false-
+		// reject valid bounded ASCII tokens whose apparent length exceeds maxLength.
+		const ok = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "long-ascii", pattern: "sk-[A-Za-z0-9]{6000}", action: "redact", maxLength: 6003 }] },
+			},
+		});
+		expect(ok).toEqual([]);
+		// An astral-capable class ([^a-z]) still counts as 2.
+		const astral = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "astral", pattern: "sk-[^a-z]{6000}", flags: "gu", action: "redact", maxLength: 6003 }] },
+			},
+		});
+		expect(astral.join("\n")).toContain("appears to match up to 1200");
+	});
+
+	test("validateConfig rejects unicode escape atoms \D/\S/\W/\p under u (re-review loop 3)", () => {
+		// Under `u`, \D/\S/\W/\p{...} can match astral code points (2 units), but
+		// the estimator previously counted all escapes as 1. \d/\w/\s stay 1.
+		const leaky = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "non-digit", pattern: "api=\\D{6000}", flags: "gu", action: "redact", maxLength: 6004 }] },
+			},
+		});
+		expect(leaky.join("\n")).toContain("appears to match up to 1200");
+		const ok = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "digit", pattern: "api=\\d{6000}", flags: "gu", action: "redact", maxLength: 6004 }] },
+			},
+		});
+		expect(ok).toEqual([]);
+	});
+
+	test("zero-width full match (lookahead) with a captured secret fails closed (re-review loop 3)", () => {
+		// A lookahead like (?=(sk-[A-Z]{40})) has match[0].length === 0, so the
+		// redact range would be zero-length and dropped — leaking the captured
+		// secret. The scanner cannot redact a capture group not contained in
+		// match[0]; fail closed rather than emit a no-op redaction.
+		const input: Record<string, unknown> = { body: "prefix sk-" + "A".repeat(40) + " suffix" };
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "lookahead", pattern: "(?=(sk-[A-Z]{40}))", action: "redact", secretGroup: 1 }],
+			onNoMatch: "allow",
+		});
+		expect(verdict.action).toBe("block");
+	});
+
 	test("validateConfig rejects unsafe nested-quantifier regexes and allows simple safe allowlist patterns", () => {
 		const unsafe = validateConfig({
 			tools: {
@@ -2080,6 +2129,87 @@ describe("buildBwrapArgs", () => {
 				configCwd: cleanCwd,
 				allowWrite: ["."],
 				denyRead: ["secret"],
+				denyWrite: [],
+				networkMode: "open",
+				env: { PATH: "/usr/bin" },
+			}),
+		).not.toThrow();
+	});
+
+	test("walkForHardlinks does NOT follow symlinks (re-review loop 3)", async () => {
+		// A denied directory containing a symlink to /usr (or a cycle) must NOT
+		// cause unbounded traversal. lstatSync (not statSync) is used so symlinks
+		// are skipped — a hardlink alias points to a real inode, not a symlink target.
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".env"));
+		await symlink("/usr", join(cwd, ".env", "usr-link"));
+		// Must not throw (no hardlink found) and must complete quickly (no /usr walk).
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: [".env"],
+				denyWrite: [],
+				networkMode: "open",
+				env: { PATH: "/usr/bin" },
+			}),
+		).not.toThrow();
+	});
+
+	test("walkForHardlinks fails closed on unreadable denied directory (re-review loop 3)", async () => {
+		// An unreadable denied directory cannot be inspected for hardlink aliases,
+		// so refuse to start rather than silently skip (which would leave a bypass
+		// open for hardlink aliases to files inside it).
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret"));
+		await writeFile(join(cwd, "secret", "file"), "TOPSECRET");
+		await link(join(cwd, "secret", "file"), join(cwd, "alias"));
+		await chmod(join(cwd, "secret"), 0o000);
+		try {
+			expect(() =>
+				buildBwrapArgs({
+					cwd,
+					configCwd: cwd,
+					allowWrite: ["."],
+					denyRead: ["secret"],
+					denyWrite: [],
+					networkMode: "open",
+					env: { PATH: "/usr/bin" },
+				}),
+			).toThrow(/cannot inspect denied directory/);
+		} finally {
+			await chmod(join(cwd, "secret"), 0o755); // restore for cleanup
+		}
+	});
+
+	test("glob-denied hardlinked files are caught by the guard (re-review loop 3)", async () => {
+		// A glob deny entry like *.pem can't be canonicalized as a literal path, so
+		// the guard must expand it by scanning the glob's parent dir for matches.
+		// Without this, a hardlink alias to secret.pem bypasses the guard.
+		const cwd = await makeTempDir();
+		await writeFile(join(cwd, "secret.pem"), "SECRET");
+		await link(join(cwd, "secret.pem"), join(cwd, "alias"));
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: ["*.pem"],
+				denyWrite: ["*.pem"],
+				networkMode: "open",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/hard links/);
+		// A non-hardlinked *.pem file starts normally.
+		const cleanCwd = await makeTempDir();
+		await writeFile(join(cleanCwd, "clean.pem"), "secret");
+		expect(() =>
+			buildBwrapArgs({
+				cwd: cleanCwd,
+				configCwd: cleanCwd,
+				allowWrite: ["."],
+				denyRead: ["*.pem"],
 				denyWrite: [],
 				networkMode: "open",
 				env: { PATH: "/usr/bin" },
