@@ -1,6 +1,6 @@
 {
   "name": "@nklisch/pi-sandbox",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "First-party pi sandbox hardening — Linux bwrap for mediated bash, graceful non-Linux file/tool-policy degrade, and tool-egress policy.",
   "author": {
     "name": "nklisch"
