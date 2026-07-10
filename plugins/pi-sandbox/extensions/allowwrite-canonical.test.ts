@@ -26,6 +26,7 @@ function policyFor(cwd: string, overrides: Partial<SandboxPolicy> = {}): Sandbox
 		denyRead: [],
 		denyWrite: [],
 		allowWrite: [],
+		pinnedGitDirs: [],
 		networkMode: "open",
 		...overrides,
 	};

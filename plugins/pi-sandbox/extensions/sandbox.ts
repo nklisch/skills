@@ -132,6 +132,7 @@ function createSandboxedBashOps(): BashOperations {
 					denyRead: policy.denyRead,
 					denyWrite: policy.denyWrite,
 					allowWrite: policy.allowWrite,
+					pinnedGitDirs: policy.pinnedGitDirs,
 					networkMode: policy.networkMode,
 					env: minimalEnv,
 				}),
@@ -522,16 +523,23 @@ export default function (pi: ExtensionAPI) {
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (hardlink alias)"));
 			return;
 		}
+		// Discover git directories ONCE at session_start (trusted init state) for
+		// submodules and linked worktrees whose `.git` gitfile points outside the
+		// working tree. The result is pinned on the policy and passed to
+		// buildBwrapArgs as pinnedGitDirs — it is NOT re-discovered per command,
+		// because the `.git` gitfile lives in the writable working tree and a
+		// per-command re-read would let an agent mutate it between commands to
+		// widen the writable surface. discoverGitDirs validates the target (HEAD
+		// is a regular file) so a malicious `.git` file pointing at an arbitrary
+		// host path cannot widen the surface; denyWrite still takes precedence in
+		// enforceWritePolicy. The in-process file tools allow writes to these via
+		// the allowWrite augmentation below.
+		const discoveredGitDirs = discoverGitDirs(config.filesystem?.allowWrite ?? [], ctx.cwd);
 		sandboxPolicy = {
 			denyRead,
 			denyWrite,
-			// Augment allowWrite with auto-discovered git directories for submodules
-			// and linked worktrees whose `.git` gitfile points outside the working
-			// tree. discoverGitDirs validates the target (has HEAD) so a malicious
-			// `.git` file cannot widen the surface; denyWrite still takes precedence
-			// in enforceWritePolicy. Keeps the in-process file tools consistent with
-			// the bwrap layer (which binds the same paths in buildBwrapArgs).
-			allowWrite: [...(config.filesystem?.allowWrite ?? []), ...discoverGitDirs(config.filesystem?.allowWrite ?? [], ctx.cwd)],
+			allowWrite: [...(config.filesystem?.allowWrite ?? []), ...discoveredGitDirs],
+			pinnedGitDirs: discoveredGitDirs,
 			cwd: ctx.cwd,
 			networkMode: netMode,
 			toolRules: config.tools,

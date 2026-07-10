@@ -2,6 +2,7 @@ import {
 	buildBwrapArgs,
 	buildMinimalEnv,
 	decidePlatformState,
+	discoverGitDirs,
 	findExecutableOnPath,
 	resolveTrustedBwrap,
 	type NetworkMode,
@@ -276,6 +277,10 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 
 	const bwrapExecutable = bwrapResolution.path;
 	const minimalEnv = buildMinimalEnv(normalEnv);
+	// Discover git dirs once for this spawn (background/monitor commands are
+	// short-lived, so this is init-time for the command, not per-command within
+	// a long session). Pinned into buildBwrapArgs rather than re-discovered.
+	const pinnedGitDirs = discoverGitDirs(loaded.config.filesystem?.allowWrite ?? [], configCwd);
 	try {
 		const args = [
 			...buildBwrapArgs({
@@ -284,6 +289,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 				denyRead: loaded.config.filesystem?.denyRead ?? [],
 				denyWrite: loaded.config.filesystem?.denyWrite ?? [],
 				allowWrite: loaded.config.filesystem?.allowWrite ?? [],
+				pinnedGitDirs,
 				networkMode,
 				env: minimalEnv,
 			}),

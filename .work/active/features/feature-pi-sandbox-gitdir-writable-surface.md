@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-gitdir-writable-surface
 kind: feature
-stage: implementing
+stage: review
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -425,3 +425,32 @@ only" and add a test documenting which operations succeed/fail.
    writable path; point at another real git repo → not auto-authorized; reject
    multiline gitfiles; `HEAD` as a dir → rejected; denyRead precedence for a
    discovered gitdir; explicit allowWrite + discovery → one bind.
+
+## Re-implementation notes (addressing review findings)
+
+- **Blocker fixed — discovery pinned at session_start, not per-command**: moved
+  `discoverGitDirs` OUT of `buildBwrapArgs`. It now runs once in `session_start`
+  (and once per `buildSandboxedSpawnArgs` call for background/monitor, which are
+  short-lived). The pinned set is passed to `buildBwrapArgs` via a new
+  `pinnedGitDirs?: string[]` option. A mutated `.git` gitfile between commands
+  can no longer widen the writable surface — `buildBwrapArgs` uses the pinned
+  set, not a fresh re-read. Added `pinnedGitDirs` to `SandboxPolicy` and the
+  fail-closed/permissive factories.
+- **Parser tightened**: removed the `m` (multiline) flag; a gitfile must be a
+  single `gitdir: <path>` line (optional trailing newline). `junk\ngitdir: /target`
+  is now rejected. `HEAD` validation uses `lstatSync` + `isFile()` (not
+  `existsSync`), so a directory or symlink named `HEAD` is rejected.
+- **Mount dedup**: a `Set` across allowWrite + pinned git dirs in
+  `buildBwrapArgs` — a git dir that is also an explicit allowWrite entry binds
+  once.
+- **Comments tightened**: linked-worktree capability now documented as
+  "per-worktree metadata only" (no `commondir` follow).
+- **New security tests added** (6): mutated-gitfile-after-pinning cannot widen;
+  fresh-discovery-would-widen (negative control proving pinning is the defense);
+  multiline gitfile rejected; HEAD-as-directory rejected; denyRead precedence;
+  explicit-allowWrite-plus-discovery dedup.
+- **Files changed (re-impl)**: `sandbox-bwrap.ts` (helper tightened, `pinnedGitDirs`
+  option, dedup, removed per-command discovery), `sandbox.ts` (pin at
+  session_start, pass `pinnedGitDirs`), `sandbox-spawn.ts` (discover + pin per
+  spawn), `sandbox-file-policy.ts` (`pinnedGitDirs` on `SandboxPolicy`), tests.
+- **Verification**: `bun test` — 215 pass, 0 fail (192 baseline + 23 new).

@@ -9,6 +9,14 @@ export interface SandboxPolicy {
 	denyRead: string[];
 	denyWrite: string[];
 	allowWrite: string[];
+	/**
+	 * Pinned git directories discovered once at session_start (trusted init
+	 * state) for submodules/linked worktrees whose git dir lives outside the
+	 * working tree. Bound writable alongside allowWrite roots in buildBwrapArgs.
+	 * Empty for the fail-closed/permissive policies. Never re-discovered per
+	 * command — see discoverGitDirs for why.
+	 */
+	pinnedGitDirs: string[];
 	cwd: string;
 	networkMode: NetworkMode;
 	toolRules?: ToolRules;
@@ -20,6 +28,7 @@ export function createFailClosedPolicy(cwd: string): SandboxPolicy {
 		denyRead: ["/"],
 		denyWrite: ["/"],
 		allowWrite: [],
+		pinnedGitDirs: [],
 		cwd,
 		networkMode: "block",
 		toolRules: { default: "block", rules: {} },
@@ -32,6 +41,7 @@ export function createPermissivePolicy(cwd: string): SandboxPolicy {
 		denyRead: [],
 		denyWrite: [],
 		allowWrite: ["/"],
+		pinnedGitDirs: [],
 		cwd,
 		networkMode: "open",
 		toolRules: { default: "allow", rules: {} },
