@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-gitdir-writable-surface
 kind: feature
-stage: review
+stage: implementing
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -351,3 +351,77 @@ Add `discoverGitDirs` to the import from `./sandbox-bwrap`.
   (192 baseline + 17 new). The integration test reproduces the original
   reported case (submodule gitfile → out-of-tree git dir) and confirms
   `git add` + `git commit` now succeeds under the sandbox.
+
+## Review findings (deep review, cross-model: openai-codex/gpt-5.6-sol)
+
+Verdict: **Block** — bounced `review → implementing` to address a genuine
+security blocker before re-review.
+
+### Blocker — mutable gitfile permits writable-surface expansion between commands
+
+The `.git` gitfile lives in the writable working tree, and the initial
+implementation placed `discoverGitDirs` inside `buildBwrapArgs` (which runs
+**per bash command**). So an agent can: (1) overwrite `.git` with
+`gitdir: /home/user/other-repo/.git`, (2) run another bash command, (3) have
+`buildBwrapArgs` bind that other repo's git dir read-write (it has `HEAD`, so
+the check passes). The `HEAD` check only defends against `gitdir: /etc`, not
+against pointing at another real git repo — a confinement escape. It also
+creates policy divergence: `session_start` pins the original dir for file
+tools, while per-command bwrap discovery accepts the changed target.
+
+**Fix**: discovery must be **pinned trusted initialization state** computed once
+at `session_start`, not per-command re-authorization from a mutable file. The
+pinned set is passed into `buildBwrapArgs` (and `buildSandboxedSpawnArgs`) as an
+explicit argument, so a mutated `.git` between commands cannot widen the
+surface. The in-process layer already pins at `session_start` — the bwrap
+layer must match.
+
+### Important — parser accepts targets Git would reject
+
+`/^gitdir:\s*(.+)$/m` accepts `gitdir:` on a later line and lets `\s*` cross
+line boundaries; `existsSync(<target>/HEAD)` accepts a dir/symlink named `HEAD`.
+A file like `junk\ngitdir: /target` widens the surface. Tighten to the exact
+gitfile grammar (single line, `gitdir: ` prefix) and validate `HEAD` is a
+regular file.
+
+### Important — TOCTOU between validation and bwrap bind
+
+Target is canonicalized/checked, then passed by pathname to bwrap. A
+concurrent swap of the target or ancestor after validation but before bwrap
+resolves the bind source. Pinning discovery to session_start narrows the
+window to session start only (the existing hardlink guard's accepted residual).
+
+### Important — session_start integration not directly tested
+
+The in-process tests reconstruct the policy manually rather than exercising the
+registered session handler. Add a test that drives `session_start` and then a
+write against the discovered git dir.
+
+### Nit — cross-list mount dedup not implemented
+
+If the gitdir is explicitly in `allowWrite`, it's bound twice (once by
+`existingCanonicalMounts`, once by `discoverGitDirs`). Add a dedup `Set`.
+
+### Important — linked-worktree capability overstated
+
+Comments claim linked-worktree support, but only per-worktree metadata is
+mounted (no `commondir` follow). Tighten the wording to "per-worktree metadata
+only" and add a test documenting which operations succeed/fail.
+
+## Re-implementation plan (addressing review findings)
+
+1. **Pin discovery at session_start**: compute `discoveredGitDirs` once in
+   `session_start`, store on the policy. Pass the pinned set explicitly into
+   `buildBwrapArgs` via a new `pinnedGitDirs?: string[]` option (and
+   `buildSandboxedSpawnArgs` → `buildBwrapArgs`). Remove the per-command
+   `discoverGitDirs` call from `buildBwrapArgs`.
+2. **Tighten the gitfile parser**: single-line `gitdir: ` prefix only (no
+   multiline `m` flag); validate `HEAD` is a regular file (`lstatSync` +
+   `isFile()`), not just `existsSync`.
+3. **Dedup mounts**: a `Set` across allowWrite + pinned git dirs in
+   `buildBwrapArgs`.
+4. **Tighten comments**: "per-worktree metadata only" for linked worktrees.
+5. **Add tests**: mutate `.git` after init → second command cannot gain a new
+   writable path; point at another real git repo → not auto-authorized; reject
+   multiline gitfiles; `HEAD` as a dir → rejected; denyRead precedence for a
+   discovered gitdir; explicit allowWrite + discovery → one bind.
