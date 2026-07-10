@@ -10,6 +10,7 @@ import {
 	buildBwrapArgs,
 	buildMinimalEnv,
 	decidePlatformState,
+	discoverGitDirs,
 	findExecutableOnPath,
 	shouldBypassBashSandbox,
 	shouldBypassSandbox,
@@ -2482,6 +2483,181 @@ describe("buildBwrapArgs", () => {
 	});
 });
 
+describe("discoverGitDirs", () => {
+	test("returns the git dir for an allowWrite root with a .git gitfile pointing outside the root", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		// gitfile: relative gitdir path resolved against the working tree root
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+
+		const discovered = discoverGitDirs([workTree], cwd);
+		expect(discovered).toEqual([realpathSync(gitDir)]);
+	});
+
+	test("returns nothing for an allowWrite root with a .git directory (common case)", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".git"));
+		await writeFile(join(cwd, ".git", "HEAD"), "ref: refs/heads/main\n");
+
+		expect(discoverGitDirs(["."], cwd)).toEqual([]);
+	});
+
+	test("returns nothing for an allowWrite root with no .git", async () => {
+		const cwd = await makeTempDir();
+		expect(discoverGitDirs(["."], cwd)).toEqual([]);
+	});
+
+	test("rejects a .git file whose gitdir target has no HEAD file (malicious defense)", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+				// A path that exists but is not a git dir (no HEAD)
+		const notAGitDir = join(cwd, "not-a-git-dir");
+		await mkdir(notAGitDir);
+		await writeFile(join(workTree, ".git"), `gitdir: ${notAGitDir}\n`);
+
+		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+	});
+
+	test("rejects a .git file pointing at a non-existent path", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		await writeFile(join(workTree, ".git"), `gitdir: ${join(cwd, "does-not-exist")}\n`);
+
+		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+	});
+
+	test("resolves a relative gitdir path against the working tree root", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "sub");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "sub");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		// Relative path: from workTree, ../modules/sub
+		await writeFile(join(workTree, ".git"), "gitdir: ../modules/sub\n");
+
+		const discovered = discoverGitDirs([workTree], cwd);
+		expect(discovered).toEqual([realpathSync(gitDir)]);
+	});
+
+	test("dedupes when multiple allowWrite roots share a git dir", async () => {
+		const cwd = await makeTempDir();
+		const rootA = join(cwd, "a");
+		const rootB = join(cwd, "b");
+		await mkdir(rootA);
+		await mkdir(rootB);
+		const gitDir = join(cwd, "shared");
+		await mkdir(gitDir);
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(rootA, ".git"), `gitdir: ${gitDir}\n`);
+		await writeFile(join(rootB, ".git"), `gitdir: ${gitDir}\n`);
+
+		const discovered = discoverGitDirs([rootA, rootB], cwd);
+		expect(discovered).toEqual([realpathSync(gitDir)]);
+	});
+
+	test("skips a git dir that is already inside an allowWrite root", async () => {
+		// If the resolved gitdir is inside the working tree root, it's already
+		// covered by the root bind — no separate mount needed.
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		const innerGitDir = join(workTree, "inner-git");
+		await mkdir(innerGitDir);
+		await writeFile(join(innerGitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: inner-git\n`);
+
+		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+	});
+
+	test("ignores a .git file that is not a valid gitfile (no gitdir: prefix)", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		await writeFile(join(workTree, ".git"), "this is not a gitfile\n");
+
+		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+	});
+
+	test("buildBwrapArgs emits a --bind for a discovered submodule git dir", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+
+		expectSequence(args, ["--bind", realpathSync(gitDir), realpathSync(gitDir)]);
+	});
+
+	test("buildBwrapArgs emits no extra mount for a normal repo (.git directory)", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".git"));
+		await writeFile(join(cwd, ".git", "HEAD"), "ref: refs/heads/main\n");
+
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["."],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+
+		// The .git directory is inside cwd, already covered by the cwd bind.
+		// No separate --bind for the .git path should appear.
+		expect(sequenceIndex(args, ["--bind", join(cwd, ".git"), join(cwd, ".git")])).toBe(-1);
+	});
+
+	test("denyWrite precedence: a discovered git dir that is also denied is not writable", async () => {
+		// discoverGitDirs returns the git dir, but the deny overlay in buildBwrapArgs
+		// fires AFTER the allowWrite bind, so denyWrite wins — the git dir is bound
+		// read-only, not writable. This proves the security invariant holds.
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree],
+			denyRead: [],
+			denyWrite: [gitDir],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+
+		// The git dir is bound writable (allowWrite) then re-mounted read-only (denyWrite).
+		const bindIdx = sequenceIndex(args, ["--bind", realpathSync(gitDir), realpathSync(gitDir)]);
+		const roIdx = sequenceIndex(args, ["--ro-bind", realpathSync(gitDir), realpathSync(gitDir)]);
+		expect(bindIdx).toBeGreaterThanOrEqual(0);
+		expect(roIdx).toBeGreaterThanOrEqual(0);
+		expect(bindIdx).toBeLessThan(roIdx); // deny overlay fires after the bind
+	});
+});
+
 describe("bwrap integration", () => {
 	integrationTest("allowWrite permits configured writable roots", async () => {
 		const cwd = await makeTempDir();
@@ -2750,5 +2926,64 @@ socket.once("error", (error) => {
 
 		expect(result.exitCode).toBe(0);
 		expect(await readFile(join(outside, "secret-dir", "secret.txt"), "utf8")).toBe("secret");
+	});
+
+	integrationTest("git add + commit works inside a submodule working tree (the reported case)", async () => {
+		// Reproduces the original bug: a submodule's .git gitfile points outside
+		// the working tree, so git index/object writes failed under the sandbox.
+		// discoverGitDirs must auto-include the git dir in the writable surface.
+		const cwd = await makeTempDir();
+		// Build a real parent repo with a submodule-style layout: the working
+		// tree is a subdir, and its git dir lives under <parent>/.git/modules/<name>.
+		const parentGit = join(cwd, ".git");
+		await mkdir(join(parentGit, "modules", "library"), { recursive: true });
+		const subGitDir = join(parentGit, "modules", "library");
+		// Minimal valid git dir: HEAD + objects + refs
+		await writeFile(join(subGitDir, "HEAD"), "ref: refs/heads/main\n");
+		await mkdir(join(subGitDir, "objects"), { recursive: true });
+		await mkdir(join(subGitDir, "refs", "heads"), { recursive: true });
+		// The working tree
+		const workTree = join(cwd, "library");
+		await mkdir(workTree);
+		// gitfile pointing outside the working tree (relative, like git generates)
+		await writeFile(join(workTree, ".git"), "gitdir: ../.git/modules/library\n");
+		// A file to stage
+		await writeFile(join(workTree, "README.md"), "# library\n");
+
+		const result = runSandboxed(
+			"git add README.md && git commit -m 'init' --allow-empty-message >/dev/null 2>&1 && git rev-parse HEAD",
+			{
+				cwd: workTree,
+				configCwd: cwd,
+				allowWrite: [workTree],
+				denyRead: [],
+				denyWrite: [],
+				networkMode: "open",
+			},
+		);
+
+		expect(result.exitCode).toBe(0);
+		expect(text(result.stdout).trim()).toMatch(/^[0-9a-f]{40}$/);
+	});
+
+	integrationTest("git status works inside a normal repo (regression: no behavior change)", async () => {
+		// A normal repo (.git directory inside cwd) must not be affected by
+		// discovery — the .git dir is already inside the working tree bind.
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".git", "objects"), { recursive: true });
+		await mkdir(join(cwd, ".git", "refs", "heads"), { recursive: true });
+		await writeFile(join(cwd, ".git", "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(cwd, "file.txt"), "content\n");
+
+		const result = runSandboxed("git status --porcelain", {
+			cwd,
+			allowWrite: ["."],
+				denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(text(result.stdout).trim()).toBe("?? file.txt");
 	});
 });

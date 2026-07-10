@@ -34,6 +34,7 @@ import {
 	buildBwrapArgs,
 	buildMinimalEnv,
 	decidePlatformState,
+	discoverGitDirs,
 	resolveTrustedBwrap,
 	shouldBypassBashSandbox,
 	shouldBypassSandbox,
@@ -524,7 +525,13 @@ export default function (pi: ExtensionAPI) {
 		sandboxPolicy = {
 			denyRead,
 			denyWrite,
-			allowWrite: config.filesystem?.allowWrite ?? [],
+			// Augment allowWrite with auto-discovered git directories for submodules
+			// and linked worktrees whose `.git` gitfile points outside the working
+			// tree. discoverGitDirs validates the target (has HEAD) so a malicious
+			// `.git` file cannot widen the surface; denyWrite still takes precedence
+			// in enforceWritePolicy. Keeps the in-process file tools consistent with
+			// the bwrap layer (which binds the same paths in buildBwrapArgs).
+			allowWrite: [...(config.filesystem?.allowWrite ?? []), ...discoverGitDirs(config.filesystem?.allowWrite ?? [], ctx.cwd)],
 			cwd: ctx.cwd,
 			networkMode: netMode,
 			toolRules: config.tools,

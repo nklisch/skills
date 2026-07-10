@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync, mkdirSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { enforceDenyRead, enforceWritePolicy, type SandboxPolicy } from "./sandbox-file-policy";
+import { discoverGitDirs } from "./sandbox-bwrap";
 
 const tempDirs: string[] = [];
 
@@ -122,5 +123,60 @@ describe("allowWrite canonical target confinement", () => {
 		symlinkSync(join(allowedSub, "real.txt"), join(cwd, "link"));
 
 		expectWriteAllowed(join(cwd, "link"), cwd, policyFor(cwd, { allowWrite: ["."] }));
+	});
+});
+
+describe("discovered git dir in-process write policy", () => {
+	// Mirrors how session_start augments allowWrite with discoverGitDirs output:
+	// the policy's allowWrite is the config entries plus the discovered git dirs.
+	function policyWithDiscoveredGitDir(cwd: string, workTree: string, gitDir: string, overrides: Partial<SandboxPolicy> = {}): SandboxPolicy {
+		const discovered = discoverGitDirs([workTree], cwd);
+		return policyFor(cwd, { allowWrite: [workTree, ...discovered], ...overrides });
+	}
+
+	test("enforceWritePolicy allows writes to a discovered submodule git dir", () => {
+		const cwd = makeTempDir();
+		const workTree = join(cwd, "submodule");
+		mkdirSync(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		mkdirSync(gitDir, { recursive: true });
+		writeFileSync(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		writeFileSync(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+
+		const policy = policyWithDiscoveredGitDir(cwd, workTree, gitDir);
+		// A write into the git dir (e.g. git updating the index) must be allowed.
+		expect(() => enforceWritePolicy(join(realpathSync(gitDir), "index"), cwd, policy)).not.toThrow();
+	});
+
+	test("enforceWritePolicy blocks writes to a discovered git dir when it is in denyWrite", () => {
+		// denyWrite takes precedence over allowWrite in enforceWritePolicy, so even
+		// a discovered git dir is blocked when explicitly denied.
+		const cwd = makeTempDir();
+		const workTree = join(cwd, "submodule");
+		mkdirSync(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		mkdirSync(gitDir, { recursive: true });
+		writeFileSync(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		writeFileSync(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+
+		const policy = policyWithDiscoveredGitDir(cwd, workTree, gitDir, { denyWrite: [gitDir] });
+		expect(() => enforceWritePolicy(join(realpathSync(gitDir), "index"), cwd, policy)).toThrow(/denyWrite/);
+	});
+
+	test("without discovery, writes to an out-of-tree git dir are blocked (the bug)", () => {
+		// Regression guard: the original bug was that the git dir was outside
+		// allowWrite, so writes were rejected. This confirms discovery is what
+		// fixes it — the baseline policy (no discovery) still blocks.
+		const cwd = makeTempDir();
+		const workTree = join(cwd, "submodule");
+		mkdirSync(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		mkdirSync(gitDir, { recursive: true });
+		writeFileSync(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		writeFileSync(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+
+		// Baseline policy: allowWrite is just the work tree, no discovery.
+		const policy = policyFor(cwd, { allowWrite: [workTree] });
+		expect(() => enforceWritePolicy(join(realpathSync(gitDir), "index"), cwd, policy)).toThrow(/allowWrite/);
 	});
 });
