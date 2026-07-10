@@ -414,7 +414,10 @@ export function discoverGitDirs(allowWrite: string[], cwd: string): string[] {
 		if (stripped.includes("\n") || stripped.includes("\r")) continue;
 		const match = /^gitdir:[ \t]*(.+)$/.exec(stripped);
 		if (!match) continue;
-		const gitdirRaw = match[1].trim();
+		// Trim only spaces and tabs from the path, not all whitespace — `trim()`
+		// would also strip \v/\f which git's gitfile grammar does not produce and
+		// which could let a path with embedded vertical whitespace sneak past.
+		const gitdirRaw = match[1].replace(/^[ \t]+|[ \t]+$/g, "");
 		// Relative gitdir paths resolve against the gitfile's directory (the
 		// working tree root), matching git's resolution semantics.
 		const gitdir = isAbsolute(gitdirRaw) ? gitdirRaw : resolve(dirname(gitPath), gitdirRaw);
