@@ -2,7 +2,6 @@ import {
 	buildBwrapArgs,
 	buildMinimalEnv,
 	decidePlatformState,
-	discoverGitDirs,
 	findExecutableOnPath,
 	resolveTrustedBwrap,
 	type NetworkMode,
@@ -108,6 +107,15 @@ export interface SandboxSpawnOptions {
 	envAdd?: NodeJS.ProcessEnv;
 	/** Trusted base env for the wrapped command. bwrap lookup ignores PATH and uses sandbox.bwrapPath or the system allowlist. */
 	baseEnv?: NodeJS.ProcessEnv;
+	/**
+	 * Session-pinned git directories (trusted init state) to bind writable, for
+	 * submodules/linked worktrees whose git dir lives outside the working tree.
+	 * MUST be computed once at session start and passed in — never discovered
+	 * per spawn, because the `.git` gitfile is mutable and a per-spawn re-read
+	 * would let an agent widen the writable surface between commands. When
+	 * omitted, no git dirs are bound (the safe pre-feature default).
+	 */
+	pinnedGitDirs?: string[];
 	agentDir?: string;
 	platform?: NodeJS.Platform;
 	/** Test/diagnostic override for platform readiness; production callers should omit this. */
@@ -277,10 +285,6 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 
 	const bwrapExecutable = bwrapResolution.path;
 	const minimalEnv = buildMinimalEnv(normalEnv);
-	// Discover git dirs once for this spawn (background/monitor commands are
-	// short-lived, so this is init-time for the command, not per-command within
-	// a long session). Pinned into buildBwrapArgs rather than re-discovered.
-	const pinnedGitDirs = discoverGitDirs(loaded.config.filesystem?.allowWrite ?? [], configCwd);
 	try {
 		const args = [
 			...buildBwrapArgs({
@@ -289,7 +293,16 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 				denyRead: loaded.config.filesystem?.denyRead ?? [],
 				denyWrite: loaded.config.filesystem?.denyWrite ?? [],
 				allowWrite: loaded.config.filesystem?.allowWrite ?? [],
-				pinnedGitDirs,
+				// Git-dir discovery is NOT done per-spawn. The `.git` gitfile lives in
+				// the writable working tree, so a per-spawn discoverGitDirs would let
+			// an agent mutate it between commands to widen the writable surface
+				// (pointing it at another host repo's git dir, which passes the HEAD
+				// check). Git-dir bind-mounting for submodules is a session-start
+				// concern handled by the bash path's pinned policy; background/monitor
+				// commands that need git operations in a submodule should run via the
+				// sandboxed bash tool, which has the session-pinned git dirs. A caller
+				// with trusted pinned git dirs may pass them via opts.pinnedGitDirs.
+				pinnedGitDirs: opts.pinnedGitDirs,
 				networkMode,
 				env: minimalEnv,
 			}),
