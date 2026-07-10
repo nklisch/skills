@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-gitdir-writable-surface
 kind: feature
-stage: implementing
+stage: review
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -316,3 +316,38 @@ Add `discoverGitDirs` to the import from `./sandbox-bwrap`.
   per allowWrite root) on each command. Negligible for typical 1-2 root configs.
 
 <!-- Subsequent sections (Implementation Notes, etc.) accumulate as work progresses. -->
+
+## Implementation notes
+
+- **Files changed**:
+  - `plugins/pi-sandbox/extensions/sandbox-bwrap.ts` — added `discoverGitDirs()`
+    helper + `isWithinOrEqual()` local helper; integrated discovery into
+    `buildBwrapArgs` (git-dir `--bind` mounts emitted after allowWrite binds,
+    before deny overlays); added `readFileSync`/`relative` imports.
+  - `plugins/pi-sandbox/extensions/sandbox.ts` — `session_start` augments
+    `sandboxPolicy.allowWrite` with `discoverGitDirs()` output so the
+    in-process `read`/`write`/`edit` tools stay consistent with the bwrap
+    layer; added `discoverGitDirs` to the import.
+- **Tests added**:
+  - `sandbox.test.ts` — 11 unit tests in a new `discoverGitDirs` describe
+    block (helper behavior, malicious-defense, dedup, relative/absolute
+    gitdir, buildBwrapArgs integration, denyWrite precedence) + 2 bwrap
+    integration tests (real `git add`+`git commit` in a submodule working
+    tree; `git status` regression in a normal repo).
+  - `allowwrite-canonical.test.ts` — 3 in-process policy tests (write allowed
+    to discovered git dir; blocked when denyWrite; blocked without discovery
+    = the bug regression guard).
+- **Discrepancies from design**: none. The design's `isWithinOrEqual` was
+  noted as "already private in sandbox-file-policy.ts"; implemented as a local
+  copy in `sandbox-bwrap.ts` to avoid a circular import (sandbox-file-policy
+  imports from sandbox-bwrap), exactly as the design anticipated.
+- **Test integrity note**: one integration test assertion initially failed
+  because the regex `^[0-9a-f]{40}$` didn't account for the trailing newline
+  in `git rev-parse HEAD` output — the git operation itself succeeded. Fixed
+  the assertion (`.trim()` before match) in-session; this was a bad test, not
+  a code bug.
+- **Adjacent issues parked**: none.
+- **Verification**: `bun test` from `plugins/pi-sandbox/` — 209 pass, 0 fail
+  (192 baseline + 17 new). The integration test reproduces the original
+  reported case (submodule gitfile → out-of-tree git dir) and confirms
+  `git add` + `git commit` now succeeds under the sandbox.

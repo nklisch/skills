@@ -1,6 +1,6 @@
-import { accessSync, constants as fsConstants, existsSync, lstatSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { accessSync, constants as fsConstants, existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, delimiter, dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, delimiter, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { FILTER_DEFERRED_BACKLOG_ITEM } from "./sandbox-config";
 
 export type NetworkMode = "open" | "filter" | "block";
@@ -62,6 +62,21 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	assertNoHardlinkedDeniedFiles(opts.denyRead, opts.denyWrite, securityCwd);
 
 	for (const mount of existingCanonicalMounts(opts.allowWrite, securityCwd)) {
+		args.push("--bind", mount, mount);
+	}
+
+	// Auto-include a git working tree's metadata directory when it lives outside
+	// the allowWrite root — submodules and linked worktrees use a `.git` *file*
+	// (gitfile) pointing at `<parent>/.git/modules/<name>` or
+	// `.git/worktrees/<name>`, which sits on the read-only root outside the
+	// working-tree bind. Without this, working-tree writes succeed but every
+	// git index/object write (git add, git commit) fails. One level of
+	// gitfile indirection only; a linked worktree's `commondir` is not followed.
+	// The discovered path is still subject to denyRead/denyWrite precedence
+	// (the deny overlays below fire after these binds), and discoverGitDirs
+	// validates the target looks like a real git dir (has HEAD) so a malicious
+	// `.git` file pointing at an arbitrary host path cannot widen the surface.
+	for (const mount of discoverGitDirs(opts.allowWrite, securityCwd)) {
 		args.push("--bind", mount, mount);
 	}
 
@@ -310,6 +325,76 @@ function existingCanonicalMounts(rawPaths: string[], cwd: string): string[] {
 		mounts.push(canonical);
 	}
 	return mounts;
+}
+
+/** True if `target` is equal to or nested under `dir`. Handles dir/file equality. */
+function isWithinOrEqual(target: string, dir: string): boolean {
+	if (target === dir) return true;
+	const rel = relative(dir, target);
+	return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+}
+
+/**
+ * For each allowWrite root that is a git working tree whose git directory lives
+ * outside the root, discover and return the canonical git directory path.
+ *
+ * Covers submodules and linked worktrees, whose `.git` is a FILE (gitfile)
+ * containing `gitdir: <path>` pointing outside the working tree. A `.git`
+ * DIRECTORY inside the working tree (the common case) is already writable via
+ * the root bind and produces no additional path.
+ *
+ * One level of gitfile indirection only: the `gitdir:` target is resolved and
+ * validated, but a linked worktree's `commondir` file is NOT followed.
+ *
+ * Security: the resolved gitdir must contain a `HEAD` file (the same check git
+ * makes) before it is added. This rejects a malicious `.git` file pointing at
+ * an arbitrary host path (e.g. `gitdir: /etc`) — `/etc` has no `HEAD`, so the
+ * discovery refuses to widen the writable surface to it. The discovered path is
+ * still subject to denyRead/denyWrite precedence in both the bwrap and
+ * in-process layers.
+ */
+export function discoverGitDirs(allowWrite: string[], cwd: string): string[] {
+	const gitDirs: string[] = [];
+	const seen = new Set<string>();
+	for (const rawPath of allowWrite) {
+		const root = canonicalizeExistingPath(normalizeConfiguredPath(rawPath, cwd));
+		if (!root) continue;
+		const gitPath = join(root, ".git");
+		let st: ReturnType<typeof lstatSync>;
+		try {
+			st = lstatSync(gitPath);
+		} catch {
+			continue; // no .git — not a git working tree
+		}
+		// Only a `.git` FILE (gitfile) can point outside the root. A `.git`
+		// DIRECTORY is already inside the working tree and covered by the root
+		// bind. lstatSync (not statSync) so a symlinked `.git` is not followed.
+		if (!st.isFile()) continue;
+		let content: string;
+		try {
+			content = readFileSync(gitPath, "utf8").trim();
+		} catch {
+			continue;
+		}
+		const match = /^gitdir:\s*(.+)$/m.exec(content);
+		if (!match) continue;
+		const gitdirRaw = match[1].trim();
+		// Relative gitdir paths resolve against the gitfile's directory (the
+		// working tree root), matching git's resolution semantics.
+		const gitdir = isAbsolute(gitdirRaw) ? gitdirRaw : resolve(dirname(gitPath), gitdirRaw);
+		const canonical = canonicalizeExistingPath(gitdir);
+		if (!canonical || seen.has(canonical)) continue;
+		// Defense: the resolved path must look like a real git directory (has a
+		// HEAD file). Rejects a malicious `.git` file pointing at an arbitrary
+		// host path that happens to exist — without this, `gitdir: /etc` would
+		// make `/etc` writable.
+		if (!existsSync(join(canonical, "HEAD"))) continue;
+		// Skip if the git dir is already inside this allowWrite root (redundant).
+		if (isWithinOrEqual(canonical, root)) continue;
+		seen.add(canonical);
+		gitDirs.push(canonical);
+	}
+	return gitDirs;
 }
 
 interface DenyOverlay {
