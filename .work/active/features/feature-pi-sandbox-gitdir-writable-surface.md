@@ -454,3 +454,43 @@ only" and add a test documenting which operations succeed/fail.
   session_start, pass `pinnedGitDirs`), `sandbox-spawn.ts` (discover + pin per
   spawn), `sandbox-file-policy.ts` (`pinnedGitDirs` on `SandboxPolicy`), tests.
 - **Verification**: `bun test` — 215 pass, 0 fail (192 baseline + 23 new).
+
+## Re-review 2 findings (cross-model: openai-codex/gpt-5.5)
+
+Verdict: **Block** — the mutable-gitfile escape was closed for the bash path,
+but a residual blocker remained on the background/monitor path.
+
+### Blocker (residual) — background/monitor re-discovered git dirs per-spawn
+
+`buildSandboxedSpawnArgs` (used by `background`/`monitor`) still called
+`discoverGitDirs()` at each spawn. Since the `.git` gitfile is mutable and
+writable, an agent could mutate it between commands and then invoke
+`background`/`monitor` to have the spawn freshly discover and bind another
+host repo's git dir writable. "Short-lived" does not make this safe —
+authorization happens after attacker-controlled mutation within the same
+session.
+
+**Fix**: removed per-spawn `discoverGitDirs` from `buildSandboxedSpawnArgs`.
+Git-dir bind-mounting is now exclusively a session-start concern (the bash
+path's pinned policy). `buildSandboxedSpawnArgs` accepts an optional
+`pinnedGitDirs` parameter that a caller with trusted session-pinned state may
+pass; when omitted, no git dirs are bound (the safe pre-feature default).
+Background/monitor commands that need git operations in a submodule should run
+via the sandboxed bash tool, which has the session-pinned git dirs.
+
+### Important (newly found) — parser accepted CR via \s*
+
+`/^gitdir:\s*(.+)$/` let `\s*` consume a `\r`, so `gitdir:\r/target` could
+pass. Tightened to `/^gitdir:[ \t]*(.+)$/` (spaces/tabs only, not `\s`), and
+the line check now rejects any embedded `\r` or `\n` after stripping an
+optional trailing `\r?\n`. Added tests: CR-before-path rejected; trailing
+CRLF accepted.
+
+### Re-implementation notes (re-review 2)
+
+- **Files changed**: `sandbox-spawn.ts` (removed per-spawn discovery, added
+  `pinnedGitDirs` to `SandboxSpawnOptions`, removed unused import),
+  `sandbox-bwrap.ts` (parser tightened: `[ \t]*` not `\s*`, reject embedded
+  `\r`/`\n`), tests (CR-rejection + CRLF-acceptance).
+- **Verification**: `bun test` in pi-sandbox — 217 pass, 0 fail; `bun test` in
+  background-tasks — 77 pass, 0 fail.

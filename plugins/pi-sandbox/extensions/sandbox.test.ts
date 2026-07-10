@@ -2746,6 +2746,37 @@ describe("discoverGitDirs", () => {
 		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
 	});
 
+	test("rejects a gitfile with a CR before the path (gitdir:\\r/target)", async () => {
+		// \s* would consume a \r, letting `gitdir:\r/target` pass as path
+		// \r/target. The parser uses [ \t]* so a CR is not consumed and the
+		// match fails (the path would start with \r, which trim() removes,
+		// leaving an empty path — but the regex requires .+ after [ \t]*).
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		const target = join(cwd, "target");
+		await mkdir(target);
+		await writeFile(join(target, "HEAD"), "ref: refs/heads/main\n");
+		// CR between the colon and the path
+		await writeFile(join(workTree, ".git"), `gitdir:\r${target}\n`);
+
+		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+	});
+
+	test("accepts a gitfile with a trailing CRLF", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		// CRLF line ending (Windows-style) — should still parse
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\r\n`);
+
+		const discovered = discoverGitDirs([workTree], cwd);
+		expect(discovered).toEqual([realpathSync(gitDir)]);
+	});
+
 	test("denyRead precedence: a discovered git dir that is also denyRead is masked", async () => {
 		const cwd = await makeTempDir();
 		const workTree = join(cwd, "submodule");

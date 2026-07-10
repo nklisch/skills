@@ -402,14 +402,17 @@ export function discoverGitDirs(allowWrite: string[], cwd: string): string[] {
 			continue;
 		}
 		// Parse the exact gitfile grammar: a single line `gitdir: <path>` with an
-		// optional trailing newline. Git-generated gitfiles are exactly this
-		// shape. The `m` (multiline) flag is deliberately NOT used — a file like
+		// optional trailing CRLF/LF. Git-generated gitfiles are exactly this shape.
+		// The `m` (multiline) flag is deliberately NOT used — a file like
 		// `junk\ngitdir: /target` is not a valid gitfile and must not authorize.
-		// Trim a single trailing newline only, not interior whitespace, so a
-		// path with a leading/trailing space on the gitdir line is rejected.
-		const line = content.endsWith("\n") ? content.slice(0, -1) : content;
-		if (line.includes("\n")) continue; // multi-line content is not a valid gitfile
-		const match = /^gitdir:\s*(.+)$/.exec(line);
+		// Reject any embedded line terminator (\n or \r) after stripping an
+		// optional single trailing \r?\n, so `gitdir:\r/target` (where \s* would
+		// consume the \r) and multi-line content are both rejected. Use [ \t]*
+		// rather than \s* so only spaces/tabs separate the colon from the path —
+		// \s also matches \r/\n/v which would let a CR sneak past.
+		const stripped = content.replace(/\r?\n$/, "");
+		if (stripped.includes("\n") || stripped.includes("\r")) continue;
+		const match = /^gitdir:[ \t]*(.+)$/.exec(stripped);
 		if (!match) continue;
 		const gitdirRaw = match[1].trim();
 		// Relative gitdir paths resolve against the gitfile's directory (the
