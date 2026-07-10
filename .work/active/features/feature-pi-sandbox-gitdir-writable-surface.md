@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-gitdir-writable-surface
 kind: feature
-stage: drafting
+stage: implementing
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -60,11 +60,259 @@ work inside submodules and linked worktrees without operator hand-configuration.
   hardlink-alias / deny-precedence invariants that already span both layers apply
   to the discovered git dir too.
 
-## Design
+## Design decisions
 
-(to be filled by `feature-design` — discovery mechanism, security analysis,
-test plan, and the exact integration points in `buildBwrapArgs` and
-`session_start`)
+- **Indirection depth**: **one level only**. Resolve the `gitdir:` target and
+  add it to the writable surface. Covers submodules fully (the reported case)
+  and the per-worktree state of linked worktrees. A linked worktree's
+  `commondir` file (pointing back to the main repo's shared git dir) is NOT
+  followed — that's a rarer case and the operator can add the common dir to
+  `allowWrite` explicitly if they hit it.
+- **Malicious `.git` file defense**: validate that the resolved gitdir looks
+  like a real git directory (has a `HEAD` file) before adding it to the
+  writable surface. This is the same check git itself makes. Without it, a
+  planted `.git` file containing `gitdir: /etc` would make `/etc` writable —
+  a real escalation. The `HEAD` check closes this: `/etc` has no `HEAD` file,
+  so the discovery rejects it.
+- **Discovery placement**: a single shared `discoverGitDirs(allowWrite, cwd)`
+  helper in `sandbox-bwrap.ts` (SSOT), called from both `buildBwrapArgs`
+  (bwrap layer) and `session_start` (in-process layer). This keeps both
+  surfaces consistent and reuses the existing deny-precedence invariants.
+- **Child stories**: none. Single-stride implementation, tight cohesion — the
+  helper must exist before the integration points, and every test exercises
+  the integrated whole. Stories would be pure overhead here.
 
-<!-- Subsequent sections (Design, Implementation Notes, etc.) accumulate as
-work progresses. -->
+## Architectural choice
+
+**Shared discovery helper, two consumers.** A single `discoverGitDirs()`
+function in `sandbox-bwrap.ts` (alongside the existing `canonicalizeExistingPath`
+and `normalizeConfiguredPath` helpers it builds on) is called from:
+
+1. `buildBwrapArgs` — adds discovered git dirs as `--bind` mounts, right after
+   the allowWrite binds and before the deny overlays (preserving the existing
+   security-critical overlay order: root ro → allowWrite binds → deny overlays →
+   network).
+2. `session_start` in `sandbox.ts` — augments `sandboxPolicy.allowWrite` with
+   discovered git dirs so the in-process `enforceWritePolicy` (used by the
+   `read`/`write`/`edit` tools) allows writes there too.
+
+The `buildSandboxedSpawnArgs` path in `sandbox-spawn.ts` is covered
+automatically — it delegates to `buildBwrapArgs`.
+
+**Why not augment `policy.allowWrite` only and let `buildBwrapArgs` inherit?**
+Because `buildSandboxedSpawnArgs` passes raw config (`loaded.config.filesystem?.allowWrite`),
+not the augmented policy. Putting discovery inside `buildBwrapArgs` covers both
+bash call sites uniformly; augmenting the policy covers the in-process file
+tools. Both are needed. The double-discovery that results when
+`createSandboxedBashOps` passes the (already-augmented) `policy.allowWrite` to
+`buildBwrapArgs` is harmless: `discoverGitDirs` looks for `<root>/.git` on each
+entry, and a git-dir entry has no `.git` child, so it returns nothing — no
+duplicate mounts.
+
+## Implementation Units
+
+### Unit 1: `discoverGitDirs` helper
+**File**: `plugins/pi-sandbox/extensions/sandbox-bwrap.ts`
+
+```typescript
+/**
+ * For each allowWrite root that is a git working tree whose git directory lives
+ * outside the root, discover and return the canonical git directory path.
+ *
+ * Covers submodules and linked worktrees, whose `.git` is a FILE (gitfile)
+ * containing `gitdir: <path>` pointing outside the working tree. A `.git`
+ * DIRECTORY inside the working tree (the common case) is already writable via
+ * the root bind and produces no additional path.
+ *
+ * One level of gitfile indirection only: the `gitdir:` target is resolved and
+ * validated, but a linked worktree's `commondir` file is NOT followed.
+ *
+ * Security: the resolved gitdir must contain a `HEAD` file (the same check git
+ * makes) before it is added. This rejects a malicious `.git` file pointing at
+ * an arbitrary host path (e.g. `gitdir: /etc`) — `/etc` has no `HEAD`, so the
+ * discovery refuses to widen the writable surface to it. The discovered path is
+ * still subject to denyRead/denyWrite precedence in both layers.
+ */
+export function discoverGitDirs(allowWrite: string[], cwd: string): string[] {
+	const gitDirs: string[] = [];
+	const seen = new Set<string>();
+	for (const rawPath of allowWrite) {
+		const root = canonicalizeExistingPath(normalizeConfiguredPath(rawPath, cwd));
+		if (!root) continue;
+		const gitPath = join(root, ".git");
+		let st: ReturnType<typeof lstatSync>;
+		try {
+			st = lstatSync(gitPath);
+		} catch {
+			continue; // no .git — not a git working tree
+		}
+		if (!st.isFile()) continue; // .git directory → already inside the root bind
+		let content: string;
+		try {
+			content = readFileSync(gitPath, "utf8").trim();
+		} catch {
+			continue;
+		}
+		const match = /^gitdir:\s*(.+)$/m.exec(content);
+		if (!match) continue;
+		const gitdirRaw = match[1].trim();
+		const gitdir = isAbsolute(gitdirRaw) ? gitdirRaw : resolve(dirname(gitPath), gitdirRaw);
+		const canonical = canonicalizeExistingPath(gitdir);
+		if (!canonical || seen.has(canonical)) continue;
+		// Defense: the resolved path must look like a real git directory (has HEAD).
+		// Rejects a malicious .git file pointing at an arbitrary host path.
+		if (!existsSync(join(canonical, "HEAD"))) continue;
+		// Skip if the git dir is already inside this allowWrite root (redundant).
+		if (isWithinOrEqual(canonical, root)) continue;
+		seen.add(canonical);
+		gitDirs.push(canonical);
+	}
+	return gitDirs;
+}
+```
+
+**Implementation Notes**:
+- Uses `lstatSync` (not `statSync`) so a `.git` symlink is not followed — a
+  symlinked `.git` is unusual and should not trigger discovery.
+- The `gitdir:` regex uses `^...$m` (multiline) and `.trim()` to handle trailing
+  whitespace/CR. Git-generated gitfiles are a single line, but be robust.
+- Relative `gitdir:` paths resolve against `dirname(gitPath)` (the working tree
+  root), matching git's resolution semantics.
+- `isWithinOrEqual` is a small helper (already private in `sandbox-file-policy.ts`;
+  add a local copy or export a shared one — see Unit 2).
+- New imports needed in `sandbox-bwrap.ts`: `readFileSync`, `existsSync` from
+  `node:fs`; `relative` from `node:path` (for `isWithinOrEqual`).
+
+**Acceptance Criteria**:
+- [ ] Returns the canonical git dir for an allowWrite root with a `.git` gitfile pointing outside the root
+- [ ] Returns nothing for an allowWrite root with a `.git` directory (common case)
+- [ ] Returns nothing for an allowWrite root with no `.git`
+- [ ] Rejects a `.git` file whose `gitdir:` target has no `HEAD` file (malicious defense)
+- [ ] Resolves relative `gitdir:` paths against the working tree root
+- [ ] Resolves absolute `gitdir:` paths as-is
+- [ ] Dedupes when multiple allowWrite roots point to the same git dir
+- [ ] Skips a git dir that is already inside an allowWrite root
+
+---
+
+### Unit 2: Integrate discovery into `buildBwrapArgs`
+**File**: `plugins/pi-sandbox/extensions/sandbox-bwrap.ts`
+
+```typescript
+// In buildBwrapArgs, replace:
+//   for (const mount of existingCanonicalMounts(opts.allowWrite, securityCwd)) {
+//       args.push("--bind", mount, mount);
+//   }
+// with:
+const allowWriteMounts = existingCanonicalMounts(opts.allowWrite, securityCwd);
+const gitDirMounts = discoverGitDirs(opts.allowWrite, securityCwd);
+const mounted = new Set<string>();
+for (const mount of [...allowWriteMounts, ...gitDirMounts]) {
+    if (mounted.has(mount)) continue;
+    mounted.add(mount);
+    args.push("--bind", mount, mount);
+}
+```
+
+Also add a local `isWithinOrEqual` helper (or export the one from
+`sandbox-file-policy.ts` — but to avoid a circular import since
+`sandbox-file-policy.ts` imports from `sandbox-bwrap.ts`, define a small local
+copy in `sandbox-bwrap.ts`):
+
+```typescript
+function isWithinOrEqual(target: string, dir: string): boolean {
+    if (target === dir) return true;
+    const rel = relative(dir, target);
+    return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+}
+```
+
+**Implementation Notes**:
+- The git dir binds are emitted after the allowWrite binds and before the deny
+  overlays, preserving the security-critical overlay order verified by the
+  existing test "emits mounts in security-critical overlay order".
+- The `mounted` Set dedupes across the two lists (a git dir that is also an
+  explicit allowWrite entry is bound once).
+
+**Acceptance Criteria**:
+- [ ] A submodule working tree's git dir appears as a `--bind` mount in the bwrap args
+- [ ] The deny overlays still fire after the git dir bind (deny wins)
+- [ ] A normal repo (`.git` directory inside cwd) produces no extra mount
+
+---
+
+### Unit 3: Integrate discovery into `session_start` in-process policy
+**File**: `plugins/pi-sandbox/extensions/sandbox.ts`
+
+```typescript
+// In session_start, where sandboxPolicy is built, augment allowWrite:
+const configAllowWrite = config.filesystem?.allowWrite ?? [];
+sandboxPolicy = {
+    denyRead,
+    denyWrite,
+    allowWrite: [...configAllowWrite, ...discoverGitDirs(configAllowWrite, ctx.cwd)],
+    cwd: ctx.cwd,
+    networkMode: netMode,
+    toolRules: config.tools,
+};
+```
+
+Add `discoverGitDirs` to the import from `./sandbox-bwrap`.
+
+**Implementation Notes**:
+- `enforceWritePolicy` checks `denyWrite` before `allowWrite`, so a denied git
+  dir is still blocked even after augmentation.
+- The augmented `allowWrite` contains canonical absolute paths (from
+  `discoverGitDirs`) mixed with raw config strings. `isWithinAllowWrite` →
+  `normalizePathForCheck` canonicalizes each entry, so the mix is safe.
+- When `createSandboxedBashOps` passes this augmented `policy.allowWrite` to
+  `buildBwrapArgs`, `discoverGitDirs` runs again but finds no `.git` inside the
+  git-dir entries → no duplicate mounts.
+
+**Acceptance Criteria**:
+- [ ] `enforceWritePolicy` allows writes to a discovered submodule git dir
+- [ ] `enforceWritePolicy` still blocks writes to a denied path even if discovered
+- [ ] The `read`/`write`/`edit` tools can write into the git dir (consistency with bash)
+
+## Implementation Order
+1. Unit 1: `discoverGitDirs` helper (no integration yet)
+2. Unit 2: `buildBwrapArgs` integration (bwrap layer)
+3. Unit 3: `session_start` integration (in-process layer)
+4. Tests (unit + integration)
+
+## Testing
+### Unit Tests: `plugins/pi-sandbox/extensions/sandbox.test.ts` (buildBwrapArgs block)
+- Gitfile pointing outside root → git dir appears as `--bind` mount
+- `.git` directory (common case) → no extra mount
+- No `.git` → no extra mount
+- Gitfile pointing to a denied path → deny overlay wins (git dir not writable)
+- Gitfile pointing to a non-git dir (no `HEAD`) → not added (malicious defense)
+- Relative `gitdir:` path resolves against working tree root
+- Absolute `gitdir:` path works
+- Dedupes across multiple allowWrite roots sharing a git dir
+
+### Unit Tests: `plugins/pi-sandbox/extensions/allowwrite-canonical.test.ts` (in-process policy)
+ `enforceWritePolicy` allows write to discovered git dir when allowWrite includes the working tree
+- `enforceWritePolicy` blocks write to git dir when it's in denyWrite
+
+### Integration Tests: `plugins/pi-sandbox/extensions/sandbox.test.ts` (bwrap integration block)
+- Actual `git add` + `git commit` works inside a submodule working tree (the reported case)
+- `git status` / `git log` work inside a normal repo (regression — no behavior change)
+- A gitfile pointing at a path with no `HEAD` does NOT become writable
+
+## Risks
+- **Malicious `.git` file escalation** — mitigated by the `HEAD` check in
+  `discoverGitDirs`. A planted `.git` file pointing at `/etc` is rejected
+  because `/etc/HEAD` does not exist. Residual: a path that happens to contain
+  a `HEAD` file (e.g. another git repo) would be made writable — but that
+  requires pre-planting the `.git` file with write access before the session,
+  and the operator's denyRead/denyWrite config is the backstop.
+- **`commondir` not followed** — linked worktrees whose shared ref/object writes
+  go through the common dir may still fail. Documented as a known limitation;
+  operator can add the common dir to `allowWrite` explicitly. One-level
+  discovery was the confirmed scope decision.
+- **Per-command discovery cost** — `buildBwrapArgs` runs per bash command, so
+  `discoverGitDirs` does a small amount of filesystem I/O (lstat + readfile
+  per allowWrite root) on each command. Negligible for typical 1-2 root configs.
+
+<!-- Subsequent sections (Implementation Notes, etc.) accumulate as work progresses. -->
