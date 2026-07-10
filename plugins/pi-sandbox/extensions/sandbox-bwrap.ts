@@ -13,6 +13,18 @@ export interface BuildBwrapArgsOptions {
 	denyRead: string[];
 	denyWrite: string[];
 	allowWrite: string[];
+	/**
+	 * Pinned git directories discovered at session_start (trusted init state).
+	 * These are bound writable alongside allowWrite roots so git operations
+	 * work inside submodules/linked worktrees whose git dir lives outside the
+	 * working tree. MUST be computed once at init and passed in — never
+	 * re-discovered per command, because the `.git` gitfile lives in the
+	 * writable working tree and a per-command re-read would let an agent mutate
+	 * it between commands to widen the writable surface (pointing it at another
+	 * host repo's git dir, which passes the HEAD check). Pinning to init makes
+	 * the authorization derive from trusted startup state, not mutable files.
+	 */
+	pinnedGitDirs?: string[];
 	networkMode: NetworkMode;
 	env?: NodeJS.ProcessEnv;
 }
@@ -61,23 +73,25 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	// must break the hardlink (copy the file) or remove it from the deny list.
 	assertNoHardlinkedDeniedFiles(opts.denyRead, opts.denyWrite, securityCwd);
 
+	// Bind the allowWrite roots and the pinned git dirs writable. The git dirs
+	// are pinned trusted init state (discovered once at session_start), NOT
+	// re-discovered here — the `.git` gitfile lives in the writable working tree,
+	// so a per-command re-read would let an agent mutate it between commands to
+	// widen the writable surface (e.g. point it at another host repo's git dir,
+	// which passes the HEAD check). Dedup across both lists so a git dir that is
+	// also an explicit allowWrite entry is bound once. The deny overlays below
+	// fire after these binds, so denyRead/denyWrite precedence is preserved.
+	const writableMounts = new Set<string>();
 	for (const mount of existingCanonicalMounts(opts.allowWrite, securityCwd)) {
+		if (writableMounts.has(mount)) continue;
+		writableMounts.add(mount);
 		args.push("--bind", mount, mount);
 	}
-
-	// Auto-include a git working tree's metadata directory when it lives outside
-	// the allowWrite root — submodules and linked worktrees use a `.git` *file*
-	// (gitfile) pointing at `<parent>/.git/modules/<name>` or
-	// `.git/worktrees/<name>`, which sits on the read-only root outside the
-	// working-tree bind. Without this, working-tree writes succeed but every
-	// git index/object write (git add, git commit) fails. One level of
-	// gitfile indirection only; a linked worktree's `commondir` is not followed.
-	// The discovered path is still subject to denyRead/denyWrite precedence
-	// (the deny overlays below fire after these binds), and discoverGitDirs
-	// validates the target looks like a real git dir (has HEAD) so a malicious
-	// `.git` file pointing at an arbitrary host path cannot widen the surface.
-	for (const mount of discoverGitDirs(opts.allowWrite, securityCwd)) {
-		args.push("--bind", mount, mount);
+	for (const mount of opts.pinnedGitDirs ?? []) {
+		const canonical = canonicalizeExistingPath(mount);
+		if (!canonical || writableMounts.has(canonical)) continue;
+		writableMounts.add(canonical);
+		args.push("--bind", canonical, canonical);
 	}
 
 	for (const mount of existingDenyOverlays(opts.denyRead, opts.denyWrite, securityCwd)) {
@@ -344,14 +358,25 @@ function isWithinOrEqual(target: string, dir: string): boolean {
  * the root bind and produces no additional path.
  *
  * One level of gitfile indirection only: the `gitdir:` target is resolved and
- * validated, but a linked worktree's `commondir` file is NOT followed.
+ * validated, but a linked worktree's `commondir` file is NOT followed — so a
+ * linked worktree gets per-worktree metadata access only (HEAD, index,
+ * per-worktree refs/logs). Shared object/ref writes that go through the
+ * common dir are not covered; an operator who needs them adds the common dir
+ * to allowWrite explicitly.
  *
- * Security: the resolved gitdir must contain a `HEAD` file (the same check git
- * makes) before it is added. This rejects a malicious `.git` file pointing at
- * an arbitrary host path (e.g. `gitdir: /etc`) — `/etc` has no `HEAD`, so the
- * discovery refuses to widen the writable surface to it. The discovered path is
- * still subject to denyRead/denyWrite precedence in both the bwrap and
- * in-process layers.
+ * MUST be called once at session_start (trusted init state) and the result
+ * pinned — never re-discovered per command. The `.git` gitfile lives in the
+ * writable working tree, so a per-command re-read would let an agent mutate it
+ * between commands to widen the writable surface (e.g. point it at another
+ * host repo's git dir, which passes the HEAD check). Pinning to init makes the
+ * authorization derive from trusted startup state, not mutable files.
+ *
+ * Security: the resolved gitdir must contain a `HEAD` regular file (the same
+ * check git makes) before it is added. This rejects a malicious `.git` file
+ * pointing at an arbitrary host path (e.g. `gitdir: /etc`) — `/etc` has no
+ * `HEAD` file, so the discovery refuses to widen the writable surface to it.
+ * The discovered path is still subject to denyRead/denyWrite precedence in
+ * both the bwrap and in-process layers.
  */
 export function discoverGitDirs(allowWrite: string[], cwd: string): string[] {
 	const gitDirs: string[] = [];
@@ -372,11 +397,19 @@ export function discoverGitDirs(allowWrite: string[], cwd: string): string[] {
 		if (!st.isFile()) continue;
 		let content: string;
 		try {
-			content = readFileSync(gitPath, "utf8").trim();
+			content = readFileSync(gitPath, "utf8");
 		} catch {
 			continue;
 		}
-		const match = /^gitdir:\s*(.+)$/m.exec(content);
+		// Parse the exact gitfile grammar: a single line `gitdir: <path>` with an
+		// optional trailing newline. Git-generated gitfiles are exactly this
+		// shape. The `m` (multiline) flag is deliberately NOT used — a file like
+		// `junk\ngitdir: /target` is not a valid gitfile and must not authorize.
+		// Trim a single trailing newline only, not interior whitespace, so a
+		// path with a leading/trailing space on the gitdir line is rejected.
+		const line = content.endsWith("\n") ? content.slice(0, -1) : content;
+		if (line.includes("\n")) continue; // multi-line content is not a valid gitfile
+		const match = /^gitdir:\s*(.+)$/.exec(line);
 		if (!match) continue;
 		const gitdirRaw = match[1].trim();
 		// Relative gitdir paths resolve against the gitfile's directory (the
@@ -384,11 +417,19 @@ export function discoverGitDirs(allowWrite: string[], cwd: string): string[] {
 		const gitdir = isAbsolute(gitdirRaw) ? gitdirRaw : resolve(dirname(gitPath), gitdirRaw);
 		const canonical = canonicalizeExistingPath(gitdir);
 		if (!canonical || seen.has(canonical)) continue;
-		// Defense: the resolved path must look like a real git directory (has a
-		// HEAD file). Rejects a malicious `.git` file pointing at an arbitrary
-		// host path that happens to exist — without this, `gitdir: /etc` would
-		// make `/etc` writable.
-		if (!existsSync(join(canonical, "HEAD"))) continue;
+		// Defense: the resolved path must look like a real git directory — it must
+		// be a directory containing a `HEAD` regular file (the same check git
+		// makes). existsSync alone is too weak: it follows symlinks and is true
+		// for a directory or symlink named HEAD. Rejects a malicious `.git` file
+		// pointing at an arbitrary host path that happens to exist — without this,
+		// `gitdir: /etc` would make `/etc` writable.
+		let headSt: ReturnType<typeof lstatSync>;
+		try {
+			headSt = lstatSync(join(canonical, "HEAD"));
+		} catch {
+			continue; // no HEAD — not a git directory
+		}
+		if (!headSt.isFile()) continue; // HEAD must be a regular file
 		// Skip if the git dir is already inside this allowWrite root (redundant).
 		if (isWithinOrEqual(canonical, root)) continue;
 		seen.add(canonical);

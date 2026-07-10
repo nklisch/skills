@@ -2593,18 +2593,20 @@ describe("discoverGitDirs", () => {
 		await mkdir(gitDir, { recursive: true });
 		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
 		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+		const canonicalGitDir = realpathSync(gitDir);
 
 		const args = buildBwrapArgs({
 			cwd: workTree,
 			configCwd: cwd,
 			allowWrite: [workTree],
+			pinnedGitDirs: discoverGitDirs([workTree], cwd),
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
 			env: { PATH: "/usr/bin" },
 		});
 
-		expectSequence(args, ["--bind", realpathSync(gitDir), realpathSync(gitDir)]);
+		expectSequence(args, ["--bind", canonicalGitDir, canonicalGitDir]);
 	});
 
 	test("buildBwrapArgs emits no extra mount for a normal repo (.git directory)", async () => {
@@ -2638,11 +2640,13 @@ describe("discoverGitDirs", () => {
 		await mkdir(gitDir, { recursive: true });
 		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
 		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+		const canonicalGitDir = realpathSync(gitDir);
 
 		const args = buildBwrapArgs({
 			cwd: workTree,
 			configCwd: cwd,
 			allowWrite: [workTree],
+			pinnedGitDirs: discoverGitDirs([workTree], cwd),
 			denyRead: [],
 			denyWrite: [gitDir],
 			networkMode: "open",
@@ -2650,11 +2654,153 @@ describe("discoverGitDirs", () => {
 		});
 
 		// The git dir is bound writable (allowWrite) then re-mounted read-only (denyWrite).
-		const bindIdx = sequenceIndex(args, ["--bind", realpathSync(gitDir), realpathSync(gitDir)]);
-		const roIdx = sequenceIndex(args, ["--ro-bind", realpathSync(gitDir), realpathSync(gitDir)]);
+		const bindIdx = sequenceIndex(args, ["--bind", canonicalGitDir, canonicalGitDir]);
+		const roIdx = sequenceIndex(args, ["--ro-bind", canonicalGitDir, canonicalGitDir]);
 		expect(bindIdx).toBeGreaterThanOrEqual(0);
 		expect(roIdx).toBeGreaterThanOrEqual(0);
 		expect(bindIdx).toBeLessThan(roIdx); // deny overlay fires after the bind
+	});
+
+	test("a mutated .git gitfile after pinning cannot widen the writable surface (security)", async () => {
+		// The core security property: discovery is PINNED at init (session_start),
+		// not re-read per command. So an agent that overwrites `.git` to point at
+		// another host repo's git dir between commands cannot gain a new writable
+		// path — buildBwrapArgs uses the pinned set, not a fresh discoverGitDirs.
+		// This test simulates the pin: discover once, then mutate the gitfile, and
+		// confirm buildBwrapArgs (with the pinned set) does NOT bind the new target.
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		// Original legit git dir
+		const origGitDir = join(cwd, "modules", "orig");
+		await mkdir(origGitDir, { recursive: true });
+		await writeFile(join(origGitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${origGitDir}\n`);
+		// Pinned at init:
+		const pinned = discoverGitDirs([workTree], cwd);
+		expect(pinned).toEqual([realpathSync(origGitDir)]);
+
+		// Attacker mutates .git to point at a DIFFERENT real git repo (has HEAD)
+		const otherRepo = join(cwd, "other-repo");
+		await mkdir(otherRepo);
+		await mkdir(join(otherRepo, ".git"), { recursive: true });
+		await writeFile(join(otherRepo, ".git", "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${join(otherRepo, ".git")}\n`);
+
+		// buildBwrapArgs uses the PINNED set, not a fresh discovery. The other
+		// repo's git dir must NOT appear as a bind — only the original does.
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree],
+			pinnedGitDirs: pinned,
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+		expectSequence(args, ["--bind", realpathSync(origGitDir), realpathSync(origGitDir)]);
+		expect(sequenceIndex(args, ["--bind", realpathSync(join(otherRepo, ".git")), realpathSync(join(otherRepo, ".git"))])).toBe(-1);
+	});
+
+	test("a fresh discoverGitDirs after mutation WOULD widen (proving pinning is the defense)", async () => {
+		// Negative control: if discovery were per-command (the old design), the
+		// mutated gitfile WOULD be picked up. This test documents WHY pinning
+		// matters — it's the regression guard for the security fix.
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		const otherRepo = join(cwd, "other-repo");
+		await mkdir(otherRepo);
+		await mkdir(join(otherRepo, ".git"), { recursive: true });
+		await writeFile(join(otherRepo, ".git", "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${join(otherRepo, ".git")}\n`);
+
+		// A fresh discoverGitDirs (the per-command shape we do NOT use) picks it up.
+		expect(discoverGitDirs([workTree], cwd)).toEqual([realpathSync(join(otherRepo, ".git"))]);
+	});
+
+	test("rejects a multiline gitfile (junk\\ngitdir: /target)", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		const target = join(cwd, "target");
+		await mkdir(target);
+		await writeFile(join(target, "HEAD"), "ref: refs/heads/main\n");
+		// Not a valid gitfile: content before the gitdir line
+		await writeFile(join(workTree, ".git"), `junk\ngitdir: ${target}\n`);
+
+		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+	});
+
+	test("rejects a gitdir target whose HEAD is a directory, not a regular file", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		const target = join(cwd, "target");
+		await mkdir(target);
+		// HEAD is a directory, not a file — not a real git dir
+		await mkdir(join(target, "HEAD"));
+		await writeFile(join(workTree, ".git"), `gitdir: ${target}\n`);
+
+		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+	});
+
+	test("denyRead precedence: a discovered git dir that is also denyRead is masked", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+		const canonicalGitDir = realpathSync(gitDir);
+
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree],
+			pinnedGitDirs: discoverGitDirs([workTree], cwd),
+			denyRead: [gitDir],
+			denyWrite: [],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+
+		// denyRead on the git dir masks it with tmpfs (it's a directory), so the
+		// writable bind is overridden. The tmpfs overlay must fire after the bind.
+		const bindIdx = sequenceIndex(args, ["--bind", canonicalGitDir, canonicalGitDir]);
+		const tmpfsIdx = sequenceIndex(args, ["--tmpfs", canonicalGitDir]);
+		expect(bindIdx).toBeGreaterThanOrEqual(0);
+		expect(tmpfsIdx).toBeGreaterThanOrEqual(0);
+		expect(bindIdx).toBeLessThan(tmpfsIdx);
+	});
+
+	test("explicit allowWrite of the git dir plus pinned discovery binds it once (dedup)", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+		const canonicalGitDir = realpathSync(gitDir);
+
+		// The git dir is BOTH an explicit allowWrite entry AND in pinnedGitDirs.
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree, gitDir],
+			pinnedGitDirs: discoverGitDirs([workTree], cwd),
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+
+		// Exactly one --bind for the git dir, not two.
+		const bindCount = args.filter((_, i) => args[i] === "--bind" && args[i + 1] === canonicalGitDir).length;
+		expect(bindCount).toBe(1);
 	});
 });
 
@@ -2956,6 +3102,7 @@ socket.once("error", (error) => {
 				cwd: workTree,
 				configCwd: cwd,
 				allowWrite: [workTree],
+				pinnedGitDirs: discoverGitDirs([workTree], cwd),
 				denyRead: [],
 				denyWrite: [],
 				networkMode: "open",
