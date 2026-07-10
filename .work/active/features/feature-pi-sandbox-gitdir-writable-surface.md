@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-gitdir-writable-surface
 kind: feature
-stage: review
+stage: done
 tags: [security, sandbox]
 parent: null
 depends_on: []
@@ -494,3 +494,27 @@ CRLF accepted.
   `\r`/`\n`), tests (CR-rejection + CRLF-acceptance).
 - **Verification**: `bun test` in pi-sandbox — 217 pass, 0 fail; `bun test` in
   background-tasks — 77 pass, 0 fail.
+
+## Re-review 3 findings (cross-model: openai-codex/gpt-5.6-terra)
+
+Verdict: **Approve with comments** — the mutable-gitfile escape is fully
+closed on all command paths (bash, background, monitor). One low-severity nit.
+
+### Nit — `match[1].trim()` accepted vertical whitespace
+
+`trim()` strips `\v`/`\f` which git's gitfile grammar does not produce.
+Tightened to `replace(/^[ \t]+|[ \t]+$/g, "")` so only spaces/tabs are trimmed
+from the path, matching the `[ \t]*` separator. (Non-blocking: discovery is
+session-start-only and a trusted-start valid gitfile could already name the
+path.)
+
+### Security assessment (reviewer's)
+- The mutable-gitfile escape is closed on bash, background, and monitor paths.
+  Runtime `buildBwrapArgs` callers pass pinned state; background/monitor omit it
+  and therefore bind no git dir.
+- `HEAD` uses `lstatSync(...).isFile()`. Gitdir symlinks resolve to their
+  canonical target; acceptable under the trusted-session-start model.
+- Deny overlays still follow writable binds; dedup works.
+- The remaining pathname TOCTOU is the accepted host-concurrent-swap residual.
+
+**Item advanced to `stage: done`.**
