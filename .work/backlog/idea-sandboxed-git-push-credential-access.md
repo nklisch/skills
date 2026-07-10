@@ -120,6 +120,39 @@ tool follows the same pattern.
 - Does `bump-version.sh`'s auto-push step get reworked to call the tool instead
   of `git push` through sandboxed bash?
 
+### DESIGN DIRECTION (2026-07-10): operator-tuned config scoping, standalone extension
+
+The behavioral scoping (current-branch/origin-only) must NOT be hardcoded — it
+is an operator configuration surface, matching how the sandbox itself lets the
+operator tune `denyRead`/`denyWrite`/`allowWrite` to their risk appetite.
+
+**Config dimensions** (operator picks a point on the spectrum):
+- allowed subcommands (push/fetch/pull/clone — the *network* git ops; local ops
+  like add/commit/status work through sandboxed bash already, especially after
+  the gitdir fix)
+- allowed remotes (any configured vs `origin` only)
+- ref scope (any ref vs current branch only)
+- confirmation (always / push-only / never)
+
+**Two layered controls:**
+1. Config scoping (primary) — the tool reads its own config and rejects
+   out-of-policy ops *before* calling `pi.exec`. An operator who sets
+   `allowedRemotes: ["origin"]` makes `git push fork` fail at the tool.
+2. `tool_call` `confirm` (backstop) — the sandbox egress gate fires for the tool
+   regardless; `confirm` gives a human veto per call. Catches in-policy args with
+   suspicious intent.
+
+**Where it lives:** a standalone extension/plugin, NOT a pi-sandbox change.
+pi-sandbox's config namespace is *denial*; this is *privileged egress with
+operator-tuned scoping* — different concern, different config namespace. The
+sandbox stays focused on denial; this extension owns the one trusted-egress path
+the operator chose to grant.
+
+**Implementation note for design pass:** the inspector scans tool *input*, not
+*output* (documented sandbox gap). The tool must scrub/summarize git output
+rather than pipe raw stderr/stdout back, so a credential that appears in git
+output is not exfiltrated to the agent.
+
 ## Context from the session that surfaced this
 
 - Discovered while trying to push the `feature-pi-sandbox-gitdir-writable-surface`
