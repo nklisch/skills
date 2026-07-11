@@ -3064,9 +3064,11 @@ socket.once("error", (error) => {
 		expect(result.exitCode).toBe(0);
 	});
 
-	integrationTest("PID namespace and fresh /proc hide host process metadata", async () => {
+	integrationTest("PID namespace and fresh /proc identify the sandbox init", async () => {
 		const cwd = await makeTempDir();
-		const result = runSandboxed(`test ! -e /proc/${process.pid} && test -d /proc/1`, {
+		// bwrap remains PID 1 in its fresh namespace; the launched bash is PID 2.
+		// This verifies namespace-local process identity without assuming any host PID is absent.
+		const result = runSandboxed('test "$$" -eq 2 && test -d /proc/1 && test "$(cat /proc/1/comm 2>/dev/null)" = bwrap', {
 			cwd,
 			allowWrite: [],
 			denyRead: [],
