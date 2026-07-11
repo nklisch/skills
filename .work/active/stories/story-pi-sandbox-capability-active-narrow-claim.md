@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-capability-active-narrow-claim
 kind: story
-stage: review
+stage: implementing
 tags: [security, sandbox, plugin, documentation]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []

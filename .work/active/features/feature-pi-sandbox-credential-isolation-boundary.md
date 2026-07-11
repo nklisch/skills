@@ -463,3 +463,17 @@ Rework driven by `/agile-workflow:implement-orchestrator` as a single coherent b
 Verification: `bun test plugins/pi-sandbox/extensions/` → 228 pass, 0 fail (orchestrator context). The environment-fragile PID-namespace test (I5) remains parked, not fixed in this pass.
 
 All 6 child stories (3 original + 3 blockers) at `stage: review`. Feature advances to `review`.
+
+## Fresh-context re-review (2026-07-11)
+
+**Verdict**: Request changes — blockers NOT genuinely closed
+
+A fresh-context adversarial re-review (codex-sol, xhigh) ran against the reworked artifact. It caught three real issues the host's inline self-certification missed — confirming why fresh re-review exists.
+
+- **B1 — NOT-RESOLVED**: The "second independent precondition" (forge consumer verifies its credential path is in global `denyRead`) is not enforceable — pi-sandbox exports only the lifecycle capability and bwrap helpers, not `loadConfig`/effective-policy/path-normalization. A consumer would have to duplicate pi-sandbox's config discovery and merge rules, contradicting the uncoupled contract. Worse, "registered" ≠ "bash-masked": glob denyRead entries aren't enforced by bwrap, and nonexistent paths are skipped — so a consumer can satisfy the documented check while sandboxed bash still reads the credential. Needs either an exported effective-protection predicate, or a stricter independently-enforceable condition (literal path under a masked directory).
+- **B2 — RESOLVED-WITH-RESIDUAL (regression)**: Adding `~/.gitconfig`/`~/.config/git/config` to default `denyRead` bricks ordinary Git. Denied regular files get `--ro-bind /dev/null <path>`, which makes git see a character device → exit 128 on config read → `git status`/`git commit` fail whenever `~/.gitconfig` exists. **Verified reproducible on this host** (`~/.gitconfig` exists; `buildBwrapArgs` uses the `/dev/null` overlay for denied files). Existing tests didn't catch it because they pass `denyRead: []`. This is a core-workflow regression, not just a residual. The over-claim narrowing was honest, but the mitigation (adding gitconfig to defaults) is wrong — gitconfig is not a credential file; it *can declare* a helper. Revert the gitconfig-to-defaults change; instead document the helper residual and let operators register gitconfig themselves if they want it masked.
+- **B3 — NOT-RESOLVED**: SPEC + ARCHITECTURE were fixed, but `docs/VISION.md` still says "Every supported plugin ships to all three" / "every supported plugin installs and behaves in Claude Code, Codex, and Pi" while listing pi-sandbox/background-tasks as supported. Foundation-doc drift remains.
+
+**Clean re-verifications**: I1 RESOLVED (predicate + tests sound); I4 RESOLVED (documented defaults match `DEFAULT_CONFIG` exactly). Suite 227 pass / 1 fail (the parked I5 PID test, not a regression).
+
+Feature bounced back to `implementing` for a second rework pass. The B2 regression is the most urgent — a security "fix" that breaks `git commit` is worse than the original over-claim.
