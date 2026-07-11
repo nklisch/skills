@@ -1,26 +1,26 @@
 ---
 id: idea-pi-sandbox-isactive-reject-contradictory-payload
+kind: story
+stage: done
+tags: [security, sandbox]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
 created: 2026-07-11
 updated: 2026-07-11
-tags: [security, sandbox, plugin]
+git_ref: f94babe
 ---
 
-# `isCredentialBoundaryActive` should reject contradictory payloads
+# 
 
-## Capture
+## Resolution
 
-Review finding I1. `isCredentialBoundaryActive(handshake)` checks only
-`active === true`, so a contradictory `{active: true, failClosed: true}` payload
-is accepted despite the contract describing "active and not fail-closed." The
-current publisher cannot emit that combination, but the helper is the exported
-stable consumer contract accepting `unknown`, and the design contemplates other
-isolation providers using it.
+Already fixed during the feature-pi-sandbox-credential-isolation-boundary rework
+(commits `dcae92e` for I1, `a55aaaf` for I4). Closed as done — was filed as a
+backlog item before the rework folded it in.
 
-## Fix
+- **I1** (`isCredentialBoundaryActive`): now requires `active === true && failClosed === false` in `sandbox-config.ts`, with contradictory/malformed payload test cases in `credential-boundary-capability-integration.test.ts`.
+- **I4** (denyRead selective-override doc): the all-or-nothing `mergeGlobalDenyList` semantics are documented in `README.md` and `THREAT_MODEL.md` with the full default list for operators who need the escape.
 
-Change `isCredentialBoundaryActive` to require
-`active === true && failClosed === false`, and add the contradictory/malformed
-payload cases to the test matrix in
-`credential-boundary-capability-integration.test.ts`.
-
-Small, scoped code+test fix. Can land inline or as a small story.
+Verified 2026-07-11 against the committed code.

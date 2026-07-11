@@ -1,31 +1,26 @@
 ---
 id: idea-pi-sandbox-denyread-selective-override-doc
+kind: story
+stage: done
+tags: [security, sandbox]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
 created: 2026-07-11
 updated: 2026-07-11
-tags: [security, sandbox, documentation]
+git_ref: f94babe
 ---
 
-# Document the denyRead selective-override footgun accurately
+# 
 
-## Capture
+## Resolution
 
-Review finding I4. The feature's "Risks — denyRead default expansion" section
-says "an operator who needs it removes it from global config." That mitigation
-is false: `mergeGlobalDenyList` (`sandbox-config.ts:1674-1676`) unions a
-non-empty global list with defaults, OR returns `[]` for an empty global list
-(clearing ALL defaults). There is no selective removal — an operator who wants
-to read `~/.config/git/credentials` must wipe ALL default denyRead protections
-and re-add the ones they want, which is a footgun.
+Already fixed during the feature-pi-sandbox-credential-isolation-boundary rework
+(commits `dcae92e` for I1, `a55aaaf` for I4). Closed as done — was filed as a
+backlog item before the rework folded it in.
 
-## Fix (0.1.0 scope: doc accuracy)
+- **I1** (`isCredentialBoundaryActive`): now requires `active === true && failClosed === false` in `sandbox-config.ts`, with contradictory/malformed payload test cases in `credential-boundary-capability-integration.test.ts`.
+- **I4** (denyRead selective-override doc): the all-or-nothing `mergeGlobalDenyList` semantics are documented in `README.md` and `THREAT_MODEL.md` with the full default list for operators who need the escape.
 
-Document the actual merge semantics in the README + threat model:
-- A non-empty global `denyRead` is unioned with the defaults (operator can ADD,
-  cannot selectively REMOVE a default).
-- An empty global `denyRead: []` clears ALL defaults (the only current "escape").
-- Operators who need to read a specific default-denied path must set
-  `denyRead: []` globally AND explicitly re-add every other default they want
-  kept — state the full default list so they can copy it.
-
-(Out of scope for 0.1.0: a `denyReadPreserveDefaults` or per-entry override
-mechanism — that's a config-feature story for post-0.1.0.)
+Verified 2026-07-11 against the committed code.
