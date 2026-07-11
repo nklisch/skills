@@ -603,12 +603,15 @@ export default function (pi: ExtensionAPI) {
 		// buildBwrapArgs as pinnedGitDirs — it is NOT re-discovered per command,
 		// because the `.git` gitfile lives in the writable working tree and a
 		// per-command re-read would let an agent mutate it between commands to
-		// widen the writable surface. discoverGitDirs validates the target (HEAD
-		// is a regular file) so a malicious `.git` file pointing at an arbitrary
-		// host path cannot widen the surface; denyWrite still takes precedence in
-		// enforceWritePolicy. The in-process file tools allow writes to these via
-		// the allowWrite augmentation below.
-		const discoveredGitDirs = discoverGitDirs(config.filesystem?.allowWrite ?? [], ctx.cwd);
+		// widen the writable surface. The HEAD regular-file check rejects non-git
+		// targets but cannot distinguish a legitimate linked worktree from an
+		// arbitrary external Git directory. Global-only allowGitDirDiscovery lets
+		// operators disable this widening for untrusted-clone workflows; denyWrite
+		// still takes precedence in enforceWritePolicy. The in-process file tools
+		// allow writes to discovered paths via the allowWrite augmentation below.
+		const discoveredGitDirs = discoverGitDirs(config.filesystem?.allowWrite ?? [], ctx.cwd, {
+			allowGitDirDiscovery: config.filesystem?.allowGitDirDiscovery ?? true,
+		});
 		sandboxPolicy = {
 			denyRead,
 			denyWrite,

@@ -22,6 +22,7 @@ import {
 	DEFAULT_CONFIG,
 	FILTER_DEFERRED_BACKLOG_ITEM,
 	SANDBOX_FAIL_CLOSED_MESSAGE,
+	formatSandboxCommandOutput,
 	SANDBOX_UNINITIALIZED_MESSAGE,
 	applyBypassToolDefaults,
 	createSandboxCommandHandler,
@@ -463,6 +464,37 @@ describe("config boundary contract", () => {
 		expect(warnings.join("\n")).toContain("disable sandbox");
 		expect(warnings.join("\n")).toContain("loosen network.mode");
 		expect(warnings.join("\n")).toContain("loosen tool policy");
+	});
+
+	test("mergeProjectAdditive rejects a project attempt to re-enable global-disabled git directory discovery", () => {
+		const warnings: string[] = [];
+		const merged = mergeProjectAdditive(
+			deepMerge(DEFAULT_CONFIG, { filesystem: { allowGitDirDiscovery: false } }),
+			{ filesystem: { allowGitDirDiscovery: true } },
+			warnings,
+		);
+
+		expect(merged.filesystem?.allowGitDirDiscovery).toBe(false);
+		expect(warnings).toContain("project tried to set allowGitDirDiscovery; ignored (global/operator-only)");
+	});
+
+	test("/sandbox reports whether global git directory discovery is active", () => {
+		const loaded: LoadedConfig = {
+			config: deepMerge(DEFAULT_CONFIG, { filesystem: { allowGitDirDiscovery: false } }),
+			parseErrors: [],
+			globWarnings: [],
+			missingDenyWarnings: [],
+			legacyFieldWarnings: [],
+			failClosedReasons: [],
+			additiveWarnings: [],
+		};
+		const output = formatSandboxCommandOutput(loaded, {
+			failClosed: false,
+			sandboxEnabled: true,
+			sandboxInitialized: true,
+			disabledViaConfig: false,
+		});
+		expect(output).toContain("Git directory discovery: disabled (global/operator-only)");
 	});
 
 	test("mergeProjectAdditive narrows allowWrite by canonical containment, not raw exact string", async () => {
@@ -2515,6 +2547,32 @@ describe("discoverGitDirs", () => {
 
 		const discovered = discoverGitDirs([workTree], cwd);
 		expect(discovered).toEqual([realpathSync(gitDir)]);
+	});
+
+	test("does not pin an escape gitfile target when discovery is disabled", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "cloned-worktree");
+		const unrelatedGitDir = join(cwd, "unrelated-repo", ".git");
+		await mkdir(workTree);
+		await mkdir(unrelatedGitDir, { recursive: true });
+		await writeFile(join(unrelatedGitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${unrelatedGitDir}\n`);
+
+		const pinnedGitDirs = discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: false });
+		expect(pinnedGitDirs).toEqual([]);
+
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree],
+			pinnedGitDirs,
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			env: { PATH: "/usr/bin" },
+		});
+		const canonicalUnrelatedGitDir = realpathSync(unrelatedGitDir);
+		expect(sequenceIndex(args, ["--bind", canonicalUnrelatedGitDir, canonicalUnrelatedGitDir])).toBe(-1);
 	});
 
 	test("returns nothing for an allowWrite root with a .git directory (common case)", async () => {

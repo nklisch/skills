@@ -57,7 +57,7 @@ policy; they are not a substitute for read masking.
 | 4 | Equivalent enforcement in `read` | **MET** | `makeReadOperations` → `enforceDenyRead` |
 | 5 | Same boundary for background and monitor | **MET** when Linux integration is active | `buildSandboxedSpawnArgs`, sandbox bridge handshake, and `backgroundTasks.sandboxIntegration` |
 | 6 | Fail closed when the boundary cannot be established | **MET** | fail-closed state, `createFailClosedPolicy`, and degraded-spawn secret stripping |
-| 7 | Writable-surface contract and pinned Git directories | **MET** | `discoverGitDirs`, session-pinned Git dirs, and additive-only `allowWrite` |
+| 7 | Writable-surface contract and pinned Git directories | **MET with documented discovery opt-out** | `discoverGitDirs`, session-pinned Git dirs, global-only `filesystem.allowGitDirDiscovery`, and additive-only `allowWrite` |
 | 8 | Non-secret capability signal for a forge extension | **MET** | credential-boundary capability symbol and `/sandbox` diagnostic |
 
 “MET” does not erase the explicitly documented residuals below. In particular,
@@ -140,10 +140,22 @@ registry is the existing global configuration:
 Project-local configuration is additive-only: it can add masks/scrub targets
 and otherwise tighten policy, but cannot remove an inherited protection. The
 non-configurable provider-secret scrub floor is also always retained. Only the
-global/operator configuration may set `bwrapPath` or `enabled:false`, because
-those are trust decisions about the boundary itself. This lets an operator add
-a chosen Forgejo credential store without making a checkout capable of
-weakening that protection.
+global/operator configuration may set `bwrapPath`, `enabled:false`, or
+`filesystem.allowGitDirDiscovery`, because these are trust decisions about the
+boundary itself. This lets an operator add a chosen Forgejo credential store
+without making a checkout capable of weakening that protection.
+
+Gitfile discovery is enabled by default for linked-worktree and submodule
+compatibility. When enabled, a gitfile at session start can point at an
+arbitrary external host Git directory with a regular `HEAD`, and that directory
+is pinned writable. The `HEAD` check rejects non-Git paths such as `/etc`, but
+cannot tell a Git-created linked-worktree target from an attacker-selected Git
+directory. Operators who clone untrusted repositories **MUST** set
+`filesystem.allowGitDirDiscovery: false` in global configuration. Project-local
+config cannot re-enable discovery: such attempts are rejected with a warning.
+With discovery disabled, no external gitfile target is added to the writable
+surface; an ordinary `.git` directory under an `allowWrite` root remains
+writable through the root bind.
 
 Global `filesystem.denyRead` has an intentionally narrow but potentially
 surprising merge rule in 0.1.0:
@@ -286,10 +298,11 @@ This is the single source of truth for the 0.1.0 package promise.
   environment when the background-tasks integration is active; that spawn
   contract is fail closed when it cannot establish the boundary.
 - The writable surface includes session-pinned Git directory discovery for
-  submodules and linked worktrees.
+  submodules and linked worktrees by default; operators can globally disable it
+  with `filesystem.allowGitDirDiscovery:false` for untrusted-clone workflows.
 - A non-secret credential-boundary capability is available for a separate
   forge extension; configuration remains additive-only, with global/operator
-  authority for `bwrapPath` and `enabled:false`.
+  authority for `bwrapPath`, `enabled:false`, and `filesystem.allowGitDirDiscovery`.
 - Network modes are `open` (default) and `block`.
 
 ### Known 0.1.0 gaps
@@ -298,6 +311,13 @@ This is the single source of truth for the 0.1.0 package promise.
 - The inspector scans input, not output. In particular, `jobs action=tail` can
   return a secret a background command wrote to its buffer without redaction.
 - `--no-sandbox` does not yet propagate to background/monitor integration.
+- Gitfile directory discovery defaults to enabled for linked-worktree and
+  submodule compatibility. A malicious gitfile in an untrusted cloned
+  repository can therefore pin an arbitrary external host Git directory
+  writable when it has a regular `HEAD`. Operators who clone untrusted
+  repositories **MUST** set global `filesystem.allowGitDirDiscovery:false`;
+  project-local configuration cannot re-enable it. The complete fix is an
+  operator-registered external Git-directory allowlist.
 - Git credential helpers, cache sockets, and keyring/keychain stores are not
   comprehensively blocked. `HOME` and user Git config are preserved, so
   `git credential fill` can retrieve plaintext through a configured helper.
@@ -315,11 +335,12 @@ This is the single source of truth for the 0.1.0 package promise.
 ### Post-0.1.0 / v1 path
 
 The following direction is tracked work, **not a commitment**: a real `filter`
-mode (`idea-pi-sandbox-filter-tcp-proxy`); shared output redaction for
-background/monitor/jobs; `--no-sandbox` propagation; a Pi-core RPC/API bash
-interception hook; and a separate forge-operations
-plugin using the capability contract. srt adoption is reconsidered only under
-the revisit triggers above.
+mode (`idea-pi-sandbox-filter-tcp-proxy`); an operator-registered external
+Git-directory allowlist that closes the gitfile-discovery residual; shared
+output redaction for background/monitor/jobs; `--no-sandbox` propagation; a
+Pi-core RPC/API bash interception hook; and a separate forge-operations plugin
+using the capability contract. srt adoption is reconsidered only under the
+revisit triggers above.
 
 Version 1.0.0 is a maturity claim, not a feature target: it means the boundary
 has been proven in production use across operator deployments, documented gaps
