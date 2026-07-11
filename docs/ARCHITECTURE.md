@@ -15,6 +15,9 @@ plugin-internal architecture lives in each plugin's own `docs/ARCHITECTURE.md`.
 │   ├── nates-toolkit/        # standalone utility skills
 │   ├── agentic-research/     # grounded research discipline + .research substrate
 │   ├── agent-coordination/   # sparse cross-agent coordination ledger
+│   ├── background-tasks/     # detached job tools (Pi package only)
+│   ├── pi-sandbox/           # first-party bwrap hardening (Pi package only)
+│   ├── zai-research/         # Z.ai research MCP + Pi-native tools
 │   └── workflow/             # DEPRECATED, frozen, kept for existing installs
 ├── .agents/skills/          # standalone reference-skill library (non-plugin)
 ├── .claude-plugin/
@@ -40,8 +43,8 @@ and harness-specific components:
 
 ```
 plugins/<name>/
-├── .claude-plugin/plugin.json   # Claude Code manifest
-├── .codex-plugin/plugin.json    # Codex manifest
+├── .claude-plugin/plugin.json   # Claude Code manifest (omitted for Pi-only packages)
+├── .codex-plugin/plugin.json    # Codex manifest (omitted for Pi-only packages)
 ├── package.json                 # Pi package metadata
 ├── skills/                      # SKILL.md units  — shared
 ├── commands/                    # slash commands  — Claude-specific
@@ -55,7 +58,10 @@ plugins/<name>/
 
 The shared/harness-specific split is the rule from `docs/SPEC.md`: skills cross
 all three harnesses; command, hook, extension, prompt, theme, and agent surfaces
-are exposed only where the target harness supports them.
+are exposed only where the target harness supports them. A plugin whose
+capability is pi-runtime-only ships `package.json` and omits both
+`.claude-plugin/` and `.codex-plugin/`; `background-tasks` and `pi-sandbox` are
+the current examples and are not registered in the Claude/Codex marketplace.
 
 ## Distribution wiring
 
@@ -71,10 +77,12 @@ A single index drives the Claude Code and Codex marketplaces:
   plugin's channel metadata in lockstep and refuses to act on a dirty plugin
   directory.
 
-Pi distribution is package-native. A plugin's Pi package metadata lives beside
-the Claude and Codex manifests in that plugin directory, points at the same
+Pi distribution is package-native. For cross-channel plugins, Pi package
+metadata lives beside the Claude and Codex manifests, points at the same
 `skills/` tree, and adds Pi-native extensions or prompt templates only when they
-improve the user experience beyond raw skill loading. External companions such
+improve the user experience beyond raw skill loading. Pi-only packages have no
+Claude or Codex manifests because their capability exists only in the Pi
+runtime. External companions such
 as `peeragent` are not re-exported by this repo's root Pi package; Pi users
 install them from their own package roots, for example
 `pi install git:github.com/nklisch/peeragent@v0.4.1`.

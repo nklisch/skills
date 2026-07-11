@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-pi-only-foundation-doc-forward
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin, documentation]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -48,11 +48,20 @@ exception already established in `AGENTS.md`:
 
 ## Acceptance criteria
 
-- [ ] `docs/SPEC.md` documents the Pi-only manifest exception (package.json only;
+- [x] `docs/SPEC.md` documents the Pi-only manifest exception (package.json only;
   no Claude/Codex manifests; omitted from marketplace.json).
-- [ ] `docs/ARCHITECTURE.md` repo layout includes pi-sandbox and background-tasks
+- [x] `docs/ARCHITECTURE.md` repo layout includes pi-sandbox and background-tasks
   with "(Pi package only)" annotation.
-- [ ] `docs/ARCHITECTURE.md` plugin anatomy notes Pi-only packages omit
+- [x] `docs/ARCHITECTURE.md` plugin anatomy notes Pi-only packages omit
   `.claude-plugin/` and `.codex-plugin/`.
-- [ ] No contradiction remains between SPEC/ARCHITECTURE and AGENTS.md on the
+- [x] No contradiction remains between SPEC/ARCHITECTURE and AGENTS.md on the
   Pi-only exception.
+
+## Implementation notes
+
+- Files changed: `docs/SPEC.md`, `docs/ARCHITECTURE.md`.
+- Rolled the manifest and catalog invariants forward from an unconditional three-manifest rule to the canonical Pi-only exception already established in `AGENTS.md`.
+- Added `background-tasks` and `pi-sandbox` to the architecture map with Pi-package-only annotations and documented their omitted Claude/Codex manifests and marketplace entries. The map also now includes the existing `zai-research` plugin so it reflects the full current plugin tree.
+- Verification: compared the exception wording and examples against canonical `AGENTS.md`, checked both Pi-only package directories have `package.json` and no Claude/Codex manifests, and checked neither is registered in `.claude-plugin/marketplace.json`.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
