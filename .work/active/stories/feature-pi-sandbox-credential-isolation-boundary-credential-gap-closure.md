@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary-credential-gap-closure
 kind: story
-stage: review
+stage: implementing
 tags: [security, sandbox, plugin]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []

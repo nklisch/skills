@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary
 kind: feature
-stage: review
+stage: implementing
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: []
@@ -424,3 +424,25 @@ Driven by `/agile-workflow:implement-orchestrator` over the 3-child dependency g
 **Verification**: `bun test plugins/pi-sandbox/extensions/` → 228 pass, 0 fail (up from 217 at design time; +11 new tests). Worker subagents reported a single environment-specific PID-namespace assertion failure (host/sandbox PID both `2` inside their bwrap spawn context — the documented container/seccomp `--proc /proc` limitation, srt Issue #214); it does not reproduce in the orchestrator's environment and is not a regression from this work.
 
 **Answer to the operator's pre-dispatch question** ("have we recorded what 0.1.0 promises and v1 entails?"): **yes, now** — the consolidated Release scope (0.1.0) + post-0.1.0/v1 path section in `docs/THREAT_MODEL.md` is the single source a reviewer or release gate checks the package version against. Previously the promise was scattered across README fragments and config comments.
+
+## Review (2026-07-11)
+
+**Verdict**: Request changes
+
+**Mode/depth**: substrate, deep lane, feature-level. Two-phase fresh-context review on `openai-codex/gpt-5.6-sol` (the one non-host class available): Phase 1 advisory → Phase 2 adversarial, both to convergence. Findings verified against code by the host.
+
+**Blockers** (3 — feature bounced to `implementing`):
+- **B1**: `active:true` doesn't prove the credential being loaded is protected — computed purely from lifecycle booleans, independent of denyRead survival. An operator with global `denyRead: []` gets `active:true` with zero read masks, yet the consumer rule says "load on active." → `story-pi-sandbox-capability-active-narrow-claim` (narrow the contract/doc, not the publisher).
+- **B2**: threat model marks required-boundary #3 "MET" while git credential helpers/sockets/keyrings are unmasked (`~/.gitconfig`/`~/.config/git/config` can declare a helper; HOME preserved so `git credential fill` works). → `story-pi-sandbox-git-credential-helper-scope-honesty`.
+- **B3**: `docs/SPEC.md` + `docs/ARCHITECTURE.md` say every supported plugin has all three channel manifests; pi-sandbox is Pi-only. Foundation-doc drift. → `story-pi-sandbox-pi-only-foundation-doc-forward`.
+
+**Important** (5 — parked in backlog):
+- **I1**: `isCredentialBoundaryActive` accepts contradictory `{active:true, failClosed:true}`. → `idea-pi-sandbox-isactive-reject-contradictory-payload`.
+- **I2**: provider-coverage regression test is a permanent pass-through skip (imports a non-exported pi-ai subpath). → `idea-pi-sandbox-provider-strip-list-test-honesty`.
+- **I3**: capability lifecycle tests miss hardlink/filter/stale-clearing branches. → `idea-pi-sandbox-capability-branch-coverage`.
+- **I4**: "operator can remove the default" mitigation is false (mergeGlobalDenyList is all-or-nothing). → `idea-pi-sandbox-denyread-selective-override-doc`.
+- **I5**: PID-namespace test predicate is invalid (asserts host PID absent; PIDs collide numerically), not the seccomp failure it was attributed to. → `idea-pi-sandbox-pid-namespace-test-root-cause`.
+
+**Nits**: forge startup-ordering semantics unspecified (fail-safe but availability trap); `reason` wording drift ("bwrap unavailable" vs design's "bwrap missing" — cosmetic).
+
+**Notes**: The implementation faithfully executed the design — the publisher fires at all 10 transitions, the payload is secret-free, the path-redaction layer (`credentialBoundaryFailClosedReason`) is sound, and the buy-vs-build delta is dated and accurate. The throughline: the design's capability contract over-claimed. `active:true` was specified to mean "the boundary is active" (which a forge consumer reads as "safe to load credentials"), but it actually means "the sandbox initialized" — a weaker claim. The fix is to narrow the contract to match the guarantee, not to re-architect the publisher. 3 blocker stories + 5 backlog items filed; feature bounced to `implementing`.
