@@ -184,9 +184,9 @@ export const BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL = Symbol.for(BACKGROUND
 export const CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL_DESCRIPTION = "@nklisch/pi-sandbox.credential-boundary-capability";
 export const CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL = Symbol.for(CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL_DESCRIPTION);
 
-/** Non-secret health signal for extensions that require the inner credential-isolation boundary. */
+/** Non-secret lifecycle signal for extensions that require the inner credential-isolation boundary. */
 export interface CredentialBoundaryCapability {
-	/** True only while the Linux credential-isolation boundary is provably active. */
+	/** True only while the Linux bash/file-tool boundary is initialized and not fail-closed. */
 	active: boolean;
 	/** True when sandbox initialization failed and mediated bash is blocked. */
 	failClosed: boolean;
@@ -199,10 +199,11 @@ export function readCredentialBoundaryCapability(): unknown {
 	return (globalThis as typeof globalThis & Record<symbol, unknown>)[CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL];
 }
 
-/** Returns true only for a capability payload that explicitly proves the boundary is active. */
+/** Returns true only for a well-formed payload that reports initialized and not fail-closed. */
 export function isCredentialBoundaryActive(handshake: unknown): boolean {
 	if (!handshake || typeof handshake !== "object") return false;
-	return (handshake as { active?: unknown }).active === true;
+	const value = handshake as { active?: unknown; failClosed?: unknown };
+	return value.active === true && value.failClosed === false;
 }
 
 export type BackgroundTasksSandboxIntegrationHandshake =
