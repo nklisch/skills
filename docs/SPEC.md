@@ -22,7 +22,8 @@ Pi.
 
 ## Plugin manifests and package metadata
 
-Every supported plugin ships channel metadata under `plugins/<name>/`:
+Every supported cross-channel plugin ships channel metadata under
+`plugins/<name>/`:
 
 - `.claude-plugin/plugin.json` — Claude Code.
 - `.codex-plugin/plugin.json` — Codex. Must declare `"skills": "./skills/"`
@@ -32,8 +33,16 @@ Every supported plugin ships channel metadata under `plugins/<name>/`:
   manifest that exposes the same shared `skills/` directory plus any Pi-native
   extensions, prompt templates, or themes.
 
-All three carry the **same `version`**. They must never disagree about a
-plugin's identity. This is the load-bearing invariant of the whole repo.
+All metadata files that are present carry the **same `version`** and identity.
+For cross-channel plugins, all three are required.
+
+A plugin whose capability is pi-runtime-only, with no meaningful Claude Code or
+Codex surface, is the explicit exception: it ships `package.json` only, skips
+`.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`, and is omitted from
+`.claude-plugin/marketplace.json`. `background-tasks` and `pi-sandbox` are the
+current Pi-only examples. Their runtime tools and bwrap hardening respectively
+would not function in Claude Code or Codex, so absent manifests are deliberate,
+not distribution drift.
 
 ## Marketplace registration
 
@@ -48,8 +57,9 @@ Codex:
   (currently `krometrail` and `peeragent`), so the marketplace can offer plugins
   that do not live in this tree.
 
-Pi distribution is package-native rather than marketplace-index-native in this
-repo: each shippable plugin directory owns its Pi `package.json`, and published
+Pi-only packages are omitted from this marketplace index. Pi distribution is
+package-native rather than marketplace-index-native in this repo: each shippable
+plugin directory owns its Pi `package.json`, and published
 Pi packages use npm metadata plus the `pi-package` keyword for gallery
 discovery. Git and local-path installs use the same package roots. External
 marketplace companions such as `peeragent` live in their own repositories and
@@ -105,10 +115,13 @@ published; a reference skill that needs distribution is folded into a plugin.
 
 The single-source-of-truth rules that keep the catalog coherent:
 
-- A plugin's Claude manifest, Codex manifest, and Pi package metadata agree on
-  identity and version (enforced by `bump-version.sh`).
-- Registering a new plugin touches all channel metadata **and**
+- A cross-channel plugin's Claude manifest, Codex manifest, and Pi package
+  metadata agree on identity and version (enforced by `bump-version.sh`).
+- Registering a cross-channel plugin touches all channel metadata **and**
   `.claude-plugin/marketplace.json`. Missing any one breaks distribution.
+- A pi-runtime-only plugin ships `package.json` only, has no Claude/Codex
+  manifests, and is omitted from `.claude-plugin/marketplace.json`.
+  `background-tasks` and `pi-sandbox` are the current examples.
 - Skill names may repeat across plugins by design; the owning plugin sets a
   skill's semantics. Orient to which plugin a skill lives in before reasoning
   about it.
@@ -116,7 +129,8 @@ The single-source-of-truth rules that keep the catalog coherent:
 ## Status and deprecation
 
 - **Supported:** `agile-workflow` (flagship), `ux-ui-design`, `code-audit`,
-  `nates-toolkit`, `agentic-research`, `agent-coordination`.
+  `nates-toolkit`, `agentic-research`, `agent-coordination`, `background-tasks`
+  (Pi package only), `pi-sandbox` (Pi package only), and `zai-research`.
 - **Deprecated and frozen:** `workflow`. It stays in the tree so existing
   installs keep working; it gets no new features or fixes. New work does not
   extend it, and new docs do not cite it as a sibling.
