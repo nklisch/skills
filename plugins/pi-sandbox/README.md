@@ -98,6 +98,36 @@ Minimal hardened example:
 
 Notes:
 
+Global `filesystem.denyRead` is not a selective override in 0.1.0. A non-empty
+global list is unioned with the defaults: an operator can add entries but cannot
+remove one default. An explicit global `"denyRead": []` clears **all** defaults,
+and is the only current escape. There is no single global-list value that clears
+one default and preserves the rest. If a project must read one default-denied
+path, the operator must set the global list to `[]`, then copy every protection
+they want to retain into that project's additive `filesystem.denyRead` list and
+remove only the required path:
+
+```json
+[
+  "~/.ssh",
+  "~/.aws",
+  "~/.gnupg",
+  "~/.pi/agent/auth.json",
+  "~/.pi/agent/sessions",
+  "~/.config/gh",
+  "~/.config/git/credentials",
+  "~/.gitconfig",
+  "~/.config/git/config",
+  "~/.git-credentials",
+  "~/.netrc",
+  "~/.npmrc",
+  "~/.docker/config.json"
+]
+```
+
+Entries not re-added in project config are unprotected. This all-or-nothing
+escape is a known 0.1.0 limitation; do not describe it as selective removal.
+
 - Relative filesystem paths resolve against the pi session cwd.
 - Existing paths are canonicalized before comparison and before `bwrap` mounts.
 - Non-existent deny paths are skipped by the `bwrap` layer so the sandbox never creates host stubs.
@@ -128,7 +158,7 @@ The 2026-07-11 assessment retains the first-party bwrap backend for 0.1.0. `@ant
 
 ### Credential registration and forge capability
 
-Global `filesystem.denyRead` and `envScrub.names` / `envScrub.patterns` are the operator credential registry. A project can only add protections; it cannot remove inherited ones. `bwrapPath` and `enabled:false` are global/operator-only trust decisions. Default read masking includes `~/.config/git/credentials` alongside Pi auth/session state, SSH/GPG, GitHub CLI state, and other Git stores. Linux bwrap children receive a minimal environment; degraded background/monitor spawns also strip the non-configurable provider-secret floor, including `GITHUB_TOKEN`, `GH_TOKEN`, and `COPILOT_GITHUB_TOKEN`. Operators register Forgejo-specific files and token names through the global registry.
+Global `filesystem.denyRead` and `envScrub.names` / `envScrub.patterns` are the operator credential registry. A project can only add protections; it cannot remove inherited ones. `bwrapPath` and `enabled:false` are global/operator-only trust decisions. Default read masking includes `~/.config/git/credentials`, `~/.gitconfig`, and `~/.config/git/config` alongside Pi auth/session state, SSH/GPG, GitHub CLI state, and other file-backed Git stores. Linux bwrap children receive a minimal environment; degraded background/monitor spawns also strip the non-configurable provider-secret floor, including `GITHUB_TOKEN`, `GH_TOKEN`, and `COPILOT_GITHUB_TOKEN`. Operators register Forgejo-specific files and token names through the global registry. The global deny-list's all-or-nothing clearing behavior is documented in [Configuration](#configuration).
 
 A separate forge-operations extension can query `Symbol.for("@nklisch/pi-sandbox.credential-boundary-capability")`. `active:true` means only that the Linux bash/file-tool credential-isolation boundary initialized and is not fail-closed; it is not an assurance that loading a credential is safe. Before each load, the forge extension must both require `isCredentialBoundaryActive(handshake)` and independently verify that its own credential location is registered by the operator in global `filesystem.denyRead` (or, for an environment-held credential, global `envScrub`). It must re-read the capability before each load and never treat the path- and secret-free payload as proof that a specific path is masked, RPC/API bash is mediated, background/monitor integration is active, Git credential helpers/sockets/keyrings are blocked, or the operator retained the default deny list. `/sandbox` reports `Credential boundary capability:` from the same lifecycle contract. pi-sandbox intentionally provides no forge APIs, Git credential helper, privileged Git runner, or provider-specific remote-operation/authentication policy.
 
@@ -153,6 +183,7 @@ Non-goals and known gaps (the consolidated 0.1.0 release claim remains [Threat m
 
 - Pi extensions and installed Pi packages are trusted code. They run with the user's normal permissions and are not sandboxed by this plugin.
 - RPC/API mode's direct `bash` command is a known residual bypass in current pi core. It calls `AgentSession.executeBash()` directly with pi's local bash operations, bypassing both the registered `bash` tool and the `user_bash` extension event. This extension cannot sandbox or fail-close that path until pi core exposes an interception hook; operators who require bash sandboxing should avoid or restrict RPC/API bash access.
+- Git credential helpers, cache sockets, and keyring/keychain stores are a 0.1.0 residual. The defaults mask user Git config (`~/.gitconfig`, `~/.config/git/config`) because it can declare `credential.helper`, plus the known file-backed stores, but sandboxed processes preserve `HOME`; `git credential fill` can still retrieve plaintext through a helper configured elsewhere, a credential-cache socket, libsecret, macOS Keychain, Git Credential Manager, or another keyring. Operators must register any helper file/socket that should be denied, or accept this residual. Operators who must read a default-masked user Git config face the all-or-nothing global `denyRead` escape described in [Configuration](#configuration) and must re-add the remaining defaults in project config.
 - `background` and `monitor` have real Linux bwrap integration when `@nklisch/pi-background-tasks` is installed and `backgroundTasks.sandboxIntegration:"auto"` is active. They are still not OS-sandboxed on non-Linux hosts, when the integration is off, or when pi-sandbox is fail-closed; the tool-egress policy stays at `confirm`/fail-closed in those states.
 - Web/search tools, subagents, and provider/model requests are not OS-sandboxed command surfaces. They may perform network or provider egress according to their own implementations and any in-process tool policy configured by Pi.
 - `network.mode=open` is not an egress boundary. It intentionally gives sandboxed bash the host's normal network access and does not hide host Unix sockets under `/tmp` or `/var/tmp`.

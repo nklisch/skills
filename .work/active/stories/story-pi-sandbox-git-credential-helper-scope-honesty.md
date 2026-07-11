@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-git-credential-helper-scope-honesty
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin, documentation]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -55,12 +55,22 @@ helpers/sockets/keyrings are reachable.
 
 ## Acceptance criteria
 
-- [ ] `THREAT_MODEL.md` required-boundary matrix #3 reflects the actual coverage
+- [x] `THREAT_MODEL.md` required-boundary matrix #3 reflects the actual coverage
   (file-backed stores MET; helpers/sockets/keyrings operator-registered or
   out-of-scope) — not an unqualified "MET."
-- [ ] If option A: `~/.gitconfig` and `~/.config/git/config` added to default
+- [x] If option A: `~/.gitconfig` and `~/.config/git/config` added to default
   `denyRead`; workflow impact documented in README + threat model.
-- [ ] README "Security boundary / non-goals" names git credential helpers as a
+- [x] README "Security boundary / non-goals" names git credential helpers as a
   residual (helper/socket/keyring retrieval) for 0.1.0.
-- [ ] Release scope (0.1.0) "known gaps" list includes the helper/socket/keyring
+- [x] Release scope (0.1.0) "known gaps" list includes the helper/socket/keyring
   residual.
+
+## Implementation notes
+
+- Files changed: `plugins/pi-sandbox/extensions/sandbox-config.ts`, `plugins/pi-sandbox/docs/THREAT_MODEL.md`, `plugins/pi-sandbox/README.md`.
+- Chose Option A: masked both user Git config paths by default and narrowed required-boundary #3 to file-backed stores, with helper/socket/keyring retrieval operator-registered or outside 0.1.0.
+- Added the helper residual to the protected-credentials table, README non-goals, and the canonical 0.1.0 known-gaps list. The docs explicitly account for preserved `HOME` and `git credential fill`.
+- Folded review I4 into the same configuration pass: documented the non-empty-union versus empty-clear behavior, the lack of selective global removal, and the complete default list. Because a non-empty global re-add would restore every default, retained entries must be re-added in each project's additive config after the global list is cleared.
+- Verification: confirmed the documented list exactly matches `DEFAULT_CONFIG.filesystem.denyRead`; scoped extension tests pass.
+- Discrepancies from design: none. The documentation calls out that the requested “clear globally and re-add” escape requires project-local re-addition; the current merge code cannot express selective removal in one global list.
+- Adjacent issues parked: none.
