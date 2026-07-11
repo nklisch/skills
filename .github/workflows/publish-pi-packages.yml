@@ -60,7 +60,7 @@ jobs:
           node -e '
             const [major, minor] = process.versions.node.split(".").map(Number);
             if (major < 22 || (major === 22 && minor < 14)) {
-              console.error(`Node ${process.versions.node} is too old for npm trusted publishing.`);
+              console.error("Node " + process.versions.node + " is too old for npm trusted publishing.");
               process.exit(1);
             }
           '
@@ -69,7 +69,7 @@ jobs:
             const [major, minor, patch] = process.argv[1].split(".").map(Number);
             const supported = major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1)));
             if (!supported) {
-              console.error(`npm ${process.argv[1]} is too old for trusted publishing.`);
+              console.error("npm " + process.argv[1] + " is too old for trusted publishing.");
               process.exit(1);
             }
           ' "$npm_version"
