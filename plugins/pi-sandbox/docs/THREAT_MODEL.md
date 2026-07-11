@@ -89,27 +89,37 @@ failure, configuration disablement, `--no-sandbox`, non-Linux graceful degrade,
 and shutdown. `failClosed` distinguishes a blocked initialization failure from
 an intentional or unavailable boundary; `reason` is a short state label.
 
-A forge-operations consumer has **two independent preconditions** before it may
-load a credential:
+For a forge-operations consumer, `active:true` is **necessary but not
+sufficient** for credential loading. The consumer must read the symbol
+immediately before a load, require `isCredentialBoundaryActive(handshake)` to
+return true, and never cache a successful result across `/reload`; an absent,
+malformed, inactive, or fail-closed capability is a refusal signal. But a true
+result is only evidence that the bash/file-tool lifecycle boundary is up. It is
+not permission or proof that loading any particular credential is safe.
 
-1. It must read the symbol immediately before the load and require
-   `isCredentialBoundaryActive(handshake)` to return true. It must not cache a
-   successful result across `/reload`; an absent, malformed, inactive, or
-   fail-closed capability is a refusal to load credentials.
-2. It must independently verify that its own credential location is registered
-   by the operator in global `filesystem.denyRead`, or that an environment-held
-   credential is registered in global `envScrub`. The forge extension owns this
-   verification. The capability is path-free and does **not** attest that the
-   forge credential is masked.
+The forge extension owns its credential-custody model and must not assume a
+specific path is masked. For file-backed custody, it must use a path whose
+protection was arranged independently of this capability—for example, the
+operator registers the forge credential file in global `filesystem.denyRead`
+as a **literal path**, confirms the file exists when the sandbox initializes,
+and accepts that pi-sandbox does not attest the resulting effective mask. As an
+alternative, the forge extension can keep credentials in a broker-private
+channel that never enters model-observable space regardless of pi-sandbox's
+state. The capability intentionally exports no effective-policy or
+path-protection query; consumers must not duplicate pi-sandbox's internal
+config discovery, merge, or normalization rules and call that an attestation.
 
-On non-Linux, the first precondition fails because OS-level bash isolation is
-not active. Satisfying the first precondition never substitutes for the second.
+On non-Linux, the necessary lifecycle signal is false because OS-level bash
+isolation is not active. On Linux, a true signal still does not close the forge
+extension's separate credential-custody residual.
 
 ### What `active` does not prove
 
 Even when `active:true`, the capability does **not** prove:
 
 - that any specific credential path is masked;
+- that a `denyRead` entry registered by the operator is actually bash-masked
+  (glob entries are not bwrap-enforced, and nonexistent paths are skipped);
 - that RPC/API direct bash is mediated;
 - that background/monitor integration is active;
 - that Git credential helpers, sockets, or keyrings are blocked; or
