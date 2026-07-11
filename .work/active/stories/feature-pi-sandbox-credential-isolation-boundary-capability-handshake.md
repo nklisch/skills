@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary-capability-handshake
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -19,9 +19,10 @@ updated: 2026-07-11
 
 Implements **Unit 1** of `feature-pi-sandbox-credential-isolation-boundary`. A
 new cross-extension capability contract published by pi-sandbox on a global
-symbol so a separate forge-operations extension can require the credential
-boundary is active before loading file-backed credentials. The payload is
-**non-secret state labels only** — no credential paths, no secrets.
+symbol so a separate forge-operations extension can require the Linux
+bash/file-tool boundary to be initialized and not fail-closed as one precondition
+before loading file-backed credentials. The payload is **non-secret state labels
+only** — no credential paths, no secrets — and does not attest path masking.
 
 ## Unit(s)
 
@@ -43,8 +44,10 @@ Key contract:
   disabled, degrade, `--no-sandbox`) and `session_shutdown`.
 - On non-Linux graceful-degrade, `active=false` (bash unsandboxed → inner
   membrane not active). Honest: forge refuses on macOS.
-- Consumer rule: load credentials only when `active === true`; re-read per load;
-  never cache (state can change on `/reload`).
+- Consumer rule: re-read per load and require both `active === true` and
+  `failClosed === false`; never cache (state can change on `/reload`). This is
+  only the lifecycle precondition. The consumer must independently verify that
+  its credential location is registered in global `denyRead` or `envScrub`.
 - Re-export the symbol + `readCredentialBoundaryCapability` +
   `isCredentialBoundaryActive` from the package barrel or `./sandbox-spawn`
   subpath so forge-operations imports them.
@@ -65,8 +68,10 @@ background-tasks handshake shape.
 - [x] On `session_shutdown`, publishes `{ active: false, failClosed: false, reason: "session shutdown" }`.
 - [x] The payload contains NO credential paths and NO secrets (only state labels).
 - [x] `/sandbox` output includes a `Credential boundary capability:` line.
-- [x] A forge consumer using only `isCredentialBoundaryActive(handshake)` correctly
-  gates credential loading across all states (active / fail-closed / disabled / degrade / shutdown).
+- [x] `isCredentialBoundaryActive(handshake)` correctly gates the lifecycle
+  precondition across all states (active / fail-closed / disabled / degrade /
+  shutdown) and rejects malformed or contradictory payloads. Credential loading
+  additionally requires the consumer's independent path/env registration check.
 - [x] Tests mirror the existing `sandbox-handshake-integration.test.ts` structure.
 
 ## Implementation notes
@@ -80,9 +85,12 @@ background-tasks handshake shape.
 - Added symbol-authoritative `/sandbox` output and lifecycle integration tests
   for active, fail-closed, disabled, non-Linux degrade, `--no-sandbox`, and
   shutdown states.
-- Verification: targeted capability/handshake/spawn tests pass (31 tests). Full
-  `bun test plugins/pi-sandbox/extensions/` exercised the new tests successfully
-  (223 pass) but retains one pre-existing environment-specific bwrap PID test
-  failure: this container gives both the Bun parent and the sandboxed shell PID
-  2, so its numeric `/proc/<host-pid>` assertion is invalid despite the PID
-  namespace being present. No test was weakened for this story.
+- Review rework narrowed the documented contract without changing the publisher:
+  `active:true` attests only that the Linux bash/file-tool boundary initialized
+  and is not fail-closed. It does not prove a specific path is masked, and a
+  forge consumer owns the independent `denyRead`/`envScrub` registration check.
+- Hardened `isCredentialBoundaryActive` to require the complete, consistent
+  payload (`active === true && failClosed === false`), rejecting missing,
+  malformed, and contradictory states.
+- Verification: `bun test plugins/pi-sandbox/extensions/credential-boundary-capability-integration.test.ts`
+  passes 8 tests / 28 assertions. No publisher behavior or payload shape changed.
