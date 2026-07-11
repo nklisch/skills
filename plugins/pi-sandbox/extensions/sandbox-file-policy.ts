@@ -1,7 +1,24 @@
-import { constants as fsConstants, existsSync, lstatSync, readlinkSync } from "node:fs";
-import { access as fsAccess, mkdir as fsMkdir, readFile as fsReadFile, writeFile as fsWriteFile } from "node:fs/promises";
+import {
+	closeSync,
+	constants as fsConstants,
+	existsSync,
+	fstatSync,
+	ftruncateSync,
+	lstatSync,
+	openSync,
+	readFileSync,
+	readlinkSync,
+	writeFileSync,
+	type Stats,
+} from "node:fs";
+import { mkdir as fsMkdir } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { canonicalizeExistingPath, normalizeConfiguredPath, type NetworkMode } from "./sandbox-bwrap";
+import {
+	assertNoHardlinkedDeniedFiles,
+	canonicalizeExistingPath,
+	normalizeConfiguredPath,
+	type NetworkMode,
+} from "./sandbox-bwrap";
 import type { ToolRules } from "./sandbox-config";
 
 /** Shared policy state — set at session_start, read by the tool operations. */
@@ -65,16 +82,138 @@ export interface SandboxEditOperations {
 	writeFile(absolutePath: string, content: string): Promise<void>;
 }
 
+type OpenedFileAction<T> = (fd: number) => T;
+
+/**
+ * Check policy before opening, bind the operation to one inode with
+ * O_NOFOLLOW, then revalidate policy and identity before touching contents.
+ * The fd stays open through the action, so a later pathname swap cannot change
+ * which file is read or written.
+ */
+function withPolicyCheckedFile<T>(
+	absolutePath: string,
+	flags: number,
+	cwd: string,
+	policy: SandboxPolicy,
+	checks: Array<() => void>,
+	action: OpenedFileAction<T>,
+): T {
+	for (const check of checks) check();
+	const expected = lstatIfExists(absolutePath);
+	const fd = openSync(absolutePath, flags | fsConstants.O_NOFOLLOW);
+	try {
+		const opened = fstatSync(fd);
+		if (expected && !sameInode(expected, opened)) {
+			throw changedIdentityError(absolutePath);
+		}
+
+		assertPathStillReferencesInode(absolutePath, opened);
+		for (const check of checks) check();
+		assertPathStillReferencesInode(absolutePath, opened);
+
+		// A hardlink alias has its own canonical pathname, so path checks alone
+		// cannot connect it to a denied original. Only pay the deny-tree scan cost
+		// for multiply-linked inodes. If this fd aliases any denied file, that
+		// denied original necessarily has nlink > 1 and the shared bwrap guard
+		// rejects the operation at read/write time as well as at session startup.
+		if (opened.isFile() && opened.nlink > 1) {
+			try {
+				assertNoHardlinkedDeniedFiles(policy.denyRead, policy.denyWrite, cwd);
+			} catch (error) {
+				throw new Error(
+					`Access denied (sandbox hardlink guard): "${absolutePath}" may alias a denyRead/denyWrite file. ${error instanceof Error ? error.message : String(error)}`,
+					{ cause: error },
+				);
+			}
+		}
+
+		return action(fd);
+	} finally {
+		closeSync(fd);
+	}
+}
+
+function lstatIfExists(path: string): Stats | undefined {
+	try {
+		return lstatSync(path);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+		throw error;
+	}
+}
+
+function sameInode(left: Stats, right: Stats): boolean {
+	return left.dev === right.dev && left.ino === right.ino;
+}
+
+function assertPathStillReferencesInode(path: string, opened: Stats): void {
+	let current: Stats;
+	try {
+		current = lstatSync(path);
+	} catch (error) {
+		throw changedIdentityError(path, error);
+	}
+	if (!sameInode(current, opened)) throw changedIdentityError(path);
+}
+
+function changedIdentityError(path: string, cause?: unknown): Error {
+	return new Error(`Access denied (sandbox inode revalidation): "${path}" changed identity during the file operation.`, {
+		cause,
+	});
+}
+
+function readPolicyChecks(absolutePath: string, cwd: string, policy: SandboxPolicy): Array<() => void> {
+	return [() => enforceDenyRead(absolutePath, cwd, policy)];
+}
+
+function writePolicyChecks(absolutePath: string, cwd: string, policy: SandboxPolicy): Array<() => void> {
+	return [() => enforceWritePolicy(absolutePath, cwd, policy)];
+}
+
+function editPolicyChecks(absolutePath: string, cwd: string, policy: SandboxPolicy): Array<() => void> {
+	return [
+		() => enforceDenyRead(absolutePath, cwd, policy),
+		() => enforceWritePolicy(absolutePath, cwd, policy),
+	];
+}
+
+function writeViaCheckedFd(absolutePath: string, content: string, cwd: string, policy: SandboxPolicy): void {
+	withPolicyCheckedFile(
+		absolutePath,
+		fsConstants.O_WRONLY | fsConstants.O_CREAT,
+		cwd,
+		policy,
+		writePolicyChecks(absolutePath, cwd, policy),
+		(fd) => {
+			// O_TRUNC cannot be part of open: it would modify the file before fstat
+			// and post-open policy validation. Truncate only after the fd is trusted.
+			ftruncateSync(fd, 0);
+			writeFileSync(fd, content, { encoding: "utf8" });
+		},
+	);
+}
+
 export function makeReadOperations(cwd: string, policy: SandboxPolicy): SandboxReadOperations {
 	return {
 		async access(absolutePath: string) {
-			enforceDenyRead(absolutePath, cwd, policy);
-			await fsAccess(absolutePath, fsConstants.R_OK);
+			withPolicyCheckedFile(
+				absolutePath,
+				fsConstants.O_RDONLY,
+				cwd,
+				policy,
+				readPolicyChecks(absolutePath, cwd, policy),
+				() => undefined,
+			);
 		},
 		async readFile(absolutePath: string) {
-			// Re-check at read time in case the access check was bypassed upstream.
-			enforceDenyRead(absolutePath, cwd, policy);
-			return fsReadFile(absolutePath);
+			return withPolicyCheckedFile(
+				absolutePath,
+				fsConstants.O_RDONLY,
+				cwd,
+				policy,
+				readPolicyChecks(absolutePath, cwd, policy),
+				(fd) => readFileSync(fd),
+			);
 		},
 	};
 }
@@ -82,8 +221,7 @@ export function makeReadOperations(cwd: string, policy: SandboxPolicy): SandboxR
 export function makeWriteOperations(cwd: string, policy: SandboxPolicy): SandboxWriteOperations {
 	return {
 		async writeFile(absolutePath: string, content: string) {
-			enforceWritePolicy(absolutePath, cwd, policy);
-			await fsWriteFile(absolutePath, content, "utf-8");
+			writeViaCheckedFd(absolutePath, content, cwd, policy);
 		},
 		async mkdir(dir: string) {
 			// mkdir is called for the parent dir of the target. The target itself
@@ -99,18 +237,27 @@ export function makeEditOperations(cwd: string, policy: SandboxPolicy): SandboxE
 	return {
 		async readFile(absolutePath: string) {
 			// edit reads the file before writing — both must be allowed.
-			enforceDenyRead(absolutePath, cwd, policy);
-			enforceWritePolicy(absolutePath, cwd, policy);
-			return fsReadFile(absolutePath);
+			return withPolicyCheckedFile(
+				absolutePath,
+				fsConstants.O_RDONLY,
+				cwd,
+				policy,
+				editPolicyChecks(absolutePath, cwd, policy),
+				(fd) => readFileSync(fd),
+			);
 		},
 		async writeFile(absolutePath: string, content: string) {
-			enforceWritePolicy(absolutePath, cwd, policy);
-			await fsWriteFile(absolutePath, content, "utf-8");
+			writeViaCheckedFd(absolutePath, content, cwd, policy);
 		},
 		async access(absolutePath: string) {
-			enforceDenyRead(absolutePath, cwd, policy);
-			enforceWritePolicy(absolutePath, cwd, policy);
-			await fsAccess(absolutePath, fsConstants.R_OK | fsConstants.W_OK);
+			withPolicyCheckedFile(
+				absolutePath,
+				fsConstants.O_RDWR,
+				cwd,
+				policy,
+				editPolicyChecks(absolutePath, cwd, policy),
+				() => undefined,
+			);
 		},
 	};
 }

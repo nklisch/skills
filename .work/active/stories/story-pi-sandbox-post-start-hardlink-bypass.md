@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-post-start-hardlink-bypass
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin, documentation]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -37,6 +37,18 @@ Fix options (pick during design):
 
 ## Acceptance criteria
 
-- [ ] Design decision recorded: in-process inode check, OR documented as a known bypass.
-- [ ] If fixed: a test reproduces the post-start hardlink and asserts the credential is NOT read.
+- [x] Design decision recorded: in-process inode check, OR documented as a known bypass.
+- [x] If fixed: a test reproduces the post-start hardlink and asserts the credential is NOT read.
 - [ ] If documented: threat model + README name the post-start hardlink bypass as distinct from the TOCTOU residual, and note the in-process file tools are not behind bwrap.
+
+## Implementation notes
+
+- Design decision: fixed with the same fd-bound operation path as R3. After `open(... | O_NOFOLLOW)` and `fstat`, a multiply-linked regular file triggers the shared denied-file hardlink scan at operation time, so a denied inode hardlinked into an allowed path after session startup is rejected before read, truncate, or write.
+- Delivery: bundled directly with `story-pi-sandbox-toctou-credential-bypass`; the two stories share one atomic check-open-fstat-I/O implementation and one focused regression suite.
+- Files changed: `plugins/pi-sandbox/extensions/sandbox-file-policy.ts`, `plugins/pi-sandbox/extensions/sandbox-file-policy.test.ts`, `plugins/pi-sandbox/extensions/sandbox.test.ts`, `plugins/pi-sandbox/README.md`, `plugins/pi-sandbox/docs/THREAT_MODEL.md`.
+- Tests added: create the read/write operation objects first, then create a hardlink from a denied credential into an allowed path. Both read and write through the post-start alias are denied, and the credential remains unchanged.
+- Existing test corrected: the session-start hardlink test no longer describes the in-process path as vulnerable; it points to the focused post-start regressions while retaining startup-guard coverage.
+- Documentation: the current threat model and README now state that the hardlink guard runs at both startup and file-operation time.
+- Verification: `bun test plugins/pi-sandbox/extensions/` — 236 pass, 0 fail.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
