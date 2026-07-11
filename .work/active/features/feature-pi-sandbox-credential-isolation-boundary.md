@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary
 kind: feature
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: []
@@ -410,3 +410,17 @@ Prose/documentation deliverable carrying the feature's documentation acceptance 
 - **Buy-vs-build drift**: the recorded delta becomes stale as srt matures (0.0.x). Mitigation: date the assessment (2026-07-11), cite srt v0.0.26, and record explicit revisit triggers.
 - **denyRead default expansion**: adding `~/.config/git/credentials` to defaults blocks a workflow that read it via sandboxed bash. Mitigation: it is a credential store — model-readability should be blocked; an operator who needs it removes it from global config (project-local config cannot, by additive-only design). Acceptable.
 - **Proc-in-container residual**: `--proc /proc` fails in containers with default seccomp (srt Issue #214; pi-sandbox shares this bwrap limitation). Not introduced by this feature; document in the threat model as a shared limitation the operator VM must clear at the environment level.
+
+## Implementation summary
+
+Driven by `/agile-workflow:implement-orchestrator` over the 3-child dependency graph. Wave plan: S1 (capability-handshake) and S2 (credential-gap-closure) serialized into two sub-waves to avoid a shared-file (`sandbox-config.ts`) merge conflict (S1 adds exports at the end; S2 edits `DEFAULT_CONFIG` — non-overlapping regions but same file); S3 (threat-model) after both so docs reflect final code.
+
+- **S1 `…capability-handshake`** → `stage: review`. Commit `7708283`. Added the `Symbol.for("@nklisch/pi-sandbox.credential-boundary-capability")` contract (`CredentialBoundaryCapability` payload, `readCredentialBoundaryCapability`, `isCredentialBoundaryActive`); publisher at every `session_start` transition + `session_shutdown`; `/sandbox` capability line; re-exports from the `./sandbox-spawn` subpath; 8 new lifecycle/security integration tests.
+- **S2 `…credential-gap-closure`** → `stage: review`. Commit `4ebaec2`. Added `GITHUB_TOKEN`/`GH_TOKEN` to `PROVIDER_SECRET_ENV_NAMES`; added `~/.config/git/credentials` to `DEFAULT_CONFIG.filesystem.denyRead`; regression coverage; credential audit documented in the story body.
+- **S3 `…threat-model`** → `stage: review`. Commit `331a577`. New `plugins/pi-sandbox/docs/THREAT_MODEL.md` (two-boundary model, protected credentials, required-boundary matrix, buy-vs-build delta vs srt v0.0.26/Gondolin/OpenShell, controls triage, capability-handshake contract, credential-registration mechanism, scope boundary, **consolidated Release scope (0.1.0) + post-0.1.0/v1 path**); README updated to reference the threat model and reflect the closed gaps.
+
+**Cross-cutting deviations**: none. All three stories implemented as designed; no design-flaw escape hatches fired.
+
+**Verification**: `bun test plugins/pi-sandbox/extensions/` → 228 pass, 0 fail (up from 217 at design time; +11 new tests). Worker subagents reported a single environment-specific PID-namespace assertion failure (host/sandbox PID both `2` inside their bwrap spawn context — the documented container/seccomp `--proc /proc` limitation, srt Issue #214); it does not reproduce in the orchestrator's environment and is not a regression from this work.
+
+**Answer to the operator's pre-dispatch question** ("have we recorded what 0.1.0 promises and v1 entails?"): **yes, now** — the consolidated Release scope (0.1.0) + post-0.1.0/v1 path section in `docs/THREAT_MODEL.md` is the single source a reviewer or release gate checks the package version against. Previously the promise was scattered across README fragments and config comments.
