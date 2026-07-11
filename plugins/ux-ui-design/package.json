@@ -11,6 +11,9 @@
     "directory": "plugins/ux-ui-design"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "pi-package",
     "agent-skills",

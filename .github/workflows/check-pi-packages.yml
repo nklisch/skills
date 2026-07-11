@@ -1,0 +1,57 @@
+name: Check Pi packages
+
+on:
+  push:
+    paths:
+      - "plugins/*/package.json"
+      - "plugins/*/.npmignore"
+      - "plugins/*/README.md"
+      - "plugins/*/extensions/**"
+      - "plugins/*/skills/**"
+      - "plugins/*/.claude-plugin/**"
+      - "plugins/*/.codex-plugin/**"
+      - "plugins/agile-workflow/scripts/tests/pi-package-metadata.test.sh"
+      - "scripts/publish-pi-packages.sh"
+      - ".github/workflows/check-pi-packages.yml"
+  pull_request:
+    paths:
+      - "plugins/*/package.json"
+      - "plugins/*/.npmignore"
+      - "plugins/*/README.md"
+      - "plugins/*/extensions/**"
+      - "plugins/*/skills/**"
+      - "plugins/*/.claude-plugin/**"
+      - "plugins/*/.codex-plugin/**"
+      - "plugins/agile-workflow/scripts/tests/pi-package-metadata.test.sh"
+      - "scripts/publish-pi-packages.sh"
+      - ".github/workflows/check-pi-packages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  metadata:
+    name: Validate Pi package metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Check package metadata and channel lockstep
+        run: bash plugins/agile-workflow/scripts/tests/pi-package-metadata.test.sh
+
+      - name: Check publish tarballs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for package_json in plugins/*/package.json; do
+            package_dir="${package_json%/package.json}"
+            echo "Packing ${package_dir}"
+            (cd "$package_dir" && npm pack --dry-run --json >/dev/null)
+          done
