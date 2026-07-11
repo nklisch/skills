@@ -38,7 +38,7 @@ complementary:
 | Pi auth/session state | `~/.pi/agent/auth.json` and `~/.pi/agent/sessions` are `denyRead` paths, enforced by bwrap and the in-process `read` policy. | Add other Pi-held files to global `denyRead`. |
 | SSH, GPG, and cloud credentials | `~/.ssh`, `~/.gnupg`, and `~/.aws` are default `denyRead` paths, enforced by bwrap and `read`. | Add local credential directories to global `denyRead`. |
 | GitHub CLI and file-backed Git stores | `~/.config/gh`, `~/.git-credentials`, `~/.netrc`, and `~/.config/git/credentials` are default `denyRead` paths, enforced by bwrap and `read`. | Add additional file-backed Git credential locations to global `denyRead`. |
-| Git config and credential helpers | `~/.gitconfig` and `~/.config/git/config` are default `denyRead` paths because they can declare `credential.helper`. | `HOME` is preserved, so `git credential fill` can still reach a helper configured elsewhere, a credential-cache socket, or a keyring/keychain. Operators must register helper files/sockets they rely on; keyring-based retrieval is outside the 0.1.0 boundary. |
+| Git config and credential helpers | Git config is readable by default so ordinary Git continues to work. Masking `~/.gitconfig` or `~/.config/git/config` is not a safe mitigation: bwrap's regular-file mask makes Git reject the config and exit 128. | Helper/socket/keyring retrieval is a 0.1.0 residual. To block `git credential fill`, register the helper's file or socket path in global `denyRead` as a **literal, existing path** (globs are not bwrap-enforced; nonexistent paths are skipped), or accept the residual. |
 | Provider and GitHub environment tokens | Healthy bwrap children receive a minimal whitelist (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`). Degraded background/monitor spawns strip the non-configurable provider-secret floor, including `GITHUB_TOKEN`, `GH_TOKEN`, and `COPILOT_GITHUB_TOKEN`. | Add Forgejo or other deployment-specific names/patterns through global `envScrub.names` / `envScrub.patterns`. |
 | Forgejo credentials | No Forgejo path or environment name is assumed by default. | Register its file locations in global `denyRead` and token variables in global `envScrub`. |
 
@@ -53,7 +53,7 @@ policy; they are not a substitute for read masking.
 | --- | --- | --- | --- |
 | 1 | Separate PID namespace and private `/proc` | **MET** | `buildBwrapArgs`: `--unshare-pid --proc /proc` |
 | 2 | Minimal child environment without tokens/sockets | **MET** | bwrap `buildMinimalEnv`; degraded spawns use the provider-secret scrub floor, including `GITHUB_TOKEN` and `GH_TOKEN` |
-| 3 | Read masking for credential-bearing paths | **MET (file-backed stores); helper/socket/keyring stores are operator-registered or out of scope for 0.1.0** | bwrap deny overlays and `enforceDenyRead`; defaults include SSH/GPG/Pi/GitHub/file-backed Git stores plus user Git config, and operators register Forgejo and helper locations |
+| 3 | Read masking for credential-bearing paths | **MET (file-backed stores); helper/socket/keyring stores are operator-registered or out of scope for 0.1.0** | bwrap deny overlays and `enforceDenyRead`; defaults include SSH/GPG/Pi/GitHub/file-backed Git stores, while operators register Forgejo and helper file/socket locations as literal paths |
 | 4 | Equivalent enforcement in `read` | **MET** | `makeReadOperations` → `enforceDenyRead` |
 | 5 | Same boundary for background and monitor | **MET** when Linux integration is active | `buildSandboxedSpawnArgs`, sandbox bridge handshake, and `backgroundTasks.sandboxIntegration` |
 | 6 | Fail closed when the boundary cannot be established | **MET** | fail-closed state, `createFailClosedPolicy`, and degraded-spawn secret stripping |
@@ -160,8 +160,6 @@ that a particular project must read, is:
   "~/.pi/agent/sessions",
   "~/.config/gh",
   "~/.config/git/credentials",
-  "~/.gitconfig",
-  "~/.config/git/config",
   "~/.git-credentials",
   "~/.netrc",
   "~/.npmrc",
@@ -170,10 +168,13 @@ that a particular project must read, is:
 ```
 
 This all-or-nothing global escape is a 0.1.0 configuration limitation, not a
-selective override. In particular, an operator who exposes user Git config for
-a required workflow must separately deny any helper file or socket that should
-remain unavailable; credential retrieval from libsecret, Keychain, Git
-Credential Manager, or another keyring remains outside the 0.1.0 boundary.
+selective override. User Git config remains readable by default because masking
+it breaks ordinary Git config reads; it is not a safe helper mitigation. To
+block `git credential fill`, an operator must register the relevant helper file
+or socket in global `denyRead` as a literal path that exists when the sandbox
+initializes, or accept the residual. Credential retrieval from libsecret,
+Keychain, Git Credential Manager, or another keyring remains outside the 0.1.0
+boundary.
 
 ## Scope boundary
 
@@ -286,10 +287,13 @@ This is the single source of truth for the 0.1.0 package promise.
   return a secret a background command wrote to its buffer without redaction.
 - `--no-sandbox` does not yet propagate to background/monitor integration.
 - Git credential helpers, cache sockets, and keyring/keychain stores are not
-  comprehensively blocked. `HOME` is preserved, so `git credential fill` can
-  retrieve plaintext through a helper configured outside the default-masked
-  user Git config; operators must register helper files/sockets or accept this
-  residual.
+  comprehensively blocked. `HOME` and user Git config are preserved, so
+  `git credential fill` can retrieve plaintext through a configured helper.
+  Masking user Git config is not a safe mitigation because it breaks ordinary
+  Git config reads. Operators who want to block helper retrieval must register
+  the helper's file or socket path as a literal, existing global `denyRead`
+  entry (globs are not bwrap-enforced; nonexistent paths are skipped), or accept
+  this residual.
 - On non-Linux, bash is unsandboxed; the outer VM and in-process policy are the
   remaining protections.
 - `filter` is deferred and fail closed.
