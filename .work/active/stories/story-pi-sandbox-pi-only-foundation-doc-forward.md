@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-pi-only-foundation-doc-forward
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin, documentation]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -17,51 +17,57 @@ updated: 2026-07-11
 
 ## Scope
 
-Review blocker B3 (foundation-doc drift). `docs/SPEC.md` says every supported
-plugin has all three channel manifests (Claude/Codex/Pi) with matching versions
-and shared `skills/`. `docs/ARCHITECTURE.md` gives the same mandatory anatomy and
-omits pi-sandbox/background-tasks from its repo map. But pi-sandbox is Pi-only by
-design (no `.claude-plugin/` or `.codex-plugin/` manifests), and `AGENTS.md`
-already documents this exception. The feature's README re-asserts "Pi-only,"
-making the contradiction live. Foundation-doc drift is a blocker per project
-review rules.
-
-Note: background-tasks is also Pi-only, so this is not pi-sandbox-specific — but
-this feature's review surfaced it, so it lands here.
+Review blocker B3 (foundation-doc drift). The first rework correctly aligned
+`docs/SPEC.md` and `docs/ARCHITECTURE.md` with canonical `AGENTS.md`, but left
+`docs/VISION.md` claiming that every supported plugin ships, installs, and
+behaves in Claude Code, Codex, and Pi. That still contradicts the supported
+Pi-only `background-tasks` and `pi-sandbox` packages.
 
 ## Fix
 
-Roll `docs/SPEC.md` and `docs/ARCHITECTURE.md` forward to carry the Pi-only
-exception already established in `AGENTS.md`:
+Roll `docs/VISION.md` forward without removing channel parity as a success
+criterion:
 
-1. **`docs/SPEC.md`** — in the "Plugin manifests and package metadata" and
-   "Catalog invariants" sections, add the Pi-only exception: a plugin whose
-   capability is pi-runtime-only ships a `package.json` and skips the
-   `.claude-plugin/` and `.codex-plugin/` manifests; it is omitted from
-   `.claude-plugin/marketplace.json`. Name pi-sandbox and background-tasks as
-   the current examples. Align with the `AGENTS.md` "Pi-only plugins" paragraph.
-2. **`docs/ARCHITECTURE.md`** — add pi-sandbox and background-tasks to the repo
-   layout map with a "(Pi package only)" annotation; note in the plugin anatomy
-   that `.claude-plugin/` and `.codex-plugin/` are omitted for Pi-only packages.
-3. Do NOT change `AGENTS.md` (it's already correct) — the fix is making SPEC and
-   ARCHITECTURE agree with it.
+1. In **What this is**, state that supported cross-channel plugins ship through
+   all three channels, while capabilities that exist only in Pi's runtime ship
+   as supported Pi-only packages by design. Name `background-tasks` and
+   `pi-sandbox` as the current examples and state that they carry
+   `package.json` but no Claude Code or Codex manifests.
+2. In **What success looks like**, qualify channel parity the same way:
+   cross-channel plugins install and behave in all three; Pi-only runtime
+   packages intentionally target Pi.
+3. Qualify lockstep metadata and the plugin-doc pointer so neither implies that
+   Pi-only packages must carry inapplicable Claude/Codex manifests.
+4. Keep wording aligned with `AGENTS.md`, `docs/SPEC.md`, and
+   `docs/ARCHITECTURE.md`.
 
 ## Acceptance criteria
 
-- [x] `docs/SPEC.md` documents the Pi-only manifest exception (package.json only;
-  no Claude/Codex manifests; omitted from marketplace.json).
-- [x] `docs/ARCHITECTURE.md` repo layout includes pi-sandbox and background-tasks
-  with "(Pi package only)" annotation.
-- [x] `docs/ARCHITECTURE.md` plugin anatomy notes Pi-only packages omit
-  `.claude-plugin/` and `.codex-plugin/`.
-- [x] No contradiction remains between SPEC/ARCHITECTURE and AGENTS.md on the
-  Pi-only exception.
+- [x] `docs/VISION.md` no longer says every supported plugin ships to or installs
+  in all three harnesses.
+- [x] Channel parity remains a success criterion for supported cross-channel
+  plugins.
+- [x] Supported Pi-only packages are explicitly recognized as intentional and
+  `background-tasks` / `pi-sandbox` are named as current examples.
+- [x] The Vision says Pi-only packages ship `package.json` without Claude Code
+  or Codex plugin manifests.
+- [x] Lockstep-metadata and plugin-doc wording do not reintroduce the same
+  contradiction.
+- [x] VISION, SPEC, ARCHITECTURE, and AGENTS agree on the exception.
 
 ## Implementation notes
 
-- Files changed: `docs/SPEC.md`, `docs/ARCHITECTURE.md`.
-- Rolled the manifest and catalog invariants forward from an unconditional three-manifest rule to the canonical Pi-only exception already established in `AGENTS.md`.
-- Added `background-tasks` and `pi-sandbox` to the architecture map with Pi-package-only annotations and documented their omitted Claude/Codex manifests and marketplace entries. The map also now includes the existing `zai-research` plugin so it reflects the full current plugin tree.
-- Verification: compared the exception wording and examples against canonical `AGENTS.md`, checked both Pi-only package directories have `package.json` and no Claude/Codex manifests, and checked neither is registered in `.claude-plugin/marketplace.json`.
-- Discrepancies from design: none.
+- Files changed: `docs/VISION.md`.
+- Qualified both the catalog description and channel-parity success criterion:
+  supported cross-channel plugins target Claude Code, Codex, and Pi; supported
+  Pi-runtime-only packages intentionally target Pi.
+- Named `background-tasks` and `pi-sandbox` as the current Pi-only examples and
+  recorded their `package.json`-only channel metadata shape.
+- Also narrowed lockstep metadata to files a plugin actually ships and made the
+  docs pointer resolve to `package.json` for Pi-only packages.
+- Verification: searched VISION/SPEC/ARCHITECTURE for unconditional
+  every-supported-plugin/all-three claims and compared the resulting exception
+  wording with canonical `AGENTS.md`; no contradiction remains.
+- Discrepancies from design: the second rework adds VISION to the original
+  SPEC/ARCHITECTURE rollforward because fresh review found the remaining drift.
 - Adjacent issues parked: none.
