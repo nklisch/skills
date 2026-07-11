@@ -1,7 +1,7 @@
 ---
 id: idea-sandboxed-git-push-credential-access
 created: 2026-07-10
-updated: 2026-07-10
+updated: 2026-07-11
 tags: [security, sandbox]
 ---
 
@@ -114,13 +114,13 @@ tool follows the same pattern.
   prompt-injected into pushing somewhere unintended.
 - Should it require user confirmation (`ctx.ui.confirm`) before pushing, since
   it bypasses the sandbox? The `tool_call` egress gate could `confirm` it.
-- Does it belong in pi-sandbox (as the "trusted egress" companion to the deny
-  policy) or as a standalone extension? Likely standalone — pi-sandbox's contract
-  is *denial*, not *privileged egress*.
+- **RESOLVED (2026-07-10):** It belongs IN pi-sandbox as a module. The denial
+  creates the chokepoint; the egress gate is already pi-sandbox's; the config is
+  coherent; the output-scrubbing gap is pi-sandbox's. See DESIGN DIRECTION below.
 - Does `bump-version.sh`'s auto-push step get reworked to call the tool instead
   of `git push` through sandboxed bash?
 
-### DESIGN DIRECTION (2026-07-10): operator-tuned config scoping, standalone extension
+### DESIGN DIRECTION (2026-07-10): operator-tuned config scoping, module of pi-sandbox
 
 The behavioral scoping (current-branch/origin-only) must NOT be hardcoded — it
 is an operator configuration surface, matching how the sandbox itself lets the
@@ -142,11 +142,18 @@ operator tune `denyRead`/`denyWrite`/`allowWrite` to their risk appetite.
    regardless; `confirm` gives a human veto per call. Catches in-policy args with
    suspicious intent.
 
-**Where it lives:** a standalone extension/plugin, NOT a pi-sandbox change.
-pi-sandbox's config namespace is *denial*; this is *privileged egress with
-operator-tuned scoping* — different concern, different config namespace. The
-sandbox stays focused on denial; this extension owns the one trusted-egress path
-the operator chose to grant.
+**Where it lives:** INSIDE pi-sandbox, as a module/subsystem of the
+extension — NOT a standalone extension. The credential masking (denial) creates
+the chokepoint that makes the egress path necessary; the `tool_call` egress
+gate the tool uses is already pi-sandbox's mechanism; the config namespace
+(`denyRead`/`allowWrite` for denial, `gitEgress.*` for privileged egress) is
+coherent as one operator posture; and the output-scrubbing requirement is the
+sandbox's own input-only-inspector gap to close. The earlier "standalone"
+recommendation was wrong — it would split one mediation system (deny +
+permit-and-scope) across two extensions that both touch the same `tool_call`
+event for the same concern. pi-sandbox's contract is broader than pure denial:
+its `allowWrite` already does positive grants, and a git-egress tool is the same
+permit-and-scope shape for what credential masking withholds.
 
 **Implementation note for design pass:** the inspector scans tool *input*, not
 *output* (documented sandbox gap). The tool must scrub/summarize git output
