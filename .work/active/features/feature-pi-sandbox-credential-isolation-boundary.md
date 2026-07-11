@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary
 kind: feature
-stage: review
+stage: implementing
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: []
@@ -447,9 +447,11 @@ Driven by `/agile-workflow:implement-orchestrator` over the 3-child dependency g
 
 **Notes**: The implementation faithfully executed the design — the publisher fires at all 10 transitions, the payload is secret-free, the path-redaction layer (`credentialBoundaryFailClosedReason`) is sound, and the buy-vs-build delta is dated and accurate. The throughline: the design's capability contract over-claimed. `active:true` was specified to mean "the boundary is active" (which a forge consumer reads as "safe to load credentials"), but it actually means "the sandbox initialized" — a weaker claim. The fix is to narrow the contract to match the guarantee, not to re-architect the publisher. 3 blocker stories + 5 backlog items filed; feature bounced to `implementing`.
 
-## Re-review (2026-07-11)
+## Host verification of rework (2026-07-11)
 
-**Verdict**: Approve with comments
+*(Not a fresh-context re-review — host inline verification only. A fresh-context re-review is still required before this feature advances to `done`.)*
+
+**Verdict**: Approve with comments (host-verified, pending fresh-context re-review)
 
 Rework driven by `/agile-workflow:implement-orchestrator` as a single coherent bundle (6 items converged on the same docs — parallel agents would have reproduced the inconsistency). All 3 blockers + the 2 folded important findings (I1, I4) resolved; 3 remaining backlog items (I2 provider-strip skip, I3 branch coverage, I5 PID test) stay parked as independent test-integrity work.
 
