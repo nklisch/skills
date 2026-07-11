@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary-threat-model
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin, documentation]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: [feature-pi-sandbox-credential-isolation-boundary-capability-handshake, feature-pi-sandbox-credential-isolation-boundary-credential-gap-closure]
@@ -116,21 +116,44 @@ release gate can check the package against its stated promise.
 
 ## Acceptance criteria
 
-- [ ] `docs/THREAT_MODEL.md` explicitly distinguishes the outer VM boundary from
+- [x] `docs/THREAT_MODEL.md` explicitly distinguishes the outer VM boundary from
   the inner credential-isolation boundary.
-- [ ] The buy-vs-build decision is recorded with a concrete delta against srt
+- [x] The buy-vs-build decision is recorded with a concrete delta against srt
   (v0.0.26), Gondolin, and OpenShell, with revisit triggers.
-- [ ] The general-controls triage (core / optional / deferred) is documented.
-- [ ] The capability-handshake contract for forge consumers is documented
+- [x] The general-controls triage (core / optional / deferred) is documented.
+- [x] The capability-handshake contract for forge consumers is documented
   (payload, consumer rule, non-contents).
-- [ ] The credential-registration mechanism (global `denyRead`/`envScrub`,
+- [x] The credential-registration mechanism (global `denyRead`/`envScrub`,
   additive-only) is documented.
-- [ ] README "Security boundary / non-goals" references the threat model and
+- [x] README "Security boundary / non-goals" references the threat model and
   reflects the closed gaps.
-- [ ] Forge-specific operations and authentication policy are documented as
+- [x] Forge-specific operations and authentication policy are documented as
   absent from pi-sandbox.
-- [ ] A consolidated **Release scope (0.1.0)** + **post-0.1.0 / v1 path** section
+- [x] A consolidated **Release scope (0.1.0)** + **post-0.1.0 / v1 path** section
   is present in `docs/THREAT_MODEL.md`, listing what 0.1.0 claims, its known
   documented gaps, and the post-0.1.0 direction (tracked as work, not a
   commitment). This is the single source a reviewer or release gate checks
   the package version against.
+
+## Implementation notes
+
+- Created `plugins/pi-sandbox/docs/THREAT_MODEL.md` as the dated, canonical
+  0.1.0 posture statement: it distinguishes the operator VM from the inner
+  credential boundary; maps protected credentials and all eight required
+  boundary points to code; records the srt v0.0.26/Gondolin/OpenShell decision
+  and revisit triggers; documents control triage, capability handshake,
+  additive-only credential registration, explicit forge exclusions, known
+  residuals, and the tracked post-0.1.0/v1 direction.
+- Updated `plugins/pi-sandbox/README.md` to lead the security section with the
+  two-boundary model and threat-model link; summarize the backend decision and
+  control triage; document credential registration, the capability line in
+  `/sandbox`, and the absence of forge operations. It now explicitly records
+  `~/.config/git/credentials` plus `GITHUB_TOKEN`/`GH_TOKEN` coverage and links
+  existing release/deferred notes to the canonical release-scope section.
+- Documentation acceptance criteria are met by review of those two files.
+- Verification: `bun test plugins/pi-sandbox/extensions/` ran 228 tests with
+  227 passing and one environment-dependent failure in `bwrap integration > PID
+  namespace and fresh /proc hide host process metadata` (expected exit 0,
+  received 1). The focused rerun reproduced it. This is consistent with the
+  documented default-container-seccomp `--proc /proc` limitation, not a
+  documentation change; no code was modified by this story.
