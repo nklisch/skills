@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-capability-branch-coverage
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, testing]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -62,9 +62,21 @@ Use the existing `registerSandbox(cwd, agentDir, noSandbox)` helper and
 
 ## Acceptance criteria
 
-- [ ] A test covers the hardlink-alias fail-closed branch and asserts the correct
+- [x] A test covers the hardlink-alias fail-closed branch and asserts the correct
   capability payload.
-- [ ] A test covers the `network.mode=filter` fail-closed branch.
-- [ ] A test covers stale-success clearing (pre-published `active:true` is
+- [x] A test covers the `network.mode=filter` fail-closed branch.
+- [x] A test covers stale-success clearing (pre-published `active:true` is
   overwritten by a failing state).
-- [ ] All existing tests stay green; the 3 new tests pass.
+- [x] All existing tests stay green; the 3 new tests pass.
+
+## Implementation notes
+
+- Added lifecycle integration coverage for denied-file hardlinks, deferred
+  `network.mode=filter`, and overwriting a pre-published active capability on
+  parse failure. The global-config fixture pins `/bin/true` as an executable
+  trusted wrapper so these tests reach their intended branches independently
+  of the host's system bwrap installation.
+- The new assertions exposed a reason-classification ordering defect:
+  hardlink and filter diagnostics also mention bwrap. Specific labels now take
+  precedence over the generic bwrap-unavailable fallback.
+- Verified with `bun test plugins/pi-sandbox/extensions/credential-boundary-capability-integration.test.ts` (11 pass, 0 fail).

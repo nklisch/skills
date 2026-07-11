@@ -122,9 +122,11 @@ function credentialBoundaryFailClosedReason(lastFailClosedReason: string | null)
 	// stable state label, never copy the diagnostic into global capability state.
 	const normalized = lastFailClosedReason?.toLowerCase() ?? "";
 	if (normalized.includes("config parse error")) return "fail-closed: config parse error";
-	if (normalized.includes("bwrap")) return "fail-closed: bwrap unavailable";
+	// Branch diagnostics mention the bwrap backend, so recognize their specific
+	// state before the generic bwrap-unavailable fallback.
 	if (normalized.includes("hardlink")) return "fail-closed: denied-file hardlink";
 	if (normalized.includes("network.mode=filter")) return "fail-closed: unsupported network filter mode";
+	if (normalized.includes("bwrap")) return "fail-closed: bwrap unavailable";
 	return "sandbox fail-closed";
 }
 
