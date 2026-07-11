@@ -82,24 +82,40 @@ interface CredentialBoundaryCapability {
 }
 ```
 
-`active` is true only while the Linux inner boundary is provably active. It is
-false for initialization failure, configuration disablement, `--no-sandbox`,
-non-Linux graceful degrade, and shutdown. `failClosed` distinguishes a blocked
-initialization failure from an intentional or unavailable boundary; `reason` is
-a short state label.
+`active:true` means only that the Linux bash/file-tool credential-isolation
+boundary initialized and is not fail-closed. It is false for initialization
+failure, configuration disablement, `--no-sandbox`, non-Linux graceful degrade,
+and shutdown. `failClosed` distinguishes a blocked initialization failure from
+an intentional or unavailable boundary; `reason` is a short state label.
 
-A forge-operations consumer must read the symbol immediately before each
-file-backed credential load and proceed **only** when
-`isCredentialBoundaryActive(handshake)` (equivalently, `active === true`) is
-true. It must not cache a successful result across `/reload`: absent, malformed,
-or inactive capability is a refusal to load credentials. On non-Linux, this
-means the consumer refuses by default because OS-level bash isolation is not
-active.
+A forge-operations consumer has **two independent preconditions** before it may
+load a credential:
 
-The payload contains neither credential paths nor secrets, and does not attest
-to a particular registry entry. It deliberately answers only whether the
-credential-isolation boundary is active. `/sandbox` displays the same
-credential-boundary capability for operator diagnosis.
+1. It must read the symbol immediately before the load and require
+   `isCredentialBoundaryActive(handshake)` to return true. It must not cache a
+   successful result across `/reload`; an absent, malformed, inactive, or
+   fail-closed capability is a refusal to load credentials.
+2. It must independently verify that its own credential location is registered
+   by the operator in global `filesystem.denyRead`, or that an environment-held
+   credential is registered in global `envScrub`. The forge extension owns this
+   verification. The capability is path-free and does **not** attest that the
+   forge credential is masked.
+
+On non-Linux, the first precondition fails because OS-level bash isolation is
+not active. Satisfying the first precondition never substitutes for the second.
+
+### What `active` does not prove
+
+Even when `active:true`, the capability does **not** prove:
+
+- that any specific credential path is masked;
+- that RPC/API direct bash is mediated;
+- that background/monitor integration is active;
+- that Git credential helpers, sockets, or keyrings are blocked; or
+- that the operator has not cleared the global deny list.
+
+The payload contains neither credential paths nor secrets. `/sandbox` displays
+the same lifecycle capability for operator diagnosis.
 
 ## Credential registration and configuration authority
 
