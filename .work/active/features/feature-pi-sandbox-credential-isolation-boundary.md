@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary
 kind: feature
-stage: implementing
+stage: done
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: []
@@ -477,3 +477,15 @@ A fresh-context adversarial re-review (codex-sol, xhigh) ran against the reworke
 **Clean re-verifications**: I1 RESOLVED (predicate + tests sound); I4 RESOLVED (documented defaults match `DEFAULT_CONFIG` exactly). Suite 227 pass / 1 fail (the parked I5 PID test, not a regression).
 
 Feature bounced back to `implementing` for a second rework pass. The B2 regression is the most urgent — a security "fix" that breaks `git commit` is worse than the original over-claim.
+
+## Fresh-context re-review pass 2 (2026-07-11)
+
+**Verdict**: Approve with comments — blockers genuinely closed
+
+A second fresh-context adversarial re-review (codex-sol, xhigh) ran against the pass-2 reworked artifact. All three blockers substantively closed:
+
+- **B1 — RESOLVED**: `active:true` is now documented as "necessary but not sufficient" — a liveness gate, not a safe-to-load attestation. The contract explicitly denies path attestation, covers the registered-but-not-bash-masked gap (globs not enforced, nonexistent paths skipped), forbids duplicating config internals, and assigns credential custody to the forge consumer. Sound.
+- **B2 — RESOLVED (runtime)**: gitconfig removed from `DEFAULT_CONFIG.filesystem.denyRead`; sandboxed `git status` under DEFAULT_CONFIG with `~/.gitconfig` present exits 0 (verified independently by host AND reviewer). Helper/socket/keyring residual documented honestly without the broken gitconfig mitigation. **Residual**: the behavioral regression test passes `denyRead: []`, so it wouldn't catch a regression — only a static list assertion guards the fix. → parked as `idea-pi-sandbox-gitconfig-defaults-behavioral-test` (Important, not blocking).
+- **B3 — RESOLVED**: `docs/VISION.md` now qualifies "every supported plugin" with the Pi-only exception; matches SPEC + ARCHITECTURE + AGENTS.md. No remaining unqualified language.
+
+One Important finding (B2 test effectiveness) parked, not blocking. Feature advances to `review`; the 6 child stories advance via fast-lane (green verification).
