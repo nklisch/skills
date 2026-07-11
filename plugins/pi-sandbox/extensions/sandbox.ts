@@ -63,6 +63,7 @@ import {
 	type BackgroundTasksIntegrationDecisionInput,
 	type CredentialBoundaryCapability,
 	type BypassToolIntegrationState,
+	type EnvScrubConfig,
 } from "./sandbox-config";
 import {
 	createFailClosedPolicy,
@@ -102,6 +103,7 @@ const loadPiConfig = (cwd: string) => loadConfig(cwd, { agentDir: getAgentDir() 
 // ---------------------------------------------------------------------------
 
 let activePolicy: SandboxPolicy | null = null;
+let envScrubConfig: EnvScrubConfig | null = null;
 let pinnedBwrapPath: string | null = null;
 let bwrapPinError: string | null = null;
 
@@ -178,7 +180,7 @@ function createSandboxedBashOps(): BashOperations {
 			}
 
 			const policy = activePolicyFor(cwd);
-			const minimalEnv = buildMinimalEnv(process.env);
+			const minimalEnv = buildMinimalEnv(process.env, envScrubConfig ?? undefined);
 			const bwrapExecutable = pinnedBwrapPath;
 			if (!bwrapExecutable) {
 				throw new Error(bwrapPinError ?? "Sandbox initialization failed: no pinned trusted bwrap path is available. Bash is fail-closed. File-tool policy still enforced.");
@@ -499,6 +501,7 @@ export default function (pi: ExtensionAPI) {
 		sandboxInitialized = false;
 		sandboxPolicy = null;
 		activePolicy = null;
+		envScrubConfig = null;
 		pinnedBwrapPath = null;
 		bwrapPinError = null;
 		backgroundTasksIntegrationDecisionBase = null;
@@ -536,6 +539,7 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		const { config, parseErrors, globWarnings, missingDenyWarnings, legacyFieldWarnings, additiveWarnings, failClosedReasons } = loadPiConfig(ctx.cwd);
+		envScrubConfig = config.envScrub ?? null;
 		backgroundTasksIntegrationDecisionBase = { config, parseErrors, failClosedReasons, env: process.env };
 
 		// Fail-closed on config parse/validation errors. Install the restrictive
@@ -710,6 +714,7 @@ export default function (pi: ExtensionAPI) {
 		lastFailClosedReason = null;
 		sandboxPolicy = null;
 		activePolicy = null;
+		envScrubConfig = null;
 		pinnedBwrapPath = null;
 		bwrapPinError = null;
 		backgroundTasksIntegrationDecisionBase = null;

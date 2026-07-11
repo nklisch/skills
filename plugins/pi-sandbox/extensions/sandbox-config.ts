@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, relative, isAbsolute } from "node:path";
 import { canonicalizeExistingPath, decidePlatformState, normalizeConfiguredPath, type NetworkMode } from "./sandbox-bwrap";
+import { envNameMatchesScrubConfig } from "./sandbox-env";
 
 // CONFIG_DIR_NAME is hardcoded because pi's TS loader can't resolve the
 // package-barrel re-export (".d.ts" declares it but dist/index.js omits it)
@@ -2359,38 +2360,6 @@ function effectiveBaseScanFieldsForTool(inspector: ToolInspector, tool: string):
 	const explicit = inspector.scanFields?.[tool] ?? inspector.scanFields?.["*"];
 	if (explicit !== undefined) return explicit;
 	return (inspector.secrets?.length ?? 0) > 0 ? "*" : undefined;
-}
-
-function compileEnvScrubPatterns(patterns: string[] | undefined): RegExp[] {
-	return (patterns ?? []).map((p) => {
-		const re = p.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
-		return new RegExp(`^${re}$`, "i");
-	});
-}
-
-function envNameMatchesScrubConfig(name: string, config: EnvScrubConfig | undefined, compiledPatterns = compileEnvScrubPatterns(config?.patterns)): boolean {
-	return Boolean(config?.names?.includes(name) || compiledPatterns.some((re) => re.test(name)));
-}
-
-/**
- * Scrub secret-bearing env vars from process.env at session_start.
- * Exact scrub names and scrub patterns always win over provider/config keep;
- * keep entries only preserve variables that do not match a scrub rule.
- */
-export function scrubEnv(config: EnvScrubConfig | undefined, keep: string[]): string[] {
-	if (!config || (!config.names?.length && !config.patterns?.length)) return [];
-	const keepSet = new Set([...keep, ...(config.keep ?? [])]);
-	const compiledPatterns = compileEnvScrubPatterns(config.patterns);
-	const scrubbed: string[] = [];
-	for (const name of Object.keys(process.env)) {
-		if (envNameMatchesScrubConfig(name, config, compiledPatterns)) {
-			delete process.env[name];
-			scrubbed.push(name);
-			continue;
-		}
-		if (keepSet.has(name)) continue;
-	}
-	return scrubbed;
 }
 
 function collectLegacyFieldWarnings(source: "global" | "project", value: unknown): string[] {

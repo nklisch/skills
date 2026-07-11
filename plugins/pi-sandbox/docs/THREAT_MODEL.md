@@ -39,7 +39,7 @@ complementary:
 | SSH, GPG, and cloud credentials | `~/.ssh`, `~/.gnupg`, and `~/.aws` are default `denyRead` paths, enforced by bwrap and `read`. | Add local credential directories to global `denyRead`. |
 | GitHub CLI and file-backed Git stores | `~/.config/gh`, `~/.git-credentials`, `~/.netrc`, and `~/.config/git/credentials` are default `denyRead` paths, enforced by bwrap and `read`. | Add additional file-backed Git credential locations to global `denyRead`. |
 | Git config and credential helpers | Git config is readable by default so ordinary Git continues to work. Masking `~/.gitconfig` or `~/.config/git/config` is not a safe mitigation: bwrap's regular-file mask makes Git reject the config and exit 128. | Helper/socket/keyring retrieval is a 0.1.0 residual. To block `git credential fill`, register the helper's file or socket path in global `denyRead` as a **literal, existing path** (globs are not bwrap-enforced; nonexistent paths are skipped), or accept the residual. |
-| Provider and GitHub environment tokens | Healthy bwrap children receive a minimal whitelist (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`). Degraded background/monitor spawns strip the non-configurable provider-secret floor, including `GITHUB_TOKEN`, `GH_TOKEN`, and `COPILOT_GITHUB_TOKEN`. | Add Forgejo or other deployment-specific names/patterns through global `envScrub.names` / `envScrub.patterns`. |
+| Provider and GitHub environment tokens | Healthy bwrap children receive a minimal whitelist (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`) and apply `envScrub`; degraded background/monitor spawns apply `envScrub` plus strip the non-configurable provider-secret floor, including `GITHUB_TOKEN`, `GH_TOKEN`, and `COPILOT_GITHUB_TOKEN`. | Add Forgejo or other deployment-specific names/patterns through global `envScrub.names` / `envScrub.patterns`. |
 | Forgejo credentials | No Forgejo path or environment name is assumed by default. | Register its file locations in global `denyRead` and token variables in global `envScrub`. |
 
 The bwrap layer is the OS-level protection for sandboxed Linux bash. The
@@ -135,7 +135,9 @@ registry is the existing global configuration:
 
 - `filesystem.denyRead` registers credential-bearing files and directories.
 - `envScrub.names` and `envScrub.patterns` register credential-bearing
-  environment variables.
+  environment variables. Scrubs apply to both healthy bwrap bash children and
+  degraded background/monitor children; names and case-insensitive patterns
+  always win over `envScrub.keep`.
 
 Project-local configuration is additive-only: it can add masks/scrub targets
 and otherwise tighten policy, but cannot remove an inherited protection. The
