@@ -7,6 +7,18 @@ tags: [security, sandbox]
 
 # Sandboxed git push: credential access without exfiltration
 
+## Principle
+
+Give agents a way to invoke git commands; auth happens; auth never enters
+agent-observable space (tool input, tool output, transcript, readable files).
+The extension is the gate + runner, not a credential helper — git runs via
+`pi.exec` outside bwrap where the host's existing credential helper
+(`store`/`gh`/ssh-agent) works, and the extension gates the call by
+command-type dial (`auto`/`ask`/`deny`) plus remote/ref constraints. The
+sandbox's bash credential masking funnels the agent to the tool (raw `git push`
+in bash fails to auth); the tool is the path through the chokepoint. One system,
+one module of pi-sandbox.
+
 ## The problem
 
 The pi-sandbox correctly masks credential files (`~/.git-credentials`,
