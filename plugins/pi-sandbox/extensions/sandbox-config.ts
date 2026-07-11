@@ -174,6 +174,37 @@ export const DEFAULT_BYPASS_TOOL_INTEGRATION_STATE: BypassToolIntegrationState =
 export const BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL_DESCRIPTION = "@nklisch/pi-sandbox.background-tasks-integration";
 export const BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL = Symbol.for(BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL_DESCRIPTION);
 
+/**
+ * Same-process credential-boundary capability published by pi-sandbox.
+ *
+ * This contract intentionally carries only non-secret state labels. Consumers
+ * must re-read it immediately before loading file-backed credentials rather
+ * than caching the value across a session reload.
+ */
+export const CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL_DESCRIPTION = "@nklisch/pi-sandbox.credential-boundary-capability";
+export const CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL = Symbol.for(CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL_DESCRIPTION);
+
+/** Non-secret health signal for extensions that require the inner credential-isolation boundary. */
+export interface CredentialBoundaryCapability {
+	/** True only while the Linux credential-isolation boundary is provably active. */
+	active: boolean;
+	/** True when sandbox initialization failed and mediated bash is blocked. */
+	failClosed: boolean;
+	/** State label only; never a credential path or secret. */
+	reason?: string;
+}
+
+/** Read the current capability value. Consumers must treat unknown values as inactive. */
+export function readCredentialBoundaryCapability(): unknown {
+	return (globalThis as typeof globalThis & Record<symbol, unknown>)[CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL];
+}
+
+/** Returns true only for a capability payload that explicitly proves the boundary is active. */
+export function isCredentialBoundaryActive(handshake: unknown): boolean {
+	if (!handshake || typeof handshake !== "object") return false;
+	return (handshake as { active?: unknown }).active === true;
+}
+
 export type BackgroundTasksSandboxIntegrationHandshake =
 	| { integrated: true; bridgeState: "loaded" }
 	| { integrated: false; reason: "absent" | "broken"; bridgeState?: "absent" | "broken"; message?: string };
@@ -2014,6 +2045,10 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 	const effectiveToolRules = applyBypassToolDefaults(config.tools, backgroundTasksIntegration);
 	const bypassToolPolicy = SHELL_BYPASS_TOOLS.map((name) => `${name}=${effectiveToolRules.rules?.[name] ?? effectiveToolRules.default ?? "allow"}`).join(", ");
 	const backgroundTasksLine = formatBackgroundTasksIntegration(backgroundTasksIntegration);
+	// The global capability is authoritative: session state must not be
+	// reconstructed here, because a consumer can observe a transition between
+	// command invocations.
+	const credentialBoundaryCapabilityLine = formatCredentialBoundaryCapability(readCredentialBoundaryCapability());
 	const legacy = legacyFieldWarnings.length > 0 ? legacyFieldWarnings : ["(none)"];
 	const warnings = [...globWarnings, ...missingDenyWarnings, ...additiveWarnings];
 
@@ -2040,6 +2075,7 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 		"  File-tool policy is in-process and remains active when mediated bash is fail-closed or the OS bash sandbox is unavailable.",
 		"  RPC/API direct bash is not mediated by pi extensions in current pi core.",
 		`  Background tasks sandbox: ${backgroundTasksLine}`,
+		`  Credential boundary capability: ${credentialBoundaryCapabilityLine}`,
 		`  Bypass tools: ${bypassToolPolicy}`,
 		backgroundTasksIntegration.backgroundTasksSandbox === "active"
 			? "  Not OS-sandboxed here: Pi extensions/packages, RPC/API direct bash, web/search tools, subagents, and provider requests."
@@ -2084,6 +2120,14 @@ function formatBackgroundTasksIntegration(state: BypassToolIntegrationState): st
 	if (state.backgroundTasksSandbox === "active") return `active${suffix}`;
 	if (state.backgroundTasksSandbox === "blocked") return `blocked${suffix}`;
 	return `inactive${suffix}`;
+}
+
+function formatCredentialBoundaryCapability(handshake: unknown): string {
+	if (!handshake || typeof handshake !== "object") return "unpublished or invalid";
+	const capability = handshake as Partial<CredentialBoundaryCapability>;
+	if (typeof capability.active !== "boolean" || typeof capability.failClosed !== "boolean") return "unpublished or invalid";
+	const reason = typeof capability.reason === "string" && capability.reason.length > 0 ? ` (${capability.reason})` : "";
+	return `active=${capability.active}, failClosed=${capability.failClosed}${reason}`;
 }
 
 function rejectUnknownKeys(value: Record<string, unknown>, path: string, knownKeys: Set<string>, errors: string[]): void {

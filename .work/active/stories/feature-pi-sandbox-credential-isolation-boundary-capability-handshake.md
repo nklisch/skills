@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary-capability-handshake
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -57,14 +57,32 @@ background-tasks handshake shape.
 
 ## Acceptance criteria
 
-- [ ] After successful Linux `session_start`, `readCredentialBoundaryCapability()`
+- [x] After successful Linux `session_start`, `readCredentialBoundaryCapability()`
   returns `{ active: true, failClosed: false }`.
-- [ ] On fail-closed init, returns `{ active: false, failClosed: true, reason: <state label> }`.
-- [ ] On non-Linux degrade, returns `{ active: false, failClosed: false, reason: "OS bash sandbox unavailable (non-Linux degrade)" }`.
-- [ ] On `--no-sandbox`, returns `{ active: false, failClosed: false, reason: "sandbox disabled via --no-sandbox" }`.
-- [ ] On `session_shutdown`, publishes `{ active: false, failClosed: false, reason: "session shutdown" }`.
-- [ ] The payload contains NO credential paths and NO secrets (only state labels).
-- [ ] `/sandbox` output includes a `Credential boundary capability:` line.
-- [ ] A forge consumer using only `isCredentialBoundaryActive(handshake)` correctly
+- [x] On fail-closed init, returns `{ active: false, failClosed: true, reason: <state label> }`.
+- [x] On non-Linux degrade, returns `{ active: false, failClosed: false, reason: "OS bash sandbox unavailable (non-Linux degrade)" }`.
+- [x] On `--no-sandbox`, returns `{ active: false, failClosed: false, reason: "sandbox disabled via --no-sandbox" }`.
+- [x] On `session_shutdown`, publishes `{ active: false, failClosed: false, reason: "session shutdown" }`.
+- [x] The payload contains NO credential paths and NO secrets (only state labels).
+- [x] `/sandbox` output includes a `Credential boundary capability:` line.
+- [x] A forge consumer using only `isCredentialBoundaryActive(handshake)` correctly
   gates credential loading across all states (active / fail-closed / disabled / degrade / shutdown).
-- [ ] Tests mirror the existing `sandbox-handshake-integration.test.ts` structure.
+- [x] Tests mirror the existing `sandbox-handshake-integration.test.ts` structure.
+
+## Implementation notes
+
+- Added a `Symbol.for` credential-boundary capability contract, strict consumer
+  helper, and forge-facing `./sandbox-spawn` re-exports.
+- Published an inactive capability before initialization and at every terminal
+  `session_start` branch, then published the explicit shutdown state.
+  Fail-closed diagnostics are mapped to path-free state labels before they enter
+  the global capability payload.
+- Added symbol-authoritative `/sandbox` output and lifecycle integration tests
+  for active, fail-closed, disabled, non-Linux degrade, `--no-sandbox`, and
+  shutdown states.
+- Verification: targeted capability/handshake/spawn tests pass (31 tests). Full
+  `bun test plugins/pi-sandbox/extensions/` exercised the new tests successfully
+  (223 pass) but retains one pre-existing environment-specific bwrap PID test
+  failure: this container gives both the Bun parent and the sandboxed shell PID
+  2, so its numeric `/proc/<host-pid>` assertion is invalid despite the PID
+  namespace being present. No test was weakened for this story.

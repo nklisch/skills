@@ -49,6 +49,7 @@ import {
 	getAgentDir,
 } from "@earendil-works/pi-coding-agent";
 import {
+	CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL,
 	SANDBOX_FAIL_CLOSED_MESSAGE,
 	SANDBOX_UNINITIALIZED_MESSAGE,
 	createSandboxCommandHandler,
@@ -60,6 +61,7 @@ import {
 	loadConfig,
 	readBackgroundTasksIntegrationHandshake,
 	type BackgroundTasksIntegrationDecisionInput,
+	type CredentialBoundaryCapability,
 	type BypassToolIntegrationState,
 } from "./sandbox-config";
 import {
@@ -106,6 +108,60 @@ let bwrapPinError: string | null = null;
 function formatTrustedBwrapFailure(resolution: { reason: string; rejectedPath?: string }): string {
 	const rejected = resolution.rejectedPath ? ` Rejected path: ${resolution.rejectedPath}.` : "";
 	return `Sandbox initialization failed: ${resolution.reason}.${rejected} Bash is fail-closed. File-tool/egress/inspector protections remain active. Fix bwrap or restart with --no-sandbox for a full extension bypass (bwrap + file-tool/egress/inspector gates).`;
+}
+
+/**
+ * Publish the non-secret credential-boundary capability at every lifecycle
+ * transition. A separate extension reads this global-registry key immediately
+ * before loading credentials, so stale success state must never survive a
+ * fail-closed, bypass, degrade, or shutdown transition.
+ */
+function credentialBoundaryFailClosedReason(lastFailClosedReason: string | null): string {
+	// Diagnostics can include configured paths or other operator detail. The
+	// cross-extension contract is intentionally less privileged: expose only a
+	// stable state label, never copy the diagnostic into global capability state.
+	const normalized = lastFailClosedReason?.toLowerCase() ?? "";
+	if (normalized.includes("config parse error")) return "fail-closed: config parse error";
+	if (normalized.includes("bwrap")) return "fail-closed: bwrap unavailable";
+	if (normalized.includes("hardlink")) return "fail-closed: denied-file hardlink";
+	if (normalized.includes("network.mode=filter")) return "fail-closed: unsupported network filter mode";
+	return "sandbox fail-closed";
+}
+
+function publishCredentialBoundaryCapability(state: {
+	sandboxEnabled: boolean;
+	sandboxInitialized: boolean;
+	failClosed: boolean;
+	disabledViaConfig: boolean;
+	osSandboxUnavailable: boolean;
+	noSandbox: boolean;
+	lastFailClosedReason: string | null;
+	sessionShutdown?: boolean;
+}): void {
+	const active =
+		state.sandboxEnabled &&
+		state.sandboxInitialized &&
+		!state.failClosed &&
+		!state.disabledViaConfig &&
+		!state.osSandboxUnavailable &&
+		!state.noSandbox;
+	const reason = active
+		? undefined
+		: state.sessionShutdown
+			? "session shutdown"
+			: state.noSandbox
+			? "sandbox disabled via --no-sandbox"
+			: state.disabledViaConfig
+				? "sandbox disabled via config"
+				: state.failClosed
+					? credentialBoundaryFailClosedReason(state.lastFailClosedReason)
+					: state.osSandboxUnavailable
+						? "OS bash sandbox unavailable (non-Linux degrade)"
+						: "sandbox not initialized";
+	const capability: CredentialBoundaryCapability = reason === undefined
+		? { active, failClosed: state.failClosed }
+		: { active, failClosed: state.failClosed, reason };
+	(globalThis as typeof globalThis & Record<symbol, unknown>)[CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL] = capability;
 }
 
 // ---------------------------------------------------------------------------
@@ -450,6 +506,18 @@ export default function (pi: ExtensionAPI) {
 		};
 
 		const noSandbox = pi.getFlag("no-sandbox") as boolean;
+		const publishCapability = () => publishCredentialBoundaryCapability({
+			sandboxEnabled,
+			sandboxInitialized,
+			failClosed,
+			disabledViaConfig,
+			osSandboxUnavailable,
+			noSandbox,
+			lastFailClosedReason,
+		});
+		// Clear any earlier session's success signal before initialization can take
+		// a branch. Every later terminal branch publishes its specific state too.
+		publishCapability();
 
 		if (noSandbox) {
 			sandboxEnabled = false;
@@ -460,6 +528,7 @@ export default function (pi: ExtensionAPI) {
 				backgroundTasksSandbox: "inactive",
 				reason: "sandbox disabled via --no-sandbox",
 			};
+			publishCapability();
 			ctx.ui.notify("Sandbox disabled via --no-sandbox", "warning");
 			return;
 		}
@@ -478,6 +547,7 @@ export default function (pi: ExtensionAPI) {
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
 			const msg = `Sandbox config parse error(s):\n${parseErrors.join("\n")}\nBash + file tools are fail-closed until fixed.`;
 			ctx.ui.notify(msg, "error");
+			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (config parse error)"));
 			return;
 		}
@@ -493,6 +563,7 @@ export default function (pi: ExtensionAPI) {
 			sandboxPolicy = createPermissivePolicy(ctx.cwd);
 			activePolicy = sandboxPolicy;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+			publishCapability();
 			ctx.ui.notify("Sandbox disabled via config", "info");
 			return;
 		}
@@ -520,6 +591,7 @@ export default function (pi: ExtensionAPI) {
 			activePolicy = sandboxPolicy;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
 			ctx.ui.notify(`Sandbox fail-closed: ${e instanceof Error ? e.message : e}`, "error");
+			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (hardlink alias)"));
 			return;
 		}
@@ -555,6 +627,7 @@ export default function (pi: ExtensionAPI) {
 				backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
 				ctx.ui.notify(bwrapPinError, "error");
+				publishCapability();
 				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened"));
 				return;
 			}
@@ -580,6 +653,7 @@ export default function (pi: ExtensionAPI) {
 			};
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
 			ctx.ui.notify(platformState.message, "info");
+			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", platformState.status));
 			return;
 		}
@@ -589,6 +663,7 @@ export default function (pi: ExtensionAPI) {
 			backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
 			ctx.ui.notify(platformState.message, "error");
+			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", platformState.status));
 			return;
 		}
@@ -599,6 +674,7 @@ export default function (pi: ExtensionAPI) {
 		lastFailClosedReason = null;
 		backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 		backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+		publishCapability();
 
 		const networkCount = config.network?.allowedDomains?.length ?? 0;
 		const writeCount = config.filesystem?.allowWrite?.length ?? 0;
@@ -636,6 +712,16 @@ export default function (pi: ExtensionAPI) {
 			backgroundTasksSandbox: "inactive",
 			reason: "session shutdown",
 		};
+		publishCredentialBoundaryCapability({
+			sandboxEnabled,
+			sandboxInitialized,
+			failClosed,
+			disabledViaConfig,
+			osSandboxUnavailable,
+			noSandbox: false,
+			lastFailClosedReason,
+			sessionShutdown: true,
+		});
 	});
 
 	pi.registerCommand("sandbox", {
