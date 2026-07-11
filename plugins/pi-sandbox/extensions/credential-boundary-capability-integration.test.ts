@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, link, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -18,6 +18,9 @@ import {
 } from "./sandbox-spawn";
 
 const tempDirs: string[] = [];
+// Bun caches mocked module exports. Keep its agent-dir path stable and refresh
+// its config contents per registration so every lifecycle test is isolated.
+const mockedAgentDir = join(tmpdir(), `pi-sandbox-capability-agent-${crypto.randomUUID()}`);
 
 async function makeTempDir(): Promise<string> {
 	const dir = await mkdtemp(join(tmpdir(), "pi-sandbox-capability-test-"));
@@ -35,6 +38,7 @@ afterEach(async () => {
 		const dir = tempDirs.pop();
 		if (dir) await rm(dir, { recursive: true, force: true });
 	}
+	await rm(mockedAgentDir, { recursive: true, force: true });
 });
 
 interface RegisteredSandbox {
@@ -43,6 +47,13 @@ interface RegisteredSandbox {
 }
 
 async function registerSandbox(cwd: string, agentDir: string, noSandbox: boolean): Promise<RegisteredSandbox> {
+	await rm(mockedAgentDir, { recursive: true, force: true });
+	await mkdir(join(mockedAgentDir, "extensions"), { recursive: true });
+	try {
+		await copyFile(join(agentDir, "extensions", "sandbox.json"), join(mockedAgentDir, "extensions", "sandbox.json"));
+	} catch (error) {
+		if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+	}
 	const tool = (name: string) => ({
 		name,
 		description: `${name} stub`,
@@ -50,7 +61,7 @@ async function registerSandbox(cwd: string, agentDir: string, noSandbox: boolean
 		execute: async () => ({ content: [{ type: "text", text: "stub" }] }),
 	});
 	mock.module("@earendil-works/pi-coding-agent", () => ({
-		getAgentDir: () => agentDir,
+		getAgentDir: () => mockedAgentDir,
 		createBashTool: () => tool("bash"),
 		createReadTool: () => tool("read"),
 		createWriteTool: () => tool("write"),
@@ -201,6 +212,59 @@ describe("pi-sandbox credential-boundary capability handshake", () => {
 			reason: "fail-closed: bwrap unavailable",
 		});
 		expect(JSON.stringify(readCredentialBoundaryCapability())).not.toContain("/private/credential-wrapper");
+	});
+
+	test("publishes fail-closed capability when a denied file has a hardlink alias", async () => {
+		const cwd = await makeTempDir();
+		const deniedFile = join(cwd, "credential.txt");
+		await writeFile(deniedFile, "secret");
+		await link(deniedFile, join(cwd, "credential-alias.txt"));
+
+		const config = JSON.stringify({ bwrapPath: "/bin/true", filesystem: { denyRead: [deniedFile] } });
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"));
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), config);
+		const sandbox = await registerSandbox(cwd, agentDir, false);
+
+		await sandbox.start();
+		expect(readCredentialBoundaryCapability()).toEqual({
+			active: false,
+			failClosed: true,
+			reason: "fail-closed: denied-file hardlink",
+		});
+	});
+
+	test("publishes fail-closed capability for unsupported network filter mode", async () => {
+		const config = JSON.stringify({ bwrapPath: "/bin/true", network: { mode: "filter" } });
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"));
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), config);
+		const sandbox = await registerSandbox(await makeTempDir(), agentDir, false);
+
+		await sandbox.start();
+		expect(readCredentialBoundaryCapability()).toEqual({
+			active: false,
+			failClosed: true,
+			reason: "fail-closed: unsupported network filter mode",
+		});
+	});
+
+	test("clears stale success before publishing an early initialization failure", async () => {
+		(globalThis as typeof globalThis & Record<symbol, unknown>)[CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL] = {
+			active: true,
+			failClosed: false,
+		};
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".pi"));
+		await writeFile(join(cwd, ".pi", "sandbox.json"), "{");
+		const sandbox = await registerSandbox(cwd, await makeTempDir(), false);
+
+		await sandbox.start();
+		expect(readCredentialBoundaryCapability()).toEqual({
+			active: false,
+			failClosed: true,
+			reason: "fail-closed: config parse error",
+		});
 	});
 
 	test("publishes the active Linux state, then clears it on session shutdown", async () => {
