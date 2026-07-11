@@ -160,6 +160,47 @@ permit-and-scope shape for what credential masking withholds.
 rather than pipe raw stderr/stdout back, so a credential that appears in git
 output is not exfiltrated to the agent.
 
+### DIAL-FORCES-ARCHITECTURE FINDING (2026-07-10)\n
+The desired per-command-type dial (`push: ask, fetch: auto, clone: deny`) is the
+load-bearing design decision, and it forces the architecture.
+
+**The dial is keyed by command type (push/fetch/pull/clone). A git credential
+helper CANNOT see the command type** — the credential-helper protocol hands the
+helper `protocol`, `host`, `path`, `username`, never the verb. `git push` and
+`git fetch` to the same remote produce identical credential requests. So a
+credential-helper-based design can scope by remote and enforce ask/deny at the
+auth layer, but CANNOT implement a command-type dial.
+
+**Therefore the tool must be the execution surface** (it sees its own args,
+including the command type), with the dial checked in `execute` before running:
+- `auto` → check command type + remote/ref constraints against config; if
+  in-policy, run `pi.exec("git", [...])` outside bwrap, scrub output, return
+  summary. No prompt.
+- `ask` → same, but `ctx.ui.confirm` first.
+- `deny` → tool refuses; git never runs.
+
+The extension is the **gate + runner** (mechanism B), NOT the credential helper
+(mechanism A). Git authenticates via the host's existing helper (`store`/`gh`/
+ssh-agent) — the extension runs git *where that helper works* (outside bwrap via
+`pi.exec`), it doesn't replace the helper.
+
+**Trust-model clarification:** the credential crosses OUT of bwrap into pi's
+unsandboxed process (git runs there). The boundary that holds is *agent-
+observable-space* (tool input/output, transcript, readable files) — the
+credential never enters that. It is NOT confined to the bwrap namespace. This is
+fine (pi's process is trusted, the agent isn't) and is the point: the sandbox's
+bash credential masking FUNNELS the agent to the tool (raw `git push` in bash
+fails to auth), and the tool is the gate. Critically, there is NO credential
+oracle left inside bwrap — which is the key property, because an in-bwrap
+credential helper (mechanism A) would be an exfil vector the agent could poke
+with `git credential fill`.
+
+**Open design choice:** does the extension delegate auth to the host's existing
+credential helper (recommended — simpler, reuses `store`/`gh`, extension owns
+only policy), or self-provide the credential (reads token from extension config,
+injects via `GIT_ASKPASS`; centralizes auth+policy in one namespace but
+duplicates `store`/`gh` and adds credential-storage responsibility)?
+
 ## Context from the session that surfaced this
 
 - Discovered while trying to push the `feature-pi-sandbox-gitdir-writable-surface`
