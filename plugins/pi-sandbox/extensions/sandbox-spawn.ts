@@ -84,7 +84,17 @@ function stripProviderSecrets(env: NodeJS.ProcessEnv, envScrub: EnvScrubConfig |
 	return stripped;
 }
 
-export type { BackgroundTasksSandboxConfig, BackgroundTasksSandboxIntegration } from "./sandbox-config";
+export type {
+	BackgroundTasksSandboxConfig,
+	BackgroundTasksSandboxIntegration,
+	CredentialBoundaryCapability,
+} from "./sandbox-config";
+export {
+	CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL,
+	CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL_DESCRIPTION,
+	isCredentialBoundaryActive,
+	readCredentialBoundaryCapability,
+} from "./sandbox-config";
 export {
 	buildBwrapArgs,
 	buildMinimalEnv,
