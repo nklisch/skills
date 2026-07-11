@@ -46,15 +46,19 @@ They share the module and the trust model, not a cause-and-effect.
 - **Principle**: give agents a way to invoke git commands; auth happens; auth
   never enters agent-observable space (tool input, tool output, transcript,
   readable files).
-- **Architecture — gate + runner, NOT credential helper**: the per-command-type
+- **Architecture — gate + runner, NOT credential helper** *(OPEN — under
+  reconsideration after advisory review; see below)*: the per-command-type
   dial is keyed on command type (push/fetch/pull/clone). A git credential helper
   CANNOT see the command type (the helper protocol hands it
   `protocol`/`host`/`path`/`username`, never the verb — `git push` and `git
   fetch` to the same remote produce identical credential requests). So the dial
   forces the tool to be the execution surface: the dial is checked in `execute`
-  before running. Git runs via `pi.exec("git", [...])` outside bwrap, where the
-  host's existing helper (`store`/`gh`/ssh-agent) works. The extension does NOT
-  replace the helper; it runs git *where the helper works*.
+  before running. That much stands. BUT the locked choice of `pi.exec("git",
+  agent-derived args)` as the runner is UNSALVAGEABLE — see "Advisory design
+  review" below: it runs agent-controlled repo config/hooks in a privileged
+  process, inherits pi's full env, and `args` isn't safely constrainable. The
+  design pass must pick a constrained broker, library transport, or
+  out-of-process service instead. The dial stays; the runner is reopened.
 - **Where it lives**: INSIDE pi-sandbox as a module. The denial creates the
   chokepoint; the egress gate is already pi-sandbox's (`decideToolPolicy` / the
   `tool_call` event); the config is coherent (`denyRead`/`allowWrite` for
@@ -205,3 +209,138 @@ tools give finer per-tool `tool_call` policy but more surface.
   directory writability* for submodule/worktree layouts; this fixes *git
   credential access* for all repos. They share the module and trust model, not
   a cause-and-effect.
+
+## Advisory design review (cross-model: openai-codex/gpt-5.6-sol, pre-design)
+
+Verdict: **Foundations flawed — reconsider before design.** Ran before
+feature-design to pressure-test the locked architecture. The reviewer surfaced
+a fundamental problem: the locked "gate + runner on `pi.exec`" architecture is
+an unsandboxed code-execution bridge, not a credentialed git runner. The design
+must NOT proceed to concrete schema/tool/test design with
+`pi.exec("git", agent-derived args)` still locked as the runner.
+
+### Blocker 1 — `pi.exec("git", …)` runs agent-controlled repository config in a privileged process
+
+Git consumes agent-writable repository state: `.git/config`, hooks, attributes,
+submodule configuration, aliases, credential helpers, `core.sshCommand`, filters,
+merge drivers, URL rewrites. A writable `pre-push` hook alone executes arbitrary
+code with pi's full permissions and environment when the tool runs `git push`.
+`pull` adds merge/rebase hooks and filters; clone/fetch have further
+external-command surfaces. **The agent can write `.git/config` and hooks via the
+sandboxed write/edit tools, then trigger their execution through this tool.**
+
+This invalidates the core claim that the tool "just runs git where the helper
+works." It runs git where *everything in `.git/config`* works — including
+arbitrary code.
+
+### Blocker 2 — `pi.exec` inherits pi's complete process environment
+
+`pi.exec`'s `execCommand` calls `spawn(command, args, { cwd, shell: false,
+stdio })` with NO `env` option — so git, helpers, hooks, SSH, and any spawned
+programs inherit provider tokens, `SSH_AUTH_SOCK`, runtime variables, and
+orchestrator secrets. This contradicts "credential is the only privilege
+crossing the boundary." `pi.exec` also has no per-call environment option.
+
+### Blocker 3 — optional remote constraints are insufficient; "origin" is not a security check
+
+An agent can modify `origin` in `.git/config`, use URL rewrites, select alternate
+URLs, recurse into submodules, or exploit options that choose another endpoint.
+With HTTPS, a hostile endpoint may receive an actual bearer/basic credential;
+with SSH, the host agent becomes a signing oracle. Remote-name checks must be
+replaced with canonical-URL/host validation against operator-owned policy.
+
+### Blocker 4 — credential masking does not reliably funnel git through this tool
+
+In `network.mode=open`, host `/tmp`, `/run`, and Unix sockets remain visible.
+Although the minimal bash env omits `SSH_AUTH_SOCK`, an agent can discover an
+SSH-agent or credential-cache socket and set the variable itself. RPC/API bash
+is a documented bypass; other extension tools may execute processes. The
+"chokepoint/funnel" claim is not reliable — the tool is ONE privileged path,
+not THE exclusive authenticated path.
+
+### Blocker 5 — a free-form `args` field is not safely constrainable
+
+Dangerous shapes: global repo selectors, arbitrary clone destinations, `--config`,
+`--template`, `--separate-git-dir`, alternate upload/receive programs, recursive
+submodules, `--mirror`, `--all`, `--tags`, deletion/force refspecs, URL-valued
+remotes, config overrides. Command placement alone doesn't make trailing
+options safe. The tool must expose SEMANTIC OPERATIONS, not git argv — each
+operation builds a fixed argv from validated fields.
+
+### Important findings (summarized)
+
+- **The `allowWrite` analogy is false.** `allowWrite` grants a bounded FS
+  capability while execution stays in bwrap; this tool moves execution into a
+  process that can read the whole host, access inherited env/sockets, and run
+  repo-controlled programs. It's a capability BROKER across the sandbox boundary.
+  Keeping it in pi-sandbox is organizationally defensible, but the README must
+  call it a privileged egress broker with a stronger threat model.
+- **`pull` ≠ `fetch`.** Pull = fetch + merge/rebase, may checkout
+  attacker-controlled content, invoke hooks/filters/merge drivers, modify
+  worktree. Clone combines transport + filesystem creation + checkout +
+  templates + optional submodule recursion. Don't model all four verbs as
+  equivalent dial rows. Start with constrained push + fetch; require sandboxed
+  merge/rebase after fetch; add clone only with a separately designed destination
+  policy.
+- **`refScope: current branch` is underspecified and race-prone.** Refspecs can
+  force, delete, mirror, push tags, map source to unrelated destination.
+  Resolve immutable OIDs and construct exact refspecs; reject symbolic/multi-ref
+  expansion.
+- **Output scrubbing can't make an adversarial subprocess noninterfering.**
+  Leak surfaces: stdout, stderr, progress, thrown errors, `details`, renderers,
+  session persistence, logs, temp files, exit status, timing, FS side effects.
+  Git can write credentials into config, reflogs, worktree files, hook logs.
+  Regex scrubbing can't reliably recognize every credential format. Return a
+  FIXED, STRUCTURED result from a narrow status taxonomy; never return or
+  persist raw git output anywhere.
+- **Config provenance.** Project `.pi/sandbox.json` is repo-controlled. Endpoint
+  grants, enabling verbs, and loosening ref scope must be global/operator-only;
+  projects may only deny verbs / narrow endpoints / narrow refs (additive).
+- **Failure/lifecycle posture unstated.** Define a state matrix: disabled when
+  config invalid/uninitialized, `ask` without UI denies, `--no-sandbox` behavior.
+- **Backstop weaker than claimed.** Default tool policy is `allow`; no human veto
+  unless operator configures `confirm`. Tool must do authoritative final semantic
+  validation inside `execute` after all `tool_call` mutations.
+
+### The architectural reconsideration required
+
+The locked decision "gate + runner on `pi.exec('git', agent-derived args)`" is
+unsalvageable as-is because the runner executes agent-controlled repo config in
+a privileged process. Three alternative architectures the reviewer proposed:
+
+1. **Constrained privileged Git broker** — policy in pi-sandbox, but operations
+   run through a dedicated adapter with: explicit minimal environment, fixed
+   semantic operations (no argv), mandatory canonical endpoint validation, exact
+   refspec construction, disabled hooks/external drivers, no raw output. Use an
+   operator-controlled bare repo or trusted git context so agent-writable local
+   config is never loaded. Minimum plausible salvage path.
+2. **Library-based transport** — libgit2 or similar; no hooks/shell
+   helpers/aliases/filters/arbitrary repo-configured commands. Credentials via
+   callback bound to the approved endpoint; structured status only. Cleaner
+   boundary, dependency/compat cost.
+3. **Out-of-process broker/service** — a small trusted process accepts a narrow
+   operation schema, validates policy, acquires a one-shot/short-lived
+   credential, performs the operation in a separately constrained environment.
+   Pi never launches privileged git directly from agent-controlled working tree.
+
+### What stays valid from the locked decisions
+
+- The **principle** (git commands without pulling auth into agent-observable
+  space) is still the goal.
+- The **dial** (per-command-type `auto`/`ask`/`deny`) is still the right policy
+  surface — but command types are NOT equivalent (pull ≠ fetch) and the dial is
+  necessary but not sufficient.
+- **Module placement in pi-sandbox** is still organizationally defensible — the
+  flawed foundation is the unsandboxed execution against agent-controlled repo
+  state, not the package placement.
+- The **trust-model clarification** (boundary is agent-observable-space, not
+  bwrap; no in-bwrap credential oracle) is still correct.
+- The **`gh`-alone-doesn't-solve-it** finding stands.
+
+### Next step
+
+The strategic decision "gate + runner on `pi.exec`" must be revised before
+feature-design. The design pass needs to pick one of the three alternative
+architectures (or a hybrid) and prove agent-controlled repo config/hooks cannot
+execute in the privileged process. This is now an OPEN strategic question, not
+a locked decision.
