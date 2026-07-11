@@ -50,6 +50,8 @@ pi install npm:@nklisch/pi-code-audit
 pi install npm:@nklisch/pi-nates-toolkit
 pi install npm:@nklisch/pi-agentic-research
 pi install npm:@nklisch/pi-agent-coordination
+pi install npm:@nklisch/pi-background-tasks
+pi install npm:@nklisch/pi-zai-research
 
 # External companion plugin: peeragent lives in its own repo/package
 pi install git:github.com/nklisch/peeragent@v0.4.1
@@ -62,6 +64,8 @@ pi install -l ./plugins/code-audit
 pi install -l ./plugins/nates-toolkit
 pi install -l ./plugins/agentic-research
 pi install -l ./plugins/agent-coordination
+pi install -l ./plugins/background-tasks
+pi install -l ./plugins/zai-research
 ```
 
 Pi packages can load executable extensions in addition to shared skills. The root
@@ -80,7 +84,9 @@ workflow handoffs.
 | **code-audit** | Standalone markdown-first code audits — deep multi-lane scans, bug/security/test scans, perf scouting, bold refactor proposals, and repo scorecards without `.work`. | [plugins/code-audit/README.md](plugins/code-audit/README.md) |
 | **nates-toolkit** | Standalone utility skills, no workflow lock-in — explain in plain language, reflect on tool & skill usage, author skills, and audit skill artifacts. | [plugins/nates-toolkit/README.md](plugins/nates-toolkit/README.md) |
 | **agentic-research** | Grounded, verifiable AI research discipline. Produces `.research/` attestations and syntheses with citation/verification gates, and pairs with agile-workflow when research should ground a work item. | [plugins/agentic-research/README.md](plugins/agentic-research/README.md) |
-| **agent-coordination** | Sparse cross-agent coordination ledger for shared repos — deliberate claims, handoffs, blockers, review summaries, and merge summaries without turning Discussions into chat. Lightly aware of agile-workflow `.work` IDs when present. |  |
+| **agent-coordination** | Sparse cross-agent coordination ledger for shared repos — deliberate claims, handoffs, blockers, review summaries, and merge summaries without turning Discussions into chat. Lightly aware of agile-workflow `.work` IDs when present. | [plugins/agent-coordination/README.md](plugins/agent-coordination/README.md) |
+| **background-tasks** | Pi-native background command, monitor, and job-registry tools. | [plugins/background-tasks/README.md](plugins/background-tasks/README.md) |
+| **zai-research** | Pi-native Z.ai web, URL/PDF, JSON/API, and GitHub repository research tools. | [plugins/zai-research/README.md](plugins/zai-research/README.md) |
 
 ## External companion plugins
 
@@ -88,7 +94,9 @@ workflow handoffs.
 |---|---|---|
 | **peeragent** | `pi install git:github.com/nklisch/peeragent@v0.4.1` | Cross-harness peer delegation and peer review. Pi loads the `peer` and `peer-review` skills from peeragent's package and uses its bundled wrapper/binaries to call Codex, Claude Code, Gemini through Antigravity, or Z.AI GLM 5.2 through Pi. |
 
-The two big ones — `agile-workflow` + `ux-ui-design` — are designed to work
+The package release procedure is documented in
+[docs/npm-publishing.md](docs/npm-publishing.md). The two big ones —
+`agile-workflow` + `ux-ui-design` — are designed to work
 together. The killer workflow is to use `ux-ui-design` mocks during
 `agile-workflow`'s pre-autopilot `--only-questions` passes, so autopilot
 inherits both directional and visual alignment before any code lands. See

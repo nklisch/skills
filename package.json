@@ -11,6 +11,10 @@
     "url": "git+https://github.com/nklisch/skills.git"
   },
   "license": "MIT",
+  "scripts": {
+    "check:pi-packages": "bash plugins/agile-workflow/scripts/tests/pi-package-metadata.test.sh",
+    "publish:pi": "bash scripts/publish-pi-packages.sh"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@mozilla/readability": "^0.6.0",

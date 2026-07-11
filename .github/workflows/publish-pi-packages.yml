@@ -1,0 +1,103 @@
+name: Publish Pi packages
+
+# Publishing is deliberately manual. Package versions are independently
+# versioned, so a maintainer chooses one package or the whole set after the
+# corresponding version bumps and binary refreshes have landed on main.
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Pi package to publish (already-published versions are skipped)"
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - agile-workflow
+          - agent-coordination
+          - agentic-research
+          - background-tasks
+          - code-audit
+          - nates-toolkit
+          - ux-ui-design
+          - zai-research
+
+concurrency:
+  group: publish-pi-packages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish Pi packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the main branch
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Pi packages may only be published from main (got $GITHUB_REF)." >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node for npm trusted publishing
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          # npm trusted publishing authenticates the publish with OIDC. Avoid
+          # setup-node's package-manager cache because this repo has no root
+          # lockfile and publishing does not need a dependency cache.
+          package-manager-cache: false
+
+      - name: Verify OIDC-compatible toolchain
+        run: |
+          node -e '
+            const [major, minor] = process.versions.node.split(".").map(Number);
+            if (major < 22 || (major === 22 && minor < 14)) {
+              console.error(`Node ${process.versions.node} is too old for npm trusted publishing.`);
+              process.exit(1);
+            }
+          '
+          npm_version="$(npm --version)"
+          node -e '
+            const [major, minor, patch] = process.argv[1].split(".").map(Number);
+            const supported = major > 11 || (major === 11 && (minor > 5 || (minor === 5 && patch >= 1)));
+            if (!supported) {
+              console.error(`npm ${process.argv[1]} is too old for trusted publishing.`);
+              process.exit(1);
+            }
+          ' "$npm_version"
+          echo "Using Node $(node --version) and npm ${npm_version}."
+
+      - name: Check package metadata
+        run: bash plugins/agile-workflow/scripts/tests/pi-package-metadata.test.sh
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Test runtime extensions
+        run: |
+          set -euo pipefail
+          bun test plugins/agile-workflow/extensions/agile-workflow.test.ts
+          bun test plugins/background-tasks/extensions/background-tasks.test.ts
+          bun test plugins/nates-toolkit/extensions/agents-context.test.ts
+          bun test plugins/nates-toolkit/extensions/nates-toolkit.test.ts
+
+      - name: Install Z.ai extension dependencies
+        working-directory: plugins/zai-research
+        run: bun install --frozen-lockfile
+
+      - name: Test Z.ai extension
+        working-directory: plugins/zai-research
+        run: bun test extensions/*.test.ts
+
+      - name: Publish selected packages with npm OIDC
+        env:
+          PACKAGE_SELECTION: ${{ inputs.package }}
+        run: bash scripts/publish-pi-packages.sh "$PACKAGE_SELECTION"

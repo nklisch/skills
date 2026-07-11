@@ -11,6 +11,9 @@
     "directory": "plugins/code-audit"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "pi-package",
     "agent-skills",
