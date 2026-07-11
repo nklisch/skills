@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-gitconfig-defaults-behavioral-test
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, testing]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
