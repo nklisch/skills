@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary
 kind: feature
-stage: done
+stage: implementing
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: []
@@ -489,3 +489,36 @@ A second fresh-context adversarial re-review (codex-sol, xhigh) ran against the 
 - **B3 — RESOLVED**: `docs/VISION.md` now qualifies "every supported plugin" with the Pi-only exception; matches SPEC + ARCHITECTURE + AGENTS.md. No remaining unqualified language.
 
 One Important finding (B2 test effectiveness) parked, not blocking. Feature advances to `review`; the 6 child stories advance via fast-lane (green verification).
+
+## Adversarial release-gate review (2026-07-11)
+
+**Verdict**: BLOCK — 4 blockers must be resolved before 0.1.0 ships
+
+A 6-lane adversarial review of the full v0.1.0 surface (bwrap mount, config trust, in-process file policy, lifecycle+capability, spawn+consumer, docs honesty). Each lane a focused attacker; 3 sol-xhigh lanes failed to synthesize output and were re-run at terra/high. Findings host-verified against code.
+
+### Blockers (4 — feature bounced to `implementing`)
+
+- **R1 — `.git` gitfile allowWrite escape** (`sandbox-bwrap.ts` discoverGitDirs): a `.git` gitfile in the writable worktree pointing at ANY external repo's `.git` (which has a `HEAD` file) is pinned writable via `--bind`. The `HEAD` check doesn't help — attacker points at a real git dir elsewhere on the host (e.g. a crafted submodule in a cloned repo). Host-verified reproducible. → `story-pi-sandbox-gitfile-allowwrite-escape`.
+- **R2 — `envScrub` doesn't apply to healthy bash; `LC_*` tokens leak** (`sandbox-bwrap.ts` buildMinimalEnv): the healthy bwrap path allowlists all `LC_*` vars and never applies `envScrub`, so an operator-registered `envScrub.names: ["LC_FORGE_TOKEN"]` does nothing on the healthy path — the token leaks. The threat model's "without provider or forge tokens" + "register via envScrub" claims are false for the healthy path. Host-verified. → `story-pi-sandbox-envscrub-healthy-bash`.
+- **R3 — TOCTOU symlink-swap is a reproducible credential read/write bypass** (`sandbox-file-policy.ts`): the check-then-act gap lets a same-user concurrent process swap a symlink between the policy check and `fsReadFile`/`fsWriteFile`. Reviewer reproduced reading `~/.ssh/id_ed25519` and writing a denied file. The threat model frames this as an "accepted residual" — but it's an exploitable credential bypass (model bash spawns a swapper while model calls `read`). → `story-pi-sandbox-toctou-credential-bypass`.
+- **R4 — Post-start hardlink bypass of in-process file policy** (`sandbox-file-policy.ts`): the bwrap hardlink guard runs only at session start; a same-user process can create a hardlink to a denied file into an allowed path AFTER startup, and the in-process `read` resolves the alias path (realpath of a hardlink is itself) → credential read. Reviewer-verified reproducible. Under-documented (threat model mentions the startup guard but not that it's defeated post-start, nor that the in-process tools have NO hardlink check). → `story-pi-sandbox-post-start-hardlink-bypass`.
+
+### Important (5 — parked in backlog)
+
+- **R5**: `network.mode=block` permits unmasked host Unix-socket IPC (sockets outside the 5 masked paths; reviewer connected to a project-dir socket). → `idea-pi-sandbox-block-mode-unix-socket-residual`. (Residual after the partial fix in `idea-pi-sandbox-block-mode-unix-socket-leak`.)
+- **R6**: Nonexistent deny entries get no bwrap protection (absent `.env` → no overlay → bash creates it). Already warned via `missingDenyWarnings`; in-process tools still enforce. → `idea-pi-sandbox-nonexistent-deny-no-bwrap-protection`.
+- **R7**: Capability published before bwrap runtime viability proven (path resolves but runtime namespace setup could fail; `active:true` stays). Not a shell-escape (failed command fail-closes), but an inaccurate forge signal. → `idea-pi-sandbox-capability-optimistic-bwrap-runtime`.
+- **R8**: Custom `PI_CODING_AGENT_DIR` causes background/monitor to load different (weaker) config than the main extension. No divergence if the operator uses the default dir. → `idea-pi-sandbox-pi-coding-agent-dir-divergence`.
+- **R9**: `AGENTS.md` "each supported plugin ships channel metadata" still literally false for Pi-only plugins (SPEC/ARCHITECTURE/VISION fixed; AGENTS generic sentence remains). Nit→Important for doc consistency. (Fold into the R1-R4 rework pass.)
+
+### Verified sound (non-findings)
+
+- **Mount ordering**: deny overlays fire AFTER allowWrite binds (precedence correct). Verified by host.
+- **Config additive-only**: allowWrite `..` escape caught (canonicalization); inspector shapes/allowlist can't be weakened; tool policy can't be lowered; backreference ban unbypassable. Verified by host (lane 2 failed to synthesize output twice; host verified the attack vectors directly).
+- **Lifecycle publication**: all 10 branches publish; no stale `active:true` on re-init. (Lane 4.)
+- **Inspector ReDoS guard**: sound at the tested level.
+- **bwrapPath global-only**: airtight.
+
+### Notes
+
+The 4 blockers are real security bypasses, not over-cautious findings — R1 and R3/R4 are verified-reproducible credential-read/write paths. R2 is a doc-vs-code contradiction on the package's central promise ("without forge tokens"). The feature was at `done` from the prior rework pass, but this release-gate review found the 0.1.0 surface is NOT yet shippable as a credential-isolation boundary. Feature bounced to `implementing`; the 4 blocker stories need design + fix, the 5 important findings stay parked. Lane 2 (config trust) is the one lane that produced no reviewer output even after re-run — its attack vectors were host-verified sound (additive-only holds), so it is not blocking, but a future dedicated config-trust adversarial pass would be healthy once the blockers are fixed.
