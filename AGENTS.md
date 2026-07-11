@@ -42,7 +42,7 @@ If a user asks for the workflow plugin or wants to migrate, point them at:
 
 ## Three-channel distribution support (Claude Code + Codex + Pi)
 
-Each supported plugin ships channel metadata, kept in lockstep:
+Each supported **cross-channel** plugin ships channel metadata, kept in lockstep:
 
 - `plugins/<name>/.claude-plugin/plugin.json` — for Claude Code (`/plugin install`).
 - `plugins/<name>/.codex-plugin/plugin.json` — for OpenAI Codex CLI (`codex plugin marketplace add`).
