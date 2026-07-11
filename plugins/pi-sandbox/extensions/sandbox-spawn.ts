@@ -6,7 +6,8 @@ import {
 	resolveTrustedBwrap,
 	type NetworkMode,
 } from "./sandbox-bwrap";
-import { loadConfig, type EnvScrubConfig } from "./sandbox-config";
+import { loadConfig } from "./sandbox-config";
+import { scrubEnvironment, type EnvScrubConfig } from "./sandbox-env";
 import type { BackgroundTasksSandboxIntegration } from "./sandbox-config";
 
 /** Env-var names known to carry provider/runtime secrets. In degraded/unsandboxed
@@ -63,27 +64,8 @@ export const PROVIDER_SECRET_ENV_NAMES = [
 	"XIAOMI_TOKEN_PLAN_SGP_API_KEY",
 ];
 
-function compileEnvScrubPatterns(patterns: string[] | undefined): RegExp[] {
-	return (patterns ?? []).map((pattern) => {
-		const regexSource = pattern
-			.replace(/[.+^${}()|[\]\\]/g, "\\$&")
-			.replace(/\*/g, ".*")
-			.replace(/\?/g, ".");
-		return new RegExp(`^${regexSource}$`, "i");
-	});
-}
-
 function stripProviderSecrets(env: NodeJS.ProcessEnv, envScrub: EnvScrubConfig | undefined): NodeJS.ProcessEnv {
-	const scrubNames = new Set<string>(PROVIDER_SECRET_ENV_NAMES);
-	for (const name of envScrub?.names ?? []) scrubNames.add(name);
-	const patterns = compileEnvScrubPatterns(envScrub?.patterns);
-	const stripped = { ...env };
-	for (const name of Object.keys(stripped)) {
-		if (scrubNames.has(name) || patterns.some((pattern) => pattern.test(name))) {
-			delete stripped[name];
-		}
-	}
-	return stripped;
+	return scrubEnvironment(env, envScrub, PROVIDER_SECRET_ENV_NAMES);
 }
 
 export type {
@@ -296,7 +278,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 	}
 
 	const bwrapExecutable = bwrapResolution.path;
-	const minimalEnv = buildMinimalEnv(normalEnv);
+	const minimalEnv = buildMinimalEnv(normalEnv, loaded.config.envScrub);
 	try {
 		const args = [
 			...buildBwrapArgs({

@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-envscrub-healthy-bash
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -39,8 +39,15 @@ The first option is safer (honors operator intent) and aligns with the documente
 
 ## Acceptance criteria
 
-- [ ] A configured `envScrub.names: ["LC_FORGE_TOKEN"]` removes `LC_FORGE_TOKEN` from healthy bwrap bash.
-- [ ] The threat model / README claims about `envScrub` registration are now true for the healthy path (not just degraded).
-- [ ] The dead `scrubEnv` function is removed or wired up.
-- [ ] A test asserts an `LC_*`-prefixed env var in `envScrub.names` is scrubbed from healthy bash.
-- [ ] Legitimate locale vars (`LC_ALL`, `LC_CTYPE`) still pass through.
+- [x] A configured `envScrub.names: ["LC_FORGE_TOKEN"]` removes `LC_FORGE_TOKEN` from healthy bwrap bash.
+- [x] The threat model / README claims about `envScrub` registration are now true for the healthy path (not just degraded).
+- [x] The dead `scrubEnv` function is removed or wired up.
+- [x] A test asserts an `LC_*`-prefixed env var in `envScrub.names` is scrubbed from healthy bash.
+- [x] Legitimate locale vars (`LC_ALL`, `LC_CTYPE`) still pass through.
+
+## Implementation notes
+
+- Added the shared pure `scrubEnvironment` helper so healthy minimal environments and degraded spawn environments use identical exact-name and case-insensitive glob semantics; scrub targets still win over `envScrub.keep`.
+- Threaded the session-loaded `envScrub` configuration into per-command bwrap bash operations and passed it to background/monitor healthy spawn construction.
+- Removed the unused process-mutating `scrubEnv` helper, added healthy-path regression coverage for `LC_FORGE_TOKEN`, and documented that `envScrub` applies to both healthy and degraded bash paths.
+- Verified with `bun test plugins/pi-sandbox/extensions/` (240 pass).

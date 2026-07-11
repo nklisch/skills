@@ -34,7 +34,6 @@ import {
 	inspectToolInput,
 	loadConfig,
 	mergeProjectAdditive,
-	scrubEnv,
 	validateConfig,
 	type LoadedConfig,
 	type BypassToolIntegrationState,
@@ -855,41 +854,23 @@ describe("config boundary contract", () => {
 		expect(loaded.config.envScrub?.keep).toEqual(["GLOBAL_KEEP", "PROJECT_KEEP"]);
 	});
 
-	test("scrubEnv scrubs names and patterns even when keep lists include them", () => {
-		const defaultScrubbed = "ANTHROPIC_AUTH_TOKEN";
-		const projectScrubbed = "PI_SANDBOX_TEST_MY_VAR";
-		const keptNonScrubbed = "PI_SANDBOX_TEST_KEEP_SAFE";
-		const previous = {
-			defaultScrubbed: process.env[defaultScrubbed],
-			projectScrubbed: process.env[projectScrubbed],
-			keptNonScrubbed: process.env[keptNonScrubbed],
-		};
-		try {
-			process.env[defaultScrubbed] = "remove-default";
-			process.env[projectScrubbed] = "remove-project";
-			process.env[keptNonScrubbed] = "keep-safe";
+	test("buildMinimalEnv scrubs configured LC_* tokens without dropping locale settings", () => {
+		const minimalEnv = buildMinimalEnv(
+			{
+				PATH: "/usr/bin",
+				LC_ALL: "C.UTF-8",
+				LC_CTYPE: "en_US.UTF-8",
+				LC_FORGE_TOKEN: "secret-forge-token",
+			},
+			{
+				names: ["LC_FORGE_TOKEN"],
+				keep: ["LC_FORGE_TOKEN"],
+			},
+		);
 
-			const scrubbed = scrubEnv(
-				{
-					names: ["ANTHROPIC_AUTH_TOKEN", "PI_SANDBOX_TEST_MY_VAR"],
-					keep: ["ANTHROPIC_AUTH_TOKEN", "PI_SANDBOX_TEST_MY_VAR", keptNonScrubbed],
-				},
-				[],
-			);
-
-			expect(scrubbed).toContain(defaultScrubbed);
-			expect(scrubbed).toContain(projectScrubbed);
-			expect(process.env[defaultScrubbed]).toBeUndefined();
-			expect(process.env[projectScrubbed]).toBeUndefined();
-			expect(process.env[keptNonScrubbed]).toBe("keep-safe");
-		} finally {
-			if (previous.defaultScrubbed === undefined) delete process.env[defaultScrubbed];
-			else process.env[defaultScrubbed] = previous.defaultScrubbed;
-			if (previous.projectScrubbed === undefined) delete process.env[projectScrubbed];
-			else process.env[projectScrubbed] = previous.projectScrubbed;
-			if (previous.keptNonScrubbed === undefined) delete process.env[keptNonScrubbed];
-			else process.env[keptNonScrubbed] = previous.keptNonScrubbed;
-		}
+		expect(minimalEnv.LC_FORGE_TOKEN).toBeUndefined();
+		expect(minimalEnv.LC_ALL).toBe("C.UTF-8");
+		expect(minimalEnv.LC_CTYPE).toBe("en_US.UTF-8");
 	});
 
 	test("loadConfig unions global deny lists with defaults unless explicitly emptied (M1)", async () => {

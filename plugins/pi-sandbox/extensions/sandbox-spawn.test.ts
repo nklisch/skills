@@ -99,6 +99,25 @@ describe("buildSandboxedSpawnArgs", () => {
 		expect(result.env.FOO_SECRET).toBeUndefined();
 	});
 
+	test("honors envScrub for LC_* values in the healthy bwrap environment", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeAgentDir({ envScrub: { names: ["LC_FORGE_TOKEN"] } });
+		const result = buildSandboxedSpawnArgs({
+			command: "env",
+			cwd,
+			configCwd: cwd,
+			agentDir,
+			platform: "linux",
+			bwrapAvailable: true,
+			baseEnv: { PATH: "/usr/bin", LC_ALL: "C.UTF-8", LC_FORGE_TOKEN: "secret-forge-token" },
+		});
+
+		expect(result.state).toBe("ok");
+		if (result.state !== "ok") throw new Error(`expected ok, got ${result.state}`);
+		expect(result.env.LC_FORGE_TOKEN).toBeUndefined();
+		expect(result.env.LC_ALL).toBe("C.UTF-8");
+	});
+
 	test("resolves the bwrap wrapper from the trusted allowlist, not user envAdd PATH", async () => {
 		const realBwrap = findExecutableOnPath("bwrap", { PATH: "/usr/bin:/bin" });
 		if (!realBwrap) throw new Error("expected bwrap in the trusted allowlist for PATH-poisoning regression test");

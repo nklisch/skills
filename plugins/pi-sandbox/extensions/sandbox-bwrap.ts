@@ -1,7 +1,8 @@
 import { accessSync, constants as fsConstants, existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { FILTER_DEFERRED_BACKLOG_ITEM } from "./sandbox-config";
+import { FILTER_DEFERRED_BACKLOG_ITEM, type EnvScrubConfig } from "./sandbox-config";
+import { scrubEnvironment } from "./sandbox-env";
 
 export type NetworkMode = "open" | "filter" | "block";
 
@@ -138,7 +139,10 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	return args;
 }
 
-export function buildMinimalEnv(sourceEnv: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+export function buildMinimalEnv(
+	sourceEnv: NodeJS.ProcessEnv = process.env,
+	envScrub?: EnvScrubConfig,
+): NodeJS.ProcessEnv {
 	const env: NodeJS.ProcessEnv = {};
 	for (const key of ["PATH", "HOME", "TERM", "LANG", "TMPDIR"]) {
 		const value = sourceEnv[key];
@@ -148,7 +152,7 @@ export function buildMinimalEnv(sourceEnv: NodeJS.ProcessEnv = process.env): Nod
 		const value = sourceEnv[key];
 		if (value !== undefined) env[key] = value;
 	}
-	return env;
+	return scrubEnvironment(env, envScrub);
 }
 
 export function buildBwrapEnvArgs(sourceEnv: NodeJS.ProcessEnv = process.env): string[] {
