@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-gitconfig-defaults-behavioral-test
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, testing]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -47,9 +47,20 @@ Set env `HOME` in the `runSandboxed` env param.
 
 ## Acceptance criteria
 
-- [ ] An integration test runs `git status` under `DEFAULT_CONFIG.filesystem.denyRead`
+- [x] An integration test runs `git status` under `DEFAULT_CONFIG.filesystem.denyRead`
   with a real `.gitconfig` in HOME, asserting exit 0.
-- [ ] The test would fail if `~/.gitconfig` were re-added to default `denyRead`
+- [x] The test would fail if `~/.gitconfig` were re-added to default `denyRead`
   (the `/dev/null` overlay breaks git config reads).
-- [ ] The test uses `integrationTest` (skips gracefully when bwrap is unavailable).
-- [ ] Existing tests stay green.
+- [x] The test uses `integrationTest` (skips gracefully when bwrap is unavailable).
+- [x] Existing tests stay green.
+
+## Implementation notes
+
+Added an integration fixture with a minimal normal repository and a real
+`$HOME/.gitconfig`. It runs `git status --porcelain` under
+`DEFAULT_CONFIG.filesystem.denyRead`, rather than disabling read denials. This
+makes the normal Git path an executable guard against the denied-gitconfig
+regression.
+
+Verification: `bun test plugins/pi-sandbox/extensions/sandbox.test.ts` — 159
+pass, 0 fail.
