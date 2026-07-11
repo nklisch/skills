@@ -3167,6 +3167,27 @@ socket.once("error", (error) => {
 		expect(text(result.stdout).trim()).toMatch(/^[0-9a-f]{40}$/);
 	});
 
+	integrationTest("default denyRead does not mask gitconfig needed by git status", async () => {
+		const cwd = await makeTempDir();
+		const tempHome = await makeTempDir();
+		await mkdir(join(cwd, ".git", "objects"), { recursive: true });
+		await mkdir(join(cwd, ".git", "refs", "heads"), { recursive: true });
+		await writeFile(join(cwd, ".git", "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(cwd, "file.txt"), "content\n");
+		await writeFile(join(tempHome, ".gitconfig"), "[user]\n\tname = Sandbox Test\n");
+
+		const result = runSandboxed("git status --porcelain", {
+			cwd,
+			allowWrite: ["."],
+			denyRead: DEFAULT_CONFIG.filesystem.denyRead,
+			denyWrite: [],
+			networkMode: "open",
+		}, { ...process.env, HOME: tempHome });
+
+		expect(result.exitCode).toBe(0);
+		expect(text(result.stdout).trim()).toBe("?? file.txt");
+	});
+
 	integrationTest("git status works inside a normal repo (regression: no behavior change)", async () => {
 		// A normal repo (.git directory inside cwd) must not be affected by
 		// discovery — the .git dir is already inside the working tree bind.
