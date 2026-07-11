@@ -45,3 +45,34 @@ This needs design (feature-design routing, `[security]` not `[refactor]`). The f
 - [ ] Legitimate submodules (`gitdir: ../../.git/modules/<name>` resolving within the project tree) still work.
 - [ ] A test reproduces the escape (gitfile → external repo .git) and asserts it is NOT pinned.
 - [ ] A test confirms a legitimate submodule gitfile IS still discovered and pinned.
+
+## Implementation discovery
+
+The proposed parent-of-`allowWrite` boundary breaks a legitimate Git layout: linked worktrees may be created anywhere, and their `.git` gitfile points back to the source repository's per-worktree metadata at `<source-repo>/.git/worktrees/<name>`, which need not be inside the linked worktree's parent directory.
+
+Verified locally with a source repository at `/tmp/<fixture>/main` and a linked worktree at `/tmp/<fixture>/elsewhere/nested/wt`; Git generated:
+
+```text
+gitdir: /tmp/<fixture>/main/.git/worktrees/wt
+```
+
+For an `allowWrite` root of `/tmp/<fixture>/elsewhere/nested/wt`, the proposed project boundary is `/tmp/<fixture>/elsewhere/nested`, so the valid git directory is outside it and would be rejected. The existing discovery contract explicitly supports linked worktrees, so shipping the proposed constraint would regress a real workflow.
+
+Returned to `stage: drafting` per the design-flaw escape hatch. The design needs an authorization rule that distinguishes Git-created linked-worktree metadata from an arbitrary external repository git directory without trusting only the gitfile target and `HEAD` shape.
+
+## Revised design decision (after re-design)
+
+A sound path-containment rule that preserves linked-worktree support is NOT available without operator registration: linked worktrees legitimately point anywhere on the host, so any path-containment constraint regresses them. The distinguishing signal between a legitimate gitfile (created by `git worktree add`/`git submodule`) and a malicious one (crafted in a cloned repo) cannot be derived from the gitfile target + `HEAD` shape alone.
+
+**Chosen fix (0.1.0): make discovery opt-out + document the residual loudly.**
+
+1. Add a global-only config field `filesystem.allowGitDirDiscovery` (default `true` — preserves current behavior). When `false`, `discoverGitDirs` returns `[]` (no external git dirs pinned). An operator who clones untrusted repos sets this `false` to close the escape; the writable surface is then confined to the allowWrite root's own `.git` directory (the common case, already covered by the root bind).
+2. Project-local config CANNOT set this field (global/operator-only, like `bwrapPath`) — a malicious checkout cannot re-enable discovery to widen the surface.
+3. Document the residual in THREAT_MODEL + README: git-dir discovery pins a gitfile's external target writable; a malicious gitfile in a cloned repo can widen the writable surface to an arbitrary host git dir. Operators who clone untrusted repos MUST set `allowGitDirDiscovery: false` globally.
+4. The `/sandbox` command reports whether discovery is active.
+
+This is a defense-in-depth opt-out, not a complete fix — the complete fix (operator-registered git-dir allowlist, or binding only specific git-metadata subpaths) is post-0.1.0. But it gives operators a single switch to close the escape for untrusted-clone workflows without regressing linked worktrees.
+
+**Post-0.1.0 direction** (tracked, not in this story): an `allowGitDirs` global-only allowlist where the operator explicitly registers external git dirs; discovery pins only targets in an allowWrite root OR in `allowGitDirs`. That fully closes the escape with operator-controlled trust, at the cost of hand-configuring linked worktrees.
+
+Re-routed through design; advance to `implementing` with the revised scope.
