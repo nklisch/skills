@@ -37,7 +37,8 @@ complementary:
 | --- | --- | --- |
 | Pi auth/session state | `~/.pi/agent/auth.json` and `~/.pi/agent/sessions` are `denyRead` paths, enforced by bwrap and the in-process `read` policy. | Add other Pi-held files to global `denyRead`. |
 | SSH, GPG, and cloud credentials | `~/.ssh`, `~/.gnupg`, and `~/.aws` are default `denyRead` paths, enforced by bwrap and `read`. | Add local credential directories to global `denyRead`. |
-| GitHub CLI and Git stores | `~/.config/gh`, `~/.git-credentials`, `~/.netrc`, and `~/.config/git/credentials` are default `denyRead` paths, enforced by bwrap and `read`. | Add additional Git credential locations to global `denyRead`. |
+| GitHub CLI and file-backed Git stores | `~/.config/gh`, `~/.git-credentials`, `~/.netrc`, and `~/.config/git/credentials` are default `denyRead` paths, enforced by bwrap and `read`. | Add additional file-backed Git credential locations to global `denyRead`. |
+| Git config and credential helpers | `~/.gitconfig` and `~/.config/git/config` are default `denyRead` paths because they can declare `credential.helper`. | `HOME` is preserved, so `git credential fill` can still reach a helper configured elsewhere, a credential-cache socket, or a keyring/keychain. Operators must register helper files/sockets they rely on; keyring-based retrieval is outside the 0.1.0 boundary. |
 | Provider and GitHub environment tokens | Healthy bwrap children receive a minimal whitelist (`PATH`, `HOME`, `TERM`, `LANG`, `LC_*`, `TMPDIR`). Degraded background/monitor spawns strip the non-configurable provider-secret floor, including `GITHUB_TOKEN`, `GH_TOKEN`, and `COPILOT_GITHUB_TOKEN`. | Add Forgejo or other deployment-specific names/patterns through global `envScrub.names` / `envScrub.patterns`. |
 | Forgejo credentials | No Forgejo path or environment name is assumed by default. | Register its file locations in global `denyRead` and token variables in global `envScrub`. |
 
@@ -52,7 +53,7 @@ policy; they are not a substitute for read masking.
 | --- | --- | --- | --- |
 | 1 | Separate PID namespace and private `/proc` | **MET** | `buildBwrapArgs`: `--unshare-pid --proc /proc` |
 | 2 | Minimal child environment without tokens/sockets | **MET** | bwrap `buildMinimalEnv`; degraded spawns use the provider-secret scrub floor, including `GITHUB_TOKEN` and `GH_TOKEN` |
-| 3 | Read masking for credential-bearing paths | **MET** | bwrap deny overlays and `enforceDenyRead`; defaults include SSH/GPG/Pi/GitHub/Git stores, and operators register Forgejo locations |
+| 3 | Read masking for credential-bearing paths | **MET (file-backed stores); helper/socket/keyring stores are operator-registered or out of scope for 0.1.0** | bwrap deny overlays and `enforceDenyRead`; defaults include SSH/GPG/Pi/GitHub/file-backed Git stores plus user Git config, and operators register Forgejo and helper locations |
 | 4 | Equivalent enforcement in `read` | **MET** | `makeReadOperations` → `enforceDenyRead` |
 | 5 | Same boundary for background and monitor | **MET** when Linux integration is active | `buildSandboxedSpawnArgs`, sandbox bridge handshake, and `backgroundTasks.sandboxIntegration` |
 | 6 | Fail closed when the boundary cannot be established | **MET** | fail-closed state, `createFailClosedPolicy`, and degraded-spawn secret stripping |
@@ -133,6 +134,46 @@ global/operator configuration may set `bwrapPath` or `enabled:false`, because
 those are trust decisions about the boundary itself. This lets an operator add
 a chosen Forgejo credential store without making a checkout capable of
 weakening that protection.
+
+Global `filesystem.denyRead` has an intentionally narrow but potentially
+surprising merge rule in 0.1.0:
+
+- a non-empty global list is unioned with the defaults, so it can add entries
+  but cannot selectively remove a default;
+- an explicit empty global list (`"denyRead": []`) clears every default; this is
+  the only current escape; and
+- there is no single global-list expression that removes one default while
+  retaining the others. To read one default-denied path, an operator must clear
+  the defaults globally and explicitly re-add every protection they want in
+  each project's additive `filesystem.denyRead` list. Leaving those entries out
+  of project config leaves them unprotected.
+
+The complete 0.1.0 default list, suitable for copying and removing only the path
+that a particular project must read, is:
+
+```json
+[
+  "~/.ssh",
+  "~/.aws",
+  "~/.gnupg",
+  "~/.pi/agent/auth.json",
+  "~/.pi/agent/sessions",
+  "~/.config/gh",
+  "~/.config/git/credentials",
+  "~/.gitconfig",
+  "~/.config/git/config",
+  "~/.git-credentials",
+  "~/.netrc",
+  "~/.npmrc",
+  "~/.docker/config.json"
+]
+```
+
+This all-or-nothing global escape is a 0.1.0 configuration limitation, not a
+selective override. In particular, an operator who exposes user Git config for
+a required workflow must separately deny any helper file or socket that should
+remain unavailable; credential retrieval from libsecret, Keychain, Git
+Credential Manager, or another keyring remains outside the 0.1.0 boundary.
 
 ## Scope boundary
 
@@ -244,6 +285,11 @@ This is the single source of truth for the 0.1.0 package promise.
 - The inspector scans input, not output. In particular, `jobs action=tail` can
   return a secret a background command wrote to its buffer without redaction.
 - `--no-sandbox` does not yet propagate to background/monitor integration.
+- Git credential helpers, cache sockets, and keyring/keychain stores are not
+  comprehensively blocked. `HOME` is preserved, so `git credential fill` can
+  retrieve plaintext through a helper configured outside the default-masked
+  user Git config; operators must register helper files/sockets or accept this
+  residual.
 - On non-Linux, bash is unsandboxed; the outer VM and in-process policy are the
   remaining protections.
 - `filter` is deferred and fail closed.
