@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary
 kind: feature
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: []
@@ -446,3 +446,18 @@ Driven by `/agile-workflow:implement-orchestrator` over the 3-child dependency g
 **Nits**: forge startup-ordering semantics unspecified (fail-safe but availability trap); `reason` wording drift ("bwrap unavailable" vs design's "bwrap missing" — cosmetic).
 
 **Notes**: The implementation faithfully executed the design — the publisher fires at all 10 transitions, the payload is secret-free, the path-redaction layer (`credentialBoundaryFailClosedReason`) is sound, and the buy-vs-build delta is dated and accurate. The throughline: the design's capability contract over-claimed. `active:true` was specified to mean "the boundary is active" (which a forge consumer reads as "safe to load credentials"), but it actually means "the sandbox initialized" — a weaker claim. The fix is to narrow the contract to match the guarantee, not to re-architect the publisher. 3 blocker stories + 5 backlog items filed; feature bounced to `implementing`.
+
+## Re-review (2026-07-11)
+
+**Verdict**: Approve with comments
+
+Rework driven by `/agile-workflow:implement-orchestrator` as a single coherent bundle (6 items converged on the same docs — parallel agents would have reproduced the inconsistency). All 3 blockers + the 2 folded important findings (I1, I4) resolved; 3 remaining backlog items (I2 provider-strip skip, I3 branch coverage, I5 PID test) stay parked as independent test-integrity work.
+
+- **B1 resolved**: contract narrowed — `active:true` now documented as "boundary initialized, not fail-closed" with an explicit "what `active` does not prove" list and a second independent precondition (forge consumer verifies its own credential path is in global `denyRead`). `isCredentialBoundaryActive` hardened to `active===true && failClosed===false` (I1 folded in). Verified in `THREAT_MODEL.md` + `README.md` + `sandbox-config.ts`.
+- **B2 resolved**: boundary #3 reclassified as "MET (file-backed stores); helper/socket/keyring stores operator-registered or out of scope for 0.1.0." `~/.gitconfig` + `~/.config/git/config` added to default `denyRead`. Git-helper residual named in README non-goals + release-scope known gaps.
+- **B3 resolved**: `docs/SPEC.md` + `docs/ARCHITECTURE.md` rolled forward with the Pi-only exception (pi-sandbox + background-tasks annotated, anatomy notes manifest omission). Aligns with `AGENTS.md`.
+- **I4 resolved**: `mergeGlobalDenyList` all-or-nothing semantics documented in README + threat model with the full default list for operators who need the escape.
+
+Verification: `bun test plugins/pi-sandbox/extensions/` → 228 pass, 0 fail (orchestrator context). The environment-fragile PID-namespace test (I5) remains parked, not fixed in this pass.
+
+All 6 child stories (3 original + 3 blockers) at `stage: review`. Feature advances to `review`.
