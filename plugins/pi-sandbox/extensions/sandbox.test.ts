@@ -767,8 +767,13 @@ describe("config boundary contract", () => {
 		expect(loaded.config.tools?.rules?.monitor).toBe("confirm");
 	});
 
-	test("default denyRead protects the XDG Git credential store", () => {
-		expect(DEFAULT_CONFIG.filesystem?.denyRead).toContain("~/.config/git/credentials");
+	test("default denyRead protects credential stores without masking Git config", () => {
+		const denyRead = DEFAULT_CONFIG.filesystem?.denyRead;
+		expect(denyRead).toContain("~/.config/git/credentials");
+		// Denying a regular Git config file makes bwrap bind /dev/null over it.
+		// Git rejects that character device and exits 128, breaking ordinary use.
+		expect(denyRead).not.toContain("~/.gitconfig");
+		expect(denyRead).not.toContain("~/.config/git/config");
 	});
 
 	test("loadConfig reads global and project paths and merges them additively", async () => {
