@@ -212,8 +212,9 @@ Pi-specific protections that this package already has:
    fallback;
 2. in-process `read`/`write`/`edit` policy parity, not bash-only isolation;
 3. additive-only project configuration rather than a weakening deep merge;
-4. a hardlink-alias startup guard for denied files (srt Issue #149 documents a
-   writable-tmpfs deny-read weakness);
+4. hardlink-alias guards for denied files at both startup and in-process
+   file-operation time, plus fd-bound `O_NOFOLLOW` inode revalidation (srt Issue
+   #149 documents a writable-tmpfs deny-read weakness);
 5. trusted `bwrap` resolution from fixed system paths plus `realpath`, never a
    hostile `PATH`; and
 6. an argv-plus-environment, fail-closed background/monitor spawn contract,
@@ -271,7 +272,10 @@ This is the single source of truth for the 0.1.0 package promise.
 - Sandboxed bash has a fresh PID namespace, private `/proc`, and minimal child
   environment without provider or forge tokens.
 - In-process `read`/`write`/`edit` apply `denyRead`/`denyWrite`/`allowWrite`,
-  including when bash is fail-closed or OS sandboxing is unavailable.
+  then open with `O_NOFOLLOW`, validate the opened inode/link count, and perform
+  I/O through that descriptor. This closes leaf-symlink swaps and post-start
+  hardlink aliases, including when bash is fail-closed or OS sandboxing is
+  unavailable.
 - Tool-egress allow/auto/confirm/block policy applies to built-in and
   extension-registered tools; the optional inspector scans tool input.
 - Boundary-establishment failures fail closed; `filter` is recognized but
@@ -291,8 +295,6 @@ This is the single source of truth for the 0.1.0 package promise.
 ### Known 0.1.0 gaps
 
 - Pi RPC/API direct `bash` bypasses this extension's mediated bash path.
-- In-process path checks have a TOCTOU symlink race; an fd-based `openat`
-  design is needed to close it.
 - The inspector scans input, not output. In particular, `jobs action=tail` can
   return a secret a background command wrote to its buffer without redaction.
 - `--no-sandbox` does not yet propagate to background/monitor integration.
@@ -314,8 +316,8 @@ This is the single source of truth for the 0.1.0 package promise.
 
 The following direction is tracked work, **not a commitment**: a real `filter`
 mode (`idea-pi-sandbox-filter-tcp-proxy`); shared output redaction for
-background/monitor/jobs; `--no-sandbox` propagation; fd-based file-tool access;
-a Pi-core RPC/API bash interception hook; and a separate forge-operations
+background/monitor/jobs; `--no-sandbox` propagation; a Pi-core RPC/API bash
+interception hook; and a separate forge-operations
 plugin using the capability contract. srt adoption is reconsidered only under
 the revisit triggers above.
 

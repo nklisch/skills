@@ -1978,13 +1978,11 @@ describe("in-process file-tool policy", () => {
 		await expect(ops.access(join(cwd, "protected.txt"))).rejects.toThrow(/denyWrite/);
 	});
 
-	test("hardlink alias to a denied file bypasses in-process policy — guard at session_start (re-review loop 2)", async () => {
-		// The in-process file tools use pathname/canonical-realpath checks, which
-		// cannot distinguish a hardlink alias (same inode, different pathname). The
-		// session_start hardlink guard (assertNoHardlinkedDeniedFiles) must fail
-		// closed before installing the policy. This test documents that the guard
-		// fires; without it, readFile(alias) would leak the denied file's contents
-		// and writeFile(alias) would mutate it.
+	test("hardlink alias to a denied file is rejected by the session-start guard (re-review loop 2)", async () => {
+		// The session-start guard remains the first line of defense for bwrap path
+		// overlays. The fd-based in-process operations now repeat this hardlink
+		// validation at read/write time; focused post-start regressions live in
+		// sandbox-file-policy.test.ts.
 		const cwd = await makeTempDir();
 		await writeFile(join(cwd, ".env"), "SECRET");
 		await link(join(cwd, ".env"), join(cwd, "alias"));
