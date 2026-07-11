@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-capability-active-narrow-claim
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin, documentation]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -55,10 +55,19 @@ or the payload shape.
 
 ## Acceptance criteria
 
-- [ ] `THREAT_MODEL.md` describes `active:true` as "boundary initialized, not
+- [x] `THREAT_MODEL.md` describes `active:true` as "boundary initialized, not
   fail-closed" — not "safe to load credentials."
-- [ ] The load protocol states the forge consumer's independent precondition
+- [x] The load protocol states the forge consumer's independent precondition
   (its credential path is in global `denyRead`/`envScrub`) and that the
   capability does NOT attest it.
-- [ ] A "what `active` does NOT prove" list is present (path masking, RPC/background/helper surfaces, operator deny-list clearing).
-- [ ] README's capability-handshake summary matches the narrowed claim.
+- [x] A "what `active` does NOT prove" list is present (path masking, RPC/background/helper surfaces, operator deny-list clearing).
+- [x] README's capability-handshake summary matches the narrowed claim.
+
+## Implementation notes
+
+- Files changed: `plugins/pi-sandbox/docs/THREAT_MODEL.md`, `plugins/pi-sandbox/README.md`.
+- Reframed `active:true` as a lifecycle assertion: the Linux bash/file-tool boundary initialized and is not fail-closed.
+- Made credential registration a separate forge-owned precondition and enumerated the five assurances the path-free capability does not provide.
+- Verification: proofread both capability sections together and checked every acceptance criterion against the resulting wording.
+- Discrepancies from design: none; the publisher and payload shape remain unchanged.
+- Adjacent issues parked: none. Review I1 is handled in its own follow-up commit because it changes the exported consumer helper.
