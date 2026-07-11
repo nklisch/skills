@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-gitfile-allowwrite-escape
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -76,3 +76,14 @@ This is a defense-in-depth opt-out, not a complete fix — the complete fix (ope
 **Post-0.1.0 direction** (tracked, not in this story): an `allowGitDirs` global-only allowlist where the operator explicitly registers external git dirs; discovery pins only targets in an allowWrite root OR in `allowGitDirs`. That fully closes the escape with operator-controlled trust, at the cost of hand-configuring linked worktrees.
 
 Re-routed through design; advance to `implementing` with the revised scope.
+
+## Implementation notes
+
+- Added global-only `filesystem.allowGitDirDiscovery`, defaulting to `true` for existing linked-worktree and submodule behavior. `discoverGitDirs` returns no targets when it is `false`, so external gitfile targets are neither pinned nor added to the in-process writable set.
+- Project-local attempts to set the switch are ignored with the additive-only warning `project tried to set allowGitDirDiscovery; ignored (global/operator-only)`; a cloned checkout cannot re-enable discovery after an operator disables it globally.
+- `/sandbox`, README, and the 0.1.0 threat-model release scope now expose the switch and document the untrusted-gitfile residual plus the post-0.1.0 operator allowlist direction.
+- Added a regression test using a gitfile that targets an unrelated host Git directory: discovery disabled yields no pinned path and no `--bind`. The existing default-on submodule discovery tests remain green.
+
+## Verification
+
+- `bun test plugins/pi-sandbox/extensions/` — 239 pass, 0 fail.

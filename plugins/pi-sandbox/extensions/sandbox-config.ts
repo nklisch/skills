@@ -15,6 +15,8 @@ export interface SandboxFilesystem {
 	denyRead?: string[];
 	denyWrite?: string[];
 	allowWrite?: string[];
+	/** Global/operator-only switch for gitfile targets outside allowWrite roots. Defaults to true for linked-worktree compatibility. */
+	allowGitDirDiscovery?: boolean;
 }
 
 export interface SandboxNetwork {
@@ -1427,6 +1429,7 @@ export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: Env
 		],
 		allowWrite: [".", "/tmp"],
 		denyWrite: [".env"],
+		allowGitDirDiscovery: true,
 	},
 	tools: {
 		default: "allow",
@@ -1475,10 +1478,13 @@ export function validateConfig(config: unknown): string[] {
 		if (!isRecord(config.filesystem)) {
 			errors.push("filesystem must be an object");
 		} else {
-			rejectUnknownKeys(config.filesystem, "filesystem", new Set(["denyRead", "denyWrite", "allowWrite", "allowGitConfig"]), errors);
+			rejectUnknownKeys(config.filesystem, "filesystem", new Set(["denyRead", "denyWrite", "allowWrite", "allowGitDirDiscovery", "allowGitConfig"]), errors);
 			validateOptionalStringArray(config.filesystem.denyRead, "filesystem.denyRead", errors);
 			validateOptionalStringArray(config.filesystem.denyWrite, "filesystem.denyWrite", errors);
 			validateOptionalStringArray(config.filesystem.allowWrite, "filesystem.allowWrite", errors);
+			if (config.filesystem.allowGitDirDiscovery !== undefined && typeof config.filesystem.allowGitDirDiscovery !== "boolean") {
+				errors.push("filesystem.allowGitDirDiscovery must be a boolean");
+			}
 		}
 	}
 
@@ -1700,6 +1706,7 @@ export function deepMerge(base: SandboxConfig, overrides: Partial<SandboxConfig>
 			denyRead: overrides.filesystem.denyRead ?? base.filesystem?.denyRead,
 			allowWrite: overrides.filesystem.allowWrite ?? base.filesystem?.allowWrite,
 			denyWrite: overrides.filesystem.denyWrite ?? base.filesystem?.denyWrite,
+			allowGitDirDiscovery: overrides.filesystem.allowGitDirDiscovery ?? base.filesystem?.allowGitDirDiscovery,
 		};
 	}
 	if (overrides.tools) {
@@ -1765,6 +1772,13 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 	// bwrapPath after session_start cannot change the spawn path.
 	if (project.bwrapPath !== undefined) {
 		warns.push(`project tried to set bwrapPath; ignored (global/operator-only trust decision — bwrapPath selects the sandbox binary and cannot be set from untrusted project config).`);
+	}
+
+	// Git-dir discovery can bind an external gitfile target writable. It must be
+	// controlled only by global operator config, because a cloned checkout is
+	// untrusted and must not be able to re-enable discovery after it is disabled.
+	if (project.filesystem?.allowGitDirDiscovery !== undefined) {
+		warns.push("project tried to set allowGitDirDiscovery; ignored (global/operator-only)");
 	}
 
 	// denyRead: project can only ADD entries (union).
@@ -2068,6 +2082,7 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 		`  Deny Read: ${config.filesystem?.denyRead?.join(", ") || "(none)"}`,
 		`  Allow Write: ${config.filesystem?.allowWrite?.join(", ") || "(none)"}`,
 		`  Deny Write: ${config.filesystem?.denyWrite?.join(", ") || "(none)"}`,
+		`  Git directory discovery: ${(config.filesystem?.allowGitDirDiscovery ?? true) ? "active" : "disabled"} (global/operator-only)`,
 		"",
 		"Unsupported legacy config fields:",
 		...legacy.map((warning) => `  ${warning}`),

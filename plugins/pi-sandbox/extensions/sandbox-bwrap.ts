@@ -372,13 +372,21 @@ function isWithinOrEqual(target: string, dir: string): boolean {
  * authorization derive from trusted startup state, not mutable files.
  *
  * Security: the resolved gitdir must contain a `HEAD` regular file (the same
- * check git makes) before it is added. This rejects a malicious `.git` file
- * pointing at an arbitrary host path (e.g. `gitdir: /etc`) — `/etc` has no
- * `HEAD` file, so the discovery refuses to widen the writable surface to it.
+ * check git makes) before it is added. This rejects non-git host paths such as
+ * `/etc`, but cannot distinguish a legitimate linked-worktree target from an
+ * arbitrary external Git directory. Operators cloning untrusted repositories
+ * must disable discovery through the global-only `allowGitDirDiscovery` flag.
  * The discovered path is still subject to denyRead/denyWrite precedence in
  * both the bwrap and in-process layers.
  */
-export function discoverGitDirs(allowWrite: string[], cwd: string): string[] {
+export interface DiscoverGitDirsOptions {
+	/** Defaults to true for backwards compatibility and linked-worktree support. */
+	allowGitDirDiscovery?: boolean;
+}
+
+export function discoverGitDirs(allowWrite: string[], cwd: string, options: DiscoverGitDirsOptions = {}): string[] {
+	if (options.allowGitDirDiscovery === false) return [];
+
 	const gitDirs: string[] = [];
 	const seen = new Set<string>();
 	for (const rawPath of allowWrite) {
@@ -426,9 +434,9 @@ export function discoverGitDirs(allowWrite: string[], cwd: string): string[] {
 		// Defense: the resolved path must look like a real git directory — it must
 		// be a directory containing a `HEAD` regular file (the same check git
 		// makes). existsSync alone is too weak: it follows symlinks and is true
-		// for a directory or symlink named HEAD. Rejects a malicious `.git` file
-		// pointing at an arbitrary host path that happens to exist — without this,
-		// `gitdir: /etc` would make `/etc` writable.
+		// for a directory or symlink named HEAD. This rejects a non-git target such
+		// as `/etc`; when global discovery is disabled, the function returns before
+		// any external Git directory can be authorized.
 		let headSt: ReturnType<typeof lstatSync>;
 		try {
 			headSt = lstatSync(join(canonical, "HEAD"));
