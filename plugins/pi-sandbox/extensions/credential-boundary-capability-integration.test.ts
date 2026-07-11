@@ -115,16 +115,20 @@ describe("pi-sandbox credential-boundary capability handshake", () => {
 		expect(spawnIsCredentialBoundaryActive).toBe(isCredentialBoundaryActive);
 	});
 
-	test("requires an explicit active=true capability for credential loading", () => {
+	test("requires an explicit active=true and failClosed=false capability", () => {
 		const states: Array<[unknown, boolean]> = [
 			[{ active: true, failClosed: false }, true],
+			[{ active: true, failClosed: true }, false],
+			[{ active: true }, false],
+			[{ active: true, failClosed: "false" }, false],
 			[{ active: false, failClosed: true, reason: "fail-closed: bwrap missing" }, false],
 			[{ active: false, failClosed: false, reason: "sandbox disabled via config" }, false],
 			[{ active: false, failClosed: false, reason: "OS bash sandbox unavailable (non-Linux degrade)" }, false],
 			[{ active: false, failClosed: false, reason: "session shutdown" }, false],
 			[undefined, false],
+			[null, false],
 			[{}, false],
-			[{ active: "true" }, false],
+			[{ active: "true", failClosed: false }, false],
 		];
 
 		for (const [handshake, expected] of states) {
