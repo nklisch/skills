@@ -38,6 +38,13 @@ function missingFromStripList(names: Iterable<string>): string[] {
 }
 
 describe("provider secret strip list", () => {
+	test("includes GitHub CLI operator-token env vars in the non-configurable floor", () => {
+		const stripList = new Set(PROVIDER_SECRET_ENV_NAMES);
+		expect(stripList.has("GITHUB_TOKEN")).toBe(true);
+		expect(stripList.has("GH_TOKEN")).toBe(true);
+		expect(stripList.has("COPILOT_GITHUB_TOKEN")).toBe(true);
+	});
+
 	test("covers every API-key env var reported by pi-ai's public provider env lookup", async () => {
 		const piAi = await loadPiAi();
 		if (!piAi) {

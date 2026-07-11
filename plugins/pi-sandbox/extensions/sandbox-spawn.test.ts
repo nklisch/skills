@@ -248,6 +248,8 @@ describe("buildSandboxedSpawnArgs", () => {
 				bwrapAvailable,
 				baseEnv: {
 					...baseProviderEnv,
+					GITHUB_TOKEN: "github-operator-token",
+					GH_TOKEN: "github-cli-alternate-token",
 					CUSTOM_SECRET_TOKEN: "custom-pattern-match",
 					PI_SANDBOX_TEST_CUSTOM_NAME: "custom-name-match",
 					CUSTOM_KEEP: "kept-in-degrade",
@@ -269,6 +271,8 @@ describe("buildSandboxedSpawnArgs", () => {
 			for (const envName of PROVIDER_SECRET_ENV_NAMES) {
 				expect((result.env as NodeJS.ProcessEnv)[envName]).toBeUndefined();
 			}
+			expect(result.env.GITHUB_TOKEN).toBeUndefined();
+			expect(result.env.GH_TOKEN).toBeUndefined();
 			expect(result.env.CUSTOM_SECRET_TOKEN).toBeUndefined();
 			expect(result.env.PI_SANDBOX_TEST_CUSTOM_NAME).toBeUndefined();
 		});

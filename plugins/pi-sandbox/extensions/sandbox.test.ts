@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, symlink, writeFile, link, chmod } from "n
 import { realpathSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:net";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
 	assertNoHardlinkedDeniedFiles,
@@ -765,6 +765,10 @@ describe("config boundary contract", () => {
 
 		expect(loaded.config.tools?.rules?.background).toBe("block");
 		expect(loaded.config.tools?.rules?.monitor).toBe("confirm");
+	});
+
+	test("default denyRead protects the XDG Git credential store", () => {
+		expect(DEFAULT_CONFIG.filesystem?.denyRead).toContain("~/.config/git/credentials");
 	});
 
 	test("loadConfig reads global and project paths and merges them additively", async () => {
@@ -1863,6 +1867,18 @@ describe("in-process file-tool policy", () => {
 
 		expect(() => enforceDenyRead(join(cwd, "secret-dir", "inside.txt"), cwd, policy)).toThrow(/denyRead/);
 		expect(() => enforceDenyRead(join(cwd, "secret.txt"), cwd, policy)).toThrow(/denyRead/);
+	});
+
+	test("enforceDenyRead blocks the default XDG Git credential store", async () => {
+		const cwd = await makeTempDir();
+		const policy: SandboxPolicy = {
+			...policyFor(cwd),
+			denyRead: [...(DEFAULT_CONFIG.filesystem?.denyRead ?? [])],
+		};
+
+		expect(() => enforceDenyRead(join(homedir(), ".config", "git", "credentials"), cwd, policy)).toThrow(
+			/denyRead.*~\/.config\/git\/credentials/,
+		);
 	});
 
 	test("enforceWritePolicy applies denyWrite before allowWrite and confines writes to allowWrite", async () => {

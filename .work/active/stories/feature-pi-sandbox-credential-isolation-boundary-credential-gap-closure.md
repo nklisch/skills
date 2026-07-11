@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary-credential-gap-closure
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -52,13 +52,44 @@ See the feature body's **Unit 2** for exact edits.
 
 ## Acceptance criteria
 
-- [ ] `stripProviderSecrets` strips `GITHUB_TOKEN` and `GH_TOKEN` from the child
+- [x] `stripProviderSecrets` strips `GITHUB_TOKEN` and `GH_TOKEN` from the child
   env in degraded spawn.
-- [ ] Default `denyRead` includes `~/.config/git/credentials`.
-- [ ] The in-process `read` tool blocks reads of `~/.config/git/credentials`
+- [x] Default `denyRead` includes `~/.config/git/credentials`.
+- [x] The in-process `read` tool blocks reads of `~/.config/git/credentials`
   (via `enforceDenyRead`).
-- [ ] Audit note in this story body documents which credential env vars/paths
+- [x] Audit note in this story body documents which credential env vars/paths
   are covered by defaults vs operator-registered, mapped to the brief's
   protected-credentials list.
-- [ ] No new top-level config block is introduced (Q5 decision); the existing
+- [x] No new top-level config block is introduced (Q5 decision); the existing
   global `denyRead`/`envScrub` mechanism is documented as the credential registry.
+
+## Implementation notes
+
+- Added `GITHUB_TOKEN` and `GH_TOKEN` beside `COPILOT_GITHUB_TOKEN` in the
+  non-configurable degraded-spawn scrub floor. Regression coverage verifies the
+  floor membership and that all degraded paths remove both explicit values.
+- Added `~/.config/git/credentials` to the default `denyRead` list. Regression
+  coverage verifies both the default and the in-process `enforceDenyRead` path.
+- No top-level configuration block was introduced.
+
+### Credential audit
+
+| Protected credential category | Coverage |
+| --- | --- |
+| Umans / OpenAI-Codex | Default `denyRead`: `~/.pi/agent/auth.json`. |
+| Anthropic | Non-configurable env floor: `ANTHROPIC_OAUTH_TOKEN` and `ANTHROPIC_API_KEY` (with the existing `ANTHROPIC_AUTH_TOKEN` default scrub). |
+| Operator GitHub / GitHub CLI | Default `denyRead`: `~/.config/gh`, `~/.git-credentials`, `~/.netrc`, and `~/.config/git/credentials`; non-configurable env floor: `GITHUB_TOKEN`, `GH_TOKEN`, and `COPILOT_GITHUB_TOKEN`. |
+| SSH | Default `denyRead`: `~/.ssh`. |
+| GPG | Default `denyRead`: `~/.gnupg`. |
+| Forgejo and other operator-specific credentials | Registered by the operator through global `filesystem.denyRead` and `envScrub.names` / `envScrub.patterns`; project configuration merges additively and cannot weaken those registrations. `FORGEJO_TOKEN` deliberately remains outside the non-configurable floor. |
+
+The existing global `denyRead` plus `envScrub` names/patterns mechanism is the
+credential registry; no separate config block is needed.
+
+## Verification
+
+- `bun test plugins/pi-sandbox/extensions/`: new credential-gap tests pass;
+  suite result was 227 passed / 1 failed. The unrelated existing PID-namespace
+  integration test (`PID namespace and fresh /proc hide host process metadata`)
+  fails in this harness because its host Bun process is PID 2; the focused
+  rerun reproduces the same failure. No test was loosened or removed.
