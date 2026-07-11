@@ -1418,6 +1418,7 @@ export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: Env
 			"~/.pi/agent/auth.json",
 			"~/.pi/agent/sessions",
 			"~/.config/gh",
+			"~/.config/git/credentials",
 			"~/.git-credentials",
 			"~/.netrc",
 			"~/.npmrc",
