@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary-threat-model
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin, documentation]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: [feature-pi-sandbox-credential-isolation-boundary-capability-handshake, feature-pi-sandbox-credential-isolation-boundary-credential-gap-closure]
@@ -36,8 +36,10 @@ criteria.
 - Required-boundary matrix (8 points, status, where enforced).
 - Buy-vs-build delta (srt v0.0.26 / Gondolin / OpenShell, with revisit triggers).
 - General-controls triage (core / optional-defense-in-depth / deferred+tracked).
-- Capability-handshake contract for forge consumers.
-- Credential-registration mechanism (global `denyRead`/`envScrub`, additive-only).
+- Capability-handshake lifecycle contract plus the independent forge-owned
+  credential-registration precondition.
+- Credential-registration mechanism (global `denyRead`/`envScrub`, additive-only
+  project config, and the global deny-list's all-or-nothing clear escape).
 - Scope boundary (forge ops, Git credential helpers, privileged Git runners OUT).
 - **Release scope (0.1.0) + post-0.1.0 / v1 path** — see below.
 
@@ -83,6 +85,9 @@ release gate can check the package against its stated promise.
 - Secret inspector scans tool *input*, not *output*; `jobs action=tail` can
   return a secret a sandboxed background command wrote to its buffer.
 - `--no-sandbox` does not propagate to the `background`/`monitor` integration.
+- Git credential helpers, cache sockets, and keyring/keychain stores are not
+  comprehensively blocked; operators register helper files/sockets or accept
+  the residual.
 - Non-Linux bash is unsandboxed (outer VM is the boundary there).
 - `filter` network mode is recognized but fails closed (deferred).
 - `--proc /proc` fails in containers with default seccomp (shared with srt;
@@ -111,8 +116,9 @@ release gate can check the package against its stated promise.
 - "Security boundary / non-goals": lead with two-boundary model (link THREAT_MODEL.md);
   buy-vs-build delta summary; controls triage table; capability-handshake contract +
   `/sandbox` capability line; credential registration via global `denyRead`/`envScrub`.
-- Document `GITHUB_TOKEN`/`GH_TOKEN` in env-scrub coverage and
-  `~/.config/git/credentials` in denyRead defaults.
+- Document `GITHUB_TOKEN`/`GH_TOKEN` in env-scrub coverage; document
+  `~/.config/git/credentials`, `~/.gitconfig`, and `~/.config/git/config` in
+  denyRead defaults; name helper/socket/keyring retrieval as a residual.
 
 ## Acceptance criteria
 
@@ -124,7 +130,8 @@ release gate can check the package against its stated promise.
 - [x] The capability-handshake contract for forge consumers is documented
   (payload, consumer rule, non-contents).
 - [x] The credential-registration mechanism (global `denyRead`/`envScrub`,
-  additive-only) is documented.
+  additive-only project merge, and global deny-list clear semantics) is
+  documented.
 - [x] README "Security boundary / non-goals" references the threat model and
   reflects the closed gaps.
 - [x] Forge-specific operations and authentication policy are documented as
@@ -142,18 +149,27 @@ release gate can check the package against its stated promise.
   credential boundary; maps protected credentials and all eight required
   boundary points to code; records the srt v0.0.26/Gondolin/OpenShell decision
   and revisit triggers; documents control triage, capability handshake,
-  additive-only credential registration, explicit forge exclusions, known
-  residuals, and the tracked post-0.1.0/v1 direction.
+  credential registration, explicit forge exclusions, known residuals, and the
+  tracked post-0.1.0/v1 direction.
 - Updated `plugins/pi-sandbox/README.md` to lead the security section with the
   two-boundary model and threat-model link; summarize the backend decision and
   control triage; document credential registration, the capability line in
-  `/sandbox`, and the absence of forge operations. It now explicitly records
-  `~/.config/git/credentials` plus `GITHUB_TOKEN`/`GH_TOKEN` coverage and links
-  existing release/deferred notes to the canonical release-scope section.
-- Documentation acceptance criteria are met by review of those two files.
-- Verification: `bun test plugins/pi-sandbox/extensions/` ran 228 tests with
-  227 passing and one environment-dependent failure in `bwrap integration > PID
-  namespace and fresh /proc hide host process metadata` (expected exit 0,
-  received 1). The focused rerun reproduced it. This is consistent with the
-  documented default-container-seccomp `--proc /proc` limitation, not a
-  documentation change; no code was modified by this story.
+  `/sandbox`, and the absence of forge operations.
+- Review rework narrowed `active:true` to an initialized/not-fail-closed
+  bash/file-tool lifecycle claim and made the forge credential registration
+  check an independent precondition. The docs enumerate what `active` cannot
+  prove rather than implying it is safe-to-load attestation.
+- Reclassified required-boundary #3 as met for file-backed stores, with
+  helpers/sockets/keyrings operator-registered or outside 0.1.0. Added user Git
+  config defaults and the preserved-`HOME` / `git credential fill` residual to
+  the protected-material table, README non-goals, and canonical known-gaps list.
+- Documented the exact global deny-list merge: non-empty unions with defaults;
+  empty clears all; selective global removal is unavailable. Both docs carry
+  the complete copyable default list and explain project-local re-addition.
+- Re-verified every acceptance criterion by reading THREAT_MODEL and README in
+  context and checking concrete config claims against `sandbox-config.ts`.
+- Bundle-final `bun test plugins/pi-sandbox/extensions/` result: 227 pass / 1
+  fail across 228 tests. The sole failure is the known environment-fragile PID
+  namespace `/proc` assertion tracked in
+  `idea-pi-sandbox-pid-namespace-test-root-cause`; all capability and credential
+  rework tests pass, and no test was weakened.
