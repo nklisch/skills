@@ -11,6 +11,9 @@
     "directory": "plugins/background-tasks"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "pi-package",
     "agent-skills",

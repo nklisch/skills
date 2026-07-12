@@ -201,68 +201,29 @@ agent rules (tag semantics, test integrity, review policy). Treat AGENTS as
 canonical if they disagree. Recency improves adherence. Confirm your approach
 aligns with project conventions.
 
-### Phase 4.5: Surface ambiguities
+### Phase 4.5: Resolve design decisions
 
-Read the feature brief and the design space you've started to map, and
-derive specific, concrete design questions about *this* feature's actual
-work — requirements gaps, architecture trade-offs, scope boundaries,
-integration assumptions, UX decisions. The questions must come from the
-feature in front of you; examples of the *shape* only:
+Identify concrete decisions raised by this feature's requirements, architecture,
+scope, integrations, and UX. Ignore points already settled by the brief, parent,
+foundation docs, code, or an existing `## Design decisions` section, and defer
+safe implementation details. Zero open decisions is valid.
 
-- "Should the cache invalidate on write or rely on TTL only?"
-- "Does the upload accept multipart, or a presigned URL flow?"
-- "When the parser hits a malformed row, do we skip and continue or fail
-  the whole batch?"
-- "Is paging cursor-based or offset-based?"
+Apply `principles/SKILL.md` Part III exactly: resolve routine, reversible points
+with judgment and a logged rationale; reserve structured questions for product
+direction, external contracts, and expensive hard-to-reverse choices. Apply
+Part IV's risk-driven advisory policy in both direct and autopilot modes; do not
+restate reviewer topology here.
 
-Skip anything the brief, parent epic body, foundation docs, or codebase
-already pin. Skip anything that's safely an implementation-time call.
-
-Aim for the smallest set of questions that meaningfully resolve direction
-— typically 2-5. Zero is fine if everything's already pinned.
-
-**Cross-model advisory review under autopilot.** If this skill is running as a
-delegation from active autopilot, the feature has large/risky architectural
-decisions, and the body does not already contain useful `## Design decisions`
-from a prior `--only-questions` pass, apply the cross-model advisory review
-policy from `principles/SKILL.md` before resolving the questions yourself.
-
-Use one focused `peer` pass only when a different model class is available.
-Ask for missing questions, risks, ambiguous constraints, and alternatives for
-this feature's design — not for a final verdict. Do not run the multi-pass
-`peer-review` loop during routine autopilot design. If peeragent is
-unavailable, the peer would use the same model class, or the invocation fails,
-continue with host judgment and note that the advisory pass was skipped.
-If the peeragent target is Claude Opus, allow 10 to 30 minutes for a large
-review; no return after a few minutes is not evidence that it has hung.
-
-Summarize the useful output under `## Other agent review` in the feature body
-and fold accepted questions/risks into the decisions you log. Do not paste the
-peer transcript into the item.
-
-If this skill is running **as a delegation from an active autopilot run or
-harness goal**, resolve each question with judgment (prioritize: consistent
-with foundation docs > simpler option > defers irreversible decisions) and log
-under `## Design decisions` in the body:
+Record decisions in the feature body:
 
 ```markdown
 ## Design decisions
-- **<question>**: <choice> — <one-line rationale>
+- **<decision>**: <choice> — <one-line rationale>
 ```
 
-If the body already contains a `## Design decisions` section (from a prior
-`--only-questions` pass or from `epic-design` Phase 4.7), treat those
-locked-in answers as inputs — do NOT re-ask them.
-
-In every other invocation — including direct user invocation under harness
-auto mode (`permissions.defaultMode: "auto"`) — ask the user via
-`structured question tool` before locking in. Harness-level "work without pausing"
-reminders do **not** suppress these checkpoints. See `principles/SKILL.md`
-Part III for the full caller-awareness rule.
-
-The exception under autopilot: a 50/50 between two large irreversible choices
-(e.g., SQL vs document store). Append a `## Blocker` section and return
-without advancing — autopilot will skip and surface the blocker.
+When autopilot is the active driver, it never asks; use evidence and the least
+irreversible sound choice. Only contradictory state that Part III identifies as
+a hard halt blocks advancement.
 
 ### Phase 4.6: UI surface fallback (runs when ux-ui-design is installed)
 

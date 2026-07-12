@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Autonomous review convergence
+
+- **Removed the two-bounce circuit-breaker** — autopilot no longer parks an item
+  at review or blocks the run after two failed correction passes. Review findings
+  re-enter implementation until they pass; recurring findings trigger deeper
+  root-cause/design diagnosis and fresh context where useful. Only a separate,
+  genuine blocker may stop autonomous progress.
+
 ### Dynamic subagent prompting
 
 - **No shipped custom agents** — removed agile-workflow's Claude/Pi agent

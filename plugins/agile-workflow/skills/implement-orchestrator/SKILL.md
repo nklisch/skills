@@ -2,603 +2,290 @@
 name: implement-orchestrator
 description: >
   ALWAYS invoke when the user asks to implement substrate items, work through stage:implementing
-  items, drain the queue, or implement a feature/epic scope. Default implementation path; call
-  implement directly only when the user says "inline". Builds a depends_on graph, bundles related
-  work, chooses wave width and worktree isolation, and dispatches implementation sub-agents when
-  useful. This skill authorizes sub-agents, including large non-overlapping write paths when ownership
-  and verification make that safe. Advances parents whose children all reach stage:review.
+  items, drain the queue, or implement a feature or epic scope. Coordinates implementation from the
+  unified dependency graph, derives worker ownership and execution waves from repository shape and
+  risk, verifies every wave, rolls eligible parents to review, and continues through the review lane
+  by default. Use implement instead when one cohesive delivery is safer to keep in the host context.
 ---
 
 # Implement-Orchestrator
 
-You orchestrate the implementation of one or more substrate items at
-`stage: implementing`. Your value is in the prompt crafting and the
-dependency-aware scheduling across whatever scope you've been given —
-not in writing line-by-line code yourself. You delegate the writing to
-implementation sub-agents when the work can be split productively. You determine
-how to parallelize: bundles, waves, worker ownership, worktree isolation, and
-serialization are your call.
+Coordinate one or more substrate items from `stage: implementing` through their
+appropriate review outcome. Derive the execution topology from the work in front
+of you rather than applying fixed bundle sizes, wave widths, or worker recipes.
 
-## Sub-agent contract
+The orchestrator adds value through complete grounding, dependency-aware
+scheduling, explicit write ownership, fresh worker context, integration
+verification, and conservative lifecycle roll-up. Delegation is authorized when
+this skill is active, but it is useful only where separate ownership, isolation,
+or parallel execution improves the result.
 
-Invocation of this skill is explicit authorization to spawn implementation
-sub-agents. Do not wait for the user to separately say "use sub-agents" once this
-skill is active. The user has chosen the orchestrator because the orchestrator is
-the parallelization brain.
+## Outcomes
 
-Authorization is not a mandate to fan out before sizing the system. Do a
-read-first scope probe before choosing exploratory sub-agents, bundle shape, wave width,
-or worktree isolation. Direct reading is often faster and more accurate when the
-work points at a known module, a small file set, or a few obvious integration
-points.
+A successful run leaves:
 
-Use sub-agents as the primary scaling mechanism when the work has separable
-ownership. Large write paths may still run in parallel when you assign explicit
-file/module ownership, tell workers they are not alone in the codebase, use
-worktree isolation when overlap or merge risk warrants it, and verify integration
-after each wave. Serialize only the portions whose write sets or dependency
-edges make parallel work unsafe.
+- every selected item either advanced through review to `done`, explicitly left
+  at `review` by a `stop-at-review` request, bounced with durable review
+  findings, or documented with a blocker;
+- every implementation transition backed by passing verification;
+- every changed item represented by its own commit;
+- eligible parent features advanced from `implementing` to `review` only after
+  all their children are terminal-or-review;
+- run notes that explain scope resolution, execution topology, worker
+  capability, effective review weight, verification, and deviations.
 
-### Implementation tier (settle once, before dispatch)
-
-The worker subagent posture and effort tier are a **dial**, not a silent
-default. Agile-workflow does not ship an implementation role; each worker is a
-generic subagent prompted with the implementer capsule from
-`../principles/references/subagents.md`. Before spawning the first wave,
-determine the implementation tier:
-
-1. **Honor an explicit choice** — a tier named in the goal/args/user request,
-   an autopilot caller note, or a stable project convention (e.g. a
-   `.work/CONVENTIONS.md` model note), wins. Use it and skip the question.
-2. **Autopilot mode is non-interactive** — when delegated by an active
-   autopilot run, use the tier autopilot settled for the scoped run. If the
-   caller note is missing the tier, fall back to the host runtime's
-   medium/default **baseline** worker capability and state the fallback in the
-   run notes. Do not ask the user from inside an autopilot-driven implementation
-   pass.
-3. **All other modes ask once** — when there is no explicit/project/autopilot
-   choice, ask the user what implementation effort tier to use (structured
-   question tool when available), then lock it for the whole run; never re-ask
-   per wave. Pick a **baseline**, **raised**, or **highest** tier
-   by capability, not by name — concrete model resolution per host is in
-   [../principles/references/models.md](../principles/references/models.md):
-   - **Baseline** = write fidelity at low cost: routine, well-scoped code.
-   - **Raised** = deeper reasoning/stamina for multi-item, cross-module, or
-     orchestration-critical bundles.
-   - **Highest** = the strongest reasoning available for large cross-feature
-     write paths, risky migrations, or repeated failed attempts.
-   The vocabulary matches `deep-code-scan`'s scanner-tier dial so the two read
-   alike.
-
-Use explicit runtime paths: spawn implementation workers through the host's
-generic/code-writing subagent mechanism, with the settled effort tier and the
-implementer prompt posture from `../principles/references/subagents.md`. Map
-routine small/single-item bundles to the settled baseline, raise effort within
-the same model family for multi-item, cross-module, or orchestration-critical
-bundles, and reserve the highest tier for large cross-feature write paths,
-risky migrations, difficult generated-code reconciliation, or repeated failed
-attempts. Use read-only exploratory subagents prompted with the explorer capsule
-at medium/high reasoning for mapping. Do not use peeragent for routine
-implementation-worker fanout.
-
-In every runtime, make each worker prompt self-contained and require one commit
-per item.
-
-## Trigger
-
-This is the **default implementation path** for everything at
-`stage: implementing` — features (with or without children), lone stories, or
-mixed batches across multiple features. Even a single ready story routes here
-by default; the one-agent wave is still worth running because the grounding,
-the prompt, and the post-wave verification all add value the inline `implement`
-skill skips.
-
-Reach for `/agile-workflow:implement` directly only when the delivery is **very
-small** (the criteria are spelled out in that skill's trigger section: ≤ 2
-files, ~≤ 50 LoC, single unit of work, no `depends_on` coordination, or land
-mode). When in doubt, route here.
-
-Common phrases:
-- "implement feature X" / "implement story Y"
-- "implement everything ready under epic Z"
-- "fan out the implementing band"
-- "drain the ready stories"
+Reaching `review` is not the default handoff boundary. Invoke the review skill
+for the advanced scope in the same run, passing the effective `review_weight`,
+unless the caller says `stop at review`, `leave at review`, `hand off for
+review`, or a stable project convention sets that boundary. Review owns
+approval, bounce handling, and the `review → done` ancestor roll-up. Do not
+replace that lane with inline self-approval.
 
 ## Scope arguments
 
-Accept any of:
+Accept the orchestration argument shapes defined in `principles` Part V:
 
-- no arg → equivalent to `--all` (the default)
-- `--all` — every implementing item in `.work/active/` (regardless of parent)
-- `<feature-id>` — every child story of that feature at `stage: implementing`,
-  plus the feature itself if it has no children
-- `<epic-id>` — every implementing item transitively under that epic
-- `<id> [<id>...]` — explicit list, can mix kinds and parents
-- single `<story-id>` with no parent or whose parent isn't in scope — run as a
-  one-agent wave, advance only that story
-- `<NL filter>` (e.g. "the auth stories", "everything tagged refactor") — same
-  shape as autopilot's free-text scope: interpret against the implementing-band
-  items, log the interpretation in the run summary
+- no argument or `--all` selects the full implementing queue;
+- a feature id selects its implementing children, or the feature itself when it
+  has no children;
+- an epic id selects implementing descendants transitively;
+- an id list selects those items across kinds and parents;
+- a lone story id selects that story without implicitly advancing its parent;
+- a natural-language filter is interpreted against implementing items and its
+  interpretation is recorded.
 
-Disambiguation: an arg is treated as an id only if a matching file exists in
-`.work/active/`. Otherwise it's an NL filter. Whatever you accept, the rest of
-the workflow is the same — the difference is just which items populate the
-queue at Phase 1.
+Treat a value as an id only when a matching active item exists. Treat
+`stop-at-review` as a lifecycle modifier, not part of the item filter.
+
+## Invariants
+
+These constraints govern every topology the orchestrator derives.
+
+### Grounding and freshness
+
+- Read every selected item and every distinct parent feature in full before
+  dispatch. Cross-feature scope increases the grounding obligation.
+- Read referenced foundation and research documents, project instructions,
+  `.agents/rules/*.md`, and the concrete code and tests that define each
+  integration boundary.
+- Probe locally with `work-view`, file listing, search, and direct reads before
+  using exploratory sub-agents. Delegate exploration only for named unknowns or
+  independent surfaces that local probes do not resolve.
+- Re-read project instructions, force-loaded rules, and relevant pattern
+  sources immediately before dispatch. Re-check the working tree and item
+  stages before each wave; concurrent work may have changed assumptions.
+- Record the dispatch rationale when it affects ownership, grouping, isolation,
+  or concurrency.
+
+### Dependency integrity
+
+- Build one unified `depends_on` graph for the selected work. Parent boundaries
+  do not partition scheduling, and cross-feature dependencies are valid.
+- Validate that every dependency id exists and that the graph is acyclic before
+  dispatch.
+- An item is ready only when every dependency is terminal-done or was completed
+  and verified by an earlier wave.
+- If a dependency outside the selected scope is not terminal, drop the dependent
+  item from this run and record the unmet dependency. Never bypass or silently
+  rewrite the edge.
+- Recompute readiness after each verified wave rather than relying on the
+  initial graph snapshot.
+
+### Ownership and concurrency
+
+- Derive worker groupings and waves from dependency layers, write sets,
+  repository shape, coupling, uncertainty, runtime capacity, and verification
+  cost. Item count alone does not determine parallelism.
+- Parallel workers must have independent write sets and explicit ownership.
+  Serialize or combine work when write sets overlap or when coherence matters
+  more than isolation.
+- Use worktree isolation when overlap is hard to predict or when large,
+  disjoint write paths are safer to reconcile independently.
+- Tell every worker that other agents may be editing disjoint files. Workers
+  must preserve unrelated changes and stop rather than expanding their write
+  scope silently.
+- Dependency ordering is never weakened by grouping. A worker may process
+  related items sequentially only when each item becomes ready in that order.
+
+### Verification and commits
+
+- Verify each item within its worker scope and verify the integrated repository
+  after every wave using the project's authoritative checks.
+- Do not dispatch the next wave until the current wave's item transitions,
+  commits, and integration checks are verified.
+- Keep one commit per item, including separate commits for parent stage
+  transitions. Never batch multiple item transitions into one commit and never
+  push.
+- A partial wave is valid only when completed items remain independently
+  verified and committed; preserve untouched items at their current stage and
+  durably record every bounce or blocker.
+- Treat test gaming as a blocking verification failure, not a successful wave.
+
+### Conservative parent roll-up
+
+After verified children reach `review` or a terminal stage, inspect every
+parent feature touched by the run. Advance a parent from `implementing` to
+`review` only when all of its children, including children outside the selected
+scope, are terminal-or-review. Append an implementation summary and
+verification result, then commit that parent transition as its own item commit.
+Leave an ineligible parent unchanged.
+
+The subsequent review lane decides whether reviewed items and ancestors reach
+`done`; do not duplicate or pre-empt review's roll-up contract here.
+
+## Worker capability
+
+Choose worker capability from the risk and scope of the owned delivery. Consider
+reasoning depth, cross-module impact, migration or generated-contract risk,
+uncertainty, and prior failed attempts. Honor an explicit capability or model
+choice from the caller, an autopilot caller note, or a stable project convention
+when present; otherwise make the choice yourself. Record the chosen capability
+and rationale in run notes before dispatch, and do not ask a routine tier
+question or re-ask between waves.
+
+Use the host's generic code-writing sub-agent mechanism. Do not use peeragent
+for routine implementation fan-out. If no suitable worker adapter exists, keep
+cohesive work in the host session while preserving the same ownership,
+verification, item-update, and commit contracts.
+
+## Effective review weight
+
+Determine or receive one effective `review_weight` for the proactive review
+handoff. Precedence is: explicit caller or autopilot override, then stable
+project convention, then `standard`. Record the effective value and its source
+in run notes and pass it to the review invocation. The principles and review
+skill own the meaning and execution of each weight; do not recreate their
+selection matrix here. A weight of `none` still requires green implementation
+verification, then uses the review lane without an independent review pass.
+
+## Worker self-containment
+
+Craft each worker brief dynamically from the implementer posture in
+[principles/references/subagents.md](../principles/references/subagents.md).
+Do not assume an installed agile-workflow worker role, shared conversation
+context, or fixed prompt wording. The brief must carry all information required
+to execute safely:
+
+- the owned item ids, exact allowed write scope, forbidden scope, parent design
+  context, acceptance criteria, relevant paths, verified patterns, and current
+  repository discrepancies;
+- dependency readiness and the instruction to return without advancing when a
+  dependency is unmet;
+- land-mode detection: inspect whether the implementation already exists,
+  reconcile the item body to as-built reality, fill meaningful test gaps, and
+  verify before advancing;
+- the design-flaw escape hatch: record an `## Implementation discovery`, move
+  the affected item back to `drafting`, and return rather than forcing a flawed
+  design through;
+- project verification commands, required implementation notes, the
+  `implementing → review` transition, and exactly one `implement: <item-id>`
+  commit per completed item with no push;
+- endpoint boundaries: no nested delegation or peeragent, no silent scope
+  expansion, preserve unrelated concurrent changes, and report blockers;
+- the full test-integrity rule: repair stale fixtures, drifted assertions,
+  broken mocks, and outdated snapshots; park real production bugs and
+  pre-existing flakes instead of folding them into the item; never weaken,
+  delete, broadly skip, or rewrite a test merely to obtain green output; when a
+  known bug prevents green verification, document the failure honestly and link
+  the parked work rather than asserting whatever the code returns;
+- emotional framing that invites pride in craft, careful verification, and
+  candid blocker reporting without pressure or threat language.
+
+Reference paths and signatures rather than pasting whole source files, but
+include enough parent and item intent that the worker does not need the
+orchestrator's private context. For a worker owning multiple sequential items,
+retain separate readiness checks, notes, transitions, verification, and commits
+for each item.
 
 ## Workflow
 
-### Phase 1: Resolve scope and ground yourself
-
-First, resolve the scope arg into a concrete **work set** — the items you'll
-actually drive in this run. Use `work-view` with the appropriate filters; the
-exact invocation depends on what you were given:
-
-- A feature id → its child stories at `stage: implementing`, plus the feature
-  itself if it has no children
-- An epic id → walk the parent chain to gather every implementing item beneath
-  it (features without children, plus all stories)
-- `--all` (or no arg) → every item under `.work/active/` at `stage: implementing`
-- An explicit id list → use those items directly
-- An NL filter → interpret against the implementing-band items, keep matches,
-  log the interpretation
-
-Note the **set of distinct parent features** that appear in the work set. Some
-items may share a parent, others may not. You'll need each distinct parent for
-the grounding step and for Phase 9 advancement.
-
-Then read deeply — the quality of your agent prompts depends on this.
-
-1. **Every parent feature** in the work set — full design, all units, all
-   referenced patterns. Read each one fully; do not skim. If the work set
-   spans multiple features, that's more reading, not less.
-2. **Every item in the work set** — the story or childless feature you'll
-   spawn an agent for. Read its body, design, acceptance criteria, and
-   `depends_on`.
-3. **Foundation docs** referenced by any of the above: `docs/SPEC.md`,
-   `docs/ARCHITECTURE.md`
-4. **Principles** — both paradigms via the auto-loaded principles skill
-5. **AGENTS.md / CLAUDE.md** — project conventions, build commands
-5a. **`.agents/rules/*.md`** (if present) — the project's force-loaded agent
-   rules (tag semantics, test integrity, review policy)
-6. **Concrete pattern examples** in the codebase — for each type of code the
-   agents will write, find an existing example. Read 3-5 key files yourself.
-   Use exploratory sub-agents only for breadth you can name after local search.
-7. **Discrepancies between design and repo reality** — for every file the
-   designs reference, confirm interfaces match. Note discrepancies for
-   inclusion in agent prompts.
-
-### Phase 1.5: Size the system before delegation
-
-Apply the Agent Dispatch Economy principle from `principles/SKILL.md` before
-spawning discovery or implementation agents. Build a quick sizing note:
-
-- likely write roots and known files
-- item count, expected edit size, and dependency layers
-- unknowns that require discovery
-- whether the scope is direct-read, one-Explore, or parallel-Explore sized
-
-If the work set points at a handful of known files, read them directly and skip
-Explore. If one bounded area remains fuzzy, use one focused exploratory sub-agent. If
-several independent surfaces remain unknown, use parallel exploratory sub-agents with
-different questions. Feed this sizing decision into bundling and wave width; do
-not default to a wide wave because many items are present.
-
-### Phase 2: Build the dependency graph
-
-For every item in the work set, parse its `depends_on` field. Build a unified
-map across the whole scope — dependencies do not need to share a parent:
-
-- `item-id → list of dep ids it waits on`
-- `dep id → list of items that wait on it`
-
-A story under feature A may legitimately depend on a story under feature B.
-The graph treats the work set as a flat pool; parents are bookkeeping for
-Phase 9, not partitions of the schedule.
-
-Validate:
-- All `depends_on` entries refer to existing items
-- No cycles (`work-view --blocking` per id)
-- Cross-scope deps (an item whose `depends_on` points outside the work set)
-  must already be at `stage: done` or terminal — if not, drop the dependent
-  item from this run and log it; you can't satisfy that dep here.
-
-### Phase 3: Bundle, schedule, and check for conflicts
-
-#### 3a — Detect bundles
-
-Default to **one implementation sub-agent per item**, but bundle tightly-coupled
-small items into a single sub-agent when doing so produces better code than
-parallel agents fighting the same module. A bundle is a group of items owned by
-one implementation sub-agent that
-walks them sequentially, sharing context across all of them.
-
-Bundle a group of items together when **all** of these hold:
-
-- **Adjacent scope.** They touch the same subdirectory, the same module family,
-  or files that import each other heavily. "I'd refactor these together if I
-  were holding the whole thing in my head" is the test.
-- **Individually small.** Each item is roughly under ~200 LoC of net new/changed
-  code, judged from its design. Big items belong in their own agent — they
-  already saturate one agent's attention.
-- **Shared patterns / conventions / dependencies.** They follow the same idioms,
-  import the same modules, or depend on each other in ways that benefit from
-  the agent having loaded the full context once.
-- **Same dependency layer.** Every bundle member must be eligible for the same
-  wave — i.e. an item cannot be bundled with one of its own (transitive)
-  dependencies. Two items that depend on the same upstream are fine; a
-  parent-child dep pair is not.
-- **Fits one sub-agent's context budget.** Keep each bundle small enough that
-  the worker can load its prompt, designs, relevant code, and verification
-  output without losing precision. In practice that's roughly 3–8 small items
-  per bundle. When in doubt, bundle smaller.
-
-A single-item "bundle" is the common case and is fine. Don't force bundling.
-The win is reserved for clusters where the coordination overhead between
-parallel agents (file overlap, convention drift, repeated grounding) would
-exceed the cost of sequencing them inside one head.
-
-For each candidate bundle, record:
-
-- `bundle-id` (synthetic, e.g. `B1`, `B2`)
-- ordered item list (dependency order if intra-bundle deps exist)
-- shared scope description (e.g. "auth middleware family — `src/auth/*.ts`")
-- rationale (1 sentence on why these belong together)
-
-Log every bundling decision in your run notes; surface them in the final
-output so the user can audit the call.
-
-#### 3b — Topological wave plan over bundles
-
-Treat each bundle (single-item or multi-item) as one schedulable unit. Build
-the wave plan from the unified `depends_on` graph, lifted to the bundle level:
-bundle A depends on bundle B if any item in A depends on any item in B.
-
-- **Wave 1** (parallel): all bundles whose every external dependency is at
-  `stage: done` (or terminal in releases/archive)
-- **Wave 2** (parallel): bundles whose dependencies are wave-1 bundles
-- **Wave N** (parallel): bundles whose dependencies are wave-(N-1) bundles
-
-Choose parallelism per wave based on write-set independence, dependency edges,
-runtime capacity, and verification cost. Three bundles per wave is the safe
-default for ordinary mixed implementation work. You may raise that for clearly
-disjoint write paths or large independent subsystems, especially with worktree
-isolation. You should lower it or serialize when bundles touch the same files,
-share fragile generated artifacts, or require ordered API/type evolution.
-
-#### 3c — File-overlap conflict check (cross-bundle)
-
-Within-bundle file overlap is already resolved — one agent owns the bundle, so
-"overlap" inside it is just sequential edits. Check for overlap **across
-bundles in the same wave**. If two bundles in one wave name overlapping files,
-choose one of three mitigations:
-
-- **Merge the bundles** — if they're small enough to fit one agent's budget
-  and the overlap is the reason they should be together, collapse them into
-  one bundle. Often the cleanest answer.
-- **Serialize the conflicting bundles** — pull one into a later sub-wave so
-  they don't share a slot. Preferred when merging would blow the budget.
-- **Spawn the wave with worktree isolation** — each agent gets its own
-  worktree, you reconcile after. Use when serialization would balloon the
-  wave count or when you can't predict overlap precisely.
-
-Cross-feature bundles make this check important — siblings under one feature
-usually had disjoint files by design; bundles drawn from different features
-have no such guarantee.
-
-### Phase 4: Re-align to project standards
-
-Re-read `AGENTS.md` and `CLAUDE.md` if both exist. Treat `AGENTS.md` as
-canonical when they disagree; `CLAUDE.md` is usually a symlink or compatibility
-shim. Also read `.agents/rules/*.md` (if present) — the project's force-loaded
-agent rules (tag semantics, test integrity, review policy) — and
-`.agents/skills/patterns/` and legacy `.claude/skills/patterns/` if present.
-Recency improves prompt adherence.
-
-### Phase 5: Craft agent prompts
-
-The per-bundle prompt mirrors `/agile-workflow:implement`'s workflow — same
-phases, same logic — just inlined so a sub-agent can execute it self-contained.
-Whatever capabilities `implement` gains over time should be reflected here too.
-
-There are two prompt shapes depending on bundle size:
-
-- **Single-item bundle** (1 item): the classic per-story prompt described below.
-- **Multi-item bundle** (2+ items): a per-bundle prompt that walks each item in
-  dependency order, sharing context across all items. See "Multi-item bundle
-  prompts" subsection at the end.
-
-For each **single-item** bundle, write a self-contained prompt with:
-
-1. **Role and goal** — one sentence with ownership framing: "You are
-   implementing <story-name> for feature <feature-name> — write
-   production-quality code that you'd be proud to have reviewed."
-
-2. **Land-mode check** (from implement Phase 4a) — "Before writing new code,
-   check if the implementation already exists in the working tree. Signals: a
-   'Files in this cluster' list in the story body, retroactive-capture note,
-   sparse design with concrete file paths matching `git status`. If you're
-   in land mode: read the existing code, update the story body's design
-   section to reflect as-built reality, validate (typecheck/lint/test scoped
-   to touched packages), add tests for any meaningful behavior that lacks
-   them, log 'Land mode' in implementation notes, then proceed to commit."
-
-3. **Dep readiness check** (from implement Phase 2) — "If this story has
-   non-empty `depends_on`, verify each dep is at `stage: done` (or in
-   releases/archive). If any dep is unmet, append a one-line note and return
-   without advancing — don't try to implement on top of unmet deps."
-
-4. **Story file content** — paste the story body verbatim. Tell the agent:
-   "Update this file with implementation notes when done."
-
-5. **Parent feature design excerpt** — paste the relevant implementation units
-   from the item's parent feature body. Don't summarize — exact specs matter.
-   When the work set spans multiple features, each agent gets only the
-   excerpt that belongs to its item's parent (don't dump unrelated features'
-   designs into the prompt).
-
-6. **Codebase context** — concrete:
-   - Key file paths it will read or modify (specific, not generic)
-   - Existing patterns to follow with concrete codebase examples
-   - Discrepancies between design and repo reality you found
-   - Specific imports needed
-   - Project conventions from AGENTS.md / CLAUDE.md
-
-7. **Design-flaw escape hatch** (from implement guardrails) — "If during
-   implementation you discover a genuine design flaw, don't muscle through.
-   Update the story body with a `## Implementation discovery` section, set
-   stage back to `drafting`, and return. The orchestrator will route the
-   story back through the design family on the next pass."
-
-8. **Stage transition instruction** — "When done, update the story's
-   frontmatter `stage: implementing → review` and append implementation notes.
-   The PostToolUse hook auto-bumps `updated:`."
-
-9. **Verification commands** — from AGENTS.md / CLAUDE.md (e.g.,
-   `pnpm typecheck && pnpm lint && pnpm test`).
-
-10. **Commit instruction** — "After build and tests pass, commit with message
-    `implement: <story-id>`. Do NOT push."
-
-11. **Test integrity** — "When tests fail during verification: fix bad
-    tests (stale fixtures, drifted assertions, broken mocks) in-session.
-    Park real production bugs via `/agile-workflow:park` instead of
-    silently fixing mid-pass. Park pre-existing flakes too — don't bundle.
-    NEVER game a test to make it pass. A failing test that documents *why*
-    it fails (inline comment naming the bug, `skip` linked to a backlog
-    id, `xfail` with reason) is more honest than a green test that lies.
-    No `expect(true).toBe(true)`, no asserting on whatever the code
-    happens to return, no deleting a test as 'flaky' without root-causing
-    first."
-
-12. **Emotional framing** — pride in craft, permission to report blockers,
-    quality as aspiration not threat. Avoid pressure language.
-
-#### Multi-item bundle prompts
-
-For a **multi-item bundle**, write one self-contained prompt covering every
-item in the bundle. The agent loads the shared context once and walks the
-items sequentially, gaining coherence the parallel-agents alternative loses.
-Structure the prompt as:
-
-1. **Bundle role and goal** — "You own a tightly-coupled cluster of N items
-   in <shared-scope>. Treat them as one coherent delivery — you'll walk them
-   in order, but the design intent crosses items. Aim for production-quality
-   code you'd be proud to have reviewed."
-
-2. **Shared context block** (loaded once for all items):
-   - Why these items are bundled (the rationale from Phase 3a)
-   - Parent-feature design excerpts relevant to the bundle (paste verbatim,
-     deduped — don't repeat the same excerpt per item)
-   - Shared codebase context: the file paths the bundle will touch, the
-     patterns and conventions shared across items, the imports and module
-     boundaries common to the cluster
-   - Discrepancies between design and repo reality you found that apply to
-     the bundle as a whole
-
-3. **Land-mode check** (shared) — same logic as single-item, applied per item
-   as the agent reaches it.
-
-4. **Per-item working list** — in dependency order, for each item:
-   - Item id and name, with a one-line goal
-   - Story body content verbatim
-   - Item-specific design excerpt (only the parts of parent-feature design
-     not already covered by the shared block)
-   - Item-specific files and conventions only-this-item touches
-   - Item-specific `depends_on` and the readiness check for it
-
-5. **Per-item execution loop** — "For each item in order: (a) verify
-   `depends_on` is satisfied; (b) implement; (c) run scoped verification;
-   (d) update the item file's body with implementation notes and advance
-   `stage: implementing → review`; (e) commit with message
-   `implement: <item-id>`; (f) move to the next item. Do NOT batch commits
-   across items — one commit per item keeps the substrate clean and lets
-   review roll back items independently."
-
-6. **Bundle-final verification** — "After the last item is committed, run
-   the full project verification commands (typecheck, lint, full test suite)
-   once for the whole bundle. If anything fails, fix it — the fix is part of
-   the bundle's delivery, not a follow-up."
-
-7. **Design-flaw escape hatch (per item)** — "If during implementation of
-   any item you discover a genuine design flaw in that item, do NOT muscle
-   through. Update that item's body with a `## Implementation discovery`
-   section, set its stage back to `drafting`, commit the items already
-   completed, and return. The orchestrator will route the flawed item back
-   through the design family on the next pass. The completed items remain
-   at `stage: review`."
-
-8. **Test integrity** — same wording as single-item; reinforce that bundle
-   scope is NOT a license to silence tests across items.
-
-9. **Emotional framing** — "Holding the whole cluster in your head is the
-   point of this bundle — that's what produces coherent code. Take your time
-   per item; the bundle isn't a race."
-
-The bundle prompt is longer than a single-item prompt, but the agent reads
-the shared context once and amortizes it across every item — that's the
-budget win the bundle is buying.
-
-### Phase 6: Spawn sub-agents (per wave)
-
-Spawn one implementation sub-agent per bundle, regardless of bundle size.
-
-Spawn code-writing worker subagents through the host's generic/general-purpose
-subagent mechanism, prompted with the implementer capsule and the settled effort
-tier from the kickoff decision:
-- baseline / host medium-default for small or single-item bundles
-- raised / host high-effort for multi-item, cross-module, or orchestration-critical
-  bundles when the settled choice allows escalation
-- highest / host maximum-effort only for large cross-feature write paths, deep
-  migrations, high-risk reconciliation, or repeated failed attempts, and only
-  when selected explicitly or permitted by the settled tier
-- no model override outside the settled family/tier unless the user has named
-  one or the project has a stable model convention
-
-Use the deployment's existing `Explore` role for read-only mapping only when it
-is already available; agile-workflow does not ship an Explore override or any
-implementation/review roles. If no suitable generic subagent adapter exists,
-keep the bounded work in the host session or use the fresh-context fallback
-already described by the skill.
-
-For waves with multiple bundles, send all in a **single message** with multiple
-sub-agent calls when the runtime supports parallel execution.
-
-The `description` should make the bundle scope visible — e.g.
-`"Implement B2: 4 stories under auth middleware"` for a multi-item bundle, or
-`"Implement story S-12"` for a single-item bundle.
-
-Use worktree isolation if multiple bundles in the same wave will modify
-overlapping files and you chose not to merge them (see Phase 3c), or if large
-independent write paths are safer to reconcile from separate worktrees. Within a
-bundle, isolation is unnecessary — one sub-agent owns the whole cluster.
-
-### Phase 7: Review wave results
-
-After each wave:
-1. Read each agent's result summary
-2. For each bundle: verify the agent advanced **every** item in the bundle to
-   `stage: review` (or back to `drafting` if a design-flaw escape hatch
-   fired), and wrote implementation notes on each item's body
-3. Verify the agent committed once per item (multi-item bundles produce N
-   commits, not 1)
-4. Run the verification commands yourself to confirm integration is clean
-   across all bundles in the wave
-
-If a bundle agent fully completed only some of its items and bailed (e.g. a
-design-flaw escape hatch fired on item 3 of 5), accept the partial result:
-items 1–2 stay at `review`, item 3 is back at `drafting`, items 4–5 stay at
-`implementing` and will be picked up next pass.
-
-If an agent reported a blocker or left gaps:
-- Small fix → make it yourself directly
-- Larger issue → spawn a focused follow-up agent with a targeted prompt
-
-Don't proceed to the next wave if the previous wave's results aren't verified.
-
-### Phase 8: Iterate waves until done
-
-Continue spawning waves until every item in the work set is at `stage: review`
-(or `done` if review-skipping for trivial ones, but generally items advance
-to `review` only).
-
-### Phase 9: Advance every parent feature whose children are now all at review
-
-For each distinct parent feature you noted during Phase 1, check whether every
-one of its child stories is now at `stage: review` or `done`. A parent
-qualifies for advancement when **all** of its children are terminal-or-review,
-not just the subset you happened to touch in this run — children outside your
-work set must also already be at one of those stages.
-
-For each qualifying parent feature:
-
-1. Append a summary to its body:
-   - Stories implemented in this run (list with their statuses)
-   - Any cross-cutting deviations
-   - Verification status (build + tests pass)
-2. Advance its frontmatter: `stage: implementing → review`. The PostToolUse
-   hook bumps `updated:`.
-3. Commit it:
-   ```bash
-   git add .work/active/features/<id>.md
-   git commit -m "implement: <feature-id> (<N> stories ready for review)"
-   ```
-
-If a parent has children outside the work set still at `stage: implementing`,
-leave its stage at `implementing` — a later orchestrator run (or autopilot
-pass) will pick those up and advance the parent then. Don't force-advance a
-parent whose work isn't complete.
-
-For items in the work set that have no parent feature (lone stories,
-parentless items), there's nothing to advance at this phase — the items
-themselves already moved to `stage: review` via their agents.
+### 1. Resolve and ground the work set
+
+Resolve the argument to concrete active items and note distinct parent features.
+Read the full item and parent bodies, referenced docs, project rules, and current
+integration code. Confirm the designs still match repository reality.
+
+Create a concise sizing note covering likely write roots, dependency layers,
+known coupling, risk, remaining unknowns, and whether direct reading or focused
+exploration is justified. This is evidence for the topology, not a numerical
+recipe.
+
+### 2. Build and validate the graph
+
+Construct the unified dependency graph, validate ids and cycles, classify
+external dependencies, and remove dependents whose external prerequisites are
+not terminal. Record every exclusion. Compute the currently ready layer.
+
+### 3. Derive ownership and waves
+
+For the ready layer, assign coherent write ownership and identify conflicts.
+Choose serialization, shared sequential ownership, direct-host execution, or
+isolated parallel workers according to the invariants above. Select and record
+worker capability. Refresh rules, stages, and working-tree state before sending
+self-contained briefs.
+
+### 4. Execute and verify a wave
+
+Dispatch only ready work. On return:
+
+1. inspect each result and the actual diff;
+2. confirm every completed item contains implementation notes and reached
+   `review`, or that a design flaw, bounce, or blocker is durably recorded;
+3. confirm exactly one commit exists for each completed item and that it does
+   not include unrelated ownership;
+4. run authoritative integration checks across the combined wave;
+5. inspect test changes for integrity violations.
+
+Fix a bounded integration issue in the owning item context or dispatch a focused
+follow-up with the same boundary contract. Do not accept an unverified wave.
+
+### 5. Recompute and continue
+
+Refresh item stages and the dependency graph after verification. Continue with
+newly ready work until the selected scope has no executable implementing items.
+If progress stops, record the exact unmet dependency, design bounce, failed
+verification, or ownership conflict rather than declaring success.
+
+### 6. Roll up implementation readiness
+
+For each touched parent, apply the conservative parent roll-up invariant. Record
+children advanced, deviations, and verification in the parent body before its
+own commit.
+
+### 7. Continue through review
+
+Unless `stop-at-review` applies, resolve the effective `review_weight` and
+invoke `/agile-workflow:review` with it for each advanced parent and for
+advanced items not covered by a parent review. Let the review skill interpret
+the weight and perform any required fresh-context review. With `none`, require
+the same green implementation verification and let review complete its stage
+contract without an independent review pass.
+
+Honor the review result:
+
+- approved work advances to `done` under review's contract;
+- bounced work returns to `implementing` with `## Review findings` and the run
+  reports the bounce;
+- blocked work retains a durable `## Blocker` and the run reports the blocker.
+
+Do not loop blindly after a bounce. Resume implementation only when the finding
+is bounded and still belongs to the current invocation; otherwise return the
+review outcome as the honest completion boundary.
 
 ## Output
 
-In conversation:
-- **Scope**: how the scope arg resolved (e.g., "epic E-04 → 7 stories under 3
-  features", or "story S-12 alone")
-- **Bundles**: how the items packed into agent-sized units (e.g., "9 items →
-  5 bundles: 1 multi-item bundle of 4 stories under `src/auth/*`, 1 of 2
-  stories under `src/billing/webhooks`, 3 single-item bundles"). Include a
-  one-line rationale per multi-item bundle.
-- **Items advanced**: count + list, with which parent each belongs to
-- **Parent features advanced to review**: list (only those whose children are
-  all terminal-or-review now)
-- **Parent features still at implementing**: list (children outside the run
-  remain — note which)
-- **Waves**: how many waves ran, parallelism per wave (in bundles), any
-  worktree isolation
-- **Deviations across items**: list (or "none")
-- **Verification**: build + test status
-- **Next**: `/agile-workflow:review <id>` for each advanced parent or item
+Report:
 
-## Guardrails
+- resolved scope and any dropped items with unmet external dependencies;
+- derived ownership, dependency waves, isolation decisions, and their rationale;
+- worker capability choices and override source, if any;
+- effective `review_weight` and whether it came from the caller, autopilot,
+  project convention, or default;
+- items advanced, bounced, blocked, or left at review by explicit request;
+- parent features advanced or left implementing, with the eligibility reason;
+- per-wave and final verification results;
+- commits created, one per item;
+- review lane outcomes and remaining executable next step.
 
-- Ground yourself before spawning agents. Vague prompts produce vague
-  implementations. Cross-feature scopes mean more reading, not less — every
-  parent in the work set gets the full read.
-- Size the system before dispatch. If local search and direct file reads answer
-  the discovery question, skip exploratory fanout and record that choice. Spawn Explore
-  only for named unknowns or genuinely independent surfaces.
-- Decide parallelism deliberately. Three sub-agents per wave is a conservative
-  default, not a hard ceiling. Use more only when write ownership is clear,
-  dependencies are independent, and verification/reconciliation remains bounded.
-  Use fewer when write sets overlap or the system is fragile. Bigger scopes mean
-  more waves or wider safe waves, scheduled by the unified `depends_on` graph
-  lifted to the bundle level.
-- **Bundle when the cluster wants to be one delivery; don't bundle for its
-  own sake.** The default is still one agent per item. Reach for a multi-item
-  bundle only when the criteria in Phase 3a all hold — adjacent scope, small
-  individual items, shared patterns, same dependency layer, fits one sub-agent's
-  context budget. Over-bundling produces an agent that loses the thread;
-  under-bundling produces parallel agents that fight the same module.
-- **Don't bundle a parent-child dependency pair into the same bundle.** A
-  bundle is a wave-slot; intra-bundle dependencies are sequenced inside the
-  agent prompt, but the dependency must already be satisfiable when the bundle
-  starts — that means deps inside a bundle only go from later items to earlier
-  ones in the bundle's own order, never from earlier items to later ones.
-- Every agent prompt must be self-contained. Agents share no context. When
-  the scope spans multiple features, each agent's prompt includes only the
-  parent-feature design excerpt(s) relevant to its bundle's items.
-- Reference paths and key signatures in prompts, not entire files. Agents
-  read files.
-- Only reference patterns you've verified by reading.
-- Run the verification commands after each wave. Integration issues only
-  surface at the seams between agents' work — and cross-feature waves widen
-  those seams. Bundle-level verification runs inside the agent; wave-level
-  verification is still yours.
-- Check for file-overlap conflicts across bundles in Phase 3c before spawning.
-  Two bundles in the same wave that touch the same file is a recipe for a
-  merge accident — merge them, serialize them, or run with worktree isolation.
-- The orchestrator (you) updates parent features' stages to `review`, NOT
-  individual agents. Agents only manage their own item files. And only
-  advance a parent whose children are *all* at `review` or terminal — partial
-  parents stay at `implementing`.
-- **Test integrity** is reinforced in every agent prompt and again at your
-  post-wave verification (Phase 7). If an agent's commit silenced a test
-  to make it pass — deletion, broad skip, `expect(true).toBe(true)`,
-  asserting on whatever the code now returns — treat that as a blocker:
-  revert or fix yourself, and surface it in the run summary. Real
-  production bugs surfaced during verification get parked, not bundled.
-  (Note: "bundled" here means rolled into another item, the old usage —
-  it is unrelated to the new wave-slot bundle concept above.)
+Do not prescribe a manual review invocation as the default next step: review is
+part of this run unless the caller explicitly chose the review boundary.

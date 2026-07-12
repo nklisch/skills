@@ -11,6 +11,9 @@
     "directory": "plugins/zai-research"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "pi-package",
     "agent-skills",

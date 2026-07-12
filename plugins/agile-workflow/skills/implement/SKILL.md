@@ -1,14 +1,14 @@
 ---
 name: implement
 description: >
-  ALWAYS invoke this skill when the user explicitly asks to implement a substrate item inline OR the
-  delivery is tiny (about 50 LoC or less, two files or fewer, no coordination) OR the deliverable is no-code prose (a
-  [prose] item — any size, as long as it needs no coordination) — for any larger or default *code*
-  work prefer /agile-workflow:implement-orchestrator. Inline single-stride implementation of a
-  substrate item at stage:implementing. Reads the design embedded in the item body, writes code per
-  the spec, runs build+tests, advances stage implementing to review, and updates the item body with
-  implementation notes. Triggers on "implement this inline", "implement this item inline", "just do it
-  inline", or a very small explicit delivery.
+  ALWAYS invoke this skill when the user explicitly asks to implement a substrate item inline, when
+  the work is cohesive enough for one owner, or when the deliverable is no-code prose (a [prose]
+  item of any size that needs no coordination). Inline implementation of an item at
+  stage:implementing. Reads the design in the item body, implements and verifies it, records the
+  chosen execution capability, and continues through review to done unless the caller requests
+  stop-at-review. Prefer /agile-workflow:implement-orchestrator when ownership, sequencing, or
+  uncertainty makes delegated coordination useful. Triggers on "implement this inline", "implement
+  this item inline", "just do it inline", or a focused explicit delivery.
 ---
 
 # Implement
@@ -20,24 +20,21 @@ notes there as you work.
 
 ## Trigger
 
-`/agile-workflow:implement-orchestrator` is the default routing for implementing
-work, including lone stories. This skill is the **inline alternative** — same
-work, no sub-agent fan-out — and it's the right call when:
+`/agile-workflow:implement-orchestrator` is the default routing for implementation
+that benefits from coordination. This skill is the **inline alternative** — the
+same lifecycle, owned by the current agent without implementation fan-out.
+Choose between them from cohesion, ownership, sequencing, and uncertainty:
 
-- The delivery is small and focused (a tiny tweak, a single-file change, a
-  flag flip, landing code already in the working tree)
-- The deliverable is **no-code prose** (a `[prose]` feature — docs, a
-  convention / rule, research write-up, copy). The ≤50 LoC / ≤2 files cap is a
-  *code-coordination* proxy; it does not apply to prose, which qualifies on
-  **no-coordination** alone regardless of length. A 600-line convention rewrite
-  is one authoring stride, not an orchestrated fan-out.
-- The user explicitly asks to implement inline / "do it yourself"
-- You're already mid-flow on this item and a hand-off would lose context
-
-When the work is multi-unit *code*, spans several files, or has sibling stories
-that could run in parallel, prefer the orchestrator. When in doubt on code work
-and nothing strongly points either way, the orchestrator is the safer default.
-Prose work is never a reason to reach for the orchestrator.
+- Prefer inline when one owner can carry a cohesive change end to end, a handoff
+  would lose useful context, or the caller explicitly requests inline execution.
+- Prefer the orchestrator when work has independent ownership surfaces,
+  dependency-driven sequencing, useful parallelism, or enough uncertainty that
+  isolated workers improve delivery.
+- Tiny changes (roughly tens of lines or a couple of files) are a useful hint
+  toward inline execution, never a routing gate.
+- **No-code prose** (`[prose]`) qualifies for inline execution on
+  **no-coordination** grounds regardless of length. Prose is never routed to the
+  orchestrator merely because it is long.
 
 Common phrases:
 - "implement story X", "implement this feature"
@@ -87,7 +84,7 @@ Autopilot pre-filters via `work-view --ready` so this should rarely fire under
 autopilot. Interactive callers will see the note and can choose to fix the
 dep or remove it.
 
-### Phase 2.5: Choose delivery mode
+### Phase 2.5: Choose delivery mode and capability
 
 If the item carries `tags: [prose]`, use **prose mode** for the rest of this skill:
 
@@ -99,6 +96,13 @@ If the item carries `tags: [prose]`, use **prose mode** for the rest of this ski
   document's factual basis is broad enough that local reading leaves named unknowns.
 
 For non-prose items, continue in code mode.
+
+For either mode, select execution capability from the item's risk and scope
+unless the caller, a stable project convention, or an autopilot caller note
+overrides it. Do not ask a routine model-tier question. Also resolve the
+effective `review_weight`: explicit caller override, then project convention,
+otherwise `standard`. Record both choices in Phase 7; the principles and review
+skills own the weight matrix.
 
 ### Phase 3: Map integration points
 
@@ -206,6 +210,8 @@ Append (or update) an "Implementation notes" section in the item's body:
 
 ```markdown
 ## Implementation notes
+- Execution capability: <choice and brief risk/scope rationale>
+- Review weight: <effective value and source: caller, project, or default>
 - Files changed: <list>
 - Tests added: <list>
 - Discrepancies from design: <list with one-line explanation each, or "none">
@@ -234,42 +240,47 @@ Don't claim done if tests don't pass. A known gap reported is better than a hidd
 
 #### Test integrity
 
-When tests fail during verification, classify each failure before reacting:
+Follow the project's test-integrity rules and the worker posture in
+`../principles/references/subagents.md`: fix bad tests in-session, park real
+production bugs, and never game a test to make it pass.
 
-- **Bad test** (stale fixture, drifted assertion, broken mock, outdated
-  snapshot) → fix in-session. Repairing the suite is part of the stride.
-- **Real production bug** surfaced by the test → park it via
-  `/agile-workflow:park` with a short repro. Do NOT silently fix mid-pass.
-  Once the suite is green, if the parked bug is small enough for a single
-  stride, pick it up immediately with `/agile-workflow:scope` → design →
-  implement. Larger bugs stay in backlog for prioritization.
-- **Pre-existing flake or unrelated regression** → park it. Don't bundle.
-
-NEVER game a test to make it pass. A failing test that documents *why* it
-fails (inline comment, `skip` linked to a backlog id, `xfail` with reason)
-is more honest than a green test that lies. No `expect(true).toBe(true)`,
-no asserting on whatever the code happens to return, no deleting a test
-as "flaky" without root-causing first.
-
-### Phase 9: Advance stage and commit
+### Phase 9: Commit and complete the lifecycle
 
 1. Edit the item's frontmatter: `stage: implementing → review`. PostToolUse hook
    bumps `updated:`.
-2. Commit:
+2. Commit the implementation:
    ```bash
    git add <changed-files> <test-files> .work/active/<kind>s/<id>.md
    git commit -m "implement: <id>"
    ```
+3. Unless the caller explicitly requested `stop-at-review` (including "stop at
+   review", "leave at review", or "hand off for review") or a project convention
+   sets that boundary, invoke `/agile-workflow:review <id>` in the same invocation
+   and forward the effective `review_weight`. The review lane owns its required
+   context and verdict:
+   - approve: advance and commit `review → done`
+   - bounce: record `## Review findings`, return the item to `implementing`, and
+     report the bounce
+   - blocker: record `## Blocker` and report it without claiming completion
+
+A weight of `none` skips independent review, but the review lane still requires
+the same green verification and acceptance evidence before administrative
+closure. Reaching `review` remains a real lifecycle transition; continuing
+through it never means silently self-approving. With `stop-at-review`, finish
+Phase 9 after the implementation commit and report that explicit boundary.
 
 ## Output
 
 In conversation:
-- **Implemented**: `<id>` advanced to `stage: review`
+- **Implemented**: `<id>` advanced to `stage: done`, `stage: review` by explicit
+  override, or `stage: implementing` after a documented bounce
+- **Review**: lane verdict, limitation, or blocker
 - **Files changed**: list
 - **Tests added**: list
+- **Execution capability**: choice and rationale
+- **Review weight**: effective value and source
 - **Discrepancies from design**: list (or "none")
 - **Adjacent issues parked**: backlog ids (or "none")
-- **Next**: `/agile-workflow:review <id>` to evaluate the change
 
 ## Guardrails
 
@@ -279,10 +290,10 @@ In conversation:
   When they disagree, adapt the implementation, document the why.
 - Implement fully or report a blocker. NEVER leave TODO comments or `unimplemented!`.
 - Don't add unrequested features. Adapt to repo reality freely; expand scope never.
-- Don't advance past `review` — that's `/agile-workflow:review`'s job.
+- Do not self-approve at `review`; invoke the review lane and honor its verdict.
 - If you discover a genuine design flaw, don't muscle through. Append a
   `## Implementation discovery` section, set stage back to `drafting`, and
   return. The design family will pick it up on the next pass.
 - Adjacent issues you notice get parked via `/agile-workflow:park`, not bundled.
-- Test integrity is non-negotiable. Fix bad tests in-session; park real
-  production bugs; never make a test pass just to make it pass.
+- Test integrity is non-negotiable: follow the project rules and worker posture;
+  fix bad tests, park real production bugs, and never game tests.

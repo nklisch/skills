@@ -67,8 +67,8 @@ Pick the **top 3-5** entry points most likely to dominate runtime. Heuristics:
 on critical user paths, called per-request or per-event, high call count from
 logs/tests, known historically slow, contain nested loops or I/O.
 
-If confidence is low about which to pick, ask via `structured question tool` (single
-multi-select question). Log the picks.
+If confidence is low, apply `principles/SKILL.md` Part III. Candidate selection
+is normally reversible: choose the best-supported paths and log the rationale.
 
 **Cap the scan.** Never profile every function in the codebase.
 
@@ -112,14 +112,13 @@ drafting features. Iterate over the target set:
 
 1. Read the feature; skip if not `[perf]`-tagged or not at `stage: drafting`
 2. Light ground (foundation docs + AGENTS.md / CLAUDE.md + existing benchmarks)
-3. Surface strategic ambiguities specific to perf (e.g., "what target
-   scenario?", "current vs desired measured throughput?", "target hardware?",
-   "acceptable memory or layout tradeoff for speed?"). Use structured question tool.
+3. Use the structured question tool for strategic performance ambiguities such
+   as target scenario, success threshold, hardware, or resource trade-offs.
 4. Capture answers under `## Design decisions` in the feature body
 5. Do NOT design or advance stage
 6. Commit per feature: `perf-design --only-questions: <id>`
 
-Requires interactive mode; refuse to run under an active autopilot run or goal.
+Requires interactive mode; refuse under autopilot. Otherwise defer question and advisory policy to `principles/SKILL.md` Parts III–IV.
 
 ## The optimization hierarchy
 
@@ -173,12 +172,12 @@ Read `.work/active/features/<id>.md`. Confirm:
 - `stage: drafting`
 - `tags` includes `perf`
 
-The brief should describe the perf problem and target. If it's vague:
-- Autopilot mode: profile the hottest identifiable path, set a "2x current"
-  default target, log under `## Inferred targets` in the body. Halt only if
-  there's no measurable scenario at all (no entry point matching the brief).
-- Otherwise: ask the user for target scenario, current measured performance,
-  desired performance.
+The brief should describe the performance problem and target. If it is vague,
+apply `principles/SKILL.md` Part III: infer and log reversible benchmark details,
+but use strategic questions in interactive mode when the workload or success
+threshold changes product direction or an external performance contract. Under
+autopilot, choose the best-supported measurable scenario; halt only when no
+scenario matching the brief can be measured.
 
 ### Phase 2: Ground yourself
 

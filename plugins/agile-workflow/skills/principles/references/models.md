@@ -1,7 +1,7 @@
 # Model Selection & Decision Matrix
 
 > The concrete model-layer companion to the **model-agnostic** dispatch and
-> cross-model policy in `principles/SKILL.md` (Parts IV & VIII) and the
+> cross-model policy in `principles/SKILL.md` Part IV and the
 > "different model class" decision points across the plugin. In-skill prose is
 > deliberately written in capability/role terms; **this file is where those
 > capabilities map to actual models and `peeragent` flags.** Load it whenever a
@@ -9,8 +9,9 @@
 > "use a different model class".
 
 Model generations move fast — the *families and classes* below are the durable
-abstraction; specific version numbers (e.g. Opus 4.x, GPT-5.x-Codex, Gemini 3.5,
-GLM-5.2) are the current resolution of each class as of writing. Always resolve
+abstraction; specific versions and names (for example Claude Fable, GPT-5.6
+Luna/Terra/Sol, GPT-5.x-Codex, Gemini 3.5, and GLM-5.2) are current resolutions
+of each class as of writing. Always resolve
 the concrete model against current sources when the choice is load-bearing.
 
 ## Contents
@@ -51,11 +52,26 @@ the in-skill prose names; this is what they mean.
 ## 2. Model-family cards
 
 **Claude (Anthropic)** — `--agent claude`
-- Tiers: `opus` (deepest reasoning + agentic, 1M context; slowest), `sonnet`
-  (strong coding + speed; 1M beta), `haiku` (fast, near-frontier, cheap).
+- Tiers include `opus`, `sonnet`, `haiku`, and Claude Fable where available.
 - Effort: `high | xhigh` (default `xhigh`).
-- Best roles: `opus` → deep reviewer / adversarial peer / highest-tier worker;
-  `sonnet` → primary worker / scout; `haiku` → leaf tasks, cheap fan-out.
+- Recommendations: Opus for deep review/adversarial work, Sonnet for primary
+  work and scouting, Haiku for cheap leaf fan-out. Fable is a strong but
+  expensive design, orchestration, and review choice; it can implement, but its
+  cost usually makes another capable worker preferable.
+
+**GPT-5.6 (OpenAI; host-native where available)**
+- **Luna** is the recommended implementation workhorse: medium thinking for
+  simple/routine work, scaling through xhigh for fairly complicated work short
+  of the hardest tier.
+- **Terra** remains a situational middle pick. Current practitioner preference
+  often favors Sol at low thinking as the bridge above Luna rather than treating
+  Terra as a mandatory rung.
+- **Sol** is preferred for design, review, and complex/large implementation. Low
+  thinking bridges above Luna; raise thinking for the hardest architecture,
+  review, and coding work.
+- These are recommendations, not fixed capability facts. Discover current host
+  availability before selection. Luna, Terra, Sol, and Codex share OpenAI
+  lineage, so switching among them is not cross-model evidence.
 
 **Codex (OpenAI)** — `--agent codex`
 - Current class: GPT-5.x-Codex (model auto-selected; no `--model` flag).
@@ -83,9 +99,9 @@ the in-skill prose names; this is what they mean.
 
 | Role | Needs (capability) | Primary models |
 |---|---|---|
-| Primary worker | write fidelity, agentic stamina | Sonnet-class / Codex high / GLM-5.2 high |
-| Scanner/scout (deep read-only fan-out) | domain inspection, evidence, scoped artifacts | Haiku / Sonnet medium / Sonnet for volume; Opus/Codex xhigh/GLM xhigh for subtle gates |
-| Deep reviewer | reasoning depth, fresh context | Opus-class xhigh / Codex xhigh / GLM-5.2 xhigh |
+| Primary worker | write fidelity, agentic stamina | GPT-5.6 Luna medium→xhigh / Sonnet-class / Codex high / GLM-5.2 high; Sol for complex/large implementation |
+| Scanner/scout (deep read-only fan-out) | domain inspection, evidence, scoped artifacts | Haiku / Luna or Sonnet for volume; Sol/Opus/Codex xhigh/GLM xhigh for subtle gates |
+| Deep reviewer | reasoning depth, fresh context | GPT-5.6 Sol / Claude Fable or Opus / Codex xhigh / GLM-5.2 xhigh |
 | Advisory peer (Phase 1) | blind-spot diversity, augmentation | a **different class** than the host |
 | Adversarial peer (Phase 2) | blind-spot diversity, attack posture | a **different class** than host + than Phase 1 |
 
@@ -98,67 +114,30 @@ diversity**, and for deep work use **two distinct peer classes** (§5).
 
 | Host class | Valid peer classes (any different class) |
 |---|---|
-| Claude | codex · gemini · zai |
-| Codex | claude (opus) · gemini · zai |
-| Gemini | claude (opus) · codex · zai |
-| Z.AI GLM | claude (opus) · codex · gemini |
+| Claude (including Fable) | openai · gemini · zai |
+| OpenAI (GPT-5.6 or Codex) | claude · gemini · zai |
+| Gemini | claude · openai · zai |
+| Z.AI GLM | claude · openai · gemini |
 
 When the natural pair is unavailable, fall through to the next class; never
-peer with the same class as the host.
+peer within the host lineage and call it cross-model. A same-lineage reviewer
+may still provide fresh context when labeled accurately.
 
 ## 5. Multi-class review for deep/complex work
 
-For **deep or complex work** — architectural design points, large/risky
-features or epics, the final autopilot completion review, whole-repo scans — a
-single peer is the floor, not the ceiling. **If two different model classes are
-available, use both.** Different training lineages have different blind spots;
-two independent peers catch more than one, and their disagreements are
-themselves signal (re-read both before deciding).
-
-Concretely: pair the two peers across the two review phases in §6 — one class
-runs the **advisory** pass, a *different* class runs the **adversarial** pass.
-That realizes the 2-class rule through the phase ordering and maximizes both
-augmentation diversity and adversarial independence. For routine/small work a
-single peer (or none) remains correct — this escalation is for deep/complex
-scope only.
+The risk and `review_weight` policy lives in
+[advisory-review.md](advisory-review.md). At model-selection time, when that
+policy calls for two classes, choose two distinct training lineages that also
+differ from the host where availability permits. Pair one with each phase;
+disagreement is evidence to investigate, not a vote.
 
 ## 6. Two-phase design review: advisory then adversarial
 
-Designs and reviews are both evaluated in a fixed **two-phase order** —
-**completeness/complementary/advisory first, adversarial second.** Never reverse
-the phases and never skip Phase 1 to jump straight to attack: a design or review
-reviewed only adversarially gets torn apart before anyone checks whether it is
-complete. The two phases have **different loop shapes depending on whether the
-artifact is a design (open) or a review (complete)**:
-
-**Phase 1 — Completeness / Complementary / Advisory.** Augmentation, not
-judgment. Ask what is missing, what alternatives strengthen it, and what
-questions/risks should be weighed.
-- *Design (open artifact, before decisions lock)*: **a single pass.** You don't
-  iterate an open design to convergence. The host chooses and records rationale.
-  This is the default autopilot design-time peer ask.
-- *Review (complete artifact — feature/epic/out-of-band review)*: **a multi-step
-  convergence loop**, not a single ask — the artifact is complete, so iterate
-  until findings stabilize. The ideal is the full `peer-review` convergence loop
-  (≥3 review→refine passes, continue while substantive issues surface, stop on
-  nits, cap ~5); run that loop in the advisory/complementary posture when
-  `peer-review` is available. When only a single peer pass is available, run as
-  many rounds as the mechanism allows and say it did not reach full convergence.
-
-**Phase 2 — Adversarial (after Phase 1 converges or, for designs, completes).**
-Attack posture. Ask a **different** reviewer (ideally a different class than
-Phase 1, per the 2-class rule in §5) what is broken, contradictory, built on a
-false assumption, or will fail in operation. For reviews this is the same
-`peer-review`-style convergence loop applied in the attack posture; for designs
-it is a focused adversarial pass. Verify concrete claims against code/foundation
-docs before accepting or rejecting.
-
-Record both phases in the item body under `## Other agent review`, labeling each
-finding's phase, the reviewer class, and (for reviews) how far the convergence
-loop ran (converged on nits / hit cap / single pass only). Peer failures in
-either phase are non-blocking (fall back to a fresh same-class sub-agent); the
-final autopilot completion review must still clear through at least one
-cross-class pass.
+The phase order, artifact-specific loop shapes, ceilings, and recording format
+live in [advisory-review.md](advisory-review.md). This model-layer reference adds
+one constraint: when two classes are selected, Phase 2 should differ from both
+the host and Phase 1 where the available class set permits it. Never label an
+unknown or same-class reviewer cross-model.
 
 ## 7. peeragent invocation cheatsheet
 

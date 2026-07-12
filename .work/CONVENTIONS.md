@@ -34,6 +34,9 @@ kebab-case. Children are prefixed with their parent's slug
 ## Stage overrides
 none
 
+## Review weight
+review_weight: standard
+
 ## Linkage fields
 
 Two optional frontmatter fields connect `.work/` items to `.research/` artifacts,

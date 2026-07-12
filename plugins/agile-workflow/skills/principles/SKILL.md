@@ -23,209 +23,32 @@ Each principle has guidance for design time and implementation time.
 
 # Part I — Code-Design Principles
 
+These four invariants stay active during design and implementation. Load
+[references/code-design.md](references/code-design.md) when concrete mechanics,
+checklists, or examples are needed.
+
 ## 1. Ports & Adapters
 
-Core domain logic must not depend on infrastructure. Infrastructure depends on the domain.
+Domain logic stays independent of databases, filesystems, HTTP, time,
+randomness, and other infrastructure. The domain defines the ports it needs;
+adapters implement them, and composition roots wire the two together.
 
-**Ports** are interfaces defined in the domain layer that describe what the domain needs (a database, a file store, an HTTP client, a clock). **Adapters** are infrastructure implementations of those interfaces.
+## 2. Single Source of Truth
 
-### At design time
-
-- Identify every external dependency the feature touches (DB, filesystem, HTTP, queues, time, randomness)
-- Define an interface (port) for each one in the domain layer
-- Infrastructure modules implement those interfaces
-- The domain function signature takes the port as a parameter or receives it via dependency injection — it never imports the adapter directly
-
-**Example structure:**
-```
-src/
-  domain/
-    user.ts          # core logic — imports only domain types and ports
-    ports.ts         # UserRepository interface, EmailSender interface
-  infrastructure/
-    db/user-repo.ts  # implements UserRepository using Drizzle
-    email/smtp.ts    # implements EmailSender using nodemailer
-  app/
-    wire.ts          # assembles: new UserService(new DbUserRepo(), new SmtpEmailSender())
-```
-
-**Design checklist:**
-- [ ] Every external dependency has an interface in the domain layer
-- [ ] No `import { db }` or `import { fs }` in domain modules
-- [ ] Infrastructure modules are only referenced in composition roots (wire-up / entry points)
-
-### At implementation time
-
-When implementing domain logic, enforce the boundary: domain code receives infrastructure as a typed parameter, never imports it directly.
-
-**Good:**
-```typescript
-// domain/user-service.ts
-export function createUser(repo: UserRepository, email: string): Promise<User> {
-  return repo.insert({ email })
-}
-
-// app/wire.ts (entry point)
-import { createUser } from '../domain/user-service'
-import { DrizzleUserRepo } from '../infrastructure/db/user-repo'
-const repo = new DrizzleUserRepo(db)
-app.post('/users', (c) => createUser(repo, c.req.body.email))
-```
-
-**Bad:**
-```typescript
-// domain/user-service.ts
-import { db } from '../infrastructure/db'  // NEVER — domain imports infra
-
-export function createUser(email: string) {
-  return db.insert(users).values({ email })
-}
-```
-
-If you find yourself needing to import infrastructure into domain, that's the signal to add a port interface instead.
-
----
-
-## 2. Single Source of Truth (Data-Driven Extensibility)
-
-When a concept can have multiple variants that may grow over time (roles, statuses, event types, providers, feature flags), define that set of variants **once** as a data structure. All logic — types, validation, routing, display — derives from that single definition.
-
-### At design time
-
-- Identify enumerations that classes of things fall into
-- Design a central registry: a typed constant, a config map, or a schema object
-- Derive all downstream types and logic from that registry rather than re-enumerating variants in each consumer
-
-**Example structure:**
-```typescript
-// Defined once
-const ROLES = ['admin', 'editor', 'viewer'] as const
-type Role = typeof ROLES[number]
-
-// Or richer: a config map where behavior flows from data
-const ROLE_CONFIG = {
-  admin:  { level: 2, label: 'Admin' },
-  editor: { level: 1, label: 'Editor' },
-  viewer: { level: 0, label: 'Viewer' },
-} satisfies Record<string, RoleConfig>
-type Role = keyof typeof ROLE_CONFIG
-```
-
-**Design checklist:**
-- [ ] Extensible sets of variants are defined as a single authoritative constant/schema
-- [ ] Downstream types are derived from the registry (not duplicated)
-- [ ] Adding a new variant requires changing only the registry definition
-
-### At implementation time
-
-Implement extensible variant sets as a single typed constant. Derive all downstream behavior from it — do not re-enumerate variants in switch statements, conditionals, or validation schemas.
-
-**Good:**
-```typescript
-const ROLE_CONFIG = {
-  admin:  { level: 2, canDelete: true },
-  editor: { level: 1, canDelete: false },
-  viewer: { level: 0, canDelete: false },
-} as const satisfies Record<string, RoleConfig>
-
-type Role = keyof typeof ROLE_CONFIG
-const ROLES = Object.keys(ROLE_CONFIG) as Role[]
-const RoleSchema = z.enum(ROLES as [Role, ...Role[]])
-
-// Adding 'owner' role = one change, in one place
-```
-
-**Bad:**
-```typescript
-type Role = 'admin' | 'editor' | 'viewer'           // defined here
-const roles = ['admin', 'editor', 'viewer']          // re-enumerated here
-const RoleSchema = z.enum(['admin', 'editor', 'viewer']) // again here
-switch (role) {
-  case 'admin': ...   // and again here
-  case 'editor': ...
-  case 'viewer': ...
-}
-```
-
----
+Growing variant sets have one authoritative typed registry. Types, validation,
+routing, and display derive from it rather than re-enumerating the variants.
 
 ## 3. Generated Contracts
 
-When designing a boundary between two systems (client/server, package/consumer, service/service), prefer generating the contract from the source of truth rather than hand-authoring both sides.
+Boundary types derive from the schema, router, database model, or a generation
+step. Consumers import or infer that contract instead of maintaining hand-written
+copies.
 
-### At design time
+## 4. Fail Fast
 
-**Common approaches by boundary type:**
-- **HTTP API → client**: OpenAPI schema → generated client types (openapi-typescript, orval)
-- **tRPC router → client**: router type is the contract, shared directly
-- **Database schema → app types**: Drizzle/Prisma inferred types, not hand-written interfaces
-- **GraphQL schema → types**: codegen from SDL
-
-- Identify every cross-boundary interface in the feature
-- For each one, choose a single source of truth (schema file, router definition, DB schema)
-- Design the generation step into the build pipeline — not a manual step
-- Consumers import generated types, not hand-written duplicates
-
-**Design checklist:**
-- [ ] Every client-facing contract has a designated source of truth
-- [ ] A generation step is identified (codegen tool, shared type import, inferred type)
-- [ ] No hand-written types that mirror types defined elsewhere
-
-### At implementation time
-
-Do not hand-write types that are derivable from a schema, router, or database definition. Import or generate them.
-
-**Good:**
-```typescript
-import type { AppRouter } from '../../server/router'
-// type-safe from the source
-
-const { data } = useQuery<InferSelectModel<typeof users>>( ... )
-```
-
-**Bad:**
-```typescript
-// Hand-written duplicate of what Drizzle already knows
-interface User {
-  id: number
-  email: string
-  createdAt: Date
-}
-```
-
-If a generated type needs extending, use `type MyType = GeneratedType & { extra: string }` — extend the source of truth, don't replace it.
-
----
-
-## 4. Fail Fast (implementation only)
-
-Catch bad data at the door, not three calls deep where the stack trace is useless. Validate inputs at the entry point of every function or system boundary.
-
-- At system boundaries (HTTP handlers, CLI args, external API responses, config files): parse with Zod or equivalent before any logic runs
-- At internal function boundaries: assert preconditions at the top of the function — guard clauses, not nested ifs
-- Prefer `throw`/`return early` over propagating bad state deep into call chains
-- Errors should be loud and specific at the point of violation — "expected positive number, got -3" beats a cryptic null reference five layers down
-
-**Good:**
-```typescript
-function processOrder(input: unknown) {
-  const order = OrderSchema.parse(input) // throws immediately if invalid
-  return computeTotal(order)
-}
-
-function applyDiscount(order: Order, pct: number) {
-  if (pct < 0 || pct > 1) throw new Error(`Invalid discount: ${pct}`)
-  // ... rest of logic
-}
-```
-
-**Bad:**
-```typescript
-function processOrder(input: any) {
-  // passes raw input through, blows up 5 calls deep
-  return computeTotal(input)
-}
-```
+Validate unknown input at system boundaries and assert internal preconditions at
+function entry. Reject invalid state early with specific errors instead of
+letting it fail deep in the call chain.
 
 ---
 
@@ -420,43 +243,37 @@ auditable later.
 
 ---
 
-# Part III — Caller Awareness
+# Part III — Caller Awareness and Question Policy
 
-**The rule:** If an active agile-workflow autopilot run or harness goal is
-driving this skill, no structured question tool and no halts on ordinary ambiguity.
-Resolve with judgment and log the rationale in the item body. Otherwise,
-asking the user is fine and often helpful.
+**The normal rule is consequence-based, not mode-based.** Resolve routine,
+reversible decisions with judgment and record the rationale in the item body.
+Use the structured question tool only when the answer sets product direction,
+materially changes user-facing behavior or an external contract, or commits the
+project to an expensive choice that is difficult to reverse. Existing `## Design decisions` and foundation
+docs are inputs; do not re-ask what they already settle.
 
-This is binary and detectable. Autopilot mode is on when the current skill was
-delegated by an explicit autopilot invocation, an active autopilot harness goal,
-or a prompt that clearly says it is continuing/draining an autopilot scope.
-Autopilot includes a caller note when delegating work; treat that note as the
-strongest signal. If no active autopilot driver exists, you are interactive.
+Interactive mode permits those strategic questions. An active autopilot driver
+never asks them: use available evidence and choose the least irreversible sound
+option, logging the decision. Ordinary ambiguity must not halt the queue.
+
+Autopilot mode is binary and detectable. It is on when this skill was delegated
+by an explicit autopilot invocation, an active autopilot harness goal, or a
+prompt clearly continuing/draining that scope. An autopilot caller note is the
+strongest signal. If no active driver exists, the invocation is interactive.
 
 ## What does NOT count as autopilot
 
-Judgment-mode is triggered only by an active autopilot driver. In particular:
+- **General harness "auto mode"** — a reminder to work autonomously changes
+  conversational posture, but does not create an autopilot queue goal.
+- **An earlier "just decide" instruction** — it applies to that decision, not a
+  later explicit skill invocation.
+- **A completed, blocked, or interrupted autopilot run** — later direct skill
+  invocations are interactive again.
 
-- **General harness "auto mode"** — a reminder to work without unnecessary
-  clarification does **not** suppress `structured question tool` inside these skills.
-  It shapes default conversational tone; it does not mean an autopilot queue
-  goal is active.
-- **A user saying "just decide" earlier in the conversation** — that applies
-  to whatever was being discussed at the time, not to a later explicit skill
-  invocation.
-- **A previous autopilot run that has already ended** — autopilot mode lasts
-  only while autopilot itself is the active driver of the queue. Once the goal
-  completes, blocks, or is interrupted, subsequent direct skill invocations are
-  interactive again.
-
-When a user types `/agile-workflow:feature-design <id>` (or any other
-design/implement/review skill) directly, they want a collaborator at the
-checkpoints. Use `structured question tool` unless the direct prompt also makes clear it
-is part of an active autopilot goal.
-
-The disambiguation test: *"Is an active autopilot queue goal currently driving
-this skill?"* If you cannot point to that active driver or caller note, you are
-interactive.
+A direct `/agile-workflow:feature-design <id>` (or other design, implement, or
+review skill) is interactive unless its prompt clearly belongs to an active
+autopilot driver. The disambiguation test is: *"Can I point to the active
+autopilot goal or caller note driving this invocation?"*
 
 ## What still warrants a hard halt (autopilot or not)
 
@@ -465,171 +282,96 @@ interactive.
 - `depends_on` cycle detected when writing items
 - Genuinely contradictory state the skill cannot recover from
 
-Everything else should resolve via judgment under autopilot. When in doubt,
-prefer the simpler option and log the rationale in the item body so the user
-can review later.
+Everything else resolves through evidence and judgment under autopilot. Prefer
+the simpler, more reversible option and log why.
 
 ## Worked examples (autopilot mode)
 
 | Situation | Judgment-mode action |
 |---|---|
-| Two architectural options both look valid | Pick the one with fewer moving parts; log "Chose X over Y because: simpler surface" |
-| Brief is vague, several plausible interpretations | Pick the one most consistent with foundation docs; log under `## Design decisions` |
-| Multiple candidate items at a stage and no id was passed | Pick most recent by `updated:`; the next iteration picks the next |
-| Wrong-tag invocation routed to you by mistake | Log a misroute note in the body; return without advancing |
-| Empty diff during review after trying ranges | Advance to `done` with a "No diff found" note; don't block the queue |
-| Item at unexpected stage | Use judgment about what transition makes sense; log it |
+| Two architectural options both look valid | Pick the one with fewer moving parts; log the rationale. |
+| Brief is vague, several plausible interpretations | Pick the one most consistent with foundation docs; log under `## Design decisions`. |
+| Multiple candidate items at a stage and no id was passed | Pick most recent by `updated:`; the next iteration picks the next. |
+| Wrong-tag invocation routed to you by mistake | Log a misroute note; return without advancing. |
+| Empty diff during review after trying ranges | Advance to `done` with a "No diff found" note. |
+| Item at unexpected stage | Choose the recoverable transition and log it. |
 
-## How to phrase decision points
+## Explicit alignment mode
 
-> If an active autopilot run or goal is driving this skill, <judgment-mode
-> behavior>. Otherwise, ask the user via structured question tool.
-
-Not "halt and tell the user." The first form supports both modes; the second
-silently kills autopilot.
+`--only-questions` is unchanged: it is an explicit, interactive-only alignment
+pass that captures answers under `## Design decisions`, does not design, and
+does not advance stage. Refuse it when autopilot is the active driver. Inside
+that mode, surface the target's meaningful strategic ambiguities even when a
+normal design pass would resolve a reversible point autonomously.
 
 ## Skills this applies to
 
-Autopilot delegates to: `feature-design`, `epic-design`, `refactor-design`,
-`perf-design`, `implement`, `implement-orchestrator`, `review` — plus, for
-`[research]`-tagged items, the cross-plugin
-`agentic-research:research-orchestrator` (inert without that plugin; the item
-then routes as a plain feature). Every one of those needs caller-aware
-decision points.
-
-User-invocable-only skills (`convert`, `epicize`, `ideate`, `bold-refactor`,
-`release-deploy`) can stay interactive-first — autopilot doesn't call them.
+This policy governs `feature-design`, `epic-design`, `refactor-design`,
+`perf-design`, `implement`, `implement-orchestrator`, and `review`, plus the
+cross-plugin research orchestrator when routed from autopilot. Interactive-only
+skills may remain workshop-oriented, but should still avoid questions whose
+answers are routine and reversible.
 
 ---
 
-# Part IV — Cross-Model Advisory Review
+# Part IV — Risk-Driven Advisory Review
 
-Cross-model review is an advisory signal, not a stage transition. The policy
-below is written in **role and capability** terms so it holds as model
-generations change. For the concrete model-to-capability mapping, the
-host→peer pairing table, and the exact `peeragent` flags, load
-[references/models.md](references/models.md) — that is the single source of
-truth for which models fill each role.
+Advisory review is selected by risk in both direct and autopilot design modes;
+it is not a stage transition and is never triggered merely because autopilot is
+active. Small, low-risk work skips it. Uncertain or risky work gains independent
+scrutiny, while deep or complex work may use multiple model classes. Load
+[references/advisory-review.md](references/advisory-review.md) for scope defaults,
+two-phase mechanics, and the item-body record format. Model classes, host-peer
+pairing, and concrete mechanism flags remain in
+[references/models.md](references/models.md).
 
-Cross-model review is used only when a **different model class** is available
-through an installed peer mechanism such as `peeragent:peer` /
-`peeragent:peer-review`, or through a host sub-agent spawn where the caller can
-select a different model/provider for the reviewer. The value of a peer is
-**independent blind spots**, not a more authoritative answer, so the reviewer
-must be a different class than the host before you label the pass cross-model. If
-`peeragent` would use the same model class, do not use `peer` or `peer-review`;
-instead spawn a **fresh generic sub-agent at the strongest appropriate model
-available to the host**, prompted with the reviewer posture from
-[references/subagents.md](references/subagents.md) — never review inline in the
-host's own context, which is anchored on the work it just produced. Label the
-pass cross-model only when the caller intentionally selected a different model
-class for that subagent; if the spawned reviewer's model class is uncertain,
-label it fresh-context, not cross-model.
+## `review_weight`
 
-Explicit user instructions and project-level `AGENTS.md` / `CLAUDE.md` review
-rules override this policy. If they require review, follow them. If they opt out
-or restrict external model egress, do not invoke peeragent.
+`review_weight` is the canonical caller/project control consumed by review and
+autopilot. Allowed values are `none | light | standard | thorough | maximum`;
+the default is `standard`. It expresses the intended breadth and depth of
+**independent** review, while the agent derives the exact topology from artifact
+risk, item tier, scope, and available model classes:
 
-Latency expectation: a top-tier reasoning peer (Opus-class, xhigh Codex/GLM,
-or equivalent) commonly takes 10 to 30 minutes for large reviews and may be
-quiet for most of it. A long quiet period or lack of intermediate output is
-normal. Do not treat "it has not returned in a few minutes" as a hang, and do
-not fall back, mark the peer attempt failed, or block the run unless the process
-exits with an error, reports failure, or exceeds a timeout sized for top-tier
-review work.
+- `none` — explicitly opt out of independent review. Implementation
+  verification and acceptance evidence remain mandatory.
+- `light` — minimize ceremony while preserving focused scrutiny where risk
+  clearly warrants it.
+- `standard` — balanced, risk-driven independent review.
+- `thorough` — increase fresh-context breadth and depth for meaningful risk.
+- `maximum` — permit multi-model, multi-pass complementary-then-adversarial
+  review for features and epics, with stories escalating dynamically by risk.
 
-Default judgment (by scope — see [references/models.md](references/models.md)
-for the model classes that fill each role):
+The levels are intent and ceilings, not fixed reviewer or pass counts. Explicit
+caller and project policy takes precedence; record the effective weight and any
+degradation. Configuration schema and foundation-doc wiring are follow-up work
+for their owning stories.
 
-- Small, low-risk work: skip cross-model review.
-- Small/medium work with real uncertainty: optionally use one focused `peer`
-  pass.
-- Large, risky, or architectural design points under autopilot: use one focused
-  `peer` pass when no prior `--only-questions` / `## Design decisions`
-  alignment exists.
-- **Deep or complex work** (architectural design, large/risky features or
-  epics, the final autopilot completion review, whole-repo scans): **if two
-  different model classes are available, use both**, paired across the two
-  review phases below. Two distinct training lineages catch more than one, and
-  their disagreements are themselves signal.
-- Reviewing a completed **feature or epic** at `stage: review` (the `review`
-  skill's deep lane): run the lens review in a fresh context — a different-class
-  `peer-review` when reachable; otherwise a generic sub-agent prompted with the
-  reviewer posture from [references/subagents.md](references/subagents.md),
-  cross-model only when the host can spawn it with a different model class;
-  otherwise the strongest same-harness fresh-context reviewer available.
-  **Stories skip this** entirely; they fast-advance on `implement`'s
-  verification.
-- End of an autopilot run, after the scoped queue appears drained and before
-  reporting `complete`: run a final `peer-review` loop when a different model
-  class is available; otherwise use the freshest reviewer role available,
-  labeling it cross-model only if spawned with a different model class. Fix or
-  file accepted findings before completion.
-- Completed substantial artifacts, or explicit user requests for review: use
-  `peer-review` only when the full iterative loop is appropriate.
+## Load-bearing invariants
 
-Designs and reviews are both evaluated in a fixed **two-phase order**
-(full mechanics in [references/models.md](references/models.md) §6):
+- **Different-class labeling:** call a pass cross-model only when the reviewer is
+  known to be a different model class from the host. Otherwise label it
+  fresh-context. Different-class review is valuable for independent blind spots,
+  not greater authority.
+- **Fresh-context semantics:** when independent review is warranted and a
+  different class is unavailable, use the strongest suitable fresh-context
+  reviewer available. Do not present inline self-review as independent.
+- **Two-phase order:** completeness / complementary / advisory comes before
+  adversarial attack. Never reverse the order or skip directly to attack.
+- **Non-blocking design:** unavailable or failed design-time advisory review does
+  not block direct or autopilot design. Continue with judgment and record the
+  reason. A slow top-tier reviewer is not a failure until its appropriately
+  sized timeout or mechanism reports failure.
+- **Strict completion:** final autopilot completion must clear a successful
+  review path and resolve or file accepted findings. At weights `light` through
+  `maximum`, that path must use a supported fresh-context reviewer; if it fails,
+  the run is blocked rather than complete. At explicit weight `none`, documented
+  implementation verification and acceptance evidence satisfy the path without
+  independent review.
 
-1. **Phase 1 — Completeness / Complementary / Advisory.** Augmentation, not
-   judgment. Ask a different-class peer what is missing, what alternatives
-   strengthen it, and what questions/risks should be weighed. The loop shape
-   depends on the artifact: **designs (open)** get a **single pass** before
-   decisions lock; **reviews (complete artifact)** get a **multi-step
-   convergence loop to nits** — the ideal is the full `peer-review` loop
-   (≥3 passes, stop on nits, cap ~5) when `peer-review` is available.
-2. **Phase 2 — Adversarial.** Attack posture. Ask a **different** peer
-   (ideally a different class than Phase 1, per the 2-class rule) what is
-   broken, contradictory, built on a false assumption, or will fail in
-   operation. For reviews this is the same convergence loop in the attack
-   posture; for designs it is a focused adversarial pass. Verify concrete
-   claims before accepting.
-
-Never reverse the phases and never skip Phase 1 to jump straight to attack. For
-autopilot-driven design work, the default peer ask is **augmentation before
-decisions are locked**, not validation after the host has already decided.
-
-Design-time advisory peer failures are non-blocking under autopilot. If the
-peer wrapper is missing, the executable cannot be resolved, the invocation
-fails, or the call would use the same model class, continue with host judgment
-and log the reason briefly. A top-tier reasoning peer still running after only
-a few minutes is not a failure. Do not halt the queue for an advisory review
-failure.
-
-The final autopilot completion review is stricter: it must succeed through a
-different-model `peer-review` loop, a generic sub-agent prompted as a
-fresh-context reviewer (cross-model when the caller selects a different model
-class, otherwise same-harness), or another supported fresh-context fallback
-before the run reports `complete`. For deep/complex scope that means clearing
-through at least one cross-class pass per phase in §6 where two classes are
-available; if the selected final-review path fails, the run is blocked on final
-review rather than complete.
-
-When invoked, summarize the result in the item body without dumping transcripts:
-
-```markdown
-## Other agent review
-- Invoked because: <large/risky/deep-complex/autopilot/no prior alignment>
-- Scope: <single peer | two-class — list classes>
-- Reviewer (Phase 1 — advisory/completeness): <class, if known>
-  - Gaps / missing requirements / alternatives considered:
-    - <summary>
-- Reviewer (Phase 2 — adversarial): <class, if known; different from Phase 1>
-  - Broken assumptions / failure modes / rejected points:
-    - <summary>
-- Accepted:
-  - <decision or adjustment> (phase N)
-- Rejected:
-  - <point> — <reason> (phase N)
-```
-
-If only one peer class was available (or only one phase was warranted by scope),
-fill only the phase that ran and note the other was skipped and why.
-
-Limit autopilot to one advisory pass per item per design stage. Do not run a
-multi-pass `peer-review` loop inside routine autopilot design unless the user or
-project instructions explicitly require it. The final completion review at the
-end of autopilot is separate from these design-time advisory passes.
+User instructions and project-level review/egress rules override defaults. Do
+not invoke an external peer mechanism when policy prohibits it. `--only-questions`
+is user alignment and therefore skips advisory review.
 
 ---
 
