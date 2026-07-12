@@ -397,7 +397,12 @@ path selected by the effective review weight.
 7. Re-read substrate state after the production skill returns; it may already
    have completed review and eligible parent roll-up. Commit each item
    transition separately.
-8. Goto 1 unless a stop condition applies.
+8. If review bounced an item, treat its durable findings as the next
+   implementation input and keep cycling implementation → verification → review.
+   Bounce count is diagnostic history, never a stop condition. Recurring findings
+   trigger deeper root-cause/design diagnosis and fresh context where useful,
+   not a human handoff.
+9. Goto 1 unless a stop condition applies.
 ```
 
 The implementation orchestrator guarantees outcomes rather than prescribing a
@@ -422,7 +427,11 @@ acceptance evidence.
 
 - Empty queue (all candidates exhausted)
 - User invokes a halt command or sends a manual prompt
-- A skill reports a blocker that can't be resolved autonomously
+- A skill reports a genuine blocker that autonomous diagnosis and correction
+  cannot resolve
+
+Repeated review bounces are not a stop condition. Autopilot keeps correcting and
+re-reviewing until the item passes or exposes a separate genuine blocker.
 
 ### Harness goal continuation
 

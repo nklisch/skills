@@ -45,8 +45,9 @@ running inline, use the same categories in the final summary:
 
 - **Complete** when no in-scope active item remains at `drafting`,
   `implementing`, or `review`.
-- **Blocked** when in-scope items remain but none are ready, an item has a hard
-  blocker, or the review circuit-breaker escalated unresolved work.
+- **Blocked** when in-scope items remain but none are ready or an item has a
+  genuine hard blocker that autonomous diagnosis and correction cannot resolve.
+  Review bounce count alone is never a blocker.
 - **Interrupted** when the user stops the run. Finish the current safe
   transition, commit if anything changed, summarize the remaining queue, and
   let the harness/user decide whether to continue the goal later.
@@ -215,23 +216,31 @@ a `## Blocker` section to the item body, commit that note, and continue with
 other ready items. The final goal outcome is blocked if unresolved blockers
 remain in scope.
 
-### Phase 5: Review Circuit-Breaker
+### Phase 5: Review Convergence Loop
 
-Track per-item review bounces during the run:
+A review bounce is corrective work, not a human handoff. Track per-item bounces
+only as diagnostic history:
 
 ```text
 bounces[<item-id>] = times this item has gone implementing -> review -> implementing
 ```
 
-If an item bounces back to `implementing` twice:
+After every bounce:
 
-1. Append `## Stuck at review` with the latest blockers and the two-pass note.
-2. Leave the item at `review`.
-3. Log it as escalated.
-4. Continue draining other ready work.
+1. Confirm the review left concrete, durable findings in the item body.
+2. Rebuild the queue so the item naturally re-enters implementation.
+3. Implement the findings, run the relevant verification, and send the item
+   through review again.
+4. Continue until review approves the item or autonomous work reaches a genuine
+   hard blocker under `principles/SKILL.md` Part III.
 
-Escalated items make the final goal outcome blocked unless the user resolves
-them before the run ends.
+There is no fixed bounce limit. If the same substantive finding survives more
+than one correction pass, treat recurrence as evidence that the attempted fix or
+design model is wrong: re-read the item and foundation docs, diagnose the root
+cause, revise the item design or implementation notes when needed, and use a
+fresh implementation or review context when that would add independent
+judgment. Do not park the item at `review`, label it stuck, or require human
+intervention solely because a counter reached two (or any other number).
 
 ### Phase 6: Refactor Cadence (`--all` Only)
 
@@ -327,8 +336,8 @@ Narrate briefly as items advance. Final summary:
 - Goal scope and interpretation
 - Items advanced to done
 - Items reviewed and approved
-- Items reviewed and bounced
-- Escalated or blocked item ids
+- Items reviewed and bounced, including recurring findings and how they converged
+- Genuinely blocked item ids and blocker reasons
 - Refactor cadences run (`--all` only)
 - Implement-orchestrator bundle summary, if reported
 - Effective worker capability and selection rationale
