@@ -1,7 +1,7 @@
 ---
 id: feature-agile-workflow-lifecycle-agency
 kind: feature
-stage: implementing
+stage: review
 tags: [skill, plugin]
 parent: null
 depends_on: []
@@ -416,3 +416,26 @@ stage transitions — they are agent-enforced contracts. The test surfaces are:
   file — bounded by keeping the load-bearing one-liner in the body.
 - **Doc drift.** Foundation docs could lag the skill changes. Mitigation: Unit 5
   depends on Units 1–4; `gate-docs` is the long-term backstop.
+
+## Roll-up status
+
+Advanced `implementing → review` on 2026-07-12 after the sixth and final child
+story (`…-foundation-docs-and-validation`) reached `done`. All six child stories
+are now terminal and were each reviewed at effective `review_weight: standard`
+by a same-harness fresh-context general-purpose sub-agent (parent twin), with
+Units 3 and 4 escalated to deep-equivalent fresh-context scrutiny:
+
+- `lifecycle-inline-lane` — done
+- `orchestrator-rewrite` — done
+- `review-lane-rollup` — done
+- `question-advisory-policy` — done
+- `review-weight-configuration` — done
+- `foundation-docs-and-validation` — done
+
+This transition is the **conservative roll-up move only**: it makes the feature
+eligible for its own review. No review lane has been run on the feature itself
+yet — per the caller's explicit instruction, the feature's own review is
+reserved for a separate pass. The acceptance-criteria checkboxes above remain
+unchecked and are the next review pass's responsibility; they should be ticked
+only when that pass confirms the child skills and foundation docs jointly
+satisfy the feature-level contract as a whole.
