@@ -56,6 +56,9 @@ running inline, use the same categories in the final summary:
 - `autopilot <epic-id>` - drain items under `<epic-id>` transitively via the
   parent chain until the scoped queue is done or blocked.
 - `autopilot --all` - drain all `.work/active/` items.
+- `autopilot --review-weight <level> <scope>` - set review effort to `none`,
+  `light`, `standard`, `thorough`, or `maximum` for item reviews and final
+  completion review. An unambiguous natural-language equivalent is also valid.
 - `autopilot <free-text>` - interpret as a scope directive, such as "finish the
   dangling work", "wrap up phase 14", or "drain everything tagged refactor".
   Log the interpretation in the run summary. When scope is ambiguous, prefer the
@@ -97,16 +100,23 @@ Build the scope from the argument:
 Only active items are candidates. Backlog items must be promoted through
 `scope` before autopilot can touch them.
 
-**Settle the implementation tier once, here at kickoff** — don't let it default
-silently per wave. If the goal/args/user named a tier (or the project fixes one
-in `.work/CONVENTIONS.md`), honor it. Otherwise, when the goal permits
-interaction, ask once for a capability tier — **baseline**, **raised**, or
-**highest** — and lock it for the whole run. The host resolves that capability to
-its available generic subagent model/effort at dispatch time. Under an autonomous
-goal contract that forbids mid-run questions, use the `implement-orchestrator`
-default and **state the tier in the run summary** so a cheap-tier drain is never
-a silent surprise. Pass the settled tier down in the Phase 4 caller note so
-`implement-orchestrator` does not re-ask.
+Resolve worker capability and review weight at kickoff without a routine tier
+question.
+
+For worker capability, honor an explicit goal/argument/caller choice first, then
+a stable `.work/CONVENTIONS.md` choice. Otherwise choose from scope and risk:
+bounded familiar work can use baseline capability; cross-cutting, contract, or
+uncertain work warrants raised capability; architectural, security-critical, or
+high-consequence work warrants the highest available capability. This is
+judgment, not a fixed item-kind mapping. Record the effective choice and reason
+in the run summary and pass it in the Phase 4 caller note.
+
+For `review_weight`, validate the five-level scale and resolve in this order:
+explicit `--review-weight` or unambiguous natural-language selector,
+`.work/CONVENTIONS.md`, then the default `standard`. Explicit caller selection
+always wins. Record the effective weight and source in the run summary and pass
+it in every Phase 4 caller note so production and review skills use one value
+through parent roll-up and final completion review.
 
 ### Phase 2: Build The Queue
 
@@ -147,18 +157,19 @@ this caller note in every delegated prompt:
 
 > Delegated by an active agile-workflow autopilot goal for `<scope>`. Resolve
 > ambiguities with judgment, log rationale in the item body, and do not ask
-> strategic questions unless a hard halt condition applies. Implementation tier
-> for this run: `<settled tier>` — use it for worker dispatch; do not re-ask. For large or risky
-> design decisions, use the cross-model advisory review policy from
-> `principles/SKILL.md` (Part IV) only when a different model class is available;
-> peer failures are non-blocking. For deep or complex design work, use **two
-> different model classes** if available, paired across the advisory→adversarial
-> phases in `principles/references/models.md`. A top-tier reasoning peer may take
-> 10 to 30 minutes for a large review; lack of output after a few minutes does
-> not mean it has hung. For subagent role names, load
-> `principles/references/subagents.md`. When hosted in Pi, use only the
-> supported agile-workflow Pi roles for this adapter; whether a reviewer run is
-> cross-model depends on the model/provider selected at spawn time.
+> strategic questions unless a hard halt condition applies. Worker capability
+> for this run: `<effective capability>` — selected because `<risk/scope reason>`;
+> use it for dispatch and do not re-ask. Review weight for this run:
+> `<none|light|standard|thorough|maximum>` (source: `<explicit|project|default>`);
+> pass it unchanged to review, including ancestor roll-up. Apply the risk-driven
+> advisory policy from `principles/SKILL.md` Part IV in direct and autopilot
+> modes: use independent review only when the risk and review weight warrant it,
+> and label review cross-model only when a different model class is actually
+> selected. Peer failures during design are non-blocking. Preserve
+> complementary→adversarial order when both phases run. For reviewer posture and
+> host-native roles, load `principles/references/subagents.md`; for capability
+> mapping, load `principles/references/models.md`. A top-tier reasoning peer may
+> take 10 to 30 minutes; quiet output after a few minutes is not a hang.
 
 Routing:
 
@@ -185,17 +196,19 @@ Routing:
   Requires the `agentic-research` plugin; without it, treat as a plain implementing item ->
   `implement-orchestrator`, mirroring the drafting row's degrade.)
 - `stage: implementing`, non-epic (and NOT `tags: [prose]` or `[research]`) -> `implement-orchestrator <scope>`
-- `stage: review` -> `review <id>` (review self-selects its lane: a **story**
-  fast-advances on `implement`'s verification with no peer pass; a **feature** or
-  **epic** gets a fresh-context deep review — cross-model via peeragent when a
-  different class is reachable (two classes paired across the advisory→adversarial
-  phases for deep/complex scope; see `principles/references/models.md`), else a
-  generic sub-agent prompted as a reviewer from `principles/references/subagents.md`
-  with the strongest appropriate model available (cross-model only if that model
-  is a different class), else a fresh top-class sub-agent)
+- `stage: review` -> `review --review-weight <effective weight> <id>`. Review
+  selects effort and lane from weight + risk + evidence + kind-as-heuristic:
+  low-risk stories can close on green verification, while features, epics, and
+  risk-escalated stories receive the fresh-context coverage permitted by the
+  weight. The review skill also rolls approved children through eligible
+  ancestors, but never skips an ancestor's own review.
 
-The delegated skill owns its internal workflow and stage transition. After it
-returns, rebuild the queue from disk rather than relying on cached state.
+Production skills now continue through review to `done` by default (unless an
+explicit stop-at-review override applies), so autopilot may return to a queue
+where the delegated item and eligible ancestors are already terminal. This is
+expected, not a mandatory user handoff. The delegated skill owns its internal
+workflow and transitions; after it returns, rebuild the queue from disk rather
+than relying on cached state.
 
 If a delegated skill reports a hard blocker without a stage transition, append
 a `## Blocker` section to the item body, commit that note, and continue with
@@ -249,10 +262,11 @@ Do not stop because of elapsed time, context size, or "long run" concerns. The
 harness owns continuation. Your job is to keep applying the queue policy until a
 real stop rule fires.
 
-### Phase 8: Final Peer Review Loop
+### Phase 8: Final Completion Review Loop
 
 This is the last step before reporting `complete`. It runs in addition to any
-design-time cross-model advisory passes from delegated skills.
+design-time advisory passes from delegated skills and is calibrated by the same
+effective `review_weight`; the phase itself is never skipped.
 
 When the scoped queue appears drained:
 
@@ -263,25 +277,30 @@ When the scoped queue appears drained:
    - commits associated with advanced items
    - notable design decisions, implementation deviations, blockers resolved,
      and verification results reported by delegated skills
-2. Run the completion review as the two-phase design-review order from
-   `principles/SKILL.md` Part IV (advisory/completeness, then adversarial). If
-   `peer-review` is available with a different model class, use it; for a deep or
-   complex completion bundle, **use two different model classes** if available,
-   one per phase. Ask for bugs, missed acceptance criteria, unreviewed risks,
-   foundation-doc drift, and substrate-state inconsistencies that would make
-   "complete" premature. A top-tier reasoning peer may take 10 to 30 minutes for a
-   large completion review; do not classify a quiet, still-running process as
-   hung after only a few minutes.
-3. If peeragent would use the same model class, do not use `peer-review`; spawn
-   a generic sub-agent prompted as a reviewer from
-   `principles/references/subagents.md` when available, with the strongest
-   appropriate model. Record it as cross-model only if that spawned model is a
-   different class; otherwise record same-harness fresh-context.
-4. If peer-review is unavailable, use that same generic reviewer-subagent path
-   when available, otherwise the local inline review fallback.
-   If the selected final-review path fails, do not report completion; mark the
-   run blocked on final review and include the failure reason. Do not invent a
-   pass.
+2. Calibrate the completion review from the weight without turning it into a
+   rigid dispatch recipe:
+   - `none`: run no independent reviewer; administratively verify the completion
+     bundle has green verification and acceptance evidence for every in-scope
+     item, plus internally consistent terminal substrate state.
+   - `light`: use at most one focused fresh-context pass over the bundle.
+   - `standard`: use balanced risk-based fresh-context review.
+   - `thorough`: increase complementary and adversarial fresh-context coverage.
+   - `maximum`: seek multi-model, multi-pass complementary → adversarial review.
+   Ask for bugs, missed acceptance criteria, unreviewed risks, foundation-doc
+   drift, and substrate-state inconsistencies that would make "complete"
+   premature. Exact reviewer count and pass depth remain model judgment within
+   the weight's ceiling/intent.
+3. When independent review runs, use a different-class peer when reachable;
+   otherwise spawn a generic same-harness fresh-context reviewer from
+   `principles/references/subagents.md` with the strongest appropriate
+   capability. Label it cross-model only if the selected model class differs
+   from the host. A top-tier reviewer may take 10 to 30 minutes; quiet output
+   after a few minutes is not a hang.
+4. If the effective weight requires fresh-context review and no such path is
+   available or the selected path fails, do not report completion; mark the run
+   blocked on final review and include the reason. `none` requires complete
+   administrative evidence instead of a fresh reviewer; missing evidence blocks
+   rather than becoming an invented pass.
 5. For every substantive accepted finding:
    - Small and clearly safe fix: fix it immediately, run verification, commit,
      and rebuild the queue.
@@ -312,16 +331,20 @@ Narrate briefly as items advance. Final summary:
 - Escalated or blocked item ids
 - Refactor cadences run (`--all` only)
 - Implement-orchestrator bundle summary, if reported
-- Final peer-review status: cross-model, local fallback, skipped, or failed;
-  include accepted findings fixed/filed and rejected findings summary
+- Effective worker capability and selection rationale
+- Effective review weight and source
+- Final completion-review status: administrative, cross-model, same-harness
+  fresh-context, or failed; include accepted findings fixed/filed and rejected
+  findings summary
 - Goal outcome: complete, blocked, or interrupted
 
 ## Guardrails
 
 - Never use structured question tool while an autopilot goal is actively driving the
   delegated work. Resolve with judgment and log rationale.
-- Do not report `complete` until Phase 8 has run successfully and all accepted
-  final-review findings have been fixed or filed back into the queue.
+- Do not report `complete` until Phase 8 has run successfully at the effective
+  review weight and all accepted findings have been fixed or filed back into the
+  queue.
 - Commit after every item state change or blocker note.
 - Do not push, force-push, or release; the user controls publication.
 - Do not touch `.work/backlog/` except to report that backlog items are out of
