@@ -55,3 +55,5 @@ The question is whether this is acceptable for 0.1.0 given the threat model (mod
 - Verification: `bun test plugins/pi-sandbox/extensions/` — 236 pass, 0 fail.
 - Discrepancies from design: none.
 - Adjacent issues parked: none.
+- 0.1.0 compatibility posture: added an operation-level regression test for a leaf symlink whose canonical target is inside `allowWrite`. `enforceWritePolicy` accepts the target, but fd-bound read, write, and edit operations all fail with `ELOOP` due to `O_NOFOLLOW`; the target remains untouched. This documents the intentional behavior change without reopening the TOCTOU window.
+- README and THREAT_MODEL now direct operators who need that workflow to add the canonical target to `allowWrite` directly, while noting that symlinked parent directories remain supported.
