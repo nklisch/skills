@@ -1,7 +1,7 @@
 ---
 id: feature-agile-workflow-lifecycle-agency
 kind: feature
-stage: review
+stage: done
 tags: [skill, plugin]
 parent: null
 depends_on: []
@@ -37,20 +37,20 @@ Keep the qualities that define the plugin: Item-IS-the-Work, dependency and cycl
 
 ## Acceptance criteria
 
-- [ ] Direct `implement`, `implement-orchestrator`, and `fix` flows continue through review by default, with an explicit stop-at-review override.
-- [ ] Review rolls completed children up through eligible parent review stages without requiring autopilot.
-- [ ] Review lane selection accounts for risk/evidence rather than item kind alone and preserves fresh-context deep review.
-- [ ] Hard LoC/file-count routing and fix cutoffs are removed or clearly demoted to non-binding hints.
-- [ ] `implement-orchestrator` is rewritten around outcomes and invariants; detailed bundle examples, bundle sizing recipes, default wave width, worker prompt templates, and routine model-tier questions are removed.
-- [ ] Design-family question policy is based on reversibility and user-facing consequence, while `--only-questions` remains interactive-only.
-- [ ] Cross-model/fresh-context advisory review is risk-driven across direct and autopilot design modes.
-- [ ] Effective review weight resolves explicit invocation → project convention → `standard`, is logged, and scales review from no independent reviewer through multi-model multi-pass review while leaving exact topology to the reviewing agent.
-- [ ] Model recommendations cover GPT-5.6 Luna/Terra/Sol and Fable with role, effort, bridge, and cost guidance in the model-layer reference.
-- [ ] Common prose work and verified bug fixes can complete through review in one invocation.
-- [ ] Repeated dispatch, caller-awareness, routing, and test-integrity prose is consolidated without weakening worker self-containment.
-- [ ] Touched SKILL.md files follow repo-skill-style limits through progressive disclosure where practical, and no updated SKILL.md exceeds 500 lines.
-- [ ] Foundation docs accurately describe the revised lifecycle and orchestration policy.
-- [ ] Skill validation, agile-workflow channel parity checks, and relevant repository tests pass.
+- [x] Direct `implement`, `implement-orchestrator`, and `fix` flows continue through review by default, with an explicit stop-at-review override.
+- [x] Review rolls completed children up through eligible parent review stages without requiring autopilot.
+- [x] Review lane selection accounts for risk/evidence rather than item kind alone and preserves fresh-context deep review.
+- [x] Hard LoC/file-count routing and fix cutoffs are removed or clearly demoted to non-binding hints.
+- [x] `implement-orchestrator` is rewritten around outcomes and invariants; detailed bundle examples, bundle sizing recipes, default wave width, worker prompt templates, and routine model-tier questions are removed.
+- [x] Design-family question policy is based on reversibility and user-facing consequence, while `--only-questions` remains interactive-only.
+- [x] Cross-model/fresh-context advisory review is risk-driven across direct and autopilot design modes.
+- [x] Effective review weight resolves explicit invocation → project convention → `standard`, is logged, and scales review from no independent reviewer through multi-model multi-pass review while leaving exact topology to the reviewing agent.
+- [x] Model recommendations cover GPT-5.6 Luna/Terra/Sol and Fable with role, effort, bridge, and cost guidance in the model-layer reference.
+- [x] Common prose work and verified bug fixes can complete through review in one invocation.
+- [x] Repeated dispatch, caller-awareness, routing, and test-integrity prose is consolidated without weakening worker self-containment.
+- [x] Touched SKILL.md files follow repo-skill-style limits through progressive disclosure where practical, and no updated SKILL.md exceeds 500 lines.
+- [x] Foundation docs accurately describe the revised lifecycle and orchestration policy.
+- [x] Skill validation, agile-workflow channel parity checks, and relevant repository tests pass.
 
 ## Architectural choice
 
@@ -439,3 +439,149 @@ reserved for a separate pass. The acceptance-criteria checkboxes above remain
 unchecked and are the next review pass's responsibility; they should be ticked
 only when that pass confirms the child skills and foundation docs jointly
 satisfy the feature-level contract as a whole.
+
+## Review
+
+- Verdict: **Approve** — advanced `review → done`.
+- Mode/depth/weight: substrate mode; effective `review_weight` `standard`
+  (source: caller request). At `standard`, a feature item receives the Deep lane
+  (fresh context), and this pass ran as a fresh-context review in a separate
+  agent context with completeness tracing plus adversarial probing proportionate
+  to standard weight (a second different-class adversarial pass would be
+  `thorough`/`maximum` and was not requested). **Cross-model:** the host model
+  class is OpenAI and the selected reviewer is Z.AI GLM 5.2 — different model
+  classes — so this pass is labeled **cross-model**. No delegation or peeragent
+  was used, per the caller's explicit constraint.
+- Scope of review: full diff `origin/main..HEAD` (28 files, +2813/−1441) plus
+  all six child-story bodies and their review records, the parent feature body,
+  and every touched SKILL/reference/doc. The review traced each shared contract
+  across every owning file rather than trusting any single child's review.
+- Lifecycle closure verified: `implement` (Phase 9), `fix` (Phase 7), and
+  `implement-orchestrator` (Phase 7) each commit `implementing → review` then
+  invoke `/agile-workflow:review <id>` in the same invocation, forwarding the
+  effective `review_weight`, unless an explicit `stop-at-review` ("stop at
+  review" / "leave at review" / "hand off for review") or a stable project
+  convention sets the boundary. approve / bounce / blocker outcomes are each
+  explicit and identical in shape across all three skills. `review` remains a
+  real state; the contract states plainly that continuing through it "never
+  means silently self-approving."
+- Stop-at-review verified: phrasing is consistent across `implement`, `fix`, and
+  `implement-orchestrator` (same three natural-language phrases plus "project
+  convention"). `review` itself does not mention stop-at-review, which is
+  correct — the override governs whether to *invoke* review, which is the
+  production skill's decision, not the lane's.
+- Review-weight precedence/semantics verified: `review` resolves explicit
+  selector → autopilot/production-skill caller note → `.work/CONVENTIONS.md` →
+  `standard`, rejects unknown values at the boundary, and records effective
+  value/source/lane/risk signals. The five levels are framed as intent and
+  ceilings, not agent counts. `none` is the explicit exception to independent
+  review but still requires green verification and acceptance evidence, and
+  "never means done because children are done." Precedence is internally
+  consistent: production skills resolve caller-override → project → `standard`
+  (they ARE the caller, so no caller-note middle); autopilot resolves
+  explicit-selector → project → `standard` at kickoff and forwards one value
+  via the Phase 4 caller note, which the production skill treats as the caller
+  override — same value either way, and the one-value-per-run choice is the
+  right consistency call.
+- No parent auto-approval verified: `review` Conservative Parent Roll-Up moves
+  an implementing ancestor only to `review`, never directly to `done`; the
+  ancestor then runs its own selected lane; only Approve / Approve-with-
+  comments reaches `done`; roll-up stops at the first non-terminal child,
+  bounce, or blocker. `implement-orchestrator` mirrors this with
+  implementing→review-only roll-up. The guardrail "Child completion never
+  substitutes for a parent's review" is restated in `review` and reinforced in
+  `implement`/`fix` ("Do not self-approve at `review`").
+- Risk-based lane selection verified: `review` lane = weight + risk + evidence
+  + kind-as-heuristic; the escalation signals are named (caller-interface
+  change, security/correctness surface, cross-cutting scope, touched
+  foundation-doc claim, explicit `--deep`); features/epics stay Deep; out-of-
+  band stays Standard; the fast lane still requires recorded green
+  verification. Fresh-context deep lane preserved and tightened: deep requires
+  a different-class peer when reachable, else the strongest same-harness
+  fresh-context sub-agent; if fresh context is required by the weight and none
+  is available, the lane records the limitation and blocks rather than
+  approving from the host context. The explicit override of any older
+  inline-fallback wording makes the tightening durable.
+- Orchestrator agency without lost invariants verified: all five invariant
+  groups are present and load-bearing in the SKILL body (not buried only in a
+  reference) — grounding/freshness, dependency integrity (unified `depends_on`
+  graph, id and cycle validation, external-dep drop with a logged note,
+  recompute after each wave), ownership/concurrency (write-set independence,
+  serialize-or-merge on overlap, worktree isolation when unpredictable),
+  verification/commits (per-item and per-wave verification, one commit per
+  item, never batch, never push, test-gaming is a blocking failure), and
+  conservative parent roll-up (implementing→review only). No bundle examples,
+  sizing recipes, fixed/default wave widths, or prescribed worker prompt
+  templates remain (probes over `items per bundle`, `LoC threshold`,
+  `safe default`, `default wave`, `N per wave` return nothing). Worker
+  self-containment preserved: brief elements are stated as a required-element
+  list (ownership, dep readiness, land-mode, design-flaw escape hatch,
+  verification, one-commit-per-item, full test-integrity text, endpoint
+  boundaries, emotional framing) sourced from
+  `principles/references/subagents.md`, without fixed wording.
+- Design question/advisory policy verified: `principles` Part III frames
+  questions by reversibility / user-facing consequence; the autopilot-vs-
+  interactive disambiguation, the "what does NOT count as autopilot" list, the
+  hard-halt list, and the worked-examples table are preserved; `--only-
+  questions` is unchanged (interactive-only, refuses autopilot, captures under
+  `## Design decisions`, no advance). Part IV generalizes advisory review to
+  risk-driven across direct and autopilot modes; two-phase order, different-
+  model-class rule, non-blocking design-time failures, and the strict
+  completion path are all preserved, with the documented `none` exception.
+  The four design-family skills defer to Part III/IV rather than restating
+  (verified at feature-design:211, epic-design:259, refactor-design:152,
+  perf-design:121) and each keeps its `--only-questions` definition intact.
+- Model recommendations verified: `references/models.md` (170 lines, with
+  ToC) covers Luna (implementation workhorse, medium→xhigh), Sol (design/
+  review/complex code + low-thinking bridge above Luna), Terra (situational
+  middle), and Fable (high-cost design/orchestration/review specialist, not
+  default implementer) with role, effort, bridge, and cost guidance, plus the
+  OpenAI-lineage non-cross-model note. ARCHITECTURE:657-666 carries the same
+  guidance at summary level. These are recommendations, not fixed routing.
+- Config preservation verified: `convert` Phase 5 writes `## Review weight` +
+  `review_weight: standard` and documents all five allowed values without
+  adding an interview question; Phase S1 (audit) states absence is valid and
+  sync neither inserts the default into older projects nor asks a migration
+  question; Phase S4 (preserve) adds `review_weight` to the never-touched
+  block ("never added, reset, or rewritten by sync; preserve an existing value
+  byte-for-byte"). The repo's own `.work/CONVENTIONS.md` dogfoods the exact
+  two-line shape. The structural test `convert-review-weight.test.sh` (9/9)
+  asserts all eight config invariants by extracting named Phase blocks and
+  fixed-string grepping the load-bearing prose — contract testing, not gaming.
+- Docs verified (rolling-foundation): SPEC stage-flow frames `done` as "the
+  selected review lane approved," states `review` is real but not a mandatory
+  handoff, and documents stop-at-review; ARCHITECTURE lifecycle diagram,
+  stage-advancement table, autopilot algorithm, and skill-catalog rows for
+  `implement`/`fix`/`implement-orchestrator`/`review` all reflect the revised
+  lifecycle and outcomes/invariants orchestration; VISION governance language
+  preserved. Drift probes clean: no `user-facing review approves`, no
+  `previously`/`originally`/`in v1`/`we used to` across the three touched docs.
+- Tests verified by independent re-run — every count matches the child
+  implementation notes exactly: `quick_validate.py` `Skill is valid!` for all
+  12 touched skills; channel-parity 26/0; bump-version 77/0; agent-metadata
+  9/0; pi-package-metadata 123/0; convert-review-weight 9/9; convert-content-
+  integrity 42/0; convert-install-routing 12/0. `git diff --check` clean.
+- Portable skill style verified: every touched SKILL carries only `name` +
+  `description` frontmatter; line budgets hold (implement 299, fix 191,
+  prose-author 190, implement-orchestrator 291, review 353, autopilot 353,
+  principles 420, feature-design 433, epic-design 425, refactor-design 383,
+  perf-design 426 — all ≤ 500; `convert` at 1483 is correctly outside this
+  feature's 500-line scope, which named only `implement-orchestrator`,
+  `principles`, and the design family). References all ≤ 200 (advisory-review
+  69, code-design 107, models 170); `models.md` carries a ToC at 8 sections.
+- Acceptance criteria: all 14 boxes ticked and verified at the feature level;
+  none missed.
+- Notes (non-blocking, carried forward from child reviews): (1) `implement-
+  orchestrator`'s Outcomes list names approved / stop-at-review / bounced /
+  blocked but not the design-flaw return-to-`drafting` path; that case is
+  handled correctly in Workflow Phase 4 step 2, so this is a wording gap, not
+  a missing behavior. (2) SPEC.md:561 "bash<->Rust byte-parity is no longer
+  enforced" is borderline rolling-foundation phrasing — defensible because it
+  states a current property of the bash fallback (a topic that predates this
+  feature), but could be reworded to "is not enforced" in a future docs pass.
+  (3) `gate-docs` remains the durable backstop for any drift this pass did not
+  catch. None of these rise above nit level.
+- Parent roll-up: `parent: null`, so Conservative Parent Roll-Up stops here —
+  there is no ancestor to advance. Per the caller's instruction, the feature
+  body is **not** archived in this stride; terminal retention is left for the
+  normal lifecycle (a future `release-deploy` or explicit retention step).
