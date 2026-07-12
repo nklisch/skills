@@ -1849,6 +1849,37 @@ describe("tool input inspector", () => {
 		expect(verdict.action).toBe("block");
 		expect(verdict.reason).toContain("secret shape \"provider-anthropic\" matched");
 	});
+
+	// Regression: the openai-api-key shape must cover modern key formats
+	// (sk-proj-…, sk-svcacct-…, sk-admin-…), not just legacy sk-<alnum> keys.
+	// The hyphen after the prefix broke the original [A-Za-z0-9]{40,180} class.
+	test("openai-api-key shape blocks modern sk-proj/svcacct/admin key formats", () => {
+		const inspector = {
+			secrets: [
+				{
+					name: "openai-api-key",
+					pattern: "(sk-[A-Za-z0-9_-]{40,180})",
+					secretGroup: 1,
+					maxLength: 200,
+					action: "block" as const,
+				},
+			],
+		};
+
+		const modernKeys = [
+			"sk-proj-AbCdEf1234567890aBcDeF1234567890aBcDeF1234567890",
+			"sk-svcacct-AbCdEf1234567890aBcDeF1234567890aBcDeF1234567890",
+			"sk-admin-AbCdEf1234567890aBcDeF1234567890aBcDeF1234567890",
+		];
+		// Legacy format must still be caught.
+		const legacyKey = "sk-AbCdEf1234567890aBcDeF1234567890aBcDeF1234567890";
+
+		for (const key of [...modernKeys, legacyKey]) {
+			const verdict = inspectToolInput("umans_web_search", { query: key }, inspector);
+			expect(verdict.action).toBe("block");
+			expect(verdict.reason).toContain("secret shape \"openai-api-key\" matched");
+		}
+	});
 });
 
 describe("in-process file-tool policy", () => {

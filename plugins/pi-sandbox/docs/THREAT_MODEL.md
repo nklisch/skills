@@ -321,6 +321,15 @@ This is the single source of truth for the 0.1.0 package promise.
 - Pi RPC/API direct `bash` bypasses this extension's mediated bash path.
 - The inspector scans input, not output. In particular, `jobs action=tail` can
   return a secret a background command wrote to its buffer without redaction.
+- The inspector's secret-pattern coverage is **config-driven, not built-in** —
+  the package ships no default secret shapes; every pattern lives in the
+  operator's `tools.inspector.secrets` config. Coverage is therefore only as
+  current as that config. Provider key formats drift (e.g. OpenAI's `sk-proj-`,
+  `sk-svcacct-`, `sk-admin-` prefixes introduced a hyphen the original
+  `sk-[A-Za-z0-9]{40,180}` class did not include), and a stale pattern silently
+  lets the modern format egress unredacted. Operators must keep secret shapes
+  current with provider key formats; the character class must include `-` when
+  a prefix contains it.
 - `--no-sandbox` does not yet propagate to background/monitor integration.
 - **Concurrent hardlink + deny-path race (spans both boundaries):** both the in-process file tools and the bwrap path guard against hardlink aliases via a mutable-pathname `assertNoHardlinkedDeniedFiles` rescan, but neither is **concurrency-hard** against a same-user attacker running arbitrary code. The in-process guard runs at file-operation time; the bwrap guard runs once per command at argv-build time. In both cases a determined attacker can move a denied pathname aside while the rescan observes `ENOENT`, leaving an opened fd (in-process) or a writable bind (bwrap) on the credential inode through a hardlink alias. bwrap is the stronger boundary — it blocks network, most filesystem paths, and process inspection — but it is not a concurrency-hard boundary against this race. The full inode-identity redesign (capture denied inodes at policy-install time; check opened fds and bwrap binds against that captured set) is tracked as `story-pi-sandbox-inode-identity-redesign` post-0.1.0.
 - Git credential helpers, cache sockets, and keyring/keychain stores are not
