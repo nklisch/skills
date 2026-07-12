@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-post-start-hardlink-bypass
 kind: story
-stage: review
+stage: implementing
 tags: [security, sandbox, plugin, documentation]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -27,28 +27,33 @@ WRITE=MUTATED (write ./alias mutated .env)
 
 The threat model mentions the "hardlink-alias startup guard" (THREAT_MODEL.md:215) but does NOT document that it can be defeated post-start, nor that the in-process file policy has NO hardlink check at all (unlike bwrap). README:190 limits the stated residual to a symlink TOCTOU race — this is a distinct, harder-to-fix gap.
 
-## Unit
+## Fix decision (0.1.0: document as known residual)
 
-`plugins/pi-sandbox/extensions/sandbox-file-policy.ts` — `enforceDenyRead`/`enforceWritePolicy` (no inode/link-count check). AND `plugins/pi-sandbox/docs/THREAT_MODEL.md` + `README.md` (under-disclosure).
+A fresh-context re-review reproduced a concurrent bypass of the fd-based nlink guard:
+while the guard rescans deny pathnames, a same-user process can move the denied pathname
+aside (ENOENT skipped) while the open fd still references the credential inode through a
+hardlink alias. 10,000-attempt probe disclosed 59.6%.
 
-Fix options (pick during design):
-- **In-process inode check**: in `enforceDenyRead`/`enforceWritePolicy`, stat the path and reject if `nlink > 1` for files under a deny list (mirroring the bwrap guard at read/write time, not just startup). Catches post-start hardlinks.
-- **Document as a known bypass**: if the runtime check is too costly or fragile, document it loudly as a credential-read bypass for same-user concurrent processes (distinct from the TOCTOU symlink race), and note bwrap is the boundary for sandboxed bash but the in-process tools are not behind bwrap.
+The 0.1.0 decision (option A) is to **document this as a known concurrency residual**,
+NOT fix it inline. The in-process file policy is defense-in-depth — the bwrap OS layer is
+the primary boundary for sandboxed bash. A full inode-identity redesign (capture denied
+inodes at policy install; check opened-fd inode against captured set) is parked as
+`story-pi-sandbox-inode-identity-redesign` for post-0.1.0.
+
+This story's deliverable is the documentation: THREAT_MODEL + README must name the
+concurrent hardlink + deny-path-race residual distinctly from the TOCTOU symlink swap
+(now closed) and the startup hardlink guard, and state that the in-process file tools are
+not concurrency-hard against a same-user adversary running arbitrary code.
 
 ## Acceptance criteria
 
-- [x] Design decision recorded: in-process inode check, OR documented as a known bypass.
-- [x] If fixed: a test reproduces the post-start hardlink and asserts the credential is NOT read.
-- [ ] If documented: threat model + README name the post-start hardlink bypass as distinct from the TOCTOU residual, and note the in-process file tools are not behind bwrap.
+- [x] Design decision recorded: document as a known concurrency residual (0.1.0 option A).
+- [ ] THREAT_MODEL + README name the concurrent hardlink + deny-path-race residual distinctly from the TOCTOU symlink swap (now closed) and the startup hardlink guard.
+- [ ] Docs state the in-process file tools are not concurrency-hard against a same-user adversary running arbitrary code; bwrap is the primary boundary for sandboxed bash.
+- [ ] The inode-identity redesign is parked as `story-pi-sandbox-inode-identity-redesign` (post-0.1.0).
 
-## Implementation notes
+## Implementation notes (first fix attempt — superseded by re-review)
 
-- Design decision: fixed with the same fd-bound operation path as R3. After `open(... | O_NOFOLLOW)` and `fstat`, a multiply-linked regular file triggers the shared denied-file hardlink scan at operation time, so a denied inode hardlinked into an allowed path after session startup is rejected before read, truncate, or write.
-- Delivery: bundled directly with `story-pi-sandbox-toctou-credential-bypass`; the two stories share one atomic check-open-fstat-I/O implementation and one focused regression suite.
-- Files changed: `plugins/pi-sandbox/extensions/sandbox-file-policy.ts`, `plugins/pi-sandbox/extensions/sandbox-file-policy.test.ts`, `plugins/pi-sandbox/extensions/sandbox.test.ts`, `plugins/pi-sandbox/README.md`, `plugins/pi-sandbox/docs/THREAT_MODEL.md`.
-- Tests added: create the read/write operation objects first, then create a hardlink from a denied credential into an allowed path. Both read and write through the post-start alias are denied, and the credential remains unchanged.
-- Existing test corrected: the session-start hardlink test no longer describes the in-process path as vulnerable; it points to the focused post-start regressions while retaining startup-guard coverage.
-- Documentation: the current threat model and README now state that the hardlink guard runs at both startup and file-operation time.
-- Verification: `bun test plugins/pi-sandbox/extensions/` — 236 pass, 0 fail.
-- Discrepancies from design: none.
-- Adjacent issues parked: none.
+- The fd-based fix landed (commit `39b4f79`): after `open(... | O_NOFOLLOW)` and `fstat`, a multiply-linked regular file triggers the shared denied-file hardlink scan at operation time.
+- A fresh-context re-review reproduced a concurrent bypass: while the guard rescans deny pathnames, a same-user process can move the denied pathname aside (ENOENT skipped) while the open fd still references the credential inode through a hardlink alias. 10,000-attempt probe disclosed 59.6%.
+- The fd-based guard is insufficient. The 0.1.0 deliverable for THIS story is now the documentation (above); the full inode-identity fix is parked post-0.1.0.
