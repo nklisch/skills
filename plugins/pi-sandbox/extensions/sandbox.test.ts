@@ -520,6 +520,35 @@ describe("config boundary contract", () => {
 		await rm(tmp, { recursive: true, force: true });
 	});
 
+	// Regression for the additive-narrowing contract: an explicit empty array
+	// (`[]`) is a valid narrowing to "nothing" — it must NOT be treated as an
+	// omitted field (which would inherit the global set). A project that sets
+	// `allowWrite: []` or `allowedDomains: []` intends to clear the inherited set;
+	// silently keeping the broader global access breaks the narrowing contract.
+	test("mergeProjectAdditive treats explicit [] as clearing, not as omitted", () => {
+		const global = {
+			enabled: true as const,
+			filesystem: { denyRead: ["~/.ssh"], allowWrite: [".", "/tmp"], denyWrite: [".env"] },
+			network: { mode: "open" as const, allowedDomains: ["npmjs.org", "github.com"], deniedDomains: [] },
+		};
+
+		// [] CLEARS the inherited writable set (narrows to nothing).
+		const clearedWrite = mergeProjectAdditive(global, { filesystem: { allowWrite: [] } }, [], "/tmp");
+		expect(clearedWrite.filesystem?.allowWrite).toEqual([]);
+
+		// [] CLEARS the inherited allowedDomains set.
+		const clearedDomains = mergeProjectAdditive(global, { network: { allowedDomains: [] } }, [], "/tmp");
+		expect(clearedDomains.network?.allowedDomains).toEqual([]);
+
+		// OMITTED inherits the global set (does not clear).
+		const omittedDomains = mergeProjectAdditive(global, { network: { mode: "block" } }, [], "/tmp");
+		expect(omittedDomains.network?.allowedDomains).toEqual(["npmjs.org", "github.com"]);
+
+		// OMITTED allowWrite inherits the global set.
+		const omittedWrite = mergeProjectAdditive(global, { network: { mode: "block" } }, [], "/tmp");
+		expect(omittedWrite.filesystem?.allowWrite).toEqual([".", "/tmp"]);
+	});
+
 	test("network mode additive rank treats fail-closed filter as stricter than block", () => {
 		const cases: Array<{
 			globalMode: "open" | "block" | "filter";
