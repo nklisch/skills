@@ -1,7 +1,7 @@
 ---
 id: feature-agile-workflow-lifecycle-agency-lifecycle-inline-lane
 kind: story
-stage: review
+stage: done
 tags: [skill, plugin]
 parent: feature-agile-workflow-lifecycle-agency
 depends_on: []
@@ -130,3 +130,33 @@ No other story edits these files.
 - Adjacent issues parked: none.
 - Review boundary: the caller explicitly required this story to advance only
   `implementing → review`; no review lane was run in this implementation stride.
+
+## Review
+
+- Verdict: **Approve** — advanced `review → done`.
+- Mode/depth/weight: substrate mode; effective `review_weight` `standard`
+  (source: caller request); standard depth for this production-lane change. The
+  reviewer is a same-harness fresh-context general-purpose sub-agent (parent
+  twin) — labeled fresh-context same-harness, **not** cross-model.
+- Lifecycle contract verified: `implement` Phase 9 and `fix` Phase 7 invoke the
+  review lane in the same invocation unless `stop-at-review` ("stop at review" /
+  "leave at review" / "hand off for review") or a project convention sets the
+  boundary; approve / bounce / blocker outcomes are each explicit; `review`
+  remains a real state and is never silently self-approved.
+- Routing contract verified: the ≤50 LoC / ≤2 files criterion is now a non-binding
+  hint ("never a routing gate"); inline-vs-delegated is chosen from cohesion /
+  ownership / sequencing / uncertainty; prose's no-coordination inline
+  qualification is preserved; no routine model-tier question remains and the
+  capability choice is logged in Phase 7.
+- Review-weight handoff verified: caller override → project convention →
+  `standard`, recorded and forwarded; `none` still requires green verification
+  and acceptance evidence. The matrix is correctly deferred to
+  `principles`/`review`.
+- Prose handoff verified: write → genuine revise/coherence review → `done` by
+  default, with the same override and evidence contract.
+- Style: portable frontmatter (name + description only); line counts implement
+  299 / fix 191 / prose-author 190 (all ≤ 500); `quick_validate.py` passes for
+  all three.
+- Notes: non-blocking — none. Parent roll-up stops here: the parent feature
+  still has two non-terminal children
+  (`…-review-weight-configuration`, `…-foundation-docs-and-validation`).
