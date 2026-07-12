@@ -152,7 +152,7 @@ escape is a known 0.1.0 limitation; do not describe it as selective removal.
 
 ## Security boundary / non-goals
 
-Read [the threat model](docs/THREAT_MODEL.md) for the complete security posture and the canonical [Release scope (0.1.0)](docs/THREAT_MODEL.md#release-scope-010) statement. pi-sandbox has two deliberately distinct boundaries: the operator-controlled VM is the **outer** boundary for host isolation and broad damage containment; pi-sandbox is the **inner** boundary that keeps Pi control-plane credentials unavailable to model-controlled commands and file tools running as the same Unix user. It is not a complete Pi-session trust boundary.
+Read [the threat model](docs/THREAT_MODEL.md) for the complete security posture and the canonical [Release scope (0.1.0)](docs/THREAT_MODEL.md#release-scope-010) statement. pi-sandbox has two deliberately distinct boundaries: the operator-controlled VM is the **outer** boundary for host isolation and broad damage containment; Linux bwrap is the **inner** OS boundary for mediated bash. The in-process file policy is defense-in-depth for same-user file tools, not a concurrency-hard boundary. It is not a complete Pi-session trust boundary.
 
 ### Backend decision and control triage
 
@@ -161,6 +161,7 @@ The 2026-07-11 assessment retains the first-party bwrap backend for 0.1.0. `@ant
 | Control | Status |
 | --- | --- |
 | Tool-egress policy and writable-surface policy | **Core** boundary controls |
+| In-process file policy | **Defense in depth**; closes the TOCTOU leaf-symlink swap and detects ordinary post-start hardlinks, but is not a concurrency-hard same-user boundary |
 | Secret-shape inspector | **Optional defense in depth**; opt-in input inspection, not isolation |
 | Network `filter` | **Deferred and tracked**; recognized but fail-closed |
 
@@ -191,6 +192,7 @@ Non-goals and known gaps (the consolidated 0.1.0 release claim remains [Threat m
 
 - Pi extensions and installed Pi packages are trusted code. They run with the user's normal permissions and are not sandboxed by this plugin.
 - RPC/API mode's direct `bash` command is a known residual bypass in current pi core. It calls `AgentSession.executeBash()` directly with pi's local bash operations, bypassing both the registered `bash` tool and the `user_bash` extension event. This extension cannot sandbox or fail-close that path until pi core exposes an interception hook; operators who require bash sandboxing should avoid or restrict RPC/API bash access.
+- **Concurrent hardlink + deny-path race:** the fd-based in-process guard catches non-concurrent post-start hardlink aliases and closes the TOCTOU symlink swap, but the in-process `read`/`write`/`edit` tools are **not concurrency-hard** against a same-user adversary running arbitrary code. A determined attacker can move a denied pathname aside while the guard's deny-pathname rescan observes `ENOENT`, leaving an opened fd on the credential inode through a hardlink alias. The bwrap OS layer is the primary boundary for sandboxed bash; the in-process tools are defense-in-depth. The complete inode-identity redesign is tracked post-0.1.0 as `story-pi-sandbox-inode-identity-redesign`.
 - Git credential helpers, cache sockets, and keyring/keychain stores are a 0.1.0 residual. User Git config and `HOME` are preserved, so `git credential fill` can retrieve plaintext through a configured helper, a credential-cache socket, libsecret, macOS Keychain, Git Credential Manager, or another keyring. Masking `~/.gitconfig` or `~/.config/git/config` is not a safe mitigation because it breaks ordinary Git config reads, so those paths are not denied by default. Operators who want to block helper retrieval must register the helper's file or socket path in global `filesystem.denyRead` as a **literal path that exists when the sandbox initializes** (globs are not bwrap-enforced; nonexistent paths are skipped), or accept this residual.
 - `background` and `monitor` have real Linux bwrap integration when `@nklisch/pi-background-tasks` is installed and `backgroundTasks.sandboxIntegration:"auto"` is active. They are still not OS-sandboxed on non-Linux hosts, when the integration is off, or when pi-sandbox is fail-closed; the tool-egress policy stays at `confirm`/fail-closed in those states.
 - Web/search tools, subagents, and provider/model requests are not OS-sandboxed command surfaces. They may perform network or provider egress according to their own implementations and any in-process tool policy configured by Pi.
