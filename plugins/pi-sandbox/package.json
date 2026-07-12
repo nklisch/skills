@@ -11,6 +11,9 @@
     "directory": "plugins/pi-sandbox"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "pi-package",
     "agent-skills",

@@ -152,11 +152,11 @@ escape is a known 0.1.0 limitation; do not describe it as selective removal.
 
 ## Security boundary / non-goals
 
-Read [the threat model](docs/THREAT_MODEL.md) for the complete security posture and the canonical [Release scope (0.1.0)](docs/THREAT_MODEL.md#release-scope-010) statement. pi-sandbox has two deliberately distinct boundaries: the operator-controlled VM is the **outer** boundary for host isolation and broad damage containment; Linux bwrap is the **inner** OS boundary for mediated bash. The in-process file policy is defense-in-depth for same-user file tools, not a concurrency-hard boundary. It is not a complete Pi-session trust boundary.
+Read [the threat model](docs/THREAT_MODEL.md) for the complete security posture and the canonical [Release scope (0.1.0)](docs/THREAT_MODEL.md#release-scope-010) statement. pi-sandbox assumes an operator-provided **outer** host-isolation boundary already exists (a VM, a container, a dedicated host, a separate OS account — whatever the operator chose), and provides only the **inner** Linux bwrap same-user credential-isolation membrane for mediated bash. The in-process file policy is defense-in-depth for same-user file tools, not a concurrency-hard boundary. It is not a complete Pi-session trust boundary.
 
 ### Backend decision and control triage
 
-The 2026-07-11 assessment retains the first-party bwrap backend for 0.1.0. `@anthropic-ai/sandbox-runtime` v0.0.26 is not adopted because it does not provide this package's fail-closed initialization, in-process file-tool parity, additive-only configuration, hardlink guard, trusted bwrap lookup, and background/monitor spawn contract. Gondolin is a redundant nested micro-VM inside the operator VM; OpenShell is a whole-agent governance platform, not an inner Pi membrane. Revisit triggers are recorded in the [threat model](docs/THREAT_MODEL.md#buy-versus-build-decision).
+The 2026-07-11 assessment retains the first-party bwrap backend for 0.1.0. `@anthropic-ai/sandbox-runtime` v0.0.26 is not adopted because it does not provide this package's fail-closed initialization, in-process file-tool parity, additive-only configuration, hardlink guard, trusted bwrap lookup, and background/monitor spawn contract. Gondolin is a redundant nested micro-VM inside an operator's existing outer boundary; OpenShell is a whole-agent governance platform, not an inner Pi membrane. Revisit triggers are recorded in the [threat model](docs/THREAT_MODEL.md#buy-versus-build-decision).
 
 | Control | Status |
 | --- | --- |
