@@ -129,6 +129,17 @@ export function publishBrokenSandboxIntegrationHandshake(message: string): Backg
   return handshake;
 }
 
+/**
+ * Clear the background-tasks sandbox integration handshake from the global
+ * symbol registry. Called on session shutdown so a stale `integrated: true`
+ * from the previous session cannot leave background/monitor enabled for the
+ * next session before the bridge republishes. The symbol is cross-session
+ * (Symbol.for), so without an explicit clear it survives until overwritten.
+ */
+export function clearSandboxIntegrationHandshake(): void {
+  delete (globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL];
+}
+
 export function createSandboxBridge(
   importFn: SandboxSpawnImportFn = defaultImportSandboxSpawn,
   isPackageInstalled: () => boolean = isPiSandboxPackageInstalled,

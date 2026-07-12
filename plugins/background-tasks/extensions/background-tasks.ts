@@ -47,6 +47,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import {
   createCachedSandboxResolver,
+  clearSandboxIntegrationHandshake,
   publishBrokenSandboxIntegrationHandshake,
   publishSandboxIntegrationHandshake,
   type SandboxedSpawnArgsResult,
@@ -1450,6 +1451,10 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
   // Clean up every spawned child / timer on shutdown so we never leak processes.
   // Await cancellations so process-group SIGKILL and bounded reaping complete before
   // the process tears down (a fire-and-forget timer could be killed mid-reap).
+  // Also clear the sandbox integration handshake: the symbol is cross-session
+  // (Symbol.for), so a stale `integrated: true` from this session would otherwise
+  // survive into the next session and leave background/monitor enabled until the
+  // bridge republishes — a window where the next session trusts stale state.
   pi.on?.("session_shutdown", async () => {
     shuttingDown = true;
     await Promise.all(
@@ -1457,6 +1462,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
         .filter((j) => j.status === "running" || j.status === "cancelling")
         .map((j) => cancelJob(j)),
     );
+    clearSandboxIntegrationHandshake();
   });
 }
 

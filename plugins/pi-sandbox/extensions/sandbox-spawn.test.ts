@@ -77,7 +77,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		expect(result.env.OPENAI_API_KEY).toBeUndefined();
 	});
 
-	test("filters envAdd through the sandbox minimal-env allowlist", async () => {
+	test("preserves caller envAdd over the minimal-env allowlist, scrubbing provider secrets", async () => {
 		const cwd = await makeTempDir();
 		const agentDir = await makeAgentDir();
 		const result = buildSandboxedSpawnArgs({
@@ -88,7 +88,7 @@ describe("buildSandboxedSpawnArgs", () => {
 			platform: "linux",
 			bwrapAvailable: true,
 			baseEnv: { PATH: "/usr/bin" },
-			envAdd: { TERM: "xterm-256color", LC_ALL: "C", FOO_SECRET: "drop-me" },
+			envAdd: { TERM: "xterm-256color", LC_ALL: "C", FOO_CONFIG: "keep-me", OPENAI_API_KEY: "sk-leak" },
 		});
 
 		expect(result.state).toBe("ok");
@@ -96,7 +96,13 @@ describe("buildSandboxedSpawnArgs", () => {
 		expect(result.env.PATH).toBe("/usr/bin");
 		expect(result.env.TERM).toBe("xterm-256color");
 		expect(result.env.LC_ALL).toBe("C");
-		expect(result.env.FOO_SECRET).toBeUndefined();
+		// Caller-supplied envAdd vars survive the minimal-env allowlist: the tool
+		// schema promises env is "merged over the inherited environment," so a
+		// custom var the caller set must reach the child command.
+		expect(result.env.FOO_CONFIG).toBe("keep-me");
+		// Provider secrets are still scrubbed even when placed in envAdd, so a
+		// caller cannot exfiltrate a credential by injecting it as an env var.
+		expect(result.env.OPENAI_API_KEY).toBeUndefined();
 	});
 
 	test("honors envScrub for LC_* values in the healthy bwrap environment", async () => {
