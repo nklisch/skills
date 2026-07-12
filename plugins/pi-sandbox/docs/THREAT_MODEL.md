@@ -274,7 +274,7 @@ Reassess the decision if any of these occur:
 | --- | --- | --- |
 | Tool-egress policy | **Core** | Reduces credential exfiltration through subagents, web/search, and other tools; required for in-process boundary parity. |
 | Writable-surface policy | **Core** | Defines the required writable surface and protects the pinned Git-directory contract. |
-| In-process file policy | **Defense in depth** | FD-bound I/O closes the TOCTOU leaf-symlink swap and detects ordinary post-start hardlink aliases, but is not concurrency-hard against same-user arbitrary code; bwrap is the primary Linux bash boundary. |
+| In-process file policy | **Defense in depth** | FD-bound I/O closes the TOCTOU leaf-symlink swap and detects ordinary post-start hardlink aliases, but is not concurrency-hard against same-user arbitrary code. bwrap is the stronger boundary (blocks network, most paths, process inspection) but is also not concurrency-hard against the hardlink race — see the residual below. |
 | Secret-shape inspector | **Optional defense in depth** | Opt-in detection of secrets already present in tool input; useful, but not the credential-isolation boundary. It may be split later. |
 | Network `filter` mode | **Deferred and tracked** | Kept as a recognized fail-closed mode; real proxy filtering needs separate topology and proof. |
 
@@ -318,15 +318,7 @@ This is the single source of truth for the 0.1.0 package promise.
 - The inspector scans input, not output. In particular, `jobs action=tail` can
   return a secret a background command wrote to its buffer without redaction.
 - `--no-sandbox` does not yet propagate to background/monitor integration.
-- **Concurrent hardlink + deny-path race:** the fd-based in-process guard
-  catches non-concurrent post-start hardlink aliases and closes the TOCTOU
-  symlink swap, but it is **not concurrency-hard** against a same-user attacker
-  running arbitrary code. That attacker can move a denied pathname aside while
-  the guard's deny-pathname rescan observes `ENOENT`, leaving an opened fd on
-  the credential inode through a hardlink alias. The bwrap OS layer is the
-  primary boundary for sandboxed bash; the in-process file tools are
-  defense-in-depth. The full inode-identity redesign is tracked as
-  `story-pi-sandbox-inode-identity-redesign` post-0.1.0.
+- **Concurrent hardlink + deny-path race (spans both boundaries):** both the in-process file tools and the bwrap path guard against hardlink aliases via a mutable-pathname `assertNoHardlinkedDeniedFiles` rescan, but neither is **concurrency-hard** against a same-user attacker running arbitrary code. The in-process guard runs at file-operation time; the bwrap guard runs once per command at argv-build time. In both cases a determined attacker can move a denied pathname aside while the rescan observes `ENOENT`, leaving an opened fd (in-process) or a writable bind (bwrap) on the credential inode through a hardlink alias. bwrap is the stronger boundary — it blocks network, most filesystem paths, and process inspection — but it is not a concurrency-hard boundary against this race. The full inode-identity redesign (capture denied inodes at policy-install time; check opened fds and bwrap binds against that captured set) is tracked as `story-pi-sandbox-inode-identity-redesign` post-0.1.0.
 - Git credential helpers, cache sockets, and keyring/keychain stores are not
   comprehensively blocked. `HOME` and user Git config are preserved, so
   `git credential fill` can retrieve plaintext through a configured helper.
