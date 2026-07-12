@@ -30,6 +30,7 @@ Keep the qualities that define the plugin: Item-IS-the-Work, dependency and cycl
 - Worker/model capability is selected by the agent from risk and scope unless the caller or project explicitly overrides it; do not ask routinely.
 - Normal design resolves routine/reversible decisions with judgment and logs rationale; reserve user questions for product direction, external contracts, and expensive irreversible choices. `--only-questions` remains the explicit alignment mode.
 - Advisory review follows risk rather than being useful only under autopilot.
+- Autopilot and project conventions expose a high-level `review_weight` selector (`none | light | standard | thorough | maximum`, default `standard`) that scales independent reviewer breadth and pass depth without prescribing exact orchestration. Explicit invocation overrides project convention. `none` skips independent review, never implementation verification.
 - The common prose lane and specific bug-fix lane should complete end to end instead of requiring ceremonial follow-up invocations.
 - Consolidate repeated policy into canonical auto-loaded homes and shrink oversized skill bodies through progressive disclosure, without hiding load-bearing invariants in optional references.
 
@@ -42,6 +43,7 @@ Keep the qualities that define the plugin: Item-IS-the-Work, dependency and cycl
 - [ ] `implement-orchestrator` is rewritten around outcomes and invariants; detailed bundle examples, bundle sizing recipes, default wave width, worker prompt templates, and routine model-tier questions are removed.
 - [ ] Design-family question policy is based on reversibility and user-facing consequence, while `--only-questions` remains interactive-only.
 - [ ] Cross-model/fresh-context advisory review is risk-driven across direct and autopilot design modes.
+- [ ] Effective review weight resolves explicit invocation → project convention → `standard`, is logged, and scales review from no independent reviewer through multi-model multi-pass review while leaving exact topology to the reviewing agent.
 - [ ] Common prose work and verified bug fixes can complete through review in one invocation.
 - [ ] Repeated dispatch, caller-awareness, routing, and test-integrity prose is consolidated without weakening worker self-containment.
 - [ ] Touched SKILL.md files follow repo-skill-style limits through progressive disclosure where practical, and no updated SKILL.md exceeds 500 lines.
@@ -152,6 +154,13 @@ load-bearing one-liner.
   two-phase order (advisory then adversarial), the different-model-class rule,
   the non-blocking design-time failure semantics, and the strict final-completion
   review path are all preserved.
+
+### Review-weight contract
+
+- Effective weight resolves in this order: explicit invocation/autopilot selector, `.work/CONVENTIONS.md`, then `standard`.
+- The canonical levels are `none`, `light`, `standard`, `thorough`, and `maximum`. They express review intent and ceilings, not a rigid agent-count recipe.
+- `none` performs no independent review but still requires green implementation verification and acceptance evidence before administrative closure. `light` minimizes ceremony. `standard` is the balanced risk-driven default. `thorough` increases fresh-context breadth and passes where risk warrants. `maximum` enables multi-model, multi-pass complementary-then-adversarial review for features and epics, with stories escalating dynamically by risk.
+- Review records state the effective weight and actual path used. Missing model classes degrade honestly; they never masquerade as multi-model review.
 
 ### Consolidation and line-budget contract
 
@@ -304,10 +313,22 @@ Acceptance:
   invariants stay in the SKILL, detail in references). Each design-family
   SKILL ≤ 500 lines and reduced from current size.
 
-### Unit 5: Foundation docs roll-forward + consolidated validation
+### Unit 5: Review-weight project configuration
+**Files**: `skills/convert/SKILL.md`, `.work/CONVENTIONS.md`, targeted existing config tests
+**Story**: `feature-agile-workflow-lifecycle-agency-review-weight-configuration`
+**Depends on**: Units 1–4
+
+Changes:
+- Add `review_weight: standard` to generated project conventions without adding a bootstrap question; preserve existing values on sync and treat absence as `standard`.
+- Dogfood the default in this repository and keep conversion prose pointed at the canonical policy rather than duplicating review recipes.
+
+Acceptance:
+- Fresh bootstrap exposes the selector; sync preserves it; older projects remain valid; no new interactive ceremony.
+
+### Unit 6: Foundation docs roll-forward + consolidated validation
 **Files**: `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`
 **Story**: `feature-agile-workflow-lifecycle-agency-foundation-docs-and-validation`
-**Depends on**: Units 1–4
+**Depends on**: Units 1–5
 
 Changes:
 - Roll the foundation docs forward to describe the revised lifecycle (production
@@ -337,8 +358,8 @@ Acceptance:
 
 1. Units 1–4 in parallel — disjoint file sets (no file is edited by two units);
    all four implement their side of the shared contracts above.
-2. Unit 5 after Units 1–4 — docs describe the landed behavior; validation runs
-   last.
+2. Unit 5 after Units 1–4 — expose and dogfood project review-weight configuration.
+3. Unit 6 after Unit 5 — docs describe the landed behavior; validation runs last.
 
 Cross-story consistency on the shared contracts is enforced by this design
 body, not by sequencing.

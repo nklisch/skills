@@ -9,6 +9,7 @@ depends_on:
   - feature-agile-workflow-lifecycle-agency-orchestrator-rewrite
   - feature-agile-workflow-lifecycle-agency-review-lane-rollup
   - feature-agile-workflow-lifecycle-agency-question-advisory-policy
+  - feature-agile-workflow-lifecycle-agency-review-weight-configuration
 release_binding: null
 gate_origin: null
 created: 2026-07-12
@@ -64,7 +65,10 @@ Replace stale assertions in place; no "previously" / "in v1.x" prose. Update:
   prescribed. Worker capability is chosen from risk/scope unless overridden.
 - **Advisory / question policy** (where ARCHITECTURE/SPEC reference design-time
   questions or advisory review): align with the reversibility-based question
-  policy and risk-driven advisory review across modes.
+  policy and risk-driven advisory review across modes. Document effective
+  `review_weight` resolution (explicit invocation → project convention →
+  `standard`) and the five high-level levels without turning them into a rigid
+  orchestration recipe.
 - **VISION success criteria**: refresh any lifecycle/orchestration language so
   it describes the simpler, more decisive lifecycle without losing the
   governance invariants the brief keeps (Item-IS-the-Work, dependency/cycle
@@ -95,7 +99,7 @@ Replace stale assertions in place; no "previously" / "in v1.x" prose. Update:
   from risk/scope).
 - [ ] ARCHITECTURE/SPEC question and advisory-review references align with the
   reversibility-based question policy and risk-driven advisory review across
-  modes.
+  modes, including review-weight resolution and level semantics.
 - [ ] VISION lifecycle/orchestration language refreshed; governance invariants
   preserved.
 - [ ] No "previously" / legacy prose in the touched docs (rolling-foundation).
