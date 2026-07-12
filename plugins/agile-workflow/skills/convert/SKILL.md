@@ -447,6 +447,9 @@ Run an interactive interview via structured question tool. Six questions, in ord
    leak to future agents. Offer `retain-bodies` only for projects that deliberately keep full terminal
    bodies on disk (same `archived_atop`/late-binding semantics, bodies just not pruned).
 
+Review weight is deliberately not another interview question. Bootstrap writes the balanced default
+in Phase 5; callers can change the project convention later or override it per invocation.
+
 ### Phase 4: Create substrate skeleton
 
 ```bash
@@ -467,11 +470,23 @@ environment, locate the plugin source via the active skill/plugin path or manife
 
 ### Phase 5: Write CONVENTIONS.md
 
-Write `.work/CONVENTIONS.md` from the interview answers, following the format in SPEC.md. The
-`## Terminal-tier retention` section is **value-only** — write the bare `delete-refs`/`retain-bodies`
-value the user chose, not the merged prose (the prose lives in SPEC.md, never duplicated per project).
-This bare-value form is exactly what a later sync classifies as `match`, so a freshly bootstrapped
-repo never self-reports terminal-retention drift.
+Write `.work/CONVENTIONS.md` from the interview answers, following the format in SPEC.md. Also add
+this non-interactive project default:
+
+```markdown
+## Review weight
+review_weight: standard
+```
+
+Allowed values are `none | light | standard | thorough | maximum`. The setting is optional: when it
+is absent, review and autopilot resolve it to `standard`. Keep the level semantics and selection
+policy in `principles/SKILL.md` Part IV and `review/SKILL.md`; do not duplicate their review matrix or
+model guidance here.
+
+The `## Terminal-tier retention` section is **value-only** — write the bare
+`delete-refs`/`retain-bodies` value the user chose, not the merged prose (the prose lives in SPEC.md,
+never duplicated per project). This bare-value form is exactly what a later sync classifies as
+`match`, so a freshly bootstrapped repo never self-reports terminal-retention drift.
 
 ### Phase 6: Write the canonical AGENTS.md section
 
@@ -1047,6 +1062,10 @@ path list), plus deeper checks:
   - `.claude/rules/patterns.md` state (legacy content vs AGENTS shim)
   - `.work/CONVENTIONS.md` load-bearing tag entries (see below). The rest of
     CONVENTIONS is user-owned and untouched.
+  - `.work/CONVENTIONS.md` `review_weight` — preserve any existing value unchanged; review validates
+    the five-value boundary when it consumes the setting. Absence is also valid and resolves to
+    `standard`, so sync neither inserts the default into older projects nor asks a migration question.
+    The allowed values and canonical policy are in Phase 5.
   - `.work/CONVENTIONS.md` **Terminal-tier retention** state (the merged convention — see
     "Terminal-tier retention drift" below). The per-project CONVENTIONS template is **value-only** (a
     `## Terminal-tier retention` heading + a bare `delete-refs`/`retain-bodies` value); the merged
@@ -1337,9 +1356,10 @@ These are NEVER touched in sync mode:
   user confirmation, are: (a) load-bearing tag entries (`refactor`, `perf`) when they match a known
   prior plugin default verbatim, and (b) the `## Terminal-tier retention` convention when it is
   `missing`/`partial`/a bespoke `## Done-item archival` overlap (add / reconcile / converge). A bare
-  `delete-refs`/`retain-bodies` value is `match` and is left untouched. Everything
-  else in CONVENTIONS — release mapping, project tags, slug conventions, gate config, any user
-  prose — is untouched.
+  `delete-refs`/`retain-bodies` value is `match` and is left untouched. `review_weight` is optional
+  and is never added, reset, or rewritten by sync; preserve an existing value byte-for-byte, while
+  absence continues to mean `standard`. Everything else in CONVENTIONS — release mapping, project
+  tags, slug conventions, gate config, any user prose — is untouched.
 - Everything under `.work/active/`, `.work/backlog/`, `.work/releases/`,
   `.work/archive/`
 - User-authored rule references under `.agents/skills/refactor-conventions/`.
