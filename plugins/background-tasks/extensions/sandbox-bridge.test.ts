@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL,
+  clearSandboxIntegrationHandshake,
   createCachedSandboxResolver,
   createSandboxBridge,
   isMissingOptionalSandboxPackage,
@@ -217,5 +218,22 @@ describe("sandbox bridge", () => {
     expect(pkg.peerDependenciesMeta?.["@nklisch/pi-sandbox"]?.optional).toBe(true);
     expect(pkg.dependencies?.["@nklisch/pi-sandbox"]).toBeUndefined();
     expect(pkg.optionalDependencies?.["@nklisch/pi-sandbox"]).toBeUndefined();
+  });
+
+  test("clearSandboxIntegrationHandshake removes a stale integrated:true so it cannot leak to the next session", async () => {
+    // Simulate a session that published a loaded (integrated:true) handshake.
+    const bridge = createSandboxBridge(async () => ({ state: "loaded", buildSandboxedSpawnArgs: (() => {}) as unknown as BuildSandboxedSpawnArgs }));
+    await bridge.resolveSandboxSpawnBuilder();
+    expect((globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL]).toMatchObject({
+      integrated: true,
+      bridgeState: "loaded",
+    });
+
+    // On session_shutdown, the extension calls clearSandboxIntegrationHandshake.
+    // The cross-session Symbol.for registry holds the value until overwritten, so
+    // without an explicit clear a stale integrated:true would survive into the
+    // next session and leave background/monitor enabled before the bridge republishes.
+    clearSandboxIntegrationHandshake();
+    expect((globalThis as typeof globalThis & Record<symbol, unknown>)[BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL]).toBeUndefined();
   });
 });

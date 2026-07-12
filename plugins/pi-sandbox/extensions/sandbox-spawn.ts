@@ -279,6 +279,14 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 
 	const bwrapExecutable = bwrapResolution.path;
 	const minimalEnv = buildMinimalEnv(normalEnv, loaded.config.envScrub);
+	// The minimal-env allowlist (PATH/HOME/TERM/LANG/TMPDIR/LC_*) drops every
+	// inherited var, which is correct for scrubbing provider secrets from the
+	// host environment. But it also drops the caller's explicit envAdd — the
+	// per-call additions the tool schema promises are "merged over the inherited
+	// environment." Re-apply envAdd after the allowlist so caller-supplied vars
+	// survive, then scrub the result so a secret placed in envAdd is still
+	// stripped (envAdd is caller input, not inherently trusted for secrets).
+	const okEnv = scrubEnvironment({ ...minimalEnv, ...(opts.envAdd ?? {}) }, loaded.config.envScrub, PROVIDER_SECRET_ENV_NAMES);
 	try {
 		const args = [
 			...buildBwrapArgs({
@@ -298,7 +306,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 				// with trusted pinned git dirs may pass them via opts.pinnedGitDirs.
 				pinnedGitDirs: opts.pinnedGitDirs,
 				networkMode,
-				env: minimalEnv,
+				env: okEnv,
 			}),
 			"--",
 			"bash",
@@ -310,7 +318,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 			executable: bwrapExecutable,
 			args,
 			cwd: opts.cwd,
-			env: minimalEnv,
+			env: okEnv,
 		};
 	} catch (e) {
 		const message = e instanceof Error ? e.message : String(e);
