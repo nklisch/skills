@@ -1,7 +1,7 @@
 ---
 id: feature-agile-workflow-lifecycle-agency-lifecycle-inline-lane
 kind: story
-stage: implementing
+stage: review
 tags: [skill, plugin]
 parent: feature-agile-workflow-lifecycle-agency
 depends_on: []
@@ -71,17 +71,20 @@ No other story edits these files.
 
 ## Acceptance criteria
 
-- [ ] Direct `/implement` reaches `done` (or returns a documented bounce/blocker)
+- [x] Direct `/implement` reaches `done` (or returns a documented bounce/blocker)
   in one invocation unless `stop-at-review` is requested.
-- [ ] Direct `/fix` reaches `done` (or returns a documented bounce/blocker) in
+- [x] Direct `/fix` reaches `done` (or returns a documented bounce/blocker) in
   one invocation unless `stop-at-review` is requested.
-- [ ] No hard LoC/file-count routing remains as a gate in `implement` or `fix`;
+- [x] No hard LoC/file-count routing remains as a gate in `implement` or `fix`;
   only non-binding hints.
-- [ ] No routine model-tier question; capability choice is logged.
-- [ ] `prose-author` handoff describes completion to `done` by default.
-- [ ] `implement/SKILL.md` and `fix/SKILL.md` ≤ 500 lines; worker test-integrity
+- [x] No routine model-tier question; capability choice is logged.
+- [x] Effective `review_weight` is resolved from caller, project, then the
+  `standard` default; it is recorded and forwarded without duplicating the
+  matrix. `none` still requires green verification and acceptance evidence.
+- [x] `prose-author` handoff describes completion to `done` by default.
+- [x] `implement/SKILL.md` and `fix/SKILL.md` ≤ 500 lines; worker test-integrity
   prose preserved.
-- [ ] SKILL.md frontmatter remains portable (`name`, `description` only) per
+- [x] SKILL.md frontmatter remains portable (`name`, `description` only) per
   `repo-skill-style`.
 
 ## Notes
@@ -94,3 +97,36 @@ No other story edits these files.
 - Do not implement changes here that belong to `principles` (advisory/question
   policy) — that is
   `feature-agile-workflow-lifecycle-agency-question-advisory-policy`.
+
+## Implementation notes
+
+- Execution capability: inline current-agent edit; three cohesive skill surfaces
+  with disjoint ownership and no implementation fan-out needed.
+- Files changed: `implement/SKILL.md`, `fix/SKILL.md`, and the Handoff section of
+  `prose-author/SKILL.md`.
+- Lifecycle: direct implement and fix now commit `implementing → review`, then
+  invoke the review lane in the same invocation unless `stop-at-review` applies;
+  approve, bounce, and blocker outcomes are explicit.
+- Review weight: each direct lane resolves caller override → project convention →
+  `standard`, records the effective value/source, and forwards it. The skills
+  defer the matrix to principles/review and preserve evidence requirements for
+  `none`.
+- Routing: LoC/file counts are hints rather than gates; cohesion, ownership,
+  sequencing, and uncertainty choose inline versus delegated execution.
+- Test integrity: duplicated policy was reduced to the project-rules/worker-posture
+  pointer plus the load-bearing fix/park/never-game-tests invariant.
+- Prose handoff: preserves write → genuine revise/coherence review → `done`, with
+  the same override and evidence contract.
+- Tests added: none; these are portable skill-contract changes.
+- Verification:
+  - `quick_validate.py` passed for all three touched skill directories.
+  - Lifecycle contract assertions passed for default closure, stop override,
+    review weight/default/`none`, prose evidence, stale guardrail removal, and
+    the 500-line ceiling.
+  - `git diff --check` passed for the owned files.
+  - Line counts: implement 299, fix 191, prose-author 190.
+- Discrepancies from design: none; incorporated the accepted `review_weight`
+  requirement without defining its matrix locally.
+- Adjacent issues parked: none.
+- Review boundary: the caller explicitly required this story to advance only
+  `implementing → review`; no review lane was run in this implementation stride.
