@@ -522,3 +522,16 @@ A 6-lane adversarial review of the full v0.1.0 surface (bwrap mount, config trus
 ### Notes
 
 The 4 blockers are real security bypasses, not over-cautious findings — R1 and R3/R4 are verified-reproducible credential-read/write paths. R2 is a doc-vs-code contradiction on the package's central promise ("without forge tokens"). The feature was at `done` from the prior rework pass, but this release-gate review found the 0.1.0 surface is NOT yet shippable as a credential-isolation boundary. Feature bounced to `implementing`; the 4 blocker stories need design + fix, the 5 important findings stay parked. Lane 2 (config trust) is the one lane that produced no reviewer output even after re-run — its attack vectors were host-verified sound (additive-only holds), so it is not blocking, but a future dedicated config-trust adversarial pass would be healthy once the blockers are fixed.
+
+## Fresh-context re-review of the 4 blocker fixes (2026-07-11)
+
+**Verdict**: Request changes — R1 and R4 NOT genuinely resolved; R3 has a compatibility regression
+
+A fresh-context adversarial re-review (codex-sol, xhigh) ran against the reworked 4-blocker diff. R2 fully RESOLVED. R3 RESOLVED but with a newly introduced leaf-symlink compatibility regression. R1 and R4 NOT-RESOLVED:
+
+- **R1 — NOT-RESOLVED**: the opt-out mechanism is sound (`allowGitDirDiscovery:false` returns `[]`, project-local can't re-enable), but `DEFAULT_CONFIG` sets it `true`, so the arbitrary-external-git-dir escape remains active for default installations. For a credential-isolation package, the secure default should be `false` (operators who need submodule/worktree discovery opt in). The design tension: making it global-only (to stop a malicious checkout enabling it) also prevents a benign project from disabling it — so secure-by-default is the only sound posture.
+- **R4 — NOT-RESOLVED**: the fd-based nlink check re-invokes `assertNoHardlinkedDeniedFiles`, which rescans the *current* deny pathnames and skips ENOENT (concurrent deletion). A concurrent process can move the denied pathname aside during the scan, so the scan skips it while the open fd still references the credential inode through the hardlink alias. Reviewer reproduced with a 10,000-attempt probe — 59.6% disclosure rate. The fix needs inode-based denied identity captured at policy-installation time, not mutable-pathname rescanning.
+- **R3 — RESOLVED with regression**: the TOCTOU symlink swap is closed (fd open through I/O, inode revalidation, O_TRUNC after validation). But `O_NOFOLLOW` rejects ALL leaf symlinks, including legitimate ones whose target is safely inside allowWrite. Reviewer reproduced `ELOOP` on a legitimate leaf-symlink read. The existing positive test only checks `enforceWritePolicy`, not the actual fd-based operation, so it missed this. Needs safe canonical-target handling OR explicit documentation + operation-level regression tests.
+- **R2 — RESOLVED**: LC_FORGE_TOKEN scrubbed, LC_ALL preserved, envScrub threaded to healthy bash + background/monitor, dead scrubEnv removed.
+
+Feature bounced (still `implementing`). The R1 default posture and the R4 inode-identity fix are the open work. This is the second fresh re-review that found real issues the host's inline verification missed — confirming the process discipline is necessary.
