@@ -1,7 +1,7 @@
 ---
 id: feature-agile-workflow-lifecycle-agency-review-lane-rollup
 kind: story
-stage: review
+stage: done
 tags: [skill, plugin]
 parent: feature-agile-workflow-lifecycle-agency
 depends_on: []
@@ -141,3 +141,55 @@ the roll-up but is owned by `…-orchestrator-rewrite`.)
   `standard` default; roll VISION/SPEC/ARCHITECTURE and the deep-review reference
   forward so they do not retain old fixed-depth or inline-fallback wording.
 - Adjacent issues parked: none.
+
+## Review
+
+- Verdict: **Approve** — advanced `review → done`.
+- Mode/depth/weight: substrate mode; effective `review_weight` `standard`
+  (source: caller request); **depth escalated to deep-equivalent fresh-context
+  scrutiny** because this story owns lifecycle-correctness (lane selection and
+  conservative parent roll-up) — the highest policy-risk surface in the batch
+  alongside story 4. The reviewer is a same-harness fresh-context
+  general-purpose sub-agent (parent twin) — labeled fresh-context
+  same-harness, **not** cross-model.
+- Lane selection verified: `weight + risk + evidence + kind-as-heuristic`; the
+  escalation signals are named (caller-interface change, security/correctness
+  surface, cross-cutting scope, touched foundation-doc claim, explicit
+  `--deep`); features/epics stay Deep; out-of-band stays Standard; the fast
+  lane still requires recorded green verification; `none` uses the
+  administrative fast shape for every tier and never auto-approves a parent
+  from child completion.
+- Fresh-context deep lane preserved and tightened: the deep lane requires
+  different-class peer when reachable, else the strongest same-harness
+  fresh-context sub-agent; if fresh context is required by the weight and
+  none is available, the lane records the limitation and **blocks** rather than
+  approving from the host context. The explicit override of any older
+  inline-fallback wording in the lane references (review/SKILL.md deep-lane
+  paragraph) makes the tightening durable.
+- Conservative parent roll-up verified: a child's `done` only ever moves an
+  `implementing` parent to `review`; the parent then runs its own selected
+  lane; only Approve / Approve-with-comments reaches `done`; roll-up stops at
+  the first non-terminal child, bounce, or blocker. This matches the parent
+  feature's contract and is consistent with `implement-orchestrator`'s
+  `implementing → review` only roll-up.
+- Autopilot verified: the routine "settle the implementation tier — ask once"
+  question is gone (replaced by the worker-capability contract: choose from
+  risk/scope unless override; log in run summary; pass in the Phase 4 caller
+  note); review routing is treated as autonomous; the queue is rebuilt from
+  disk; the final completion loop (Phase 8) and caller note are preserved with
+  updated review/tier framing.
+- Review-weight contract verified across `review` + `autopilot`: five-level
+  scale, `standard` default, precedence explicit-selector → caller note →
+  `.work/CONVENTIONS.md` → `standard`, unknown values rejected at the
+  boundary, effective value/source logged and passed through.
+- Cross-file consistency: stop-at-review phrasing, `none` evidence
+  requirement, and the fresh-context invariant all agree with the sibling
+  stories' SKILLs.
+- Style: portable frontmatter; `review` 353 / `autopilot` 353 lines (both
+  ≤ 500); `quick_validate.py` passes.
+- Notes: the two "Discrepancies from design" (block-on-missing-fresh-context,
+  roll-up-to-review-only) are defensible tightenings aligned with the parent
+  contract, recorded in implementation notes. The follow-up (CONVENTIONS.md
+  `review_weight` value + foundation-doc / deep-review-reference roll-forward)
+  is correctly deferred to stories 5 and 6.
+- Parent roll-up stops here (two non-terminal siblings remain).
