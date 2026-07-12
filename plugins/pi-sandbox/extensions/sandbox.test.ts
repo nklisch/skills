@@ -3171,6 +3171,15 @@ socket.once("error", (error) => {
 		// the working tree, so git index/object writes failed under the sandbox.
 		// discoverGitDirs must auto-include the git dir in the writable surface.
 		const cwd = await makeTempDir();
+		// A fresh HOME carrying a git identity: `git commit` is fatal (exit 128,
+		// "Author identity unknown") when no user.name/user.email is reachable.
+		// GitHub Actions runners do not seed a global git identity, and the
+		// sandbox's minimal env does not carry GIT_* either, so the test must not
+		// depend on an ambient ~/.gitconfig. The sandbox resolves HOME into the
+		// writable surface via the env (not allowWrite), so a plain temp dir with
+		// a .gitconfig is sufficient and does not widen allowWrite policy.
+		const tempHome = await makeTempDir();
+		await writeFile(join(tempHome, ".gitconfig"), "[user]\n\tname = Sandbox Test\n\temail = sandbox@example.com\n");
 		// Build a real parent repo with a submodule-style layout: the working
 		// tree is a subdir, and its git dir lives under <parent>/.git/modules/<name>.
 		const parentGit = join(cwd, ".git");
@@ -3199,6 +3208,7 @@ socket.once("error", (error) => {
 				denyWrite: [],
 				networkMode: "open",
 			},
+			{ ...process.env, HOME: tempHome },
 		);
 
 		expect(result.exitCode).toBe(0);
