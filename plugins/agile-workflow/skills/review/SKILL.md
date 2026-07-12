@@ -44,45 +44,82 @@ Load only the reference needed for the selected lane:
 | `review --all` | Drain every item at `stage: review`. |
 | `review <NL filter>` | Drain a filtered subset of the review queue. Interpret the filter against item bodies, tags, and parent chains. |
 | `review <branch/commit/range/PR/wip>` | Out-of-band review. Review the target diff and print a verdict. |
-| `deep review <target>` / `review --deep <target>` | Use deep mode for a substrate item or out-of-band target. |
+| `review --review-weight <level> <target>` | Set independent-review effort: `none`, `light`, `standard`, `thorough`, or `maximum`. An explicit selector wins over caller notes and project configuration. |
+| `deep review <target>` / `review --deep <target>` | Request deep risk coverage; reviewer topology still respects the effective review weight. |
 
 In batch modes (`--all` / NL filter), loop through the matched set and output a
 single consolidated summary at the end: verdicts per item plus total finding
 counts.
 
-## Review Lanes
+## Review Weight And Lanes
 
-Review cost should match what the target can actually surface. Resolve mode
-first, then pick the lane:
+Resolve one effective `review_weight` before choosing a lane. The valid scale is
+`none | light | standard | thorough | maximum`; reject unknown values at the
+boundary. Precedence is:
 
-| Target | Lane | What runs |
+1. explicit `--review-weight <level>` or an unambiguous natural-language caller selector
+2. an autopilot/production-skill caller note carrying the effective level
+3. `review_weight` in `.work/CONVENTIONS.md`
+4. `standard`
+
+The weight is an effort budget, not a verdict and not a fixed orchestration
+recipe. Risk, evidence, and item tier determine how to spend it; current models
+choose the exact topology within the stated ceiling/intent. Record the effective
+weight, its source, selected lane, and decisive risk/evidence signals in Review
+Notes.
+
+| Weight | High-level review intent |
+|---|---|
+| `none` | No independent reviewer. Perform an administrative review of the target's own green verification and acceptance evidence; close only when both are sufficient. |
+| `light` | Stories remain verification-only. Larger items receive at most one focused fresh-context pass. |
+| `standard` | Balanced risk-based default: fast low-risk stories, focused Standard work out of band, and fresh-context Deep review for features, epics, and escalated stories. |
+| `thorough` | Increase independent coverage with additional fresh-context passes or reviewers where the risk surface benefits; keep complementary before adversarial. |
+| `maximum` | For features/epics, use multi-model, multi-pass complementary → adversarial review when those capabilities exist. Dynamically escalate stories according to risk rather than reviewing every story identically. |
+
+Lane selection is `weight + risk + evidence + kind-as-heuristic`. Resolve mode
+first, gather enough context to identify risk, then choose:
+
+| Starting point | Default lane | Evidence or risk adjustment |
 |---|---|---|
-| **story item** | **Fast** | Confirm the green implementation verification already recorded by `implement`, then advance and roll up. No lens walk, no diff re-analysis, no peer. |
-| **out-of-band target** | **Standard** | Review the diff in the current context using the core lenses. Print a structured verdict. No substrate writes, no stage changes, no commit. |
-| **feature / epic item** | **Deep** | Full lens review using fresh-context evaluation when available. |
-| **explicit `--deep` target** | **Deep** | Use the deep lens set even for an out-of-band target. For a story item, keep the fast lane unless the caller explicitly asked for `--deep`. |
+| **story item** | **Fast** | Keep Fast only with recorded green verification and no escalation signal. Escalate to Deep for a caller-interface change, security or correctness surface, cross-cutting scope, a touched foundation-doc claim, or explicit `--deep`. |
+| **out-of-band target** | **Standard** | Use Deep only when explicitly requested; otherwise calibrate the Standard lens walk to the observed risk. |
+| **feature / epic item** | **Deep** | Kind signals aggregate contract risk; green child evidence informs the review but does not replace the parent's own review. |
+| **explicit `--deep` target** | **Deep** | Request the strongest depth the effective weight permits; depth overrides the kind heuristic, not an explicit weight ceiling. |
+
+Risk is not inferred from size alone. A tiny authentication or public-contract
+change can require Deep; a broad mechanical change can remain Standard when its
+evidence and contracts make that safe. `none` is the explicit exception to
+independent fresh-context review: it still performs the item's own acceptance
+check and records a verdict, so it never turns child completion into automatic
+parent approval.
 
 ### Fast Lane
 
-Stories use the fast lane by default:
+A genuinely low-risk story uses the fast lane; `none` also uses this
+administrative shape for every tier:
 
-1. Read the story body.
+1. Read the item body, recorded implementation scope, and acceptance criteria.
 2. Confirm an implementation/verification record exists and reports green build
-   and tests.
-3. If verification is present and green, load
+   and tests (or an explicit reason the change needs no executable checks).
+3. Confirm the recorded evidence addresses the item's acceptance criteria.
+4. Check explicitly for the escalation signals above. At `standard` or higher,
+   switch a risky story to Deep before issuing a verdict. At `none` or `light`,
+   stay within the selected effort ceiling and record the unexamined risk.
+5. If verification and acceptance evidence are green, load
    [substrate-side-effects.md](references/substrate-side-effects.md) and advance
-   `review -> done` with a one-line record:
-   `Verdict: Approve - story verified by implement; fast-lane advance`.
-4. If verification is absent or failing, either run cheap verification yourself
-   or bounce `review -> implementing` with a `## Review findings` note.
+   `review -> done` with a one-line record naming the weight and evidence.
+6. If evidence is absent or failing, run only cheap verification that fits the
+   selected weight or bounce `review -> implementing` with a
+   `## Review findings` note.
 
-Skip the lens walk for fast-lane stories. Do not deep-review a story unless the
-caller explicitly requested `--deep`.
+Skip the lens walk only when evidence and the effective weight permit it. Kind
+alone never grants an advance, and `none` never means "done because children
+are done."
 
 ### Standard Lane
 
-Standalone reviews use the standard lane. Load
-[target-resolution.md](references/target-resolution.md) and
+Standalone reviews use the standard lane unless the caller explicitly requests
+Deep. Load [target-resolution.md](references/target-resolution.md) and
 [review-lenses.md](references/review-lenses.md), read enough surrounding code to
 understand the change, then print the structured review. Do not create `.work`
 items, advance stages, archive files, or commit metadata unless the user
@@ -90,37 +127,48 @@ explicitly converts the findings into substrate work.
 
 ### Deep Lane
 
-Feature, epic, and explicit deep reviews use the deep lane. Load
+Feature, epic, escalated-story, and explicit deep reviews use the deep lane when
+the effective weight permits independent review. Load
 [deep-review.md](references/deep-review.md) plus any target or lens reference it
-points to. Prefer fresh-context evaluation when available; if no fresh reviewer
-is reachable, do a degraded inline deep review and record that limitation in
-Notes rather than skipping the review. Deep reviews follow the two-phase order
-— **completeness/complementary, then adversarial** — and because a review target
-is a complete artifact, each phase is a **convergence loop to nits**, not a
-single pass (the ideal is the full `peer-review` loop when available). For a
-feature/epic (deep or complex scope) use **two different model classes** when
-available, one per phase (see
-[../principles/references/models.md](../principles/references/models.md) §6 for
-the design-vs-review loop distinction).
+points to. The evaluation must run in fresh context: use a different-class peer
+when reachable; otherwise use the strongest same-harness fresh-context
+sub-agent prompted with the reviewer posture. If the selected weight calls for
+fresh review and neither is available, record the limitation and block rather
+than approving from the host context. Deep reviews never become inline
+self-review; this requirement overrides any older inline-fallback wording in a
+lane reference.
+
+Calibrate depth from the weight table instead of treating Deep as one fixed
+recipe. `light` caps a larger item's review at one fresh pass; `standard`
+balances coverage against observed risk; `thorough` adds complementary and
+adversarial coverage where useful; `maximum` seeks multi-model, multi-pass
+complementary → adversarial convergence for features/epics and dynamically
+escalates risky stories. These are ceilings and intent, not mandatory agent
+counts. Preserve complementary-before-adversarial order whenever both run (see
+[../principles/references/models.md](../principles/references/models.md) §6).
 
 ## Workflow
 
-### Phase 0: Resolve Mode And Depth
+### Phase 0: Resolve Mode, Weight, And Depth
 
 Default to substrate mode when the target looks like a work item id, when any
 item is at `stage: review`, or when autopilot delegated the review. Use
 standalone mode when the user names a branch, commit, commit range, PR number,
 `wip`, working tree, or otherwise asks for an out-of-band code review.
 
+Resolve and validate effective `review_weight` using the precedence above before
+any mutation. Explicit caller selection always wins.
+
 If both interpretations are plausible, prefer substrate mode but ask the user
 before mutating `.work`. If the caller is autopilot or a harness goal, do not
 ask: choose substrate mode and the next review item.
 
-Depth:
-- **Fast**: story item with green implementation verification.
-- **Standard**: out-of-band target or explicitly lightweight review.
-- **Deep**: feature/epic item, explicit `--deep`, or a review where the user asks
-  for robustness across design, contracts, release, and operational dimensions.
+Depth after applying the weight ceiling:
+- **Fast/administrative**: low-risk story with green evidence, any story at
+  `light`, or any tier at `none`.
+- **Standard**: out-of-band target unless explicitly deep.
+- **Deep**: feature/epic item, risk-escalated story, explicit `--deep`, or a
+  robustness request when the weight permits fresh-context evaluation.
 
 ### Phase 1: Identify The Target
 
@@ -139,8 +187,10 @@ Standalone mode:
 
 Substrate mode:
 - Read the item file.
-- Internalize the brief, design, implementation notes, and verification evidence.
-- For a feature, also read each child story body.
+- Internalize the brief, design, implementation notes, acceptance criteria, and
+  verification evidence.
+- For a feature or epic, read direct child bodies and their review evidence;
+  children inform but never replace the parent's own review.
 
 Standalone mode:
 - Read the user's stated target.
@@ -156,8 +206,11 @@ All modes:
 
 ### Phase 3: Determine The Change Scope
 
-Load [target-resolution.md](references/target-resolution.md). Use it to gather
-the diff, PR metadata, commit messages, or epic aggregate scope.
+For Standard and Deep lanes, load
+[target-resolution.md](references/target-resolution.md). Use it to gather the
+diff, PR metadata, commit messages, or epic aggregate scope. Fast uses the
+recorded implementation scope and verification instead of re-analyzing the
+diff.
 
 If the non-epic diff is empty:
 - Autopilot substrate mode: advance only if the item has complete green
@@ -176,8 +229,9 @@ Standard lane:
 
 Deep lane:
 - Load [deep-review.md](references/deep-review.md).
-- Use fresh-context evaluation when available.
-- Apply the core lenses plus the deep dimensions.
+- Run the evaluation in fresh context at the effective weight; do not approve
+  inline when the selected weight requires a fresh reviewer and none is available.
+- Apply the core lenses plus the applicable deep dimensions.
 
 ### Phase 5: Classify Findings
 
@@ -207,8 +261,35 @@ Substrate mode:
 - Load [substrate-side-effects.md](references/substrate-side-effects.md).
 - File above-nit findings into the substrate.
 - Advance the item if there are no blockers, or bounce it if blockers exist.
-- Append the review record.
-- Commit the substrate changes.
+- Append the review record and commit the reviewed item's transition.
+- After an approval reaches `done`, run Conservative Parent Roll-Up below.
+
+### Conservative Parent Roll-Up
+
+A child's approval is evidence that an ancestor may be ready for review; it is
+never approval of the ancestor itself. After advancing any item to `done`:
+
+1. Find its immediate parent. If there is none, stop.
+2. Count all direct children across active and terminal tiers. If any child is
+   non-terminal, stop the entire roll-up at this ancestor.
+3. If the parent is `implementing`, advance it to `review`, append a `Children
+   complete` note, and commit that transition. If it is already `review`, leave
+   the stage unchanged. Never change an implementing/review parent directly to
+   `done` just because its children are done.
+4. Run this skill on the parent using the normal weight/risk/evidence lane
+   selection. Features and epics therefore receive their own Deep review when
+   independent review is enabled, or their own administrative acceptance review
+   at `none`.
+5. Only an Approve or Approve-with-comments verdict may advance the parent to
+   `done`; commit that review transition. A bounce or block stops roll-up.
+6. Once the parent is approved and `done`, repeat from step 1 for its parent.
+
+This recursion can complete story → feature → epic in one review invocation,
+but every ancestor crosses its own real `review` stage and receives its own
+selected review lane at the same effective weight. Preserve active parent bodies
+while walking the chain; terminal retention/archive handling applies only where
+the substrate-side-effects contract says the item is no longer needed for an
+active parent.
 
 ## Output
 
@@ -240,6 +321,8 @@ Approve | Approve with comments | Request changes | Block
 
 If no findings above nit level in substrate mode: "This change looks good.
 Nothing blocking or significant to flag. Item advanced to `stage: done`."
+Also report each ancestor moved to `review`, approved to `done`, bounced, or
+left waiting on a non-terminal child.
 
 If no findings above nit level in standalone mode: "This change looks good.
 Nothing blocking or significant to flag."
@@ -265,3 +348,6 @@ Nothing blocking or significant to flag."
   rule.
 - Do not advance an item past review unless the verdict is Approve or Approve
   with comments. Pushing through blockers defeats the point of the stage.
+- Child completion never substitutes for a parent's review. Roll-up may move an
+  implementing parent to `review`, but only that parent's selected lane may move
+  it to `done`.

@@ -143,14 +143,13 @@ drafting features. Iterate over the target set:
 3. Read-first map of the feature's area; use one exploratory sub-agent only if the
    area is still unclear. Include `.agents/skills/refactor-conventions/` as
    context when present.
-4. Surface strategic ambiguities specific to the refactor (e.g., "preserve API
-   shape or break consumers?", "in-place or shadow-then-swap?", "rollback
-   strategy when atomic?"). Use structured question tool.
+4. Use the structured question tool for refactor-specific strategic ambiguities
+   such as API compatibility, migration shape, or rollback strategy.
 5. Capture answers under `## Design decisions` in the feature body
 6. Do NOT design or advance stage — let the design family pick up later
 7. Commit per feature: `refactor-design --only-questions: <id>`
 
-Requires interactive mode; refuse to run under an active autopilot run or goal.
+Requires interactive mode; refuse under autopilot. Otherwise defer question and advisory policy to `principles/SKILL.md` Parts III–IV.
 
 ## Workflow — per-feature mode
 
