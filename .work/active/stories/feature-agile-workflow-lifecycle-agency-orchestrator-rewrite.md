@@ -1,7 +1,7 @@
 ---
 id: feature-agile-workflow-lifecycle-agency-orchestrator-rewrite
 kind: story
-stage: review
+stage: done
 tags: [skill, plugin]
 parent: feature-agile-workflow-lifecycle-agency
 depends_on: []
@@ -140,3 +140,41 @@ invariant terms rather than numerical recipes.
 - Discrepancies from design: none; the accepted `review_weight` requirement was
   incorporated as a high-level review handoff without duplicating review policy.
 - Adjacent issues parked: none.
+
+## Review
+
+- Verdict: **Approve** — advanced `review → done`.
+- Mode/depth/weight: substrate mode; effective `review_weight` `standard`
+  (source: caller request); standard depth (recipe removal is the headline
+  change, but the orchestrator is load-bearing for the whole substrate, so the
+  invariant set was traced in full). The reviewer is a same-harness
+  fresh-context general-purpose sub-agent (parent twin) — labeled fresh-context
+  same-harness, **not** cross-model.
+- Recipe removal verified: no bundle examples, no sizing recipes, no fixed or
+  default wave widths, and no prescribed worker prompt templates remain
+  (`grep` for `items per bundle`, `LoC threshold`, `safe default`, `default
+  wave`, `N per wave` returns nothing).
+- Load-bearing invariants preserved and load-bearing (not buried only in a
+  reference): grounding/freshness, unified `depends_on` scheduling with cycle
+  validation and external-dep drop, write-set independence, per-wave
+  integration verification, one commit per item, conservative parent roll-up
+  (`implementing → review` only), and worker self-containment.
+- Worker self-containment verified: worker briefs are crafted dynamically from
+  `principles/references/subagents.md` and the brief carries ownership, dep
+  readiness, land-mode, the design-flaw escape hatch, verification, one commit
+  per item, full test-integrity text, endpoint boundaries, and emotional
+  framing — without fixed wording.
+- Lifecycle completion verified: Phase 7 continues through review by default,
+  forwards the effective `review_weight`, honors `stop-at-review`, and reports
+  bounce / blocker / design-flaw outcomes honestly; the `review → done`
+  roll-up is correctly deferred to the review skill.
+- Worker-capability contract verified: chosen from risk/scope, recorded in run
+  notes, no routine tier question, no re-ask between waves; `peeragent` is
+  excluded from routine implementation fan-out.
+- Style: portable frontmatter; `implement-orchestrator/SKILL.md` is 291 lines
+  (≤ 500); `quick_validate.py` passes.
+- Notes: non-blocking — the Outcomes list names approved / stop-at-review /
+  bounced / blocked but not the design-flaw return-to-`drafting` path; that
+  case is still handled correctly in Workflow Phase 4 step 2 ("design flaw …
+  durably recorded"), so this is a wording gap, not a missing behavior.
+- Parent roll-up stops here (two non-terminal siblings remain).
