@@ -2516,7 +2516,7 @@ describe("buildBwrapArgs", () => {
 });
 
 describe("discoverGitDirs", () => {
-	test("returns the git dir for an allowWrite root with a .git gitfile pointing outside the root", async () => {
+	test("returns the git dir for an opted-in allowWrite root with a .git gitfile pointing outside the root", async () => {
 		const cwd = await makeTempDir();
 		const workTree = join(cwd, "submodule");
 		await mkdir(workTree);
@@ -2526,11 +2526,11 @@ describe("discoverGitDirs", () => {
 		// gitfile: relative gitdir path resolved against the working tree root
 		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
 
-		const discovered = discoverGitDirs([workTree], cwd);
+		const discovered = discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true });
 		expect(discovered).toEqual([realpathSync(gitDir)]);
 	});
 
-	test("does not pin an escape gitfile target when discovery is disabled", async () => {
+	test("does not pin an escape gitfile target by default", async () => {
 		const cwd = await makeTempDir();
 		const workTree = join(cwd, "cloned-worktree");
 		const unrelatedGitDir = join(cwd, "unrelated-repo", ".git");
@@ -2539,7 +2539,7 @@ describe("discoverGitDirs", () => {
 		await writeFile(join(unrelatedGitDir, "HEAD"), "ref: refs/heads/main\n");
 		await writeFile(join(workTree, ".git"), `gitdir: ${unrelatedGitDir}\n`);
 
-		const pinnedGitDirs = discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: false });
+		const pinnedGitDirs = discoverGitDirs([workTree], cwd);
 		expect(pinnedGitDirs).toEqual([]);
 
 		const args = buildBwrapArgs({
@@ -2578,7 +2578,7 @@ describe("discoverGitDirs", () => {
 		await mkdir(notAGitDir);
 		await writeFile(join(workTree, ".git"), `gitdir: ${notAGitDir}\n`);
 
-		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
 	});
 
 	test("rejects a .git file pointing at a non-existent path", async () => {
@@ -2587,10 +2587,10 @@ describe("discoverGitDirs", () => {
 		await mkdir(workTree);
 		await writeFile(join(workTree, ".git"), `gitdir: ${join(cwd, "does-not-exist")}\n`);
 
-		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
 	});
 
-	test("resolves a relative gitdir path against the working tree root", async () => {
+	test("resolves a relative gitdir path against the working tree root when opted in", async () => {
 		const cwd = await makeTempDir();
 		const workTree = join(cwd, "sub");
 		await mkdir(workTree);
@@ -2600,7 +2600,7 @@ describe("discoverGitDirs", () => {
 		// Relative path: from workTree, ../modules/sub
 		await writeFile(join(workTree, ".git"), "gitdir: ../modules/sub\n");
 
-		const discovered = discoverGitDirs([workTree], cwd);
+		const discovered = discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true });
 		expect(discovered).toEqual([realpathSync(gitDir)]);
 	});
 
@@ -2616,7 +2616,7 @@ describe("discoverGitDirs", () => {
 		await writeFile(join(rootA, ".git"), `gitdir: ${gitDir}\n`);
 		await writeFile(join(rootB, ".git"), `gitdir: ${gitDir}\n`);
 
-		const discovered = discoverGitDirs([rootA, rootB], cwd);
+		const discovered = discoverGitDirs([rootA, rootB], cwd, { allowGitDirDiscovery: true });
 		expect(discovered).toEqual([realpathSync(gitDir)]);
 	});
 
@@ -2631,7 +2631,7 @@ describe("discoverGitDirs", () => {
 		await writeFile(join(innerGitDir, "HEAD"), "ref: refs/heads/main\n");
 		await writeFile(join(workTree, ".git"), `gitdir: inner-git\n`);
 
-		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
 	});
 
 	test("ignores a .git file that is not a valid gitfile (no gitdir: prefix)", async () => {
@@ -2640,7 +2640,7 @@ describe("discoverGitDirs", () => {
 		await mkdir(workTree);
 		await writeFile(join(workTree, ".git"), "this is not a gitfile\n");
 
-		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
 	});
 
 	test("buildBwrapArgs emits a --bind for a discovered submodule git dir", async () => {
@@ -2657,7 +2657,7 @@ describe("discoverGitDirs", () => {
 			cwd: workTree,
 			configCwd: cwd,
 			allowWrite: [workTree],
-			pinnedGitDirs: discoverGitDirs([workTree], cwd),
+			pinnedGitDirs: discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true }),
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
@@ -2704,7 +2704,7 @@ describe("discoverGitDirs", () => {
 			cwd: workTree,
 			configCwd: cwd,
 			allowWrite: [workTree],
-			pinnedGitDirs: discoverGitDirs([workTree], cwd),
+			pinnedGitDirs: discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true }),
 			denyRead: [],
 			denyWrite: [gitDir],
 			networkMode: "open",
@@ -2735,7 +2735,7 @@ describe("discoverGitDirs", () => {
 		await writeFile(join(origGitDir, "HEAD"), "ref: refs/heads/main\n");
 		await writeFile(join(workTree, ".git"), `gitdir: ${origGitDir}\n`);
 		// Pinned at init:
-		const pinned = discoverGitDirs([workTree], cwd);
+		const pinned = discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true });
 		expect(pinned).toEqual([realpathSync(origGitDir)]);
 
 		// Attacker mutates .git to point at a DIFFERENT real git repo (has HEAD)
@@ -2761,10 +2761,10 @@ describe("discoverGitDirs", () => {
 		expect(sequenceIndex(args, ["--bind", realpathSync(join(otherRepo, ".git")), realpathSync(join(otherRepo, ".git"))])).toBe(-1);
 	});
 
-	test("a fresh discoverGitDirs after mutation WOULD widen (proving pinning is the defense)", async () => {
-		// Negative control: if discovery were per-command (the old design), the
-		// mutated gitfile WOULD be picked up. This test documents WHY pinning
-		// matters — it's the regression guard for the security fix.
+	test("an opted-in fresh discoverGitDirs after mutation WOULD widen (proving pinning is the defense)", async () => {
+		// Negative control: if explicitly enabled discovery were per-command (the
+		// old design), the mutated gitfile WOULD be picked up. This test documents
+		// why pinning matters — it is separate from the secure default.
 		const cwd = await makeTempDir();
 		const workTree = join(cwd, "wt");
 		await mkdir(workTree);
@@ -2774,8 +2774,9 @@ describe("discoverGitDirs", () => {
 		await writeFile(join(otherRepo, ".git", "HEAD"), "ref: refs/heads/main\n");
 		await writeFile(join(workTree, ".git"), `gitdir: ${join(otherRepo, ".git")}\n`);
 
-		// A fresh discoverGitDirs (the per-command shape we do NOT use) picks it up.
-		expect(discoverGitDirs([workTree], cwd)).toEqual([realpathSync(join(otherRepo, ".git"))]);
+		// An explicitly enabled fresh discovery (the per-command shape we do NOT
+		// use) picks it up.
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([realpathSync(join(otherRepo, ".git"))]);
 	});
 
 	test("rejects a multiline gitfile (junk\\ngitdir: /target)", async () => {
@@ -2788,7 +2789,7 @@ describe("discoverGitDirs", () => {
 		// Not a valid gitfile: content before the gitdir line
 		await writeFile(join(workTree, ".git"), `junk\ngitdir: ${target}\n`);
 
-		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
 	});
 
 	test("rejects a gitdir target whose HEAD is a directory, not a regular file", async () => {
@@ -2801,7 +2802,7 @@ describe("discoverGitDirs", () => {
 		await mkdir(join(target, "HEAD"));
 		await writeFile(join(workTree, ".git"), `gitdir: ${target}\n`);
 
-		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
 	});
 
 	test("rejects a gitfile with a CR before the path (gitdir:\\r/target)", async () => {
@@ -2821,7 +2822,7 @@ describe("discoverGitDirs", () => {
 		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
 	});
 
-	test("accepts a gitfile with a trailing CRLF", async () => {
+	test("accepts an opted-in gitfile with a trailing CRLF", async () => {
 		const cwd = await makeTempDir();
 		const workTree = join(cwd, "submodule");
 		await mkdir(workTree);
@@ -2831,7 +2832,7 @@ describe("discoverGitDirs", () => {
 		// CRLF line ending (Windows-style) — should still parse
 		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\r\n`);
 
-		const discovered = discoverGitDirs([workTree], cwd);
+		const discovered = discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true });
 		expect(discovered).toEqual([realpathSync(gitDir)]);
 	});
 
@@ -2849,7 +2850,7 @@ describe("discoverGitDirs", () => {
 			cwd: workTree,
 			configCwd: cwd,
 			allowWrite: [workTree],
-			pinnedGitDirs: discoverGitDirs([workTree], cwd),
+			pinnedGitDirs: discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true }),
 			denyRead: [gitDir],
 			denyWrite: [],
 			networkMode: "open",
@@ -2880,7 +2881,7 @@ describe("discoverGitDirs", () => {
 			cwd: workTree,
 			configCwd: cwd,
 			allowWrite: [workTree, gitDir],
-			pinnedGitDirs: discoverGitDirs([workTree], cwd),
+			pinnedGitDirs: discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true }),
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
@@ -3193,7 +3194,7 @@ socket.once("error", (error) => {
 				cwd: workTree,
 				configCwd: cwd,
 				allowWrite: [workTree],
-				pinnedGitDirs: discoverGitDirs([workTree], cwd),
+				pinnedGitDirs: discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true }),
 				denyRead: [],
 				denyWrite: [],
 				networkMode: "open",

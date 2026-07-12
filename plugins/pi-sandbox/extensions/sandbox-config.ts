@@ -1430,7 +1430,7 @@ export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: Env
 		],
 		allowWrite: [".", "/tmp"],
 		denyWrite: [".env"],
-		allowGitDirDiscovery: true,
+		allowGitDirDiscovery: false,
 	},
 	tools: {
 		default: "allow",
@@ -2083,7 +2083,7 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 		`  Deny Read: ${config.filesystem?.denyRead?.join(", ") || "(none)"}`,
 		`  Allow Write: ${config.filesystem?.allowWrite?.join(", ") || "(none)"}`,
 		`  Deny Write: ${config.filesystem?.denyWrite?.join(", ") || "(none)"}`,
-		`  Git directory discovery: ${(config.filesystem?.allowGitDirDiscovery ?? true) ? "active" : "disabled"} (global/operator-only)`,
+		`  Git directory discovery: ${(config.filesystem?.allowGitDirDiscovery ?? false) ? "active" : "disabled"} (global/operator-only)`,
 		"",
 		"Unsupported legacy config fields:",
 		...legacy.map((warning) => `  ${warning}`),

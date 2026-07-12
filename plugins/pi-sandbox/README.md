@@ -132,17 +132,17 @@ escape is a known 0.1.0 limitation; do not describe it as selective removal.
 - Linux `bwrap` cannot enforce glob-shaped `denyWrite` entries; the extension warns when it sees them.
 - `backgroundTasks.sandboxIntegration` defaults to `"auto"`. Set it to `"off"` only as an explicit operator bypass for background/monitor sandboxing; project-local config cannot loosen a global/default `"auto"` posture to `"off"`.
 - Config fields not recognized by this package's first-party contract are ignored with warnings and are not treated as active security controls.
-- **Git directory auto-discovery (submodules and linked worktrees):** `filesystem.allowGitDirDiscovery` defaults to `true` so an `allowWrite` root whose `.git` is a gitfile can use submodule and linked-worktree metadata without hand-configuration. Discovery is pinned once at session start. **Residual: a malicious gitfile in a cloned repository can point at an arbitrary external host Git directory (one with a regular `HEAD`) and make that directory writable.** The `HEAD` check rejects non-Git targets such as `/etc`, but cannot distinguish a Git-created linked-worktree target from an attacker-selected Git directory. Operators who clone untrusted repositories **MUST** set this global configuration (never project-local, which is rejected with a warning):
+- **Git directory auto-discovery (submodules and linked worktrees):** `filesystem.allowGitDirDiscovery` defaults to `false`; operators who use submodules or linked worktrees opt in globally (project-local configuration is rejected with a warning):
 
   ```json
   {
     "filesystem": {
-      "allowGitDirDiscovery": false
+      "allowGitDirDiscovery": true
     }
   }
   ```
 
-  With discovery disabled, no external gitfile target is pinned or added to `allowWrite`; the normal `.git` directory inside an allowWrite root remains covered by that root bind. Leave discovery enabled only where linked worktree/submodule compatibility is trusted. `denyRead`/`denyWrite` always take precedence. One level of gitfile indirection only: a linked worktree's `commondir` (shared object/ref store) is not followed, so linked worktrees get per-worktree metadata access only — an operator who needs shared ref writes adds the common dir to `allowWrite` explicitly. The `background`/`monitor` tools do not auto-discover git dirs (they have no session-pinned state); commands needing git operations in a submodule should run via the sandboxed `bash` tool.
+  With the secure default, no external gitfile target is pinned or added to `allowWrite`; the normal `.git` directory inside an allowWrite root remains covered by that root bind. **Set `true` only when the repository is trusted and its submodule/linked-worktree compatibility is required:** a malicious gitfile can point at an arbitrary external host Git directory with a regular `HEAD` and make it writable. The `HEAD` check rejects non-Git targets such as `/etc`, but cannot distinguish a Git-created linked-worktree target from an attacker-selected Git directory. `denyRead`/`denyWrite` always take precedence. One level of gitfile indirection only: a linked worktree's `commondir` (shared object/ref store) is not followed, so linked worktrees get per-worktree metadata access only — an operator who needs shared ref writes adds the common dir to `allowWrite` explicitly. The `background`/`monitor` tools do not auto-discover git dirs (they have no session-pinned state); commands needing git operations in a submodule should run via the sandboxed `bash` tool.
 
 ## Network modes
 

@@ -609,12 +609,13 @@ export default function (pi: ExtensionAPI) {
 		// per-command re-read would let an agent mutate it between commands to
 		// widen the writable surface. The HEAD regular-file check rejects non-git
 		// targets but cannot distinguish a legitimate linked worktree from an
-		// arbitrary external Git directory. Global-only allowGitDirDiscovery lets
-		// operators disable this widening for untrusted-clone workflows; denyWrite
-		// still takes precedence in enforceWritePolicy. The in-process file tools
-		// allow writes to discovered paths via the allowWrite augmentation below.
+		// arbitrary external Git directory. Global-only allowGitDirDiscovery is
+		// disabled by default; operators opt in only for trusted submodule or linked
+		// worktree workflows. denyWrite still takes precedence in enforceWritePolicy.
+		// The in-process file tools allow writes to discovered paths via the
+		// allowWrite augmentation below.
 		const discoveredGitDirs = discoverGitDirs(config.filesystem?.allowWrite ?? [], ctx.cwd, {
-			allowGitDirDiscovery: config.filesystem?.allowGitDirDiscovery ?? true,
+			allowGitDirDiscovery: config.filesystem?.allowGitDirDiscovery ?? false,
 		});
 		sandboxPolicy = {
 			denyRead,
