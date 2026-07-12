@@ -31,6 +31,7 @@ Keep the qualities that define the plugin: Item-IS-the-Work, dependency and cycl
 - Normal design resolves routine/reversible decisions with judgment and logs rationale; reserve user questions for product direction, external contracts, and expensive irreversible choices. `--only-questions` remains the explicit alignment mode.
 - Advisory review follows risk rather than being useful only under autopilot.
 - Autopilot and project conventions expose a high-level `review_weight` selector (`none | light | standard | thorough | maximum`, default `standard`) that scales independent reviewer breadth and pass depth without prescribing exact orchestration. Explicit invocation overrides project convention. `none` skips independent review, never implementation verification.
+- Model guidance recognizes GPT-5.6 Luna as the implementation workhorse, Sol as the preferred design/review/complex-code model and low-thinking bridge above Luna, Terra as a situational middle pick, and Fable as a high-cost design/orchestration/review specialist rather than a default implementer.
 - The common prose lane and specific bug-fix lane should complete end to end instead of requiring ceremonial follow-up invocations.
 - Consolidate repeated policy into canonical auto-loaded homes and shrink oversized skill bodies through progressive disclosure, without hiding load-bearing invariants in optional references.
 
@@ -44,6 +45,7 @@ Keep the qualities that define the plugin: Item-IS-the-Work, dependency and cycl
 - [ ] Design-family question policy is based on reversibility and user-facing consequence, while `--only-questions` remains interactive-only.
 - [ ] Cross-model/fresh-context advisory review is risk-driven across direct and autopilot design modes.
 - [ ] Effective review weight resolves explicit invocation → project convention → `standard`, is logged, and scales review from no independent reviewer through multi-model multi-pass review while leaving exact topology to the reviewing agent.
+- [ ] Model recommendations cover GPT-5.6 Luna/Terra/Sol and Fable with role, effort, bridge, and cost guidance in the model-layer reference.
 - [ ] Common prose work and verified bug fixes can complete through review in one invocation.
 - [ ] Repeated dispatch, caller-awareness, routing, and test-integrity prose is consolidated without weakening worker self-containment.
 - [ ] Touched SKILL.md files follow repo-skill-style limits through progressive disclosure where practical, and no updated SKILL.md exceeds 500 lines.
