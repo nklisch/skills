@@ -8,24 +8,28 @@ statement.
 
 ## Two boundaries
 
-Pi runs as `agent:agent` in an operator-controlled VM. The **outer VM
-boundary** is the primary host-security boundary: it owns host isolation and
-broad damage containment. pi-sandbox does not claim to secure the host outside
-that VM.
+pi-sandbox assumes an **outer host-isolation boundary** already exists — a VM,
+a container, a dedicated host, a separate OS account, or whatever else the
+operator chose to own host isolation and broad damage containment. The package
+neither provides nor claims to be that outer boundary.
 
-Within that VM, pi-sandbox provides an **inner credential-isolation boundary**
-for mediated Linux bash: bwrap supplies a fresh PID namespace, private `/proc`,
-read masks, and a minimal child environment. The package also applies configured
-read policy to Pi's `read` tool and supplies the same bwrap spawn contract to
-background/monitor when their integration is active. The in-process file policy
-is defense in depth, not a concurrency-hard boundary against a same-user process
-running arbitrary code.
+Within that outer boundary, pi-sandbox provides an **inner same-user
+credential-isolation boundary** for mediated Linux bash: bwrap supplies a fresh
+PID namespace, private `/proc`, read masks, and a minimal child environment. The
+package also applies configured read policy to Pi's `read` tool and supplies the
+same bwrap spawn contract to background/monitor when their integration is
+active. The in-process file policy is defense in depth, not a concurrency-hard
+boundary against a same-user process running arbitrary code.
 
-This is deliberately narrower than complete session isolation. Trusted Pi
-extensions/packages still run with the user's normal permissions; direct
-RPC/API bash is not mediated by the extension; non-Linux bash is not
-OS-sandboxed; and a concurrent hardlink + deny-path race remains for in-process
-file tools. Those limits are release-scope gaps, not exceptions to the model.
+This is deliberately narrower than complete session isolation. The scope was
+chosen for deployments where the outer boundary already does the
+host-isolation work, so the inner membrane's job is only to keep credentials
+held by Pi's trusted control plane unavailable to model-run commands and file
+tools running as the same Unix user. Trusted Pi extensions/packages still run
+with the user's normal permissions; direct RPC/API bash is not mediated by the
+extension; non-Linux bash is not OS-sandboxed; and a concurrent hardlink +
+deny-path race remains for in-process file tools. Those limits are release-scope
+gaps, not exceptions to the model.
 
 ## Protected credentials and enforcement
 
@@ -245,9 +249,9 @@ seccomp (Issue #214), as pi-sandbox's equivalent bwrap use can too.
 ### Gondolin and OpenShell: posture references, not backends
 
 **Gondolin** is a full local Linux micro-VM with userspace networking and
-secret injection without delivery. Nested inside the operator VM, it is a
-redundant VM boundary and its strengths are orthogonal to pi-sandbox's narrow
-same-user credential membrane.
+secret injection without delivery. Nested inside an operator's existing outer
+boundary, it is a redundant VM boundary and its strengths are orthogonal to
+pi-sandbox's narrow same-user credential membrane.
 
 **OpenShell** is a whole-agent governance platform that runs an agent in a
 managed sandbox/pod with declarative policy across multiple layers. Pi would
@@ -327,11 +331,11 @@ This is the single source of truth for the 0.1.0 package promise.
   the helper's file or socket path as a literal, existing global `denyRead`
   entry (globs are not bwrap-enforced; nonexistent paths are skipped), or accept
   this residual.
-- On non-Linux, bash is unsandboxed; the outer VM and in-process policy are the
-  remaining protections.
+- On non-Linux, bash is unsandboxed; the outer boundary and in-process policy
+  are the remaining protections.
 - `filter` is deferred and fail closed.
-- `--proc /proc` can fail under default container seccomp; the operator VM
-  must resolve that environment-level limitation.
+- `--proc /proc` can fail under default container seccomp; the operator's
+  outer boundary/environment must resolve that limitation.
 
 ### Post-0.1.0 / v1 path
 
