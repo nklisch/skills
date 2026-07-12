@@ -199,10 +199,10 @@ FAMILY_SKILLS=(
 
 # grounds_on_rules <skill-md> — true iff the file references the
 # `.agents/rules/*.md` path AND a "force-loaded" grounding descriptor appears
-# within +/- GROUND_WINDOW lines of that path. Window-based so it tolerates the
-# line-wrapping some skills use ("...the project's force-loaded" / "agent rules"
-# on the next line) without weakening to a bare path match.
-GROUND_WINDOW=2
+# within +/- GROUND_WINDOW lines of that path. Window-based so it tolerates both
+# line wrapping and compact grounding lists where the path and the re-read
+# instruction are neighboring bullets, without weakening to a bare path match.
+GROUND_WINDOW=5
 grounds_on_rules() {
   local md="$1"
   local total; total="$(wc -l < "$md")"

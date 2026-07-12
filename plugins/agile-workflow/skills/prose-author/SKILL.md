@@ -160,10 +160,15 @@ fan-out. Do not route prose features to `/agile-workflow:implement-orchestrator`
 (agent-spawning + worktrees) just because they exceed a line count; the
 orchestrator's value is parallel coordination, which prose work does not need.
 
-For a large deliverable, the inline `implement` is the **write** stride and
-`review` is a genuine **revise/coherence** pass — not a rubber stamp. For the
-common small case, implement is the one stride that finishes the work and review
-is light.
+For a large deliverable, inline `implement` is the **write** stride and the
+review lane is a genuine **revise/coherence** pass — never a rubber stamp. For a
+small deliverable, the same review may be light, but it still evaluates the work.
+In both cases, `/agile-workflow:implement` continues through that review lane to
+`done` by default in one invocation, forwarding the effective review weight, or
+returns with a documented bounce or blocker. Even when policy skips independent
+review, closure still requires green verification and acceptance evidence. The
+lane stops at `review` only when the caller explicitly requests `stop-at-review`
+(or the project convention sets that boundary).
 
 ## Output
 
