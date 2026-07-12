@@ -1,7 +1,7 @@
 ---
 id: feature-agile-workflow-lifecycle-agency-orchestrator-rewrite
 kind: story
-stage: implementing
+stage: review
 tags: [skill, plugin]
 parent: feature-agile-workflow-lifecycle-agency
 depends_on: []
@@ -84,18 +84,18 @@ invariant terms rather than numerical recipes.
 
 ## Acceptance criteria
 
-- [ ] No bundle examples, sizing recipes, fixed wave widths, or prescribed
+- [x] No bundle examples, sizing recipes, fixed wave widths, or prescribed
   prompt templates remain in the file.
-- [ ] The load-bearing invariants above are all present and load-bearing
+- [x] The load-bearing invariants above are all present and load-bearing
   (not buried only in a reference).
-- [ ] The orchestrator continues through the review lane by default;
+- [x] The orchestrator continues through the review lane by default;
   `stop-at-review` is honored.
-- [ ] Worker capability is chosen from risk/scope and logged; no routine
+- [x] Worker capability is chosen from risk/scope and logged; no routine
   model-tier question.
-- [ ] Worker self-containment preserved — worker prompts still carry the full
+- [x] Worker self-containment preserved — worker prompts still carry the full
   boundary and test-integrity text, generated from the posture reference.
-- [ ] `implement-orchestrator/SKILL.md` ≤ 500 lines.
-- [ ] SKILL.md frontmatter remains portable (`name`, `description` only) per
+- [x] `implement-orchestrator/SKILL.md` ≤ 500 lines.
+- [x] SKILL.md frontmatter remains portable (`name`, `description` only) per
   `repo-skill-style`.
 
 ## Notes
@@ -106,3 +106,37 @@ invariant terms rather than numerical recipes.
   lane/roll-up work is `…-review-lane-rollup`.
 - Do not edit `principles/SKILL.md` here — advisory/question policy is
   `…-question-advisory-policy`.
+
+## Implementation notes
+
+- Files changed:
+  - `plugins/agile-workflow/skills/implement-orchestrator/SKILL.md`
+  - `.work/active/stories/feature-agile-workflow-lifecycle-agency-orchestrator-rewrite.md`
+- Dispatch rationale: implemented directly because this story grants exclusive
+  ownership of one skill file and explicitly prohibits delegation.
+- Replaced the recipe-driven orchestrator with outcome and invariant contracts
+  for grounding/freshness, unified dependency scheduling, write ownership,
+  worker-derived topology, per-wave integration verification, per-item commits,
+  conservative parent roll-up, and proactive review completion.
+- Replaced worker prompt templates with dynamic brief requirements sourced from
+  the implementer posture while retaining ownership boundaries, dependency and
+  land-mode checks, the design-flaw escape hatch, verification, per-item
+  commits, complete test-integrity rules, and constructive emotional framing.
+- Worker capability is now chosen from risk and scope unless overridden and is
+  recorded without a routine tier question.
+- Added the accepted review-weight handoff: caller/autopilot override, then
+  project convention, then `standard`; the effective value is recorded and
+  passed to review, while `none` still requires green implementation
+  verification and skips independent review.
+- Tests added: none; this story changes a portable skill contract rather than
+  executable code.
+- Validation:
+  - Targeted contract assertions passed, including required invariants,
+    forbidden legacy recipes/templates, portable frontmatter, and the 500-line
+    ceiling (`291` lines).
+  - Skill validator passed:
+    `python3 /home/nathan/.codex/skills/.system/skill-creator/scripts/quick_validate.py plugins/agile-workflow/skills/implement-orchestrator`.
+  - `git diff --check` passed for the skill file.
+- Discrepancies from design: none; the accepted `review_weight` requirement was
+  incorporated as a high-level review handoff without duplicating review policy.
+- Adjacent issues parked: none.
