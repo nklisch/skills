@@ -1,7 +1,7 @@
 ---
 id: feature-agile-workflow-lifecycle-agency-question-advisory-policy
 kind: story
-stage: implementing
+stage: review
 tags: [skill, plugin]
 parent: feature-agile-workflow-lifecycle-agency
 depends_on: []
@@ -117,3 +117,15 @@ No other story edits these files.
 - Worker-facing test-integrity and boundary prose in
   `principles/references/subagents.md` is **not** touched here — that file is
   the self-containment anchor for worker prompts and stays as-is.
+
+## Implementation notes
+
+- Files changed: `principles/SKILL.md`; `principles/references/{advisory-review,code-design,models}.md`; `feature-design/SKILL.md`; `epic-design/SKILL.md`; `refactor-design/SKILL.md`; `perf-design/SKILL.md`; this story.
+- Policy: normal questions now follow reversibility and material consequence; advisory review is risk-driven across direct and autopilot modes; `review_weight` is canonical at `none | light | standard | thorough | maximum` with `standard` default and agency-preserving topology selection.
+- Progressive disclosure: moved code-design examples/checklists and advisory scope/loop mechanics to references while retaining code-design, question, independent-review, two-phase, failure, and completion invariants in auto-loaded prose.
+- Model reference: added recommendation-level GPT-5.6 Luna/Terra/Sol and Claude Fable guidance while preserving model-lineage labeling and fresh-context fallbacks.
+- Validation: all five touched skills passed `quick_validate.py`; owned SKILL files are 420/433/425/383/426 lines; touched references are 69/107/170 lines with a contents table where required; policy/deference probes and `git diff --check` passed.
+- Tests added: none (prose contract change; targeted skill and structural validation used).
+- Discrepancies from design: none.
+- Follow-up: review/autopilot consumption plus configuration-schema and foundation-doc documentation for `review_weight` remain with their owning concurrent/follow-up stories.
+- Adjacent issues parked: none.
