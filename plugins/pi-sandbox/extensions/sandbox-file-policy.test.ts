@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { link, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { link, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { makeReadOperations, makeWriteOperations, type SandboxPolicy } from "./sandbox-file-policy";
+import { enforceWritePolicy, makeEditOperations, makeReadOperations, makeWriteOperations, type SandboxPolicy } from "./sandbox-file-policy";
 
 const tempDirs: string[] = [];
 
@@ -141,6 +141,26 @@ describe("fd-based in-process file policy", () => {
 		expect(safeWrites).toBeGreaterThan(0);
 		expect(rejectedWrites).toBeGreaterThan(0);
 		expect(await readFile(deniedFile, "utf8")).toBe("SECRET");
+	});
+
+	test("legitimate leaf symlinks are rejected by fd-bound read, write, and edit operations", async () => {
+		const cwd = await makeTempDir();
+		const deniedFile = join(cwd, "credential");
+		const target = join(cwd, "allowed-target");
+		const leafSymlink = join(cwd, "allowed-link");
+		await writeFile(deniedFile, "SECRET");
+		await writeFile(target, "SAFE");
+		await symlink(target, leafSymlink);
+		const policy = policyFor(cwd, deniedFile);
+
+		// The canonical target is inside allowWrite, so this is a legitimate
+		// symlink under the path policy. The fd layer must nevertheless reject its
+		// leaf with O_NOFOLLOW to avoid reopening the TOCTOU swap window.
+		expect(() => enforceWritePolicy(leafSymlink, cwd, policy)).not.toThrow();
+		await expect(makeReadOperations(cwd, policy).readFile(leafSymlink)).rejects.toMatchObject({ code: "ELOOP" });
+		await expect(makeWriteOperations(cwd, policy).writeFile(leafSymlink, "MODEL_WRITE")).rejects.toMatchObject({ code: "ELOOP" });
+		await expect(makeEditOperations(cwd, policy).access(leafSymlink)).rejects.toMatchObject({ code: "ELOOP" });
+		expect(await readFile(target, "utf8")).toBe("SAFE");
 	});
 
 	test("a hardlink created after read-policy installation cannot disclose a denied credential", async () => {

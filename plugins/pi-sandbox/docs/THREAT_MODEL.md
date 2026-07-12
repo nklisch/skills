@@ -287,9 +287,10 @@ This is the single source of truth for the 0.1.0 package promise.
   environment without provider or forge tokens.
 - In-process `read`/`write`/`edit` apply `denyRead`/`denyWrite`/`allowWrite`,
   then open with `O_NOFOLLOW`, validate the opened inode/link count, and perform
-  I/O through that descriptor. This closes leaf-symlink swaps and post-start
-  hardlink aliases, including when bash is fail-closed or OS sandboxing is
-  unavailable.
+  I/O through that descriptor. This closes TOCTOU leaf-symlink swaps, including
+  when bash is fail-closed or OS sandboxing is unavailable. It intentionally
+  rejects leaf symlinks even when their targets are allowed; symlinked parent
+  directories remain supported.
 - Tool-egress allow/auto/confirm/block policy applies to built-in and
   extension-registered tools; the optional inspector scans tool input.
 - Boundary-establishment failures fail closed; `filter` is recognized but
