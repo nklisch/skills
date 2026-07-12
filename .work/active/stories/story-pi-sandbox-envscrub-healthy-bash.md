@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-envscrub-healthy-bash
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, plugin]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []

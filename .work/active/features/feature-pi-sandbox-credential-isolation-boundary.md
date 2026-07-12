@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-credential-isolation-boundary
 kind: feature
-stage: implementing
+stage: done
 tags: [security, sandbox, plugin]
 parent: null
 depends_on: []
@@ -10,7 +10,7 @@ gate_origin: null
 research_refs: [sandboxed-git-auth-patterns]
 research_origin: null
 created: 2026-07-11
-updated: 2026-07-11
+updated: 2026-07-12
 ---
 
 # Narrow pi-sandbox to a credential-isolation boundary
@@ -535,3 +535,16 @@ A fresh-context adversarial re-review (codex-sol, xhigh) ran against the reworke
 - **R2 — RESOLVED**: LC_FORGE_TOKEN scrubbed, LC_ALL preserved, envScrub threaded to healthy bash + background/monitor, dead scrubEnv removed.
 
 Feature bounced (still `implementing`). The R1 default posture and the R4 inode-identity fix are the open work. This is the second fresh re-review that found real issues the host's inline verification missed — confirming the process discipline is necessary.
+
+## Option-A rework pass + re-reviews 3 (2026-07-11)
+
+**Verdict**: Approve — 0.1.0 shippable as a credential-isolation boundary with documented residuals
+
+0.1.0 decision (option A, operator-approved): treat the in-process file policy AND the bwrap hardlink guard as defense-in-depth (not concurrency-hard); document residuals honestly; park the inode-identity redesign post-0.1.0.
+
+- **R1 — RESOLVED**: `allowGitDirDiscovery` default flipped `true`→`false` (secure by default); operators who use submodules/linked worktrees opt in globally; project-local can't set it. Re-review 3 found a stale `Defaults to true` comment — fixed.
+- **R2 — RESOLVED** (prior pass): envScrub applies to healthy bash; `LC_*` tokens scrubbed.
+- **R3 — RESOLVED**: TOCTOU symlink swap closed by fd-based `O_NOFOLLOW` + inode revalidation. Leaf-symlink behavior change documented (operators resolve the symlink / use the target path). Re-review 3 found the guidance said "add to allowWrite" (wrong — O_NOFOLLOW rejects regardless) — corrected.
+- **R4 — RESOLVED-WITH-RESIDUAL (documented)**: the fd-based nlink guard catches non-concurrent hardlinks; the concurrent deny-path-race is documented as a known residual spanning BOTH the in-process tools AND bwrap (re-review 3 found the docs over-claimed bwrap as the concurrency-hard 'primary boundary' — corrected to 'stronger boundary, not concurrency-hard'). Inode-identity redesign parked as `story-pi-sandbox-inode-identity-redesign`, scoped to both boundaries.
+
+Re-review loop stopped at pass 3: findings converged from verified reproducible bypasses (passes 1-2) to documentation scope honesty (pass 3), all now addressed. Honest stopping condition met: docs match code, defaults secure, no over-claim remains. Suite 241 pass / 0 fail. Feature advances to `done`.

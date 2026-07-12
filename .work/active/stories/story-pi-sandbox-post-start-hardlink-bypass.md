@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-post-start-hardlink-bypass
 kind: story
-stage: review
+stage: done
 tags: [security, sandbox, plugin, documentation]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
