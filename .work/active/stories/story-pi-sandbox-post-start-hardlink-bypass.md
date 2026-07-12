@@ -1,7 +1,7 @@
 ---
 id: story-pi-sandbox-post-start-hardlink-bypass
 kind: story
-stage: implementing
+stage: review
 tags: [security, sandbox, plugin, documentation]
 parent: feature-pi-sandbox-credential-isolation-boundary
 depends_on: []
@@ -57,3 +57,5 @@ not concurrency-hard against a same-user adversary running arbitrary code.
 - The fd-based fix landed (commit `39b4f79`): after `open(... | O_NOFOLLOW)` and `fstat`, a multiply-linked regular file triggers the shared denied-file hardlink scan at operation time.
 - A fresh-context re-review reproduced a concurrent bypass: while the guard rescans deny pathnames, a same-user process can move the denied pathname aside (ENOENT skipped) while the open fd still references the credential inode through a hardlink alias. 10,000-attempt probe disclosed 59.6%.
 - The fd-based guard is insufficient. The 0.1.0 deliverable for THIS story is now the documentation (above); the full inode-identity fix is parked post-0.1.0.
+- Documented the residual in README and THREAT_MODEL: the fd-based nlink guard catches non-concurrent post-start hardlink aliases and `O_NOFOLLOW` closes the TOCTOU leaf-symlink swap, but a same-user adversary running arbitrary code can win the concurrent deny-pathname race by moving the denied path aside during the guard rescan.
+- The release scope and controls triage now identify the in-process file policy as defense in depth, not a concurrency-hard boundary; bwrap is the primary OS boundary for sandboxed bash. The Release scope known-gaps list and post-0.1.0 path name `story-pi-sandbox-inode-identity-redesign`.

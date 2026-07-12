@@ -13,18 +13,19 @@ boundary** is the primary host-security boundary: it owns host isolation and
 broad damage containment. pi-sandbox does not claim to secure the host outside
 that VM.
 
-Within that VM, pi-sandbox provides an **inner credential-isolation boundary**:
-it keeps credentials held by Pi's trusted control plane unavailable to
-model-controlled shell commands and in-process file tools that run as the same
-Unix user. On Linux, this means bwrap-mediated bash with a fresh PID namespace,
-private `/proc`, read masks, and a minimal child environment. The inner boundary
-also applies configured read policy to Pi's `read` tool and supplies the same
-bwrap spawn contract to background/monitor when their integration is active.
+Within that VM, pi-sandbox provides an **inner credential-isolation boundary**
+for mediated Linux bash: bwrap supplies a fresh PID namespace, private `/proc`,
+read masks, and a minimal child environment. The package also applies configured
+read policy to Pi's `read` tool and supplies the same bwrap spawn contract to
+background/monitor when their integration is active. The in-process file policy
+is defense in depth, not a concurrency-hard boundary against a same-user process
+running arbitrary code.
 
 This is deliberately narrower than complete session isolation. Trusted Pi
 extensions/packages still run with the user's normal permissions; direct
-RPC/API bash is not mediated by the extension; and non-Linux bash is not
-OS-sandboxed. Those limits are release-scope gaps, not exceptions to the model.
+RPC/API bash is not mediated by the extension; non-Linux bash is not
+OS-sandboxed; and a concurrent hardlink + deny-path race remains for in-process
+file tools. Those limits are release-scope gaps, not exceptions to the model.
 
 ## Protected credentials and enforcement
 
@@ -42,10 +43,11 @@ complementary:
 | Provider and GitHub environment tokens | Healthy bwrap children receive a minimal whitelist (`PATH`, `HOME`, `TERM`, `LANG`, `TMPDIR`, and `LC_*` locale vars) and then apply `envScrub`, so operator-registered names/patterns are removed on the healthy path as well as the degraded path; degraded background/monitor spawns additionally strip the non-configurable provider-secret floor, including `GITHUB_TOKEN`, `GH_TOKEN`, and `COPILOT_GITHUB_TOKEN`. | Add Forgejo or other deployment-specific names/patterns through global `envScrub.names` / `envScrub.patterns`. |
 | Forgejo credentials | No Forgejo path or environment name is assumed by default. | Register its file locations in global `denyRead` and token variables in global `envScrub`. |
 
-The bwrap layer is the OS-level protection for sandboxed Linux bash. The
-in-process file policy provides parity for `read` even if bwrap is unavailable
-and bash is fail-closed. `write` and `edit` enforce their configured write
-policy; they are not a substitute for read masking.
+The bwrap layer is the primary OS-level protection for sandboxed Linux bash.
+The in-process file policy provides defense-in-depth parity for `read` even if
+bwrap is unavailable and bash is fail-closed. `write` and `edit` enforce their
+configured write policy; they are not a substitute for read masking or a
+concurrency-hard same-user boundary.
 
 ## Required-boundary status
 
@@ -54,10 +56,10 @@ policy; they are not a substitute for read masking.
 | 1 | Separate PID namespace and private `/proc` | **MET** | `buildBwrapArgs`: `--unshare-pid --proc /proc` |
 | 2 | Minimal child environment without tokens/sockets | **MET** | bwrap `buildMinimalEnv`; degraded spawns use the provider-secret scrub floor, including `GITHUB_TOKEN` and `GH_TOKEN` |
 | 3 | Read masking for credential-bearing paths | **MET (file-backed stores); helper/socket/keyring stores are operator-registered or out of scope for 0.1.0** | bwrap deny overlays and `enforceDenyRead`; defaults include SSH/GPG/Pi/GitHub/file-backed Git stores, while operators register Forgejo and helper file/socket locations as literal paths |
-| 4 | Equivalent enforcement in `read` | **MET** | `makeReadOperations` → `enforceDenyRead` |
+| 4 | Equivalent enforcement in `read` | **MET for non-concurrent policy checks; defense in depth for same-user races** | `makeReadOperations` → `enforceDenyRead` plus fd-bound I/O; see the concurrent hardlink residual |
 | 5 | Same boundary for background and monitor | **MET** when Linux integration is active | `buildSandboxedSpawnArgs`, sandbox bridge handshake, and `backgroundTasks.sandboxIntegration` |
 | 6 | Fail closed when the boundary cannot be established | **MET** | fail-closed state, `createFailClosedPolicy`, and degraded-spawn secret stripping |
-| 7 | Writable-surface contract and pinned Git directories | **MET with documented discovery opt-out** | `discoverGitDirs`, session-pinned Git dirs, global-only `filesystem.allowGitDirDiscovery`, and additive-only `allowWrite` |
+| 7 | Writable-surface contract and pinned Git directories | **MET with secure default and trusted opt-in** | `discoverGitDirs`, session-pinned Git dirs, global-only `filesystem.allowGitDirDiscovery`, and additive-only `allowWrite` |
 | 8 | Non-secret capability signal for a forge extension | **MET** | credential-boundary capability symbol and `/sandbox` diagnostic |
 
 “MET” does not erase the explicitly documented residuals below. In particular,
@@ -147,17 +149,17 @@ global/operator configuration may set `bwrapPath`, `enabled:false`, or
 boundary itself. This lets an operator add a chosen Forgejo credential store
 without making a checkout capable of weakening that protection.
 
-Gitfile discovery is enabled by default for linked-worktree and submodule
-compatibility. When enabled, a gitfile at session start can point at an
-arbitrary external host Git directory with a regular `HEAD`, and that directory
-is pinned writable. The `HEAD` check rejects non-Git paths such as `/etc`, but
-cannot tell a Git-created linked-worktree target from an attacker-selected Git
-directory. Operators who clone untrusted repositories **MUST** set
-`filesystem.allowGitDirDiscovery: false` in global configuration. Project-local
-config cannot re-enable discovery: such attempts are rejected with a warning.
-With discovery disabled, no external gitfile target is added to the writable
-surface; an ordinary `.git` directory under an `allowWrite` root remains
-writable through the root bind.
+Gitfile discovery is disabled by default. Operators who use submodules or
+linked worktrees may set `filesystem.allowGitDirDiscovery: true` in global
+configuration only; project-local config cannot enable discovery and such
+attempts are rejected with a warning. With the secure default, no external
+gitfile target is added to the writable surface; an ordinary `.git` directory
+under an `allowWrite` root remains writable through the root bind. An operator
+**MUST set `true` only for a trusted repository**: when enabled, a gitfile at
+session start can point at an arbitrary external host Git directory with a
+regular `HEAD`, and that directory is pinned writable. The `HEAD` check rejects
+non-Git paths such as `/etc`, but cannot tell a Git-created linked-worktree
+target from an attacker-selected Git directory.
 
 Global `filesystem.denyRead` has an intentionally narrow but potentially
 surprising merge rule in 0.1.0:
@@ -272,6 +274,7 @@ Reassess the decision if any of these occur:
 | --- | --- | --- |
 | Tool-egress policy | **Core** | Reduces credential exfiltration through subagents, web/search, and other tools; required for in-process boundary parity. |
 | Writable-surface policy | **Core** | Defines the required writable surface and protects the pinned Git-directory contract. |
+| In-process file policy | **Defense in depth** | FD-bound I/O closes the TOCTOU leaf-symlink swap and detects ordinary post-start hardlink aliases, but is not concurrency-hard against same-user arbitrary code; bwrap is the primary Linux bash boundary. |
 | Secret-shape inspector | **Optional defense in depth** | Opt-in detection of secrets already present in tool input; useful, but not the credential-isolation boundary. It may be split later. |
 | Network `filter` mode | **Deferred and tracked** | Kept as a recognized fail-closed mode; real proxy filtering needs separate topology and proof. |
 
@@ -287,7 +290,8 @@ This is the single source of truth for the 0.1.0 package promise.
   environment without provider or forge tokens.
 - In-process `read`/`write`/`edit` apply `denyRead`/`denyWrite`/`allowWrite`,
   then open with `O_NOFOLLOW`, validate the opened inode/link count, and perform
-  I/O through that descriptor. This closes TOCTOU leaf-symlink swaps, including
+  I/O through that descriptor. This closes the TOCTOU leaf-symlink swap and the
+  nlink guard catches non-concurrent post-start hardlink aliases, including
   when bash is fail-closed or OS sandboxing is unavailable. It intentionally
   rejects leaf symlinks even when their targets are allowed; symlinked parent
   directories remain supported.
@@ -314,6 +318,15 @@ This is the single source of truth for the 0.1.0 package promise.
 - The inspector scans input, not output. In particular, `jobs action=tail` can
   return a secret a background command wrote to its buffer without redaction.
 - `--no-sandbox` does not yet propagate to background/monitor integration.
+- **Concurrent hardlink + deny-path race:** the fd-based in-process guard
+  catches non-concurrent post-start hardlink aliases and closes the TOCTOU
+  symlink swap, but it is **not concurrency-hard** against a same-user attacker
+  running arbitrary code. That attacker can move a denied pathname aside while
+  the guard's deny-pathname rescan observes `ENOENT`, leaving an opened fd on
+  the credential inode through a hardlink alias. The bwrap OS layer is the
+  primary boundary for sandboxed bash; the in-process file tools are
+  defense-in-depth. The full inode-identity redesign is tracked as
+  `story-pi-sandbox-inode-identity-redesign` post-0.1.0.
 - Git credential helpers, cache sockets, and keyring/keychain stores are not
   comprehensively blocked. `HOME` and user Git config are preserved, so
   `git credential fill` can retrieve plaintext through a configured helper.
@@ -332,10 +345,11 @@ This is the single source of truth for the 0.1.0 package promise.
 
 The following direction is tracked work, **not a commitment**: a real `filter`
 mode (`idea-pi-sandbox-filter-tcp-proxy`); an operator-registered external
-Git-directory allowlist that closes the gitfile-discovery residual; shared
-output redaction for background/monitor/jobs; `--no-sandbox` propagation; a
-Pi-core RPC/API bash interception hook; and a separate forge-operations plugin
-using the capability contract. srt adoption is reconsidered only under the
+Git-directory allowlist for trusted opt-in workflows; the inode-identity
+redesign (`story-pi-sandbox-inode-identity-redesign`) that closes the concurrent
+hardlink + deny-path race; shared output redaction for background/monitor/jobs;
+`--no-sandbox` propagation; a Pi-core RPC/API bash interception hook; and a
+separate forge-operations plugin using the capability contract. srt adoption is reconsidered only under the
 revisit triggers above.
 
 Version 1.0.0 is a maturity claim, not a feature target: it means the boundary
