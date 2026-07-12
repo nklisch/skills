@@ -16,7 +16,7 @@ export interface SandboxFilesystem {
 	denyRead?: string[];
 	denyWrite?: string[];
 	allowWrite?: string[];
-	/** Global/operator-only switch for gitfile targets outside allowWrite roots. Defaults to true for linked-worktree compatibility. */
+	/** Global/operator-only switch for gitfile targets outside allowWrite roots. Defaults to false; operators who use submodules or linked worktrees opt in globally. */
 	allowGitDirDiscovery?: boolean;
 }
 
