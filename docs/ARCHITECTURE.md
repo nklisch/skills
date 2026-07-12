@@ -64,7 +64,7 @@ A single index drives the Claude Code and Codex marketplaces:
 - **Local plugins** are listed in `.claude-plugin/marketplace.json` with a
   string-path source (`"./plugins/<name>"`). Claude Code reads this directly;
   Codex reads the same file as an alternative marketplace location.
-- **External plugins** (`krometrail`, `peeragent`) are federated via
+- **External plugins** (`krometrail`, `peeragent`, `skilltap`) are federated via
   `git-subdir` sources pointing at their own repos, so the marketplace can offer
   plugins that do not live in this tree.
 - **Version integrity** flows through `scripts/bump-version.sh`, which keeps a
