@@ -927,7 +927,26 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       const handleChunk = (data: Buffer | string): void => {
         const text = typeof data === "string" ? data : data.toString("utf8");
         appendBuffer(job, text);
-        if (wakeOnPattern && !job.patternFired && wakeOnPattern.test(text)) {
+        // Test against the ACCUMULATED buffer, not the per-chunk text: a pattern
+        // match can straddle two chunks (stdout/stderr is delivered in arbitrary
+        // read-sized pieces, not aligned to lines or pattern boundaries), and
+        // testing only `text` would miss any match split across a chunk seam.
+        //
+        // Residuals (acceptable for 0.1.0, documented honestly):
+        //  - The buffer is a bounded rolling window (MAX_BUFFER_CHARS). Only the
+        //    retained window is searchable, so a match whose first half has
+        //    already been aged out by >MAX_BUFFER_CHARS of later output will be
+        //    missed. This also affects `^` anchors (the buffer's start is the
+        //    window start, not the stream start). Use literal markers, not
+        //    broad span regexps, for wake triggers on high-volume commands.
+        //  - stdout and stderr are merged into one buffer, so a synthetic match
+        //    can span the two streams.
+        //  - Multibyte UTF-8 split across raw chunks is not reassembled here; a
+        //    pattern containing a split code point can be missed.
+        //  - The caller-supplied regexp runs over up to MAX_BUFFER_CHARS per chunk.
+        //    A catastrophic-backtracking pattern can block the event loop more
+        //    than it would against a single small chunk; prefer anchored literals.
+        if (wakeOnPattern && !job.patternFired && wakeOnPattern.test(job.buffer)) {
           job.patternFired = true;
           wake(
             `[background job #${job.id} matched its wake_on_pattern — still running]. Read output with the jobs tool (action=tail, jobId=${job.id}).`,

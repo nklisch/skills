@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync, rmSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -540,6 +540,48 @@ describe("background tool", () => {
 
     const second = await waitFor(() => wakes[1]);
     expect(second.content).toContain("finished");
+  });
+
+  // Regression: wake_on_pattern is evaluated per stdout/stderr chunk, so a match
+  // split across a chunk seam (or line boundary) never fired the early wake.
+  // The fix tests against the accumulated buffer, not the per-chunk text.
+  //
+  // Determinism: the child writes the first half, then BLOCKS on a sentinel
+  // file the test creates only after observing "BUILD_SU" in the job buffer
+  // (via jobs tail). This proves two separate chunks AND that the match is
+  // found in the accumulated buffer — it cannot pass against the old per-chunk
+  // implementation, because neither chunk alone contains "BUILD_SUCCESS".
+  test("wake_on_pattern fires when the match straddles two output chunks", async () => {
+    const { tools, wakes } = makeFakePi();
+    const bg = tools.get("background")!;
+    const jobs = tools.get("jobs")!;
+    const ctx = makeContext();
+    const sentinel = `${tmpdir()}/wake-sentinel-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    // Write BUILD_SU, block until the sentinel exists, then write CCESS.
+    // Neither "BUILD_SU" nor "CCESS" alone matches /BUILD_SUCCESS/.
+    await bg.execute(
+      "c1",
+      { command: `sh -c 'printf BUILD_SU; while [ ! -f ${sentinel} ]; do sleep 0.05; done; printf CCESS\n; sleep 0.1'`, wake_on_pattern: "BUILD_SUCCESS" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    // Wait for the first chunk to land in the job buffer, then release the child.
+    await waitFor(async () => {
+      const res = (await jobs.execute("t", { action: "tail", jobId: 1, lines: 40 }, undefined, undefined, ctx)) as { content: Array<{ text: string }> };
+      return res.content[0]?.text.includes("BUILD_SU") ? true : undefined;
+    });
+    writeFileSync(sentinel, "go");
+
+    const first = await waitFor(() => wakes[0]);
+    expect(first.content).toContain("matched its wake_on_pattern");
+    expect(first.content).toContain("still running");
+
+    const second = await waitFor(() => wakes[1]);
+    expect(second.content).toContain("finished");
+    rmSync(sentinel, { force: true });
   });
 
   test("rejects an invalid wake_on_pattern regexp", async () => {
