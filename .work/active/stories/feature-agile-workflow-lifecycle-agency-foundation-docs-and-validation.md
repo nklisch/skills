@@ -1,7 +1,7 @@
 ---
 id: feature-agile-workflow-lifecycle-agency-foundation-docs-and-validation
 kind: story
-stage: implementing
+stage: review
 tags: [documentation, skill, plugin]
 parent: feature-agile-workflow-lifecycle-agency
 depends_on:
@@ -89,24 +89,72 @@ Replace stale assertions in place; no "previously" / "in v1.x" prose. Update:
 
 ## Acceptance criteria
 
-- [ ] SPEC stage-flow tables/prose describe `done` as "review lane approves,"
+- [x] SPEC stage-flow tables/prose describe `done` as "review lane approves,"
   not "user-facing review approves"; `review` is a real state but not a
   mandatory handoff; `stop-at-review` override documented.
-- [ ] ARCHITECTURE skill-catalog rows for `implement`, `fix`,
+- [x] ARCHITECTURE skill-catalog rows for `implement`, `fix`,
   `implement-orchestrator`, and `review` reflect the revised behavior.
-- [ ] ARCHITECTURE orchestration/autopilot prose describes outcomes/invariants
+- [x] ARCHITECTURE orchestration/autopilot prose describes outcomes/invariants
   (no prescribed sizes, wave widths, or prompt templates; worker capability
   from risk/scope).
-- [ ] ARCHITECTURE/SPEC question and advisory-review references align with the
+- [x] ARCHITECTURE/SPEC question and advisory-review references align with the
   reversibility-based question policy and risk-driven advisory review across
   modes, including review-weight resolution and level semantics.
-- [ ] VISION lifecycle/orchestration language refreshed; governance invariants
+- [x] VISION lifecycle/orchestration language refreshed; governance invariants
   preserved.
-- [ ] No "previously" / legacy prose in the touched docs (rolling-foundation).
-- [ ] Skill validator passes on every touched SKILL.md.
-- [ ] `channel-parity.test.sh` passes.
-- [ ] Relevant repo tests (`bump-version`, `agent-metadata`, `pi-package-metadata`)
+- [x] No "previously" / legacy prose in the touched docs (rolling-foundation).
+- [x] Skill validator passes on every touched SKILL.md.
+- [x] `channel-parity.test.sh` passes.
+- [x] Relevant repo tests (`bump-version`, `agent-metadata`, `pi-package-metadata`)
   pass.
+
+## Implementation notes
+
+- Execution capability: cohesive inline documentation/validation stride; the
+  caller explicitly prohibited delegation and peeragent.
+- Files changed: `plugins/agile-workflow/docs/VISION.md`,
+  `plugins/agile-workflow/docs/SPEC.md`,
+  `plugins/agile-workflow/docs/ARCHITECTURE.md`, and this story.
+- Lifecycle: stage and skill-catalog contracts now state that production skills
+  continue through a real, risk-selected review lane to `done` by default,
+  honor `stop-at-review`, record bounces/blockers, and never use child completion
+  as parent approval.
+- Orchestration agency: the docs now specify dependency/cycle integrity,
+  write-set-independent ownership, per-wave verification, one commit per item,
+  worker self-containment, conservative roll-up, and risk/scope capability
+  selection while leaving topology, wave width, and worker brief shape to the
+  orchestrator.
+- Questions and advisory review: normal questions follow reversibility and
+  consequence; `--only-questions` remains explicit and interactive-only;
+  advisory review is risk-driven across direct/autopilot modes with
+  completeness before adversarial review and honest model-class labeling.
+- Review weight and model guidance: SPEC/ARCHITECTURE document explicit selector
+  → project convention → `standard`, all five high-level levels, and the
+  implementation/review roles of GPT-5.6 Luna/Terra/Sol and Claude Fable without
+  turning them into fixed routing.
+- Rolling foundation: replaced stale lifecycle, catalog, autopilot alignment,
+  and manifest-version assertions in place; removed retained historical wording
+  from the touched current-state sections.
+- Tests added: none; this unit validates the skill contracts and existing
+  configuration test surface.
+- Verification:
+  - `quick_validate.py` passed for all 12 touched skill directories:
+    `implement`, `fix`, `prose-author`, `implement-orchestrator`, `review`,
+    `autopilot`, `principles`, `feature-design`, `epic-design`,
+    `refactor-design`, `perf-design`, and `convert`.
+  - `channel-parity.test.sh`: 26 passed, 0 failed (rerun after the final docs
+    edit).
+  - `bump-version.test.sh`: 77 passed, 0 failed.
+  - `agent-metadata.test.sh`: 9 passed, 0 failed.
+  - `pi-package-metadata.test.sh`: 123 passed, 0 failed.
+  - Relevant added/config tests: `convert-review-weight.test.sh` 9/9,
+    `convert-content-integrity.test.sh` 42/42, and
+    `convert-install-routing.test.sh` 12/12.
+  - `git diff --check` passed; stale lifecycle phrases and
+    `previously`/`originally` probes over the three touched docs returned no
+    matches.
+- Discrepancies from design: none.
+- Adjacent issues parked: none.
 
 ## Notes
 

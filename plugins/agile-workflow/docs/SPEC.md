@@ -12,7 +12,7 @@ Located at `plugins/agile-workflow/.claude-plugin/plugin.json`:
 {
   "name": "agile-workflow",
   "description": "Markdown-based work-tracking substrate for AI-driven projects. Items as files in .work/, late-binding releases, gates that produce items, goal-backed autopilot queue runner. See docs/VISION.md.",
-  "version": "0.10.0",
+  "version": "0.15.3",
   "author": { "name": "nklisch" },
   "repository": "https://github.com/nklisch/skills",
   "license": "MIT"
@@ -81,7 +81,51 @@ release: planned → quality-gate → released
 task:    [ ] → [x]                       (checklist line in parent body)
 ```
 
-Stages advance only when work completes. No pre-population.
+Stages advance only when work completes. No pre-population. For epics,
+features, and stories, `review` is a real evaluation state and `done` means the
+selected review lane approved the item. It is not a mandatory user handoff:
+production skills drive verified work through the risk-appropriate review lane
+in the same invocation by default. An explicit `stop-at-review` request (or
+project convention) leaves the item at `review`. Approval advances to `done`;
+a review bounce returns the item to `implementing` with durable findings, and a
+blocker remains recorded in the item body.
+
+Review effort is selected from risk, evidence, effective `review_weight`, and
+item kind as a starting heuristic. Low-risk stories can close from recorded
+green verification, while risky stories, features, and epics receive the
+fresh-context coverage allowed by the effective weight. Child completion may
+make a parent eligible for its own review, but never approves the parent by
+itself.
+
+### Questions and advisory review
+
+Normal design resolves routine, reversible decisions with judgment and records
+the rationale. The structured question tool is reserved for choices that set
+product direction, materially change user-facing behavior or an external
+contract, or commit the project to an expensive, difficult-to-reverse path.
+`--only-questions` remains an explicit interactive alignment mode and does not
+design or advance an item; an active autopilot run instead chooses the least
+irreversible sound option and logs it.
+
+Advisory review is risk-driven in direct and autopilot modes. When independent
+review is warranted, completeness/advisory review precedes adversarial review,
+and a pass is called cross-model only when the reviewer is a known different
+model class. Design-time advisory failure is non-blocking; final autopilot
+completion must clear the review path required by its effective weight. The
+effective `review_weight` resolves from an explicit invocation, then project
+convention, then `standard`:
+
+- `none` — no independent reviewer; green implementation verification and
+  acceptance evidence are still required.
+- `light` — minimal independent ceremony with focused scrutiny where risk
+  clearly warrants it.
+- `standard` — balanced, risk-driven independent review.
+- `thorough` — increased fresh-context breadth and depth for meaningful risk.
+- `maximum` — multi-model, multi-pass complementary-then-adversarial review is
+  available for the highest-risk scopes.
+
+These levels state review intent and ceilings, not fixed reviewer counts or pass
+recipes.
 
 ### Backlog item shape
 
@@ -153,6 +197,7 @@ gate_refactor_scan_library_roots:
   - .claude/skills
 binding_guard: warn
 epic_cohesion: phased
+review_weight: standard
 backlog_staleness_days: 90
 ```
 
@@ -203,6 +248,12 @@ listed in the warn report, never counting toward a halt (an epic may ship across
 treats them as mismatches acted on per `binding_guard`, like CONFLICTs (the project holds "epics
 ship whole"). CONFLICTs (a child bound to a *different* version than its bound parent, or a done
 parent unbound while its children are bound) always follow `binding_guard` regardless of this dial.
+
+**`review_weight`** is optional and defaults to **`standard`** when absent. Valid values are
+`none`, `light`, `standard`, `thorough`, and `maximum`. An explicit invocation selector overrides
+the project value. The setting controls independent-review intent; it never relaxes implementation
+verification or acceptance evidence. The canonical level semantics and lane selection live in the
+`principles` and `review` skills rather than in project bootstrap configuration.
 
 **`backlog_staleness_days`** (integer; **absent ⇒ feature inert**) is the age threshold for the
 opt-in backlog staleness query `work-view --stale`. When set, `--stale` lists `.work/backlog/`

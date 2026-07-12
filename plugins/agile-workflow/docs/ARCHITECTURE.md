@@ -59,14 +59,19 @@ An item flows through tiers as work progresses on it.
                        (design written into body; child stories spawned)
                               │
                               ▼
-                  /implement-orchestrator (default; scope-driven,
-                  cross-feature waves) or /implement (inline alternative)
+                  /implement-orchestrator (delegated topology)
+                  or /implement (cohesive inline delivery)
                               │
                               ▼
                        stage: review
+                  (real state; optional stop boundary)
                               │
                               ▼
-                       /review (advance to done)
+                  risk-appropriate /review lane
+                  (production skills invoke it by default)
+                              │
+                              ▼
+                       stage: done
                               │
             ┌─────────────────┼─────────────────┐
             ▼                 ▼                 ▼
@@ -98,10 +103,19 @@ Stages advance only when work completes; they are never pre-populated.
 
 | Kind | drafting | implementing | review | done |
 |---|---|---|---|---|
-| epic | initial state when scoped | once children are designed and started | once all children are at review/done | once all children are at done |
-| feature | initial state when scoped | once design is written into body and acceptance criteria clear | once code lands and tests pass | once user-facing review approves |
-| story | optional initial state | initial state more often (skips drafting) | once code lands | once user/code-review approves |
+| epic | initial state when scoped | once children are designed and started | once all children are terminal and the epic is ready for its own review | once the epic's selected review lane approves |
+| feature | initial state when scoped | once design is written into the body and acceptance criteria are clear | once implementation is verified, or all child work is terminal, and the feature is ready for its own review | once the feature's selected review lane approves |
+| story | optional initial state | initial state more often (skips drafting) | once implementation and required verification complete | once the story's selected review lane approves |
 | release | initial state when cut | once gates begin running (`stage: quality-gate`) | n/a | n/a — terminal stage is `released` |
+
+`review` is a real state but not a mandatory user handoff. `implement`, `fix`,
+and `implement-orchestrator` continue through the selected review lane in the
+same invocation by default. An explicit `stop-at-review` request or stable
+project convention leaves the item there. Approval advances to `done`; a bounce
+returns to `implementing` with durable findings, and blockers remain recorded in
+the item body. Child completion only makes an ancestor eligible for its own
+review: conservative roll-up never substitutes child evidence for parent
+approval.
 
 The PostToolUse hook auto-bumps `updated:` whenever an item file is edited;
 skills only need to advance `stage:` explicitly.
@@ -291,7 +305,7 @@ git log --since='1 day ago' -- .work/
 ## Foundation docs (rolling-forward principle)
 docs/ holds standing context: VISION.md, SPEC.md, ARCHITECTURE.md, etc.
 - Foundation docs describe the system's current state or intended future state
-- Never add "previously this was…" or "note: in v1.2 we…"
+- Never retain superseded behavior descriptions or versioned migration notes
 - When implementation changes a foundation-doc assertion, update the doc
 - Git history is the audit trail; the doc carries the active truth
 ````
@@ -336,45 +350,26 @@ Direct skill invocation remains supported: `/agile-workflow:autopilot
 maintain a progress file; harness goal/continuation owns long-running
 persistence and `.work/active/` is the resume point.
 
-### Pre-flight: align on strategic questions first
+### Strategic alignment before autonomous work
 
-**Before kicking off autopilot, run `epic-design --only-questions` over the
-epics you're about to drain.** This is the single highest-leverage step in
-the agile-workflow loop and should generally always be done.
+Normal design resolves routine, reversible decisions with judgment and records
+the rationale. Use the structured question tool only for choices that set
+product direction, materially affect user-facing behavior or an external
+contract, or commit the project to an expensive, difficult-to-reverse path.
 
-```bash
-# Per-epic — align on one epic before autopilot picks it up
-/agile-workflow:epic-design --only-questions <epic-id>
+`epic-design --only-questions <id>` (or `--all`) remains the explicit
+interactive alignment mode when the operator wants those strategic decisions
+captured under `## Design decisions` before autonomous work. It does not design,
+decompose, or advance an item, and it refuses to run inside autopilot. Autopilot
+does not stop for ordinary ambiguity: it uses the existing decisions and
+foundation evidence, chooses the least irreversible sound path, and records the
+rationale.
 
-# Cover the whole active queue at once — recommended before a --all autopilot goal
-/agile-workflow:epic-design --only-questions --all
-```
-
-What the pass does (see `epic-design` SKILL Phase 4.7): for each epic at
-`stage: drafting`, it grounds in foundation docs + codebase, surfaces the
-2–5 directional product / architecture / scope questions specific to that
-epic, asks the user via `AskUserQuestion`, and writes the answers under
-`## Design decisions` in the epic body. It does NOT decompose into child
-features and does NOT advance stage — that's left to the real design pass.
-
-Why it matters:
-
-- **Autopilot inherits the answers.** When `epic-design` (full pass) runs
-  later under autopilot, it reads the already-captured `## Design decisions`
-  and skips Phase 4.7 — no autonomous judgment on directional choices,
-  because they're already locked in by the user.
-- **Cheap up front, expensive later.** Five minutes of interactive Q&A on
-  the whole drafting queue prevents autopilot from committing to a wrong
-  architectural direction across multiple features before the user notices.
-- **One human checkpoint instead of N.** A single `--only-questions --all`
-  pass answers every strategic question across the queue in one sitting,
-  rather than autopilot pausing per-epic mid-run (or worse, not pausing and
-  guessing).
-
-`--only-questions` mode refuses to run under autopilot itself — it's
-explicitly a pre-autopilot, human-in-the-loop step. The right invocation
-shape is: `--only-questions --all` first, review the captured decisions,
-then start an autopilot goal for `--all` (or `<epic-id>`).
+Advisory review follows risk in both direct and autopilot design. Independent
+review uses completeness/advisory before adversarial posture, is labeled
+cross-model only for a known different model class, and is non-blocking at
+design time. Final autopilot completion still requires the successful review
+path selected by the effective review weight.
 
 ### Queue selection algorithm
 
@@ -392,16 +387,36 @@ then start an autopilot goal for `--all` (or `<epic-id>`).
    - created ascending (FIFO tie-break)
 5. Pop the first item.
 6. Work it:
-   - if drafting → invoke /design (or /refactor-design / /perf-design by tag)
+   - if drafting → invoke the design skill selected by kind and tags
    - if implementing → invoke /implement-orchestrator with the autopilot
-     scope (the picked item is an anchor; the orchestrator drains the whole
-     in-scope implementing band as one batch, cross-feature is fine).
-     /implement is reserved for the inline small-delivery case.
-   - if review → invoke /review (autonomous: produces verdict, advances
-     review→done or sends back to implementing)
-7. Advance stage on completion. Commit.
-8. Goto 1 unless stop condition.
+     scope (the picked item is an anchor; the orchestrator derives execution
+     topology from the unified graph, ownership, repository shape, and risk).
+     Use /implement when one cohesive delivery is safer in the host context.
+   - if review → invoke /review (autonomous: produces a verdict, advances
+     review→done, or sends the item back to implementing)
+7. Re-read substrate state after the production skill returns; it may already
+   have completed review and eligible parent roll-up. Commit each item
+   transition separately.
+8. Goto 1 unless a stop condition applies.
 ```
+
+The implementation orchestrator guarantees outcomes rather than prescribing a
+recipe: dependency-graph scheduling, cycle validation, write-set-independent
+parallelism, explicit ownership, per-wave integration verification, one commit
+per item, worker self-containment, and conservative parent roll-up. It chooses
+bundle shape, wave width, isolation, and worker briefs for the actual work; no
+fixed sizes or prompt templates are part of the contract. Worker capability is
+chosen from scope and risk unless an explicit caller or stable project
+convention overrides it, and the choice is recorded rather than routinely
+asked.
+
+Autopilot resolves one effective `review_weight` for the run: explicit
+invocation selector, then `.work/CONVENTIONS.md`, then `standard`. The five
+levels — `none`, `light`, `standard`, `thorough`, and `maximum` — scale
+independent-review intent from administrative evidence-only closure through
+multi-model, multi-pass review. They do not prescribe reviewer counts or exact
+orchestration. Even `none` requires green implementation verification and
+acceptance evidence.
 
 ### Stop conditions
 
@@ -642,6 +657,15 @@ cross-model only when the host explicitly spawns the subagent with a different
 model class; otherwise use `peeragent` only when a cross-harness different model
 class is needed and allowed.
 
+Concrete model guidance lives in `skills/principles/references/models.md` and is
+resolved against current availability when selection matters. GPT-5.6 Luna is
+the implementation workhorse; Sol is preferred for design, review, complex code,
+and as the low-thinking bridge above Luna; Terra is a situational middle pick;
+and Claude Fable is a high-cost design, orchestration, and review specialist
+rather than the default implementer. These are capability recommendations, not
+fixed routing. Luna, Terra, Sol, and Codex share OpenAI lineage, so moving among
+them can provide fresh context but is not cross-model evidence.
+
 ### Bootstrap (user-invocable only)
 
 | Skill | Role | Trigger |
@@ -656,7 +680,7 @@ class is needed and allowed.
 |---|---|---|
 | `park` | Capture an unscoped idea, context note, or roadmap-style thought into `.work/backlog/`. Minimal frontmatter; body sized to the supplied context. | "park this", "remind me about X", "add to backlog" |
 | `scope` | Promote backlog item or fresh request to `.work/active/`. Sizes as epic/feature/story. If large, rolls foundation docs forward. Declares dependencies. | "scope this", "promote this", "let's track this" |
-| `fix` | Park-and-implement quick bug as a story. Single-stride: creates story at `stage: implementing`, writes fix, advances to review. | "fix bug X", "fix the typo in", "fix this issue" |
+| `fix` | Diagnose a verified bug as a cohesive story, reproduce it, add the failing test, apply the bounded repair, verify it, and continue through the selected review lane to `done` by default. Honors an explicit `stop-at-review` boundary and records bounces/blockers. | "fix bug X", "fix the typo in", "fix this issue" |
 | `groom` | Backlog-hygiene sweep over `.work/backlog/`. Classifies items DONE/SUPERSEDED/DUPLICATE/STALE/MERGEABLE/VALID via mechanical signals (`work-view --stale`, missing-field, cites-done-work) + a grounded semantic pass; writes a triage report. Propose-not-prune: dispositions are operator-confirmed and route through terminal-tier retention; never auto-prunes. Not a release gate. Opt-in; staleness face inert unless `backlog_staleness_days` is set. | "groom the backlog", "backlog hygiene", "find stale/dead/duplicate items" |
 
 ### Design family (model-invocable, kind- and tag-routed)
@@ -672,14 +696,19 @@ class is needed and allowed.
 
 | Skill | Role | Trigger |
 |---|---|---|
-| `implement-orchestrator` | Default. Orchestrates implementation sub-agents over a scope (feature, epic, --all, or explicit list). Builds a unified `depends_on` graph across the scope (cross-feature is fine), chooses bundles/waves/write-scope isolation, and advances every parent feature whose children all reach `review`. | item(s) at `stage: implementing` |
-| `implement` | Inline alternative. Read item body, write code, run build+tests, advance stage. | small / focused work where sub-agent fan-out wouldn't pay off, or user asks to implement inline |
+| `implement-orchestrator` | Delegated implementation over a feature, epic, `--all`, or explicit set. Derives ownership and waves from the unified dependency graph, write-set independence, repository shape, and risk; verifies every wave, keeps one commit per item, rolls eligible parents conservatively, and continues through review by default. | implementing scope where separate ownership, isolation, or sequencing improves the result |
+| `implement` | Cohesive inline delivery. Grounds in the item, implements and verifies it in the host context, records capability and evidence, then continues through the selected review lane to `done` by default. | work best kept under one ownership context, or an explicit inline request |
+
+Choose between these production lanes from cohesion, write ownership,
+dependency sequencing, isolation needs, and uncertainty. Line or file counts may
+inform judgment but never gate the choice. Both honor `stop-at-review`, and
+neither substitutes inline self-approval for a required fresh-context lane.
 
 ### Review & delivery (mixed invocability)
 
 | Skill | Invocability | Role | Trigger |
 |---|---|---|---|
-| `review` | model-invocable | Code review of changes for an item. Triages findings into items with proper tags. Advances to done if approved. | item at `stage: review` |
+| `review` | model-invocable | Selects fast, standard, or deep review from effective weight, risk, evidence, and kind as a heuristic; preserves fresh context for deep review, records durable findings, advances or bounces the item, and conservatively rolls approved children through each eligible ancestor's own review. | item at `stage: review` or explicit review target |
 | `board` | user-invocable | Launch the live localhost substrate board through `work-view board`. Opens a browser after binding when a desktop session is available; prints the URL in headless sessions. | User-invoked when the user wants to inspect active work visually |
 | `release-deploy` | user-invocable | Bind items to release, run gates, ship, archive. Idempotent. | User-invoked when ready to cut a version |
 | `bold-refactor` | user-invocable | Multi-feature architectural refactor. Scopes a refactor epic with child features. Aggressive — only on user request. | User-invoked |
@@ -707,7 +736,9 @@ configured in `CONVENTIONS.md` (default: security → tests → cruft → docs
 | `research` | Investigate libraries/APIs | Carried; produces research docs in `docs/research/` (separate from `.work/`) |
 | `refactor-conventions-creator` | Create project-specific refactor conventions skill | Carried |
 
-(`repo-eval` and `tool-evaluator` were originally carried here. `repo-eval` now lives in the standalone `code-audit` plugin as the supported report-only scorecard, while `tool-evaluator` was extracted to `nates-toolkit` and renamed `agent-reflection`.)
+Holistic report-only repository scoring is provided by `code-audit:repo-eval`;
+end-of-session tool and skill reflection is provided by
+`nates-toolkit:agent-reflection`.
 
 ---
 
