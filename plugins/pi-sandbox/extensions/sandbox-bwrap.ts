@@ -378,18 +378,19 @@ function isWithinOrEqual(target: string, dir: string): boolean {
  * Security: the resolved gitdir must contain a `HEAD` regular file (the same
  * check git makes) before it is added. This rejects non-git host paths such as
  * `/etc`, but cannot distinguish a legitimate linked-worktree target from an
- * arbitrary external Git directory. Operators cloning untrusted repositories
- * must disable discovery through the global-only `allowGitDirDiscovery` flag.
+ * arbitrary external Git directory. Discovery is disabled by default; operators
+ * must opt in through the global-only `allowGitDirDiscovery` flag only for
+ * trusted submodules or linked worktrees.
  * The discovered path is still subject to denyRead/denyWrite precedence in
  * both the bwrap and in-process layers.
  */
 export interface DiscoverGitDirsOptions {
-	/** Defaults to true for backwards compatibility and linked-worktree support. */
+	/** Defaults to false; external Git metadata requires an operator opt-in. */
 	allowGitDirDiscovery?: boolean;
 }
 
 export function discoverGitDirs(allowWrite: string[], cwd: string, options: DiscoverGitDirsOptions = {}): string[] {
-	if (options.allowGitDirDiscovery === false) return [];
+	if (options.allowGitDirDiscovery !== true) return [];
 
 	const gitDirs: string[] = [];
 	const seen = new Set<string>();

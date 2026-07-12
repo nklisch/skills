@@ -131,7 +131,7 @@ describe("discovered git dir in-process write policy", () => {
 	// Mirrors how session_start augments allowWrite with discoverGitDirs output:
 	// the policy's allowWrite is the config entries plus the discovered git dirs.
 	function policyWithDiscoveredGitDir(cwd: string, workTree: string, gitDir: string, overrides: Partial<SandboxPolicy> = {}): SandboxPolicy {
-		const discovered = discoverGitDirs([workTree], cwd);
+		const discovered = discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true });
 		return policyFor(cwd, { allowWrite: [workTree, ...discovered], ...overrides });
 	}
 

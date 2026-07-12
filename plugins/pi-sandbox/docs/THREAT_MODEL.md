@@ -299,9 +299,9 @@ This is the single source of truth for the 0.1.0 package promise.
 - On Linux, `background`/`monitor` use the same bwrap helper and minimal
   environment when the background-tasks integration is active; that spawn
   contract is fail closed when it cannot establish the boundary.
-- The writable surface includes session-pinned Git directory discovery for
-  submodules and linked worktrees by default; operators can globally disable it
-  with `filesystem.allowGitDirDiscovery:false` for untrusted-clone workflows.
+- The writable surface excludes external Git-directory discovery by default.
+  Operators using trusted submodules or linked worktrees can globally opt in
+  with `filesystem.allowGitDirDiscovery:true`.
 - A non-secret credential-boundary capability is available for a separate
   forge extension; configuration remains additive-only, with global/operator
   authority for `bwrapPath`, `enabled:false`, and `filesystem.allowGitDirDiscovery`.
@@ -313,13 +313,6 @@ This is the single source of truth for the 0.1.0 package promise.
 - The inspector scans input, not output. In particular, `jobs action=tail` can
   return a secret a background command wrote to its buffer without redaction.
 - `--no-sandbox` does not yet propagate to background/monitor integration.
-- Gitfile directory discovery defaults to enabled for linked-worktree and
-  submodule compatibility. A malicious gitfile in an untrusted cloned
-  repository can therefore pin an arbitrary external host Git directory
-  writable when it has a regular `HEAD`. Operators who clone untrusted
-  repositories **MUST** set global `filesystem.allowGitDirDiscovery:false`;
-  project-local configuration cannot re-enable it. The complete fix is an
-  operator-registered external Git-directory allowlist.
 - Git credential helpers, cache sockets, and keyring/keychain stores are not
   comprehensively blocked. `HOME` and user Git config are preserved, so
   `git credential fill` can retrieve plaintext through a configured helper.

@@ -87,3 +87,5 @@ Re-routed through design; advance to `implementing` with the revised scope.
 ## Verification
 
 - `bun test plugins/pi-sandbox/extensions/` — 239 pass, 0 fail.
+- 0.1.0 posture update: `allowGitDirDiscovery` now defaults to `false` at configuration, session startup, the `/sandbox` display fallback, and the discovery helper. Tests that exercise legitimate submodule/worktree discovery explicitly opt in with `allowGitDirDiscovery:true`; the escape fixture confirms the secure default pins no external Git directory.
+- README and THREAT_MODEL now describe `true` as a global, trusted-repository opt-in rather than an untrusted-clone opt-out.
