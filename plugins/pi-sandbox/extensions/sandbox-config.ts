@@ -1783,7 +1783,7 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 	}
 
 	// denyRead: project can only ADD entries (union).
-	if (project.filesystem?.denyRead) {
+	if (project.filesystem?.denyRead !== undefined) {
 		const existing = new Set(result.filesystem?.denyRead ?? []);
 		const merged = [...(result.filesystem?.denyRead ?? [])];
 		for (const p of project.filesystem.denyRead) {
@@ -1793,7 +1793,7 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 	}
 
 	// denyWrite: project can only ADD entries (union).
-	if (project.filesystem?.denyWrite) {
+	if (project.filesystem?.denyWrite !== undefined) {
 		const existing = new Set(result.filesystem?.denyWrite ?? []);
 		const merged = [...(result.filesystem?.denyWrite ?? [])];
 		for (const p of project.filesystem.denyWrite) {
@@ -1808,7 +1808,7 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 	// entry that widens beyond global (outside every global entry) is rejected +
 	// warned. This lets a project narrow `["."]` to `["plugins"]` instead of
 	// silently getting `[]`.
-	if (project.filesystem?.allowWrite) {
+	if (project.filesystem?.allowWrite !== undefined) {
 		const globalAllow = result.filesystem?.allowWrite ?? [];
 		const globalCanonical = globalAllow.map((p) => canonicalizeAllowWriteEntry(p, cwd)).filter(Boolean) as string[];
 		const accepted: string[] = [];
@@ -1847,7 +1847,7 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 	}
 
 	// deniedDomains: project can only ADD (union).
-	if (project.network?.deniedDomains) {
+	if (project.network?.deniedDomains !== undefined) {
 		const existing = new Set(result.network?.deniedDomains ?? []);
 		const merged = [...(result.network?.deniedDomains ?? [])];
 		for (const p of project.network.deniedDomains) {
@@ -1857,7 +1857,7 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 	}
 
 	// allowedDomains: project can only REMOVE (intersect with global).
-	if (project.network?.allowedDomains) {
+	if (project.network?.allowedDomains !== undefined) {
 		const globalAllow = new Set(result.network?.allowedDomains ?? []);
 		result.network = {
 			...result.network,
