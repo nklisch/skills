@@ -303,9 +303,11 @@ When the scoped queue appears drained:
    - `standard`: use balanced risk-based fresh-context review.
    - `thorough`: increase complementary and adversarial fresh-context coverage.
    - `maximum`: seek multi-model, multi-pass complementary → adversarial review.
-   Ask for bugs, missed acceptance criteria, unreviewed risks, foundation-doc
-   drift, and substrate-state inconsistencies that would make "complete"
-   premature. Exact reviewer count and pass depth remain model judgment within
+   Ask for bugs, missed acceptance criteria, unreviewed risks, false/stale/
+   contradictory foundation-doc assertions, and substrate-state inconsistencies
+   that would make "complete" premature. Foundation-doc omissions and
+   unimplemented future-state claims are not findings. Exact reviewer count and
+   pass depth remain model judgment within
    the weight's ceiling/intent.
 3. When independent review runs, use a different-class peer when reachable;
    otherwise spawn a generic same-harness fresh-context reviewer from
