@@ -169,7 +169,8 @@ In land mode:
    as-built reality (paths, interfaces, signatures).
 2. Validate — typecheck, lint, tests scoped to touched packages
    (`pnpm --filter`, `cargo -p`, `pytest <path>`).
-3. Fill test gaps for any meaningful behavior that lacks coverage.
+3. Fill high-value test gaps at stable interfaces, for complex logic, or for
+   demonstrated regressions; remove obsolete or low-value tests exposed by the work.
 4. Skip Phase 6 (no new code) and go straight to Phase 7 (notes — log
    "Land mode" explicitly), Phase 8 (verify), Phase 9 (commit + advance).
 
@@ -196,13 +197,19 @@ For code items:
 For each unit/file in the item's design:
 1. Write the code following the design's specifications — exact types, signatures,
    contracts
-2. Apply established patterns from the codebase
-3. Handle every error path the design specifies
-4. Write tests that verify behavior, not implementation
+2. Apply established patterns from the codebase without adding speculative layers
+3. Handle the error paths and guarantees the design actually requires
+4. Write tests only where they protect an important interface, complex unit, or
+   demonstrated regression; remove low-value tests the change makes obsolete
 5. Update module exports (index files) so new code integrates cleanly
+6. Run an elimination pass over the touched area: delete, inline, or consolidate
+   code, checks, abstractions, compatibility paths, and test machinery made
+   unnecessary by the implementation
 
-Take pride in the details: clean variable names, idiomatic control flow, meaningful
-error messages. Code that a future developer would read with appreciation.
+Safe behavior-preserving cleanup that is cohesive with the touched code is part
+of the task. Park larger or unrelated cleanup, and stop for a design decision
+before weakening behavior, guarantees, validation, compatibility, or safety.
+Prefer short, direct, readable code over a generalized framework.
 
 ### Phase 7: Update item body with implementation notes
 
@@ -213,7 +220,8 @@ Append (or update) an "Implementation notes" section in the item's body:
 - Execution capability: <choice and brief risk/scope rationale>
 - Review weight: <effective value and source: caller, project, or default>
 - Files changed: <list>
-- Tests added: <list>
+- Tests added/removed: <list and the interface, complexity, or regression value>
+- Simplification: <code, checks, abstractions, or compatibility paths removed/consolidated>
 - Discrepancies from design: <list with one-line explanation each, or "none">
 - Adjacent issues parked: <list of backlog ids if any, or "none">
 ```
@@ -294,6 +302,8 @@ In conversation:
 - If you discover a genuine design flaw, don't muscle through. Append a
   `## Implementation discovery` section, set stage back to `drafting`, and
   return. The design family will pick it up on the next pass.
-- Adjacent issues you notice get parked via `/agile-workflow:park`, not bundled.
+- Safe, cohesive simplification in the touched area belongs in the task. Park
+  larger, unrelated, or behavior-changing opportunities instead of silently
+  expanding scope.
 - Test integrity is non-negotiable: follow the project rules and worker posture;
   fix bad tests, park real production bugs, and never game tests.

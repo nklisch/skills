@@ -500,6 +500,9 @@ session epoch:
 Code-design capsule:
 - Ports & Adapters: keep domain logic independent of DB/filesystem/HTTP/time/randomness.
 - Single Source of Truth: define growing variant sets once; derive downstream behavior.
+- Proportional rigor: validate real boundaries; add invariants, edge handling, and determinism only when context warrants them.
+- Code economy: prefer the shortest clear solution; test useful interfaces, complex units, and bug regressions.
+- Leave it simpler: eliminate unnecessary code, tests, checks, abstractions, and compatibility paths; ask before reducing guarantees.
 ...
 ```
 
@@ -548,14 +551,19 @@ Override via `gates_for_release` in `.work/CONVENTIONS.md`.
 
 ### Gate-as-item-producer pattern
 
-Each gate scans the bundle of items at `release_binding: <current-version>`
-and produces new items rather than emitting a pass/fail report:
+Each gate focuses on the bundle of items at
+`release_binding: <current-version>` and produces new items rather than
+emitting a pass/fail report. The bundle is a center of gravity, not a hard scan
+boundary: gates may follow concrete evidence into adjacent dependencies, shared
+infrastructure, or system-wide mechanisms. Findings caused by, exposed by, or
+materially relevant to the release bind to it; merely ambient discoveries go
+to the unbound backlog so the gate does not silently expand release scope.
 
 | Gate | What it scans | What it produces |
 |---|---|---|
 | `gate-security` | Bound items' code changes against security checklist | Items with `gate_origin: security`, tagged `[security]`, `release_binding` set |
-| `gate-tests` | Coverage of bound items' acceptance criteria | Items with `gate_origin: tests`, tagged `[testing]` for gaps |
-| `gate-cruft` | Dead code introduced or revealed by the bundle | Items with `gate_origin: cruft`, tagged `[cleanup]` |
+| `gate-tests` | Useful coverage at stable interfaces, complex units, and bug regressions; low-value tests exposed by the bundle | Items with `gate_origin: tests`, tagged `[testing]` for valuable gaps or removals |
+| `gate-cruft` | Local or system-wide code, tests, checks, compatibility paths, and abstractions that may no longer earn their cost | Items with `gate_origin: cruft`, tagged `[cleanup]`; guarantee-reducing removals require user confirmation |
 | `gate-docs` | Foundation-doc alignment with the bundle's behavior changes | Items with `gate_origin: docs`, tagged `[documentation]` — enforces rolling-foundation |
 | `gate-patterns` | Reusable patterns that emerged in the bundle | Detailed pattern-skill files in `.agents/skills/patterns/` (single source of truth) with optional Claude mirror, the generated hook-loaded `.agents/rules/patterns.md` digest (slug+one-liner index pointing back at the skill, with banner + source hash), plus a tracking item with `gate_origin: patterns` |
 
@@ -741,7 +749,7 @@ configured in `CONVENTIONS.md` (default: security → tests → cruft → docs
 
 | Skill | Role | Notes |
 |---|---|---|
-| `principles` | Loads code-design + substrate-execution principles | Code-design (Ports & Adapters, SSOT, Generated Contracts, Fail Fast) carried from workflow; substrate-execution (item-IS-the-work, rolling-foundation, late-binding) added |
+| `principles` | Loads code-design + substrate-execution principles | Code-design includes clear boundaries, proportional rigor, code economy, useful tests, and continuous simplification; substrate-execution includes item-IS-the-work, rolling-foundation, and late-binding |
 | `research` | Investigate libraries/APIs | Carried; produces research docs in `docs/research/` (separate from `.work/`) |
 | `refactor-conventions-creator` | Create project-specific refactor conventions skill | Carried |
 

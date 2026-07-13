@@ -78,7 +78,10 @@ CAPSULES = {
             "Ports & Adapters: domain logic stays independent of DB/filesystem/HTTP/time/randomness.",
             "Single Source of Truth: growing variant sets have one registry; types, validation, routing, and display derive from it.",
             "Generated Contracts: boundary types come from schema/router/DB inference or generation instead of hand copies.",
-            "Fail Fast: unknown input is validated at system boundaries and internal preconditions are asserted early.",
+            "Proportional rigor: validate real boundaries; add invariants, edge handling, and determinism only when context warrants them.",
+            "Code economy: prefer the shortest clear solution and fewer concepts over speculative generality.",
+            "Useful tests: protect important interfaces, complex units, and bug regressions—not every line or surface.",
+            "Leave it simpler: when touching an area, eliminate unnecessary code, tests, checks, abstractions, and compatibility paths; ask before reducing guarantees.",
         ],
     },
     "dispatch_economy": {
@@ -92,6 +95,7 @@ CAPSULES = {
             "Agents are for breadth, isolation, fresh judgment, or independent write ownership.",
             "Parallelism follows ownership and dependency layers rather than item count.",
             "Dispatch rationale belongs in run notes or the item body when it affects bundling or wave width.",
+            "Gate scope: release-bound work is the focus, not a hard boundary; follow concrete evidence and route ambient findings to the unbound backlog.",
         ],
     },
     "advisory_review": {

@@ -139,8 +139,10 @@ M-times-N redundant file reads and allows cross-library finding deduplication.
 **Brief template**:
 
 > You are conducting a refactor gate scan for release `<version>` as an agile-workflow
-> scanner. Use read/search/shell tools as needed. Scan ONLY the bundle's changed files —
-> not the whole repo. Do not spawn nested sub-agents or implement fixes.
+> scanner. Use read/search/shell tools as needed. Start with the bundle's changed
+> files and follow concrete rule-relevant references into adjacent consumers,
+> dependencies, or shared systems. Do not perform an aimless whole-repo sweep,
+> spawn nested sub-agents, or implement fixes.
 >
 > **Bundle scope** (files changed by the bundle):
 > ```
@@ -169,6 +171,7 @@ M-times-N redundant file reads and allows cross-library finding deduplication.
 >
 > 1. Read every file in the bundle scope.
 > 2. For each file, check against all rules from all loaded libraries in a single pass.
+>    Expand only when a rule or concrete reference requires adjacent/system-wide context.
 > 3. For each finding, record:
 >    - **Library tag**: which library's rule was violated (e.g. `structural`).
 >    - **Rule slug**: which specific rule was violated (from the library's rule inventory).
@@ -176,11 +179,13 @@ M-times-N redundant file reads and allows cross-library finding deduplication.
 >    - **Issue**: one-sentence description of the violation.
 >    - **Fix**: specific proposed change (or "needs analysis" for findings requiring judgment).
 >    - **Confidence**: `high` / `medium` / `low` per the library's guidance for that rule.
+>    - **Relevance**: `Release-relevant` or `Ambient`.
 > 4. Deduplicate against the already-tracked set.
 > 5. Return findings as a structured list.
 >
 > **Rules**:
-> - Scan only the bundle scope. Do not expand to the whole repo.
+> - Bundle scope is the focus, not a hard boundary. Follow concrete rule-relevant
+>   evidence and record why any out-of-bundle surface was inspected.
 > - Cite file:line for every finding.
 > - Do not fabricate findings. If a rule produces no matches, emit nothing for it.
 > - Skip already-tracked findings (exact file:line + rule-slug match).
@@ -199,6 +204,7 @@ M-times-N redundant file reads and allows cross-library finding deduplication.
 > - **Library**: <library-tag>
 > - **Rule**: <rule-slug>
 > - **Confidence**: High | Medium | Low
+> - **Relevance**: Release-relevant | Ambient
 > - **Location**: `<file>:<line>`
 > - **Issue**: <one sentence>
 > - **Fix**: <specific proposed change or "needs analysis">
@@ -248,7 +254,7 @@ stage: implementing | drafting    # by gate_finding_routing
 tags: [refactor]
 parent: null
 depends_on: []
-release_binding: <version>
+release_binding: <version> | null  # null for ambient findings
 gate_origin: refactor
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
@@ -265,7 +271,7 @@ stage: implementing | drafting    # by gate_finding_routing
 tags: []
 parent: null
 depends_on: []
-release_binding: <version>
+release_binding: <version> | null  # null for ambient findings
 gate_origin: refactor
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
@@ -295,6 +301,10 @@ High | Medium | Low
 ## Fix
 <specific proposed change, or "needs analysis" for medium/low>
 ```
+
+Release-relevant findings use the normal confidence mapping and bind to the
+release. Ambient rule violations discovered outside the bundle go to the
+unbound backlog regardless of confidence.
 
 Default confidence -> placement mapping:
 
@@ -343,7 +353,9 @@ In conversation:
 
 - **The scan happens in the scanner agent, not here.** Your job is library discovery, bundle prep,
   dispatch, and item-writing. Do not replicate the scanner's analysis.
-- Scan only the bundle's changed files, not the whole repo.
+- Release-bound files define focus, not a hard boundary. Follow concrete
+  rule-relevant evidence into adjacent or system-wide code, but do not perform
+  an unfocused whole-repo scan; route ambient findings to the unbound backlog.
 - Never apply fixes in this skill — produce items only.
 - **No-libraries is not an error.** Graceful skip with a log entry is the correct behavior when
   no scan-* libraries are installed.

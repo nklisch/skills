@@ -225,6 +225,21 @@ carry load-bearing routing semantics — get these right:
 All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
 affect skill routing.
 
+### Engineering posture
+
+Prefer short, clear code and context-appropriate rigor over speculative
+generality. Not every project needs exhaustive invariants, edge handling, firm
+determinism, or universal coverage. Test important interfaces, complex units,
+and regressions learned from bugs—not every line. When touching an area,
+eliminate unnecessary code, tests, checks, abstractions, and compatibility
+paths; leave it simpler. Ask before removing meaningful behavior, guarantees,
+validation, compatibility, or safety.
+
+Release-bound items define a gate's focus, not a hard scan boundary. Gates may
+follow concrete evidence into adjacent dependencies, shared infrastructure, or
+system-wide mechanisms. Bind release-relevant findings; route merely ambient
+discoveries to the unbound backlog so a scan does not silently expand a release.
+
 ### Test integrity
 
 When running, writing, or modifying tests:
@@ -240,6 +255,11 @@ When running, writing, or modifying tests:
   green again, if a parked production bug is small enough for a single
   stride, pick it up immediately as `/agile-workflow:scope` → design →
   implement. Larger bugs stay in backlog for prioritization.
+- **Tests must earn their upkeep.** Prefer tests at stable interfaces,
+  regression tests for real bugs, and unit tests for genuinely complex units.
+  Do not add tests merely to cover every line or surface; remove duplicate,
+  tautological, implementation-bound, or obsolete tests when they add less
+  confidence than maintenance cost.
 - **NEVER game a test to make it pass.** A failing test that documents
   *why* it fails — an inline comment naming the bug, a `skip` linked to a
   backlog id, an `xfail` with a reason — is more honest than a green test

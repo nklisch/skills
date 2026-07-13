@@ -195,8 +195,8 @@ across the lenses below and skip exploratory fanout. If one area is unclear, use
 focused exploratory sub-agent. Use parallel exploratory sub-agents only when the lenses need separate
 attention across a medium/large target.
 
-The first four scan axes are mandatory. Run them even when a project-specific
-refactor-conventions catalog exists. The catalog adds a fifth scan axis; it
+The first five scan axes are mandatory. Run them even when a project-specific
+refactor-conventions catalog exists. The catalog adds a sixth scan axis; it
 does not narrow or disable the default refactor judgment.
 
 - Use the host's generic/general-purpose subagent prompted with the scanner
@@ -207,28 +207,35 @@ does not narrow or disable the default refactor judgment.
   deployment-provided read-only role only if it is already available; otherwise
   keep the host-local scan fallback.
 
-1. **Code Smells** — "Find code that smells off in <area>. Look for: duplicated
+1. **Elimination First** — "Before proposing extraction or a new abstraction,
+   find code, tests, checks, wrappers, options, compatibility paths, and files
+   that can be deleted, inlined, merged, or made unnecessary. Include whole
+   subsystems whose maintenance cost may exceed their current value, but mark
+   any removal that changes behavior or guarantees as a user decision rather
+   than a pure refactor."
+
+2. **Code Smells** — "Find code that smells off in <area>. Look for: duplicated
    logic across files; long files (>500 lines); deep nesting (>4 levels); god
    functions (>100 lines doing multiple distinct things); god modules (>15
    methods or multiple responsibilities); leaky abstractions (consumers reaching
    past a module's public API). Report each with file:line and a one-line
    explanation."
 
-2. **Missing Abstractions** — "Find places where multiple modules implement
+3. **Missing Abstractions** — "Find places where multiple modules implement
    similar logic that could be extracted. Report each with file:line references
    and which modules would benefit."
 
-3. **Pattern Violations & Naming Inconsistencies** — "Read
+4. **Pattern Violations & Naming Inconsistencies** — "Read
    `.agents/skills/patterns/*.md` and legacy `.claude/skills/patterns/*.md` if
    they exist. Find code that deviates from established patterns. Report
    naming inconsistencies — same concept named differently across modules. Report
    each with file:line."
 
-4. **Dead Weight** — "Find dead code: unused exports (cross-check against grep
+5. **Dead Weight** — "Find dead code: unused exports (cross-check against grep
    for importers), commented-out blocks, TODO/FIXME where the work is clearly
    already done, files with very few callers. Report each with file:line."
 
-5. **Project Refactor Conventions** — Run only when
+6. **Project Refactor Conventions** — Run only when
    `.agents/skills/refactor-conventions/` exists. "Read
    `.agents/skills/refactor-conventions/SKILL.md`, its referenced rule files,
    and the `## Refactor Style Conventions` section in AGENTS.md if present.
@@ -245,7 +252,7 @@ findings.
 ### Phase 4: Categorize findings
 
 Sort the findings into:
-- **High value** — reduces duplication, extracts shared abstractions, consolidates
+- **High value** — eliminates code or concepts, reduces duplication, consolidates
   similar code, or corrects convention drift that materially improves module
   boundaries or repeated project workflow
 - **Medium value** — improves consistency, aligns with established patterns
@@ -262,14 +269,15 @@ run summary.
 
 For each step, specify:
 - **Step name and value tier** (High / Medium / Low)
-- **Source lens**: code smell / missing abstraction / pattern drift /
+- **Source lens**: elimination / code smell / missing abstraction / pattern drift /
   dead weight / refactor convention `<rule>` (if applicable)
 - **Files affected**: paths
 - **Current state**: actual code showing what exists now
 - **Target state**: exact code showing what it should look like after
 - **Implementation notes**: how to get from current to target; non-obvious considerations
-- **Acceptance criteria**: build passes, tests pass, plus specific structural/behavioral
-  check
+- **Acceptance criteria**: relevant verification passes plus a specific
+  structural/behavioral check; add or retain tests only where they protect an
+  important interface, complex unit, or regression
 - **Risk**: Low / Medium / High — what could go wrong
 - **Rollback**: how to revert this step if it breaks something
 
@@ -308,7 +316,7 @@ Append to the feature file's body:
 ### Step 1: <name>
 **Priority**: High/Medium/Low
 **Risk**: Low/Medium/High
-**Source Lens**: code smell / missing abstraction / pattern drift / dead weight / refactor convention `<rule>`
+**Source Lens**: elimination / code smell / missing abstraction / pattern drift / dead weight / refactor convention `<rule>`
 **Files**: `src/path/file.ext`, ...
 **Story**: `<story-id>` (if spawned)
 
@@ -369,7 +377,9 @@ In conversation:
   add — escalate via `/agile-workflow:scope` instead.
 - Each step is self-contained and committable in isolation. Multi-step PRs lose the
   ability to roll back individual steps.
-- Specify test verification for every step. A refactor without verification is a hope.
+- Specify proportionate verification for every step. Do not require a new unit
+  test for simple structural edits when build, type, integration, or existing
+  interface evidence is more useful.
 - Prioritize measurable improvements (less duplication, clearer boundaries) over
   aesthetic preferences. Beauty that doesn't reduce complexity isn't worth the risk.
 - Project-specific refactor conventions extend the defaults; they never replace

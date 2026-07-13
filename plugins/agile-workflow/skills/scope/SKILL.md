@@ -170,18 +170,21 @@ second confirmation round.
 
 ### Phase B8: Promote each confirmed cluster
 
-For each cluster, run the single-idea-mode Phases 3-6 inline:
+For each cluster, run the single-idea-mode Phase 1.9 and Phases 3-6 inline:
 
-1. **Declare dependencies** — within-cluster (child stories under a feature)
+1. **Frame simplification opportunities** — record what the cluster can delete,
+   consolidate, replace, or make unnecessary; separate cohesive cleanup from
+   unrelated backlog work.
+2. **Declare dependencies** — within-cluster (child stories under a feature)
    and cross-cluster (one feature depends on another's output). Use
    `work-view --blocking` for cycle detection.
-2. **Foundation-doc roll-forward** (large clusters only) — full Phase 4 of
+3. **Foundation-doc roll-forward** (large clusters only) — full Phase 4 of
    single-idea mode, scoped to that cluster's impact.
-3. **Write item files** — the parent (epic or feature) plus any child files.
+4. **Write item files** — the parent (epic or feature) plus any child files.
    Use `git mv` to move backlog files into the new structure where they map
    1:1; reference the backlog idea in the parent's brief and `git rm` the
    backlog file where it was absorbed without a direct child.
-4. **Commit per cluster** — `scope: <cluster-id> (<kind>, <size>)` with a
+5. **Commit per cluster** — `scope: <cluster-id> (<kind>, <size>)` with a
    foundation-doc roll-forward note where applicable.
 
 Promote leftovers per the Phase B7 decision (one commit per promoted leftover,
@@ -267,7 +270,7 @@ interfaces).
 Aim for 2-5 questions. Zero is fine if the user's brief and foundation docs
 already pin every strategic choice. For small (story) and medium (feature)
 scope, the bar is higher — only ask if a strategic ambiguity genuinely
-affects framing; otherwise skip directly to Phase 2.
+affects framing; otherwise continue through Phases 1.8 and 1.9 without questions.
 
 Use `structured question tool` to ask. Capture answers in the item body under a
 `## Strategic decisions` section so the downstream design family inherits
@@ -306,7 +309,14 @@ journey before the item is written.
 
 Skip this phase if `ux-ui-design` is not installed.
 
-Then proceed to Phase 2.
+Then proceed to Phase 1.9.
+
+### Phase 1.9: Frame simplification opportunities
+
+Record what the idea could delete, consolidate, replace, or make unnecessary—code,
+tests, checks, abstractions, compatibility paths, configuration, or whole subsystems.
+Fold cohesive cleanup into the brief, note independent `[refactor]`/`[cleanup]`
+children, and park unrelated work. Removing guarantees requires a strategic decision.
 
 ### Phase 2: Size the scope
 
@@ -413,6 +423,9 @@ updated: YYYY-MM-DD
 
 ## Brief
 <one to three paragraphs describing what this is and why it exists>
+
+## Simplification opportunity
+<what this work may delete, consolidate, replace, or deliberately retain; "none identified" is valid>
 
 <!-- Subsequent sections (Design, Implementation Notes, etc.) accumulate as
 work progresses. -->
