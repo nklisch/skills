@@ -1022,6 +1022,39 @@ describe("monitor bwrap integration", () => {
     const tail = await jobTail(tools, ctx, started.details.jobId);
     expect(tail).toContain("monitor poll exceeded");
   }, 12000);
+
+  // Regression: the trusted wake for spawn errors used to interpolate
+  // err.message, which is untrusted runtime diagnostic output (errno strings,
+  // binary paths) — a steer-content injection surface. The wake must be generic;
+  // the full diagnostic stays in logs AND is appended to the job buffer (retrieved
+  // deliberately as untrusted output via jobs action=tail). Assert the wake
+  // carries NO error-message fragment, and that the diagnostic IS in the buffer.
+  test("spawn-error wake payload is generic; diagnostic lands in the job buffer", async () => {
+    const { tools, wakes } = makeFakePi();
+    const bg = tools.get("background")!;
+    const ctx = makeContext();
+    // A nonexistent cwd makes spawn() emit an ENOENT 'error' event (the job
+    // registers, then the child fails to spawn). The error message is
+    // "spawn /bin/sh ENOENT" — none of it should reach the trusted wake.
+    await bg.execute(
+      "c1",
+      { command: "echo hi", cwd: "/tmp/does-not-exist-sandbox-spawn-error-test" },
+      undefined,
+      undefined,
+      ctx,
+    );
+
+    const wake = await waitFor(() => wakes.find((w) => w.content.includes("failed to spawn")));
+    expect(wake.content).toContain("failed to spawn");
+    expect(wake.content).toContain("jobs tool");
+    // The wake must NOT carry error-message fragments (the injection surface).
+    expect(wake.content).not.toContain("ENOENT");
+    expect(wake.content).not.toContain("posix_spawn");
+    expect(wake.content).not.toContain("/bin/sh");
+    // The diagnostic IS available via jobs action=tail (deliberate, untrusted).
+    const tail = await waitFor(() => jobTail(tools, ctx, 1));
+    expect(tail).toContain("spawn error");
+  });
 });
 
 describe("monitor tool", () => {
