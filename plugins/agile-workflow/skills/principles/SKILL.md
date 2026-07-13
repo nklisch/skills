@@ -388,11 +388,35 @@ for their owning stories.
   reason. A slow top-tier reviewer is not a failure until its appropriately
   sized timeout or mechanism reports failure.
 - **Strict completion:** final autopilot completion must clear a successful
-  review path and resolve or file accepted findings. At weights `light` through
+  review path and adjudicate every proposed finding. At weights `light` through
   `maximum`, that path must use a supported fresh-context reviewer; if it fails,
   the run is blocked rather than complete. At explicit weight `none`, documented
   implementation verification and acceptance evidence satisfy the path without
   independent review.
+
+## Recipient-owned finding disposition
+
+Reviewer output is evidence, not authority. The receiving agent orchestrating the
+run independently verifies each claim and assigns its disposition against the
+repository's actual context: acceptance criteria, supported users and deployment
+shape, likelihood, blast radius, recoverability, existing safeguards, and the
+cost of delaying the current work. A reviewer's `blocker` label never binds the
+receiver by itself, and disagreement is resolved by evidence rather than
+seniority or model strength.
+
+A finding blocks the current cycle only when the receiver judges it a credible,
+material risk to required correctness, security, data integrity, public
+contracts, acceptance criteria, release safety, or trustworthy verification.
+Fix those findings now or keep an active item that prevents completion. Park a
+valid concern below that bar in the unbound backlog with its risk rationale and
+continue; leave nits in review notes, and reject unsupported findings with a
+brief reason. Rarity alone does not make a case irrelevant, but a corner case's
+likelihood and consequence must justify its delivery cost. Repetition across
+review passes does not elevate severity by itself.
+
+A successful review path therefore means independent scrutiny ran when required
+and the receiving agent adjudicated the results. It does not mean every reviewer
+suggestion was implemented or promoted into the active queue.
 
 User instructions and project-level review/egress rules override defaults. Do
 not invoke an external peer mechanism when policy prohibits it. `--only-questions`

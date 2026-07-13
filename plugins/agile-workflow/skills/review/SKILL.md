@@ -233,19 +233,32 @@ Deep lane:
   inline when the selected weight requires a fresh reviewer and none is available.
 - Apply the core lenses plus the applicable deep dimensions.
 
-### Phase 5: Classify Findings
+### Phase 5: Adjudicate And Classify Findings
 
-- **Blocker**: must be fixed before advancing or merging. Examples:
-  correctness bug, security vulnerability, undocumented breaking change,
-  foundation-doc drift, or a test that proves the change is wrong.
-- **Important**: should be addressed but is not strictly blocking. Examples:
-  missing tests for meaningful logic, questionable design, unclear naming, minor
-  security gap, or refactor opportunity.
-- **Nit**: optional improvement, style polish, small documentation improvement,
-  or nonessential refactor.
+The host/receiving agent owns classification. Treat fresh-reviewer severities as
+proposals, verify concrete claims, and weigh each finding against repository
+context: acceptance criteria, supported deployment and users, likelihood, blast
+radius, recoverability, existing safeguards, and delay cost. Reviewer confidence,
+model strength, or repeated mention does not make a finding blocking.
 
-If there are zero blockers and zero important findings, say so plainly. Do not
-pad the review with invented concerns.
+- **Blocker**: a credible, material current-cycle risk to required correctness,
+  security, data integrity, public contracts, acceptance criteria, release
+  safety, or trustworthy verification. It must be fixed or kept active before
+  advancing. Examples include a demonstrated correctness bug, exploitable
+  vulnerability, unintended breaking change, material foundation-doc drift, or
+  a test that proves required behavior is wrong.
+- **Important**: valid work below the current-cycle blocker bar. Park it in the
+  unbound backlog with the risk rationale and advance the reviewed item. Examples
+  include unlikely low-consequence edges, worthwhile hardening, nonessential
+  tests, design cleanup, naming, or refactor opportunities.
+- **Nit**: optional polish that does not warrant a substrate item.
+- **Rejected**: unsupported, inapplicable, or cost-disproportionate advice;
+  record a brief reason when it came from an independent reviewer.
+
+Rarity alone is not dismissal: a corner case with severe consequences may still
+block. Conversely, a real issue does not block merely because a reviewer found
+it. If there are zero receiver-confirmed blockers and zero important findings,
+say so plainly. Do not pad the review with invented concerns.
 
 ### Phase 6: Finish
 
@@ -259,8 +272,10 @@ Standalone mode:
 
 Substrate mode:
 - Load [substrate-side-effects.md](references/substrate-side-effects.md).
-- File above-nit findings into the substrate.
-- Advance the item if there are no blockers, or bounce it if blockers exist.
+- File receiver-accepted findings according to their disposition: current-cycle
+  blockers active, important findings in the unbound backlog, and nits nowhere.
+- Advance the item if there are no receiver-confirmed blockers, or bounce it if
+  blockers exist.
 - Append the review record and commit the reviewed item's transition.
 - After an approval reaches `done`, run Conservative Parent Roll-Up below.
 
@@ -315,8 +330,11 @@ Approve | Approve with comments | Request changes | Block
 ### Nits
 - Nit: <brief note> (`file:line`)
 
+### Rejected proposals
+- <reviewer proposal>: <repository-context rationale>
+
 ## Notes
-<mode, depth, skipped lenses, limitations, or anything else worth recording>
+<mode, depth, risk context, skipped lenses, limitations, or anything else worth recording>
 ```
 
 If no findings above nit level in substrate mode: "This change looks good.
@@ -347,7 +365,8 @@ Nothing blocking or significant to flag."
 - Foundation-doc drift is a blocker, not a nit. Rolling foundation is a hard
   rule.
 - Do not advance an item past review unless the verdict is Approve or Approve
-  with comments. Pushing through blockers defeats the point of the stage.
+  with comments. Pushing through receiver-confirmed material blockers defeats
+  the point of the stage; parking lower-risk findings does not.
 - Child completion never substitutes for a parent's review. Roll-up may move an
   implementing parent to `review`, but only that parent's selected lane may move
   it to `done`.

@@ -95,7 +95,9 @@ item kind as a starting heuristic. Low-risk stories can close from recorded
 green verification, while risky stories, features, and epics receive the
 fresh-context coverage allowed by the effective weight. Child completion may
 make a parent eligible for its own review, but never approves the parent by
-itself.
+itself. Fresh-reviewer findings are proposals: the receiving agent verifies and
+classifies them against repository context. Only credible material current-cycle
+risk blocks advancement; valid lower-priority findings are parked unbound.
 
 ### Questions and advisory review
 
@@ -125,7 +127,13 @@ convention, then `standard`:
   available for the highest-risk scopes.
 
 These levels state review intent and ceilings, not fixed reviewer counts or pass
-recipes.
+recipes. A successful review path requires every proposed finding to be
+adjudicated, not implemented. The receiving orchestrator weighs acceptance
+criteria, supported users and deployment shape, likelihood, blast radius,
+recoverability, safeguards, and delay cost. It fixes or activates material
+current-cycle blockers, parks valid lower-priority concerns in the unbound
+backlog, and rejects unsupported advice with a rationale. Reviewer labels and
+repetition are evidence, not authority.
 
 ### Backlog item shape
 

@@ -369,7 +369,10 @@ Advisory review follows risk in both direct and autopilot design. Independent
 review uses completeness/advisory before adversarial posture, is labeled
 cross-model only for a known different model class, and is non-blocking at
 design time. Final autopilot completion still requires the successful review
-path selected by the effective review weight.
+path selected by the effective review weight. The receiving orchestrator owns
+finding disposition: it verifies reviewer proposals in repository context,
+keeps only credible material current-cycle risks blocking, and parks valid
+lower-priority work in the unbound backlog.
 
 ### Queue selection algorithm
 
@@ -397,11 +400,12 @@ path selected by the effective review weight.
 7. Re-read substrate state after the production skill returns; it may already
    have completed review and eligible parent roll-up. Commit each item
    transition separately.
-8. If review bounced an item, treat its durable findings as the next
-   implementation input and keep cycling implementation → verification → review.
-   Bounce count is diagnostic history, never a stop condition. Recurring findings
-   trigger deeper root-cause/design diagnosis and fresh context where useful,
-   not a human handoff.
+8. If review bounced an item, treat only receiver-confirmed material blockers as
+   the next implementation input and keep cycling implementation → verification
+   → review. Park valid lower-priority findings unbound; they do not reopen the
+   scoped queue. Bounce count is diagnostic history, never a stop condition.
+   Recurring blockers trigger deeper root-cause/design diagnosis and fresh
+   context where useful, but repetition alone does not elevate severity.
 9. Goto 1 unless a stop condition applies.
 ```
 

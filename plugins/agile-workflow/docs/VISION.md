@@ -95,7 +95,10 @@ agile-workflow is complete enough to operate as the supported workflow engine:
 - Questions and advisory review are consequence-driven: routine reversible
   choices use recorded judgment; strategic or difficult-to-reverse choices get
   an explicit checkpoint; independent review scales through the project's
-  high-level review weight while preserving fresh-context deep review.
+  high-level review weight while preserving fresh-context deep review. Reviewer
+  findings remain proposals: the receiving orchestrator weighs actual repository
+  risk, blocks only on material current-cycle concerns, and parks valid
+  lower-priority work rather than forcing every suggestion into implementation.
 - Real releases move through scope → design → implement → review →
   release-deploy on the substrate; gates focus on bound work while following
   relevant evidence into adjacent or system-wide code, distinguish release

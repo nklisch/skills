@@ -108,6 +108,8 @@ CAPSULES = {
             "Cross-model peer review applies only when a different model class is available.",
             "Same-model review uses a fresh-context sub-agent rather than inline self-review.",
             "Stories fast-advance on verification; features and epics get deeper review.",
+            "Reviewer findings are proposals; the receiving orchestrator judges actual risk in repository context.",
+            "Only material current-cycle risk blocks completion; park valid lower-priority findings and continue.",
             "Advisory review is non-blocking during design, but final autopilot completion needs a successful review path.",
         ],
     },

@@ -301,6 +301,21 @@ longer justify its cost. Removing behavior, guarantees, validation, determinism,
 compatibility, or safety is a product decision: explain the trade-off and ask
 the user rather than silently weakening it.
 
+### Review proportionality
+
+Reviewer output is evidence, not authority. The receiving agent verifies claims
+and judges their current-cycle risk against the repository's acceptance criteria,
+supported users and deployment shape, likelihood, blast radius, recoverability,
+safeguards, and delay cost. Credible material risks to required correctness,
+security, data, public contracts, acceptance, release safety, or trustworthy
+verification block. Valid lower-priority concerns are parked unbound; nits stay
+in review notes; unsupported advice is rejected with a brief rationale.
+
+A successful independent review path requires adjudicating every proposal, not
+implementing every suggestion. A rare severe case may still block, while a real
+corner case with negligible consequence need not. Reviewer labels, model
+strength, and repeated mention do not replace the receiving agent's judgment.
+
 ---
 
 # Part II — Substrate-Execution Principles

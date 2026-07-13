@@ -44,6 +44,12 @@ Always run completeness before attack:
    attack pass; completed artifacts may use the same bounded convergence shape.
    Verify concrete claims before accepting them.
 
+The receiving/orchestrating agent owns the verdict on every returned finding.
+Apply Part IV's material-risk threshold in repository context; do not inherit a
+reviewer's severity label. Fix or activate only current-cycle blockers, park
+valid lower-priority concerns in the unbound backlog, and reject unsupported
+claims with a reason.
+
 For deep or complex work, use a different model class for Phase 2 than Phase 1
 when two classes are available. Their disagreement is evidence to investigate,
 not a vote. For routine design, do not turn a focused advisory pass into a
@@ -58,7 +64,8 @@ Summarize evidence and decisions in the item body; never paste transcripts:
 - Invoked because: <risk or uncertainty>
 - Phase 1 — advisory/completeness: <reviewer class and useful gaps>
 - Phase 2 — adversarial: <reviewer class and failure modes>
-- Accepted: <adjustments with phase>
+- Fixed/active blockers: <material current-cycle risks and disposition>
+- Parked: <valid lower-priority concerns and risk rationale>
 - Rejected: <points and reasons with phase>
 - Skipped/degraded: <phase and reason, if any>
 ```
