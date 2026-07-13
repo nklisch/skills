@@ -1448,6 +1448,11 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
   });
 
   pi.on?.("session_start", async () => {
+    // Reset the shutdown flag: in a long-lived extension instance (multiple
+    // sessions), session_shutdown sets this true and wake() short-circuits on
+    // it. Without a reset here, the first shutdown suppresses every later
+    // session's wakes — background jobs would silently stop waking the agent.
+    shuttingDown = false;
     try {
       await resolveSandboxSpawn();
     } catch (err) {
