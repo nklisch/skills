@@ -99,10 +99,19 @@ Required output additions:
 
 ### Implementer
 
-Use for a settled implementation bundle. Give exact item ids, ownership paths,
-acceptance criteria, and verification commands. The subagent owns only the
-specified write scope. It must update the item with implementation notes and run
-or report the bounded verification.
+Use for a settled implementation bundle. One feature per implementation agent is
+the baseline: give the worker the feature plus its child stories as design and
+acceptance checkpoints. Bundle multiple related features into one sequential
+worker when shared context and coherence make that cheaper than handoffs, while
+retaining per-feature evidence and transitions. Stories do not normally become
+one-agent-each work units. Split an unusually large feature only into coherent
+write-ownership bundles with explicit integration boundaries; story boundaries
+may help describe the split but do not dictate it.
+
+Give exact item ids, ownership paths, acceptance criteria, and verification
+commands. The subagent owns only the specified write scope. It must update the
+feature and completed story checkpoints with implementation notes and run or
+report the bounded verification.
 
 Required output additions:
 - `Files changed`.

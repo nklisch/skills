@@ -329,41 +329,46 @@ unit.
 
 #### When to spawn stories
 
-Stories pay for themselves when **at least one** of these is true:
+Stories are **design checkpoints**, not default implementation-agent units.
+The parent feature remains the normal ownership, implementation, verification,
+and review bundle. Spawn stories when at least one checkpoint materially helps:
 
-- **Parallelizable.** Three or more chunks can be implemented by independent
-  agents simultaneously — `/agile-workflow:implement-orchestrator` wants
-  stories so it has fan-out targets.
 - **Non-trivial dependencies.** Story A blocks B blocks C; declaring
-  `depends_on:` at the story level makes the chain visible without reading
-  the full design body.
-- **Multi-session work.** A feature that won't fit in one stride needs
-  resume points. A story file gives a fresh agent a smaller surface to
-  absorb than the entire feature design.
-- **Heterogeneous acceptance.** Different chunks have different test
-  surfaces (UI works / IPC errors / DB schema). Gates score per-story
-  rather than per-feature, which is cleaner when the surfaces are genuinely
-  different.
+  `depends_on:` makes the intended implementation order visible.
+- **Multi-session continuity.** A long feature benefits from durable checkpoints
+  that show which design elements and acceptance slices are complete.
+- **Heterogeneous acceptance.** Different design elements have distinct,
+  meaningful verification evidence (for example UI behavior, IPC failures, and
+  schema behavior).
+- **Decision traceability.** A design element is important enough to preserve as
+  a named checkpoint even though one feature worker will usually implement it.
+
+Do not spawn stories merely to manufacture parallel worker targets. The normal
+orchestrator baseline is one implementation agent per feature, carrying its
+stories as checkpoints. Only an unusually large feature should split across
+multiple coherent write-ownership bundles; story boundaries may inform that
+split but do not define one worker each.
 
 #### When stories are pure overhead
 
 Skip stories when **all** of these hold:
 
-- Retroactive capture of already-done work (stories are forward-looking
-  containers; if the work is already done, just land it under the feature)
-- Single-stride implementation (one session can finish the whole feature)
-- Tight cohesion (every test exercises every code path; the chunks aren't
-  meaningfully independent)
-- The natural decomposition is just "frontend / backend" — that's the
-  package boundary, not stories
+- Retroactive capture of already-done work (if the work is already done, just
+  land it under the feature)
+- Single-stride implementation with no useful intermediate checkpoint
+- Tight cohesion (the acceptance evidence and implementation cannot be
+  meaningfully separated)
+- The natural decomposition is just "frontend / backend" or another package
+  boundary with no distinct design checkpoint
 
 #### Spawning a story
 
 For each child story to spawn:
 - Create `.work/active/stories/<feature-id>-<story-slug>.md`
 - Frontmatter: `kind: story`, `stage: implementing`, `parent: <feature-id>`,
-  `depends_on: [...]` (declare which sibling stories must finish first)
-- Body: scope of this story, the unit(s) it implements, acceptance criteria
+  `depends_on: [...]` (declare which sibling checkpoints must finish first)
+- Body: the design element/checkpoint, its acceptance evidence, and any ordering
+  constraints. Do not describe it as an agent assignment.
 
 Cycle check: run `.work/bin/work-view --blocking <story-id>` before adding any
 `depends_on` entry.
@@ -429,9 +434,10 @@ In conversation:
 - **Child stories**: list with `depends_on` chains
 - **Implementation order**: 1, 2, 3, ...
 - **Risks flagged**: list (or "none")
-- **Next**: `/agile-workflow:implement <story-id>` for sequential, or
-  `/agile-workflow:implement-orchestrator <feature-id>` for parallel agents over
-  the dependency graph
+- **Next**: `/agile-workflow:implement-orchestrator <feature-id>` for the normal
+  one-agent feature bundle, or `/agile-workflow:implement <feature-id>` when the
+  current host should keep the cohesive delivery inline. Split an unusually
+  large feature only when write ownership and dependencies justify it.
 
 ## Guardrails
 

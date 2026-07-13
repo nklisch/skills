@@ -245,8 +245,15 @@ Before spawning read-only exploratory/discovery sub-agents, do a local scope-siz
 - Name the unknowns that remain. If you cannot name a distinct unknown, do not
   spawn an agent just to feel thorough.
 
-For implementation waves, the same sizing note feeds write-ownership and
-dependency-layer decisions before choosing fan-out width.
+For implementation waves, start from **one implementation agent per feature**.
+A feature is the normal context, verification, and review boundary. Its child
+stories are design checkpoints that make acceptance slices and ordering visible;
+they are not normally separate agent assignments. Bundle multiple related
+features into one worker when shared context and sequential coherence save more
+than the handoff would; preserve separate feature evidence and transitions.
+Split one unusually large feature across multiple workers only when coherent
+write ownership, dependency layers, or isolation justify it. Story boundaries
+may inform that split, but never dictate it by themselves.
 
 Choose the lightest mechanism that will produce better evidence:
 
@@ -255,7 +262,9 @@ Choose the lightest mechanism that will produce better evidence:
 | Known file(s), one module, or a handful of obvious integration points | Read directly with Read/Grep/Glob; skip exploratory fanout. |
 | One bounded area but uncertain patterns or call sites | Use one focused exploratory sub-agent, then spot-check key files yourself. |
 | Several independent surfaces with different questions | Use parallel exploratory sub-agents, one per surface/question. |
-| Implementation work with independent write ownership | Fan out by ownership and dependency layer; do not use item count alone as the parallelism signal. |
+| Normal feature implementation | Give one worker the feature and its story checkpoints as a cohesive bundle. |
+| Several related features with shared context | Bundle them into one sequential worker when that reduces handoffs; keep per-feature verification, transitions, and review. |
+| Unusually large feature with independent write ownership | Split into coherent ownership bundles by write set and dependency layer; do not assign one worker per story by default. |
 | Deep audit/review where fresh context is the point | Spawn a generic sub-agent with the skill's reviewer/scanner prompt posture and explicit output schema; if unavailable, use the skill's inline fallback. |
 
 Parallel Explore only pays for itself when the prompts are genuinely different.
@@ -366,7 +375,7 @@ risk, item tier, scope, and available model classes:
 - `standard` — balanced, risk-driven independent review.
 - `thorough` — increase fresh-context breadth and depth for meaningful risk.
 - `maximum` — permit multi-model, multi-pass complementary-then-adversarial
-  review for features and epics, with stories escalating dynamically by risk.
+  review for features, epics, and final completion bundles.
 
 The levels are intent and ceilings, not fixed reviewer or pass counts. Explicit
 caller and project policy takes precedence; record the effective weight and any
@@ -375,6 +384,21 @@ for their owning stories.
 
 ## Load-bearing invariants
 
+- **Feature-level implementation review:** child stories never enter `review`.
+  Green implementation verification advances a child story directly from
+  `implementing` to `done`; completed child stories make their feature eligible
+  for review rather than creating review units of their own. A standalone story
+  (`parent: null`) is the narrow exception: it receives a bounded review after
+  verification, but never an independent or cross-model review. Epics receive
+  their own deeper aggregate review after child features are done; review depth
+  should generally increase with scope because integration and capability gaps
+  emerge at feature and epic boundaries, while tiny-scope review tends toward
+  pedantry and over-engineering.
+- **Non-blocking review:** an item at `review` has completed implementation
+  verification, so it satisfies downstream implementation dependencies while
+  review runs. Dispatch the next dependency layer without waiting for the
+  verdict. A bounce rejoins implementation; reverify affected downstream items
+  only when the fix changes an interface or assumption they consume.
 - **Different-class labeling:** call a pass cross-model only when the reviewer is
   known to be a different model class from the host. Otherwise label it
   fresh-context. Different-class review is valuable for independent blind spots,

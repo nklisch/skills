@@ -93,7 +93,9 @@ CAPSULES = {
         "text": [
             "Local probes with rg/read/work-view come before read-only agents.",
             "Agents are for breadth, isolation, fresh judgment, or independent write ownership.",
-            "Parallelism follows ownership and dependency layers rather than item count.",
+            "One implementation agent per feature is the baseline; bundle related features when shared context helps, and split only unusually large features into coherent ownership bundles.",
+            "Stories are design checkpoints, not default implementation-agent units or parallelism signals.",
+            "Parallelism follows feature ownership, write sets, and dependency layers rather than story or item count.",
             "Dispatch rationale belongs in run notes or the item body when it affects bundling or wave width.",
             "Gate scope: release-bound work is the focus, not a hard boundary; follow concrete evidence and route ambient findings to the unbound backlog.",
         ],
@@ -107,7 +109,9 @@ CAPSULES = {
         "text": [
             "Cross-model peer review applies only when a different model class is available.",
             "Same-model review uses a fresh-context sub-agent rather than inline self-review.",
-            "Stories fast-advance on verification; features and epics get deeper review.",
+            "Child stories never enter review: green verification advances them directly to done; only standalone stories receive review, and never cross-model review.",
+            "Implementation review happens at feature level, with standalone stories as the narrow exception; epics receive their own deeper aggregate review.",
+            "Review is non-blocking for dependency-ordered implementation: an item at review permits the next implementation layer to start.",
             "Reviewer findings are proposals; the receiving orchestrator judges actual risk in repository context.",
             "Only material current-cycle risk blocks completion; park valid lower-priority findings and continue.",
             "Foundation docs may describe future intent: review existing claims only; omission or absent implementation is not drift.",

@@ -167,8 +167,8 @@ Filters (compose with AND semantics):
   --research-origin <s> Items with research_origin: <s>
   --scan-origin <s>    Items with scan_origin: <s>
   --research-refs <s>  Items whose research_refs contains <s>
-  --ready              Active items at drafting/implementing/review with all depends_on done
-  --blocked            Active items at drafting/implementing/review with unmet dependencies
+  --ready              Active drafting/implementing/review items whose deps are done or at review
+  --blocked            Active drafting/implementing/review items with implementation-blocking deps
   --blocking <id>      Items that depend on <id>
   --stale              Backlog items whose last-touched date exceeds backlog_staleness_days
                        configured in .work/CONVENTIONS.md (absent key → notice + exit 0)
@@ -739,10 +739,7 @@ mod tests {
     #[test]
     fn research_origin_non_null_sets_equals() {
         let opts = run(&["--research-origin", "my-research"]);
-        assert_eq!(
-            opts.filter.research,
-            Match::Equals("my-research".into())
-        );
+        assert_eq!(opts.filter.research, Match::Equals("my-research".into()));
     }
 
     #[test]
