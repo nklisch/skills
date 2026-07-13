@@ -6,9 +6,10 @@ description: >
   make autonomous progress on the substrate. Reads .work/active/, picks ready items by depends_on and
   stage, delegates to design, implement, and review skills, commits transitions, and repeats until the
   scope is done or blocked. Before reporting complete, runs a final peer-review/fresh-context
-  completion pass and fixes or files accepted findings. No /loop or --resume mechanics; the harness
-  goal/continuation feature owns long-running persistence. Epic-scoped by default; --all drains all
-  active work; free-text scope directives are allowed.
+  completion pass, adjudicates reviewer proposals, fixes material blockers, and parks lower-risk
+  valid findings. No /loop or --resume mechanics; the harness goal/continuation feature owns
+  long-running persistence. Epic-scoped by default; --all drains all active work; free-text scope
+  directives are allowed.
 ---
 
 # Autopilot
@@ -166,8 +167,11 @@ this caller note in every delegated prompt:
 > advisory policy from `principles/SKILL.md` Part IV in direct and autopilot
 > modes: use independent review only when the risk and review weight warrant it,
 > and label review cross-model only when a different model class is actually
-> selected. Peer failures during design are non-blocking. Preserve
-> complementary→adversarial order when both phases run. For reviewer posture and
+> selected. Treat reviewer findings as proposals: independently adjudicate them
+> against repository context, fix or activate only material current-cycle
+> blockers, and park valid lower-risk work in the unbound backlog. Peer failures
+> during design are non-blocking. Preserve complementary→adversarial order when
+> both phases run. For reviewer posture and
 > host-native roles, load `principles/references/subagents.md`; for capability
 > mapping, load `principles/references/models.md`. A top-tier reasoning peer may
 > take 10 to 30 minutes; quiet output after a few minutes is not a hang.
@@ -227,19 +231,23 @@ bounces[<item-id>] = times this item has gone implementing -> review -> implemen
 
 After every bounce:
 
-1. Confirm the review left concrete, durable findings in the item body.
-2. Rebuild the queue so the item naturally re-enters implementation.
-3. Implement the findings, run the relevant verification, and send the item
+1. Confirm the receiving agent—not the reviewer alone—adjudicated the proposals
+   and left concrete, receiver-confirmed blockers in the item body.
+2. Park valid findings below the material current-cycle bar in the unbound
+   backlog; they do not keep the item bounced or enter this run's queue.
+3. Rebuild the queue so the item naturally re-enters implementation.
+4. Implement the blockers, run the relevant verification, and send the item
    through review again.
-4. Continue until review approves the item or autonomous work reaches a genuine
+5. Continue until review approves the item or autonomous work reaches a genuine
    hard blocker under `principles/SKILL.md` Part III.
 
-There is no fixed bounce limit. If the same substantive finding survives more
-than one correction pass, treat recurrence as evidence that the attempted fix or
-design model is wrong: re-read the item and foundation docs, diagnose the root
-cause, revise the item design or implementation notes when needed, and use a
-fresh implementation or review context when that would add independent
-judgment. Do not park the item at `review`, label it stuck, or require human
+There is no fixed bounce limit. If the same material finding survives more than
+one correction pass, treat recurrence as evidence that the attempted fix or
+design model may be wrong: re-read the item and foundation docs, diagnose the
+root cause, revise the item design or implementation notes when needed, and use
+a fresh implementation or review context when that would add independent
+judgment. Recurrence alone never elevates a low-risk finding into a blocker. Do
+not park the active item at `review`, label it stuck, or require human
 intervention solely because a counter reached two (or any other number).
 
 ### Phase 6: Refactor Cadence (`--all` Only)
@@ -310,20 +318,25 @@ When the scoped queue appears drained:
    blocked on final review and include the reason. `none` requires complete
    administrative evidence instead of a fresh reviewer; missing evidence blocks
    rather than becoming an invented pass.
-5. For every substantive accepted finding:
-   - Small and clearly safe fix: fix it immediately, run verification, commit,
-     and rebuild the queue.
-   - Needs tracked work: create or update a substrate item at the right stage
-     (`drafting` for design gaps, `implementing` for concrete fixes), commit,
-     and rebuild the queue.
-   - Invalid or lower-value finding: reject it with a one-line rationale in the
-     final review summary.
+5. The receiving autopilot agent adjudicates every proposed finding against the
+   repository's acceptance criteria, users and deployment shape, likelihood,
+   blast radius, recoverability, safeguards, and delay cost. Reviewer severity
+   is evidence, not the verdict:
+   - Receiver-confirmed material current-cycle blocker: fix it immediately when
+     small and safe, or create/update an active item at the right stage
+     (`drafting` for design gaps, `implementing` for concrete fixes); verify,
+     commit, and rebuild the queue.
+   - Valid but below the blocker bar: park an unbound backlog item with a brief
+     risk rationale, commit it, and continue. It does not reopen the drained
+     scope or prevent completion.
+   - Nit or unsupported/inapplicable claim: note or reject it with a one-line
+     rationale; do not create active work.
 6. If rebuilding the queue finds new or regressed `drafting`, `implementing`, or
-   `review` items in scope, return to Phase 2 and drain them. Completion is not
-   allowed while accepted final-review findings remain active.
-7. Once the final review path succeeds, produces no accepted
-   blocking/substantive findings, and the queue is still empty, report the goal
-   as complete.
+   `review` items in scope, return to Phase 2 and drain them. Parked review
+   follow-ups remain outside autopilot scope until separately promoted.
+7. Once the final review path succeeds, every proposal is adjudicated, no
+   receiver-confirmed blocker remains, and the queue is still empty, report the
+   goal as complete.
 
 Record the final review in the autopilot final summary. Do not paste the full
 peer transcript into item bodies; summarize accepted/rejected points where they
@@ -343,8 +356,8 @@ Narrate briefly as items advance. Final summary:
 - Effective worker capability and selection rationale
 - Effective review weight and source
 - Final completion-review status: administrative, cross-model, same-harness
-  fresh-context, or failed; include accepted findings fixed/filed and rejected
-  findings summary
+  fresh-context, or failed; summarize blockers fixed/activated, lower-risk
+  findings parked, and proposals rejected
 - Goal outcome: complete, blocked, or interrupted
 
 ## Guardrails
@@ -352,11 +365,13 @@ Narrate briefly as items advance. Final summary:
 - Never use structured question tool while an autopilot goal is actively driving the
   delegated work. Resolve with judgment and log rationale.
 - Do not report `complete` until Phase 8 has run successfully at the effective
-  review weight and all accepted findings have been fixed or filed back into the
-  queue.
+  review weight, every proposal has been adjudicated, and all receiver-confirmed
+  material blockers have been fixed or filed into the active queue. Parked
+  lower-risk findings do not block completion.
 - Commit after every item state change or blocker note.
 - Do not push, force-push, or release; the user controls publication.
-- Do not touch `.work/backlog/` except to report that backlog items are out of
-  scope.
+- Do not drain or promote `.work/backlog/`; it is outside autopilot scope.
+  Review disposition may park valid lower-priority findings there without
+  reopening the run.
 - The substrate is the resume point. No `PROGRESS.md`, no watchdog loops, no
   `--resume`.

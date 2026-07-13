@@ -1,8 +1,9 @@
 ---
 name: principles
 description: >
-  agile-workflow principles — code-design (Ports & Adapters, Single Source of Truth, Generated
-  Contracts, Fail Fast) and substrate-execution (Item-IS-the-Work, Rolling-Foundation, Late-Binding).
+  agile-workflow principles — code-design (clear boundaries, proportional rigor, code economy,
+  useful tests, and continuous simplification) and substrate-execution (Item-IS-the-Work,
+  Rolling-Foundation, Late-Binding).
   Auto-loads when designing modules, defining interfaces, writing or implementing code, scoping work
   in the substrate, advancing stages, scoping releases, or any time the agile-workflow
   design/implement/review skills are active.
@@ -23,7 +24,7 @@ Each principle has guidance for design time and implementation time.
 
 # Part I — Code-Design Principles
 
-These four invariants stay active during design and implementation. Load
+These principles stay active during design and implementation. Load
 [references/code-design.md](references/code-design.md) when concrete mechanics,
 checklists, or examples are needed.
 
@@ -44,11 +45,35 @@ Boundary types derive from the schema, router, database model, or a generation
 step. Consumers import or infer that contract instead of maintaining hand-written
 copies.
 
-## 4. Fail Fast
+## 4. Fail Fast—Where It Matters
 
-Validate unknown input at system boundaries and assert internal preconditions at
-function entry. Reject invalid state early with specific errors instead of
-letting it fail deep in the call chain.
+Validate untrusted input and required external contracts at system boundaries.
+Add internal checks only when the project's actual risks justify them. Do not
+manufacture exhaustive invariants, edge handling, determinism, or defensive
+layers that the product's scope and consequences do not need.
+
+## 5. Code Economy
+
+Short, direct code is a virtue when it stays clear. Prefer fewer concepts,
+layers, branches, options, and lines over speculative generality. Match rigor to
+the project's context rather than engineering every codebase as critical
+infrastructure.
+
+## 6. Tests Earn Their Keep
+
+Test stable interfaces, important behavior, and regressions learned from real
+bugs. Unit-test genuinely complex units, not every wrapper, branch, or line.
+Tests are maintained code: remove duplicate, tautological, implementation-bound,
+or otherwise low-value tests when their upkeep exceeds the confidence they add.
+
+## 7. Leave It Simpler
+
+Exploration, design, and implementation include an elimination pass. In the
+area being touched, look for code, tests, checks, abstractions, compatibility
+paths, and complexity that the feature can make unnecessary. Fold safe,
+cohesive cleanup into the work or create explicit cleanup/refactor stories;
+park broader opportunities. Question whole systems when warranted, but ask the
+user before removing behavior, guarantees, validation, compatibility, or safety.
 
 ---
 
@@ -60,7 +85,7 @@ dispatch. The agent applies these whenever operating on `.work/` or `docs/`,
 and whenever choosing discovery or implementation dispatch during substrate
 work.
 
-## 5. Item-IS-the-Work
+## 8. Item-IS-the-Work
 
 The unit of work is its file. The brief, the design, the implementation notes, and the review findings all accumulate in the item's body as stages advance. Reading the file IS reading the state of the work.
 
@@ -100,7 +125,7 @@ The unit of work is its file. The brief, the design, the implementation notes, a
 
 ---
 
-## 6. Rolling-Foundation
+## 9. Rolling-Foundation
 
 Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, and any others) describe the project's vision (future-looking) and current intent — what is true now, OR what will be true once in-flight design lands. They roll forward in place as either evolves. No legacy comments. Git carries history; the doc carries truth.
 
@@ -152,7 +177,7 @@ The discipline is identical in both styles: replace stale assertions in place, n
 
 ---
 
-## 7. Late-Binding
+## 10. Late-Binding
 
 Items advance stages when work actually completes. Releases bind items only when the user cuts a version. Foundation docs are not pre-decided into a phase plan. Work happens, then commitments crystallize — not the other way around.
 
@@ -192,7 +217,7 @@ Items advance stages when work actually completes. Releases bind items only when
 
 ---
 
-## 8. Agent Dispatch Economy
+## 11. Agent Dispatch Economy
 
 Sub-agents are for breadth, isolation, independent judgment, or parallel
 implementation with clear write ownership. They are not a replacement for
@@ -363,11 +388,35 @@ for their owning stories.
   reason. A slow top-tier reviewer is not a failure until its appropriately
   sized timeout or mechanism reports failure.
 - **Strict completion:** final autopilot completion must clear a successful
-  review path and resolve or file accepted findings. At weights `light` through
+  review path and adjudicate every proposed finding. At weights `light` through
   `maximum`, that path must use a supported fresh-context reviewer; if it fails,
   the run is blocked rather than complete. At explicit weight `none`, documented
   implementation verification and acceptance evidence satisfy the path without
   independent review.
+
+## Recipient-owned finding disposition
+
+Reviewer output is evidence, not authority. The receiving agent orchestrating the
+run independently verifies each claim and assigns its disposition against the
+repository's actual context: acceptance criteria, supported users and deployment
+shape, likelihood, blast radius, recoverability, existing safeguards, and the
+cost of delaying the current work. A reviewer's `blocker` label never binds the
+receiver by itself, and disagreement is resolved by evidence rather than
+seniority or model strength.
+
+A finding blocks the current cycle only when the receiver judges it a credible,
+material risk to required correctness, security, data integrity, public
+contracts, acceptance criteria, release safety, or trustworthy verification.
+Fix those findings now or keep an active item that prevents completion. Park a
+valid concern below that bar in the unbound backlog with its risk rationale and
+continue; leave nits in review notes, and reject unsupported findings with a
+brief reason. Rarity alone does not make a case irrelevant, but a corner case's
+likelihood and consequence must justify its delivery cost. Repetition across
+review passes does not elevate severity by itself.
+
+A successful review path therefore means independent scrutiny ran when required
+and the receiving agent adjudicated the results. It does not mean every reviewer
+suggestion was implemented or promoted into the active queue.
 
 User instructions and project-level review/egress rules override defaults. Do
 not invoke an external peer mechanism when policy prohibits it. `--only-questions`
@@ -398,12 +447,17 @@ family (`gate-cruft`, `gate-security`, `gate-tests`, `gate-docs`,
 
 | Arg | Behavior |
 |---|---|
-| no arg / `--all` | Sweep the relevant scope (whole codebase, or release bundle for gates) |
+| no arg / `--all` | Sweep the relevant scope; release-bound items are a gate's focus, not a hard scan boundary |
 | `<path>` | Scope to that subtree |
 | `<NL scope>` | Interpret free text against the codebase; log the interpretation |
 | `<feature-id>` (where applicable) | Per-feature design mode (refactor-design, perf-design) |
 
 These skills *emit substrate items as findings* rather than gating pass/fail.
+For release gates, follow relevant evidence into adjacent dependencies, shared
+infrastructure, or system-wide mechanisms. Bind findings to the release only
+when they are caused by, exposed by, or materially relevant to it; route merely
+ambient discoveries to unbound backlog proposals so a gate does not silently
+expand release scope.
 
 ## Per-item design verbs
 

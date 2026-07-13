@@ -155,6 +155,7 @@ returns structured findings.
 >   changelog-gap | repo-skill-staleness | pattern-skill-staleness |
 >   generated-file-needs-regen | doc-misplacement
 > - **Confidence**: High | Medium
+> - **Relevance**: Release-relevant | Ambient
 > - **Doc location**: `<file>:<line>`
 > - **Code location**: `<file>:<line>` (for assertion drift; omit for gaps)
 > - **Current doc text**:
@@ -179,8 +180,9 @@ returns structured findings.
 > ```
 >
 > **Rules**:
-> - Scan only the bundle's changes plus the docs that own those areas.
->   Don't audit every doc in the repo.
+> - Bundle changes and their owning docs are the focus, not a hard boundary.
+>   Follow concrete references into adjacent docs, generated catalogs, or
+>   system-wide documentation when needed; do not perform an aimless doc sweep.
 > - Cite file:line for every finding.
 > - Required edits ENFORCE rolling-foundation: replace stale assertions in
 >   place. Do NOT propose adding "previously" or "in v1.x" prose. Git is the
@@ -210,7 +212,7 @@ stage: implementing       # high-confidence drift
 tags: [documentation]
 parent: null
 depends_on: []
-release_binding: <version>
+release_binding: <version> | null  # null for ambient findings
 gate_origin: docs
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
@@ -238,6 +240,10 @@ no "previously" prose, no "in v1.x" notes. Replace the assertion in place.>
 
 For generated files needing regeneration, the item describes the regeneration
 command rather than a manual edit.
+
+Release-relevant drift uses the normal confidence mapping and binds to the
+release. Ambient staleness merely discovered while following references goes to
+the unbound backlog.
 
 Default confidence -> placement mapping:
 - **High** → `stage: implementing` in `.work/active/stories/`
@@ -272,7 +278,8 @@ In conversation:
   place. Do NOT propose adding "previously" or "in v1.x" prose.
 - Don't fix the docs in this skill — produce items only. Implementation of
   the fixes happens via `/agile-workflow:implement` on each item.
-- Audit only the bundle's changes plus the docs that own those areas — the
-  scanner enforces this; don't override.
+- Release-bound changes define focus, not a hard boundary. Follow concrete
+  documentation ownership and reference chains; route merely ambient drift to
+  the unbound backlog rather than silently expanding the release.
 - Generated files get items describing the regeneration command, not manual
   edits.

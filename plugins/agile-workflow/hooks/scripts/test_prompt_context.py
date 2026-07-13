@@ -372,6 +372,22 @@ class RulesLoaderTest(unittest.TestCase):
         printed = out.getvalue()
         self.assertIn("Agile Workflow Principles", printed)
         self.assertIn("Code-design capsule", printed)
+        self.assertIn("Code economy", printed)
+        self.assertIn("Useful tests", printed)
+        self.assertIn("ask before reducing guarantees", printed)
+
+    def test_gate_prompt_emits_wider_scope_rule(self) -> None:
+        payload = self._payload(
+            session_id="gate-scope", cwd=str(self.root), prompt="gate the release items"
+        )
+        out = io.StringIO()
+        with mock.patch.object(
+            prompt_context.sys, "stdin", io.StringIO(json.dumps(payload))
+        ), mock.patch.object(prompt_context.sys, "stdout", out):
+            rc = prompt_context.main()
+        self.assertEqual(rc, 0)
+        self.assertIn("release-bound work is the focus, not a hard boundary", out.getvalue())
+        self.assertIn("ambient findings", out.getvalue())
 
     def test_main_sessionstart_emits_rules(self) -> None:
         (self.rules_dir / "a.md").write_text("Rule A body", encoding="utf-8")

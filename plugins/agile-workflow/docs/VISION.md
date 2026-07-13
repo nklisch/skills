@@ -42,10 +42,10 @@ The plugin enforces three execution principles:
   No pre-tagged release bindings. Items advance stages when work actually
   completes. Releases bind items only when the user cuts a version.
 
-The plugin's `principles` skill loads these alongside the code-design
-principles (Ports & Adapters, Single Source of Truth, Generated Contracts,
-Fail Fast) carried over from `workflow`. The two paradigms — substrate
-execution and code design — operate together during agile-workflow work.
+The plugin's `principles` skill loads these alongside code-design principles
+for clear boundaries, proportional rigor, code economy, useful tests, and
+continuous simplification. The two paradigms—substrate execution and code
+design—operate together during agile-workflow work.
 
 ## Who this is for
 
@@ -95,9 +95,14 @@ agile-workflow is complete enough to operate as the supported workflow engine:
 - Questions and advisory review are consequence-driven: routine reversible
   choices use recorded judgment; strategic or difficult-to-reverse choices get
   an explicit checkpoint; independent review scales through the project's
-  high-level review weight while preserving fresh-context deep review.
+  high-level review weight while preserving fresh-context deep review. Reviewer
+  findings remain proposals: the receiving orchestrator weighs actual repository
+  risk, blocks only on material current-cycle concerns, and parks valid
+  lower-priority work rather than forcing every suggestion into implementation.
 - Real releases move through scope → design → implement → review →
-  release-deploy on the substrate; gates produce durable findings, and the
+  release-deploy on the substrate; gates focus on bound work while following
+  relevant evidence into adjacent or system-wide code, distinguish release
+  findings from ambient backlog discoveries, and produce durable items. The
   release ships only after every bound item is terminal. Foundation docs roll
   forward, release binding stays late, and terminal retention keeps git as the
   audit trail without leaking obsolete authority.

@@ -45,8 +45,8 @@ Codex:
   `{ "source": "local", "path": "..." }`; the only valid object-form source
   types are `github`, `url`, `git-subdir`, and `npm`.
 - **External plugins** federate in via `git-subdir` from their own repos
-  (currently `krometrail` and `peeragent`), so the marketplace can offer plugins
-  that do not live in this tree.
+  (currently `krometrail`, `peeragent`, and `skilltap`), so the marketplace can
+  offer plugins that do not live in this tree.
 
 Pi distribution is package-native rather than marketplace-index-native in this
 repo: each shippable plugin directory owns its Pi `package.json`, and published

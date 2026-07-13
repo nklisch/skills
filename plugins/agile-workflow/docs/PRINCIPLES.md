@@ -2,8 +2,8 @@
 
 The plugin's `principles` skill loads two distinct paradigms:
 
-- **Code-design principles** — Ports & Adapters, Single Source of Truth,
-  Generated Contracts, Fail Fast. Carried from the `workflow` plugin.
+- **Code-design principles** — clear boundaries and sources of truth,
+  proportional rigor, code economy, useful tests, and continuous simplification.
   These tell the agent how to write good code at design time and
   implementation time.
 - **Substrate-execution principles** — Item-IS-the-Work, Rolling-Foundation,
@@ -18,7 +18,7 @@ shapes how work moves through the system.
 
 # Part I — Code-Design Principles
 
-These four principles govern both architectural decisions and how code is
+These principles govern both architectural decisions and how code is
 written. Each section has guidance for design time and implementation time.
 
 ## 1. Ports & Adapters
@@ -213,21 +213,20 @@ If a generated type needs extending, use
 `type MyType = GeneratedType & { extra: string }` — extend the source of
 truth, don't replace it.
 
-## 4. Fail Fast (implementation only)
+## 4. Fail Fast—Where It Matters
 
-Catch bad data at the door, not three calls deep where the stack trace is
-useless. Validate inputs at the entry point of every function or system
-boundary.
+Catch bad data at real trust boundaries, not three calls deep. Validate
+untrusted input and required external contracts before domain logic runs. Add
+internal checks only where a violated precondition is plausible and
+consequential for this project.
 
 - At system boundaries (HTTP handlers, CLI args, external API responses,
-  config files): parse with Zod or equivalent before any logic runs
-- At internal function boundaries: assert preconditions at the top of the
-  function — guard clauses, not nested ifs
-- Prefer `throw`/`return early` over propagating bad state deep into call
-  chains
-- Errors should be loud and specific at the point of violation —
-  "expected positive number, got -3" beats a cryptic null reference five
-  layers down
+  config files): parse before logic runs
+- At internal boundaries: add guards when they protect a real invariant, not
+  mechanically at every function
+- Prefer early, specific failure when failure is part of the required contract
+- Do not manufacture exhaustive edge handling, invariants, retries, or firm
+  determinism that the project's scope and consequences do not need
 
 **Good:**
 ```typescript
@@ -250,6 +249,73 @@ function processOrder(input: any) {
 }
 ```
 
+## 5. Code Economy
+
+Short, direct code is a virtue when it stays clear. Prefer fewer concepts,
+layers, branches, options, and lines over speculative generality. Terse does not
+mean cryptic: simplify the model first, then its expression. Every abstraction
+or extension point must earn its maintenance cost in current scope.
+
+### At design time
+
+- Start with the most direct solution that satisfies the actual brief
+- Reject hypothetical flexibility without a current second use or committed need
+- Compare approaches by concepts removed as well as capabilities added
+
+### At implementation time
+
+- Delete obsolete paths and incidental machinery exposed by the change
+- Inline or consolidate before extracting another abstraction
+- Match rigor to the project's context rather than treating every codebase as
+  critical infrastructure
+
+## 6. Tests Earn Their Keep
+
+Tests are maintained code. Prioritize stable public interfaces, important seams,
+high-consequence behavior, and regressions learned from real bugs. Unit tests
+belong around genuinely complex isolated logic, not every wrapper, branch, or
+line. Coverage numbers are evidence, not goals.
+
+### At design time
+
+- Name the interface, risk, or regression each proposed test protects
+- Prefer one useful interface test over several implementation-bound unit tests
+- Do not require one automated test per unit, edge, or acceptance statement
+
+### At implementation time
+
+- Add regression tests when bugs reveal meaningful risk
+- Remove duplicate, tautological, brittle, obsolete, or low-value tests
+- Keep simple code simple when an isolated test adds no useful confidence
+
+## 7. Leave It Simpler
+
+Exploration, design, and implementation include an elimination pass. Look for
+code, tests, checks, abstractions, configuration, and compatibility paths the
+feature can make unnecessary. Fold safe cohesive cleanup into the task or create
+explicit cleanup/refactor stories; park broader opportunities.
+
+Question whole systems, not only local fragments. A validation layer, invariant
+system, test suite, compatibility mechanism, or defensive subsystem may no
+longer justify its cost. Removing behavior, guarantees, validation, determinism,
+compatibility, or safety is a product decision: explain the trade-off and ask
+the user rather than silently weakening it.
+
+### Review proportionality
+
+Reviewer output is evidence, not authority. The receiving agent verifies claims
+and judges their current-cycle risk against the repository's acceptance criteria,
+supported users and deployment shape, likelihood, blast radius, recoverability,
+safeguards, and delay cost. Credible material risks to required correctness,
+security, data, public contracts, acceptance, release safety, or trustworthy
+verification block. Valid lower-priority concerns are parked unbound; nits stay
+in review notes; unsupported advice is rejected with a brief rationale.
+
+A successful independent review path requires adjudicating every proposal, not
+implementing every suggestion. A rare severe case may still block, while a real
+corner case with negligible consequence need not. Reviewer labels, model
+strength, and repeated mention do not replace the receiving agent's judgment.
+
 ---
 
 # Part II — Substrate-Execution Principles
@@ -259,7 +325,7 @@ shape stage transitions, item bodies, foundation-doc evolution, and
 release binding. The agent applies these whenever operating on `.work/`
 or `docs/`.
 
-## 5. Item-IS-the-Work
+## 8. Item-IS-the-Work
 
 The unit of work is its file. The brief, the design, the implementation
 notes, and the review findings all accumulate in the item's body as
@@ -314,7 +380,7 @@ stages advance. Reading the file IS reading the state of the work.
 - [ ] Item body at completion is a complete record
 - [ ] Code does not reference item IDs; only logical concepts
 
-## 6. Rolling-Foundation
+## 9. Rolling-Foundation
 
 Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`,
 and any others) describe the project's vision (future-looking) and current
@@ -398,7 +464,7 @@ which timing style was used.
 - [ ] `git log docs/<file>.md` shows the audit trail; the doc shows the
       present
 
-## 7. Late-Binding
+## 10. Late-Binding
 
 Items advance stages when work actually completes. Releases bind items
 only when the user cuts a version. Foundation docs are not pre-decided

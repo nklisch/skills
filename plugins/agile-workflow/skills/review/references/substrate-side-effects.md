@@ -8,15 +8,21 @@ commit unless the user explicitly asks for that side effect.
 
 ## Triage Findings Into Items
 
-For each finding above nit level, create a substrate item so it does not
-disappear into prose:
+The receiving agent first adjudicates reviewer proposals under
+`principles/SKILL.md` Part IV. Reviewer severity labels are not authoritative.
+For each accepted finding above nit level, preserve the chosen disposition so it
+does not disappear into prose:
 
-- **Blocker**: either fix inline if small, or create a story in
-  `.work/active/stories/` with `stage: implementing` and tags such as `[bug]`,
-  `[security]`, `[tests]`, or the appropriate category.
-- **Important**: park as a backlog item in `.work/backlog/`, or scope as a
-  feature if substantial.
-- **Nit**: keep in conversation only; nits do not warrant items.
+- **Blocker**: a receiver-confirmed material current-cycle risk. Either fix
+  inline if small, or create a story in `.work/active/stories/` with
+  `stage: implementing` and tags such as `[bug]`, `[security]`, `[tests]`, or the
+  appropriate category. It prevents the reviewed item from advancing.
+- **Important**: valid work below the blocker bar. Park it as an unbound backlog
+  item in `.work/backlog/` with the contextual risk rationale; do not scope it
+  active merely because it is substantial or a reviewer called it blocking.
+- **Nit**: keep in review notes only; nits do not warrant items.
+- **Rejected**: create no item; record a brief reason in the review record when
+  independent review proposed it.
 
 Review-created items use `gate_origin: null`; gate-produced findings set
 `gate_origin`.
@@ -140,8 +146,9 @@ Append this section to the reviewed item:
 **Blockers**: <list with item ids> (or "none")
 **Important**: <list with item ids> (or "none")
 **Nits**: <inline notes - not items>
+**Rejected**: <reviewer proposals and brief reasons> (or "none")
 
-**Notes**: <mode, depth, skipped lenses, limitations, or anything else worth recording>
+**Notes**: <mode, depth, risk context, skipped lenses, limitations, or anything else worth recording>
 ```
 
 ## Commit

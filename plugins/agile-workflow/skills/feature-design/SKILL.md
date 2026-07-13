@@ -146,9 +146,9 @@ The body should already have a brief from `scope`. Use it as the seed for design
 
 ### Phase 2: Ground yourself
 
-The principles skill auto-loads — both code-design (Ports & Adapters, SSOT,
-Generated Contracts, Fail Fast) and substrate-execution (Item-IS-the-Work,
-Rolling-Foundation, Late-Binding) are active.
+The principles skill auto-loads — code-design includes proportional rigor, code
+economy, useful tests, and leaving touched areas simpler; substrate-execution
+includes Item-IS-the-Work, Rolling-Foundation, and Late-Binding.
 
 Read:
 1. `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md` (foundation docs that
@@ -281,6 +281,17 @@ For each unit, specify:
 
 Make strong decisions about abstractions, naming, and module boundaries.
 
+#### 5d. Elimination and cleanup pass
+
+Before adding another unit or abstraction, ask what this feature can delete,
+inline, consolidate, or make unnecessary in the area it touches. Consider code,
+tests, checks, configuration, compatibility paths, and existing abstractions.
+Fold safe cohesive cleanup into a unit. Create explicit `[refactor]` or
+`[cleanup]` child stories when the cleanup is worthwhile but independently
+reviewable; park broader work. If a candidate reduces behavior or guarantees,
+record it as a design decision for user confirmation rather than assuming
+removal.
+
 ### Phase 5.5: Pre-mortem
 
 Before finalizing, attack the design:
@@ -295,12 +306,20 @@ feature body.
 
 ### Phase 6: Test approach
 
-For each unit, design:
-- **Unit tests** — behaviors to verify, edge cases, error paths
-- **Integration points** — where does this unit meet other units; what tests prove the seams
-- **Test data** — fixtures, factories, seed data needed
+Design the smallest useful test surface:
+- **Interface tests** — important behavior at stable public boundaries and
+  cross-unit seams
+- **Regression tests** — bugs or demonstrated risks this work must not repeat
+- **Unit tests** — only for genuinely complex isolated logic where examples add
+  confidence
+- **Test removal** — duplicate, tautological, obsolete, or implementation-bound
+  tests this change can safely retire
+- **Test data** — only fixtures or factories the chosen tests actually need
 
-If a unit is hard to test, the design is probably wrong. Note it and revise.
+Do not create a test for every unit, branch, edge, or acceptance statement by
+default. State what risk or contract each proposed test protects. Hard-to-test
+important behavior may indicate a bad boundary; simple code needing no isolated
+test is not itself a design flaw.
 
 ### Phase 7: Order and child stories
 
@@ -379,9 +398,13 @@ Update the feature file. Append (after the existing brief) sections like:
 1. <unit / story>
 2. <unit / story>
 
+## Simplification
+- <code/tests/checks/abstractions removed, consolidated, or intentionally retained>
+- <cleanup/refactor stories, if any>
+
 ## Testing
-### Unit Tests: `tests/path/<name>.test.ext`
-<test approach for each unit>
+- <interface, regression, or complex-unit tests and the value each protects>
+- <low-value tests to remove, if any>
 
 ## Risks
 <from pre-mortem, if any>
