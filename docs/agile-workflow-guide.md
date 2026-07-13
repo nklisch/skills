@@ -65,8 +65,8 @@ this layout appears in the repo:
 .work/
 ├── active/
 │   ├── epics/<id>.md         multi-feature arcs in flight
-│   ├── features/<id>.md      design + implementation units
-│   └── stories/<id>.md       single-session work units
+│   ├── features/<id>.md      design + implementation + review units
+│   └── stories/<id>.md       child checkpoints or small standalone work
 ├── backlog/<id>.md           parked ideas, unscoped
 ├── releases/<version>/       shipped bundles
 ├── archive/<id>.md           done items not bound to a release
@@ -448,7 +448,8 @@ but knowing what each does helps you steer.
   Filter with natural language ("scope the auth stuff") to narrow.
 - **`fix`** fires for quick bugs: "fix the typo in README" or "the pagination
   is off by one." Single-stride: reproduces, finds root cause, writes a
-  failing test, applies the minimal fix, lands the story at `stage: review`.
+  failing test, applies the minimal fix, then runs the bounded inline review
+  reserved for standalone stories. It normally lands at `stage: done`.
 
 ### Design family (kind- and tag-routed)
 
@@ -484,25 +485,30 @@ item required.
 
 ### Production
 
-- **`implement`** — single-stride code from item body. Reads the design,
-  writes code, runs tests, advances to `review`. Use for stories or small
-  features.
-- **`implement-orchestrator`** — fans implementation sub-agents over child
-  stories respecting `depends_on`. It chooses bundles, wave width, and worktree
-  isolation. Use for features with several child stories that have a non-trivial
-  dependency graph. The agent picks this when scope warrants; you can also ask
-  for it explicitly.
+- **`implement`** — cohesive single-owner delivery from an item body. Child
+  stories are verification checkpoints and advance directly to `done`; a
+  standalone story or feature continues to its review boundary.
+- **`implement-orchestrator`** — defaults to one implementation worker per
+  feature. It may bundle related features sequentially when shared context saves
+  handoffs, or split an unusually large feature by coherent write ownership.
+  Child stories do not map one-to-one to agents.
 
 ### Review
 
 - **`review`** fires when you say "review feature-X" or autopilot reaches a
-  `review` item. Structured peer review across five lenses: correctness,
-  tests, design, security, breaking changes, foundation-doc alignment.
-  Findings get triaged into items so they don't evaporate into prose. Auto-
-  advances `review → done` if everything passes; otherwise sends the item
-  back to `implementing` with the new findings as child items. Say "review
-  everything at review" or "review the auth stuff" and it walks the queue
-  in batch with a single summary at the end.
+  `review` item. Child stories skip review. Standalone stories get a bounded
+  inline pass and never an independent or cross-model reviewer. Features get
+  integrated fresh-context review; epics get a deeper aggregate fresh-context
+  review for end-to-end capability and cross-feature risk. Review depth grows
+  with scope instead of spending pedantic review effort on tiny checkpoints.
+- Review is non-blocking for dependency-ordered implementation. Once an item is
+  at `review`, the next implementation layer may start; several unrelated
+  feature/epic reviews may run concurrently. Final completion and release still
+  wait for reviewed items to reach `done`.
+- Findings get triaged into items so they do not evaporate into prose. Passing
+  review advances `review → done`; blockers return the reviewed item to
+  `implementing`. A contract-changing bounce triggers re-verification of any
+  downstream work that consumed it.
 
 ### Gates (release-time only)
 
@@ -582,9 +588,9 @@ thinking out loud.
 | `/agile-workflow:review` (no arg) or *"review everything at review"* | `review` (batch) | Walks the review queue, single summary at the end. |
 | `/agile-workflow:epic-design <id>` or *"decompose epic-billing"* | `epic-design` | Child features spawned at `stage: drafting` with `depends_on` chains; agent reports the structure. |
 | `/agile-workflow:feature-design <id>` or *"design feature-csv-export"* | `feature-design` (or `refactor-design` / `perf-design` by tag) | Design written into the feature item's body; stage advances to `implementing`; agent walks you through the design. |
-| `/agile-workflow:implement <id>` or *"implement story-csv-validate"* | `implement` | Code written, tests run, stage advances to `review`; agent reports what it built and any caveats. |
-| `/agile-workflow:review <id>` or *"review feature-csv-export"* | `review` | Structured review; either advances to `done` or returns the item to `implementing` with findings. |
-| `/agile-workflow:fix <desc>` or *"fix the typo in README.md"* | `fix` | New story spawned, fix landed, stage at `review`. |
+| `/agile-workflow:implement <id>` or *"implement feature-csv-export"* | `implement` | Code and tests land under one owner; child-story checkpoints close directly, while standalone stories/features continue through review. |
+| `/agile-workflow:review <id>` or *"review feature-csv-export"* | `review` | Kind-appropriate review: bounded standalone story, integrated feature, or deeper aggregate epic; advances to `done` or returns to `implementing`. |
+| `/agile-workflow:fix <desc>` or *"fix the typo in README.md"* | `fix` | New standalone story spawned, fixed, verified, bounded-review approved, and normally advanced to `done`. |
 | *"What's waiting on me?"* | (substrate query) | List of items at `stage: review`. |
 | *"What's ready to work?"* | (substrate query) | List of items with deps satisfied. |
 | *"What's in flight under epic-uploads?"* | (substrate query) | Children of the epic with their stages. |
@@ -748,12 +754,15 @@ item kind, tags, release stage, and conversational intent.
 - **agentic-research:research-orchestrator** — cross-plugin research lane for features tagged `[research]`
 
 ### Production (agent picks)
-- **implement** — single-stride code from item body
-- **implement-orchestrator** — fans implementation sub-agents over child stories
-  respecting `depends_on`
+- **implement** — cohesive single-owner code from an item body
+- **implement-orchestrator** — one worker per feature by default; may bundle
+  related features or split an unusually large feature by ownership. Child
+  stories are checkpoints, not agent units.
 
 ### Review & delivery
-- **review** *(agent picks)* — peer review at `stage: review`
+- **review** *(agent picks)* — bounded standalone-story review, integrated
+  feature review, and deeper aggregate epic review at `stage: review`; review
+  does not block the next dependency-ordered implementation layer
 - **release-deploy** *(you invoke)* — bind, gate, ship
 - **autopilot** *(goal-backed; user or agent starts it)* — autonomous queue runner
 - **bold-refactor** *(you invoke)* — architectural reconception
@@ -774,8 +783,9 @@ item kind, tags, release stage, and conversational intent.
 
 ## Tips for productive collaboration
 
-- **State intent, not procedure.** "Get story-rate-limits to review" works
-  better than "now run the implement skill." The agent picks the right path.
+- **State intent, not procedure.** "Finish feature-rate-limits" works better
+  than "now run the implement skill." The agent picks the right path and closes
+  child-story checkpoints without routing them through review.
 - **Ask diagnostic questions freely.** "What's blocked?", "What's the
   design for feature-X?", "Why is story-Y still drafting?" — all cheap, all
   routed through the substrate.
@@ -798,9 +808,9 @@ item kind, tags, release stage, and conversational intent.
   surfaces at tier 1 and tier 2 (palette/components after ideate, then
   screens/flows during the epic-level `--only-questions` pass) so
   everything downstream inherits the visual voice.
-- **Items at review come back to you.** The agent's autonomous review can
-  advance trivial items, but anything with judgment calls lands at
-  `stage: review` for your eyes. Walk that queue regularly.
+- **Review is autonomous and non-blocking.** Feature and epic reviews can run
+  while the next dependency layer is implemented. The queue only waits at final
+  completion or release, and only material findings bounce work.
 - **Restart Claude Code or Codex after install.** Hooks don't take effect
   mid-session. After installing the plugin (`/plugin install agile-workflow@nklisch-skills`), restart for the
   prompt-context and PostToolUse hooks to fire.

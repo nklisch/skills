@@ -4,8 +4,8 @@ description: >
   Goal-statement or direct-invocation queue driver for agile-workflow. Use when a harness goal or user
   request says to run autopilot, drain ready work, finish an epic, continue through .work/active/, or
   make autonomous progress on the substrate. Reads .work/active/, picks ready items by depends_on and
-  stage, delegates to design, implement, and review skills, commits transitions, and repeats until the
-  scope is done or blocked. Before reporting complete, runs a final peer-review/fresh-context
+  stage, delegates feature-scoped design and implementation, reviews completed features, commits
+  transitions, and repeats until the scope is done or blocked. Before reporting complete, runs a final peer-review/fresh-context
   completion pass, adjudicates reviewer proposals, fixes material blockers, and parks lower-risk
   valid findings. No /loop or --resume mechanics; the harness goal/continuation feature owns
   long-running persistence. Epic-scoped by default; --all drains all active work; free-text scope
@@ -124,10 +124,14 @@ through parent roll-up and final completion review.
 
 Filter candidates to `stage` in `{drafting, implementing, review}`.
 
-An item is ready when every `depends_on` entry is terminal:
+An item is implementation-ready when every `depends_on` entry has completed
+verified implementation:
 
-- `stage: done`, or
+- active at `stage: review` or `done`, or
 - already moved to `.work/releases/` or `.work/archive/`.
+
+Review remains required for final completion, but it never blocks dispatch of the
+next dependency layer.
 
 Use `.work/bin/work-view` when it can answer the query; otherwise read
 frontmatter directly.
@@ -139,18 +143,28 @@ frontmatter directly because `work-view` is unavailable, replicate this: skip an
 item whose `tags` contain `scan`.) The remediation a scan produces is a separate
 `fix-<goal>` epic with normal routing tags — that drains here as usual.
 
-### Phase 3: Pick The Next Item
+### Phase 3: Schedule Implementation And Review
 
-Sort ready candidates by:
+Maintain two ready lanes:
 
-1. `depends_on` count ascending
-2. `created` ascending
+- **production** — `drafting` and `implementing` items;
+- **review** — features, epics, and standalone stories at `review` (plus legacy
+  child-story normalization).
 
-Pop the first item. If there are no ready candidates, evaluate the stop rules.
+Sort each lane by `depends_on` count then `created`. Keep review work moving, but
+do not let it serialize production: start independent reviews as reviewer
+capacity allows, then dispatch the earliest ready production layer immediately.
+Multiple unrelated feature reviews may run concurrently. If the host cannot run
+both lanes concurrently, prefer the next dependency-ordered production step and
+interleave review at the next safe boundary; final completion still waits for
+all reviews.
 
 For `stage: implementing`, the picked item is only an anchor. Hand the whole
 in-scope implementing band to `implement-orchestrator`; do not pre-bundle it
-yourself.
+yourself. The orchestrator uses one worker per feature as its baseline, may
+bundle related features when shared context helps, treats child stories as design
+checkpoints, and splits only unusually large features into coherent ownership
+bundles. If neither lane has ready work, evaluate the stop rules.
 
 ### Phase 4: Delegate Work
 
@@ -163,8 +177,8 @@ this caller note in every delegated prompt:
 > for this run: `<effective capability>` — selected because `<risk/scope reason>`;
 > use it for dispatch and do not re-ask. Review weight for this run:
 > `<none|light|standard|thorough|maximum>` (source: `<explicit|project|default>`);
-> pass it unchanged to review, including ancestor roll-up. Apply the risk-driven
-> advisory policy from `principles/SKILL.md` Part IV in direct and autopilot
+> pass it unchanged to feature review and final completion review. Apply the
+> risk-driven advisory policy from `principles/SKILL.md` Part IV in direct and autopilot
 > modes: use independent review only when the risk and review weight warrant it,
 > and label review cross-model only when a different model class is actually
 > selected. Treat reviewer findings as proposals: independently adjudicate them
@@ -201,19 +215,25 @@ Routing:
   Requires the `agentic-research` plugin; without it, treat as a plain implementing item ->
   `implement-orchestrator`, mirroring the drafting row's degrade.)
 - `stage: implementing`, non-epic (and NOT `tags: [prose]` or `[research]`) -> `implement-orchestrator <scope>`
-- `stage: review` -> `review --review-weight <effective weight> <id>`. Review
-  selects effort and lane from weight + risk + evidence + kind-as-heuristic:
-  low-risk stories can close on green verification, while features, epics, and
-  risk-escalated stories receive the fresh-context coverage permitted by the
-  weight. The review skill also rolls approved children through eligible
-  ancestors, but never skips an ancestor's own review.
+- `stage: review`, `kind: feature` -> `review --review-weight <effective weight>
+  <id>`. Feature is the implementation-review boundary.
+- `stage: review`, child story (`parent` set) -> compatibility normalization:
+  confirm green implementation evidence and advance directly to `done`, or
+  return to `implementing` for missing verification. Never review it.
+- `stage: review`, standalone story (`parent: null`) -> bounded inline review.
+  Never spawn an independent, fresh-context, or cross-model reviewer.
+- `stage: review`, `kind: epic` -> deeper aggregate review after all child
+  features are done. Focus on end-to-end capability, cross-feature contracts,
+  cumulative operational/release risk, and foundation alignment rather than
+  repeating child-feature detail.
 
-Production skills now continue through review to `done` by default (unless an
-explicit stop-at-review override applies), so autopilot may return to a queue
-where the delegated item and eligible ancestors are already terminal. This is
-expected, not a mandatory user handoff. The delegated skill owns its internal
-workflow and transitions; after it returns, rebuild the queue from disk rather
-than relying on cached state.
+Production skills advance child stories directly to `done`, continue standalone
+stories, completed features, and epics through their kind-appropriate review
+lanes. Review-ready items satisfy downstream dependencies, so
+a pending review must not prevent dispatch of the next implementation layer.
+Autopilot may therefore return to a queue where the delegated item and eligible
+ancestors are already terminal. Rebuild the queue from disk rather than relying
+on cached state.
 
 If a delegated skill reports a hard blocker without a stage transition, append
 a `## Blocker` section to the item body, commit that note, and continue with
@@ -222,21 +242,22 @@ remain in scope.
 
 ### Phase 5: Review Convergence Loop
 
-A review bounce is corrective work, not a human handoff. Track per-item bounces
-only as diagnostic history:
+A feature, epic, or standalone-story review bounce is corrective work, not a human
+handoff. Child stories never bounce through review. Track bounces only as
+diagnostic history:
 
 ```text
-bounces[<item-id>] = times this item has gone implementing -> review -> implementing
+bounces[<reviewed-item-id>] = implementing -> review -> implementing cycles
 ```
 
-After every bounce:
+After every review bounce:
 
 1. Confirm the receiving agent—not the reviewer alone—adjudicated the proposals
-   and left concrete, receiver-confirmed blockers in the item body.
+   and left concrete, receiver-confirmed blockers in the reviewed item body.
 2. Park valid findings below the material current-cycle bar in the unbound
    backlog; they do not keep the item bounced or enter this run's queue.
 3. Rebuild the queue so the item naturally re-enters implementation.
-4. Implement the blockers, run the relevant verification, and send the item
+4. Implement the blockers, run the appropriate verification, and send the item
    through review again.
 5. Continue until review approves the item or autonomous work reaches a genuine
    hard blocker under `principles/SKILL.md` Part III.
@@ -244,11 +265,11 @@ After every bounce:
 There is no fixed bounce limit. If the same material finding survives more than
 one correction pass, treat recurrence as evidence that the attempted fix or
 design model may be wrong: re-read the item and foundation docs, diagnose the
-root cause, revise the item design or implementation notes when needed, and use
-a fresh implementation or review context when that would add independent
-judgment. Recurrence alone never elevates a low-risk finding into a blocker. Do
-not park the active item at `review`, label it stuck, or require human
-intervention solely because a counter reached two (or any other number).
+root cause, and revise the design or implementation notes when needed.
+Standalone-story review remains inline and never escalates to a fresh-context or
+cross-model reviewer. Recurrence alone never elevates a low-risk finding into a
+blocker. Do not park the active item at `review`, label it stuck, or require
+human intervention solely because a counter reached two (or any other number).
 
 ### Phase 6: Refactor Cadence (`--all` Only)
 
@@ -282,8 +303,10 @@ real stop rule fires.
 ### Phase 8: Final Completion Review Loop
 
 This is the last step before reporting `complete`. It runs in addition to any
-design-time advisory passes from delegated skills and is calibrated by the same
-effective `review_weight`; the phase itself is never skipped.
+design-time advisory passes and feature reviews, and is calibrated by the same
+effective `review_weight`; the phase itself is never skipped. It reviews the
+aggregate completion claim and integration evidence—not individual child-story
+checkpoints. It complements rather than replaces feature and epic item reviews.
 
 When the scoped queue appears drained:
 
@@ -350,8 +373,8 @@ Narrate briefly as items advance. Final summary:
 
 - Goal scope and interpretation
 - Items advanced to done
-- Items reviewed and approved
-- Items reviewed and bounced, including recurring findings and how they converged
+- Features, epics, and standalone stories reviewed and approved
+- Reviewed items bounced, including recurring findings and how they converged
 - Genuinely blocked item ids and blocker reasons
 - Refactor cadences run (`--all` only)
 - Implement-orchestrator bundle summary, if reported

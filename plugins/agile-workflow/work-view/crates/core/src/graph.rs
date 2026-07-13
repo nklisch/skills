@@ -5,30 +5,34 @@
 //! This is fine for substrate sizes (typically < 1000 items).
 //!
 //! Key semantics:
-//! - `deps_satisfied(item)`: ALL ids in `item.depends_on` resolve to terminal items.
-//!   An unknown dep id → not terminal → not satisfied.
-//! - `unmet_deps(item)`: the subset of `depends_on` that are non-terminal or unknown.
+//! - `deps_satisfied(item)`: ALL ids in `item.depends_on` resolve to dependency-ready
+//!   items (terminal, or an item whose verified implementation is at review).
+//!   An unknown dep id → not satisfied.
+//! - `unmet_deps(item)`: the subset of `depends_on` that are not dependency-ready
+//!   or are unknown.
 //! - `dependents_of(id)`: items whose `depends_on` contains `id`.
 //! - `children_of(id)`: items whose `parent == Some(id)`.
 
 use crate::{index::Substrate, model::Item};
 
 impl Substrate {
-    /// Returns `true` if all items in `item.depends_on` are terminal.
+    /// Returns `true` if every dependency permits downstream implementation.
     ///
-    /// An id that doesn't resolve in the index is treated as non-terminal
-    /// (unknown dep ⇒ not satisfied). An empty `depends_on` returns `true`.
+    /// Terminal items qualify, as does an active item at `review`: its
+    /// implementation verification is complete even though its asynchronous
+    /// review has not closed. An unknown id is unsatisfied.
+    /// An empty `depends_on` returns `true`.
     pub fn deps_satisfied(&self, item: &Item) -> bool {
         item.depends_on.iter().all(|dep_id| {
             self.by_id(dep_id)
-                .map(|dep| dep.is_terminal())
-                .unwrap_or(false) // unknown id → not terminal
+                .map(Item::satisfies_dependency)
+                .unwrap_or(false)
         })
     }
 
-    /// Returns the subset of `item.depends_on` that are NOT terminal.
+    /// Returns dependencies that do not yet permit downstream implementation.
     ///
-    /// Includes ids that don't resolve in the index (unknown = non-terminal).
+    /// Includes ids that don't resolve in the index.
     /// Preserves the order from `depends_on`.
     pub fn unmet_deps<'a>(&'a self, item: &'a Item) -> Vec<&'a str> {
         item.depends_on
@@ -36,7 +40,7 @@ impl Substrate {
             .filter(|dep_id| {
                 !self
                     .by_id(dep_id)
-                    .map(|dep| dep.is_terminal())
+                    .map(Item::satisfies_dependency)
                     .unwrap_or(false)
             })
             .map(String::as_str)
@@ -134,7 +138,38 @@ mod tests {
     }
 
     #[test]
-    fn deps_satisfied_one_non_terminal() {
+    fn feature_review_does_not_block_downstream_implementation() {
+        let feature =
+            item_fm("feature-a", "review", &[], None).replace("kind: story", "kind: feature");
+        let (_tmp, sub) = setup_substrate(&[
+            (
+                "active/features/feature-b.md",
+                &item_fm("feature-b", "implementing", &["feature-a"], None)
+                    .replace("kind: story", "kind: feature"),
+            ),
+            ("active/features/feature-a.md", &feature),
+        ]);
+
+        let dependent = sub.by_id("feature-b").unwrap();
+        assert!(sub.deps_satisfied(dependent));
+        assert!(sub.unmet_deps(dependent).is_empty());
+    }
+
+    #[test]
+    fn standalone_story_review_does_not_block_downstream_implementation() {
+        let (_tmp, sub) = setup_substrate(&[
+            (
+                "active/stories/a.md",
+                &item_fm("a", "implementing", &["b"], None),
+            ),
+            ("active/stories/b.md", &item_fm("b", "review", &[], None)),
+        ]);
+
+        assert!(sub.deps_satisfied(sub.by_id("a").unwrap()));
+    }
+
+    #[test]
+    fn deps_satisfied_one_implementation_incomplete() {
         let (_tmp, sub) = setup_substrate(&[
             (
                 "active/stories/a.md",
@@ -161,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn unmet_deps_returns_non_terminal_ids() {
+    fn unmet_deps_returns_implementation_incomplete_ids() {
         let (_tmp, sub) = setup_substrate(&[
             (
                 "active/stories/a.md",
@@ -175,9 +210,9 @@ mod tests {
         ]);
         let a = sub.by_id("a").unwrap();
         let unmet = sub.unmet_deps(a);
-        // b is done (terminal), so not in unmet
+        // b is done, so not in unmet
         assert!(!unmet.contains(&"b"));
-        // c is implementing (not terminal), so in unmet
+        // c is still implementing, so in unmet
         assert!(unmet.contains(&"c"));
         // missing doesn't exist, so in unmet
         assert!(unmet.contains(&"missing"));

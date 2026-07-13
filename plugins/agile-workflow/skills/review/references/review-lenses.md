@@ -64,15 +64,27 @@ cover every capability. Review assertions, not omissions:
 - Do comments explain why the code exists, not just what the code says?
 - Is anything future maintainers need to understand left implicit?
 
-## Epic Review Focus
+## Feature Integration Focus
 
-For epics, skip per-line correctness, tests, and naming by default. Focus on:
+After inspecting applicable code-level lenses, review the integrated feature
+boundary:
 
-- Design alignment: does the realized decomposition match the brief?
-- Foundation-doc alignment: did cumulative work invalidate a foundation
-  assertion that children missed?
-- Breaking changes: are cross-cutting public API shifts visible only in aggregate?
-- Capability completeness: does the promised capability work end to end?
+- Do completed child-story checkpoints collectively satisfy the feature brief?
+- Did cumulative work invalidate a foundation assertion that an individual
+  checkpoint could not see?
+- Are cross-cutting public API shifts visible only in the aggregate diff?
+- Does the promised capability work end to end?
 
-If everything is clean, "Epic delivered as briefed; advancing to done" is a
-complete review.
+## Epic Aggregate Focus
+
+Epic review is a deeper pass at a larger boundary, not a repetition of child
+feature detail. Focus on:
+
+- End-to-end capability completeness against the epic brief.
+- Cross-feature contracts, sequencing assumptions, and integration behavior.
+- Cumulative foundation-doc, operational, migration, and release risk.
+- Gaps that were invisible inside any single feature diff.
+
+Broader scope should generally receive deeper review. Avoid applying tiny-scope
+pedantry to story checkpoints; that tends to slow delivery and incentivize
+unnecessary abstraction or over-engineering.

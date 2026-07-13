@@ -1,8 +1,10 @@
 # Deep Review
 
-Load this reference for feature reviews, epic reviews, explicit `--deep`
-requests, or any request that asks for a more robust review across design,
-contracts, release, and operational dimensions.
+Load this reference for feature and epic reviews, explicit `--deep` standalone
+requests, or any out-of-band request that asks for a more robust review across
+design, contracts, release, and operational dimensions. Child stories are not
+reviewed; standalone stories use the bounded inline lane and never load deep
+review. Epics receive the deepest aggregate item review.
 
 ## Reviewer Selection
 
@@ -12,7 +14,7 @@ second. Because a review target is a **complete** artifact (unlike an open
 design), each phase is a **multi-step convergence loop**, not a single ask:
 iterate until findings stabilize (the ideal is the full `peer-review`
 convergence loop — ≥3 review→refine passes, continue while substantive issues
-keep surfacing, stop on nits, cap ~5). For a feature/epic or deep/complex
+keep surfacing, stop on nits, cap ~5). For a feature, epic, or deep/complex standalone
 target, use **two different model classes** when available — one class drives
 the Phase 1 convergence loop, a *different* class drives the Phase 2 loop — so
 both augmentation diversity and adversarial independence are maximized.
@@ -48,8 +50,8 @@ Peer or sub-agent failures are non-blocking. Fall back to the next option rather
 than halting the review.
 
 A top-tier reasoning peer (Opus-class, xhigh Codex/GLM, or equivalent) commonly
-takes 10 to 30 minutes before it returns, especially for a large feature, epic,
-or out-of-band review. A quiet process that has not returned after a few minutes
+takes 10 to 30 minutes before it returns, especially for a large feature, epic, or
+out-of-band review. A quiet process that has not returned after a few minutes
 is still normal top-tier review latency, not a hang — budget for it across a
 multi-round convergence loop.
 
@@ -57,7 +59,7 @@ multi-round convergence loop.
 
 Give the fresh reviewer enough context to judge without bloating the task:
 
-- Review target and mode: substrate item, PR, branch, range, or epic.
+- Review target and mode: substrate feature/epic, PR, branch, or range.
 - Diff or aggregate scope from `target-resolution.md`.
 - Item brief/design/implementation notes, or PR/commit description.
 - Relevant project conventions from `AGENTS.md` / `CLAUDE.md`.
@@ -94,5 +96,8 @@ Deep does not mean exhaustive. Pull the dimensions that match the change:
   failure modes.
 - UI/workflow changes: emphasize capability completeness, accessibility-relevant
   behavior, state transitions, and regression coverage.
-- Epic reviews: emphasize aggregate alignment and release readiness, not per-line
-  diff analysis.
+- Large feature reviews: emphasize integrated capability alignment and release
+  readiness in addition to the applicable code-level dimensions.
+- Epic reviews: go deeper at aggregate scope—end-to-end capability completeness,
+  cross-feature contracts, cumulative operational/release risk, and foundation
+  alignment—without repeating per-line child review.

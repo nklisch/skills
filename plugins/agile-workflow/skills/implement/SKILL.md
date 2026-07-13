@@ -5,8 +5,8 @@ description: >
   the work is cohesive enough for one owner, or when the deliverable is no-code prose (a [prose]
   item of any size that needs no coordination). Inline implementation of an item at
   stage:implementing. Reads the design in the item body, implements and verifies it, records the
-  chosen execution capability, and continues through review to done unless the caller requests
-  stop-at-review. Prefer /agile-workflow:implement-orchestrator when ownership, sequencing, or
+  chosen execution capability, advances child stories directly to done, and reviews standalone
+  stories or features unless the caller requests stop-at-review. Prefer /agile-workflow:implement-orchestrator when ownership, sequencing, or
   uncertainty makes delegated coordination useful. Triggers on "implement this inline", "implement
   this item inline", "just do it inline", or a focused explicit delivery.
 ---
@@ -15,7 +15,9 @@ description: >
 
 You implement a substrate item — feature or story at `stage: implementing` — by
 reading the design embedded in its body and writing code that conforms. The item
-file is your spec. The item body is also your scratchpad: you add implementation
+file is your spec. When the item is a feature, its child stories are design and
+acceptance checkpoints inside the same default ownership bundle, not separate
+agent assignments. The item body is also your scratchpad: you add implementation
 notes there as you work.
 
 ## Trigger
@@ -25,11 +27,13 @@ that benefits from coordination. This skill is the **inline alternative** — th
 same lifecycle, owned by the current agent without implementation fan-out.
 Choose between them from cohesion, ownership, sequencing, and uncertainty:
 
-- Prefer inline when one owner can carry a cohesive change end to end, a handoff
-  would lose useful context, or the caller explicitly requests inline execution.
-- Prefer the orchestrator when work has independent ownership surfaces,
-  dependency-driven sequencing, useful parallelism, or enough uncertainty that
-  isolated workers improve delivery.
+- Prefer inline when one owner can carry a cohesive feature and its story
+  checkpoints end to end, a handoff would lose useful context, or the caller
+  explicitly requests inline execution.
+- Prefer the orchestrator for multiple features or when an unusually large
+  feature has independent ownership surfaces, dependency-driven sequencing,
+  useful parallelism, or enough uncertainty that isolated workers improve
+  delivery. Do not route one worker per story by default.
 - Tiny changes (roughly tens of lines or a couple of files) are a useful hint
   toward inline execution, never a routing gate.
 - **No-code prose** (`[prose]`) qualifies for inline execution on
@@ -53,8 +57,10 @@ Read:
 1. **The item file** at `.work/active/{features,stories}/<id>.md` — this is your
    spec. The design is in there. Note whether `tags:` contains `prose`; that switches the
    workflow into prose mode below.
-2. **The parent feature** if implementing a story: `.work/active/features/<parent>.md`
-   — context and acceptance criteria for the parent
+2. **The parent feature** if implementing a story, or **all child-story
+   checkpoints** if implementing a feature. The feature owns the integrated
+   implementation and review boundary; its stories supply ordering and acceptance
+   evidence.
 3. **Foundation docs** referenced by the design: `docs/SPEC.md`, `docs/ARCHITECTURE.md`
 4. `AGENTS.md` and `CLAUDE.md` (root, `.agents/`, or `.claude/`) for project
    conventions. Treat AGENTS as canonical if they disagree.
@@ -69,16 +75,20 @@ Read:
 If the item has `depends_on`, run:
 
 ```bash
-.work/bin/work-view --stage done --paths
+.work/bin/work-view --scope all --stage review --paths
+.work/bin/work-view --scope all --stage done --paths
+.work/bin/work-view --scope all --stage released --paths
 ```
 
-Confirm every entry in `depends_on` is at `stage: done` (or in releases/archive,
-which count as terminal-done).
+Treat the union as implementation-complete (release/archive tiers are terminal
+regardless of stage, so also inspect any named dependency found there). Confirm every entry in `depends_on` has completed verified implementation:
+active at `stage: review` or `done`, or resident in releases/archive. Review may
+still be pending; that does not block this implementation layer.
 
-If any dep is unmet, append a one-line note to the item body and return
-without advancing the stage:
+If any dep has not reached one of those states, append a one-line note to the
+item body and return without advancing:
 
-> Skipped: depends_on `<dep-id>` not yet done (stage:`<x>`).
+> Skipped: depends_on `<dep-id>` has not completed implementation (stage:`<x>`).
 
 Autopilot pre-filters via `work-view --ready` so this should rarely fire under
 autopilot. Interactive callers will see the note and can choose to fix the
@@ -254,35 +264,58 @@ production bugs, and never game a test to make it pass.
 
 ### Phase 9: Commit and complete the lifecycle
 
-1. Edit the item's frontmatter: `stage: implementing → review`. PostToolUse hook
-   bumps `updated:`.
-2. Commit the implementation:
+Branch by item kind after Phase 8 is green.
+
+#### Story
+
+First inspect `parent`:
+
+- **Child story (`parent: <feature-id>`)** — edit the story directly from
+  `implementing → done`. Child stories are checkpoints and never receive review.
+  Commit implementation and evidence with `implement: <id>`. When all siblings
+  are `done`, verify the integrated feature, advance the feature to `review` in
+  its own commit, and invoke feature review unless `stop-at-review` applies.
+- **Standalone story (`parent: null`)** — edit the story from `implementing →
+  review` and commit implementation with `implement: <id>`. Invoke
+  `/agile-workflow:review <id>` in the same run unless `stop-at-review` applies.
+  The standalone-story lane is bounded and inline: never use an independent,
+  fresh-context, or cross-model reviewer.
+
+A `stop-at-review` request can leave a standalone story or feature at review; it
+never leaves a child story there.
+
+#### Feature
+
+1. If the feature has child stories, mark each satisfied checkpoint directly
+   `done` with its own evidence and commit the code belonging to that checkpoint.
+   Do not advance the feature until all child stories are `done`.
+2. Edit the feature frontmatter `stage: implementing → review`, append integrated
+   verification evidence, and commit the feature transition separately. Include
+   source changes only when the feature has no child checkpoints or when a final
+   integration change belongs to the feature rather than an already-committed
+   story:
    ```bash
-   git add <changed-files> <test-files> .work/active/<kind>s/<id>.md
+   git add .work/active/features/<id>.md <uncommitted-integration-files>
    git commit -m "implement: <id>"
    ```
-3. Unless the caller explicitly requested `stop-at-review` (including "stop at
-   review", "leave at review", or "hand off for review") or a project convention
-   sets that boundary, invoke `/agile-workflow:review <id>` in the same invocation
-   and forward the effective `review_weight`. The review lane owns its required
-   context and verdict:
-   - approve: advance and commit `review → done`
-   - bounce: record `## Review findings`, return the item to `implementing`, and
-     report the bounce
-   - blocker: record `## Blocker` and report it without claiming completion
+3. Unless the caller explicitly requested a feature-level `stop-at-review` or a
+   project convention sets that boundary, invoke `/agile-workflow:review <id>`
+   in the same invocation and forward the effective `review_weight`. Review may
+   approve the feature to `done`, bounce it to `implementing` with durable
+   findings, or record a blocker.
 
-A weight of `none` skips independent review, but the review lane still requires
-the same green verification and acceptance evidence before administrative
-closure. Reaching `review` remains a real lifecycle transition; continuing
-through it never means silently self-approving. With `stop-at-review`, finish
-Phase 9 after the implementation commit and report that explicit boundary.
+A weight of `none` skips an independent reviewer, but feature review still
+requires green integrated verification and acceptance evidence before
+administrative closure.
 
 ## Output
 
 In conversation:
-- **Implemented**: `<id>` advanced to `stage: done`, `stage: review` by explicit
-  override, or `stage: implementing` after a documented bounce
-- **Review**: lane verdict, limitation, or blocker
+- **Implemented**: child story `<id>` advanced directly to `stage: done`;
+  standalone story or feature `<id>` advanced to `stage: done`, left at
+  `stage: review` by explicit override, or returned to `stage: implementing`
+- **Review**: feature or bounded standalone-story verdict, blocker, or "not
+  applicable — child story checkpoint"
 - **Files changed**: list
 - **Tests added**: list
 - **Execution capability**: choice and rationale
@@ -298,7 +331,12 @@ In conversation:
   When they disagree, adapt the implementation, document the why.
 - Implement fully or report a blocker. NEVER leave TODO comments or `unimplemented!`.
 - Don't add unrequested features. Adapt to repo reality freely; expand scope never.
-- Do not self-approve at `review`; invoke the review lane and honor its verdict.
+- Child stories never enter `review`; green verification advances them directly
+  to `done`.
+- Standalone stories enter bounded inline review, but never receive independent,
+  fresh-context, or cross-model review.
+- Features enter normal review; do not self-approve there. Invoke the feature
+  review lane and honor its verdict.
 - If you discover a genuine design flaw, don't muscle through. Append a
   `## Implementation discovery` section, set stage back to `drafting`, and
   return. The design family will pick it up on the next pass.

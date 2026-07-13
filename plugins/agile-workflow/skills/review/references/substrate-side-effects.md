@@ -27,9 +27,13 @@ does not disappear into prose:
 Review-created items use `gate_origin: null`; gate-produced findings set
 `gate_origin`.
 
-## Decide And Advance
+## Decide And Advance A Reviewed Item
 
-If there are no blockers:
+Child stories never use this review transition: green implementation
+verification advances them directly to `done`. Standalone stories, features,
+and epics use review, with epic review operating at deeper aggregate scope.
+
+If a reviewed feature, epic, or standalone story has no blockers:
 
 1. Advance the item from `review` to `done`.
 2. If it has `release_binding: <version>`, leave it active for
@@ -49,20 +53,15 @@ If there are no blockers:
      Rationale: a typo must never trigger body-pruning. `delete-refs` applies only when
      explicitly and exactly declared (or when the key is absent — the documented default
      above; that default is unchanged).
-4. If it has a parent, check whether all siblings are now `done`:
-
-```bash
-parent_id=$(grep '^parent:' .work/active/<kind>s/<id>.md | awk '{print $2}')
-.work/bin/work-view --parent "$parent_id" --stage done --count
-.work/bin/work-view --parent "$parent_id" --count
-```
-
-If sibling done count equals total count, advance the parent from `implementing`
-to `review` and append a "Children complete" note.
+4. If the reviewed item is a feature with a parent epic, check whether every
+   sibling feature is now `done`. When done count equals total count, advance the
+   epic from `implementing` to `review` and append a `Child features reviewed and
+   complete` note. Commit that transition separately, then schedule the deeper
+   epic review without blocking downstream implementation.
 
 If blockers exist:
 
-1. Set the item back to `stage: implementing`.
+1. Set the reviewed feature, epic, or standalone story back to `stage: implementing`.
 2. Append a `## Review findings` section listing blockers and the created item
    ids.
 3. Do not archive.
@@ -136,7 +135,7 @@ The stub stays a first-class, work-view-queryable item. Recover the full body an
 
 ## Append Review Record
 
-Append this section to the reviewed item:
+Append this section to the reviewed feature, epic, or standalone story:
 
 ```markdown
 ## Review (YYYY-MM-DD)

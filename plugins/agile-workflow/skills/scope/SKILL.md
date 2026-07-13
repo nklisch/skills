@@ -338,8 +338,9 @@ premature epic.
 
 ### Phase 3: Declare dependencies
 
-Ask the user (or surface from context): what items, if any, must be at `stage: done`
-before this can start?
+Ask the user (or surface from context): what items, if any, must have verified
+implementation complete before this can start? A dependency at `review` already
+satisfies implementation ordering; review completion is not a sequencing gate.
 
 - For a backlog item the user mentions as a prerequisite: add to `depends_on`
 - For a related in-flight feature in the same area: consider adding to `depends_on`

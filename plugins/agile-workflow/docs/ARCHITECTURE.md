@@ -63,15 +63,18 @@ An item flows through tiers as work progresses on it.
                   or /implement (cohesive inline delivery)
                               │
                               ▼
-                       stage: review
-                  (real state; optional stop boundary)
-                              │
-                              ▼
-                  risk-appropriate /review lane
-                  (production skills invoke it by default)
-                              │
-                              ▼
-                       stage: done
+              child story? ── yes ── verified → stage: done
+                    │ no
+                    ▼
+                 stage: review
+       (standalone story / feature / epic; non-blocking)
+                    │
+                    ▼
+       kind- and scope-appropriate /review lane
+       (bounded standalone; integrated feature; deep epic)
+                    │
+                    ▼
+                 stage: done
                               │
             ┌─────────────────┼─────────────────┐
             ▼                 ▼                 ▼
@@ -103,19 +106,24 @@ Stages advance only when work completes; they are never pre-populated.
 
 | Kind | drafting | implementing | review | done |
 |---|---|---|---|---|
-| epic | initial state when scoped | once children are designed and started | once all children are terminal and the epic is ready for its own review | once the epic's selected review lane approves |
-| feature | initial state when scoped | once design is written into the body and acceptance criteria are clear | once implementation is verified, or all child work is terminal, and the feature is ready for its own review | once the feature's selected review lane approves |
-| story | optional initial state | initial state more often (skips drafting) | once implementation and required verification complete | once the story's selected review lane approves |
+| epic | initial state when scoped | once children are designed and started | once all child features have completed feature review and the epic is ready for deeper aggregate review | once the epic's selected review lane approves |
+| feature | initial state when scoped | once design is written into the body and acceptance criteria are clear | once all story checkpoints are done and integrated verification is green | once the feature's selected review lane approves |
+| child story | optional initial state | initial state more often (skips drafting) | n/a | once implementation and required verification are green |
+| standalone story | optional initial state | initial state more often (skips drafting) | after verified implementation | once bounded inline review approves; never independent/cross-model |
 | release | initial state when cut | once gates begin running (`stage: quality-gate`) | n/a | n/a — terminal stage is `released` |
 
-`review` is a real state but not a mandatory user handoff. `implement`, `fix`,
-and `implement-orchestrator` continue through the selected review lane in the
-same invocation by default. An explicit `stop-at-review` request or stable
-project convention leaves the item there. Approval advances to `done`; a bounce
-returns to `implementing` with durable findings, and blockers remain recorded in
-the item body. Child completion only makes an ancestor eligible for its own
-review: conservative roll-up never substitutes child evidence for parent
-approval.
+`review` is a feature-only implementation state, not a mandatory user handoff.
+Child stories are design and acceptance checkpoints; verified child stories
+advance directly from `implementing` to `done`. Standalone stories receive a
+bounded inline review because no feature supplies that boundary, but never an
+independent, fresh-context, or cross-model review. A feature advances to `review`
+only after its checkpoints and integrated verification are complete, and
+production skills continue through that review in the same invocation by
+default. Review does not block the next dependency layer: an item at `review`
+satisfies downstream implementation dependencies. Once child features are done,
+the epic receives its own deeper aggregate review for end-to-end capability,
+cross-feature contracts, and cumulative risk. This larger-scope pass avoids
+repeating line-level feature review.
 
 The PostToolUse hook auto-bumps `updated:` whenever an item file is edited;
 skills only need to advance `stage:` explicitly.
@@ -128,14 +136,17 @@ distinct from `parent` (which is **hierarchy**).
 ### Rules
 
 - An item is **ready** when it is in the active tier, its `stage` is
-  `drafting`, `implementing`, or `review`, AND every `depends_on` entry is
-  terminal (`stage: done`/`released`, or resident in `releases/`/`archive/`).
+  `drafting`, `implementing`, or `review`, AND every `depends_on` entry has
+  completed verified implementation (`stage: review`, `done`, or `released`, or
+  resident in `releases/`/`archive/`). Review remains required for final
+  completion but does not serialize downstream implementation.
 - Dependencies must form a DAG. Cycles are invalid; skills that produce
   items must validate no cycle is introduced before writing.
 - Cross-tier dependencies are allowed (a feature can depend on an epic;
   a story can depend on a feature in another epic).
-- Dependencies on archived or released items count as `done` — those tiers
-  are terminal-done.
+- Dependencies on archived or released items count as terminal. Active items at
+  `review` count as implementation-ready but remain non-terminal until review
+  approves them to `done`.
 
 ### When skills declare dependencies
 
@@ -206,15 +217,16 @@ paths: ['.work/**', 'docs/**']
 
 ## Item kinds
 epic     multi-feature arc; has children    parent of features
-feature  design + implementation unit       parent of stories
-story    single-session unit                leaf or has tasks
+feature  design + implementation + review unit  parent of stories
+story    checkpoint (child) or small standalone unit  leaf or has tasks
 task     checklist line in parent body      not its own file
 release  version bundle in releases/        binds items via release_binding
 
 ## Stages
-epic     drafting → implementing → review → done
-feature  drafting → implementing → review → done
-story    implementing → review → done       (often skips drafting)
+epic              drafting → implementing → review → done
+feature           drafting → implementing → review → done
+child story       implementing → done
+standalone story  implementing → review → done
 task     [ ] → [x]
 release  planned → quality-gate → released
 
@@ -242,8 +254,8 @@ freely. Run `--help` for the authoritative flag list.
 --parent <id>        direct children of given item
 --release <version>  items with release_binding: <version>
 --gate <name>        items produced by gate <name>
---ready              active-tier drafting/implementing/review, all depends_on terminal
---blocked            active-tier drafting/implementing/review, >=1 non-terminal dep
+--ready              active-tier drafting/implementing/review, deps at review or terminal
+--blocked            active-tier drafting/implementing/review, >=1 implementation-incomplete dep
 --blocking <id>      items that depend on <id>
 
 ### Output modes
@@ -375,7 +387,10 @@ design time. Final autopilot completion still requires the successful review
 path selected by the effective review weight. The receiving orchestrator owns
 finding disposition: it verifies reviewer proposals in repository context,
 keeps only credible material current-cycle risks blocking, and parks valid
-lower-priority work in the unbound backlog.
+lower-priority work in the unbound backlog. Child stories skip review;
+standalone stories use a bounded non-cross-model lane; features get integrated
+review; epics get a deeper aggregate pass. Review-ready items satisfy downstream
+implementation dependencies, so review does not serialize the next wave.
 
 ### Queue selection algorithm
 
@@ -386,8 +401,9 @@ lower-priority work in the unbound backlog.
    - if --all: all items in .work/active/
 2. Filter to stage in {drafting, implementing, review}
 3. For each candidate, check depends_on:
-   - all deps must be at stage: done (or in releases/archive)
-   - candidates with unmet deps are filtered out
+   - all deps must have verified implementation complete (`review`, `done`, or
+     terminal release/archive tier)
+   - candidates with implementation-incomplete deps are filtered out
 4. Sort the remaining candidates by:
    - depends_on count ascending (less-blocked items first)
    - created ascending (FIFO tie-break)
@@ -395,11 +411,13 @@ lower-priority work in the unbound backlog.
 6. Work it:
    - if drafting → invoke the design skill selected by kind and tags
    - if implementing → invoke /implement-orchestrator with the autopilot
-     scope (the picked item is an anchor; the orchestrator derives execution
-     topology from the unified graph, ownership, repository shape, and risk).
-     Use /implement when one cohesive delivery is safer in the host context.
-   - if review → invoke /review (autonomous: produces a verdict, advances
-     review→done, or sends the item back to implementing)
+     scope (the picked item is an anchor; the orchestrator defaults to one
+     worker per feature, may bundle related features, and splits only unusually
+     large features with coherent ownership). Use /implement when one cohesive
+     delivery is safer in the host context.
+   - if review → invoke /review without blocking the next implementation layer;
+     child stories bypass review, standalone stories use bounded inline review,
+     features use normal review, and epics use deeper aggregate review
 7. Re-read substrate state after the production skill returns; it may already
    have completed review and eligible parent roll-up. Commit each item
    transition separately.
@@ -726,19 +744,20 @@ cross-model evidence.
 
 | Skill | Role | Trigger |
 |---|---|---|
-| `implement-orchestrator` | Delegated implementation over a feature, epic, `--all`, or explicit set. Derives ownership and waves from the unified dependency graph, write-set independence, repository shape, and risk; verifies every wave, keeps one commit per item, rolls eligible parents conservatively, and continues through review by default. | implementing scope where separate ownership, isolation, or sequencing improves the result |
-| `implement` | Cohesive inline delivery. Grounds in the item, implements and verifies it in the host context, records capability and evidence, then continues through the selected review lane to `done` by default. | work best kept under one ownership context, or an explicit inline request |
+| `implement-orchestrator` | Delegated implementation over a feature, epic, `--all`, or explicit set. Defaults to one worker per feature, may bundle related features into one sequential worker, and splits unusually large features only by coherent ownership. Story children are checkpoints, not worker units. Reviews run without blocking the next dependency layer. | implementing scope where separate ownership, isolation, sequencing, or shared feature context improves the result |
+| `implement` | Cohesive inline delivery. Grounds in the item, implements and verifies it in the host context, closes child-story checkpoints directly, and continues standalone stories or features through their review lane. | work best kept under one ownership context, or an explicit inline request |
 
 Choose between these production lanes from cohesion, write ownership,
 dependency sequencing, isolation needs, and uncertainty. Line or file counts may
-inform judgment but never gate the choice. Both honor `stop-at-review`, and
-neither substitutes inline self-approval for a required fresh-context lane.
+inform judgment but never gate the choice. Both honor valid review boundaries;
+child stories never stop at review, standalone stories never use cross-model
+review, and review does not serialize downstream implementation.
 
 ### Review & delivery (mixed invocability)
 
 | Skill | Invocability | Role | Trigger |
 |---|---|---|---|
-| `review` | model-invocable | Selects fast, standard, or deep review from effective weight, risk, evidence, and kind as a heuristic; preserves fresh context for deep review, records durable findings, advances or bounces the item, and conservatively rolls approved children through each eligible ancestor's own review. | item at `stage: review` or explicit review target |
+| `review` | model-invocable | Reviews integrated features, uses a bounded inline lane for standalone stories, bypasses child stories, and gives epics a deeper aggregate review. Review-ready items satisfy downstream implementation dependencies, so reviews may run concurrently with later implementation waves. | feature, epic, or standalone story at `stage: review`, or explicit out-of-band target |
 | `board` | user-invocable | Launch the live localhost substrate board through `work-view board`. Opens a browser after binding when a desktop session is available; prints the URL in headless sessions. | User-invoked when the user wants to inspect active work visually |
 | `release-deploy` | user-invocable | Bind items to release, run gates, ship, archive. Idempotent. | User-invoked when ready to cut a version |
 | `bold-refactor` | user-invocable | Multi-feature architectural refactor. Scopes a refactor epic with child features. Aggressive — only on user request. | User-invoked |
