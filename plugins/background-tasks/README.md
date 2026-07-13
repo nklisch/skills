@@ -46,7 +46,7 @@ Set `"sandboxIntegration":"off"` only as an explicit operator bypass. In that mo
 | non-Linux host | Graceful unsandboxed degrade | `confirm` (blocks without UI) unless tightened |
 | invalid config, missing `bwrap`, `network.mode:"filter"`, or helper import broken | Fail closed; the tool call returns an error and does not run unsandboxed | `confirm` or stricter fail-closed block |
 
-Real sandboxing is Linux-only in this release. macOS and Windows can still use background-tasks, but shell commands are not OS-confined there; rely on pi-sandbox's `confirm`/fail-closed tool policy if you need to prevent accidental background/monitor bypasses.
+Real sandboxing is Linux-only in this release. background-tasks itself runs on Linux and macOS (it shells out to `/bin/sh`); Windows is not supported, since `/bin/sh` is absent there and the cancellation/timeout paths assume Unix process groups. Rely on pi-sandbox's `confirm`/fail-closed tool policy if you need to prevent accidental background/monitor bypasses on macOS.
 
 Check `/sandbox` in a Pi session to see the effective state:
 

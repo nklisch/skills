@@ -107,29 +107,6 @@ const KILL_GRACE_MS = 2_000; // post-SIGKILL reap window before declaring kill_f
 const MAX_RETAINED_JOBS = 50; // prune oldest terminal jobs above this count
 const PAGING_TAIL_LINES = 200; // lines of output shown per job in the view panel
 
-/**
- * Platform-appropriate shell for the unsandboxed/degraded spawn paths.
- * /bin/sh is correct on POSIX; on Windows it does not exist, so the degraded
- * and unsandboxed branches would fail before the job starts — breaking the
- * documented non-Linux graceful-degrade claim. Fall back to cmd.exe (via
- * ComSpec, the standard env var Windows sets) so those paths actually run.
- * The sandboxed (bwrap) path is Linux-only and never reaches here.
- */
-function defaultShell(): string {
-  return process.platform === "win32" ? (process.env.ComSpec || "cmd.exe") : "/bin/sh";
-}
-
-/**
- * Platform-appropriate argv for invoking the shell with a command string.
- * POSIX sh takes `-c <command>`; Windows cmd.exe takes `/d /s /c <command>`
- * (disable AutoRun, strip quotes, run). The third spawn site uses Node's
- * `shell: defaultShell()` option, which handles the arg convention itself —
- * this helper is for the two sites that pass an explicit argv array.
- */
-function defaultShellArgs(command: string): string[] {
-  return process.platform === "win32" ? ["/d", "/s", "/c", command] : ["-c", command];
-}
-
 // --- Session-start discoverability nudge --------------------------------
 //
 // A short, agent-facing explainer appended to the system prompt every turn so
@@ -424,7 +401,7 @@ interface ShellRunOptions {
   timeoutMs: number;
   signal?: AbortSignal;
   sandbox?: SandboxedSpawnArgsResult | null;
-  /** When set and sandbox is not ok, runShellOnce direct-spawns the platform shell with
+  /** When set and sandbox is not ok, runShellOnce direct-spawns /bin/sh -c with
    * this env instead of pi.exec (which has no env option). Used to carry the
    * provider-secret-stripped env for degraded monitors. */
   degradedEnv?: NodeJS.ProcessEnv;
@@ -559,7 +536,7 @@ function killChildProcessGroup(child: ChildProcess, signal: NodeJS.Signals): boo
 async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
   if (opts.sandbox?.state !== "ok") {
     // When a degraded env is provided (pi-sandbox stripped provider secrets),
-    // direct-spawn the platform shell with it instead of pi.exec, which has no env
+    // direct-spawn /bin/sh -c with it instead of pi.exec, which has no env
     // option and would inherit the full process.env.
     if (opts.degradedEnv) {
       return new Promise((resolve) => {
@@ -569,7 +546,7 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
         let settled = false;
         let timedOut = false;
         let abortListener: (() => void) | undefined;
-        const child = spawn(defaultShell(), defaultShellArgs(opts.command), {
+        const child = spawn("/bin/sh", ["-c", opts.command], {
           cwd: opts.cwd,
           env: opts.degradedEnv,
           detached: true,
@@ -636,7 +613,7 @@ async function runShellOnce(opts: ShellRunOptions): Promise<ExecResult> {
     // makeBoundedAccumulator for streaming cap. Routing sandbox-absent through
     // direct-spawn too would break test infrastructure that mocks pi.exec.
     if (!opts.piExec) throw new Error("monitor needs pi.exec, which is unavailable in this runtime.");
-    const result = await opts.piExec(defaultShell(), defaultShellArgs(opts.command), { timeout: opts.timeoutMs, cwd: opts.cwd, signal: opts.signal });
+    const result = await opts.piExec("/bin/sh", ["-c", opts.command], { timeout: opts.timeoutMs, cwd: opts.cwd, signal: opts.signal });
     const cap = MAX_POLL_OUTPUT_CHARS;
     let overflowed = false;
     let stdout = result.stdout ?? "";
@@ -1033,7 +1010,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
         await waitForChildSpawn(child);
       } else {
         child = spawn(command, {
-          shell: defaultShell(),
+          shell: "/bin/sh",
           cwd: spawnDecision.cwd,
           env: spawnDecision.env,
           detached: true,
@@ -1180,7 +1157,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       let result: ExecResult;
       try {
         // Unsandboxed/degraded monitors preserve the existing pi.exec route
-        // through the platform shell. Sandboxed monitors cannot use pi.exec because the
+        // through /bin/sh -c. Sandboxed monitors cannot use pi.exec because the
         // local PiApi slice has no env option; they direct-spawn bwrap with the
         // pi-sandbox-owned minimal env and argv prefix prepared once at monitor
         // start. Cancellation uses a per-job AbortController rather than the
@@ -1410,7 +1387,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       "Command output is never auto-delivered: after a wake, read it with the jobs tool (action=tail) rather than expecting it in the wake message.",
     ],
     parameters: obj({
-      command: str("Shell command to run in the background under the platform shell (/bin/sh on POSIX, cmd.exe on Windows)."),
+      command: str("Shell command to run in the background under /bin/sh."),
       cwd: str("Working directory. Defaults to the current project."),
       env: strRecord("Extra environment variables, merged over the inherited environment."),
       wake_on_pattern: str("Regexp. If set, wake early (before exit) the first time any stdout/stderr line matches it; the job keeps running and you'll still be woken on exit."),
@@ -1431,7 +1408,7 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       "Set a sensible timeout_seconds so a never-satisfied condition wakes you with a timeout rather than polling forever.",
     ],
     parameters: obj({
-      command: str("Shell command polled on each tick under the platform shell (/bin/sh on POSIX, cmd.exe on Windows)."),
+      command: str("Shell command polled on each tick under /bin/sh."),
       cwd: str("Working directory. Defaults to the current project."),
       satisfy_on: strEnum(["exit_zero", "exit_nonzero", "stdout_matches", "stdout_not_matches"], "Condition that satisfies the monitor. stdout_matches/stdout_not_matches require pattern."),
       pattern: str("Regexp used by stdout_matches / stdout_not_matches."),

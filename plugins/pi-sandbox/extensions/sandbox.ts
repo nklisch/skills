@@ -535,6 +535,7 @@ export default function (pi: ExtensionAPI) {
 			};
 			publishCapability();
 			ctx.ui.notify("Sandbox disabled via --no-sandbox", "warning");
+			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", "🔒 Sandbox: disabled via --no-sandbox"));
 			return;
 		}
 
@@ -571,6 +572,7 @@ export default function (pi: ExtensionAPI) {
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
 			publishCapability();
 			ctx.ui.notify("Sandbox disabled via config", "info");
+			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", "🔒 Sandbox: disabled via config"));
 			return;
 		}
 
