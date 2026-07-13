@@ -1568,6 +1568,34 @@ describe("lifecycle", () => {
     const st = after.content[0].text.match(/\[[a-z_]+/)?.[0] ?? "";
     expect(["[cancelling", "[cancelled", "[kill_failed"]).toContain(st);
   });
+
+  // Regression: session_shutdown sets shuttingDown=true and wake() short-circuits
+  // on it. session_start must reset the flag, or in a long-lived extension
+  // instance the first shutdown suppresses every later session's wakes —
+  // background jobs would silently stop waking the agent.
+  test("session_start resets the shutdown flag so a subsequent session's wakes fire", async () => {
+    const { tools, shutdownHandlers, handlers, wakes } = makeFakePi();
+    const bg = tools.get("background")!;
+    const ctx = makeContext();
+
+    // Drive a shutdown (sets shuttingDown = true).
+    for (const h of shutdownHandlers) await h();
+
+    // A background job started now would NOT wake (shuttingDown is true) —
+    // simulate the wake path directly to confirm suppression.
+    await bg.execute("c1", { command: "echo done" }, undefined, undefined, ctx);
+    await waitFor(() => jobStatus(tools, ctx, 1).then((s) => (s === "completed" ? s : undefined)));
+    // No wake fired for the completed job because shuttingDown suppressed it.
+    expect(wakes.find((w) => w.content.includes("finished"))).toBeUndefined();
+
+    // A new session starts: session_start must reset shuttingDown to false.
+    for (const h of handlers["session_start"] ?? []) await h();
+
+    // Now a completing background job MUST wake the agent.
+    await bg.execute("c2", { command: "echo done2" }, undefined, undefined, ctx);
+    const wake = await waitFor(() => wakes.find((w) => w.content.includes("finished")));
+    expect(wake.content).toContain("finished");
+  });
 });
 
 describe("session-start sandbox bridge handshake", () => {
