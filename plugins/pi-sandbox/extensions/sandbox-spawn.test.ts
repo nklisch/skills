@@ -103,6 +103,19 @@ describe("buildSandboxedSpawnArgs", () => {
 		// Provider secrets are still scrubbed even when placed in envAdd, so a
 		// caller cannot exfiltrate a credential by injecting it as an env var.
 		expect(result.env.OPENAI_API_KEY).toBeUndefined();
+
+		// The env must reach the CHILD via the bwrap --setenv args, not just on
+		// result.env. buildBwrapArgs previously re-ran buildMinimalEnv on the
+		// prepared env, dropping caller envAdd vars from the actual --setenv argv
+		// even though result.env carried them. Assert the bwrap args carry the
+		// caller var and omit the scrubbed secret.
+		if (result.state !== "ok") throw new Error(`expected ok, got ${result.state}`);
+		const setenvPairs: Record<string, string> = {};
+		for (let i = 0; i < result.args.length; i += 1) {
+			if (result.args[i] === "--setenv") setenvPairs[result.args[i + 1]] = result.args[i + 2];
+		}
+		expect(setenvPairs.FOO_CONFIG).toBe("keep-me");
+		expect(setenvPairs.OPENAI_API_KEY).toBeUndefined();
 	});
 
 	test("honors envScrub for LC_* values in the healthy bwrap environment", async () => {

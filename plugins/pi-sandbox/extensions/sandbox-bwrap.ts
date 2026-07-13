@@ -46,7 +46,7 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	const commandCwd = canonicalizeExistingPath(resolve(opts.cwd)) ?? resolve(opts.cwd);
 	const securityCwdRaw = opts.configCwd ?? process.cwd();
 	const securityCwd = canonicalizeExistingPath(resolve(securityCwdRaw)) ?? resolve(securityCwdRaw);
-	const sourceEnv = opts.env ?? process.env;
+	const sourceEnv = opts.env ?? buildMinimalEnv(process.env);
 	const childEnv = opts.networkMode === "block" ? { ...sourceEnv, TMPDIR: "/tmp" } : sourceEnv;
 	const args = buildBwrapEnvArgs(childEnv);
 
@@ -157,9 +157,16 @@ export function buildMinimalEnv(
 
 export function buildBwrapEnvArgs(sourceEnv: NodeJS.ProcessEnv = process.env): string[] {
 	const args = ["--clearenv"];
-	const minimalEnv = buildMinimalEnv(sourceEnv);
-	for (const key of Object.keys(minimalEnv)) {
-		const value = minimalEnv[key];
+	// Emit --setenv for the caller-supplied env VERBATIM. Callers own the
+	// allowlist filtering: the bash path pre-builds minimalEnv via
+	// buildMinimalEnv(process.env, ...) and the background/monitor path builds
+	// okEnv (minimalEnv + caller envAdd, then provider-secret-scrubbed). Re-running
+	// buildMinimalEnv here would drop the caller's envAdd vars from the actual
+	// --setenv args even though result.env carried them — the child would never
+	// see them, breaking the tool schema's "merged over the inherited
+	// environment" promise. Do not re-filter.
+	for (const key of Object.keys(sourceEnv)) {
+		const value = sourceEnv[key];
 		if (value !== undefined) args.push("--setenv", key, value);
 	}
 	return args;

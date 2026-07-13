@@ -2080,7 +2080,11 @@ describe("buildBwrapArgs", () => {
 			denyWrite: ["secret-file"],
 			denyRead: ["secret-dir", ".git"],
 			networkMode: "block",
-			env: { PATH: "/usr/bin", OPENAI_API_KEY: "must-not-appear" },
+			// Callers pre-scrub the env (the bash path builds minimalEnv via
+			// buildMinimalEnv; the background path runs scrubEnvironment with
+			// PROVIDER_SECRET_ENV_NAMES). buildBwrapArgs emits what it is given
+			// verbatim, so pass an already-scrubbed env as real callers do.
+			env: { PATH: "/usr/bin" },
 		});
 
 		expect(args[0]).toBe("--clearenv");
@@ -2137,6 +2141,34 @@ describe("buildBwrapArgs", () => {
 		const distinct = new Set(tmpfsTargets.map(canonical));
 		expect(distinct.has(canonical("/var/tmp"))).toBe(true);
 		expect(tmpfsTargets.length).toBe(distinct.size);
+	});
+
+	// Regression: omitting `env` must fall back to the safe minimal env, not
+	// raw process.env. buildBwrapEnvArgs now emits its input verbatim (callers own
+	// scrubbing), so an unsafe `?? process.env` default would serialize every
+	// provider secret into --setenv. The default must be buildMinimalEnv().
+	test("omitting env falls back to a safe minimal env, never raw process.env", async () => {
+		const cwd = await makeTempDir();
+		const saved = process.env.OPENAI_API_KEY;
+		process.env.OPENAI_API_KEY = "sentinel-must-not-appear";
+		try {
+			const args = buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: [],
+				denyWrite: [],
+				networkMode: "open",
+				// env intentionally OMITTED
+			});
+			expect(args).not.toContain("sentinel-must-not-appear");
+			expect(args).not.toContain("OPENAI_API_KEY");
+			// The minimal-env allowlist keys ARE present.
+			expect(args).toContain("PATH");
+		} finally {
+			if (saved === undefined) delete process.env.OPENAI_API_KEY;
+			else process.env.OPENAI_API_KEY = saved;
+		}
 	});
 
 	test("block mode forces TMPDIR to the private /tmp tmpfs", async () => {
