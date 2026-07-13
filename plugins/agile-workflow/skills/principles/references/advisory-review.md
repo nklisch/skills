@@ -22,12 +22,18 @@ Explicit caller and project review rules override them.
 | Small or medium with material uncertainty | Optionally run one focused different-class pass. |
 | Large, risky, or architectural, without prior `--only-questions` / `## Design decisions` alignment | Run one focused different-class pass when available. |
 | Deep or complex | Use two different model classes across the two phases when available. |
-| Completed feature or epic in a deep review lane | Use a fresh-context lens review; prefer different-class, otherwise strongest same-harness fresh context. |
+| Completed feature or epic in a deep review lane | Use a fresh-context lens review; prefer different-class, otherwise strongest same-harness fresh context. Epic review emphasizes aggregate capability and integration. |
 | Final autopilot completion | Run the required fresh-context completion path described in Part IV. |
 
-Stories normally fast-advance on recorded green verification, but risk can
-escalate them. Use a full iterative review loop for a completed substantial
-artifact or explicit review request only when that depth is warranted.
+Child stories are never advisory-review targets. Once implementation and
+required verification are green, advance them directly from `implementing` to
+`done` and review the feature that integrates those checkpoints. A standalone
+story receives a bounded inline review because no parent feature supplies that
+boundary, but it never uses an independent, fresh-context, or cross-model
+reviewer. Epics receive their own deeper aggregate review after child features
+are done. Review breadth should rise with scope: larger boundaries expose
+integration and capability gaps that tiny checkpoint reviews miss, while
+reviewing every child story encourages pedantry and over-engineering.
 
 ## Two-phase mechanics
 

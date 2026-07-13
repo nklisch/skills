@@ -379,8 +379,10 @@ In conversation:
 - **Top bottlenecks**: list with hierarchy level and probe family
 - **Optimizations**: list ordered by impact
 - **Benchmarks**: location and run command
-- **Next**: `/agile-workflow:implement <story-id>` per optimization, or
-  `/agile-workflow:implement-orchestrator <feature-id>` for parallel agents
+- **Next**: `/agile-workflow:implement-orchestrator <feature-id>` with one
+  feature-owning implementation agent as the baseline. Treat optimization
+  stories as measurement/design checkpoints; split an unusually large feature
+  only when coherent write ownership and dependency layers justify it.
 
 ## Common traps
 

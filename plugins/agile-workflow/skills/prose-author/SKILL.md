@@ -42,12 +42,13 @@ brief directly instead of designing.
 
 **Collapse by default, graduate when the prose is large.** The common case is a
 single inline authoring stride (`drafting → implementing` here, then inline
-`implement` to `review`). But the lane does not *force* a one-shot: a large
-multi-section deliverable (a long spec, a multi-part guide) can use the shared
-`drafting → implementing → review` stages as real **draft → write → revise**
-steps — an `## Outline` in `drafting`, the writing in `implementing`, a
-coherence/tightening pass at `review`. These are the same advisory stages every
-item has (no new vocabulary, no parallel pipeline) — prose just gets to skip the
+`implement` to feature review). But the lane does not *force* a one-shot: a large
+multi-section feature (a long spec, a multi-part guide) can use
+`drafting → implementing → review` as real **draft → write → revise** steps — an
+`## Outline` in `drafting`, the writing in `implementing`, and a
+coherence/tightening pass at feature `review`. Child story checkpoints still
+advance directly to `done`; a standalone prose story uses bounded inline review.
+This adds no new vocabulary or parallel pipeline — prose just gets to skip the
 *ceremony*, not the *stages*. Reach for the staged rhythm only when the
 deliverable's size earns it; most prose does not.
 

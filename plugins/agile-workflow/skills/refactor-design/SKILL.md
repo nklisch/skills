@@ -368,8 +368,10 @@ In conversation:
 - **Convention-driven steps**: list or "none"
 - **Child stories**: list with `depends_on` chain
 - **Atomic steps acknowledged**: any that can't be cleanly rolled back
-- **Next**: `/agile-workflow:implement <story-id>` for sequential, or
-  `/agile-workflow:implement-orchestrator <feature-id>` for parallel agents
+- **Next**: `/agile-workflow:implement-orchestrator <feature-id>` with one
+  feature-owning worker as the baseline. Child stories are refactor checkpoints,
+  not default agent units; bundle related features or split an unusually large
+  feature only when ownership and shared context justify it.
 
 ## Guardrails
 

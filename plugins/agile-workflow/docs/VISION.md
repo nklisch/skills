@@ -89,15 +89,18 @@ agile-workflow is complete enough to operate as the supported workflow engine:
   an explicit `stop-at-review` request preserves a deliberate handoff boundary.
   Review remains a real, independently evidenced state rather than an inline
   self-approval ceremony.
-- Implementation orchestration derives dependency waves, write ownership,
-  isolation, and worker capability from the work's graph, cohesion, repository
-  shape, uncertainty, and risk. It preserves dependency/cycle integrity,
-  per-wave verification, one commit per item, worker self-containment, and
-  conservative parent roll-up without fixed sizing or prompt recipes.
+- Implementation orchestration starts from one worker per feature, may bundle
+  related features when shared context reduces handoffs, and splits unusually
+  large features only by coherent ownership. Child stories are checkpoints, not
+  default worker units. Reviews run independently of the next dependency layer,
+  while per-item evidence, verification, and commits remain distinct.
 - Questions and advisory review are consequence-driven: routine reversible
   choices use recorded judgment; strategic or difficult-to-reverse choices get
   an explicit checkpoint; independent review scales through the project's
-  high-level review weight while preserving fresh-context deep review. Reviewer
+  high-level review weight while preserving fresh-context deep review. Child
+  stories skip review, standalone stories use a bounded non-cross-model lane,
+  features receive integrated review, and epics receive the deepest aggregate
+  review because larger scope reveals integration and capability gaps. Reviewer
   findings remain proposals: the receiving orchestrator weighs actual repository
   risk, blocks only on material current-cycle concerns, and parks valid
   lower-priority work rather than forcing every suggestion into implementation.

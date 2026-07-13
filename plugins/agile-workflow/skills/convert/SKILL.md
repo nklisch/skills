@@ -673,17 +673,33 @@ must already exist at their new home or the dense content is lost.
      code happens to return, no deleting a test as "flaky" without
      root-causing first.
 
+   Implementation orchestration defaults to one worker per feature. Bundle
+   related features into one sequential worker when shared context reduces
+   handoffs; split an unusually large feature only by coherent write ownership.
+   Child stories are design and acceptance checkpoints, not default worker units.
+
+   Review is non-blocking for dependency-ordered implementation: an item at
+   `review` satisfies downstream implementation dependencies while its review
+   runs. Child stories advance directly to `done` after green verification and
+   never receive review. Standalone stories receive bounded inline review but
+   never an independent, fresh-context, or cross-model reviewer. Features are the
+   normal implementation-review boundary; epics receive their own deeper
+   aggregate review after child features are done. Broader scope gets deeper
+   review because integration and capability gaps emerge there; child-story
+   review is avoided because it tends toward pedantry and over-engineering.
+   Independent feature and epic reviews may run in parallel and must not
+   serialize the next implementation wave.
+
    Cross-model advisory review: explicit user/project review instructions
    override agile-workflow defaults. When peeragent is available with a different
-   model class, large/risky autopilot design decisions may use one advisory pass;
-   small/low-risk work skips it. Autopilot also runs a final peer-review loop
-   before reporting completion. Reviewer findings are proposals: the receiving
+   model class, large/risky feature, epic, or final-completion reviews may use it;
+   standalone stories never do. Reviewer findings are proposals: the receiving
    orchestrator verifies them against repository context and actual risk. Only
    credible material current-cycle risks block; park valid lower-priority
    findings in the unbound backlog and continue. Same-model peers fall back to
-   local sub-agents instead. Claude Opus peeragent
-   calls can take 10 to 30 minutes on large reviews; no return after a few minutes
-   is not evidence that the call has hung.
+   local sub-agents instead. Claude Opus peeragent calls can take 10 to 30 minutes
+   on large reviews; no return after a few minutes is not evidence that the call
+   has hung.
 
    Broad entry points:
    `/agile-workflow:ideate`, `/agile-workflow:epicize`,

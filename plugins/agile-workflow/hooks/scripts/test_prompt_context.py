@@ -376,6 +376,39 @@ class RulesLoaderTest(unittest.TestCase):
         self.assertIn("Useful tests", printed)
         self.assertIn("ask before reducing guarantees", printed)
 
+    def test_orchestration_prompt_emits_feature_bundle_guidance(self) -> None:
+        payload = self._payload(
+            session_id="feature-bundles",
+            cwd=str(self.root),
+            prompt="drain the implement-orchestrator queue",
+        )
+        out = io.StringIO()
+        with mock.patch.object(
+            prompt_context.sys, "stdin", io.StringIO(json.dumps(payload))
+        ), mock.patch.object(prompt_context.sys, "stdout", out):
+            rc = prompt_context.main()
+        self.assertEqual(rc, 0)
+        printed = out.getvalue()
+        self.assertIn("One implementation agent per feature is the baseline", printed)
+        self.assertIn("bundle related features", printed)
+        self.assertIn("Stories are design checkpoints", printed)
+
+    def test_review_prompt_emits_item_kind_and_nonblocking_guidance(self) -> None:
+        payload = self._payload(
+            session_id="review-kinds", cwd=str(self.root), prompt="review feature-auth"
+        )
+        out = io.StringIO()
+        with mock.patch.object(
+            prompt_context.sys, "stdin", io.StringIO(json.dumps(payload))
+        ), mock.patch.object(prompt_context.sys, "stdout", out):
+            rc = prompt_context.main()
+        self.assertEqual(rc, 0)
+        printed = out.getvalue()
+        self.assertIn("Child stories never enter review", printed)
+        self.assertIn("only standalone stories receive review", printed)
+        self.assertIn("Review is non-blocking", printed)
+        self.assertIn("epics receive their own deeper aggregate review", printed)
+
     def test_gate_prompt_emits_wider_scope_rule(self) -> None:
         payload = self._payload(
             session_id="gate-scope", cwd=str(self.root), prompt="gate the release items"
