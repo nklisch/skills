@@ -67,6 +67,20 @@ describe("trusted bwrap pinning", () => {
 		expect(resolved.reason).toContain(configuredPath);
 	});
 
+	test("rejects a configured bwrapPath that points at a directory, not a regular file", () => {
+		const dir = makeTempDir();
+		// A directory is X_OK (executable bit on dirs means searchable), so the old
+		// X_OK-only check accepted it — passing init and failing later at spawn.
+		// The isFile() guard rejects directories and special files at validation.
+		const resolved = resolveTrustedBwrap({ bwrapPath: dir, env: { PATH: "/usr/bin" } });
+
+		expect(resolved.ok).toBe(false);
+		if (resolved.ok) throw new Error(`expected failure, got ${resolved.path}`);
+		expect(resolved.rejectedPath).toBe(dir);
+		expect(resolved.reason).toContain("not a regular file");
+		expect(resolved.reason).toContain(dir);
+	});
+
 	test("uses an executable configured bwrapPath exclusively", () => {
 		const attackerDir = makeTempDir();
 		const configuredPath = makeExecutable(join(attackerDir, "custom-bwrap"));

@@ -225,6 +225,26 @@ export function resolveTrustedBwrap(opts: { bwrapPath?: string; env?: NodeJS.Pro
 				rejectedPath: opts.bwrapPath,
 			};
 		}
+		// X_OK alone accepts executable DIRECTORIES (e.g. /usr/bin), so a bad
+		// bwrapPath pointing at a directory would pass init and fail later at spawn.
+		// Reject non-regular-files so invalid wrapper paths fail closed at init.
+		let st: ReturnType<typeof statSync>;
+		try {
+			st = statSync(realPath);
+		} catch (e) {
+			return {
+				ok: false,
+				reason: `configured bwrapPath could not be stat-ed: ${realPath}${e instanceof Error ? ` (${e.message})` : ""}`,
+				rejectedPath: realPath,
+			};
+		}
+		if (!st.isFile()) {
+			return {
+				ok: false,
+				reason: `configured bwrapPath is not a regular file: ${realPath} (directories and special files are not valid bwrap executables)`,
+				rejectedPath: realPath,
+			};
+		}
 		try {
 			accessSync(realPath, fsConstants.X_OK);
 			return { ok: true, path: realPath };
@@ -239,6 +259,15 @@ export function resolveTrustedBwrap(opts: { bwrapPath?: string; env?: NodeJS.Pro
 
 	for (const candidate of TRUSTED_BWRAP_ALLOWLIST) {
 		if (!existsSync(candidate)) continue;
+		// Reject directories and special files: X_OK accepts executable dirs
+		// like /usr/bin, which would pass init and fail at spawn time.
+		let st: ReturnType<typeof statSync>;
+		try {
+			st = statSync(candidate);
+		} catch {
+			continue;
+		}
+		if (!st.isFile()) continue;
 		try {
 			accessSync(candidate, fsConstants.X_OK);
 			return { ok: true, path: realpathSync.native(candidate) };
