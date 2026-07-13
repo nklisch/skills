@@ -34,9 +34,11 @@ The plugin enforces three execution principles:
   review findings — all accumulate in the item's body as stages advance.
   Reading the file IS reading the state of work.
 - **Foundation docs roll forward.** `docs/VISION.md`, `docs/SPEC.md`,
-  `docs/ARCHITECTURE.md` describe current truth or intended future state.
-  When implementation changes what those docs assert, the docs update to
-  match the new truth. No retained descriptions of superseded behavior or
+  `docs/ARCHITECTURE.md` describe current truth or intended future state. They
+  are selective rather than exhaustive: omission is allowed, and a future-state
+  claim is valid before implementation exists. When an assertion becomes false,
+  stale, or contradictory, it updates to match the new truth. No retained
+  descriptions of superseded behavior or
   migration commentary. Git is the audit trail.
 - **Late-bind everything.** No upfront roadmap. No pre-populated stages.
   No pre-tagged release bindings. Items advance stages when work actually
@@ -111,7 +113,7 @@ The pattern proves itself when a fresh session in a substrate-bootstrapped repo
 picks up active work without re-feed; when direct production work and autopilot
 both finish decisively while respecting dependency, test-integrity, review, and
 parent-roll-up invariants; and when foundation docs five features later still
-describe the present without legacy comments.
+make true, noncontradictory current-or-future claims without legacy comments.
 
 ## Relationship to workflow
 

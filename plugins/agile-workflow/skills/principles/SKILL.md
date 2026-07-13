@@ -127,7 +127,7 @@ The unit of work is its file. The brief, the design, the implementation notes, a
 
 ## 9. Rolling-Foundation
 
-Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, and any others) describe the project's vision (future-looking) and current intent — what is true now, OR what will be true once in-flight design lands. They roll forward in place as either evolves. No legacy comments. Git carries history; the doc carries truth.
+Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, and any others) describe what is true now or the future state the project intends to reach. A future-state claim remains valid before implementation exists. Foundation docs are selective standing context, not an exhaustive inventory: silence about a capability is allowed. They roll forward when an assertion becomes false, stale, or contradictory. Git carries history; the doc carries truth.
 
 ### Two timing styles
 
@@ -136,7 +136,7 @@ Both are legitimate; the project picks one or mixes per change size:
 - **Code-first (default for routine features):** docs update at implementation merge, in the same commit set as the code that lands the change.
 - **Design-first (for large scope, initial ideation, architectural shifts):** docs preflight-update at scope time, leading the code through the implementation window. The doc temporarily describes an intended near-future state. The agile-workflow `scope` skill operates this way for large scope; `ideate` operates this way at project bootstrap.
 
-The discipline is identical in both styles: replace stale assertions in place, never accumulate "previously" / "in v1.x" / migration prose. `gate-docs` at release-deploy time is the backstop — it catches drift between intent and reality regardless of which timing style was used.
+The discipline is identical in both styles: replace stale assertions in place, never accumulate "previously" / "in v1.x" / migration prose. `gate-docs` is an assertion-consistency backstop: it catches false, stale, or contradictory claims, but never treats missing coverage or merely unimplemented future intent as drift.
 
 ### What this forbids
 
@@ -148,16 +148,16 @@ The discipline is identical in both styles: replace stale assertions in place, n
 
 ### What this enables
 
-- A new contributor reads the doc and learns the system as it IS or as it is meant to imminently become — not as it was
+- A new contributor reads the doc and learns the system as it is or as it is intended to become — not as it was
 - Foundation docs stay short and current rather than growing with every change
 - `git log docs/<file>.md` shows every rolling-forward edit — perfect audit trail
-- Discrepancies between intent (what the doc asserts) and reality (what code does) become bugs that gate-docs surfaces, not historical artifacts
+- False, stale, or contradictory assertions become bugs that gate-docs surfaces; omissions and not-yet-implemented future claims do not
 
 ### At design time
 
 - When scoping a feature that changes a foundation-doc assertion, decide the timing: code-first (defer the doc update) or design-first (preflight the update as part of scope)
 - For large-scope `scope` operations, design-first is the default — `scope` rolls foundation docs forward as part of the same operation
-- Identify which foundation doc(s) need rolling forward; reading them at design time prevents stale assumptions
+- Identify any existing foundation assertions the design changes or contradicts; do not add coverage merely because the docs omit the capability
 - If a feature's design contradicts a foundation doc, EITHER the design is wrong OR the doc is. Resolve before designing the implementation.
 
 ### At implementation time
@@ -165,14 +165,15 @@ The discipline is identical in both styles: replace stale assertions in place, n
 - If working code-first: after implementing a change, ask "what does a foundation doc now say that's no longer true?" — update assertions in place, commit with the implementation
 - If working design-first: the doc was preflight-updated at scope time. Verify the implementation matches the doc's assertion; if it deviates, adjust whichever was wrong (implementation or assertion).
 - Replace stale assertions in place. Delete the old text. Never append.
-- The `gate-docs` skill runs at release-deploy time and produces items for any remaining drift — but the goal is to leave it nothing to find.
+- The `gate-docs` skill produces items only for remaining false, stale, or contradictory assertions—not missing coverage or unimplemented future intent.
 
 ### Design checklist
 
-- [ ] Every assertion in SPEC and ARCHITECTURE reflects current code OR imminent in-flight design (no stale assertions from cancelled work)
+- [ ] Every assertion in SPEC and ARCHITECTURE is true for the current or intended-future state it claims (no stale assertions from superseded intent)
 - [ ] VISION.md reflects the project's current direction, not past direction
 - [ ] No "previously" / "originally" / "in v1.x" prose anywhere in `docs/`
-- [ ] When a feature changes behavior or direction, foundation docs update in the same commit set as the change (code-first) or were preflight-updated and are still accurate (design-first)
+- [ ] When a feature invalidates an existing foundation assertion, that assertion updates in the same commit set (code-first) or was preflight-updated and remains accurate (design-first)
+- [ ] No finding or edit was created solely because foundation docs omit a capability or describe future intent not yet implemented
 - [ ] `git log docs/<file>.md` shows the audit trail; the doc shows the present
 
 ---

@@ -305,8 +305,11 @@ git log --since='1 day ago' -- .work/
 ## Foundation docs (rolling-forward principle)
 docs/ holds standing context: VISION.md, SPEC.md, ARCHITECTURE.md, etc.
 - Foundation docs describe the system's current state or intended future state
+- Future-state claims are valid before implementation exists; foundation docs
+  need not mention every capability
 - Never retain superseded behavior descriptions or versioned migration notes
-- When implementation changes a foundation-doc assertion, update the doc
+- Update only assertions that become false, stale, or contradictory; omission is
+  not drift
 - Git history is the audit trail; the doc carries the active truth
 ````
 
@@ -568,7 +571,7 @@ to the unbound backlog so the gate does not silently expand release scope.
 | `gate-security` | Bound items' code changes against security checklist | Items with `gate_origin: security`, tagged `[security]`, `release_binding` set |
 | `gate-tests` | Useful coverage at stable interfaces, complex units, and bug regressions; low-value tests exposed by the bundle | Items with `gate_origin: tests`, tagged `[testing]` for valuable gaps or removals |
 | `gate-cruft` | Local or system-wide code, tests, checks, compatibility paths, and abstractions that may no longer earn their cost | Items with `gate_origin: cruft`, tagged `[cleanup]`; guarantee-reducing removals require user confirmation |
-| `gate-docs` | Foundation-doc alignment with the bundle's behavior changes | Items with `gate_origin: docs`, tagged `[documentation]` — enforces rolling-foundation |
+| `gate-docs` | Existing foundation assertions that may be false, stale, or contradictory; omissions and unimplemented future claims are excluded | Items with `gate_origin: docs`, tagged `[documentation]` — enforces rolling-foundation |
 | `gate-patterns` | Reusable patterns that emerged in the bundle | Detailed pattern-skill files in `.agents/skills/patterns/` (single source of truth) with optional Claude mirror, the generated hook-loaded `.agents/rules/patterns.md` digest (slug+one-liner index pointing back at the skill, with banner + source hash), plus a tracking item with `gate_origin: patterns` |
 
 For gates that emit findings as items, placement flows through
@@ -617,7 +620,9 @@ parent, and dependency. Common patterns:
 - `work-view --help` for the full flag set
 
 Foundation docs in `docs/` describe the system's current state or intended
-future state, never the past; git history is the audit trail. The substrate
+future state, never the past; git history is the audit trail. Review existing
+assertions only: missing coverage and unimplemented future intent are not drift;
+flag only false, stale, or contradictory claims. The substrate
 itself is durable memory: record decisions, blockers, implementation
 discoveries, and review findings in item bodies instead of depending on chat
 history.
@@ -680,12 +685,16 @@ class is needed and allowed.
 
 Concrete model guidance lives in `skills/principles/references/models.md` and is
 resolved against current availability when selection matters. GPT-5.6 Luna is
-the implementation workhorse; Sol is preferred for design, review, complex code,
-and as the low-thinking bridge above Luna; Terra is a situational middle pick;
-and Claude Fable is a high-cost design, orchestration, and review specialist
-rather than the default implementer. These are capability recommendations, not
-fixed routing. Luna, Terra, Sol, and Codex share OpenAI lineage, so moving among
-them can provide fresh context but is not cross-model evidence.
+the cost-efficient routine implementation and fan-out workhorse; Sol is the
+quality-first general coding choice and remains preferred for design, review,
+and complex code; Terra is a situational middle pick. Sonnet 5 is the capable
+high-throughput Claude worker, Opus 4.8 the stable premium complex-coding and
+review default, and Fable 5 the high-cost escalation for the hardest ambiguous,
+long-running, orchestration, design, and review work. Model-specific prompting
+is conditional and symptom-driven rather than fixed boilerplate. These are
+capability recommendations, not fixed routing. Luna, Terra, Sol, and Codex share
+OpenAI lineage, so moving among them can provide fresh context but is not
+cross-model evidence.
 
 ### Bootstrap (user-invocable only)
 
@@ -742,7 +751,7 @@ neither substitutes inline self-approval for a required fresh-context lane.
 | `gate-security` | Security scan over bound items; produces items with `gate_origin: security` |
 | `gate-tests` | Test-coverage scan; produces gap items with `gate_origin: tests` |
 | `gate-cruft` | Dead-code scan; produces cleanup items with `gate_origin: cruft` |
-| `gate-docs` | Foundation-doc alignment; enforces rolling-foundation; produces doc-update items |
+| `gate-docs` | Assertion-only foundation-doc alignment; ignores omissions and unimplemented future claims; produces doc-update items |
 | `gate-patterns` | Pattern extraction; writes pattern skills (`.agents/skills/patterns/`), the generated `.agents/rules/patterns.md` digest, + tracking item with `gate_origin: patterns` |
 
 All five fire during `release-deploy`'s `quality-gate` stage in the order

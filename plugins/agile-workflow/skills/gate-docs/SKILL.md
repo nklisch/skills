@@ -3,7 +3,7 @@ name: gate-docs
 description: >
   Documentation gate that enforces the rolling-foundation principle. Delegates the full drift
   detection to a deep documentation scanner agent which scans the bundle's changes for
-  foundation-doc drift (assertions in docs/ that no longer match implementation), changelog gaps,
+  foundation-doc drift (false, stale, or contradictory assertions—not missing coverage), changelog gaps,
   README staleness, and skill/pattern-skill staleness. The orchestrator converts findings into items
   in .work/active/ with gate_origin:docs and tags:[documentation]. Auto-triggers during
   /agile-workflow:release-deploy.
@@ -12,10 +12,12 @@ description: >
 # Gate-Docs
 
 You orchestrate a documentation gate that enforces the **rolling-foundation
-principle**: foundation docs in `docs/` describe current truth or intended
-future state, never past state. After implementation work, foundation-doc
-assertions can drift from reality or from the intended state they are meant to
-describe.
+principle**: foundation docs in `docs/` may describe current truth or intended
+future state, never superseded truth. Future-state claims do not become drift
+merely because implementation has not reached them, and foundation docs are not
+required to mention every capability or bundle change. Drift exists only when an
+assertion is false for the time/state it claims, stale after intent changed, or
+contradictory with another authoritative claim.
 
 The actual drift detection runs inside a **deep documentation scanner agent**
 (a generic sub-agent prompted with the scanner posture from `../principles/references/subagents.md`); your role is to
@@ -77,10 +79,14 @@ returns structured findings.
 **Brief template**:
 
 > You are conducting a documentation drift audit for release `<version>` as an
-> agile-workflow scanner. The principle: docs in `docs/` describe current truth
-> or intended future state, never past state. Drift = doc says X, but the
-> completed bundle now does Y or the intended future state has changed to Y. Use
-> read/search/shell tools as needed, but do not spawn nested sub-agents or fix docs.
+> agile-workflow scanner. The principle: foundation docs in `docs/` may describe
+> current truth or intended future state. Drift is assertion-only: a claim is
+> false for the state/time it says it describes, stale because intent changed,
+> or contradictory with another authoritative claim. A future-state assertion
+> is not drift merely because code does not implement it yet. Missing foundation-
+> doc coverage is allowed: do not flag, add, or request claims for bundle changes
+> the foundation docs do not discuss. Use read/search/shell tools as needed, but
+> do not spawn nested sub-agents or fix docs.
 >
 > **Bundle scope** (the changes that may have caused drift):
 > ```
@@ -110,8 +116,9 @@ returns structured findings.
 >    - Generated files (look for `# generated`, `llms-full.txt` — never
 >      edit; flag for regeneration)
 >
-> 2. **Classify each bound item's change type**:
->    | Change type | Doc owners |
+> 2. **Classify each bound item's change type**. This table identifies places to
+>    check for existing claims; it does not require foundation-doc coverage:
+>    | Change type | Potential references |
 >    |---|---|
 >    | New feature / behavior | SPEC.md, ARCHITECTURE.md, relevant guide pages |
 >    | New CLI command or flag | CLI reference, SPEC.md, guide pages |
@@ -123,10 +130,15 @@ returns structured findings.
 >    | Changed interface used by repo skills | Repo-specific skills referencing it |
 >
 > 3. **Drift-check passes** — run each relevant pass yourself:
->    - **Foundation-doc drift** — for VISION.md, SPEC.md, ARCHITECTURE.md,
->      for each assertion (interface, contract, component, behavior), grep
->      the bundle's changed files. Flag any assertion where the doc says X
->      but the code now does Y. Cite file:line for the doc and the code.
+>    - **Foundation-doc drift** — inspect only assertions that exist in
+>      VISION.md, SPEC.md, ARCHITECTURE.md, and domain foundation docs. First
+>      classify each assertion as current-state or intended-future-state. For a
+>      current-state claim, flag only when authoritative implementation now
+>      contradicts it. For a future-state claim, flag only when newer accepted
+>      intent or another authoritative foundation claim contradicts it—not when
+>      implementation is absent. Never flag a bundle capability merely because
+>      no foundation doc mentions it. Cite file:line for the claim and its
+>      contradicting source.
 >    - **README staleness** — verify quick-start, install steps, examples,
 >      command names match the codebase post-bundle.
 >    - **CHANGELOG gap** — for each item bound to release `<version>`,
@@ -157,10 +169,12 @@ returns structured findings.
 > - **Confidence**: High | Medium
 > - **Relevance**: Release-relevant | Ambient
 > - **Doc location**: `<file>:<line>`
-> - **Code location**: `<file>:<line>` (for assertion drift; omit for gaps)
+> - **Contradicting source**: `<file>:<line>` (implementation, newer intent,
+>   or another authoritative claim; omit for non-assertion categories)
 > - **Current doc text**:
 >   > <quote — what the doc currently says>
-> - **Reality**: <what the code now does, post-bundle>
+> - **Contradiction**: <why the quoted claim is false, stale, or contradictory
+>   for the state/time it claims to describe>
 > - **Required edit**: <roll the doc forward to match the new active truth.
 >   Apply rolling-foundation: no "previously" prose, no "in v1.x" notes.
 >   Replace the assertion in place. For generated files, give the
@@ -184,6 +198,9 @@ returns structured findings.
 >   Follow concrete references into adjacent docs, generated catalogs, or
 >   system-wide documentation when needed; do not perform an aimless doc sweep.
 > - Cite file:line for every finding.
+> - Absence is not a foundation-doc finding. Do not propose adding coverage for
+>   an undocumented bundle change, and do not treat unimplemented future intent
+>   as stale current-state documentation.
 > - Required edits ENFORCE rolling-foundation: replace stale assertions in
 >   place. Do NOT propose adding "previously" or "in v1.x" prose. Git is the
 >   audit trail; the doc carries the active truth.
@@ -225,13 +242,13 @@ updated: YYYY-MM-DD
 
 ## Location
 - Doc: `<file>:<line>`
-- Code: `<file>:<line>` (for assertion drift)
+- Contradicting source: `<file>:<line>` (for assertion drift)
 
 ## Current doc text
 > <quote the doc — what it currently says>
 
-## Reality
-<what the code now does, post-bundle>
+## Contradiction
+<why the claim is false, stale, or contradictory for its stated time/state>
 
 ## Required edit
 <roll the doc forward to match the new active truth. Apply rolling-foundation:
@@ -263,17 +280,19 @@ In conversation:
 - **Drift found**: count by category
 - **Items created**: count, with new ids
 - **Generated files needing regen**: list (if any)
-- **Goal reminder**: rolling-foundation enforces docs describing current truth
-  or intended future state, never past state. Findings here become items the
-  release flow drains to `done` before shipping.
+- **Goal reminder**: rolling-foundation permits current truth or intended future
+  state. Only false, stale, or contradictory assertions become findings; missing
+  coverage and unimplemented future intent do not. Findings here become items
+  the release flow drains to `done` before shipping.
 
 ## Guardrails
 
 - **The drift detection happens in the scanner agent, not here.** Your job is
   bundle prep, dispatch, and item-writing. Don't replicate the scanner's
   analysis in the orchestrator's context.
-- Foundation-doc drift is the gate's primary job. The scanner surfaces it;
-  you turn it into items.
+- Foundation-doc drift is assertion-only: false, stale, or contradictory
+  claims. Missing coverage and merely unimplemented future-state claims are not
+  findings and must not produce items or edits.
 - Required edits ENFORCE rolling-foundation: replace stale assertions in
   place. Do NOT propose adding "previously" or "in v1.x" prose.
 - Don't fix the docs in this skill — produce items only. Implementation of

@@ -245,8 +245,8 @@ model strength, or repeated mention does not make a finding blocking.
   security, data integrity, public contracts, acceptance criteria, release
   safety, or trustworthy verification. It must be fixed or kept active before
   advancing. Examples include a demonstrated correctness bug, exploitable
-  vulnerability, unintended breaking change, material foundation-doc drift, or
-  a test that proves required behavior is wrong.
+  vulnerability, unintended breaking change, a false/stale/contradictory
+  foundation-doc assertion, or a test that proves required behavior is wrong.
 - **Important**: valid work below the current-cycle blocker bar. Park it in the
   unbound backlog with the risk rationale and advance the reviewed item. Examples
   include unlikely low-consequence edges, worthwhile hardening, nonessential
@@ -362,8 +362,9 @@ Nothing blocking or significant to flag."
   concerns evaporate into review prose.
 - Review's security check is lightweight. For a full security gate, use
   `/agile-workflow:gate-security`.
-- Foundation-doc drift is a blocker, not a nit. Rolling foundation is a hard
-  rule.
+- A false, stale, or contradictory foundation-doc assertion is a blocker, not a
+  nit. Missing coverage and future-state claims whose implementation has not yet
+  landed are not drift and must not be flagged or changed.
 - Do not advance an item past review unless the verdict is Approve or Approve
   with comments. Pushing through receiver-confirmed material blockers defeats
   the point of the stage; parking lower-risk findings does not.

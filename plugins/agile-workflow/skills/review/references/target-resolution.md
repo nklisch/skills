@@ -40,7 +40,8 @@ or story should already have passed review. Gather:
   children.
 
 Use the aggregate scope to spot cross-cutting concerns: public API shifts,
-foundation-doc drift, release gaps, and capability completeness.
+false/stale/contradictory foundation-doc assertions (not omissions or
+unimplemented future intent), release gaps, and capability completeness.
 
 ## Empty Diff Handling
 

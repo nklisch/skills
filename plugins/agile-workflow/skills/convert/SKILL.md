@@ -514,7 +514,9 @@ parent, and dependency. Common patterns:
 - `work-view --help` for the full flag set
 
 Foundation docs in `docs/` describe the system's current state or intended
-future state, never the past; git history is the audit trail. Item files are
+future state, never the past; git history is the audit trail. Review existing
+assertions only: missing coverage and unimplemented future intent are not drift;
+flag only false, stale, or contradictory claims. Item files are
 the durable state: update the body with implementation discoveries, review
 findings, blockers, and decisions instead of relying on chat history.
 

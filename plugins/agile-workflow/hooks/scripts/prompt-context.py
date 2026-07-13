@@ -110,6 +110,7 @@ CAPSULES = {
             "Stories fast-advance on verification; features and epics get deeper review.",
             "Reviewer findings are proposals; the receiving orchestrator judges actual risk in repository context.",
             "Only material current-cycle risk blocks completion; park valid lower-priority findings and continue.",
+            "Foundation docs may describe future intent: review existing claims only; omission or absent implementation is not drift.",
             "Advisory review is non-blocking during design, but final autopilot completion needs a successful review path.",
         ],
     },
