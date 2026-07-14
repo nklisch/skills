@@ -27,10 +27,23 @@ does not help the memory pressure either.
 
 The VM's `/` is an LVM ext4 volume with 26G free — plenty of real disk. The
 goal is to redirect sandboxed children's `TMPDIR` to a **disk-backed
-per-session dir**, bind *that* dir (not host `/tmp`) into the sandbox, and
-clean it up at session end. This both removes the RAM pressure and narrows
-the writable surface (children see only their own temp, not the host's
-accumulated orphaned SQLite sidecars, ssh-agent sockets, etc.).
+per-project temp dir**, bind *that* dir (not host `/tmp`) into the sandbox,
+and reclaim stale dirs on startup. This both removes the RAM pressure and
+narrows the writable surface (children see only their project's temp, not
+the host's accumulated orphaned SQLite sidecars, ssh-agent sockets, etc.).
+
+**Per-project, not per-session.** The temp dir is keyed by the canonical
+session cwd (the project directory): all pi processes running in the same
+project share one temp dir under `~/.cache/pi-sandbox/tmp/<cwd-hash>/`. This
+fits the operator's multi-project workflow (1–4 pi instances, usually in
+distinct projects) — dir count is bounded by the number of active projects,
+not the number of pi processes, and the dir is stable across session
+restarts within a project. Concurrent sessions in the same project write to
+the same temp dir (no isolation between them) — acceptable because sessions
+in the same project are already cooperating peers on the agent mesh.
+Cleanup is a startup sweep that reclaims stale project dirs (not
+`session_shutdown` removal, which would race a concurrent sibling session
+in the same project).
 
 ## Strategic decisions
 
@@ -39,17 +52,20 @@ accumulated orphaned SQLite sidecars, ssh-agent sockets, etc.).
   and the operator is the only user, so changing the default carries no
   compatibility cost and delivers the memory win out of the box. `"host-tmpfs"`
   is retained as an explicit opt-out for the current behavior.
-- **Per-session lifecycle with startup sweep.** Create the session temp dir
-  at `session_start` (mirroring the pinned-git-dirs pattern: computed once,
-  threaded through per-command spawns as trusted init state), `rmSync` it at
-  `session_end`. Best-effort cleanup — a crashed session leaves the dir
-  behind, so a startup sweep removes stale dirs older than N hours (default
-  24h) from the cache root. Confirmed acceptable by the operator.
+- **Per-project (cwd-keyed) dir + startup sweep.** The temp dir is derived
+  from a stable hash of the canonical session cwd
+  (`~/.cache/pi-sandbox/tmp/<cwd-hash>/`), shared across all pi processes in
+  the same project. Computed once at `session_start` and pinned on the policy
+  (mirroring the pinned-git-dirs trusted-init-state pattern). Cleanup is a
+  startup sweep that reclaims stale project dirs older than N hours (default
+  24h) — NOT `session_shutdown` removal, because a concurrent sibling
+  session in the same project would still be using the dir. Confirmed
+  shape with the operator.
 - **Block-mode shape: keep `/tmp` masked, redirect `TMPDIR` to the disk dir.**
   Block mode currently forces `TMPDIR=/tmp` and masks `/tmp` with tmpfs to
   block host Unix sockets. With `session-disk`, block mode keeps the `/tmp`
   (and `/run`, `/var/run`, `/var/tmp`, `/tmp/.X11-unix`) tmpfs masks so a
-  blocked child still cannot reach host IPC, but sets `TMPDIR=<sessionTmpDir>`
+  blocked child still cannot reach host IPC, but sets `TMPDIR=<projectTmpDir>`
   and binds that disk dir writable so temp writes land on disk, not the
   masked tmpfs. This is a behavior change for block mode (temp currently
   goes to the masked tmpfs; it would go to disk) — exactly what the operator
@@ -68,8 +84,10 @@ export interface SandboxFilesystem {
   allowWrite?: string[];
   allowGitDirDiscovery?: boolean;
   /** Where sandboxed children put temp files.
-   *  "session-disk" (default): per-session dir on disk, bound + TMPDIR set.
-   *  "host-tmpfs": current behavior — bind host /tmp through (open) or mask
+   *  "session-disk" (default): per-project dir on a disk-backed cache root,
+   *  keyed by the canonical session cwd, bound writable + TMPDIR set to it.
+   *  Open mode does NOT bind host /tmp.
+   *  "host-tmpfs": current behavior — host /tmp bound through (open) or masked
    *  with tmpfs (block). */
   tmpBackend?: "session-disk" | "host-tmpfs";
 }
@@ -79,38 +97,40 @@ Default in `DEFAULT_CONFIG.filesystem`: `tmpBackend: "session-disk"`.
 
 ### `buildBwrapArgs` (`sandbox-bwrap.ts`)
 
-When `tmpBackend === "session-disk"` (and a `sessionTmpDir` is provided):
-- Emit `--bind <sessionTmpDir> <sessionTmpDir>` (writable, disk-backed).
-- Set `TMPDIR=<sessionTmpDir>` in the child env for BOTH open and block modes
+When `tmpBackend === "session-disk"` (and a `projectTmpDir` is provided):
+- Emit `--bind <projectTmpDir> <projectTmpDir>` (writable, disk-backed).
+- Set `TMPDIR=<projectTmpDir>` in the child env for BOTH open and block modes
   (overriding the block-mode `TMPDIR=/tmp` forcing — the disk dir replaces
   the masked tmpfs as the canonical temp dir).
-- In open mode, do NOT bind host `/tmp` through. The session temp dir replaces
+- In open mode, do NOT bind host `/tmp` through. The project temp dir replaces
   it. (Today, `allowWrite:["/tmp"]` + open mode binds host `/tmp`; with
   `session-disk`, `/tmp` is no longer auto-bound even if listed in
-  `allowWrite` — the session dir is the temp target instead.)
+  `allowWrite` — the project dir is the temp target instead.)
 - In block mode, KEEP the `/tmp` + `/run` + `/var/run` + `/var/tmp` +
   `/tmp/.X11-unix` tmpfs masks (IPC isolation preserved), but `TMPDIR` points
   at the bound disk dir, not `/tmp`.
 
-`buildBwrapArgs` needs a new optional `sessionTmpDir?: string` field on
+`buildBwrapArgs` needs a new optional `projectTmpDir?: string` field on
 `BuildBwrapArgsOptions`. When `tmpBackend === "session-disk"` and
-`sessionTmpDir` is absent, fail closed (the caller must always thread it
+`projectTmpDir` is absent, fail closed (the caller must always thread it
 through — same trusted-init-state discipline as `pinnedGitDirs`).
 
-### `session_start` / `session_end` (`sandbox.ts`)
+### `session_start` / startup sweep (`sandbox.ts`)
 
 At `session_start`, when `tmpBackend === "session-disk"`:
 - Resolve the cache root: `$XDG_CACHE_HOME/pi-sandbox/tmp/` (fall back to
   `~/.cache/pi-sandbox/tmp/` when `XDG_CACHE_HOME` is unset). Confirm it lives
   on a non-tmpfs backing store; if the resolved root is on tmpfs, fail closed
   with a clear message (the whole point is disk).
-- `mkdtempSync` a per-session subdir, stash the path on the sandbox policy,
-  pass it as `sessionTmpDir` to every `buildBwrapArgs` / `buildSandboxedSpawnArgs`
-  call.
-- Run the startup sweep: remove sibling dirs under the cache root older than
-  `tmpStaleHours` (default 24h) — best-effort, swallow ENOENT/EACCES.
-
-At `session_end`: `rmSync(sessionTmpDir, { recursive: true, force: true })`.
+- Derive the per-project dir from a stable hash of the canonical cwd
+  (`~/.cache/pi-sandbox/tmp/<cwd-hash>/`), NOT `mkdtemp` — the dir must be
+  stable + shared across concurrent sessions in the same project. Stash the
+  path on the sandbox policy, pass it as `projectTmpDir` to every
+  `buildBwrapArgs` / `buildSandboxedSpawnArgs` call.
+- Run the startup sweep: remove sibling project dirs under the cache root
+  whose mtime is older than `tmpStaleHours` (default 24h) — best-effort,
+  swallow ENOENT/EACCES. Do NOT remove on `session_shutdown` (would race a
+  concurrent sibling session in the same project).
 
 ### Tests (`sandbox.test.ts`, `sandbox-bwrap.test.ts`)
 
@@ -124,8 +144,8 @@ At `session_end`: `rmSync(sessionTmpDir, { recursive: true, force: true })`.
   keep asserting `/tmp` under `host-tmpfs`.
 - Integration test: a sandboxed `mktemp -d` lands under the disk dir, not
   `/tmp`; and the dir is on disk (stat the backing device, reject tmpfs).
-- Startup sweep: stale dirs are removed, the current session's dir survives.
-- Fail-closed: `session-disk` with no `sessionTmpDir` threaded through does
+- Startup sweep: stale project dirs are removed, the current session's dir survives.
+- Fail-closed: `session-disk` with no `projectTmpDir` threaded through does
   not silently fall back to host `/tmp`.
 
 ### Docs (`plugins/pi-sandbox/README.md`, `docs/THREAT_MODEL.md`)
@@ -147,22 +167,24 @@ startup sweep reclaims it).
       (narrower writable surface).
 - [ ] Block mode keeps the `/tmp` + socket-dir tmpfs masks under `session-disk`
       (IPC isolation preserved) while `TMPDIR` points at the disk dir.
-- [ ] `session_end` removes the session temp dir; a startup sweep reclaims
+- [ ] Startup sweep reclaims stale project dirs (no `session_shutdown` removal — would race a concurrent sibling)
       stale dirs older than the configured threshold.
 - [ ] `host-tmpfs` opt-out preserves today's exact behavior (regression guard).
 - [ ] Fail-closed when `session-disk` is set but the cache root resolves to
-      tmpfs, or when `sessionTmpDir` is not threaded through.
+      tmpfs, or when `projectTmpDir` is not threaded through.
 - [ ] Existing block-mode tests updated; README + THREAT_MODEL document the
       change and the security improvement.
 
 ## Architectural choice
 
-**Thread a session temp dir through the same trusted-init-state path as
-`pinnedGitDirs`.** Compute the disk-backed per-session temp dir once at
-`session_start`, pin it on `SandboxPolicy`, and pass it to every
+**Thread a project temp dir through the same trusted-init-state path as
+`pinnedGitDirs`.** Compute the disk-backed, cwd-keyed project temp dir once
+at `session_start`, pin it on `SandboxPolicy`, and pass it to every
 `buildBwrapArgs` call (both the bash-ops path and `buildSandboxedSpawnArgs`).
-`buildBwrapArgs` binds it writable + sets `TMPDIR` to it. Cleanup happens in
-`session_shutdown`, with a startup sweep for crash recovery.
+`buildBwrapArgs` binds it writable + sets `TMPDIR` to it. Cleanup is a
+startup sweep that reclaims stale project dirs (not `session_shutdown`
+removal — a concurrent sibling session in the same project would still be
+using the shared dir).
 
 Why over alternatives:
 - *Global `TMPDIR` env override at process level* — rejected: the sandbox
@@ -191,8 +213,9 @@ export interface SandboxFilesystem {
 	allowWrite?: string[];
 	allowGitDirDiscovery?: boolean;
 	/** Where sandboxed children put temp files.
-	 *  - "session-disk" (default): per-session dir on a disk-backed cache root,
-	 *    bound writable + TMPDIR set to it. Open mode does NOT bind host /tmp.
+	 *  - "session-disk" (default): per-project dir on a disk-backed cache root,
+	 *    keyed by the canonical session cwd, bound writable + TMPDIR set to it.
+	 *    Open mode does NOT bind host /tmp.
 	 *  - "host-tmpfs": current behavior — host /tmp bound through (open) or masked
 	 *    with tmpfs (block). Preserved as an explicit opt-out. */
 	tmpBackend?: "session-disk" | "host-tmpfs";
@@ -209,7 +232,7 @@ Add `"tmpBackend"` to the `rejectUnknownKeys` allowlist for `filesystem`
 - [ ] `tmpBackend` is accepted in `filesystem`, defaults to `"session-disk"`, rejects unknown values.
 - [ ] `host-tmpfs` parses and round-trips through config merge.
 
-### Unit 2: `sessionTmpDir` flows through `BuildBwrapArgsOptions` + `buildBwrapArgs`
+### Unit 2: `projectTmpDir` flows through `BuildBwrapArgsOptions` + `buildBwrapArgs`
 **File**: `plugins/pi-sandbox/extensions/sandbox-bwrap.ts`
 
 ```ts
@@ -226,10 +249,11 @@ export interface BuildBwrapArgsOptions {
 	 *  (both open and block modes). Replaces the host-/tmp bind (open) and
 	 *  the TMPDIR=/tmp forcing (block). Must be a canonical absolute path
 	 *  that exists on a non-tmpfs backing store — the caller (session_start)
-	 *  validates that. */
-	sessionTmpDir?: string;
+	 *  validates that. Per-project (cwd-keyed), shared across concurrent
+	 *  sessions in the same project. */
+	projectTmpDir?: string;
 	/** "session-disk" | "host-tmpfs"; defaults to "session-disk". When
-	 *  "session-disk" and sessionTmpDir is absent, THROW (fail-closed): the
+	 *  "session-disk" and projectTmpDir is absent, THROW (fail-closed): the
 	 *  caller must thread it through. */
 	tmpBackend?: "session-disk" | "host-tmpfs";
 }
@@ -238,15 +262,15 @@ export interface BuildBwrapArgsOptions {
 Behavior in `buildBwrapArgs`:
 - Resolve `tmpBackend = opts.tmpBackend ?? "session-disk"`.
 - If `tmpBackend === "session-disk"`:
-  - If `opts.sessionTmpDir` is absent → **throw** (fail-closed: caller
-    forgot to thread the pinned session temp dir; never silently fall back
+  - If `opts.projectTmpDir` is absent → **throw** (fail-closed: caller
+    forgot to thread the pinned project temp dir; never silently fall back
     to host `/tmp`).
-  - Emit `--bind <sessionTmpDir> <sessionTmpDir>` (writable, disk-backed).
-  - Set `childEnv.TMPDIR = <sessionTmpDir>` for BOTH open and block modes
+  - Emit `--bind <projectTmpDir> <projectTmpDir>` (writable, disk-backed).
+  - Set `childEnv.TMPDIR = <projectTmpDir>` for BOTH open and block modes
     (overrides the block-mode `TMPDIR=/tmp` forcing at line 50).
   - Open mode: do NOT bind host `/tmp` even if it appears in `allowWrite`.
     Filter `/tmp` (and `/var/tmp`) out of the `allowWrite`-derived binds when
-    `session-disk` is active — the session dir is the temp target. (If an
+    `session-disk` is active — the project dir is the temp target. (If an
     operator genuinely needs host `/tmp` readable, that's `host-tmpfs`.)
   - Block mode: keep the existing `/tmp` + `/run` + `/var/run` + `/var/tmp` +
     `/tmp/.X11-unix` tmpfs masks (IPC isolation preserved); only `TMPDIR`
@@ -256,12 +280,12 @@ Behavior in `buildBwrapArgs`:
   forcing both stand). This is the regression-guard branch.
 
 **Acceptance Criteria**:
-- [ ] `session-disk` + `sessionTmpDir` present: emits `--bind <dir> <dir>` + `--setenv TMPDIR <dir>`; no `--bind /tmp /tmp` in open mode.
-- [ ] `session-disk` + `sessionTmpDir` absent: throws (fail-closed).
+- [ ] `session-disk` + `projectTmpDir` present: emits `--bind <dir> <dir>` + `--setenv TMPDIR <dir>`; no `--bind /tmp /tmp` in open mode.
+- [ ] `session-disk` + `projectTmpDir` absent: throws (fail-closed).
 - [ ] `host-tmpfs`: open-mode binds `/tmp` through and block-mode forces `TMPDIR=/tmp` — unchanged.
 - [ ] Block mode + `session-disk`: `/tmp` tmpfs mask still emitted; `TMPDIR` points at the disk dir.
 
-### Unit 3: `sessionTmpDir` on `SandboxPolicy` + threaded through both spawn paths
+### Unit 3: `projectTmpDir` on `SandboxPolicy` + threaded through both spawn paths
 **File**: `plugins/pi-sandbox/extensions/sandbox-file-policy.ts` (type), `sandbox.ts` (bash path), `sandbox-spawn.ts` (background/monitor path)
 
 ```ts
@@ -273,75 +297,91 @@ export interface SandboxPolicy {
 	cwd: string;
 	networkMode: NetworkMode;
 	toolRules?: ToolRules;
-	/** Pinned per-session disk-backed temp dir (trusted init state) when
+	/** Pinned per-project disk-backed temp dir (trusted init state) when
 	 *  tmpBackend==="session-disk"; null for host-tmpfs and for the
 	 *  fail-closed/permissive policies. Bound writable + TMPDIR set to it
-	 *  by buildBwrapArgs. */
-	sessionTmpDir: string | null;
+	 *  by buildBwrapArgs. Cwd-keyed: shared across concurrent sessions in
+	 *  the same project. */
+	projectTmpDir: string | null;
 	/** Mirrors config; drives buildBwrapArgs branch selection. */
 	tmpBackend: "session-disk" | "host-tmpfs";
 }
 ```
 
 `createFailClosedPolicy` and `createPermissivePolicy` set
-`sessionTmpDir: null, tmpBackend: "host-tmpfs"` (these policies don't run
-bwrap with a session temp dir; fail-closed refuses bash, permissive is the
+`projectTmpDir: null, tmpBackend: "host-tmpfs"` (these policies don't run
+bwrap with a project temp dir; fail-closed refuses bash, permissive is the
 explicit-disable path).
 
-In `createSandboxedBashOps` (`sandbox.ts:189`): pass `sessionTmpDir:
-policy.sessionTmpDir ?? undefined` and `tmpBackend: policy.tmpBackend` into
+In `createSandboxedBashOps` (`sandbox.ts:189`): pass `projectTmpDir:
+policy.projectTmpDir ?? undefined` and `tmpBackend: policy.tmpBackend` into
 `buildBwrapArgs`.
 
 In `buildSandboxedSpawnArgs` (`sandbox-spawn.ts`): add optional
-`sessionTmpDir?: string | null` + `tmpBackend?` on `SandboxSpawnOptions`,
+`projectTmpDir?: string | null` + `tmpBackend?` on `SandboxSpawnOptions`,
 thread them into `buildBwrapArgs`. The background-tasks bridge (caller of
-`buildSandboxedSpawnArgs`) must pass the pinned session temp dir; this is the
+`buildSandboxedSpawnArgs`) must pass the pinned project temp dir; this is the
 same trust boundary as `pinnedGitDirs` (which background/monitor currently
 leaves unset — note this as a known gap, see Risks).
 
 **Acceptance Criteria**:
-- [ ] `SandboxPolicy` carries `sessionTmpDir` + `tmpBackend`; fail-closed/permissive policies null them.
+- [ ] `SandboxPolicy` carries `projectTmpDir` + `tmpBackend`; fail-closed/permissive policies null them.
 - [ ] Bash-ops path threads both into `buildBwrapArgs`.
 - [ ] `buildSandboxedSpawnArgs` accepts + threads both.
 
-### Unit 4: `session_start` creates the dir; `session_shutdown` cleans it; startup sweep
+### Unit 4: `session_start` derives the cwd-keyed dir; startup sweep reclaims stale project dirs
 **File**: `plugins/pi-sandbox/extensions/sandbox.ts`
 
 New module-level state (mirroring `pinnedBwrapPath`):
 ```ts
-let sessionTmpDir: string | null = null;
+let projectTmpDir: string | null = null;
 ```
 
 At `session_start`, after config loads and the platform is Linux + bwrap is
 resolved, when `config.filesystem?.tmpBackend ?? "session-disk" === "session-disk"`:
 1. Resolve the cache root: `const cacheRoot = join(process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"), "pi-sandbox", "tmp")`.
 2. `mkdirSync(cacheRoot, { recursive: true })`.
-3. **Disk check** (fail-closed): `statfs`/`stat` the root and reject if it's
-   tmpfs. Concretely, compare `statSync(cacheRoot).dev` against `statSync("/tmp").dev`
-   and `statSync("/dev/shm").dev` — if equal to either, fail-closed with
-   `ctx.ui.notify` + status (the whole point is disk). Document the exact check.
-4. `sessionTmpDir = mkdtempSync(join(cacheRoot, "session-"))`.
-5. **Startup sweep**: readdir the cache root, `stat` each `session-*` sibling,
-   `rmSync(..., { recursive: true, force: true })` any whose mtime is older
-   than `TMP_STALE_HOURS` (const, default 24). Best-effort: swallow `ENOENT`/
-   `EACCES` per entry (concurrent sweep by a sibling session is fine).
-6. Pin `sessionTmpDir` + `tmpBackend` onto `sandboxPolicy`.
+3. **Disk check** (fail-closed): compare `statSync(cacheRoot).dev` against
+   `statSync("/tmp").dev` and `statSync("/dev/shm").dev` — if equal to either,
+   the cache root is on tmpfs; fail-closed with `ctx.ui.notify` + status
+   (the whole point is disk). Document the exact check.
+4. **Derive the per-project dir from the canonical cwd** (NOT `mkdtemp` — the
+   dir must be stable + shared across concurrent sessions in the same project):
+   - `const cwdKey = createHash("sha256").update(realpathSync(ctx.cwd)).digest("hex").slice(0, 16)`
+   - `projectTmpDir = join(cacheRoot, cwdKey)`
+   - `mkdirSync(projectTmpDir, { recursive: true })`
+   - Use a 16-char truncation of the sha256 of the realpath for a stable,
+     filesystem-safe, collision-resistant key. The realpath resolves
+     symlinks so two sessions whose cwd differs only by a symlink bind to
+     the same project dir.
+5. **Startup sweep** (reclaim stale project dirs): readdir the cache root,
+   `stat` each `<hash>` sibling, `rmSync(..., { recursive: true, force: true })`
+   any whose mtime is older than `TMP_STALE_HOURS` (const, default 24). Best-
+   effort: swallow `ENOENT`/`EACCES` per entry. **Do NOT sweep the current
+   session's own `projectTmpDir`** (it's fresh) — but note that a concurrent
+   sibling session in a *different* stale project could have its dir swept;
+   mitigation in Risks.
+6. Pin `projectTmpDir` + `tmpBackend` onto `sandboxPolicy`.
 
-At `session_shutdown` (`sandbox.ts` ~line 735): add
-`if (sessionTmpDir) { rmSync(sessionTmpDir, { recursive: true, force: true }); sessionTmpDir = null; }`
-at the top, before the existing state reset. (Best-effort cleanup; a
-`SIGKILL` leaves the dir — the startup sweep reclaims it next session.)
+**No `session_shutdown` removal.** Because the dir is shared across
+concurrent sessions in the same project, removing it on shutdown would race
+a sibling session still using it. Cleanup is startup-sweep-only — a
+crashed session's project dir is reclaimed the next time *any* session starts
+(and that project's dir goes stale if no session reuses it within 24h).
 
-Also reset `sessionTmpDir = null` at every early-return branch in
+Also reset `projectTmpDir = null` at every early-return branch in
 `session_start` (no-sandbox, parse error, disabled, degrade, fail-closed) —
 match the existing reset pattern for `pinnedBwrapPath`.
 
 **Acceptance Criteria**:
-- [ ] `session_start` creates `~/.cache/pi-sandbox/tmp/session-XXXX/` under `session-disk`.
-- [ ] Cache root on tmpfs → fail-closed with a clear status, no session temp dir bound.
-- [ ] Stale `session-*` siblings older than 24h removed at startup; current session's dir survives.
-- [ ] `session_shutdown` removes the session temp dir.
-- [ ] Early-return branches reset `sessionTmpDir = null`.
+- [ ] `session_start` creates `~/.cache/pi-sandbox/tmp/<cwd-hash>/` under `session-disk`.
+- [ ] Two sessions with the same realpath cwd resolve to the SAME `projectTmpDir`.
+- [ ] Two sessions with different cwns resolve to DIFFERENT dirs.
+- [ ] Cache root on tmpfs → fail-closed with a clear status, no project temp dir bound.
+- [ ] Stale `<hash>` siblings older than 24h removed at startup; current session's dir survives.
+- [ ] Early-return branches reset `projectTmpDir = null`.
+- [ ] `session_shutdown` does NOT remove `projectTmpDir`.
+
 
 ### Unit 5: Tests
 **File**: `plugins/pi-sandbox/extensions/sandbox-bwrap.test.ts`, `sandbox.test.ts`
@@ -349,12 +389,13 @@ match the existing reset pattern for `pinnedBwrapPath`.
 Arg-level + integration:
 - `session-disk` open mode: `--bind <dir> <dir>` + `--setenv TMPDIR <dir>`, no `--bind /tmp /tmp`.
 - `session-disk` block mode: `/tmp` tmpfs mask present, `--setenv TMPDIR <dir>`, disk dir bound.
-- `session-disk` + missing `sessionTmpDir` → throws.
+- `session-disk` + missing `projectTmpDir` → throws.
 - `host-tmpfs` open: `--bind /tmp /tmp` present (regression guard).
 - `host-tmpfs` block: `--setenv TMPDIR /tmp` (regression guard, existing test at `sandbox.test.ts:3183` kept).
 - Integration: sandboxed `mktemp -d` lands under the session dir; `stat -c %m` /
   `findmnt` confirms it's not tmpfs-backed.
-- Integration: `session_shutdown` removes the dir.
+- Integration: startup sweep removes a stale project dir; a concurrent
+  session's fresh dir survives.
 - Startup sweep: a synthetic stale `session-*` dir is removed; a fresh one survives.
 - Fail-closed: cache root forced onto tmpfs (test fixture) → fail-closed status, no bind.
 
@@ -369,7 +410,7 @@ README `## Configuration` + `## Network modes`:
 - Document `filesystem.tmpBackend`, default `session-disk`, the `host-tmpfs`
   opt-out, the per-session lifecycle, and the 24h startup sweep.
 - Update the `block` mode paragraph: `TMPDIR` now points at the disk-backed
-  session temp dir under `session-disk` (default); the `/tmp` tmpfs mask
+  project temp dir under `session-disk` (default); the `/tmp` tmpfs mask
   remains for IPC isolation.
 - Note the security improvement: open mode under `session-disk` no longer
   binds host `/tmp` through — sandboxed children see only their own temp dir,
@@ -403,36 +444,39 @@ for the disk-destination and lifecycle claims (the existing
 
 ## Risks
 
-- **Background/monitor spawn path threads `sessionTmpDir`.** The bash path
+- **Background/monitor spawn path threads `projectTmpDir`.** The bash path
   gets it from `activePolicy`; `buildSandboxedSpawnArgs` is called by the
-  background-tasks bridge, which must read the pinned `sessionTmpDir` and
+  background-tasks bridge, which must read the pinned `projectTmpDir` and
   pass it. Today background/monitor leaves `pinnedGitDirs` unset (documented
   gap), so there's no existing pattern for threading session-pinned state to
   that caller. **Mitigation**: the bridge already imports from the sandbox
-  extension; expose a `getSessionTmpDir()` accessor (mirroring how it reads
+  extension; expose a `getProjectTmpDir()` accessor (mirroring how it reads
   capability state) and have the bridge call it. If the bridge can't read it,
-  `buildSandboxedSpawnArgs` under `session-disk` with no `sessionTmpDir`
+  `buildSandboxedSpawnArgs` under `session-disk` with no `projectTmpDir`
   throws fail-closed — safe but breaks background tasks. Land the accessor in
   Unit 3, wire the bridge in Unit 4.
 - **Disk-backing check is heuristic.** Comparing `st_dev` against `/tmp` and
   `/dev/shm` catches the common case (cache root accidentally on tmpfs) but
   isn't a general "is this real disk" test. Acceptable: the failure mode is
   fail-closed with a clear message, not silent RAM use. Document the heuristic.
-- **Concurrent sessions.** Two pi sessions on the same machine each get their
-  own `session-*` dir (mkdtemp guarantees uniqueness); the startup sweep must
-  not remove a live sibling's dir. **Mitigation**: the sweep checks mtime only
-  (24h threshold) and a live session's dir is touched constantly by temp
-  writes, so its mtime is recent. Edge case: a session idle for >24h could
-  have its dir swept — acceptable (the session would recreate on next spawn).
-  Document it.
+- **Concurrent sessions + shared project dir.** The dir is cwd-keyed, so
+  concurrent sessions in the *same* project SHARE one dir (no inter-session
+  isolation — acceptable, they're cooperating peers). The startup sweep must
+  not remove a live sibling's dir; mitigation: the sweep checks mtime only
+  (24h threshold) and an active project's dir is touched constantly by temp
+  writes, so its mtime is recent. Edge case: a project idle for >24h whose
+  dir gets swept while a long-idle session still holds it — the session
+  recreates the dir on next spawn (the next `buildBwrapArgs` call mkdir's
+  it). Document it. A session in a DIFFERENT project sweeping a stale
+  project's dir is the intended behavior, not a risk.
 
 ## Notes
 
 - This also mitigates (does not fix) the orphaned-SQLite-WAL accumulation
-  surfacing in `/tmp/.tmpXXXXXX-wal` — per-session disk temp means sidecars
-  land on disk (no RAM pressure) and get cleaned at session end. The upstream
-  leak (a producer opening WAL-mode temp SQLite DBs without `db.close()`) is a
-  separate item.
+  surfacing in `/tmp/.tmpXXXXXX-wal` — per-project disk temp means sidecars
+  land on disk (no RAM pressure) and get swept when the project goes stale.
+  The upstream leak (a producer opening WAL-mode temp SQLite DBs without
+  `db.close()`) is a separate item.
 - Builds on `feature-sandbox-first-party-bwrap` (done) and the block-mode
   tmp/socket masking in `story-pi-sandbox-block-mode-tmp-sockets` (done). No
   in-flight dependencies; `depends_on` left empty because the foundation is
