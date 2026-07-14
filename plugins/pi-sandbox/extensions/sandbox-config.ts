@@ -1793,6 +1793,13 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 	if (project.filesystem?.allowGitDirDiscovery !== undefined) {
 		warns.push("project tried to set allowGitDirDiscovery; ignored (global/operator-only)");
 	}
+	// tmpBackend selects where sandboxed temp files land (disk-backed vs
+	// host-tmpfs) — a storage-backend switch, not a tightening. A cloned checkout
+	// is untrusted and must not switch backends (e.g. force host-tmpfs to bypass
+	// the disk-backed narrowing). Global/operator-only; project-local is ignored.
+	if (project.filesystem?.tmpBackend !== undefined) {
+		warns.push(`project tried to set tmpBackend=${JSON.stringify(project.filesystem.tmpBackend)}; ignored (global/operator-only)`);
+	}
 
 	// denyRead: project can only ADD entries (union).
 	if (project.filesystem?.denyRead !== undefined) {
@@ -2096,6 +2103,7 @@ export function formatSandboxCommandOutput(loaded: LoadedConfig, state: SandboxC
 		`  Allow Write: ${config.filesystem?.allowWrite?.join(", ") || "(none)"}`,
 		`  Deny Write: ${config.filesystem?.denyWrite?.join(", ") || "(none)"}`,
 		`  Git directory discovery: ${(config.filesystem?.allowGitDirDiscovery ?? false) ? "active" : "disabled"} (global/operator-only)`,
+		`  Temp backend: ${config.filesystem?.tmpBackend ?? "session-disk"} (global/operator-only)`,
 		"",
 		"Unsupported legacy config fields:",
 		...legacy.map((warning) => `  ${warning}`),

@@ -59,6 +59,10 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	const securityCwd = canonicalizeExistingPath(resolve(securityCwdRaw)) ?? resolve(securityCwdRaw);
 	const sourceEnv = opts.env ?? buildMinimalEnv(process.env);
 	const tmpBackend = opts.tmpBackend ?? "session-disk";
+	if (tmpBackend !== "session-disk" && tmpBackend !== "host-tmpfs") {
+		// I8: do not silently treat unknown backend strings as the legacy branch.
+		throw new Error(`Sandbox tmpBackend must be "session-disk" or "host-tmpfs" (got ${JSON.stringify(tmpBackend)}).`);
+	}
 	if (tmpBackend === "session-disk") {
 		if (!opts.projectTmpDir) {
 			throw new Error("Sandbox tmpBackend=session-disk requires projectTmpDir (the pinned per-project disk temp dir). The session_start hook must derive and thread it through; never silently fall back to host /tmp.");
@@ -121,15 +125,18 @@ function finishBwrapArgs(
 	// also an explicit allowWrite entry is bound once. The deny overlays below
 	// fire after these binds, so denyRead/denyWrite precedence is preserved.
 	const writableMounts = new Set<string>();
-	// Under session-disk, host /tmp and /var/tmp are NOT bound through even if
-	// listed in allowWrite — the project temp dir (bound below) is the temp
-	// target, and binding host /tmp would re-expose its accumulated files and
-	// sockets (the narrower-surface win). Under host-tmpfs, /tmp binds through
-	// in open mode as today.
-	const tmpHostPaths = new Set(["/tmp", "/var/tmp"]);
+	// Under session-disk, host /tmp and /var/tmp (and anything nested under them)
+	// are NOT bound through even if listed in allowWrite — the project temp dir
+	// (bound below) is the temp target, and binding host /tmp would re-expose its
+	// accumulated files and sockets (the narrower-surface win). Canonicalize the
+	// temp roots so a symlinked /tmp is caught, and reject mounts equal to OR
+	// nested beneath either root. Under host-tmpfs, /tmp binds through in open
+	// mode as today.
+	const tmpHostRoots = ["/tmp", "/var/tmp"].map((p) => canonicalizeExistingPath(p) ?? p);
+	const isUnderTmpHost = (mount: string) => tmpHostRoots.some((r) => mount === r || mount.startsWith(`${r}/`));
 	for (const mount of existingCanonicalMounts(opts.allowWrite, securityCwd)) {
 		if (writableMounts.has(mount)) continue;
-		if (tmpBackend === "session-disk" && tmpHostPaths.has(mount)) continue;
+		if (tmpBackend === "session-disk" && isUnderTmpHost(mount)) continue;
 		writableMounts.add(mount);
 		args.push("--bind", mount, mount);
 	}

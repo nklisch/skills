@@ -309,19 +309,20 @@ describe("package metadata", () => {
 });
 
 describe("sandbox extension entrypoint", () => {
-	async function loadSandboxEntrypoint(agentDir: string): Promise<(pi: unknown) => void> {
+	async function loadSandboxEntrypoint(agentDir: string, opts: { config?: Record<string, unknown> } = {}): Promise<{ default: (pi: unknown) => void; getProjectTmpDir: () => string | null; getTmpBackend: () => string }> {
 		const tool = (name: string) => ({
 			name,
 			description: `${name} stub`,
 			parameters: {},
 			execute: async () => ({ content: [{ type: "text", text: "stub" }] }),
 		});
-		// This test asserts the extension entrypoint wiring (flags, tools,
-		// command, handlers), not the session-disk temp-dir derivation. Write a
-		// host-tmpfs config so session_start does not fail-closed on the (likely
-		// read-only in CI) ~/.cache cache root that session-disk requires.
+		// Default to host-tmpfs so session_start does not fail-closed on the (likely
+		// read-only in CI) ~/.cache cache root that session-disk requires. Callers
+		// that exercise session-disk pass an explicit config + a disk-backed
+		// XDG_CACHE_HOME.
+		const cfg = opts.config ?? { filesystem: { tmpBackend: "host-tmpfs" } };
 		await mkdir(join(agentDir, "extensions"), { recursive: true });
-		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({ filesystem: { tmpBackend: "host-tmpfs" } }));
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify(cfg));
 		mock.module("@earendil-works/pi-coding-agent", () => ({
 			getAgentDir: () => agentDir,
 			createBashTool: () => tool("bash"),
@@ -338,7 +339,8 @@ describe("sandbox extension entrypoint", () => {
 				Array: (items: unknown, options?: unknown) => ({ type: "array", items, ...(options as Record<string, unknown> | undefined) }),
 			},
 		}));
-		return (await import(`${new URL("./sandbox.ts", import.meta.url).href}?entrypoint=${Date.now()}`)).default as (pi: unknown) => void;
+		const mod = await import(`${new URL("./sandbox.ts", import.meta.url).href}?entrypoint=${Date.now()}`);
+		return { default: mod.default, getProjectTmpDir: mod.getProjectTmpDir, getTmpBackend: mod.getTmpBackend };
 	}
 
 	test("loads, registers sandboxed tool overrides and command, and refreshes /sandbox handshake state", async () => {
@@ -372,7 +374,7 @@ describe("sandbox extension entrypoint", () => {
 		const handshakeKey = Symbol.for("@nklisch/pi-sandbox.background-tasks-integration");
 		delete (globalThis as typeof globalThis & Record<symbol, unknown>)[handshakeKey];
 		try {
-			const extension = await loadSandboxEntrypoint(agentDir);
+			const extension = (await loadSandboxEntrypoint(agentDir)).default;
 			extension(pi);
 
 			expect(flags).toContain("no-sandbox");
@@ -390,6 +392,44 @@ describe("sandbox extension entrypoint", () => {
 			expect(notifications.at(-1)).toContain("Background tasks sandbox: active");
 		} finally {
 			delete (globalThis as typeof globalThis & Record<symbol, unknown>)[handshakeKey];
+		}
+	});
+
+	test("session_start derives a disk-backed project temp dir (B1 regression)", async () => {
+		// Regression for B1: the policy must capture the DERIVED projectTmpDir, not
+		// a null placeholder. Runs the real session_start hook with a disk-backed
+		// XDG_CACHE_HOME and asserts the derivation resolves a disk-backed project
+		// temp dir — the path the prior session-disk tests bypassed by passing
+		// projectTmpDir via opts.
+		const { statfsSync, accessSync, constants } = await import("node:fs");
+		const isDiskWritable = (p: string) => { try { accessSync(p, constants.W_OK); return statfsSync(p).type !== 0x01021994; } catch { return false; } };
+		const diskRoot = ["/var/tmp", process.cwd(), "/home/agent/projects/skills"].find(isDiskWritable);
+		if (!diskRoot) { console.warn("skip B1: no disk-backed writable path for XDG_CACHE_HOME"); return; }
+		const cacheHome = await mkdtemp(join(diskRoot, "pi-sandbox-b1-cache-"));
+		tempDirs.push(cacheHome);
+		const cwd = await mkdtemp(join(diskRoot, "pi-sandbox-b1-cwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(diskRoot, "pi-sandbox-b1-agent-"));
+		tempDirs.push(agentDir);
+		const prevCache = process.env.XDG_CACHE_HOME;
+		process.env.XDG_CACHE_HOME = cacheHome;
+		try {
+			const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+			const extension = mod.default;
+			const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+			const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+			extension(pi);
+			const ctx: any = { cwd, hasUI: false, ui: { notify: () => {}, setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+			for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+
+			expect(mod.getTmpBackend()).toBe("session-disk");
+			const resolved = mod.getProjectTmpDir();
+			expect(resolved).not.toBeNull();
+			expect(resolved!.startsWith(cacheHome)).toBe(true);
+			expect(statfsSync(resolved!).type).toBe(statfsSync(cacheHome).type);
+		expect(statfsSync(resolved!).type).not.toBe(0x01021994); // not tmpfs
+		} finally {
+			process.env.XDG_CACHE_HOME = prevCache;
 		}
 	});
 });
@@ -2275,12 +2315,16 @@ describe("buildBwrapArgs", () => {
 		expectSequence(args, ["--bind", projectTmpDir, projectTmpDir]);
 	});
 
-	integrationTest("session-disk lands sandboxed mktemp on disk, not tmpfs /tmp", async () => {
-		const projectTmpDir = await mkdtemp(join(tmpdir(), "pi-sandbox-projtmp-"));
+	integrationTest("session-disk lands sandboxed mktemp under TMPDIR (not host /tmp)", async () => {
+		// Disk-backed projectTmpDir so the "on disk" claim holds. Needs a writable
+		// disk-backed path; skip if none available in this environment.
+		const { statfsSync, accessSync, constants } = await import("node:fs");
+		const isDiskWritable = (p: string) => { try { accessSync(p, constants.W_OK); return statfsSync(p).type !== 0x01021994; } catch { return false; } };
+		const diskRoot = ["/var/tmp", process.cwd(), "/home/agent/projects/skills"].find(isDiskWritable);
+		if (!diskRoot) { console.warn("skip: no disk-backed writable path"); return; }
+		const projectTmpDir = await mkdtemp(join(diskRoot, "pi-sandbox-projtmp-"));
+		tempDirs.push(projectTmpDir);
 		const cwd = await makeTempDir();
-		// mktemp -d must resolve under $TMPDIR (the project dir), and the project
-		// dir is on the same device as cwd's parent (both real-disk here), so it's
-		// not tmpfs. Verify the path prefix and that a write succeeds.
 		const script = `d=$(mktemp -d) && case "$d" in "${projectTmpDir}"/*) echo ok > "$d/proof" ;; *) exit 9 ;; esac`;
 		const result = runSandboxed(script, {
 			cwd,
@@ -2295,6 +2339,7 @@ describe("buildBwrapArgs", () => {
 
 		expect(result.exitCode).toBe(0);
 	});
+
 
 	integrationTest("block mode actually spawns bwrap without failing (regression: /var/run symlink)", async () => {
 		// On systemd Linux /var/run -> /run. bwrap --tmpfs /var/run fails with
