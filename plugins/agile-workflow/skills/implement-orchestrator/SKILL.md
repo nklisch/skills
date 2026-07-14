@@ -164,13 +164,17 @@ larger capability boundary; it is not a duplicate of child-feature review.
 
 ## Worker capability
 
-Choose worker capability from the risk and scope of the owned delivery. Consider
+Choose worker effort from the risk and scope of the owned delivery. Consider
 reasoning depth, cross-module impact, migration or generated-contract risk,
 uncertainty, and prior failed attempts. Honor an explicit capability or model
 choice from the caller, an autopilot caller note, or a stable project convention
-when present; otherwise make the choice yourself. Record the chosen capability
-and rationale in run notes before dispatch, and do not ask a routine tier
-question or re-ask between waves.
+when present. Otherwise follow
+[the model matrix](../principles/references/models.md): use GPT-5.6 Luna as the
+implementation worker whenever it is available, raising its effort as the owned
+delivery warrants. Choose another implementation model only when Luna is
+unavailable, and record the fallback. Record the chosen model, effort, and
+rationale in run notes before dispatch; do not ask a routine tier question or
+re-ask between waves.
 
 Use the host's generic code-writing sub-agent mechanism. Do not use peeragent
 for routine implementation fan-out. If no suitable worker adapter exists, keep

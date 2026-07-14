@@ -66,16 +66,19 @@ the in-skill prose names; this is what they mean.
   work where Fable's safety classifier/fallback could interrupt the run.
 
 **GPT-5.6 (OpenAI; host-native where available)**
-- **Luna** is the cost-efficient routine implementation and fan-out workhorse:
-  start at medium, then raise effort for bounded work that still benefits from
-  the cheaper tier. Do not make it the default for every implementation task.
-- **Terra** remains a situational middle pick for moderate work and bounded
-  context reading. Luna at more effort or Sol at less effort often gives a
-  better cost/capability point, so Terra is not a mandatory rung.
-- **Sol** is the quality-first general coding default at medium/high and the
-  preferred model for design, review, and complex/large implementation at
-  higher effort. Reserve max-like modes for measured quality gains behind tight
-  action boundaries; documented over-persistence grows at the highest efforts.
+- **Luna** is the default implementation worker whenever it is available. Start
+  at medium and raise effort with delivery risk or complexity; do not switch to
+  another model merely because the implementation is large or difficult. After
+  honoring an explicit caller or project model override, use a different
+  implementor only when Luna is unavailable, and record that fallback.
+- **Terra** remains a situational middle pick for moderate context reading and
+  a possible implementation fallback when Luna is unavailable. It is not a
+  mandatory rung.
+- **Sol** is preferred for design, review, and other quality-first reasoning. It
+  can serve as an implementation fallback when Luna is unavailable, but is not
+  the default implementor. Reserve max-like modes for measured quality gains
+  behind tight action boundaries; documented over-persistence grows at the
+  highest efforts.
 - Discover current host availability before selection. Luna, Terra, Sol, and
   Codex share OpenAI lineage, so switching among them is not cross-model evidence.
 
@@ -99,7 +102,7 @@ the in-skill prose names; this is what they mean.
 
 | Role | Needs (capability) | Primary models |
 |---|---|---|
-| Primary worker | write fidelity, agentic stamina | Luna medium→xhigh for routine/high-volume work; Sonnet 5 high or Sol medium/high for substantial work; Opus 4.8 xhigh / Fable 5 high→xhigh / GLM-5.2 high when complexity or horizon earns it |
+| Primary implementation worker | write fidelity, agentic stamina | Luna medium→xhigh whenever available; raise Luna effort with risk. Only when Luna is unavailable, fall back by delivery needs to Sonnet 5, Sol, Opus 4.8, Fable 5, or GLM-5.2 and record the fallback |
 | Scanner/scout (deep read-only fan-out) | domain inspection, evidence, scoped artifacts | Haiku / Luna / Sonnet 5 for volume; Sol / Opus 4.8 / Fable 5 / GLM xhigh for subtle gates |
 | Deep reviewer | reasoning depth, fresh context | GPT-5.6 Sol / Claude Opus 4.8 or Fable 5 / GLM-5.2 xhigh, with a second pass for distributed invariants |
 | Advisory peer (Phase 1) | blind-spot diversity, augmentation | a **different class** than the host |
