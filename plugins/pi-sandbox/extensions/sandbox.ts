@@ -29,18 +29,20 @@
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, realpathSync, statfsSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import {
 	assertNoHardlinkedDeniedFiles,
 	buildBwrapArgs,
 	buildMinimalEnv,
+	canonicalizeExistingPath,
 	decidePlatformState,
 	discoverGitDirs,
 	resolveTrustedBwrap,
 	shouldBypassBashSandbox,
 	shouldBypassSandbox,
+	type NetworkMode,
 } from "./sandbox-bwrap";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
@@ -108,58 +110,6 @@ export function getSandboxPolicy(): SandboxPolicy | null {
 	return activePolicy;
 }
 
-/** Resolve the filesystem TYPE of a path. Returns a discriminated result
- *  so the caller can fail-closed on probe failure or unrecognized types —
- *  returning a plain string that defaults to "unknown" let hugetlbfs or an
- *  overlay-on-tmpfs satisfy the disk-backed check (R2-B1). Uses statfsSync
- *  (Linux). The check is by TYPE, not st_dev — st_dev-vs-/tmp was neither
- *  necessary (false fail-close when /tmp is on the root disk) nor sufficient
- *  (a separate tmpfs mount with a different dev passes). */
-type FsProbe =
-	| { ok: true; type: number; ramBacked: boolean }
-	| { ok: false; reason: "statfs-unavailable" | "unknown-type" };
-
-function probeFilesystem(path: string): FsProbe {
-	try {
-		const fs = statfsSync(path) as { type?: unknown };
-		const t = fs.type;
-		if (typeof t === "number") {
-			// Known RAM-backed magics (linux/magic.h): tmpfs = 0x01021994,
-			// ramfs = 0x858458f6. (devtmpfs reports TMPFS_MAGIC, so it's caught
-			// by the tmpfs case — do NOT add 0x9fa0, that's PROC_SUPER_MAGIC.)
-			const ramBacked = t === 0x01021994 || t === 0x858458f6;
-			return { ok: true, type: t, ramBacked };
-		}
-		// A string type name (some runtimes): match RAM-backed by name.
-		if (typeof t === "string") {
-			const lower = t.toLowerCase();
-			return { ok: true, type: -1, ramBacked: lower === "tmpfs" || lower === "ramfs" || lower === "devtmpfs" };
-		}
-		return { ok: false, reason: "unknown-type" };
-	} catch {
-		return { ok: false, reason: "statfs-unavailable" };
-	}
-}
-
-/** Assert the path is NOT on a RAM-backed filesystem, failing closed on probe
- *  errors or unrecognized types (R2-B1: previously accepted "unknown"). */
-function assertNotRamBacked(p: string, label: string): void {
-	const probe = probeFilesystem(p);
-	if (!probe.ok) {
-		throw new Error(`${label} ${p} filesystem type could not be determined (${probe.reason}); refusing to use it for disk-backed temp. Set XDG_CACHE_HOME to a path on a recognized disk filesystem (ext4/xfs/btrfs/zfs) or use tmpBackend:"host-tmpfs".`);
-	}
-	if (probe.ramBacked) {
-		throw new Error(`${label} ${p} is on a RAM-backed filesystem; set XDG_CACHE_HOME to a disk-backed path or use tmpBackend:"host-tmpfs".`);
-	}
-}
-
-/** The resolved per-project temp dir, for the /sandbox diagnostic command. */
-export function getProjectTmpDirResolved(): { path: string | null; backend: "session-disk" | "host-tmpfs"; fsType: number | string | null } {
-	if (tmpBackend !== "session-disk" || !projectTmpDir) return { path: null, backend: tmpBackend, fsType: null };
-	const probe = probeFilesystem(projectTmpDir);
-	return { path: projectTmpDir, backend: tmpBackend, fsType: probe.ok ? (probe.type === -1 ? "named" : probe.type) : probe.reason };
-}
-
 /**
  * Network egress lever. Decouples the filesystem sandbox from the network
  * namespace so the read/write protections hold regardless of network posture.
@@ -198,6 +148,71 @@ let projectTmpDir: string | null = null;
  *  by buildSandboxedSpawnArgs via the getTmpBackend() accessor so the
  *  background/monitor path selects the same branch as the bash path. */
 let tmpBackend: "session-disk" | "host-tmpfs" = "session-disk";
+
+/** Result of deriving the per-project disk temp dir at session_start. The dir
+ *  is NOT runtime-validated for backing-store filesystem type — the operator
+ *  asserts XDG_CACHE_HOME and verifies it is disk-backed with `findmnt` per
+ *  the docs (see feature-pi-sandbox-disk-backed-tmp Strategic decisions:
+ *  scope cut). Runtime fs-type detection was removed after three review rounds
+ *  found every variant failed open; the host filesystem layout is the
+ *  operator's outer-boundary responsibility per THREAT_MODEL "Two boundaries". */
+type SessionInit =
+	| { ok: true; projectTmpDir: string }
+	| { ok: false; reason: string };
+
+/** Derive the per-project disk-backed temp dir. Pure validation + mkdir — no
+ *  fs-type probe, no write probe. The dir is keyed by a stable hash of the
+ *  canonical (realpath) cwd so it is stable + shared across concurrent
+ *  sessions in the same project. Canonicalizes the cache root AFTER creation
+ *  (R2-I3) and the mask roots with the same helper buildBwrapArgs uses (R3-I1)
+ *  so a symlinked /tmp is caught. Rejects a cache root nested under a
+ *  block-mode mask path ONLY in block mode (R2-I2). No write probe (R3-B3):
+ *  mkdirSync(recursive) already proves the dir exists and the parent is
+ *  writable; a create-by-name probe in the shared sandbox-writable temp dir
+ *  was a symlink-truncation escape vector and added zero safety. */
+function deriveProjectTmpDir(cwd: string, netMode: NetworkMode): SessionInit {
+	const cacheRootRaw = process.env.XDG_CACHE_HOME || join(homedir(), ".cache");
+	// I4: reject a relative/empty XDG_CACHE_HOME (would produce a relative
+	// TMPDIR diverging from the canonicalized bind source).
+	if (!isAbsolute(cacheRootRaw)) {
+		return { ok: false, reason: `Sandbox tmpBackend=session-disk requires an absolute XDG_CACHE_HOME (got ${JSON.stringify(process.env.XDG_CACHE_HOME)}). Set XDG_CACHE_HOME to an absolute disk-backed path or use tmpBackend:"host-tmpfs".` };
+	}
+	const cacheRoot = join(cacheRootRaw, "pi-sandbox", "tmp");
+	try {
+		mkdirSync(cacheRoot, { recursive: true });
+		// Canonicalize the cache root AFTER creation (R2-I3: realpathSync on a
+		// non-existent path fell back to the raw path and could miss a symlink
+		// into a mask root).
+		const realCacheRoot = realpathSync(cacheRoot);
+		// I3 / R2-I2: reject a cache root nested under a block-mode mask path
+		// (/tmp, /var/tmp, /run, /var/run) — but ONLY in block mode (R2-I2: the
+		// masks only fire in block mode, so an open-mode cache root under
+		// /var/tmp is valid and was wrongly rejected before). Canonicalize the
+		// mask roots with the same helper buildBwrapArgs uses so a symlinked
+		// /tmp is caught (R3-I1).
+		if (netMode === "block") {
+			const blockMaskRoots = ["/tmp", "/var/tmp", "/run", "/var/run"].map((p) => canonicalizeExistingPath(p) ?? p);
+			const nestedUnderMask = blockMaskRoots.some((m) => realCacheRoot === m || realCacheRoot.startsWith(`${m}/`));
+			if (nestedUnderMask) {
+				return { ok: false, reason: `cache root ${cacheRoot} resolves under a block-mode tmpfs mask path (${realCacheRoot}); the project temp dir would be hidden by the mask. Set XDG_CACHE_HOME outside /tmp, /var/tmp, /run, or use tmpBackend:"host-tmpfs".` };
+			}
+		}
+		// Per-project dir keyed by a stable hash of the canonical (realpath) cwd.
+		// realpath resolves symlinks so two sessions whose cwd differs only by a
+		// symlink bind to the same project dir. 16-char truncation: stable,
+		// filesystem-safe, collision-resistant.
+		const realCwd = realpathSync(cwd);
+		const cwdKey = createHash("sha256").update(realCwd).digest("hex").slice(0, 16);
+		const dir = join(realCacheRoot, cwdKey);
+		mkdirSync(dir, { recursive: true });
+		// Canonicalize the final dir too (R3-I1: derive the final path from
+		// realCacheRoot, not the raw join, so a symlinked cache root is followed).
+		const realDir = realpathSync(dir);
+		return { ok: true, projectTmpDir: realDir };
+	} catch (e) {
+		return { ok: false, reason: `Sandbox failed to create the project temp dir: ${e instanceof Error ? e.message : String(e)}` };
+	}
+}
 
 function formatTrustedBwrapFailure(resolution: { reason: string; rejectedPath?: string }): string {
 	const rejected = resolution.rejectedPath ? ` Rejected path: ${resolution.rejectedPath}.` : "";
@@ -715,12 +730,37 @@ export default function (pi: ExtensionAPI) {
 		const discoveredGitDirs = discoverGitDirs(config.filesystem?.allowWrite ?? [], ctx.cwd, {
 			allowGitDirDiscovery: config.filesystem?.allowGitDirDiscovery ?? false,
 		});
-		// tmpBackend is resolved here (before platform/bwrap disposition) so the
-		// host-tmpfs / session-disk branch is known. The session-disk DERIVATION
-		// (cache-root creation + disk check) is deferred to AFTER the platform
-		// checks below — non-Linux graceful-degrade must not fail-close on an
-		// unwritable cache root (R2-I1).
+		// Resolve tmpBackend early (before platform/bwrap disposition) so the
+		// host-tmpfs / session-disk branch is known and the getTmpBackend()
+		// accessor is correct on every path, including early returns.
 		tmpBackend = config.filesystem?.tmpBackend ?? "session-disk";
+
+		// Install a provisional configured file-tool policy BEFORE platform/bwrap
+		// disposition (R3-B2 regression fix). This feature previously moved policy
+		// construction after the platform checks (to derive projectTmpDir first),
+		// which broke the non-Linux degrade path: it returned before any policy was
+		// installed, so read/write/edit fell to createFailClosedPolicy() and blocked
+		// all filesystem access instead of enforcing the configured in-process
+		// policy. Pre-feature, the policy was constructed before the platform checks;
+		// this restores that. The provisional policy carries projectTmpDir:null +
+		// the resolved tmpBackend; it is replaced by the project-temp-pinned policy
+		// only after successful session-disk derivation on the Linux-bwrap-healthy
+		// path below. On every other path — degrade, fail-closed, disabled,
+		// bwrap-missing — the provisional configured file policy stays in place,
+		// exactly the pre-feature behavior (file tools hardened with the configured
+		// policy; bash fail-closed separately).
+		sandboxPolicy = {
+			denyRead,
+			denyWrite,
+			allowWrite: [...(config.filesystem?.allowWrite ?? []), ...discoveredGitDirs],
+			pinnedGitDirs: discoveredGitDirs,
+			cwd: ctx.cwd,
+			networkMode: netMode,
+			toolRules: config.tools,
+			projectTmpDir: null,
+			tmpBackend,
+		};
+		activePolicy = sandboxPolicy;
 
 		if (process.platform === "linux") {
 			const bwrapResolution = resolveTrustedBwrap({ bwrapPath: config.bwrapPath, env: process.env });
@@ -780,75 +820,33 @@ export default function (pi: ExtensionAPI) {
 		backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 		backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
 
-		// Derive the per-project disk-backed temp dir AFTER platform/bwrap
-		// disposition (so non-Linux graceful-degrade does not fail-close on an
-		// unwritable cache root — R2-I1) but BEFORE constructing sandboxPolicy
-		// (so the policy captures the resolved values, not null placeholders — B1).
-		// Only the Linux-bwrap-healthy path reaches here; earlier returns handled
-		// degrade/fail-closed/disabled.
-		if (tmpBackend === "session-disk") {
-			const cacheRootRaw = process.env.XDG_CACHE_HOME || join(homedir(), ".cache");
-			// I4: reject a relative/empty XDG_CACHE_HOME (would produce a relative
-			// TMPDIR diverging from the canonicalized bind source).
-			if (!isAbsolute(cacheRootRaw)) {
-				failClosed = true;
-				lastFailClosedReason = `Sandbox tmpBackend=session-disk requires an absolute XDG_CACHE_HOME (got ${JSON.stringify(process.env.XDG_CACHE_HOME)}). Set XDG_CACHE_HOME to an absolute disk-backed path or use tmpBackend:"host-tmpfs".`;
-				projectTmpDir = null;
-				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-				ctx.ui.notify(lastFailClosedReason, "error");
-				publishCapability();
-				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (relative XDG_CACHE_HOME)"));
-				return;
-			}
-			const cacheRoot = join(cacheRootRaw, "pi-sandbox", "tmp");
-			try {
-				mkdirSync(cacheRoot, { recursive: true });
-				// Canonicalize the cache root AFTER creation (R2-I3: realpathSync on a
-				// non-existent path fell back to the raw path and could miss a symlink
-				// into a mask root). Now it exists.
-				const realCacheRoot = realpathSync(cacheRoot);
-				// I3 / R2-I2: reject a cache root nested under a block-mode mask path
-				// (/tmp, /var/tmp, /run, /var/run) — but ONLY in block mode (R2-I2: the
-				// masks only fire in block mode, so an open-mode cache root under
-				// /var/tmp is valid and was wrongly rejected before).
-				if (netMode === "block") {
-					const blockMaskRoots = ["/tmp", "/var/tmp", "/run", "/var/run"];
-					const nestedUnderMask = blockMaskRoots.some((m) => realCacheRoot === m || realCacheRoot.startsWith(`${m}/`));
-					if (nestedUnderMask) {
-						throw new Error(`cache root ${cacheRoot} resolves under a block-mode tmpfs mask path (${realCacheRoot}); the project temp dir would be hidden by the mask. Set XDG_CACHE_HOME outside /tmp, /var/tmp, /run, or use tmpBackend:"host-tmpfs".`);
-					}
-				}
-				// B2 / R2-B1: disk check by filesystem TYPE, fail-closed on probe
-				// error or unrecognized type (R2-B1: previously accepted "unknown").
-				assertNotRamBacked(cacheRoot, "cache root");
-				// Per-project dir keyed by a stable hash of the canonical (realpath) cwd.
-				// realpath resolves symlinks so two sessions whose cwd differs only by a
-				// symlink bind to the same project dir. 16-char truncation: stable,
-				// filesystem-safe, collision-resistant.
-				const realCwd = realpathSync(ctx.cwd);
-				const cwdKey = createHash("sha256").update(realCwd).digest("hex").slice(0, 16);
-				projectTmpDir = join(cacheRoot, cwdKey);
-				mkdirSync(projectTmpDir, { recursive: true });
-				assertNotRamBacked(projectTmpDir, "project temp dir");
-				// R2-I7: verify the final dir is writable (mkdirSync recursive succeeds
-				// on a pre-existing unwritable dir; probe with a create+unlink).
-				const probeFile = join(projectTmpDir, `.write-probe-${process.pid}`);
-				writeFileSync(probeFile, "");
-				unlinkSync(probeFile);
-			} catch (e) {
-				failClosed = true;
-				lastFailClosedReason = `Sandbox failed to create the project temp dir: ${e instanceof Error ? e.message : String(e)}`;
-				projectTmpDir = null;
-				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-				ctx.ui.notify(lastFailClosedReason, "error");
-				publishCapability();
-				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (project temp dir)"));
-				return;
-			}
+		// Derive the per-project disk temp dir into a single SessionInit record,
+		// then construct the final policy ONCE from that record (B1/R2-B2/R3-B2:
+		// one source of truth, one construction site — no intervening await so the
+		// module accessor and the policy object cannot diverge). Only the
+		// Linux-bwrap-healthy path reaches here; earlier returns handled
+		// degrade/fail-closed/disabled. The dir is NOT runtime-validated for
+		// backing-store fs type — operator-asserted (see Strategic decisions:
+		// scope cut). No fs-type probe, no write probe (R3-B3: mkdirSync already
+		// proves usability; a create-by-name probe was a symlink-truncation escape).
+		const init: SessionInit =
+			tmpBackend === "session-disk"
+				? deriveProjectTmpDir(ctx.cwd, netMode)
+				: { ok: true as const, projectTmpDir: null };
+		if (!init.ok) {
+			failClosed = true;
+			lastFailClosedReason = init.reason;
+			projectTmpDir = null;
+			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+			ctx.ui.notify(lastFailClosedReason, "error");
+			publishCapability();
+			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (project temp dir)"));
+			return;
 		}
-		// Construct the policy AFTER derivation so it captures the resolved
-		// projectTmpDir/tmpBackend (B1: previously constructed before, capturing
-		// null placeholders that broke every real bash spawn).
+		// Pin the resolved projectTmpDir onto module state (read by the
+		// background/monitor path via getProjectTmpDir()) and replace the
+		// provisional policy with the final, project-temp-pinned policy.
+		projectTmpDir = init.projectTmpDir;
 		sandboxPolicy = {
 			denyRead,
 			denyWrite,
@@ -857,7 +855,7 @@ export default function (pi: ExtensionAPI) {
 			cwd: ctx.cwd,
 			networkMode: netMode,
 			toolRules: config.tools,
-			projectTmpDir,
+			projectTmpDir: init.projectTmpDir,
 			tmpBackend,
 		};
 		activePolicy = sandboxPolicy;
