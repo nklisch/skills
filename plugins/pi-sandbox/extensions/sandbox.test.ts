@@ -81,6 +81,29 @@ afterEach(async () => {
 	}
 });
 
+describe("session-disk detection scope cut (no runtime fs-type probe, no write probe)", () => {
+	// Static guard: the session_start derivation must NOT contain the removed
+	// detection machinery (probeFilesystem / assertNotRamBacked / statfsSync /
+	// magic numbers) or the R3-B3 write probe (writeFileSync / openSync with a
+	// predictable name in the shared sandbox-writable temp dir). Runtime
+	// validation of the cache root's backing store is the operator's outer-
+	// boundary responsibility per THREAT_MODEL "Two boundaries"; the write probe
+	// was a symlink-truncation escape vector that added zero safety.
+	test("sandbox.ts derivation path is free of detection + write-probe machinery", async () => {
+		const { readFile } = await import("node:fs/promises");
+		const src = await readFile(new URL("./sandbox.ts", import.meta.url), "utf8");
+		expect(src).not.toContain("probeFilesystem");
+		expect(src).not.toContain("assertNotRamBacked");
+		expect(src).not.toContain("statfsSync");
+		expect(src).not.toContain("getProjectTmpDirResolved");
+		expect(src).not.toContain("write-probe");
+		expect(src).not.toContain("writeFileSync");
+		expect(src).not.toContain("unlinkSync");
+		expect(src).not.toContain("0x01021994"); // tmpfs magic
+		expect(src).not.toContain("0x858458f6"); // ramfs magic
+	});
+});
+
 function sequenceIndex(args: string[], sequence: string[]): number {
 	for (let i = 0; i <= args.length - sequence.length; i += 1) {
 		if (sequence.every((part, offset) => args[i + offset] === part)) return i;
@@ -398,18 +421,16 @@ describe("sandbox extension entrypoint", () => {
 	test("session_start derives a disk-backed project temp dir (B1 regression)", async () => {
 		// Regression for B1: the policy must capture the DERIVED projectTmpDir, not
 		// a null placeholder. Runs the real session_start hook with a disk-backed
-		// XDG_CACHE_HOME and asserts the derivation resolves a disk-backed project
-		// temp dir — the path the prior session-disk tests bypassed by passing
-		// projectTmpDir via opts.
-		const { statfsSync, accessSync, constants } = await import("node:fs");
-		const isDiskWritable = (p: string) => { try { accessSync(p, constants.W_OK); return statfsSync(p).type !== 0x01021994; } catch { return false; } };
-		const diskRoot = ["/var/tmp", process.cwd(), "/home/agent/projects/skills"].find(isDiskWritable);
-		if (!diskRoot) { console.warn("skip B1: no disk-backed writable path for XDG_CACHE_HOME"); return; }
-		const cacheHome = await mkdtemp(join(diskRoot, "pi-sandbox-b1-cache-"));
+		// XDG_CACHE_HOME and asserts the derivation resolves a project temp dir that
+		// the ACTIVE POLICY carries — the path the prior session-disk tests bypassed
+		// by passing projectTmpDir via opts. (The dir's backing-store fs type is NOT
+		// runtime-validated — operator-asserted per the scope cut; no statfsSync
+		// assertions here.)
+		const cacheHome = await mkdtemp(join(tmpdir(), "pi-sandbox-b1-cache-"));
 		tempDirs.push(cacheHome);
-		const cwd = await mkdtemp(join(diskRoot, "pi-sandbox-b1-cwd-"));
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-b1-cwd-"));
 		tempDirs.push(cwd);
-		const agentDir = await mkdtemp(join(diskRoot, "pi-sandbox-b1-agent-"));
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-b1-agent-"));
 		tempDirs.push(agentDir);
 		const prevCache = process.env.XDG_CACHE_HOME;
 		process.env.XDG_CACHE_HOME = cacheHome;
@@ -425,9 +446,7 @@ describe("sandbox extension entrypoint", () => {
 			expect(mod.getTmpBackend()).toBe("session-disk");
 			const resolved = mod.getProjectTmpDir();
 			expect(resolved).not.toBeNull();
-			expect(resolved!.startsWith(cacheHome)).toBe(true);
-			expect(statfsSync(resolved!).type).toBe(statfsSync(cacheHome).type);
-			expect(statfsSync(resolved!).type).not.toBe(0x01021994); // not tmpfs
+			expect(resolved!.startsWith(realpathSync(cacheHome))).toBe(true);
 			// R2-B2: the ACTIVE POLICY must carry the derived projectTmpDir, not
 			// just the module accessor. The original B1 bug constructed the policy
 			// BEFORE derivation, so the policy kept projectTmpDir:null while the
@@ -440,6 +459,98 @@ describe("sandbox extension entrypoint", () => {
 		} finally {
 			process.env.XDG_CACHE_HOME = prevCache;
 		}
+	});
+
+	test("session-disk derives a stable per-cwd dir: same realpath cwd shares, different cwd differs", async () => {
+		const cacheHome = await mkdtemp(join(tmpdir(), "pi-sandbox-cwdkey-cache-"));
+		tempDirs.push(cacheHome);
+		const cwdA = await mkdtemp(join(tmpdir(), "pi-sandbox-cwdkey-a-"));
+		tempDirs.push(cwdA);
+		const cwdB = await mkdtemp(join(tmpdir(), "pi-sandbox-cwdkey-b-"));
+		tempDirs.push(cwdB);
+		const prevCache = process.env.XDG_CACHE_HOME;
+		process.env.XDG_CACHE_HOME = cacheHome;
+		try {
+			const run = async (cwd: string) => {
+				const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-cwdkey-agent-"));
+				tempDirs.push(agentDir);
+				const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+				const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+				const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+				mod.default(pi);
+				const ctx: any = { cwd, hasUI: false, ui: { notify: () => {}, setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+				for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+				const p = mod.getSandboxPolicy();
+				return p!.projectTmpDir;
+			};
+			const a1 = await run(cwdA);
+			const a2 = await run(cwdA);
+			const b = await run(cwdB);
+			expect(a1).not.toBeNull();
+			expect(a2).toBe(a1); // same realpath cwd -> same project dir
+			expect(b).not.toBe(a1); // different cwd -> different dir
+		} finally {
+			process.env.XDG_CACHE_HOME = prevCache;
+		}
+	});
+
+	test("session-disk fails closed on a relative XDG_CACHE_HOME", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-relcwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-relagent-"));
+		tempDirs.push(agentDir);
+		const prevCache = process.env.XDG_CACHE_HOME;
+		process.env.XDG_CACHE_HOME = "relative/cache/path";
+		try {
+			const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+			const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+			const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+			mod.default(pi);
+			const notifications: string[] = [];
+			const statuses: string[] = [];
+			const ctx: any = { cwd, hasUI: false, ui: { notify: (m: string) => notifications.push(m), setStatus: (_k: string, m: string) => statuses.push(m), theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+			for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+			expect(notifications.some((m) => m.includes("absolute XDG_CACHE_HOME"))).toBe(true);
+			expect(statuses.some((m) => m.includes("FAIL-CLOSED"))).toBe(true);
+			expect(mod.getProjectTmpDir()).toBeNull();
+		} finally {
+			process.env.XDG_CACHE_HOME = prevCache;
+		}
+	});
+
+	test("R3-B2: bwrap-missing installs the configured file-tool policy, not createFailClosedPolicy (regression)", async () => {
+		// Regression for R3-B2: moving policy construction after platform/bwrap
+		// checks broke the degrade/fail-closed file-tool path — read/write/edit
+		// fell to createFailClosedPolicy() and blocked ALL filesystem access instead
+		// of enforcing the configured in-process policy. This exercises the
+		// bwrap-missing terminal return (reachable on Linux by pointing bwrapPath at
+		// a nonexistent binary): the session_start hook must have installed the
+		// provisional configured file policy BEFORE the bwrap check, so the active
+		// policy carries the configured denyRead/allowWrite, not a blanket block.
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-r3b2-cwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-r3b2-agent-"));
+		tempDirs.push(agentDir);
+		const mod = await loadSandboxEntrypoint(agentDir, {
+			config: {
+				bwrapPath: "/nonexistent/bwrap",
+				filesystem: { tmpBackend: "host-tmpfs", denyRead: ["/denied-r3b2"], allowWrite: ["/allowed-r3b2"] },
+			},
+		});
+		const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+		const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+		mod.default(pi);
+		const ctx: any = { cwd, hasUI: false, ui: { notify: () => {}, setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+		for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+		// bwrap is missing -> bash is fail-closed, but the FILE-TOOL policy must
+		// be the configured one (denyRead includes /denied-r3b2, allowWrite
+		// includes /allowed-r3b2), NOT the blanket createFailClosedPolicy().
+		const policy = mod.getSandboxPolicy();
+		expect(policy).not.toBeNull();
+		expect(policy!.denyRead).toContain("/denied-r3b2");
+		expect(policy!.allowWrite).toContain("/allowed-r3b2");
+		expect(policy!.projectTmpDir).toBeNull(); // host-tmpfs path
+		expect(policy!.tmpBackend).toBe("host-tmpfs");
 	});
 });
 
@@ -2325,13 +2436,10 @@ describe("buildBwrapArgs", () => {
 	});
 
 	integrationTest("session-disk lands sandboxed mktemp under TMPDIR (not host /tmp)", async () => {
-		// Disk-backed projectTmpDir so the "on disk" claim holds. Needs a writable
-		// disk-backed path; skip if none available in this environment.
-		const { statfsSync, accessSync, constants } = await import("node:fs");
-		const isDiskWritable = (p: string) => { try { accessSync(p, constants.W_OK); return statfsSync(p).type !== 0x01021994; } catch { return false; } };
-		const diskRoot = ["/var/tmp", process.cwd(), "/home/agent/projects/skills"].find(isDiskWritable);
-		if (!diskRoot) { console.warn("skip: no disk-backed writable path"); return; }
-		const projectTmpDir = await mkdtemp(join(diskRoot, "pi-sandbox-projtmp-"));
+		// projectTmpDir under the os tmpdir is fine now — the test proves PATH
+		// ROUTING (mktemp lands under the project dir, not host /tmp), not backing
+		// store (operator-asserted per the scope cut; no statfsSync assertion).
+		const projectTmpDir = await mkdtemp(join(tmpdir(), "pi-sandbox-projtmp-"));
 		tempDirs.push(projectTmpDir);
 		const cwd = await makeTempDir();
 		const script = `d=$(mktemp -d) && case "$d" in "${projectTmpDir}"/*) echo ok > "$d/proof" ;; *) exit 9 ;; esac`;

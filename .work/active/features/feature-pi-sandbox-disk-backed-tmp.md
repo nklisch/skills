@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: implementing
+stage: review
 tags: [sandbox]
 parent: null
 depends_on: []
@@ -909,3 +909,72 @@ validation + deepMerge carry, the accessor threading (`getProjectTmpDir` /
 `getTmpBackend` / `getSandboxPolicy`), the background/monitor spawn path
 resolution via accessors, and the `host-tmpfs` regression guard applied to
 all pre-existing call sites. No re-scoping of these.
+
+## Implementation notes (redesign round, 2026-07-14)
+
+Addressed the two redesigned areas per the Redesign resolution.
+
+- **Detection removed (scope cut).** Deleted `probeFilesystem`, `assertNotRamBacked`,
+  `getProjectTmpDirResolved`, and the `FsProbe` discriminated type from
+  `sandbox.ts`. Dropped the `statfsSync`, `statSync`, `unlinkSync`,
+  `writeFileSync` imports (all four were used only by the detection machinery +
+  the write probe). `session_start` now creates + binds the project temp dir
+  unconditionally; the operator asserts `XDG_CACHE_HOME` and verifies it is
+  disk-backed with `findmnt` per the README + THREAT_MODEL. The "cache
+  accidentally on tmpfs → silent defeat" outcome is a documented 0.1.0
+  residual (THREAT_MODEL Known 0.1.0 gaps + README Temp backend).
+- **Init-sequence → single `SessionInit` record.** Added a `SessionInit`
+  discriminated type + a `deriveProjectTmpDir(cwd, netMode)` helper that
+  encapsulates the whole derivation (cache-root resolve + mkdir + realpath,
+  block-only mask-containment check with canonicalized mask roots per R3-I1,
+  cwd-keyed hash, final-dir realpath). `session_start` calls it once, then
+  constructs `activePolicy` once from the result — no intervening `await`, so
+  the module accessor and the policy object cannot diverge (B1/R2-B2).
+- **R3-B2 regression fixed.** Installed a provisional configured file-tool policy
+  (`projectTmpDir:null` + resolved `tmpBackend`) BEFORE the platform/bwrap
+  disposition, right after git-dir discovery — restoring the pre-feature
+  ordering. The bwrap-missing / degrade / fail-closed terminal returns now
+  leave the configured file policy in place (file tools hardened with the
+  configured denyRead/allowWrite, not `createFailClosedPolicy()`). Replaced by
+  the project-temp-pinned policy only on the Linux-bwrap-healthy path after
+  successful derivation. Verified via git history that this is restoring a
+  regression this feature introduced (pre-feature, policy was constructed
+  before the platform checks at line 622).
+- **R3-B3 write probe deleted.** `mkdirSync(projectTmpDir, {recursive:true})`
+  already proves the dir exists and the parent is writable; the
+  `writeFileSync(probeFile, "")` / `unlinkSync` probe with a predictable name
+  was a symlink-truncation escape vector in the shared sandbox-writable temp
+  dir and added zero safety. Removed entirely; not replaced.
+- **Canonicalized mask roots (R3-I1).** `deriveProjectTmpDir` canonicalizes the
+  block-mode mask roots (`/tmp`, `/var/tmp`, `/run`, `/var/run`) via the same
+  `canonicalizeExistingPath` helper `buildBwrapArgs` uses, so a symlinked
+  `/tmp` is caught in the containment check. The cache root and final project
+  dir are both canonicalized after creation.
+- **Files changed:**
+  - `plugins/pi-sandbox/extensions/sandbox.ts` — removed detection machinery
+    (`probeFilesystem`/`assertNotRamBacked`/`getProjectTmpDirResolved`/`FsProbe`);
+    removed `statfsSync`/`statSync`/`unlinkSync`/`writeFileSync` imports; added
+    `canonicalizeExistingPath` + `NetworkMode` imports; added `SessionInit`
+    type + `deriveProjectTmpDir` helper; restructured `session_start` to install
+    a provisional policy before platform checks (R3-B2), derive via the
+    `SessionInit` record, and construct the final policy once (B1/R2-B2).
+  - `plugins/pi-sandbox/README.md` + `docs/THREAT_MODEL.md` — replaced the
+    "fail-closes if the cache root resolves to tmpfs" claim with the
+    operator-asserts-backing-store posture + the silent-defeat residual.
+- **Tests added/updated** (`sandbox.test.ts`):
+  - B1 regression test: dropped the `statfsSync` disk assertions (tested the
+    removed detection); kept the load-bearing `getSandboxPolicy().projectTmpDir`
+    assertion. Fixture now uses `tmpdir()` (no disk-root gating needed — the
+    test proves path routing, not backing store).
+  - New: stable per-cwd dir (same realpath cwd shares, different differs).
+  - New: relative/empty `XDG_CACHE_HOME` fails closed.
+  - New: R3-B2 regression — bwrap-missing installs the configured file-tool
+    policy (denyRead/allowWrite carried), not `createFailClosedPolicy()`.
+  - New: static guard — `sandbox.ts` is free of `probeFilesystem`/
+    `assertNotRamBacked`/`statfsSync`/`getProjectTmpDirResolved`/`write-probe`/
+    `writeFileSync`/`unlinkSync`/tmpfs+ramfs magic numbers.
+  - mktemp integration test: dropped the disk-root gating + `statfsSync`
+    assertion (backing store is operator-asserted now); proves path routing only.
+- **Discrepancies from design:** none. The implementation matches the
+  redesigned Unit 4 + Unit 5 + Unit 6.
+- **Adjacent issues parked:** none.
