@@ -6,54 +6,48 @@ design, contracts, release, and operational dimensions. Child stories are not
 reviewed; standalone stories use the bounded inline lane and never load deep
 review. Epics receive the deepest aggregate item review.
 
-## Reviewer Selection
+## Reviewer Selection And Pass Count
 
-Prefer a fresh-context reviewer for deep mode. Run the review in a fixed
-**two-phase order** — completeness/complementary/advisory first, adversarial
-second. Because a review target is a **complete** artifact (unlike an open
-design), each phase is a **multi-step convergence loop**, not a single ask:
-iterate until findings stabilize (the ideal is the full `peer-review`
-convergence loop — ≥3 review→refine passes, continue while substantive issues
-keep surfacing, stop on nits, cap ~5). For a feature, epic, or deep/complex standalone
-target, use **two different model classes** when available — one class drives
-the Phase 1 convergence loop, a *different* class drives the Phase 2 loop — so
-both augmentation diversity and adversarial independence are maximized.
+Prefer a fresh-context reviewer for deep mode. **Deep changes the lenses and
+reviewer capability, not the effective weight.** Resolve `review_weight` before
+dispatch:
 
-1. **Phase 1 — Completeness / complementary convergence loop** (different class
-   than host when reachable). Ask each round: are all requirements, acceptance
-   criteria, edge cases, error paths, and dependencies covered? What is missing
-   or should be strengthened? Iterate to convergence; this is augmentation, not
-   judgment — run it *before* attacking.
-2. **Phase 2 — Adversarial convergence loop** (a different class than the host,
-   and ideally a different class than Phase 1). Same convergence shape, now in
-   attack posture: what is broken, contradictory, built on a false assumption,
-   or will fail in operation? Use `peeragent` when a different model class is
-   available and appropriate; do not use peeragent when it would be the same
-   class as the host.
-3. When a different model class is not reachable, use a fresh generic sub-agent
-   prompted with the reviewer capsule from
-   [../../principles/references/subagents.md](../../principles/references/subagents.md)
-   as the same-harness fresh-context fallback. Record that it was not
-   cross-model unless the spawned model class differs from the host.
-4. Otherwise, use a fresh local sub-agent at the highest available model class
-   when the environment provides one. If the mechanism only supports single
-   passes (no convergence loop), run as many rounds as it allows and note that
-   full convergence was not reached.
-5. If no fresh-context mechanism is available, continue inline as a degraded
-   deep review and record that limitation in `Notes`.
+- `light` and `standard` use at most one fresh-context pass. For `standard`, ask
+  one balanced prompt covering completeness and adversarial failure modes;
+  adjudicate, fix, verify, and finish without commissioning another pass.
+- `thorough` and `maximum` use review → adjudicate → fix → verify convergence,
+  continuing until a pass yields no receiver-confirmed material current-cycle
+  blockers. Smaller findings are parked, noted, or rejected by receiver
+  judgment rather than prolonging the loop.
+- `maximum` splits complementary and adversarial coverage when useful and uses
+  different model classes across those perspectives when available.
 
-For the host→peer pairing table, exact `peeragent` flags, and the design-vs-
-review loop distinction, load
+An epic receives broader aggregate lenses than a feature, but a standard epic
+still gets one independent pass. `--deep`, artifact size, or first-pass findings
+must not silently escalate `standard` into a convergence loop.
+
+For any independent pass, prefer a reviewer from a different model class than
+the host when reachable. Use `peeragent` only when it supplies a different
+class. Otherwise use a fresh generic sub-agent prompted with the reviewer
+capsule from
+[../../principles/references/subagents.md](../../principles/references/subagents.md)
+and label it same-harness fresh context unless its selected model class actually
+differs from the host.
+
+Within `maximum`, completeness/complementary review precedes adversarial attack.
+Within `thorough`, preserve that order whenever both perspectives run. Reviewer
+or model disagreement is evidence to investigate, not a vote.
+
+For the host→peer pairing table and concrete peer mechanism flags, load
 [../../principles/references/models.md](../../principles/references/models.md).
-
-Peer or sub-agent failures are non-blocking. Fall back to the next option rather
-than halting the review.
+A failed required fresh-context path blocks feature/epic completion unless a
+permitted fallback succeeds; design-time advisory failure remains non-blocking.
 
 A top-tier reasoning peer (Opus-class, xhigh Codex/GLM, or equivalent) commonly
-takes 10 to 30 minutes before it returns, especially for a large feature, epic, or
-out-of-band review. A quiet process that has not returned after a few minutes
-is still normal top-tier review latency, not a hang — budget for it across a
-multi-round convergence loop.
+takes 10 to 30 minutes before it returns, especially for a large feature, epic,
+or out-of-band review. Quiet output after a few minutes is not a hang. Budget
+for additional rounds only when the effective weight is `thorough` or
+`maximum`.
 
 ## Reviewer Packet
 

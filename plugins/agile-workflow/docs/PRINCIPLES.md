@@ -316,6 +316,13 @@ implementing every suggestion. A rare severe case may still block, while a real
 corner case with negligible consequence need not. Reviewer labels, model
 strength, and repeated mention do not replace the receiving agent's judgment.
 
+Review weight makes the closure trade-off explicit. `standard` is the default
+and means one independent pass, then adjudicate, fix material blockers, verify,
+and finish without re-review—even for epics or deep lenses. `thorough` and
+`maximum` repeat review after fixes until a pass has no receiver-confirmed
+material current-cycle blockers. Smaller findings are parked unbound, kept as
+nits, or rejected; they do not prolong convergence.
+
 ---
 
 # Part II — Substrate-Execution Principles

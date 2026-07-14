@@ -6,7 +6,8 @@ description: >
   stories close on verification without review, standalone stories get a bounded inline pass,
   features get integrated review, and epics get deeper aggregate review. Also supports out-of-band
   reviews of branches, commits, PRs, working trees, or unpushed commits without substrate side
-  effects. Uses standard and deep lanes with fresh context when useful.
+  effects. Defaults to one standard pass followed by fix/verify/done; only thorough or maximum
+  weights repeat review until no material blockers remain.
 ---
 
 # Review
@@ -64,16 +65,21 @@ consolidated summary with verdicts per reviewed item and total finding counts.
 ## Review weight
 
 Resolve one effective `review_weight`: explicit caller selector, caller note,
-`.work/CONVENTIONS.md`, then `standard`. The weight is an effort budget, not a
-verdict or fixed agent count.
+`.work/CONVENTIONS.md`, then **`standard`**. The weight controls both review depth
+and whether fixes trigger another independent pass.
 
-| Weight | Feature/epic/standalone intent |
+| Weight | Feature/epic closure policy |
 |---|---|
 | `none` | No independent reviewer. Administratively require green integrated verification and acceptance evidence. |
-| `light` | At most one focused fresh-context pass where feature or epic risk warrants it. |
-| `standard` | Balanced fresh-context feature review and a deeper fresh-context epic review. |
-| `thorough` | Additional complementary and adversarial coverage where useful. |
-| `maximum` | Multi-model, multi-pass complementary → adversarial review for features and epics when available. |
+| `light` | At most one focused fresh-context pass where risk warrants it; adjudicate, fix, verify, and finish without re-review. |
+| `standard` | **The default: exactly one balanced fresh-context pass**, then adjudicate, fix receiver-confirmed blockers, verify, and finish without re-review. |
+| `thorough` | Repeat review → adjudicate → fix → verify until a pass yields no receiver-confirmed material current-cycle blockers; park or note smaller findings. |
+| `maximum` | Use the `thorough` convergence loop with complementary → adversarial, multi-model coverage when available. |
+
+`standard` means standard: target size, epic scope, `--deep`, or first-pass
+findings may broaden lenses but must not silently create a second review pass.
+Only an explicit effective weight of `thorough` or `maximum` enables multi-pass
+convergence.
 
 Child stories do not consume review weight. Standalone stories always use the
 same bounded inline lane regardless of weight and never spawn an independent or
@@ -129,9 +135,11 @@ Load target resolution, review lenses, and deep-review guidance for both tiers.
 When independent review is enabled, use a different-class reviewer when
 available; otherwise use the strongest suitable same-harness fresh-context
 reviewer. Label a pass cross-model only when the selected model class differs
-from the host. Preserve complementary-before-adversarial order. If the selected
-weight requires fresh context and no path is available, record the limitation
-and block rather than approving inline.
+from the host. When both complementary and adversarial perspectives run,
+preserve that order. Under `standard`, combine the applicable lenses into one
+balanced pass rather than manufacturing two phases. If the selected weight
+requires fresh context and no path is available, record the limitation and
+block rather than approving inline.
 
 ### Standalone review
 
@@ -180,8 +188,9 @@ description and enough surrounding code to understand intent.
 For features and epics, load
 [target-resolution.md](references/target-resolution.md),
 [review-lenses.md](references/review-lenses.md), and
-[deep-review.md](references/deep-review.md). Calibrate fresh-context topology to
-the effective weight, observed risk, and scope tier. Review integrated feature
+[deep-review.md](references/deep-review.md). Calibrate reviewer capability and
+lens breadth to the effective weight, observed risk, and scope tier, while
+keeping pass count bound to the selected weight. Review integrated feature
 behavior rather than each child story; review epic-level capability and
 cross-feature interactions rather than repeating child-feature detail.
 
@@ -209,17 +218,30 @@ claim against repository context and classifies it:
 
 Reviewer confidence, severity labels, or repetition do not determine the verdict.
 
-### Phase 4: Finish substrate review
+### Phase 4: Apply the weight's closure policy
 
 Load [substrate-side-effects.md](references/substrate-side-effects.md).
 
-- With no receiver-confirmed blockers, advance the feature, epic, or standalone
-  story `review → done`.
-- With blockers, return the reviewed item to `implementing` with durable review
-  findings.
-- File accepted current-cycle blockers active and lower-priority findings in the
-  unbound backlog according to the side-effects contract.
-- Append the review record and commit the reviewed-item transition.
+For `none`, close administratively from green integrated verification and
+acceptance evidence. For `light` and `standard`, run at most one independent
+pass, adjudicate every proposal, fix receiver-confirmed blockers, verify those
+fixes, and then advance the feature or epic `review → done` **without another
+independent review pass**. If a fix must be deferred, preserve the finding and
+keep the item active; later closure verifies the named fix set rather than
+silently restarting standard review.
+
+For `thorough` and `maximum`, repeat review → adjudicate → fix → verify against
+the new snapshot. Continue until a pass yields no receiver-confirmed material
+current-cycle blockers. The receiving agent judges materiality; parked
+lower-priority concerns, nits, and rejected proposals do not keep the loop open.
+An unfixable material blocker blocks rather than converges.
+
+For every weight:
+
+- File accepted current-cycle work and lower-priority findings according to the
+  side-effects contract.
+- Append the review record, including effective weight, pass count, and closure
+  reason, then commit the reviewed-item transition.
 
 After a feature reaches `done`, inspect its parent epic. If every direct child
 feature is `done`, advance the epic from `implementing → review`, append a
@@ -281,5 +303,8 @@ epic review-ready, then report the deeper epic verdict separately.
 - Read actual files and surrounding context, not only diff lines.
 - A false, stale, or contradictory foundation assertion can block; missing
   coverage and unimplemented future intent are not drift.
-- Do not advance a reviewed item with receiver-confirmed material blockers. Parking
-  lower-risk work does not block completion.
+- Do not advance a reviewed item with unresolved receiver-confirmed material
+  blockers. A verified blocker fix permits `light`/`standard` closure without a
+  second review pass; `thorough`/`maximum` require another pass with no
+  receiver-confirmed material current-cycle blockers. Parking lower-risk work
+  does not block completion.

@@ -180,13 +180,15 @@ verification, item-update, and commit contracts.
 ## Effective review weight
 
 Determine or receive one effective `review_weight` for completed feature and
-epic reviews and the final autopilot completion pass. Precedence is: explicit caller
-or autopilot override, then stable project convention, then `standard`. Record
-the effective value and its source in run notes and pass it to feature review.
-The principles and review skill own the meaning and execution of each weight;
-do not recreate their selection matrix here. Child-story completion never consumes this weight: green verification moves
-child stories directly to `done`. Standalone stories always use bounded inline
-review regardless of weight.
+epic reviews and the final autopilot completion pass. Precedence is: explicit
+caller or autopilot override, then stable project convention, then
+**`standard`**. Record the effective value and its source in run notes and pass
+it to feature review. `standard` is the normal single-pass path: one independent
+review, then adjudicate, fix, verify, and finish without re-review. Only
+`thorough` and `maximum` enable multi-pass convergence. The principles and
+review skill own the full matrix. Child-story completion never consumes this
+weight: green verification moves child stories directly to `done`. Standalone
+stories always use bounded inline review regardless of weight.
 
 ## Worker self-containment
 
@@ -303,15 +305,22 @@ perform the administrative feature review from integrated verification evidence.
 Honor each feature review result:
 
 - approved features advance to `done` under review's contract;
-- bounced features return to `implementing` with `## Review findings` and rejoin
-  a later implementation wave;
+- under `light` or `standard`, implement and verify the one pass's
+  receiver-confirmed blockers, then close without another independent pass; if
+  fixes are deferred, later closure verifies that named fix set only;
+- under `thorough` or `maximum`, corrected features return for another
+  independent pass until one yields no receiver-confirmed material current-cycle
+  blockers; smaller findings are parked or noted by receiver judgment;
 - blocked features retain a durable `## Blocker` and the run reports the
   blocker.
 
-A review bounce does not automatically invalidate downstream work. If the fix
-changes an interface or assumption already consumed downstream, mark the
+Corrective review work does not automatically invalidate downstream work. If a
+fix changes an interface or assumption already consumed downstream, mark the
 affected verification stale and re-run it after the fix. Otherwise continue
-unrelated implementation. Do not loop blindly after a bounce.
+unrelated implementation. Never turn `standard` corrective work into a review
+loop; never stop `thorough`/`maximum` convergence while receiver-confirmed
+material current-cycle blockers remain. Smaller findings do not hold the loop
+open.
 
 ### 7. Recompute, continue, and close epics
 
@@ -322,8 +331,9 @@ verification, review blocker, or ownership conflict rather than declaring
 success.
 
 After all child features are `done`, move the eligible epic to `review` and run
-its deeper aggregate pass. The run is complete only after required feature,
-standalone-story, and epic reviews reach terminal outcomes.
+its broader aggregate lane at the same effective weight. Epic scope broadens the
+lenses; it does not add passes to `standard`. The run is complete only after
+required feature, standalone-story, and epic reviews reach terminal outcomes.
 
 ## Output
 

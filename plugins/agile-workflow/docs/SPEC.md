@@ -130,16 +130,23 @@ convention, then `standard`:
 
 - `none` — no independent reviewer; green implementation verification and
   acceptance evidence are still required.
-- `light` — minimal independent ceremony with focused scrutiny where risk
-  clearly warrants it.
-- `standard` — balanced, risk-driven independent review.
-- `thorough` — increased fresh-context breadth and depth for meaningful risk.
-- `maximum` — multi-model, multi-pass complementary-then-adversarial review is
-  available for the highest-risk scopes.
+- `light` — at most one focused pass where risk warrants it, followed by
+  adjudication, material-blocker fixes, verification, and closure without
+  re-review.
+- `standard` — the default: exactly one balanced fresh-context pass, followed by
+  adjudication, material-blocker fixes, verification, and closure without
+  re-review.
+- `thorough` — repeat review → adjudicate → fix → verify until a pass yields no
+  receiver-confirmed material current-cycle blockers.
+- `maximum` — use the `thorough` convergence rule with multi-model,
+  complementary-then-adversarial coverage when available.
 
-These levels state review intent and ceilings, not fixed reviewer counts or pass
-recipes. A successful review path requires every proposed finding to be
-adjudicated, not implemented. The receiving orchestrator weighs acceptance
+Reviewer capability and lens breadth adapt to target risk, but closure policy is
+binding. Epic scope and deep lenses do not silently escalate `standard` beyond
+one pass. In convergence lanes, smaller findings are parked unbound, kept as
+nits, or rejected by receiver judgment; they do not keep the loop open. A
+successful review path requires every proposed finding to be adjudicated, not
+implemented. The receiving orchestrator weighs acceptance
 criteria, supported users and deployment shape, likelihood, blast radius,
 recoverability, safeguards, and delay cost. It fixes or activates material
 current-cycle blockers, parks valid lower-priority concerns in the unbound
@@ -279,8 +286,10 @@ parent unbound while its children are bound) always follow `binding_guard` regar
 
 **`review_weight`** is optional and defaults to **`standard`** when absent. Valid values are
 `none`, `light`, `standard`, `thorough`, and `maximum`. An explicit invocation selector overrides
-the project value. The setting controls independent-review intent; it never relaxes implementation
-verification or acceptance evidence. The canonical level semantics and lane selection live in the
+the project value. The setting controls independent-review depth and closure policy; it never
+relaxes implementation verification or acceptance evidence. `standard` is the
+single-pass default, while only `thorough` and `maximum` enable multi-pass
+convergence. The canonical level semantics and lane selection live in the
 `principles` and `review` skills rather than in project bootstrap configuration.
 
 **`backlog_staleness_days`** (integer; **absent ⇒ feature inert**) is the age threshold for the

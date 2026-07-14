@@ -389,8 +389,11 @@ finding disposition: it verifies reviewer proposals in repository context,
 keeps only credible material current-cycle risks blocking, and parks valid
 lower-priority work in the unbound backlog. Child stories skip review;
 standalone stories use a bounded non-cross-model lane; features get integrated
-review; epics get a deeper aggregate pass. Review-ready items satisfy downstream
-implementation dependencies, so review does not serialize the next wave.
+review; epics get a deeper aggregate pass. At the default `standard` weight,
+both feature and epic review are single-pass—the epic pass is broader, not more
+iterative. Only `thorough` and `maximum` re-review corrected snapshots until no
+material blockers remain. Review-ready items satisfy downstream implementation
+dependencies, so review does not serialize the next wave.
 
 ### Queue selection algorithm
 
@@ -421,12 +424,12 @@ implementation dependencies, so review does not serialize the next wave.
 7. Re-read substrate state after the production skill returns; it may already
    have completed review and eligible parent roll-up. Commit each item
    transition separately.
-8. If review bounced an item, treat only receiver-confirmed material blockers as
-   the next implementation input and keep cycling implementation → verification
-   → review. Park valid lower-priority findings unbound; they do not reopen the
-   scoped queue. Bounce count is diagnostic history, never a stop condition.
-   Recurring blockers trigger deeper root-cause/design diagnosis and fresh
-   context where useful, but repetition alone does not elevate severity.
+8. Apply the effective review weight. At `light`/`standard`, run at most one
+   independent pass, fix and verify receiver-confirmed material blockers, then
+   finish without re-review. At `thorough`/`maximum`, repeat implementation →
+   verification → review until a pass yields no receiver-confirmed material
+   current-cycle blockers. Park valid lower-priority findings unbound; nits and
+   rejected proposals also do not keep a convergence loop open.
 9. Goto 1 unless a stop condition applies.
 ```
 
@@ -443,10 +446,12 @@ asked.
 Autopilot resolves one effective `review_weight` for the run: explicit
 invocation selector, then `.work/CONVENTIONS.md`, then `standard`. The five
 levels — `none`, `light`, `standard`, `thorough`, and `maximum` — scale
-independent-review intent from administrative evidence-only closure through
-multi-model, multi-pass review. They do not prescribe reviewer counts or exact
-orchestration. Even `none` requires green implementation verification and
-acceptance evidence.
+independent-review depth and select closure policy. `standard` is explicitly the
+single-pass default: one balanced review, then adjudicate, fix material blockers,
+verify, and finish. Only `thorough` and `maximum` repeat review after fixes, and
+they stop when a pass has no receiver-confirmed material current-cycle blockers;
+smaller findings are parked or noted by judgment. Even `none` requires green
+implementation verification and acceptance evidence.
 
 ### Stop conditions
 
@@ -455,8 +460,10 @@ acceptance evidence.
 - A skill reports a genuine blocker that autonomous diagnosis and correction
   cannot resolve
 
-Repeated review bounces are not a stop condition. Autopilot keeps correcting and
-re-reviewing until the item passes or exposes a separate genuine blocker.
+For `thorough` and `maximum`, repeated review passes are not a stop condition;
+autopilot keeps correcting until a pass has no material blockers or exposes a
+genuine blocker it cannot fix. `standard` never repeats independent review:
+after its one pass, verified material-blocker fixes close the item.
 
 ### Harness goal continuation
 

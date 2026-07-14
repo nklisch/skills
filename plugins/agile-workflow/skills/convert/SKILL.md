@@ -688,7 +688,14 @@ must already exist at their new home or the dense content is lost.
    review because integration and capability gaps emerge there; child-story
    review is avoided because it tends toward pedantry and over-engineering.
    Independent feature and epic reviews may run in parallel and must not
-   serialize the next implementation wave.
+   serialize the next implementation wave. Review weight defaults to
+   `standard`: one independent pass, then receiver adjudication, fixes for
+   material blockers, verification, and `done` without re-review. Epic review
+   is broader than feature review, but it does not add passes to `standard`.
+   Only `thorough` and `maximum` use multi-pass review; they repeat until a pass
+   yields no receiver-confirmed material current-cycle blockers. Smaller
+   findings are parked unbound, kept as nits, or rejected by judgment and do not
+   keep the loop open.
 
    Cross-model advisory review: explicit user/project review instructions
    override agile-workflow defaults. When peeragent is available with a different

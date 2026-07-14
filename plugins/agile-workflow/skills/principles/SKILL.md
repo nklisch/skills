@@ -364,23 +364,31 @@ pairing, and concrete mechanism flags remain in
 
 `review_weight` is the canonical caller/project control consumed by review and
 autopilot. Allowed values are `none | light | standard | thorough | maximum`;
-the default is `standard`. It expresses the intended breadth and depth of
-**independent** review, while the agent derives the exact topology from artifact
-risk, item tier, scope, and available model classes:
+the default is **`standard`**. It controls both independent-review depth and the
+closure policy for features, epics, and final completion bundles:
 
 - `none` — explicitly opt out of independent review. Implementation
   verification and acceptance evidence remain mandatory.
-- `light` — minimize ceremony while preserving focused scrutiny where risk
-  clearly warrants it.
-- `standard` — balanced, risk-driven independent review.
-- `thorough` — increase fresh-context breadth and depth for meaningful risk.
-- `maximum` — permit multi-model, multi-pass complementary-then-adversarial
-  review for features, epics, and final completion bundles.
+- `light` — at most one focused fresh-context pass where risk warrants it, then
+  adjudicate, fix any receiver-confirmed blockers, verify, and finish without a
+  second independent pass.
+- `standard` — the normal default: exactly one balanced fresh-context review
+  pass, followed by receiver adjudication, blocker fixes, verification, and
+  `done`. **Standard is single-pass review, not a convergence loop.**
+- `thorough` — iterative fresh-context review: review, adjudicate, fix, verify,
+  and review again until a pass produces no receiver-confirmed **material
+  current-cycle blockers**. The receiver judges materiality in repository
+  context; smaller findings are parked, noted as nits, or rejected and do not
+  keep the loop open.
+- `maximum` — the same convergence requirement as `thorough`, with
+  complementary-then-adversarial, multi-model coverage when available.
 
-The levels are intent and ceilings, not fixed reviewer or pass counts. Explicit
-caller and project policy takes precedence; record the effective weight and any
-degradation. Configuration schema and foundation-doc wiring are follow-up work
-for their owning stories.
+Reviewer selection and lens breadth still adapt to artifact risk and item tier,
+but the closure policy is binding. Do not silently escalate `standard` into
+multi-pass review because the target is large, is an epic, uses `--deep`, or the
+first pass found blockers. Multi-pass convergence requires an explicit
+`thorough` or `maximum` effective weight. Explicit caller and project policy
+takes precedence; record the effective weight, source, and any degradation.
 
 ## Load-bearing invariants
 
@@ -406,18 +414,23 @@ for their owning stories.
 - **Fresh-context semantics:** when independent review is warranted and a
   different class is unavailable, use the strongest suitable fresh-context
   reviewer available. Do not present inline self-review as independent.
-- **Two-phase order:** completeness / complementary / advisory comes before
-  adversarial attack. Never reverse the order or skip directly to attack.
+- **Phase order within the selected weight:** when both complementary and
+  adversarial coverage run, completeness / complementary / advisory comes
+  first. `standard` still uses only one review pass; phase vocabulary must not
+  turn the default into an implicit two-pass review.
 - **Non-blocking design:** unavailable or failed design-time advisory review does
   not block direct or autopilot design. Continue with judgment and record the
   reason. A slow top-tier reviewer is not a failure until its appropriately
   sized timeout or mechanism reports failure.
-- **Strict completion:** final autopilot completion must clear a successful
-  review path and adjudicate every proposed finding. At weights `light` through
-  `maximum`, that path must use a supported fresh-context reviewer; if it fails,
-  the run is blocked rather than complete. At explicit weight `none`, documented
-  implementation verification and acceptance evidence satisfy the path without
-  independent review.
+- **Weight-aware completion:** final autopilot completion must clear the review
+  path selected by the effective weight and adjudicate every proposal. `light`
+  and `standard` run one successful fresh-context pass, fix and verify accepted
+  blockers, then finish without re-review. `thorough` and `maximum` continue the
+  review → fix → verify loop until a pass yields no receiver-confirmed material
+  current-cycle blockers. Smaller findings are dispositioned by judgment and do
+  not prolong the loop. At explicit weight `none`, documented implementation
+  verification and acceptance evidence satisfy the path without independent
+  review. A required fresh-context path that fails blocks completion.
 
 ## Recipient-owned finding disposition
 

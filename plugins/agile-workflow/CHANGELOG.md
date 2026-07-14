@@ -2,13 +2,17 @@
 
 ## Unreleased
 
-### Autonomous review convergence
+### Weight-aware review closure
 
-- **Removed the two-bounce circuit-breaker** — autopilot no longer parks an item
-  at review or blocks the run after two failed correction passes. Review findings
-  re-enter implementation until they pass; recurring findings trigger deeper
-  root-cause/design diagnosis and fresh context where useful. Only a separate,
-  genuine blocker may stop autonomous progress.
+- **Standard is explicitly single-pass** — the default feature, epic, and final
+  completion path runs one independent review, adjudicates proposals, fixes and
+  verifies material blockers, then finishes without re-review. Deep or epic
+  scope broadens lenses but does not silently add passes.
+- **Convergence is opt-in** — `thorough` and `maximum` repeat review → fix →
+  verify until a pass yields no receiver-confirmed material current-cycle
+  blockers. Smaller findings are parked, noted as nits, or rejected by receiver
+  judgment and never hold the loop open. There is no arbitrary bounce cap for
+  these explicit convergence weights.
 
 ### Dynamic subagent prompting
 

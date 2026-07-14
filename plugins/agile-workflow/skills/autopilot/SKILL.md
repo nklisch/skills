@@ -5,8 +5,9 @@ description: >
   request says to run autopilot, drain ready work, finish an epic, continue through .work/active/, or
   make autonomous progress on the substrate. Reads .work/active/, picks ready items by depends_on and
   stage, delegates feature-scoped design and implementation, reviews completed features, commits
-  transitions, and repeats until the scope is done or blocked. Before reporting complete, runs a final peer-review/fresh-context
-  completion pass, adjudicates reviewer proposals, fixes material blockers, and parks lower-risk
+  transitions, and repeats until the scope is done or blocked. Before reporting complete, runs the
+  weight-selected final peer-review/fresh-context completion path, adjudicates reviewer proposals,
+  fixes material blockers, and parks lower-risk
   valid findings. No /loop or --resume mechanics; the harness goal/continuation feature owns
   long-running persistence. Epic-scoped by default; --all drains all active work; free-text scope
   directives are allowed.
@@ -177,11 +178,12 @@ this caller note in every delegated prompt:
 > for this run: `<effective capability>` — selected because `<risk/scope reason>`;
 > use it for dispatch and do not re-ask. Review weight for this run:
 > `<none|light|standard|thorough|maximum>` (source: `<explicit|project|default>`);
-> pass it unchanged to feature review and final completion review. Apply the
-> risk-driven advisory policy from `principles/SKILL.md` Part IV in direct and autopilot
-> modes: use independent review only when the risk and review weight warrant it,
-> and label review cross-model only when a different model class is actually
-> selected. Treat reviewer findings as proposals: independently adjudicate them
+> pass it unchanged to feature review and final completion review. `standard`
+> is the default and means one independent pass, then adjudicate, fix, verify,
+> and finish without re-review. Only `thorough` and `maximum` use multi-pass
+> convergence. Apply the risk-driven advisory policy from `principles/SKILL.md`
+> Part IV in direct and autopilot modes, and label review cross-model only when
+> a different model class is actually selected. Treat reviewer findings as proposals: independently adjudicate them
 > against repository context, fix or activate only material current-cycle
 > blockers, and park valid lower-risk work in the unbound backlog. Peer failures
 > during design are non-blocking. Preserve complementary→adversarial order when
@@ -240,36 +242,33 @@ a `## Blocker` section to the item body, commit that note, and continue with
 other ready items. The final goal outcome is blocked if unresolved blockers
 remain in scope.
 
-### Phase 5: Review Convergence Loop
+### Phase 5: Review Closure
 
-A feature, epic, or standalone-story review bounce is corrective work, not a human
-handoff. Child stories never bounce through review. Track bounces only as
-diagnostic history:
+Child stories never enter this phase. Standalone stories use their bounded
+inline lane. For features and epics, apply the effective weight exactly:
+
+- `none`: close administratively from green verification and acceptance evidence.
+- `light` / `standard`: run at most one independent pass. Adjudicate every
+  proposal, fix receiver-confirmed blockers, verify the named fix set, and
+  finish without another independent pass. If corrective work must be deferred,
+  keep the item active with a note that later closure is fix-verification only.
+- `thorough` / `maximum`: run review → adjudicate → fix → verify repeatedly.
+  Continue until a pass yields no receiver-confirmed material current-cycle
+  blockers. The receiving agent judges materiality; parked concerns, nits, and
+  rejected proposals do not keep the loop open.
+
+Track repeated passes only for `thorough` and `maximum`:
 
 ```text
-bounces[<reviewed-item-id>] = implementing -> review -> implementing cycles
+passes[<reviewed-item-id>] = <independent passes completed>
 ```
 
-After every review bounce:
-
-1. Confirm the receiving agent—not the reviewer alone—adjudicated the proposals
-   and left concrete, receiver-confirmed blockers in the reviewed item body.
-2. Park valid findings below the material current-cycle bar in the unbound
-   backlog; they do not keep the item bounced or enter this run's queue.
-3. Rebuild the queue so the item naturally re-enters implementation.
-4. Implement the blockers, run the appropriate verification, and send the item
-   through review again.
-5. Continue until review approves the item or autonomous work reaches a genuine
-   hard blocker under `principles/SKILL.md` Part III.
-
-There is no fixed bounce limit. If the same material finding survives more than
-one correction pass, treat recurrence as evidence that the attempted fix or
-design model may be wrong: re-read the item and foundation docs, diagnose the
-root cause, and revise the design or implementation notes when needed.
-Standalone-story review remains inline and never escalates to a fresh-context or
-cross-model reviewer. Recurrence alone never elevates a low-risk finding into a
-blocker. Do not park the active item at `review`, label it stuck, or require
-human intervention solely because a counter reached two (or any other number).
+If the same material finding survives a correction, treat recurrence as evidence
+that the attempted fix or design model may be wrong: re-read the item and
+foundation docs, diagnose the root cause, and revise design or implementation
+notes when needed. There is no fixed pass limit for convergence weights; an
+unfixable material current-cycle blocker is a genuine blocker. Never escalate `standard`
+because a target is an epic, uses deep lenses, or the first pass found blockers.
 
 ### Phase 6: Refactor Cadence (`--all` Only)
 
@@ -300,7 +299,7 @@ Do not stop because of elapsed time, context size, or "long run" concerns. The
 harness owns continuation. Your job is to keep applying the queue policy until a
 real stop rule fires.
 
-### Phase 8: Final Completion Review Loop
+### Phase 8: Final Completion Review
 
 This is the last step before reporting `complete`. It runs in addition to any
 design-time advisory passes and feature reviews, and is calibrated by the same
@@ -322,10 +321,16 @@ When the scoped queue appears drained:
    - `none`: run no independent reviewer; administratively verify the completion
      bundle has green verification and acceptance evidence for every in-scope
      item, plus internally consistent terminal substrate state.
-   - `light`: use at most one focused fresh-context pass over the bundle.
-   - `standard`: use balanced risk-based fresh-context review.
-   - `thorough`: increase complementary and adversarial fresh-context coverage.
-   - `maximum`: seek multi-model, multi-pass complementary → adversarial review.
+   - `light`: use at most one focused fresh-context pass over the bundle, then
+     adjudicate, fix, verify, and finish without re-review.
+   - `standard`: run exactly one balanced fresh-context pass, then adjudicate,
+     fix receiver-confirmed blockers, verify, and finish without re-review.
+     This is the normal default, not an implicit convergence loop.
+   - `thorough`: repeat review → adjudicate → fix → verify until a pass yields
+     no receiver-confirmed material current-cycle blockers; park or note smaller
+     findings instead of prolonging the loop.
+   - `maximum`: use the same convergence requirement with multi-model,
+     complementary → adversarial coverage when available.
    Ask for bugs, missed acceptance criteria, unreviewed risks, false/stale/
    contradictory foundation-doc assertions, and substrate-state inconsistencies
    that would make "complete" premature. Foundation-doc omissions and
@@ -359,7 +364,9 @@ When the scoped queue appears drained:
 6. If rebuilding the queue finds new or regressed `drafting`, `implementing`, or
    `review` items in scope, return to Phase 2 and drain them. Parked review
    follow-ups remain outside autopilot scope until separately promoted.
-7. Once the final review path succeeds, every proposal is adjudicated, no
+7. Close according to the selected weight: after the one permitted pass and
+   verified fixes for `light`/`standard`, or after a clean convergence pass for
+   `thorough`/`maximum`. Once every proposal is adjudicated, no unresolved
    receiver-confirmed blocker remains, and the queue is still empty, report the
    goal as complete.
 
@@ -374,7 +381,8 @@ Narrate briefly as items advance. Final summary:
 - Goal scope and interpretation
 - Items advanced to done
 - Features, epics, and standalone stories reviewed and approved
-- Reviewed items bounced, including recurring findings and how they converged
+- Review closure by item: single-pass fix-and-finish or multi-pass convergence,
+  including recurring findings when applicable
 - Genuinely blocked item ids and blocker reasons
 - Refactor cadences run (`--all` only)
 - Implement-orchestrator bundle summary, if reported
@@ -391,8 +399,11 @@ Narrate briefly as items advance. Final summary:
   delegated work. Resolve with judgment and log rationale.
 - Do not report `complete` until Phase 8 has run successfully at the effective
   review weight, every proposal has been adjudicated, and all receiver-confirmed
-  material blockers have been fixed or filed into the active queue. Parked
-  lower-risk findings do not block completion.
+  material blockers have been fixed and verified or remain as genuine active
+  blockers. `standard` requires one pass, not repeated review; `thorough` and
+  `maximum` require a pass with no receiver-confirmed material current-cycle
+  blockers; smaller findings are dispositioned by judgment.
+  Parked lower-risk findings do not block completion.
 - Commit after every item state change or blocker note.
 - Do not push, force-push, or release; the user controls publication.
 - Do not drain or promote `.work/backlog/`; it is outside autopilot scope.
