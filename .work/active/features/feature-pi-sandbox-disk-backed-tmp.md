@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: drafting
+stage: implementing
 tags: [sandbox]
 parent: null
 depends_on: []
@@ -74,6 +74,32 @@ scope; this note exists so a future reader doesn't rename-and-break.
   masked tmpfs. This is a behavior change for block mode (temp currently
   goes to the masked tmpfs; it would go to disk) — exactly what the operator
   wants for memory, and the correct/principled shape per operator sign-off.
+- **No runtime fs-type detection — operator-asserts the cache root (scope
+  cut, 2026-07-14).** The extension does NOT probe whether `XDG_CACHE_HOME` /
+  `~/.cache` is on a disk-backed vs RAM-backed filesystem. Three review rounds
+  burned on a runtime detection that is structurally impossible to get right
+  (overlayfs has no resolvable upperdir; magic numbers drift; every variant
+  failed open a different way — see Review findings rounds 1–3 + the
+  Implementation discovery section). The mission docs settle this:
+  THREAT_MODEL "Two boundaries" states pi-sandbox assumes an **outer
+  host-isolation boundary already exists** (VM / container / dedicated host /
+  separate OS account) that the package "neither provides nor claims to be."
+  The host filesystem layout — including whether `~/.cache` is on disk or
+  tmpfs — is the operator's outer-boundary responsibility, the same class of
+  operator ownership as "actually stood up the VM." A runtime check that
+  tries to validate the operator's own host config is out of scope for the
+  inner membrane. So: the extension creates + binds the dir unconditionally;
+  the operator asserts `XDG_CACHE_HOME` (or accepts `~/.cache`) and verifies
+  it is disk-backed with `findmnt` per the docs. If the cache root is
+  accidentally on tmpfs, the feature is **silently defeated** (temp quietly
+  returns to RAM, OOM crashes return) — this is a **documented 0.1.0
+  residual** in the same style as every other gap in the THREAT_MODEL
+  release-scope list (RPC/API bash bypass, hardlink race, helper retrieval).
+  Runtime validation of the cache root's backing store is explicitly deferred
+  as an outer-boundary concern. This removes `probeFilesystem` /
+  `assertNotRamBacked` / the magic-number machinery entirely, eliminates the
+  overlayfs-in-containers false-fail-close, and kills the recurring
+  fail-open bug class.
 
 ## Design direction
 
@@ -123,9 +149,12 @@ through — same trusted-init-state discipline as `pinnedGitDirs`).
 
 At `session_start`, when `tmpBackend === "session-disk"`:
 - Resolve the cache root: `$XDG_CACHE_HOME/pi-sandbox/tmp/` (fall back to
-  `~/.cache/pi-sandbox/tmp/` when `XDG_CACHE_HOME` is unset). Confirm it lives
-  on a non-tmpfs backing store; if the resolved root is on tmpfs, fail closed
-  with a clear message (the whole point is disk).
+  `~/.cache/pi-sandbox/tmp/` when `XDG_CACHE_HOME` is unset). The extension
+  does NOT probe the backing-store filesystem type — the operator asserts
+  `XDG_CACHE_HOME` and verifies it is disk-backed with `findmnt` per the docs
+  (see Strategic decisions: scope cut). A relative/empty `XDG_CACHE_HOME`
+  still fails closed (it would produce a relative `TMPDIR` diverging from the
+  canonicalized bind source).
 - Derive the per-project dir from a stable hash of the canonical cwd
   (`~/.cache/pi-sandbox/tmp/<cwd-hash>/`), NOT `mkdtemp` — the dir must be
   stable + shared across concurrent sessions in the same project. Stash the
@@ -144,11 +173,15 @@ At `session_start`, when `tmpBackend === "session-disk"`:
   (`sandbox.test.ts:2174` arg-level + `sandbox.test.ts:3183` integration) to
   assert the disk dir under `session-disk` and
   keep asserting `/tmp` under `host-tmpfs`.
-- Integration test: a sandboxed `mktemp -d` lands under the disk dir, not
-  `/tmp`; and the dir is on disk (stat the backing device, reject tmpfs).
+- Integration test: a sandboxed `mktemp -d` lands under the project dir,
+  not `/tmp`.
 - No cleanup: the project temp dir persists across sessions.
 - Fail-closed: `session-disk` with no `projectTmpDir` threaded through does
   not silently fall back to host `/tmp`.
+- Fail-closed: a relative/empty `XDG_CACHE_HOME` under `session-disk` does
+  not produce a relative `TMPDIR`.
+- (No fs-type probe tests — runtime detection is out of scope; see Strategic
+  decisions: scope cut.)
 
 ### Docs (`plugins/pi-sandbox/README.md`, `docs/THREAT_MODEL.md`)
 
@@ -162,22 +195,29 @@ accumulated files/sockets in open mode). Note the block-mode behavior change
 
 - [ ] `filesystem.tmpBackend` config field exists, defaults to `"session-disk"`,
       validates against `["session-disk", "host-tmpfs"]`.
-- [ ] Sandboxed children's `TMPDIR` points at a disk-backed per-project dir;
-      `mktemp -d` inside a sandboxed bash lands on disk, not tmpfs.
+- [ ] Sandboxed children's `TMPDIR` points at a per-project dir;
+      `mktemp -d` inside a sandboxed bash lands under the project dir, not
+      `/tmp`. (The dir's backing-store fs type is NOT runtime-validated —
+      operator-asserted; see Strategic decisions: scope cut.)
 - [ ] Open mode no longer binds host `/tmp` through under `session-disk`
       (narrower writable surface).
 - [ ] Block mode keeps the `/tmp` + socket-dir tmpfs masks under `session-disk`
-      (IPC isolation preserved) while `TMPDIR` points at the disk dir.
+      (IPC isolation preserved) while `TMPDIR` points at the project dir.
 - [ ] No cleanup: the project temp dir persists across sessions; `session_shutdown` leaves it in place.
 - [ ] `host-tmpfs` opt-out preserves today's exact behavior (regression guard).
-- [ ] Fail-closed when `session-disk` is set but the cache root resolves to
-      tmpfs, or when `projectTmpDir` is not threaded through.
+- [ ] Fail-closed when `projectTmpDir` is not threaded through under
+      `session-disk`, and when `XDG_CACHE_HOME` is relative/empty under
+      `session-disk` (would produce a relative `TMPDIR`).
 - [ ] Background/monitor path resolves `projectTmpDir` under `session-disk`
       (via the accessor) — a `background`/`monitor`/`jobs` command does not
       throw fail-closed under the default. Wired in the same change as the
       default flip, not deferred.
+- [ ] Non-Linux graceful-degrade path still installs the configured in-process
+      file policy (regression guard for R3-B2: the feature must not break
+      file-tool policy on the degrade path).
 - [ ] Existing block-mode tests updated; README + THREAT_MODEL document the
-      change and the security improvement.
+      change, the security improvement, and the operator-asserts-backing-store
+      residual.
 
 ## Architectural choice
 
@@ -330,33 +370,136 @@ leaves unset — note this as a known gap, see Risks).
 - [ ] Bash-ops path threads both into `buildBwrapArgs`.
 - [ ] `buildSandboxedSpawnArgs` accepts + threads both.
 
-### Unit 4: `session_start` derives the cwd-keyed dir; no cleanup
+### Unit 4: `session_start` derives the cwd-keyed dir via a single `SessionInit` record; no cleanup
 **File**: `plugins/pi-sandbox/extensions/sandbox.ts`
+
+**Structural fix for the init-sequence dual-source-of-truth (B1, R2-B2,
+R3-B2).** Three bounces came from module-level accessor state and the
+`sandboxPolicy` object having different lifecycles and diverging, and from the
+platform-check-vs-derivation-vs-policy-construction ordering being coupled
+enough that each reorder broke something (moving derivation late broke the
+degrade-path file-tool policy — R3-B2). The fix: derive everything into a
+**single local `SessionInit` record**, validate it fully, THEN construct the
+policy once from that record. One source of truth, one construction site.
 
 New module-level state (mirroring `pinnedBwrapPath`):
 ```ts
 let projectTmpDir: string | null = null;
+let tmpBackend: "session-disk" | "host-tmpfs" = "session-disk";
 ```
 
-At `session_start`, after config loads and the platform is Linux + bwrap is
-resolved, when `config.filesystem?.tmpBackend ?? "session-disk" === "session-disk"`:
-1. Resolve the cache root: `const cacheRoot = join(process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"), "pi-sandbox", "tmp")`.
-2. `mkdirSync(cacheRoot, { recursive: true })`.
-3. **Disk check** (fail-closed): compare `statSync(cacheRoot).dev` against
-   `statSync("/tmp").dev` and `statSync("/dev/shm").dev` — if equal to either,
-   the cache root is on tmpfs; fail-closed with `ctx.ui.notify` + status
-   (the whole point is disk). One-line check; catches the real misconfig
-   where `~/.cache` is accidentally on tmpfs, which would silently re-defeat
-   the whole point.
-4. **Derive the per-project dir from the canonical cwd** (NOT `mkdtemp` — the
-   dir must be stable + shared across concurrent sessions in the same project):
-   - `const cwdKey = createHash("sha256").update(realpathSync(ctx.cwd)).digest("hex").slice(0, 16)`
-   - `projectTmpDir = join(cacheRoot, cwdKey)`
-   - `mkdirSync(projectTmpDir, { recursive: true })`
-   - 16-char truncation of the sha256 of the realpath: stable, filesystem-safe,
-     collision-resistant. The realpath resolves symlinks so two sessions whose
-     cwd differs only by a symlink bind to the same project dir.
-5. Pin `projectTmpDir` + `tmpBackend` onto `sandboxPolicy`.
+The `session_start` derivation, in order (all synchronous, no `await` between
+derivation and policy assignment so the two cannot diverge):
+
+1. **Resolve `tmpBackend`** from config: `tmpBackend = config.filesystem?.tmpBackend ?? "session-disk"`.
+   Set the module-level `tmpBackend` here so the background/monitor accessor
+   (`getTmpBackend()`) is correct even on early-return branches.
+
+2. **Install a provisional in-process file policy BEFORE platform/bwrap
+   checks (R3-B2 regression fix).** Pre-feature, the policy was constructed
+   before the platform checks, so the non-Linux degrade branch returned with
+   `activePolicy` already set to the configured file policy. The feature moved
+   construction after the checks (to derive `projectTmpDir` first), so the
+   degrade branch returned before any policy → file tools fell to
+   `createFailClosedPolicy()` and blocked all filesystem access. Fix: install
+   the configured file policy with `projectTmpDir: null, tmpBackend` as a
+   provisional `activePolicy` right after the hardlink guard + git-dir discovery
+   (the same site the pre-feature code constructed it), BEFORE the
+   platform/bwrap disposition. This provisional policy is replaced by the
+   project-temp-pinned policy only after successful session-disk derivation on
+   the Linux-bwrap-healthy path. On every other path (degrade, fail-closed,
+   disabled, bwrap-missing), the provisional configured file policy stays —
+   exactly the pre-feature behavior. This is restoring a regression, not a new
+   capability.
+
+3. **Platform/bwrap disposition** (unchanged): Linux bwrap resolution →
+   `decidePlatformState` → degrade / fail-closed / healthy. On every terminal
+   return here, reset `projectTmpDir = null` (the derivation below never ran);
+   the provisional file policy from step 2 stays in place. Only the
+   Linux-bwrap-healthy path reaches step 4.
+
+4. **Derive the project temp dir into a local `SessionInit` record** (only when
+   `tmpBackend === "session-disk"`; `host-tmpfs` skips to step 5 with
+   `projectTmpDir: null`). No fs-type probe (scope cut — see Strategic
+   decisions). The derivation is pure validation + mkdir, no detection:
+   ```ts
+   type SessionInit =
+     | { ok: true; projectTmpDir: string }
+     | { ok: false; reason: string };
+   function deriveProjectTmpDir(cwd: string, netMode: NetworkMode): SessionInit {
+     const cacheRootRaw = process.env.XDG_CACHE_HOME || join(homedir(), ".cache");
+     // I4: reject a relative/empty XDG_CACHE_HOME (would produce a relative
+     // TMPDIR diverging from the canonicalized bind source).
+     if (!isAbsolute(cacheRootRaw)) {
+       return { ok: false, reason: `Sandbox tmpBackend=session-disk requires an absolute XDG_CACHE_HOME (got ${JSON.stringify(process.env.XDG_CACHE_HOME)}). Set XDG_CACHE_HOME to an absolute disk-backed path or use tmpBackend:"host-tmpfs".` };
+     }
+     const cacheRoot = join(cacheRootRaw, "pi-sandbox", "tmp");
+     mkdirSync(cacheRoot, { recursive: true });
+     // Canonicalize the cache root AFTER creation (R2-I3: realpathSync on a
+     // non-existent path fell back to the raw path and could miss a symlink
+     // into a mask root).
+     const realCacheRoot = realpathSync(cacheRoot);
+     // I3 / R2-I2: reject a cache root nested under a block-mode mask path
+     // (/tmp, /var/tmp, /run, /var/run) — but ONLY in block mode (R2-I2: the
+     // masks only fire in block mode, so an open-mode cache root under
+     // /var/tmp is valid and was wrongly rejected before). Canonicalize the
+     // mask roots with the same helper buildBwrapArgs uses so a symlinked
+     // /tmp is caught (R3-I1).
+     if (netMode === "block") {
+       const blockMaskRoots = ["/tmp", "/var/tmp", "/run", "/var/run"].map((p) => canonicalizeExistingPath(p) ?? p);
+       const nestedUnderMask = blockMaskRoots.some((m) => realCacheRoot === m || realCacheRoot.startsWith(`${m}/`));
+       if (nestedUnderMask) {
+         return { ok: false, reason: `cache root ${cacheRoot} resolves under a block-mode tmpfs mask path (${realCacheRoot}); the project temp dir would be hidden by the mask. Set XDG_CACHE_HOME outside /tmp, /var/tmp, /run, or use tmpBackend:"host-tmpfs".` };
+       }
+     }
+     // Per-project dir keyed by a stable hash of the canonical (realpath) cwd.
+     // realpath resolves symlinks so two sessions whose cwd differs only by a
+     // symlink bind to the same project dir. 16-char truncation: stable,
+     // filesystem-safe, collision-resistant.
+     const realCwd = realpathSync(cwd);
+     const cwdKey = createHash("sha256").update(realCwd).digest("hex").slice(0, 16);
+     const dir = join(realCacheRoot, cwdKey);
+     mkdirSync(dir, { recursive: true });
+     // Canonicalize the final dir too (R3-I1: derive the final path from
+     // realCacheRoot, not the raw join, so a symlinked cache root is followed).
+     const realDir = realpathSync(dir);
+     return { ok: true, projectTmpDir: realDir };
+   }
+   ```
+   **No write probe (R3-B3).** The prior round added a `writeFileSync` probe
+   with a predictable name `.write-probe-<pid>` in the shared sandbox-writable
+   temp dir — a real symlink-truncation escape vector (a hostile symlink at
+   that path truncates an arbitrary file outside sandbox policy). `mkdirSync(dir,
+   {recursive:true})` already proves the dir exists and the parent is writable;
+   the probe added zero safety and a real vuln. **Delete the write probe; do not
+   replace it.** (This is the pre-mortem the discovery section demanded: an
+   attacker controls the shared temp dir — `mkdirSync` is the only filesystem
+   mutation, and it cannot be weaponized the way a create-by-name probe can.)
+
+   On `{ ok: false }`: fail-closed with `ctx.ui.notify` + status, reset
+   `projectTmpDir = null`, return. The provisional file policy from step 2
+   stays (file tools remain hardened, not permissive).
+
+5. **Construct the policy ONCE from the `SessionInit` record.** Replace the
+   provisional policy with the final one capturing the resolved values:
+   ```ts
+   const init = tmpBackend === "session-disk" ? deriveProjectTmpDir(ctx.cwd, netMode) : { ok: true as const, projectTmpDir: null as string | null };
+   if (!init.ok) { /* fail-closed return; provisional policy stays */ }
+   projectTmpDir = init.projectTmpDir;  // pin module-level state
+   sandboxPolicy = {
+     denyRead, denyWrite,
+     allowWrite: [...(config.filesystem?.allowWrite ?? []), ...discoveredGitDirs],
+     pinnedGitDirs: discoveredGitDirs,
+     cwd: ctx.cwd, networkMode: netMode, toolRules: config.tools,
+     projectTmpDir: init.projectTmpDir, tmpBackend,
+   };
+   activePolicy = sandboxPolicy;
+   ```
+   Because derivation (step 4) and policy construction (step 5) share the same
+   `init` record with no intervening `await`, the policy cannot capture a stale
+   null placeholder (B1) and the accessor cannot diverge from the policy
+   (R2-B2). The `getSandboxPolicy()` test accessor asserts the policy object
+   itself carries the derived value.
 
 **No cleanup.** The dir is per-project (bounded by project count, small), temp
 files are created and deleted by their processes normally, and the orphaned-WAL
@@ -367,17 +510,23 @@ a custom protocol baked into a sandbox extension. No sweep, no pidfiles, no
 liveness checks, no `session_shutdown` removal.
 
 Reset `projectTmpDir = null` at every early-return branch in `session_start`
-(no-sandbox, parse error, disabled, degrade, fail-closed) — match the existing
-reset pattern for `pinnedBwrapPath`. No `session_shutdown` temp-dir action
-needed (the dir outlives the session by design).
+(no-sandbox, parse error, disabled, degrade, fail-closed, bwrap-missing,
+derivation-failed) — match the existing reset pattern for `pinnedBwrapPath`.
+No `session_shutdown` temp-dir action needed (the dir outlives the session by
+design); `session_shutdown` resets module state only.
 
 **Acceptance Criteria**:
 - [ ] `session_start` creates `~/.cache/pi-sandbox/tmp/<cwd-hash>/` under `session-disk`.
 - [ ] Two sessions with the same realpath cwd resolve to the SAME `projectTmpDir`.
 - [ ] Two sessions with different cwds resolve to DIFFERENT dirs.
-- [ ] Cache root on tmpfs → fail-closed with a clear status, no project temp dir bound.
+- [ ] Relative/empty `XDG_CACHE_HOME` under `session-disk` → fail-closed with a clear status, no project temp dir bound.
+- [ ] Cache root nested under a block-mode mask path (`/tmp`/`/var/tmp`/`/run`/`/var/run`) under `session-disk` + block mode → fail-closed.
 - [ ] Early-return branches reset `projectTmpDir = null`.
 - [ ] `session_shutdown` leaves the project temp dir in place.
+- [ ] **B1 regression (load-bearing)**: the ACTIVE POLICY carries the derived `projectTmpDir` (assert via `getSandboxPolicy()`, not just the module accessor). Verified load-bearing: forcing `projectTmpDir: null` in the policy makes the test fail.
+- [ ] **R3-B2 regression**: non-Linux graceful-degrade installs the configured in-process file policy (not `createFailClosedPolicy()`); a `read`/`write`/`edit` on the degrade path enforces the configured `denyRead`/`denyWrite`/`allowWrite`, not a blanket block.
+- [ ] **No write probe**: the derivation does NOT call `writeFileSync`/`openSync` with a predictable name in the shared temp dir (grep the diff for `write-probe` / `writeFileSync` in the derivation path — must be absent).
+- [ ] No `probeFilesystem` / `assertNotRamBacked` / `statfsSync` / magic-number machinery in the derivation (scope cut).
 
 
 ### Unit 5: Tests
@@ -385,18 +534,25 @@ needed (the dir outlives the session by design).
 
 Arg-level + integration:
 - `session-disk` open mode: `--bind <dir> <dir>` + `--setenv TMPDIR <dir>`, no `--bind /tmp /tmp`.
-- `session-disk` block mode: `/tmp` tmpfs mask present, `--setenv TMPDIR <dir>`, disk dir bound.
+- `session-disk` block mode: `/tmp` tmpfs mask present, `--setenv TMPDIR <dir>`, project dir bound.
 - `session-disk` + missing `projectTmpDir` → throws.
 - `host-tmpfs` open: `--bind /tmp /tmp` present (regression guard).
 - `host-tmpfs` block: `--setenv TMPDIR /tmp` (regression guard; existing tests at `sandbox.test.ts:2174` arg-level + `sandbox.test.ts:3183` integration kept, conditioned on `host-tmpfs`).
-- Integration: sandboxed `mktemp -d` lands under the session dir; `stat -c %m` /
-  `findmnt` confirms it's not tmpfs-backed.
+- Integration: sandboxed `mktemp -d` lands under the project dir, not `/tmp`.
 - Integration: the project temp dir persists across a `session_shutdown`.
-- Fail-closed: cache root forced onto tmpfs (test fixture) → fail-closed status, no bind.
+- Entrypoint (B1 regression, load-bearing): real `session_start` under `session-disk` with a disk-backed `XDG_CACHE_HOME` → `getSandboxPolicy().projectTmpDir === resolved` (assert the POLICY, not just the module accessor). Verified load-bearing: forcing `projectTmpDir: null` in the policy makes the test fail.
+- Entrypoint (R3-B2 regression): non-Linux graceful-degrade (or bwrap-missing) installs the configured in-process file policy — a `read`/`write`/`edit` on the degrade path enforces the configured `denyRead`/`denyWrite`/`allowWrite`, not a blanket `createFailClosedPolicy()` block.
+- Entrypoint: same realpath cwd → same `projectTmpDir`; different cwd → different dir.
+- Entrypoint: relative/empty `XDG_CACHE_HOME` under `session-disk` → fail-closed status, no bind.
+- Entrypoint: cache root nested under a block-mode mask path + block mode → fail-closed.
+- Static (no-write-probe / no-detection): grep the `session_start` derivation path — `write-probe` / `writeFileSync` / `openSync` with a predictable name / `probeFilesystem` / `assertNotRamBacked` / `statfsSync` / magic-number constants must be ABSENT from the derivation (scope cut + R3-B3). (A simple `rg` assertion in the test, or a code-review checklist item if a grep-test is awkward in the harness.)
+- Background-spawn accessor: `buildSandboxedSpawnArgs` with no `projectTmpDir`/`tmpBackend` opts override resolves the session-pinned dir via `getProjectTmpDir()`/`getTmpBackend()` under `session-disk` (the background/monitor path does not throw fail-closed under the default).
 
 **Acceptance Criteria**:
 - [ ] All the above pass; existing block-mode `TMPDIR=/tmp` test updated to be
-  `host-tmpfs`-conditional (it now only holds under `host-tmpfs`).
+      `host-tmpfs`-conditional (it now only holds under `host-tmpfs`).
+- [ ] The B1 and R3-B2 regression tests are load-bearing (fail against the
+      reverted bug).
 
 ### Unit 6: Docs
 **File**: `plugins/pi-sandbox/README.md`, `plugins/pi-sandbox/docs/THREAT_MODEL.md`
@@ -415,7 +571,15 @@ THREAT_MODEL: add a line under the existing private-tmpfs residual note
   (`README.md:200` / THREAT_MODEL release-scope) recording that `session-disk`
   moves block-mode temp off RAM-backed tmpfs onto disk (capacity win, no
   memory DoS), and that the in-process `/tmp`-masking residual (unbounded
-  tmpfs size) is replaced by disk quota for the session dir.
+  tmpfs size) is replaced by disk quota for the session dir. **Add the
+  operator-asserts-backing-store residual**: the extension does NOT runtime-
+  validate that the cache root is on a disk-backed filesystem — the operator
+  asserts `XDG_CACHE_HOME` and verifies it with `findmnt`; if the cache root is
+  accidentally on tmpfs, the feature is silently defeated (temp returns to
+  RAM). This is an outer-boundary responsibility per "Two boundaries," in the
+  same style as the other 0.1.0 residuals. Reword the existing
+  "fail-closes if the cache root resolves to tmpfs" claim (which described the
+  now-removed detection) to the operator-assertion posture.
 
 **Acceptance Criteria**:
 - [ ] README documents `tmpBackend`, the default, the lifecycle, and the security improvement.
@@ -443,10 +607,31 @@ for the disk-destination and lifecycle claims (the existing
   - **(a)** Export a module-level `getProjectTmpDir(): string | null` accessor from the sandbox extension; `buildSandboxedSpawnArgs` reads it internally when `projectTmpDir` is not passed in opts. Keeps the bridge call-site unchanged; the sandbox extension owns the session-state read.
   - **(b)** Add `projectTmpDir` to the background/monitor tool's input contract and have the bridge receive it from the sandbox extension's session state at call time.
   Prefer (a) — it matches how `pinnedBwrapPath` already works (module-level state read inside the extension) and avoids widening the bridge contract. **Severity**: under `session-disk` (the DEFAULT), an unwired background path makes every `background`/`monitor`/`jobs` command throw fail-closed. This MUST be wired in the same change as the default flip — it is not a deferred gap. Land the accessor in Unit 3, wire `buildSandboxedSpawnArgs` to read it in Unit 3, and add an integration test that a background command resolves `TMPDIR` to the project dir under `session-disk`.
-- **Disk-backing check is heuristic.** Comparing `st_dev` against `/tmp` and
-  `/dev/shm` catches the common case (cache root accidentally on tmpfs) but
-  isn't a general "is this real disk" test. Acceptable: the failure mode is
-  fail-closed with a clear message, not silent RAM use. Document the heuristic.
+- **No runtime fs-type detection — silent defeat if cache root is on tmpfs
+  (accepted residual, scope cut).** The extension does NOT validate that
+  `XDG_CACHE_HOME` / `~/.cache` is on a disk-backed filesystem. If the cache
+  root is accidentally on tmpfs, the feature is silently defeated: temp
+  quietly returns to RAM and the OOM crashes the feature exists to prevent
+  come back, with no signal from the extension. Accepted per the mission docs:
+  THREAT_MODEL "Two boundaries" makes the host filesystem layout the
+  operator's outer-boundary responsibility (same class as "stood up the VM").
+  A runtime check that's imperfect (and all variants are — overlayfs has no
+  resolvable upperdir; magic numbers drift) is worse than none: it creates a
+  false security signal and burned three review rounds. Documented as a 0.1.0
+  residual in THREAT_MODEL + README; the operator verifies with `findmnt`.
+  Runtime validation of the cache root's backing store is explicitly deferred
+  as an outer-boundary concern.
+- **R3-B2 regression: degrade-path file-tool policy (in-scope fix).** Moving
+  policy construction after the platform/bwrap checks (to derive
+  `projectTmpDir` first) broke the non-Linux degrade path: it returned before
+  any policy was installed, so `read`/`write`/`edit` fell to
+  `createFailClosedPolicy()` and blocked all filesystem access instead of
+  enforcing the configured in-process policy. Pre-feature, the policy was
+  constructed before the platform checks. Fix (Unit 4 step 2): install a
+  provisional configured file policy before the platform/bwrap disposition,
+  replace with the project-temp-pinned policy only after successful
+  derivation. This is restoring a regression, not a new capability; the
+  R3-B2 regression test is load-bearing.
 - **No cleanup — disk growth.** The project temp dir is never swept or
   removed; it can grow over months/years of use. Accepted: the dir is
   per-project (bounded by project count), temp files are created/deleted by
@@ -661,3 +846,66 @@ before code. R3-B3 in particular: `mkdirSync(projectTmpDir, {recursive:true})`
 already proves the dir exists and the parent is writable; the separate write
 probe I added for "safety" introduced a symlink-truncation vector and added
 zero safety. **Delete the write probe. Don't replace it.**
+
+## Redesign resolution (2026-07-14)
+
+Re-grounded against the mission docs (THREAT_MODEL "Two boundaries" +
+Release scope 0.1.0) per operator redirect: "we can decide what level of
+FS/configurability is in scope and defer the others with clear documentation
+if it's cleaner."
+
+### Detection mechanism — resolved: drop runtime detection (option B)
+The two options the discovery section left open were (a) a disk-backed
+allowlist with default-deny, or (b) operator-assertion + docs. Chose **(b)**.
+The mission docs settle it: pi-sandbox assumes an outer host-isolation
+boundary already exists (VM / container / dedicated host / separate OS
+account) that the package "neither provides nor claims to be." The host
+filesystem layout — including whether `~/.cache` is on disk or tmpfs — is the
+operator's outer-boundary responsibility, the same class of operator
+ownership as "actually stood up the VM." A runtime check that tries to
+validate the operator's own host config is out of scope for the inner
+membrane, and an imperfect one (all variants are — overlayfs has no
+resolvable upperdir; magic numbers drift) is worse than none because it
+creates a false security signal. So: the extension creates + binds the dir
+unconditionally; the operator asserts `XDG_CACHE_HOME` and verifies it is
+disk-backed with `findmnt` per the docs. The "cache accidentally on tmpfs →
+silent defeat" outcome becomes a **documented 0.1.0 residual** in the same
+style as every other gap in the THREAT_MODEL release-scope list. This removes
+`probeFilesystem` / `assertNotRamBacked` / the magic-number machinery
+entirely, eliminates the overlayfs-in-containers false-fail-close, and kills
+the recurring fail-open bug class (R2-B1 → R3-B1). Updated: Strategic
+decisions, Design direction (session_start + Tests), Acceptance, Unit 4,
+Unit 5, Unit 6, Risks.
+
+### Init-sequence — resolved: single `SessionInit` record (as the discovery section proposed)
+Derive everything (cache root, realpath, projectTmpDir) into one local
+`SessionInit` record, validate it fully, THEN construct `activePolicy` once
+from that record. One source of truth, one construction site. No `await`
+between derivation and policy assignment, so the two cannot diverge. The
+`getSandboxPolicy()` test accessor asserts the policy object itself carries
+the derived value (load-bearing B1 test).
+
+### R3-B2 degrade-path regression — confirmed in scope (this feature's regression)
+Verified via git history: pre-feature, the policy was constructed *before*
+the platform/bwrap checks (line 622 pre-feature), so the non-Linux degrade
+branch returned with `activePolicy` already set to the configured file
+policy. The feature moved construction after the checks (to derive
+`projectTmpDir` first), so the degrade branch returned before any policy →
+file tools fell to `createFailClosedPolicy()`. Restoring the provisional
+configured file policy before the platform checks is in scope (it's this
+feature's regression, not a new capability); the R3-B2 regression test is
+load-bearing.
+
+### R3-B3 write probe — resolved: delete, do not replace (as the discovery section decided)
+`mkdirSync(projectTmpDir, {recursive:true})` already proves the dir exists
+and the parent is writable. The write probe added a symlink-truncation escape
+vector and zero safety. Removed from Unit 4; a static test asserts the
+derivation path contains no `write-probe` / `writeFileSync` / predictable-name
+`openSync`.
+
+### What stays as-is (confirmed sound across 3 review rounds)
+The arg-builder branching (sandbox-bwrap.ts), the config schema + default +
+validation + deepMerge carry, the accessor threading (`getProjectTmpDir` /
+`getTmpBackend` / `getSandboxPolicy`), the background/monitor spawn path
+resolution via accessors, and the `host-tmpfs` regression guard applied to
+all pre-existing call sites. No re-scoping of these.
