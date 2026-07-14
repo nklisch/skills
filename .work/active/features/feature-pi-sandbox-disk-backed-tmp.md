@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: review
+stage: implementing
 tags: [sandbox]
 parent: null
 depends_on: []
@@ -582,3 +582,31 @@ Addressed the 2 round-2 blockers + importants.
 Not yet addressed (parked for a follow-up stride, lower severity):
 - R2-I5: focused regression tests for I2/I3/I4/I6/I7/I8 paths (the B1 test is now load-bearing; the rest are arg-level and straightforward to add).
 - R2-I6: thread resolved session state through `/sandbox` (the `getProjectTmpDirResolved` accessor exists but isn't wired to the command output).
+
+## Review findings (round 3, deep two-phase cross-model, 2026-07-13)
+
+Bounced `review → implementing` a third time. Round-3 reviewers confirmed
+R2-B2 (the B1 test) and R2-I1 ordering are sound, but found the R2-B1 fix
+STILL fails open, plus two new blockers the fix round introduced.
+
+### Confirmed sound (round 2)
+- R2-B2: `getSandboxPolicy()` returns `activePolicy`; the test asserts `policy.projectTmpDir === resolved` and would catch the original B1. No intervening `await` between derivation and `activePolicy` assignment.
+- R2-I1: platform/bwrap disposition precedes derivation; non-Linux degrade skips it.
+- R2-I2/I7: mask guard is block-only; final dir has a write probe.
+- No same-runtime lifecycle race (both handlers have no async suspension points).
+
+### Blockers (new)
+
+- **R3-B1: `probeFilesystem` STILL accepts unknown/RAM-backed types.** `sandbox.ts:126-136` — my R2-B1 fix made it fail-closed on probe *errors* and *missing type*, but a numeric magic that isn't tmpfs/ramfs (hugetlbfs 0x958458f6, overlayfs, etc.) still returns `{ok:true, ramBacked:false}` — accepted as disk. Same fail-open hole I claimed to fix. Both reviewers flagged this. **Fix**: use a positive allowlist of recognized DISK-backed types (ext4 0xEF53, xfs 0x58465342, btrfs 0x9123683E, zfs 0x2fc12fc1, etc.); return `unknown-type` for everything else. Reject overlay unless its backing store is verified.
+
+- **R3-B2: R2-I1 broke the degrade-path file-tool policy.** `sandbox.ts:679-745` — moving policy construction after platform/bwrap disposition means the non-Linux degrade branch returns BEFORE `activePolicy` is set, so read/write/edit fall back to `createFailClosedPolicy()` and block all filesystem access instead of enforcing the configured in-process policy. **Fix**: install a provisional configured file policy (with `projectTmpDir:null, tmpBackend`) BEFORE platform/bwrap checks, then replace it with the project-temp-pinned policy after successful derivation.
+
+- **R3-B3: the write probe follows symlinks — truncation escape.** `sandbox.ts:835-837` — the write probe uses a predictable name `.write-probe-<pid>` with `writeFileSync("")`, which follows symlinks. A hostile symlink at that path in the shared (sandbox-writable) temp dir truncates an arbitrary file outside sandbox policy. Real symlink-escape vulnerability. **Fix**: use a cryptographically random name + `openSync` with `O_CREAT | O_EXCL | O_NOFOLLOW`; close+unlink in `finally` with distinct create/remove diagnostics.
+
+### Important (new)
+
+- **R3-I1: block-mask containment compares canonical cache root with noncanonical mask roots.** `sandbox.ts:814-818` — if `/tmp` or `/var/tmp` is a symlink, `realCacheRoot` is resolved but the mask roots are literal strings. `buildBwrapArgs` later canonicalizes the mask paths, so block mode can accept the cache then hide it behind `--tmpfs`, leaving `TMPDIR` inaccessible. **Fix**: canonicalize + dedupe the mask roots using the same helper as `buildBwrapArgs` before the containment check; derive the final path from `realCacheRoot`; canonicalize + containment-check the final dir too.
+
+### Notes
+- R2-I5 (focused tests) and R2-I6 (/sandbox wiring) remain parked — acceptable to defer; not blockers.
+- The reviewers noted the B1 test is now structurally load-bearing and passed locally.
