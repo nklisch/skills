@@ -29,7 +29,7 @@
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, realpathSync, statSync, statfsSync } from "node:fs";
+import { existsSync, mkdirSync, realpathSync, statfsSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import {
@@ -97,43 +97,67 @@ export function getTmpBackend(): "session-disk" | "host-tmpfs" {
 	return tmpBackend;
 }
 
-/** Resolve the filesystem TYPE of a path (e.g. "tmpfs", "ext4", "ramfs"),
- *  used by the session-disk disk-backing check. Uses statfsSync (Linux) and
- *  falls back to "unknown" on any error so the caller can decide whether to
- *  fail-closed conservatively. The check is by TYPE, not st_dev — st_dev-vs-/tmp
- *  was neither necessary (false fail-close when /tmp is on the root disk) nor
- *  sufficient (a separate tmpfs mount with a different dev passes). */
-function filesystemTypeOf(path: string): string {
+/** The active sandbox policy (trusted init state set at session_start). Exposed so
+ *  tests and diagnostics can verify the policy object itself carries the
+ *  derived values — not just the module-level accessors (B1 regression: the
+ *  policy was constructed before derivation, capturing null placeholders, while
+ *  the accessors read the later-set module state, so an accessor-only test
+ *  passed against the bug). Returns null before session_start or after
+ *  session_shutdown. */
+export function getSandboxPolicy(): SandboxPolicy | null {
+	return activePolicy;
+}
+
+/** Resolve the filesystem TYPE of a path. Returns a discriminated result
+ *  so the caller can fail-closed on probe failure or unrecognized types —
+ *  returning a plain string that defaults to "unknown" let hugetlbfs or an
+ *  overlay-on-tmpfs satisfy the disk-backed check (R2-B1). Uses statfsSync
+ *  (Linux). The check is by TYPE, not st_dev — st_dev-vs-/tmp was neither
+ *  necessary (false fail-close when /tmp is on the root disk) nor sufficient
+ *  (a separate tmpfs mount with a different dev passes). */
+type FsProbe =
+	| { ok: true; type: number; ramBacked: boolean }
+	| { ok: false; reason: "statfs-unavailable" | "unknown-type" };
+
+function probeFilesystem(path: string): FsProbe {
 	try {
-		// statfsSync returns a StatsFs-like with a `.type` string on Linux (the
-		// magic number is resolved to a name by libuv). Bun/Node expose it as
-		// the fs type name where available; fall back to "unknown" otherwise.
-		const fs = statfsSync(path) as { type?: string; __type?: number };
-		// Node's StatsFs.type is the fs magic NUMBER (e.g. 0x01021994 for tmpfs),
-		// not a string, on most runtimes. Resolve the common RAM-backed magics.
-		const t = (fs as { type?: unknown }).type;
-		if (typeof t === "string") return t;
-		if (typeof t === "number") return ramBackedMagicName(t) ?? "unknown";
-		return "unknown";
+		const fs = statfsSync(path) as { type?: unknown };
+		const t = fs.type;
+		if (typeof t === "number") {
+			// Known RAM-backed magics (linux/magic.h): tmpfs = 0x01021994,
+			// ramfs = 0x858458f6. (devtmpfs reports TMPFS_MAGIC, so it's caught
+			// by the tmpfs case — do NOT add 0x9fa0, that's PROC_SUPER_MAGIC.)
+			const ramBacked = t === 0x01021994 || t === 0x858458f6;
+			return { ok: true, type: t, ramBacked };
+		}
+		// A string type name (some runtimes): match RAM-backed by name.
+		if (typeof t === "string") {
+			const lower = t.toLowerCase();
+			return { ok: true, type: -1, ramBacked: lower === "tmpfs" || lower === "ramfs" || lower === "devtmpfs" };
+		}
+		return { ok: false, reason: "unknown-type" };
 	} catch {
-		return "unknown";
+		return { ok: false, reason: "statfs-unavailable" };
 	}
 }
 
-/** Map a Linux filesystem magic number to a RAM-backed type name, or null if
- *  it's not a known RAM-backed fs. Magic numbers from linux/magic.h. */
-function ramBackedMagicName(magic: number): string | null {
-	// tmpfs = 0x01021994, ramfs = 0x858458f6, devtmpfs = 0x9fa0
-	if (magic === 0x01021994) return "tmpfs";
-	if (magic === 0x858458f6) return "ramfs";
-	if (magic === 0x9fa0) return "devtmpfs";
-	return null;
+/** Assert the path is NOT on a RAM-backed filesystem, failing closed on probe
+ *  errors or unrecognized types (R2-B1: previously accepted "unknown"). */
+function assertNotRamBacked(p: string, label: string): void {
+	const probe = probeFilesystem(p);
+	if (!probe.ok) {
+		throw new Error(`${label} ${p} filesystem type could not be determined (${probe.reason}); refusing to use it for disk-backed temp. Set XDG_CACHE_HOME to a path on a recognized disk filesystem (ext4/xfs/btrfs/zfs) or use tmpBackend:"host-tmpfs".`);
+	}
+	if (probe.ramBacked) {
+		throw new Error(`${label} ${p} is on a RAM-backed filesystem; set XDG_CACHE_HOME to a disk-backed path or use tmpBackend:"host-tmpfs".`);
+	}
 }
 
 /** The resolved per-project temp dir, for the /sandbox diagnostic command. */
-export function getProjectTmpDirResolved(): { path: string | null; backend: "session-disk" | "host-tmpfs"; fsType: string | null } {
+export function getProjectTmpDirResolved(): { path: string | null; backend: "session-disk" | "host-tmpfs"; fsType: number | string | null } {
 	if (tmpBackend !== "session-disk" || !projectTmpDir) return { path: null, backend: tmpBackend, fsType: null };
-	return { path: projectTmpDir, backend: tmpBackend, fsType: filesystemTypeOf(projectTmpDir) };
+	const probe = probeFilesystem(projectTmpDir);
+	return { path: projectTmpDir, backend: tmpBackend, fsType: probe.ok ? (probe.type === -1 ? "named" : probe.type) : probe.reason };
 }
 
 /**
@@ -691,93 +715,12 @@ export default function (pi: ExtensionAPI) {
 		const discoveredGitDirs = discoverGitDirs(config.filesystem?.allowWrite ?? [], ctx.cwd, {
 			allowGitDirDiscovery: config.filesystem?.allowGitDirDiscovery ?? false,
 		});
-		// Derive the per-project disk-backed temp dir when tmpBackend==="session-disk"
-		// (the default) BEFORE constructing sandboxPolicy, so the policy captures
-		// the resolved values (not null placeholders). Pinned on the policy + module
-		// state, threaded through every buildBwrapArgs call (bash-ops +
-		// buildSandboxedSpawnArgs via the accessor). No cleanup — the dir persists
-		// across sessions; see feature-pi-sandbox-disk-backed-tmp.
+		// tmpBackend is resolved here (before platform/bwrap disposition) so the
+		// host-tmpfs / session-disk branch is known. The session-disk DERIVATION
+		// (cache-root creation + disk check) is deferred to AFTER the platform
+		// checks below — non-Linux graceful-degrade must not fail-close on an
+		// unwritable cache root (R2-I1).
 		tmpBackend = config.filesystem?.tmpBackend ?? "session-disk";
-		if (tmpBackend === "session-disk") {
-			const cacheRootRaw = process.env.XDG_CACHE_HOME || join(homedir(), ".cache");
-			// I4: reject a relative/empty XDG_CACHE_HOME (would produce a relative
-			// TMPDIR that diverges from the canonicalized bind source). Fall back to
-			// ~/.cache per the XDG spec when unset.
-			if (!isAbsolute(cacheRootRaw)) {
-				failClosed = true;
-				lastFailClosedReason = `Sandbox tmpBackend=session-disk requires an absolute XDG_CACHE_HOME (got ${JSON.stringify(process.env.XDG_CACHE_HOME)}). Set XDG_CACHE_HOME to an absolute disk-backed path or use tmpBackend:"host-tmpfs".`;
-				projectTmpDir = null;
-				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-				ctx.ui.notify(lastFailClosedReason, "error");
-				publishCapability();
-				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (relative XDG_CACHE_HOME)"));
-				return;
-			}
-			const cacheRoot = join(cacheRootRaw, "pi-sandbox", "tmp");
-			// I3: reject a cache root nested under a block-mode mask path (/tmp,
-			// /var/tmp, /run, /var/run) — the project dir would be bound first and a
-			// later parent --tmpfs would mask it, making TMPDIR name an inaccessible
-			// path in block mode.
-			const realCacheRoot = (() => { try { return realpathSync(cacheRoot); } catch { return cacheRoot; } })();
-			const blockMaskRoots = ["/tmp", "/var/tmp", "/run", "/var/run"];
-			const nestedUnderMask = blockMaskRoots.some((m) => realCacheRoot === m || realCacheRoot.startsWith(`${m}/`));
-			if (nestedUnderMask) {
-				failClosed = true;
-				lastFailClosedReason = `Sandbox tmpBackend=session-disk cache root ${cacheRoot} resolves under a block-mode tmpfs mask path (${realCacheRoot}). The project temp dir would be hidden by the mask. Set XDG_CACHE_HOME outside /tmp, /var/tmp, /run, or use tmpBackend:"host-tmpfs".`;
-				projectTmpDir = null;
-				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-				ctx.ui.notify(lastFailClosedReason, "error");
-				publishCapability();
-				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (cache root under tmpfs mask)"));
-				return;
-			}
-			try {
-				mkdirSync(cacheRoot, { recursive: true });
-				// B2: disk check by filesystem TYPE, not st_dev. st_dev-vs-/tmp was
-				// neither necessary (false fail-close when /tmp is on the root disk)
-				// nor sufficient (a separate tmpfs mount with a different dev passes).
-				// Reject tmpfs/ramfs directly on both the cache root AND the final
-				// project dir (a submount could place the project dir on tmpfs even
-				// when the cache root is on disk).
-				const assertNotRamBacked = (p: string, label: string) => {
-					const t = filesystemTypeOf(p);
-					if (t === "tmpfs" || t === "ramfs" || t === "devtmpfs") {
-						throw new Error(`${label} ${p} is on a RAM-backed filesystem (${t}); set XDG_CACHE_HOME to a disk-backed path or use tmpBackend:"host-tmpfs".`);
-					}
-				};
-				assertNotRamBacked(cacheRoot, "cache root");
-				// Per-project dir keyed by a stable hash of the canonical (realpath) cwd.
-				// realpath resolves symlinks so two sessions whose cwd differs only by a
-			// symlink bind to the same project dir. 16-char truncation: stable,
-				// filesystem-safe, collision-resistant.
-				const realCwd = realpathSync(ctx.cwd);
-				const cwdKey = createHash("sha256").update(realCwd).digest("hex").slice(0, 16);
-				projectTmpDir = join(cacheRoot, cwdKey);
-				mkdirSync(projectTmpDir, { recursive: true });
-				assertNotRamBacked(projectTmpDir, "project temp dir");
-			} catch (e) {
-				failClosed = true;
-				lastFailClosedReason = `Sandbox failed to create the project temp dir: ${e instanceof Error ? e.message : String(e)}`;
-				projectTmpDir = null;
-				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-				ctx.ui.notify(lastFailClosedReason, "error");
-				publishCapability();
-				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (project temp dir)"));
-				return;
-			}
-		}
-		sandboxPolicy = {
-			denyRead,
-			denyWrite,
-			allowWrite: [...(config.filesystem?.allowWrite ?? []), ...discoveredGitDirs],
-			pinnedGitDirs: discoveredGitDirs,
-			cwd: ctx.cwd,
-			networkMode: netMode,
-			toolRules: config.tools,
-			projectTmpDir,
-			tmpBackend,
-		};
-		activePolicy = sandboxPolicy;
 
 		if (process.platform === "linux") {
 			const bwrapResolution = resolveTrustedBwrap({ bwrapPath: config.bwrapPath, env: process.env });
@@ -785,6 +728,7 @@ export default function (pi: ExtensionAPI) {
 				failClosed = true;
 				bwrapPinError = formatTrustedBwrapFailure(bwrapResolution);
 				lastFailClosedReason = bwrapPinError;
+				projectTmpDir = null;
 				backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
 				ctx.ui.notify(bwrapPinError, "error");
@@ -835,6 +779,88 @@ export default function (pi: ExtensionAPI) {
 		lastFailClosedReason = null;
 		backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 		backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+
+		// Derive the per-project disk-backed temp dir AFTER platform/bwrap
+		// disposition (so non-Linux graceful-degrade does not fail-close on an
+		// unwritable cache root — R2-I1) but BEFORE constructing sandboxPolicy
+		// (so the policy captures the resolved values, not null placeholders — B1).
+		// Only the Linux-bwrap-healthy path reaches here; earlier returns handled
+		// degrade/fail-closed/disabled.
+		if (tmpBackend === "session-disk") {
+			const cacheRootRaw = process.env.XDG_CACHE_HOME || join(homedir(), ".cache");
+			// I4: reject a relative/empty XDG_CACHE_HOME (would produce a relative
+			// TMPDIR diverging from the canonicalized bind source).
+			if (!isAbsolute(cacheRootRaw)) {
+				failClosed = true;
+				lastFailClosedReason = `Sandbox tmpBackend=session-disk requires an absolute XDG_CACHE_HOME (got ${JSON.stringify(process.env.XDG_CACHE_HOME)}). Set XDG_CACHE_HOME to an absolute disk-backed path or use tmpBackend:"host-tmpfs".`;
+				projectTmpDir = null;
+				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+				ctx.ui.notify(lastFailClosedReason, "error");
+				publishCapability();
+				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (relative XDG_CACHE_HOME)"));
+				return;
+			}
+			const cacheRoot = join(cacheRootRaw, "pi-sandbox", "tmp");
+			try {
+				mkdirSync(cacheRoot, { recursive: true });
+				// Canonicalize the cache root AFTER creation (R2-I3: realpathSync on a
+				// non-existent path fell back to the raw path and could miss a symlink
+				// into a mask root). Now it exists.
+				const realCacheRoot = realpathSync(cacheRoot);
+				// I3 / R2-I2: reject a cache root nested under a block-mode mask path
+				// (/tmp, /var/tmp, /run, /var/run) — but ONLY in block mode (R2-I2: the
+				// masks only fire in block mode, so an open-mode cache root under
+				// /var/tmp is valid and was wrongly rejected before).
+				if (netMode === "block") {
+					const blockMaskRoots = ["/tmp", "/var/tmp", "/run", "/var/run"];
+					const nestedUnderMask = blockMaskRoots.some((m) => realCacheRoot === m || realCacheRoot.startsWith(`${m}/`));
+					if (nestedUnderMask) {
+						throw new Error(`cache root ${cacheRoot} resolves under a block-mode tmpfs mask path (${realCacheRoot}); the project temp dir would be hidden by the mask. Set XDG_CACHE_HOME outside /tmp, /var/tmp, /run, or use tmpBackend:"host-tmpfs".`);
+					}
+				}
+				// B2 / R2-B1: disk check by filesystem TYPE, fail-closed on probe
+				// error or unrecognized type (R2-B1: previously accepted "unknown").
+				assertNotRamBacked(cacheRoot, "cache root");
+				// Per-project dir keyed by a stable hash of the canonical (realpath) cwd.
+				// realpath resolves symlinks so two sessions whose cwd differs only by a
+				// symlink bind to the same project dir. 16-char truncation: stable,
+				// filesystem-safe, collision-resistant.
+				const realCwd = realpathSync(ctx.cwd);
+				const cwdKey = createHash("sha256").update(realCwd).digest("hex").slice(0, 16);
+				projectTmpDir = join(cacheRoot, cwdKey);
+				mkdirSync(projectTmpDir, { recursive: true });
+				assertNotRamBacked(projectTmpDir, "project temp dir");
+				// R2-I7: verify the final dir is writable (mkdirSync recursive succeeds
+				// on a pre-existing unwritable dir; probe with a create+unlink).
+				const probeFile = join(projectTmpDir, `.write-probe-${process.pid}`);
+				writeFileSync(probeFile, "");
+				unlinkSync(probeFile);
+			} catch (e) {
+				failClosed = true;
+				lastFailClosedReason = `Sandbox failed to create the project temp dir: ${e instanceof Error ? e.message : String(e)}`;
+				projectTmpDir = null;
+				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+				ctx.ui.notify(lastFailClosedReason, "error");
+				publishCapability();
+				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (project temp dir)"));
+				return;
+			}
+		}
+		// Construct the policy AFTER derivation so it captures the resolved
+		// projectTmpDir/tmpBackend (B1: previously constructed before, capturing
+		// null placeholders that broke every real bash spawn).
+		sandboxPolicy = {
+			denyRead,
+			denyWrite,
+			allowWrite: [...(config.filesystem?.allowWrite ?? []), ...discoveredGitDirs],
+			pinnedGitDirs: discoveredGitDirs,
+			cwd: ctx.cwd,
+			networkMode: netMode,
+			toolRules: config.tools,
+			projectTmpDir,
+			tmpBackend,
+		};
+		activePolicy = sandboxPolicy;
 		publishCapability();
 
 		const networkCount = config.network?.allowedDomains?.length ?? 0;

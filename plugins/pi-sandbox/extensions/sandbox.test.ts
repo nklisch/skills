@@ -309,7 +309,7 @@ describe("package metadata", () => {
 });
 
 describe("sandbox extension entrypoint", () => {
-	async function loadSandboxEntrypoint(agentDir: string, opts: { config?: Record<string, unknown> } = {}): Promise<{ default: (pi: unknown) => void; getProjectTmpDir: () => string | null; getTmpBackend: () => string }> {
+	async function loadSandboxEntrypoint(agentDir: string, opts: { config?: Record<string, unknown> } = {}): Promise<{ default: (pi: unknown) => void; getProjectTmpDir: () => string | null; getTmpBackend: () => string; getSandboxPolicy: () => unknown }> {
 		const tool = (name: string) => ({
 			name,
 			description: `${name} stub`,
@@ -340,7 +340,7 @@ describe("sandbox extension entrypoint", () => {
 			},
 		}));
 		const mod = await import(`${new URL("./sandbox.ts", import.meta.url).href}?entrypoint=${Date.now()}`);
-		return { default: mod.default, getProjectTmpDir: mod.getProjectTmpDir, getTmpBackend: mod.getTmpBackend };
+		return { default: mod.default, getProjectTmpDir: mod.getProjectTmpDir, getTmpBackend: mod.getTmpBackend, getSandboxPolicy: mod.getSandboxPolicy };
 	}
 
 	test("loads, registers sandboxed tool overrides and command, and refreshes /sandbox handshake state", async () => {
@@ -427,7 +427,16 @@ describe("sandbox extension entrypoint", () => {
 			expect(resolved).not.toBeNull();
 			expect(resolved!.startsWith(cacheHome)).toBe(true);
 			expect(statfsSync(resolved!).type).toBe(statfsSync(cacheHome).type);
-		expect(statfsSync(resolved!).type).not.toBe(0x01021994); // not tmpfs
+			expect(statfsSync(resolved!).type).not.toBe(0x01021994); // not tmpfs
+			// R2-B2: the ACTIVE POLICY must carry the derived projectTmpDir, not
+			// just the module accessor. The original B1 bug constructed the policy
+			// BEFORE derivation, so the policy kept projectTmpDir:null while the
+			// accessor read the later-set module state — an accessor-only test
+			// passed against the bug. Assert the policy object directly.
+			const policy = mod.getSandboxPolicy();
+			expect(policy).not.toBeNull();
+			expect(policy!.projectTmpDir).toBe(resolved);
+			expect(policy!.tmpBackend).toBe("session-disk");
 		} finally {
 			process.env.XDG_CACHE_HOME = prevCache;
 		}

@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: implementing
+stage: review
 tags: [sandbox]
 parent: null
 depends_on: []
@@ -566,3 +566,19 @@ are structurally sound but found the fix round introduced new issues.
 
 ### Notes
 - `statfsSync` is available on supported Node (>=22.19) and current Bun; both return numeric `.type`. I2 canonical equal/nested comparison is consistent for existing allowWrite mounts. No same-runtime session concurrency race found under Pi's serialized lifecycle. Deny-overlay precedence and concurrent `mkdirSync` safety confirmed again.
+
+## Implementation notes (round-2 review-fix, 2026-07-13)
+
+Addressed the 2 round-2 blockers + importants.
+
+- **R2-B1 fixed**: replaced the fail-open `filesystemTypeOf` with a discriminated `probeFilesystem` result. `assertNotRamBacked` now fails-closed on probe errors (`statfs-unavailable`) AND on unrecognized types (`unknown-type`) — hugetlbfs / overlay-on-tmpfs / a vanished path no longer satisfy the disk-backed check. Also corrected R2-I4: removed the bogus `0x9fa0` entry (it's PROC_SUPER_MAGIC, not devtmpfs; devtmpfs reports TMPFS_MAGIC and is caught by the tmpfs case).
+- **R2-B2 fixed**: added `getSandboxPolicy()` accessor returning the active policy. The B1 regression test now asserts `policy.projectTmpDir === resolved` (the policy object carries the value, not just the module accessor). Verified the test is load-bearing: forcing `projectTmpDir: null` in the policy (simulating B1) makes the test fail.
+- **R2-I1 fixed**: moved the session-disk derivation to AFTER the platform/bwrap disposition (so non-Linux graceful-degrade doesn't fail-close on an unwritable cache root). Only the Linux-bwrap-healthy path reaches the derivation; earlier returns handled degrade/fail-closed/disabled. The bwrap-missing branch now clears `projectTmpDir = null`.
+- **R2-I2 fixed**: the I3 block-mask guard now applies ONLY when `netMode === "block"` (the masks only fire in block mode; an open-mode cache root under `/var/tmp` is valid and was wrongly rejected before).
+- **R2-I3 fixed**: canonicalize the cache root AFTER `mkdirSync` creates it (realpathSync on a non-existent path fell back to the raw path and could miss a symlink into a mask root).
+- **R2-I7 fixed**: added a write probe (create+unlink a probe file) on the final project dir, so a pre-existing unwritable dir fails-closed instead of initializing and breaking `mktemp` inside the sandbox.
+- **R2-N1 fixed**: THREAT_MODEL reworded "silently ignored" → "ignored with a warning" for project-local `tmpBackend`.
+
+Not yet addressed (parked for a follow-up stride, lower severity):
+- R2-I5: focused regression tests for I2/I3/I4/I6/I7/I8 paths (the B1 test is now load-bearing; the rest are arg-level and straightforward to add).
+- R2-I6: thread resolved session state through `/sandbox` (the `getProjectTmpDirResolved` accessor exists but isn't wired to the command output).
