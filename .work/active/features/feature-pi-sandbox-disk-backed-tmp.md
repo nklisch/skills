@@ -1,14 +1,14 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: review
+stage: implementing
 tags: [sandbox]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 created: 2026-07-13
-updated: 2026-07-13
+updated: 2026-07-14
 ---
 
 # Disk-backed session temp for sandboxed sessions
@@ -481,3 +481,34 @@ for the disk-destination and lifecycle claims (the existing
   - `deepMerge` did not carry `tmpBackend` (or `allowGitConfig`) — the design assumed the merge was field-agnostic. Fixed by adding `tmpBackend` to the filesystem merge branch; surfaced by the capability-handshake tests going fail-closed. (Pre-existing `allowGitConfig` had the same gap but is out of scope here.)
   - The capability-handshake + extension-entrypoint tests run `session_start` against the default config, which now activates session-disk and needs a writable disk-backed `~/.cache` (read-only in CI). Fixed by having those test harnesses write a `tmpBackend: "host-tmpfs"` config — they test the handshake, not the temp-dir derivation.
 - Adjacent issues parked: none.
+
+## Review findings (deep, two-phase cross-model, 2026-07-13)
+
+Bounced `review → implementing` on 2 blockers + importants. Two fresh-context
+`gpt-5.6-sol` passes (Phase 1 completeness, Phase 2 adversarial) converged on
+the same two blockers.
+
+### Blockers
+
+- **B1: `sandboxPolicy` is constructed before `projectTmpDir`/`tmpBackend` are derived.** `sandbox.ts:656` captures `projectTmpDir: null, tmpBackend: "session-disk"` at policy construction; the derivation at `sandbox.ts:730-757` runs *after* and only updates module-level state, not the policy object. So `activePolicy.projectTmpDir` stays `null` → the bash-ops path passes `projectTmpDir: undefined` → `buildBwrapArgs` throws fail-closed for every real session_start under the default `session-disk`. Even `host-tmpfs` is broken because the policy retains `"session-disk"`. **The integration tests missed this because they pass `projectTmpDir` directly via opts, bypassing `session_start`.** Fix: derive `tmpBackend` + `projectTmpDir` *before* constructing `sandboxPolicy`, or re-assign the policy after derivation. Add a real session_start→bash integration test under `session-disk`.
+
+- **B2: the disk-backing check (`st_dev` vs `/tmp` + `/dev/shm`) is neither necessary nor sufficient.** `sandbox.ts:738-743` — on a host where `/tmp` is on the root disk (same `st_dev` as `~/.cache`), the default would falsely fail-close; a separate tmpfs mount with a different dev would pass. Plus the "on disk, not tmpfs" integration test creates `projectTmpDir` under `tmpdir()` (which is tmpfs on this VM) and never asserts backing storage, so it proves path routing while falsely claiming disk. Fix: inspect the filesystem *type* (statfs/mount metadata) of the cache root AND the final project dir, rejecting tmpfs/ramfs directly; create the test fixture on a verified disk-backed path and assert the fs type.
+
+### Important
+
+- **I1: open-mode `/tmp` read/socket exposure contradicts the README.** `sandbox-bwrap.ts:91` — `--ro-bind / /` still exposes host `/tmp` read-only, including connectable Unix sockets. Removing the writable `--bind /tmp /tmp` narrows *writes* only. README L158 says "children no longer see host `/tmp` accumulated files/sockets" — overstated; L190 correctly says open mode leaves them intact. Fix: narrow the README claim to "no writable bind" (or mask host temp in open session-disk too, but that's a bigger change).
+- **I2: `/tmp`+`/var/tmp` filtering is exact-string only.** `sandbox-bwrap.ts:129-133` — `allowWrite:["/tmp/foo"]` (a subdir) still binds through; a symlinked `/tmp` canonicalizing to another name bypasses the check. Fix: canonicalize the temp roots and reject mounts equal to OR nested beneath them.
+- **I3: block-mode masks can hide the project dir.** `sandbox-bwrap.ts:142-150` — if `XDG_CACHE_HOME` is under `/tmp`, `/var/tmp`, or `/run`, the project dir is bound first and a later parent `--tmpfs` masks it → `TMPDIR` names an inaccessible path. Fix: reject cache roots nested under block-mode mask paths.
+- **I4: relative/empty `XDG_CACHE_HOME` produces a relative `TMPDIR`.** `sandbox.ts:732` — the child env gets the original (possibly relative) path; the bind source is canonicalized but `TMPDIR` isn't. Fix: require absolute XDG or fall back per the XDG spec; pin the canonical absolute dir as `TMPDIR`.
+- **I5: session-lifecycle + background-accessor coverage is missing.** Tests cover the arg builder only; background tests force `host-tmpfs`. Missing: real `session_start` derivation, same/different-cwd hashing, tmpfs fail-closed, ENOENT/EACCES/EROFS, shutdown persistence, and the background path resolving the dir via the accessor (no opts override).
+- **I6: project-local `tmpBackend` is silently ignored.** `mergeProjectAdditive` has no `tmpBackend` branch — the field validates and `deepMerge` carries global, but project-local config is dropped without warning. Define additive authority (likely global-only: reject project `tmpBackend` with a warning) and document it; test both merge directions.
+- **I7: `/sandbox` command doesn't report the effective backend or project dir.** Operators can't see which backend is active or where temp is landing. Fix: report backend + resolved path (+ backing fs type) in `/sandbox`.
+- **I8: unknown `tmpBackend` strings silently fall through to `host-tmpfs`.** `sandbox-bwrap.ts:61-75` — `buildBwrapArgs` treats anything `!== "session-disk"` as the legacy branch. Fix: explicit switch + throw on unknown values, with a single shared backend type across config/policy/accessors/spawn/bwrap.
+- **I9: threat-model "bounded by project count" is misleading.** Directory *count* is bounded; *bytes* are not — a daemon-style session can fill the volume. Fix: document unbounded byte growth + disk-exhaustion behavior + practical cleanup/quota.
+
+### Nits
+- N1: spawn-test fixtures duplicate `tmpBackend` and sometimes put it inside `baseEnv` as an env var — clean up.
+- N2: non-UTF-8 cwd hashing is unspecified — document as unsupported or hash a buffer-preserving path.
+
+### Notes
+- Deny-overlay precedence is sound (denies fire after the project-dir bind). Concurrent `mkdirSync` on the same project dir is safe. `session_shutdown` correctly leaves the dir in place. `deepMerge` now carries `tmpBackend` correctly (confirmed by both reviewers). Pre-init/post-shutdown background resolution correctly fail-closes rather than falling back to host `/tmp`.
