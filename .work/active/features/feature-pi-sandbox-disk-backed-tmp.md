@@ -41,9 +41,7 @@ not the number of pi processes, and the dir is stable across session
 restarts within a project. Concurrent sessions in the same project write to
 the same temp dir (no isolation between them) — acceptable because sessions
 in the same project are already cooperating peers on the agent mesh.
-Cleanup is a startup sweep that reclaims stale project dirs (not
-`session_shutdown` removal, which would race a concurrent sibling session
-in the same project).
+No cleanup — the dir persists and stays warm across sessions (see Risks).
 
 ## Strategic decisions
 
@@ -52,14 +50,13 @@ in the same project).
   and the operator is the only user, so changing the default carries no
   compatibility cost and delivers the memory win out of the box. `"host-tmpfs"`
   is retained as an explicit opt-out for the current behavior.
-- **Per-project (cwd-keyed) dir + startup sweep.** The temp dir is derived
+- **Per-project (cwd-keyed) dir, no cleanup.** The temp dir is derived
   from a stable hash of the canonical session cwd
   (`~/.cache/pi-sandbox/tmp/<cwd-hash>/`), shared across all pi processes in
   the same project. Computed once at `session_start` and pinned on the policy
-  (mirroring the pinned-git-dirs trusted-init-state pattern). Cleanup is a
-  startup sweep that reclaims stale project dirs by pidfile liveness —
-  NOT `session_shutdown` removal, because a concurrent sibling
-  session in the same project would still be using the dir. Confirmed
+  (mirroring the pinned-git-dirs trusted-init-state pattern). No cleanup —
+  the dir persists and stays warm across sessions; if disk growth ever
+  matters, OS tooling handles cache-dir hygiene generically. Confirmed
   shape with the operator.
 - **Block-mode shape: keep `/tmp` masked, redirect `TMPDIR` to the disk dir.**
   Block mode currently forces `TMPDIR=/tmp` and masks `/tmp` with tmpfs to
@@ -115,7 +112,7 @@ When `tmpBackend === "session-disk"` (and a `projectTmpDir` is provided):
 `projectTmpDir` is absent, fail closed (the caller must always thread it
 through — same trusted-init-state discipline as `pinnedGitDirs`).
 
-### `session_start` / startup sweep (`sandbox.ts`)
+### `session_start` (`sandbox.ts`)
 
 At `session_start`, when `tmpBackend === "session-disk"`:
 - Resolve the cache root: `$XDG_CACHE_HOME/pi-sandbox/tmp/` (fall back to
@@ -127,11 +124,7 @@ At `session_start`, when `tmpBackend === "session-disk"`:
   stable + shared across concurrent sessions in the same project. Stash the
   path on the sandbox policy, pass it as `projectTmpDir` to every
   `buildBwrapArgs` / `buildSandboxedSpawnArgs` call.
-- Run the startup sweep: remove sibling project dirs under the cache root
-  whose `session-<pid>.pid` liveness markers are ALL dead — best-effort,
-  swallow ENOENT/EACCES. Do NOT remove on `session_shutdown` (would race a
-  concurrent sibling session in the same project); `session_shutdown` removes
-  only this session's own pidfile.
+- No cleanup: the dir persists across sessions (see Unit 4 + Risks).
 
 ### Tests (`sandbox.test.ts`, `sandbox-bwrap.test.ts`)
 
@@ -145,30 +138,29 @@ At `session_start`, when `tmpBackend === "session-disk"`:
   keep asserting `/tmp` under `host-tmpfs`.
 - Integration test: a sandboxed `mktemp -d` lands under the disk dir, not
   `/tmp`; and the dir is on disk (stat the backing device, reject tmpfs).
-- Startup sweep: stale project dirs are removed, the current session's dir survives.
+- No cleanup: the project temp dir persists across sessions.
 - Fail-closed: `session-disk` with no `projectTmpDir` threaded through does
   not silently fall back to host `/tmp`.
 
 ### Docs (`plugins/pi-sandbox/README.md`, `docs/THREAT_MODEL.md`)
 
-Document `filesystem.tmpBackend`, the default-disk posture, the per-session
-lifecycle + startup sweep, and the security improvement (narrower writable
-surface: children no longer see host `/tmp` accumulated files/sockets in
-open mode). Note the block-mode behavior change (temp → disk, masks
-preserved). Note the best-effort cleanup residual (crash leaves a dir;
-startup sweep reclaims it).
+Document `filesystem.tmpBackend`, the default-disk posture, the per-project
+lifecycle (no cleanup — dir persists across sessions), and the security
+improvement (narrower writable surface: children no longer see host `/tmp`
+accumulated files/sockets in open mode). Note the block-mode behavior change
+(temp → disk, masks preserved).
 
 ## Acceptance
 
 - [ ] `filesystem.tmpBackend` config field exists, defaults to `"session-disk"`,
       validates against `["session-disk", "host-tmpfs"]`.
-- [ ] Sandboxed children's `TMPDIR` points at a disk-backed per-session dir;
+- [ ] Sandboxed children's `TMPDIR` points at a disk-backed per-project dir;
       `mktemp -d` inside a sandboxed bash lands on disk, not tmpfs.
 - [ ] Open mode no longer binds host `/tmp` through under `session-disk`
       (narrower writable surface).
 - [ ] Block mode keeps the `/tmp` + socket-dir tmpfs masks under `session-disk`
       (IPC isolation preserved) while `TMPDIR` points at the disk dir.
-- [ ] Startup sweep reclaims stale project dirs (no `session_shutdown` removal — would race a concurrent sibling)
+- [ ] No cleanup: the project temp dir persists across sessions; `session_shutdown` leaves it in place.
       stale dirs older than the configured threshold.
 - [ ] `host-tmpfs` opt-out preserves today's exact behavior (regression guard).
 - [ ] Fail-closed when `session-disk` is set but the cache root resolves to
@@ -182,10 +174,7 @@ startup sweep reclaims it).
 `pinnedGitDirs`.** Compute the disk-backed, cwd-keyed project temp dir once
 at `session_start`, pin it on `SandboxPolicy`, and pass it to every
 `buildBwrapArgs` call (both the bash-ops path and `buildSandboxedSpawnArgs`).
-`buildBwrapArgs` binds it writable + sets `TMPDIR` to it. Cleanup is a
-startup sweep that reclaims stale project dirs (not `session_shutdown`
-removal — a concurrent sibling session in the same project would still be
-using the shared dir).
+`buildBwrapArgs` binds it writable + sets `TMPDIR` to it. No cleanup — the dir persists and stays warm across sessions.
 
 Why over alternatives:
 - *Global `TMPDIR` env override at process level* — rejected: the sandbox
@@ -330,13 +319,12 @@ leaves unset — note this as a known gap, see Risks).
 - [ ] Bash-ops path threads both into `buildBwrapArgs`.
 - [ ] `buildSandboxedSpawnArgs` accepts + threads both.
 
-### Unit 4: `session_start` derives the cwd-keyed dir + writes a pidfile; sweep reclaims orphaned project dirs by liveness
+### Unit 4: `session_start` derives the cwd-keyed dir; no cleanup
 **File**: `plugins/pi-sandbox/extensions/sandbox.ts`
 
 New module-level state (mirroring `pinnedBwrapPath`):
 ```ts
 let projectTmpDir: string | null = null;
-let projectTmpPidfile: string | null = null;  // path to this session's session-<pid>.pid
 ```
 
 At `session_start`, after config loads and the platform is Linux + bwrap is
@@ -346,65 +334,39 @@ resolved, when `config.filesystem?.tmpBackend ?? "session-disk" === "session-dis
 3. **Disk check** (fail-closed): compare `statSync(cacheRoot).dev` against
    `statSync("/tmp").dev` and `statSync("/dev/shm").dev` — if equal to either,
    the cache root is on tmpfs; fail-closed with `ctx.ui.notify` + status
-   (the whole point is disk). Document the exact check.
+   (the whole point is disk). One-line check; catches the real misconfig
+   where `~/.cache` is accidentally on tmpfs, which would silently re-defeat
+   the whole point.
 4. **Derive the per-project dir from the canonical cwd** (NOT `mkdtemp` — the
    dir must be stable + shared across concurrent sessions in the same project):
    - `const cwdKey = createHash("sha256").update(realpathSync(ctx.cwd)).digest("hex").slice(0, 16)`
    - `projectTmpDir = join(cacheRoot, cwdKey)`
    - `mkdirSync(projectTmpDir, { recursive: true })`
-   - Use a 16-char truncation of the sha256 of the realpath for a stable,
-     filesystem-safe, collision-resistant key. The realpath resolves
-     symlinks so two sessions whose cwd differs only by a symlink bind to
-     the same project dir.
-5. **Write this session's liveness marker** so the sweep can distinguish a
-   live session from an orphaned dir (mtime is NOT a safe liveness proxy —
-   an idle-but-live session would be wrongly swept):
-   - `projectTmpPidfile = join(projectTmpDir, \`session-${process.pid}.pid\`)`
-   - `writeFileSync(projectTmpPidfile, String(process.pid))`
-   - Each session writes its own `<pid>.pid`; concurrent same-project sessions
-     coexist as multiple pidfiles in the shared dir (no write contention).
-6. **Startup sweep — liveness-based, not mtime-based.** For each `<hash>`
-   sibling dir under the cache root (skip the current session's own dir, or
-   rather: the current session's pidfile is fresh so it counts as live):
-   - Read its `session-*.pid` files; for each, test liveness via
-     `process.kill(pid, 0)` (throws `ESRCH` if dead).
-   - If ANY pidfile is live → dir is IN USE → skip it entirely.
-   - If all pids are dead (or the dir has no pidfiles) → orphaned →
-     `rmSync(dir, { recursive: true, force: true })`.
-   - Best-effort: swallow `ENOENT`/`EACCES`/`EPERM` per entry.
-   - **PID-reuse safety**: if a dead session's PID was reused by an unrelated
-     live process, `kill(pid, 0)` succeeds → sweep skips (dir lingers). The
-     only failure mode is "leaves a stale dir around longer," NEVER "deletes
-     a live session's dir." That asymmetry is the whole point.
-7. Pin `projectTmpDir` + `tmpBackend` onto `sandboxPolicy`.
+   - 16-char truncation of the sha256 of the realpath: stable, filesystem-safe,
+     collision-resistant. The realpath resolves symlinks so two sessions whose
+     cwd differs only by a symlink bind to the same project dir.
+5. Pin `projectTmpDir` + `tmpBackend` onto `sandboxPolicy`.
 
-**`session_shutdown` removes only THIS session's pidfile** (best-effort):
-```ts
-if (projectTmpPidfile && existsSync(projectTmpPidfile)) {
-  rmSync(projectTmpPidfile, { force: true });
-}
-projectTmpDir = null;
-projectTmpPidfile = null;
-```
-It does NOT remove the project dir itself (a concurrent sibling may still be
-using it). After the last session in a project removes its pidfile, the dir
-has no live pidfiles and the next sweep reclaims it.
+**No cleanup.** The dir is per-project (bounded by project count, small), temp
+files are created and deleted by their processes normally, and the orphaned-WAL
+case is ~850KB files on a 26G disk. The dir persists and stays warm across
+sessions — which is what you want. If disk growth ever matters, OS tooling
+(`systemd-tmpfiles`, a cron) is the standard answer for cache-dir hygiene, not
+a custom protocol baked into a sandbox extension. No sweep, no pidfiles, no
+liveness checks, no `session_shutdown` removal.
 
-Also reset `projectTmpDir = null` (and `projectTmpPidfile = null`) at every
-early-return branch in `session_start` (no-sandbox, parse error, disabled,
-degrade, fail-closed) — match the existing reset pattern for
-`pinnedBwrapPath`.
+Reset `projectTmpDir = null` at every early-return branch in `session_start`
+(no-sandbox, parse error, disabled, degrade, fail-closed) — match the existing
+reset pattern for `pinnedBwrapPath`. No `session_shutdown` temp-dir action
+needed (the dir outlives the session by design).
 
 **Acceptance Criteria**:
 - [ ] `session_start` creates `~/.cache/pi-sandbox/tmp/<cwd-hash>/` under `session-disk`.
-- [ ] `session_start` writes `session-<pid>.pid` into the project dir.
-- [ ] Two sessions with the same realpath cwd resolve to the SAME `projectTmpDir` (and coexist as two pidfiles).
+- [ ] Two sessions with the same realpath cwd resolve to the SAME `projectTmpDir`.
 - [ ] Two sessions with different cwns resolve to DIFFERENT dirs.
 - [ ] Cache root on tmpfs → fail-closed with a clear status, no project temp dir bound.
-- [ ] Sweep removes a dir whose pidfiles are ALL dead; preserves a dir with any live pid.
-- [ ] Sweep does NOT remove a dir when a live session holds it, regardless of mtime (idle-but-live is safe).
-- [ ] `session_shutdown` removes only this session's pidfile, not the project dir.
-- [ ] Early-return branches reset `projectTmpDir` + `projectTmpPidfile` to null.
+- [ ] Early-return branches reset `projectTmpDir = null`.
+- [ ] `session_shutdown` leaves the project temp dir in place.
 
 
 ### Unit 5: Tests
@@ -418,11 +380,7 @@ Arg-level + integration:
 - `host-tmpfs` block: `--setenv TMPDIR /tmp` (regression guard, existing test at `sandbox.test.ts:3183` kept).
 - Integration: sandboxed `mktemp -d` lands under the session dir; `stat -c %m` /
   `findmnt` confirms it's not tmpfs-backed.
-- Integration: startup sweep removes a stale project dir; a concurrent
-  session's fresh dir survives.
-- Startup sweep (liveness): a dir whose `session-<pid>.pid` points at a DEAD pid is removed; a dir whose pidfile points at a LIVE pid survives (regardless of mtime).
-- Idle-but-live: a session whose pid is alive but whose dir hasn't been written in >24h is NOT swept.
-- `session_shutdown` removes the session's own pidfile but not the project dir; a second live session's pidfile keeps the dir.
+- Integration: the project temp dir persists across a `session_shutdown`.
 - Fail-closed: cache root forced onto tmpfs (test fixture) → fail-closed status, no bind.
 
 **Acceptance Criteria**:
@@ -434,7 +392,7 @@ Arg-level + integration:
 
 README `## Configuration` + `## Network modes`:
 - Document `filesystem.tmpBackend`, default `session-disk`, the `host-tmpfs`
-  opt-out, the per-session lifecycle, and the liveness-based startup sweep.
+  opt-out, the per-project lifecycle, and the no-cleanup posture.
 - Update the `block` mode paragraph: `TMPDIR` now points at the disk-backed
   project temp dir under `session-disk` (default); the `/tmp` tmpfs mask
   remains for IPC isolation.
@@ -457,7 +415,7 @@ THREAT_MODEL: add a line under the existing private-tmpfs residual note
 1. Unit 1 — config field + default + validation (foundation; unblocks all others)
 2. Unit 2 — `buildBwrapArgs` branch (the trickiest unit; validated in isolation by Unit 5 arg tests)
 3. Unit 3 — `SandboxPolicy` field + thread through both spawn paths
-4. Unit 4 — `session_start`/`session_shutdown` lifecycle + startup sweep (depends on 2+3)
+4. Unit 4 — `session_start` derives the cwd-keyed dir (depends on 2+3)
 5. Unit 5 — tests (accrue across 2-4; the integration tests need 4)
 6. Unit 6 — docs (last; reflects the landed behavior)
 
@@ -485,18 +443,13 @@ for the disk-destination and lifecycle claims (the existing
   `/dev/shm` catches the common case (cache root accidentally on tmpfs) but
   isn't a general "is this real disk" test. Acceptable: the failure mode is
   fail-closed with a clear message, not silent RAM use. Document the heuristic.
-- **Concurrent sessions + shared project dir.** The dir is cwd-keyed, so
-  concurrent sessions in the *same* project SHARE one dir (no inter-session
-  isolation — acceptable, they're cooperating peers). The sweep must NOT
-  remove a live session's dir: this is enforced by pidfile liveness
-  (`session-<pid>.pid` + `process.kill(pid, 0)`), NOT mtime. An idle-but-live
-  session keeps its dir regardless of how long it has been idle, because its
-  pid is alive. Only dirs whose pidfiles are ALL dead get reclaimed. The
-  residual is one-directional and safe: a dead session whose PID was reused
-  by an unrelated live process lingers (sweep skips it) — "leaves a stale
-  dir around longer," never "deletes a live session's dir." No 24h mtime
-  threshold remains; cleanup is prompt (next sweep after the last session
-  dies).
+- **No cleanup — disk growth.** The project temp dir is never swept or
+  removed; it can grow over months/years of use. Accepted: the dir is
+  per-project (bounded by project count), temp files are created/deleted by
+  their processes normally, and the disk is 26G with small temp files. If
+  growth ever matters, OS tooling (`systemd-tmpfiles`, a cron) handles
+  cache-dir hygiene generically — not a custom protocol in the sandbox
+  extension. Flagged here so it's a conscious decision, not a surprise.
 
 ## Notes
 
