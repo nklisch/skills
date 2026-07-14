@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: implementing
+stage: drafting
 tags: [sandbox]
 parent: null
 depends_on: []
@@ -610,3 +610,54 @@ STILL fails open, plus two new blockers the fix round introduced.
 ### Notes
 - R2-I5 (focused tests) and R2-I6 (/sandbox wiring) remain parked — acceptable to defer; not blockers.
 - The reviewers noted the B1 test is now structurally load-bearing and passed locally.
+
+## Implementation discovery (2026-07-13): the detection + init-sequence design needs re-grounding
+
+Three deep review rounds, three bounces. The pattern is not a string of
+independent implementation bugs — it signals that two specific areas of the
+design are genuinely hard to get right by iteration, and the adversarial
+thinking that should have happened at design time is being done (belatedly) by
+the reviewers instead of me. Setting back to `drafting` for a focused
+redesign of these two areas before more implementation.
+
+### The recurring fail-open (R2-B1 → R3-B1)
+The "is this disk-backed?" check has failed open three different ways across
+two rounds. Root cause: I've been building a RAM-backed *blocklist* (catch
+tmpfs/ramfs, accept everything else) when the correct shape is a disk-backed
+*allowlist* (recognize ext4/xfs/btrfs/zfs, default-deny everything else).
+But even an allowlist leaves "is an overlay backed by tmpfs?" which no
+runtime fs-type check fully resolves. The deeper design question — not yet
+answered — is whether runtime detection is even the right mechanism: an
+operator *asserts* `XDG_CACHE_HOME` and knows their own filesystem, and a
+determined operator can defeat any runtime check with a bind mount. A
+redesign must decide between (a) a real disk-backed allowlist with a tested
+default-deny invariant, or (b) dropping runtime detection in favor of
+operator-assertion + documentation. Both are more honest than iterating the
+heuristic.
+
+### The init-sequence dual source of truth (B1, R2-B2, R3-B2)
+Two bounces came from the module-level accessor state and the `sandboxPolicy`
+object having different lifecycles and diverging (B1); R3-B2 came from the
+platform-check-vs-derivation-vs-policy-construction ordering being coupled
+enough that each reorder breaks something (moving derivation late broke the
+degrade-path file-tool policy). The structural fix: derive everything into a
+single local `SessionInit` record, validate it fully, THEN construct the
+policy once from that record. One source of truth, one construction site.
+Eliminates the whole class of "policy captures stale/null placeholders" bugs.
+
+### What does NOT need redesign
+The core feature — bind a disk dir as `TMPDIR`, per-project, no cleanup — is
+sound and largely implemented correctly. The arg-builder branching
+(sandbox-bwrap.ts), the config schema, the accessor threading, and the
+host-tmpfs regression guard are all fine. No re-scoping needed; the two areas
+above are localized.
+
+### Pre-mortem the redesign must run
+"An attacker controls the shared (sandbox-writable) project temp dir. At each
+step of session_start — cache-root creation, project-dir creation, any probe —
+what can they do?" This is the adversarial lens that would have caught R3-B3
+(the write-probe symlink truncation escape) and the recurring fail-open
+before code. R3-B3 in particular: `mkdirSync(projectTmpDir, {recursive:true})`
+already proves the dir exists and the parent is writable; the separate write
+probe I added for "safety" introduced a symlink-truncation vector and added
+zero safety. **Delete the write probe. Don't replace it.**
