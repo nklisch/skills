@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: implementing
+stage: review
 tags: [sandbox]
 parent: null
 depends_on: []
@@ -512,3 +512,20 @@ the same two blockers.
 
 ### Notes
 - Deny-overlay precedence is sound (denies fire after the project-dir bind). Concurrent `mkdirSync` on the same project dir is safe. `session_shutdown` correctly leaves the dir in place. `deepMerge` now carries `tmpBackend` correctly (confirmed by both reviewers). Pre-init/post-shutdown background resolution correctly fail-closes rather than falling back to host `/tmp`.
+
+## Implementation notes (review-fix round, 2026-07-13)
+
+Addressed the 2 blockers + importants from the deep review.
+
+- **B1 fixed**: moved the projectTmpDir/tmpBackend derivation to BEFORE `sandboxPolicy` construction (sandbox.ts ~line 656). The policy now captures the resolved values, not null placeholders. Added a real session_start→derivation regression test (moved into the entrypoint describe block so it can reuse `loadSandboxEntrypoint`, parametrized to accept a config override + return the accessors).
+- **B2 fixed**: replaced the `st_dev`-vs-`/tmp` heuristic with a filesystem-TYPE check via `statfsSync` — `filesystemTypeOf()` rejects tmpfs/ramfs/devtmpfs directly on both the cache root AND the final project dir. Added the magic-number mapping (0x01021994 tmpfs, 0x858458f6 ramfs, 0x9fa0 devtmpfs).
+- **I1 fixed**: README narrowed — open-mode `session-disk` no longer claims read/socket isolation; it's a write narrowing (host `/tmp` stays readable via the root bind, sockets connectable). THREAT_MODEL gap note corrected to match.
+- **I2 fixed**: `/tmp`+`/var/tmp` filtering now canonicalizes the roots (catches symlinked `/tmp`) and rejects mounts equal to OR nested beneath them (so `allowWrite:["/tmp/foo"]` is also skipped).
+- **I3 fixed**: added a reject-cache-root-nested-under-block-mask check (`/tmp`, `/var/tmp`, `/run`, `/var/run`) — the project dir would be hidden by a later parent `--tmpfs` in block mode.
+- **I4 fixed**: relative/empty `XDG_CACHE_HOME` now fail-closes (would produce a relative `TMPDIR` diverging from the canonicalized bind).
+- **I6 fixed**: `mergeProjectAdditive` now warns + ignores project-local `tmpBackend` (global/operator-only, like `allowGitDirDiscovery`).
+- **I7 fixed**: `/sandbox` command now reports the effective `Temp backend` line.
+- **I8 fixed**: `buildBwrapArgs` throws on unknown `tmpBackend` strings (no silent fall-through to host-tmpfs).
+- **I9 fixed**: THREAT_MODEL corrected — directory count is bounded by project count, but bytes are not (daemon-style sessions can fill the volume); documented OS cache hygiene / quota as the mitigation.
+- **N1 fixed**: spawn-test fixtures deduped (removed misplaced `tmpBackend` lines that landed inside `baseEnv` object literals).
+- Background-tasks test harness: its own `loadSandboxEntrypoint` copy now writes a `host-tmpfs` config (same reason as the pi-sandbox entrypoint test — `~/.cache` is read-only in CI, session-disk would fail-close and break the bridge-handshake test).

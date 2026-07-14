@@ -1609,6 +1609,12 @@ describe("session-start sandbox bridge handshake", () => {
       parameters: {},
       execute: async () => ({ content: [{ type: "text", text: "stub" }] }),
     });
+    // These tests assert the bridge handshake + tool_call gating, not the
+    // session-disk temp-dir derivation. Write a host-tmpfs config so
+    // session_start does not fail-closed on the (read-only in CI) ~/.cache
+    // cache root that session-disk requires.
+    await mkdir(join(agentDir, "extensions"), { recursive: true });
+    await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({ filesystem: { tmpBackend: "host-tmpfs" } }));
     mock.module("@earendil-works/pi-coding-agent", () => ({
       getAgentDir: () => agentDir,
       createBashTool: () => tool("bash"),
