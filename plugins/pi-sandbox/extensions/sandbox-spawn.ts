@@ -9,6 +9,7 @@ import {
 import { loadConfig } from "./sandbox-config";
 import { scrubEnvironment, type EnvScrubConfig } from "./sandbox-env";
 import type { BackgroundTasksSandboxIntegration } from "./sandbox-config";
+import { getProjectTmpDir, getTmpBackend } from "./sandbox";
 
 /** Env-var names known to carry provider/runtime secrets. In degraded/unsandboxed
  * spawn modes these are stripped from the inherited env so a background or monitor
@@ -110,6 +111,12 @@ export interface SandboxSpawnOptions {
 	 * omitted, no git dirs are bound (the safe pre-feature default).
 	 */
 	pinnedGitDirs?: string[];
+	/** Override the session-pinned project temp dir (for tests). Production callers
+	 *  omit this and buildSandboxedSpawnArgs reads getProjectTmpDir() instead. */
+	projectTmpDir?: string | null;
+	/** Override the tmpBackend (for tests). Production callers omit this and
+	 *  buildSandboxedSpawnArgs reads getTmpBackend() instead. */
+	tmpBackend?: "session-disk" | "host-tmpfs";
 	agentDir?: string;
 	platform?: NodeJS.Platform;
 	/** Test/diagnostic override for platform readiness; production callers should omit this. */
@@ -306,6 +313,15 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 				// with trusted pinned git dirs may pass them via opts.pinnedGitDirs.
 				pinnedGitDirs: opts.pinnedGitDirs,
 				networkMode,
+				// Thread the session-pinned project temp dir + tmpBackend from the sandbox
+				// extension's session state. Under session-disk (the default) this MUST be
+				// set or buildBwrapArgs throws fail-closed — reading it via the accessor
+				// (rather than opts) keeps the background/monitor call-site unchanged and
+				// matches how pinnedBwrapPath already works (module-level state read inside
+				// the extension). A caller may still override via opts.projectTmpDir/
+				// opts.tmpBackend for tests.
+				projectTmpDir: opts.projectTmpDir ?? getProjectTmpDir() ?? undefined,
+				tmpBackend: opts.tmpBackend ?? getTmpBackend(),
 				env: okEnv,
 			}),
 			"--",

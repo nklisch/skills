@@ -58,7 +58,9 @@ describe("buildSandboxedSpawnArgs", () => {
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
+			tmpBackend: "host-tmpfs",
 			baseEnv: {
+			tmpBackend: "host-tmpfs",
 				PATH: "/usr/bin",
 				HOME: "/home/test",
 				LANG: "C.UTF-8",
@@ -87,8 +89,11 @@ describe("buildSandboxedSpawnArgs", () => {
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
+			tmpBackend: "host-tmpfs",
 			baseEnv: { PATH: "/usr/bin" },
+			tmpBackend: "host-tmpfs",
 			envAdd: { TERM: "xterm-256color", LC_ALL: "C", FOO_CONFIG: "keep-me", OPENAI_API_KEY: "sk-leak" },
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.state).toBe("ok");
@@ -128,7 +133,9 @@ describe("buildSandboxedSpawnArgs", () => {
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
+			tmpBackend: "host-tmpfs",
 			baseEnv: { PATH: "/usr/bin", LC_ALL: "C.UTF-8", LC_FORGE_TOKEN: "secret-forge-token" },
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.state).toBe("ok");
@@ -159,7 +166,9 @@ describe("buildSandboxedSpawnArgs", () => {
 			agentDir,
 			platform: "linux",
 			baseEnv: process.env,
+			tmpBackend: "host-tmpfs",
 			envAdd: { PATH: poisonedPath },
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.state).toBe("ok");
@@ -190,7 +199,9 @@ describe("buildSandboxedSpawnArgs", () => {
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
+			tmpBackend: "host-tmpfs",
 			baseEnv: { PATH: "/usr/bin", FOO_SECRET: "kept-in-degrade" },
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result).toMatchObject({
@@ -213,8 +224,11 @@ describe("buildSandboxedSpawnArgs", () => {
 			agentDir,
 			platform: "darwin",
 			bwrapAvailable: false,
+			tmpBackend: "host-tmpfs",
 			baseEnv: { PATH: "/usr/bin" },
+			tmpBackend: "host-tmpfs",
 			envAdd: { FOO_SECRET: "still-present-when-unsandboxed" },
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result).toMatchObject({
@@ -285,6 +299,7 @@ describe("buildSandboxedSpawnArgs", () => {
 				platform,
 				bwrapAvailable,
 				baseEnv: {
+				tmpBackend: "host-tmpfs",
 					...baseProviderEnv,
 					GITHUB_TOKEN: "github-operator-token",
 					GH_TOKEN: "github-cli-alternate-token",
@@ -329,7 +344,9 @@ describe("buildSandboxedSpawnArgs", () => {
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
+			tmpBackend: "host-tmpfs",
 			baseEnv: { PATH: "/usr/bin" },
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result).toMatchObject({
@@ -352,7 +369,9 @@ describe("buildSandboxedSpawnArgs", () => {
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: false,
+			tmpBackend: "host-tmpfs",
 			baseEnv: { PATH: "/usr/bin" },
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result).toMatchObject({
@@ -378,7 +397,9 @@ describe("buildSandboxedSpawnArgs", () => {
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
+			tmpBackend: "host-tmpfs",
 			baseEnv: { PATH: "/usr/bin" },
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result).toMatchObject({
@@ -408,7 +429,9 @@ describe("buildSandboxedSpawnArgs", () => {
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
+			tmpBackend: "host-tmpfs",
 			baseEnv: { PATH: "/usr/bin" },
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.state).toBe("ok");
@@ -432,7 +455,9 @@ describe("buildSandboxedSpawnArgs", () => {
 			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
+			tmpBackend: "host-tmpfs",
 			baseEnv: { PATH: "/usr/bin" },
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.state).toBe("ok");
@@ -462,6 +487,7 @@ describe("buildSandboxedSpawnArgs bwrap integration", () => {
 			agentDir,
 			platform: "linux",
 			baseEnv: process.env,
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.state).toBe("ok");

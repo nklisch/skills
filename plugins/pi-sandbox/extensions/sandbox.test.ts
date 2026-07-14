@@ -316,6 +316,12 @@ describe("sandbox extension entrypoint", () => {
 			parameters: {},
 			execute: async () => ({ content: [{ type: "text", text: "stub" }] }),
 		});
+		// This test asserts the extension entrypoint wiring (flags, tools,
+		// command, handlers), not the session-disk temp-dir derivation. Write a
+		// host-tmpfs config so session_start does not fail-closed on the (likely
+		// read-only in CI) ~/.cache cache root that session-disk requires.
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({ filesystem: { tmpBackend: "host-tmpfs" } }));
 		mock.module("@earendil-works/pi-coding-agent", () => ({
 			getAgentDir: () => agentDir,
 			createBashTool: () => tool("bash"),
@@ -2080,6 +2086,7 @@ describe("buildBwrapArgs", () => {
 			denyWrite: ["secret-file"],
 			denyRead: ["secret-dir", ".git"],
 			networkMode: "block",
+			tmpBackend: "host-tmpfs",
 			// Callers pre-scrub the env (the bash path builds minimalEnv via
 			// buildMinimalEnv; the background path runs scrubEnvironment with
 			// PROVIDER_SECRET_ENV_NAMES). buildBwrapArgs emits what it is given
@@ -2119,6 +2126,7 @@ describe("buildBwrapArgs", () => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "block",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 		expect(args).toContain("--unshare-net");
@@ -2159,6 +2167,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: [],
 				denyWrite: [],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 				// env intentionally OMITTED
 			});
 			expect(args).not.toContain("sentinel-must-not-appear");
@@ -2180,6 +2189,7 @@ describe("buildBwrapArgs", () => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin", TMPDIR: "/host/tmp" },
 		});
 		const blockArgs = buildBwrapArgs({
@@ -2189,12 +2199,101 @@ describe("buildBwrapArgs", () => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "block",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin", TMPDIR: "/host/tmp" },
 		});
 
 		expectSequence(openArgs, ["--setenv", "TMPDIR", "/host/tmp"]);
 		expectSequence(blockArgs, ["--setenv", "TMPDIR", "/tmp"]);
 		expect(blockArgs).not.toContain("/host/tmp");
+	});
+
+	test("session-disk binds the project temp dir and forces TMPDIR to it (open mode)", async () => {
+		const cwd = await makeTempDir();
+		const projectTmpDir = await mkdtemp(join(tmpdir(), "pi-sandbox-projtmp-"));
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [".", "/tmp"],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "session-disk",
+			projectTmpDir,
+			env: { PATH: "/usr/bin", TMPDIR: "/host/tmp" },
+		});
+
+		// TMPDIR forced to the project dir, not the inherited /host/tmp.
+		expectSequence(args, ["--setenv", "TMPDIR", projectTmpDir]);
+		expect(args).not.toContain("/host/tmp");
+		// The project dir is bound writable.
+		expectSequence(args, ["--bind", projectTmpDir, projectTmpDir]);
+		// Host /tmp is NOT bound through even though it appears in allowWrite.
+		const tmpBinds = args.reduce<string[]>((acc, val, i) => {
+			if (val === "--bind" && args[i + 1] === "/tmp") acc.push(val);
+			return acc;
+		}, []);
+		expect(tmpBinds).toEqual([]);
+	});
+
+	test("session-disk throws fail-closed when projectTmpDir is absent", async () => {
+		const cwd = await makeTempDir();
+		expect(() => buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["."],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "session-disk",
+			env: { PATH: "/usr/bin" },
+		})).toThrow(/session-disk requires projectTmpDir/);
+	});
+
+	test("session-disk block mode keeps /tmp tmpfs mask and sets TMPDIR to the project dir", async () => {
+		const cwd = await makeTempDir();
+		const projectTmpDir = await mkdtemp(join(tmpdir(), "pi-sandbox-projtmp-"));
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "block",
+			tmpBackend: "session-disk",
+			projectTmpDir,
+			env: { PATH: "/usr/bin", TMPDIR: "/host/tmp" },
+		});
+
+		expect(args).toContain("--unshare-net");
+		// /tmp is still masked with tmpfs (IPC isolation preserved).
+		expectSequence(args, ["--tmpfs", realpathSync("/tmp")]);
+		// TMPDIR points at the project dir, not /tmp.
+		expectSequence(args, ["--setenv", "TMPDIR", projectTmpDir]);
+		expect(args).not.toContain("/host/tmp");
+		// The project dir is bound writable (in addition to the /tmp mask).
+		expectSequence(args, ["--bind", projectTmpDir, projectTmpDir]);
+	});
+
+	integrationTest("session-disk lands sandboxed mktemp on disk, not tmpfs /tmp", async () => {
+		const projectTmpDir = await mkdtemp(join(tmpdir(), "pi-sandbox-projtmp-"));
+		const cwd = await makeTempDir();
+		// mktemp -d must resolve under $TMPDIR (the project dir), and the project
+		// dir is on the same device as cwd's parent (both real-disk here), so it's
+		// not tmpfs. Verify the path prefix and that a write succeeds.
+		const script = `d=$(mktemp -d) && case "$d" in "${projectTmpDir}"/*) echo ok > "$d/proof" ;; *) exit 9 ;; esac`;
+		const result = runSandboxed(script, {
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["."],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "session-disk",
+			projectTmpDir,
+		});
+
+		expect(result.exitCode).toBe(0);
 	});
 
 	integrationTest("block mode actually spawns bwrap without failing (regression: /var/run symlink)", async () => {
@@ -2212,6 +2311,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: [],
 				denyWrite: [],
 				networkMode: "block",
+				tmpBackend: "host-tmpfs",
 				env: { PATH: "/usr/bin", HOME: "/tmp", TMPDIR: "/tmp" },
 			}),
 			"--",
@@ -2233,6 +2333,7 @@ describe("buildBwrapArgs", () => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 		expect(args).not.toContain("--unshare-net");
@@ -2248,6 +2349,7 @@ describe("buildBwrapArgs", () => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2266,6 +2368,7 @@ describe("buildBwrapArgs", () => {
 			denyRead: ["secret/sub", "secret"],
 			denyWrite: ["secret/sub"],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 		const parentFirst = buildBwrapArgs({
@@ -2275,6 +2378,7 @@ describe("buildBwrapArgs", () => {
 			denyRead: ["secret", "secret/sub"],
 			denyWrite: ["secret/sub"],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2299,6 +2403,7 @@ describe("buildBwrapArgs", () => {
 			denyRead: ["missing-read"],
 			denyWrite: ["missing-write"],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2321,6 +2426,7 @@ describe("buildBwrapArgs", () => {
 			denyWrite: [],
 			denyRead: ["secret-dir", "secret-file"],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2339,6 +2445,7 @@ describe("buildBwrapArgs", () => {
 			denyWrite: ["secret"],
 			denyRead: ["secret"],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2349,8 +2456,8 @@ describe("buildBwrapArgs", () => {
 
 	test("open and block network modes map to the expected bwrap argv", async () => {
 		const cwd = await makeTempDir();
-		const openArgs = buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open", env: { PATH: "/usr/bin" } });
-		const blockArgs = buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block", env: { PATH: "/usr/bin" } });
+		const openArgs = buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open", tmpBackend: "host-tmpfs", env: { PATH: "/usr/bin" } });
+		const blockArgs = buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block", tmpBackend: "host-tmpfs", env: { PATH: "/usr/bin" } });
 
 		expect(openArgs).not.toContain("--unshare-net");
 		expect(blockArgs).toContain("--unshare-net");
@@ -2358,7 +2465,7 @@ describe("buildBwrapArgs", () => {
 
 	test("filter mode fails closed instead of silently loosening to open", async () => {
 		const cwd = await makeTempDir();
-		expect(() => buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "filter", env: { PATH: "/usr/bin" } })).toThrow(/filter is deferred/);
+		expect(() => buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "filter", tmpBackend: "host-tmpfs", env: { PATH: "/usr/bin" } })).toThrow(/filter is deferred/);
 	});
 
 	test("relative config paths resolve against the session cwd", async () => {
@@ -2373,6 +2480,7 @@ describe("buildBwrapArgs", () => {
 			denyWrite: [],
 			denyRead: ["relative-secret"],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2394,6 +2502,7 @@ describe("buildBwrapArgs", () => {
 			denyWrite: [],
 			denyRead: ["secret-link"],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2418,6 +2527,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: [],
 				denyWrite: [".env"],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 				env: { PATH: "/usr/bin" },
 			}),
 		).toThrow(/hard links/);
@@ -2431,6 +2541,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: [".env"],
 				denyWrite: [],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 				env: { PATH: "/usr/bin" },
 			}),
 		).toThrow(/hard links/);
@@ -2446,6 +2557,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: [],
 				denyWrite: [".env"],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 				env: { PATH: "/usr/bin" },
 			}),
 		).not.toThrow();
@@ -2471,6 +2583,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: ["secret"],
 				denyWrite: [],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 				env: { PATH: "/usr/bin" },
 			}),
 		).toThrow(/hard links/);
@@ -2484,6 +2597,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: [],
 				denyWrite: ["secret"],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 				env: { PATH: "/usr/bin" },
 			}),
 		).toThrow(/hard links/);
@@ -2500,6 +2614,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: ["secret"],
 				denyWrite: [],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 				env: { PATH: "/usr/bin" },
 			}),
 		).not.toThrow();
@@ -2521,6 +2636,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: [".env"],
 				denyWrite: [],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 				env: { PATH: "/usr/bin" },
 			}),
 		).not.toThrow();
@@ -2544,6 +2660,7 @@ describe("buildBwrapArgs", () => {
 					denyRead: ["secret"],
 					denyWrite: [],
 					networkMode: "open",
+					tmpBackend: "host-tmpfs",
 					env: { PATH: "/usr/bin" },
 				}),
 			).toThrow(/cannot inspect denied directory/);
@@ -2567,6 +2684,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: ["*.pem"],
 				denyWrite: ["*.pem"],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 				env: { PATH: "/usr/bin" },
 			}),
 		).toThrow(/hard links/);
@@ -2581,6 +2699,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: ["*.pem"],
 				denyWrite: [],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 				env: { PATH: "/usr/bin" },
 			}),
 		).not.toThrow();
@@ -2601,6 +2720,7 @@ describe("buildBwrapArgs", () => {
 				denyRead: ["secret-*/  *.pem".replace(" ", "")],
 				denyWrite: [],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 				env: { PATH: "/usr/bin" },
 			}),
 		).toThrow(/glob characters in a parent directory path/);
@@ -2642,6 +2762,7 @@ describe("discoverGitDirs", () => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 		const canonicalUnrelatedGitDir = realpathSync(unrelatedGitDir);
@@ -2753,6 +2874,7 @@ describe("discoverGitDirs", () => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2771,6 +2893,7 @@ describe("discoverGitDirs", () => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2800,6 +2923,7 @@ describe("discoverGitDirs", () => {
 			denyRead: [],
 			denyWrite: [gitDir],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2847,6 +2971,7 @@ describe("discoverGitDirs", () => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 		expectSequence(args, ["--bind", realpathSync(origGitDir), realpathSync(origGitDir)]);
@@ -2946,6 +3071,7 @@ describe("discoverGitDirs", () => {
 			denyRead: [gitDir],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2977,6 +3103,7 @@ describe("discoverGitDirs", () => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 			env: { PATH: "/usr/bin" },
 		});
 
@@ -2997,6 +3124,7 @@ describe("bwrap integration", () => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.exitCode).toBe(0);
@@ -3014,6 +3142,7 @@ describe("bwrap integration", () => {
 			denyRead: [],
 			denyWrite: ["protected.txt"],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 		});
 		const dirResult = runSandboxed("touch protected-dir/new-file", {
 			cwd,
@@ -3021,6 +3150,7 @@ describe("bwrap integration", () => {
 			denyRead: [],
 			denyWrite: ["protected-dir"],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(fileResult.exitCode).not.toBe(0);
@@ -3040,6 +3170,7 @@ describe("bwrap integration", () => {
 			denyRead: ["secret-dir", "secret-file"],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.exitCode).toBe(0);
@@ -3058,6 +3189,7 @@ describe("bwrap integration", () => {
 			denyRead: ["secret"],
 			denyWrite: ["secret"],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.exitCode).not.toBe(0);
@@ -3076,6 +3208,7 @@ describe("bwrap integration", () => {
 				denyRead,
 				denyWrite: ["secret/sub"],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 			});
 
 			expect(text(result.stdout)).toContain("started");
@@ -3095,6 +3228,7 @@ describe("bwrap integration", () => {
 			denyRead: [".git"],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.exitCode).toBe(0);
@@ -3119,8 +3253,8 @@ describe("bwrap integration", () => {
 		try {
 			const port = server.port;
 			const command = `: < /dev/tcp/127.0.0.1/${port}`;
-			const openResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open" });
-			const blockResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block" });
+			const openResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open", tmpBackend: "host-tmpfs" });
+			const blockResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block", tmpBackend: "host-tmpfs" });
 
 			expect(openResult.exitCode).toBe(0);
 			expect(blockResult.exitCode).not.toBe(0);
@@ -3169,8 +3303,8 @@ socket.once("error", (error) => {
 
 		try {
 			const command = `${shellQuote(process.execPath)} ${shellQuote(clientPath)} ${shellQuote(socketPath)}`;
-			const openResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open" });
-			const blockResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block" });
+			const openResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open", tmpBackend: "host-tmpfs" });
+			const blockResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block", tmpBackend: "host-tmpfs" });
 
 			expect(openResult.exitCode).toBe(0);
 			expect(blockResult.exitCode).not.toBe(0);
@@ -3189,6 +3323,7 @@ socket.once("error", (error) => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "block",
+			tmpBackend: "host-tmpfs",
 		}, { ...process.env, TMPDIR: "/host/tmp" });
 
 		expect(result.exitCode).toBe(0);
@@ -3204,6 +3339,7 @@ socket.once("error", (error) => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.exitCode).toBe(0);
@@ -3225,6 +3361,7 @@ socket.once("error", (error) => {
 			denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 		}, env);
 		const output = text(result.stdout);
 
@@ -3252,6 +3389,7 @@ socket.once("error", (error) => {
 			denyRead: [join(outside, "secret-dir")],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.exitCode).toBe(0);
@@ -3299,6 +3437,7 @@ socket.once("error", (error) => {
 				denyRead: [],
 				denyWrite: [],
 				networkMode: "open",
+				tmpBackend: "host-tmpfs",
 			},
 			{ ...process.env, HOME: tempHome },
 		);
@@ -3322,6 +3461,7 @@ socket.once("error", (error) => {
 			denyRead: DEFAULT_CONFIG.filesystem.denyRead,
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 		}, { ...process.env, HOME: tempHome });
 
 		expect(result.exitCode).toBe(0);
@@ -3343,6 +3483,7 @@ socket.once("error", (error) => {
 				denyRead: [],
 			denyWrite: [],
 			networkMode: "open",
+			tmpBackend: "host-tmpfs",
 		});
 
 		expect(result.exitCode).toBe(0);

@@ -318,6 +318,8 @@ This is the single source of truth for the 0.1.0 package promise.
 
 ### Known 0.1.0 gaps
 
+- `filesystem.tmpBackend` defaults to `session-disk`: sandboxed temp files land on a disk-backed per-project dir (`~/.cache/pi-sandbox/tmp/<cwd-hash>/`) rather than the host `/tmp` tmpfs. Open mode no longer binds host `/tmp` through (a narrower writable surface); block mode keeps the `/tmp` tmpfs mask for IPC isolation while `TMPDIR` points at the disk dir. The dir is never swept (no cleanup); disk growth is bounded by project count and standard OS cache hygiene (`systemd-tmpfiles`/cron). The extension fail-closes if the cache root resolves to tmpfs.
+
 - Pi RPC/API direct `bash` bypasses this extension's mediated bash path.
 - The inspector scans input, not output. In particular, `jobs action=tail` can
   return a secret a background command wrote to its buffer without redaction.

@@ -37,6 +37,14 @@ export interface SandboxPolicy {
 	cwd: string;
 	networkMode: NetworkMode;
 	toolRules?: ToolRules;
+	/** Pinned per-project disk-backed temp dir (trusted init state) when
+	 *  tmpBackend==="session-disk"; null for host-tmpfs and for the
+	 *  fail-closed/permissive policies. Bound writable + TMPDIR set to it
+	 *  by buildBwrapArgs. Cwd-keyed: shared across concurrent sessions in
+	 *  the same project. */
+	projectTmpDir: string | null;
+	/** Mirrors config; drives buildBwrapArgs branch selection. */
+	tmpBackend: "session-disk" | "host-tmpfs";
 }
 
 /** Restrictive policy used whenever config parsing/validation fails or startup policy is absent. */
@@ -49,6 +57,8 @@ export function createFailClosedPolicy(cwd: string): SandboxPolicy {
 		cwd,
 		networkMode: "block",
 		toolRules: { default: "block", rules: {} },
+		projectTmpDir: null,
+		tmpBackend: "host-tmpfs",
 	};
 }
 
@@ -62,6 +72,8 @@ export function createPermissivePolicy(cwd: string): SandboxPolicy {
 		cwd,
 		networkMode: "open",
 		toolRules: { default: "allow", rules: {} },
+		projectTmpDir: null,
+		tmpBackend: "host-tmpfs",
 	};
 }
 

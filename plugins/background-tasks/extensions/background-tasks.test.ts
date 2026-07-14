@@ -170,6 +170,9 @@ function isolatedSandboxResolver(agentDir: string): () => Promise<SandboxSpawnRe
       agentDir,
       platform: "linux",
       bwrapAvailable: true,
+      // These integration tests assert the legacy host-tmpfs temp behavior; they do
+      // not set up the session-pinned project temp dir that session-disk requires.
+      tmpBackend: "host-tmpfs",
     })) as BuildSandboxedSpawnArgs,
   });
 }

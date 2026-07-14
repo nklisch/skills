@@ -18,6 +18,13 @@ export interface SandboxFilesystem {
 	allowWrite?: string[];
 	/** Global/operator-only switch for gitfile targets outside allowWrite roots. Defaults to false; operators who use submodules or linked worktrees opt in globally. */
 	allowGitDirDiscovery?: boolean;
+	/** Where sandboxed children put temp files.
+	 *  - "session-disk" (default): per-project dir on a disk-backed cache root,
+	 *    keyed by the canonical session cwd, bound writable + TMPDIR set to it.
+	 *    Open mode does NOT bind host /tmp.
+	 *  - "host-tmpfs": current behavior — host /tmp bound through (open) or masked
+	 *    with tmpfs (block). Preserved as an explicit opt-out. */
+	tmpBackend?: "session-disk" | "host-tmpfs";
 }
 
 export interface SandboxNetwork {
@@ -1431,6 +1438,7 @@ export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: Env
 		allowWrite: [".", "/tmp"],
 		denyWrite: [".env"],
 		allowGitDirDiscovery: false,
+		tmpBackend: "session-disk",
 	},
 	tools: {
 		default: "allow",
@@ -1479,12 +1487,15 @@ export function validateConfig(config: unknown): string[] {
 		if (!isRecord(config.filesystem)) {
 			errors.push("filesystem must be an object");
 		} else {
-			rejectUnknownKeys(config.filesystem, "filesystem", new Set(["denyRead", "denyWrite", "allowWrite", "allowGitDirDiscovery", "allowGitConfig"]), errors);
+			rejectUnknownKeys(config.filesystem, "filesystem", new Set(["denyRead", "denyWrite", "allowWrite", "allowGitDirDiscovery", "allowGitConfig", "tmpBackend"]), errors);
 			validateOptionalStringArray(config.filesystem.denyRead, "filesystem.denyRead", errors);
 			validateOptionalStringArray(config.filesystem.denyWrite, "filesystem.denyWrite", errors);
 			validateOptionalStringArray(config.filesystem.allowWrite, "filesystem.allowWrite", errors);
 			if (config.filesystem.allowGitDirDiscovery !== undefined && typeof config.filesystem.allowGitDirDiscovery !== "boolean") {
 				errors.push("filesystem.allowGitDirDiscovery must be a boolean");
+			}
+			if (config.filesystem.tmpBackend !== undefined && config.filesystem.tmpBackend !== "session-disk" && config.filesystem.tmpBackend !== "host-tmpfs") {
+				errors.push(`filesystem.tmpBackend must be "session-disk" or "host-tmpfs" (got ${JSON.stringify(config.filesystem.tmpBackend)})`);
 			}
 		}
 	}
@@ -1708,6 +1719,7 @@ export function deepMerge(base: SandboxConfig, overrides: Partial<SandboxConfig>
 			allowWrite: overrides.filesystem.allowWrite ?? base.filesystem?.allowWrite,
 			denyWrite: overrides.filesystem.denyWrite ?? base.filesystem?.denyWrite,
 			allowGitDirDiscovery: overrides.filesystem.allowGitDirDiscovery ?? base.filesystem?.allowGitDirDiscovery,
+			tmpBackend: overrides.filesystem.tmpBackend ?? base.filesystem?.tmpBackend,
 		};
 	}
 	if (overrides.tools) {

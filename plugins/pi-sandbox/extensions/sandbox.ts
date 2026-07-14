@@ -28,7 +28,11 @@
  */
 
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { realpathSync } from "node:fs";
 import {
 	assertNoHardlinkedDeniedFiles,
 	buildBwrapArgs,
@@ -77,6 +81,23 @@ import { Type } from "typebox";
 
 const loadPiConfig = (cwd: string) => loadConfig(cwd, { agentDir: getAgentDir() });
 
+/** Accessor for the pinned per-project disk-backed temp dir. Read by
+ *  buildSandboxedSpawnArgs (via sandbox-spawn.ts) so the background/monitor
+ *  path resolves the same project temp dir as the bash path. Returns null
+ *  before session_start resolves or under tmpBackend!="session-disk"; the
+ *  caller (buildSandboxedSpawnArgs) fails-closed when session-disk is active
+ *  but this returns null. */
+export function getProjectTmpDir(): string | null {
+	return projectTmpDir;
+}
+
+/** Accessor for the resolved tmpBackend. Read by buildSandboxedSpawnArgs so the
+ *  background/monitor path selects the same session-disk/host-tmpfs branch as
+ *  the bash path. */
+export function getTmpBackend(): "session-disk" | "host-tmpfs" {
+	return tmpBackend;
+}
+
 /**
  * Network egress lever. Decouples the filesystem sandbox from the network
  * namespace so the read/write protections hold regardless of network posture.
@@ -106,6 +127,15 @@ let activePolicy: SandboxPolicy | null = null;
 let envScrubConfig: EnvScrubConfig | null = null;
 let pinnedBwrapPath: string | null = null;
 let bwrapPinError: string | null = null;
+/** Pinned per-project disk-backed temp dir (trusted init state) when
+ *  tmpBackend==="session-disk"; null otherwise. Set at session_start, read by
+ *  the bash-ops path (via activePolicy) and by buildSandboxedSpawnArgs via the
+ *  getProjectTmpDir() accessor. Mirrors the pinnedBwrapPath pattern. */
+let projectTmpDir: string | null = null;
+/** The tmpBackend resolved at session_start (defaults to "session-disk"). Read
+ *  by buildSandboxedSpawnArgs via the getTmpBackend() accessor so the
+ *  background/monitor path selects the same branch as the bash path. */
+let tmpBackend: "session-disk" | "host-tmpfs" = "session-disk";
 
 function formatTrustedBwrapFailure(resolution: { reason: string; rejectedPath?: string }): string {
 	const rejected = resolution.rejectedPath ? ` Rejected path: ${resolution.rejectedPath}.` : "";
@@ -194,6 +224,8 @@ function createSandboxedBashOps(): BashOperations {
 					allowWrite: policy.allowWrite,
 					pinnedGitDirs: policy.pinnedGitDirs,
 					networkMode: policy.networkMode,
+					projectTmpDir: policy.projectTmpDir ?? undefined,
+					tmpBackend: policy.tmpBackend,
 					env: minimalEnv,
 				}),
 				"--",
@@ -503,6 +535,8 @@ export default function (pi: ExtensionAPI) {
 		activePolicy = null;
 		envScrubConfig = null;
 		pinnedBwrapPath = null;
+		projectTmpDir = null;
+		tmpBackend = "session-disk";
 		bwrapPinError = null;
 		backgroundTasksIntegrationDecisionBase = null;
 		backgroundTasksIntegrationState = {
@@ -627,6 +661,8 @@ export default function (pi: ExtensionAPI) {
 			cwd: ctx.cwd,
 			networkMode: netMode,
 			toolRules: config.tools,
+			projectTmpDir,
+			tmpBackend,
 		};
 		activePolicy = sandboxPolicy;
 
@@ -686,6 +722,51 @@ export default function (pi: ExtensionAPI) {
 		lastFailClosedReason = null;
 		backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 		backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+
+		// Derive the per-project disk-backed temp dir when tmpBackend==="session-disk"
+		// (the default). Pinned on the policy + module state, threaded through every
+		// buildBwrapArgs call (bash-ops + buildSandboxedSpawnArgs via the accessor).
+		// No cleanup — the dir persists across sessions; see feature-pi-sandbox-disk-backed-tmp.
+		tmpBackend = config.filesystem?.tmpBackend ?? "session-disk";
+		if (tmpBackend === "session-disk") {
+			const cacheRoot = join(process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"), "pi-sandbox", "tmp");
+			try {
+				mkdirSync(cacheRoot, { recursive: true });
+				// Disk check (fail-closed): if the cache root is on the same device as
+				// /tmp or /dev/shm, it's tmpfs-backed and would silently re-defeat the
+				// whole point. Fail closed with a clear status rather than use RAM.
+				const cacheDev = statSync(cacheRoot).dev;
+				const tmpDev = statSync("/tmp").dev;
+				const shmDev = existsSync("/dev/shm") ? statSync("/dev/shm").dev : tmpDev;
+				if (cacheDev === tmpDev || cacheDev === shmDev) {
+					failClosed = true;
+					lastFailClosedReason = `Sandbox tmpBackend=session-disk requires a disk-backed cache root, but ${cacheRoot} is on tmpfs (same device as /tmp or /dev/shm). Set XDG_CACHE_HOME to a disk-backed path or use tmpBackend:"host-tmpfs".`;
+					projectTmpDir = null;
+					backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+					ctx.ui.notify(lastFailClosedReason, "error");
+					publishCapability();
+					ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (cache root on tmpfs)"));
+					return;
+				}
+				// Per-project dir keyed by a stable hash of the canonical (realpath) cwd.
+				// realpath resolves symlinks so two sessions whose cwd differs only by a
+				// symlink bind to the same project dir. 16-char truncation: stable,
+				// filesystem-safe, collision-resistant.
+				const realCwd = realpathSync(ctx.cwd);
+				const cwdKey = createHash("sha256").update(realCwd).digest("hex").slice(0, 16);
+				projectTmpDir = join(cacheRoot, cwdKey);
+				mkdirSync(projectTmpDir, { recursive: true });
+			} catch (e) {
+				failClosed = true;
+				lastFailClosedReason = `Sandbox failed to create the project temp dir: ${e instanceof Error ? e.message : String(e)}`;
+				projectTmpDir = null;
+				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+				ctx.ui.notify(lastFailClosedReason, "error");
+				publishCapability();
+				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (project temp dir)"));
+				return;
+			}
+		}
 		publishCapability();
 
 		const networkCount = config.network?.allowedDomains?.length ?? 0;
@@ -708,6 +789,9 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("session_shutdown", async () => {
 		// First-party bwrap runs per command and leaves no shared runtime state to reset.
+		// The project temp dir is per-project (cwd-keyed) and shared across concurrent
+		// sessions in the same project, so it is NOT removed on shutdown — it persists
+		// and stays warm across sessions (see feature-pi-sandbox-disk-backed-tmp).
 		sandboxEnabled = false;
 		sandboxInitialized = false;
 		failClosed = false;
@@ -719,6 +803,8 @@ export default function (pi: ExtensionAPI) {
 		activePolicy = null;
 		envScrubConfig = null;
 		pinnedBwrapPath = null;
+		projectTmpDir = null;
+		tmpBackend = "session-disk";
 		bwrapPinError = null;
 		backgroundTasksIntegrationDecisionBase = null;
 		backgroundTasksIntegrationState = {
