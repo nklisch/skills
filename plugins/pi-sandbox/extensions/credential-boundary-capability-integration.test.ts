@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import { copyFile, link, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, link, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -53,6 +53,21 @@ async function registerSandbox(cwd: string, agentDir: string, noSandbox: boolean
 		await copyFile(join(agentDir, "extensions", "sandbox.json"), join(mockedAgentDir, "extensions", "sandbox.json"));
 	} catch (error) {
 		if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+	}
+	// These tests assert the credential-boundary capability handshake, not the
+	// session-disk temp-dir derivation. Force tmpBackend:"host-tmpfs" so the
+	// session-disk cache-root path (which needs a writable disk-backed
+	// ~/.cache and is tested separately) does not fail-closed the session here.
+	try {
+		const raw = await readFile(join(mockedAgentDir, "extensions", "sandbox.json"), "utf8");
+		const cfg = JSON.parse(raw);
+		cfg.filesystem = { ...(cfg.filesystem ?? {}), tmpBackend: "host-tmpfs" };
+		await writeFile(join(mockedAgentDir, "extensions", "sandbox.json"), JSON.stringify(cfg));
+	} catch (error) {
+		if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
+		// No sandbox.json was copied (agentDir had none). Write a minimal config
+		// that opts into host-tmpfs so the default session-disk path is not taken.
+		await writeFile(join(mockedAgentDir, "extensions", "sandbox.json"), JSON.stringify({ filesystem: { tmpBackend: "host-tmpfs" } }));
 	}
 	const tool = (name: string) => ({
 		name,

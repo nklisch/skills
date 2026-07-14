@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: implementing
+stage: review
 tags: [sandbox]
 parent: null
 depends_on: []
@@ -466,3 +466,18 @@ for the disk-destination and lifecycle claims (the existing
   tmp/socket masking in `story-pi-sandbox-block-mode-tmp-sockets` (done). No
   in-flight dependencies; `depends_on` left empty because the foundation is
   already done on this branch.
+
+## Implementation notes
+
+- Files changed:
+  - `plugins/pi-sandbox/extensions/sandbox-config.ts` — `SandboxFilesystem.tmpBackend` field, `DEFAULT_CONFIG.filesystem.tmpBackend: "session-disk"`, `rejectUnknownKeys` allowlist, `validateConfig` enum check, and **`deepMerge` filesystem branch carries `tmpBackend`** (the merge was dropping it — caught by the capability-handshake tests).
+  - `plugins/pi-sandbox/extensions/sandbox-bwrap.ts` — `BuildBwrapArgsOptions.projectTmpDir` + `tmpBackend`; `buildBwrapArgs` split into a session-disk branch (bind project dir, force `TMPDIR`, skip `/tmp`+`/var/tmp` in allowWrite binds) and a `host-tmpfs` branch (legacy). Block mode keeps the `/tmp` tmpfs mask in both branches.
+  - `plugins/pi-sandbox/extensions/sandbox-file-policy.ts` — `SandboxPolicy.projectTmpDir` + `tmpBackend`; `createFailClosedPolicy`/`createPermissivePolicy` null them.
+  - `plugins/pi-sandbox/extensions/sandbox.ts` — module-level `projectTmpDir`/`tmpBackend` state + exported `getProjectTmpDir()`/`getTmpBackend()` accessors; `session_start` derives the cwd-keyed dir (`sha256(realpath(cwd))[:16]` under `~/.cache/pi-sandbox/tmp/`), disk-backing fail-closed check (`statSync().dev` vs `/tmp` + `/dev/shm`), pins on the policy; `session_shutdown` leaves the dir in place (resets state only).
+  - `plugins/pi-sandbox/extensions/sandbox-spawn.ts` — `SandboxSpawnOptions.projectTmpDir`/`tmpBackend` (test overrides); `buildSandboxedSpawnArgs` reads `getProjectTmpDir()`/`getTmpBackend()` so the background/monitor path resolves the same session-pinned dir (path (a) from the risk note — no bridge contract widening).
+  - `plugins/pi-sandbox/README.md` + `docs/THREAT_MODEL.md` — `tmpBackend` config + the new "Temp backend" section + block-mode TMPDIR updates + the residual note.
+- Tests added (`sandbox.test.ts`): session-disk open mode binds project dir + forces TMPDIR + skips host `/tmp`; session-disk throws when `projectTmpDir` absent; session-disk block mode keeps `/tmp` mask + sets TMPDIR to project dir; integration test that `mktemp -d` lands under the project dir. Plus the `host-tmpfs` regression guard applied to all pre-existing `buildBwrapArgs`/`runSandboxed` call sites (33 arg-level + 13 integration + the background-tasks bridge builder).
+- Discrepancies from design:
+  - `deepMerge` did not carry `tmpBackend` (or `allowGitConfig`) — the design assumed the merge was field-agnostic. Fixed by adding `tmpBackend` to the filesystem merge branch; surfaced by the capability-handshake tests going fail-closed. (Pre-existing `allowGitConfig` had the same gap but is out of scope here.)
+  - The capability-handshake + extension-entrypoint tests run `session_start` against the default config, which now activates session-disk and needs a writable disk-backed `~/.cache` (read-only in CI). Fixed by having those test harnesses write a `tmpBackend: "host-tmpfs"` config — they test the handshake, not the temp-dir derivation.
+- Adjacent issues parked: none.

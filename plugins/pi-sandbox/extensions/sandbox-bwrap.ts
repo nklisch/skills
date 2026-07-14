@@ -28,6 +28,17 @@ export interface BuildBwrapArgsOptions {
 	pinnedGitDirs?: string[];
 	networkMode: NetworkMode;
 	env?: NodeJS.ProcessEnv;
+	/** When set, bind this disk-backed dir writable and force TMPDIR to it
+	 *  (both open and block modes). Replaces the host-/tmp bind (open) and
+	 *  the TMPDIR=/tmp forcing (block). Must be a canonical absolute path
+	 *  that exists on a non-tmpfs backing store — the caller (session_start)
+	 *  validates that. Per-project (cwd-keyed), shared across concurrent
+	 *  sessions in the same project. */
+	projectTmpDir?: string;
+	/** "session-disk" | "host-tmpfs"; defaults to "session-disk". When
+	 *  "session-disk" and projectTmpDir is absent, THROW (fail-closed): the
+	 *  caller must thread it through. */
+	tmpBackend?: "session-disk" | "host-tmpfs";
 }
 
 export function shouldBypassSandbox(noSandboxFlag: boolean, disabledViaConfig: boolean): boolean {
@@ -47,8 +58,35 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	const securityCwdRaw = opts.configCwd ?? process.cwd();
 	const securityCwd = canonicalizeExistingPath(resolve(securityCwdRaw)) ?? resolve(securityCwdRaw);
 	const sourceEnv = opts.env ?? buildMinimalEnv(process.env);
+	const tmpBackend = opts.tmpBackend ?? "session-disk";
+	if (tmpBackend === "session-disk") {
+		if (!opts.projectTmpDir) {
+			throw new Error("Sandbox tmpBackend=session-disk requires projectTmpDir (the pinned per-project disk temp dir). The session_start hook must derive and thread it through; never silently fall back to host /tmp.");
+		}
+		// Force TMPDIR to the disk-backed project dir for BOTH open and block
+		// modes — it replaces the block-mode TMPDIR=/tmp forcing and the
+		// open-mode host /tmp bind. The dir is bound writable below.
+		const childEnv = { ...sourceEnv, TMPDIR: opts.projectTmpDir };
+		const args = buildBwrapEnvArgs(childEnv);
+		return finishBwrapArgs(args, opts, tmpBackend, securityCwd, commandCwd, sourceEnv);
+	}
+	// host-tmpfs: today's behavior, byte-for-byte.
 	const childEnv = opts.networkMode === "block" ? { ...sourceEnv, TMPDIR: "/tmp" } : sourceEnv;
 	const args = buildBwrapEnvArgs(childEnv);
+	return finishBwrapArgs(args, opts, tmpBackend, securityCwd, commandCwd, sourceEnv);
+}
+
+/** Shared body of buildBwrapArgs for both tmpBackend branches. The caller has
+ *  already built `args` (env + --ro-bind / / --dev etc. are added here) and set
+ *  childEnv TMPDIR appropriately. */
+function finishBwrapArgs(
+	args: string[],
+	opts: BuildBwrapArgsOptions,
+	tmpBackend: "session-disk" | "host-tmpfs",
+	securityCwd: string,
+	commandCwd: string,
+	_sourceEnv: NodeJS.ProcessEnv,
+): string[] {
 
 	args.push("--ro-bind", "/", "/");
 	args.push("--dev", "/dev");
@@ -83,8 +121,15 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 	// also an explicit allowWrite entry is bound once. The deny overlays below
 	// fire after these binds, so denyRead/denyWrite precedence is preserved.
 	const writableMounts = new Set<string>();
+	// Under session-disk, host /tmp and /var/tmp are NOT bound through even if
+	// listed in allowWrite — the project temp dir (bound below) is the temp
+	// target, and binding host /tmp would re-expose its accumulated files and
+	// sockets (the narrower-surface win). Under host-tmpfs, /tmp binds through
+	// in open mode as today.
+	const tmpHostPaths = new Set(["/tmp", "/var/tmp"]);
 	for (const mount of existingCanonicalMounts(opts.allowWrite, securityCwd)) {
 		if (writableMounts.has(mount)) continue;
+		if (tmpBackend === "session-disk" && tmpHostPaths.has(mount)) continue;
 		writableMounts.add(mount);
 		args.push("--bind", mount, mount);
 	}
@@ -93,6 +138,17 @@ export function buildBwrapArgs(opts: BuildBwrapArgsOptions): string[] {
 		if (!canonical || writableMounts.has(canonical)) continue;
 		writableMounts.add(canonical);
 		args.push("--bind", canonical, canonical);
+	}
+	// Under session-disk, bind the project temp dir writable. It is the
+	// canonical temp dir (TMPDIR was set to it above). Placed after the
+	// allowWrite/git-dir binds and before the deny overlays so deny precedence
+	// is preserved (a deny entry under the project dir still wins).
+	if (tmpBackend === "session-disk" && opts.projectTmpDir) {
+		const canonical = canonicalizeExistingPath(opts.projectTmpDir) ?? opts.projectTmpDir;
+		if (!writableMounts.has(canonical)) {
+			writableMounts.add(canonical);
+			args.push("--bind", canonical, canonical);
+		}
 	}
 
 	for (const mount of existingDenyOverlays(opts.denyRead, opts.denyWrite, securityCwd)) {
