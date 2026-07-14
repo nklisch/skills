@@ -28,7 +28,7 @@ does not help the memory pressure either.
 The VM's `/` is an LVM ext4 volume with 26G free — plenty of real disk. The
 goal is to redirect sandboxed children's `TMPDIR` to a **disk-backed
 per-project temp dir**, bind *that* dir (not host `/tmp`) into the sandbox,
-and reclaim stale dirs on startup. This both removes the RAM pressure and
+with no cleanup. This both removes the RAM pressure and
 narrows the writable surface (children see only their project's temp, not
 the host's accumulated orphaned SQLite sidecars, ssh-agent sockets, etc.).
 
@@ -42,6 +42,13 @@ restarts within a project. Concurrent sessions in the same project write to
 the same temp dir (no isolation between them) — acceptable because sessions
 in the same project are already cooperating peers on the agent mesh.
 No cleanup — the dir persists and stays warm across sessions (see Risks).
+
+**Naming note.** The config enum is `tmpBackend: "session-disk"` (the
+*backend* name — disk vs host-tmpfs) while the dir scope is per-project.
+This is deliberate: the enum names the storage backend, not the dir's
+sharing scope, and is now a shipped config contract. Do not "fix" the
+mismatch by renaming the enum. The schema comment in Unit 1 documents the
+scope; this note exists so a future reader doesn't rename-and-break.
 
 ## Strategic decisions
 
@@ -134,7 +141,8 @@ At `session_start`, when `tmpBackend === "session-disk"`:
   guard for the default-swap).
 - Block mode + `session-disk`: keeps `/tmp` tmpfs mask, sets `TMPDIR=<dir>`,
   binds the disk dir. Update the existing block-mode `TMPDIR=/tmp` test
-  (`sandbox.test.ts:3183`) to assert the disk dir under `session-disk` and
+  (`sandbox.test.ts:2174` arg-level + `sandbox.test.ts:3183` integration) to
+  assert the disk dir under `session-disk` and
   keep asserting `/tmp` under `host-tmpfs`.
 - Integration test: a sandboxed `mktemp -d` lands under the disk dir, not
   `/tmp`; and the dir is on disk (stat the backing device, reject tmpfs).
@@ -161,10 +169,13 @@ accumulated files/sockets in open mode). Note the block-mode behavior change
 - [ ] Block mode keeps the `/tmp` + socket-dir tmpfs masks under `session-disk`
       (IPC isolation preserved) while `TMPDIR` points at the disk dir.
 - [ ] No cleanup: the project temp dir persists across sessions; `session_shutdown` leaves it in place.
-      stale dirs older than the configured threshold.
 - [ ] `host-tmpfs` opt-out preserves today's exact behavior (regression guard).
 - [ ] Fail-closed when `session-disk` is set but the cache root resolves to
       tmpfs, or when `projectTmpDir` is not threaded through.
+- [ ] Background/monitor path resolves `projectTmpDir` under `session-disk`
+      (via the accessor) — a `background`/`monitor`/`jobs` command does not
+      throw fail-closed under the default. Wired in the same change as the
+      default flip, not deferred.
 - [ ] Existing block-mode tests updated; README + THREAT_MODEL document the
       change and the security improvement.
 
@@ -185,8 +196,8 @@ Why over alternatives:
   `--tmpfs` is RAM-backed regardless; `--size` caps it but doesn't move it to
   disk. Doesn't solve the memory pressure.
 - *Bind host `/var/tmp` through as the temp dir* — rejected: still a shared
-  host path (cross-session accumulation, host socket exposure); the per-session
-  dir is narrower and self-cleaning.
+  host path (cross-session accumulation, host socket exposure); the per-project
+  dir is narrower and keeps host `/tmp` unexposed.
 
 This mirrors the established `pinnedGitDirs` discipline: trusted init state,
 pinned on the policy, threaded per-spawn, never re-derived mid-session.
@@ -363,7 +374,7 @@ needed (the dir outlives the session by design).
 **Acceptance Criteria**:
 - [ ] `session_start` creates `~/.cache/pi-sandbox/tmp/<cwd-hash>/` under `session-disk`.
 - [ ] Two sessions with the same realpath cwd resolve to the SAME `projectTmpDir`.
-- [ ] Two sessions with different cwns resolve to DIFFERENT dirs.
+- [ ] Two sessions with different cwds resolve to DIFFERENT dirs.
 - [ ] Cache root on tmpfs → fail-closed with a clear status, no project temp dir bound.
 - [ ] Early-return branches reset `projectTmpDir = null`.
 - [ ] `session_shutdown` leaves the project temp dir in place.
@@ -377,7 +388,7 @@ Arg-level + integration:
 - `session-disk` block mode: `/tmp` tmpfs mask present, `--setenv TMPDIR <dir>`, disk dir bound.
 - `session-disk` + missing `projectTmpDir` → throws.
 - `host-tmpfs` open: `--bind /tmp /tmp` present (regression guard).
-- `host-tmpfs` block: `--setenv TMPDIR /tmp` (regression guard, existing test at `sandbox.test.ts:3183` kept).
+- `host-tmpfs` block: `--setenv TMPDIR /tmp` (regression guard; existing tests at `sandbox.test.ts:2174` arg-level + `sandbox.test.ts:3183` integration kept, conditioned on `host-tmpfs`).
 - Integration: sandboxed `mktemp -d` lands under the session dir; `stat -c %m` /
   `findmnt` confirms it's not tmpfs-backed.
 - Integration: the project temp dir persists across a `session_shutdown`.
@@ -428,17 +439,10 @@ for the disk-destination and lifecycle claims (the existing
 
 ## Risks
 
-- **Background/monitor spawn path threads `projectTmpDir`.** The bash path
-  gets it from `activePolicy`; `buildSandboxedSpawnArgs` is called by the
-  background-tasks bridge, which must read the pinned `projectTmpDir` and
-  pass it. Today background/monitor leaves `pinnedGitDirs` unset (documented
-  gap), so there's no existing pattern for threading session-pinned state to
-  that caller. **Mitigation**: the bridge already imports from the sandbox
-  extension; expose a `getProjectTmpDir()` accessor (mirroring how it reads
-  capability state) and have the bridge call it. If the bridge can't read it,
-  `buildSandboxedSpawnArgs` under `session-disk` with no `projectTmpDir`
-  throws fail-closed — safe but breaks background tasks. Land the accessor in
-  Unit 3, wire the bridge in Unit 4.
+- **Background/monitor spawn path threads `projectTmpDir` — DEFAULT-BREAKING if unwired.** The bash path gets it from `activePolicy`; `buildSandboxedSpawnArgs` is called by the background-tasks bridge. Verified shape (`plugins/background-tasks/extensions/sandbox-bridge.ts`, call sites `background-tasks.ts:464,488`): the bridge does NOT import a state accessor from pi-sandbox — it calls the *function* `buildSandboxedSpawnArgs` with a plain opts object `{command, cwd, configCwd, envAdd}`, and there is no session-pinned state channel today (`pinnedGitDirs` is absent here too). So "expose an accessor and have the bridge call it" is not the real shape. Two viable threading paths:
+  - **(a)** Export a module-level `getProjectTmpDir(): string | null` accessor from the sandbox extension; `buildSandboxedSpawnArgs` reads it internally when `projectTmpDir` is not passed in opts. Keeps the bridge call-site unchanged; the sandbox extension owns the session-state read.
+  - **(b)** Add `projectTmpDir` to the background/monitor tool's input contract and have the bridge receive it from the sandbox extension's session state at call time.
+  Prefer (a) — it matches how `pinnedBwrapPath` already works (module-level state read inside the extension) and avoids widening the bridge contract. **Severity**: under `session-disk` (the DEFAULT), an unwired background path makes every `background`/`monitor`/`jobs` command throw fail-closed. This MUST be wired in the same change as the default flip — it is not a deferred gap. Land the accessor in Unit 3, wire `buildSandboxedSpawnArgs` to read it in Unit 3, and add an integration test that a background command resolves `TMPDIR` to the project dir under `session-disk`.
 - **Disk-backing check is heuristic.** Comparing `st_dev` against `/tmp` and
   `/dev/shm` catches the common case (cache root accidentally on tmpfs) but
   isn't a general "is this real disk" test. Acceptable: the failure mode is
@@ -455,9 +459,9 @@ for the disk-destination and lifecycle claims (the existing
 
 - This also mitigates (does not fix) the orphaned-SQLite-WAL accumulation
   surfacing in `/tmp/.tmpXXXXXX-wal` — per-project disk temp means sidecars
-  land on disk (no RAM pressure) and get swept when the project goes stale.
-  The upstream leak (a producer opening WAL-mode temp SQLite DBs without
-  `db.close()`) is a separate item.
+  land in the project's own temp dir on disk (no RAM pressure) instead of
+  host `/tmp`. The upstream leak (a producer opening WAL-mode temp SQLite
+  DBs without `db.close()`) is a separate item.
 - Builds on `feature-sandbox-first-party-bwrap` (done) and the block-mode
   tmp/socket masking in `story-pi-sandbox-block-mode-tmp-sockets` (done). No
   in-flight dependencies; `depends_on` left empty because the foundation is
