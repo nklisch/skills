@@ -170,11 +170,12 @@ uncertainty, and prior failed attempts. Honor an explicit capability or model
 choice from the caller, an autopilot caller note, or a stable project convention
 when present. Otherwise follow
 [the model matrix](../principles/references/models.md): use GPT-5.6 Luna as the
-implementation worker whenever it is available, raising its effort as the owned
-delivery warrants. Choose another implementation model only when Luna is
-unavailable, and record the fallback. Record the chosen model, effort, and
-rationale in run notes before dispatch; do not ask a routine tier question or
-re-ask between waves.
+implementation worker whenever it is available. Use `high` for normal delivery,
+`xhigh` for demanding work, and `medium` only for a very simple, tightly bounded
+task with obvious acceptance and verification. Choose another implementation
+model only when Luna is unavailable, and record the fallback. Record the chosen
+model, effort, and rationale in run notes before dispatch; do not ask a routine
+tier question or re-ask between waves.
 
 Use the host's generic code-writing sub-agent mechanism. Do not use peeragent
 for routine implementation fan-out. If no suitable worker adapter exists, keep

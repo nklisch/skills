@@ -6,7 +6,8 @@
 
 - **Luna is the default implementation worker** — after explicit caller and
   project overrides, implementation dispatch now selects GPT-5.6 Luna whenever
-  it is available and scales effort with delivery risk. Other implementors are
+  it is available. Normal work uses `high`, demanding work uses `xhigh`, and
+  `medium` is reserved for very simple bounded tasks. Other implementors are
   availability fallbacks rather than complexity-based upgrades.
 
 ### Autopilot queue-scope clarity
