@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: review
+stage: implementing
 tags: [sandbox]
 parent: null
 depends_on: []
@@ -529,3 +529,40 @@ Addressed the 2 blockers + importants from the deep review.
 - **I9 fixed**: THREAT_MODEL corrected — directory count is bounded by project count, but bytes are not (daemon-style sessions can fill the volume); documented OS cache hygiene / quota as the mitigation.
 - **N1 fixed**: spawn-test fixtures deduped (removed misplaced `tmpBackend` lines that landed inside `baseEnv` object literals).
 - Background-tasks test harness: its own `loadSandboxEntrypoint` copy now writes a `host-tmpfs` config (same reason as the pi-sandbox entrypoint test — `~/.cache` is read-only in CI, session-disk would fail-close and break the bridge-handshake test).
+
+## Review findings (round 2, deep two-phase cross-model, 2026-07-13)
+
+Bounced `review → implementing` again. Round-2 reviewers confirmed B1/B2 fixes
+are structurally sound but found the fix round introduced new issues.
+
+### Confirmed fixed (round 1)
+- B1: derivation now precedes `sandboxPolicy` construction (`sandbox.ts:700` before `:769`). Sound.
+- B2: cache root AND final project dir both checked via `statfsSync`; tmpfs/ramfs magics correct.
+
+### Blockers (new)
+
+- **R2-B1: `filesystemTypeOf` fails open on "unknown".** `sandbox.ts:106-119,742-746` — `filesystemTypeOf()` returns `"unknown"` both when `statfsSync` throws AND for every unrecognized numeric magic; `assertNotRamBacked()` accepts `"unknown"`. A failed probe, hugetlbfs, or an overlay backed by tmpfs can satisfy the "disk-backed" check and defeat the feature's core guarantee. Fix: return a discriminated probe result; fail closed on probe errors; reject all known RAM-backed types; do NOT accept "unknown" as disk. Both reviewers flagged this.
+
+- **R2-B2: the B1 regression test does not catch B1.** `sandbox.test.ts:398-430` — the test reads `getProjectTmpDir()` (module-level accessor), but the original B1 bug was that the *policy object* kept `projectTmpDir: null` while the module accessor got the value. The test would pass against the broken code. Fix: assert the *active policy* carries the derived value (or exercise the registered bash ops and confirm the generated args contain the derived bind/TMPDIR and don't throw for missing projectTmpDir). Both reviewers flagged this.
+
+### Important (new)
+
+- **R2-I1: derivation runs before platform/bwrap disposition.** `sandbox.ts:700-768` — the default `session-disk` path creates + validates the cache before the platform decision at line 782. On macOS/Windows (graceful-degrade path), an unwritable cache or relative `XDG_CACHE_HOME` turns degrade into fail-closed. Also, later terminal returns (bwrap-missing, filter, degrade) retain `projectTmpDir`/`tmpBackend="session-disk"` in module state despite the sandbox never initializing. Fix: resolve platform/bwrap disposition FIRST; derive the disk dir only for a healthy Linux bwrap path; clear temp state on every later terminal return.
+
+- **R2-I2: I3 block-mask guard rejects valid open-mode roots.** `sandbox.ts:721-735` — the `/tmp`/`/var/tmp`/`run` rejection runs regardless of `networkMode`, so default open mode incorrectly fail-closes a valid disk-backed `XDG_CACHE_HOME=/var/tmp/cache`. Fix: apply the mask-containment rejection ONLY when `netMode === "block"` (the masks only fire in block mode).
+
+- **R2-I3: I3 symlink hole on first creation.** `sandbox.ts:721` — when `cacheRoot` doesn't yet exist, `realpathSync(cacheRoot)` fails and the raw-path fallback can miss an existing ancestor symlink into `/var/tmp`; after creation, block mode masks the real destination and makes TMPDIR unusable. Fix: create the root first, canonicalize it afterward, pin the canonical path, recheck against mask roots.
+
+- **R2-I4: devtmpfs magic is wrong.** `sandbox.ts:126` — `0x9fa0` is `PROC_SUPER_MAGIC`, not devtmpfs. Linux devtmpfs normally reports `TMPFS_MAGIC` (0x01021994), so it's already caught. Remove the bogus `0x9fa0` entry (or correct it).
+
+- **R2-I5: most review-fix paths lack regression coverage.** No focused tests for I2 nested/canonical `/tmp` filtering, I3 masked-root rejection, I4 relative-XDG, I6 project-local warning, I7 reporting, I8 unknown-value throwing, same/different-cwd hashing, shutdown persistence, background-spawn accessor resolution without opts overrides. Add entrypoint + argument-level cases.
+
+- **R2-I6: `/sandbox` doesn't report the resolved session-pinned temp state.** `sandbox-config.ts:2106` — it displays freshly loaded config only, not the resolved project dir or backing fs. `getProjectTmpDirResolved` (`sandbox.ts:134`) is unused. Fix: thread backend/path/fs type through `SandboxCommandState` and render them; test the output.
+
+- **R2-I7: pre-existing unwritable project dir passes init.** `sandbox.ts:755` — `mkdirSync(recursive)` succeeds when the dir already exists; `statfsSync` doesn't verify write/search permission. The session initializes but `mktemp` fails inside the sandbox. Fix: an explicit write probe (create+remove a probe file) on the final dir; test the pre-existing-unwritable case.
+
+### Nits
+- R2-N1: THREAT_MODEL says project-local `tmpBackend` is "silently ignored" but `mergeProjectAdditive` emits a warning. Reword to "ignored with a warning."
+
+### Notes
+- `statfsSync` is available on supported Node (>=22.19) and current Bun; both return numeric `.type`. I2 canonical equal/nested comparison is consistent for existing allowWrite mounts. No same-runtime session concurrency race found under Pi's serialized lifecycle. Deny-overlay precedence and concurrent `mkdirSync` safety confirmed again.
