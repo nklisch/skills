@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Autopilot queue-scope clarity
+
+- **Queue selection is not implementation scope** — `--all` selects every
+  active item for draining, but autopilot now grounds kickoff narration and
+  capability rationale in concrete ready work. It does not synthesize a broad
+  current implementation claim from future, blocked, or undecomposed items.
+
 ### Weight-aware review closure
 
 - **Standard is explicitly single-pass** — the default feature, epic, and final

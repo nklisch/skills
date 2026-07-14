@@ -73,8 +73,8 @@ Two gates, with different timing:
 
 1. **Before anything:** `.work/CONVENTIONS.md` exists. If not, halt: "No substrate found. Run
    `/agile-workflow:convert` first."
-2. **After Phase 1 resolves the scope** (the check is route-aware, so it runs against the
-   resolved work set): foundation docs exist (`docs/VISION.md` or `docs/SPEC.md`) — required
+2. **After Phase 1 resolves the queue selection** (the check is route-aware, so it runs
+   against the resolved work set): foundation docs exist (`docs/VISION.md` or `docs/SPEC.md`) — required
    when the scope contains **any** item that routes to the design family (`epic-design` /
    `feature-design` / `refactor-design` / `perf-design`), which read foundation docs as their
    design anchor. *(Design family = skills that read foundation docs as their design anchor; a
@@ -91,14 +91,22 @@ anchor without them.
 
 ## Workflow
 
-### Phase 1: Resolve Scope
+### Phase 1: Resolve Queue Selection
 
-Build the scope from the argument:
+Build the queue selection from the argument:
 
 - Epic id: include the epic plus descendants through `parent` links.
 - `--all`: include every item in `.work/active/{epics,features,stories}/`.
 - Free text: inspect item ids, tags, parents, titles, and bodies; select the
   matching active subset and record the interpretation.
+
+This selection says which items autopilot may drain; it does not create one
+combined implementation scope. `--all` means the whole active queue, not "all
+of these technologies at once." The current work boundary comes from each ready
+item's body, stage, and design; an undecomposed epic is design work, not an
+implementation claim. In kickoff narration and capability rationale, describe
+that concrete ready work and its stage—never synthesize a broader current scope
+from tags, future intent, or blocked/later items.
 
 Only active items are candidates. Backlog items must be promoted through
 `scope` before autopilot can touch them.
@@ -107,9 +115,10 @@ Resolve worker capability and review weight at kickoff without a routine tier
 question.
 
 For worker capability, honor an explicit goal/argument/caller choice first, then
-a stable `.work/CONVENTIONS.md` choice. Otherwise choose from scope and risk:
-bounded familiar work can use baseline capability; cross-cutting, contract, or
-uncertain work warrants raised capability; architectural, security-critical, or
+a stable `.work/CONVENTIONS.md` choice. Otherwise choose from the concrete ready
+work and its risk—not from the breadth of the queue selector: bounded familiar
+work can use baseline capability; cross-cutting, contract, or uncertain work
+warrants raised capability; architectural, security-critical, or
 high-consequence work warrants the highest available capability. This is
 judgment, not a fixed item-kind mapping. Record the effective choice and reason
 in the run summary and pass it in the Phase 4 caller note.
@@ -378,7 +387,8 @@ affect specific items.
 
 Narrate briefly as items advance. Final summary:
 
-- Goal scope and interpretation
+- Queue selection and interpretation, kept distinct from item-defined
+  implementation scope
 - Items advanced to done
 - Features, epics, and standalone stories reviewed and approved
 - Review closure by item: single-pass fix-and-finish or multi-pass convergence,

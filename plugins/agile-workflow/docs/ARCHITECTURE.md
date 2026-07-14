@@ -361,9 +361,12 @@ Use agile-workflow autopilot to drain --all
 
 Direct skill invocation remains supported: `/agile-workflow:autopilot
 <epic-id>` drains one epic, and `/agile-workflow:autopilot --all` drains all of
-`.work/active/`. In both cases, autopilot does not create `/loop` schedules or
-maintain a progress file; harness goal/continuation owns long-running
-persistence and `.work/active/` is the resume point.
+`.work/active/`. That argument selects queue breadth; it does not combine the
+selected items into a new implementation scope. Each ready item's body, stage,
+and design define its current work boundary; an undecomposed epic is design
+work, not an implementation claim. In both cases, autopilot does not create
+`/loop` schedules or maintain a progress file; harness goal/continuation owns
+long-running persistence and `.work/active/` is the resume point.
 
 ### Strategic alignment before autonomous work
 
@@ -439,9 +442,9 @@ parallelism, explicit ownership, per-wave integration verification, one commit
 per item, worker self-containment, and conservative parent roll-up. It chooses
 bundle shape, wave width, isolation, and worker briefs for the actual work; no
 fixed sizes or prompt templates are part of the contract. Worker capability is
-chosen from scope and risk unless an explicit caller or stable project
-convention overrides it, and the choice is recorded rather than routinely
-asked.
+chosen from the concrete ready work and its risk—not from the breadth of the
+queue selector—unless an explicit caller or stable project convention overrides
+it, and the choice is recorded rather than routinely asked.
 
 Autopilot resolves one effective `review_weight` for the run: explicit
 invocation selector, then `.work/CONVENTIONS.md`, then `standard`. The five
