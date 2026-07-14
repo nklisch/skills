@@ -272,14 +272,18 @@ When running, writing, or modifying tests:
 Cross-model advisory review: explicit user/project review instructions
 override agile-workflow defaults. When peeragent is available with a different
 model class, large/risky autopilot design decisions may use one advisory pass;
-small/low-risk work skips it. Autopilot also runs a final peer-review loop
-before reporting completion. Reviewer findings are proposals: the receiving
-orchestrator verifies them against repository context and actual risk. Only
-credible material current-cycle risks block; park valid lower-priority findings
-in the unbound backlog and continue. Same-model peers fall back to local
-sub-agents instead. Claude Opus peeragent
-calls can take 10 to 30 minutes on large reviews; no return after a few minutes
-is not evidence that the call has hung.
+small/low-risk work skips it. Review weight defaults to `standard`: features,
+epics, and final completion bundles get one independent pass, then receiver
+adjudication, fixes for material blockers, verification, and `done` without
+re-review. An epic's pass is broader than a feature's but is still one pass at
+`standard`. Only `thorough` and `maximum` use multi-pass review; continue until
+a pass has no receiver-confirmed material current-cycle blockers. Smaller
+findings are parked unbound, kept as nits, or rejected by judgment and do not
+keep the loop open. Reviewer findings are proposals: the receiving orchestrator
+verifies them against repository context and actual risk. Same-model peers fall
+back to local sub-agents instead. Claude Opus peeragent calls can take 10 to 30
+minutes on large reviews; no return after a few minutes is not evidence that the
+call has hung.
 
 Broad entry points:
 `/agile-workflow:ideate`, `/agile-workflow:epicize`,

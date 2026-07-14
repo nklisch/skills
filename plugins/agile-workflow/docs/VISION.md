@@ -100,10 +100,14 @@ agile-workflow is complete enough to operate as the supported workflow engine:
   high-level review weight while preserving fresh-context deep review. Child
   stories skip review, standalone stories use a bounded non-cross-model lane,
   features receive integrated review, and epics receive the deepest aggregate
-  review because larger scope reveals integration and capability gaps. Reviewer
-  findings remain proposals: the receiving orchestrator weighs actual repository
-  risk, blocks only on material current-cycle concerns, and parks valid
-  lower-priority work rather than forcing every suggestion into implementation.
+  review because larger scope reveals integration and capability gaps. The
+  default `standard` weight is deliberately decisive: one pass, receiver
+  adjudication, material-blocker fixes, verification, then done without
+  re-review. Only `thorough` and `maximum` repeat passes, and smaller findings
+  are parked or noted rather than holding convergence open. Reviewer findings
+  remain proposals: the receiving orchestrator weighs actual repository risk,
+  blocks only on material current-cycle concerns, and parks valid lower-priority
+  work rather than forcing every suggestion into implementation.
 - Real releases move through scope → design → implement → review →
   release-deploy on the substrate; gates focus on bound work while following
   relevant evidence into adjacent or system-wide code, distinguish release

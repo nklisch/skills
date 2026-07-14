@@ -300,13 +300,17 @@ never leaves a child story there.
    ```
 3. Unless the caller explicitly requested a feature-level `stop-at-review` or a
    project convention sets that boundary, invoke `/agile-workflow:review <id>`
-   in the same invocation and forward the effective `review_weight`. Review may
-   approve the feature to `done`, bounce it to `implementing` with durable
-   findings, or record a blocker.
+   in the same invocation and forward the effective `review_weight`. Under the
+   default `standard`, review runs one independent pass, the receiver fixes and
+   verifies accepted blockers, and the feature finishes without re-review.
+   `thorough` and `maximum` instead continue review → fix → verify passes until a
+   pass yields no receiver-confirmed material current-cycle blockers; the
+   receiver parks or notes smaller findings rather than prolonging the loop.
 
 A weight of `none` skips an independent reviewer, but feature review still
 requires green integrated verification and acceptance evidence before
-administrative closure.
+administrative closure. Epic scope and deep lenses never silently escalate
+`standard` beyond its single pass.
 
 ## Output
 

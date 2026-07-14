@@ -408,6 +408,10 @@ class RulesLoaderTest(unittest.TestCase):
         self.assertIn("only standalone stories receive review", printed)
         self.assertIn("Review is non-blocking", printed)
         self.assertIn("epics receive their own deeper aggregate review", printed)
+        self.assertIn("Review weight defaults to standard", printed)
+        self.assertIn("finish without re-review", printed)
+        self.assertIn("Only thorough and maximum use multi-pass review", printed)
+        self.assertIn("no receiver-confirmed material blockers", printed)
 
     def test_gate_prompt_emits_wider_scope_rule(self) -> None:
         payload = self._payload(

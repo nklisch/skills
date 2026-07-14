@@ -122,7 +122,9 @@ and a clear success criterion usually beat permanent model-specific boilerplate.
 The rule: the peer must be a **different model class** than the host, or it is
 not cross-model evidence (fall back to a fresh same-class sub-agent instead).
 For each host, several valid peer classes exist — pick by **maximum blind-spot
-diversity**, and for deep work use **two distinct peer classes** (§6).
+diversity**. Use multiple peer classes only when the effective weight explicitly
+calls for multi-model coverage (§6); deep lenses alone do not add passes to
+`standard`.
 
 | Host class | Valid peer classes (any different class) |
 |---|---|
@@ -135,13 +137,14 @@ When the natural pair is unavailable, fall through to the next class; never
 peer within the host lineage and call it cross-model. A same-lineage reviewer
 may still provide fresh context when labeled accurately.
 
-## 6. Multi-class review for deep/complex work
+## 6. Multi-class review when the weight calls for it
 
 The risk and `review_weight` policy lives in
 [advisory-review.md](advisory-review.md). At model-selection time, when that
-policy calls for two classes, choose two distinct training lineages that also
-differ from the host where availability permits. Pair one with each phase;
-disagreement is evidence to investigate, not a vote.
+policy—normally `maximum`—calls for two classes, choose two distinct training
+lineages that also differ from the host where availability permits. Pair one
+with each perspective; disagreement is evidence to investigate, not a vote.
+`standard` remains one pass even for deep or epic review.
 
 ## 7. Two-phase design review: advisory then adversarial
 

@@ -33,7 +33,20 @@ Child stories never use this review transition: green implementation
 verification advances them directly to `done`. Standalone stories, features,
 and epics use review, with epic review operating at deeper aggregate scope.
 
-If a reviewed feature, epic, or standalone story has no blockers:
+Apply the effective weight before deciding whether another pass is required:
+
+- `none` closes from green verification and acceptance evidence.
+- `light` and `standard` run at most one independent pass. Fix and verify its
+  receiver-confirmed blockers, then close without another independent pass.
+- `thorough` and `maximum` review the corrected snapshot again and repeat until
+  a pass yields no receiver-confirmed material current-cycle blockers.
+
+The receiver judges materiality from repository context. A lower-priority
+parked concern, nit, or rejected proposal is already adjudicated and does not
+keep a convergence loop open.
+
+If a reviewed feature, epic, or standalone story has no **unresolved** blockers
+under that closure policy:
 
 1. Advance the item from `review` to `done`.
 2. If it has `release_binding: <version>`, leave it active for
@@ -59,12 +72,18 @@ If a reviewed feature, epic, or standalone story has no blockers:
    complete` note. Commit that transition separately, then schedule the deeper
    epic review without blocking downstream implementation.
 
-If blockers exist:
+If unresolved blockers exist:
 
 1. Set the reviewed feature, epic, or standalone story back to `stage: implementing`.
-2. Append a `## Review findings` section listing blockers and the created item
-   ids.
+2. Append a `## Review findings` section listing blockers, created item ids, the
+   effective weight, and whether closure needs fix verification only
+   (`light`/`standard`) or another independent pass (`thorough`/`maximum`).
 3. Do not archive.
+
+When deferred `light`/`standard` fixes later return green, verify the named fix
+set and close administratively; do not silently restart independent review.
+When `thorough`/`maximum` fixes return green, restore `review` and run the next
+independent pass.
 
 ## Archive as a bodyless stub
 
