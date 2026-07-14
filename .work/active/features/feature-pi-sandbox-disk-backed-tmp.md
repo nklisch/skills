@@ -2,7 +2,7 @@
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
 stage: drafting
-tags: [perf, sandbox]
+tags: [sandbox]
 parent: null
 depends_on: []
 release_binding: null
@@ -31,11 +31,6 @@ per-session dir**, bind *that* dir (not host `/tmp`) into the sandbox, and
 clean it up at session end. This both removes the RAM pressure and narrows
 the writable surface (children see only their own temp, not the host's
 accumulated orphaned SQLite sidecars, ssh-agent sockets, etc.).
-
-This is tagged `[perf]` because the primary motivation is memory (RAM
-crashes): it changes where an existing capability (sandboxed bash temp) puts
-its files, via a new config knob as the opt-in mechanism. It is not "a new
-capability that happens to be fast."
 
 ## Strategic decisions
 
