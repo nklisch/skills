@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state
 kind: feature
-stage: review
+stage: done
 tags: [bug, sandbox, background-tasks, plugin]
 parent: null
 depends_on: [feature-pi-sandbox-disk-backed-tmp]
@@ -569,3 +569,20 @@ cross-model relative to the Umans host but use independent Codex contexts.
 
 All three child stories are done. Feature advanced `implementing → review` for
 one final focused verdict on the corrected error-semantics seam.
+
+## Review (2026-07-14, final)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Final fresh-context `openai-codex/gpt-5.6-sol` review ran three
+focused contract, middleware-composition, and falsification passes over the last
+correction. Pi's supported `tool_result` patch preserves structured refusal
+content/details, marks only blocked background/monitor results as errors, leaves
+healthy/degraded/jobs results successful, and retains every no-side-effect
+security assertion. The full feature review has converged with all prior
+security, lifecycle, policy-coherence, test-composition, metadata, documentation,
+and runtime-error findings closed. Feature advanced `review → done`.
