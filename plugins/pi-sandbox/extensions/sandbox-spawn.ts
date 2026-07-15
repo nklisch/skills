@@ -122,7 +122,9 @@ export interface SandboxSpawnOptions {
 	/** Override the tmpBackend (for tests). Production callers omit both temp
 	 *  fields and read the current cross-loader session snapshot per call. */
 	tmpBackend?: "session-disk" | "host-tmpfs";
-	/** Isolated test/diagnostic config-root override. Live calls use the session snapshot and reject mismatches. */
+	/** Isolated test/diagnostic config-root override. Snapshot-absent calls must
+	 *  also provide a complete tmpBackend/projectTmpDir selection; live and
+	 *  inactive snapshots reject all overrides. */
 	agentDir?: string;
 	platform?: NodeJS.Platform;
 	/** Test/diagnostic override for platform readiness; production callers should omit this. */

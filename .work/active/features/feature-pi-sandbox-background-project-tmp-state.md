@@ -8,7 +8,7 @@ depends_on: [feature-pi-sandbox-disk-backed-tmp]
 release_binding: null
 gate_origin: null
 created: 2026-07-14
-updated: 2026-07-14
+updated: 2026-07-15
 ---
 
 # Keep background-task sandbox spawn state coherent with the live pi-sandbox session
@@ -500,3 +500,20 @@ regression in those corrections.
 
 All child work is done; feature advanced `implementing → review` for final deep
 convergence.
+
+## Final convergence — Phase 1
+
+Fresh-context `openai-codex/gpt-5.6-sol` ran three completeness/falsification
+passes over the full v3 aggregate. It found no runtime or security defect and
+confirmed all prior findings closed. Two verification/prose issues were fixed
+inline before Phase 2:
+
+- corrected the v3 contract comment: hard inactive states retain canonical
+  project/agent identity but no policy fingerprint and are unconditional
+  refusals;
+- extended `pi-package-metadata.test.sh` for extension-only packages and added
+  pi-sandbox, so the previously claimed package verification now actually
+  checks its Pi-only manifest, extension entry, public metadata, and absence of
+  skills/channel manifests.
+
+`npm run check:pi-packages` now reports **136 passed, 0 failed**.

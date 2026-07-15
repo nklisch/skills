@@ -224,8 +224,9 @@ type HardInactiveSpawnSessionReason = Exclude<SandboxSpawnSessionInactiveReason,
 /**
  * Cross-loader lifecycle transport. Intentional degraded states pin the same
  * effective-policy identity as ready state: they may degrade only when the
- * current configuration still produces their published disposition. Terminal
- * inactive states deliberately carry no identity and are always refusals.
+ * current configuration still produces their published disposition. Hard
+ * inactive states retain canonical project/agent identity but deliberately
+ * carry no policy fingerprint and are unconditional refusals.
  */
 export type SandboxSpawnSessionStateV3 = Readonly<
 	| ({
