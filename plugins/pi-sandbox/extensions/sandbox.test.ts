@@ -22,7 +22,9 @@ import {
 	DEFAULT_CONFIG,
 	FILTER_DEFERRED_BACKLOG_ITEM,
 	SANDBOX_FAIL_CLOSED_MESSAGE,
+	SANDBOX_SPAWN_SESSION_STATE_SYMBOL,
 	formatSandboxCommandOutput,
+	readSandboxSpawnSessionState,
 	SANDBOX_UNINITIALIZED_MESSAGE,
 	applyBypassToolDefaults,
 	createSandboxCommandHandler,
@@ -84,6 +86,7 @@ async function makeRepoTempDir(): Promise<string> {
 }
 
 afterEach(async () => {
+	delete (globalThis as typeof globalThis & Record<symbol, unknown>)[SANDBOX_SPAWN_SESSION_STATE_SYMBOL];
 	while (tempDirs.length > 0) {
 		const dir = tempDirs.pop();
 		if (dir) await rm(dir, { recursive: true, force: true });
@@ -639,6 +642,13 @@ describe("sandbox extension entrypoint", () => {
 		expect(policy).not.toBeNull();
 		expect(policy!.tmpBackend).toBe("host-tmpfs");
 		expect(mod.getTmpBackend()).toBe(policy!.tmpBackend);
+		// --no-sandbox intentionally does not propagate to background/monitor:
+		// publish a usable host-tmpfs state so their stricter sandbox path has no
+		// stale session-disk/null combination to trip over.
+		expect(readSandboxSpawnSessionState()).toMatchObject({
+			ok: true,
+			value: { state: "ready", tmpBackend: "host-tmpfs", projectTmpDir: null },
+		});
 	});
 
 	test("B1: a pre-existing symlink at the cwd-hash project dir path is rejected (fail-closed)", async () => {

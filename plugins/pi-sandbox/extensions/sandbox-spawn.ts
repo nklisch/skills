@@ -1,15 +1,16 @@
+import { isAbsolute, resolve } from "node:path";
 import {
 	buildBwrapArgs,
 	buildMinimalEnv,
+	canonicalizeExistingPath,
 	decidePlatformState,
 	findExecutableOnPath,
 	resolveTrustedBwrap,
 	type NetworkMode,
 } from "./sandbox-bwrap";
-import { loadConfig } from "./sandbox-config";
+import { loadConfig, readSandboxSpawnSessionState } from "./sandbox-config";
 import { scrubEnvironment, type EnvScrubConfig } from "./sandbox-env";
 import type { BackgroundTasksSandboxIntegration } from "./sandbox-config";
-import { getProjectTmpDir, getTmpBackend } from "./sandbox";
 
 /** Env-var names known to carry provider/runtime secrets. In degraded/unsandboxed
  * spawn modes these are stripped from the inherited env so a background or monitor
@@ -111,11 +112,11 @@ export interface SandboxSpawnOptions {
 	 * omitted, no git dirs are bound (the safe pre-feature default).
 	 */
 	pinnedGitDirs?: string[];
-	/** Override the session-pinned project temp dir (for tests). Production callers
-	 *  omit this and buildSandboxedSpawnArgs reads getProjectTmpDir() instead. */
+	/** Override the session-pinned project temp dir (for tests). A complete
+	 *  explicit backend/path pair is authoritative and needs no global state. */
 	projectTmpDir?: string | null;
-	/** Override the tmpBackend (for tests). Production callers omit this and
-	 *  buildSandboxedSpawnArgs reads getTmpBackend() instead. */
+	/** Override the tmpBackend (for tests). Production callers omit both temp
+	 *  fields and read the current cross-loader session snapshot per call. */
 	tmpBackend?: "session-disk" | "host-tmpfs";
 	agentDir?: string;
 	platform?: NodeJS.Platform;
@@ -149,7 +150,7 @@ export type SandboxedSpawnArgsResult =
 	| {
 		state: "fail-closed";
 		integration: "blocked";
-		reason: "config-parse-error" | "filter-deferred" | "bwrap-missing" | "bwrap-build-error";
+		reason: "config-parse-error" | "filter-deferred" | "bwrap-missing" | "bwrap-build-error" | "session-state-unavailable";
 		executable: null;
 		args: [];
 		cwd: string;
@@ -157,6 +158,49 @@ export type SandboxedSpawnArgsResult =
 		message: string;
 		errors?: string[];
 	};
+
+type ResolvedSpawnTempState =
+	| {
+		ok: true;
+		tmpBackend: "session-disk" | "host-tmpfs";
+		projectTmpDir: string | null;
+	}
+	| { ok: false; reason: string };
+
+function canonicalConfigCwd(cwd: string): string {
+	const absolute = resolve(cwd);
+	return canonicalizeExistingPath(absolute) ?? absolute;
+}
+
+/** Resolve trusted temp state without retaining module-local lifecycle references. */
+function resolveSpawnTempState(opts: SandboxSpawnOptions, configCwd: string): ResolvedSpawnTempState {
+	// Complete explicit test/diagnostic overrides are authoritative and permit
+	// isolated builder tests before a live session exists.
+	if (opts.tmpBackend === "host-tmpfs") {
+		return { ok: true, tmpBackend: "host-tmpfs", projectTmpDir: null };
+	}
+	if (opts.tmpBackend === "session-disk" && typeof opts.projectTmpDir === "string" && isAbsolute(opts.projectTmpDir)) {
+		return { ok: true, tmpBackend: "session-disk", projectTmpDir: opts.projectTmpDir };
+	}
+
+	const snapshot = readSandboxSpawnSessionState();
+	if (!snapshot.ok || snapshot.value.state !== "ready") {
+		return { ok: false, reason: "sandbox spawn session state is unavailable" };
+	}
+	if (snapshot.value.configCwd !== canonicalConfigCwd(configCwd)) {
+		return { ok: false, reason: "sandbox spawn session state belongs to a different project" };
+	}
+
+	const tmpBackend = opts.tmpBackend ?? snapshot.value.tmpBackend;
+	const projectTmpDir = opts.projectTmpDir === undefined ? snapshot.value.projectTmpDir : opts.projectTmpDir;
+	if (tmpBackend === "session-disk" && typeof projectTmpDir === "string" && isAbsolute(projectTmpDir)) {
+		return { ok: true, tmpBackend, projectTmpDir };
+	}
+	if (tmpBackend === "host-tmpfs" && projectTmpDir === null) {
+		return { ok: true, tmpBackend, projectTmpDir };
+	}
+	return { ok: false, reason: "sandbox spawn session state conflicts with requested temp configuration" };
+}
 
 /**
  * Build the pi-sandbox-owned spawn contract for background/monitor commands.
@@ -285,6 +329,20 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 	}
 
 	const bwrapExecutable = bwrapResolution.path;
+	const tempState = resolveSpawnTempState(opts, configCwd);
+	if (!tempState.ok) {
+		return {
+			state: "fail-closed",
+			integration: "blocked",
+			reason: "session-state-unavailable",
+			executable: null,
+			args: [],
+			cwd: opts.cwd,
+			env,
+			message: `Sandbox refused to prepare background command: ${tempState.reason}. Start or reload the sandbox session before retrying.`,
+			errors: [tempState.reason],
+		};
+	}
 	const minimalEnv = buildMinimalEnv(normalEnv, loaded.config.envScrub);
 	// The minimal-env allowlist (PATH/HOME/TERM/LANG/TMPDIR/LC_*) drops every
 	// inherited var, which is correct for scrubbing provider secrets from the
@@ -313,15 +371,11 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 				// with trusted pinned git dirs may pass them via opts.pinnedGitDirs.
 				pinnedGitDirs: opts.pinnedGitDirs,
 				networkMode,
-				// Thread the session-pinned project temp dir + tmpBackend from the sandbox
-				// extension's session state. Under session-disk (the default) this MUST be
-				// set or buildBwrapArgs throws fail-closed — reading it via the accessor
-				// (rather than opts) keeps the background/monitor call-site unchanged and
-				// matches how pinnedBwrapPath already works (module-level state read inside
-				// the extension). A caller may still override via opts.projectTmpDir/
-				// opts.tmpBackend for tests.
-				projectTmpDir: opts.projectTmpDir ?? getProjectTmpDir() ?? undefined,
-				tmpBackend: opts.tmpBackend ?? getTmpBackend(),
+				// The builder reads a fresh immutable session snapshot above. Do not
+				// cache the snapshot with the bridge's cached builder function: reload
+				// and session replacement must take effect on the next invocation.
+				projectTmpDir: tempState.projectTmpDir ?? undefined,
+				tmpBackend: tempState.tmpBackend,
 				env: okEnv,
 			}),
 			"--",

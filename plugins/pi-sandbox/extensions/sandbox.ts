@@ -31,7 +31,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import {
 	assertNoHardlinkedDeniedFiles,
 	buildBwrapArgs,
@@ -56,6 +56,8 @@ import {
 import {
 	CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL,
 	SANDBOX_FAIL_CLOSED_MESSAGE,
+	publishSandboxSpawnSessionState,
+	type SandboxSpawnSessionInactiveReason,
 	SANDBOX_UNINITIALIZED_MESSAGE,
 	createSandboxCommandHandler,
 	createUserBashBlockResult,
@@ -118,6 +120,26 @@ export function getTmpBackend(): "session-disk" | "host-tmpfs" {
  *  session_shutdown. */
 export function getSandboxPolicy(): SandboxPolicy | null {
 	return activePolicy;
+}
+
+/** Canonical project identity shared with the independently loaded spawn helper. */
+function canonicalSpawnConfigCwd(cwd: string): string {
+	const absolute = resolve(cwd);
+	return canonicalizeExistingPath(absolute) ?? absolute;
+}
+
+function publishReadySpawnSessionState(ctxCwd: string, policy: SandboxPolicy): void {
+	publishSandboxSpawnSessionState({
+		version: 1,
+		state: "ready",
+		configCwd: canonicalSpawnConfigCwd(ctxCwd),
+		tmpBackend: policy.tmpBackend,
+		projectTmpDir: policy.projectTmpDir,
+	});
+}
+
+function publishInactiveSpawnSessionState(reason: SandboxSpawnSessionInactiveReason): void {
+	publishSandboxSpawnSessionState({ version: 1, state: "inactive", reason });
 }
 
 /**
@@ -677,8 +699,10 @@ export default function (pi: ExtensionAPI) {
 			noSandbox,
 			lastFailClosedReason,
 		});
-		// Clear any earlier session's success signal before initialization can take
-		// a branch. Every later terminal branch publishes its specific state too.
+		// Clear any earlier session's success signals before initialization can take
+		// a branch. The spawn snapshot is a separate cross-loader projection and
+		// must never retain a prior project's ready temp path during startup.
+		publishInactiveSpawnSessionState("initializing");
 		publishCapability();
 
 		if (noSandbox) {
@@ -690,6 +714,10 @@ export default function (pi: ExtensionAPI) {
 				backgroundTasksSandbox: "inactive",
 				reason: "sandbox disabled via --no-sandbox",
 			};
+			// Background/monitor intentionally remain independently sandboxed under
+			// --no-sandbox. Publish their usable host-tmpfs temp disposition rather
+			// than treating the flag as permission to inherit an old disk path.
+			publishReadySpawnSessionState(ctx.cwd, sandboxPolicy);
 			publishCapability();
 			ctx.ui.notify("Sandbox disabled via --no-sandbox", "warning");
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", "🔒 Sandbox: disabled via --no-sandbox"));
@@ -709,6 +737,7 @@ export default function (pi: ExtensionAPI) {
 			sandboxPolicy = createFailClosedPolicy(ctx.cwd);
 			activePolicy = sandboxPolicy;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+			publishInactiveSpawnSessionState("fail-closed");
 			const msg = `Sandbox config parse error(s):\n${parseErrors.join("\n")}\nBash + file tools are fail-closed until fixed.`;
 			ctx.ui.notify(msg, "error");
 			publishCapability();
@@ -727,6 +756,7 @@ export default function (pi: ExtensionAPI) {
 			sandboxPolicy = createPermissivePolicy(ctx.cwd);
 			activePolicy = sandboxPolicy;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+			publishInactiveSpawnSessionState("disabled");
 			publishCapability();
 			ctx.ui.notify("Sandbox disabled via config", "info");
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", "🔒 Sandbox: disabled via config"));
@@ -755,6 +785,7 @@ export default function (pi: ExtensionAPI) {
 			sandboxPolicy = createFailClosedPolicy(ctx.cwd);
 			activePolicy = sandboxPolicy;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+			publishInactiveSpawnSessionState("fail-closed");
 			ctx.ui.notify(`Sandbox fail-closed: ${e instanceof Error ? e.message : e}`, "error");
 			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (hardlink alias)"));
@@ -817,6 +848,7 @@ export default function (pi: ExtensionAPI) {
 				lastFailClosedReason = bwrapPinError;
 				backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+				publishInactiveSpawnSessionState("fail-closed");
 				ctx.ui.notify(bwrapPinError, "error");
 				publishCapability();
 				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened"));
@@ -843,6 +875,7 @@ export default function (pi: ExtensionAPI) {
 				bwrapAvailable: false,
 			};
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+			publishInactiveSpawnSessionState("unsupported-platform");
 			ctx.ui.notify(platformState.message, "info");
 			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", platformState.status));
@@ -853,6 +886,7 @@ export default function (pi: ExtensionAPI) {
 			lastFailClosedReason = platformState.message;
 			backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+			publishInactiveSpawnSessionState("fail-closed");
 			ctx.ui.notify(platformState.message, "error");
 			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", platformState.status));
@@ -883,6 +917,7 @@ export default function (pi: ExtensionAPI) {
 			failClosed = true;
 			lastFailClosedReason = init.reason;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
+			publishInactiveSpawnSessionState("fail-closed");
 			ctx.ui.notify(lastFailClosedReason, "error");
 			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (project temp dir)"));
@@ -905,6 +940,7 @@ export default function (pi: ExtensionAPI) {
 			tmpBackend,
 		};
 		activePolicy = sandboxPolicy;
+		publishReadySpawnSessionState(ctx.cwd, sandboxPolicy);
 		publishCapability();
 
 		const networkCount = config.network?.allowedDomains?.length ?? 0;
@@ -926,6 +962,9 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_shutdown", async () => {
+		// Invalidate before clearing the live policy so independently loaded
+		// helpers cannot reuse a prior session's ready snapshot.
+		publishInactiveSpawnSessionState("shutdown");
 		// First-party bwrap runs per command and leaves no shared runtime state to reset.
 		// The project temp dir is per-project (cwd-keyed) and shared across concurrent
 		// sessions in the same project, so it is NOT removed on shutdown — it persists
