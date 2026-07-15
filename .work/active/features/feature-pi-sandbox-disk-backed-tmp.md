@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: review
+stage: done
 tags: [sandbox]
 parent: null
 depends_on: []
@@ -1130,3 +1130,34 @@ by both phases.
   and deny-overlay ordering preserved.
 - Convergence: two independent fresh-context reviewers found the same single
   logic bug, which is strong signal it's real and now fixed.
+
+## Review (2026-07-14, round 6)
+
+**Verdict**: Approve
+
+**Blockers**: none (R5-B1 fixed this round)
+**Important**: none
+**Nits**: none
+
+**Notes**: Deep lane, single fresh-context `openai-codex/gpt-5.6-sol`
+convergence pass over the narrow `!==` fix. Confirmed: `realDir !==
+expectedDir` is correct (no false fail-close — `join()` and `realpathSync()`
+produce identical paths for a legitimate directory with a canonical parent +
+plain hex child); the in-cache sibling swap is closed; the residual
+post-realpathSync TOCTOU is an acceptable documented residual, not a logic
+error. B2 confirmed closed in round 5. Full suite 338 pass / 0 fail. Item
+advanced to `stage: done`.
+
+### Final state of the two blocker bug classes
+- **Detection fail-open (rounds 1–3)**: killed by the scope cut (operator-
+  asserts backing store; no runtime fs-type gate to fail open).
+- **Accessor/policy divergence (B1/R2-B2/B2)**: killed structurally — accessors
+  derive from `activePolicy` (single source of truth); final-path validation
+  uses exact equality.
+- **Path-validation gap (B1)**: closed — lstatSync rejects planted symlinks;
+  exact-equality check is defense-in-depth for the TOCTOU window.
+
+### Deferred (parked in backlog, not blockers)
+- I1 safe-writability check, I2 empty-XDG semantics, I3 findmnt command,
+  I4 tmpfs startup warning, I5 /sandbox effective-path, I6 regression coverage.
+  These are real but non-blocking; picked up separately.
