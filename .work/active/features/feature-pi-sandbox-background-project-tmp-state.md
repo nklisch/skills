@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state
 kind: feature
-stage: review
+stage: implementing
 tags: [bug, sandbox, background-tasks, plugin]
 parent: null
 depends_on: [feature-pi-sandbox-disk-backed-tmp]
@@ -356,3 +356,42 @@ fallback.
 - `bun test plugins/background-tasks/extensions` — 81 passed.
 - `npm run check:pi-packages` — 123 passed, 0 failed.
 - No unrelated production issues were discovered or parked.
+
+## Other agent review
+
+- **Phase 1 — completeness/complementary**: fresh-context
+  `openai-codex/gpt-5.6-sol` ran four internal passes to stable findings. It
+  found no production defect, but retained one Important gap: the regression
+  stopped at the real cached builder instead of composing the registered
+  background/monitor tools.
+- **Phase 2 — adversarial**: a separate fresh-context
+  `openai-codex/gpt-5.6-sol` ran three attack/falsification passes. It verified
+  the Phase 1 gap and found a Blocker: actual tools omit Pi's authoritative
+  agent directory, so custom-agent-dir sessions can load a different global
+  sandbox policy than mediated bash.
+- Two independent model classes were unavailable: the Umans host cannot spawn
+  Umans subagents under the harness policy, so both phases used independent
+  Codex contexts. Both are cross-model relative to the Umans/GLM host, but not
+  cross-class relative to each other.
+
+## Review (2026-07-14)
+
+**Verdict**: Request changes
+
+**Blockers**:
+- `feature-pi-sandbox-background-project-tmp-state-real-tool-policy-parity` —
+  transport the authoritative agent/config directory through the live session
+  contract so background/monitor cannot load a weaker default global policy.
+
+**Important**:
+- Covered by the same story: exercise the real registered background/monitor
+  tools and prove refusal creates no job/wake/marker after invalidation.
+
+**Nits**:
+- Update stale `getProjectTmpDir` / `getTmpBackend` comments that still describe
+  the removed module-local transport.
+
+**Notes**: Deep substrate review over implementation commit `97350d2`. Core
+snapshot lifecycle, structural validation, cwd matching, version-skew
+fail-closed behavior, and explicit test overrides were verified. Feature bounced
+`review → implementing`; the coupled security/test follow-up is active.
