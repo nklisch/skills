@@ -483,6 +483,23 @@ describe("monitor sandbox poll decision", () => {
   });
 });
 
+describe("Pi tool-result error semantics", () => {
+  test("marks only structured background/monitor sandbox refusals as finalized errors", async () => {
+    const { handlers } = makeFakePi();
+    const toolResultHandlers = handlers.tool_result ?? [];
+    expect(toolResultHandlers).toHaveLength(1);
+
+    for (const toolName of ["background", "monitor"]) {
+      const patch = await toolResultHandlers[0]({ toolName, details: { sandbox: "blocked", reason: "session-state-unavailable" } });
+      expect(patch).toEqual({ isError: true });
+    }
+
+    expect(await toolResultHandlers[0]({ toolName: "background", details: { sandbox: "active" } })).toBeUndefined();
+    expect(await toolResultHandlers[0]({ toolName: "monitor", details: { sandbox: "degraded" } })).toBeUndefined();
+    expect(await toolResultHandlers[0]({ toolName: "jobs", details: { sandbox: "blocked" } })).toBeUndefined();
+  });
+});
+
 describe("background tool", () => {
   test("starts a job, returns immediately with an id, and wakes on exit with a custom trusted (output-free) message", async () => {
     const { tools, wakes, userMessages } = makeFakePi();

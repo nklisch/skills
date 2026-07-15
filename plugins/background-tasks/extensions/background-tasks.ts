@@ -222,7 +222,7 @@ type PiApi = {
   registerCommand?: (name: string, options: { description: string; handler: (args: string | undefined, ctx: ToolContext) => void }) => void;
   on?: (
     event: string,
-    handler: (event: unknown, ctx: ToolContext) => Promise<void> | void,
+    handler: (event: unknown, ctx: ToolContext) => Promise<unknown> | unknown,
   ) => void;
 };
 
@@ -1417,6 +1417,18 @@ export default function backgroundTasksExtension(pi: PiApi, options: BackgroundT
       label: str("Short human label. Defaults to a slug of the command."),
     }, ["command", "satisfy_on"]),
     execute: monitorExecute,
+  });
+
+  // Pi treats every normally resolved custom-tool execution as successful;
+  // an `isError` property returned by execute() is not part of AgentToolResult.
+  // Preserve structured sandbox refusal details while patching the finalized
+  // background/monitor toolResult through the supported middleware contract.
+  pi.on?.("tool_result", (event) => {
+    const result = event as { toolName?: unknown; details?: unknown };
+    if (result.toolName !== "background" && result.toolName !== "monitor") return;
+    if (!result.details || typeof result.details !== "object" || Array.isArray(result.details)) return;
+    if ((result.details as { sandbox?: unknown }).sandbox !== "blocked") return;
+    return { isError: true };
   });
 
   pi.registerTool?.({
