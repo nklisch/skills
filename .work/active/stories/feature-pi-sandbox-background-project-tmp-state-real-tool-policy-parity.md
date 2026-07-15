@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state-real-tool-policy-parity
 kind: story
-stage: review
+stage: done
 tags: [bug, security, tests, sandbox, background-tasks]
 parent: feature-pi-sandbox-background-project-tmp-state
 depends_on: []
@@ -86,3 +86,16 @@ module-local accessors.
 - `bun test plugins/background-tasks/extensions` — 81 passed.
 - `npm run check:pi-packages` — 123 passed, 0 failed.
 - `git diff --check` — passed.
+
+## Review (2026-07-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Implementation recorded green full plugin
+suites and package metadata checks; the orchestrator independently reran the
+same verification with identical results. Story verified by implement and
+advanced `review → done`.
