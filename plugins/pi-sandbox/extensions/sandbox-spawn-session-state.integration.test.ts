@@ -158,6 +158,60 @@ bwrapTest("a cache-busted live extension and cached real bridge helper share fre
 	}
 });
 
+test("a live disabled session permits registered degraded tools only while its pinned identity matches", async () => {
+	const agentDir = await makeTempDir("pi-sandbox-disabled-agent-");
+	const project = await makeTempDir("pi-sandbox-disabled-project-");
+	const otherProject = await makeTempDir("pi-sandbox-disabled-other-project-");
+	await mkdir(join(agentDir, "extensions"), { recursive: true });
+	await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({ enabled: false }));
+	const tool = (name: string) => ({ name, description: `${name} test stub`, parameters: {}, execute: async () => ({ content: [{ type: "text", text: "stub" }] }) });
+	mock.module("@earendil-works/pi-coding-agent", () => ({
+		getAgentDir: () => agentDir,
+		createBashTool: () => tool("bash"), createReadTool: () => tool("read"), createWriteTool: () => tool("write"), createEditTool: () => tool("edit"),
+	}));
+	mock.module("typebox", () => ({ Type: {
+		Object: (properties: unknown, options?: Record<string, unknown>) => ({ type: "object", properties, ...options }),
+		String: (options?: Record<string, unknown>) => ({ type: "string", ...options }), Number: (options?: Record<string, unknown>) => ({ type: "number", ...options }),
+		Optional: (schema: Record<string, unknown>) => ({ ...schema, optional: true }), Array: (items: unknown, options?: Record<string, unknown>) => ({ type: "array", items, ...options }),
+	} }));
+
+	const live = await import(`${new URL("./sandbox.ts", import.meta.url).href}?disabled-live=${crypto.randomUUID()}`);
+	const helper = await import(`${new URL("./sandbox-spawn.ts", import.meta.url).href}?disabled-helper=${crypto.randomUUID()}`);
+	const handlers = new Map<string, Array<(event: unknown, ctx: any) => Promise<void> | void>>();
+	live.default({
+		registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {},
+		on: (event: string, handler: (event: unknown, ctx: any) => Promise<void> | void) => (handlers.get(event) ?? (handlers.set(event, []), handlers.get(event)!)).push(handler),
+	});
+	const context = (cwd: string) => ({ cwd, hasUI: false, ui: { notify: () => {}, setStatus: () => {}, theme: { fg: (_name: string, text: string) => text }, confirm: async () => false } });
+	for (const handler of handlers.get("session_start") ?? []) await handler({ reason: "test" }, context(project));
+	const state = readSandboxSpawnSessionState();
+	expect(state).toMatchObject({ ok: true, value: { state: "inactive", reason: "disabled", configCwd: project, agentDir } });
+	if (!state.ok || state.value.state !== "inactive" || state.value.reason !== "disabled") throw new Error("disabled session did not publish a pinned inactive state");
+	expect(state.value.policyFingerprint).toMatch(/^sha256:/);
+
+	const tools = new Map<string, any>();
+	const bridge = createSandboxBridge(async () => ({ buildSandboxedSpawnArgs: helper.buildSandboxedSpawnArgs }));
+	backgroundTasksExtension({
+		registerTool: (definition: { name: string }) => tools.set(definition.name, definition),
+		sendMessage: () => {}, appendEntry: () => {}, on: () => {},
+		exec: async () => ({ stdout: "", stderr: "", code: 0 }),
+	}, { sandboxResolver: bridge.resolveSandboxSpawnBuilder });
+	const background = tools.get("background");
+	const monitor = tools.get("monitor");
+	const execute = (definition: any, params: Record<string, unknown>, cwd = project) => definition.execute("disabled", params, undefined, undefined, context(cwd));
+
+	const disabledBackground = await execute(background, { command: "true", label: "disabled-background" });
+	expect(disabledBackground).toMatchObject({ details: { sandbox: "degraded" } });
+	const disabledMonitor = await execute(monitor, { command: "true", satisfy_on: "exit_zero", interval_seconds: 1, timeout_seconds: 5, label: "disabled-monitor" });
+	expect(disabledMonitor).toMatchObject({ details: { sandbox: "degraded" } });
+	const wrongProject = await execute(background, { command: "true", label: "wrong-project" }, otherProject);
+	expect(wrongProject).toMatchObject({ isError: true, details: { sandbox: "blocked", reason: "session-state-unavailable" } });
+
+	await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({ enabled: true }));
+	const drifted = await execute(monitor, { command: "true", satisfy_on: "exit_zero", interval_seconds: 1, timeout_seconds: 5, label: "drifted-disabled-monitor" });
+	expect(drifted).toMatchObject({ isError: true, details: { sandbox: "blocked", reason: "session-state-unavailable" } });
+});
+
 bwrapTest("registered background and monitor tools honor live agent-dir policy and fail closed after invalidation", async () => {
 	const agentDir = await makeTempDir("pi-sandbox-real-tools-agent-");
 	const cacheHome = await makeTempDir("pi-sandbox-real-tools-cache-");

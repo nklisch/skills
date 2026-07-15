@@ -67,7 +67,7 @@ describe("sandbox spawn session snapshot contract", () => {
 		expect(SANDBOX_SPAWN_SESSION_STATE_SYMBOL).toBe(Symbol.for(SANDBOX_SPAWN_SESSION_STATE_SYMBOL_DESCRIPTION));
 		const fingerprint = `sha256:${"0".repeat(64)}`;
 		const first = publishSandboxSpawnSessionState({
-			version: 2,
+			version: 3,
 			state: "ready",
 			configCwd: "/project-a",
 			agentDir: "/agent-a",
@@ -75,13 +75,13 @@ describe("sandbox spawn session snapshot contract", () => {
 			tmpBackend: "session-disk",
 			projectTmpDir: "/cache/project-a",
 		});
-		const second = publishSandboxSpawnSessionState({ version: 2, state: "inactive", reason: "shutdown", configCwd: "/project-a", agentDir: "/agent-a" });
+		const second = publishSandboxSpawnSessionState({ version: 3, state: "inactive", reason: "shutdown", configCwd: "/project-a", agentDir: "/agent-a" });
 
 		expect(Object.isFrozen(first)).toBe(true);
 		expect(Object.isFrozen(second)).toBe(true);
 		expect(first).not.toBe(second);
 		expect(first).toEqual({
-			version: 2,
+			version: 3,
 			state: "ready",
 			configCwd: "/project-a",
 			agentDir: "/agent-a",
@@ -101,15 +101,18 @@ describe("sandbox spawn session snapshot contract", () => {
 		const fingerprint = `sha256:${"0".repeat(64)}`;
 		for (const value of [
 			{ version: 1, state: "inactive", reason: "shutdown", configCwd: "/project", agentDir: "/agent" },
-			{ version: 2, state: "inactive", reason: "unknown", configCwd: "/project", agentDir: "/agent" },
-			{ version: 2, state: "inactive", reason: "shutdown", configCwd: "/project", agentDir: "relative" },
-			{ version: 2, state: "inactive", reason: "shutdown", agentDir: "/agent" },
-			{ version: 2, state: "ready", configCwd: "relative", agentDir: "/agent", policyFingerprint: fingerprint, tmpBackend: "host-tmpfs", projectTmpDir: null },
-			{ version: 2, state: "ready", configCwd: "/project", agentDir: "relative", policyFingerprint: fingerprint, tmpBackend: "host-tmpfs", projectTmpDir: null },
-			{ version: 2, state: "ready", configCwd: "/project", agentDir: "/agent", policyFingerprint: "not-a-hash", tmpBackend: "host-tmpfs", projectTmpDir: null },
-			{ version: 2, state: "ready", configCwd: "/project", agentDir: "/agent", policyFingerprint: fingerprint, tmpBackend: "session-disk", projectTmpDir: null },
-			{ version: 2, state: "ready", configCwd: "/project", agentDir: "/agent", policyFingerprint: fingerprint, tmpBackend: "host-tmpfs", projectTmpDir: "/cache/project" },
-			{ version: 2, state: "ready", configCwd: "/project", agentDir: "/agent", policyFingerprint: fingerprint, tmpBackend: "host-tmpfs", projectTmpDir: null, secret: "must-not-be-accepted" },
+			{ version: 2, state: "inactive", reason: "shutdown", configCwd: "/project", agentDir: "/agent" },
+			{ version: 3, state: "inactive", reason: "unknown", configCwd: "/project", agentDir: "/agent" },
+			{ version: 3, state: "inactive", reason: "shutdown", configCwd: "/project", agentDir: "relative" },
+			{ version: 3, state: "inactive", reason: "shutdown", agentDir: "/agent" },
+			{ version: 3, state: "inactive", reason: "disabled", configCwd: "/project", agentDir: "/agent" },
+			{ version: 3, state: "inactive", reason: "shutdown", configCwd: "/project", agentDir: "/agent", policyFingerprint: fingerprint },
+			{ version: 3, state: "ready", configCwd: "relative", agentDir: "/agent", policyFingerprint: fingerprint, tmpBackend: "host-tmpfs", projectTmpDir: null },
+			{ version: 3, state: "ready", configCwd: "/project", agentDir: "relative", policyFingerprint: fingerprint, tmpBackend: "host-tmpfs", projectTmpDir: null },
+			{ version: 3, state: "ready", configCwd: "/project", agentDir: "/agent", policyFingerprint: "not-a-hash", tmpBackend: "host-tmpfs", projectTmpDir: null },
+			{ version: 3, state: "ready", configCwd: "/project", agentDir: "/agent", policyFingerprint: fingerprint, tmpBackend: "session-disk", projectTmpDir: null },
+			{ version: 3, state: "ready", configCwd: "/project", agentDir: "/agent", policyFingerprint: fingerprint, tmpBackend: "host-tmpfs", projectTmpDir: "/cache/project" },
+			{ version: 3, state: "ready", configCwd: "/project", agentDir: "/agent", policyFingerprint: fingerprint, tmpBackend: "host-tmpfs", projectTmpDir: null, secret: "must-not-be-accepted" },
 		]) {
 			expect(set(value).ok).toBe(false);
 		}
@@ -569,7 +572,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		const projectTmpDir = await makeTempDir();
 		const agentDir = await makeAgentDir();
 		publishSandboxSpawnSessionState({
-			version: 2,
+			version: 3,
 			state: "ready",
 			configCwd: projectA,
 			agentDir,
@@ -595,7 +598,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		const projectB = await makeTempDir();
 		const integrationOffAgentDir = await makeAgentDir({ backgroundTasks: { sandboxIntegration: "off" } });
 		publishSandboxSpawnSessionState({
-			version: 2,
+			version: 3,
 			state: "ready",
 			configCwd: projectA,
 			agentDir: integrationOffAgentDir,
@@ -610,7 +613,7 @@ describe("buildSandboxedSpawnArgs", () => {
 
 		const disabledAgentDir = await makeAgentDir({ enabled: false });
 		publishSandboxSpawnSessionState({
-			version: 2,
+			version: 3,
 			state: "ready",
 			configCwd: projectA,
 			agentDir: disabledAgentDir,
@@ -624,7 +627,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		expect(wrongProjectDisabled).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
 
 		publishSandboxSpawnSessionState({
-			version: 2, state: "inactive", reason: "shutdown", configCwd: projectA, agentDir: integrationOffAgentDir,
+			version: 3, state: "inactive", reason: "shutdown", configCwd: projectA, agentDir: integrationOffAgentDir,
 		});
 		const shutdownOverrides = buildSandboxedSpawnArgs({
 			command: "true", cwd: projectA, configCwd: projectA, agentDir: integrationOffAgentDir, tmpBackend: "host-tmpfs", platform: "linux", bwrapAvailable: true, baseEnv: { PATH: "/usr/bin" },
@@ -632,12 +635,44 @@ describe("buildSandboxedSpawnArgs", () => {
 		expect(shutdownOverrides).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
 	});
 
+	test("permits only matching pinned disabled and unsupported-platform lifecycle dispositions", async () => {
+		const project = await makeTempDir();
+		const otherProject = await makeTempDir();
+		const disabledAgentDir = await makeAgentDir({ enabled: false });
+		publishSandboxSpawnSessionState({
+			version: 3, state: "inactive", reason: "disabled", configCwd: project, agentDir: disabledAgentDir,
+			policyFingerprint: policyFingerprintFor(project, disabledAgentDir),
+		});
+		const disabled = buildSandboxedSpawnArgs({ command: "true", cwd: project, configCwd: project, platform: "linux", bwrapAvailable: true, baseEnv: { PATH: "/usr/bin" } });
+		expect(disabled).toMatchObject({ state: "degraded", reason: "sandbox-disabled" });
+		const disabledWrongProject = buildSandboxedSpawnArgs({ command: "true", cwd: otherProject, configCwd: otherProject, platform: "linux", bwrapAvailable: true, baseEnv: { PATH: "/usr/bin" } });
+		expect(disabledWrongProject).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
+		await writeFile(join(disabledAgentDir, "extensions", "sandbox.json"), JSON.stringify({ enabled: true }));
+		expect(buildSandboxedSpawnArgs({ command: "true", cwd: project, configCwd: project, platform: "linux", bwrapAvailable: true, baseEnv: { PATH: "/usr/bin" } })).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
+
+		const unsupportedAgentDir = await makeAgentDir();
+		publishSandboxSpawnSessionState({
+			version: 3, state: "inactive", reason: "unsupported-platform", configCwd: project, agentDir: unsupportedAgentDir,
+			policyFingerprint: policyFingerprintFor(project, unsupportedAgentDir),
+		});
+		const unsupported = buildSandboxedSpawnArgs({ command: "true", cwd: project, configCwd: project, platform: "darwin", bwrapAvailable: false, baseEnv: { PATH: "/usr/bin" } });
+		expect(unsupported).toMatchObject({ state: "degraded", reason: "unsupported-platform" });
+		const unsupportedWrongProject = buildSandboxedSpawnArgs({ command: "true", cwd: otherProject, configCwd: otherProject, platform: "darwin", bwrapAvailable: false, baseEnv: { PATH: "/usr/bin" } });
+		expect(unsupportedWrongProject).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
+		await writeFile(join(unsupportedAgentDir, "extensions", "sandbox.json"), JSON.stringify({ enabled: false }));
+		publishSandboxSpawnSessionState({
+			version: 3, state: "inactive", reason: "unsupported-platform", configCwd: project, agentDir: unsupportedAgentDir,
+			policyFingerprint: policyFingerprintFor(project, unsupportedAgentDir),
+		});
+		expect(buildSandboxedSpawnArgs({ command: "true", cwd: project, configCwd: project, platform: "darwin", bwrapAvailable: false, baseEnv: { PATH: "/usr/bin" } })).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
+	});
+
 	test("uses the live agent dir and rejects conflicting or malformed agent-dir state", async () => {
 		const cwd = await makeTempDir();
 		const liveAgentDir = await makeAgentDir({ backgroundTasks: { sandboxIntegration: "off" } });
 		const conflictingAgentDir = await makeAgentDir();
 		publishSandboxSpawnSessionState({
-			version: 2,
+			version: 3,
 			state: "ready",
 			configCwd: cwd,
 			agentDir: liveAgentDir,
@@ -668,7 +703,7 @@ describe("buildSandboxedSpawnArgs", () => {
 		expect(conflictingOverride).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
 
 		(globalThis as typeof globalThis & Record<symbol, unknown>)[SANDBOX_SPAWN_SESSION_STATE_SYMBOL] = {
-			version: 2,
+			version: 3,
 			state: "ready",
 			configCwd: cwd,
 			agentDir: "relative",
@@ -705,9 +740,9 @@ describe("buildSandboxedSpawnArgs", () => {
 			baseEnv: { PATH: "/usr/bin" },
 		});
 
-		publishSandboxSpawnSessionState({ version: 2, state: "ready", configCwd: projectA, agentDir, policyFingerprint: policyFingerprintFor(projectA, agentDir), tmpBackend: "session-disk", projectTmpDir: tmpA });
+		publishSandboxSpawnSessionState({ version: 3, state: "ready", configCwd: projectA, agentDir, policyFingerprint: policyFingerprintFor(projectA, agentDir), tmpBackend: "session-disk", projectTmpDir: tmpA });
 		const first = build(projectA);
-		publishSandboxSpawnSessionState({ version: 2, state: "ready", configCwd: projectB, agentDir, policyFingerprint: policyFingerprintFor(projectB, agentDir), tmpBackend: "session-disk", projectTmpDir: tmpB });
+		publishSandboxSpawnSessionState({ version: 3, state: "ready", configCwd: projectB, agentDir, policyFingerprint: policyFingerprintFor(projectB, agentDir), tmpBackend: "session-disk", projectTmpDir: tmpB });
 		const second = build(projectB);
 
 		expect(first.state).toBe("ok");

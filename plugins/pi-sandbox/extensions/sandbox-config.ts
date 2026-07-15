@@ -211,31 +211,47 @@ export type SandboxSpawnSessionInactiveReason =
 	| "unsupported-platform"
 	| "shutdown";
 
-export type SandboxSpawnSessionStateV2 = Readonly<
-	| {
-		version: 2;
+type SandboxSpawnSessionIdentity = {
+	/** Canonical project identity retained through every lifecycle transition. */
+	configCwd: string;
+	/** Canonical Pi agent/config root selected by the live extension. */
+	agentDir: string;
+};
+
+type PinnedInactiveSpawnSessionReason = "disabled" | "unsupported-platform";
+type HardInactiveSpawnSessionReason = Exclude<SandboxSpawnSessionInactiveReason, PinnedInactiveSpawnSessionReason>;
+
+/**
+ * Cross-loader lifecycle transport. Intentional degraded states pin the same
+ * effective-policy identity as ready state: they may degrade only when the
+ * current configuration still produces their published disposition. Terminal
+ * inactive states deliberately carry no identity and are always refusals.
+ */
+export type SandboxSpawnSessionStateV3 = Readonly<
+	| ({
+		version: 3;
 		state: "inactive";
-		reason: SandboxSpawnSessionInactiveReason;
-		/** Canonical project identity retained through every lifecycle transition. */
-		configCwd: string;
-		/** Canonical Pi agent/config root selected by the live extension. */
-		agentDir: string;
-	}
-	| {
-		version: 2;
+		reason: HardInactiveSpawnSessionReason;
+	} & SandboxSpawnSessionIdentity)
+	| ({
+		version: 3;
+		state: "inactive";
+		reason: PinnedInactiveSpawnSessionReason;
+		/** SHA-256 identity of the complete merged config consumed by sandbox-spawn. */
+		policyFingerprint: string;
+	} & SandboxSpawnSessionIdentity)
+	| ({
+		version: 3;
 		state: "ready";
-		configCwd: string;
-		/** Canonical Pi agent/config root selected by the live extension. */
-		agentDir: string;
 		/** SHA-256 identity of the complete merged config consumed by sandbox-spawn. */
 		policyFingerprint: string;
 		tmpBackend: "session-disk" | "host-tmpfs";
 		projectTmpDir: string | null;
-	}
+	} & SandboxSpawnSessionIdentity)
 >;
 
 export type SandboxSpawnSessionStateRead =
-	| { ok: true; value: SandboxSpawnSessionStateV2 }
+	| { ok: true; value: SandboxSpawnSessionStateV3 }
 	| { ok: false; reason: string };
 
 export type SandboxSpawnPolicyFingerprint =
@@ -263,13 +279,16 @@ function validateSandboxSpawnSessionState(value: unknown): SandboxSpawnSessionSt
 			return { ok: false, reason: "session state is not an object" };
 		}
 		const state = value as Record<string, unknown>;
-		if (state.version !== 2) return { ok: false, reason: "session state has an unsupported version" };
+		if (state.version !== 3) return { ok: false, reason: "session state has an unsupported version" };
 		if (state.state === "inactive") {
-			if (!hasOnlyKeys(state, ["version", "state", "reason", "configCwd", "agentDir"])) {
-				return { ok: false, reason: "inactive session state has an invalid shape" };
-			}
 			if (typeof state.reason !== "string" || !SANDBOX_SPAWN_SESSION_INACTIVE_REASONS.has(state.reason as SandboxSpawnSessionInactiveReason)) {
 				return { ok: false, reason: "inactive session state has an invalid reason" };
+			}
+			const pinsPolicy = state.reason === "disabled" || state.reason === "unsupported-platform";
+			if (!hasOnlyKeys(state, pinsPolicy
+				? ["version", "state", "reason", "configCwd", "agentDir", "policyFingerprint"]
+				: ["version", "state", "reason", "configCwd", "agentDir"])) {
+				return { ok: false, reason: "inactive session state has an invalid shape" };
 			}
 			if (typeof state.configCwd !== "string" || !isAbsolute(state.configCwd)) {
 				return { ok: false, reason: "inactive session state has an invalid config cwd" };
@@ -277,7 +296,10 @@ function validateSandboxSpawnSessionState(value: unknown): SandboxSpawnSessionSt
 			if (typeof state.agentDir !== "string" || !isAbsolute(state.agentDir)) {
 				return { ok: false, reason: "inactive session state has an invalid agent dir" };
 			}
-			return { ok: true, value: state as SandboxSpawnSessionStateV2 };
+			if (pinsPolicy && (typeof state.policyFingerprint !== "string" || !/^sha256:[0-9a-f]{64}$/.test(state.policyFingerprint))) {
+				return { ok: false, reason: "inactive session state has an invalid policy identity" };
+			}
+			return { ok: true, value: state as SandboxSpawnSessionStateV3 };
 		}
 		if (state.state !== "ready") return { ok: false, reason: "session state has an invalid lifecycle state" };
 		if (!hasOnlyKeys(state, ["version", "state", "configCwd", "agentDir", "policyFingerprint", "tmpBackend", "projectTmpDir"])) {
@@ -302,20 +324,22 @@ function validateSandboxSpawnSessionState(value: unknown): SandboxSpawnSessionSt
 		} else if (state.projectTmpDir !== null) {
 			return { ok: false, reason: "host-tmpfs session state must not contain a project temp dir" };
 		}
-		return { ok: true, value: state as SandboxSpawnSessionStateV2 };
+		return { ok: true, value: state as SandboxSpawnSessionStateV3 };
 	} catch {
 		return { ok: false, reason: "session state could not be inspected" };
 	}
 }
 
 /** Clone, freeze, and atomically replace the narrow cross-loader snapshot. */
-export function publishSandboxSpawnSessionState(state: SandboxSpawnSessionStateV2): SandboxSpawnSessionStateV2 {
+export function publishSandboxSpawnSessionState(state: SandboxSpawnSessionStateV3): SandboxSpawnSessionStateV3 {
 	const validated = validateSandboxSpawnSessionState(state);
 	if (!validated.ok) throw new Error(`Refusing to publish invalid sandbox spawn session state: ${validated.reason}`);
-	const snapshot: SandboxSpawnSessionStateV2 = validated.value.state === "inactive"
-		? Object.freeze({ version: 2, state: "inactive" as const, reason: validated.value.reason, configCwd: validated.value.configCwd, agentDir: validated.value.agentDir })
+	const snapshot: SandboxSpawnSessionStateV3 = validated.value.state === "inactive"
+		? validated.value.reason === "disabled" || validated.value.reason === "unsupported-platform"
+			? Object.freeze({ version: 3, state: "inactive" as const, reason: validated.value.reason, configCwd: validated.value.configCwd, agentDir: validated.value.agentDir, policyFingerprint: validated.value.policyFingerprint })
+			: Object.freeze({ version: 3, state: "inactive" as const, reason: validated.value.reason, configCwd: validated.value.configCwd, agentDir: validated.value.agentDir })
 		: Object.freeze({
-			version: 2,
+			version: 3,
 			state: "ready" as const,
 			configCwd: validated.value.configCwd,
 			agentDir: validated.value.agentDir,
@@ -327,7 +351,7 @@ export function publishSandboxSpawnSessionState(state: SandboxSpawnSessionStateV
 	return snapshot;
 }
 
-/** Read only structurally valid version-2 state. Unknown or malformed state is unusable. */
+/** Read only structurally valid version-3 state. Unknown or malformed state is unusable. */
 export function readSandboxSpawnSessionState(): SandboxSpawnSessionStateRead {
 	return validateSandboxSpawnSessionState((globalThis as typeof globalThis & Record<symbol, unknown>)[SANDBOX_SPAWN_SESSION_STATE_SYMBOL]);
 }
