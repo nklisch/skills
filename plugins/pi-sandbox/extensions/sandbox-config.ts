@@ -215,11 +215,15 @@ export type SandboxSpawnSessionStateV1 = Readonly<
 		version: 1;
 		state: "inactive";
 		reason: SandboxSpawnSessionInactiveReason;
+		/** Canonical Pi agent/config root selected by the live extension. */
+		agentDir: string;
 	}
 	| {
 		version: 1;
 		state: "ready";
 		configCwd: string;
+		/** Canonical Pi agent/config root selected by the live extension. */
+		agentDir: string;
 		tmpBackend: "session-disk" | "host-tmpfs";
 		projectTmpDir: string | null;
 	}
@@ -245,26 +249,33 @@ function hasOnlyKeys(value: Record<string, unknown>, keys: string[]): boolean {
 
 function validateSandboxSpawnSessionState(value: unknown): SandboxSpawnSessionStateRead {
 	try {
+		if (value === undefined) return { ok: false, reason: "session state is absent" };
 		if (!value || typeof value !== "object" || Array.isArray(value)) {
 			return { ok: false, reason: "session state is not an object" };
 		}
 		const state = value as Record<string, unknown>;
 		if (state.version !== 1) return { ok: false, reason: "session state has an unsupported version" };
 		if (state.state === "inactive") {
-			if (!hasOnlyKeys(state, ["version", "state", "reason"])) {
+			if (!hasOnlyKeys(state, ["version", "state", "reason", "agentDir"])) {
 				return { ok: false, reason: "inactive session state has an invalid shape" };
 			}
 			if (typeof state.reason !== "string" || !SANDBOX_SPAWN_SESSION_INACTIVE_REASONS.has(state.reason as SandboxSpawnSessionInactiveReason)) {
 				return { ok: false, reason: "inactive session state has an invalid reason" };
 			}
+			if (typeof state.agentDir !== "string" || !isAbsolute(state.agentDir)) {
+				return { ok: false, reason: "inactive session state has an invalid agent dir" };
+			}
 			return { ok: true, value: state as SandboxSpawnSessionStateV1 };
 		}
 		if (state.state !== "ready") return { ok: false, reason: "session state has an invalid lifecycle state" };
-		if (!hasOnlyKeys(state, ["version", "state", "configCwd", "tmpBackend", "projectTmpDir"])) {
+		if (!hasOnlyKeys(state, ["version", "state", "configCwd", "agentDir", "tmpBackend", "projectTmpDir"])) {
 			return { ok: false, reason: "ready session state has an invalid shape" };
 		}
 		if (typeof state.configCwd !== "string" || !isAbsolute(state.configCwd)) {
 			return { ok: false, reason: "ready session state has an invalid config cwd" };
+		}
+		if (typeof state.agentDir !== "string" || !isAbsolute(state.agentDir)) {
+			return { ok: false, reason: "ready session state has an invalid agent dir" };
 		}
 		if (state.tmpBackend !== "session-disk" && state.tmpBackend !== "host-tmpfs") {
 			return { ok: false, reason: "ready session state has an invalid temp backend" };
@@ -287,11 +298,12 @@ export function publishSandboxSpawnSessionState(state: SandboxSpawnSessionStateV
 	const validated = validateSandboxSpawnSessionState(state);
 	if (!validated.ok) throw new Error(`Refusing to publish invalid sandbox spawn session state: ${validated.reason}`);
 	const snapshot: SandboxSpawnSessionStateV1 = validated.value.state === "inactive"
-		? Object.freeze({ version: 1, state: "inactive" as const, reason: validated.value.reason })
+		? Object.freeze({ version: 1, state: "inactive" as const, reason: validated.value.reason, agentDir: validated.value.agentDir })
 		: Object.freeze({
 			version: 1,
 			state: "ready" as const,
 			configCwd: validated.value.configCwd,
+			agentDir: validated.value.agentDir,
 			tmpBackend: validated.value.tmpBackend,
 			projectTmpDir: validated.value.projectTmpDir,
 		});

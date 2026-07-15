@@ -62,10 +62,11 @@ describe("sandbox spawn session snapshot contract", () => {
 			version: 1,
 			state: "ready",
 			configCwd: "/project-a",
+			agentDir: "/agent-a",
 			tmpBackend: "session-disk",
 			projectTmpDir: "/cache/project-a",
 		});
-		const second = publishSandboxSpawnSessionState({ version: 1, state: "inactive", reason: "shutdown" });
+		const second = publishSandboxSpawnSessionState({ version: 1, state: "inactive", reason: "shutdown", agentDir: "/agent-a" });
 
 		expect(Object.isFrozen(first)).toBe(true);
 		expect(Object.isFrozen(second)).toBe(true);
@@ -74,6 +75,7 @@ describe("sandbox spawn session snapshot contract", () => {
 			version: 1,
 			state: "ready",
 			configCwd: "/project-a",
+			agentDir: "/agent-a",
 			tmpBackend: "session-disk",
 			projectTmpDir: "/cache/project-a",
 		});
@@ -87,12 +89,14 @@ describe("sandbox spawn session snapshot contract", () => {
 		};
 		expect(readSandboxSpawnSessionState().ok).toBe(false);
 		for (const value of [
-			{ version: 2, state: "inactive", reason: "shutdown" },
-			{ version: 1, state: "inactive", reason: "unknown" },
-			{ version: 1, state: "ready", configCwd: "relative", tmpBackend: "host-tmpfs", projectTmpDir: null },
-			{ version: 1, state: "ready", configCwd: "/project", tmpBackend: "session-disk", projectTmpDir: null },
-			{ version: 1, state: "ready", configCwd: "/project", tmpBackend: "host-tmpfs", projectTmpDir: "/cache/project" },
-			{ version: 1, state: "ready", configCwd: "/project", tmpBackend: "host-tmpfs", projectTmpDir: null, secret: "must-not-be-accepted" },
+			{ version: 2, state: "inactive", reason: "shutdown", agentDir: "/agent" },
+			{ version: 1, state: "inactive", reason: "unknown", agentDir: "/agent" },
+			{ version: 1, state: "inactive", reason: "shutdown", agentDir: "relative" },
+			{ version: 1, state: "ready", configCwd: "relative", agentDir: "/agent", tmpBackend: "host-tmpfs", projectTmpDir: null },
+			{ version: 1, state: "ready", configCwd: "/project", agentDir: "relative", tmpBackend: "host-tmpfs", projectTmpDir: null },
+			{ version: 1, state: "ready", configCwd: "/project", agentDir: "/agent", tmpBackend: "session-disk", projectTmpDir: null },
+			{ version: 1, state: "ready", configCwd: "/project", agentDir: "/agent", tmpBackend: "host-tmpfs", projectTmpDir: "/cache/project" },
+			{ version: 1, state: "ready", configCwd: "/project", agentDir: "/agent", tmpBackend: "host-tmpfs", projectTmpDir: null, secret: "must-not-be-accepted" },
 		]) {
 			expect(set(value).ok).toBe(false);
 		}
@@ -534,6 +538,7 @@ describe("buildSandboxedSpawnArgs", () => {
 			version: 1,
 			state: "ready",
 			configCwd: projectA,
+			agentDir,
 			tmpBackend: "session-disk",
 			projectTmpDir,
 		});
@@ -548,6 +553,61 @@ describe("buildSandboxedSpawnArgs", () => {
 			baseEnv: { PATH: "/usr/bin" },
 		});
 		expect(result).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
+	});
+
+	test("uses the live agent dir and rejects conflicting or malformed agent-dir state", async () => {
+		const cwd = await makeTempDir();
+		const liveAgentDir = await makeAgentDir({ backgroundTasks: { sandboxIntegration: "off" } });
+		const conflictingAgentDir = await makeAgentDir();
+		publishSandboxSpawnSessionState({
+			version: 1,
+			state: "ready",
+			configCwd: cwd,
+			agentDir: liveAgentDir,
+			tmpBackend: "host-tmpfs",
+			projectTmpDir: null,
+		});
+
+		const fromLiveState = buildSandboxedSpawnArgs({
+			command: "true",
+			cwd,
+			configCwd: cwd,
+			platform: "linux",
+			bwrapAvailable: true,
+			baseEnv: { PATH: "/usr/bin" },
+		});
+		expect(fromLiveState).toMatchObject({ state: "degraded", reason: "integration-off" });
+
+		const conflictingOverride = buildSandboxedSpawnArgs({
+			command: "true",
+			cwd,
+			configCwd: cwd,
+			agentDir: conflictingAgentDir,
+			platform: "linux",
+			bwrapAvailable: true,
+			baseEnv: { PATH: "/usr/bin" },
+		});
+		expect(conflictingOverride).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
+
+		(globalThis as typeof globalThis & Record<symbol, unknown>)[SANDBOX_SPAWN_SESSION_STATE_SYMBOL] = {
+			version: 1,
+			state: "ready",
+			configCwd: cwd,
+			agentDir: "relative",
+			tmpBackend: "host-tmpfs",
+			projectTmpDir: null,
+		};
+		const malformedState = buildSandboxedSpawnArgs({
+			command: "true",
+			cwd,
+			configCwd: cwd,
+			agentDir: liveAgentDir,
+			tmpBackend: "host-tmpfs",
+			platform: "linux",
+			bwrapAvailable: true,
+			baseEnv: { PATH: "/usr/bin" },
+		});
+		expect(malformedState).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
 	});
 
 	test("a cached builder reads each replacement snapshot instead of retaining an old project dir", async () => {
@@ -567,9 +627,9 @@ describe("buildSandboxedSpawnArgs", () => {
 			baseEnv: { PATH: "/usr/bin" },
 		});
 
-		publishSandboxSpawnSessionState({ version: 1, state: "ready", configCwd: projectA, tmpBackend: "session-disk", projectTmpDir: tmpA });
+		publishSandboxSpawnSessionState({ version: 1, state: "ready", configCwd: projectA, agentDir, tmpBackend: "session-disk", projectTmpDir: tmpA });
 		const first = build(projectA);
-		publishSandboxSpawnSessionState({ version: 1, state: "ready", configCwd: projectB, tmpBackend: "session-disk", projectTmpDir: tmpB });
+		publishSandboxSpawnSessionState({ version: 1, state: "ready", configCwd: projectB, agentDir, tmpBackend: "session-disk", projectTmpDir: tmpB });
 		const second = build(projectB);
 
 		expect(first.state).toBe("ok");
