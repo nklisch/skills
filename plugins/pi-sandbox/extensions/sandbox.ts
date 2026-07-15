@@ -29,7 +29,7 @@
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import {
@@ -87,16 +87,26 @@ const loadPiConfig = (cwd: string) => loadConfig(cwd, { agentDir: getAgentDir() 
  *  path resolves the same project temp dir as the bash path. Returns null
  *  before session_start resolves or under tmpBackend!="session-disk"; the
  *  caller (buildSandboxedSpawnArgs) fails-closed when session-disk is active
- *  but this returns null. */
+ *  but this returns null.
+ *
+ *  B2 (round-4 review): this DERIVES from `activePolicy` (the single source
+ *  of truth) rather than separate module-level state, so it can never diverge
+ *  from the policy the bash path uses. Previously the module state and the
+ *  policy had different lifecycles and diverged on early-return branches
+ *  (e.g. --no-sandbox installed a permissive host-tmpfs policy but left the
+ *  module tmpBackend="session-disk"), which made buildSandboxedSpawnArgs throw
+ *  session-disk-requires-projectTmpDir and break background commands. */
 export function getProjectTmpDir(): string | null {
-	return projectTmpDir;
+	return activePolicy?.projectTmpDir ?? null;
 }
 
 /** Accessor for the resolved tmpBackend. Read by buildSandboxedSpawnArgs so the
  *  background/monitor path selects the same session-disk/host-tmpfs branch as
- *  the bash path. */
+ *  the bash path. Derives from `activePolicy` (B2 — see getProjectTmpDir) so it
+ *  cannot diverge from the installed policy. Defaults to "session-disk" before
+ *  session_start, matching the config default and the fail-closed posture. */
 export function getTmpBackend(): "session-disk" | "host-tmpfs" {
-	return tmpBackend;
+	return activePolicy?.tmpBackend ?? "session-disk";
 }
 
 /** The active sandbox policy (trusted init state set at session_start). Exposed so
@@ -139,15 +149,6 @@ let activePolicy: SandboxPolicy | null = null;
 let envScrubConfig: EnvScrubConfig | null = null;
 let pinnedBwrapPath: string | null = null;
 let bwrapPinError: string | null = null;
-/** Pinned per-project disk-backed temp dir (trusted init state) when
- *  tmpBackend==="session-disk"; null otherwise. Set at session_start, read by
- *  the bash-ops path (via activePolicy) and by buildSandboxedSpawnArgs via the
- *  getProjectTmpDir() accessor. Mirrors the pinnedBwrapPath pattern. */
-let projectTmpDir: string | null = null;
-/** The tmpBackend resolved at session_start (defaults to "session-disk"). Read
- *  by buildSandboxedSpawnArgs via the getTmpBackend() accessor so the
- *  background/monitor path selects the same branch as the bash path. */
-let tmpBackend: "session-disk" | "host-tmpfs" = "session-disk";
 
 /** Result of deriving the per-project disk temp dir at session_start. The dir
  *  is NOT runtime-validated for backing-store filesystem type — the operator
@@ -204,10 +205,52 @@ function deriveProjectTmpDir(cwd: string, netMode: NetworkMode): SessionInit {
 		const realCwd = realpathSync(cwd);
 		const cwdKey = createHash("sha256").update(realCwd).digest("hex").slice(0, 16);
 		const dir = join(realCacheRoot, cwdKey);
+		// B1 (round-4 review): reject a pre-existing symlink at the predictable
+		// cwd-hash path. mkdirSync(recursive) SUCCEEDS without throwing on a
+		// pre-existing symlink-to-dir, and realpathSync would then follow it to an
+		// arbitrary target — pinning that target as the writable projectTmpDir bind
+		// (a writable-surface escape). The cwd-hash path is predictable and lives
+		// under the shared, sandbox-writable cache root, so an agent (or a
+		// cooperating session) can plant the symlink before derivation runs.
+		// lstatSync does not follow symlinks, so a symlink (to a dir or otherwise)
+		// is detected and rejected here, BEFORE mkdirSync legitimizes it.
+		if (existsSync(dir)) {
+			let st: { isSymbolicLink(): boolean; isDirectory(): boolean };
+			try {
+				st = lstatSync(dir);
+			} catch {
+				return { ok: false, reason: `project temp dir ${dir} exists but could not be lstat'd (permission denied or removed mid-derivation); refusing to use it. Remove it or use tmpBackend:"host-tmpfs".` };
+			}
+			if (st.isSymbolicLink()) {
+				return { ok: false, reason: `project temp dir ${dir} is a symlink (target would escape the cache root and could widen the writable surface); refusing to follow it. Remove the symlink or use tmpBackend:"host-tmpfs".` };
+			}
+			if (!st.isDirectory()) {
+				return { ok: false, reason: `project temp dir ${dir} exists but is not a directory; refusing to use it. Remove it or use tmpBackend:"host-tmpfs".` };
+			}
+		}
 		mkdirSync(dir, { recursive: true });
 		// Canonicalize the final dir too (R3-I1: derive the final path from
 		// realCacheRoot, not the raw join, so a symlinked cache root is followed).
 		const realDir = realpathSync(dir);
+		// B1 (round-4 review): verify the final dir is the exact expected canonical
+		// child of realCacheRoot. A symlink planted between the lstatSync check
+		// above and here (or a cache root itself reached via a symlink chain whose
+		// intermediate was swapped) must not escape. realDir must equal the expected
+		// path AND remain beneath realCacheRoot. This is the final-directory half of
+		// the mask-containment check: also re-run the block-mode mask check against
+		// realDir so a symlink into /tmp / /run is caught here too, not just at the
+		// cache root.
+		const expectedDir = join(realCacheRoot, cwdKey);
+		if (realDir !== expectedDir && !realDir.startsWith(`${realCacheRoot}/`)) {
+			return { ok: false, reason: `project temp dir ${dir} resolves to ${realDir}, which escapes the cache root ${realCacheRoot}; refusing to bind a path outside the cache root. Remove the symlink or use tmpBackend:"host-tmpfs".` };
+		}
+		if (netMode === "block") {
+			const blockMaskRoots = ["/tmp", "/var/tmp", "/run", "/var/run"].map((p) => canonicalizeExistingPath(p) ?? p);
+			const finalUnderMask = blockMaskRoots.some((m) => realDir === m || realDir.startsWith(`${m}/`));
+			if (finalUnderMask) {
+				return { ok: false, reason: `project temp dir ${dir} resolves under a block-mode tmpfs mask path (${realDir}); the dir would be hidden by the mask. Set XDG_CACHE_HOME outside /tmp, /var/tmp, /run, or use tmpBackend:"host-tmpfs".` };
+			}
+		}
 		return { ok: true, projectTmpDir: realDir };
 	} catch (e) {
 		return { ok: false, reason: `Sandbox failed to create the project temp dir: ${e instanceof Error ? e.message : String(e)}` };
@@ -612,8 +655,6 @@ export default function (pi: ExtensionAPI) {
 		activePolicy = null;
 		envScrubConfig = null;
 		pinnedBwrapPath = null;
-		projectTmpDir = null;
-		tmpBackend = "session-disk";
 		bwrapPinError = null;
 		backgroundTasksIntegrationDecisionBase = null;
 		backgroundTasksIntegrationState = {
@@ -731,9 +772,10 @@ export default function (pi: ExtensionAPI) {
 			allowGitDirDiscovery: config.filesystem?.allowGitDirDiscovery ?? false,
 		});
 		// Resolve tmpBackend early (before platform/bwrap disposition) so the
-		// host-tmpfs / session-disk branch is known and the getTmpBackend()
-		// accessor is correct on every path, including early returns.
-		tmpBackend = config.filesystem?.tmpBackend ?? "session-disk";
+		// host-tmpfs / session-disk branch is known. The accessors derive from
+		// activePolicy (B2), so installing the provisional policy below makes
+		// getTmpBackend() correct on every path, including early returns.
+		const tmpBackend = config.filesystem?.tmpBackend ?? "session-disk";
 
 		// Install a provisional configured file-tool policy BEFORE platform/bwrap
 		// disposition (R3-B2 regression fix). This feature previously moved policy
@@ -768,7 +810,6 @@ export default function (pi: ExtensionAPI) {
 				failClosed = true;
 				bwrapPinError = formatTrustedBwrapFailure(bwrapResolution);
 				lastFailClosedReason = bwrapPinError;
-				projectTmpDir = null;
 				backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
 				ctx.ui.notify(bwrapPinError, "error");
@@ -836,17 +877,17 @@ export default function (pi: ExtensionAPI) {
 		if (!init.ok) {
 			failClosed = true;
 			lastFailClosedReason = init.reason;
-			projectTmpDir = null;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
 			ctx.ui.notify(lastFailClosedReason, "error");
 			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (project temp dir)"));
 			return;
 		}
-		// Pin the resolved projectTmpDir onto module state (read by the
-		// background/monitor path via getProjectTmpDir()) and replace the
-		// provisional policy with the final, project-temp-pinned policy.
-		projectTmpDir = init.projectTmpDir;
+		// Replace the provisional policy with the final, project-temp-pinned
+		// policy. The accessors (getProjectTmpDir/getTmpBackend) derive from
+		// activePolicy, so assigning it here is the single source of truth for both
+		// the bash path and the background/monitor path (B2: no separate module
+		// state to diverge).
 		sandboxPolicy = {
 			denyRead,
 			denyWrite,
@@ -895,8 +936,6 @@ export default function (pi: ExtensionAPI) {
 		activePolicy = null;
 		envScrubConfig = null;
 		pinnedBwrapPath = null;
-		projectTmpDir = null;
-		tmpBackend = "session-disk";
 		bwrapPinError = null;
 		backgroundTasksIntegrationDecisionBase = null;
 		backgroundTasksIntegrationState = {
