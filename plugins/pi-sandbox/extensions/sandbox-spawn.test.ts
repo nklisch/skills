@@ -3,7 +3,14 @@ import { existsSync } from "node:fs";
 import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, isAbsolute, join, resolve } from "node:path";
-import { loadConfig, validateConfig } from "./sandbox-config";
+import {
+	SANDBOX_SPAWN_SESSION_STATE_SYMBOL,
+	SANDBOX_SPAWN_SESSION_STATE_SYMBOL_DESCRIPTION,
+	loadConfig,
+	publishSandboxSpawnSessionState,
+	readSandboxSpawnSessionState,
+	validateConfig,
+} from "./sandbox-config";
 import { PROVIDER_SECRET_ENV_NAMES, buildSandboxedSpawnArgs, findExecutableOnPath } from "./sandbox-spawn";
 import { makeBwrapIntegrationTest } from "./sandbox-bwrap.test";
 
@@ -34,6 +41,7 @@ async function makeAgentDir(config?: unknown): Promise<string> {
 }
 
 afterEach(async () => {
+	delete (globalThis as typeof globalThis & Record<symbol, unknown>)[SANDBOX_SPAWN_SESSION_STATE_SYMBOL];
 	while (tempDirs.length > 0) {
 		const dir = tempDirs.pop();
 		if (dir) await rm(dir, { recursive: true, force: true });
@@ -46,6 +54,50 @@ function sequenceIndex(args: string[], sequence: string[]): number {
 	}
 	return -1;
 }
+
+describe("sandbox spawn session snapshot contract", () => {
+	test("uses a stable symbol and publishes frozen replacement snapshots", () => {
+		expect(SANDBOX_SPAWN_SESSION_STATE_SYMBOL).toBe(Symbol.for(SANDBOX_SPAWN_SESSION_STATE_SYMBOL_DESCRIPTION));
+		const first = publishSandboxSpawnSessionState({
+			version: 1,
+			state: "ready",
+			configCwd: "/project-a",
+			tmpBackend: "session-disk",
+			projectTmpDir: "/cache/project-a",
+		});
+		const second = publishSandboxSpawnSessionState({ version: 1, state: "inactive", reason: "shutdown" });
+
+		expect(Object.isFrozen(first)).toBe(true);
+		expect(Object.isFrozen(second)).toBe(true);
+		expect(first).not.toBe(second);
+		expect(first).toEqual({
+			version: 1,
+			state: "ready",
+			configCwd: "/project-a",
+			tmpBackend: "session-disk",
+			projectTmpDir: "/cache/project-a",
+		});
+		expect(readSandboxSpawnSessionState()).toEqual({ ok: true, value: second });
+	});
+
+	test("rejects absent, malformed, contradictory, and unknown-version snapshots", () => {
+		const set = (value: unknown) => {
+			(globalThis as typeof globalThis & Record<symbol, unknown>)[SANDBOX_SPAWN_SESSION_STATE_SYMBOL] = value;
+			return readSandboxSpawnSessionState();
+		};
+		expect(readSandboxSpawnSessionState().ok).toBe(false);
+		for (const value of [
+			{ version: 2, state: "inactive", reason: "shutdown" },
+			{ version: 1, state: "inactive", reason: "unknown" },
+			{ version: 1, state: "ready", configCwd: "relative", tmpBackend: "host-tmpfs", projectTmpDir: null },
+			{ version: 1, state: "ready", configCwd: "/project", tmpBackend: "session-disk", projectTmpDir: null },
+			{ version: 1, state: "ready", configCwd: "/project", tmpBackend: "host-tmpfs", projectTmpDir: "/cache/project" },
+			{ version: 1, state: "ready", configCwd: "/project", tmpBackend: "host-tmpfs", projectTmpDir: null, secret: "must-not-be-accepted" },
+		]) {
+			expect(set(value).ok).toBe(false);
+		}
+	});
+});
 
 describe("buildSandboxedSpawnArgs", () => {
 	test("returns a bwrap spawn prefix and minimal env in the ok state", async () => {
@@ -451,6 +503,82 @@ describe("buildSandboxedSpawnArgs", () => {
 		expect(sequenceIndex(result.args, ["--chdir", commandCwd])).toBeGreaterThanOrEqual(0);
 		expect(sequenceIndex(result.args, ["--bind", configCwd, configCwd])).toBeGreaterThanOrEqual(0);
 		expect(sequenceIndex(result.args, ["--bind", "/", "/"])).toBe(-1);
+	});
+
+	test("fails closed without a live session snapshot and permits complete explicit overrides", async () => {
+		const cwd = await makeTempDir();
+		const projectTmpDir = await makeTempDir();
+		const agentDir = await makeAgentDir();
+		const base = { command: "true", cwd, configCwd: cwd, agentDir, platform: "linux" as const, bwrapAvailable: true, baseEnv: { PATH: "/usr/bin" } };
+
+		const unavailable = buildSandboxedSpawnArgs(base);
+		expect(unavailable).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
+
+		const sessionDiskOverride = buildSandboxedSpawnArgs({ ...base, tmpBackend: "session-disk", projectTmpDir });
+		expect(sessionDiskOverride.state).toBe("ok");
+		if (sessionDiskOverride.state === "ok") {
+			expect(sequenceIndex(sessionDiskOverride.args, ["--bind", projectTmpDir, projectTmpDir])).toBeGreaterThanOrEqual(0);
+			expect(sequenceIndex(sessionDiskOverride.args, ["--setenv", "TMPDIR", projectTmpDir])).toBeGreaterThanOrEqual(0);
+		}
+
+		const hostTmpfsOverride = buildSandboxedSpawnArgs({ ...base, tmpBackend: "host-tmpfs" });
+		expect(hostTmpfsOverride.state).toBe("ok");
+	});
+
+	test("rejects a ready snapshot for another canonical config cwd", async () => {
+		const projectA = await makeTempDir();
+		const projectB = await makeTempDir();
+		const projectTmpDir = await makeTempDir();
+		const agentDir = await makeAgentDir();
+		publishSandboxSpawnSessionState({
+			version: 1,
+			state: "ready",
+			configCwd: projectA,
+			tmpBackend: "session-disk",
+			projectTmpDir,
+		});
+
+		const result = buildSandboxedSpawnArgs({
+			command: "true",
+			cwd: projectB,
+			configCwd: projectB,
+			agentDir,
+			platform: "linux",
+			bwrapAvailable: true,
+			baseEnv: { PATH: "/usr/bin" },
+		});
+		expect(result).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
+	});
+
+	test("a cached builder reads each replacement snapshot instead of retaining an old project dir", async () => {
+		const projectA = await makeTempDir();
+		const projectB = await makeTempDir();
+		const tmpA = await makeTempDir();
+		const tmpB = await makeTempDir();
+		const agentDir = await makeAgentDir();
+		const builder = buildSandboxedSpawnArgs;
+		const build = (cwd: string) => builder({
+			command: "true",
+			cwd,
+			configCwd: cwd,
+			agentDir,
+			platform: "linux",
+			bwrapAvailable: true,
+			baseEnv: { PATH: "/usr/bin" },
+		});
+
+		publishSandboxSpawnSessionState({ version: 1, state: "ready", configCwd: projectA, tmpBackend: "session-disk", projectTmpDir: tmpA });
+		const first = build(projectA);
+		publishSandboxSpawnSessionState({ version: 1, state: "ready", configCwd: projectB, tmpBackend: "session-disk", projectTmpDir: tmpB });
+		const second = build(projectB);
+
+		expect(first.state).toBe("ok");
+		expect(second.state).toBe("ok");
+		if (first.state === "ok" && second.state === "ok") {
+			expect(sequenceIndex(first.args, ["--setenv", "TMPDIR", tmpA])).toBeGreaterThanOrEqual(0);
+			expect(sequenceIndex(second.args, ["--setenv", "TMPDIR", tmpB])).toBeGreaterThanOrEqual(0);
+			expect(second.args).not.toContain(tmpA);
+		}
 	});
 });
 

@@ -194,6 +194,116 @@ export const BACKGROUND_TASKS_SANDBOX_INTEGRATION_SYMBOL = Symbol.for(BACKGROUND
 export const CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL_DESCRIPTION = "@nklisch/pi-sandbox.credential-boundary-capability";
 export const CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL = Symbol.for(CREDENTIAL_BOUNDARY_CAPABILITY_SYMBOL_DESCRIPTION);
 
+/**
+ * Cross-loader, session-pinned temp state for the public sandbox-spawn helper.
+ * The live extension publishes a narrow immutable projection at lifecycle
+ * boundaries; package helpers re-read and validate it for every spawn.
+ */
+export const SANDBOX_SPAWN_SESSION_STATE_SYMBOL_DESCRIPTION = "@nklisch/pi-sandbox.spawn-session-state";
+export const SANDBOX_SPAWN_SESSION_STATE_SYMBOL = Symbol.for(SANDBOX_SPAWN_SESSION_STATE_SYMBOL_DESCRIPTION);
+
+export type SandboxSpawnSessionInactiveReason =
+	| "not-initialized"
+	| "initializing"
+	| "disabled"
+	| "fail-closed"
+	| "unsupported-platform"
+	| "shutdown";
+
+export type SandboxSpawnSessionStateV1 = Readonly<
+	| {
+		version: 1;
+		state: "inactive";
+		reason: SandboxSpawnSessionInactiveReason;
+	}
+	| {
+		version: 1;
+		state: "ready";
+		configCwd: string;
+		tmpBackend: "session-disk" | "host-tmpfs";
+		projectTmpDir: string | null;
+	}
+>;
+
+export type SandboxSpawnSessionStateRead =
+	| { ok: true; value: SandboxSpawnSessionStateV1 }
+	| { ok: false; reason: string };
+
+const SANDBOX_SPAWN_SESSION_INACTIVE_REASONS = new Set<SandboxSpawnSessionInactiveReason>([
+	"not-initialized",
+	"initializing",
+	"disabled",
+	"fail-closed",
+	"unsupported-platform",
+	"shutdown",
+]);
+
+function hasOnlyKeys(value: Record<string, unknown>, keys: string[]): boolean {
+	const actual = Object.keys(value);
+	return actual.length === keys.length && actual.every((key) => keys.includes(key));
+}
+
+function validateSandboxSpawnSessionState(value: unknown): SandboxSpawnSessionStateRead {
+	try {
+		if (!value || typeof value !== "object" || Array.isArray(value)) {
+			return { ok: false, reason: "session state is not an object" };
+		}
+		const state = value as Record<string, unknown>;
+		if (state.version !== 1) return { ok: false, reason: "session state has an unsupported version" };
+		if (state.state === "inactive") {
+			if (!hasOnlyKeys(state, ["version", "state", "reason"])) {
+				return { ok: false, reason: "inactive session state has an invalid shape" };
+			}
+			if (typeof state.reason !== "string" || !SANDBOX_SPAWN_SESSION_INACTIVE_REASONS.has(state.reason as SandboxSpawnSessionInactiveReason)) {
+				return { ok: false, reason: "inactive session state has an invalid reason" };
+			}
+			return { ok: true, value: state as SandboxSpawnSessionStateV1 };
+		}
+		if (state.state !== "ready") return { ok: false, reason: "session state has an invalid lifecycle state" };
+		if (!hasOnlyKeys(state, ["version", "state", "configCwd", "tmpBackend", "projectTmpDir"])) {
+			return { ok: false, reason: "ready session state has an invalid shape" };
+		}
+		if (typeof state.configCwd !== "string" || !isAbsolute(state.configCwd)) {
+			return { ok: false, reason: "ready session state has an invalid config cwd" };
+		}
+		if (state.tmpBackend !== "session-disk" && state.tmpBackend !== "host-tmpfs") {
+			return { ok: false, reason: "ready session state has an invalid temp backend" };
+		}
+		if (state.tmpBackend === "session-disk") {
+			if (typeof state.projectTmpDir !== "string" || !isAbsolute(state.projectTmpDir)) {
+				return { ok: false, reason: "session-disk session state has an invalid project temp dir" };
+			}
+		} else if (state.projectTmpDir !== null) {
+			return { ok: false, reason: "host-tmpfs session state must not contain a project temp dir" };
+		}
+		return { ok: true, value: state as SandboxSpawnSessionStateV1 };
+	} catch {
+		return { ok: false, reason: "session state could not be inspected" };
+	}
+}
+
+/** Clone, freeze, and atomically replace the narrow cross-loader snapshot. */
+export function publishSandboxSpawnSessionState(state: SandboxSpawnSessionStateV1): SandboxSpawnSessionStateV1 {
+	const validated = validateSandboxSpawnSessionState(state);
+	if (!validated.ok) throw new Error(`Refusing to publish invalid sandbox spawn session state: ${validated.reason}`);
+	const snapshot: SandboxSpawnSessionStateV1 = validated.value.state === "inactive"
+		? Object.freeze({ version: 1, state: "inactive" as const, reason: validated.value.reason })
+		: Object.freeze({
+			version: 1,
+			state: "ready" as const,
+			configCwd: validated.value.configCwd,
+			tmpBackend: validated.value.tmpBackend,
+			projectTmpDir: validated.value.projectTmpDir,
+		});
+	(globalThis as typeof globalThis & Record<symbol, unknown>)[SANDBOX_SPAWN_SESSION_STATE_SYMBOL] = snapshot;
+	return snapshot;
+}
+
+/** Read only structurally valid version-1 state. Unknown or malformed state is unusable. */
+export function readSandboxSpawnSessionState(): SandboxSpawnSessionStateRead {
+	return validateSandboxSpawnSessionState((globalThis as typeof globalThis & Record<symbol, unknown>)[SANDBOX_SPAWN_SESSION_STATE_SYMBOL]);
+}
+
 /** Non-secret lifecycle signal for extensions that require the inner credential-isolation boundary. */
 export interface CredentialBoundaryCapability {
 	/** True only while the Linux bash/file-tool boundary is initialized and not fail-closed. */

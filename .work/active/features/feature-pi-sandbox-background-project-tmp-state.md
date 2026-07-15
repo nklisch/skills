@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state
 kind: feature
-stage: implementing
+stage: review
 tags: [bug, sandbox, background-tasks, plugin]
 parent: null
 depends_on: [feature-pi-sandbox-disk-backed-tmp]
@@ -325,3 +325,34 @@ minimal global registration function returning the current frozen snapshot;
 that still uses the same symbol/realm mechanism and must preserve the same
 validation and lifecycle ordering. Per-command derivation is not an acceptable
 fallback.
+
+## Implementation notes
+
+- Direct-read implementation: this was one coupled lifecycle seam across the
+  live extension, exported helper, and cached bridge, so splitting ownership or
+  exploratory fan-out would have created unverifiable partial state.
+- Added a versioned `Symbol.for("@nklisch/pi-sandbox.spawn-session-state")`
+  contract. Publication selects only lifecycle/backend/path fields, clones and
+  freezes them before atomic replacement, and the reader rejects absent,
+  malformed, contradictory, extra-field, and unknown-version values.
+- `sandbox.ts` now invalidates at session-start entry and shutdown, publishes
+  terminal inactive states, publishes ready only after installing the matching
+  active policy, and preserves the documented `--no-sandbox` host-tmpfs ready
+  snapshot for the stricter background/monitor path.
+- `sandbox-spawn.ts` no longer imports `sandbox.ts` getters. Each builder call
+  canonicalizes and matches `configCwd`, reads the current snapshot, and fails
+  closed with `session-state-unavailable`; complete test overrides remain
+  standalone. Cached bridge builders therefore observe session replacement.
+- Added snapshot contract tests and a cache-busted live-extension plus
+  independently imported real helper/real cached bridge regression. It asserts
+  the bwrap bind argv and the spawned child `TMPDIR`, then covers pre-start,
+  shutdown, replacement A→B, and failing replacement invalidation.
+
+## Verification
+
+- `bun test plugins/pi-sandbox/extensions` — 263 passed, 1 skipped.
+  The existing host-`/tmp` Unix-socket block-mode test was honestly skipped
+  because the surrounding sandbox mounts `/tmp` read-only.
+- `bun test plugins/background-tasks/extensions` — 81 passed.
+- `npm run check:pi-packages` — 123 passed, 0 failed.
+- No unrelated production issues were discovered or parked.
