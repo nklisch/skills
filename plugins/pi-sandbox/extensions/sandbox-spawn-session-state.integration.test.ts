@@ -268,24 +268,35 @@ bwrapTest("registered background and monitor tools honor live agent-dir policy a
 
 		const tools = new Map<string, any>();
 		const wakes: unknown[] = [];
+		const runtimeHandlers = new Map<string, Array<(event: unknown, ctx: any) => Promise<unknown> | unknown>>();
 		const bridge = createSandboxBridge(async () => ({ buildSandboxedSpawnArgs: helper.buildSandboxedSpawnArgs }));
 		backgroundTasksExtension({
 			registerTool: (definition: { name: string }) => tools.set(definition.name, definition),
 			sendMessage: (message: unknown) => { wakes.push(message); },
 			appendEntry: () => {},
-			on: () => {},
+			on: (event: string, handler: (event: unknown, ctx: any) => Promise<unknown> | unknown) =>
+				(runtimeHandlers.get(event) ?? (runtimeHandlers.set(event, []), runtimeHandlers.get(event)!)).push(handler),
 		}, { sandboxResolver: bridge.resolveSandboxSpawnBuilder });
 		const background = tools.get("background");
 		const monitor = tools.get("monitor");
 		const jobs = tools.get("jobs");
-		const execute = (definition: any, params: Record<string, unknown>) => definition.execute("test", params, undefined, undefined, context);
+		const execute = (definition: any, params: Record<string, unknown>, id = "test") => definition.execute(id, params, undefined, undefined, context);
+		const executeThroughRuntime = async (definition: any, params: Record<string, unknown>, id = "test") => {
+			const result = await execute(definition, params, id);
+			const event = { toolName: definition.name, input: { ...params }, content: result.content, details: result.details, isError: false };
+			for (const handler of runtimeHandlers.get("tool_result") ?? []) {
+				const patch = await handler(event, context) as { isError?: boolean } | undefined;
+				if (patch?.isError !== undefined) event.isError = patch.isError;
+			}
+			return { result, isError: event.isError };
+		};
 		const callThroughSandboxGate = async (definition: any, params: Record<string, unknown>, id = "test") => {
 			const event = { toolName: definition.name, input: { ...params } };
 			for (const handler of handlers.get("tool_call") ?? []) {
 				const decision = await handler(event, context) as { block?: boolean; reason?: string } | undefined;
-				if (decision?.block) return { blocked: true, reason: decision.reason };
+				if (decision?.block) return { blocked: true, reason: decision.reason, isError: true, result: undefined };
 			}
-			return { blocked: false, result: await definition.execute(id, params, undefined, undefined, context) };
+			return { blocked: false, ...(await executeThroughRuntime(definition, params, id)) };
 		};
 		const status = async (jobId: number) => (await execute(jobs, { action: "status", jobId })).content[0].text as string;
 		const waitFor = async (predicate: () => Promise<boolean>): Promise<void> => {
@@ -298,14 +309,18 @@ bwrapTest("registered background and monitor tools honor live agent-dir policy a
 		const command = "if [ ! -s strict-secret.txt ]; then printf 'denied tmp=%s' \"$TMPDIR\"; else printf 'LEAK:%s' \"$(cat strict-secret.txt)\"; fi";
 
 		// No agentDir/tmp overrides are supplied to these registered tool calls.
-		const startedBackground = await execute(background, { command, label: "live-agent-policy-background" });
+		const startedBackgroundRuntime = await executeThroughRuntime(background, { command, label: "live-agent-policy-background" });
+		expect(startedBackgroundRuntime.isError).toBe(false);
+		const startedBackground = startedBackgroundRuntime.result;
 		expect(startedBackground.details.sandbox).toBe("active");
 		await waitFor(async () => (await status(startedBackground.details.jobId)).includes("[completed"));
 		const backgroundTail = (await execute(jobs, { action: "tail", jobId: startedBackground.details.jobId, lines: 20 })).content[0].text;
 		expect(backgroundTail).toContain(`denied tmp=${state.value.projectTmpDir}`);
 		expect(backgroundTail).not.toContain("LIVE-POLICY-SECRET");
 
-		const startedMonitor = await execute(monitor, { command, satisfy_on: "stdout_matches", pattern: "denied tmp=", interval_seconds: 1, timeout_seconds: 5, label: "live-agent-policy-monitor" });
+		const startedMonitorRuntime = await executeThroughRuntime(monitor, { command, satisfy_on: "stdout_matches", pattern: "denied tmp=", interval_seconds: 1, timeout_seconds: 5, label: "live-agent-policy-monitor" });
+		expect(startedMonitorRuntime.isError).toBe(false);
+		const startedMonitor = startedMonitorRuntime.result;
 		expect(startedMonitor.details.sandbox).toBe("active");
 		await waitFor(async () => (await status(startedMonitor.details.jobId)).includes("[satisfied"));
 		const monitorTail = (await execute(jobs, { action: "tail", jobId: startedMonitor.details.jobId, lines: 20 })).content[0].text;
@@ -340,7 +355,7 @@ bwrapTest("registered background and monitor tools honor live agent-dir policy a
 			command: `cat ${JSON.stringify(secret)} > ${JSON.stringify(blockedBackgroundMarker)}`,
 		}, "mutated-background");
 		expect(mutatedBackground.blocked).toBe(false);
-		expect(mutatedBackground.result?.isError).toBe(true);
+		expect(mutatedBackground.isError).toBe(true);
 		expect(mutatedBackground.result?.details).toMatchObject({ sandbox: "blocked", reason: "session-state-unavailable" });
 
 		await rm(join(project, ".pi", "sandbox.json"));
@@ -349,7 +364,7 @@ bwrapTest("registered background and monitor tools honor live agent-dir policy a
 			satisfy_on: "exit_zero", interval_seconds: 1, timeout_seconds: 5,
 		}, "removed-monitor");
 		expect(removedMonitor.blocked).toBe(false);
-		expect(removedMonitor.result?.isError).toBe(true);
+		expect(removedMonitor.isError).toBe(true);
 		expect(removedMonitor.result?.details).toMatchObject({ sandbox: "blocked", reason: "session-state-unavailable" });
 		expect(JSON.stringify([mutatedBackground, removedMonitor])).not.toContain("LIVE-POLICY-SECRET");
 		expect(refusalWakes).toHaveLength(0);
@@ -362,9 +377,9 @@ bwrapTest("registered background and monitor tools honor live agent-dir policy a
 			[refusalBackground, { command: `printf ran > ${JSON.stringify(blockedBackgroundMarker)}` }],
 			[refusalMonitor, { command: `printf ran > ${JSON.stringify(blockedMonitorMarker)}`, satisfy_on: "exit_zero", interval_seconds: 1, timeout_seconds: 5 }],
 		] as const) {
-			const refused = await refuse(definition, params);
+			const refused = await executeThroughRuntime(definition, params, "shutdown-refusal");
 			expect(refused.isError).toBe(true);
-			expect(refused.details).toMatchObject({ sandbox: "blocked", reason: "session-state-unavailable" });
+			expect(refused.result.details).toMatchObject({ sandbox: "blocked", reason: "session-state-unavailable" });
 		}
 		expect(refusalWakes).toHaveLength(0);
 		expect(await Bun.file(blockedBackgroundMarker).exists()).toBe(false);
@@ -377,9 +392,9 @@ bwrapTest("registered background and monitor tools honor live agent-dir policy a
 			[refusalBackground, { command: `printf ran > ${JSON.stringify(blockedBackgroundMarker)}` }],
 			[refusalMonitor, { command: `printf ran > ${JSON.stringify(blockedMonitorMarker)}`, satisfy_on: "exit_zero", interval_seconds: 1, timeout_seconds: 5 }],
 		] as const) {
-			const failedReplacement = await refuse(definition, params);
+			const failedReplacement = await executeThroughRuntime(definition, params, "replacement-refusal");
 			expect(failedReplacement.isError).toBe(true);
-			expect(failedReplacement.details).toMatchObject({ sandbox: "blocked", reason: "session-state-unavailable" });
+			expect(failedReplacement.result.details).toMatchObject({ sandbox: "blocked", reason: "session-state-unavailable" });
 		}
 		expect(refusalWakes).toHaveLength(0);
 		expect(await Bun.file(blockedBackgroundMarker).exists()).toBe(false);
