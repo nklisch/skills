@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state
 kind: feature
-stage: implementing
+stage: review
 tags: [bug, sandbox, background-tasks, plugin]
 parent: null
 depends_on: [feature-pi-sandbox-disk-backed-tmp]
@@ -549,3 +549,23 @@ bounced `review → implementing` for the narrow middleware/runtime-test fix.
 **Notes**: The refusal remains security-safe; this is error classification for
 Pi UI/automation/model handling plus test honesty. Both final review phases are
 cross-model relative to the Umans host but use independent Codex contexts.
+
+## Pi error-semantics correction
+
+- `feature-pi-sandbox-background-project-tmp-state-pi-error-semantics` is done
+  in `b2c9b09`; implementation landed in `4b5552b`.
+- Background-tasks now uses Pi's supported `tool_result` middleware contract to
+  mark only structured background/monitor sandbox refusals as finalized errors,
+  while preserving refusal content/details.
+- Runtime-level integration emulates the middleware chain: healthy results stay
+  successful, and config-drift/shutdown/failed-replacement refusals finalize
+  with `isError:true` without jobs, wakes, markers, or secret output.
+
+### Final correction verification
+
+- `bun test plugins/pi-sandbox/extensions` — 269 passed, 1 documented skip.
+- `bun test plugins/background-tasks/extensions` — 82 passed.
+- `npm run check:pi-packages` — 136 passed, 0 failed.
+
+All three child stories are done. Feature advanced `implementing → review` for
+one final focused verdict on the corrected error-semantics seam.
