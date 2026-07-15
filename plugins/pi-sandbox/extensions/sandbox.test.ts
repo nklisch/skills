@@ -620,9 +620,9 @@ describe("sandbox extension entrypoint", () => {
 
 	test("B2: --no-sandbox keeps accessors consistent with the installed permissive policy", async () => {
 		// Regression for B2: session_start resets state then the --no-sandbox
-		// branch installs a permissive policy (tmpBackend host-tmpfs) and must not
-		// leave the module accessor stale at session-disk. buildSandboxedSpawnArgs
-		// reads the accessor; a stale session-disk value with no projectTmpDir made
+		// branch installs a permissive policy (tmpBackend host-tmpfs). The local
+		// diagnostic accessors and the published cross-loader spawn snapshot must
+		// both reflect that policy; stale session-disk/null state made
 		// background/monitor commands throw fail-closed under --no-sandbox.
 		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-b2-cwd-"));
 		tempDirs.push(cwd);

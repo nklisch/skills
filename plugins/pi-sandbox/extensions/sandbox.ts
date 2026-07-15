@@ -23,7 +23,7 @@
  * confirm/fail-closed otherwise.
  *
  * Config files (merged, project takes precedence but is ADDITIVE-ONLY):
- * - ~/.pi/agent/extensions/sandbox.json (global)
+ * - <Pi agent dir>/extensions/sandbox.json (global; ~/.pi/agent by default)
  * - <cwd>/.pi/sandbox.json (project-local; can only tighten, never weaken)
  */
 
@@ -925,10 +925,10 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 		// Replace the provisional policy with the final, project-temp-pinned
-		// policy. The accessors (getProjectTmpDir/getTmpBackend) derive from
-		// activePolicy, so assigning it here is the single source of truth for both
-		// the bash path and the background/monitor path (B2: no separate module
-		// state to diverge).
+		// policy. activePolicy remains the live bash/file-tool source of truth; the
+		// frozen spawn-session snapshot published immediately after assignment is
+		// its narrow cross-loader projection for background/monitor (B2: no
+		// independently mutable temp state to diverge).
 		sandboxPolicy = {
 			denyRead,
 			denyWrite,
