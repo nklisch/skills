@@ -127,7 +127,7 @@ function canonicalSpawnConfigCwd(cwd: string): string {
 
 function publishReadySpawnSessionState(ctxCwd: string, agentDir: string, policyFingerprint: string, policy: SandboxPolicy): void {
 	publishSandboxSpawnSessionState({
-		version: 2,
+		version: 3,
 		state: "ready",
 		configCwd: canonicalSpawnConfigCwd(ctxCwd),
 		agentDir,
@@ -137,8 +137,19 @@ function publishReadySpawnSessionState(ctxCwd: string, agentDir: string, policyF
 	});
 }
 
-function publishInactiveSpawnSessionState(reason: SandboxSpawnSessionInactiveReason, ctxCwd: string, agentDir: string): void {
-	publishSandboxSpawnSessionState({ version: 2, state: "inactive", reason, configCwd: canonicalSpawnConfigCwd(ctxCwd), agentDir });
+function publishInactiveSpawnSessionState(
+	reason: SandboxSpawnSessionInactiveReason,
+	ctxCwd: string,
+	agentDir: string,
+	policyFingerprint?: string,
+): void {
+	const identity = { version: 3 as const, state: "inactive" as const, reason, configCwd: canonicalSpawnConfigCwd(ctxCwd), agentDir };
+	if (reason === "disabled" || reason === "unsupported-platform") {
+		if (policyFingerprint === undefined) throw new Error(`Refusing to publish ${reason} spawn state without a policy identity`);
+		publishSandboxSpawnSessionState({ ...identity, reason, policyFingerprint });
+		return;
+	}
+	publishSandboxSpawnSessionState(identity);
 }
 
 /**
@@ -776,7 +787,7 @@ export default function (pi: ExtensionAPI) {
 			sandboxPolicy = createPermissivePolicy(ctx.cwd);
 			activePolicy = sandboxPolicy;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-			publishInactiveSpawnSessionState("disabled", sessionConfigCwd, sessionAgentDir);
+			publishInactiveSpawnSessionState("disabled", sessionConfigCwd, sessionAgentDir, policyFingerprint.value);
 			publishCapability();
 			ctx.ui.notify("Sandbox disabled via config", "info");
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", "🔒 Sandbox: disabled via config"));
@@ -895,7 +906,7 @@ export default function (pi: ExtensionAPI) {
 				bwrapAvailable: false,
 			};
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-			publishInactiveSpawnSessionState("unsupported-platform", sessionConfigCwd, sessionAgentDir);
+			publishInactiveSpawnSessionState("unsupported-platform", sessionConfigCwd, sessionAgentDir, policyFingerprint.value);
 			ctx.ui.notify(platformState.message, "info");
 			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", platformState.status));

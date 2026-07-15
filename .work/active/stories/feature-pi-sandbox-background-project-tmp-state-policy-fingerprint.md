@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state-policy-fingerprint
 kind: story
-stage: implementing
+stage: review
 tags: [bug, security, tests, sandbox, background-tasks]
 parent: feature-pi-sandbox-background-project-tmp-state
 depends_on: [feature-pi-sandbox-background-project-tmp-state-real-tool-policy-parity]
@@ -57,8 +57,9 @@ override cases.
   degraded/unsandboxed result.
 - [x] Removing or changing project/global config after session start fails
   closed until `/reload`.
-- [x] Inactive and wrong-project snapshots cannot reach integration-off,
-  enabled:false, or explicit-override runnable paths.
+- [x] Hard-inactive and wrong-project snapshots cannot reach any runnable path;
+  `disabled` and `unsupported-platform` can return only their matching pinned
+  degraded disposition, never each other's or an override path.
 - [x] Snapshot-absent isolated tests retain explicit override support.
 - [x] A real tool-call-gate + registered-tool regression proves policy mutation
   creates no job, wake, marker, or secret disclosure.
@@ -72,6 +73,14 @@ override cases.
   canonical project and agent roots plus only a SHA-256 policy identity; inactive
   state retains both canonical roots so shutdown and disabled sessions cannot be
   treated as snapshot-absent test contexts.
+- Follow-up correction: v3 distinguishes terminal inactive states from the two
+  intentional degraded lifecycle dispositions. `disabled` and
+  `unsupported-platform` now carry the pinned SHA-256 identity; all other
+  inactive reasons remain unpinned unconditional refusals. The helper validates
+  canonical cwd/agent identity, forbids live overrides, reloads and compares the
+  policy identity, then permits only the matching disabled or platform degrade.
+  A disabled config cannot escape through an unsupported-platform snapshot, and
+  vice versa.
 - `loadConfig` now fingerprints canonical JSON for the entire merged config and
   validated global/project source presence/content. Keys are recursively sorted,
   arrays retain order, and invalid/non-JSON values fail closed. Source presence
@@ -88,7 +97,7 @@ override cases.
 
 ## Verification
 
-- `bun test plugins/pi-sandbox/extensions` — 267 passed, 1 documented host-/tmp
+- `bun test plugins/pi-sandbox/extensions` — 269 passed, 1 documented host-/tmp
   Unix-socket skip.
 - `bun test plugins/background-tasks/extensions` — 81 passed.
 - `npm run check:pi-packages` — 123 passed, 0 failed.
@@ -113,3 +122,26 @@ agent-dir, and unchanged effective config *before* allowing only their matching
 degraded disposition. `initializing`, `shutdown`, and `fail-closed` remain hard
 refusals. Add real/live lifecycle tests for enabled:false and unsupported-platform
 behavior plus wrong-project/config-drift refusal.
+
+## Orchestrator finding correction
+
+- Published snapshot contract is now v3. Ready state and only intentional
+  inactive states carry a policy fingerprint. `initializing`, `shutdown`, and
+  `fail-closed` reject before mutable config is loaded; malformed state,
+  wrong-cwd, non-canonical identity, and live overrides still fail closed.
+- Added a live `session_start` + cache-busted helper + registered
+  background/monitor regression for global `enabled:false`, including
+  wrong-project and post-start global-config drift refusal. The non-Linux path
+  is covered through the real helper state machine with a platform override,
+  because this Linux test runtime cannot produce a real non-Linux lifecycle.
+  It verifies matching degrade, wrong-project refusal, drift refusal, and that
+  a republished unsupported-platform state cannot use `enabled:false`.
+- Preserved ready `--no-sandbox`, healthy, integration-off, and isolated
+  snapshot-absent override behavior. No parent stage was changed.
+
+### Correction verification
+
+- `bun test plugins/pi-sandbox/extensions` — 269 passed, 1 documented skip.
+- `bun test plugins/background-tasks/extensions` — 81 passed.
+- `npm run check:pi-packages` — 123 passed, 0 failed.
+- `git diff --check` — passed.

@@ -11,7 +11,7 @@ import {
 import {
 	loadConfig,
 	readSandboxSpawnSessionState,
-	type SandboxSpawnSessionStateV2,
+	type SandboxSpawnSessionStateV3,
 } from "./sandbox-config";
 import { scrubEnvironment, type EnvScrubConfig } from "./sandbox-env";
 import type { BackgroundTasksSandboxIntegration } from "./sandbox-config";
@@ -173,7 +173,7 @@ type ResolvedSpawnTempState =
 	| { ok: false; reason: string };
 
 type ResolvedSpawnSession =
-	| { ok: true; agentDir: string; snapshot: SandboxSpawnSessionStateV2 | null }
+	| { ok: true; agentDir: string; snapshot: SandboxSpawnSessionStateV3 | null }
 	| { ok: false; reason: string };
 
 function canonicalConfigCwd(cwd: string): string {
@@ -195,16 +195,21 @@ function canonicalAgentDir(agentDir: string): string | null {
 function resolveSpawnSession(opts: SandboxSpawnOptions, configCwd: string): ResolvedSpawnSession {
 	const snapshot = readSandboxSpawnSessionState();
 	if (snapshot.ok) {
-		if (snapshot.value.state !== "ready") {
-			return { ok: false, reason: "sandbox spawn session is not ready" };
+		const snapshotConfigCwd = canonicalConfigCwd(snapshot.value.configCwd);
+		const snapshotAgentDir = canonicalAgentDir(snapshot.value.agentDir);
+		if (snapshotConfigCwd !== snapshot.value.configCwd || snapshotAgentDir === null || snapshotAgentDir !== snapshot.value.agentDir) {
+			return { ok: false, reason: "sandbox spawn session has a non-canonical identity" };
 		}
-		if (snapshot.value.configCwd !== canonicalConfigCwd(configCwd)) {
+		if (snapshotConfigCwd !== canonicalConfigCwd(configCwd)) {
 			return { ok: false, reason: "sandbox spawn session belongs to a different project" };
 		}
 		if (opts.agentDir !== undefined || opts.tmpBackend !== undefined || opts.projectTmpDir !== undefined) {
 			return { ok: false, reason: "sandbox spawn session does not permit test overrides" };
 		}
-		return { ok: true, agentDir: snapshot.value.agentDir, snapshot: snapshot.value };
+		if (snapshot.value.state === "inactive" && snapshot.value.reason !== "disabled" && snapshot.value.reason !== "unsupported-platform") {
+			return { ok: false, reason: "sandbox spawn session is not runnable" };
+		}
+		return { ok: true, agentDir: snapshotAgentDir, snapshot: snapshot.value };
 	}
 	// A malformed published state is never bypassed. Snapshot-absent isolated
 	// tests must name both a config root and a complete temp backend selection.
@@ -225,8 +230,15 @@ function resolveSpawnSession(opts: SandboxSpawnOptions, configCwd: string): Reso
 	return { ok: true, agentDir, snapshot: null };
 }
 
+function pinnedPolicyFingerprint(snapshot: SandboxSpawnSessionStateV3 | null): string | null {
+	if (snapshot === null) return null;
+	if (snapshot.state === "ready") return snapshot.policyFingerprint;
+	if (snapshot.reason === "disabled" || snapshot.reason === "unsupported-platform") return snapshot.policyFingerprint;
+	return null;
+}
+
 /** Resolve temp state only after lifecycle/project identity is established. */
-function resolveSpawnTempState(opts: SandboxSpawnOptions, snapshot: SandboxSpawnSessionStateV2 | null): ResolvedSpawnTempState {
+function resolveSpawnTempState(opts: SandboxSpawnOptions, snapshot: SandboxSpawnSessionStateV3 | null): ResolvedSpawnTempState {
 	if (snapshot === null) {
 		if (opts.tmpBackend === "host-tmpfs") return { ok: true, tmpBackend: "host-tmpfs", projectTmpDir: null };
 		if (opts.tmpBackend === "session-disk" && typeof opts.projectTmpDir === "string" && isAbsolute(opts.projectTmpDir)) {
@@ -234,7 +246,7 @@ function resolveSpawnTempState(opts: SandboxSpawnOptions, snapshot: SandboxSpawn
 		}
 		return { ok: false, reason: "sandbox spawn session requires a complete temp override" };
 	}
-	if (snapshot.state !== "ready") return { ok: false, reason: "sandbox spawn session is not ready" };
+	if (snapshot.state !== "ready") return { ok: false, reason: "sandbox spawn session has no runnable temp state" };
 	return { ok: true, tmpBackend: snapshot.tmpBackend, projectTmpDir: snapshot.projectTmpDir };
 }
 
@@ -296,7 +308,21 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 			errors: [policyFingerprint.reason],
 		};
 	}
-	if (session.snapshot !== null && session.snapshot.state === "ready" && policyFingerprint.value !== session.snapshot.policyFingerprint) {
+	const sessionFingerprint = pinnedPolicyFingerprint(session.snapshot);
+	if (session.snapshot !== null && sessionFingerprint === null) {
+		return {
+			state: "fail-closed",
+			integration: "blocked",
+			reason: "session-state-unavailable",
+			executable: null,
+			args: [],
+			cwd: opts.cwd,
+			env,
+			message: "Sandbox spawn session is not runnable. Start or reload the sandbox session before retrying.",
+			errors: ["sandbox spawn session is not runnable"],
+		};
+	}
+	if (sessionFingerprint !== null && policyFingerprint.value !== sessionFingerprint) {
 		return {
 			state: "fail-closed",
 			integration: "blocked",
@@ -308,6 +334,47 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 			message: "Sandbox spawn policy changed since session start. Reload the sandbox session before retrying.",
 			errors: ["sandbox spawn policy identity changed"],
 		};
+	}
+
+	// Disabled and unsupported-platform are intentional lifecycle dispositions,
+	// not generic inactive states. Their pinned identity was checked above; now
+	// require the same loaded disposition before allowing exactly that degraded
+	// result. This prevents either state from escaping through the other's config.
+	if (session.snapshot?.state === "inactive") {
+		if (session.snapshot.reason === "disabled") {
+			if (loaded.config.enabled !== false) {
+				return {
+					state: "fail-closed", integration: "blocked", reason: "session-state-unavailable", executable: null, args: [], cwd: opts.cwd, env,
+					message: "Sandbox disabled lifecycle no longer matches loaded config. Reload the sandbox session before retrying.",
+					errors: ["sandbox disabled lifecycle disposition changed"],
+				};
+			}
+			return {
+				state: "degraded", integration: "inactive", reason: "sandbox-disabled", executable: null, args: [], cwd: opts.cwd,
+				env: stripProviderSecrets(env, loaded.config.envScrub),
+				message: "Sandbox is disabled by config; running background-tasks command unsandboxed.",
+			};
+		}
+		if (session.snapshot.reason === "unsupported-platform") {
+			const platformState = decidePlatformState({
+				platform: opts.platform,
+				env: trustedEnv,
+				networkMode: loaded.config.network?.mode ?? "open",
+				bwrapPath: loaded.config.bwrapPath,
+				bwrapAvailable: opts.bwrapAvailable,
+			});
+			if (loaded.config.enabled === false || platformState.state !== "degrade") {
+				return {
+					state: "fail-closed", integration: "blocked", reason: "session-state-unavailable", executable: null, args: [], cwd: opts.cwd, env,
+					message: "Sandbox unsupported-platform lifecycle no longer matches loaded config/platform. Reload the sandbox session before retrying.",
+					errors: ["sandbox unsupported-platform lifecycle disposition changed"],
+				};
+			}
+			return {
+				state: "degraded", integration: "inactive", reason: "unsupported-platform", executable: null, args: [], cwd: opts.cwd,
+				env: stripProviderSecrets(env, loaded.config.envScrub), message: platformState.message,
+			};
+		}
 	}
 
 	const integration: BackgroundTasksSandboxIntegration = loaded.config.backgroundTasks?.sandboxIntegration ?? "auto";
