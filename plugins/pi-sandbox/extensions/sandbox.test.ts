@@ -618,6 +618,55 @@ describe("sandbox extension entrypoint", () => {
 			process.env.XDG_CACHE_HOME = prevCache;
 		}
 	});
+
+	test("B1: a symlink at the cwd-hash path pointing at an in-cache sibling is rejected", async () => {
+		// The cwd-hash path is predictable and lives under the shared, sandbox-
+		// writable cache root. A symlink planted there pointing at a SIBLING project
+		// dir (under the same cache root) is the in-cache-swap case the round-5
+		// reviewers traced. The lstatSync defense catches it (a symlink is rejected
+		// before mkdirSync legitimizes it). The final-path equality check
+		// (realDir !== expectedDir -> fail-closed) is defense-in-depth for the
+		// TOCTOU window between lstatSync and realpathSync (a swap mid-derivation);
+		// that window is not deterministically testable without race injection, but
+		// the equality check is correct on its own merits: realCacheRoot is already
+		// canonical and cwdKey is a fixed plain child, so realDir must EXACTLY equal
+		// join(realCacheRoot, cwdKey) — any divergence (in-cache or out) is rejected.
+		const cacheHome = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sib-cache-"));
+		tempDirs.push(cacheHome);
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sib-cwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sib-agent-"));
+		tempDirs.push(agentDir);
+		const { createHash } = await import("node:crypto");
+		const { symlink: symlinkAsync, mkdir: mkdirAsync } = await import("node:fs/promises");
+		const realCwd = realpathSync(cwd);
+		const cwdKey = createHash("sha256").update(realCwd).digest("hex").slice(0, 16);
+		const cacheRoot = join(cacheHome, "pi-sandbox", "tmp");
+		await mkdirAsync(cacheRoot, { recursive: true });
+		// Plant a symlink at THIS cwd's hash path pointing at a sibling dir under
+		// the same cache root. Without the lstatSync defense, mkdirSync would
+		// accept it and realpathSync would return the sibling (beneath realCacheRoot
+		// — the buggy `&&` would have accepted it too).
+		const siblingDir = join(cacheRoot, "deadbeefdeadbeef");
+		await mkdirAsync(siblingDir, { recursive: true });
+		await symlinkAsync(siblingDir, join(cacheRoot, cwdKey));
+		const prevCache = process.env.XDG_CACHE_HOME;
+		process.env.XDG_CACHE_HOME = cacheHome;
+		try {
+			const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+			const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+			const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+			mod.default(pi);
+			const notifications: string[] = [];
+			const ctx: any = { cwd, hasUI: false, ui: { notify: (m: string) => notifications.push(m), setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+			for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+			// The symlink (to a sibling) must be rejected: fail-closed, no project temp dir.
+			expect(notifications.some((m) => m.includes("symlink") || m.includes("diverged"))).toBe(true);
+			expect(mod.getProjectTmpDir()).toBeNull();
+		} finally {
+			process.env.XDG_CACHE_HOME = prevCache;
+		}
+	});
 });
 
 describe("config boundary contract", () => {

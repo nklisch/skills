@@ -235,14 +235,19 @@ function deriveProjectTmpDir(cwd: string, netMode: NetworkMode): SessionInit {
 		// B1 (round-4 review): verify the final dir is the exact expected canonical
 		// child of realCacheRoot. A symlink planted between the lstatSync check
 		// above and here (or a cache root itself reached via a symlink chain whose
-		// intermediate was swapped) must not escape. realDir must equal the expected
-		// path AND remain beneath realCacheRoot. This is the final-directory half of
-		// the mask-containment check: also re-run the block-mode mask check against
-		// realDir so a symlink into /tmp / /run is caught here too, not just at the
-		// cache root.
+		// intermediate was swapped) must not escape. realDir must EXACTLY equal the
+		// expected canonical child of realCacheRoot — any divergence means a
+		// symlink or swap (to a sibling project dir under the same cache root, or
+		// outside it). realCacheRoot is already canonicalized and cwdKey is a fixed
+		// plain child name, so there is no legitimate case where realDir differs
+		// from expectedDir. Reject on ANY inequality (round-5 review: the prior
+		// `&& !startsWith(cacheRoot)` accepted an in-cache symlink swap to a sibling
+		// project dir). This is the final-directory half of the mask-containment
+		// check: also re-run the block-mode mask check against realDir so a symlink
+		// into /tmp / /run is caught here too, not just at the cache root.
 		const expectedDir = join(realCacheRoot, cwdKey);
-		if (realDir !== expectedDir && !realDir.startsWith(`${realCacheRoot}/`)) {
-			return { ok: false, reason: `project temp dir ${dir} resolves to ${realDir}, which escapes the cache root ${realCacheRoot}; refusing to bind a path outside the cache root. Remove the symlink or use tmpBackend:"host-tmpfs".` };
+		if (realDir !== expectedDir) {
+			return { ok: false, reason: `project temp dir ${dir} resolves to ${realDir}, expected ${expectedDir}; the path diverged from the expected canonical child of the cache root (symlink or swap detected). Remove the entry or use tmpBackend:"host-tmpfs".` };
 		}
 		if (netMode === "block") {
 			const blockMaskRoots = ["/tmp", "/var/tmp", "/run", "/var/run"].map((p) => canonicalizeExistingPath(p) ?? p);

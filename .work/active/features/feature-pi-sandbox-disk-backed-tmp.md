@@ -1086,3 +1086,47 @@ incomplete edges.
 - Cross-model advisory review ran two fresh-context `openai-codex/gpt-5.6-sol`
   passes (Phase 1 + Phase 2); both converged on the same blockers, which
   raises confidence the findings are real rather than reviewer noise.
+
+## Review findings (round 5, deep two-phase cross-model, 2026-07-14)
+
+Re-reviewed the B1+B2 fixes. Both phases (fresh `gpt-5.6-sol`, Phase 1
+completeness + Phase 2 adversarial) converged on the SAME single blocker:
+B1's final-path containment check had a logic bug. B2 confirmed fully closed
+by both phases.
+
+### Confirmed fixed (round 4)
+- **B2 fully closed.** Accessors derive from `activePolicy` (single source of
+  truth); module vars gone; every lifecycle branch leaves the accessors
+  consistent with the installed policy. Before-init null-policy defaults safely
+  fail-close. (Both phases confirmed clean.)
+- **B1 pre-existing-symlink defense works.** The `lstatSync` check rejects a
+  symlink at the predictable cwd-hash path before `mkdirSync` legitimizes it.
+
+### Blocker (new, fixed this round)
+
+- **R5-B1: the final-path containment check used `&&` and accepted an in-cache
+  sibling swap.** `realDir !== expectedDir && !realDir.startsWith(realCacheRoot
+  + "/")` rejected only when the path was BOTH unexpected AND outside the cache
+  root. An in-cache symlink swap to a SIBLING project dir (under the same cache
+  root) passed: unexpected but still beneath `realCacheRoot`. Both reviewers
+  traced the exact same race. **Fix**: reject on ANY inequality — `realCacheRoot`
+  is already canonical and `cwdKey` is a fixed plain child, so `realDir` must
+  EXACTLY equal `join(realCacheRoot, cwdKey)`; any divergence is a symlink/swap.
+  (The `lstatSync` defense is the primary guard and catches planted symlinks;
+  the exact-equality check is defense-in-depth for the TOCTOU window between
+  `lstatSync` and `realpathSync`, which is not deterministically testable
+  without race injection but is correct on its own merits.)
+
+### Important (new)
+- **R5-I1: B1 regression coverage only exercised the lstatSync defense**, not
+  the final-path equality or the verbatim-bind change. Added a sibling-swap
+  test (caught by the lstatSync defense — the same planted-symlink shape, just
+  targeting an in-cache sibling). The final-path equality check itself is
+  defense-in-depth for a TOCTOU window not deterministically testable here.
+
+### Notes
+- B2 required no changes this round — confirmed sound by both phases.
+- The buildBwrapArgs verbatim-bind (B1 second half) is confirmed clean: dedup
+  and deny-overlay ordering preserved.
+- Convergence: two independent fresh-context reviewers found the same single
+  logic bug, which is strong signal it's real and now fixed.
