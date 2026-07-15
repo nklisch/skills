@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state
 kind: feature
-stage: implementing
+stage: review
 tags: [bug, sandbox, background-tasks, plugin]
 parent: null
 depends_on: [feature-pi-sandbox-disk-backed-tmp]
@@ -395,3 +395,29 @@ fallback.
 snapshot lifecycle, structural validation, cwd matching, version-skew
 fail-closed behavior, and explicit test overrides were verified. Feature bounced
 `review → implementing`; the coupled security/test follow-up is active.
+
+## Review correction implementation
+
+- `feature-pi-sandbox-background-project-tmp-state-real-tool-policy-parity` is
+  `done` in commit `22d5d5b` after implementation commit `35fdfa1`.
+- The frozen v1 session snapshot now carries the canonical authoritative Pi
+  agent/config directory on ready and inactive states. The helper resolves that
+  state before config loading, uses the live root, and rejects malformed or
+  conflicting overrides fail-closed.
+- Real registered background and monitor tools now run through the cached real
+  bridge/helper in integration coverage with no temp or agent-dir tool
+  overrides. The tests prove custom-policy `denyRead`, child `TMPDIR`, shutdown
+  and failed-replacement refusal, and no job/wake/marker side effects.
+- Stale module-getter comments now describe diagnostic/test access only.
+
+### Correction verification
+
+- `bun test plugins/pi-sandbox/extensions` — 265 passed, 1 documented
+  environment skip.
+- `bun test plugins/background-tasks/extensions` — 81 passed.
+- `npm run check:pi-packages` — 123 passed, 0 failed.
+- The orchestrator independently reran all three commands after the worker
+  commit with the same results.
+
+All child work is done; feature advanced `implementing → review` for the deep
+re-review of the corrected aggregate.
