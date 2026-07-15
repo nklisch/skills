@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state
 kind: feature
-stage: review
+stage: implementing
 tags: [bug, sandbox, background-tasks, plugin]
 parent: null
 depends_on: [feature-pi-sandbox-disk-backed-tmp]
@@ -421,3 +421,50 @@ fail-closed behavior, and explicit test overrides were verified. Feature bounced
 
 All child work is done; feature advanced `implementing → review` for the deep
 re-review of the corrected aggregate.
+
+## Corrected aggregate re-review
+
+### Phase 1 — completeness convergence
+
+A new fresh-context `openai-codex/gpt-5.6-sol` pass ran three requirement,
+lifecycle, and falsification rounds over `97350d2 + 35fdfa1`. It returned
+**ready** with no Blocker or Important finding. Its remaining documentation
+nits were fixed in `02d6e30`: snapshot transport comments, custom Pi agent-dir
+configuration guidance, and the distinction between session-pinned temp/config
+state and unpinned discovered Git directories.
+
+### Phase 2 — adversarial convergence
+
+A separate fresh-context `openai-codex/gpt-5.6-sol` pass ran four attack rounds
+and returned **needs fixes**:
+
+- **Blocker**: the helper reloads mutable effective config per call while live
+  bash/tool policy remains session-pinned. Deleting/changing writable project
+  config after startup can weaken background/monitor below the live boundary.
+- **Important**: project/readiness checks occur after config-driven degraded
+  escape branches; wrong-project/inactive state or complete overrides can reach
+  runnable results before lifecycle identity is enforced.
+
+Both findings are tracked by
+`feature-pi-sandbox-background-project-tmp-state-policy-fingerprint`. Feature
+bounced `review → implementing` again. As before, both phases are cross-model
+relative to the Umans/GLM host but share the Codex class because no second
+allowed subagent class is available.
+
+## Review (2026-07-14, correction round 2)
+
+**Verdict**: Request changes
+
+**Blockers**:
+- `feature-pi-sandbox-background-project-tmp-state-policy-fingerprint` — pin
+  effective spawn policy identity and fail closed on config drift.
+
+**Important**:
+- Covered by the same story: validate lifecycle/project identity before any
+  config-driven or override runnable branch, with real tool-gate composition.
+
+**Nits**: none outstanding (`02d6e30` resolved Phase 1 prose nits).
+
+**Notes**: The authoritative agent-dir parity and real registered-tool seam from
+round 1 remain fixed. Round 2 found a deeper mutable-policy coherence gap, not a
+regression in those corrections.
