@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state-pi-error-semantics
 kind: story
-stage: review
+stage: done
 tags: [bug, tests, plugin, background-tasks]
 parent: feature-pi-sandbox-background-project-tmp-state
 depends_on: [feature-pi-sandbox-background-project-tmp-state-policy-fingerprint]
@@ -65,3 +65,15 @@ through the registered `tool_result` handler(s), and asserts the finalized
 - `bun test plugins/background-tasks/extensions` — 82 passed.
 - `npm run check:pi-packages` — 136 passed, 0 failed.
 - `git diff --check` — passed.
+
+## Review (2026-07-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review. Structured refusals now use Pi's supported
+`tool_result` error patch, runtime-level coverage is green, and all full
+verification commands passed. Story advanced `review → done`.
