@@ -42,7 +42,7 @@ json_value() {
 }
 
 assert_package() {
-  local plugin="$1" expected_name="$2" expect_extensions="$3" expect_channels="$4"
+  local plugin="$1" expected_name="$2" expect_extensions="$3" expect_channels="$4" expect_skills="${5:-yes}"
   local plugin_dir="${REPO_ROOT}/plugins/${plugin}"
   local package_json="${plugin_dir}/package.json"
   local readme="${plugin_dir}/README.md"
@@ -63,8 +63,13 @@ assert_package() {
     "jq -e '.keywords | index(\"pi-package\")' '$package_json' >/dev/null"
   assert_eq "${plugin} publish access is public" "public" "$(json_value '.publishConfig.access' "$package_json")"
   assert_eq "${plugin} repository directory" "plugins/${plugin}" "$(json_value '.repository.directory' "$package_json")"
-  assert_eq "${plugin} pi.skills" "[\"./skills\"]" "$(jq -c '.pi.skills' "$package_json")"
-  assert_true "${plugin} skills directory exists" "[ -d '${plugin_dir}/skills' ]"
+  if [ "$expect_skills" = "yes" ]; then
+    assert_eq "${plugin} pi.skills" "[\"./skills\"]" "$(jq -c '.pi.skills' "$package_json")"
+    assert_true "${plugin} skills directory exists" "[ -d '${plugin_dir}/skills' ]"
+  else
+    assert_eq "${plugin} pi.skills absent" "null" "$(jq -c '.pi.skills // null' "$package_json")"
+    assert_true "${plugin} skills directory absent" "[ ! -d '${plugin_dir}/skills' ]"
+  fi
 
   if [ "$expect_extensions" = "yes" ]; then
     assert_eq "${plugin} pi.extensions" "[\"./extensions\"]" "$(jq -c '.pi.extensions' "$package_json")"
@@ -92,6 +97,7 @@ assert_true "jq is available" "command -v jq >/dev/null 2>&1"
 # Runtime-extension packages.
 assert_package "agile-workflow" "@nklisch/pi-agile-workflow" "yes" "yes"
 assert_package "background-tasks" "@nklisch/pi-background-tasks" "yes" "no"
+assert_package "pi-sandbox" "@nklisch/pi-sandbox" "yes" "no" "no"
 assert_package "nates-toolkit" "@nklisch/pi-nates-toolkit" "yes" "yes"
 assert_package "zai-research" "@nklisch/pi-zai-research" "yes" "yes"
 
