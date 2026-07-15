@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state-policy-fingerprint
 kind: story
-stage: review
+stage: done
 tags: [bug, security, tests, sandbox, background-tasks]
 parent: feature-pi-sandbox-background-project-tmp-state
 depends_on: [feature-pi-sandbox-background-project-tmp-state-real-tool-policy-parity]
@@ -145,3 +145,16 @@ behavior plus wrong-project/config-drift refusal.
 - `bun test plugins/background-tasks/extensions` — 81 passed.
 - `npm run check:pi-packages` — 123 passed, 0 failed.
 - `git diff --check` — passed.
+
+## Review (2026-07-14)
+
+**Verdict**: Approve
+
+**Blockers**: none
+**Important**: none
+**Nits**: none
+
+**Notes**: Fast-lane story review after the degraded-lifecycle correction.
+Implementation and orchestrator verification are green: pi-sandbox 269 passed
+with one documented environment skip, background-tasks 81 passed, and package
+metadata 123 passed. Story advanced `review → done`.
