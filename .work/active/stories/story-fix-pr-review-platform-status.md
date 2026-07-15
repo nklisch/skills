@@ -54,7 +54,8 @@ session.
 - `plugins/background-tasks/extensions/background-tasks.ts` — Windows shell
   fallback removed in `3172ebc`; supported paths remain `/bin/sh` + Unix process
   groups.
-- `plugins/background-tasks/README.md` — Windows is explicitly unsupported.
+- `plugins/background-tasks/README.md` — Windows is explicitly unsupported;
+  the degrade table names macOS rather than implying all non-Linux hosts.
 - `plugins/pi-sandbox/extensions/sandbox.ts` — both intentional-disable branches
   refresh the footer pill.
 - `plugins/pi-sandbox/extensions/sandbox.test.ts` — added branch-level status
@@ -66,3 +67,10 @@ session.
   root selected by `TMPDIR`.
 - `AGENTS.md` — minimal pi-sandbox-only repository inventory bookkeeping, added
   with explicit operator approval after the earlier governance split.
+
+## Fresh-context review
+
+`openai-codex/gpt-5.6-sol` returned **APPROVE** with no blocker or important
+finding. Its two nits were accepted: narrow the README's non-Linux degrade row
+to macOS, and update the monitor regression comment after the fixture stopped
+using a host shell.
