@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state
 kind: feature
-stage: review
+stage: implementing
 tags: [bug, sandbox, background-tasks, plugin]
 parent: null
 depends_on: [feature-pi-sandbox-disk-backed-tmp]
@@ -517,3 +517,35 @@ inline before Phase 2:
   skills/channel manifests.
 
 `npm run check:pi-packages` now reports **136 passed, 0 failed**.
+
+## Final convergence — Phase 2
+
+A separate fresh-context `openai-codex/gpt-5.6-sol` adversarial pass ran four
+attack/falsification rounds. All security and lifecycle findings remained
+closed, but one Important runtime-contract gap survived:
+
+- background/monitor sandbox refusals safely prevent all side effects, but the
+  tools return a normal Promise result carrying an ignored `isError:true`
+  property. Pi finalizes normally resolved custom tools with `isError:false`;
+  direct-execute tests therefore overstate the real runtime error semantics.
+
+Tracked by
+`feature-pi-sandbox-background-project-tmp-state-pi-error-semantics`. Feature
+bounced `review → implementing` for the narrow middleware/runtime-test fix.
+
+## Review (2026-07-14, final convergence correction)
+
+**Verdict**: Request changes
+
+**Blockers**: none
+
+**Important**:
+- `feature-pi-sandbox-background-project-tmp-state-pi-error-semantics` — ensure
+  finalized Pi tool results mark structured sandbox refusals as errors and test
+  through the runtime middleware seam.
+
+**Nits**: none
+
+**Notes**: The refusal remains security-safe; this is error classification for
+Pi UI/automation/model handling plus test honesty. Both final review phases are
+cross-model relative to the Umans host but use independent Codex contexts.
