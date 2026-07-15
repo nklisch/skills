@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state-policy-fingerprint
 kind: story
-stage: review
+stage: implementing
 tags: [bug, security, tests, sandbox, background-tasks]
 parent: feature-pi-sandbox-background-project-tmp-state
 depends_on: [feature-pi-sandbox-background-project-tmp-state-real-tool-policy-parity]
@@ -93,3 +93,23 @@ override cases.
 - `bun test plugins/background-tasks/extensions` — 81 passed.
 - `npm run check:pi-packages` — 123 passed, 0 failed.
 - `git diff --check` — passed.
+
+## Orchestrator review finding
+
+The v2 lifecycle ordering overcorrected the adversarial finding by rejecting
+*every* valid inactive snapshot before config/platform disposition. That closes
+wrong-project/override escapes, but it also blocks legitimate same-session
+degrade states that the package documents and this story requires preserving:
+
+- global `enabled:false` publishes `inactive/disabled`, so a real background or
+  monitor call now returns `session-state-unavailable` instead of the documented
+  unsandboxed degraded result;
+- non-Linux startup publishes `inactive/unsupported-platform`, so the helper
+  cannot reach its documented graceful-degrade result.
+
+Fix the state machine without moving identity checks later: intentional degraded
+states must carry enough pinned policy identity to validate canonical cwd,
+agent-dir, and unchanged effective config *before* allowing only their matching
+degraded disposition. `initializing`, `shutdown`, and `fail-closed` remain hard
+refusals. Add real/live lifecycle tests for enabled:false and unsupported-platform
+behavior plus wrong-project/config-drift refusal.
