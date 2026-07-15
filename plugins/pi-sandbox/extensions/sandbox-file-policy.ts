@@ -16,6 +16,8 @@ import { basename, dirname, isAbsolute, join, relative, resolve } from "node:pat
 import {
 	assertNoHardlinkedDeniedFiles,
 	canonicalizeExistingPath,
+	globToRegex,
+	isGlobPattern,
 	normalizeConfiguredPath,
 	type NetworkMode,
 } from "./sandbox-bwrap";
@@ -359,30 +361,6 @@ function isWithinOrEqual(target: string, dir: string): boolean {
 	if (target === dir) return true;
 	const rel = relative(dir, target);
 	return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
-}
-
-/** Detect glob-shaped filesystem policy entries (`*`/`?`). The bwrap layer cannot
- * mount these, but the in-process file-tool layer enforces them below. */
-function isGlobPattern(p: string): boolean {
-	return /[*?]/.test(p);
-}
-
-/** Convert a glob pattern (`*`/`?`) to an anchored RegExp matching a whole path.
- * `*` matches within a single path segment (NOT `/`); `?` matches one non-`/` char.
- * A relative `*.pem` resolves to `<cwd>/*.pem` (matches `.pem` leaves directly
- * under cwd, NOT nested under subdirs — `sub/secret.pem` is NOT matched). An
- * absolute `~/.ssh/*.pem` resolves against home. For recursive matching, list
- * the parent dir explicitly. */
-function globToRegex(glob: string, cwd: string): RegExp {
-	const expanded = normalizeConfiguredPath(glob, cwd);
-	let re = "";
-	for (let i = 0; i < expanded.length; i += 1) {
-		const ch = expanded[i];
-		if (ch === "*") re += "[^/]*";
-		else if (ch === "?") re += "[^/]";
-		else re += ch.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-	}
-	return new RegExp(`^${re}$`);
 }
 
 /** True if `target` matches any entry in a deny list (exact, prefix, or glob).

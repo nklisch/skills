@@ -257,6 +257,38 @@ export function canonicalizeExistingPath(path: string): string | null {
 	return realpathSync.native(path);
 }
 
+/** Detect glob-shaped filesystem policy entries (`*`/`?`). The bwrap layer cannot
+ * mount these, but the in-process file-tool layer and config-merge containment
+ * checks both treat them as patterns. */
+export function isGlobPattern(p: string): boolean {
+	return /[*?]/.test(p);
+}
+
+/** Convert a glob char sequence to an anchored RegExp. Shared core of
+ * `globToRegex` (whole-path) and `globToRegexFromBase` (basename). `*` matches
+ * within a single path segment (NOT `/`); `?` matches one non-`/` char. */
+function globCharsToRegex(glob: string): RegExp {
+	let re = "";
+	for (let i = 0; i < glob.length; i += 1) {
+		const ch = glob[i];
+		if (ch === "*") re += "[^/]*";
+		else if (ch === "?") re += "[^/]";
+		else re += ch.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+	}
+	return new RegExp(`^${re}$`);
+}
+
+/** Convert a glob pattern (`*`/`?`) to an anchored RegExp matching a whole path.
+ * `*` matches within a single path segment (NOT `/`); `?` matches one non-`/` char.
+ * A relative `*.pem` resolves to `<cwd>/*.pem` (matches `.pem` leaves directly
+ * under cwd, NOT nested under subdirs — `sub/secret.pem` is NOT matched). An
+ * absolute `~/.ssh/*.pem` resolves against home. For recursive matching, list
+ * the parent dir explicitly. */
+export function globToRegex(glob: string, cwd: string): RegExp {
+	const expanded = normalizeConfiguredPath(glob, cwd);
+	return globCharsToRegex(expanded);
+}
+
 export function bwrapIsAvailable(env: NodeJS.ProcessEnv = process.env): boolean {
 	return findExecutableOnPath("bwrap", env) !== null;
 }
@@ -674,14 +706,7 @@ function expandGlobAndCheckHardlinks(glob: string, cwd: string, checked: Set<str
 
 /** Convert a single-segment glob basename to an anchored RegExp. */
 function globToRegexFromBase(glob: string): RegExp {
-	let re = "";
-	for (let i = 0; i < glob.length; i += 1) {
-		const ch = glob[i];
-		if (ch === "*") re += "[^/]*";
-		else if (ch === "?") re += "[^/]";
-		else re += ch.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-	}
-	return new RegExp(`^${re}$`);
+	return globCharsToRegex(glob);
 }
 
 /** Throw if a regular file has nlink > 1. */

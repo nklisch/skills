@@ -873,6 +873,46 @@ describe("config boundary contract", () => {
 		await rm(tmp, { recursive: true, force: true });
 	});
 
+	// Regression: a global allowWrite GLOB (e.g. `*.log`) must not be treated as
+	// a literal path during the narrowing check. Previously,
+	// `canonicalizeAllowWriteEntry("*.log")` returned the literal `/tmp/*.log`
+	// (the path doesn't exist, so no realpath; the `*` survived as a literal char),
+	// and a project literal `app.log` -> `/tmp/app.log` failed both the exact
+	// match and `isNestedUnder` (relative("/tmp/*.log", "/tmp/app.log") ==
+	// "../app.log" because `*` is a literal segment). A valid narrowing was thus
+	// wrongly rejected. The fix matches a global glob as a PATTERN: a project
+	// literal matching the glob regex is a concrete member of its language (a
+	// subset, no widening) and is accepted.
+	test("mergeProjectAdditive narrows allowWrite under a global glob entry", async () => {
+		const tmp = await mkdtemp(join(tmpdir(), "aw-glob-narrow-"));
+		const global = {
+			enabled: true as const,
+			filesystem: { allowWrite: ["*.log"] },
+		};
+
+		// Project literal that matches the global glob -> accepted (subset).
+		const warns: string[] = [];
+		const narrowed = mergeProjectAdditive(global, { filesystem: { allowWrite: ["app.log"] } }, warns, tmp);
+		expect(narrowed.filesystem?.allowWrite).toEqual(["app.log"]);
+		expect(warns.join("\n")).not.toContain("app.log");
+
+		// Project literal that does NOT match the global glob -> rejected (widening).
+		const widenWarns: string[] = [];
+		const widened = mergeProjectAdditive(global, { filesystem: { allowWrite: ["app.txt"] } }, widenWarns, tmp);
+		expect(widened.filesystem?.allowWrite).toEqual([]);
+		expect(widenWarns.join("\n")).toContain("outside the global writable set");
+
+		// Project GLOB vs a global GLOB is undecidable -> rejected (sound), even when
+		// the project glob is intuitively narrower. Runtime isWithinAllowWrite
+		// enforces correctly regardless of the merge decision.
+		const globWarns: string[] = [];
+		const globbed = mergeProjectAdditive(global, { filesystem: { allowWrite: ["a*.log"] } }, globWarns, tmp);
+		expect(globbed.filesystem?.allowWrite).toEqual([]);
+		expect(globWarns.join("\n")).toContain("outside the global writable set");
+
+		await rm(tmp, { recursive: true, force: true });
+	});
+
 	// Regression for the additive-narrowing contract: an explicit empty array
 	// (`[]`) is a valid narrowing to "nothing" — it must NOT be treated as an
 	// omitted field (which would inherit the global set). A project that sets

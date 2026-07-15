@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, relative, isAbsolute } from "node:path";
-import { canonicalizeExistingPath, decidePlatformState, normalizeConfiguredPath, type NetworkMode } from "./sandbox-bwrap";
+import { canonicalizeExistingPath, decidePlatformState, globToRegex, isGlobPattern, normalizeConfiguredPath, type NetworkMode } from "./sandbox-bwrap";
 import { envNameMatchesScrubConfig } from "./sandbox-env";
 
 // CONFIG_DIR_NAME is hardcoded because pi's TS loader can't resolve the
@@ -2041,9 +2041,18 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 	// entry that widens beyond global (outside every global entry) is rejected +
 	// warned. This lets a project narrow `["."]` to `["plugins"]` instead of
 	// silently getting `[]`.
+	//
+	// Global entries may be globs (e.g. `*.log`). A glob is matched as a pattern,
+	// not a literal path: a project LITERAL entry is accepted if it matches the
+	// glob's regex (it is a concrete member of the glob's language, hence a
+	// subset — no widening). A project GLOB entry vs a global glob is undecidable
+	// in general (one pattern's language need not contain the other's), so it is
+	// rejected to stay sound; runtime `isWithinAllowWrite` enforces correctly
+	// regardless of the merge decision. Canonicalization of a glob yields a
+	// literal path containing `*`/`?` (the path does not exist on disk), which
+	// would otherwise defeat both the exact-match and `isNestedUnder` checks.
 	if (project.filesystem?.allowWrite !== undefined) {
 		const globalAllow = result.filesystem?.allowWrite ?? [];
-		const globalCanonical = globalAllow.map((p) => canonicalizeAllowWriteEntry(p, cwd)).filter(Boolean) as string[];
 		const accepted: string[] = [];
 		const rejected: string[] = [];
 		for (const p of project.filesystem.allowWrite) {
@@ -2052,7 +2061,17 @@ export function mergeProjectAdditive(global: SandboxConfig, project: Partial<San
 				rejected.push(p);
 				continue;
 			}
-			if (globalCanonical.some((g) => canonical === g || isNestedUnder(canonical, g))) {
+			const within = globalAllow.some((g) => {
+				if (isGlobPattern(g)) {
+					// Global glob: a project literal matching the regex is a subset.
+					// A project glob vs a global glob is undecidable — reject (sound).
+					if (isGlobPattern(p)) return false;
+					return globToRegex(g, cwd).test(canonical);
+				}
+				const gc = canonicalizeAllowWriteEntry(g, cwd);
+				return gc !== null && (canonical === gc || isNestedUnder(canonical, gc));
+			});
+			if (within) {
 				accepted.push(p);
 			} else {
 				rejected.push(p);
@@ -2355,10 +2374,6 @@ function isNestedUnder(path: string, ancestor: string): boolean {
 	return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
 }
 
-/** The first-party bwrap backend does not support glob denyWrite matching. Detect glob patterns so we can warn. */
-function isGlobPattern(p: string): boolean {
-	return /[*?]/.test(p);
-}
 
 function formatPlatformName(platform: string | null | undefined): string {
 	if (!platform) return "unknown platform";
