@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: review
+stage: implementing
 tags: [sandbox]
 parent: null
 depends_on: []
@@ -978,3 +978,111 @@ Addressed the two redesigned areas per the Redesign resolution.
 - **Discrepancies from design:** none. The implementation matches the
   redesigned Unit 4 + Unit 5 + Unit 6.
 - **Adjacent issues parked:** none.
+
+## Review findings (round 4, deep two-phase cross-model, 2026-07-14)
+
+Bounced `review → implementing` again. Two fresh-context `gpt-5.6-sol` passes
+(Phase 1 completeness, Phase 2 adversarial) converged on the same two
+blockers + importants. The recurring-fail-open (detection) IS killed and the
+healthy-path B1 fix holds, but the redesign left two real holes and several
+incomplete edges.
+
+### Confirmed fixed (rounds 1–3)
+- The runtime fs-type detection is gone and the recurring fail-open (R2-B1 →
+  R3-B1) is structurally dead — no gate, no magic numbers, nothing to fail
+  open. Both reviewers agreed the scope cut is honest and aligns with the
+  mission docs.
+- The healthy-path B1 fix holds: derivation → single `SessionInit` record →
+  one policy construction, no intervening `await`. The B1 regression test is
+  load-bearing.
+- The R3-B3 write probe is deleted; `mkdirSync(recursive)` is the only
+  filesystem mutation in derivation.
+
+### Blockers (new)
+
+- **B1: symlink escape on the project temp dir final path.**
+  `deriveProjectTmpDir` (`sandbox.ts:186-211`) checks the block-mode
+  mask-containment only on `realCacheRoot`; the final `realDir` is
+  canonicalized but NEVER re-checked against the mask roots or verified to be
+  a child of `realCacheRoot`. `mkdirSync(dir, {recursive:true})` **succeeds
+  without throwing on a pre-existing symlink-to-dir** (verified with a Node
+  repro), and `realpathSync` then follows the symlink to its target. So a
+  hostile symlink at the predictable cwd-hash path pins an arbitrary
+  directory as the writable `projectTmpDir` bind (writable-surface escape);
+  in block mode a symlink into `/tmp`/`/run` passes init then is hidden by
+  the tmpfs mask (TMPDIR inaccessible). Additionally `buildBwrapArgs`
+  re-canonicalizes the bind source per command, so a post-init swap changes
+  what gets mounted. Both reviewers flagged.
+  -> Story: `feature-pi-sandbox-disk-backed-tmp-symlink-escape-projectdir`
+
+- **B2: module accessor diverges from activePolicy on the `--no-sandbox` path.**
+  `session_start` resets `tmpBackend = "session-disk"` at the top (line 616,
+  before branches). The `--no-sandbox` branch installs a permissive policy
+  (`tmpBackend: "host-tmpfs"`) and returns WITHOUT updating the module-level
+  `tmpBackend`. So `getTmpBackend()` (="session-disk") disagrees with
+  `getSandboxPolicy().tmpBackend` (="host-tmpfs") — the exact dual-source-
+  of-truth divergence the redesign was supposed to kill, surviving on a path
+  it didn't re-check. `buildSandboxedSpawnArgs` reads the accessor → reaches
+  `buildBwrapArgs` with session-disk + no projectTmpDir → throws → background/
+  monitor commands FAIL TO START under `--no-sandbox`. A regression in the
+  documented bypass behavior. Both reviewers flagged.
+  -> Story: `feature-pi-sandbox-disk-backed-tmp-nosandbox-accessor-divergence`
+
+### Important (new, parked in backlog)
+
+- **I1: `mkdirSync` does not prove writability.** `mkdirSync(recursive)`
+  succeeds on a pre-existing non-writable dir; the R3-B3 fix threw away the
+  legitimate writability check along with the unsafe probe. A pre-existing
+  unwritable dir passes init but `mktemp` fails inside the sandbox. Safe fix:
+  random name + `O_CREAT|O_EXCL|O_NOFOLLOW`. The static guard test must be
+  scoped to forbid only unsafe probes, not a safe one.
+  -> `idea-pi-sandbox-disk-backed-tmp-safe-writability-check`
+- **I2: empty `XDG_CACHE_HOME` contradicts acceptance + docs.** `|| fallback`
+  treats `""` as unset (falls back to `~/.cache`), but acceptance/docs/test
+  say empty fails closed. Pick one (treat empty as unset, or reject empty)
+  and make code + docs + test consistent.
+  -> `idea-pi-sandbox-disk-backed-tmp-empty-xdg-semantics`
+- **I3: the `findmnt` operator-verification command is unreliable.**
+  `findmnt "$XDG_CACHE_HOME"` fails when XDG is unset and when the cache dir
+  is a subdirectory, not a mount point. Since docs are now the ONLY
+  safeguard, use `findmnt --target "${XDG_CACHE_HOME:-$HOME/.cache}"`.
+  -> `idea-pi-sandbox-disk-backed-tmp-findmnt-doc-command`
+- **I4: complete silence on tmpfs is too weak for the feature's mission.** The
+  scope cut is honest, but silent defeat returns the exact OOM status quo.
+  Middle ground: a NON-authoritative one-time startup WARNING (not a gate)
+  for positively-recognized tmpfs/ramfs backing — observation, not
+  authorization; unknown types make no claim and don't block. Deferrable.
+  -> `idea-pi-sandbox-disk-backed-tmp-tmpfs-startup-warning`
+- **I5: `/sandbox` reports config only, not effective session state.** The
+  command prints configured `tmpBackend` but not the resolved project path /
+  effective backend / backing fs. Under an operator-asserted design the
+  operator can't inspect the actual target. Wire `getProjectTmpDir()`/
+  `getTmpBackend()` through `SandboxCommandState` (after the B2 fix).
+  -> `idea-pi-sandbox-disk-backed-tmp-sandbox-cmd-effective-path`
+- **I6: required adversarial regression coverage is still absent.** No tests
+  for: final-dir symlink containment, pre-existing unwritable dirs, empty
+  XDG, block-mode cache derivation under a mask, persistence after the real
+  `session_shutdown` handler, background spawn resolving via accessors
+  without overrides, the actual non-Linux degrade branch. These are the paths
+  where the redesign's guarantees fail — they need coverage.
+
+### Nits
+- N1: stale bwrap contract comment (`sandbox-bwrap.ts:31-36`) still says
+  session_start validates a non-tmpfs backing store — contradicts the scope
+  cut.
+- N2: the `SessionInit` success variant declares `projectTmpDir: string`
+  but the host-tmpfs branch supplies `null` — make the type represent both or
+  discriminate by backend.
+- N3: the B1 test is titled "disk-backed" but creates its fixture under
+  `tmpdir()` and proves routing only — rename to "project temp dir".
+
+### Notes
+- The two blockers are the SAME bug class the redesign targeted — dual source
+  of truth (B2) and a path-validation gap (B1) — surviving on paths the
+  redesign didn't re-check. The structural fixes (single source of truth for
+  accessors; final-path validation) are the right shape.
+- The scope cut itself is sound and both reviewers agreed it aligns with the
+  mission docs; the blockers are implementation gaps, not a wrong design.
+- Cross-model advisory review ran two fresh-context `openai-codex/gpt-5.6-sol`
+  passes (Phase 1 + Phase 2); both converged on the same blockers, which
+  raises confidence the findings are real rather than reviewer noise.
