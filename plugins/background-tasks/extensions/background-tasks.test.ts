@@ -1298,9 +1298,9 @@ describe("monitor tool", () => {
     // was the same missing shell route — `test -f X && ...` ENOENTs as a program
     // name. Create a file via the host shell, then confirm a monitor polling a
     // compound shell predicate sees it.
-    const tmp = `/tmp/peer-monitor-reg-${process.pid}-${Date.now()}`;
-    const { execSync } = require("node:child_process") as typeof import("node:child_process");
-    execSync(`touch ${tmp}`);
+    const fixtureDir = await makeTempDir("peer-monitor-reg-");
+    const tmp = join(fixtureDir, "present");
+    writeFileSync(tmp, "");
     try {
       const { tools, wakes } = makeFakePi();
       const mon = tools.get("monitor")!;

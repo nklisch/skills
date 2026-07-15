@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile, link, chmod } from "node:fs/promises";
-import { realpathSync } from "node:fs";
+import { accessSync, constants, realpathSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createServer } from "node:net";
 import { homedir, tmpdir } from "node:os";
@@ -61,6 +61,15 @@ const hasBwrap = isLinux && (() => {
 	}
 })();
 const integrationTest = makeBwrapIntegrationTest({ isLinux, hasBwrap });
+const hostTmpFixtureAvailable = (() => {
+	try {
+		accessSync("/tmp", constants.W_OK);
+		return true;
+	} catch {
+		return false;
+	}
+})();
+const hostTmpIntegrationTest = hostTmpFixtureAvailable ? integrationTest : test.skip;
 
 async function makeTempDir(): Promise<string> {
 	const dir = await mkdtemp(join(tmpdir(), "pi-sandbox-test-"));
@@ -365,6 +374,59 @@ describe("sandbox extension entrypoint", () => {
 		const mod = await import(`${new URL("./sandbox.ts", import.meta.url).href}?entrypoint=${Date.now()}`);
 		return { default: mod.default, getProjectTmpDir: mod.getProjectTmpDir, getTmpBackend: mod.getTmpBackend, getSandboxPolicy: mod.getSandboxPolicy };
 	}
+
+	test("disabled startup branches refresh the sandbox status pill", async () => {
+		const cases = [
+			{
+				name: "--no-sandbox",
+				config: { filesystem: { tmpBackend: "host-tmpfs" } },
+				getFlag: (flag: string) => flag === "no-sandbox",
+				expectedStatus: "🔒 Sandbox: disabled via --no-sandbox",
+			},
+			{
+				name: "enabled:false",
+				config: { enabled: false, filesystem: { tmpBackend: "host-tmpfs" } },
+				getFlag: () => false,
+				expectedStatus: "🔒 Sandbox: disabled via config",
+			},
+		];
+
+		for (const testCase of cases) {
+			const cwd = await makeTempDir();
+			const agentDir = await makeTempDir();
+			const statuses: string[] = [];
+			const handlers = new Map<string, Array<(event: unknown, ctx: unknown) => Promise<void> | void>>();
+			const extension = (await loadSandboxEntrypoint(agentDir, { config: testCase.config })).default;
+			const pi = {
+				registerFlag: () => {},
+				getFlag: testCase.getFlag,
+				registerTool: () => {},
+				registerCommand: () => {},
+				on: (event: string, handler: (event: unknown, ctx: unknown) => Promise<void> | void) => {
+					(handlers.get(event) ?? (handlers.set(event, []), handlers.get(event)!)).push(handler);
+				},
+			};
+			const ctx = {
+				cwd,
+				hasUI: false,
+				ui: {
+					notify: () => {},
+					setStatus: (key: string, message: string | undefined) => {
+						if (key === "sandbox" && message) statuses.push(message);
+					},
+					theme: { fg: (_name: string, text: string) => text },
+					confirm: async () => false,
+				},
+			};
+			extension(pi);
+
+			for (const handler of handlers.get("session_start") ?? []) {
+				await handler({ reason: "startup" }, ctx);
+			}
+
+			expect(statuses.at(-1), testCase.name).toBe(testCase.expectedStatus);
+		}
+	});
 
 	test("loads, registers sandboxed tool overrides and command, and refreshes /sandbox handshake state", async () => {
 		const cwd = await makeTempDir();
@@ -3540,9 +3602,14 @@ describe("bwrap integration", () => {
 		}
 	});
 
-	integrationTest("block mode cannot reach host Unix sockets under /tmp", async () => {
+	// A writable host /tmp is required to create the socket outside the nested
+	// bwrap instance. When this suite itself runs inside pi-sandbox, host /tmp is
+	// intentionally read-only and TMPDIR points at the project temp dir; skipping
+	// here avoids silently moving the fixture outside the path this test claims to
+	// mask. The argv-level tmpfs assertions above still run in that environment.
+	hostTmpIntegrationTest("block mode cannot reach host Unix sockets under /tmp", async () => {
 		const cwd = await makeRepoTempDir();
-		const socketDir = await mkdtemp(join(tmpdir(), "ssh-pi-sandbox-test-"));
+		const socketDir = await mkdtemp(join("/tmp", "ssh-pi-sandbox-test-"));
 		tempDirs.push(socketDir);
 		const socketPath = join(socketDir, `agent.${process.pid}`);
 		const clientPath = join(cwd, "socket-client.mjs");
