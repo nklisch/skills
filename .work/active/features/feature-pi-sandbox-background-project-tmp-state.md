@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state
 kind: feature
-stage: implementing
+stage: review
 tags: [bug, sandbox, background-tasks, plugin]
 parent: null
 depends_on: [feature-pi-sandbox-disk-backed-tmp]
@@ -468,3 +468,35 @@ allowed subagent class is available.
 **Notes**: The authoritative agent-dir parity and real registered-tool seam from
 round 1 remain fixed. Round 2 found a deeper mutable-policy coherence gap, not a
 regression in those corrections.
+
+## Review correction implementation — round 2
+
+- `feature-pi-sandbox-background-project-tmp-state-policy-fingerprint` is
+  `done` in `2c36db7`; implementation landed in `6438f4a` with degraded-state
+  parity correction `dd957a6`.
+- The frozen transport is now v3. Ready state and intentional degraded states
+  pin a SHA-256 identity of canonical merged effective config plus exact source
+  presence/content. Config drift is checked before every runnable branch.
+- Canonical project/agent identity is validated before config loading. Hard
+  inactive states reject immediately; only policy-pinned `disabled` and
+  `unsupported-platform` states can degrade, and only when the reloaded policy
+  and actual disposition still match.
+- Snapshot-absent isolated overrides remain available; live/inactive/malformed
+  snapshots cannot be bypassed by overrides.
+- Real tool-call-gate + registered background/monitor tests mutate and remove
+  writable project config, proving no job, wake, marker, or secret disclosure.
+- Orchestrator review caught and corrected the first v2 attempt's over-broad
+  inactive refusal, restoring documented enabled:false and non-Linux degrade
+  behavior without moving identity checks later.
+
+### Round 2 correction verification
+
+- `bun test plugins/pi-sandbox/extensions` — 269 passed, 1 documented
+  environment skip.
+- `bun test plugins/background-tasks/extensions` — 81 passed.
+- `npm run check:pi-packages` — 123 passed, 0 failed.
+- The orchestrator independently reran the complete verification after
+  `dd957a6` with identical results.
+
+All child work is done; feature advanced `implementing → review` for final deep
+convergence.
