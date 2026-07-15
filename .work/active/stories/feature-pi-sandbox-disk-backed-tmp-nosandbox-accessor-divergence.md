@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp-nosandbox-accessor-divergence
 kind: story
-stage: implementing
+stage: done
 tags: [bug, sandbox]
 parent: feature-pi-sandbox-disk-backed-tmp
 depends_on: []
@@ -89,3 +89,32 @@ the observable user-facing break (background commands fail).
   surviving on a path the redesign didn't re-check. The structural fix
   (single source of truth) is the right shape; per-branch state updates are
   the minimal fix.
+
+## Implementation notes
+
+Fixed with the structural option (a): the accessors now DERIVE from
+`activePolicy` (the single source of truth) rather than separate module-level
+state, so they cannot diverge by construction.
+
+- Removed the module-level `projectTmpDir` and `tmpBackend` vars entirely.
+- `getProjectTmpDir()` returns `activePolicy?.projectTmpDir ?? null`.
+- `getTmpBackend()` returns `activePolicy?.tmpBackend ?? "session-disk"`.
+- Removed all the dead writes (`projectTmpDir = null`, `tmpBackend = ...`) that
+  were keeping the module state in sync; the provisional policy install + the
+  final policy install are the only state mutations now, and the accessors read
+  from them.
+- Because every early-return branch (`--no-sandbox`, disabled, parse-error,
+  hardlink-fail, bwrap-missing, degrade, fail-closed) installs a policy via
+  `activePolicy = sandboxPolicy` before returning, the accessors now correctly
+  reflect that branch's policy on every path. The `--no-sandbox` branch
+  installs a permissive `host-tmpfs` policy → `getTmpBackend()` returns
+  `host-tmpfs` → `buildSandboxedSpawnArgs` no longer throws
+  session-disk-requires-projectTmpDir.
+- `tmpBackend` is now a `const` local in session_start (used to build the
+  provisional policy), not module state.
+- **Tests**: `B2: --no-sandbox keeps accessors consistent with the installed
+  permissive policy` — drives session_start with `getFlag` returning true for
+  no-sandbox, asserts `getTmpBackend()` === `host-tmpfs` and agrees with
+  `getSandboxPolicy().tmpBackend`. Load-bearing: against the pre-fix code the
+  module state stayed `session-disk` while the policy was `host-tmpfs`.
+- Full suite: 337 pass / 0 fail (was 335; +2 new B1/B2 regression tests).

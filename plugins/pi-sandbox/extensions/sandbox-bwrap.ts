@@ -30,10 +30,14 @@ export interface BuildBwrapArgsOptions {
 	env?: NodeJS.ProcessEnv;
 	/** When set, bind this disk-backed dir writable and force TMPDIR to it
 	 *  (both open and block modes). Replaces the host-/tmp bind (open) and
-	 *  the TMPDIR=/tmp forcing (block). Must be a canonical absolute path
-	 *  that exists on a non-tmpfs backing store — the caller (session_start)
-	 *  validates that. Per-project (cwd-keyed), shared across concurrent
-	 *  sessions in the same project. */
+	 *  the TMPDIR=/tmp forcing (block). Must be a canonical absolute path that
+	 *  is a real directory and a child of the cache root — the caller
+	 *  (session_start via deriveProjectTmpDir) validates that (real directory,
+	 *  not a symlink, not under a block mask). The extension does NOT runtime-
+	 *  validate the backing-store fs type (operator-asserted; see THREAT_MODEL
+	 *  "Two boundaries"). Per-project (cwd-keyed), shared across concurrent
+	 *  sessions in the same project. Bound verbatim (not re-canonicalized) so a
+	 *  post-init path swap cannot change what gets mounted (B1). */
 	projectTmpDir?: string;
 	/** "session-disk" | "host-tmpfs"; defaults to "session-disk". When
 	 *  "session-disk" and projectTmpDir is absent, THROW (fail-closed): the
@@ -151,10 +155,18 @@ function finishBwrapArgs(
 	// allowWrite/git-dir binds and before the deny overlays so deny precedence
 	// is preserved (a deny entry under the project dir still wins).
 	if (tmpBackend === "session-disk" && opts.projectTmpDir) {
-		const canonical = canonicalizeExistingPath(opts.projectTmpDir) ?? opts.projectTmpDir;
-		if (!writableMounts.has(canonical)) {
-			writableMounts.add(canonical);
-			args.push("--bind", canonical, canonical);
+		// B1 (round-4 review): bind the PINNED path verbatim. projectTmpDir was
+		// canonicalized + validated (real directory, child of the cache root, not
+		// a symlink, not under a block mask) at session_start by deriveProjectTmpDir.
+		// Re-canonicalizing here per command would let a path swapped after trusted
+		// init change what gets mounted — silently re-resolving a swapped path
+		// defeats the trusted-init-state discipline. Use the pinned path as-is; if
+		// it has been removed/replaced, the bind fails loudly (bwrap ENOENT) rather
+		// than silently mounting an attacker-chosen target.
+		const pinned = opts.projectTmpDir;
+		if (!writableMounts.has(pinned)) {
+			writableMounts.add(pinned);
+			args.push("--bind", pinned, pinned);
 		}
 	}
 

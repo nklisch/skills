@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp
 kind: feature
-stage: implementing
+stage: review
 tags: [sandbox]
 parent: null
 depends_on: []

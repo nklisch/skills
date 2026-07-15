@@ -552,6 +552,72 @@ describe("sandbox extension entrypoint", () => {
 		expect(policy!.projectTmpDir).toBeNull(); // host-tmpfs path
 		expect(policy!.tmpBackend).toBe("host-tmpfs");
 	});
+
+	test("B2: --no-sandbox keeps accessors consistent with the installed permissive policy", async () => {
+		// Regression for B2: session_start resets state then the --no-sandbox
+		// branch installs a permissive policy (tmpBackend host-tmpfs) and must not
+		// leave the module accessor stale at session-disk. buildSandboxedSpawnArgs
+		// reads the accessor; a stale session-disk value with no projectTmpDir made
+		// background/monitor commands throw fail-closed under --no-sandbox.
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-b2-cwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-b2-agent-"));
+		tempDirs.push(agentDir);
+		const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+		const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+		const pi: any = { registerFlag: () => {}, getFlag: (f: string) => f === "no-sandbox", registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+		mod.default(pi);
+		const ctx: any = { cwd, hasUI: false, ui: { notify: () => {}, setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+		for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+		// The accessors must agree with the active policy (both host-tmpfs), not
+		// diverge to session-disk.
+		expect(mod.getTmpBackend()).toBe("host-tmpfs");
+		expect(mod.getProjectTmpDir()).toBeNull();
+		const policy = mod.getSandboxPolicy();
+		expect(policy).not.toBeNull();
+		expect(policy!.tmpBackend).toBe("host-tmpfs");
+		expect(mod.getTmpBackend()).toBe(policy!.tmpBackend);
+	});
+
+	test("B1: a pre-existing symlink at the cwd-hash project dir path is rejected (fail-closed)", async () => {
+		// Regression for B1: mkdirSync(recursive) succeeds on a pre-existing
+		// symlink-to-dir and realpathSync follows it, which would pin an arbitrary
+		// target as the writable projectTmpDir bind. deriveProjectTmpDir must
+		// detect the symlink via lstatSync and fail closed.
+		const cacheHome = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sym-cache-"));
+		tempDirs.push(cacheHome);
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sym-cwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sym-agent-"));
+		tempDirs.push(agentDir);
+		// Pre-create the cache root + plant a symlink at the predictable cwd-hash
+		// path pointing at an escape target outside the cache root.
+		const { createHash } = await import("node:crypto");
+		const { symlink: symlinkAsync, mkdir: mkdirAsync } = await import("node:fs/promises");
+		const realCwd = realpathSync(cwd);
+		const cwdKey = createHash("sha256").update(realCwd).digest("hex").slice(0, 16);
+		const cacheRoot = join(cacheHome, "pi-sandbox", "tmp");
+		await mkdirAsync(cacheRoot, { recursive: true });
+		const escapeTarget = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sym-escape-"));
+		tempDirs.push(escapeTarget);
+		await symlinkAsync(escapeTarget, join(cacheRoot, cwdKey));
+		const prevCache = process.env.XDG_CACHE_HOME;
+		process.env.XDG_CACHE_HOME = cacheHome;
+		try {
+			const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+			const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+			const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+			mod.default(pi);
+			const notifications: string[] = [];
+			const ctx: any = { cwd, hasUI: false, ui: { notify: (m: string) => notifications.push(m), setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+			for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+			// The symlink must be rejected: fail-closed, no project temp dir bound.
+			expect(notifications.some((m) => m.includes("symlink"))).toBe(true);
+			expect(mod.getProjectTmpDir()).toBeNull();
+		} finally {
+			process.env.XDG_CACHE_HOME = prevCache;
+		}
+	});
 });
 
 describe("config boundary contract", () => {

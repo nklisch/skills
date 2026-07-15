@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-disk-backed-tmp-symlink-escape-projectdir
 kind: story
-stage: implementing
+stage: done
 tags: [security, sandbox]
 parent: feature-pi-sandbox-disk-backed-tmp
 depends_on: []
@@ -80,3 +80,32 @@ after trusted initialization can change what gets mounted mid-session.
 - Do NOT restore the deleted write probe (R3-B3) — that was a different
   vulnerability (predictable-name symlink truncation). The fix here is path
   validation, not a write probe.
+
+## Implementation notes
+
+Fixed in `deriveProjectTmpDir` (`sandbox.ts`) + `buildBwrapArgs`
+(`sandbox-bwrap.ts`).
+
+- **Pre-existing symlink rejection**: before `mkdirSync(dir)`, `existsSync(dir)`
+  + `lstatSync(dir)` (does not follow symlinks) detects a symlink at the
+  predictable cwd-hash path and fail-closes with a clear message. Also rejects a
+  non-directory entry and an unlstat'table path (permission / removed
+  mid-derivation).
+- **Final-dir containment**: after `realpathSync(dir)`, verify `realDir` is the
+  exact expected canonical child of `realCacheRoot` (`realDir === expectedDir ||
+  realDir.startsWith(realCacheRoot + "/")`); an escape target outside the cache
+  root is rejected.
+- **Final-dir mask re-check**: the block-mode mask-containment check (canonicalized
+  mask roots) now runs against `realDir` too, not just `realCacheRoot` — so a
+  symlink into `/tmp`/`/var/tmp`/`/run`/`/var/run` is caught at the final path.
+- **buildBwrapArgs binds the pinned path verbatim** (B1 second half): removed the
+  per-command `canonicalizeExistingPath(opts.projectTmpDir)` re-resolution so a
+  path swapped after trusted init cannot change what gets mounted. If the pinned
+  path is removed/replaced post-init, the bind fails loudly (bwrap ENOENT) rather
+  than silently mounting an attacker-chosen target.
+- **Tests**: `B1: a pre-existing symlink at the cwd-hash project dir path is
+  rejected (fail-closed)` — plants a symlink at the predictable path before
+  session_start, asserts fail-closed + null projectTmpDir. Load-bearing: against
+  the pre-fix code, mkdirSync would accept the symlink and realpathSync would
+  return the escape target (non-null), failing the assertion.
+- Full suite: 337 pass / 0 fail (was 335; +2 new B1/B2 regression tests).
