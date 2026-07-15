@@ -1296,7 +1296,7 @@ describe("monitor tool", () => {
   test("REGRESSION: compound `test -f <file>` satisfies stdout_matches — monitor sees the real filesystem via shell", async () => {
     // The live-session #2 symptom was diagnosed as FS isolation; the real cause
     // was the same missing shell route — `test -f X && ...` ENOENTs as a program
-    // name. Create a file via the host shell, then confirm a monitor polling a
+    // name. Create a real fixture, then confirm a monitor polling a
     // compound shell predicate sees it.
     const fixtureDir = await makeTempDir("peer-monitor-reg-");
     const tmp = join(fixtureDir, "present");
