@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, relative, isAbsolute } from "node:path";
@@ -210,27 +211,35 @@ export type SandboxSpawnSessionInactiveReason =
 	| "unsupported-platform"
 	| "shutdown";
 
-export type SandboxSpawnSessionStateV1 = Readonly<
+export type SandboxSpawnSessionStateV2 = Readonly<
 	| {
-		version: 1;
+		version: 2;
 		state: "inactive";
 		reason: SandboxSpawnSessionInactiveReason;
+		/** Canonical project identity retained through every lifecycle transition. */
+		configCwd: string;
 		/** Canonical Pi agent/config root selected by the live extension. */
 		agentDir: string;
 	}
 	| {
-		version: 1;
+		version: 2;
 		state: "ready";
 		configCwd: string;
 		/** Canonical Pi agent/config root selected by the live extension. */
 		agentDir: string;
+		/** SHA-256 identity of the complete merged config consumed by sandbox-spawn. */
+		policyFingerprint: string;
 		tmpBackend: "session-disk" | "host-tmpfs";
 		projectTmpDir: string | null;
 	}
 >;
 
 export type SandboxSpawnSessionStateRead =
-	| { ok: true; value: SandboxSpawnSessionStateV1 }
+	| { ok: true; value: SandboxSpawnSessionStateV2 }
+	| { ok: false; reason: string };
+
+export type SandboxSpawnPolicyFingerprint =
+	| { ok: true; value: string }
 	| { ok: false; reason: string };
 
 const SANDBOX_SPAWN_SESSION_INACTIVE_REASONS = new Set<SandboxSpawnSessionInactiveReason>([
@@ -254,21 +263,24 @@ function validateSandboxSpawnSessionState(value: unknown): SandboxSpawnSessionSt
 			return { ok: false, reason: "session state is not an object" };
 		}
 		const state = value as Record<string, unknown>;
-		if (state.version !== 1) return { ok: false, reason: "session state has an unsupported version" };
+		if (state.version !== 2) return { ok: false, reason: "session state has an unsupported version" };
 		if (state.state === "inactive") {
-			if (!hasOnlyKeys(state, ["version", "state", "reason", "agentDir"])) {
+			if (!hasOnlyKeys(state, ["version", "state", "reason", "configCwd", "agentDir"])) {
 				return { ok: false, reason: "inactive session state has an invalid shape" };
 			}
 			if (typeof state.reason !== "string" || !SANDBOX_SPAWN_SESSION_INACTIVE_REASONS.has(state.reason as SandboxSpawnSessionInactiveReason)) {
 				return { ok: false, reason: "inactive session state has an invalid reason" };
 			}
+			if (typeof state.configCwd !== "string" || !isAbsolute(state.configCwd)) {
+				return { ok: false, reason: "inactive session state has an invalid config cwd" };
+			}
 			if (typeof state.agentDir !== "string" || !isAbsolute(state.agentDir)) {
 				return { ok: false, reason: "inactive session state has an invalid agent dir" };
 			}
-			return { ok: true, value: state as SandboxSpawnSessionStateV1 };
+			return { ok: true, value: state as SandboxSpawnSessionStateV2 };
 		}
 		if (state.state !== "ready") return { ok: false, reason: "session state has an invalid lifecycle state" };
-		if (!hasOnlyKeys(state, ["version", "state", "configCwd", "agentDir", "tmpBackend", "projectTmpDir"])) {
+		if (!hasOnlyKeys(state, ["version", "state", "configCwd", "agentDir", "policyFingerprint", "tmpBackend", "projectTmpDir"])) {
 			return { ok: false, reason: "ready session state has an invalid shape" };
 		}
 		if (typeof state.configCwd !== "string" || !isAbsolute(state.configCwd)) {
@@ -276,6 +288,9 @@ function validateSandboxSpawnSessionState(value: unknown): SandboxSpawnSessionSt
 		}
 		if (typeof state.agentDir !== "string" || !isAbsolute(state.agentDir)) {
 			return { ok: false, reason: "ready session state has an invalid agent dir" };
+		}
+		if (typeof state.policyFingerprint !== "string" || !/^sha256:[0-9a-f]{64}$/.test(state.policyFingerprint)) {
+			return { ok: false, reason: "ready session state has an invalid policy identity" };
 		}
 		if (state.tmpBackend !== "session-disk" && state.tmpBackend !== "host-tmpfs") {
 			return { ok: false, reason: "ready session state has an invalid temp backend" };
@@ -287,23 +302,24 @@ function validateSandboxSpawnSessionState(value: unknown): SandboxSpawnSessionSt
 		} else if (state.projectTmpDir !== null) {
 			return { ok: false, reason: "host-tmpfs session state must not contain a project temp dir" };
 		}
-		return { ok: true, value: state as SandboxSpawnSessionStateV1 };
+		return { ok: true, value: state as SandboxSpawnSessionStateV2 };
 	} catch {
 		return { ok: false, reason: "session state could not be inspected" };
 	}
 }
 
 /** Clone, freeze, and atomically replace the narrow cross-loader snapshot. */
-export function publishSandboxSpawnSessionState(state: SandboxSpawnSessionStateV1): SandboxSpawnSessionStateV1 {
+export function publishSandboxSpawnSessionState(state: SandboxSpawnSessionStateV2): SandboxSpawnSessionStateV2 {
 	const validated = validateSandboxSpawnSessionState(state);
 	if (!validated.ok) throw new Error(`Refusing to publish invalid sandbox spawn session state: ${validated.reason}`);
-	const snapshot: SandboxSpawnSessionStateV1 = validated.value.state === "inactive"
-		? Object.freeze({ version: 1, state: "inactive" as const, reason: validated.value.reason, agentDir: validated.value.agentDir })
+	const snapshot: SandboxSpawnSessionStateV2 = validated.value.state === "inactive"
+		? Object.freeze({ version: 2, state: "inactive" as const, reason: validated.value.reason, configCwd: validated.value.configCwd, agentDir: validated.value.agentDir })
 		: Object.freeze({
-			version: 1,
+			version: 2,
 			state: "ready" as const,
 			configCwd: validated.value.configCwd,
 			agentDir: validated.value.agentDir,
+			policyFingerprint: validated.value.policyFingerprint,
 			tmpBackend: validated.value.tmpBackend,
 			projectTmpDir: validated.value.projectTmpDir,
 		});
@@ -311,9 +327,45 @@ export function publishSandboxSpawnSessionState(state: SandboxSpawnSessionStateV
 	return snapshot;
 }
 
-/** Read only structurally valid version-1 state. Unknown or malformed state is unusable. */
+/** Read only structurally valid version-2 state. Unknown or malformed state is unusable. */
 export function readSandboxSpawnSessionState(): SandboxSpawnSessionStateRead {
 	return validateSandboxSpawnSessionState((globalThis as typeof globalThis & Record<symbol, unknown>)[SANDBOX_SPAWN_SESSION_STATE_SYMBOL]);
+}
+
+/**
+ * Produce a deterministic non-secret identity for the complete merged config
+ * consumed by sandbox-spawn. Object keys are sorted recursively, while arrays
+ * retain their configured order because list order can be policy-significant.
+ * Values outside JSON's finite primitive/object/array domain are rejected so an
+ * ambiguous serialization can never authorize a spawn.
+ */
+function canonicalPolicyJson(value: unknown): string {
+	if (value === null) return "null";
+	switch (typeof value) {
+		case "boolean":
+			return value ? "true" : "false";
+		case "string":
+			return JSON.stringify(value);
+		case "number":
+			if (!Number.isFinite(value)) throw new Error("policy contains a non-finite number");
+			return JSON.stringify(value);
+		case "object":
+			if (Array.isArray(value)) return `[${value.map(canonicalPolicyJson).join(",")}]`;
+			if (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) {
+				throw new Error("policy contains a non-plain object");
+			}
+			return `{${Object.keys(value as Record<string, unknown>).sort().map((key) => `${JSON.stringify(key)}:${canonicalPolicyJson((value as Record<string, unknown>)[key])}`).join(",")}}`;
+		default:
+			throw new Error(`policy contains unsupported ${typeof value} value`);
+	}
+}
+
+export function fingerprintSandboxSpawnPolicy(config: unknown): SandboxSpawnPolicyFingerprint {
+	try {
+		return { ok: true, value: `sha256:${createHash("sha256").update(canonicalPolicyJson(config), "utf8").digest("hex")}` };
+	} catch {
+		return { ok: false, reason: "sandbox spawn policy identity could not be computed" };
+	}
 }
 
 /** Non-secret lifecycle signal for extensions that require the inner credential-isolation boundary. */
@@ -1576,6 +1628,8 @@ export const DEFAULT_CONFIG: SandboxConfig & { tools?: ToolRules; envScrub?: Env
 
 export interface LoadedConfig {
 	config: SandboxConfig;
+	/** Non-secret identity of merged policy plus exact global/project source presence and JSON. */
+	spawnPolicyFingerprint: SandboxSpawnPolicyFingerprint;
 	parseErrors: string[];
 	globWarnings: string[];
 	missingDenyWarnings: string[];
@@ -1699,8 +1753,12 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 	const additiveWarnings: string[] = [];
 	let globalConfig: Partial<SandboxConfig> = {};
 	let projectConfig: Partial<SandboxConfig> = {};
+	let globalConfigSource: unknown = null;
+	let projectConfigSource: unknown = null;
+	const globalConfigPresent = existsSync(globalConfigPath);
+	const projectConfigPresent = existsSync(projectConfigPath);
 
-	if (existsSync(globalConfigPath)) {
+	if (globalConfigPresent) {
 		try {
 			const parsed = JSON.parse(readFileSync(globalConfigPath, "utf-8"));
 			const validationErrors = validateConfig(parsed);
@@ -1708,6 +1766,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 				parseErrors.push(...validationErrors.map((error) => `global (${globalConfigPath}): ${error}`));
 			} else {
 				globalConfig = parsed;
+				globalConfigSource = parsed;
 				legacyFieldWarnings.push(...collectLegacyFieldWarnings("global", globalConfig));
 			}
 		} catch (e) {
@@ -1717,7 +1776,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 		}
 	}
 
-	if (existsSync(projectConfigPath)) {
+	if (projectConfigPresent) {
 		try {
 			const parsed = JSON.parse(readFileSync(projectConfigPath, "utf-8"));
 			const validationErrors = validateConfig(parsed);
@@ -1725,6 +1784,7 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 				parseErrors.push(...validationErrors.map((error) => `project (${projectConfigPath}): ${error}`));
 			} else {
 				projectConfig = parsed;
+				projectConfigSource = parsed;
 				legacyFieldWarnings.push(...collectLegacyFieldWarnings("project", projectConfig));
 			}
 		} catch (e) {
@@ -1791,7 +1851,14 @@ export function loadConfig(cwd: string, opts: LoadConfigOptions = {}): LoadedCon
 		);
 	}
 
-	return { config: merged, parseErrors, globWarnings, missingDenyWarnings, legacyFieldWarnings, failClosedReasons, additiveWarnings };
+	const spawnPolicyFingerprint = fingerprintSandboxSpawnPolicy({
+		effective: merged,
+		sources: {
+			global: { present: globalConfigPresent, value: globalConfigSource },
+			project: { present: projectConfigPresent, value: projectConfigSource },
+		},
+	});
+	return { config: merged, spawnPolicyFingerprint, parseErrors, globWarnings, missingDenyWarnings, legacyFieldWarnings, failClosedReasons, additiveWarnings };
 }
 
 function mergeGlobalConfig(base: SandboxConfig, global: Partial<SandboxConfig>): SandboxConfig {

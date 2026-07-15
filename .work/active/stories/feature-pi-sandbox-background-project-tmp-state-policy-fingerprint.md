@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state-policy-fingerprint
 kind: story
-stage: implementing
+stage: review
 tags: [bug, security, tests, sandbox, background-tasks]
 parent: feature-pi-sandbox-background-project-tmp-state
 depends_on: [feature-pi-sandbox-background-project-tmp-state-real-tool-policy-parity]
@@ -51,17 +51,45 @@ override cases.
 
 ## Acceptance criteria
 
-- [ ] The ready snapshot pins a deterministic identity of every effective config
+- [x] The ready snapshot pins a deterministic identity of every effective config
   field that can change background/monitor spawn behavior.
-- [ ] Helper config is compared to the pinned identity before any `ok` or
+- [x] Helper config is compared to the pinned identity before any `ok` or
   degraded/unsandboxed result.
-- [ ] Removing or changing project/global config after session start fails
+- [x] Removing or changing project/global config after session start fails
   closed until `/reload`.
-- [ ] Inactive and wrong-project snapshots cannot reach integration-off,
+- [x] Inactive and wrong-project snapshots cannot reach integration-off,
   enabled:false, or explicit-override runnable paths.
-- [ ] Snapshot-absent isolated tests retain explicit override support.
-- [ ] A real tool-call-gate + registered-tool regression proves policy mutation
+- [x] Snapshot-absent isolated tests retain explicit override support.
+- [x] A real tool-call-gate + registered-tool regression proves policy mutation
   creates no job, wake, marker, or secret disclosure.
-- [ ] Existing ready/degraded/`--no-sandbox` behavior remains as documented when
+- [x] Existing ready/degraded/`--no-sandbox` behavior remains as documented when
   policy identity is unchanged.
-- [ ] Both plugin suites and package metadata checks pass.
+- [x] Both plugin suites and package metadata checks pass.
+
+## Implementation notes
+
+- Replaced the narrow v1 transport with a frozen v2 snapshot. Ready state carries
+  canonical project and agent roots plus only a SHA-256 policy identity; inactive
+  state retains both canonical roots so shutdown and disabled sessions cannot be
+  treated as snapshot-absent test contexts.
+- `loadConfig` now fingerprints canonical JSON for the entire merged config and
+  validated global/project source presence/content. Keys are recursively sorted,
+  arrays retain order, and invalid/non-JSON values fail closed. Source presence
+  makes an empty project-config deletion observable without publishing config
+  contents or secrets.
+- The helper establishes lifecycle/project identity before loading config,
+  compares the reloaded identity before every runnable/degraded branch, and
+  allows agent/temp overrides only for an absent snapshot with an explicit
+  isolated config root and complete temp selection.
+- Extended the real cache-busted sandbox plus registered background/monitor
+  integration test to invoke the live `tool_call` gate, then mutate and remove
+  writable project config. The gate remains live-policy-allowed while the helper
+  refuses before job registration, wake, marker execution, or secret output.
+
+## Verification
+
+- `bun test plugins/pi-sandbox/extensions` — 267 passed, 1 documented host-/tmp
+  Unix-socket skip.
+- `bun test plugins/background-tasks/extensions` — 81 passed.
+- `npm run check:pi-packages` — 123 passed, 0 failed.
+- `git diff --check` — passed.

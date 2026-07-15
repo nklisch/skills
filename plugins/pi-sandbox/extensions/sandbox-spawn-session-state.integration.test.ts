@@ -149,10 +149,10 @@ bwrapTest("a cache-busted live extension and cached real bridge helper share fre
 		// initialization reaches config parsing.
 		await writeFile(join(agentDir, "extensions", "sandbox.json"), "{");
 		await run("session_start", projectB);
-		// Config parsing fails before the helper reaches snapshot resolution, but
-		// the stale ready state is still invalidated and no spawn can be prepared.
+		// The stale ready state is invalidated before parsing completes, so no
+		// caller can use an override or parse-driven degraded escape branch.
 		expect(readSandboxSpawnSessionState()).toMatchObject({ ok: true, value: { state: "inactive", reason: "fail-closed" } });
-		expect(build(projectB)).toMatchObject({ state: "fail-closed", reason: "config-parse-error" });
+		expect(build(projectB)).toMatchObject({ state: "fail-closed", reason: "session-state-unavailable" });
 	} finally {
 		process.env.XDG_CACHE_HOME = previousCacheHome;
 	}
@@ -170,6 +170,8 @@ bwrapTest("registered background and monitor tools honor live agent-dir policy a
 		filesystem: { tmpBackend: "session-disk", denyRead: ["strict-secret.txt"], allowWrite: ["."] },
 	}));
 	await writeFile(secret, "LIVE-POLICY-SECRET\n");
+	await mkdir(join(project, ".pi"), { recursive: true });
+	await writeFile(join(project, ".pi", "sandbox.json"), "{}");
 
 	const previousCacheHome = process.env.XDG_CACHE_HOME;
 	process.env.XDG_CACHE_HOME = cacheHome;
@@ -223,6 +225,14 @@ bwrapTest("registered background and monitor tools honor live agent-dir policy a
 		const monitor = tools.get("monitor");
 		const jobs = tools.get("jobs");
 		const execute = (definition: any, params: Record<string, unknown>) => definition.execute("test", params, undefined, undefined, context);
+		const callThroughSandboxGate = async (definition: any, params: Record<string, unknown>, id = "test") => {
+			const event = { toolName: definition.name, input: { ...params } };
+			for (const handler of handlers.get("tool_call") ?? []) {
+				const decision = await handler(event, context) as { block?: boolean; reason?: string } | undefined;
+				if (decision?.block) return { blocked: true, reason: decision.reason };
+			}
+			return { blocked: false, result: await definition.execute(id, params, undefined, undefined, context) };
+		};
 		const status = async (jobId: number) => (await execute(jobs, { action: "status", jobId })).content[0].text as string;
 		const waitFor = async (predicate: () => Promise<boolean>): Promise<void> => {
 			const deadline = Date.now() + 8_000;
@@ -267,6 +277,32 @@ bwrapTest("registered background and monitor tools honor live agent-dir policy a
 			expect((await refuse(refusalJobs, { action: "list" })).content[0].text).toBe("No background jobs or monitors registered.");
 		};
 
+		// The live tool_call gate still permits these tools under its session-pinned
+		// policy. The real helper must independently refuse after project policy
+		// drift, before either registered tool can create a job, wake, marker, or
+		// disclose the denied secret.
+		await writeFile(join(project, ".pi", "sandbox.json"), JSON.stringify({ filesystem: { denyRead: ["drift-only-secret.txt"] } }));
+		const mutatedBackground = await callThroughSandboxGate(refusalBackground, {
+			command: `cat ${JSON.stringify(secret)} > ${JSON.stringify(blockedBackgroundMarker)}`,
+		}, "mutated-background");
+		expect(mutatedBackground.blocked).toBe(false);
+		expect(mutatedBackground.result?.isError).toBe(true);
+		expect(mutatedBackground.result?.details).toMatchObject({ sandbox: "blocked", reason: "session-state-unavailable" });
+
+		await rm(join(project, ".pi", "sandbox.json"));
+		const removedMonitor = await callThroughSandboxGate(refusalMonitor, {
+			command: `cat ${JSON.stringify(secret)} > ${JSON.stringify(blockedMonitorMarker)}`,
+			satisfy_on: "exit_zero", interval_seconds: 1, timeout_seconds: 5,
+		}, "removed-monitor");
+		expect(removedMonitor.blocked).toBe(false);
+		expect(removedMonitor.result?.isError).toBe(true);
+		expect(removedMonitor.result?.details).toMatchObject({ sandbox: "blocked", reason: "session-state-unavailable" });
+		expect(JSON.stringify([mutatedBackground, removedMonitor])).not.toContain("LIVE-POLICY-SECRET");
+		expect(refusalWakes).toHaveLength(0);
+		expect(await Bun.file(blockedBackgroundMarker).exists()).toBe(false);
+		expect(await Bun.file(blockedMonitorMarker).exists()).toBe(false);
+		await assertEmptyRegistry();
+
 		await runSandbox("session_shutdown");
 		for (const [definition, params] of [
 			[refusalBackground, { command: `printf ran > ${JSON.stringify(blockedBackgroundMarker)}` }],
@@ -289,7 +325,7 @@ bwrapTest("registered background and monitor tools honor live agent-dir policy a
 		] as const) {
 			const failedReplacement = await refuse(definition, params);
 			expect(failedReplacement.isError).toBe(true);
-			expect(failedReplacement.details).toMatchObject({ sandbox: "blocked", reason: "config-parse-error" });
+			expect(failedReplacement.details).toMatchObject({ sandbox: "blocked", reason: "session-state-unavailable" });
 		}
 		expect(refusalWakes).toHaveLength(0);
 		expect(await Bun.file(blockedBackgroundMarker).exists()).toBe(false);
