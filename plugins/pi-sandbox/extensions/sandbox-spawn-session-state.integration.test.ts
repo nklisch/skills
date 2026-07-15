@@ -2,6 +2,7 @@ import { afterEach, expect, mock, test } from "bun:test";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import backgroundTasksExtension from "../../background-tasks/extensions/background-tasks";
 import { createSandboxBridge } from "../../background-tasks/extensions/sandbox-bridge";
 import {
 	SANDBOX_SPAWN_SESSION_STATE_SYMBOL,
@@ -103,7 +104,6 @@ bwrapTest("a cache-busted live extension and cached real bridge helper share fre
 			command: "printf '%s' \"$TMPDIR\"",
 			cwd,
 			configCwd: cwd,
-			agentDir,
 			platform: "linux",
 			bwrapAvailable: true,
 			baseEnv: { PATH: process.env.PATH, HOME: process.env.HOME },
@@ -153,6 +153,148 @@ bwrapTest("a cache-busted live extension and cached real bridge helper share fre
 		// the stale ready state is still invalidated and no spawn can be prepared.
 		expect(readSandboxSpawnSessionState()).toMatchObject({ ok: true, value: { state: "inactive", reason: "fail-closed" } });
 		expect(build(projectB)).toMatchObject({ state: "fail-closed", reason: "config-parse-error" });
+	} finally {
+		process.env.XDG_CACHE_HOME = previousCacheHome;
+	}
+});
+
+bwrapTest("registered background and monitor tools honor live agent-dir policy and fail closed after invalidation", async () => {
+	const agentDir = await makeTempDir("pi-sandbox-real-tools-agent-");
+	const cacheHome = await makeTempDir("pi-sandbox-real-tools-cache-");
+	const project = await makeTempDir("pi-sandbox-real-tools-project-");
+	const secret = join(project, "strict-secret.txt");
+	const blockedBackgroundMarker = join(project, "blocked-background-marker.txt");
+	const blockedMonitorMarker = join(project, "blocked-monitor-marker.txt");
+	await mkdir(join(agentDir, "extensions"), { recursive: true });
+	await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+		filesystem: { tmpBackend: "session-disk", denyRead: ["strict-secret.txt"], allowWrite: ["."] },
+	}));
+	await writeFile(secret, "LIVE-POLICY-SECRET\n");
+
+	const previousCacheHome = process.env.XDG_CACHE_HOME;
+	process.env.XDG_CACHE_HOME = cacheHome;
+	try {
+		const tool = (name: string) => ({ name, description: `${name} test stub`, parameters: {}, execute: async () => ({ content: [{ type: "text", text: "stub" }] }) });
+		mock.module("@earendil-works/pi-coding-agent", () => ({
+			getAgentDir: () => agentDir,
+			createBashTool: () => tool("bash"),
+			createReadTool: () => tool("read"),
+			createWriteTool: () => tool("write"),
+			createEditTool: () => tool("edit"),
+		}));
+		mock.module("typebox", () => ({ Type: {
+			Object: (properties: unknown, options?: Record<string, unknown>) => ({ type: "object", properties, ...options }),
+			String: (options?: Record<string, unknown>) => ({ type: "string", ...options }),
+			Number: (options?: Record<string, unknown>) => ({ type: "number", ...options }),
+			Optional: (schema: Record<string, unknown>) => ({ ...schema, optional: true }),
+			Array: (items: unknown, options?: Record<string, unknown>) => ({ type: "array", items, ...options }),
+		} }));
+
+		const live = await import(`${new URL("./sandbox.ts", import.meta.url).href}?real-tools-live=${crypto.randomUUID()}`);
+		const helper = await import(`${new URL("./sandbox-spawn.ts", import.meta.url).href}?real-tools-helper=${crypto.randomUUID()}`);
+		const handlers = new Map<string, Array<(event: unknown, ctx: any) => Promise<void> | void>>();
+		const sandboxPi = {
+			registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {},
+			on: (event: string, handler: (event: unknown, ctx: any) => Promise<void> | void) => (handlers.get(event) ?? (handlers.set(event, []), handlers.get(event)!)).push(handler),
+		};
+		live.default(sandboxPi);
+		const context = {
+			cwd: project, hasUI: false,
+			ui: { notify: () => {}, setStatus: () => {}, theme: { fg: (_name: string, text: string) => text }, confirm: async () => false },
+		};
+		const runSandbox = async (event: "session_start" | "session_shutdown") => {
+			for (const handler of handlers.get(event) ?? []) await handler({ reason: "test" }, context);
+		};
+		await runSandbox("session_start");
+		const state = readSandboxSpawnSessionState();
+		expect(state).toMatchObject({ ok: true, value: { state: "ready", agentDir } });
+		if (!state.ok || state.value.state !== "ready") throw new Error("live session did not publish ready state");
+
+		const tools = new Map<string, any>();
+		const wakes: unknown[] = [];
+		const bridge = createSandboxBridge(async () => ({ buildSandboxedSpawnArgs: helper.buildSandboxedSpawnArgs }));
+		backgroundTasksExtension({
+			registerTool: (definition: { name: string }) => tools.set(definition.name, definition),
+			sendMessage: (message: unknown) => { wakes.push(message); },
+			appendEntry: () => {},
+			on: () => {},
+		}, { sandboxResolver: bridge.resolveSandboxSpawnBuilder });
+		const background = tools.get("background");
+		const monitor = tools.get("monitor");
+		const jobs = tools.get("jobs");
+		const execute = (definition: any, params: Record<string, unknown>) => definition.execute("test", params, undefined, undefined, context);
+		const status = async (jobId: number) => (await execute(jobs, { action: "status", jobId })).content[0].text as string;
+		const waitFor = async (predicate: () => Promise<boolean>): Promise<void> => {
+			const deadline = Date.now() + 8_000;
+			while (!(await predicate())) {
+				if (Date.now() > deadline) throw new Error("timed out waiting for real tool job");
+				await new Promise((resolve) => setTimeout(resolve, 20));
+			}
+		};
+		const command = "if [ ! -s strict-secret.txt ]; then printf 'denied tmp=%s' \"$TMPDIR\"; else printf 'LEAK:%s' \"$(cat strict-secret.txt)\"; fi";
+
+		// No agentDir/tmp overrides are supplied to these registered tool calls.
+		const startedBackground = await execute(background, { command, label: "live-agent-policy-background" });
+		expect(startedBackground.details.sandbox).toBe("active");
+		await waitFor(async () => (await status(startedBackground.details.jobId)).includes("[completed"));
+		const backgroundTail = (await execute(jobs, { action: "tail", jobId: startedBackground.details.jobId, lines: 20 })).content[0].text;
+		expect(backgroundTail).toContain(`denied tmp=${state.value.projectTmpDir}`);
+		expect(backgroundTail).not.toContain("LIVE-POLICY-SECRET");
+
+		const startedMonitor = await execute(monitor, { command, satisfy_on: "stdout_matches", pattern: "denied tmp=", interval_seconds: 1, timeout_seconds: 5, label: "live-agent-policy-monitor" });
+		expect(startedMonitor.details.sandbox).toBe("active");
+		await waitFor(async () => (await status(startedMonitor.details.jobId)).includes("[satisfied"));
+		const monitorTail = (await execute(jobs, { action: "tail", jobId: startedMonitor.details.jobId, lines: 20 })).content[0].text;
+		expect(monitorTail).toContain(`denied tmp=${state.value.projectTmpDir}`);
+		expect(monitorTail).not.toContain("LIVE-POLICY-SECRET");
+
+		// A second registered-tool instance shares the already-cached real bridge
+		// but starts with an empty registry, making rejected-call side effects
+		// observable without confusing them with the healthy jobs above.
+		const refusalTools = new Map<string, any>();
+		const refusalWakes: unknown[] = [];
+		backgroundTasksExtension({
+			registerTool: (definition: { name: string }) => refusalTools.set(definition.name, definition),
+			sendMessage: (message: unknown) => { refusalWakes.push(message); },
+			appendEntry: () => {},
+			on: () => {},
+		}, { sandboxResolver: bridge.resolveSandboxSpawnBuilder });
+		const refusalBackground = refusalTools.get("background");
+		const refusalMonitor = refusalTools.get("monitor");
+		const refusalJobs = refusalTools.get("jobs");
+		const refuse = (definition: any, params: Record<string, unknown>) => definition.execute("refusal", params, undefined, undefined, context);
+		const assertEmptyRegistry = async () => {
+			expect((await refuse(refusalJobs, { action: "list" })).content[0].text).toBe("No background jobs or monitors registered.");
+		};
+
+		await runSandbox("session_shutdown");
+		for (const [definition, params] of [
+			[refusalBackground, { command: `printf ran > ${JSON.stringify(blockedBackgroundMarker)}` }],
+			[refusalMonitor, { command: `printf ran > ${JSON.stringify(blockedMonitorMarker)}`, satisfy_on: "exit_zero", interval_seconds: 1, timeout_seconds: 5 }],
+		] as const) {
+			const refused = await refuse(definition, params);
+			expect(refused.isError).toBe(true);
+			expect(refused.details).toMatchObject({ sandbox: "blocked", reason: "session-state-unavailable" });
+		}
+		expect(refusalWakes).toHaveLength(0);
+		expect(await Bun.file(blockedBackgroundMarker).exists()).toBe(false);
+		expect(await Bun.file(blockedMonitorMarker).exists()).toBe(false);
+		await assertEmptyRegistry();
+
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), "{");
+		await runSandbox("session_start");
+		for (const [definition, params] of [
+			[refusalBackground, { command: `printf ran > ${JSON.stringify(blockedBackgroundMarker)}` }],
+			[refusalMonitor, { command: `printf ran > ${JSON.stringify(blockedMonitorMarker)}`, satisfy_on: "exit_zero", interval_seconds: 1, timeout_seconds: 5 }],
+		] as const) {
+			const failedReplacement = await refuse(definition, params);
+			expect(failedReplacement.isError).toBe(true);
+			expect(failedReplacement.details).toMatchObject({ sandbox: "blocked", reason: "config-parse-error" });
+		}
+		expect(refusalWakes).toHaveLength(0);
+		expect(await Bun.file(blockedBackgroundMarker).exists()).toBe(false);
+		expect(await Bun.file(blockedMonitorMarker).exists()).toBe(false);
+		await assertEmptyRegistry();
 	} finally {
 		process.env.XDG_CACHE_HOME = previousCacheHome;
 	}

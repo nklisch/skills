@@ -82,31 +82,28 @@ import {
 } from "./sandbox-file-policy";
 import { Type } from "typebox";
 
-const loadPiConfig = (cwd: string) => loadConfig(cwd, { agentDir: getAgentDir() });
+function canonicalSpawnAgentDir(agentDir: string): string {
+	const absolute = resolve(agentDir);
+	return canonicalizeExistingPath(absolute) ?? absolute;
+}
 
-/** Accessor for the pinned per-project disk-backed temp dir. Read by
- *  buildSandboxedSpawnArgs (via sandbox-spawn.ts) so the background/monitor
- *  path resolves the same project temp dir as the bash path. Returns null
- *  before session_start resolves or under tmpBackend!="session-disk"; the
- *  caller (buildSandboxedSpawnArgs) fails-closed when session-disk is active
- *  but this returns null.
+const loadPiConfig = (cwd: string) => loadConfig(cwd, { agentDir: canonicalSpawnAgentDir(getAgentDir()) });
+
+/** Accessor for the pinned per-project disk-backed temp dir.
  *
- *  B2 (round-4 review): this DERIVES from `activePolicy` (the single source
- *  of truth) rather than separate module-level state, so it can never diverge
- *  from the policy the bash path uses. Previously the module state and the
- *  policy had different lifecycles and diverged on early-return branches
- *  (e.g. --no-sandbox installed a permissive host-tmpfs policy but left the
- *  module tmpBackend="session-disk"), which made buildSandboxedSpawnArgs throw
- *  session-disk-requires-projectTmpDir and break background commands. */
+ * Exposed for live-policy diagnostics and focused tests. Cross-loader spawn
+ * helpers consume the versioned session snapshot instead of this module-local
+ * accessor. */
 export function getProjectTmpDir(): string | null {
 	return activePolicy?.projectTmpDir ?? null;
 }
 
-/** Accessor for the resolved tmpBackend. Read by buildSandboxedSpawnArgs so the
- *  background/monitor path selects the same session-disk/host-tmpfs branch as
- *  the bash path. Derives from `activePolicy` (B2 — see getProjectTmpDir) so it
- *  cannot diverge from the installed policy. Defaults to "session-disk" before
- *  session_start, matching the config default and the fail-closed posture. */
+/** Accessor for the resolved tmpBackend.
+ *
+ * Exposed for live-policy diagnostics and focused tests. It derives from
+ * `activePolicy` (B2 — see getProjectTmpDir); cross-loader spawn helpers read
+ * the versioned session snapshot instead. Defaults to "session-disk" before
+ * session_start, matching the config default and the fail-closed posture. */
 export function getTmpBackend(): "session-disk" | "host-tmpfs" {
 	return activePolicy?.tmpBackend ?? "session-disk";
 }
@@ -128,18 +125,19 @@ function canonicalSpawnConfigCwd(cwd: string): string {
 	return canonicalizeExistingPath(absolute) ?? absolute;
 }
 
-function publishReadySpawnSessionState(ctxCwd: string, policy: SandboxPolicy): void {
+function publishReadySpawnSessionState(ctxCwd: string, agentDir: string, policy: SandboxPolicy): void {
 	publishSandboxSpawnSessionState({
 		version: 1,
 		state: "ready",
 		configCwd: canonicalSpawnConfigCwd(ctxCwd),
+		agentDir,
 		tmpBackend: policy.tmpBackend,
 		projectTmpDir: policy.projectTmpDir,
 	});
 }
 
-function publishInactiveSpawnSessionState(reason: SandboxSpawnSessionInactiveReason): void {
-	publishSandboxSpawnSessionState({ version: 1, state: "inactive", reason });
+function publishInactiveSpawnSessionState(reason: SandboxSpawnSessionInactiveReason, agentDir: string): void {
+	publishSandboxSpawnSessionState({ version: 1, state: "inactive", reason, agentDir });
 }
 
 /**
@@ -168,6 +166,7 @@ function publishInactiveSpawnSessionState(reason: SandboxSpawnSessionInactiveRea
 // ---------------------------------------------------------------------------
 
 let activePolicy: SandboxPolicy | null = null;
+let activeSessionAgentDir: string | null = null;
 let envScrubConfig: EnvScrubConfig | null = null;
 let pinnedBwrapPath: string | null = null;
 let bwrapPinError: string | null = null;
@@ -671,6 +670,8 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_start", async (_event, ctx) => {
+		const sessionAgentDir = canonicalSpawnAgentDir(getAgentDir());
+		activeSessionAgentDir = sessionAgentDir;
 		failClosed = false;
 		disabledViaConfig = false;
 		osSandboxUnavailable = false;
@@ -702,7 +703,7 @@ export default function (pi: ExtensionAPI) {
 		// Clear any earlier session's success signals before initialization can take
 		// a branch. The spawn snapshot is a separate cross-loader projection and
 		// must never retain a prior project's ready temp path during startup.
-		publishInactiveSpawnSessionState("initializing");
+		publishInactiveSpawnSessionState("initializing", sessionAgentDir);
 		publishCapability();
 
 		if (noSandbox) {
@@ -717,14 +718,14 @@ export default function (pi: ExtensionAPI) {
 			// Background/monitor intentionally remain independently sandboxed under
 			// --no-sandbox. Publish their usable host-tmpfs temp disposition rather
 			// than treating the flag as permission to inherit an old disk path.
-			publishReadySpawnSessionState(ctx.cwd, sandboxPolicy);
+			publishReadySpawnSessionState(ctx.cwd, sessionAgentDir, sandboxPolicy);
 			publishCapability();
 			ctx.ui.notify("Sandbox disabled via --no-sandbox", "warning");
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", "🔒 Sandbox: disabled via --no-sandbox"));
 			return;
 		}
 
-		const { config, parseErrors, globWarnings, missingDenyWarnings, legacyFieldWarnings, additiveWarnings, failClosedReasons } = loadPiConfig(ctx.cwd);
+		const { config, parseErrors, globWarnings, missingDenyWarnings, legacyFieldWarnings, additiveWarnings, failClosedReasons } = loadConfig(ctx.cwd, { agentDir: sessionAgentDir });
 		envScrubConfig = config.envScrub ?? null;
 		backgroundTasksIntegrationDecisionBase = { config, parseErrors, failClosedReasons, env: process.env };
 
@@ -737,7 +738,7 @@ export default function (pi: ExtensionAPI) {
 			sandboxPolicy = createFailClosedPolicy(ctx.cwd);
 			activePolicy = sandboxPolicy;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-			publishInactiveSpawnSessionState("fail-closed");
+			publishInactiveSpawnSessionState("fail-closed", sessionAgentDir);
 			const msg = `Sandbox config parse error(s):\n${parseErrors.join("\n")}\nBash + file tools are fail-closed until fixed.`;
 			ctx.ui.notify(msg, "error");
 			publishCapability();
@@ -756,7 +757,7 @@ export default function (pi: ExtensionAPI) {
 			sandboxPolicy = createPermissivePolicy(ctx.cwd);
 			activePolicy = sandboxPolicy;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-			publishInactiveSpawnSessionState("disabled");
+			publishInactiveSpawnSessionState("disabled", sessionAgentDir);
 			publishCapability();
 			ctx.ui.notify("Sandbox disabled via config", "info");
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", "🔒 Sandbox: disabled via config"));
@@ -785,7 +786,7 @@ export default function (pi: ExtensionAPI) {
 			sandboxPolicy = createFailClosedPolicy(ctx.cwd);
 			activePolicy = sandboxPolicy;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-			publishInactiveSpawnSessionState("fail-closed");
+			publishInactiveSpawnSessionState("fail-closed", sessionAgentDir);
 			ctx.ui.notify(`Sandbox fail-closed: ${e instanceof Error ? e.message : e}`, "error");
 			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (hardlink alias)"));
@@ -848,7 +849,7 @@ export default function (pi: ExtensionAPI) {
 				lastFailClosedReason = bwrapPinError;
 				backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 				backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-				publishInactiveSpawnSessionState("fail-closed");
+				publishInactiveSpawnSessionState("fail-closed", sessionAgentDir);
 				ctx.ui.notify(bwrapPinError, "error");
 				publishCapability();
 				ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (bwrap missing) — file tools still hardened"));
@@ -875,7 +876,7 @@ export default function (pi: ExtensionAPI) {
 				bwrapAvailable: false,
 			};
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-			publishInactiveSpawnSessionState("unsupported-platform");
+			publishInactiveSpawnSessionState("unsupported-platform", sessionAgentDir);
 			ctx.ui.notify(platformState.message, "info");
 			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("warning", platformState.status));
@@ -886,7 +887,7 @@ export default function (pi: ExtensionAPI) {
 			lastFailClosedReason = platformState.message;
 			backgroundTasksIntegrationDecisionBase = { config, failClosedReasons, env: process.env };
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-			publishInactiveSpawnSessionState("fail-closed");
+			publishInactiveSpawnSessionState("fail-closed", sessionAgentDir);
 			ctx.ui.notify(platformState.message, "error");
 			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", platformState.status));
@@ -917,7 +918,7 @@ export default function (pi: ExtensionAPI) {
 			failClosed = true;
 			lastFailClosedReason = init.reason;
 			backgroundTasksIntegrationState = refreshBackgroundTasksIntegrationState();
-			publishInactiveSpawnSessionState("fail-closed");
+			publishInactiveSpawnSessionState("fail-closed", sessionAgentDir);
 			ctx.ui.notify(lastFailClosedReason, "error");
 			publishCapability();
 			ctx.ui.setStatus("sandbox", ctx.ui.theme.fg("error", "🔒 Sandbox: FAIL-CLOSED (project temp dir)"));
@@ -940,7 +941,7 @@ export default function (pi: ExtensionAPI) {
 			tmpBackend,
 		};
 		activePolicy = sandboxPolicy;
-		publishReadySpawnSessionState(ctx.cwd, sandboxPolicy);
+		publishReadySpawnSessionState(ctx.cwd, sessionAgentDir, sandboxPolicy);
 		publishCapability();
 
 		const networkCount = config.network?.allowedDomains?.length ?? 0;
@@ -964,7 +965,7 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_shutdown", async () => {
 		// Invalidate before clearing the live policy so independently loaded
 		// helpers cannot reuse a prior session's ready snapshot.
-		publishInactiveSpawnSessionState("shutdown");
+		publishInactiveSpawnSessionState("shutdown", activeSessionAgentDir ?? canonicalSpawnAgentDir(getAgentDir()));
 		// First-party bwrap runs per command and leaves no shared runtime state to reset.
 		// The project temp dir is per-project (cwd-keyed) and shared across concurrent
 		// sessions in the same project, so it is NOT removed on shutdown — it persists
@@ -978,6 +979,7 @@ export default function (pi: ExtensionAPI) {
 		lastFailClosedReason = null;
 		sandboxPolicy = null;
 		activePolicy = null;
+		activeSessionAgentDir = null;
 		envScrubConfig = null;
 		pinnedBwrapPath = null;
 		bwrapPinError = null;

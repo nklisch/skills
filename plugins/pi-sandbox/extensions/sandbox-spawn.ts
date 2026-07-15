@@ -8,7 +8,7 @@ import {
 	resolveTrustedBwrap,
 	type NetworkMode,
 } from "./sandbox-bwrap";
-import { loadConfig, readSandboxSpawnSessionState } from "./sandbox-config";
+import { loadConfig, readSandboxSpawnSessionState, type SandboxSpawnSessionStateV1 } from "./sandbox-config";
 import { scrubEnvironment, type EnvScrubConfig } from "./sandbox-env";
 import type { BackgroundTasksSandboxIntegration } from "./sandbox-config";
 
@@ -118,6 +118,7 @@ export interface SandboxSpawnOptions {
 	/** Override the tmpBackend (for tests). Production callers omit both temp
 	 *  fields and read the current cross-loader session snapshot per call. */
 	tmpBackend?: "session-disk" | "host-tmpfs";
+	/** Isolated test/diagnostic config-root override. Live calls use the session snapshot and reject mismatches. */
 	agentDir?: string;
 	platform?: NodeJS.Platform;
 	/** Test/diagnostic override for platform readiness; production callers should omit this. */
@@ -167,13 +168,49 @@ type ResolvedSpawnTempState =
 	}
 	| { ok: false; reason: string };
 
+type ResolvedSpawnSession =
+	| { ok: true; agentDir: string; snapshot: SandboxSpawnSessionStateV1 | null }
+	| { ok: false; reason: string };
+
 function canonicalConfigCwd(cwd: string): string {
 	const absolute = resolve(cwd);
 	return canonicalizeExistingPath(absolute) ?? absolute;
 }
 
+function canonicalAgentDir(agentDir: string): string | null {
+	if (!isAbsolute(agentDir)) return null;
+	const absolute = resolve(agentDir);
+	return canonicalizeExistingPath(absolute) ?? absolute;
+}
+
+/**
+ * Select the config root from the live session contract before reading config.
+ * Explicit agentDir is retained only as an isolated test/diagnostic override;
+ * it must agree with any published live state and can never redirect a live
+ * production call to a different policy root.
+ */
+function resolveSpawnSession(opts: SandboxSpawnOptions): ResolvedSpawnSession {
+	const snapshot = readSandboxSpawnSessionState();
+	if (snapshot.ok) {
+		const requestedAgentDir = opts.agentDir === undefined ? undefined : canonicalAgentDir(opts.agentDir);
+		if (opts.agentDir !== undefined && (requestedAgentDir === null || requestedAgentDir !== snapshot.value.agentDir)) {
+			return { ok: false, reason: "sandbox spawn session state conflicts with requested agent dir" };
+		}
+		return { ok: true, agentDir: snapshot.value.agentDir, snapshot: snapshot.value };
+	}
+	// A malformed published state is never bypassed by test overrides. Only an
+	// absent state permits an explicit isolated config-root override.
+	if (snapshot.reason !== "session state is absent") {
+		return { ok: false, reason: "sandbox spawn session state is unavailable" };
+	}
+	if (opts.agentDir === undefined) return { ok: false, reason: "sandbox spawn session state is unavailable" };
+	const agentDir = canonicalAgentDir(opts.agentDir);
+	if (agentDir === null) return { ok: false, reason: "sandbox spawn session state has an invalid agent dir override" };
+	return { ok: true, agentDir, snapshot: null };
+}
+
 /** Resolve trusted temp state without retaining module-local lifecycle references. */
-function resolveSpawnTempState(opts: SandboxSpawnOptions, configCwd: string): ResolvedSpawnTempState {
+function resolveSpawnTempState(opts: SandboxSpawnOptions, configCwd: string, snapshot: SandboxSpawnSessionStateV1 | null): ResolvedSpawnTempState {
 	// Complete explicit test/diagnostic overrides are authoritative and permit
 	// isolated builder tests before a live session exists.
 	if (opts.tmpBackend === "host-tmpfs") {
@@ -183,16 +220,15 @@ function resolveSpawnTempState(opts: SandboxSpawnOptions, configCwd: string): Re
 		return { ok: true, tmpBackend: "session-disk", projectTmpDir: opts.projectTmpDir };
 	}
 
-	const snapshot = readSandboxSpawnSessionState();
-	if (!snapshot.ok || snapshot.value.state !== "ready") {
+	if (snapshot === null || snapshot.state !== "ready") {
 		return { ok: false, reason: "sandbox spawn session state is unavailable" };
 	}
-	if (snapshot.value.configCwd !== canonicalConfigCwd(configCwd)) {
+	if (snapshot.configCwd !== canonicalConfigCwd(configCwd)) {
 		return { ok: false, reason: "sandbox spawn session state belongs to a different project" };
 	}
 
-	const tmpBackend = opts.tmpBackend ?? snapshot.value.tmpBackend;
-	const projectTmpDir = opts.projectTmpDir === undefined ? snapshot.value.projectTmpDir : opts.projectTmpDir;
+	const tmpBackend = opts.tmpBackend ?? snapshot.tmpBackend;
+	const projectTmpDir = opts.projectTmpDir === undefined ? snapshot.projectTmpDir : opts.projectTmpDir;
 	if (tmpBackend === "session-disk" && typeof projectTmpDir === "string" && isAbsolute(projectTmpDir)) {
 		return { ok: true, tmpBackend, projectTmpDir };
 	}
@@ -215,8 +251,22 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 	const trustedEnv: NodeJS.ProcessEnv = opts.baseEnv ?? process.env;
 	const normalEnv: NodeJS.ProcessEnv = { ...trustedEnv, ...(opts.envAdd ?? {}) };
 	const configCwd = opts.configCwd ?? process.cwd();
-	const loaded = loadConfig(configCwd, { agentDir: opts.agentDir });
+	const session = resolveSpawnSession(opts);
 	const env = normalEnv;
+	if (!session.ok) {
+		return {
+			state: "fail-closed",
+			integration: "blocked",
+			reason: "session-state-unavailable",
+			executable: null,
+			args: [],
+			cwd: opts.cwd,
+			env,
+			message: `Sandbox refused to prepare background command: ${session.reason}. Start or reload the sandbox session before retrying.`,
+			errors: [session.reason],
+		};
+	}
+	const loaded = loadConfig(configCwd, { agentDir: session.agentDir });
 
 	if (loaded.parseErrors.length > 0) {
 		return {
@@ -329,7 +379,7 @@ export function buildSandboxedSpawnArgs(opts: SandboxSpawnOptions): SandboxedSpa
 	}
 
 	const bwrapExecutable = bwrapResolution.path;
-	const tempState = resolveSpawnTempState(opts, configCwd);
+	const tempState = resolveSpawnTempState(opts, configCwd, session.snapshot);
 	if (!tempState.ok) {
 		return {
 			state: "fail-closed",

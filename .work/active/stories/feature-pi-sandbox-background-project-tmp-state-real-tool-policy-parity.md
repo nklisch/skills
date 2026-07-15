@@ -1,7 +1,7 @@
 ---
 id: feature-pi-sandbox-background-project-tmp-state-real-tool-policy-parity
 kind: story
-stage: implementing
+stage: review
 tags: [bug, security, tests, sandbox, background-tasks]
 parent: feature-pi-sandbox-background-project-tmp-state
 depends_on: []
@@ -46,14 +46,43 @@ module-local accessors.
 
 ## Acceptance criteria
 
-- [ ] Real background/monitor calls load the same global sandbox config root as
+- [x] Real background/monitor calls load the same global sandbox config root as
   the live extension, including a non-default Pi agent directory.
-- [ ] A custom-agent-dir stricter policy cannot degrade to the default config
+- [x] A custom-agent-dir stricter policy cannot degrade to the default config
   through the background/monitor path.
-- [ ] Conflicting/malformed agent-dir state fails closed.
-- [ ] Real registered tools use the live session-disk `TMPDIR` while ready.
-- [ ] After shutdown or failed replacement, real tools return blocked, create
+- [x] Conflicting/malformed agent-dir state fails closed.
+- [x] Real registered tools use the live session-disk `TMPDIR` while ready.
+- [x] After shutdown or failed replacement, real tools return blocked, create
   no job, emit no wake, and execute no marker command.
-- [ ] The cached builder remains stateless across replacement.
-- [ ] Getter comments describe diagnostics/tests, not the removed transport.
-- [ ] Both plugin suites and Pi package metadata checks pass.
+- [x] The cached builder remains stateless across replacement.
+- [x] Getter comments describe diagnostics/tests, not the removed transport.
+- [x] Both plugin suites and Pi package metadata checks pass.
+
+## Implementation notes
+
+- Extended the frozen v1 spawn-session state with the canonical live Pi
+  `agentDir` on both ready and inactive lifecycle snapshots. The live extension
+  captures it once from authoritative `getAgentDir()`, uses that same canonical
+  path to load its global config, and publishes it through every transition.
+- The stateless helper now reads the current snapshot before config loading:
+  production calls use its trusted `agentDir`; an explicit diagnostic/test
+  override is permitted only with no published state or when it canonically
+  matches. Malformed or conflicting state fails closed without reading another
+  config root. Complete existing temp overrides remain isolated-test capable.
+- Added cache-busted live-extension coverage that drives the actual registered
+  `background` and `monitor` tools through the real cached bridge/helper with
+  no temp or agent-dir tool-call overrides. A custom-agent-dir `denyRead`
+  policy, child `TMPDIR`, shutdown, and malformed replacement all prove the
+  tool path cannot fall back to the default agent directory or register/run a
+  rejected job.
+- Updated obsolete getter comments: they now identify diagnostics/tests rather
+  than the removed helper transport.
+
+## Verification
+
+- `bun test plugins/pi-sandbox/extensions` — 265 passed, 1 skipped.
+  The existing block-mode host-Unix-socket case remains honestly skipped because
+  this environment cannot provide a writable `/tmp` fixture.
+- `bun test plugins/background-tasks/extensions` — 81 passed.
+- `npm run check:pi-packages` — 123 passed, 0 failed.
+- `git diff --check` — passed.
