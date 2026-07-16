@@ -46,10 +46,11 @@ Each supported plugin ships channel metadata, kept in lockstep:
 - `plugins/<name>/.claude-plugin/plugin.json` — for Claude Code (`/plugin install`).
 - `plugins/<name>/.codex-plugin/plugin.json` — for OpenAI Codex CLI (`codex plugin marketplace add`).
 - `plugins/<name>/package.json` — for Pi packages (`pi install` from npm, git, or local paths). The `pi` manifest points at the same shared `skills/` directory and any Pi-native extensions, prompt templates, or themes.
+- `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json` — separate native Claude and Codex catalogs with the same ordered plugin identities and semantically equivalent sources.
 
 **Pi-only plugins.** A plugin whose capability is pi-runtime-only — with no meaningful Claude/Codex surface — ships a `package.json` and skips the `.claude-plugin/` and `.codex-plugin/` manifests entirely, and is omitted from `.claude-plugin/marketplace.json`. `background-tasks` is the current example: its tools (job registry, wake channel, TUI panel) exist only inside the pi runtime, so a Claude/Codex install would carry a skill describing tools that don't work there. By contrast `zai-research` stays three-channel because its value is an **MCP + skill combo** — the underlying Z.ai MCP servers (`web_search_prime`, `webReader`, zread) are cross-harness servers that Claude/Codex can drive via native MCP, so the portable skill plus `references/servers.md` are genuinely useful there.
 
-The root `.claude-plugin/marketplace.json` uses the legacy string-path shape for local plugins (`"source": "./plugins/<name>"`) plus `policy` + `category`. Claude Code does NOT support the object shape `{ "source": "local", "path": "..." }` — only `github`, `url`, `git-subdir`, and `npm` are valid object-form source types. Codex reads this file as an alternative marketplace location, so both ecosystems install from the same git tree. Pi distribution is package-native: each plugin's `package.json` is the install/package root for npm, git, or local-path installs. External marketplace companions such as `peeragent` are not pulled into the root Pi package; document their own `pi install git:...@<tag>` commands instead.
+The root `.claude-plugin/marketplace.json` uses the legacy string-path shape for local plugins (`"source": "./plugins/<name>"`) plus `policy` + `category`. Claude Code does NOT support the object shape `{ "source": "local", "path": "..." }` — only `github`, `url`, `git-subdir`, and `npm` are valid object-form source types. The native Codex catalog at `.agents/plugins/marketplace.json` uses explicit `{ "source": "local", "path": "..." }` and `git-subdir` source objects plus Codex category casing and policy fields. Keep both catalogs in the same plugin order with semantically equivalent sources; neither is generated from or substituted for the other at runtime. Pi distribution is package-native: each plugin's `package.json` is the install/package root for npm, git, or local-path installs. External marketplace companions such as `peeragent` are not pulled into the root Pi package; document their own `pi install git:...@<tag>` commands instead.
 
 **Shared surface (works in all three):** SKILL.md files (open Agent Skills standard at agentskills.io) and each plugin's `skills/` directory.
 
@@ -137,9 +138,10 @@ When creating a new plugin (a new directory under `plugins/`), register it in **
 1. **`plugins/<name>/.claude-plugin/plugin.json`** — Claude Code plugin manifest.
 2. **`plugins/<name>/.codex-plugin/plugin.json`** — Codex plugin manifest. Same `version` as the Claude manifest. Must declare `"skills": "./skills/"` explicitly (Codex does not auto-discover) and an `interface` block for marketplace presentation.
 3. **`plugins/<name>/package.json`** — Pi package metadata. Must include `keywords: ["pi-package"]` and a `pi` manifest that points at `./skills/` plus any Pi-native package resources.
-4. **`.claude-plugin/marketplace.json`** — so Claude Code and Codex marketplace users can install the plugin. Add an entry with `name`, `"source": "./plugins/<name>"` (string form — the object form `{ source: "local", ... }` is NOT supported by Claude Code), `description`, `category`, and `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }`.
+4. **`.claude-plugin/marketplace.json`** — add the Claude entry with `name`, `"source": "./plugins/<name>"` (string form — the object form `{ source: "local", ... }` is NOT supported by Claude Code), `description`, category, and policy.
+5. **`.agents/plugins/marketplace.json`** — add the matching Codex entry with an explicit local source object, Codex category casing, and the same policy.
 
-Verify all channel metadata references the new plugin before considering the plugin shippable.
+Verify both catalogs preserve the same ordered plugin identities and semantically equivalent sources before considering the plugin shippable.
 
 <!-- agile-workflow:start -->
 ## Agile-Workflow Substrate
