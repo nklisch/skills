@@ -83,6 +83,12 @@ the in-skill prose names; this is what they mean.
   highest efforts.
 - Discover current host availability before selection. Luna, Terra, Sol, and
   Codex share OpenAI lineage, so switching among them is not cross-model evidence.
+- **OpenAI review precedence:** after satisfying any different-class requirement,
+  prefer an available GPT-5.6 model over GPT-5.5. Use Sol for deep review when
+  available; otherwise choose the strongest suitable available 5.6 tier. Use
+  GPT-5.5 only when no GPT-5.6 review-capable model is available or callable in
+  the current harness—not merely because 5.5 is a legacy default or alias.
+  Record the availability fallback in the review notes.
 
 **Gemini (Google)** — `--agent gemini`
 - Model: `gemini-3.5` (2M context, Deep Think mode).
@@ -106,7 +112,7 @@ the in-skill prose names; this is what they mean.
 |---|---|---|
 | Primary implementation worker | write fidelity, agentic stamina | Luna high by default and xhigh for demanding work; medium only for very simple bounded tasks. Only when Luna is unavailable, fall back by delivery needs to Sonnet 5, Sol, Opus 4.8, Fable 5, or GLM-5.2 and record the fallback |
 | Scanner/scout (deep read-only fan-out) | domain inspection, evidence, scoped artifacts | Haiku / Luna / Sonnet 5 for volume; Sol / Opus 4.8 / Fable 5 / GLM xhigh for subtle gates |
-| Deep reviewer | reasoning depth, fresh context | GPT-5.6 Sol / Claude Opus 4.8 or Fable 5 / GLM-5.2 xhigh, with a second pass for distributed invariants |
+| Deep reviewer | reasoning depth, fresh context | GPT-5.6 Sol (then another suitable 5.6 tier; GPT-5.5 only if no 5.6 is available) / Claude Opus 4.8 or Fable 5 / GLM-5.2 xhigh, with a second pass for distributed invariants |
 | Advisory peer (Phase 1) | blind-spot diversity, augmentation | a **different class** than the host |
 | Adversarial peer (Phase 2) | blind-spot diversity, attack posture | a **different class** than host + than Phase 1 |
 
