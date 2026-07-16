@@ -27,7 +27,10 @@ host-isolation work, so the inner membrane's job is only to keep credentials
 held by Pi's trusted control plane unavailable to model-run commands and file
 tools running as the same Unix user. Trusted Pi extensions/packages still run
 with the user's normal permissions; direct RPC/API bash is not mediated by the
-extension; non-Linux bash is not OS-sandboxed; and a concurrent hardlink +
+extension; **macOS is a supported graceful-degrade platform (no OS bash sandbox,
+in-process policy active) but Windows is out of scope for 0.1.0** because its
+`\`-separated paths break the glob matcher's segment-local `*`/`?` semantics
+(see Release scope); and a concurrent hardlink +
 deny-path race remains for in-process file tools. Those limits are release-scope
 gaps, not exceptions to the model.
 
@@ -241,8 +244,8 @@ Pi-specific protections that this package already has:
    rather than a command string.
 
 srt's proxy `filter` mode and macOS seatbelt backend are not required for this
-narrow Linux-first boundary. `filter` remains deferred and tracked; non-Linux
-is explicitly a graceful degrade. srt is a 0.0.x research preview and shares a
+narrow Linux-first boundary. `filter` remains deferred and tracked; macOS is
+explicitly a graceful degrade (Windows is out of scope for 0.1.0). srt is a 0.0.x research preview and shares a
 relevant limitation: its `--proc /proc` path fails under default container
 seccomp (Issue #214), as pi-sandbox's equivalent bwrap use can too.
 
@@ -303,8 +306,9 @@ This is the single source of truth for the 0.1.0 package promise.
   extension-registered tools; the optional inspector scans tool input.
 - Boundary-establishment failures fail closed; `filter` is recognized but
   fails closed rather than becoming open networking.
-- On non-Linux, bash gracefully degrades to unsandboxed execution while
-  in-process file, tool-egress, and inspector policy remains active.
+- On macOS, bash gracefully degrades to unsandboxed execution while
+  in-process file, tool-egress, and inspector policy remains active. Windows is
+  out of scope for 0.1.0 (see Known 0.1.0 gaps).
 - On Linux, `background`/`monitor` use the same bwrap helper and minimal
   environment when the background-tasks integration is active; that spawn
   contract is fail closed when it cannot establish the boundary.
@@ -343,8 +347,19 @@ This is the single source of truth for the 0.1.0 package promise.
   the helper's file or socket path as a literal, existing global `denyRead`
   entry (globs are not bwrap-enforced; nonexistent paths are skipped), or accept
   this residual.
-- On non-Linux, bash is unsandboxed; the outer boundary and in-process policy
-  are the remaining protections.
+- On macOS, bash is unsandboxed; the outer boundary and in-process policy
+  are the remaining protections. Windows is out of scope for 0.1.0: the
+  in-process file-tool glob matcher (`globCharsToRegex` in `sandbox-bwrap.ts`,
+  consumed by `matchesDenyList`/`isWithinAllowWrite` in `sandbox-file-policy.ts`)
+  compiles `*`→`[^/]*` and `?`→`[^/]`, treating `/` as the only path separator.
+  On Windows, `normalizeConfiguredPath` produces `\`-separated paths via Node's
+  `resolve()`, so `*` is no longer segment-local and `allowWrite`/`denyRead`/`denyWrite`
+  globs can match across directory boundaries and mis-enforce sandbox policy.
+  Because the package would otherwise claim the in-process policy "remains active"
+  on Windows, 0.1.0 removes Windows from its release claim rather than ship a
+  half-validated separator handling. The fix is separator-aware matching or
+  normalizing both sides to `/` first; tracked as
+  `idea-pi-sandbox-windows-path-separator` post-0.1.0.
 - `filter` is deferred and fail closed.
 - `--proc /proc` can fail under default container seccomp; the operator's
   outer boundary/environment must resolve that limitation.
@@ -356,8 +371,10 @@ mode (`idea-pi-sandbox-filter-tcp-proxy`); an operator-registered external
 Git-directory allowlist for trusted opt-in workflows; the inode-identity
 redesign (`story-pi-sandbox-inode-identity-redesign`) that closes the concurrent
 hardlink + deny-path race; shared output redaction for background/monitor/jobs;
-`--no-sandbox` propagation; a Pi-core RPC/API bash interception hook; and a
-separate forge-operations plugin using the capability contract. srt adoption is reconsidered only under the
+`--no-sandbox` propagation; a Pi-core RPC/API bash interception hook; a
+separate forge-operations plugin using the capability contract; and Windows
+support via a separator-aware (or pre-normalized) glob matcher
+(`idea-pi-sandbox-windows-path-separator`). srt adoption is reconsidered only under the
 revisit triggers above.
 
 Version 1.0.0 is a maturity claim, not a feature target: it means the boundary

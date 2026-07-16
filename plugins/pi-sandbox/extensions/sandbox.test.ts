@@ -279,7 +279,15 @@ describe("extension init validation", () => {
 	});
 
 	test("unsupported platforms degrade instead of failing closed", () => {
-		const validation = validateBwrapInit({ networkMode: "open", platform: "win32", bwrapAvailable: false });
+		// macOS (darwin) is a supported graceful-degrade platform: no OS bash
+		// sandbox, but the in-process file/tool/egress/inspector policy remains
+		// active and correctly enforced. Windows (win32) is OUT OF SCOPE for
+		// 0.1.0: its `\`-separated paths break the glob matcher's segment-local
+		// `*`/`?` semantics, so the package makes no enforcement claim there even
+		// though the runtime still degrades (bash unsandboxed). See
+		// .work/backlog/idea-pi-sandbox-windows-path-separator.md and
+		// docs/THREAT_MODEL.md "Known 0.1.0 gaps".
+		const validation = validateBwrapInit({ networkMode: "open", platform: "darwin", bwrapAvailable: false });
 
 		expect(validation.ok).toBe(false);
 		if (!validation.ok) {
