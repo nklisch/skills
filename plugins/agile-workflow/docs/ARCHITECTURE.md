@@ -715,7 +715,10 @@ Concrete model guidance lives in `skills/principles/references/models.md` and is
 resolved against current availability when selection matters. GPT-5.6 Luna is
 the cost-efficient routine implementation and fan-out workhorse; Sol is the
 quality-first general coding choice and remains preferred for design, review,
-and complex code; Terra is a situational middle pick. Sonnet 5 is the capable
+and complex code; Terra is a situational middle pick. For OpenAI review
+selection, any available GPT-5.6 tier takes precedence over GPT-5.5; use 5.5
+only when no review-capable 5.6 model is available in the current harness.
+Sonnet 5 is the capable
 high-throughput Claude worker, Opus 4.8 the stable premium complex-coding and
 review default, and Fable 5 the high-cost escalation for the hardest ambiguous,
 long-running, orchestration, design, and review work. Model-specific prompting

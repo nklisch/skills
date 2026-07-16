@@ -40,6 +40,12 @@ or model disagreement is evidence to investigate, not a vote.
 
 For the host→peer pairing table and concrete peer mechanism flags, load
 [../../principles/references/models.md](../../principles/references/models.md).
+When an OpenAI reviewer is eligible under the different-class rule or is being
+used as the same-harness fallback, prefer GPT-5.6 over GPT-5.5. Use Sol for deep
+review when available, then another suitable 5.6 tier; use GPT-5.5 only when no
+GPT-5.6 review-capable model is available in the current harness, and record that
+fallback.
+
 A failed required fresh-context path blocks feature/epic completion unless a
 permitted fallback succeeds; design-time advisory failure remains non-blocking.
 

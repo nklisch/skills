@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Review model selection
+
+- **GPT-5.6-first OpenAI review routing** — review selection now prefers an
+  available GPT-5.6 model (Sol first for deep review) and uses GPT-5.5 only when
+  the current harness has no review-capable 5.6 model available.
+
 ### Luna-first implementation routing
 
 - **Luna is the default implementation worker** — after explicit caller and
