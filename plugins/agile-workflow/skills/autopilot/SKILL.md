@@ -279,18 +279,19 @@ notes when needed. There is no fixed pass limit for convergence weights; an
 unfixable material current-cycle blocker is a genuine blocker. Never escalate `standard`
 because a target is an epic, uses deep lenses, or the first pass found blockers.
 
-### Phase 6: Refactor Cadence (`--all` Only)
+### Phase 6: Adaptive Simplification
 
-Every 5 items advanced to `done` in `--all` mode, delegate a conservative
-discovery pass to `refactor-design` over files touched by those items:
+Do not schedule a dedicated refactor-discovery pass from item counts. Normal
+feature design and implementation already inspect touched code for safe,
+cohesive simplification; that work adapts to the amount and shape of recent
+feature change. Child stories are checkpoints inside that work, not cadence
+counters.
 
-1. Collect touched paths from the commits associated with those item ids.
-2. Invoke `refactor-design <path...>` in discovery mode.
-3. Let `refactor-design` classify and emit any follow-up items.
-4. Rebuild the queue; newly emitted items are picked up naturally.
-
-Never invoke `bold-refactor` from autopilot. It is too aggressive for autonomous
-queue driving.
+During ordinary autopilot, keep refactoring inside those feature workflows. Run
+`refactor-design` in discovery mode only when the user explicitly asks the
+current run to scan for refactor opportunities. Existing `[refactor]` items still
+flow through their normal route. Never invoke `bold-refactor` unless the user
+explicitly requests it. Explicit user instructions override every default here.
 
 ### Phase 7: Stop Rules
 
@@ -394,7 +395,7 @@ Narrate briefly as items advance. Final summary:
 - Review closure by item: single-pass fix-and-finish or multi-pass convergence,
   including recurring findings when applicable
 - Genuinely blocked item ids and blocker reasons
-- Refactor cadences run (`--all` only)
+- Any user-requested dedicated refactor scans run
 - Implement-orchestrator bundle summary, if reported
 - Effective worker capability and selection rationale
 - Effective review weight and source

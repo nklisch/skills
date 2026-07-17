@@ -292,6 +292,15 @@ reviewable; park broader work. If a candidate reduces behavior or guarantees,
 record it as a design decision for user confirmation rather than assuming
 removal.
 
+Adapt the breadth of this pass to accumulated feature change. Several
+substantial related features in the same area—roughly three is a useful prompt
+to look one level wider—may justify inspecting neighboring abstractions or a
+whole subsystem. This is a rule of thumb, not a trigger or quota: evidence of
+complexity can justify the look sooner or later, and child stories do not count
+as separate feature work. Keep the look inside normal feature design; do not
+launch a dedicated refactor-discovery run unless the user explicitly asks for
+one. Explicit user instructions override every default here.
+
 ### Phase 5.5: Pre-mortem
 
 Before finalizing, attack the design:

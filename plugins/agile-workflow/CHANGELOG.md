@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Adaptive feature refactoring
+
+- **Refactoring stays inside normal feature work** — feature design and
+  implementation now widen simplification checks according to accumulated
+  substantial feature change rather than completed-item counts. Rough reminders
+  such as three related features or five major feature-sized items are prompts,
+  not thresholds; child stories are not cadence units.
+- **No automatic autopilot refactor cadence** — ordinary autopilot no longer
+  launches `refactor-design` discovery every five items. Dedicated discovery and
+  `bold-refactor` remain explicitly user-requested, while existing `[refactor]`
+  items continue through normal routing.
+
 ### Review model selection
 
 - **GPT-5.6-first OpenAI review routing** — review selection now prefers an

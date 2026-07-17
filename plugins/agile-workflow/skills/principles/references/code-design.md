@@ -146,11 +146,19 @@ Checklist:
 
 ## 7. Leave It Simpler
 
-Treat elimination as part of feature work, not a separate activity reserved for
-refactors. During exploration and design, identify code, tests, checks,
-abstractions, compatibility paths, and configuration that the proposed feature
-can make unnecessary. During implementation, perform safe cohesive cleanup in
-the touched area and create explicit cleanup/refactor stories for larger work.
+Treat elimination as an adaptive part of feature work, not a separate activity
+reserved for periodic refactor runs. During exploration and design, identify
+code, tests, checks, abstractions, compatibility paths, and configuration that
+the proposed feature can make unnecessary. During implementation, perform safe
+cohesive cleanup in the touched area and create explicit cleanup/refactor
+stories for larger work.
+
+Use accumulated substantial feature change as a reason to widen the scan. About
+three related features can be a useful reminder to inspect neighboring
+abstractions; the older five-item heuristic assumed major feature-sized work,
+not child stories. Neither number is a threshold: actual complexity and coupling
+decide the default depth, and explicit user instructions may override it. A
+dedicated refactor discovery run happens only when the user asks for one.
 
 Question whole systems as well as local fragments. Removing behavior,
 guarantees, validation, determinism, compatibility, or safety is a product

@@ -81,7 +81,7 @@ CAPSULES = {
             "Proportional rigor: validate real boundaries; add invariants, edge handling, and determinism only when context warrants them.",
             "Code economy: prefer the shortest clear solution and fewer concepts over speculative generality.",
             "Useful tests: protect important interfaces, complex units, and bug regressions—not every line or surface.",
-            "Leave it simpler: when touching an area, eliminate unnecessary code, tests, checks, abstractions, and compatibility paths; ask before reducing guarantees.",
+            "Leave it simpler: adapt simplification to accumulated feature change inside normal design and implementation; item counts never trigger standalone refactor runs; ask before reducing guarantees.",
         ],
     },
     "dispatch_economy": {
