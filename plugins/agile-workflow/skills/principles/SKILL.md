@@ -68,12 +68,21 @@ or otherwise low-value tests when their upkeep exceeds the confidence they add.
 
 ## 7. Leave It Simpler
 
-Exploration, design, and implementation include an elimination pass. In the
-area being touched, look for code, tests, checks, abstractions, compatibility
-paths, and complexity that the feature can make unnecessary. Fold safe,
-cohesive cleanup into the work or create explicit cleanup/refactor stories;
-park broader opportunities. Question whole systems when warranted, but ask the
-user before removing behavior, guarantees, validation, compatibility, or safety.
+Exploration, design, and implementation include an adaptive elimination pass.
+In the area being touched, look for code, tests, checks, abstractions,
+compatibility paths, and complexity that the feature can make unnecessary. Fold
+safe, cohesive cleanup into the work or create explicit cleanup/refactor
+stories; park broader opportunities.
+
+Accumulated substantial feature work is a signal to broaden the look, not a
+schedule. Rough reminders such as three related features or five major
+feature-sized items may prompt inspection of neighboring abstractions, but they
+are not thresholds, and child stories do not count as separate refactor cadence.
+Keep proactive refactoring inside normal feature design and implementation;
+dedicated discovery runs require explicit user direction. Question whole
+systems when warranted, but ask the user before removing behavior, guarantees,
+validation, compatibility, or safety. Explicit user instructions override every
+default here.
 
 ---
 
@@ -462,51 +471,9 @@ is user alignment and therefore skips advisory review.
 
 ---
 
-# Part V — Skill invocation patterns
+# Part V — Skill Invocation Patterns
 
-Three arg shapes recur across the plugin. New skills should pick the one that
-fits their role rather than inventing a fresh shape.
-
-## Orchestration verbs (drain a queue)
-
-`scope`, `implement-orchestrator`, `autopilot`, `review`
-
-| Arg | Behavior |
-|---|---|
-| `<id>` or `<id-list>` | Operate on those items |
-| `--all` or no arg | Operate on the full queue (default) |
-| `<NL filter>` | Interpret free text against the queue; log the interpretation |
-
-## Discovery + emit verbs (scan code, produce items)
-
-`refactor-design`, `perf-design`, `bold-refactor`, and the gate
-family (`gate-cruft`, `gate-security`, `gate-tests`, `gate-docs`,
-`gate-patterns`)
-
-| Arg | Behavior |
-|---|---|
-| no arg / `--all` | Sweep the relevant scope; release-bound items are a gate's focus, not a hard scan boundary |
-| `<path>` | Scope to that subtree |
-| `<NL scope>` | Interpret free text against the codebase; log the interpretation |
-| `<feature-id>` (where applicable) | Per-feature design mode (refactor-design, perf-design) |
-
-These skills *emit substrate items as findings* rather than gating pass/fail.
-For release gates, follow relevant evidence into adjacent dependencies, shared
-infrastructure, or system-wide mechanisms. Bind findings to the release only
-when they are caused by, exposed by, or materially relevant to it; route merely
-ambient discoveries to unbound backlog proposals so a gate does not silently
-expand release scope.
-
-## Per-item design verbs
-
-`feature-design`, `epic-design`, `refactor-design`, `perf-design`
-
-| Arg | Behavior |
-|---|---|
-| `<id>` | Full design pass on that item (default) |
-| `--only-questions <id>` | Question-only alignment pass; captures answers under `## Design decisions`; does NOT design or advance stage |
-| `--only-questions <id-list>` | Question-only pass over each listed item |
-| `--only-questions --all` | Question-only pass over every drafting item of the matching kind/tags |
-
-`--only-questions` always requires interactive mode and refuses to run under
-autopilot.
+Three argument shapes recur across the plugin: queue orchestration, discovery
+and emit, and per-item design. Load
+[references/invocation-patterns.md](references/invocation-patterns.md) when
+defining or invoking one of these surfaces.

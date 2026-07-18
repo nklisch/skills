@@ -475,15 +475,17 @@ features keep the run alive across compaction and continuation turns. If a run
 resumes, the agent re-reads `.work/active/` and applies the same queue selection
 algorithm. There is no `--resume`, no watchdog `/loop`, and no `PROGRESS.md`.
 
-### Refactor cadence during --all mode
+### Adaptive simplification during autopilot
 
-Every N items completed (default N=5), autopilot delegates a conservative
-discovery pass to `refactor-design` over recently touched files. That skill
-classifies pure refactors vs behavior-changing work and emits the appropriate
-items. The next queue rebuild picks them up naturally.
+Refactoring is part of normal feature design and implementation, where the agent
+adapts its simplification pass to the amount and shape of recent feature work.
+Autopilot does not turn completed-item counts into dedicated refactor scans;
+child stories are design checkpoints, not cadence counters.
 
-The refactor cadence is conservative: never invokes `bold-refactor` (that's
-user-only). Only scopes incremental refactor features.
+A dedicated `refactor-design` discovery pass runs only when the user explicitly
+asks the current run for one. Existing `[refactor]` items still route normally.
+`bold-refactor` also remains explicitly user-requested. Explicit user
+instructions override every default here.
 
 ## Hook script behavior
 
@@ -537,7 +539,7 @@ Code-design capsule:
 - Single Source of Truth: define growing variant sets once; derive downstream behavior.
 - Proportional rigor: validate real boundaries; add invariants, edge handling, and determinism only when context warrants them.
 - Code economy: prefer the shortest clear solution; test useful interfaces, complex units, and bug regressions.
-- Leave it simpler: eliminate unnecessary code, tests, checks, abstractions, and compatibility paths; ask before reducing guarantees.
+- Leave it simpler: adapt simplification to accumulated feature change as part of normal design and implementation; item counts never trigger standalone refactor runs; ask before reducing guarantees.
 ...
 ```
 

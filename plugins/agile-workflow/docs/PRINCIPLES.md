@@ -290,10 +290,18 @@ line. Coverage numbers are evidence, not goals.
 
 ## 7. Leave It Simpler
 
-Exploration, design, and implementation include an elimination pass. Look for
-code, tests, checks, abstractions, configuration, and compatibility paths the
-feature can make unnecessary. Fold safe cohesive cleanup into the task or create
-explicit cleanup/refactor stories; park broader opportunities.
+Exploration, design, and implementation include an adaptive elimination pass.
+Look for code, tests, checks, abstractions, configuration, and compatibility
+paths the feature can make unnecessary. Fold safe cohesive cleanup into the task
+or create explicit cleanup/refactor stories; park broader opportunities.
+
+Accumulated substantial feature work is a reason to broaden the look, not a
+schedule. Rough reminders such as three related features or five major
+feature-sized items can prompt inspection of neighboring abstractions, but they
+are not thresholds, and child stories are not separate cadence units. Keep
+proactive refactoring inside normal feature design and implementation; run a
+dedicated refactor-discovery pass only when the user asks for one. Explicit user
+instructions override every default here.
 
 Question whole systems, not only local fragments. A validation layer, invariant
 system, test suite, compatibility mechanism, or defensive subsystem may no
