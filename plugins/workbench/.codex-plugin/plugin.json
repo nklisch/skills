@@ -1,0 +1,27 @@
+{
+  "name": "workbench",
+  "version": "0.1.0",
+  "description": "Requirements-first software workbench built around a lightweight .work/ ledger, research and interactive UI mockups, judgment-led execution, and compact release summaries.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Workbench",
+    "shortDescription": "Flexible, requirements-first software delivery",
+    "longDescription": "A lightweight .work/ ledger where natural-language requests and project conventions guide requirements, research, interactive UI walkthroughs, design, implementation, review, parking, and release summaries.",
+    "developerName": "nklisch",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Bash"
+    ],
+    "defaultPrompt": [
+      "Use Workbench to understand this request, gather unresolved requirements, and carry the requested work to an appropriate verified outcome."
+    ],
+    "websiteURL": "https://github.com/nklisch/skills"
+  }
+}

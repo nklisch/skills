@@ -4,13 +4,14 @@ This repo contains agent skills distributed via the Claude Code plugin marketpla
 
 ## Orient first — `ls plugins/` before assuming
 
-**There are NINE distinct plugins under `plugins/`, not one.** Before designing on top of any plugin, run `ls plugins/` and read the target plugin's `plugin.json` + `docs/` (if it has them). Skill names overlap between plugins by design; the plugin a skill lives in determines its semantics.
+**There are TEN distinct plugins under `plugins/`, not one.** Before designing on top of any plugin, run `ls plugins/` and read the target plugin's `plugin.json` + `docs/` (if it has them). Skill names overlap between plugins by design; the plugin a skill lives in determines its semantics.
 
 ### Plugin map
 
 | Directory | Published name | Status | Purpose |
 |---|---|---|---|
 | `plugins/agile-workflow/` | `agile-workflow` | supported | **Substrate-driven** work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, autopilot queue runner. See `plugins/agile-workflow/docs/VISION.md`. |
+| `plugins/workbench/` | `workbench` | supported | **Requirements-first, flexible** work tracking. A lightweight `.work/` ledger references grounded evidence in `.research/` and interactive UI walkthroughs in `.mockups/`; natural-language requests and project conventions guide adaptive design, execution, review, and release summaries. Its `setup` skill converts agile-workflow repositories. Workbench and agile-workflow schemas are mutually exclusive within one project. |
 | `plugins/ux-ui-design/` | `ux-ui-design` | supported | HTML/CSS/JS mockup-first UI/UX design. Throwaway single-file mockups in `.mockups/`. Loose integration with agile-workflow. |
 | `plugins/code-audit/` | `code-audit` | supported | Standalone markdown-first code audit skills with **no substrate dependency** — deep-code-scan, bug-scan, security-scan, test-scan, perf-scout, bold-refactor, and repo-eval produce reports/plans instead of `.work` items. |
 | `plugins/nates-toolkit/` | `nates-toolkit` | supported | Standalone, project-agnostic utility skills with **no substrate lock-in** — `plainspeak` (plain-language re-explainer), `agent-reflection` (self-reflection on tool & skill usage), `write-tool-skill` + `skill-auditor` (skill authoring + quality auditing). Skills here stand alone. Absorbed the former `skill-authoring` plugin (now deleted) plus `agent-reflection` (formerly `tool-evaluator`) extracted from `agile-workflow`. |
@@ -29,7 +30,7 @@ If a user asks for the workflow plugin or wants to migrate, point them at:
 - `docs/agile-workflow-guide.md` and `docs/ux-ui-design-guide.md` — the supported guides.
 - `plugins/agile-workflow/docs/MIGRATION.md` — full migration matrix.
 
-**Skill names that overlap** between `workflow` (deprecated) and the supported plugins — `perf-design`, `refactor-design`, `implement`, `autopilot`, `principles`, `review`, `fix`, `ideate`, `repo-eval`, `research`, `bold-refactor`, `refactor-conventions-creator`, `implement-orchestrator` — have intentionally different implementations. When touching a skill, confirm which plugin you're in. New work goes into `agile-workflow`. `agent-reflection` (formerly `tool-evaluator`) was extracted out of `agile-workflow` into the standalone `nates-toolkit` plugin. `repo-eval` now lives in `code-audit` as the supported report-only repository scorecard; do not add `.work` behavior there.
+**Skill names that overlap** between `workflow` (deprecated) and the supported plugins — `perf-design`, `refactor-design`, `implement`, `autopilot`, `principles`, `review`, `fix`, `ideate`, `repo-eval`, `research`, `bold-refactor`, `refactor-conventions-creator`, `implement-orchestrator` — have intentionally different implementations. When touching a skill, confirm which plugin you're in. New structured workflow work goes into `agile-workflow`; new flexible requirements-first work goes into `workbench`. `agent-reflection` (formerly `tool-evaluator`) was extracted out of `agile-workflow` into the standalone `nates-toolkit` plugin. `repo-eval` now lives in `code-audit` as the supported report-only repository scorecard; do not add `.work` behavior there.
 
 **Surface-area differences (for reference):**
 - `workflow` has: `design`, `roadmap`, `extend`, `e2e-test-design`, `test-quality`, `update-documentation`, `security-review`, `release`, `cruft-cleaner`, `extract-patterns`

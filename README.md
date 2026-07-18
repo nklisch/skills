@@ -17,8 +17,12 @@ ergonomics.
 
 ```bash
 /plugin marketplace add nklisch/skills
-/plugin install agile-workflow@nklisch-skills    # work tracking + autopilot
-/plugin install ux-ui-design@nklisch-skills      # mockup-first UI design
+
+# Choose one mutually exclusive .work/ owner:
+/plugin install agile-workflow@nklisch-skills    # structured work tracking + autopilot
+# or: /plugin install workbench@nklisch-skills   # flexible requirements-first delivery
+
+/plugin install ux-ui-design@nklisch-skills      # standalone mockup-first UI design
 /plugin install code-audit@nklisch-skills        # standalone markdown code audits
 /plugin install nates-toolkit@nklisch-skills     # standalone utility skills
 /plugin install agentic-research@nklisch-skills  # grounded research discipline
@@ -29,7 +33,11 @@ ergonomics.
 
 ```bash
 codex plugin marketplace add https://github.com/nklisch/skills
+
+# Choose one mutually exclusive .work/ owner:
 codex plugin install agile-workflow
+# or: codex plugin install workbench
+
 codex plugin install ux-ui-design
 codex plugin install code-audit
 codex plugin install nates-toolkit
@@ -40,11 +48,13 @@ codex plugin install agent-coordination
 ### Pi
 
 ```bash
-# Install all supported Pi packages from the Git repo root
+# Install the compatible default Pi package set (agile-workflow-based)
 pi install git:github.com/nklisch/skills
 
-# Or install individual published packages
+# Or install individual published packages. Choose one .work/ owner:
 pi install npm:@nklisch/pi-agile-workflow
+# or: pi install npm:@nklisch/pi-workbench
+
 pi install npm:@nklisch/pi-ux-ui-design
 pi install npm:@nklisch/pi-code-audit
 pi install npm:@nklisch/pi-nates-toolkit
@@ -59,6 +69,7 @@ pi install git:github.com/nklisch/peeragent@v0.4.1
 # Local checkout/development installs
 pi install -l .
 pi install -l ./plugins/agile-workflow
+pi install -l ./plugins/workbench
 pi install -l ./plugins/ux-ui-design
 pi install -l ./plugins/code-audit
 pi install -l ./plugins/nates-toolkit
@@ -69,9 +80,11 @@ pi install -l ./plugins/zai-research
 ```
 
 Pi packages can load executable extensions in addition to shared skills. The root
-Git install loads all supported in-tree plugins; the deprecated `workflow` plugin
-and external marketplace companions such as `peeragent` are not included. Install
-external companions from their own Pi package roots. Install from trusted sources;
+Git install loads the compatible default set built around `agile-workflow`;
+`workbench` is an alternative `.work/` owner and must be installed individually
+instead. The deprecated `workflow` plugin and external marketplace companions
+such as `peeragent` are not included. Install alternatives and companions from
+their own package roots. Install from trusted sources;
 `agile-workflow` includes a Pi-native `/aw` command for queue inspection and
 workflow handoffs.
 
@@ -80,6 +93,7 @@ workflow handoffs.
 | Plugin | What it does | Guide |
 |---|---|---|
 | **agile-workflow** | Substrate-driven work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, goal-backed autopilot queue runner. | [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md) |
+| **workbench** | Flexible requirements-first delivery. A lightweight `.work/` ledger references grounded `.research/` evidence and interactive `.mockups/` walkthroughs; natural language drives research, design, implementation, review, scans, and release summaries. | [plugins/workbench/README.md](plugins/workbench/README.md) |
 | **ux-ui-design** | HTML/CSS/JS mockup-first UI design. Throwaway single-file mockups in `.mockups/` for alignment before any production code. Loosely integrated with agile-workflow. | [docs/ux-ui-design-guide.md](docs/ux-ui-design-guide.md) |
 | **code-audit** | Standalone markdown-first code audits — deep multi-lane scans, bug/security/test scans, perf scouting, bold refactor proposals, and repo scorecards without `.work`. | [plugins/code-audit/README.md](plugins/code-audit/README.md) |
 | **nates-toolkit** | Standalone utility skills, no workflow lock-in — explain in plain language, reflect on tool & skill usage, author skills, and audit skill artifacts. | [plugins/nates-toolkit/README.md](plugins/nates-toolkit/README.md) |
@@ -95,12 +109,12 @@ workflow handoffs.
 | **peeragent** | `pi install git:github.com/nklisch/peeragent@v0.4.1` | Cross-harness peer delegation and peer review. Pi loads the `peer` and `peer-review` skills from peeragent's package and uses its bundled wrapper/binaries to call Codex, Claude Code, Gemini through Antigravity, or Z.AI GLM 5.2 through Pi. |
 
 The package release procedure is documented in
-[docs/npm-publishing.md](docs/npm-publishing.md). The two big ones —
-`agile-workflow` + `ux-ui-design` — are designed to work
-together. The killer workflow is to use `ux-ui-design` mocks during
-`agile-workflow`'s pre-autopilot `--only-questions` passes, so autopilot
-inherits both directional and visual alignment before any code lands. See
-the agile-workflow guide for the full rhythm.
+[docs/npm-publishing.md](docs/npm-publishing.md). Choose one `.work/` owner per
+project: `agile-workflow` provides a structured stage-and-gate system, while
+`workbench` provides a smaller requirements-first ledger and can migrate an
+existing agile-workflow substrate through `/workbench:setup`. The standalone
+`ux-ui-design` plugin remains available for projects that want its larger,
+specialized mockup system.
 
 > **Deprecated:** the `workflow` plugin (doc-driven, `docs/designs/`-as-artifacts)
 > is **deprecated and no longer supported.** Existing projects on it still

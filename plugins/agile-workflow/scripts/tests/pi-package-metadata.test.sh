@@ -100,6 +100,7 @@ assert_package "agent-coordination" "@nklisch/pi-agent-coordination" "no" "yes"
 assert_package "agentic-research" "@nklisch/pi-agentic-research" "no" "yes"
 assert_package "code-audit" "@nklisch/pi-code-audit" "no" "yes"
 assert_package "ux-ui-design" "@nklisch/pi-ux-ui-design" "no" "yes"
+assert_package "workbench" "@nklisch/pi-workbench" "no" "yes"
 
 # The deprecated workflow plugin remains intentionally absent from Pi packages.
 assert_true "deprecated workflow plugin has no Pi package manifest" \

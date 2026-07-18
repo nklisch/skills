@@ -1,0 +1,6 @@
+interface:
+  display_name: "Workbench Work"
+  short_description: "Carry software work from requirements to outcome"
+  default_prompt: "Use $work to understand and complete the requested software work."
+policy:
+  allow_implicit_invocation: true

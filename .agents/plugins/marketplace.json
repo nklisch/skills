@@ -57,6 +57,19 @@
       }
     },
     {
+      "name": "workbench",
+      "source": {
+        "source": "local",
+        "path": "./plugins/workbench"
+      },
+      "description": "Requirements-first software delivery with a lightweight .work/ ledger, integrated research and interactive UI walkthroughs, judgment-led execution, and compact release summaries.",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
       "name": "ux-ui-design",
       "source": {
         "source": "local",

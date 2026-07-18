@@ -34,6 +34,13 @@
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
     {
+      "name": "workbench",
+      "source": "./plugins/workbench",
+      "description": "Requirements-first software delivery with a lightweight .work/ ledger, integrated research and interactive UI walkthroughs, judgment-led execution, and compact release summaries.",
+      "category": "productivity",
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
+    },
+    {
       "name": "ux-ui-design",
       "source": "./plugins/ux-ui-design",
       "description": "HTML/CSS/JS mockup-first UI/UX design. Generate multi-option screen mockups, multi-page user flows, and design-system palettes as throwaway single-file mockups in .mockups/ for alignment before implementation. Loosely integrates with agile-workflow.",

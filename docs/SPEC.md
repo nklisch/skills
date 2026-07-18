@@ -107,15 +107,17 @@ The single-source-of-truth rules that keep the catalog coherent:
 
 - A plugin's Claude manifest, Codex manifest, and Pi package metadata agree on
   identity and version (enforced by `bump-version.sh`).
-- Registering a new plugin touches all channel metadata **and**
-  `.claude-plugin/marketplace.json`. Missing any one breaks distribution.
+- Registering a new plugin touches all channel metadata plus both native
+  catalogs: `.claude-plugin/marketplace.json` and
+  `.agents/plugins/marketplace.json`. Missing any one breaks distribution.
 - Skill names may repeat across plugins by design; the owning plugin sets a
   skill's semantics. Orient to which plugin a skill lives in before reasoning
   about it.
 
 ## Status and deprecation
 
-- **Supported:** `agile-workflow` (flagship), `ux-ui-design`, `code-audit`,
+- **Supported:** `agile-workflow` (flagship structured workflow), `workbench`
+  (flexible requirements-first workflow), `ux-ui-design`, `code-audit`,
   `nates-toolkit`, `agentic-research`, `agent-coordination`.
 - **Deprecated and frozen:** `workflow`. It stays in the tree so existing
   installs keep working; it gets no new features or fixes. New work does not
@@ -126,8 +128,10 @@ The single-source-of-truth rules that keep the catalog coherent:
 This SPEC governs distribution, not behavior. For what a plugin *does* and how it
 is built internally, defer to its own docs:
 
-- Substrate model, item lifecycle, gates, releases →
+- Structured substrate model, item lifecycle, gates, releases →
   `plugins/agile-workflow/docs/{SPEC,ARCHITECTURE,PRINCIPLES}.md`.
+- Flexible work ledger, artifact references, and compact release lifecycle →
+  `plugins/workbench/docs/{VISION,SPEC}.md`.
 - Other plugins → their own directory, README/docs where present, and manifests.
 
 Repo layout and the substrate-access model live in `docs/ARCHITECTURE.md`.

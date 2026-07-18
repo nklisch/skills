@@ -1,0 +1,28 @@
+{
+  "name": "@nklisch/pi-workbench",
+  "version": "0.1.0",
+  "description": "Requirements-first software workbench with a lightweight .work/ ledger.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nklisch/skills.git",
+    "directory": "plugins/workbench"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "workbench",
+    "work-tracking"
+  ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  }
+}
