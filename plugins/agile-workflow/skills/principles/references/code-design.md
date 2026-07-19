@@ -13,6 +13,7 @@ concrete boundary guidance, checklists, or examples.
 5. [Code Economy](#5-code-economy)
 6. [Tests Earn Their Keep](#6-tests-earn-their-keep)
 7. [Leave It Simpler](#7-leave-it-simpler)
+8. [Compatibility Is Earned](#8-compatibility-is-earned)
 
 ## 1. Ports & Adapters
 
@@ -170,3 +171,43 @@ Checklist:
 - Prefer deletion and inlining before extraction or another abstraction.
 - Leave touched code simpler unless doing so would blur scope or alter behavior.
 - Park broader opportunities; ask before reducing meaningful guarantees.
+
+## 8. Compatibility Is Earned
+
+Compatibility work exists to protect consumers you do not control and data you
+must not lose. Unless the project declares external consumers, only two things
+qualify: dependencies outside the repository that are not owned by the author,
+and substantial real data that must be preserved or transformed. Applications,
+internal services, agent tooling such as MCP servers, and unpublished
+libraries have no external consumers by default — their schemas, tool
+definitions, and config formats change in place.
+
+The common violation: during a build-out, an agent "preserves compatibility"
+with its own earlier drafts by creating v1/v2/v3 schema variants, union types
+over every historical shape, or `if version == ...` branches — for surfaces
+nothing external has ever consumed. The correct move is to delete the earlier
+drafts and land the final shape.
+
+Mechanics by surface:
+
+- **Project-owned surface, no external consumer:** edit the schema, fix every
+  call site, and delete the old shape in the same change. No version field,
+  no shim, no deprecation window.
+- **External dependency not owned by the author:** you cannot change it —
+  adapt at your boundary (ports & adapters) and verify against its real
+  contract rather than assuming stability.
+- **Published artifact with real downstream users:** version deliberately —
+  semantic versioning, a changelog, and a deprecation window sized to actual
+  consumer behavior.
+- **Substantial real data:** design a one-way migration (script or startup
+  transform) and present the plan. Production-grade data transforms require
+  user approval and usually user execution — inform the user of the need and
+  the plan rather than running the transform yourself. Verify against a
+  disposable copy of real data where possible, and retire the old readers and
+  writers once the migration lands.
+
+Checklist:
+- Every surviving compat path names its external consumer or preserved dataset.
+- No v1/v2/v3 proliferation for project-owned schemas.
+- Production data transforms are agent-planned, user-approved, and
+  user-executed; they never leave both shapes live after landing.

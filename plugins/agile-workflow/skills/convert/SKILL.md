@@ -640,6 +640,17 @@ must already exist at their new home or the dense content is lost.
    compatibility paths; leave it simpler. Ask before removing meaningful
    behavior, guarantees, validation, compatibility, or safety.
 
+   Compatibility is earned, not assumed. Absent a project declaration of
+   external consumers, only two things create compatibility obligations:
+   dependencies outside the repository that are not owned by the author, and
+   substantial real data that must be preserved or transformed. Agent tooling,
+   MCP servers, internal services, and unpublished libraries have no external
+   consumers by default—never version project-owned schemas (v1/v2/v3) or
+   keep compat shims for surfaces the project owns; change them in place.
+   Real-data migrations are planned by the agent but approved and executed by
+   the user for production data; do not run production transforms
+   autonomously.
+
    Release-bound items define a gate's focus, not a hard scan boundary. Gates
    may follow concrete evidence into adjacent dependencies, shared
    infrastructure, or system-wide mechanisms. Bind release-relevant findings;

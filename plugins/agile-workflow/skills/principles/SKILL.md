@@ -2,8 +2,8 @@
 name: principles
 description: >
   agile-workflow principles — code-design (clear boundaries, proportional rigor, code economy,
-  useful tests, and continuous simplification) and substrate-execution (Item-IS-the-Work,
-  Rolling-Foundation, Late-Binding).
+  useful tests, continuous simplification, and compatibility only for verified external consumers)
+  and substrate-execution (Item-IS-the-Work, Rolling-Foundation, Late-Binding).
   Auto-loads when designing modules, defining interfaces, writing or implementing code, scoping work
   in the substrate, advancing stages, scoping releases, or any time the agile-workflow
   design/implement/review skills are active.
@@ -84,7 +84,26 @@ systems when warranted, but ask the user before removing behavior, guarantees,
 validation, compatibility, or safety. Explicit user instructions override every
 default here.
 
----
+## 8. Compatibility Is Earned
+
+Compatibility obligations come from verified external consumers, not from the
+mere existence of a schema or API. Most projects — applications, internal
+tools, agent tooling such as MCP servers, unpublished libraries — have no
+external consumers, and for them compatibility machinery is pure cost:
+versioned schemas (v1, v2, v3), deprecation shims, and dual-read paths
+accumulate instead of the correct design simply landing in place.
+
+Unless the project declares external consumers, exactly two things create a
+compatibility obligation: dependencies external to the repository and not
+owned by the author (third-party APIs, published packages with real downstream
+users), and substantial real data that must be preserved or transformed (user
+databases, durable on-disk state, files users keep). Everything the project
+owns outright — request/response shapes, config formats, internal APIs, MCP
+tool schemas, disposable storage layouts — changes in place: delete the old
+shape and land the correct one; never run v2 alongside v1 when both sides are
+yours. Real-data migrations are one-way transforms the agent plans and the
+user approves and executes for production data — never run a production data
+transform autonomously.
 
 # Part II — Substrate-Execution Principles
 
@@ -94,7 +113,7 @@ dispatch. The agent applies these whenever operating on `.work/` or `docs/`,
 and whenever choosing discovery or implementation dispatch during substrate
 work.
 
-## 8. Item-IS-the-Work
+## 9. Item-IS-the-Work
 
 The unit of work is its file. The brief, the design, the implementation notes, and the review findings all accumulate in the item's body as stages advance. Reading the file IS reading the state of the work.
 
@@ -134,7 +153,7 @@ The unit of work is its file. The brief, the design, the implementation notes, a
 
 ---
 
-## 9. Rolling-Foundation
+## 10. Rolling-Foundation
 
 Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, and any others) describe what is true now or the future state the project intends to reach. A future-state claim remains valid before implementation exists. Foundation docs are selective standing context, not an exhaustive inventory: silence about a capability is allowed. They roll forward when an assertion becomes false, stale, or contradictory. Git carries history; the doc carries truth.
 
@@ -187,7 +206,7 @@ The discipline is identical in both styles: replace stale assertions in place, n
 
 ---
 
-## 10. Late-Binding
+## 11. Late-Binding
 
 Items advance stages when work actually completes. Releases bind items only when the user cuts a version. Foundation docs are not pre-decided into a phase plan. Work happens, then commitments crystallize — not the other way around.
 
@@ -227,7 +246,7 @@ Items advance stages when work actually completes. Releases bind items only when
 
 ---
 
-## 11. Agent Dispatch Economy
+## 12. Agent Dispatch Economy
 
 Sub-agents are for breadth, isolation, independent judgment, or parallel
 implementation with clear write ownership. They are not a replacement for

@@ -271,6 +271,17 @@ foundation assertions before completing work. Project-owned engineering values
 live in `docs/PRINCIPLES.md`; observed recurring code structures live in
 `.agents/skills/patterns/`.
 
+Compatibility is earned, not assumed. Unless the project declares external
+consumers (in `docs/PRINCIPLES.md` or `CONVENTIONS.md`), only two things
+create compatibility obligations: dependencies outside the repository that are
+not owned by the author, and substantial real data that must be preserved or
+transformed. Never version project-owned schemas (v1/v2/v3) or keep
+compatibility shims for surfaces the project owns—agent tooling such as MCP
+servers, internal services, and unpublished libraries included; change them in
+place. Real-data migrations are planned by the agent but approved and executed
+by the user for production data; do not run production data transforms
+autonomously.
+
 Completed items never remain active. With summarized releases they immediately
 become small archive stubs and later collapse into one release summary; with no
 release lifecycle they are removed. Sweep stale terminal items whenever working

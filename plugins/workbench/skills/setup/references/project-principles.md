@@ -8,7 +8,8 @@ current-or-intended-future truth rule as other foundation documents.
 ## Discovery before interview
 
 Read existing foundation documents, project instructions, representative source
-and tests, dependency boundaries, schemas, generated artifacts, lint/build
+and tests, dependency boundaries, schemas, generated artifacts, published-
+package metadata, externally consumed surfaces, durable data stores, lint/build
 configuration, and any existing pattern or refactor catalogs. Identify:
 
 - principles already stated explicitly;
@@ -38,6 +39,17 @@ Discuss only themes that matter to this project:
   confidence.
 - **Leaving touched areas simpler** — when cohesive deletion, consolidation, or
   behavior-preserving cleanup belongs inside feature work.
+- **Compatibility posture** — which surfaces, if any, have verified external
+  consumers (published packages with real downstream users, public APIs,
+  services operated by third parties) or substantial real data requiring
+  preservation or transformation, versus surfaces the project owns outright
+  where schemas and APIs change in place. The default is no compatibility
+  work: absent a project declaration of external consumers, agents should
+  never version project-owned schemas (v1/v2/v3) or keep compatibility shims,
+  and real-data migrations are planned by the agent but approved and executed
+  by the user for production data. Agent tooling such as MCP servers,
+  internal services, and unpublished libraries has no external consumers by
+  default.
 
 These are interview frames, not Workbench defaults. The project may adopt,
 modify, reject, or add themes. Ask about concrete trade-offs discovered in the

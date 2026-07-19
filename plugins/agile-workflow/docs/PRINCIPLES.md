@@ -3,7 +3,8 @@
 The plugin's `principles` skill loads two distinct paradigms:
 
 - **Code-design principles** — clear boundaries and sources of truth,
-  proportional rigor, code economy, useful tests, and continuous simplification.
+  proportional rigor, code economy, useful tests, continuous simplification,
+  and compatibility reserved for verified external consumers and real data.
   These tell the agent how to write good code at design time and
   implementation time.
 - **Substrate-execution principles** — Item-IS-the-Work, Rolling-Foundation,
@@ -333,6 +334,60 @@ nits, or rejected; they do not prolong convergence.
 
 ---
 
+## 8. Compatibility Is Earned
+
+Compatibility obligations come from verified external consumers, not from the
+mere existence of a schema or API. Most projects — applications, internal
+tools, agent tooling such as MCP servers, unpublished libraries — have no
+external consumers, and for them compatibility machinery is pure cost:
+versioned schemas (v1, v2, v3), deprecation shims, and dual-read paths
+accumulate instead of the correct design simply landing in place.
+
+Unless the project declares external consumers, exactly two things create a
+compatibility obligation:
+
+1. **Dependencies external to the repository and not owned by the author** —
+   third-party APIs, published packages with real downstream users, services
+   operated by others. You cannot break what you do not control.
+2. **Substantial real data that must be preserved or transformed** — user
+   databases, durable on-disk state, files users keep. These get a planned,
+   user-approved migration, not a versioned pile of schemas.
+
+### At design time
+
+- Before adding a version, deprecation window, dual-read path, or compat shim,
+  name the external consumer or the preserved data that requires it. If you
+  cannot name one, change the schema in place: fix every call site and delete
+  the old shape in the same change.
+- When a genuine external contract must change, version deliberately and record
+  the obligation and its consumer in the item body or foundation docs.
+- For real-data migrations, design the transform and present the migration
+  plan. Production-grade data transforms require user approval and usually
+  user execution — inform the user of the need and the plan; never run a
+  production data transform on your own.
+
+### At implementation time
+
+- Remove compatibility paths for surfaces with no external consumer; they are
+  code-economy violations, not safety.
+- Data migrations are one-way transforms: write the transform and the plan,
+  verify against a disposable copy of real data where possible, hand execution
+  to the user for production data, and retire the old shape once the migration
+  lands — never keep both live.
+- Watch for the build-out failure mode: "preserving compatibility" with the
+  project's own earlier drafts via v1/v2/v3 variants or version-branching for
+  surfaces nothing external has ever consumed. Delete the drafts and land the
+  final shape.
+
+**Design checklist:**
+- [ ] Every versioned schema, shim, or dual-read path names its external
+  consumer or preserved dataset
+- [ ] Project-owned surfaces change in place with no parallel versions
+- [ ] Real-data migrations are user-approved, user-executed for production
+  data, and retire the old shape
+
+---
+
 # Part II — Substrate-Execution Principles
 
 These three principles govern how work moves through the substrate. They
@@ -340,7 +395,7 @@ shape stage transitions, item bodies, foundation-doc evolution, and
 release binding. The agent applies these whenever operating on `.work/`
 or `docs/`.
 
-## 8. Item-IS-the-Work
+## 9. Item-IS-the-Work
 
 The unit of work is its file. The brief, the design, the implementation
 notes, and the review findings all accumulate in the item's body as
@@ -395,7 +450,7 @@ stages advance. Reading the file IS reading the state of the work.
 - [ ] Item body at completion is a complete record
 - [ ] Code does not reference item IDs; only logical concepts
 
-## 9. Rolling-Foundation
+## 10. Rolling-Foundation
 
 Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`,
 and any others) describe what is true now or the future state the project
@@ -483,7 +538,7 @@ future intent as drift.
 - [ ] `git log docs/<file>.md` shows the audit trail; the doc shows the
       present
 
-## 10. Late-Binding
+## 11. Late-Binding
 
 Items advance stages when work actually completes. Releases bind items
 only when the user cuts a version. Foundation docs are not pre-decided
