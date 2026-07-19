@@ -1,7 +1,7 @@
 ---
 id: feature-research-okf-format-assessment
 kind: feature
-stage: drafting
+stage: done
 tags: [research]
 parent: null
 depends_on: []
@@ -16,6 +16,7 @@ research_dials:
   output_kind: adoption-recommendations
 created: 2026-07-19
 updated: 2026-07-19
+research_completion_record: okf-format-assessment-against-ard-substrate
 ---
 
 # Assess the Open Knowledge Format (OKF) against ARD's substrate representation
@@ -117,3 +118,36 @@ settles the remaining six registration fields at dispatch (decision_relevance,
 consumer, temporal_contract, primitives_extends, primitives_opts_out,
 analytical_artifact_type). Verification runs inline in the orchestrator's stack;
 on completion the item closes per CONVENTIONS.md research_completion: close-to-done. -->
+
+## Engagement record
+
+- **Fan-out:** light (0 spawn). Single fetched source (OKF SPEC v0.1, 451 lines)
+  + three worked sample-bundle instances (`ga4`, `crypto_bitcoin`, `stackoverflow`);
+  the decision is focused (rename/adopt/interop) and the source is self-contained.
+  No `decompose` multi-specialist path warranted.
+- **Rigor:** `standard` — lint + spot-check fired (hard floor). `adversarial-read`
+  performed inline as the disconfirming-analysis section (independent-gestalt read
+  of the OKF spec seeking anti-fabrication machinery that would weaken the
+  recommendation toward adopt); `evaluate` is out of a single-source light walk's
+  floor (no cross-synthesis artifact to fence).
+- **Lint outcome:** 2 resolved/non-broken citations, 0 broken, 0 thin. Remaining
+  pattern flags are false positives (spec-section references like `§6`/`v0.1`
+  matched as version-numbers; the `comparative-superlative` flag is a factual
+  invariant-preservation claim, not a composed superlative).
+- **Output paths:**
+  - attestation: `.research/attestation/okf-spec.md`
+  - corpus INDEX: `.research/reference/open-knowledge-format/INDEX.md`
+  - brief: `.research/analysis/briefs/okf-format-assessment-against-ard-substrate.md`
+  - raw fetches (gitignored): `.research/reference/open-knowledge-format/raw/`
+- **Decision:** **interop** (emit/consume OKF at a boundary, ARD internals
+  unchanged) + **defensive rename** of ARD's `INDEX.md` → `BIBLIOGRAPHY.md` to
+  eliminate the case-insensitive-FS collision. **Adopt rejected** on
+  invariant-preservation grounds (OKF has no anti-fabrication spine). See the
+  brief's Findings section for the two-track implementation split (Track A:
+  `[refactor]` rename; Track B: net-new interop layer, with import-direction
+  recall-sourcing risk flagged).
+- **Environment note:** initial fetch attempts to raw.githubusercontent /
+  codeload returned HTTP 200 with 0-byte bodies (transient sandbox mediation
+  warmup on a new host); the fetch succeeded on retry and the full 15,046-byte
+  SPEC.md is retained under `raw/`. No recall-sourced claims — every OKF
+  assertion in the brief traces to the attested fetched source.
