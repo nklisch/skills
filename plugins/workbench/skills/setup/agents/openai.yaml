@@ -1,0 +1,6 @@
+interface:
+  display_name: "Set Up Workbench"
+  short_description: "Initialize or migrate the Workbench substrate"
+  default_prompt: "Use $setup to initialize or migrate this repository to Workbench."
+policy:
+  allow_implicit_invocation: true

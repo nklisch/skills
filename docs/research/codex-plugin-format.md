@@ -338,8 +338,9 @@ Option B has been adopted. Every supported plugin should now ship:
 - a `.claude-plugin/marketplace.json` entry using the current dual-compatible
   string-path local source form
 
-The supported in-tree plugins are `agile-workflow`, `ux-ui-design`,
-`code-audit`, `nates-toolkit`, `agentic-research`, and `agent-coordination`.
+The supported in-tree plugins are `agile-workflow`, `workbench`,
+`ux-ui-design`, `code-audit`, `nates-toolkit`, `agentic-research`, and
+`agent-coordination`.
 The deprecated `workflow` plugin remains in the tree for existing installs, but
 new work does not extend it.
 

@@ -67,7 +67,8 @@ pub struct Item {
     /// Parent item id, if any.
     pub parent: Option<String>,
 
-    /// Ids of items this item depends on (must be terminal before this starts).
+    /// Ids whose verified implementation must complete before this starts.
+    /// Active items at review satisfy this without being terminal.
     pub depends_on: Vec<String>,
 
     /// Release version this item is bound to (late-binding).
@@ -127,6 +128,16 @@ impl Item {
             }
         }
     }
+
+    /// Returns `true` when dependent implementation may proceed.
+    ///
+    /// An item at `review` has completed implementation verification, so its
+    /// review runs asynchronously and must not serialize the next dependency
+    /// layer. It is still non-terminal for release and completion purposes;
+    /// only dependency readiness uses this distinction.
+    pub fn satisfies_dependency(&self) -> bool {
+        self.is_terminal() || self.stage.as_deref() == Some("review")
+    }
 }
 
 #[cfg(test)]
@@ -182,6 +193,14 @@ mod tests {
         assert!(!make_item(Tier::Active, Some("review")).is_terminal());
         assert!(!make_item(Tier::Active, Some("drafting")).is_terminal());
         assert!(!make_item(Tier::Active, None).is_terminal());
+    }
+
+    #[test]
+    fn review_satisfies_dependency_without_being_terminal() {
+        let item = make_item(Tier::Active, Some("review"));
+
+        assert!(!item.is_terminal());
+        assert!(item.satisfies_dependency());
     }
 
     #[test]

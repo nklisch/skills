@@ -55,6 +55,10 @@ assert_true "Dynamic subagent reference names general-purpose posture" \
   "grep -q 'generic/general-purpose subagent' '${PLUGIN_ROOT}/skills/principles/references/subagents.md'"
 assert_true "Dynamic subagent reference rejects shipped role names" \
   "grep -Eq 'does .{0,8}not.{0,8} ship custom subagent definitions' '${PLUGIN_ROOT}/skills/principles/references/subagents.md'"
+assert_true "Model matrix makes GPT-5.5 an availability-only review fallback" \
+  "grep -Fq 'GPT-5.5 only when no GPT-5.6 review-capable model is available' '${PLUGIN_ROOT}/skills/principles/references/models.md'"
+assert_true "Deep-review guidance carries GPT-5.6-first selection" \
+  "grep -Fq 'prefer GPT-5.6 over GPT-5.5' '${PLUGIN_ROOT}/skills/review/references/deep-review.md'"
 
 assert_true "Skills do not reference removed shipped scanner role" \
   "! grep -R 'shipped agile-workflow.*scanner' '${PLUGIN_ROOT}/skills' >/dev/null"

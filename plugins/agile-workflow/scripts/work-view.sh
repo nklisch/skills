@@ -22,7 +22,7 @@
 set -euo pipefail
 
 # Kept in lockstep with plugin.json by scripts/bump-version.sh. Do not hand-edit.
-WORK_VIEW_VERSION="0.16.1"
+WORK_VIEW_VERSION="0.16.11"
 
 # ============================================================================
 # Version prelude (POSIX / bash 3.2 safe — runs BEFORE the Bash-4 guard)
@@ -85,8 +85,8 @@ Filters (compose with AND semantics):
   --parent <id>        Direct children of the given item
   --release <version>  Items with release_binding: <version>
   --gate <name>        Items with gate_origin: <name>
-  --ready              Active items at drafting/implementing/review with all depends_on done
-  --blocked            Active items at drafting/implementing/review with unmet dependencies
+  --ready              Active drafting/implementing/review items whose deps are done or at review
+  --blocked            Active drafting/implementing/review items with implementation-blocking deps
   --blocking <id>      Items that depend on <id>
 
 Output (default tabular):
@@ -224,11 +224,13 @@ build_index() {
            | xargs -0 awk "$AWK_INDEX" 2>/dev/null || true)
 }
 
-# True if item id is at stage:done OR lives in releases/ or archive/ (terminal).
-is_done() {
+# True when an item permits downstream implementation. Terminal items qualify;
+# so does an item at review because implementation verification is complete
+# while review runs asynchronously.
+satisfies_dependency() {
   local id="$1"
   local stage="${STAGE_BY_ID[$id]:-}"
-  if [[ "$stage" == "done" || "$stage" == "released" ]]; then
+  if [[ "$stage" == "done" || "$stage" == "released" || "$stage" == "review" ]]; then
     return 0
   fi
   local file="${FILE_BY_ID[$id]:-}"
@@ -238,12 +240,12 @@ is_done() {
   return 1
 }
 
-# True if item file's depends_on are all done.
+# True if an item's dependencies permit downstream implementation.
 deps_satisfied() {
   local file="$1"
   local dep
   for dep in ${IDX_DEPS[$file]:-}; do
-    if ! is_done "$dep"; then
+    if ! satisfies_dependency "$dep"; then
       return 1
     fi
   done

@@ -8,22 +8,45 @@ commit unless the user explicitly asks for that side effect.
 
 ## Triage Findings Into Items
 
-For each finding above nit level, create a substrate item so it does not
-disappear into prose:
+The receiving agent first adjudicates reviewer proposals under
+`principles/SKILL.md` Part IV. Reviewer severity labels are not authoritative.
+For each accepted finding above nit level, preserve the chosen disposition so it
+does not disappear into prose:
 
-- **Blocker**: either fix inline if small, or create a story in
-  `.work/active/stories/` with `stage: implementing` and tags such as `[bug]`,
-  `[security]`, `[tests]`, or the appropriate category.
-- **Important**: park as a backlog item in `.work/backlog/`, or scope as a
-  feature if substantial.
-- **Nit**: keep in conversation only; nits do not warrant items.
+- **Blocker**: a receiver-confirmed material current-cycle risk. Either fix
+  inline if small, or create a story in `.work/active/stories/` with
+  `stage: implementing` and tags such as `[bug]`, `[security]`, `[tests]`, or the
+  appropriate category. It prevents the reviewed item from advancing.
+- **Important**: valid work below the blocker bar. Park it as an unbound backlog
+  item in `.work/backlog/` with the contextual risk rationale; do not scope it
+  active merely because it is substantial or a reviewer called it blocking.
+- **Nit**: keep in review notes only; nits do not warrant items.
+- **Rejected**: create no item; record a brief reason in the review record when
+  independent review proposed it.
 
 Review-created items use `gate_origin: null`; gate-produced findings set
 `gate_origin`.
 
-## Decide And Advance
+## Decide And Advance A Reviewed Item
 
-If there are no blockers:
+Child stories never use this review transition: green implementation
+verification advances them directly to `done`. Standalone stories, features,
+and epics use review, with epic review operating at deeper aggregate scope.
+
+Apply the effective weight before deciding whether another pass is required:
+
+- `none` closes from green verification and acceptance evidence.
+- `light` and `standard` run at most one independent pass. Fix and verify its
+  receiver-confirmed blockers, then close without another independent pass.
+- `thorough` and `maximum` review the corrected snapshot again and repeat until
+  a pass yields no receiver-confirmed material current-cycle blockers.
+
+The receiver judges materiality from repository context. A lower-priority
+parked concern, nit, or rejected proposal is already adjudicated and does not
+keep a convergence loop open.
+
+If a reviewed feature, epic, or standalone story has no **unresolved** blockers
+under that closure policy:
 
 1. Advance the item from `review` to `done`.
 2. If it has `release_binding: <version>`, leave it active for
@@ -43,23 +66,24 @@ If there are no blockers:
      Rationale: a typo must never trigger body-pruning. `delete-refs` applies only when
      explicitly and exactly declared (or when the key is absent — the documented default
      above; that default is unchanged).
-4. If it has a parent, check whether all siblings are now `done`:
+4. If the reviewed item is a feature with a parent epic, check whether every
+   sibling feature is now `done`. When done count equals total count, advance the
+   epic from `implementing` to `review` and append a `Child features reviewed and
+   complete` note. Commit that transition separately, then schedule the deeper
+   epic review without blocking downstream implementation.
 
-```bash
-parent_id=$(grep '^parent:' .work/active/<kind>s/<id>.md | awk '{print $2}')
-.work/bin/work-view --parent "$parent_id" --stage done --count
-.work/bin/work-view --parent "$parent_id" --count
-```
+If unresolved blockers exist:
 
-If sibling done count equals total count, advance the parent from `implementing`
-to `review` and append a "Children complete" note.
-
-If blockers exist:
-
-1. Set the item back to `stage: implementing`.
-2. Append a `## Review findings` section listing blockers and the created item
-   ids.
+1. Set the reviewed feature, epic, or standalone story back to `stage: implementing`.
+2. Append a `## Review findings` section listing blockers, created item ids, the
+   effective weight, and whether closure needs fix verification only
+   (`light`/`standard`) or another independent pass (`thorough`/`maximum`).
 3. Do not archive.
+
+When deferred `light`/`standard` fixes later return green, verify the named fix
+set and close administratively; do not silently restart independent review.
+When `thorough`/`maximum` fixes return green, restore `review` and run the next
+independent pass.
 
 ## Archive as a bodyless stub
 
@@ -130,7 +154,7 @@ The stub stays a first-class, work-view-queryable item. Recover the full body an
 
 ## Append Review Record
 
-Append this section to the reviewed item:
+Append this section to the reviewed feature, epic, or standalone story:
 
 ```markdown
 ## Review (YYYY-MM-DD)
@@ -140,8 +164,9 @@ Append this section to the reviewed item:
 **Blockers**: <list with item ids> (or "none")
 **Important**: <list with item ids> (or "none")
 **Nits**: <inline notes - not items>
+**Rejected**: <reviewer proposals and brief reasons> (or "none")
 
-**Notes**: <mode, depth, skipped lenses, limitations, or anything else worth recording>
+**Notes**: <mode, depth, risk context, skipped lenses, limitations, or anything else worth recording>
 ```
 
 ## Commit

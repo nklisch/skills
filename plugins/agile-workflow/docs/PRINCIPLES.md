@@ -2,8 +2,9 @@
 
 The plugin's `principles` skill loads two distinct paradigms:
 
-- **Code-design principles** — Ports & Adapters, Single Source of Truth,
-  Generated Contracts, Fail Fast. Carried from the `workflow` plugin.
+- **Code-design principles** — clear boundaries and sources of truth,
+  proportional rigor, code economy, useful tests, continuous simplification,
+  and compatibility reserved for verified external consumers and real data.
   These tell the agent how to write good code at design time and
   implementation time.
 - **Substrate-execution principles** — Item-IS-the-Work, Rolling-Foundation,
@@ -18,7 +19,7 @@ shapes how work moves through the system.
 
 # Part I — Code-Design Principles
 
-These four principles govern both architectural decisions and how code is
+These principles govern both architectural decisions and how code is
 written. Each section has guidance for design time and implementation time.
 
 ## 1. Ports & Adapters
@@ -213,21 +214,20 @@ If a generated type needs extending, use
 `type MyType = GeneratedType & { extra: string }` — extend the source of
 truth, don't replace it.
 
-## 4. Fail Fast (implementation only)
+## 4. Fail Fast—Where It Matters
 
-Catch bad data at the door, not three calls deep where the stack trace is
-useless. Validate inputs at the entry point of every function or system
-boundary.
+Catch bad data at real trust boundaries, not three calls deep. Validate
+untrusted input and required external contracts before domain logic runs. Add
+internal checks only where a violated precondition is plausible and
+consequential for this project.
 
 - At system boundaries (HTTP handlers, CLI args, external API responses,
-  config files): parse with Zod or equivalent before any logic runs
-- At internal function boundaries: assert preconditions at the top of the
-  function — guard clauses, not nested ifs
-- Prefer `throw`/`return early` over propagating bad state deep into call
-  chains
-- Errors should be loud and specific at the point of violation —
-  "expected positive number, got -3" beats a cryptic null reference five
-  layers down
+  config files): parse before logic runs
+- At internal boundaries: add guards when they protect a real invariant, not
+  mechanically at every function
+- Prefer early, specific failure when failure is part of the required contract
+- Do not manufacture exhaustive edge handling, invariants, retries, or firm
+  determinism that the project's scope and consequences do not need
 
 **Good:**
 ```typescript
@@ -250,6 +250,142 @@ function processOrder(input: any) {
 }
 ```
 
+## 5. Code Economy
+
+Short, direct code is a virtue when it stays clear. Prefer fewer concepts,
+layers, branches, options, and lines over speculative generality. Terse does not
+mean cryptic: simplify the model first, then its expression. Every abstraction
+or extension point must earn its maintenance cost in current scope.
+
+### At design time
+
+- Start with the most direct solution that satisfies the actual brief
+- Reject hypothetical flexibility without a current second use or committed need
+- Compare approaches by concepts removed as well as capabilities added
+
+### At implementation time
+
+- Delete obsolete paths and incidental machinery exposed by the change
+- Inline or consolidate before extracting another abstraction
+- Match rigor to the project's context rather than treating every codebase as
+  critical infrastructure
+
+## 6. Tests Earn Their Keep
+
+Tests are maintained code. Prioritize stable public interfaces, important seams,
+high-consequence behavior, and regressions learned from real bugs. Unit tests
+belong around genuinely complex isolated logic, not every wrapper, branch, or
+line. Coverage numbers are evidence, not goals.
+
+### At design time
+
+- Name the interface, risk, or regression each proposed test protects
+- Prefer one useful interface test over several implementation-bound unit tests
+- Do not require one automated test per unit, edge, or acceptance statement
+
+### At implementation time
+
+- Add regression tests when bugs reveal meaningful risk
+- Remove duplicate, tautological, brittle, obsolete, or low-value tests
+- Keep simple code simple when an isolated test adds no useful confidence
+
+## 7. Leave It Simpler
+
+Exploration, design, and implementation include an adaptive elimination pass.
+Look for code, tests, checks, abstractions, configuration, and compatibility
+paths the feature can make unnecessary. Fold safe cohesive cleanup into the task
+or create explicit cleanup/refactor stories; park broader opportunities.
+
+Accumulated substantial feature work is a reason to broaden the look, not a
+schedule. Rough reminders such as three related features or five major
+feature-sized items can prompt inspection of neighboring abstractions, but they
+are not thresholds, and child stories are not separate cadence units. Keep
+proactive refactoring inside normal feature design and implementation; run a
+dedicated refactor-discovery pass only when the user asks for one. Explicit user
+instructions override every default here.
+
+Question whole systems, not only local fragments. A validation layer, invariant
+system, test suite, compatibility mechanism, or defensive subsystem may no
+longer justify its cost. Removing behavior, guarantees, validation, determinism,
+compatibility, or safety is a product decision: explain the trade-off and ask
+the user rather than silently weakening it.
+
+### Review proportionality
+
+Reviewer output is evidence, not authority. The receiving agent verifies claims
+and judges their current-cycle risk against the repository's acceptance criteria,
+supported users and deployment shape, likelihood, blast radius, recoverability,
+safeguards, and delay cost. Credible material risks to required correctness,
+security, data, public contracts, acceptance, release safety, or trustworthy
+verification block. Valid lower-priority concerns are parked unbound; nits stay
+in review notes; unsupported advice is rejected with a brief rationale.
+
+A successful independent review path requires adjudicating every proposal, not
+implementing every suggestion. A rare severe case may still block, while a real
+corner case with negligible consequence need not. Reviewer labels, model
+strength, and repeated mention do not replace the receiving agent's judgment.
+
+Review weight makes the closure trade-off explicit. `standard` is the default
+and means one independent pass, then adjudicate, fix material blockers, verify,
+and finish without re-review—even for epics or deep lenses. `thorough` and
+`maximum` repeat review after fixes until a pass has no receiver-confirmed
+material current-cycle blockers. Smaller findings are parked unbound, kept as
+nits, or rejected; they do not prolong convergence.
+
+---
+
+## 8. Compatibility Is Earned
+
+Compatibility obligations come from verified external consumers, not from the
+mere existence of a schema or API. Most projects — applications, internal
+tools, agent tooling such as MCP servers, unpublished libraries — have no
+external consumers, and for them compatibility machinery is pure cost:
+versioned schemas (v1, v2, v3), deprecation shims, and dual-read paths
+accumulate instead of the correct design simply landing in place.
+
+Unless the project declares external consumers, exactly two things create a
+compatibility obligation:
+
+1. **Dependencies external to the repository and not owned by the author** —
+   third-party APIs, published packages with real downstream users, services
+   operated by others. You cannot break what you do not control.
+2. **Substantial real data that must be preserved or transformed** — user
+   databases, durable on-disk state, files users keep. These get a planned,
+   user-approved migration, not a versioned pile of schemas.
+
+### At design time
+
+- Before adding a version, deprecation window, dual-read path, or compat shim,
+  name the external consumer or the preserved data that requires it. If you
+  cannot name one, change the schema in place: fix every call site and delete
+  the old shape in the same change.
+- When a genuine external contract must change, version deliberately and record
+  the obligation and its consumer in the item body or foundation docs.
+- For real-data migrations, design the transform and present the migration
+  plan. Production-grade data transforms require user approval and usually
+  user execution — inform the user of the need and the plan; never run a
+  production data transform on your own.
+
+### At implementation time
+
+- Remove compatibility paths for surfaces with no external consumer; they are
+  code-economy violations, not safety.
+- Data migrations are one-way transforms: write the transform and the plan,
+  verify against a disposable copy of real data where possible, hand execution
+  to the user for production data, and retire the old shape once the migration
+  lands — never keep both live.
+- Watch for the build-out failure mode: "preserving compatibility" with the
+  project's own earlier drafts via v1/v2/v3 variants or version-branching for
+  surfaces nothing external has ever consumed. Delete the drafts and land the
+  final shape.
+
+**Design checklist:**
+- [ ] Every versioned schema, shim, or dual-read path names its external
+  consumer or preserved dataset
+- [ ] Project-owned surfaces change in place with no parallel versions
+- [ ] Real-data migrations are user-approved, user-executed for production
+  data, and retire the old shape
+
 ---
 
 # Part II — Substrate-Execution Principles
@@ -259,7 +395,7 @@ shape stage transitions, item bodies, foundation-doc evolution, and
 release binding. The agent applies these whenever operating on `.work/`
 or `docs/`.
 
-## 5. Item-IS-the-Work
+## 9. Item-IS-the-Work
 
 The unit of work is its file. The brief, the design, the implementation
 notes, and the review findings all accumulate in the item's body as
@@ -314,13 +450,15 @@ stages advance. Reading the file IS reading the state of the work.
 - [ ] Item body at completion is a complete record
 - [ ] Code does not reference item IDs; only logical concepts
 
-## 6. Rolling-Foundation
+## 10. Rolling-Foundation
 
 Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`,
-and any others) describe the project's vision (future-looking) and current
-intent — what is true now, OR what will be true once in-flight design lands.
-They roll forward in place as either evolves. No legacy comments. Git carries
-history; the doc carries truth.
+and any others) describe what is true now or the future state the project
+intends to reach. A future-state claim remains valid before implementation
+exists. Foundation docs are selective standing context, not an exhaustive
+inventory: silence about a capability is allowed. They roll forward when an
+assertion becomes false, stale, or contradictory. Git carries history; the doc
+carries truth.
 
 ### Two timing styles
 
@@ -336,9 +474,9 @@ Both are legitimate; the project picks one or mixes per change size:
 
 The discipline is identical in both styles: replace stale assertions in
 place, never accumulate "previously" / "in v1.x" / migration prose.
-`gate-docs` at release-deploy time is the backstop — it catches drift between
-intent (what the doc asserts) and reality (what code does) regardless of
-which timing style was used.
+`gate-docs` is an assertion-consistency backstop: it catches false, stale, or
+contradictory claims, but never treats missing coverage or merely unimplemented
+future intent as drift.
 
 ### What this forbids
 
@@ -352,14 +490,14 @@ which timing style was used.
 
 ### What this enables
 
-- A new contributor reads the doc and learns the system as it IS or as
-  it is meant to imminently become — not as it was
+- A new contributor reads the doc and learns the system as it is or as
+  it is intended to become — not as it was
 - Foundation docs stay short and current rather than growing with every
   change
 - `git log docs/<file>.md` shows every rolling-forward edit — perfect
   audit trail without bloating the doc
-- Discrepancies between intent and reality become bugs that `gate-docs`
-  surfaces, not historical artifacts to be reconciled mentally
+- False, stale, or contradictory assertions become bugs that `gate-docs`
+  surfaces; omissions and not-yet-implemented future claims do not
 
 ### At design time
 
@@ -368,8 +506,8 @@ which timing style was used.
   the update as part of scope)
 - For large-scope `scope` operations, design-first is the default —
   `scope` rolls foundation docs forward as part of the same operation
-- Identify which foundation doc(s) need rolling forward; reading them
-  at design time prevents stale assumptions
+- Identify any existing foundation assertions the design changes or
+  contradicts; do not add coverage merely because the docs omit the capability
 - If a feature's design contradicts a foundation doc, EITHER the design
   is wrong OR the doc is. Resolve before designing the implementation.
 
@@ -383,22 +521,24 @@ which timing style was used.
   adjust whichever was wrong (implementation or assertion).
 - Replace stale assertions in place. Delete the old text. Never append
   "previously" / "in v1.x" / migration prose.
-- The `gate-docs` runs at release-deploy time and produces items for
-  any remaining drift — but the goal is to leave it nothing to find.
+- The `gate-docs` skill produces items only for remaining false, stale, or
+  contradictory assertions—not missing coverage or unimplemented future intent.
 
 ### Design checklist
 
-- [ ] Every assertion in SPEC and ARCHITECTURE reflects current code OR
-      imminent in-flight design (no stale assertions from cancelled work)
+- [ ] Every assertion in SPEC and ARCHITECTURE is true for the current or
+      intended-future state it claims (no stale assertions from superseded intent)
 - [ ] VISION.md reflects the project's current direction, not past direction
 - [ ] No "previously" / "originally" / "in v1.x" prose anywhere in `docs/`
-- [ ] When a feature changes behavior or direction, foundation docs update
-      in the same commit set as the change (code-first) or were preflight-
-      updated and are still accurate (design-first)
+- [ ] When a feature invalidates an existing foundation assertion, that
+      assertion updates in the same commit set (code-first) or was preflight-
+      updated and remains accurate (design-first)
+- [ ] No finding or edit was created solely because foundation docs omit a
+      capability or describe future intent not yet implemented
 - [ ] `git log docs/<file>.md` shows the audit trail; the doc shows the
       present
 
-## 7. Late-Binding
+## 11. Late-Binding
 
 Items advance stages when work actually completes. Releases bind items
 only when the user cuts a version. Foundation docs are not pre-decided

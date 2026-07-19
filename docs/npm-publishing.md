@@ -1,6 +1,6 @@
 # Publishing Pi packages to npm
 
-The eight Pi packages in this repository publish independently from their
+The nine Pi packages in this repository publish independently from their
 `plugins/<name>/` directories:
 
 - `@nklisch/pi-agile-workflow`
@@ -10,6 +10,7 @@ The eight Pi packages in this repository publish independently from their
 - `@nklisch/pi-code-audit`
 - `@nklisch/pi-nates-toolkit`
 - `@nklisch/pi-ux-ui-design`
+- `@nklisch/pi-workbench`
 - `@nklisch/pi-zai-research`
 
 ## One-time npm setup

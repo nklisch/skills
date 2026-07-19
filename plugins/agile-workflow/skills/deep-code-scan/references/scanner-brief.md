@@ -137,9 +137,10 @@ Use the artifact ledger in `artifact-ledger.md`:
 7. Write the summary into the altitude story body under `## Findings`, grouped by severity, with
    links to the raw packet(s) and rollup.
 
-Low findings stay under their own advisory heading — not minted as backlog stubs. Advance the story
-`implementing → review → done` once its band is scanned, spot-checked, and its artifact rollup is
-written.
+Low findings stay under their own advisory heading — not minted as backlog stubs. This is a child
+story checkpoint under the scan-lane feature, so advance it directly `implementing → done` once its
+band is scanned, spot-checked, and its artifact rollup is written. Do not review the story; the lane
+feature receives the integrated review.
 
 ### Rolling findings up to the next band
 

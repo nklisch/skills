@@ -1,5 +1,6 @@
 {
   "name": "nklisch-skills",
+  "description": "Native agent plugins and portable skills maintained by nklisch.",
   "owner": {
     "name": "nklisch"
   },
@@ -29,6 +30,13 @@
       "name": "agile-workflow",
       "source": "./plugins/agile-workflow",
       "description": "Markdown-based work-tracking substrate for AI-driven projects. Items as files in .work/, late-binding releases, gates that produce items, goal-backed autopilot queue runner.",
+      "category": "productivity",
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
+    },
+    {
+      "name": "workbench",
+      "source": "./plugins/workbench",
+      "description": "Requirements-first software delivery with a lightweight .work/ ledger, integrated research and interactive UI walkthroughs, judgment-led execution, and compact release summaries.",
       "category": "productivity",
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
@@ -65,11 +73,12 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/nklisch/krometrail",
-        "path": "plugin"
+        "path": "./plugin"
       },
-      "description": "Runtime debugging for AI agents — debug 10 languages via DAP, record and control Chrome via CDP.",
+      "description": "Control a local Chromium browser and inspect transient behavior with source-linked temporal visual evidence.",
       "category": "developer-tools",
-      "tags": ["debugging", "dap", "cdp", "mcp", "browser"],
+      "version": "1.0.1",
+      "tags": ["browser", "cdp", "mcp", "temporal-visual-evidence", "debugging"],
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     },
     {
@@ -82,6 +91,18 @@
       "description": "Delegate arbitrary task work between local coding agents — any host (Claude Code, Codex, or Pi) can call any peer (Codex, Claude Code, Gemini through Antigravity, or Z.AI GLM 5.2 through Pi). Ships the peer and peer-review skills.",
       "category": "productivity",
       "tags": ["peer-review", "delegation", "codex", "gemini", "zai", "pi", "multi-agent"],
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
+    },
+    {
+      "name": "skilltap",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/nklisch/skilltap",
+        "path": "plugin"
+      },
+      "description": "Personal control plane for Codex and Claude Code environments — adopt, reconcile, update, and bootstrap native plugins, complete skills, and shared instructions without marketplace discovery.",
+      "category": "developer-tools",
+      "tags": ["skilltap", "codex", "claude-code", "bootstrap", "reconciliation"],
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" }
     }
   ]

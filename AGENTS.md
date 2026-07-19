@@ -11,6 +11,7 @@ This repo contains agent skills distributed via the Claude Code plugin marketpla
 | Directory | Published name | Status | Purpose |
 |---|---|---|---|
 | `plugins/agile-workflow/` | `agile-workflow` | supported | **Substrate-driven** work tracking. Items as files in `.work/` with YAML frontmatter, late-binding releases, gates that produce items, autopilot queue runner. See `plugins/agile-workflow/docs/VISION.md`. |
+| `plugins/workbench/` | `workbench` | supported | **Requirements-first, flexible** work tracking. A lightweight `.work/` ledger references grounded evidence in `.research/` and interactive UI walkthroughs in `.mockups/`; natural-language requests and project conventions guide adaptive design, execution, review, and release summaries. Its `setup` skill converts agile-workflow repositories. Workbench and agile-workflow schemas are mutually exclusive within one project. |
 | `plugins/ux-ui-design/` | `ux-ui-design` | supported | HTML/CSS/JS mockup-first UI/UX design. Throwaway single-file mockups in `.mockups/`. Loose integration with agile-workflow. |
 | `plugins/code-audit/` | `code-audit` | supported | Standalone markdown-first code audit skills with **no substrate dependency** — deep-code-scan, bug-scan, security-scan, test-scan, perf-scout, bold-refactor, and repo-eval produce reports/plans instead of `.work` items. |
 | `plugins/nates-toolkit/` | `nates-toolkit` | supported | Standalone, project-agnostic utility skills with **no substrate lock-in** — `plainspeak` (plain-language re-explainer), `agent-reflection` (self-reflection on tool & skill usage), `write-tool-skill` + `skill-auditor` (skill authoring + quality auditing). Skills here stand alone. Absorbed the former `skill-authoring` plugin (now deleted) plus `agent-reflection` (formerly `tool-evaluator`) extracted from `agile-workflow`. |
@@ -30,7 +31,7 @@ If a user asks for the workflow plugin or wants to migrate, point them at:
 - `docs/agile-workflow-guide.md` and `docs/ux-ui-design-guide.md` — the supported guides.
 - `plugins/agile-workflow/docs/MIGRATION.md` — full migration matrix.
 
-**Skill names that overlap** between `workflow` (deprecated) and the supported plugins — `perf-design`, `refactor-design`, `implement`, `autopilot`, `principles`, `review`, `fix`, `ideate`, `repo-eval`, `research`, `bold-refactor`, `refactor-conventions-creator`, `implement-orchestrator` — have intentionally different implementations. When touching a skill, confirm which plugin you're in. New work goes into `agile-workflow`. `agent-reflection` (formerly `tool-evaluator`) was extracted out of `agile-workflow` into the standalone `nates-toolkit` plugin. `repo-eval` now lives in `code-audit` as the supported report-only repository scorecard; do not add `.work` behavior there.
+**Skill names that overlap** between `workflow` (deprecated) and the supported plugins — `perf-design`, `refactor-design`, `implement`, `autopilot`, `principles`, `review`, `fix`, `ideate`, `repo-eval`, `research`, `bold-refactor`, `refactor-conventions-creator`, `implement-orchestrator` — have intentionally different implementations. When touching a skill, confirm which plugin you're in. New structured workflow work goes into `agile-workflow`; new flexible requirements-first work goes into `workbench`. `agent-reflection` (formerly `tool-evaluator`) was extracted out of `agile-workflow` into the standalone `nates-toolkit` plugin. `repo-eval` now lives in `code-audit` as the supported report-only repository scorecard; do not add `.work` behavior there.
 
 **Surface-area differences (for reference):**
 - `workflow` has: `design`, `roadmap`, `extend`, `e2e-test-design`, `test-quality`, `update-documentation`, `security-review`, `release`, `cruft-cleaner`, `extract-patterns`
@@ -47,10 +48,11 @@ Each supported plugin ships channel metadata, kept in lockstep:
 - `plugins/<name>/.claude-plugin/plugin.json` — for Claude Code (`/plugin install`).
 - `plugins/<name>/.codex-plugin/plugin.json` — for OpenAI Codex CLI (`codex plugin marketplace add`).
 - `plugins/<name>/package.json` — for Pi packages (`pi install` from npm, git, or local paths). The `pi` manifest points at the same shared `skills/` directory and any Pi-native extensions, prompt templates, or themes.
+- `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json` — separate native Claude and Codex catalogs with the same ordered plugin identities and semantically equivalent sources.
 
 **Pi-only plugins.** A plugin whose capability is pi-runtime-only — with no meaningful Claude/Codex surface — ships a `package.json` and skips the `.claude-plugin/` and `.codex-plugin/` manifests entirely, and is omitted from `.claude-plugin/marketplace.json`. `background-tasks` and `pi-sandbox` are the current examples: their runtime tools and hardening hooks exist only inside Pi, so Claude/Codex installs would carry capabilities that do not work there. By contrast `zai-research` stays three-channel because its value is an **MCP + skill combo** — the underlying Z.ai MCP servers (`web_search_prime`, `webReader`, zread) are cross-harness servers that Claude/Codex can drive via native MCP, so the portable skill plus `references/servers.md` are genuinely useful there.
 
-The root `.claude-plugin/marketplace.json` uses the legacy string-path shape for local plugins (`"source": "./plugins/<name>"`) plus `policy` + `category`. Claude Code does NOT support the object shape `{ "source": "local", "path": "..." }` — only `github`, `url`, `git-subdir`, and `npm` are valid object-form source types. Codex reads this file as an alternative marketplace location, so both ecosystems install from the same git tree. Pi distribution is package-native: each plugin's `package.json` is the install/package root for npm, git, or local-path installs. External marketplace companions such as `peeragent` are not pulled into the root Pi package; document their own `pi install git:...@<tag>` commands instead.
+The root `.claude-plugin/marketplace.json` uses the legacy string-path shape for local plugins (`"source": "./plugins/<name>"`) plus `policy` + `category`. Claude Code does NOT support the object shape `{ "source": "local", "path": "..." }` — only `github`, `url`, `git-subdir`, and `npm` are valid object-form source types. The native Codex catalog at `.agents/plugins/marketplace.json` uses explicit `{ "source": "local", "path": "..." }` and `git-subdir` source objects plus Codex category casing and policy fields. Keep both catalogs in the same plugin order with semantically equivalent sources; neither is generated from or substituted for the other at runtime. Pi distribution is package-native: each plugin's `package.json` is the install/package root for npm, git, or local-path installs. External marketplace companions such as `peeragent` are not pulled into the root Pi package; document their own `pi install git:...@<tag>` commands instead.
 
 **Shared surface (works in all three):** SKILL.md files (open Agent Skills standard at agentskills.io) and each plugin's `skills/` directory.
 
@@ -138,9 +140,10 @@ When creating a new plugin (a new directory under `plugins/`), register it in **
 1. **`plugins/<name>/.claude-plugin/plugin.json`** — Claude Code plugin manifest.
 2. **`plugins/<name>/.codex-plugin/plugin.json`** — Codex plugin manifest. Same `version` as the Claude manifest. Must declare `"skills": "./skills/"` explicitly (Codex does not auto-discover) and an `interface` block for marketplace presentation.
 3. **`plugins/<name>/package.json`** — Pi package metadata. Must include `keywords: ["pi-package"]` and a `pi` manifest that points at `./skills/` plus any Pi-native package resources.
-4. **`.claude-plugin/marketplace.json`** — so Claude Code and Codex marketplace users can install the plugin. Add an entry with `name`, `"source": "./plugins/<name>"` (string form — the object form `{ source: "local", ... }` is NOT supported by Claude Code), `description`, `category`, and `policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" }`.
+4. **`.claude-plugin/marketplace.json`** — add the Claude entry with `name`, `"source": "./plugins/<name>"` (string form — the object form `{ source: "local", ... }` is NOT supported by Claude Code), `description`, category, and policy.
+5. **`.agents/plugins/marketplace.json`** — add the matching Codex entry with an explicit local source object, Codex category casing, and the same policy.
 
-Verify all channel metadata references the new plugin before considering the plugin shippable.
+Verify both catalogs preserve the same ordered plugin identities and semantically equivalent sources before considering the plugin shippable.
 
 <!-- agile-workflow:start -->
 ## Agile-Workflow Substrate
@@ -161,7 +164,9 @@ parent, and dependency. Common patterns:
 - `work-view --help` for the full flag set
 
 Foundation docs in `docs/` describe the system's current state or intended
-future state, never the past; git history is the audit trail. Item files are
+future state, never the past; git history is the audit trail. Review existing
+assertions only: missing coverage and unimplemented future intent are not drift;
+flag only false, stale, or contradictory claims. Item files are
 the durable state: update the body with implementation discoveries, review
 findings, blockers, and decisions instead of relying on chat history.
 
@@ -226,6 +231,31 @@ carry load-bearing routing semantics — get these right:
 All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
 affect skill routing.
 
+### Engineering posture
+
+Prefer short, clear code and context-appropriate rigor over speculative
+generality. Not every project needs exhaustive invariants, edge handling, firm
+determinism, or universal coverage. Test important interfaces, complex units,
+and regressions learned from bugs—not every line. When touching an area,
+eliminate unnecessary code, tests, checks, abstractions, and compatibility
+paths; leave it simpler. Ask before removing meaningful behavior, guarantees,
+validation, compatibility, or safety.
+
+Compatibility is earned, not assumed. Absent a project declaration of
+external consumers, only two things create compatibility obligations:
+dependencies outside the repository that are not owned by the author, and
+substantial real data that must be preserved or transformed. Agent tooling,
+MCP servers, internal services, and unpublished libraries have no external
+consumers by default—never version project-owned schemas (v1/v2/v3) or keep
+compat shims for surfaces the project owns; change them in place. Real-data
+migrations are planned by the agent but approved and executed by the user for
+production data; do not run production transforms autonomously.
+
+Release-bound items define a gate's focus, not a hard scan boundary. Gates may
+follow concrete evidence into adjacent dependencies, shared infrastructure, or
+system-wide mechanisms. Bind release-relevant findings; route merely ambient
+discoveries to the unbound backlog so a scan does not silently expand a release.
+
 ### Test integrity
 
 When running, writing, or modifying tests:
@@ -241,6 +271,11 @@ When running, writing, or modifying tests:
   green again, if a parked production bug is small enough for a single
   stride, pick it up immediately as `/agile-workflow:scope` → design →
   implement. Larger bugs stay in backlog for prioritization.
+- **Tests must earn their upkeep.** Prefer tests at stable interfaces,
+  regression tests for real bugs, and unit tests for genuinely complex units.
+  Do not add tests merely to cover every line or surface; remove duplicate,
+  tautological, implementation-bound, or obsolete tests when they add less
+  confidence than maintenance cost.
 - **NEVER game a test to make it pass.** A failing test that documents
   *why* it fails — an inline comment naming the bug, a `skip` linked to a
   backlog id, an `xfail` with a reason — is more honest than a green test
@@ -251,11 +286,18 @@ When running, writing, or modifying tests:
 Cross-model advisory review: explicit user/project review instructions
 override agile-workflow defaults. When peeragent is available with a different
 model class, large/risky autopilot design decisions may use one advisory pass;
-small/low-risk work skips it. Autopilot also runs a final peer-review loop
-before reporting completion and fixes or files accepted findings first.
-Same-model peers fall back to local sub-agents instead. Claude Opus peeragent
-calls can take 10 to 30 minutes on large reviews; no return after a few minutes
-is not evidence that the call has hung.
+small/low-risk work skips it. Review weight defaults to `standard`: features,
+epics, and final completion bundles get one independent pass, then receiver
+adjudication, fixes for material blockers, verification, and `done` without
+re-review. An epic's pass is broader than a feature's but is still one pass at
+`standard`. Only `thorough` and `maximum` use multi-pass review; continue until
+a pass has no receiver-confirmed material current-cycle blockers. Smaller
+findings are parked unbound, kept as nits, or rejected by judgment and do not
+keep the loop open. Reviewer findings are proposals: the receiving orchestrator
+verifies them against repository context and actual risk. Same-model peers fall
+back to local sub-agents instead. Claude Opus peeragent calls can take 10 to 30
+minutes on large reviews; no return after a few minutes is not evidence that the
+call has hung.
 
 Broad entry points:
 `/agile-workflow:ideate`, `/agile-workflow:epicize`,

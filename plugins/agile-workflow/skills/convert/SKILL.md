@@ -514,7 +514,9 @@ parent, and dependency. Common patterns:
 - `work-view --help` for the full flag set
 
 Foundation docs in `docs/` describe the system's current state or intended
-future state, never the past; git history is the audit trail. Item files are
+future state, never the past; git history is the audit trail. Review existing
+assertions only: missing coverage and unimplemented future intent are not drift;
+flag only false, stale, or contradictory claims. Item files are
 the durable state: update the body with implementation discoveries, review
 findings, blockers, and decisions instead of relying on chat history.
 
@@ -628,6 +630,33 @@ must already exist at their new home or the dense content is lost.
    All other tags are project-specific (see `.work/CONVENTIONS.md`) and do not
    affect skill routing.
 
+   ### Engineering posture
+
+   Prefer short, clear code and context-appropriate rigor over speculative
+   generality. Not every project needs exhaustive invariants, edge handling,
+   firm determinism, or universal coverage. Test important interfaces, complex
+   units, and regressions learned from bugs—not every line. When touching an
+   area, eliminate unnecessary code, tests, checks, abstractions, and
+   compatibility paths; leave it simpler. Ask before removing meaningful
+   behavior, guarantees, validation, compatibility, or safety.
+
+   Compatibility is earned, not assumed. Absent a project declaration of
+   external consumers, only two things create compatibility obligations:
+   dependencies outside the repository that are not owned by the author, and
+   substantial real data that must be preserved or transformed. Agent tooling,
+   MCP servers, internal services, and unpublished libraries have no external
+   consumers by default—never version project-owned schemas (v1/v2/v3) or
+   keep compat shims for surfaces the project owns; change them in place.
+   Real-data migrations are planned by the agent but approved and executed by
+   the user for production data; do not run production transforms
+   autonomously.
+
+   Release-bound items define a gate's focus, not a hard scan boundary. Gates
+   may follow concrete evidence into adjacent dependencies, shared
+   infrastructure, or system-wide mechanisms. Bind release-relevant findings;
+   route merely ambient discoveries to the unbound backlog so a scan does not
+   silently expand a release.
+
    ### Test integrity
 
    When running, writing, or modifying tests:
@@ -643,6 +672,11 @@ must already exist at their new home or the dense content is lost.
      green again, if a parked production bug is small enough for a single
      stride, pick it up immediately as `/agile-workflow:scope` → design →
      implement. Larger bugs stay in backlog for prioritization.
+   - **Tests must earn their upkeep.** Prefer tests at stable interfaces,
+     regression tests for real bugs, and unit tests for genuinely complex
+     units. Do not add tests merely to cover every line or surface; remove
+     duplicate, tautological, implementation-bound, or obsolete tests when
+     they add less confidence than maintenance cost.
    - **NEVER game a test to make it pass.** A failing test that documents
      *why* it fails — an inline comment naming the bug, a `skip` linked to a
      backlog id, an `xfail` with a reason — is more honest than a green test
@@ -650,14 +684,40 @@ must already exist at their new home or the dense content is lost.
      code happens to return, no deleting a test as "flaky" without
      root-causing first.
 
+   Implementation orchestration defaults to one worker per feature. Bundle
+   related features into one sequential worker when shared context reduces
+   handoffs; split an unusually large feature only by coherent write ownership.
+   Child stories are design and acceptance checkpoints, not default worker units.
+
+   Review is non-blocking for dependency-ordered implementation: an item at
+   `review` satisfies downstream implementation dependencies while its review
+   runs. Child stories advance directly to `done` after green verification and
+   never receive review. Standalone stories receive bounded inline review but
+   never an independent, fresh-context, or cross-model reviewer. Features are the
+   normal implementation-review boundary; epics receive their own deeper
+   aggregate review after child features are done. Broader scope gets deeper
+   review because integration and capability gaps emerge there; child-story
+   review is avoided because it tends toward pedantry and over-engineering.
+   Independent feature and epic reviews may run in parallel and must not
+   serialize the next implementation wave. Review weight defaults to
+   `standard`: one independent pass, then receiver adjudication, fixes for
+   material blockers, verification, and `done` without re-review. Epic review
+   is broader than feature review, but it does not add passes to `standard`.
+   Only `thorough` and `maximum` use multi-pass review; they repeat until a pass
+   yields no receiver-confirmed material current-cycle blockers. Smaller
+   findings are parked unbound, kept as nits, or rejected by judgment and do not
+   keep the loop open.
+
    Cross-model advisory review: explicit user/project review instructions
    override agile-workflow defaults. When peeragent is available with a different
-   model class, large/risky autopilot design decisions may use one advisory pass;
-   small/low-risk work skips it. Autopilot also runs a final peer-review loop
-   before reporting completion and fixes or files accepted findings first.
-   Same-model peers fall back to local sub-agents instead. Claude Opus peeragent
-   calls can take 10 to 30 minutes on large reviews; no return after a few minutes
-   is not evidence that the call has hung.
+   model class, large/risky feature, epic, or final-completion reviews may use it;
+   standalone stories never do. Reviewer findings are proposals: the receiving
+   orchestrator verifies them against repository context and actual risk. Only
+   credible material current-cycle risks block; park valid lower-priority
+   findings in the unbound backlog and continue. Same-model peers fall back to
+   local sub-agents instead. Claude Opus peeragent calls can take 10 to 30 minutes
+   on large reviews; no return after a few minutes is not evidence that the call
+   has hung.
 
    Broad entry points:
    `/agile-workflow:ideate`, `/agile-workflow:epicize`,
@@ -670,7 +730,7 @@ must already exist at their new home or the dense content is lost.
    this managed-section overwrite — content verification, NOT just a non-empty +
    end-marker check): confirm `.agents/rules/agile-workflow.md` exists AND that the
    dense rule content the slim removes from AGENTS actually landed there — each
-   section is present (`### Tag semantics`, `### Test integrity`, the
+   section is present (`### Tag semantics`, `### Engineering posture`, `### Test integrity`, the
    advisory-review paragraph, and Broad entry points), or recompute per the Phase
    1.8 provenance check. Only when the content is verified present do you write or
    refresh the slim AGENTS section (Phase 6), overwriting the managed AGENTS block.

@@ -36,8 +36,8 @@ Ports & Adapters / Single-Source-of-Truth. One library crate; two entry points.
 ```
 crates/
   core/    # parse .work/ items (YAML frontmatter + body), build depends_on/parent
-           # graph, filter, and the dependency-graph PRIMITIVES (deps_satisfied,
-           # unmet_deps) that the stage-aware "next actionable" view builds on
+           # graph, filter, and dependency-readiness primitives (deps_satisfied,
+           # unmet_deps). review counts as implementation-complete for sequencing
   cli/     # work-view CLI adapter (terse, parseable) -> imports core; owns the
            # stage-aware --ready/--blocked post-filter (actionable) over those primitives
   board/   # axum web server (human board) -> imports core, embeds web assets

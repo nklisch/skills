@@ -19,34 +19,38 @@ collect its diff or aggregate scope.
 If `main` is not the default branch, detect the base from git metadata or the
 remote tracking branch before running the diff.
 
-## Substrate Items
+## Substrate feature scope
 
-For a feature with child stories, the review scope spans all child story
-implementation commits. Find them by grepping for each story id and unioning the
-patches.
+For a feature with child stories, the review scope spans all child-story
+implementation commits plus the feature's own integration commit. Find them by
+grepping for each story and feature id, then union the patches. Child stories are
+checkpoint evidence, not separate review targets.
 
-For a story, prefer the commit(s) referenced by the item implementation notes.
-If notes do not identify commits, try item-id grep, branch-vs-base, then working
-tree in that order.
+Child stories never receive code review; a legacy child story at `review` is
+normalized by checking its recorded implementation verification and advancing
+directly to `done` or returning it to `implementing`. A standalone story receives
+a bounded inline review over its implementation commit, never an independent or
+cross-model pass.
 
-## Epic Scope
+## Epic scope
 
-For an epic, do not attempt a line-by-line review by default. Each child feature
-or story should already have passed review. Gather:
+Once every child feature has completed feature-level review and reached `done`,
+the epic receives its own deeper aggregate review. Gather:
 
-- The epic body: brief, decomposition, and acceptance intent.
-- Each child feature body, especially its `## Review` section.
-- The aggregate touched-file list from `git log --grep "<child-id>"` across all
-  children.
+- the epic brief, decomposition, and end-to-end acceptance intent;
+- each child feature body and `## Review` record;
+- aggregate touched paths and public/operational contracts across child commits;
+- foundation assertions and release interactions spanning multiple features.
 
-Use the aggregate scope to spot cross-cutting concerns: public API shifts,
-foundation-doc drift, release gaps, and capability completeness.
+Do not repeat line-by-line feature review. Look for capability gaps,
+cross-feature mismatches, cumulative risk, and assumptions visible only at epic
+scope.
 
 ## Empty Diff Handling
 
-If a non-epic diff is empty after obvious ranges:
+If a feature diff is empty after obvious ranges:
 
-- Autopilot substrate mode: advance only if the item has complete green
-  verification evidence. Otherwise bounce for missing review scope.
+- Autopilot substrate mode: advance only if the feature has complete green
+  integrated verification evidence. Otherwise bounce for missing review scope.
 - Interactive substrate mode: ask the user which range to review.
 - Standalone mode: report that there is no diff to review and stop.

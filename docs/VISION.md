@@ -28,9 +28,11 @@ skills follow the open Agent Skills standard so durable procedural knowledge
 crosses applicable harnesses unchanged; each harness can add native ergonomics
 around that shared core.
 
-The catalog is anchored by a flagship — **agile-workflow** — a substrate where a
-project's work lives as markdown files with structured frontmatter, and the
-agent drains them. Around it sit `ux-ui-design` (mockup-first UI design),
+The catalog offers two distinct `.work/` systems: **agile-workflow** provides an
+explicit lifecycle and autonomous queue runner, while **workbench** centers
+requirements-first, judgment-led delivery with separate `.research/` evidence
+and `.mockups/` walkthroughs. Around them sit `ux-ui-design` (standalone
+mockup-first UI design),
 `code-audit` (standalone markdown audits), `nates-toolkit` (standalone
 utilities), `agentic-research` (grounded research discipline),
 `agent-coordination` (sparse cross-agent ledger), a curated library of reference
@@ -76,6 +78,7 @@ foundation docs — read those for purpose and internals:
 
 - **agile-workflow** (flagship) —
   `plugins/agile-workflow/docs/{VISION,SPEC,ARCHITECTURE,PRINCIPLES}.md`
+- **workbench** — `plugins/workbench/docs/{VISION,SPEC}.md`
 - **Other plugins** — see each plugin directory and README, plus its
   `.claude-plugin/plugin.json` when it is a cross-channel plugin or its
   `package.json` when it is Pi-only.

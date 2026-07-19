@@ -1,8 +1,9 @@
 ---
 name: principles
 description: >
-  agile-workflow principles — code-design (Ports & Adapters, Single Source of Truth, Generated
-  Contracts, Fail Fast) and substrate-execution (Item-IS-the-Work, Rolling-Foundation, Late-Binding).
+  agile-workflow principles — code-design (clear boundaries, proportional rigor, code economy,
+  useful tests, continuous simplification, and compatibility only for verified external consumers)
+  and substrate-execution (Item-IS-the-Work, Rolling-Foundation, Late-Binding).
   Auto-loads when designing modules, defining interfaces, writing or implementing code, scoping work
   in the substrate, advancing stages, scoping releases, or any time the agile-workflow
   design/implement/review skills are active.
@@ -23,7 +24,7 @@ Each principle has guidance for design time and implementation time.
 
 # Part I — Code-Design Principles
 
-These four invariants stay active during design and implementation. Load
+These principles stay active during design and implementation. Load
 [references/code-design.md](references/code-design.md) when concrete mechanics,
 checklists, or examples are needed.
 
@@ -44,13 +45,65 @@ Boundary types derive from the schema, router, database model, or a generation
 step. Consumers import or infer that contract instead of maintaining hand-written
 copies.
 
-## 4. Fail Fast
+## 4. Fail Fast—Where It Matters
 
-Validate unknown input at system boundaries and assert internal preconditions at
-function entry. Reject invalid state early with specific errors instead of
-letting it fail deep in the call chain.
+Validate untrusted input and required external contracts at system boundaries.
+Add internal checks only when the project's actual risks justify them. Do not
+manufacture exhaustive invariants, edge handling, determinism, or defensive
+layers that the product's scope and consequences do not need.
 
----
+## 5. Code Economy
+
+Short, direct code is a virtue when it stays clear. Prefer fewer concepts,
+layers, branches, options, and lines over speculative generality. Match rigor to
+the project's context rather than engineering every codebase as critical
+infrastructure.
+
+## 6. Tests Earn Their Keep
+
+Test stable interfaces, important behavior, and regressions learned from real
+bugs. Unit-test genuinely complex units, not every wrapper, branch, or line.
+Tests are maintained code: remove duplicate, tautological, implementation-bound,
+or otherwise low-value tests when their upkeep exceeds the confidence they add.
+
+## 7. Leave It Simpler
+
+Exploration, design, and implementation include an adaptive elimination pass.
+In the area being touched, look for code, tests, checks, abstractions,
+compatibility paths, and complexity that the feature can make unnecessary. Fold
+safe, cohesive cleanup into the work or create explicit cleanup/refactor
+stories; park broader opportunities.
+
+Accumulated substantial feature work is a signal to broaden the look, not a
+schedule. Rough reminders such as three related features or five major
+feature-sized items may prompt inspection of neighboring abstractions, but they
+are not thresholds, and child stories do not count as separate refactor cadence.
+Keep proactive refactoring inside normal feature design and implementation;
+dedicated discovery runs require explicit user direction. Question whole
+systems when warranted, but ask the user before removing behavior, guarantees,
+validation, compatibility, or safety. Explicit user instructions override every
+default here.
+
+## 8. Compatibility Is Earned
+
+Compatibility obligations come from verified external consumers, not from the
+mere existence of a schema or API. Most projects — applications, internal
+tools, agent tooling such as MCP servers, unpublished libraries — have no
+external consumers, and for them compatibility machinery is pure cost:
+versioned schemas (v1, v2, v3), deprecation shims, and dual-read paths
+accumulate instead of the correct design simply landing in place.
+
+Unless the project declares external consumers, exactly two things create a
+compatibility obligation: dependencies external to the repository and not
+owned by the author (third-party APIs, published packages with real downstream
+users), and substantial real data that must be preserved or transformed (user
+databases, durable on-disk state, files users keep). Everything the project
+owns outright — request/response shapes, config formats, internal APIs, MCP
+tool schemas, disposable storage layouts — changes in place: delete the old
+shape and land the correct one; never run v2 alongside v1 when both sides are
+yours. Real-data migrations are one-way transforms the agent plans and the
+user approves and executes for production data — never run a production data
+transform autonomously.
 
 # Part II — Substrate-Execution Principles
 
@@ -60,7 +113,7 @@ dispatch. The agent applies these whenever operating on `.work/` or `docs/`,
 and whenever choosing discovery or implementation dispatch during substrate
 work.
 
-## 5. Item-IS-the-Work
+## 9. Item-IS-the-Work
 
 The unit of work is its file. The brief, the design, the implementation notes, and the review findings all accumulate in the item's body as stages advance. Reading the file IS reading the state of the work.
 
@@ -100,9 +153,9 @@ The unit of work is its file. The brief, the design, the implementation notes, a
 
 ---
 
-## 6. Rolling-Foundation
+## 10. Rolling-Foundation
 
-Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, and any others) describe the project's vision (future-looking) and current intent — what is true now, OR what will be true once in-flight design lands. They roll forward in place as either evolves. No legacy comments. Git carries history; the doc carries truth.
+Foundation docs (`docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, and any others) describe what is true now or the future state the project intends to reach. A future-state claim remains valid before implementation exists. Foundation docs are selective standing context, not an exhaustive inventory: silence about a capability is allowed. They roll forward when an assertion becomes false, stale, or contradictory. Git carries history; the doc carries truth.
 
 ### Two timing styles
 
@@ -111,7 +164,7 @@ Both are legitimate; the project picks one or mixes per change size:
 - **Code-first (default for routine features):** docs update at implementation merge, in the same commit set as the code that lands the change.
 - **Design-first (for large scope, initial ideation, architectural shifts):** docs preflight-update at scope time, leading the code through the implementation window. The doc temporarily describes an intended near-future state. The agile-workflow `scope` skill operates this way for large scope; `ideate` operates this way at project bootstrap.
 
-The discipline is identical in both styles: replace stale assertions in place, never accumulate "previously" / "in v1.x" / migration prose. `gate-docs` at release-deploy time is the backstop — it catches drift between intent and reality regardless of which timing style was used.
+The discipline is identical in both styles: replace stale assertions in place, never accumulate "previously" / "in v1.x" / migration prose. `gate-docs` is an assertion-consistency backstop: it catches false, stale, or contradictory claims, but never treats missing coverage or merely unimplemented future intent as drift.
 
 ### What this forbids
 
@@ -123,16 +176,16 @@ The discipline is identical in both styles: replace stale assertions in place, n
 
 ### What this enables
 
-- A new contributor reads the doc and learns the system as it IS or as it is meant to imminently become — not as it was
+- A new contributor reads the doc and learns the system as it is or as it is intended to become — not as it was
 - Foundation docs stay short and current rather than growing with every change
 - `git log docs/<file>.md` shows every rolling-forward edit — perfect audit trail
-- Discrepancies between intent (what the doc asserts) and reality (what code does) become bugs that gate-docs surfaces, not historical artifacts
+- False, stale, or contradictory assertions become bugs that gate-docs surfaces; omissions and not-yet-implemented future claims do not
 
 ### At design time
 
 - When scoping a feature that changes a foundation-doc assertion, decide the timing: code-first (defer the doc update) or design-first (preflight the update as part of scope)
 - For large-scope `scope` operations, design-first is the default — `scope` rolls foundation docs forward as part of the same operation
-- Identify which foundation doc(s) need rolling forward; reading them at design time prevents stale assumptions
+- Identify any existing foundation assertions the design changes or contradicts; do not add coverage merely because the docs omit the capability
 - If a feature's design contradicts a foundation doc, EITHER the design is wrong OR the doc is. Resolve before designing the implementation.
 
 ### At implementation time
@@ -140,19 +193,20 @@ The discipline is identical in both styles: replace stale assertions in place, n
 - If working code-first: after implementing a change, ask "what does a foundation doc now say that's no longer true?" — update assertions in place, commit with the implementation
 - If working design-first: the doc was preflight-updated at scope time. Verify the implementation matches the doc's assertion; if it deviates, adjust whichever was wrong (implementation or assertion).
 - Replace stale assertions in place. Delete the old text. Never append.
-- The `gate-docs` skill runs at release-deploy time and produces items for any remaining drift — but the goal is to leave it nothing to find.
+- The `gate-docs` skill produces items only for remaining false, stale, or contradictory assertions—not missing coverage or unimplemented future intent.
 
 ### Design checklist
 
-- [ ] Every assertion in SPEC and ARCHITECTURE reflects current code OR imminent in-flight design (no stale assertions from cancelled work)
+- [ ] Every assertion in SPEC and ARCHITECTURE is true for the current or intended-future state it claims (no stale assertions from superseded intent)
 - [ ] VISION.md reflects the project's current direction, not past direction
 - [ ] No "previously" / "originally" / "in v1.x" prose anywhere in `docs/`
-- [ ] When a feature changes behavior or direction, foundation docs update in the same commit set as the change (code-first) or were preflight-updated and are still accurate (design-first)
+- [ ] When a feature invalidates an existing foundation assertion, that assertion updates in the same commit set (code-first) or was preflight-updated and remains accurate (design-first)
+- [ ] No finding or edit was created solely because foundation docs omit a capability or describe future intent not yet implemented
 - [ ] `git log docs/<file>.md` shows the audit trail; the doc shows the present
 
 ---
 
-## 7. Late-Binding
+## 11. Late-Binding
 
 Items advance stages when work actually completes. Releases bind items only when the user cuts a version. Foundation docs are not pre-decided into a phase plan. Work happens, then commitments crystallize — not the other way around.
 
@@ -192,7 +246,7 @@ Items advance stages when work actually completes. Releases bind items only when
 
 ---
 
-## 8. Agent Dispatch Economy
+## 12. Agent Dispatch Economy
 
 Sub-agents are for breadth, isolation, independent judgment, or parallel
 implementation with clear write ownership. They are not a replacement for
@@ -219,8 +273,15 @@ Before spawning read-only exploratory/discovery sub-agents, do a local scope-siz
 - Name the unknowns that remain. If you cannot name a distinct unknown, do not
   spawn an agent just to feel thorough.
 
-For implementation waves, the same sizing note feeds write-ownership and
-dependency-layer decisions before choosing fan-out width.
+For implementation waves, start from **one implementation agent per feature**.
+A feature is the normal context, verification, and review boundary. Its child
+stories are design checkpoints that make acceptance slices and ordering visible;
+they are not normally separate agent assignments. Bundle multiple related
+features into one worker when shared context and sequential coherence save more
+than the handoff would; preserve separate feature evidence and transitions.
+Split one unusually large feature across multiple workers only when coherent
+write ownership, dependency layers, or isolation justify it. Story boundaries
+may inform that split, but never dictate it by themselves.
 
 Choose the lightest mechanism that will produce better evidence:
 
@@ -229,7 +290,9 @@ Choose the lightest mechanism that will produce better evidence:
 | Known file(s), one module, or a handful of obvious integration points | Read directly with Read/Grep/Glob; skip exploratory fanout. |
 | One bounded area but uncertain patterns or call sites | Use one focused exploratory sub-agent, then spot-check key files yourself. |
 | Several independent surfaces with different questions | Use parallel exploratory sub-agents, one per surface/question. |
-| Implementation work with independent write ownership | Fan out by ownership and dependency layer; do not use item count alone as the parallelism signal. |
+| Normal feature implementation | Give one worker the feature and its story checkpoints as a cohesive bundle. |
+| Several related features with shared context | Bundle them into one sequential worker when that reduces handoffs; keep per-feature verification, transitions, and review. |
+| Unusually large feature with independent write ownership | Split into coherent ownership bundles by write set and dependency layer; do not assign one worker per story by default. |
 | Deep audit/review where fresh context is the point | Spawn a generic sub-agent with the skill's reviewer/scanner prompt posture and explicit output schema; if unavailable, use the skill's inline fallback. |
 
 Parallel Explore only pays for itself when the prompts are genuinely different.
@@ -329,26 +392,49 @@ pairing, and concrete mechanism flags remain in
 
 `review_weight` is the canonical caller/project control consumed by review and
 autopilot. Allowed values are `none | light | standard | thorough | maximum`;
-the default is `standard`. It expresses the intended breadth and depth of
-**independent** review, while the agent derives the exact topology from artifact
-risk, item tier, scope, and available model classes:
+the default is **`standard`**. It controls both independent-review depth and the
+closure policy for features, epics, and final completion bundles:
 
 - `none` — explicitly opt out of independent review. Implementation
   verification and acceptance evidence remain mandatory.
-- `light` — minimize ceremony while preserving focused scrutiny where risk
-  clearly warrants it.
-- `standard` — balanced, risk-driven independent review.
-- `thorough` — increase fresh-context breadth and depth for meaningful risk.
-- `maximum` — permit multi-model, multi-pass complementary-then-adversarial
-  review for features and epics, with stories escalating dynamically by risk.
+- `light` — at most one focused fresh-context pass where risk warrants it, then
+  adjudicate, fix any receiver-confirmed blockers, verify, and finish without a
+  second independent pass.
+- `standard` — the normal default: exactly one balanced fresh-context review
+  pass, followed by receiver adjudication, blocker fixes, verification, and
+  `done`. **Standard is single-pass review, not a convergence loop.**
+- `thorough` — iterative fresh-context review: review, adjudicate, fix, verify,
+  and review again until a pass produces no receiver-confirmed **material
+  current-cycle blockers**. The receiver judges materiality in repository
+  context; smaller findings are parked, noted as nits, or rejected and do not
+  keep the loop open.
+- `maximum` — the same convergence requirement as `thorough`, with
+  complementary-then-adversarial, multi-model coverage when available.
 
-The levels are intent and ceilings, not fixed reviewer or pass counts. Explicit
-caller and project policy takes precedence; record the effective weight and any
-degradation. Configuration schema and foundation-doc wiring are follow-up work
-for their owning stories.
+Reviewer selection and lens breadth still adapt to artifact risk and item tier,
+but the closure policy is binding. Do not silently escalate `standard` into
+multi-pass review because the target is large, is an epic, uses `--deep`, or the
+first pass found blockers. Multi-pass convergence requires an explicit
+`thorough` or `maximum` effective weight. Explicit caller and project policy
+takes precedence; record the effective weight, source, and any degradation.
 
 ## Load-bearing invariants
 
+- **Feature-level implementation review:** child stories never enter `review`.
+  Green implementation verification advances a child story directly from
+  `implementing` to `done`; completed child stories make their feature eligible
+  for review rather than creating review units of their own. A standalone story
+  (`parent: null`) is the narrow exception: it receives a bounded review after
+  verification, but never an independent or cross-model review. Epics receive
+  their own deeper aggregate review after child features are done; review depth
+  should generally increase with scope because integration and capability gaps
+  emerge at feature and epic boundaries, while tiny-scope review tends toward
+  pedantry and over-engineering.
+- **Non-blocking review:** an item at `review` has completed implementation
+  verification, so it satisfies downstream implementation dependencies while
+  review runs. Dispatch the next dependency layer without waiting for the
+  verdict. A bounce rejoins implementation; reverify affected downstream items
+  only when the fix changes an interface or assumption they consume.
 - **Different-class labeling:** call a pass cross-model only when the reviewer is
   known to be a different model class from the host. Otherwise label it
   fresh-context. Different-class review is valuable for independent blind spots,
@@ -356,18 +442,47 @@ for their owning stories.
 - **Fresh-context semantics:** when independent review is warranted and a
   different class is unavailable, use the strongest suitable fresh-context
   reviewer available. Do not present inline self-review as independent.
-- **Two-phase order:** completeness / complementary / advisory comes before
-  adversarial attack. Never reverse the order or skip directly to attack.
+- **Phase order within the selected weight:** when both complementary and
+  adversarial coverage run, completeness / complementary / advisory comes
+  first. `standard` still uses only one review pass; phase vocabulary must not
+  turn the default into an implicit two-pass review.
 - **Non-blocking design:** unavailable or failed design-time advisory review does
   not block direct or autopilot design. Continue with judgment and record the
   reason. A slow top-tier reviewer is not a failure until its appropriately
   sized timeout or mechanism reports failure.
-- **Strict completion:** final autopilot completion must clear a successful
-  review path and resolve or file accepted findings. At weights `light` through
-  `maximum`, that path must use a supported fresh-context reviewer; if it fails,
-  the run is blocked rather than complete. At explicit weight `none`, documented
-  implementation verification and acceptance evidence satisfy the path without
-  independent review.
+- **Weight-aware completion:** final autopilot completion must clear the review
+  path selected by the effective weight and adjudicate every proposal. `light`
+  and `standard` run one successful fresh-context pass, fix and verify accepted
+  blockers, then finish without re-review. `thorough` and `maximum` continue the
+  review → fix → verify loop until a pass yields no receiver-confirmed material
+  current-cycle blockers. Smaller findings are dispositioned by judgment and do
+  not prolong the loop. At explicit weight `none`, documented implementation
+  verification and acceptance evidence satisfy the path without independent
+  review. A required fresh-context path that fails blocks completion.
+
+## Recipient-owned finding disposition
+
+Reviewer output is evidence, not authority. The receiving agent orchestrating the
+run independently verifies each claim and assigns its disposition against the
+repository's actual context: acceptance criteria, supported users and deployment
+shape, likelihood, blast radius, recoverability, existing safeguards, and the
+cost of delaying the current work. A reviewer's `blocker` label never binds the
+receiver by itself, and disagreement is resolved by evidence rather than
+seniority or model strength.
+
+A finding blocks the current cycle only when the receiver judges it a credible,
+material risk to required correctness, security, data integrity, public
+contracts, acceptance criteria, release safety, or trustworthy verification.
+Fix those findings now or keep an active item that prevents completion. Park a
+valid concern below that bar in the unbound backlog with its risk rationale and
+continue; leave nits in review notes, and reject unsupported findings with a
+brief reason. Rarity alone does not make a case irrelevant, but a corner case's
+likelihood and consequence must justify its delivery cost. Repetition across
+review passes does not elevate severity by itself.
+
+A successful review path therefore means independent scrutiny ran when required
+and the receiving agent adjudicated the results. It does not mean every reviewer
+suggestion was implemented or promoted into the active queue.
 
 User instructions and project-level review/egress rules override defaults. Do
 not invoke an external peer mechanism when policy prohibits it. `--only-questions`
@@ -375,46 +490,9 @@ is user alignment and therefore skips advisory review.
 
 ---
 
-# Part V — Skill invocation patterns
+# Part V — Skill Invocation Patterns
 
-Three arg shapes recur across the plugin. New skills should pick the one that
-fits their role rather than inventing a fresh shape.
-
-## Orchestration verbs (drain a queue)
-
-`scope`, `implement-orchestrator`, `autopilot`, `review`
-
-| Arg | Behavior |
-|---|---|
-| `<id>` or `<id-list>` | Operate on those items |
-| `--all` or no arg | Operate on the full queue (default) |
-| `<NL filter>` | Interpret free text against the queue; log the interpretation |
-
-## Discovery + emit verbs (scan code, produce items)
-
-`refactor-design`, `perf-design`, `bold-refactor`, and the gate
-family (`gate-cruft`, `gate-security`, `gate-tests`, `gate-docs`,
-`gate-patterns`)
-
-| Arg | Behavior |
-|---|---|
-| no arg / `--all` | Sweep the relevant scope (whole codebase, or release bundle for gates) |
-| `<path>` | Scope to that subtree |
-| `<NL scope>` | Interpret free text against the codebase; log the interpretation |
-| `<feature-id>` (where applicable) | Per-feature design mode (refactor-design, perf-design) |
-
-These skills *emit substrate items as findings* rather than gating pass/fail.
-
-## Per-item design verbs
-
-`feature-design`, `epic-design`, `refactor-design`, `perf-design`
-
-| Arg | Behavior |
-|---|---|
-| `<id>` | Full design pass on that item (default) |
-| `--only-questions <id>` | Question-only alignment pass; captures answers under `## Design decisions`; does NOT design or advance stage |
-| `--only-questions <id-list>` | Question-only pass over each listed item |
-| `--only-questions --all` | Question-only pass over every drafting item of the matching kind/tags |
-
-`--only-questions` always requires interactive mode and refuses to run under
-autopilot.
+Three argument shapes recur across the plugin: queue orchestration, discovery
+and emit, and per-item design. Load
+[references/invocation-patterns.md](references/invocation-patterns.md) when
+defining or invoking one of these surfaces.

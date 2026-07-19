@@ -1,0 +1,6 @@
+interface:
+  display_name: "Release Workbench Outcomes"
+  short_description: "Summarize completed work into one release"
+  default_prompt: "Use $release to prepare and record a Workbench release."
+policy:
+  allow_implicit_invocation: true

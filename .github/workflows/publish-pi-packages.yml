@@ -21,6 +21,7 @@ on:
           - nates-toolkit
           - pi-sandbox
           - ux-ui-design
+          - workbench
           - zai-research
 
 concurrency:

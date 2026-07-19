@@ -91,8 +91,8 @@ structured findings.
 > agile-workflow scanner. Use read/search/shell/current-source lookup tools as
 > needed, but do not spawn nested sub-agents or implement fixes.
 >
-> **Bundle scope** (audit ONLY these files; this is a release gate, not a
-> repo-wide audit):
+> **Bundle focus** (start here; follow concrete security-relevant call paths,
+> dependencies, shared infrastructure, and controls as needed):
 > ```
 > <bundle-files>
 > ```
@@ -138,7 +138,8 @@ structured findings.
 >       logs, missing error boundaries, verbose prod errors. All prod apps.
 >
 > 3. **Domain audit passes** — for each selected domain, audit the bundle's
->    changed files against that domain's checklist. Use current-source lookup
+>    changed files against that domain's checklist, following concrete evidence
+>    into adjacent security boundaries, dependencies, and shared controls. Use current-source lookup
 >    when needed to verify best practices for `<stack>+<domain>` combinations
 >    before judging.
 >
@@ -160,6 +161,7 @@ structured findings.
 > - **Title**: <one-line>
 > - **Severity**: Critical | High | Medium | Low
 > - **Domain**: <domain name>
+> - **Relevance**: Release-relevant | Ambient
 > - **Location**: `<file>:<line>`
 > - **Evidence**:
 >   ```<lang>
@@ -182,7 +184,8 @@ structured findings.
 > ```
 >
 > **Rules**:
-> - Audit only the files listed in Bundle scope. Do NOT expand the audit.
+> - Bundle files are the focus, not a hard boundary. Expand only along concrete
+>   security-relevant evidence and record why out-of-bundle surfaces were inspected.
 > - Cite file:line for every finding.
 > - Don't fabricate. If evidence is missing, don't report.
 > - Skip findings that match the already-tracked list.
@@ -211,7 +214,7 @@ stage: implementing      # Critical or High
 tags: [security]
 parent: null
 depends_on: []
-release_binding: <version>
+release_binding: <version> | null  # null for ambient findings
 gate_origin: security
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
@@ -236,6 +239,11 @@ Critical | High | Medium | Low
 ## Remediation direction
 <what should change — direction, not a finished fix>
 ```
+
+Release-relevant findings use the normal severity mapping and bind to the
+release. Ambient findings discovered outside the release's material risk go to
+the unbound backlog regardless of severity; a genuinely critical repository
+vulnerability is release-relevant when shipping would expose or perpetuate it.
 
 Default severity -> placement mapping:
 - **Critical** / **High** → `stage: implementing` in `.work/active/stories/`
@@ -271,5 +279,6 @@ In conversation:
   returns nothing. Don't paper that over.
 - Idempotent re-runs: pass already-tracked findings into the scanner brief so it
   skips duplicates. Double-check on item-write before creating.
-- Audit only the bundle's changes, not the whole repo. Repo-wide audits are
-  a standalone `repo-eval`'s job, not a release gate's.
+- Release-bound items define focus, not a hard boundary. Follow concrete
+  security evidence into adjacent or system-wide controls, but do not perform
+  an unfocused whole-repo audit. Route merely ambient findings to the unbound backlog.
