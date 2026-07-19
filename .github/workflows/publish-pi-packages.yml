@@ -19,6 +19,7 @@ on:
           - background-tasks
           - code-audit
           - nates-toolkit
+          - pi-sandbox
           - ux-ui-design
           - workbench
           - zai-research
@@ -89,6 +90,11 @@ jobs:
           bun test plugins/background-tasks/extensions/background-tasks.test.ts
           bun test plugins/nates-toolkit/extensions/agents-context.test.ts
           bun test plugins/nates-toolkit/extensions/nates-toolkit.test.ts
+          # pi-sandbox's real-bwrap integration tests are gated to skip cleanly
+          # when bubblewrap is absent (the publish runner does not install it).
+          # The dedicated sandbox-bwrap-gate workflow installs bubblewrap and sets
+          # PI_SANDBOX_REQUIRE_BWRAP=1 to run those integration tests for real.
+          bun test plugins/pi-sandbox/extensions/*.test.ts
 
       - name: Install Z.ai extension dependencies
         working-directory: plugins/zai-research

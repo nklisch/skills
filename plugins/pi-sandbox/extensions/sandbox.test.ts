@@ -1,0 +1,3894 @@
+import { afterEach, describe, expect, mock, test } from "bun:test";
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile, link, chmod } from "node:fs/promises";
+import { accessSync, constants, realpathSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { createServer } from "node:net";
+import { homedir, tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import {
+	assertNoHardlinkedDeniedFiles,
+	buildBwrapArgs,
+	buildMinimalEnv,
+	decidePlatformState,
+	discoverGitDirs,
+	findExecutableOnPath,
+	shouldBypassBashSandbox,
+	shouldBypassSandbox,
+	type BuildBwrapArgsOptions,
+	validateBwrapInit,
+} from "./sandbox-bwrap";
+import { makeBwrapIntegrationTest } from "./sandbox-bwrap.test";
+import {
+	DEFAULT_CONFIG,
+	FILTER_DEFERRED_BACKLOG_ITEM,
+	SANDBOX_FAIL_CLOSED_MESSAGE,
+	SANDBOX_SPAWN_SESSION_STATE_SYMBOL,
+	formatSandboxCommandOutput,
+	readSandboxSpawnSessionState,
+	SANDBOX_UNINITIALIZED_MESSAGE,
+	applyBypassToolDefaults,
+	createSandboxCommandHandler,
+	createUserBashBlockResult,
+	decideBackgroundTasksIntegrationState,
+	decideToolPolicy,
+	decideUserBash,
+	deepMerge,
+	inspectToolInput,
+	loadConfig,
+	mergeProjectAdditive,
+	validateConfig,
+	type LoadedConfig,
+	type BypassToolIntegrationState,
+	type SandboxConfig,
+} from "./sandbox-config";
+import {
+	createFailClosedPolicy,
+	createPermissivePolicy,
+	enforceDenyRead,
+	enforceWritePolicy,
+	makeEditOperations,
+	makeReadOperations,
+	makeWriteOperations,
+	type SandboxPolicy,
+} from "./sandbox-file-policy";
+
+const tempDirs: string[] = [];
+const bwrapPath = "bwrap";
+const isLinux = process.platform === "linux";
+const hasBwrap = isLinux && (() => {
+	try {
+		return Bun.spawnSync([bwrapPath, "--version"], { stdout: "pipe", stderr: "pipe" }).success;
+	} catch {
+		return false;
+	}
+})();
+const integrationTest = makeBwrapIntegrationTest({ isLinux, hasBwrap });
+const hostTmpFixtureAvailable = (() => {
+	try {
+		accessSync("/tmp", constants.W_OK);
+		return true;
+	} catch {
+		return false;
+	}
+})();
+const hostTmpIntegrationTest = hostTmpFixtureAvailable ? integrationTest : test.skip;
+
+async function makeTempDir(): Promise<string> {
+	const dir = await mkdtemp(join(tmpdir(), "pi-sandbox-test-"));
+	tempDirs.push(dir);
+	return dir;
+}
+
+async function makeRepoTempDir(): Promise<string> {
+	const dir = await mkdtemp(resolve(".pi-sandbox-test-"));
+	tempDirs.push(dir);
+	return dir;
+}
+
+afterEach(async () => {
+	delete (globalThis as typeof globalThis & Record<symbol, unknown>)[SANDBOX_SPAWN_SESSION_STATE_SYMBOL];
+	while (tempDirs.length > 0) {
+		const dir = tempDirs.pop();
+		if (dir) await rm(dir, { recursive: true, force: true });
+	}
+});
+
+describe("session-disk detection scope cut (no runtime fs-type probe, no write probe)", () => {
+	// Static guard: the session_start derivation must NOT contain the removed
+	// detection machinery (probeFilesystem / assertNotRamBacked / statfsSync /
+	// magic numbers) or the R3-B3 write probe (writeFileSync / openSync with a
+	// predictable name in the shared sandbox-writable temp dir). Runtime
+	// validation of the cache root's backing store is the operator's outer-
+	// boundary responsibility per THREAT_MODEL "Two boundaries"; the write probe
+	// was a symlink-truncation escape vector that added zero safety.
+	test("sandbox.ts derivation path is free of detection + write-probe machinery", async () => {
+		const { readFile } = await import("node:fs/promises");
+		const src = await readFile(new URL("./sandbox.ts", import.meta.url), "utf8");
+		expect(src).not.toContain("probeFilesystem");
+		expect(src).not.toContain("assertNotRamBacked");
+		expect(src).not.toContain("statfsSync");
+		expect(src).not.toContain("getProjectTmpDirResolved");
+		expect(src).not.toContain("write-probe");
+		expect(src).not.toContain("writeFileSync");
+		expect(src).not.toContain("unlinkSync");
+		expect(src).not.toContain("0x01021994"); // tmpfs magic
+		expect(src).not.toContain("0x858458f6"); // ramfs magic
+	});
+});
+
+function sequenceIndex(args: string[], sequence: string[]): number {
+	for (let i = 0; i <= args.length - sequence.length; i += 1) {
+		if (sequence.every((part, offset) => args[i + offset] === part)) return i;
+	}
+	return -1;
+}
+
+function expectSequence(args: string[], sequence: string[]): number {
+	const index = sequenceIndex(args, sequence);
+	expect(index).toBeGreaterThanOrEqual(0);
+	return index;
+}
+
+function runSandboxed(
+	command: string,
+	opts: Omit<BuildBwrapArgsOptions, "env">,
+	env: NodeJS.ProcessEnv = process.env,
+): ReturnType<typeof Bun.spawnSync> {
+	const minimalEnv = buildMinimalEnv(env);
+	const args = [
+		...buildBwrapArgs({ ...opts, configCwd: opts.configCwd ?? opts.cwd, env: minimalEnv }),
+		"--",
+		"bash",
+		"-c",
+		command,
+	];
+	return Bun.spawnSync([bwrapPath, ...args], {
+		cwd: opts.cwd,
+		env: minimalEnv,
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+}
+
+function text(buffer: Buffer | Uint8Array): string {
+	return Buffer.from(buffer).toString("utf8");
+}
+
+function shellQuote(value: string): string {
+	return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+describe("sandbox enabled/disabled bypass guard", () => {
+	test("enabled:false bypasses sandbox even without --no-sandbox", () => {
+		expect(shouldBypassSandbox(false, true)).toBe(true);
+	});
+
+	test("enabled:true keeps the normal sandboxed path when --no-sandbox is absent", () => {
+		expect(shouldBypassSandbox(false, false)).toBe(false);
+	});
+
+	test("--no-sandbox bypasses regardless of config state", () => {
+		expect(shouldBypassSandbox(true, false)).toBe(true);
+		expect(shouldBypassSandbox(true, true)).toBe(true);
+	});
+
+	test("OS backend graceful degrade bypasses only bash sandboxing", () => {
+		expect(shouldBypassBashSandbox(false, false, true)).toBe(true);
+		expect(shouldBypassSandbox(false, false)).toBe(false);
+	});
+});
+
+describe("user_bash routing", () => {
+	test("fail-closed and uninitialized states return block decisions, not fall-through", () => {
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: false,
+			failClosed: true,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({ action: "block-failclosed", reason: SANDBOX_FAIL_CLOSED_MESSAGE });
+
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: false,
+			failClosed: false,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({ action: "block-uninitialized", reason: SANDBOX_UNINITIALIZED_MESSAGE });
+	});
+
+	test("intentional bypasses are the only user_bash fall-through decisions", () => {
+		expect(decideUserBash({
+			noSandbox: true,
+			disabledViaConfig: false,
+			failClosed: true,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({ action: "bypass" });
+
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: true,
+			failClosed: true,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({ action: "bypass" });
+	});
+
+	test("OS backend graceful degrade falls through for user_bash without becoming fail-closed", () => {
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: false,
+			osSandboxUnavailable: true,
+			failClosed: false,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({
+			action: "bypass",
+			reason: "OS bash sandbox backend unavailable; user_bash runs through pi's local shell backend while in-process file/tool policy remains active.",
+		});
+	});
+
+	test("fail-closed still blocks user_bash when OS backend is available", () => {
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: false,
+			osSandboxUnavailable: false,
+			failClosed: true,
+			sandboxEnabled: false,
+			sandboxInitialized: false,
+		})).toEqual({ action: "block-failclosed", reason: SANDBOX_FAIL_CLOSED_MESSAGE });
+	});
+
+	test("healthy user_bash state chooses sandboxed operations", () => {
+		expect(decideUserBash({
+			noSandbox: false,
+			disabledViaConfig: false,
+			failClosed: false,
+			sandboxEnabled: true,
+			sandboxInitialized: true,
+		})).toEqual({ action: "sandboxed" });
+	});
+
+	test("block result uses pi user_bash full BashResult replacement shape", () => {
+		const result = createUserBashBlockResult(SANDBOX_FAIL_CLOSED_MESSAGE);
+
+		expect(result).toEqual({
+			result: {
+				output: `${SANDBOX_FAIL_CLOSED_MESSAGE}\n`,
+				exitCode: 1,
+				cancelled: false,
+				truncated: false,
+			},
+		});
+	});
+});
+
+describe("extension init validation", () => {
+	test("platform state separates non-Linux degrade from Linux fail-closed states", () => {
+		expect(decidePlatformState({ networkMode: "open", platform: "darwin", bwrapAvailable: false })).toEqual({
+			state: "degrade",
+			reason: "unsupported-platform",
+			platform: "darwin",
+			message: "Sandbox OS backend unavailable on darwin; bash runs unsandboxed, file/tool policy still enforced.",
+			status: "🔒 Sandbox: OS bash sandbox unavailable on darwin; in-process file/tool policy active",
+		});
+		expect(decidePlatformState({ networkMode: "open", platform: "linux", bwrapAvailable: true })).toEqual({ state: "ok" });
+		expect(decidePlatformState({ networkMode: "open", platform: "linux", bwrapAvailable: false }).state).toBe("fail-closed");
+		expect(decidePlatformState({ networkMode: "filter", platform: "linux", bwrapAvailable: true }).state).toBe("fail-closed");
+	});
+
+	test("unsupported platforms degrade instead of failing closed", () => {
+		// macOS (darwin) is a supported graceful-degrade platform: no OS bash
+		// sandbox, but the in-process file/tool/egress/inspector policy remains
+		// active and correctly enforced. Windows (win32) is OUT OF SCOPE for
+		// 0.1.0: its `\`-separated paths break the glob matcher's segment-local
+		// `*`/`?` semantics, so the package makes no enforcement claim there even
+		// though the runtime still degrades (bash unsandboxed). See
+		// .work/backlog/idea-pi-sandbox-windows-path-separator.md and
+		// docs/THREAT_MODEL.md "Known 0.1.0 gaps".
+		const validation = validateBwrapInit({ networkMode: "open", platform: "darwin", bwrapAvailable: false });
+
+		expect(validation.ok).toBe(false);
+		if (!validation.ok) {
+			expect(validation.reason).toBe("unsupported-platform");
+			expect(validation.message).toContain("bash runs unsandboxed");
+			expect(validation.message).toContain("file/tool policy still enforced");
+			expect(validation.message).not.toContain("fail-closed");
+		}
+	});
+
+	test("filter mode fails closed before initialization", () => {
+		const validation = validateBwrapInit({ networkMode: "filter", platform: "linux", bwrapAvailable: true });
+
+		expect(validation.ok).toBe(false);
+		if (!validation.ok) {
+			expect(validation.reason).toBe("filter-deferred");
+			expect(validation.message).toContain("network.mode=filter is deferred");
+			expect(validation.message).toContain("fail-closed");
+		}
+	});
+
+	test("missing bwrap fails closed before initialization", () => {
+		const validation = validateBwrapInit({ networkMode: "open", platform: "linux", bwrapAvailable: false });
+
+		expect(validation.ok).toBe(false);
+		if (!validation.ok) {
+			expect(validation.reason).toBe("bwrap-missing");
+			expect(validation.message).toContain("bwrap is not available");
+			expect(validation.message).toContain("fail-closed");
+		}
+	});
+});
+
+describe("package metadata", () => {
+	test("does not declare the removed external sandbox dependency", async () => {
+		const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8")) as {
+			dependencies?: Record<string, string>;
+			optionalDependencies?: Record<string, string>;
+		};
+		const forbiddenDependency = ["@anthropic-ai", "sandbox" + "-runtime"].join("/");
+
+		expect(packageJson.dependencies?.[forbiddenDependency]).toBeUndefined();
+		expect(packageJson.optionalDependencies?.[forbiddenDependency]).toBeUndefined();
+	});
+
+	test("package manifest exposes only the extension entrypoint", async () => {
+		const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8")) as {
+			pi?: { extensions?: string[] };
+			peerDependencies?: Record<string, string>;
+			keywords?: string[];
+		};
+		const extensionPackageJson = JSON.parse(await readFile(new URL("./package.json", import.meta.url), "utf8")) as {
+			pi?: { extensions?: string[] };
+		};
+
+		expect(packageJson.keywords).toContain("pi-package");
+		expect(packageJson.peerDependencies?.["@earendil-works/pi-coding-agent"]).toBe("*");
+		expect(packageJson.peerDependencies?.typebox).toBe("*");
+		expect(packageJson.pi?.extensions).toEqual(["./extensions"]);
+		expect(extensionPackageJson.pi?.extensions).toEqual(["./sandbox.ts"]);
+	});
+});
+
+describe("sandbox extension entrypoint", () => {
+	async function loadSandboxEntrypoint(agentDir: string, opts: { config?: Record<string, unknown> } = {}): Promise<{ default: (pi: unknown) => void; getProjectTmpDir: () => string | null; getTmpBackend: () => string; getSandboxPolicy: () => unknown }> {
+		const tool = (name: string) => ({
+			name,
+			description: `${name} stub`,
+			parameters: {},
+			execute: async () => ({ content: [{ type: "text", text: "stub" }] }),
+		});
+		// Default to host-tmpfs so session_start does not fail-closed on the (likely
+		// read-only in CI) ~/.cache cache root that session-disk requires. Callers
+		// that exercise session-disk pass an explicit config + a disk-backed
+		// XDG_CACHE_HOME.
+		const cfg = opts.config ?? { filesystem: { tmpBackend: "host-tmpfs" } };
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify(cfg));
+		mock.module("@earendil-works/pi-coding-agent", () => ({
+			getAgentDir: () => agentDir,
+			createBashTool: () => tool("bash"),
+			createReadTool: () => tool("read"),
+			createWriteTool: () => tool("write"),
+			createEditTool: () => tool("edit"),
+		}));
+		mock.module("typebox", () => ({
+			Type: {
+				Object: (properties: unknown, options?: unknown) => ({ type: "object", properties, ...(options as Record<string, unknown> | undefined) }),
+				String: (options?: unknown) => ({ type: "string", ...(options as Record<string, unknown> | undefined) }),
+				Number: (options?: unknown) => ({ type: "number", ...(options as Record<string, unknown> | undefined) }),
+				Optional: (schema: unknown) => ({ ...(schema as Record<string, unknown>), optional: true }),
+				Array: (items: unknown, options?: unknown) => ({ type: "array", items, ...(options as Record<string, unknown> | undefined) }),
+			},
+		}));
+		const mod = await import(`${new URL("./sandbox.ts", import.meta.url).href}?entrypoint=${Date.now()}`);
+		return { default: mod.default, getProjectTmpDir: mod.getProjectTmpDir, getTmpBackend: mod.getTmpBackend, getSandboxPolicy: mod.getSandboxPolicy };
+	}
+
+	test("disabled startup branches refresh the sandbox status pill", async () => {
+		const cases = [
+			{
+				name: "--no-sandbox",
+				config: { filesystem: { tmpBackend: "host-tmpfs" } },
+				getFlag: (flag: string) => flag === "no-sandbox",
+				expectedStatus: "🔒 Sandbox: disabled via --no-sandbox",
+			},
+			{
+				name: "enabled:false",
+				config: { enabled: false, filesystem: { tmpBackend: "host-tmpfs" } },
+				getFlag: () => false,
+				expectedStatus: "🔒 Sandbox: disabled via config",
+			},
+		];
+
+		for (const testCase of cases) {
+			const cwd = await makeTempDir();
+			const agentDir = await makeTempDir();
+			const statuses: string[] = [];
+			const handlers = new Map<string, Array<(event: unknown, ctx: unknown) => Promise<void> | void>>();
+			const extension = (await loadSandboxEntrypoint(agentDir, { config: testCase.config })).default;
+			const pi = {
+				registerFlag: () => {},
+				getFlag: testCase.getFlag,
+				registerTool: () => {},
+				registerCommand: () => {},
+				on: (event: string, handler: (event: unknown, ctx: unknown) => Promise<void> | void) => {
+					(handlers.get(event) ?? (handlers.set(event, []), handlers.get(event)!)).push(handler);
+				},
+			};
+			const ctx = {
+				cwd,
+				hasUI: false,
+				ui: {
+					notify: () => {},
+					setStatus: (key: string, message: string | undefined) => {
+						if (key === "sandbox" && message) statuses.push(message);
+					},
+					theme: { fg: (_name: string, text: string) => text },
+					confirm: async () => false,
+				},
+			};
+			extension(pi);
+
+			for (const handler of handlers.get("session_start") ?? []) {
+				await handler({ reason: "startup" }, ctx);
+			}
+
+			expect(statuses.at(-1), testCase.name).toBe(testCase.expectedStatus);
+		}
+	});
+
+	test("loads, registers sandboxed tool overrides and command, and refreshes /sandbox handshake state", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		const flags: string[] = [];
+		const tools: string[] = [];
+		const commands = new Map<string, { handler: (args: string | undefined, ctx: unknown) => Promise<void> | void }>();
+		const handlers = new Map<string, Array<(event: unknown, ctx: unknown) => Promise<void> | void>>();
+		const notifications: string[] = [];
+		const statuses: Array<{ key: string; message: string | undefined }> = [];
+		const pi = {
+			registerFlag: (name: string) => flags.push(name),
+			getFlag: () => false,
+			registerTool: (def: { name: string }) => tools.push(def.name),
+			registerCommand: (name: string, options: { handler: (args: string | undefined, ctx: unknown) => Promise<void> | void }) => commands.set(name, options),
+			on: (event: string, handler: (event: unknown, ctx: unknown) => Promise<void> | void) => {
+				(handlers.get(event) ?? (handlers.set(event, []), handlers.get(event)!)).push(handler);
+			},
+		};
+		const ctx = {
+			cwd,
+			hasUI: false,
+			ui: {
+				notify: (message: string) => notifications.push(message),
+				setStatus: (key: string, message: string | undefined) => statuses.push({ key, message }),
+				theme: { fg: (_name: string, text: string) => text },
+				confirm: async () => false,
+			},
+		};
+		const handshakeKey = Symbol.for("@nklisch/pi-sandbox.background-tasks-integration");
+		delete (globalThis as typeof globalThis & Record<symbol, unknown>)[handshakeKey];
+		try {
+			const extension = (await loadSandboxEntrypoint(agentDir)).default;
+			extension(pi);
+
+			expect(flags).toContain("no-sandbox");
+			expect(tools).toEqual(expect.arrayContaining(["bash", "read", "write", "edit"]));
+			expect(commands.has("sandbox")).toBe(true);
+			expect(handlers.get("session_start")?.length).toBeGreaterThan(0);
+
+			for (const handler of handlers.get("session_start") ?? []) {
+				await handler({ reason: "startup" }, ctx);
+			}
+			expect(statuses.length + notifications.length).toBeGreaterThan(0);
+
+			(globalThis as typeof globalThis & Record<symbol, unknown>)[handshakeKey] = { integrated: true, bridgeState: "loaded" };
+			await commands.get("sandbox")!.handler(undefined, ctx);
+			expect(notifications.at(-1)).toContain("Background tasks sandbox: active");
+		} finally {
+			delete (globalThis as typeof globalThis & Record<symbol, unknown>)[handshakeKey];
+		}
+	});
+
+	test("session_start derives a disk-backed project temp dir (B1 regression)", async () => {
+		// Regression for B1: the policy must capture the DERIVED projectTmpDir, not
+		// a null placeholder. Runs the real session_start hook with a disk-backed
+		// XDG_CACHE_HOME and asserts the derivation resolves a project temp dir that
+		// the ACTIVE POLICY carries — the path the prior session-disk tests bypassed
+		// by passing projectTmpDir via opts. (The dir's backing-store fs type is NOT
+		// runtime-validated — operator-asserted per the scope cut; no statfsSync
+		// assertions here.)
+		const cacheHome = await mkdtemp(join(tmpdir(), "pi-sandbox-b1-cache-"));
+		tempDirs.push(cacheHome);
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-b1-cwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-b1-agent-"));
+		tempDirs.push(agentDir);
+		const prevCache = process.env.XDG_CACHE_HOME;
+		process.env.XDG_CACHE_HOME = cacheHome;
+		try {
+			const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+			const extension = mod.default;
+			const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+			const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+			extension(pi);
+			const ctx: any = { cwd, hasUI: false, ui: { notify: () => {}, setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+			for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+
+			expect(mod.getTmpBackend()).toBe("session-disk");
+			const resolved = mod.getProjectTmpDir();
+			expect(resolved).not.toBeNull();
+			expect(resolved!.startsWith(realpathSync(cacheHome))).toBe(true);
+			// R2-B2: the ACTIVE POLICY must carry the derived projectTmpDir, not
+			// just the module accessor. The original B1 bug constructed the policy
+			// BEFORE derivation, so the policy kept projectTmpDir:null while the
+			// accessor read the later-set module state — an accessor-only test
+			// passed against the bug. Assert the policy object directly.
+			const policy = mod.getSandboxPolicy();
+			expect(policy).not.toBeNull();
+			expect(policy!.projectTmpDir).toBe(resolved);
+			expect(policy!.tmpBackend).toBe("session-disk");
+		} finally {
+			process.env.XDG_CACHE_HOME = prevCache;
+		}
+	});
+
+	test("session-disk derives a stable per-cwd dir: same realpath cwd shares, different cwd differs", async () => {
+		const cacheHome = await mkdtemp(join(tmpdir(), "pi-sandbox-cwdkey-cache-"));
+		tempDirs.push(cacheHome);
+		const cwdA = await mkdtemp(join(tmpdir(), "pi-sandbox-cwdkey-a-"));
+		tempDirs.push(cwdA);
+		const cwdB = await mkdtemp(join(tmpdir(), "pi-sandbox-cwdkey-b-"));
+		tempDirs.push(cwdB);
+		const prevCache = process.env.XDG_CACHE_HOME;
+		process.env.XDG_CACHE_HOME = cacheHome;
+		try {
+			const run = async (cwd: string) => {
+				const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-cwdkey-agent-"));
+				tempDirs.push(agentDir);
+				const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+				const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+				const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+				mod.default(pi);
+				const ctx: any = { cwd, hasUI: false, ui: { notify: () => {}, setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+				for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+				const p = mod.getSandboxPolicy();
+				return p!.projectTmpDir;
+			};
+			const a1 = await run(cwdA);
+			const a2 = await run(cwdA);
+			const b = await run(cwdB);
+			expect(a1).not.toBeNull();
+			expect(a2).toBe(a1); // same realpath cwd -> same project dir
+			expect(b).not.toBe(a1); // different cwd -> different dir
+		} finally {
+			process.env.XDG_CACHE_HOME = prevCache;
+		}
+	});
+
+	test("session-disk fails closed on a relative XDG_CACHE_HOME", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-relcwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-relagent-"));
+		tempDirs.push(agentDir);
+		const prevCache = process.env.XDG_CACHE_HOME;
+		process.env.XDG_CACHE_HOME = "relative/cache/path";
+		try {
+			const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+			const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+			const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+			mod.default(pi);
+			const notifications: string[] = [];
+			const statuses: string[] = [];
+			const ctx: any = { cwd, hasUI: false, ui: { notify: (m: string) => notifications.push(m), setStatus: (_k: string, m: string) => statuses.push(m), theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+			for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+			expect(notifications.some((m) => m.includes("absolute XDG_CACHE_HOME"))).toBe(true);
+			expect(statuses.some((m) => m.includes("FAIL-CLOSED"))).toBe(true);
+			expect(mod.getProjectTmpDir()).toBeNull();
+		} finally {
+			process.env.XDG_CACHE_HOME = prevCache;
+		}
+	});
+
+	test("R3-B2: bwrap-missing installs the configured file-tool policy, not createFailClosedPolicy (regression)", async () => {
+		// Regression for R3-B2: moving policy construction after platform/bwrap
+		// checks broke the degrade/fail-closed file-tool path — read/write/edit
+		// fell to createFailClosedPolicy() and blocked ALL filesystem access instead
+		// of enforcing the configured in-process policy. This exercises the
+		// bwrap-missing terminal return (reachable on Linux by pointing bwrapPath at
+		// a nonexistent binary): the session_start hook must have installed the
+		// provisional configured file policy BEFORE the bwrap check, so the active
+		// policy carries the configured denyRead/allowWrite, not a blanket block.
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-r3b2-cwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-r3b2-agent-"));
+		tempDirs.push(agentDir);
+		const mod = await loadSandboxEntrypoint(agentDir, {
+			config: {
+				bwrapPath: "/nonexistent/bwrap",
+				filesystem: { tmpBackend: "host-tmpfs", denyRead: ["/denied-r3b2"], allowWrite: ["/allowed-r3b2"] },
+			},
+		});
+		const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+		const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+		mod.default(pi);
+		const ctx: any = { cwd, hasUI: false, ui: { notify: () => {}, setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+		for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+		// bwrap is missing -> bash is fail-closed, but the FILE-TOOL policy must
+		// be the configured one (denyRead includes /denied-r3b2, allowWrite
+		// includes /allowed-r3b2), NOT the blanket createFailClosedPolicy().
+		const policy = mod.getSandboxPolicy();
+		expect(policy).not.toBeNull();
+		expect(policy!.denyRead).toContain("/denied-r3b2");
+		expect(policy!.allowWrite).toContain("/allowed-r3b2");
+		expect(policy!.projectTmpDir).toBeNull(); // host-tmpfs path
+		expect(policy!.tmpBackend).toBe("host-tmpfs");
+	});
+
+	test("B2: --no-sandbox keeps accessors consistent with the installed permissive policy", async () => {
+		// Regression for B2: session_start resets state then the --no-sandbox
+		// branch installs a permissive policy (tmpBackend host-tmpfs). The local
+		// diagnostic accessors and the published cross-loader spawn snapshot must
+		// both reflect that policy; stale session-disk/null state made
+		// background/monitor commands throw fail-closed under --no-sandbox.
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-b2-cwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-b2-agent-"));
+		tempDirs.push(agentDir);
+		const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+		const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+		const pi: any = { registerFlag: () => {}, getFlag: (f: string) => f === "no-sandbox", registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+		mod.default(pi);
+		const ctx: any = { cwd, hasUI: false, ui: { notify: () => {}, setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+		for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+		// The accessors must agree with the active policy (both host-tmpfs), not
+		// diverge to session-disk.
+		expect(mod.getTmpBackend()).toBe("host-tmpfs");
+		expect(mod.getProjectTmpDir()).toBeNull();
+		const policy = mod.getSandboxPolicy();
+		expect(policy).not.toBeNull();
+		expect(policy!.tmpBackend).toBe("host-tmpfs");
+		expect(mod.getTmpBackend()).toBe(policy!.tmpBackend);
+		// --no-sandbox intentionally does not propagate to background/monitor:
+		// publish a usable host-tmpfs state so their stricter sandbox path has no
+		// stale session-disk/null combination to trip over.
+		expect(readSandboxSpawnSessionState()).toMatchObject({
+			ok: true,
+			value: { state: "ready", tmpBackend: "host-tmpfs", projectTmpDir: null },
+		});
+	});
+
+	test("B1: a pre-existing symlink at the cwd-hash project dir path is rejected (fail-closed)", async () => {
+		// Regression for B1: mkdirSync(recursive) succeeds on a pre-existing
+		// symlink-to-dir and realpathSync follows it, which would pin an arbitrary
+		// target as the writable projectTmpDir bind. deriveProjectTmpDir must
+		// detect the symlink via lstatSync and fail closed.
+		const cacheHome = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sym-cache-"));
+		tempDirs.push(cacheHome);
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sym-cwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sym-agent-"));
+		tempDirs.push(agentDir);
+		// Pre-create the cache root + plant a symlink at the predictable cwd-hash
+		// path pointing at an escape target outside the cache root.
+		const { createHash } = await import("node:crypto");
+		const { symlink: symlinkAsync, mkdir: mkdirAsync } = await import("node:fs/promises");
+		const realCwd = realpathSync(cwd);
+		const cwdKey = createHash("sha256").update(realCwd).digest("hex").slice(0, 16);
+		const cacheRoot = join(cacheHome, "pi-sandbox", "tmp");
+		await mkdirAsync(cacheRoot, { recursive: true });
+		const escapeTarget = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sym-escape-"));
+		tempDirs.push(escapeTarget);
+		await symlinkAsync(escapeTarget, join(cacheRoot, cwdKey));
+		const prevCache = process.env.XDG_CACHE_HOME;
+		process.env.XDG_CACHE_HOME = cacheHome;
+		try {
+			const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+			const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+			const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+			mod.default(pi);
+			const notifications: string[] = [];
+			const ctx: any = { cwd, hasUI: false, ui: { notify: (m: string) => notifications.push(m), setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+			for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+			// The symlink must be rejected: fail-closed, no project temp dir bound.
+			expect(notifications.some((m) => m.includes("symlink"))).toBe(true);
+			expect(mod.getProjectTmpDir()).toBeNull();
+		} finally {
+			process.env.XDG_CACHE_HOME = prevCache;
+		}
+	});
+
+	test("B1: a symlink at the cwd-hash path pointing at an in-cache sibling is rejected", async () => {
+		// The cwd-hash path is predictable and lives under the shared, sandbox-
+		// writable cache root. A symlink planted there pointing at a SIBLING project
+		// dir (under the same cache root) is the in-cache-swap case the round-5
+		// reviewers traced. The lstatSync defense catches it (a symlink is rejected
+		// before mkdirSync legitimizes it). The final-path equality check
+		// (realDir !== expectedDir -> fail-closed) is defense-in-depth for the
+		// TOCTOU window between lstatSync and realpathSync (a swap mid-derivation);
+		// that window is not deterministically testable without race injection, but
+		// the equality check is correct on its own merits: realCacheRoot is already
+		// canonical and cwdKey is a fixed plain child, so realDir must EXACTLY equal
+		// join(realCacheRoot, cwdKey) — any divergence (in-cache or out) is rejected.
+		const cacheHome = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sib-cache-"));
+		tempDirs.push(cacheHome);
+		const cwd = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sib-cwd-"));
+		tempDirs.push(cwd);
+		const agentDir = await mkdtemp(join(tmpdir(), "pi-sandbox-b1sib-agent-"));
+		tempDirs.push(agentDir);
+		const { createHash } = await import("node:crypto");
+		const { symlink: symlinkAsync, mkdir: mkdirAsync } = await import("node:fs/promises");
+		const realCwd = realpathSync(cwd);
+		const cwdKey = createHash("sha256").update(realCwd).digest("hex").slice(0, 16);
+		const cacheRoot = join(cacheHome, "pi-sandbox", "tmp");
+		await mkdirAsync(cacheRoot, { recursive: true });
+		// Plant a symlink at THIS cwd's hash path pointing at a sibling dir under
+		// the same cache root. Without the lstatSync defense, mkdirSync would
+		// accept it and realpathSync would return the sibling (beneath realCacheRoot
+		// — the buggy `&&` would have accepted it too).
+		const siblingDir = join(cacheRoot, "deadbeefdeadbeef");
+		await mkdirAsync(siblingDir, { recursive: true });
+		await symlinkAsync(siblingDir, join(cacheRoot, cwdKey));
+		const prevCache = process.env.XDG_CACHE_HOME;
+		process.env.XDG_CACHE_HOME = cacheHome;
+		try {
+			const mod = await loadSandboxEntrypoint(agentDir, { config: { filesystem: { tmpBackend: "session-disk" } } });
+			const handlers = new Map<string, Array<(e: unknown, ctx: unknown) => Promise<void> | void>>();
+			const pi: any = { registerFlag: () => {}, getFlag: () => false, registerTool: () => {}, registerCommand: () => {}, on: (ev: string, h: any) => { (handlers.get(ev) ?? (handlers.set(ev, []), handlers.get(ev)!)).push(h); } };
+			mod.default(pi);
+			const notifications: string[] = [];
+			const ctx: any = { cwd, hasUI: false, ui: { notify: (m: string) => notifications.push(m), setStatus: () => {}, theme: { fg: (_n: string, t: string) => t }, confirm: async () => false } };
+			for (const h of handlers.get("session_start") ?? []) await h({ reason: "startup" }, ctx);
+			// The symlink (to a sibling) must be rejected: fail-closed, no project temp dir.
+			expect(notifications.some((m) => m.includes("symlink") || m.includes("diverged"))).toBe(true);
+			expect(mod.getProjectTmpDir()).toBeNull();
+		} finally {
+			process.env.XDG_CACHE_HOME = prevCache;
+		}
+	});
+});
+
+describe("config boundary contract", () => {
+	test("deepMerge strips ASRT-only fields instead of carrying inert security knobs", () => {
+		const legacyConfig = {
+			ignoreViolations: { bash: ["legacy"] },
+			enableWeakerNestedSandbox: true,
+			httpProxyPort: 8080,
+			socksProxyPort: 1080,
+			filesystem: {
+				allowGitConfig: true,
+				denyRead: ["secret"],
+			},
+			network: {
+				mode: "open",
+				httpProxyPort: 8080,
+				socksProxyPort: 1080,
+			},
+		} as Partial<SandboxConfig> & Record<string, unknown>;
+
+		const merged = deepMerge(DEFAULT_CONFIG, legacyConfig);
+
+		expect((merged as Record<string, unknown>).ignoreViolations).toBeUndefined();
+		expect((merged as Record<string, unknown>).enableWeakerNestedSandbox).toBeUndefined();
+		expect((merged as Record<string, unknown>).httpProxyPort).toBeUndefined();
+		expect((merged as Record<string, unknown>).socksProxyPort).toBeUndefined();
+		expect((merged.filesystem as Record<string, unknown>).allowGitConfig).toBeUndefined();
+		expect((merged.network as Record<string, unknown>).httpProxyPort).toBeUndefined();
+		expect((merged.network as Record<string, unknown>).socksProxyPort).toBeUndefined();
+	});
+
+	test("mergeProjectAdditive lets projects tighten but not loosen global policy", () => {
+		const warnings: string[] = [];
+		const merged = mergeProjectAdditive(
+			{
+				enabled: true,
+				filesystem: {
+					denyRead: ["global-secret"],
+					denyWrite: ["global-protected"],
+					allowWrite: [".", "allowed"],
+				},
+				network: {
+					mode: "filter",
+					allowedDomains: ["a.example", "b.example"],
+					deniedDomains: ["bad.example"],
+				},
+				tools: { default: "confirm", rules: { bash: "block" } },
+			},
+			{
+				enabled: false,
+				filesystem: {
+					denyRead: ["project-secret"],
+					denyWrite: ["project-protected"],
+					allowWrite: ["allowed", "new-allow"],
+				},
+				network: {
+					mode: "open",
+					allowedDomains: ["a.example", "evil.example"],
+					deniedDomains: ["worse.example"],
+				},
+				tools: { default: "allow", rules: { bash: "allow", read: "block" } },
+			},
+			warnings,
+		);
+
+		expect(merged.enabled).toBe(true);
+		expect(merged.filesystem?.denyRead).toEqual(["global-secret", "project-secret"]);
+		expect(merged.filesystem?.denyWrite).toEqual(["global-protected", "project-protected"]);
+		expect(merged.filesystem?.allowWrite).toEqual(["allowed", "new-allow"]);
+		expect(merged.network?.mode).toBe("filter");
+		expect(merged.network?.allowedDomains).toEqual(["a.example"]);
+		expect(merged.network?.deniedDomains).toEqual(["bad.example", "worse.example"]);
+		expect(merged.tools?.default).toBe("confirm");
+		expect(merged.tools?.rules).toEqual({ bash: "block", read: "block" });
+		expect(warnings.join("\n")).toContain("disable sandbox");
+		expect(warnings.join("\n")).toContain("loosen network.mode");
+		expect(warnings.join("\n")).toContain("loosen tool policy");
+	});
+
+	test("mergeProjectAdditive rejects a project attempt to re-enable global-disabled git directory discovery", () => {
+		const warnings: string[] = [];
+		const merged = mergeProjectAdditive(
+			deepMerge(DEFAULT_CONFIG, { filesystem: { allowGitDirDiscovery: false } }),
+			{ filesystem: { allowGitDirDiscovery: true } },
+			warnings,
+		);
+
+		expect(merged.filesystem?.allowGitDirDiscovery).toBe(false);
+		expect(warnings).toContain("project tried to set allowGitDirDiscovery; ignored (global/operator-only)");
+	});
+
+	test("/sandbox reports whether global git directory discovery is active", () => {
+		const loaded: LoadedConfig = {
+			config: deepMerge(DEFAULT_CONFIG, { filesystem: { allowGitDirDiscovery: false } }),
+			parseErrors: [],
+			globWarnings: [],
+			missingDenyWarnings: [],
+			legacyFieldWarnings: [],
+			failClosedReasons: [],
+			additiveWarnings: [],
+		};
+		const output = formatSandboxCommandOutput(loaded, {
+			failClosed: false,
+			sandboxEnabled: true,
+			sandboxInitialized: true,
+			disabledViaConfig: false,
+		});
+		expect(output).toContain("Git directory discovery: disabled (global/operator-only)");
+	});
+
+	test("mergeProjectAdditive narrows allowWrite by canonical containment, not raw exact string", async () => {
+		// A project may narrow global allowWrite to a subpath (nested-under) without
+		// being silently rejected as `[]`. Widening beyond global is rejected + warned.
+		const tmp = await mkdtemp(join(tmpdir(), "aw-narrow-"));
+		await mkdir(join(tmp, "plugins"), { recursive: true });
+		await mkdir(join(tmp, "allowed"), { recursive: true });
+		const global = {
+			enabled: true as const,
+			filesystem: { denyRead: ["~/.ssh"], allowWrite: [".", "allowed"], denyWrite: [".env"] },
+		};
+		const warns: string[] = [];
+		const narrowed = mergeProjectAdditive(global, { filesystem: { allowWrite: ["plugins"] } }, warns, tmp);
+		expect(narrowed.filesystem?.allowWrite).toEqual(["plugins"]);
+		expect(warns.join("\n")).not.toContain("plugins");
+
+		// Widening to a path outside every global entry is rejected.
+		const widenWarns: string[] = [];
+		const widened = mergeProjectAdditive(global, { filesystem: { allowWrite: ["/etc"] } }, widenWarns, tmp);
+		expect(widened.filesystem?.allowWrite).toEqual([]);
+		expect(widenWarns.join("\n")).toContain("outside the global writable set");
+
+		await rm(tmp, { recursive: true, force: true });
+	});
+
+	// Regression: a global allowWrite GLOB (e.g. `*.log`) must not be treated as
+	// a literal path during the narrowing check. Previously,
+	// `canonicalizeAllowWriteEntry("*.log")` returned the literal `/tmp/*.log`
+	// (the path doesn't exist, so no realpath; the `*` survived as a literal char),
+	// and a project literal `app.log` -> `/tmp/app.log` failed both the exact
+	// match and `isNestedUnder` (relative("/tmp/*.log", "/tmp/app.log") ==
+	// "../app.log" because `*` is a literal segment). A valid narrowing was thus
+	// wrongly rejected. The fix matches a global glob as a PATTERN: a project
+	// literal matching the glob regex is a concrete member of its language (a
+	// subset, no widening) and is accepted.
+	test("mergeProjectAdditive narrows allowWrite under a global glob entry", async () => {
+		const tmp = await mkdtemp(join(tmpdir(), "aw-glob-narrow-"));
+		const global = {
+			enabled: true as const,
+			filesystem: { allowWrite: ["*.log"] },
+		};
+
+		// Project literal that matches the global glob -> accepted (subset).
+		const warns: string[] = [];
+		const narrowed = mergeProjectAdditive(global, { filesystem: { allowWrite: ["app.log"] } }, warns, tmp);
+		expect(narrowed.filesystem?.allowWrite).toEqual(["app.log"]);
+		expect(warns.join("\n")).not.toContain("app.log");
+
+		// Project literal that does NOT match the global glob -> rejected (widening).
+		const widenWarns: string[] = [];
+		const widened = mergeProjectAdditive(global, { filesystem: { allowWrite: ["app.txt"] } }, widenWarns, tmp);
+		expect(widened.filesystem?.allowWrite).toEqual([]);
+		expect(widenWarns.join("\n")).toContain("outside the global writable set");
+
+		// Project GLOB vs a global GLOB is undecidable -> rejected (sound), even when
+		// the project glob is intuitively narrower. Runtime isWithinAllowWrite
+		// enforces correctly regardless of the merge decision.
+		const globWarns: string[] = [];
+		const globbed = mergeProjectAdditive(global, { filesystem: { allowWrite: ["a*.log"] } }, globWarns, tmp);
+		expect(globbed.filesystem?.allowWrite).toEqual([]);
+		expect(globWarns.join("\n")).toContain("outside the global writable set");
+
+		await rm(tmp, { recursive: true, force: true });
+	});
+
+	// Regression for the additive-narrowing contract: an explicit empty array
+	// (`[]`) is a valid narrowing to "nothing" — it must NOT be treated as an
+	// omitted field (which would inherit the global set). A project that sets
+	// `allowWrite: []` or `allowedDomains: []` intends to clear the inherited set;
+	// silently keeping the broader global access breaks the narrowing contract.
+	test("mergeProjectAdditive treats explicit [] as clearing, not as omitted", () => {
+		const global = {
+			enabled: true as const,
+			filesystem: { denyRead: ["~/.ssh"], allowWrite: [".", "/tmp"], denyWrite: [".env"] },
+			network: { mode: "open" as const, allowedDomains: ["npmjs.org", "github.com"], deniedDomains: [] },
+		};
+
+		// [] CLEARS the inherited writable set (narrows to nothing).
+		const clearedWrite = mergeProjectAdditive(global, { filesystem: { allowWrite: [] } }, [], "/tmp");
+		expect(clearedWrite.filesystem?.allowWrite).toEqual([]);
+
+		// [] CLEARS the inherited allowedDomains set.
+		const clearedDomains = mergeProjectAdditive(global, { network: { allowedDomains: [] } }, [], "/tmp");
+		expect(clearedDomains.network?.allowedDomains).toEqual([]);
+
+		// OMITTED inherits the global set (does not clear).
+		const omittedDomains = mergeProjectAdditive(global, { network: { mode: "block" } }, [], "/tmp");
+		expect(omittedDomains.network?.allowedDomains).toEqual(["npmjs.org", "github.com"]);
+
+		// OMITTED allowWrite inherits the global set.
+		const omittedWrite = mergeProjectAdditive(global, { network: { mode: "block" } }, [], "/tmp");
+		expect(omittedWrite.filesystem?.allowWrite).toEqual([".", "/tmp"]);
+	});
+
+	test("network mode additive rank treats fail-closed filter as stricter than block", () => {
+		const cases: Array<{
+			globalMode: "open" | "block" | "filter";
+			projectMode: "open" | "block" | "filter";
+			expectedMode: "open" | "block" | "filter";
+			warned: boolean;
+		}> = [
+			{ globalMode: "filter", projectMode: "block", expectedMode: "filter", warned: true },
+			{ globalMode: "open", projectMode: "block", expectedMode: "block", warned: false },
+			{ globalMode: "open", projectMode: "filter", expectedMode: "filter", warned: false },
+			{ globalMode: "block", projectMode: "filter", expectedMode: "filter", warned: false },
+			{ globalMode: "block", projectMode: "open", expectedMode: "block", warned: true },
+		];
+
+		for (const { globalMode, projectMode, expectedMode, warned } of cases) {
+			const warnings: string[] = [];
+			const merged = mergeProjectAdditive(
+				{ enabled: true, network: { mode: globalMode } },
+				{ network: { mode: projectMode } },
+				warnings,
+			);
+
+			expect(merged.network?.mode).toBe(expectedMode);
+			if (warned) expect(warnings.join("\n")).toContain(`loosen network.mode (${globalMode} -> ${projectMode})`);
+			else expect(warnings).toEqual([]);
+		}
+	});
+
+	test("project inspector cannot override global secret shapes", () => {
+		const warnings: string[] = [];
+		const merged = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: {
+					default: "allow",
+					rules: {},
+					inspector: {
+						secrets: [{ name: "token", pattern: "tok_[a-z]+", action: "block" }],
+					},
+				},
+			},
+			{
+				tools: {
+					inspector: {
+						secrets: [
+							{ name: "token", pattern: "does-not-match", action: "redact" },
+							{ name: "new-token", pattern: "new_[a-z]+", action: "redact" },
+						],
+					},
+				},
+			},
+			warnings,
+		);
+
+		expect(merged.tools?.inspector?.secrets).toEqual([
+			{ name: "token", pattern: "tok_[a-z]+", action: "block" },
+			{ name: "new-token", pattern: "new_[a-z]+", action: "redact" },
+		]);
+		expect(warnings.join("\n")).toContain("override inspector secret shape \"token\"");
+	});
+
+	test("project inspector scanFields union with global coverage and warn on narrowing attempts", () => {
+		const implicitWarnings: string[] = [];
+		const implicitAll = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: {
+					default: "allow",
+					rules: {},
+					inspector: { secrets: [{ name: "token", pattern: "tok_[A-Za-z0-9]+", action: "block" }] },
+				},
+			},
+			{ tools: { inspector: { scanFields: { agent_send: ["to"] } } } },
+			implicitWarnings,
+		);
+		expect(implicitAll.tools?.inspector?.scanFields?.agent_send).toBe("*");
+		expect(implicitWarnings.join("\n")).toContain("narrow inspector scanFields for \"agent_send\" away from all-fields");
+
+		const wildcardWarnings: string[] = [];
+		const wildcard = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: { default: "allow", rules: {}, inspector: { scanFields: { "*": "*" } } },
+			},
+			{ tools: { inspector: { scanFields: { agent_send: ["to"] } } } },
+			wildcardWarnings,
+		);
+		expect(wildcard.tools?.inspector?.scanFields?.["*"]).toBe("*");
+		expect(wildcard.tools?.inspector?.scanFields?.agent_send).toBe("*");
+		expect(wildcardWarnings.join("\n")).toContain("narrow inspector scanFields for \"agent_send\"");
+
+		const addQueryWarnings: string[] = [];
+		const addQuery = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: { default: "allow", rules: {}, inspector: { scanFields: { agent_send: ["body", "to"] } } },
+			},
+			{ tools: { inspector: { scanFields: { agent_send: ["query"] } } } },
+			addQueryWarnings,
+		);
+		expect(addQuery.tools?.inspector?.scanFields?.agent_send).toEqual(["body", "to", "query"]);
+		expect(addQueryWarnings.join("\n")).toContain("drop inspector scanFields for \"agent_send\" (body, to)");
+
+		const addToWarnings: string[] = [];
+		const addTo = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: { default: "allow", rules: {}, inspector: { scanFields: { agent_send: ["body"] } } },
+			},
+			{ tools: { inspector: { scanFields: { agent_send: ["to"] } } } },
+			addToWarnings,
+		);
+		expect(addTo.tools?.inspector?.scanFields?.agent_send).toEqual(["body", "to"]);
+		expect(addToWarnings.join("\n")).toContain("drop inspector scanFields for \"agent_send\" (body)");
+	});
+
+	test("bypass-tool defaults allow background and monitor only when integration is active", () => {
+		const active: BypassToolIntegrationState = { backgroundTasksSandbox: "active", reason: "Linux bwrap integration ready" };
+		const inactive: BypassToolIntegrationState = { backgroundTasksSandbox: "inactive", reason: "integration off" };
+		const blocked: BypassToolIntegrationState = { backgroundTasksSandbox: "blocked", reason: "bwrap missing" };
+
+		expect(applyBypassToolDefaults({ default: "allow", rules: {} }, active).rules).toMatchObject({
+			background: "allow",
+			monitor: "allow",
+		});
+		expect(applyBypassToolDefaults({ default: "allow", rules: {} }, inactive).rules).toMatchObject({
+			background: "confirm",
+			monitor: "confirm",
+		});
+		expect(applyBypassToolDefaults({ default: "allow", rules: {} }, blocked).rules).toMatchObject({
+			background: "confirm",
+			monitor: "confirm",
+		});
+		expect(applyBypassToolDefaults({ default: "block", rules: {} }, active).rules?.background).toBe("block");
+		expect(applyBypassToolDefaults({ default: "allow", rules: { background: "block" } }, active).rules?.background).toBe("block");
+	});
+
+	test("background-tasks integration state requires platform readiness and loaded bridge handshake", () => {
+		const baseConfig: SandboxConfig = { ...DEFAULT_CONFIG, enabled: true, network: { mode: "open" }, backgroundTasks: { sandboxIntegration: "auto" } };
+		const loadedHandshake = { integrated: true, bridgeState: "loaded" };
+
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: true, backgroundTasksHandshake: loadedHandshake })).toMatchObject({
+			backgroundTasksSandbox: "active",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: true })).toMatchObject({
+			backgroundTasksSandbox: "inactive",
+			reason: "background-tasks sandbox integration handshake missing",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: true, backgroundTasksHandshake: { integrated: false, reason: "absent" } })).toMatchObject({
+			backgroundTasksSandbox: "inactive",
+			reason: "background-tasks sandbox bridge absent",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: true, backgroundTasksHandshake: { integrated: false, reason: "broken" } })).toMatchObject({
+			backgroundTasksSandbox: "inactive",
+			reason: "background-tasks sandbox bridge broken",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "darwin", bwrapAvailable: false, backgroundTasksHandshake: loadedHandshake })).toMatchObject({
+			backgroundTasksSandbox: "inactive",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: { ...baseConfig, backgroundTasks: { sandboxIntegration: "off" } }, platform: "linux", bwrapAvailable: true, backgroundTasksHandshake: loadedHandshake })).toMatchObject({
+			backgroundTasksSandbox: "inactive",
+			reason: "backgroundTasks.sandboxIntegration is off",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, platform: "linux", bwrapAvailable: false, backgroundTasksHandshake: loadedHandshake })).toMatchObject({
+			backgroundTasksSandbox: "blocked",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: { ...baseConfig, network: { mode: "filter" } }, platform: "linux", bwrapAvailable: true, backgroundTasksHandshake: loadedHandshake })).toMatchObject({
+			backgroundTasksSandbox: "blocked",
+		});
+		expect(decideBackgroundTasksIntegrationState({ config: baseConfig, parseErrors: ["project: invalid JSON"], backgroundTasksHandshake: loadedHandshake })).toMatchObject({
+			backgroundTasksSandbox: "blocked",
+			reason: "config parse error(s): project: invalid JSON",
+		});
+	});
+
+	test("project config cannot lower bypass-tool fallback policy but can tighten it", () => {
+		const loosenWarnings: string[] = [];
+		const loosened = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: { default: "allow", rules: { background: "confirm", monitor: "block" } },
+			},
+			{ tools: { rules: { background: "allow", monitor: "allow" } } },
+			loosenWarnings,
+		);
+
+		expect(loosened.tools?.rules?.background).toBe("confirm");
+		expect(loosened.tools?.rules?.monitor).toBe("block");
+		expect(loosenWarnings.join("\n")).toContain("background");
+		expect(loosenWarnings.join("\n")).toContain("monitor");
+
+		const tightenWarnings: string[] = [];
+		const tightened = mergeProjectAdditive(
+			{
+				enabled: true,
+				tools: { default: "allow", rules: {} },
+			},
+			{ tools: { rules: { background: "block", monitor: "confirm" } } },
+			tightenWarnings,
+		);
+
+		expect(tightened.tools?.rules?.background).toBe("block");
+		expect(tightened.tools?.rules?.monitor).toBe("confirm");
+		expect(tightenWarnings).toEqual([]);
+	});
+
+	test("confirm bypass-tool policy fails closed when no UI is available", () => {
+		const inactive: BypassToolIntegrationState = { backgroundTasksSandbox: "inactive", reason: "integration off" };
+		const background = decideToolPolicy("background", { default: "allow", rules: { background: "confirm" } }, false, inactive);
+		const monitor = decideToolPolicy("monitor", { default: "allow", rules: { monitor: "confirm" } }, false, inactive);
+
+		expect(background.action).toBe("block");
+		expect(background.reason).toContain("requires confirmation");
+		expect(monitor.action).toBe("block");
+		expect(monitor.reason).toContain("requires confirmation");
+	});
+
+	test("loadConfig keeps raw bypass-tool config and applies state at decision time", async () => {
+		const cwd = await makeTempDir();
+		const loaded = loadConfig(cwd, { agentDir: join(cwd, "missing-agent-dir") });
+		const active: BypassToolIntegrationState = { backgroundTasksSandbox: "active", reason: "Linux bwrap" };
+		const inactive: BypassToolIntegrationState = { backgroundTasksSandbox: "inactive", reason: "unsupported platform" };
+
+		expect(loaded.config.tools?.rules?.background).toBeUndefined();
+		expect(applyBypassToolDefaults(loaded.config.tools, active).rules?.background).toBe("allow");
+		expect(applyBypassToolDefaults(loaded.config.tools, inactive).rules?.background).toBe("confirm");
+	});
+
+	test("loadConfig preserves global bypass-tool rules while inactive state still floors allow to confirm", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			tools: { rules: { background: "allow", monitor: "block" } },
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+		const inactive: BypassToolIntegrationState = { backgroundTasksSandbox: "inactive", reason: "integration off" };
+
+		expect(loaded.config.tools?.rules?.background).toBe("allow");
+		expect(loaded.config.tools?.rules?.monitor).toBe("block");
+		expect(applyBypassToolDefaults(loaded.config.tools, inactive).rules?.background).toBe("confirm");
+		expect(applyBypassToolDefaults(loaded.config.tools, inactive).rules?.monitor).toBe("block");
+	});
+
+	test("loadConfig blocks project attempts to lower bypass-tool fallback confirmation", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({
+			tools: { rules: { background: "allow", monitor: "allow" } },
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+		const inactive: BypassToolIntegrationState = { backgroundTasksSandbox: "inactive", reason: "integration off" };
+
+		expect(loaded.config.tools?.rules?.background).toBeUndefined();
+		expect(loaded.config.tools?.rules?.monitor).toBeUndefined();
+		expect(applyBypassToolDefaults(loaded.config.tools, inactive).rules?.background).toBe("confirm");
+		expect(applyBypassToolDefaults(loaded.config.tools, inactive).rules?.monitor).toBe("confirm");
+		expect(loaded.additiveWarnings.join("\n")).toContain("background");
+		expect(loaded.additiveWarnings.join("\n")).toContain("monitor");
+	});
+
+	test("loadConfig lets projects tighten bypass tools to confirm or block", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({
+			tools: { rules: { background: "block", monitor: "confirm" } },
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.config.tools?.rules?.background).toBe("block");
+		expect(loaded.config.tools?.rules?.monitor).toBe("confirm");
+	});
+
+	test("default denyRead protects credential stores without masking Git config", () => {
+		const denyRead = DEFAULT_CONFIG.filesystem?.denyRead;
+		expect(denyRead).toContain("~/.config/git/credentials");
+		// Denying a regular Git config file makes bwrap bind /dev/null over it.
+		// Git rejects that character device and exits 128, breaking ordinary use.
+		expect(denyRead).not.toContain("~/.gitconfig");
+		expect(denyRead).not.toContain("~/.config/git/config");
+	});
+
+	test("loadConfig reads global and project paths and merges them additively", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			enabled: true,
+			filesystem: {
+				denyRead: ["global-secret"],
+				denyWrite: ["global-protected"],
+				allowWrite: [".", "allowed"],
+			},
+			network: {
+				mode: "open",
+				allowedDomains: ["a.example", "b.example"],
+				deniedDomains: ["bad.example"],
+			},
+			envScrub: { names: ["GLOBAL_SECRET"], patterns: ["GLOBAL_*"], keep: ["GLOBAL_KEEP"] },
+		}));
+		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({
+			filesystem: {
+				denyRead: ["project-secret"],
+				denyWrite: ["project-protected"],
+				allowWrite: ["allowed", "new-allow"],
+			},
+			network: {
+				mode: "block",
+				allowedDomains: ["a.example", "evil.example"],
+				deniedDomains: ["worse.example"],
+			},
+			envScrub: { names: ["PROJECT_SECRET"], patterns: ["PROJECT_*"], keep: ["PROJECT_KEEP"] },
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.parseErrors).toEqual([]);
+		expect(loaded.config.filesystem?.denyRead).toEqual([...(DEFAULT_CONFIG.filesystem?.denyRead ?? []), "global-secret", "project-secret"]);
+		expect(loaded.config.filesystem?.denyWrite).toEqual([...(DEFAULT_CONFIG.filesystem?.denyWrite ?? []), "global-protected", "project-protected"]);
+		expect(loaded.config.filesystem?.allowWrite).toEqual(["allowed", "new-allow"]);
+		expect(loaded.config.network?.mode).toBe("block");
+		expect(loaded.config.network?.allowedDomains).toEqual(["a.example"]);
+		expect(loaded.config.network?.deniedDomains).toEqual(["bad.example", "worse.example"]);
+		expect(loaded.config.envScrub?.names).toEqual(["ANTHROPIC_AUTH_TOKEN", "GLOBAL_SECRET", "PROJECT_SECRET"]);
+		expect(loaded.config.envScrub?.patterns).toEqual(["GLOBAL_*", "PROJECT_*"]);
+		expect(loaded.config.envScrub?.keep).toEqual(["GLOBAL_KEEP", "PROJECT_KEEP"]);
+	});
+
+	test("buildMinimalEnv scrubs configured LC_* tokens without dropping locale settings", () => {
+		const minimalEnv = buildMinimalEnv(
+			{
+				PATH: "/usr/bin",
+				LC_ALL: "C.UTF-8",
+				LC_CTYPE: "en_US.UTF-8",
+				LC_FORGE_TOKEN: "secret-forge-token",
+			},
+			{
+				names: ["LC_FORGE_TOKEN"],
+				keep: ["LC_FORGE_TOKEN"],
+			},
+		);
+
+		expect(minimalEnv.LC_FORGE_TOKEN).toBeUndefined();
+		expect(minimalEnv.LC_ALL).toBe("C.UTF-8");
+		expect(minimalEnv.LC_CTYPE).toBe("en_US.UTF-8");
+	});
+
+	test("loadConfig unions global deny lists with defaults unless explicitly emptied (M1)", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			filesystem: {
+				denyRead: ["~/.ssh", "global-secret"],
+				denyWrite: ["global-protected"],
+			},
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.parseErrors).toEqual([]);
+		expect(loaded.config.filesystem?.denyRead).toEqual([...(DEFAULT_CONFIG.filesystem?.denyRead ?? []), "global-secret"]);
+		expect(loaded.config.filesystem?.denyWrite).toEqual([...(DEFAULT_CONFIG.filesystem?.denyWrite ?? []), "global-protected"]);
+
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			filesystem: { denyRead: [], denyWrite: [] },
+		}));
+
+		const emptied = loadConfig(cwd, { agentDir });
+
+		expect(emptied.parseErrors).toEqual([]);
+		expect(emptied.config.filesystem?.denyRead).toEqual([]);
+		expect(emptied.config.filesystem?.denyWrite).toEqual([]);
+	});
+
+	test("loadConfig does not crash when the global config path is absent", async () => {
+		const cwd = await makeTempDir();
+		const loaded = loadConfig(cwd, { agentDir: join(cwd, "missing-agent-dir") });
+
+		expect(loaded.config.enabled).toBe(true);
+		expect(loaded.parseErrors).toEqual([]);
+	});
+
+	test("no config defaults to open networking and can initialize", async () => {
+		const cwd = await makeTempDir();
+		const loaded = loadConfig(cwd, { agentDir: join(cwd, "missing-agent-dir") });
+		const validation = validateBwrapInit({ networkMode: loaded.config.network?.mode ?? "open", platform: "linux", bwrapAvailable: true });
+
+		expect(loaded.parseErrors).toEqual([]);
+		expect(loaded.failClosedReasons).toEqual([]);
+		expect(loaded.config.network?.mode).toBe("open");
+		expect(validation.ok).toBe(true);
+	});
+
+	test("validateConfig rejects unknown modes, invalid policies, non-string arrays, and invalid inspector regexes", () => {
+		const errors = validateConfig({
+			filesystem: { denyRead: ["ok", 42], denyWrite: "secret" },
+			network: { mode: "bogus", allowedDomains: ["example.com", false] },
+			tools: {
+				default: "maybe",
+				rules: { background: "bogus" },
+				inspector: {
+					secrets: [{ name: "broken", pattern: "[", action: "block" }],
+					allowlist: { regexes: ["["] },
+				},
+			},
+		});
+
+		expect(errors.join("\n")).toContain("network.mode");
+		expect(errors.join("\n")).toContain("tools.default");
+		expect(errors.join("\n")).toContain("tools.rules.background");
+		expect(errors.join("\n")).toContain("filesystem.denyRead[1]");
+		expect(errors.join("\n")).toContain("filesystem.denyWrite");
+		expect(errors.join("\n")).toContain("network.allowedDomains[1]");
+		expect(errors.join("\n")).toContain("tools.inspector.secrets[0].pattern must compile");
+		expect(errors.join("\n")).toContain("tools.inspector.allowlist.regexes[0] must compile");
+	});
+
+	test("validateConfig fails closed on unknown statically-checkable fields but allows dynamic tool maps (M2)", () => {
+		const errors = validateConfig({
+			enabeld: true,
+			filesystem: { denyRead: [], denyRaed: [] },
+			network: { mdoe: "block" },
+			tools: {
+				defualt: "allow",
+				rules: { unknownToolName: "block" },
+				inspector: {
+					onNoMtach: "block",
+					scanFields: { unknownToolName: ["body"] },
+					secrets: [{ name: "token", pattern: "tok_[a-z]+", action: "block", maxLenght: 20 }],
+					allowlist: { regexes: ["^example$"], regex: ["typo"] },
+				},
+			},
+			envScrub: { names: [], patterms: [] },
+			backgroundTasks: { sandboxIntegratoin: "auto" },
+		});
+		const joined = errors.join("\n");
+
+		expect(joined).toContain("enabeld is not a recognized config field");
+		expect(joined).toContain("filesystem.denyRaed is not a recognized config field");
+		expect(joined).toContain("network.mdoe is not a recognized config field");
+		expect(joined).toContain("tools.defualt is not a recognized config field");
+		expect(joined).toContain("tools.inspector.onNoMtach is not a recognized config field");
+		expect(joined).toContain("tools.inspector.secrets[0].maxLenght is not a recognized config field");
+		expect(joined).toContain("tools.inspector.allowlist.regex is not a recognized config field");
+		expect(joined).toContain("envScrub.patterms is not a recognized config field");
+		expect(joined).toContain("backgroundTasks.sandboxIntegratoin is not a recognized config field");
+		expect(joined).not.toContain("tools.rules.unknownToolName is not a recognized config field");
+		expect(joined).not.toContain("tools.inspector.scanFields.unknownToolName is not a recognized config field");
+	});
+
+	test("loadConfig reports unknown-field parse errors with source and path (M2)", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			network: { mdoe: "block" },
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.parseErrors.join("\n")).toContain("global (");
+		expect(loaded.parseErrors.join("\n")).toContain("network.mdoe is not a recognized config field");
+	});
+
+	test("legacy ASRT fields remain warnings instead of unknown-field errors (M2)", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			ignoreViolations: { bash: ["legacy"] },
+			enableWeakerNestedSandbox: true,
+			httpProxyPort: 8080,
+			socksProxyPort: 1080,
+			filesystem: { allowGitConfig: true },
+			network: { httpProxyPort: 8080, socksProxyPort: 1080 },
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+
+		expect(loaded.parseErrors).toEqual([]);
+		expect(loaded.legacyFieldWarnings.join("\n")).toContain("ignoreViolations");
+		expect(loaded.legacyFieldWarnings.join("\n")).toContain("filesystem.allowGitConfig");
+		expect(loaded.legacyFieldWarnings.join("\n")).toContain("network.httpProxyPort");
+	});
+
+	test("validateConfig rejects impossible or non-positive secret maxLength values (B1-3)", () => {
+		const errors = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [
+						{ name: "zero", pattern: "a", action: "block", maxLength: 0 },
+						{ name: "fractional", pattern: "b", action: "block", maxLength: 1.5 },
+						{ name: "too-long", pattern: "c", action: "block", maxLength: 10_001 },
+						{ name: "at-cap", pattern: "d", action: "block", maxLength: 10_000 },
+					],
+				},
+			},
+		});
+
+		expect(errors.join("\n")).toContain("tools.inspector.secrets[0].maxLength must be a positive integer");
+		expect(errors.join("\n")).toContain("tools.inspector.secrets[1].maxLength must be a positive integer");
+		expect(errors.join("\n")).toContain("tools.inspector.secrets[2].maxLength must be < 10000");
+		expect(errors.join("\n")).toContain("tools.inspector.secrets[3].maxLength must be < 10000");
+	});
+
+	test("maxLength is required — config without it fails closed (redesign)", () => {
+		// The windowed scan uses maxLength as the per-shape overlap so a full match
+		// always fits within one window. Without it, the scanner cannot guarantee a
+		// straddling match is fully captured, and a truncated redaction would leak.
+		const errors = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "s", pattern: "sk-[A-Za-z0-9]{20,128}", action: "redact" }] },
+			},
+		});
+		expect(errors.join("\n")).toContain("maxLength is required");
+	});
+
+	test("maxLength accepts a bounded pattern with a valid declaration (redesign)", () => {
+		const ok = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "s", pattern: "sk-[A-Za-z0-9]{20,128}", action: "redact", maxLength: 131 }] },
+			},
+		});
+		expect(ok).toEqual([]);
+	});
+
+	test("loadConfig fails closed when maxLength is missing (redesign)", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			tools: {
+				inspector: {
+					secrets: [{ name: "overlong", pattern: "sk-A{4097}", action: "block" }],
+				},
+			},
+		}));
+		const loaded = loadConfig(cwd, { agentDir });
+		expect(loaded.parseErrors.length).toBeGreaterThan(0);
+		expect(loaded.parseErrors.join("\n")).toContain("maxLength is required");
+	});
+
+	test("loadConfig accepts a pattern with maxLength declared (redesign)", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(agentDir, "extensions"), { recursive: true });
+		await writeFile(join(agentDir, "extensions", "sandbox.json"), JSON.stringify({
+			tools: {
+				inspector: {
+					secrets: [{ name: "overlong", pattern: "sk-A{4097}", action: "block", maxLength: 4100 }],
+				},
+			},
+		}));
+		const loaded = loadConfig(cwd, { agentDir });
+		expect(loaded.parseErrors).toEqual([]);
+	});
+
+	test("validateConfig rejects backreferences unconditionally (redesign)", () => {
+		const errors = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "repeated", pattern: "([A-Za-z0-9]{4096})\\1", action: "block", maxLength: 9000 }] },
+			},
+		});
+		expect(errors.join("\n")).toContain("backreference");
+	});
+
+	test("backreference ban is NOT bypassed by skipRegexSafetyCheck (redesign)", () => {
+		const errors = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "repeat", pattern: "([A-Za-z0-9]{6000})\\1", action: "redact", maxLength: 6005, skipRegexSafetyCheck: true }] },
+			},
+		});
+		expect(errors.join("\n")).toContain("backreference");
+	});
+
+	test("validateConfig rejects named backreferences \\k<name> (redesign)", () => {
+		const errors = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "named", pattern: "(?<half>[A-Za-z0-9]{6000})\\k<half>", action: "redact", maxLength: 9999 }] },
+			},
+		});
+		expect(errors.join("\n")).toContain("backreference");
+	});
+
+	test("zero-width full match (lookahead) with a captured secret fails closed at runtime (redesign)", () => {
+		const input: Record<string, unknown> = { body: "prefix sk-" + "A".repeat(40) + " suffix" };
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "lookahead", pattern: "(?=(sk-[A-Z]{40}))", action: "redact", secretGroup: 1, maxLength: 64 }],
+			onNoMatch: "allow",
+		});
+		expect(verdict.action).toBe("block");
+	});
+
+	test("maxLength smaller than the pattern's minimum match length is rejected (redesign)", () => {
+		// The 2x overlap guarantees a match of L <= maxLength is captured. But if the
+		// operator under-declares maxLength (real min match > maxLength), the match
+		// straddles multiple windows and no sentinel fires. The MINIMUM match length
+		// is a sound, easily-computed property; reject when it exceeds maxLength.
+		const errors = validateConfig({
+			tools: {
+				inspector: { secrets: [{ name: "underdeclared", pattern: "sk-A{298}", action: "redact", maxLength: 100 }] },
+			},
+		});
+		expect(errors.join("\n")).toContain("smaller than the pattern's minimum match length");
+	});
+
+	test("non-zero-width lookahead prefix with secretGroup outside match[0] fails closed (redesign)", () => {
+		// prefix(?=(sk-...)) has match[0] = "prefix", but the captured candidate
+		// (sk-...) is OUTSIDE match[0]. Redacting only the prefix leaks the secret.
+		const input: Record<string, unknown> = { body: "prefix" + "sk-" + "A".repeat(40) };
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "lookahead-prefix", pattern: "prefix(?=(sk-[A-Z]{40}))", action: "redact", secretGroup: 1, maxLength: 64 }],
+			onNoMatch: "allow",
+		});
+		expect(verdict.action).toBe("block");
+	});
+
+	test("duplicate-text lookahead capture outside match[0] fails closed (redesign loop 5)", () => {
+		// sk-[A-Z]{40}(?=(sk-[A-Z]{40})) — the lookahead captures a SECOND copy of
+		// the secret. The old substring-inclusion check (fullMatch.includes(candidate))
+		// passed because the captured text duplicates a prefix of match[0], leaking
+		// the lookahead copy. The 'd' (indices) flag gives positional spans; block when
+		// the capture span is outside match[0]'s span.
+		const s = "sk-" + "A".repeat(40);
+		const input: Record<string, unknown> = { body: s + s };
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "dup-lookahead", pattern: "sk-[A-Z]{40}(?=(sk-[A-Z]{40}))", action: "redact", secretGroup: 1, maxLength: 43 }],
+			onNoMatch: "allow",
+		});
+		expect(verdict.action).toBe("block");
+	});
+
+	test("estimateRegexMinLength handles named groups (redesign loop 5)", () => {
+		// Named groups (?<name>...) skip the name marker. These must not cause
+		// false-positive rejection when maxLength equals the actual match length.
+		// (\b, ^, $, and lookaround are now rejected by the context-sensitive
+		// assertion ban — tested separately.)
+		const cases = [
+			{ pattern: "(?<token>sk-[A-Z]{40})", maxLength: 43 },
+		];
+		for (const { pattern, maxLength } of cases) {
+			const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "s", pattern, action: "redact", maxLength }] } } });
+			expect(errors.join("\n")).not.toContain("smaller than the pattern's minimum match length");
+		}
+	});
+
+	test("variable-length match exceeding maxLength is rejected by max check (redesign loop 6)", () => {
+		// {1,12000} has a small min (8) but a huge max (12007). The min check passes,
+		// but a real match of 12007 chars can't fit in any 10K scan window — the regex
+		// sees only a truncated prefix, no sentinel fires, and the secret leaks. The
+		// max-length check rejects this.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "long", pattern: "BEGIN-[A-Z]{1,12000}-END", action: "redact", maxLength: 100 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("unbounded quantifier (+, *, {n,}) is rejected by max check (redesign loop 6)", () => {
+		for (const pattern of ["sk-[A-Z]+", "sk-[A-Z]*", "sk-[A-Z]{1,}"]) {
+			const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "s", pattern, action: "redact", maxLength: 128 }] } } });
+			expect(errors.join("\n")).toContain("unbounded maximum match length");
+		}
+	});
+
+	test("negative secretGroup is rejected (redesign loop 6)", () => {
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "bad", pattern: "prefix(?=(sk-[A-Z]{40}))", action: "redact", secretGroup: -1, maxLength: 6 }] } } });
+		expect(errors.join("\n")).toContain("secretGroup must be a non-negative integer");
+	});
+
+	test("backreference inside character class is not a false positive (redesign loop 6)", () => {
+		// [\\1A-Z] — \\1 inside a char class is a literal, not a backref.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "ctrl", pattern: "[\\\\1A-Z]{4}", flags: "g", action: "redact", maxLength: 4 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("property escape \\p{...} with bounded quantifier is accepted and oversized is rejected (redesign loop 7)", () => {
+		// \p{L}{1,5} is bounded and valid.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "p", pattern: "\\p{L}{1,5}", flags: "gu", action: "redact", maxLength: 10 }] } } });
+		expect(ok).toEqual([]);
+		// \p{L}{1,12000} under gu has max 24000 (astral x2) > maxLength 100 → reject.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "u", pattern: "BEGIN-\\p{L}{1,12000}-END", flags: "gu", action: "redact", maxLength: 100 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("astral-capable atom under u flag counts as 2 code units in max (redesign loop 7)", () => {
+		// .{1,6000} under gu: max is 6000*2=12000 > maxLength 6010 → reject.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "dot", pattern: "BEGIN-.{1,6000}-END", flags: "gu", action: "redact", maxLength: 6010 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("lookaround is rejected in secret shapes (redesign loop 7 + final review)", () => {
+		// ALL lookarounds are rejected (v0.1.0): a lookaround's assertion context can
+		// exceed the scan window even when match[0] is short, so the regex never
+		// matches any window and the secret leaks.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "look", pattern: "(?=(BEGIN-[A-Z]{12000}-END))", flags: "gu", action: "redact", secretGroup: 1, maxLength: 1 }] } } });
+		expect(errors.join("\n")).toContain("lookaround");
+		// Even secretGroup: 0 with a lookaround is rejected (assertion context leak).
+		const errors0 = validateConfig({ tools: { inspector: { secrets: [{ name: "look0", pattern: "(?=BEGIN-)[A-Z]{40}", flags: "gu", action: "redact", maxLength: 43 }] } } });
+		expect(errors0.join("\n")).toContain("lookaround");
+	});
+
+	test("omitted flags default to gu for max estimation (redesign loop 8)", () => {
+		// .{6000} with omitted flags: runtime compiles as gu, so the validator must
+		// also estimate under u — . is astral-capable (2 code units) → max 12000 > 6010.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "dot", pattern: "BEGIN-.{6000}-END", action: "redact", maxLength: 6010 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("complement class escapes (\\S \\D \\W) count as astral-capable under u (redesign loop 8)", () => {
+		// \S{6000} under gu: complement class matches astral → 2*6000 = 12000 > 6020.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "nonspace", pattern: "BEGIN-\\S{6000}-END", flags: "gu", action: "redact", maxLength: 6020 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("containsLookaround does not false-positive on lookaround-like text in char class (redesign loop 8)", () => {
+		// [(?=] — (?= is literal text inside a char class, not a lookaround.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "class-prefix", pattern: "[(?=](sk-[A-Z]{40})", action: "redact", secretGroup: 1, maxLength: 44 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("astral literal quantifier is counted as 2 code units under default gu (redesign loop 9)", () => {
+		// 😀{5000} is 5000 astral code points = 10000 code units. The estimator must
+		// bind the quantifier to the whole surrogate pair (2 units), not the low
+		// surrogate alone. Default flags → gu → astral accounting applies.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "astral-literal", pattern: "BEGIN-😀{5000}-END", action: "redact", maxLength: 5011 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+	});
+
+	test("v flag (unicode sets) is rejected (redesign loop 9)", () => {
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "v-dot", pattern: "BEGIN-.{5}-END", flags: "gv", action: "redact", maxLength: 20 }] } } });
+		expect(errors.join("\n")).toContain('must not include the unicodeSets "v" flag');
+	});
+
+	test("backref detector does not false-positive on escaped ] in char class (redesign loop 9)", () => {
+		// [\]\1A-Z] — \] is an escaped ] (doesn't close the class), \1 is a literal
+		// inside the class, not a backreference. Source escaping: \\ = one backslash.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "class", pattern: "[\\]\\1A-Z]{4}", flags: "g", action: "redact", maxLength: 4 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("malformed braced quantifier is treated as literal, not a quantifier (redesign loop 10)", () => {
+		// {,000...2} is NOT a valid quantifier (no leading n). Under non-u flags,
+		// JS treats A{,000...2} as a 25-char literal. The estimator must NOT parse
+		// it as max=2 — it must count the literal chars (25 > maxLength 2 → reject).
+		const zeros = "0".repeat(20);
+		const secret = `A{,${zeros}2}`; // 25 chars, literal under "g"
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "lit", pattern: secret, flags: "g", action: "redact", maxLength: 2 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// A valid quantifier {1,3} still works.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "q", pattern: "a{1,3}", action: "redact", maxLength: 3 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("escaped astral Unicode literals with quantifiers are counted correctly (redesign loop 11)", () => {
+		// \u{1F600}{5001} under gu: the \u{...} is one astral code point (2 units),
+		// {5001} binds to the whole escape → max 10002 > 9000 → reject. Previously the
+		// estimator treated \u as a 1-unit escape and {1F600} as literal text, so
+		// {5001} bound to the wrong atom and the match leaked.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "emoji", pattern: "\\u{1F600}{5001}", flags: "gu", action: "redact", maxLength: 9000 }] } } });
+		expect(e1.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// \uD83D\uDE00{5001} — escaped surrogate pair, each \uHHHH is astral-capable under u.
+		const e2 = validateConfig({ tools: { inspector: { secrets: [{ name: "sp", pattern: "\\uD83D\\uDE00{5001}", flags: "gu", action: "redact", maxLength: 9000 }] } } });
+		expect(e2.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// A bounded \u{...} is accepted.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "ok", pattern: "\\u{1F600}{1,5}", flags: "gu", action: "redact", maxLength: 10 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("malformed non-u escapes are not over-consumed as atoms (redesign loop 12)", () => {
+		// \u0{5000} under g (non-u): \u0 is a legacy identity escape (matches "u"),
+		// {5000} binds to the literal "0". Match = "u"+5000 zeros = 5001. The estimator
+		// must NOT consume \u0 as a 6-char \uHHHH escape (only first hex checked) —
+		// it must fall through to default (2-char escape) so {5000} binds correctly.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "bad-u", pattern: "\\u0{5000}", flags: "g", action: "block", maxLength: 4 }] } } });
+		expect(e1.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// \x4{5000} under g: \x4 is legacy, {5000} binds to "4".
+		const e2 = validateConfig({ tools: { inspector: { secrets: [{ name: "bad-x", pattern: "\\x4{5000}", flags: "g", action: "block", maxLength: 6 }] } } });
+		expect(e2.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// \p{LONG under g (non-u): \p is legacy identity escape, { is literal.
+		const e3 = validateConfig({ tools: { inspector: { secrets: [{ name: "bad-p", pattern: "\\p{LONG", flags: "g", action: "block", maxLength: 1 }] } } });
+		expect(e3.length).toBeGreaterThan(0);
+		// Well-formed \uHHHH (BMP) is accepted.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "bmp", pattern: "\\u0041{5}", flags: "gu", action: "redact", maxLength: 5 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("min-length estimator is unicode-aware for u-mode escapes (redesign loop 13)", () => {
+		// \u{10FFFF} under gu is one astral code point (2 code units). The min
+		// estimator must consume the whole \u{...} escape (not treat \u as a 2-char
+		// legacy escape and count {10FFFF} as literal text). Previously it hardcoded
+		// unicode=false, so it over-counted and false-rejected valid configs.
+		const ok1 = validateConfig({ tools: { inspector: { secrets: [{ name: "emoji", pattern: "\\u{10FFFF}", flags: "gu", action: "redact", maxLength: 2 }] } } });
+		expect(ok1).toEqual([]);
+		const ok2 = validateConfig({ tools: { inspector: { secrets: [{ name: "letter", pattern: "\\p{L}", flags: "gu", action: "redact", maxLength: 2 }] } } });
+		expect(ok2).toEqual([]);
+		const ok3 = validateConfig({ tools: { inspector: { secrets: [{ name: "e2", pattern: "\\u{1F600}", flags: "gu", action: "redact", maxLength: 2 }] } } });
+		expect(ok3).toEqual([]);
+	});
+
+	test("systematic escape-form matrix (redesign loop 14 systematic pass)", () => {
+		// Enumerate escape forms × flags × quantifiers. Each must be accepted with
+		// the correct maxLength (sound: no false-positive; complete: no leak).
+		const accept = [
+			// \cX control escape: \cA = \x01 (1 unit), {5} binds to whole escape
+			{ pattern: "\\cA{5}", flags: "g", ml: 5 },
+			{ pattern: "\\cA{5}", flags: "gu", ml: 5 },
+			// \k<name> without matching group under non-u: identity escape (matches 'k<foo>')
+			{ pattern: "\\k<foo>", flags: "g", ml: 6 },
+			// \0 null escape
+			{ pattern: "\\0{5}", flags: "g", ml: 5 },
+			{ pattern: "\\0{5}", flags: "gu", ml: 5 },
+			// multi-digit octal under non-u: \123 = \x53 = 'S' (1 unit)
+			{ pattern: "\\123", flags: "g", ml: 1 },
+			{ pattern: "\\12", flags: "g", ml: 1 },
+			// \f \v \t single-char escapes
+			{ pattern: "\\f\\v\\t", flags: "g", ml: 3 },
+			// char class edges
+			{ pattern: "[\\b]{5}", flags: "g", ml: 5 }, // backspace in class
+			{ pattern: "[[]{2}", flags: "g", ml: 2 }, // nested [ literal
+			{ pattern: "[^]{5}", flags: "gu", ml: 10 }, // negated empty = any (astral under u)
+			// alternation with different lengths
+			{ pattern: "(abc|de){2}", flags: "g", ml: 6 },
+			{ pattern: "(a|bb){2,3}", flags: "g", ml: 6 },
+			// (\b, ^, $ are now rejected by the context-sensitive assertion ban)
+		];
+		for (const { pattern, flags, ml } of accept) {
+			const errs = validateConfig({ tools: { inspector: { secrets: [{ name: "t", pattern, flags, action: "redact", maxLength: ml }] } } });
+			expect(errs).toEqual([]);
+		}
+		// Real backreferences are still rejected
+		const reject = [
+			{ pattern: "(a)\\1", flags: "g", ml: 2 }, // numeric backref
+			{ pattern: "(?<x>a)\\k<x>", flags: "g", ml: 2 }, // named backref
+			{ pattern: "(\\d)\\1", flags: "g", ml: 2 },
+		];
+		for (const { pattern, flags, ml } of reject) {
+			const errs = validateConfig({ tools: { inspector: { secrets: [{ name: "t", pattern, flags, action: "redact", maxLength: ml }] } } });
+			expect(errs.join("\n")).toContain("backreference");
+		}
+		// Octal under u is a syntax error (rejected by RegExp compilation)
+		const uOctal = validateConfig({ tools: { inspector: { secrets: [{ name: "t", pattern: "\\123", flags: "gu", action: "redact", maxLength: 1 }] } } });
+		expect(uOctal.length).toBeGreaterThan(0);
+	});
+
+	test("malformed non-u control escape counts as 2-char literal (redesign loop 15)", () => {
+		// \c without a letter under non-u matches the literal 2-char string "\c".
+		// The estimator must count it as 2 units, not 1 (default escape), or a
+		// quantified (\c){5001} match of 10002 units leaks across scan windows.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "mc", pattern: "(\\c){5001}", flags: "g", action: "redact", maxLength: 5001 }] } } });
+		expect(e1.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// Valid \cA is still 1 unit.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "vc", pattern: "\\cA{5}", flags: "g", action: "redact", maxLength: 5 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("out-of-range octal escapes use ECMAScript width rules (redesign loop 15)", () => {
+		// \400: leading 4-7 consumes at most 2 digits, so \40 + "0" = 2 units.
+		// The estimator must not consume all 3 digits as one atom.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "oo", pattern: "(\\400){5001}", flags: "g", action: "redact", maxLength: 5001 }] } } });
+		expect(e1.join("\n")).toContain("smaller than the pattern's maximum match length");
+		// Valid \377 (leading 0-3, 3 digits) is still 1 unit.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "vo", pattern: "\\377", flags: "g", action: "redact", maxLength: 1 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("escaped named-group identifiers are normalized for backref detection (redesign loop 15)", () => {
+		// (?<\u0061>...) normalizes to group name "a" in JS, so \k<a> is a real backref.
+		// analyzeGroups must normalize the name, or containsBackreference misses it.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "en", pattern: "(?<\\u0061>[A-Z]{6000})\\k<a>", flags: "gu", action: "redact", maxLength: 6004 }] } } });
+		expect(e1.join("\n")).toContain("backreference");
+		// Reverse: group named "a", backref with escaped name \k<\u0061>
+		const e2 = validateConfig({ tools: { inspector: { secrets: [{ name: "en2", pattern: "(?<a>[A-Z]{6000})\\k<\\u0061>", flags: "gu", action: "redact", maxLength: 6004 }] } } });
+		expect(e2.join("\n")).toContain("backreference");
+	});
+
+	test("lookaround context leak: all lookarounds rejected (final review)", () => {
+		// SECRET(?=A{12000}) has match[0]=6 but needs 12006 chars of context — no
+		// 10K window satisfies the assertion, so the regex never matches and SECRET
+		// leaks. The max estimator bounds match[0], not assertion context.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "la", pattern: "SECRET(?=A{12000})", flags: "gu", action: "redact", maxLength: 6 }] } } });
+		expect(e1.join("\n")).toContain("lookaround");
+		// Even secretGroup: 0 with lookaround is rejected.
+		const e2 = validateConfig({ tools: { inspector: { secrets: [{ name: "la0", pattern: "(?<=A{5})SECRET", flags: "gu", action: "redact", maxLength: 6 }] } } });
+		expect(e2.join("\n")).toContain("lookaround");
+	});
+
+	test("context-sensitive assertions (^ $ \b \B) rejected in chunked shapes (final review)", () => {
+		// ^SECRET matches at window starts, not input starts → false positives.
+		const e1 = validateConfig({ tools: { inspector: { secrets: [{ name: "anchor", pattern: "^SECRET", flags: "gu", action: "block", maxLength: 7 }] } } });
+		expect(e1.join("\n")).toContain("context-sensitive assertion");
+		const e2 = validateConfig({ tools: { inspector: { secrets: [{ name: "wb", pattern: "\\bSECRET\\b", flags: "gu", action: "block", maxLength: 7 }] } } });
+		expect(e2.join("\n")).toContain("context-sensitive assertion");
+		const e3 = validateConfig({ tools: { inspector: { secrets: [{ name: "end", pattern: "SECRET$", flags: "gu", action: "block", maxLength: 7 }] } } });
+		expect(e3.join("\n")).toContain("context-sensitive assertion");
+	});
+
+	test("unmatched secretGroup does not fall back to match[0] (final review)", () => {
+		// (?:token=(sk-[A-Z]{4})|status=ok) with secretGroup:1 — when "status=ok"
+		// matches, group 1 didn't participate. Must NOT fall back to match[0].
+		const cfg = { secrets: [{ name: "alt", pattern: "(?:token=(sk-[A-Z]{4})|status=ok)", flags: "gu", action: "block", secretGroup: 1, maxLength: 13 }] };
+		// status=ok → group 1 undefined → skip, don't block
+		const v1 = inspectToolInput("agent_send", { body: "status=ok" }, { ...cfg, onNoMatch: "allow" });
+		expect(v1.action).toBe("allow");
+		// token=sk-AAAA → group 1 participated → block
+		const v2 = inspectToolInput("agent_send", { body: "token=sk-AAAA" }, { ...cfg, onNoMatch: "allow" });
+		expect(v2.action).toBe("block");
+	});
+
+	test("estimateRegexMinLength preserves atom min for bounded quantifier (redesign loop 5)", () => {
+		// (sk-AAAAAAAAAA){1,3} has a minimum match of 13 (one repetition of the 13-char
+		// group), not 0 or 1. Under-declaring maxLength=5 must be rejected — otherwise the
+		// 13-char match straddles windows and leaks. The old code set atomMin=1 for +
+		// regardless of the atom's own length; the fix preserves the atom's own min.
+		const errors = validateConfig({ tools: { inspector: { secrets: [{ name: "repeat", pattern: "(sk-AAAAAAAAAA){1,3}", action: "redact", maxLength: 5 }] } } });
+		expect(errors.join("\n")).toContain("smaller than the pattern's minimum match length");
+		// Correct maxLength (>= max 39) is accepted.
+		const ok = validateConfig({ tools: { inspector: { secrets: [{ name: "repeat", pattern: "(sk-AAAAAAAAAA){1,3}", action: "redact", maxLength: 39 }] } } });
+		expect(ok).toEqual([]);
+	});
+
+	test("validateConfig rejects unsafe nested-quantifier regexes and allows simple safe allowlist patterns", () => {
+		const unsafe = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [{ name: "redos", pattern: "(a+)+", action: "redact" }],
+					allowlist: { regexes: ["(a+)+"] },
+				},
+			},
+		});
+		expect(unsafe.join("\n")).toContain('tools.inspector.secrets[0].pattern is unsafe for shape "redos"');
+		expect(unsafe.join("\n")).toContain("nested quantifier");
+		expect(unsafe.join("\n")).toContain("tools.inspector.allowlist.regexes[0] is unsafe");
+
+		const safe = validateConfig({
+			tools: {
+				inspector: {
+					allowlist: { regexes: ["^[A-Za-z]+$"] },
+					secrets: [{ name: "alpha", pattern: "^[A-Za-z]+$", action: "redact" }],
+				},
+			},
+		});
+		expect(safe.join("\n")).not.toContain("unsafe");
+		expect(safe.join("\n")).not.toContain("must compile");
+	});
+
+	test("validateConfig rejects counted nested quantifiers and overlapping quantified alternation (M3)", () => {
+		const unsafe = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [
+						{ name: "counted-inner", pattern: "(a{1,2})+", action: "block" },
+						{ name: "counted-outer", pattern: "(a+){1,3}", action: "block" },
+						{ name: "overlap", pattern: "(a|aa)+", action: "block" },
+					],
+					allowlist: { regexes: ["(a|aa)+"] },
+				},
+			},
+		});
+		const joined = unsafe.join("\n");
+
+		expect(joined).toContain('tools.inspector.secrets[0].pattern is unsafe for shape "counted-inner"');
+		expect(joined).toContain('tools.inspector.secrets[1].pattern is unsafe for shape "counted-outer"');
+		expect(joined).toContain('tools.inspector.secrets[2].pattern is unsafe for shape "overlap"');
+		expect(joined).toContain("overlapping alternation");
+		expect(joined).toContain("tools.inspector.allowlist.regexes[0] is unsafe");
+
+		const safe = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [{ name: "assignment", pattern: "(key|token|secret)-[a-z]{1,64}", action: "block" }],
+				},
+			},
+		});
+		expect(safe.join("\n")).not.toContain("unsafe");
+		expect(safe.join("\n")).not.toContain("must compile");
+		expect(safe.join("\n")).not.toContain("unbounded");
+	});
+
+	test("skipRegexSafetyCheck bypasses the narrow regex heuristic for shapes and allowlists (M3)", () => {
+		// skipRegexSafetyCheck bypasses the ReDoS heuristic (nested quantifiers,
+		// overlapping alternation) but NOT the apparent-length check: an unbounded
+		// pattern still leaks its tail across a window boundary regardless of ReDoS
+		// risk. Use a bounded-but-ReDoS-unsafe pattern to isolate the bypass.
+		const skipped = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [{ name: "accepted-risk", pattern: "(a|aa){1,5}", action: "block", maxLength: 10, skipRegexSafetyCheck: true }],
+					allowlist: { regexes: ["(a+){1,5}"], skipRegexSafetyCheck: true },
+				},
+			},
+		});
+		expect(skipped).toEqual([]);
+
+		const badSkipType = validateConfig({
+			tools: {
+				inspector: {
+					secrets: [{ name: "bad", pattern: "a", action: "block", maxLength: 1, skipRegexSafetyCheck: "yes" }],
+					allowlist: { regexes: ["a"], skipRegexSafetyCheck: "yes" },
+				},
+			},
+		});
+		expect(badSkipType.join("\n")).toContain("tools.inspector.secrets[0].skipRegexSafetyCheck must be a boolean");
+		expect(badSkipType.join("\n")).toContain("tools.inspector.allowlist.skipRegexSafetyCheck must be a boolean");
+	});
+
+	test("invalid network mode, tool policy, and inspector regex load as fail-closed parse errors", async () => {
+		const bogusModeCwd = await makeTempDir();
+		const bogusToolCwd = await makeTempDir();
+		const bogusRegexCwd = await makeTempDir();
+		const bogusAllowlistCwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(bogusModeCwd, ".pi"), { recursive: true });
+		await mkdir(join(bogusToolCwd, ".pi"), { recursive: true });
+		await mkdir(join(bogusRegexCwd, ".pi"), { recursive: true });
+		await mkdir(join(bogusAllowlistCwd, ".pi"), { recursive: true });
+		await writeFile(join(bogusModeCwd, ".pi", "sandbox.json"), JSON.stringify({ network: { mode: "bogus" } }));
+		await writeFile(join(bogusToolCwd, ".pi", "sandbox.json"), JSON.stringify({ tools: { rules: { background: "bogus" } } }));
+		await writeFile(join(bogusRegexCwd, ".pi", "sandbox.json"), JSON.stringify({
+			tools: { inspector: { secrets: [{ name: "broken", pattern: "[", action: "block" }] } },
+		}));
+		await writeFile(join(bogusAllowlistCwd, ".pi", "sandbox.json"), JSON.stringify({
+			tools: { inspector: { allowlist: { regexes: ["["] } } },
+		}));
+
+		const bogusMode = loadConfig(bogusModeCwd, { agentDir });
+		const bogusTool = loadConfig(bogusToolCwd, { agentDir });
+		const bogusRegex = loadConfig(bogusRegexCwd, { agentDir });
+		const bogusAllowlist = loadConfig(bogusAllowlistCwd, { agentDir });
+
+		expect(bogusMode.parseErrors.join("\n")).toContain("network.mode");
+		expect(bogusTool.parseErrors.join("\n")).toContain("tools.rules.background");
+		expect(bogusRegex.parseErrors.join("\n")).toContain("tools.inspector.secrets[0].pattern must compile");
+		expect(bogusAllowlist.parseErrors.join("\n")).toContain("tools.inspector.allowlist.regexes[0] must compile");
+	});
+
+	test("parse errors use restrictive fail-closed file and bypass-tool policy", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(cwd, ".pi", "sandbox.json"), "{ not valid json");
+		await writeFile(join(cwd, "public.txt"), "public");
+
+		const loaded = loadConfig(cwd, { agentDir: join(cwd, "missing-agent-dir") });
+		const policy = createFailClosedPolicy(cwd);
+		const readOps = makeReadOperations(cwd, policy);
+		const background = decideToolPolicy("background", policy.toolRules, false);
+		const monitor = decideToolPolicy("monitor", policy.toolRules, false);
+
+		expect(loaded.parseErrors.join("\n")).toContain("project");
+		await expect(readOps.readFile(join(cwd, "public.txt"))).rejects.toThrow(/denyRead/);
+		expect(background.action).toBe("block");
+		expect(monitor.action).toBe("block");
+	});
+
+	test("legacy ASRT-only fields produce warnings and are not effective config", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({
+			ignoreViolations: { bash: ["legacy"] },
+			enableWeakerNestedSandbox: true,
+			httpProxyPort: 8080,
+			socksProxyPort: 1080,
+			filesystem: {
+				allowGitConfig: true,
+			},
+			network: {
+				mode: "open",
+				httpProxyPort: 8080,
+				socksProxyPort: 1080,
+			},
+		}));
+
+		const loaded = loadConfig(cwd, { agentDir });
+		const warnings = loaded.legacyFieldWarnings.join("\n");
+
+		expect(warnings).toContain("ignoreViolations");
+		expect(warnings).toContain("enableWeakerNestedSandbox");
+		expect(warnings).toContain("allowGitConfig");
+		expect(warnings).toContain("httpProxyPort");
+		expect(warnings).toContain("socksProxyPort");
+		expect((loaded.config as Record<string, unknown>).ignoreViolations).toBeUndefined();
+		expect((loaded.config as Record<string, unknown>).enableWeakerNestedSandbox).toBeUndefined();
+		expect((loaded.config.filesystem as Record<string, unknown>).allowGitConfig).toBeUndefined();
+		expect((loaded.config.network as Record<string, unknown>).httpProxyPort).toBeUndefined();
+		expect((loaded.config.network as Record<string, unknown>).socksProxyPort).toBeUndefined();
+	});
+
+	test("filter mode fails closed with an actionable backlog pointer", async () => {
+		const cwd = await makeTempDir();
+		const agentDir = await makeTempDir();
+		await mkdir(join(cwd, ".pi"), { recursive: true });
+		await writeFile(join(cwd, ".pi", "sandbox.json"), JSON.stringify({ network: { mode: "filter" } }));
+
+		const loaded = loadConfig(cwd, { agentDir });
+		const validation = validateBwrapInit({ networkMode: "filter", platform: "linux", bwrapAvailable: true });
+
+		expect(loaded.failClosedReasons.join("\n")).toContain(FILTER_DEFERRED_BACKLOG_ITEM);
+		expect(validation.ok).toBe(false);
+		if (!validation.ok) {
+			expect(validation.reason).toBe("filter-deferred");
+			expect(validation.message).toContain(FILTER_DEFERRED_BACKLOG_ITEM);
+		}
+	});
+
+	test("sandbox command reports mode, fail-closed reason, legacy fields, and bypass state", async () => {
+		const notifications: string[] = [];
+		const loaded: LoadedConfig = {
+			config: {
+				enabled: true,
+				network: { mode: "filter", allowedDomains: ["example.com"], deniedDomains: [] },
+				filesystem: { denyRead: ["~/.ssh"], allowWrite: ["."], denyWrite: [".env"] },
+				tools: { default: "allow", rules: { agent_send: "confirm" } },
+			},
+			parseErrors: [],
+			globWarnings: [],
+			missingDenyWarnings: [],
+			legacyFieldWarnings: ["project: ignoreViolations is ignored"],
+			failClosedReasons: [`network.mode=filter deferred; see ${FILTER_DEFERRED_BACKLOG_ITEM}`],
+			additiveWarnings: [],
+		};
+		const handler = createSandboxCommandHandler({
+			getState: () => ({
+				failClosed: true,
+				sandboxEnabled: false,
+				sandboxInitialized: false,
+				disabledViaConfig: false,
+				lastFailClosedReason: "network filter deferred",
+			}),
+			load: () => loaded,
+		});
+
+		await handler(null, { cwd: "/fixture", ui: { notify: (message) => notifications.push(message) } });
+
+		const output = notifications.join("\n");
+		expect(output).toContain("State: FAIL-CLOSED");
+		expect(output).toContain("Fail-closed reason");
+		expect(output).toContain("Mode: filter");
+		expect(output).toContain("ignoreViolations");
+		expect(output).toContain("Known bypass mitigation state");
+		expect(output).toContain("Hardened by this plugin: LLM/tool bash, interactive user_bash, read, write, edit.");
+		expect(output).toContain("RPC/API direct bash is not mediated by pi extensions in current pi core.");
+		expect(output).toContain("Background tasks sandbox: blocked");
+		expect(output).toContain("Bypass tools: background=confirm, monitor=confirm");
+		expect(output).toContain("Pi extensions/packages");
+		expect(output).toContain("background=confirm");
+		expect(output).toContain("monitor=confirm");
+		expect(output).toContain("agent_send");
+		expect(output).toContain("web/search tools");
+		expect(output).toContain("subagents");
+		expect(output).toContain("provider requests");
+		expect(output).toContain("open network mode leaves host networking intact");
+
+		const degradeNotifications: string[] = [];
+		const degradeLoaded: LoadedConfig = {
+			...loaded,
+			config: {
+				...loaded.config,
+				network: { mode: "open", allowedDomains: [], deniedDomains: [] },
+			},
+			failClosedReasons: [],
+		};
+		const degradeHandler = createSandboxCommandHandler({
+			getState: () => ({
+				failClosed: false,
+				sandboxEnabled: false,
+				sandboxInitialized: false,
+				disabledViaConfig: false,
+				osSandboxUnavailable: true,
+				osSandboxUnavailablePlatform: "darwin",
+			}),
+			load: () => degradeLoaded,
+		});
+
+		await degradeHandler(null, { cwd: "/fixture", ui: { notify: (message) => degradeNotifications.push(message) } });
+
+		const degradeOutput = degradeNotifications.join("\n");
+		expect(degradeOutput).toContain("State: OS bash sandbox unavailable (macOS) — in-process file/tool policy active");
+		expect(degradeOutput).toContain("Background tasks sandbox: inactive (unsupported platform: macOS)");
+		expect(degradeOutput).toContain("Bypass tools: background=confirm, monitor=confirm");
+		expect(degradeOutput).toContain("File-tool policy is in-process and remains active when mediated bash is fail-closed or the OS bash sandbox is unavailable.");
+
+		const activeNotifications: string[] = [];
+		const activeHandler = createSandboxCommandHandler({
+			getState: () => ({
+				failClosed: false,
+				sandboxEnabled: true,
+				sandboxInitialized: true,
+				disabledViaConfig: false,
+				backgroundTasksIntegration: { backgroundTasksSandbox: "active", reason: "Linux bwrap integration ready" },
+			}),
+			load: () => ({
+				...loaded,
+				config: { ...loaded.config, network: { mode: "open", allowedDomains: [], deniedDomains: [] }, tools: { default: "allow", rules: {} } },
+				failClosedReasons: [],
+			}),
+		});
+
+		await activeHandler(null, { cwd: "/fixture", ui: { notify: (message) => activeNotifications.push(message) } });
+		const activeOutput = activeNotifications.join("\n");
+		expect(activeOutput).toContain("Background tasks sandbox: active (Linux bwrap integration ready)");
+		expect(activeOutput).toContain("Bypass tools: background=allow, monitor=allow");
+	});
+});
+
+describe("tool input inspector", () => {
+	test("block shapes scan past an allowlisted first match to a later secret", () => {
+		const input: Record<string, unknown> = { body: "tok_example tok_R4nd0mSecret9999" };
+
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "token", pattern: "tok_[A-Za-z0-9]+", action: "block" }],
+			allowlist: { stopwords: ["tok_example"] },
+		});
+
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain("secret shape \"token\" matched");
+	});
+
+	test("redact shapes scan all matches and redact each confirmed secret", () => {
+		const input: Record<string, unknown> = {
+			body: "tok_example tok_R4nd0mSecret9999 tok_AnotherSecret8888",
+		};
+
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "token", pattern: "tok_[A-Za-z0-9]+", action: "redact" }],
+			allowlist: { stopwords: ["tok_example"] },
+		});
+
+		expect(verdict.action).toBe("allow");
+		expect(input.body).toBe("tok_example [REDACTED:token] [REDACTED:token]");
+	});
+
+	test("block pass scans original input before redact shapes mutate it (M4)", () => {
+		const input: Record<string, unknown> = { body: "token=sk-secret-1234" };
+
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [
+				{ name: "redactor", pattern: "sk-secret-[0-9]+", action: "redact" },
+				{ name: "blocker", pattern: "token=sk-secret-[0-9]+", action: "block" },
+			],
+		});
+
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain('secret shape "blocker" matched');
+		expect(input.body).toBe("token=sk-secret-1234");
+	});
+
+	test("redact-cap overflow fails closed instead of leaking tail secrets (B1-1)", () => {
+		// A redact-action shape matching more than MAX_REDACTIONS_PER_SHAPE unique
+		// ranges must block rather than silently allow tail matches through
+		// unredacted. Previously the cap dropped tail ranges but still allowed —
+		// a real secret after 10K decoys would egress unredacted. Now it fails closed.
+		const input: Record<string, unknown> = {
+			body: "a".repeat(100_000),
+		};
+
+		const verdict = inspectToolInput("agent_send", input, {
+			secrets: [{ name: "any-a", pattern: "a", action: "redact" }],
+		});
+
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain("redaction cap exceeded");
+		expect(verdict.reason).toContain("any-a");
+	});
+
+	test("entropy-gated low-entropy candidates still block when long enough", () => {
+		const inspector = {
+			secrets: [
+				{
+					name: "generic-assignment",
+					pattern: "\\b(?:token|password)=([A-Za-z0-9-_.+@]+)",
+					action: "block" as const,
+					entropy: 3,
+					keywords: ["token", "password"],
+					secretGroup: 1,
+				},
+			],
+		};
+
+		const verdict = inspectToolInput("agent_send", { body: "token=aaaaaaaaaaaaaaaaaaaa" }, inspector);
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain("secret shape \"generic-assignment\" matched");
+	});
+
+	test("short low-entropy generic candidates are skipped", () => {
+		const inspector = {
+			secrets: [
+				{
+					name: "generic-assignment",
+					pattern: "\\b(?:token|password)=([A-Za-z0-9-_.+@]+)",
+					action: "block" as const,
+					entropy: 3,
+					keywords: ["token", "password"],
+					secretGroup: 1,
+				},
+			],
+		};
+
+		const verdict = inspectToolInput("agent_send", { body: "password=changeme" }, inspector);
+		expect(verdict.action).toBe("allow");
+	});
+
+	test("provider-prefix shape with no entropy still blocks", () => {
+		const inspector = {
+			secrets: [
+				{
+					name: "generic-assignment",
+					pattern: "\\b(?:token|password)=([A-Za-z0-9-_.+@]+)",
+					action: "block" as const,
+					entropy: 3,
+					keywords: ["token", "password"],
+					secretGroup: 1,
+				},
+				{
+					name: "provider-anthropic",
+					pattern: "sk-ant-[A-Za-z0-9_-]+",
+					action: "block" as const,
+				},
+			],
+		};
+
+		const verdict = inspectToolInput("agent_send", { body: "sk-ant-aaaaaaaaaaaaaaaaaaaaaa" }, inspector);
+		expect(verdict.action).toBe("block");
+		expect(verdict.reason).toContain("secret shape \"provider-anthropic\" matched");
+	});
+
+	// Regression: the openai-api-key shape must cover modern key formats
+	// (sk-proj-…, sk-svcacct-…, sk-admin-…), not just legacy sk-<alnum> keys.
+	// The hyphen after the prefix broke the original [A-Za-z0-9]{40,180} class.
+	test("openai-api-key shape blocks modern sk-proj/svcacct/admin key formats", () => {
+		const inspector = {
+			secrets: [
+				{
+					name: "openai-api-key",
+					pattern: "(sk-[A-Za-z0-9_-]{40,180})",
+					secretGroup: 1,
+					maxLength: 200,
+					action: "block" as const,
+				},
+			],
+		};
+
+		const modernKeys = [
+			"sk-proj-AbCdEf1234567890aBcDeF1234567890aBcDeF1234567890",
+			"sk-svcacct-AbCdEf1234567890aBcDeF1234567890aBcDeF1234567890",
+			"sk-admin-AbCdEf1234567890aBcDeF1234567890aBcDeF1234567890",
+		];
+		// Legacy format must still be caught.
+		const legacyKey = "sk-AbCdEf1234567890aBcDeF1234567890aBcDeF1234567890";
+
+		for (const key of [...modernKeys, legacyKey]) {
+			const verdict = inspectToolInput("umans_web_search", { query: key }, inspector);
+			expect(verdict.action).toBe("block");
+			expect(verdict.reason).toContain("secret shape \"openai-api-key\" matched");
+		}
+	});
+});
+
+describe("in-process file-tool policy", () => {
+	function policyFor(cwd: string): SandboxPolicy {
+		return {
+			cwd,
+			denyRead: ["secret-dir", "secret.txt"],
+			denyWrite: ["protected", "protected.txt"],
+			allowWrite: ["writable"],
+			networkMode: "open",
+		};
+	}
+
+	test("permissive policy allows file-tool operations for intentional sandbox disable", async () => {
+		const cwd = await makeTempDir();
+		const outside = await makeTempDir();
+		await writeFile(join(cwd, "readable.txt"), "readable");
+		const outsidePath = join(outside, "outside.txt");
+		const policy = createPermissivePolicy(cwd);
+		const readOps = makeReadOperations(cwd, policy);
+		const writeOps = makeWriteOperations(cwd, policy);
+
+		expect((await readOps.readFile(join(cwd, "readable.txt"))).toString()).toBe("readable");
+		await writeOps.writeFile(outsidePath, "outside");
+		expect(await readFile(outsidePath, "utf8")).toBe("outside");
+	});
+
+	test("enforceDenyRead blocks configured files and directories", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret-dir"));
+		await writeFile(join(cwd, "secret-dir", "inside.txt"), "secret");
+		await writeFile(join(cwd, "secret.txt"), "secret");
+		const policy = policyFor(cwd);
+
+		expect(() => enforceDenyRead(join(cwd, "secret-dir", "inside.txt"), cwd, policy)).toThrow(/denyRead/);
+		expect(() => enforceDenyRead(join(cwd, "secret.txt"), cwd, policy)).toThrow(/denyRead/);
+	});
+
+	test("enforceDenyRead blocks the default XDG Git credential store", async () => {
+		const cwd = await makeTempDir();
+		const policy: SandboxPolicy = {
+			...policyFor(cwd),
+			denyRead: [...(DEFAULT_CONFIG.filesystem?.denyRead ?? [])],
+		};
+
+		expect(() => enforceDenyRead(join(homedir(), ".config", "git", "credentials"), cwd, policy)).toThrow(
+			/denyRead.*~\/.config\/git\/credentials/,
+		);
+	});
+
+	test("enforceWritePolicy applies denyWrite before allowWrite and confines writes to allowWrite", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "writable"));
+		await mkdir(join(cwd, "protected"));
+		await writeFile(join(cwd, "protected.txt"), "original");
+		const policy = { ...policyFor(cwd), allowWrite: ["."] };
+
+		expect(() => enforceWritePolicy(join(cwd, "protected", "new.txt"), cwd, policy)).toThrow(/denyWrite/);
+		expect(() => enforceWritePolicy(join(cwd, "protected.txt"), cwd, policy)).toThrow(/denyWrite/);
+		expect(() => enforceWritePolicy(join(cwd, "elsewhere.txt"), cwd, policyFor(cwd))).toThrow(/allowWrite/);
+		expect(() => enforceWritePolicy(join(cwd, "writable", "ok.txt"), cwd, policyFor(cwd))).not.toThrow();
+	});
+
+	test("read operations enforce denyRead on both access and readFile", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "writable"));
+		await writeFile(join(cwd, "writable", "allowed.txt"), "allowed");
+		await writeFile(join(cwd, "secret.txt"), "secret");
+		const ops = makeReadOperations(cwd, policyFor(cwd));
+
+		await expect(ops.readFile(join(cwd, "secret.txt"))).rejects.toThrow(/denyRead/);
+		await expect(ops.access(join(cwd, "secret.txt"))).rejects.toThrow(/denyRead/);
+		expect((await ops.readFile(join(cwd, "writable", "allowed.txt"))).toString()).toBe("allowed");
+	});
+
+	test("write operations enforce allowWrite and denyWrite for files and mkdir", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "writable"));
+		await mkdir(join(cwd, "protected"));
+		const ops = makeWriteOperations(cwd, policyFor(cwd));
+
+		await ops.writeFile(join(cwd, "writable", "ok.txt"), "ok");
+		expect(await readFile(join(cwd, "writable", "ok.txt"), "utf8")).toBe("ok");
+		await expect(ops.writeFile(join(cwd, "outside.txt"), "nope")).rejects.toThrow(/allowWrite/);
+		await expect(ops.mkdir(join(cwd, "protected", "nested"))).rejects.toThrow(/denyWrite/);
+	});
+
+	test("write operations resolve nearest existing symlink parent before policy checks", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "denied-write"));
+		await mkdir(join(cwd, "denied-read"));
+		await symlink(join(cwd, "denied-write"), join(cwd, "write-link"));
+		await symlink(join(cwd, "denied-read"), join(cwd, "read-link"));
+		const ops = makeWriteOperations(cwd, {
+			cwd,
+			denyRead: ["denied-read"],
+			denyWrite: ["denied-write"],
+			allowWrite: ["."],
+			networkMode: "open",
+		});
+
+		await expect(ops.writeFile(join(cwd, "write-link", "new.txt"), "nope")).rejects.toThrow(/denyWrite/);
+		await expect(ops.writeFile(join(cwd, "read-link", "new.txt"), "nope")).rejects.toThrow(/denyRead/);
+		await expect(ops.mkdir(join(cwd, "write-link", "nested"))).rejects.toThrow(/denyWrite/);
+		await expect(ops.mkdir(join(cwd, "read-link", "nested"))).rejects.toThrow(/denyRead/);
+	});
+
+	test("glob deny catches a symlinked leaf via its lexical name (G1)", async () => {
+		// A symlinked leaf (key.pem -> key) canonicalizes to `key`, so a `*.pem`
+		// glob deny would miss it if matched only against the canonical target.
+		// The matcher must test the lexical absolute path too.
+		const cwd = await makeTempDir();
+		await writeFile(join(cwd, "key"), "real-key-content");
+		await symlink("key", join(cwd, "key.pem"));
+		const policy = {
+			cwd,
+			denyRead: ["~/.ssh"],
+			denyWrite: ["*.pem", "*.key"],
+			allowWrite: ["."],
+			networkMode: "open" as const,
+		};
+		// Writing the symlinked key.pem must block on *.pem via its lexical name.
+		await expect(makeWriteOperations(cwd, policy).writeFile(join(cwd, "key.pem"), "x")).rejects.toThrow(/denyWrite.*\*\.pem/);
+		// Reading must block on *.pem via lexical name.
+		await expect(makeReadOperations(cwd, { ...policy, denyRead: ["*.pem"] }).readFile(join(cwd, "key.pem"))).rejects.toThrow(/denyRead.*\*\.pem/);
+	});
+
+	test("edit operations require both read and write permission", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "writable"));
+		await mkdir(join(cwd, "secret-dir"));
+		await writeFile(join(cwd, "writable", "doc.txt"), "before");
+		await writeFile(join(cwd, "secret-dir", "doc.txt"), "secret");
+		const ops = makeEditOperations(cwd, policyFor(cwd));
+
+		expect((await ops.readFile(join(cwd, "writable", "doc.txt"))).toString()).toBe("before");
+		await ops.writeFile(join(cwd, "writable", "doc.txt"), "after");
+		expect(await readFile(join(cwd, "writable", "doc.txt"), "utf8")).toBe("after");
+		await expect(ops.readFile(join(cwd, "secret-dir", "doc.txt"))).rejects.toThrow(/denyRead/);
+		await expect(ops.access(join(cwd, "protected.txt"))).rejects.toThrow(/denyWrite/);
+	});
+
+	test("hardlink alias to a denied file is rejected by the session-start guard (re-review loop 2)", async () => {
+		// The session-start guard remains the first line of defense for bwrap path
+		// overlays. The fd-based in-process operations now repeat this hardlink
+		// validation at read/write time; focused post-start regressions live in
+		// sandbox-file-policy.test.ts.
+		const cwd = await makeTempDir();
+		await writeFile(join(cwd, ".env"), "SECRET");
+		await link(join(cwd, ".env"), join(cwd, "alias"));
+		expect(() => assertNoHardlinkedDeniedFiles([".env"], [], cwd)).toThrow(/hard links/);
+		expect(() => assertNoHardlinkedDeniedFiles([], [".env"], cwd)).toThrow(/hard links/);
+	});
+});
+
+describe("buildBwrapArgs", () => {
+	test("emits mounts in security-critical overlay order", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "writable"));
+		await mkdir(join(cwd, "secret-dir"));
+		await writeFile(join(cwd, "secret-file"), "secret");
+		await mkdir(join(cwd, ".git"));
+		await writeFile(join(cwd, ".git", "config"), "[core]\n");
+
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [".", "writable"],
+			denyWrite: ["secret-file"],
+			denyRead: ["secret-dir", ".git"],
+			networkMode: "block",
+			tmpBackend: "host-tmpfs",
+			// Callers pre-scrub the env (the bash path builds minimalEnv via
+			// buildMinimalEnv; the background path runs scrubEnvironment with
+			// PROVIDER_SECRET_ENV_NAMES). buildBwrapArgs emits what it is given
+			// verbatim, so pass an already-scrubbed env as real callers do.
+			env: { PATH: "/usr/bin" },
+		});
+
+		expect(args[0]).toBe("--clearenv");
+		expect(args).not.toContain("OPENAI_API_KEY");
+		const root = expectSequence(args, ["--ro-bind", "/", "/"]);
+		const dev = expectSequence(args, ["--dev", "/dev"]);
+		const proc = expectSequence(args, ["--unshare-pid", "--proc", "/proc"]);
+		const cwdBind = expectSequence(args, ["--bind", cwd, cwd]);
+		const writableBind = expectSequence(args, ["--bind", join(cwd, "writable"), join(cwd, "writable")]);
+		const denyWrite = expectSequence(args, ["--ro-bind", join(cwd, "secret-file"), join(cwd, "secret-file")]);
+		const denyDir = expectSequence(args, ["--tmpfs", join(cwd, "secret-dir")]);
+		const gitDir = expectSequence(args, ["--tmpfs", join(cwd, ".git")]);
+		const network = expectSequence(args, ["--unshare-net"]);
+
+		expect(root).toBeLessThan(dev);
+		expect(dev).toBeLessThan(proc);
+		expect(proc).toBeLessThan(cwdBind);
+		expect(cwdBind).toBeLessThan(writableBind);
+		for (const overlay of [denyWrite, denyDir, gitDir]) {
+			expect(writableBind).toBeLessThan(overlay);
+			expect(overlay).toBeLessThan(network);
+		}
+	});
+
+	test("block mode masks host Unix-socket dirs to prevent IPC escape", async () => {
+		const cwd = await makeTempDir();
+		const tmp = realpathSync("/tmp");
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["/tmp"],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "block",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+		expect(args).toContain("--unshare-net");
+		// Docker / D-Bus / ssh-agent / X11 socket dirs must be masked with tmpfs so
+		// a blocked sandbox cannot reach host IPC services. /run is always masked;
+		// /var/run is masked only when it is NOT a symlink to /run (systemd dedup).
+		for (const dir of ["/run", tmp, "/tmp/.X11-unix"]) {
+			expectSequence(args, ["--tmpfs", dir]);
+		}
+		expectSequence(args, ["--bind", tmp, tmp]);
+		expectSequence(args, ["--tmpfs", tmp]);
+		expect(sequenceIndex(args, ["--bind", tmp, tmp])).toBeLessThan(sequenceIndex(args, ["--tmpfs", tmp]));
+		// /var/run and /run must not both be emitted when they resolve to the same
+		// canonical path — bwrap cannot mount tmpfs on a symlink target and the
+		// whole block-mode spawn would fail with exit 1.
+		const tmpfsTargets = args.filter((_, i) => args[i - 1] === "--tmpfs");
+		const canonical = (p: string) => {
+			try { return realpathSync(p); } catch { return p; }
+		};
+		const distinct = new Set(tmpfsTargets.map(canonical));
+		expect(distinct.has(canonical("/var/tmp"))).toBe(true);
+		expect(tmpfsTargets.length).toBe(distinct.size);
+	});
+
+	// Regression: omitting `env` must fall back to the safe minimal env, not
+	// raw process.env. buildBwrapEnvArgs now emits its input verbatim (callers own
+	// scrubbing), so an unsafe `?? process.env` default would serialize every
+	// provider secret into --setenv. The default must be buildMinimalEnv().
+	test("omitting env falls back to a safe minimal env, never raw process.env", async () => {
+		const cwd = await makeTempDir();
+		const saved = process.env.OPENAI_API_KEY;
+		process.env.OPENAI_API_KEY = "sentinel-must-not-appear";
+		try {
+			const args = buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: [],
+				denyWrite: [],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+				// env intentionally OMITTED
+			});
+			expect(args).not.toContain("sentinel-must-not-appear");
+			expect(args).not.toContain("OPENAI_API_KEY");
+			// The minimal-env allowlist keys ARE present.
+			expect(args).toContain("PATH");
+		} finally {
+			if (saved === undefined) delete process.env.OPENAI_API_KEY;
+			else process.env.OPENAI_API_KEY = saved;
+		}
+	});
+
+	test("block mode forces TMPDIR to the private /tmp tmpfs", async () => {
+		const cwd = await makeTempDir();
+		const openArgs = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin", TMPDIR: "/host/tmp" },
+		});
+		const blockArgs = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "block",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin", TMPDIR: "/host/tmp" },
+		});
+
+		expectSequence(openArgs, ["--setenv", "TMPDIR", "/host/tmp"]);
+		expectSequence(blockArgs, ["--setenv", "TMPDIR", "/tmp"]);
+		expect(blockArgs).not.toContain("/host/tmp");
+	});
+
+	test("session-disk binds the project temp dir and forces TMPDIR to it (open mode)", async () => {
+		const cwd = await makeTempDir();
+		const projectTmpDir = await mkdtemp(join(tmpdir(), "pi-sandbox-projtmp-"));
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [".", "/tmp"],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "session-disk",
+			projectTmpDir,
+			env: { PATH: "/usr/bin", TMPDIR: "/host/tmp" },
+		});
+
+		// TMPDIR forced to the project dir, not the inherited /host/tmp.
+		expectSequence(args, ["--setenv", "TMPDIR", projectTmpDir]);
+		expect(args).not.toContain("/host/tmp");
+		// The project dir is bound writable.
+		expectSequence(args, ["--bind", projectTmpDir, projectTmpDir]);
+		// Host /tmp is NOT bound through even though it appears in allowWrite.
+		const tmpBinds = args.reduce<string[]>((acc, val, i) => {
+			if (val === "--bind" && args[i + 1] === "/tmp") acc.push(val);
+			return acc;
+		}, []);
+		expect(tmpBinds).toEqual([]);
+	});
+
+	test("session-disk throws fail-closed when projectTmpDir is absent", async () => {
+		const cwd = await makeTempDir();
+		expect(() => buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["."],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "session-disk",
+			env: { PATH: "/usr/bin" },
+		})).toThrow(/session-disk requires projectTmpDir/);
+	});
+
+	test("session-disk block mode keeps /tmp tmpfs mask and sets TMPDIR to the project dir", async () => {
+		const cwd = await makeTempDir();
+		const projectTmpDir = await mkdtemp(join(tmpdir(), "pi-sandbox-projtmp-"));
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "block",
+			tmpBackend: "session-disk",
+			projectTmpDir,
+			env: { PATH: "/usr/bin", TMPDIR: "/host/tmp" },
+		});
+
+		expect(args).toContain("--unshare-net");
+		// /tmp is still masked with tmpfs (IPC isolation preserved).
+		expectSequence(args, ["--tmpfs", realpathSync("/tmp")]);
+		// TMPDIR points at the project dir, not /tmp.
+		expectSequence(args, ["--setenv", "TMPDIR", projectTmpDir]);
+		expect(args).not.toContain("/host/tmp");
+		// The project dir is bound writable (in addition to the /tmp mask).
+		expectSequence(args, ["--bind", projectTmpDir, projectTmpDir]);
+	});
+
+	integrationTest("session-disk lands sandboxed mktemp under TMPDIR (not host /tmp)", async () => {
+		// projectTmpDir under the os tmpdir is fine now — the test proves PATH
+		// ROUTING (mktemp lands under the project dir, not host /tmp), not backing
+		// store (operator-asserted per the scope cut; no statfsSync assertion).
+		const projectTmpDir = await mkdtemp(join(tmpdir(), "pi-sandbox-projtmp-"));
+		tempDirs.push(projectTmpDir);
+		const cwd = await makeTempDir();
+		const script = `d=$(mktemp -d) && case "$d" in "${projectTmpDir}"/*) echo ok > "$d/proof" ;; *) exit 9 ;; esac`;
+		const result = runSandboxed(script, {
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["."],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "session-disk",
+			projectTmpDir,
+		});
+
+		expect(result.exitCode).toBe(0);
+	});
+
+
+	integrationTest("block mode actually spawns bwrap without failing (regression: /var/run symlink)", async () => {
+		// On systemd Linux /var/run -> /run. bwrap --tmpfs /var/run fails with
+		// "Can't mount tmpfs on .../var/run" and the spawn exits 1. This test runs
+		// the real bwrap binary so the arg-list-only check above can't mask a real
+		// mount failure. Skipped when bwrap is unavailable.
+		const bwrap = findExecutableOnPath("bwrap", process.env);
+		const cwd = await makeRepoTempDir();
+		const args = [
+			...buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: [],
+				denyRead: [],
+				denyWrite: [],
+				networkMode: "block",
+				tmpBackend: "host-tmpfs",
+				env: { PATH: "/usr/bin", HOME: "/tmp", TMPDIR: "/tmp" },
+			}),
+			"--",
+			"bash",
+			"-c",
+			"echo BLOCK_MODE_OK",
+		];
+		const result = spawnSync(bwrap, args, { encoding: "utf8" });
+		expect(result.status).toBe(0);
+		expect(result.stdout.trim()).toBe("BLOCK_MODE_OK");
+	});
+
+	test("open mode does not add Unix-socket masks (host net intact)", async () => {
+		const cwd = await makeTempDir();
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+		expect(args).not.toContain("--unshare-net");
+		expect(args).not.toContain("/run");
+	});
+
+	test("adds bwrap die-with-parent so wrapper death kills the wrapped command", async () => {
+		const cwd = await makeTempDir();
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		expect(args).toContain("--die-with-parent");
+		expect(sequenceIndex(args, ["--unshare-pid", "--proc", "/proc"])).toBeGreaterThanOrEqual(0);
+	});
+
+	test("nested deny overlays are emitted parent-first so child protections win", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret", "sub"), { recursive: true });
+
+		const childFirst = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["."],
+			denyRead: ["secret/sub", "secret"],
+			denyWrite: ["secret/sub"],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+		const parentFirst = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["."],
+			denyRead: ["secret", "secret/sub"],
+			denyWrite: ["secret/sub"],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		for (const args of [childFirst, parentFirst]) {
+			const parentMask = expectSequence(args, ["--tmpfs", join(cwd, "secret")]);
+			const childMask = expectSequence(args, ["--tmpfs", join(cwd, "secret", "sub")]);
+			const childReadOnly = expectSequence(args, ["--remount-ro", join(cwd, "secret", "sub")]);
+			expect(parentMask).toBeLessThan(childMask);
+			expect(childMask).toBeLessThan(childReadOnly);
+		}
+	});
+
+	test("skips non-existent deny paths without host stubs", async () => {
+		const cwd = await makeTempDir();
+		const missingRead = join(cwd, "missing-read");
+		const missingWrite = join(cwd, "missing-write");
+
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: ["missing-read"],
+			denyWrite: ["missing-write"],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		expect(args).not.toContain(missingRead);
+		expect(args).not.toContain(missingWrite);
+		expect(sequenceIndex(args, ["--ro-bind", "/dev/null", missingRead])).toBe(-1);
+		expect(sequenceIndex(args, ["--tmpfs", missingRead])).toBe(-1);
+		expect(sequenceIndex(args, ["--ro-bind", missingWrite, missingWrite])).toBe(-1);
+	});
+
+	test("denied files use /dev/null overlays and denied directories use tmpfs overlays", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret-dir"));
+		await writeFile(join(cwd, "secret-file"), "secret");
+
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["."],
+			denyWrite: [],
+			denyRead: ["secret-dir", "secret-file"],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		expectSequence(args, ["--tmpfs", join(cwd, "secret-dir")]);
+		expectSequence(args, ["--ro-bind", "/dev/null", join(cwd, "secret-file")]);
+	});
+
+	test("denyRead plus denyWrite directories are masked read-only", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret"));
+
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["."],
+			denyWrite: ["secret"],
+			denyRead: ["secret"],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		const tmpfs = expectSequence(args, ["--tmpfs", join(cwd, "secret")]);
+		const remount = expectSequence(args, ["--remount-ro", join(cwd, "secret")]);
+		expect(tmpfs).toBeLessThan(remount);
+	});
+
+	test("open and block network modes map to the expected bwrap argv", async () => {
+		const cwd = await makeTempDir();
+		const openArgs = buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open", tmpBackend: "host-tmpfs", env: { PATH: "/usr/bin" } });
+		const blockArgs = buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block", tmpBackend: "host-tmpfs", env: { PATH: "/usr/bin" } });
+
+		expect(openArgs).not.toContain("--unshare-net");
+		expect(blockArgs).toContain("--unshare-net");
+	});
+
+	test("filter mode fails closed instead of silently loosening to open", async () => {
+		const cwd = await makeTempDir();
+		expect(() => buildBwrapArgs({ cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "filter", tmpBackend: "host-tmpfs", env: { PATH: "/usr/bin" } })).toThrow(/filter is deferred/);
+	});
+
+	test("relative config paths resolve against the session cwd", async () => {
+		const cwd = await makeTempDir();
+		await writeFile(join(cwd, "relative-secret"), "secret");
+		const packageRelative = resolve("relative-secret");
+
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyWrite: [],
+			denyRead: ["relative-secret"],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		expectSequence(args, ["--ro-bind", "/dev/null", join(cwd, "relative-secret")]);
+		expect(args).not.toContain(packageRelative);
+	});
+
+	test("canonicalizes existing symlink paths before emitting mounts", async () => {
+		const cwd = await makeTempDir();
+		const outside = await makeTempDir();
+		await mkdir(join(outside, "secret-dir"));
+		await writeFile(join(outside, "secret-dir", "secret.txt"), "secret");
+		await symlink(join(outside, "secret-dir"), join(cwd, "secret-link"));
+
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["."],
+			denyWrite: [],
+			denyRead: ["secret-link"],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		expectSequence(args, ["--tmpfs", join(outside, "secret-dir")]);
+		expect(args).not.toContain(join(cwd, "secret-link"));
+	});
+
+	test("refuses to start when a denied regular file has a hardlink alias (re-review)", async () => {
+		// bwrap path overlays protect a pathname, not the underlying inode. A
+		// hardlink alias inside an allowWrite root reaches the same inode as a
+		// denied file, bypassing both denyRead and denyWrite. Fail closed (throw)
+		// rather than start a sandbox whose deny overlay can be sidestepped.
+		const cwd = await makeTempDir();
+		await writeFile(join(cwd, ".env"), "secret");
+		await link(join(cwd, ".env"), join(cwd, "alias")); // hardlink: same inode, nlink=2
+
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: [],
+				denyWrite: [".env"],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/hard links/);
+
+		// denyRead variant: reading through the alias would leak the secret too.
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: [".env"],
+				denyWrite: [],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/hard links/);
+
+		// A non-hardlinked denied file starts normally.
+		const cleanCwd = await makeTempDir();
+		await writeFile(join(cleanCwd, ".env"), "secret");
+		expect(() =>
+			buildBwrapArgs({
+				cwd: cleanCwd,
+				configCwd: cleanCwd,
+				allowWrite: ["."],
+				denyRead: [],
+				denyWrite: [".env"],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+				env: { PATH: "/usr/bin" },
+			}),
+		).not.toThrow();
+	});
+
+	test("refuses to start when a file inside a denied DIRECTORY has a hardlink alias (re-review loop 2)", async () => {
+		// A denied directory's tmpfs/ro-bind overlay protects the directory
+		// pathname, but a hardlink alias to a file inside it (created before the
+		// sandbox started) reaches the same inode outside the overlay. The guard
+		// must walk denied directories recursively, not just check explicitly-denied
+		// files.
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret"));
+		await writeFile(join(cwd, "secret", "file"), "TOPSECRET");
+		await link(join(cwd, "secret", "file"), join(cwd, "alias")); // hardlink inside the denied dir
+
+		// denyRead via directory: reading through the alias would leak.
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: ["secret"],
+				denyWrite: [],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/hard links/);
+
+		// denyWrite via directory: writing through the alias would mutate.
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: [],
+				denyWrite: ["secret"],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/hard links/);
+
+		// A denied directory with no hardlinks starts normally.
+		const cleanCwd = await makeTempDir();
+		await mkdir(join(cleanCwd, "secret"));
+		await writeFile(join(cleanCwd, "secret", "file"), "secret");
+		expect(() =>
+			buildBwrapArgs({
+				cwd: cleanCwd,
+				configCwd: cleanCwd,
+				allowWrite: ["."],
+				denyRead: ["secret"],
+				denyWrite: [],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+				env: { PATH: "/usr/bin" },
+			}),
+		).not.toThrow();
+	});
+
+	test("walkForHardlinks does NOT follow symlinks (re-review loop 3)", async () => {
+		// A denied directory containing a symlink to /usr (or a cycle) must NOT
+		// cause unbounded traversal. lstatSync (not statSync) is used so symlinks
+		// are skipped — a hardlink alias points to a real inode, not a symlink target.
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".env"));
+		await symlink("/usr", join(cwd, ".env", "usr-link"));
+		// Must not throw (no hardlink found) and must complete quickly (no /usr walk).
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: [".env"],
+				denyWrite: [],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+				env: { PATH: "/usr/bin" },
+			}),
+		).not.toThrow();
+	});
+
+	test("walkForHardlinks fails closed on unreadable denied directory (re-review loop 3)", async () => {
+		// An unreadable denied directory cannot be inspected for hardlink aliases,
+		// so refuse to start rather than silently skip (which would leave a bypass
+		// open for hardlink aliases to files inside it).
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret"));
+		await writeFile(join(cwd, "secret", "file"), "TOPSECRET");
+		await link(join(cwd, "secret", "file"), join(cwd, "alias"));
+		await chmod(join(cwd, "secret"), 0o000);
+		try {
+			expect(() =>
+				buildBwrapArgs({
+					cwd,
+					configCwd: cwd,
+					allowWrite: ["."],
+					denyRead: ["secret"],
+					denyWrite: [],
+					networkMode: "open",
+					tmpBackend: "host-tmpfs",
+					env: { PATH: "/usr/bin" },
+				}),
+			).toThrow(/cannot inspect denied directory/);
+		} finally {
+			await chmod(join(cwd, "secret"), 0o755); // restore for cleanup
+		}
+	});
+
+	test("glob-denied hardlinked files are caught by the guard (re-review loop 3)", async () => {
+		// A glob deny entry like *.pem can't be canonicalized as a literal path, so
+		// the guard must expand it by scanning the glob's parent dir for matches.
+		// Without this, a hardlink alias to secret.pem bypasses the guard.
+		const cwd = await makeTempDir();
+		await writeFile(join(cwd, "secret.pem"), "SECRET");
+		await link(join(cwd, "secret.pem"), join(cwd, "alias"));
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: ["*.pem"],
+				denyWrite: ["*.pem"],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/hard links/);
+		// A non-hardlinked *.pem file starts normally.
+		const cleanCwd = await makeTempDir();
+		await writeFile(join(cleanCwd, "clean.pem"), "secret");
+		expect(() =>
+			buildBwrapArgs({
+				cwd: cleanCwd,
+				configCwd: cleanCwd,
+				allowWrite: ["."],
+				denyRead: ["*.pem"],
+				denyWrite: [],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+				env: { PATH: "/usr/bin" },
+			}),
+		).not.toThrow();
+	});
+
+	test("glob deny with glob in parent path fails closed (re-review loop 4)", async () => {
+		// A glob like `secrets-x/*.pem` has glob chars in a parent segment. The
+		// guard cannot enumerate matches without a recursive glob walk; fail closed
+		// rather than silently skip (which would leave a hardlink bypass open).
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret"));
+		await writeFile(join(cwd, "secret", "key.pem"), "SECRET");
+		expect(() =>
+			buildBwrapArgs({
+				cwd,
+				configCwd: cwd,
+				allowWrite: ["."],
+				denyRead: ["secret-*/  *.pem".replace(" ", "")],
+				denyWrite: [],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+				env: { PATH: "/usr/bin" },
+			}),
+		).toThrow(/glob characters in a parent directory path/);
+	});
+});
+
+describe("discoverGitDirs", () => {
+	test("returns the git dir for an opted-in allowWrite root with a .git gitfile pointing outside the root", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		// gitfile: relative gitdir path resolved against the working tree root
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+
+		const discovered = discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true });
+		expect(discovered).toEqual([realpathSync(gitDir)]);
+	});
+
+	test("does not pin an escape gitfile target by default", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "cloned-worktree");
+		const unrelatedGitDir = join(cwd, "unrelated-repo", ".git");
+		await mkdir(workTree);
+		await mkdir(unrelatedGitDir, { recursive: true });
+		await writeFile(join(unrelatedGitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${unrelatedGitDir}\n`);
+
+		const pinnedGitDirs = discoverGitDirs([workTree], cwd);
+		expect(pinnedGitDirs).toEqual([]);
+
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree],
+			pinnedGitDirs,
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+		const canonicalUnrelatedGitDir = realpathSync(unrelatedGitDir);
+		expect(sequenceIndex(args, ["--bind", canonicalUnrelatedGitDir, canonicalUnrelatedGitDir])).toBe(-1);
+	});
+
+	test("returns nothing for an allowWrite root with a .git directory (common case)", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".git"));
+		await writeFile(join(cwd, ".git", "HEAD"), "ref: refs/heads/main\n");
+
+		expect(discoverGitDirs(["."], cwd)).toEqual([]);
+	});
+
+	test("returns nothing for an allowWrite root with no .git", async () => {
+		const cwd = await makeTempDir();
+		expect(discoverGitDirs(["."], cwd)).toEqual([]);
+	});
+
+	test("rejects a .git file whose gitdir target has no HEAD file (malicious defense)", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+				// A path that exists but is not a git dir (no HEAD)
+		const notAGitDir = join(cwd, "not-a-git-dir");
+		await mkdir(notAGitDir);
+		await writeFile(join(workTree, ".git"), `gitdir: ${notAGitDir}\n`);
+
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
+	});
+
+	test("rejects a .git file pointing at a non-existent path", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		await writeFile(join(workTree, ".git"), `gitdir: ${join(cwd, "does-not-exist")}\n`);
+
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
+	});
+
+	test("resolves a relative gitdir path against the working tree root when opted in", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "sub");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "sub");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		// Relative path: from workTree, ../modules/sub
+		await writeFile(join(workTree, ".git"), "gitdir: ../modules/sub\n");
+
+		const discovered = discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true });
+		expect(discovered).toEqual([realpathSync(gitDir)]);
+	});
+
+	test("dedupes when multiple allowWrite roots share a git dir", async () => {
+		const cwd = await makeTempDir();
+		const rootA = join(cwd, "a");
+		const rootB = join(cwd, "b");
+		await mkdir(rootA);
+		await mkdir(rootB);
+		const gitDir = join(cwd, "shared");
+		await mkdir(gitDir);
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(rootA, ".git"), `gitdir: ${gitDir}\n`);
+		await writeFile(join(rootB, ".git"), `gitdir: ${gitDir}\n`);
+
+		const discovered = discoverGitDirs([rootA, rootB], cwd, { allowGitDirDiscovery: true });
+		expect(discovered).toEqual([realpathSync(gitDir)]);
+	});
+
+	test("skips a git dir that is already inside an allowWrite root", async () => {
+		// If the resolved gitdir is inside the working tree root, it's already
+		// covered by the root bind — no separate mount needed.
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		const innerGitDir = join(workTree, "inner-git");
+		await mkdir(innerGitDir);
+		await writeFile(join(innerGitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: inner-git\n`);
+
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
+	});
+
+	test("ignores a .git file that is not a valid gitfile (no gitdir: prefix)", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		await writeFile(join(workTree, ".git"), "this is not a gitfile\n");
+
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
+	});
+
+	test("buildBwrapArgs emits a --bind for a discovered submodule git dir", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+		const canonicalGitDir = realpathSync(gitDir);
+
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree],
+			pinnedGitDirs: discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true }),
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		expectSequence(args, ["--bind", canonicalGitDir, canonicalGitDir]);
+	});
+
+	test("buildBwrapArgs emits no extra mount for a normal repo (.git directory)", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".git"));
+		await writeFile(join(cwd, ".git", "HEAD"), "ref: refs/heads/main\n");
+
+		const args = buildBwrapArgs({
+			cwd,
+			configCwd: cwd,
+			allowWrite: ["."],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		// The .git directory is inside cwd, already covered by the cwd bind.
+		// No separate --bind for the .git path should appear.
+		expect(sequenceIndex(args, ["--bind", join(cwd, ".git"), join(cwd, ".git")])).toBe(-1);
+	});
+
+	test("denyWrite precedence: a discovered git dir that is also denied is not writable", async () => {
+		// discoverGitDirs returns the git dir, but the deny overlay in buildBwrapArgs
+		// fires AFTER the allowWrite bind, so denyWrite wins — the git dir is bound
+		// read-only, not writable. This proves the security invariant holds.
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+		const canonicalGitDir = realpathSync(gitDir);
+
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree],
+			pinnedGitDirs: discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true }),
+			denyRead: [],
+			denyWrite: [gitDir],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		// The git dir is bound writable (allowWrite) then re-mounted read-only (denyWrite).
+		const bindIdx = sequenceIndex(args, ["--bind", canonicalGitDir, canonicalGitDir]);
+		const roIdx = sequenceIndex(args, ["--ro-bind", canonicalGitDir, canonicalGitDir]);
+		expect(bindIdx).toBeGreaterThanOrEqual(0);
+		expect(roIdx).toBeGreaterThanOrEqual(0);
+		expect(bindIdx).toBeLessThan(roIdx); // deny overlay fires after the bind
+	});
+
+	test("a mutated .git gitfile after pinning cannot widen the writable surface (security)", async () => {
+		// The core security property: discovery is PINNED at init (session_start),
+		// not re-read per command. So an agent that overwrites `.git` to point at
+		// another host repo's git dir between commands cannot gain a new writable
+		// path — buildBwrapArgs uses the pinned set, not a fresh discoverGitDirs.
+		// This test simulates the pin: discover once, then mutate the gitfile, and
+		// confirm buildBwrapArgs (with the pinned set) does NOT bind the new target.
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		// Original legit git dir
+		const origGitDir = join(cwd, "modules", "orig");
+		await mkdir(origGitDir, { recursive: true });
+		await writeFile(join(origGitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${origGitDir}\n`);
+		// Pinned at init:
+		const pinned = discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true });
+		expect(pinned).toEqual([realpathSync(origGitDir)]);
+
+		// Attacker mutates .git to point at a DIFFERENT real git repo (has HEAD)
+		const otherRepo = join(cwd, "other-repo");
+		await mkdir(otherRepo);
+		await mkdir(join(otherRepo, ".git"), { recursive: true });
+		await writeFile(join(otherRepo, ".git", "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${join(otherRepo, ".git")}\n`);
+
+		// buildBwrapArgs uses the PINNED set, not a fresh discovery. The other
+		// repo's git dir must NOT appear as a bind — only the original does.
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree],
+			pinnedGitDirs: pinned,
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+		expectSequence(args, ["--bind", realpathSync(origGitDir), realpathSync(origGitDir)]);
+		expect(sequenceIndex(args, ["--bind", realpathSync(join(otherRepo, ".git")), realpathSync(join(otherRepo, ".git"))])).toBe(-1);
+	});
+
+	test("an opted-in fresh discoverGitDirs after mutation WOULD widen (proving pinning is the defense)", async () => {
+		// Negative control: if explicitly enabled discovery were per-command (the
+		// old design), the mutated gitfile WOULD be picked up. This test documents
+		// why pinning matters — it is separate from the secure default.
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		const otherRepo = join(cwd, "other-repo");
+		await mkdir(otherRepo);
+		await mkdir(join(otherRepo, ".git"), { recursive: true });
+		await writeFile(join(otherRepo, ".git", "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${join(otherRepo, ".git")}\n`);
+
+		// An explicitly enabled fresh discovery (the per-command shape we do NOT
+		// use) picks it up.
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([realpathSync(join(otherRepo, ".git"))]);
+	});
+
+	test("rejects a multiline gitfile (junk\\ngitdir: /target)", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		const target = join(cwd, "target");
+		await mkdir(target);
+		await writeFile(join(target, "HEAD"), "ref: refs/heads/main\n");
+		// Not a valid gitfile: content before the gitdir line
+		await writeFile(join(workTree, ".git"), `junk\ngitdir: ${target}\n`);
+
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
+	});
+
+	test("rejects a gitdir target whose HEAD is a directory, not a regular file", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		const target = join(cwd, "target");
+		await mkdir(target);
+		// HEAD is a directory, not a file — not a real git dir
+		await mkdir(join(target, "HEAD"));
+		await writeFile(join(workTree, ".git"), `gitdir: ${target}\n`);
+
+		expect(discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true })).toEqual([]);
+	});
+
+	test("rejects a gitfile with a CR before the path (gitdir:\\r/target)", async () => {
+		// \s* would consume a \r, letting `gitdir:\r/target` pass as path
+		// \r/target. The parser uses [ \t]* so a CR is not consumed and the
+		// match fails (the path would start with \r, which trim() removes,
+		// leaving an empty path — but the regex requires .+ after [ \t]*).
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "wt");
+		await mkdir(workTree);
+		const target = join(cwd, "target");
+		await mkdir(target);
+		await writeFile(join(target, "HEAD"), "ref: refs/heads/main\n");
+		// CR between the colon and the path
+		await writeFile(join(workTree, ".git"), `gitdir:\r${target}\n`);
+
+		expect(discoverGitDirs([workTree], cwd)).toEqual([]);
+	});
+
+	test("accepts an opted-in gitfile with a trailing CRLF", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		// CRLF line ending (Windows-style) — should still parse
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\r\n`);
+
+		const discovered = discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true });
+		expect(discovered).toEqual([realpathSync(gitDir)]);
+	});
+
+	test("denyRead precedence: a discovered git dir that is also denyRead is masked", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+		const canonicalGitDir = realpathSync(gitDir);
+
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree],
+			pinnedGitDirs: discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true }),
+			denyRead: [gitDir],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		// denyRead on the git dir masks it with tmpfs (it's a directory), so the
+		// writable bind is overridden. The tmpfs overlay must fire after the bind.
+		const bindIdx = sequenceIndex(args, ["--bind", canonicalGitDir, canonicalGitDir]);
+		const tmpfsIdx = sequenceIndex(args, ["--tmpfs", canonicalGitDir]);
+		expect(bindIdx).toBeGreaterThanOrEqual(0);
+		expect(tmpfsIdx).toBeGreaterThanOrEqual(0);
+		expect(bindIdx).toBeLessThan(tmpfsIdx);
+	});
+
+	test("explicit allowWrite of the git dir plus pinned discovery binds it once (dedup)", async () => {
+		const cwd = await makeTempDir();
+		const workTree = join(cwd, "submodule");
+		await mkdir(workTree);
+		const gitDir = join(cwd, "modules", "library");
+		await mkdir(gitDir, { recursive: true });
+		await writeFile(join(gitDir, "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(workTree, ".git"), `gitdir: ${gitDir}\n`);
+		const canonicalGitDir = realpathSync(gitDir);
+
+		// The git dir is BOTH an explicit allowWrite entry AND in pinnedGitDirs.
+		const args = buildBwrapArgs({
+			cwd: workTree,
+			configCwd: cwd,
+			allowWrite: [workTree, gitDir],
+			pinnedGitDirs: discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true }),
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+			env: { PATH: "/usr/bin" },
+		});
+
+		// Exactly one --bind for the git dir, not two.
+		const bindCount = args.filter((_, i) => args[i] === "--bind" && args[i + 1] === canonicalGitDir).length;
+		expect(bindCount).toBe(1);
+	});
+});
+
+describe("bwrap integration", () => {
+	integrationTest("allowWrite permits configured writable roots", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "writable"));
+
+		const result = runSandboxed("echo ok > writable/out.txt", {
+			cwd,
+			allowWrite: ["writable"],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(await readFile(join(cwd, "writable", "out.txt"), "utf8")).toBe("ok\n");
+	});
+
+	integrationTest("denyWrite prevents writes to protected existing files and directories", async () => {
+		const cwd = await makeTempDir();
+		await writeFile(join(cwd, "protected.txt"), "original\n");
+		await mkdir(join(cwd, "protected-dir"));
+
+		const fileResult = runSandboxed("echo changed > protected.txt", {
+			cwd,
+			allowWrite: ["."],
+			denyRead: [],
+			denyWrite: ["protected.txt"],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+		});
+		const dirResult = runSandboxed("touch protected-dir/new-file", {
+			cwd,
+			allowWrite: ["."],
+			denyRead: [],
+			denyWrite: ["protected-dir"],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+		});
+
+		expect(fileResult.exitCode).not.toBe(0);
+		expect(dirResult.exitCode).not.toBe(0);
+		expect(await readFile(join(cwd, "protected.txt"), "utf8")).toBe("original\n");
+	});
+
+	integrationTest("denyRead masks files and directories after cwd allow mounts while preserving host contents", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret-dir"));
+		await writeFile(join(cwd, "secret-dir", "inside.txt"), "secret\n");
+		await writeFile(join(cwd, "secret-file"), "secret\n");
+
+		const result = runSandboxed("test ! -e secret-dir/inside.txt && test ! -s secret-file", {
+			cwd,
+			allowWrite: ["."],
+			denyRead: ["secret-dir", "secret-file"],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(await readFile(join(cwd, "secret-dir", "inside.txt"), "utf8")).toBe("secret\n");
+		expect(await readFile(join(cwd, "secret-file"), "utf8")).toBe("secret\n");
+	});
+
+	integrationTest("denyRead plus denyWrite directory mask is not writable", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, "secret"));
+		await writeFile(join(cwd, "secret", "inside.txt"), "secret\n");
+
+		const result = runSandboxed("echo ok > secret/new.txt", {
+			cwd,
+			allowWrite: ["."],
+			denyRead: ["secret"],
+			denyWrite: ["secret"],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+		});
+
+		expect(result.exitCode).not.toBe(0);
+		expect(await readFile(join(cwd, "secret", "inside.txt"), "utf8")).toBe("secret\n");
+	});
+
+	integrationTest("nested denyRead parent cannot hide child denyWrite protection", async () => {
+		for (const denyRead of [["secret/sub", "secret"], ["secret", "secret/sub"]]) {
+			const cwd = await makeTempDir();
+			await mkdir(join(cwd, "secret", "sub"), { recursive: true });
+			await writeFile(join(cwd, "secret", "sub", "inside.txt"), "secret\n");
+
+			const result = runSandboxed("printf started && mkdir -p secret/sub && ! (echo ok > secret/sub/new.txt)", {
+				cwd,
+				allowWrite: ["."],
+				denyRead,
+				denyWrite: ["secret/sub"],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+			});
+
+			expect(text(result.stdout)).toContain("started");
+			expect(result.exitCode).toBe(0);
+			expect(await readFile(join(cwd, "secret", "sub", "inside.txt"), "utf8")).toBe("secret\n");
+		}
+	});
+
+	integrationTest("existing .git directory is masked as a directory without ENOTDIR bricking", async () => {
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".git"));
+		await writeFile(join(cwd, ".git", "config"), "[core]\n");
+
+		const result = runSandboxed("test -d .git && test ! -e .git/config", {
+			cwd,
+			allowWrite: ["."],
+			denyRead: [".git"],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(await readFile(join(cwd, ".git", "config"), "utf8")).toBe("[core]\n");
+	});
+
+	integrationTest("block mode cannot reach a localhost listener and open mode can", async () => {
+		const cwd = await makeRepoTempDir();
+		const server = Bun.listen({
+			hostname: "127.0.0.1",
+			port: 0,
+			socket: {
+				open(socket) {
+					socket.write("ok");
+					socket.end();
+				},
+				data() {
+					// The test only needs the connection to open and receive the greeting.
+				},
+			},
+		});
+		try {
+			const port = server.port;
+			const command = `: < /dev/tcp/127.0.0.1/${port}`;
+			const openResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open", tmpBackend: "host-tmpfs" });
+			const blockResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block", tmpBackend: "host-tmpfs" });
+
+			expect(openResult.exitCode).toBe(0);
+			expect(blockResult.exitCode).not.toBe(0);
+		} finally {
+			server.stop(true);
+		}
+	});
+
+	// A writable host /tmp is required to create the socket outside the nested
+	// bwrap instance. When this suite itself runs inside pi-sandbox, host /tmp is
+	// intentionally read-only and TMPDIR points at the project temp dir; skipping
+	// here avoids silently moving the fixture outside the path this test claims to
+	// mask. The argv-level tmpfs assertions above still run in that environment.
+	hostTmpIntegrationTest("block mode cannot reach host Unix sockets under /tmp", async () => {
+		const cwd = await makeRepoTempDir();
+		const socketDir = await mkdtemp(join("/tmp", "ssh-pi-sandbox-test-"));
+		tempDirs.push(socketDir);
+		const socketPath = join(socketDir, `agent.${process.pid}`);
+		const clientPath = join(cwd, "socket-client.mjs");
+		await writeFile(clientPath, `
+import { createConnection } from "node:net";
+const socketPath = process.argv[2];
+const socket = createConnection(socketPath);
+const timeout = setTimeout(() => {
+	console.error("timeout");
+	socket.destroy();
+	process.exit(3);
+}, 1000);
+socket.once("connect", () => {
+	clearTimeout(timeout);
+	socket.end();
+	process.exit(0);
+});
+socket.once("error", (error) => {
+	clearTimeout(timeout);
+	console.error(error.code ?? error.message);
+	process.exit(2);
+});
+`);
+
+		const server = createServer((socket) => {
+			socket.end("ok");
+		});
+		await new Promise<void>((resolveListen, rejectListen) => {
+			server.once("error", rejectListen);
+			server.listen(socketPath, () => {
+				server.off("error", rejectListen);
+				resolveListen();
+			});
+		});
+
+		try {
+			const command = `${shellQuote(process.execPath)} ${shellQuote(clientPath)} ${shellQuote(socketPath)}`;
+			const openResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "open", tmpBackend: "host-tmpfs" });
+			const blockResult = runSandboxed(command, { cwd, configCwd: cwd, allowWrite: [], denyRead: [], denyWrite: [], networkMode: "block", tmpBackend: "host-tmpfs" });
+
+			expect(openResult.exitCode).toBe(0);
+			expect(blockResult.exitCode).not.toBe(0);
+			expect(text(blockResult.stderr)).toContain("ENOENT");
+		} finally {
+			await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
+		}
+	});
+
+	integrationTest("block mode forces TMPDIR to a writable private /tmp", async () => {
+		const cwd = await makeRepoTempDir();
+		const result = runSandboxed("test \"$TMPDIR\" = /tmp && dir=$(mktemp -d) && case \"$dir\" in /tmp/*) touch \"$dir/file\" ;; *) exit 9 ;; esac", {
+			cwd,
+			configCwd: cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "block",
+			tmpBackend: "host-tmpfs",
+		}, { ...process.env, TMPDIR: "/host/tmp" });
+
+		expect(result.exitCode).toBe(0);
+	});
+
+	integrationTest("PID namespace and fresh /proc identify the sandbox init", async () => {
+		const cwd = await makeTempDir();
+		// bwrap remains PID 1 in its fresh namespace; the launched bash is PID 2.
+		// This verifies namespace-local process identity without assuming any host PID is absent.
+		const result = runSandboxed('test "$$" -eq 2 && test -d /proc/1 && test "$(cat /proc/1/comm 2>/dev/null)" = bwrap', {
+			cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+		});
+
+		expect(result.exitCode).toBe(0);
+	});
+
+	integrationTest("sandboxed bash env omits provider/auth secrets", async () => {
+		const cwd = await makeTempDir();
+		const env = {
+			...process.env,
+			OPENAI_API_KEY: "openai-secret",
+			ANTHROPIC_API_KEY: "anthropic-secret",
+			ANTHROPIC_AUTH_TOKEN: "anthropic-token",
+			ZAI_API_KEY: "zai-secret",
+		};
+
+		const result = runSandboxed("env", {
+			cwd,
+			allowWrite: [],
+			denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+		}, env);
+		const output = text(result.stdout);
+
+		expect(result.exitCode).toBe(0);
+		expect(output).toContain("PATH=");
+		expect(output).not.toContain("OPENAI_API_KEY");
+		expect(output).not.toContain("ANTHROPIC_API_KEY");
+		expect(output).not.toContain("ANTHROPIC_AUTH_TOKEN");
+		expect(output).not.toContain("ZAI_API_KEY");
+		expect(output).not.toContain("openai-secret");
+		expect(output).not.toContain("anthropic-secret");
+		expect(output).not.toContain("zai-secret");
+	});
+
+	integrationTest("symlink to a denied path resolves to the masked canonical target", async () => {
+		const cwd = await makeTempDir();
+		const outside = await makeTempDir();
+		await mkdir(join(outside, "secret-dir"));
+		await writeFile(join(outside, "secret-dir", "secret.txt"), "secret");
+		await symlink(join(outside, "secret-dir"), join(cwd, "secret-link"));
+
+		const result = runSandboxed("test ! -e secret-link/secret.txt", {
+			cwd,
+			allowWrite: ["."],
+			denyRead: [join(outside, "secret-dir")],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(await readFile(join(outside, "secret-dir", "secret.txt"), "utf8")).toBe("secret");
+	});
+
+	integrationTest("git add + commit works inside a submodule working tree (the reported case)", async () => {
+		// Reproduces the original bug: a submodule's .git gitfile points outside
+		// the working tree, so git index/object writes failed under the sandbox.
+		// discoverGitDirs must auto-include the git dir in the writable surface.
+		const cwd = await makeTempDir();
+		// A fresh HOME carrying a git identity: `git commit` is fatal (exit 128,
+		// "Author identity unknown") when no user.name/user.email is reachable.
+		// GitHub Actions runners do not seed a global git identity, and the
+		// sandbox's minimal env does not carry GIT_* either, so the test must not
+		// depend on an ambient ~/.gitconfig. The sandbox resolves HOME into the
+		// writable surface via the env (not allowWrite), so a plain temp dir with
+		// a .gitconfig is sufficient and does not widen allowWrite policy.
+		const tempHome = await makeTempDir();
+		await writeFile(join(tempHome, ".gitconfig"), "[user]\n\tname = Sandbox Test\n\temail = sandbox@example.com\n");
+		// Build a real parent repo with a submodule-style layout: the working
+		// tree is a subdir, and its git dir lives under <parent>/.git/modules/<name>.
+		const parentGit = join(cwd, ".git");
+		await mkdir(join(parentGit, "modules", "library"), { recursive: true });
+		const subGitDir = join(parentGit, "modules", "library");
+		// Minimal valid git dir: HEAD + objects + refs
+		await writeFile(join(subGitDir, "HEAD"), "ref: refs/heads/main\n");
+		await mkdir(join(subGitDir, "objects"), { recursive: true });
+		await mkdir(join(subGitDir, "refs", "heads"), { recursive: true });
+		// The working tree
+		const workTree = join(cwd, "library");
+		await mkdir(workTree);
+		// gitfile pointing outside the working tree (relative, like git generates)
+		await writeFile(join(workTree, ".git"), "gitdir: ../.git/modules/library\n");
+		// A file to stage
+		await writeFile(join(workTree, "README.md"), "# library\n");
+
+		const result = runSandboxed(
+			"git add README.md && git commit -m 'init' --allow-empty-message >/dev/null 2>&1 && git rev-parse HEAD",
+			{
+				cwd: workTree,
+				configCwd: cwd,
+				allowWrite: [workTree],
+				pinnedGitDirs: discoverGitDirs([workTree], cwd, { allowGitDirDiscovery: true }),
+				denyRead: [],
+				denyWrite: [],
+				networkMode: "open",
+				tmpBackend: "host-tmpfs",
+			},
+			{ ...process.env, HOME: tempHome },
+		);
+
+		expect(result.exitCode).toBe(0);
+		expect(text(result.stdout).trim()).toMatch(/^[0-9a-f]{40}$/);
+	});
+
+	integrationTest("default denyRead does not mask gitconfig needed by git status", async () => {
+		const cwd = await makeTempDir();
+		const tempHome = await makeTempDir();
+		await mkdir(join(cwd, ".git", "objects"), { recursive: true });
+		await mkdir(join(cwd, ".git", "refs", "heads"), { recursive: true });
+		await writeFile(join(cwd, ".git", "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(cwd, "file.txt"), "content\n");
+		await writeFile(join(tempHome, ".gitconfig"), "[user]\n\tname = Sandbox Test\n");
+
+		const result = runSandboxed("git status --porcelain", {
+			cwd,
+			allowWrite: ["."],
+			denyRead: DEFAULT_CONFIG.filesystem.denyRead,
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+		}, { ...process.env, HOME: tempHome });
+
+		expect(result.exitCode).toBe(0);
+		expect(text(result.stdout).trim()).toBe("?? file.txt");
+	});
+
+	integrationTest("git status works inside a normal repo (regression: no behavior change)", async () => {
+		// A normal repo (.git directory inside cwd) must not be affected by
+		// discovery — the .git dir is already inside the working tree bind.
+		const cwd = await makeTempDir();
+		await mkdir(join(cwd, ".git", "objects"), { recursive: true });
+		await mkdir(join(cwd, ".git", "refs", "heads"), { recursive: true });
+		await writeFile(join(cwd, ".git", "HEAD"), "ref: refs/heads/main\n");
+		await writeFile(join(cwd, "file.txt"), "content\n");
+
+		const result = runSandboxed("git status --porcelain", {
+			cwd,
+			allowWrite: ["."],
+				denyRead: [],
+			denyWrite: [],
+			networkMode: "open",
+			tmpBackend: "host-tmpfs",
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(text(result.stdout).trim()).toBe("?? file.txt");
+	});
+});

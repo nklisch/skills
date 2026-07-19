@@ -1,0 +1,38 @@
+{
+  "name": "@nklisch/pi-sandbox",
+  "version": "0.1.0",
+  "description": "First-party pi sandbox hardening — Linux bwrap for mediated bash, graceful macOS file/tool-policy degrade, and tool-egress policy. Windows is out of scope for 0.1.0.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nklisch/skills.git",
+    "directory": "plugins/pi-sandbox"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "sandbox"
+  ],
+  "type": "module",
+  "exports": {
+    "./sandbox-spawn": {
+      "types": "./extensions/sandbox-spawn.ts",
+      "import": "./extensions/sandbox-spawn.ts"
+    }
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ]
+  }
+}
