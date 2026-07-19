@@ -1,0 +1,168 @@
+{
+  "name": "nklisch-skills",
+  "interface": {
+    "displayName": "nklisch skills"
+  },
+  "plugins": [
+    {
+      "name": "workflow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/workflow"
+      },
+      "description": "Software development workflow skills — ideate projects, design features, implement from plans, profile and optimize performance, refactor codebases with bold architectural reconceptions, extract patterns, design tests, and ship releases.",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "nates-toolkit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/nates-toolkit"
+      },
+      "description": "Standalone, project-agnostic utility skills with no workflow lock-in — plainspeak (plain-language re-explanation), agent-reflection (self-reflection on tool & skill usage), write-tool-skill + skill-auditor (skill authoring and quality auditing).",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "code-audit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/code-audit"
+      },
+      "description": "Standalone markdown-first code audit skills — deep code scan, bug scan, security scan, test scan, perf scout, bold refactor, and repo eval without requiring agile-workflow or .work.",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "agile-workflow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agile-workflow"
+      },
+      "description": "Markdown-based work-tracking substrate for AI-driven projects. Items as files in .work/, late-binding releases, gates that produce items, goal-backed autopilot queue runner.",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "workbench",
+      "source": {
+        "source": "local",
+        "path": "./plugins/workbench"
+      },
+      "description": "Requirements-first software delivery with a lightweight .work/ ledger, integrated research and interactive UI walkthroughs, judgment-led execution, and compact release summaries.",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "ux-ui-design",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ux-ui-design"
+      },
+      "description": "HTML/CSS/JS mockup-first UI/UX design. Generate multi-option screen mockups, multi-page user flows, and design-system palettes as throwaway single-file mockups in .mockups/ for alignment before implementation. Loosely integrates with agile-workflow.",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "agentic-research",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agentic-research"
+      },
+      "description": "Agentic Research Discipline (ARD) — grounded, verifiable AI research with a non-erodable anti-fabrication floor, selectable verification gates, and a .research/ substrate tier paralleling .work/. ARD is the plugin's internal, empirically-warranted discipline (ard-core/).",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "agent-coordination",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agent-coordination"
+      },
+      "description": "Sparse cross-agent coordination ledger for shared repositories. Uses deliberate GitHub Discussion events for claims, handoffs, blockers, review summaries, and merge summaries without turning Discussions into chat.",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "zai-research",
+      "source": {
+        "source": "local",
+        "path": "./plugins/zai-research"
+      },
+      "description": "Z.ai-powered web search, URL/PDF reading, and GitHub repo deep-read for Pi. Wraps Z.ai's web-search-prime, web-reader, and zread MCP servers via the bundled MCP SDK client (pi has no built-in MCP), plus provider-free local PDF extraction via unpdf. Auth is the configured zai provider key. Replaces the prior pi-web-access web-search/fetch surface.",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "krometrail",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/nklisch/krometrail",
+        "path": "./plugin"
+      },
+      "description": "Control a local Chromium browser and inspect transient behavior with source-linked temporal visual evidence.",
+      "category": "Developer Tools",
+      "version": "1.0.1",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "peeragent",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/nklisch/peeragent",
+        "path": "./plugin"
+      },
+      "description": "Delegate arbitrary task work between local coding agents — any host (Claude Code, Codex, or Pi) can call any peer (Codex, Claude Code, Gemini through Antigravity, or Z.AI GLM 5.2 through Pi). Ships the peer and peer-review skills.",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    },
+    {
+      "name": "skilltap",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/nklisch/skilltap",
+        "path": "./plugin"
+      },
+      "description": "Personal control plane for Codex and Claude Code environments — adopt, reconcile, update, and bootstrap native plugins, complete skills, and shared instructions without marketplace discovery.",
+      "category": "Developer Tools",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
+    }
+  ]
+}

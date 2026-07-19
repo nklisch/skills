@@ -125,9 +125,9 @@ Instead:
 
 ### Phase 2: Ground yourself
 
-The principles skill auto-loads — both code-design (Ports & Adapters, SSOT,
-Generated Contracts, Fail Fast) and substrate-execution (Item-IS-the-Work,
-Rolling-Foundation, Late-Binding) are active.
+The principles skill auto-loads — code-design includes proportional rigor, code
+economy, useful tests, and leaving touched areas simpler; substrate-execution
+includes Item-IS-the-Work, Rolling-Foundation, and Late-Binding.
 
 Read:
 1. `docs/VISION.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md` — foundation that
@@ -206,6 +206,17 @@ units each), collapse them into one feature.
 Aim for 2-6 child features per epic. Fewer than 2 means the epic was probably
 sized as a feature; flag the user. More than 6 means you're slicing too thin;
 collapse.
+
+### Phase 4.4: Identify simplification arcs
+
+For each area the epic touches, ask what capabilities, code, tests, checks,
+abstractions, compatibility paths, or whole subsystems the new direction can
+make unnecessary. Prefer feature arcs that replace and remove over arcs that
+only layer on more machinery. Fold cohesive elimination into the owning feature
+brief or create an explicit `[refactor]`/`[cleanup]` child feature when it needs
+independent design and review. Park unrelated cleanup. Any arc that removes
+behavior or meaningful guarantees becomes a high-level design decision for user
+confirmation, not an assumed refactor.
 
 ### Phase 4.5: Identify cross-feature dependencies
 
@@ -309,6 +320,9 @@ capability it covers, why it exists in this epic, what it does NOT cover>
 - Position in epic: <e.g., "foundation feature — others depend on its types"
   / "consumer of feature-X" / "independent capability">
 
+## Simplification opportunity
+- <what this feature should delete, consolidate, replace, or deliberately retain>
+
 ## Foundation references
 - `docs/VISION.md` — relevant section(s) (only if directly relevant)
 - `docs/ARCHITECTURE.md` — relevant component(s)
@@ -361,6 +375,10 @@ feature lands.">
 - `<feature-id-1>` — <one-line description> — depends on: `[]`
 - `<feature-id-2>` — <one-line description> — depends on: `[<feature-id-1>]`
 - `<feature-id-3>` — <one-line description> — depends on: `[<feature-id-1>]`
+
+### Simplification arcs
+
+- <feature-id> — <code/tests/checks/abstractions/subsystems it should remove or consolidate>
 
 ### Decomposition risks
 

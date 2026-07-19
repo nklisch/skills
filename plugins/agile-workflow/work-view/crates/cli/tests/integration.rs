@@ -2472,9 +2472,9 @@ fn help_ready_flag_description_matches_bash_wording() {
     let (stdout, _, code) = run(&["--help"]);
     assert_eq!(code, 0);
     // Bash help line (verbatim):
-    //   --ready    Active items at drafting/implementing/review with all depends_on done
+    //   --ready    Active drafting/implementing/review items whose deps are done or at review
     assert!(
-        stdout.contains("Active items at drafting/implementing/review with all depends_on done"),
+        stdout.contains("Active drafting/implementing/review items whose deps are done or at review"),
         "--help should contain bash-matching --ready description; help text:\n{stdout}"
     );
 }
@@ -2484,9 +2484,9 @@ fn help_blocked_flag_description_matches_bash_wording() {
     let (stdout, _, code) = run(&["--help"]);
     assert_eq!(code, 0);
     // Bash help line (verbatim):
-    //   --blocked  Active items at drafting/implementing/review with unmet dependencies
+    //   --blocked  Active drafting/implementing/review items with implementation-blocking deps
     assert!(
-        stdout.contains("Active items at drafting/implementing/review with unmet dependencies"),
+        stdout.contains("Active drafting/implementing/review items with implementation-blocking deps"),
         "--help should contain bash-matching --blocked description; help text:\n{stdout}"
     );
 }

@@ -3,8 +3,8 @@ name: fix
 description: >
   ALWAYS invoke this skill when the user asks to fix a specific verified bug — do not just edit code
   inline. Diagnoses and repairs the bug as a focused substrate story: reproduces it, identifies the
-  root cause, writes a failing test, applies the minimal fix, verifies it, and continues through
-  review to done unless the caller requests stop-at-review. Use when something is verifiably broken,
+  root cause, writes a failing test, applies the minimal fix, verifies it, and runs the bounded
+  standalone-story review lane. Use when something is verifiably broken,
   not for unverified hunches, refactors, feature additions, or architectural work. Triggers on "fix
   bug X", "fix the typo in", "fix this issue", "this is broken — fix it", and "patch this item".
 ---
@@ -12,10 +12,11 @@ description: >
 # Fix
 
 You diagnose and repair a specific reported bug, capturing the work as a focused
-substrate story that completes through its review lane by default. The discipline
-is reproduce, diagnose to root cause, write a regression test, apply the minimal
-fix, confirm, and honor review's verdict. The artifact is the substrate item, not
-a separate fix doc.
+standalone substrate story. The discipline is reproduce, diagnose to root cause,
+write a regression test, apply the minimal fix, confirm, and run a bounded inline
+review. Standalone stories receive review because no parent feature supplies that
+boundary, but they never receive independent, fresh-context, or cross-model
+review. The artifact is the substrate item, not a separate fix doc.
 
 ## When to invoke
 
@@ -134,58 +135,47 @@ a test to make it pass.
 
 ### Phase 7: Commit and complete the lifecycle
 
-1. Update the story stage: `implementing → review`. The PostToolUse hook
-   auto-bumps `updated:`.
+1. Update the standalone story stage: `implementing → review`. The PostToolUse
+   hook auto-bumps `updated:`.
 2. Append an "Implementation notes" section capturing:
    - Execution capability selected from risk and scope, plus the rationale
-   - Effective `review_weight` and its source
    - Files changed
-   - Test added
+   - Test added and four-step confirmation evidence
    - Adjacent issues parked (with backlog ids)
 
    Choose capability without a routine model-tier question unless the caller or
-   project explicitly overrides it. Resolve review weight from an explicit caller
-   override, then project convention, otherwise `standard`; the principles and
-   review skills own the weight matrix.
-3. Commit the fix:
+   project explicitly overrides it.
+3. Commit the verified fix:
    ```bash
    git add .work/active/stories/<id>.md <changed-files> <test-file>
    git commit -m "fix: <short description> (<story-id>)"
    ```
-4. Unless the caller explicitly requested `stop-at-review` (including "stop at
-   review", "leave at review", or "hand off for review") or a project convention
-   sets that boundary, invoke `/agile-workflow:review <id>` in the same invocation
-   and forward the effective `review_weight`. The review lane owns its required
-   context and verdict:
-   - approve: advance and commit `review → done`
-   - bounce: append `## Review findings`, return the story to `implementing`, and
-     report the bounce
-   - blocker: append `## Blocker` and report it without claiming completion
+4. Unless `stop-at-review` applies, invoke `/agile-workflow:review <id>` using
+   the standalone-story lane. That lane reviews inline from the diff,
+   reproduction, regression test, and acceptance evidence; it must not spawn an
+   independent, fresh-context, or cross-model reviewer.
 
-A weight of `none` skips independent review, but the review lane still requires
-the same green verification and acceptance evidence before administrative
-closure. Review remains a real lifecycle act, not silent self-approval. With
-`stop-at-review`, leave the committed story at `review` and report the explicit
-boundary.
+If the repair is broad enough to need independent review, it is a feature rather
+than a focused fix; route it through `/agile-workflow:scope` before implementation.
 
 ## Output
 
 Brief report in conversation:
-- **Story**: `<id>` at `stage: done`, `stage: review` by explicit override, or
-  `stage: implementing` after a documented bounce
-- **Review**: lane verdict, limitation, or blocker
+- **Story**: `<id>` at `stage: done`, `stage: review` by explicit boundary, or
+  `stage: implementing` after a bounded review bounce
+- **Review**: bounded inline verdict; never independent or cross-model
 - **Root cause**: one sentence
 - **Fix**: file(s) changed
 - **Test**: file path and behavior asserted
 - **Execution capability**: choice and rationale
-- **Review weight**: effective value and source
 - **Parked for separate consideration**: adjacent issues not bundled
 
 ## Guardrails
 
 - Do NOT skip the test (Phase 3). Fixes without tests recur.
 - Do NOT bundle refactoring or unrelated improvements into the fix's commit.
-- Do not self-approve at `review`; invoke the review lane and honor its verdict.
+- A fix story is standalone and therefore receives bounded inline review. Never
+  invoke an independent, fresh-context, or cross-model reviewer for it.
 - Broad scope (for example, many files, a public-interface change, or multiple
-  subsystems) is a signal that this is a feature rather than a targeted fix, not
-  a review-stop rule. Route it through `/agile-workflow:scope`.
+  subsystems) is a signal that this is a feature rather than a targeted fix.
+  Route it through `/agile-workflow:scope`, where feature-level review applies.

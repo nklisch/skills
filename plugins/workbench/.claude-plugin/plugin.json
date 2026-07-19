@@ -1,0 +1,10 @@
+{
+  "name": "workbench",
+  "description": "Requirements-first software workbench built around a lightweight .work/ ledger, research and interactive UI mockups, judgment-led execution, and compact release summaries.",
+  "version": "0.1.1",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT"
+}

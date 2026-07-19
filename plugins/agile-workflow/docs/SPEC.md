@@ -62,7 +62,7 @@ updated: YYYY-MM-DD              # required, auto-bumped by PostToolUse hook
 | `stage` | enum | Per-kind valid values; see Stage flow below. |
 | `tags` | array of slug strings | Routing tags from the project's taxonomy in `.work/CONVENTIONS.md`. May be empty. Kebab-case. |
 | `parent` | slug or null | **Hierarchy.** `null` for top-level. Points to a parent item's `id`. |
-| `depends_on` | array of slugs | **Sequencing.** Items this cannot start until all listed are at `stage: done`. May be empty. Distinct from `parent`. |
+| `depends_on` | array of slugs | **Implementation sequencing.** Items this cannot start until all listed dependencies have completed verified implementation (`stage: review` or terminal `done`/`released`). Review remains required for final completion but does not block the next implementation layer. May be empty. Distinct from `parent`. |
 | `release_binding` | version string or null | Late-binding. `null` until the user binds. Format matches the release file's version (e.g., `v1.2.0`). |
 | `gate_origin` | gate name or null | `null` for user-scoped items. One of `security`, `tests`, `cruft`, `docs`, `patterns`, `refactor` when produced by a gate (`refactor` is the opt-in gate's value). |
 | `research_refs` | array of slug strings | **Optional; defaults to `[]`.** The research artifacts (`.research/` slugs or handles) this work item tracks or consumes — the Arrow 1 coordination link. Missing → `[]`. Query: `work-view --research-refs <slug>` (membership). See `plugins/agentic-research/docs/HANDOFF.md` for the cross-tier contract. |
@@ -74,28 +74,41 @@ updated: YYYY-MM-DD              # required, auto-bumped by PostToolUse hook
 ### Stage flow per kind
 
 ```
-epic:    drafting → implementing → review → done
-feature: drafting → implementing → review → done
-story:   implementing → review → done   (often skips drafting)
-release: planned → quality-gate → released
-task:    [ ] → [x]                       (checklist line in parent body)
+epic:             drafting → implementing → review → done
+feature:          drafting → implementing → review → done
+child story:      implementing → done
+standalone story: implementing → review → done   (often skips drafting)
+release:          planned → quality-gate → released
+task:             [ ] → [x]                      (checklist line in parent body)
 ```
 
-Stages advance only when work completes. No pre-population. For epics,
-features, and stories, `review` is a real evaluation state and `done` means the
-selected review lane approved the item. It is not a mandatory user handoff:
-production skills drive verified work through the risk-appropriate review lane
-in the same invocation by default. An explicit `stop-at-review` request (or
-project convention) leaves the item at `review`. Approval advances to `done`;
-a review bounce returns the item to `implementing` with durable findings, and a
-blocker remains recorded in the item body.
+Stages advance only when work completes. No pre-population. Child stories are
+design and acceptance checkpoints: green implementation verification advances
+them directly from `implementing` to `done`. They never enter `review`. A
+standalone story (`parent: null`) receives a bounded inline review because no
+parent feature supplies that boundary, but never an independent, fresh-context,
+or cross-model review. A feature is the normal implementation, integration,
+verification, and review boundary. Production skills advance a feature to
+`review` only after all child stories are `done` and integrated verification is
+green, then continue through the selected feature review lane by default. An
+explicit `stop-at-review` request may leave a feature or standalone story there.
+An item at `review` has completed verified implementation and therefore satisfies
+`depends_on` for downstream implementation: review may run concurrently with the
+next dependency layer. Final completion and release still require review to
+finish and the item to reach `done`.
 
-Review effort is selected from risk, evidence, effective `review_weight`, and
-item kind as a starting heuristic. Low-risk stories can close from recorded
-green verification, while risky stories, features, and epics receive the
-fresh-context coverage allowed by the effective weight. Child completion may
-make a parent eligible for its own review, but never approves the parent by
-itself.
+Once all child features have completed feature-level review and are `done`, the
+epic advances from `implementing` to `review` for its own deeper aggregate pass.
+Epic review targets end-to-end capability, cross-feature contracts, cumulative
+operational/release risk, and foundation alignment rather than repeating child
+feature details. Review depth generally rises with scope: broad boundaries reveal
+integration gaps, while tiny-scope review tends toward pedantry and
+unproductive over-engineering. Review effort applies to features, epics, and
+final autopilot completion bundles; standalone stories always use the bounded
+inline lane. Fresh-reviewer findings are proposals: the receiving agent
+verifies and classifies them against repository context. Only credible material
+current-cycle risk blocks feature advancement; valid lower-priority findings
+are parked unbound.
 
 ### Questions and advisory review
 
@@ -117,15 +130,28 @@ convention, then `standard`:
 
 - `none` — no independent reviewer; green implementation verification and
   acceptance evidence are still required.
-- `light` — minimal independent ceremony with focused scrutiny where risk
-  clearly warrants it.
-- `standard` — balanced, risk-driven independent review.
-- `thorough` — increased fresh-context breadth and depth for meaningful risk.
-- `maximum` — multi-model, multi-pass complementary-then-adversarial review is
-  available for the highest-risk scopes.
+- `light` — at most one focused pass where risk warrants it, followed by
+  adjudication, material-blocker fixes, verification, and closure without
+  re-review.
+- `standard` — the default: exactly one balanced fresh-context pass, followed by
+  adjudication, material-blocker fixes, verification, and closure without
+  re-review.
+- `thorough` — repeat review → adjudicate → fix → verify until a pass yields no
+  receiver-confirmed material current-cycle blockers.
+- `maximum` — use the `thorough` convergence rule with multi-model,
+  complementary-then-adversarial coverage when available.
 
-These levels state review intent and ceilings, not fixed reviewer counts or pass
-recipes.
+Reviewer capability and lens breadth adapt to target risk, but closure policy is
+binding. Epic scope and deep lenses do not silently escalate `standard` beyond
+one pass. In convergence lanes, smaller findings are parked unbound, kept as
+nits, or rejected by receiver judgment; they do not keep the loop open. A
+successful review path requires every proposed finding to be adjudicated, not
+implemented. The receiving orchestrator weighs acceptance
+criteria, supported users and deployment shape, likelihood, blast radius,
+recoverability, safeguards, and delay cost. It fixes or activates material
+current-cycle blockers, parks valid lower-priority concerns in the unbound
+backlog, and rejects unsupported advice with a rationale. Reviewer labels and
+repetition are evidence, not authority.
 
 ### Backlog item shape
 
@@ -204,6 +230,15 @@ backlog_staleness_days: 90
 The default `gates_for_release` order is fixed: **security → tests → cruft
 → docs → patterns**. Override only if the project has a justified reason.
 
+Release-bound items define each gate's focus, not a hard scan boundary. A gate
+may follow concrete evidence into adjacent dependencies, shared infrastructure,
+or system-wide mechanisms. Findings caused by, exposed by, or materially
+relevant to the release bind to it. Merely ambient discoveries must be written
+to the unbound backlog, so wider inspection does not silently expand release
+scope. Any cruft proposal that reduces behavior, validation, determinism,
+compatibility, safety, or another meaningful guarantee requires explicit user
+confirmation before it becomes active removal work.
+
 **`gate-refactor` is an opt-in gate** — not in the default list. Add it when your project has
 scan-rule libraries installed under `gate_refactor_scan_library_roots` (defaults:
 `{project}/.agents/skills/scan-*/SKILL.md`, then
@@ -251,8 +286,10 @@ parent unbound while its children are bound) always follow `binding_guard` regar
 
 **`review_weight`** is optional and defaults to **`standard`** when absent. Valid values are
 `none`, `light`, `standard`, `thorough`, and `maximum`. An explicit invocation selector overrides
-the project value. The setting controls independent-review intent; it never relaxes implementation
-verification or acceptance evidence. The canonical level semantics and lane selection live in the
+the project value. The setting controls independent-review depth and closure policy; it never
+relaxes implementation verification or acceptance evidence. `standard` is the
+single-pass default, while only `thorough` and `maximum` enable multi-pass
+convergence. The canonical level semantics and lane selection live in the
 `principles` and `review` skills rather than in project bootstrap configuration.
 
 **`backlog_staleness_days`** (integer; **absent ⇒ feature inert**) is the age threshold for the
@@ -571,8 +608,8 @@ retirement of the Bash fallback (Rust-only) is tracked as a parked epic.
 | `--parent` | `<id>` | Filter to direct children of the given item |
 | `--release` | `<version>` | Filter by `release_binding` |
 | `--gate` | `<gate>` | Filter by `gate_origin` |
-| `--ready` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with all `depends_on` terminal (`done`/`released`, or resident in `releases/`/`archive/`). **Excludes `[scan]`-tagged items** — they are engagement-owned by `deep-code-scan` and must not be drained by autopilot. |
-| `--blocked` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with at least one non-terminal dependency. Also excludes `[scan]`-tagged items. |
+| `--ready` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` whose `depends_on` entries have verified implementation complete (`review`, `done`, `released`, or resident in `releases/`/`archive/`). **Excludes `[scan]`-tagged items** — they are engagement-owned by `deep-code-scan` and must not be drained by autopilot. |
+| `--blocked` | (none) | Active-tier items at `stage: drafting`, `implementing`, or `review` with at least one dependency that has not completed verified implementation. Also excludes `[scan]`-tagged items. |
 | `--blocking` | `<id>` | Reverse lookup: items that depend on `<id>` |
 | `--scope` | `<active\|backlog\|releases\|archive\|all>` | Tiers to surface. Default (flag absent) = **active + backlog** (non-terminal); terminal tiers (`releases`/`archive`) are hidden unless requested. `--release`/`--gate` auto-widen to `all` unless `--scope` is set explicitly |
 | `--research-origin` | `<slug>` | Filter by `research_origin` (use `null` to select items with no origin) |

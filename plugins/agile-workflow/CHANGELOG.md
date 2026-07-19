@@ -2,13 +2,50 @@
 
 ## Unreleased
 
-### Autonomous review convergence
+### Adaptive feature refactoring
 
-- **Removed the two-bounce circuit-breaker** — autopilot no longer parks an item
-  at review or blocks the run after two failed correction passes. Review findings
-  re-enter implementation until they pass; recurring findings trigger deeper
-  root-cause/design diagnosis and fresh context where useful. Only a separate,
-  genuine blocker may stop autonomous progress.
+- **Refactoring stays inside normal feature work** — feature design and
+  implementation now widen simplification checks according to accumulated
+  substantial feature change rather than completed-item counts. Rough reminders
+  such as three related features or five major feature-sized items are prompts,
+  not thresholds; child stories are not cadence units.
+- **No automatic autopilot refactor cadence** — ordinary autopilot no longer
+  launches `refactor-design` discovery every five items. Dedicated discovery and
+  `bold-refactor` remain explicitly user-requested, while existing `[refactor]`
+  items continue through normal routing.
+
+### Review model selection
+
+- **GPT-5.6-first OpenAI review routing** — review selection now prefers an
+  available GPT-5.6 model (Sol first for deep review) and uses GPT-5.5 only when
+  the current harness has no review-capable 5.6 model available.
+
+### Luna-first implementation routing
+
+- **Luna is the default implementation worker** — after explicit caller and
+  project overrides, implementation dispatch now selects GPT-5.6 Luna whenever
+  it is available. Normal work uses `high`, demanding work uses `xhigh`, and
+  `medium` is reserved for very simple bounded tasks. Other implementors are
+  availability fallbacks rather than complexity-based upgrades.
+
+### Autopilot queue-scope clarity
+
+- **Queue selection is not implementation scope** — `--all` selects every
+  active item for draining, but autopilot now grounds kickoff narration and
+  capability rationale in concrete ready work. It does not synthesize a broad
+  current implementation claim from future, blocked, or undecomposed items.
+
+### Weight-aware review closure
+
+- **Standard is explicitly single-pass** — the default feature, epic, and final
+  completion path runs one independent review, adjudicates proposals, fixes and
+  verifies material blockers, then finishes without re-review. Deep or epic
+  scope broadens lenses but does not silently add passes.
+- **Convergence is opt-in** — `thorough` and `maximum` repeat review → fix →
+  verify until a pass yields no receiver-confirmed material current-cycle
+  blockers. Smaller findings are parked, noted as nits, or rejected by receiver
+  judgment and never hold the loop open. There is no arbitrary bounce cap for
+  these explicit convergence weights.
 
 ### Dynamic subagent prompting
 

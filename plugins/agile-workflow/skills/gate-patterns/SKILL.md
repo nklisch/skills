@@ -107,7 +107,7 @@ output.
 > Use read/search/shell tools as needed. Do not spawn nested sub-agents or modify
 > source files.
 >
-> **Bundle scope**:
+> **Bundle focus** (start here; follow recurring shapes across the repository):
 > ```
 > <bundle-files>
 > ```
@@ -120,8 +120,10 @@ output.
 >
 > **Methodology**:
 >
-> 1. **Pattern discovery passes** — inspect the bundle's changed files plus
->    their immediate consumers (since reuse implies multiple call sites):
+> 1. **Pattern discovery passes** — inspect the bundle's changed files first,
+>    then follow candidate shapes through consumers and the wider repository
+>    where needed to establish genuine recurrence. Bound files are the focus,
+>    not a hard scan boundary:
 >    - **Shared abstractions & utilities** — find new shared/reusable code
 >      introduced in the bundle: utility functions, base classes, common
 >      helpers, types used across multiple modules. List each with
@@ -225,6 +227,8 @@ output.
 >   the divergence instead.
 > - Don't fabricate patterns. If discovery yields nothing, return an empty
 >   "New patterns" section.
+> - Expansion beyond the bundle must follow a concrete candidate pattern or
+>   inconsistency; do not perform an unfocused whole-repo style audit.
 
 ### Phase 4: Write pattern files
 
