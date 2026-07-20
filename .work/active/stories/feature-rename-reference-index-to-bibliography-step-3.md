@@ -46,11 +46,13 @@ All fixture paths → `reference/<corpus>/BIBLIOGRAPHY.md`; all `make_reference_
 - **No production-code change required** — the loader derives the `ReferenceIndex` tier from the *directory* being under `reference/<corpus>/` (`collect_sorted_paths` → `collect_recursive_inner`), not the filename. `path.file_stem()` (parse.rs:157, parse.rs:301) yields `BIBLIOGRAPHY` automatically. **Verify this holds** by running the suite after the fixture rename — if any test fails, it means production code *does* match the literal (a finding to report, not a code change to make speculatively).
 - Production comments that say "per-corpus INDEX bibliographies" (index.rs:87, parse.rs:286) update to "per-corpus BIBLIOGRAPHY" for clarity (comment-only).
 - `model.rs:112` doc-comment "how many INDEX entries" → "how many BIBLIOGRAPHY entries" (comment-only).
+- **Lint comments (Reading B prose purge)** — `lint-citations.py` uses `INDEX` as the bibliography shorthand in three comments: L55 "{N}<->INDEX correspondence … needs the deployment's INDEX structure", L281 "like the {N}<->INDEX check", L625 "the 7th INDEX check". These are prose (comments), part of the Step 1 term-of-art purge — rename to `bibliography`/`BIBLIOGRAPHY`: "{N}<->bibliography correspondence … needs the deployment's bibliography structure", "like the {N}<->bibliography check", "the 7th bibliography-correspondence check". No behavior change — the lint does not implement check 7 (it's deployment-mapped). Placed in Step 3 because this story already owns the `INDEX`→`BIBLIOGRAPHY` sweep across the Rust + lint surface.
 
 ## Acceptance Criteria
 - [ ] `cargo test -p research-view-core` passes (or the workspace test command)
 - [ ] `cargo test -p research-view-cli` passes
 - [ ] `grep -rnE "\"INDEX\"|INDEX\.md" plugins/agentic-research/research-view/crates/` returns no hits outside intentional historical references
+- [ ] `grep -rnE "INDEX" plugins/agentic-research/ard-core/kernel/lint-citations.py` returns no hits (comments purged per Reading B)
 - [ ] **If any production code matched the literal `INDEX` (it should not, per scan), report it as a finding rather than silently changing behavior**
 
 ## Rollback
