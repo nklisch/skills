@@ -1,8 +1,15 @@
 ---
-id: research-handoff-okf-format-assessment-against-ard-substrate-1
-created: 2026-07-19
+id: feature-rename-reference-index-to-bibliography
+kind: feature
+stage: drafting
 tags: [refactor, plugin, tooling]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
 research_origin: okf-format-assessment-against-ard-substrate
+created: 2026-07-19
+updated: 2026-07-20
 ---
 
 # Rename ARD's per-corpus `INDEX.md` → `BIBLIOGRAPHY.md` (+ conversion path for existing substrates)
