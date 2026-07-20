@@ -1,7 +1,7 @@
 ---
 id: feature-rename-reference-index-to-bibliography-step-2
 kind: story
-stage: implementing
+stage: done
 tags: [refactor]
 parent: feature-rename-reference-index-to-bibliography
 depends_on: [feature-rename-reference-index-to-bibliography-step-1]
@@ -57,3 +57,9 @@ And the parallel updates in `research-substrate-scaffold.md` (tree diagram + "Pe
 
 ## Rollback
 `git mv` back + `git revert` the doc edits.
+
+## Implementation discovery
+
+- `git mv` preserved template history.
+- The scaffold doc's TOC anchor `#per-corpus-index-shape` → `#per-corpus-bibliography-shape` updated alongside the heading so the internal link stays valid.
+- All ACs verified: template is `templates/BIBLIOGRAPHY.md`; no `INDEX.md`/`per-corpus INDEX` hits remain in `convert/` or `docs/`.
