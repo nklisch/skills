@@ -1,7 +1,7 @@
 ---
 id: feature-rename-reference-index-to-bibliography
 kind: feature
-stage: drafting
+stage: implementing
 tags: [refactor, plugin, tooling]
 parent: null
 depends_on: []
@@ -97,3 +97,195 @@ The OKF↔ARD assessment engagement concluded with a **defensive rename** recomm
 eliminate the case-insensitive-FS collision with OKF's `index.md`. The rename is
 behavior-preserving (`[refactor]`); the conversion path for existing substrates is
 the added scope captured here.
+
+## Refactor Overview
+
+**Scan finding (decisive).** The Rust `research-view` loader does **not**
+special-case the literal filename `INDEX.md`. The `ReferenceIndex` tier is derived
+from the *directory* being under `reference/<corpus>/` (`collect_sorted_paths` →
+`collect_recursive_inner` with `ResearchTier::ReferenceIndex`), and every `.md`
+file in that directory is indexed. The "identity falls back to `INDEX`" behavior is
+the generic `path.file_stem()` fallback (`parse.rs:157`, `parse.rs:301`) —
+`INDEX.md`→stem `INDEX`; a rename to `BIBLIOGRAPHY.md`→stem `BIBLIOGRAPHY`
+automatically, no code change to the fallback. **No production code matches the
+literal string `INDEX` for behavior.** Every `"INDEX"` literal in `render.rs` is
+in a test fixture passing the identity string explicitly. This makes the rename
+low-risk: the production surface is docs + the kernel template filename + test
+fixtures that assert `INDEX`; the loader is filename-agnostic by construction.
+
+**Hard cutover, no dual-read shim.** Per the research brief's design decision and
+ARD's compatibility posture (no external consumers by default; the substrate is
+project-owned), the tool reads `BIBLIOGRAPHY.md` only after cutover. A one-shot
+migration script (`convert`-skill path) handles existing substrates. No fallback
+shim — that would re-introduce the collision hazard the rename exists to remove.
+
+**Atomicity.** The rename of the on-disk filename is the one atomic, irreversible
+step (it touches ~99 files across 5 sibling repos). It is staged as its own story
+with a dry-run migration script so it can be reviewed before execution; the script
+itself is reversible (rename back) until citations depend on the new name, which
+they do not (citations index into bibliography *content*, not filename).
+
+## Refactor Steps
+
+### Step 1: Update ARD SPEC + CATALOGS prose (rename the concept)
+**Priority**: High
+**Risk**: Low
+**Source Lens**: pattern drift (the canonical docs name a file whose name is changing)
+**Files**: `plugins/agentic-research/ard-core/SPEC.md` (§4.1 L139, §10.2 L275), `plugins/agentic-research/ard-core/CATALOGS.md` (L27 `GR.9`), `plugins/agentic-research/ard-core/kernel/discipline.md` (L25), `plugins/agentic-research/ard-core/kernel/README.md` (L23)
+**Story**: `feature-rename-reference-index-to-bibliography-step-1`
+
+**Current State** (SPEC §10.2, L275):
+```
+- **Reference (source-direct)** — raw fetches, per-corpus index + acquisition recipe. No agent-authored analysis here.
+```
+(SPEC §4.1 L139, CATALOGS L27, discipline.md L25 each say "a per-corpus INDEX or `{N}`-bibliography entry"; kernel/README.md L23 lists `per-corpus INDEX.md` in the templates table.)
+
+**Target State**:
+```
+- **Reference (source-direct)** — raw fetches, per-corpus BIBLIOGRAPHY + acquisition recipe. No agent-authored analysis here.
+```
+And the parallel prose updates in §4.1, CATALOGS `GR.9`, discipline.md, kernel/README.md — each "per-corpus INDEX" → "per-corpus BIBLIOGRAPHY", and the template-table entry → `per-corpus BIBLIOGRAPHY.md`.
+
+**Implementation Notes**:
+- Prose-only. The *concept* (numbered bibliography, the `{N}` citation anchor, append-only) is unchanged — only the filename referring to it.
+- Keep the `INDEX`↔`{N}` correspondence *check* name (CATALOGS §3 check 7) as-is in this step; Step 2 renames the check's implementation reference. The check is a CATALOGS concept, not a filename.
+
+**Acceptance Criteria**:
+- [ ] `grep -rniE "per-corpus INDEX|corpus INDEX" plugins/agentic-research/ard-core/` returns no hits (all → BIBLIOGRAPHY)
+- [ ] SPEC §10.2 reference-tier description names `BIBLIOGRAPHY.md`
+- [ ] No behavior change — docs only
+
+**Rollback**: `git revert` (docs only).
+
+---
+
+### Step 2: Rename the kernel template file
+**Priority**: High
+**Risk**: Low
+**Source Lens**: pattern drift (template ships the old filename)
+**Files**: `plugins/agentic-research/ard-core/kernel/templates/INDEX.md` → rename to `BIBLIOGRAPHY.md`; `plugins/agentic-research/skills/convert/references/research-substrate-scaffold.md`; `plugins/agentic-research/skills/convert/SKILL.md` (L7); `plugins/agentic-research/docs/ADOPTION.md` (L24)
+**Story**: `feature-rename-reference-index-to-bibliography-step-2`
+
+**Current State**:
+```
+plugins/agentic-research/ard-core/kernel/templates/INDEX.md:
+# Per-corpus INDEX — template
+A numbered bibliography of one corpus (ARD SPEC §10.2, reference tier). Lives at
+`.research/reference/<corpus>/INDEX.md`.
+```
+(research-substrate-scaffold.md L22-23, L59-61, L79 reference `INDEX.md`; convert SKILL.md L7 and ADOPTION.md L24 say "per-corpus INDEX".)
+
+**Target State**:
+```
+plugins/agentic-research/ard-core/kernel/templates/BIBLIOGRAPHY.md:
+# Per-corpus BIBLIOGRAPHY — template
+A numbered bibliography of one corpus (ARD SPEC §10.2, reference tier). Lives at
+`.research/reference/<corpus>/BIBLIOGRAPHY.md`.
+```
+And the parallel updates in research-substrate-scaffold.md (tree diagram + "Per-corpus INDEX shape" heading → "Per-corpus BIBLIOGRAPHY shape"), convert SKILL.md, ADOPTION.md.
+
+**Implementation Notes**:
+- `git mv` the template file so history follows.
+- Update the template's self-description header + the `Lives at` path line.
+- The scaffold doc's "Per-corpus INDEX shape" anchor + heading renames.
+
+**Acceptance Criteria**:
+- [ ] Template file is `templates/BIBLIOGRAPHY.md`
+- [ ] `grep -rniE "INDEX\.md" plugins/agentic-research/skills/convert/ plugins/agentic-research/docs/` returns no hits
+- [ ] No behavior change — templates/docs only
+
+**Rollback**: `git mv` back + `git revert` the doc edits.
+
+---
+
+### Step 3: Update Rust research-view test fixtures + assertions
+**Priority**: High
+**Risk**: Low
+**Source Lens**: code smell (test fixtures assert the old stem)
+**Files**: `plugins/agentic-research/research-view/crates/core/src/index.rs` (L571, L590, L600, L604), `plugins/agentic-research/research-view/crates/core/src/parse.rs` (L744, L812, L820-821), `plugins/agentic-research/research-view/crates/core/src/filter.rs` (L421, L429, L433, L453, L468, L488, L492), `plugins/agentic-research/research-view/crates/cli/src/render.rs` (L508, L510, L525, L527, L542, L544, L549, L551, L569, L571)
+**Story**: `feature-rename-reference-index-to-bibliography-step-3`
+
+**Current State** (index.rs:604):
+```
+assert_eq!(a.identity, "INDEX", "identity falls back to the file stem");
+```
+And fixtures construct paths like `reference/my-corpus/INDEX.md` and pass identity `"INDEX"` to `make_reference_artifact`.
+
+**Target State**:
+```
+assert_eq!(a.identity, "BIBLIOGRAPHY", "identity falls back to the file stem");
+```
+And all fixture paths → `reference/<corpus>/BIBLIOGRAPHY.md`, all `make_reference_artifact("INDEX", ...)` → `make_reference_artifact("BIBLIOGRAPHY", ...)`, and the `# corpus INDEX` comment-strings in filter.rs:421 / parse.rs:744,812 → `# corpus BIBLIOGRAPHY`.
+
+**Implementation Notes**:
+- **No production-code change required** — the loader derives the tier from the directory, and `file_stem()` yields `BIBLIOGRAPHY` automatically. Verify this holds by running the suite after the fixture rename.
+- Production comments that say "per-corpus INDEX bibliographies" (index.rs:87, parse.rs:286) update to "per-corpus BIBLIOGRAPHY" for clarity (comment-only).
+- `model.rs:112` doc-comment "how many INDEX entries" → "how many BIBLIOGRAPHY entries" (comment-only).
+
+**Acceptance Criteria**:
+- [ ] `cargo test -p research-view-core` passes (or the workspace test command)
+- [ ] `cargo test -p research-view-cli` passes
+- [ ] `grep -rnE "\"INDEX\"|INDEX\.md" plugins/agentic-research/research-view/crates/` returns no hits outside intentional historical references
+
+**Rollback**: `git revert` (test-only changes).
+
+---
+
+### Step 4: Migration script + apply across sibling substrates (the atomic step)
+**Priority**: High
+**Risk**: Medium — touches ~99 on-disk files across 5 sibling repos; irreversible once committed per repo
+**Source Lens**: refactor convention (the conversion-path requirement)
+**Files**: NEW `plugins/agentic-research/scripts/migrate-index-to-bibliography.sh` (or `.py`); then applied in-repo to `.research/reference/*/INDEX.md` here + executed across `SNC/`, `silas/`, `starmods/`, `skills-lint-ua-fix/`
+**Story**: `feature-rename-reference-index-to-bibliography-step-4`
+
+**Current State**: ~99 `INDEX.md` files on disk:
+```
+SNC/        ~70  (.research/reference/*/INDEX.md)
+silas/      ~25
+starmods/   ~3
+skills/     1   (.research/reference/rust-binary-size/INDEX.md)
+skills-lint-ua-fix/  1
+```
+
+**Target State**: each renamed to `BIBLIOGRAPHY.md`, contents unchanged (entry numbers `N` + handles preserved — only the filename moves).
+
+**Implementation Notes**:
+- Script finds `reference/<corpus>/INDEX.md` under a given `.research/` root and renames each to `BIBLIOGRAPHY.md`. **Dry-run mode default** (prints what it would do); `--apply` to execute.
+- The citation chain is structurally unaffected: `[handle]{N}` indexes into bibliography *content*, not the filename. Verify post-migration by running `lint-citations.py` against a sample brief in each repo.
+- **Per-repo execution is operator-confirmed** — the script is built here, but running it against each sibling repo is a separate commit in that repo (this is ARD's compatibility posture: real-data migrations are planned by the agent, approved and executed by the user). For THIS repo (`skills/`), the single `rust-binary-size/INDEX.md` + the newly-created `open-knowledge-format/INDEX.md` are renamed as part of this story's commit.
+- Sibling repos (`SNC`, `silas`, `starmods`, `skills-lint-ua-fix`) are migrated by running the script there in separate per-repo commits — out of scope for this feature's implementation pass, but the script makes them one-command.
+
+**Acceptance Criteria**:
+- [ ] `scripts/migrate-index-to-bibliography.sh --dry-run` lists the expected renames
+- [ ] `scripts/migrate-index-to-bibliography.sh --apply` renames `skills/` INDEX.md files; `git status` shows the rename
+- [ ] `lint-citations.py` still passes against `.research/analysis/briefs/*.md` (citation chain intact)
+- [ ] `research-view` still loads the substrate (the tier is directory-derived, so it finds `BIBLIOGRAPHY.md`)
+
+**Rollback**: `git mv BIBLIOGRAPHY.md INDEX.md` per file (the script is reversible until citations depend on the new name, which they do not).
+
+---
+
+## Implementation Order
+1. Step 1 — SPEC + CATALOGS prose (story step-1) — no code, sets the canonical name
+2. Step 2 — kernel template rename + convert/docs prose (story step-2) — ships the new template filename
+3. Step 3 — Rust test fixtures + assertions (story step-3) — verifies the loader is filename-agnostic; production code unchanged
+4. Step 4 — migration script + apply in-repo (story step-4) — the atomic on-disk rename; siblings migrated per-repo afterward
+
+Steps 1-3 are independent (docs, template, tests) and could parallelize, but the
+linear order is safer: the canonical name (Step 1) precedes the template (Step 2)
+that instantiates it, and the test fixtures (Step 3) assert the name Step 1 set.
+Step 4 depends on Steps 1-3 landing (the tool must expect `BIBLIOGRAPHY.md` before
+the on-disk files are renamed).
+
+## Design decisions
+
+- **Hard cutover, no dual-read shim** — a fallback shim would re-introduce the
+  collision hazard the rename exists to remove. ARD's compatibility posture (no
+  external consumers by default) permits this.
+- **Migration is operator-confirmed per repo** — the script is built in-repo, but
+  running it against each sibling substrate is a separate per-repo commit approved
+  by the user (ARD's real-data-migration posture). This feature implements the
+  script + applies it to `skills/`; siblings are follow-up per-repo work.
+- **The `INDEX`↔`{N}` CATALOGS check *name* is unchanged** — it's a concept name
+  ("the 7th check"), not a filename; only the implementation reference updates.
+  Renaming the check itself would be churn beyond the refactor's scope.
