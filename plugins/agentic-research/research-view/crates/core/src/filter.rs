@@ -418,7 +418,7 @@ mod tests {
     fn reference_index_with_themes(corpus: &str, filename: &str, themes_line: &str) -> (String, String) {
         let path = format!("reference/{corpus}/{filename}");
         let content = format!(
-            "# corpus INDEX\n\n### 1. Entry\n\n- **Source class:** paper\n- {themes_line}\n"
+            "# corpus BIBLIOGRAPHY\n\n### 1. Entry\n\n- **Source class:** paper\n- {themes_line}\n"
         );
         (path, content)
     }
@@ -426,11 +426,11 @@ mod tests {
     #[test]
     fn filter_tag_matches_artifact_with_theme() {
         let (path1, content1) = reference_index_with_themes(
-            "my-corpus", "INDEX.md",
+            "my-corpus", "BIBLIOGRAPHY.md",
             "**Themes:** retrieval, knowledge-graphs, overview",
         );
         let (path2, content2) = reference_index_with_themes(
-            "other-corpus", "INDEX.md",
+            "other-corpus", "BIBLIOGRAPHY.md",
             "**Themes:** rag, overview",
         );
         let (_tmp, sub) = setup_substrate(&[
@@ -450,7 +450,7 @@ mod tests {
     #[test]
     fn filter_tag_no_match_returns_empty() {
         let (path, content) = reference_index_with_themes(
-            "my-corpus", "INDEX.md",
+            "my-corpus", "BIBLIOGRAPHY.md",
             "**Themes:** retrieval, overview",
         );
         let (_tmp, sub) = setup_substrate(&[(path.as_str(), content.as_str())]);
@@ -465,7 +465,7 @@ mod tests {
     #[test]
     fn filter_tag_non_reference_artifacts_never_match() {
         let (path, content) = reference_index_with_themes(
-            "my-corpus", "INDEX.md",
+            "my-corpus", "BIBLIOGRAPHY.md",
             "**Themes:** retrieval, overview",
         );
         let (_tmp, sub) = setup_substrate(&[
@@ -485,11 +485,11 @@ mod tests {
     #[test]
     fn filter_tag_composes_with_corpus_filter() {
         let (path1, content1) = reference_index_with_themes(
-            "corpus-a", "INDEX.md",
+            "corpus-a", "BIBLIOGRAPHY.md",
             "**Themes:** retrieval, overview",
         );
         let (path2, content2) = reference_index_with_themes(
-            "corpus-b", "INDEX.md",
+            "corpus-b", "BIBLIOGRAPHY.md",
             "**Themes:** retrieval, rag",
         );
         let (_tmp, sub) = setup_substrate(&[
