@@ -249,10 +249,10 @@ provenance: source-direct
 Entry body.
 EOF
 
-# One reference INDEX without frontmatter (the lenient rule)
+# One reference BIBLIOGRAPHY without frontmatter (the lenient rule)
 # This one has NO Themes lines — used to test empty-themes handling.
-cat > "$RESEARCH/reference/rust-binary-size/INDEX.md" <<'EOF'
-# rust-binary-size — corpus INDEX
+cat > "$RESEARCH/reference/rust-binary-size/BIBLIOGRAPHY.md" <<'EOF'
+# rust-binary-size — corpus BIBLIOGRAPHY
 
 A numbered bibliography.
 
@@ -272,14 +272,14 @@ EOF
 # Two new corpora:
 #   alpha-corpus: 3 entries, overlapping + repeated tags, a [NEW]-marked tag
 #   beta-corpus:  2 entries, disjoint tags from alpha-corpus
-# rust-binary-size/INDEX.md: no Themes lines (tests empty-themes artifacts)
+# rust-binary-size/BIBLIOGRAPHY.md: no Themes lines (tests empty-themes artifacts)
 
 mkdir -p "$RESEARCH/reference/alpha-corpus"
 mkdir -p "$RESEARCH/reference/beta-corpus"
 
-# alpha-corpus INDEX: 3 entries, overlapping themes, a [NEW]-marked tag
-cat > "$RESEARCH/reference/alpha-corpus/INDEX.md" <<'EOF'
-# alpha-corpus — corpus INDEX
+# alpha-corpus BIBLIOGRAPHY: 3 entries, overlapping themes, a [NEW]-marked tag
+cat > "$RESEARCH/reference/alpha-corpus/BIBLIOGRAPHY.md" <<'EOF'
+# alpha-corpus — corpus BIBLIOGRAPHY
 
 ### 1. Paper One — `alpha-one`
 
@@ -297,9 +297,9 @@ cat > "$RESEARCH/reference/alpha-corpus/INDEX.md" <<'EOF'
 - **Themes:** retrieval, rag, survey-topic [NEW]
 EOF
 
-# beta-corpus INDEX: 2 entries, disjoint from alpha-corpus (no overlap with retrieval)
-cat > "$RESEARCH/reference/beta-corpus/INDEX.md" <<'EOF'
-# beta-corpus — corpus INDEX
+# beta-corpus BIBLIOGRAPHY: 2 entries, disjoint from alpha-corpus (no overlap with retrieval)
+cat > "$RESEARCH/reference/beta-corpus/BIBLIOGRAPHY.md" <<'EOF'
+# beta-corpus — corpus BIBLIOGRAPHY
 
 ### 1. Agent One — `beta-one`
 
@@ -325,7 +325,7 @@ EOF
 
 # ── Parser alignment fixtures ─────────────────────────────────────────────────
 #
-# I1(a): hr-corpus — frontmatter-less INDEX with a markdown horizontal rule
+# I1(a): hr-corpus — frontmatter-less BIBLIOGRAPHY with a markdown horizontal rule
 #         between two Themes lines. Both before-hr and after-hr tags must be
 #         parsed by both impls (the `---` HR must not be mistaken for a
 #         frontmatter opener).
@@ -336,8 +336,8 @@ EOF
 mkdir -p "$RESEARCH/reference/hr-corpus"
 mkdir -p "$RESEARCH/reference/no-space-corpus"
 
-cat > "$RESEARCH/reference/hr-corpus/INDEX.md" <<'EOF'
-# hr-corpus — corpus INDEX
+cat > "$RESEARCH/reference/hr-corpus/BIBLIOGRAPHY.md" <<'EOF'
+# hr-corpus — corpus BIBLIOGRAPHY
 
 ### 1. Paper One — `hr-one`
 
@@ -352,8 +352,8 @@ cat > "$RESEARCH/reference/hr-corpus/INDEX.md" <<'EOF'
 - **Themes:** after-hr
 EOF
 
-cat > "$RESEARCH/reference/no-space-corpus/INDEX.md" <<'EOF'
-# no-space-corpus — corpus INDEX
+cat > "$RESEARCH/reference/no-space-corpus/BIBLIOGRAPHY.md" <<'EOF'
+# no-space-corpus — corpus BIBLIOGRAPHY
 
 ### 1. Paper One — `nospace-one`
 
@@ -441,7 +441,7 @@ parity_assert "--tag retrieval --provenance source-direct" "$BINARY" "$FALLBACK_
 
 # ── Parser alignment cases (I1a, I1b, N6) ─────────────────────────────────────
 
-# I1(a): HR in frontmatter-less INDEX — both before-hr and after-hr tags must
+# I1(a): HR in frontmatter-less BIBLIOGRAPHY — both before-hr and after-hr tags must
 #         appear on both sides (--tags projects the tag vocabulary for hr-corpus).
 parity_assert "I1a: hr-corpus --tags (before-hr and after-hr both parsed)" \
   "$BINARY" "$FALLBACK_SH" "$TMPROOT" --corpus hr-corpus --tags

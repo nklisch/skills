@@ -16,7 +16,7 @@ reverse** (ARD's substrate cleavage).
 `reference` → `attestation` → `precis` → `analysis`. Higher tiers read lower tiers;
 never the reverse. This directionality is the tier-level anti-fabrication guard.
 
-- `reference/<corpus>/INDEX.md` — numbered bibliography per corpus. Raw fetches under
+- `reference/<corpus>/BIBLIOGRAPHY.md` — numbered bibliography per corpus. Raw fetches under
   `reference/**/raw/` are gitignored — they never travel; only derived material is committed.
 - `attestation/<handle>.md` — per-source first-read; the citation anchor.
 - `precis/<slug>.md` — engagement-unit aggregation, authored from raw.

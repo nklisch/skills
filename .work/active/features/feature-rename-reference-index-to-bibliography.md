@@ -1,7 +1,7 @@
 ---
 id: feature-rename-reference-index-to-bibliography
 kind: feature
-stage: review
+stage: done
 tags: [refactor, plugin, tooling]
 parent: null
 depends_on: []
@@ -355,3 +355,34 @@ per ARD's real-data-migration posture: `SNC` (~70), `silas` (~25), `starmods` (~
   `write-once-on-converge` temporal contract; research records stand as-is).
 - **VM crash mid-run** between step-3 and step-4 — all commits survived (crash happened
   between steps, not mid-edit); working tree matched HEAD on recovery. No work lost.
+
+## Review record
+
+**Effective weight:** standard (project default). **Pass count:** 1 (one balanced fresh-context pass, then fix/verify/done — no re-review per `standard`).
+**Reviewer:** `openai-codex/gpt-5.6-sol` (different model class from the umans orchestrator — satisfies the cross-model advisory-review requirement).
+**Verdict:** Request changes → all 3 blockers + 1 important adjudicated CONFIRMED and fixed → Approve.
+
+### Blockers (all confirmed + fixed)
+
+1. **Bibliography-term purge incomplete** — the design-phase grep was scoped too narrowly (`ard-core/` + `research-view/crates/`); it missed live contracts and fixtures. Fixed: `.research/CONVENTIONS.md` (4 hits — the live substrate contract), `.research/README.md`, the two renamed bibliographies' own `# … corpus INDEX` headers (renamed the file but not its header line!), `convert/SKILL.md:34`, `convert/references/legacy-discovery-mapping.md:46`, `model.rs:24` doc-comment, and `research-view-parity.test.sh` fixtures (all `INDEX.md`/`corpus INDEX`). Comprehensive sweep now clean.
+2. **Migration script silent-success on collision** — `--apply` exited 0 with "applied: 0" when a destination existed, leaving `INDEX.md` unmigrated. Fixed: preflight ALL destinations; a collision aborts nonzero BEFORE moving anything.
+3. **Migration script not macOS-portable** — `mapfile` needs Bash 4+; stock macOS is 3.2 (a target platform). Fixed: portable `while IFS= read` loop over a temp file; tested on the repo's Bash.
+
+### Important (confirmed, deferred to post-fix)
+
+- **Plugin version bump** — `agentic-research` modified (`convert/SKILL.md` + others) but still at `0.6.4`. Run `./scripts/bump-version.sh agentic-research patch` after committing the fixes (the bump script auto-commits, so it runs last).
+
+### Rejected proposals (all correct)
+
+- Rename `ReferenceIndex` enum / `index` loader module — these identify the loader, not the bibliography; correctly preserved.
+- Rewrite the OKF assessment brief — historical `write-once-on-converge` research artifact; correctly untouched.
+- Treat migration-script references to legacy `INDEX.md` as stale — those literals are necessary for locating the old filename.
+- Change production Rust loading logic — confirmed `collect_reference_corpora` assigns tier from the directory; no literal filename match exists.
+
+### Post-fix verification (green)
+
+- `cargo test`: 165 passed, 0 failed
+- `research-view-parity.test.sh`: 49 passed, 0 failed
+- `lint-citations.py`: 2 resolved/non-broken, 0 broken, 0 thin
+- Migration script: 3/3 test cases pass (dry-run, collision-abort, clean-apply)
+- Comprehensive sweep: no in-scope bibliography-term `INDEX` references remain (only OKF's own `index.md` in attested source material + the generic "index-layer content" word at CATALOGS:92, both correctly preserved)
