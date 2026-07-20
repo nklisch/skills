@@ -20,7 +20,7 @@ Each entry carries a **role**: `discipline` = the bundle that must travel unalte
 |---|---|---|
 | [discipline.md](discipline.md) | discipline | The anti-fabrication discipline bundle (*ARD SPEC §4–5*) — the content that must travel **unaltered** into every research-authoring sub-context. The propagation mechanism inlines it; do not re-narrate it (the drift fence, *ARD SPEC §4.6*). |
 | [lint-citations.py](lint-citations.py) | verify | Zero-dependency reference implementation of the verification stack's always-on mechanical floor (*ARD SPEC §7*): citation-chain integrity (6 checks + 2 non-broken statuses), the 6 surface-signature pattern categories (*ARD CATALOGS §3*), and the GR.5 thin-attestation structural check. False-positive suppression masks YAML frontmatter, fenced code blocks, inline code, URLs, blockquotes, and attestation files per-category (v0.5.1). `--stats` flag emits citation deployment counts + attestation-tier audit (colliding-handle, filename-mismatch). Reads its category/status sets from `catalogs.json`; falls back to built-ins if absent. The contract it assumes is *ARD SPEC §4.2*. |
-| [templates/](templates/) | discipline | Fill-in artifact skeletons — `attestation.md` (the normative-minimum frontmatter, *ARD SPEC §4.2*), `dispatch.md` (the registration contract, *ARD SPEC §9*), `precis.md`, per-corpus `INDEX.md`. |
+| [templates/](templates/) | discipline | Fill-in artifact skeletons — `attestation.md` (the normative-minimum frontmatter, *ARD SPEC §4.2*), `dispatch.md` (the registration contract, *ARD SPEC §9*), `precis.md`, per-corpus `BIBLIOGRAPHY.md`. |
 | [schema/](schema/) | data | Data-contract JSON schemas — `attestation.schema.json` (the normative-minimum attestation frontmatter). |
 | [catalogs.json](catalogs.json) | data | Generated catalog members (failure-shapes, source-classes, lint categories, decision-points, registration enums, statuses, provenance values) — projected from `CATALOGS.md` by `tools/gen-contract.py`. Consume as data; regenerate when `CATALOGS.md` grows. |
 | [conformance/](conformance/) | verify | Golden fixtures + a runner (`run.py`) that validate the lint against ARD's canonical verdicts — all 7 chain statuses + thin + the 6 pattern categories + suppression contexts + `--stats` audit (`run.py` reports the suite's full count). |
@@ -44,7 +44,7 @@ The reference lint is the **mechanical floor**, not the whole verification stack
 
 It does **not** cover the following — these are **deployment-mapped or semantic gates**, and remain your responsibility to wire up:
 
-- **The 7th citation-chain check** — piece-slug↔INDEX correspondence (*ARD CATALOGS §3*). The kernel resolves by handle (checks 1–6); the `{N}`↔INDEX check depends on your INDEX structure, beyond the normative-minimum frontmatter, so it is deployment-mapped.
+- **The 7th citation-chain check** — piece-slug↔bibliography correspondence (*ARD CATALOGS §3*). The kernel resolves by handle (checks 1–6); the `{N}`↔bibliography check depends on your bibliography structure, beyond the normative-minimum frontmatter, so it is deployment-mapped.
 - **`adversarial-read` jobs** — the semantic citation-chain walk, coherence / noise-domination reads, and the propagation / lineage-DAG distortion walk (*ARD CATALOGS §4*); the lineage graph-build is itself a deployment operationalization.
 - **`evaluate`** (isolated-context) and the terminal **`spot-check`** — the semantic gates above the mechanical floor (*ARD CATALOGS §5*, *ARD SPEC §7*).
 

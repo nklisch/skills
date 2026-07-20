@@ -1,7 +1,7 @@
 ---
 id: feature-rename-reference-index-to-bibliography-step-1
 kind: story
-stage: implementing
+stage: done
 tags: [refactor]
 parent: feature-rename-reference-index-to-bibliography
 depends_on: []
@@ -60,3 +60,9 @@ All "per-corpus INDEX" → "per-corpus bibliography" (or `BIBLIOGRAPHY` where it
 
 ## Rollback
 `git revert` (docs only).
+
+## Implementation discovery
+
+- **`catalogs.json` (kernel data file) was an unplanned but in-scope hit** — it mirrors the CATALOGS `GR.9` row's prose verbatim, including "a per-corpus INDEX." Updated to match the CATALOGS edit ("a per-corpus bibliography (BIBLIOGRAPHY.md)"). JSON re-validated. This is prose-in-data, part of Reading B's purge; not a scope expansion.
+- **CATALOGS.md:92 "Commitable index-layer content" is the generic word** (file-tree manifest, symbol inventory = an enumerated collection), NOT the bibliography object. Correctly left untouched per the unrelated-word carve-out.
+- All acceptance criteria verified: bibliography-term `INDEX` purged from `ard-core/` prose (only `templates/INDEX.md` remains, which is Step 2's file-rename scope); SPEC §10.2 names `BIBLIOGRAPHY.md`; CATALOGS §3 check 7 retains number + function; 8 unrelated `index` words (reachability-indexed, etc.) preserved; no behavior change.

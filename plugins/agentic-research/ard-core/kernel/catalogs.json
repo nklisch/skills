@@ -74,7 +74,7 @@
     },
     {
       "id": "GR.9",
-      "name": "Metadata recall-sourcing — a bibliographic / provenance metadata value (a per-corpus INDEX or {N}-bibliography entry's Source URL, DOI, or date) committed from training-recall rather than read off the fetched source: correct-from-memory but not present in the attestation. Distinct from GR.2 (whole source unfetched) — here the source is fetched and attested, yet the metadata is recalled",
+      "name": "Metadata recall-sourcing — a bibliographic / provenance metadata value (a per-corpus bibliography (BIBLIOGRAPHY.md) or {N}-bibliography entry's Source URL, DOI, or date) committed from training-recall rather than read off the fetched source: correct-from-memory but not present in the attestation. Distinct from GR.2 (whole source unfetched) — here the source is fetched and attested, yet the metadata is recalled",
       "locus": "GR",
       "status": "forward-looking",
       "fence": null
