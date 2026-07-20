@@ -505,9 +505,9 @@ mod tests {
     #[test]
     fn tags_single_artifact_has_header_separator_rows() {
         let a = make_reference_artifact(
-            "INDEX",
+            "BIBLIOGRAPHY",
             "my-corpus",
-            "/root/.research/reference/my-corpus/INDEX.md",
+            "/root/.research/reference/my-corpus/BIBLIOGRAPHY.md",
             vec!["retrieval", "overview"],
             vec![("retrieval", 2), ("overview", 1)],
         );
@@ -522,9 +522,9 @@ mod tests {
     #[test]
     fn tags_sorted_lexically() {
         let a = make_reference_artifact(
-            "INDEX",
+            "BIBLIOGRAPHY",
             "corpus-a",
-            "/root/.research/reference/corpus-a/INDEX.md",
+            "/root/.research/reference/corpus-a/BIBLIOGRAPHY.md",
             vec!["rag", "overview", "agents"],
             vec![("rag", 1), ("overview", 1), ("agents", 1)],
         );
@@ -539,16 +539,16 @@ mod tests {
     #[test]
     fn tags_accumulates_across_artifacts() {
         let a1 = make_reference_artifact(
-            "INDEX",
+            "BIBLIOGRAPHY",
             "corpus-a",
-            "/root/.research/reference/corpus-a/INDEX.md",
+            "/root/.research/reference/corpus-a/BIBLIOGRAPHY.md",
             vec!["retrieval", "overview"],
             vec![("retrieval", 3), ("overview", 2)],
         );
         let a2 = make_reference_artifact(
-            "INDEX",
+            "BIBLIOGRAPHY",
             "corpus-b",
-            "/root/.research/reference/corpus-b/INDEX.md",
+            "/root/.research/reference/corpus-b/BIBLIOGRAPHY.md",
             vec!["retrieval", "rag"],
             vec![("retrieval", 1), ("rag", 2)],
         );
@@ -566,16 +566,16 @@ mod tests {
     #[test]
     fn tags_corpus_list_is_lexically_sorted() {
         let a1 = make_reference_artifact(
-            "INDEX",
+            "BIBLIOGRAPHY",
             "z-corpus",
-            "/root/.research/reference/z-corpus/INDEX.md",
+            "/root/.research/reference/z-corpus/BIBLIOGRAPHY.md",
             vec!["retrieval"],
             vec![("retrieval", 1)],
         );
         let a2 = make_reference_artifact(
-            "INDEX",
+            "BIBLIOGRAPHY",
             "a-corpus",
-            "/root/.research/reference/a-corpus/INDEX.md",
+            "/root/.research/reference/a-corpus/BIBLIOGRAPHY.md",
             vec!["retrieval"],
             vec![("retrieval", 1)],
         );

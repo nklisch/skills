@@ -1,7 +1,7 @@
 ---
 id: feature-rename-reference-index-to-bibliography-step-3
 kind: story
-stage: implementing
+stage: done
 tags: [refactor]
 parent: feature-rename-reference-index-to-bibliography
 depends_on: [feature-rename-reference-index-to-bibliography-step-2]
@@ -57,3 +57,11 @@ All fixture paths → `reference/<corpus>/BIBLIOGRAPHY.md`; all `make_reference_
 
 ## Rollback
 `git revert` (test-only changes).
+
+## Implementation discovery
+
+- **The load-bearing claim is verified:** all 165 Rust tests pass after renaming every fixture `INDEX.md` → `BIBLIOGRAPHY.md` and every identity `"INDEX"` → `"BIBLIOGRAPHY"`. The loader derives the `ReferenceIndex` tier from the *directory* (`reference/<corpus>/`), not the filename; `path.file_stem()` yields `BIBLIOGRAPHY` automatically. **No production code changed** — only test fixtures and comments. This confirms the refactor-design scan finding.
+- `ReferenceIndex` enum (model.rs:25) and the `index` module/loader are code identifiers for the loader, not the bibliography object — correctly preserved (case-sensitive sed left `ReferenceIndex` and `index` untouched; only standalone `INDEX` replaced).
+- `integration.rs` (a test file not in the original step-3 file list) also carried `INDEX` fixtures and was swept in the same pass — in scope, not a scope expansion.
+- Lint comments (L55, L281, L625) purged per Reading B: `{N}<->INDEX` → `{N}<->bibliography`, "the 7th INDEX check" → "the 7th bibliography-correspondence check." Lint re-run is clean (2 resolved/non-broken, 0 broken, 0 thin — unchanged).
+- **Out of scope (correctly untouched):** the OKF research brief (`.research/analysis/briefs/okf-format-assessment-against-ard-substrate.md` L144) references "the `{N}<->INDEX` correspondence check" by its old name. This is a historical research artifact with a `write-once-on-converge` temporal contract — research records stand as-is; the refactor updates the going-forward canonical term in SPEC/CATALOGS, not retroactively in research artifacts.

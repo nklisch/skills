@@ -77,11 +77,11 @@ impl Fixture {
         )
         .unwrap();
 
-        // Reference INDEX — retrieval-systems corpus (3 entries, overlapping tags)
+        // Reference BIBLIOGRAPHY — retrieval-systems corpus (3 entries, overlapping tags)
         fs::write(
-            research.join("reference/retrieval-systems/INDEX.md"),
+            research.join("reference/retrieval-systems/BIBLIOGRAPHY.md"),
             "\
-# retrieval-systems — corpus INDEX
+# retrieval-systems — corpus BIBLIOGRAPHY
 
 ### 1. HippoRAG — `hipporag`
 
@@ -101,11 +101,11 @@ impl Fixture {
         )
         .unwrap();
 
-        // Reference INDEX — agent-frameworks corpus (2 entries, disjoint tags)
+        // Reference BIBLIOGRAPHY — agent-frameworks corpus (2 entries, disjoint tags)
         fs::write(
-            research.join("reference/agent-frameworks/INDEX.md"),
+            research.join("reference/agent-frameworks/BIBLIOGRAPHY.md"),
             "\
-# agent-frameworks — corpus INDEX
+# agent-frameworks — corpus BIBLIOGRAPHY
 
 ### 1. ReAct — `react`
 
@@ -248,7 +248,7 @@ fn count_returns_total_artifact_count() {
     // 1 brief, 1 precis). Pin the total so a tier dropped from the index — e.g.
     // a regression that stops walking precis/ — fails this test.
     let n: usize = stdout.trim().parse().expect("count should be an integer");
-    assert_eq!(n, 7, "seed has exactly 7 artifacts (5 original + 2 reference INDEX files)");
+    assert_eq!(n, 7, "seed has exactly 7 artifacts (5 original + 2 reference BIBLIOGRAPHY files)");
 }
 
 #[test]
@@ -387,7 +387,7 @@ fn tag_filter_matches_reference_artifacts_with_theme() {
     let (stdout, stderr, code) = run_in(&f.root, &["--tag", "retrieval"]);
     assert_eq!(code, 0, "stderr: {stderr}");
     // "retrieval" is only in retrieval-systems corpus, so exactly one reference artifact matches.
-    // The table shows IDENTITY=INDEX, TIER=reference. Verify at least one row and the right tier.
+    // The table shows IDENTITY=BIBLIOGRAPHY, TIER=reference. Verify at least one row and the right tier.
     assert!(
         !stdout.is_empty(),
         "should have matching artifacts; stdout: {stdout}"
@@ -468,7 +468,7 @@ fn tags_projection_includes_retrieval_with_correct_count() {
     let f = Fixture::seed();
     let (stdout, _, code) = run_in(&f.root, &["--tags"]);
     assert_eq!(code, 0);
-    // "retrieval" appears in 3 entries in retrieval-systems INDEX
+    // "retrieval" appears in 3 entries in retrieval-systems BIBLIOGRAPHY
     let retrieval_line = stdout
         .lines()
         .find(|l| {

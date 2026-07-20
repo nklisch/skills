@@ -109,7 +109,7 @@ pub struct Artifact {
     /// each tag before storage.
     pub themes: Vec<String>,
 
-    /// Per-tag count of how many INDEX entries (i.e., `**Themes:**` lines) mention
+    /// Per-tag count of how many BIBLIOGRAPHY entries (i.e., `**Themes:**` lines) mention
     /// each tag in this artifact.  Keys match `themes` exactly.
     ///
     /// Non-empty only for `ReferenceIndex`-tier artifacts; empty for all others.
