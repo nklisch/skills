@@ -1,7 +1,7 @@
 ---
 id: feature-rename-reference-index-to-bibliography-step-4
 kind: story
-stage: implementing
+stage: done
 tags: [refactor]
 parent: feature-rename-reference-index-to-bibliography
 depends_on: [feature-rename-reference-index-to-bibliography-step-1, feature-rename-reference-index-to-bibliography-step-2, feature-rename-reference-index-to-bibliography-step-3]
@@ -53,5 +53,13 @@ Each renamed to `BIBLIOGRAPHY.md`; file contents unchanged (entry numbers `N` + 
 ## Rollback
 `git mv BIBLIOGRAPHY.md INDEX.md` per file (the script is reversible until citations depend on the new name, which they do not).
 
-## Atomicity acknowledgment
-The on-disk rename is the one irreversible step in this refactor. It is staged with a dry-run-default script so it can be reviewed before execution, and the script is reversible (rename back) because no citation or tool behavior depends on the filename — only the filename itself changes.
+## Implementation discovery
+
+- Migration script `plugins/agentic-research/scripts/migrate-index-to-bibliography.sh` written: dry-run default, `--apply` to execute. Finds `reference/<corpus>/INDEX.md` (mindepth/maxdepth 2 under `reference/`) and renames to `BIBLIOGRAPHY.md`.
+- Applied in-repo: 2 files renamed (`rust-binary-size/`, `open-knowledge-format/`). `git status` shows the renames.
+- **All ACs verified:**
+  - dry-run lists the 2 expected renames
+  - `--apply` renamed both; `git status` shows the change
+  - `lint-citations.py` still passes (2 resolved/non-broken, 0 broken — citation chain intact; `[handle]{N}` indexes into bibliography content, not the filename)
+  - `research-view --tier reference` loads the substrate and finds both `BIBLIOGRAPHY` artifacts (identity falls back to file stem `BIBLIOGRAPHY.md` → `BIBLIOGRAPHY`) — confirms the loader is filename-agnostic on real on-disk files, not just in tests
+- **Sibling repos (`SNC` ~70, `silas` ~25, `starmods` ~3, `skills-lint-ua-fix` 1) are out of scope** for this feature's implementation pass, per the design decision. The script makes each a one-command per-repo migration: `cd <repo> && <path>/migrate-index-to-bibliography.sh --root .research --apply`, then commit per repo. Operator-confirmed per ARD's real-data-migration posture.
