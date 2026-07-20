@@ -43,7 +43,7 @@ The split is **load-bearing** — the two kinds take different paths:
 
 | Kind | Destination | Handed to refresh-entry? |
 |---|---|---|
-| **raw source / bibliography record** | `reference/<corpus>/` as-is (raw + INDEX row) | **No** — it is substrate, not a lens |
+| **raw source / bibliography record** | `reference/<corpus>/` as-is (raw + BIBLIOGRAPHY row) | **No** — it is substrate, not a lens |
 | **claim-bearing legacy synthesis** (note / summary / survey / position) | `.research/.import-holding/<slug>.md` (flagged) | **Yes** — it is the analytical-tier lens refresh-entry re-authors |
 
 Why the split: `refresh-entry` treats the prior artifact as an **analytical-tier LENS** (a position,

@@ -1,4 +1,4 @@
-# open-knowledge-format — corpus INDEX
+# open-knowledge-format — corpus BIBLIOGRAPHY
 
 A numbered bibliography for the `open-knowledge-format` corpus (Google's OKF v0.1
 assessment against ARD's substrate representation). The entry number `N` is the

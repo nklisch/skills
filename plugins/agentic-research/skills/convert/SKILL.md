@@ -31,7 +31,7 @@ the `.research/` substrate instead of `.work/`.
 Plain `convert` inspects the repo and routes:
 
 - **No `.research/`** → **bootstrap**: scaffold the substrate (CONVENTIONS, tier layout, per-corpus
-  INDEX, README, references.md), then run discovery + import.
+  BIBLIOGRAPHY, README, references.md), then run discovery + import.
 - **`.research/` exists** → **sync**: validate the existing substrate + report drift (never
   overwrite authored content), AND still run discovery over the rest of the repo (a repo can have a
   substrate *and* un-imported foreign research). A conformant repo with nothing to import is a

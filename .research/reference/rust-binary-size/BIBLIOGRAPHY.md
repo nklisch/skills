@@ -1,4 +1,4 @@
-# rust-binary-size — corpus INDEX
+# rust-binary-size — corpus BIBLIOGRAPHY
 
 A numbered bibliography for the `rust-binary-size` corpus (research-view distribution
 feasibility). The entry number `N` is the anchoring target for `[handle]{N}`
