@@ -136,7 +136,7 @@ provenance: source-direct
 
 A lint resolves `[handle]{N}` to an attestation at the deployment's attestation tier (the path template is a deployment mapping; the *handle→file* resolution is the invariant), then checks `source_handle` matches, the source resolves, and provenance is present. Per-source-class frontmatter extensions (`source_class`, `version`, `source_venue`, …) are in [CATALOGS.md](CATALOGS.md). The body has five components: paraphrased summary; key passages with source-internal anchors; structural metadata; nothing composed beyond the source; substrate-test pass. A claim cites the attestation only once its cited specific is recorded there — the load-bearing detail is paraphrased or quoted into the body *before* the citation is written; a citation whose specific never landed in the attestation (the handle resolves, the body is substantive, yet the detail is absent) is the read-but-not-attested gap, caught semantically downstream ([CATALOGS.md](CATALOGS.md) §4 job (a)).
 
-**Bibliographic metadata is source-bound too.** The source-bound rule ([§4.1](#41-source-bound-citation-discipline)) binds not only citations and attestation bodies but the **bibliographic-metadata tier** — a per-corpus INDEX or `{N}`-bibliography entry's source URL, DOI, publication date, and venue. A metadata value belongs in committed substrate only when read off the fetched source and recorded in its attestation, never filled from training-recall — *even when the recalled value is correct*. A correct-from-memory DOI absent from the attestation is the recalled-from-training state one tier down from the body citation: **metadata recall-sourcing** (`GR.9`). Read the value off the source, or leave the field unfilled and marked pending; a correct-but-ungrounded value is still ungrounded.
+**Bibliographic metadata is source-bound too.** The source-bound rule ([§4.1](#41-source-bound-citation-discipline)) binds not only citations and attestation bodies but the **bibliographic-metadata tier** — a per-corpus bibliography (`BIBLIOGRAPHY.md`) or `{N}`-bibliography entry's source URL, DOI, publication date, and venue. A metadata value belongs in committed substrate only when read off the fetched source and recorded in its attestation, never filled from training-recall — *even when the recalled value is correct*. A correct-from-memory DOI absent from the attestation is the recalled-from-training state one tier down from the body citation: **metadata recall-sourcing** (`GR.9`). Read the value off the source, or leave the field unfilled and marked pending; a correct-but-ungrounded value is still ungrounded.
 
 ### 4.3 The substrate test
 
@@ -272,7 +272,7 @@ For multi-specialist walks, `lint` fires against within-specialist briefs *befor
 
 The research substrate has four tiers, read down-gradient only ([§4.6](#46-strict-layer-directionality)):
 
-- **Reference (source-direct)** — raw fetches, per-corpus index + acquisition recipe. No agent-authored analysis here.
+- **Reference (source-direct)** — raw fetches, per-corpus `BIBLIOGRAPHY.md` + acquisition recipe. No agent-authored analysis here.
 - **Attestation** — per-source first-read, keyed by stable handle. The citation anchor.
 - **Engagement-unit (precis)** — source-coherent aggregations authored from raw; the unit is identified by reading (shape-arises-from-source).
 - **Analytical** — cross-source work: named-pattern catalogs and glossaries; standalone briefs; campaign bundles; settled positions; working/cross-arc hypothesis ledgers.
