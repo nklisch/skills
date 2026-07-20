@@ -1,8 +1,15 @@
 ---
-id: research-handoff-okf-format-assessment-against-ard-substrate-2
-created: 2026-07-19
+id: feature-okf-interchange-layer
+kind: feature
+stage: drafting
 tags: [plugin, tooling]
+parent: null
+depends_on: []
+release_binding: null
+gate_origin: null
 research_origin: okf-format-assessment-against-ard-substrate
+created: 2026-07-19
+updated: 2026-07-20
 ---
 
 # OKF interchange layer — emit/consume OKF bundles at an ARD `.research/` boundary
