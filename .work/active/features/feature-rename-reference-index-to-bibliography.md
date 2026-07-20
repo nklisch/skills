@@ -127,32 +127,42 @@ they do not (citations index into bibliography *content*, not filename).
 
 ## Refactor Steps
 
-### Step 1: Update ARD SPEC + CATALOGS prose (rename the concept)
+### Step 1: Purge `INDEX`/`index` as the bibliography term-of-art across prose (rename the concept + the file reference)
 **Priority**: High
 **Risk**: Low
-**Source Lens**: pattern drift (the canonical docs name a file whose name is changing)
-**Files**: `plugins/agentic-research/ard-core/SPEC.md` (§4.1 L139, §10.2 L275), `plugins/agentic-research/ard-core/CATALOGS.md` (L27 `GR.9`), `plugins/agentic-research/ard-core/kernel/discipline.md` (L25), `plugins/agentic-research/ard-core/kernel/README.md` (L23)
-**Story**: `feature-rename-reference-index-to-bibliography-step-1`
+**Source Lens**: pattern drift (the canonical docs name a file whose name is changing) + naming inconsistency (the term-of-art collides with OKF's new `index.md` meaning)
+**Files**:
+- `plugins/agentic-research/ard-core/SPEC.md` (§4.1 L139 "a per-corpus INDEX", §10.2 L275 "per-corpus index", §10.4 L286 "indexes into a per-corpus bibliography" — already fine)
+- `plugins/agentic-research/ard-core/CATALOGS.md` (L27 `GR.9` "a per-corpus INDEX", L96 "INDEX-layer expectation", L126 check-7 description uses `INDEX` six times)
+- `plugins/agentic-research/ard-core/kernel/discipline.md` (L25 "a per-corpus INDEX")
+- `plugins/agentic-research/ard-core/kernel/README.md` (L23 template-table "per-corpus `INDEX.md`", L47 "the 7th citation-chain check … `{N}`↔INDEX check depends on your INDEX structure")
 
 **Current State** (SPEC §10.2, L275):
 ```
 - **Reference (source-direct)** — raw fetches, per-corpus index + acquisition recipe. No agent-authored analysis here.
 ```
-(SPEC §4.1 L139, CATALOGS L27, discipline.md L25 each say "a per-corpus INDEX or `{N}`-bibliography entry"; kernel/README.md L23 lists `per-corpus INDEX.md` in the templates table.)
+And CATALOGS L126 (the check-7 description): "a **seventh, corpus-INDEX correspondence check** … the `{N}` indexes in the source's per-corpus bibliography (INDEX) … check 7's `{N}`↔INDEX resolution depends on the deployment's INDEX structure."
 
 **Target State**:
 ```
 - **Reference (source-direct)** — raw fetches, per-corpus BIBLIOGRAPHY + acquisition recipe. No agent-authored analysis here.
 ```
-And the parallel prose updates in §4.1, CATALOGS `GR.9`, discipline.md, kernel/README.md — each "per-corpus INDEX" → "per-corpus BIBLIOGRAPHY", and the template-table entry → `per-corpus BIBLIOGRAPHY.md`.
+And CATALOGS L126: "a **seventh, corpus-bibliography correspondence check** … the `{N}` indexes in the source's per-corpus bibliography (BIBLIOGRAPHY) … check 7's `{N}`↔bibliography resolution depends on the deployment's bibliography structure."
+All "per-corpus INDEX" → "per-corpus bibliography" (or `BIBLIOGRAPHY` where it names the file); "INDEX-layer" → "bibliography-layer"; the template-table entry → `per-corpus BIBLIOGRAPHY.md`.
 
 **Implementation Notes**:
-- Prose-only. The *concept* (numbered bibliography, the `{N}` citation anchor, append-only) is unchanged — only the filename referring to it.
-- Keep the `INDEX`↔`{N}` correspondence *check* name (CATALOGS §3 check 7) as-is in this step; Step 2 renames the check's implementation reference. The check is a CATALOGS concept, not a filename.
+- **Reading B (the design decision): purge `INDEX`/`index` as the term-of-art for the bibliography object across ALL prose + comments.** `index.md` is taking on a new meaning (OKF's directory listing) in both filenames and prose, so leaving `INDEX` as ARD's shorthand anywhere keeps the ambiguity alive after the file renames. The check's *number* (7) and *function* (piece-slug↔bibliography-entry correspondence) stay identical; only the shorthand modernizes from the filename-derived `INDEX` to `bibliography`.
+- **Preserve the check's identity** — it's "the 7th citation-chain check," "the `{N}`-correspondence check." Renumbering or redefining it is out of scope.
+- **Do NOT touch unrelated `index` words** that share spelling but mean something else:
+  - "reachability-indexed" / "shape-indexed" / "graph index" / "reverse index" / "enumerated index" (SPEC L34, L59; CATALOGS L45, L78; theory positions) — these are the generic word meaning "an enumerated collection," not the bibliography object.
+  - The Rust `index` module / `index.rs` (the substrate loader) and `ReferenceIndex` tier enum — code identifiers, renamed in Step 3 only if they read as bibliography-references (they don't — they're the loader).
+- The `{N}` in `[handle]{N}` is unaffected — it indexes into bibliography *content* regardless of the file's name.
 
 **Acceptance Criteria**:
-- [ ] `grep -rniE "per-corpus INDEX|corpus INDEX" plugins/agentic-research/ard-core/` returns no hits (all → BIBLIOGRAPHY)
+- [ ] `grep -rniE "per-corpus INDEX|corpus INDEX|INDEX-layer|↔INDEX" plugins/agentic-research/ard-core/` returns no hits
 - [ ] SPEC §10.2 reference-tier description names `BIBLIOGRAPHY.md`
+- [ ] CATALOGS §3 check 7 retains its number + function; only the bibliography shorthand renames
+- [ ] The unrelated `index` words (reachability-indexed, graph index, etc.) are untouched
 - [ ] No behavior change — docs only
 
 **Rollback**: `git revert` (docs only).
@@ -286,6 +296,9 @@ the on-disk files are renamed).
   running it against each sibling substrate is a separate per-repo commit approved
   by the user (ARD's real-data-migration posture). This feature implements the
   script + applies it to `skills/`; siblings are follow-up per-repo work.
-- **The `INDEX`↔`{N}` CATALOGS check *name* is unchanged** — it's a concept name
-  ("the 7th check"), not a filename; only the implementation reference updates.
-  Renaming the check itself would be churn beyond the refactor's scope.
+- **Reading B: purge `INDEX`/`index` as the bibliography term-of-art** — `index.md` is
+  taking on a new meaning (OKF's directory listing) in both filenames and prose, so
+  leaving `INDEX` as ARD's shorthand anywhere keeps the ambiguity alive. Step 1 renames
+  the term everywhere in prose + comments to `bibliography`/`BIBLIOGRAPHY`; the check's
+  number (7) and function stay. Unrelated `index` words (reachability-indexed, graph
+  index, the `index.rs` loader module) are out of scope and untouched.
