@@ -1,7 +1,7 @@
 ---
 id: feature-rename-reference-index-to-bibliography
 kind: feature
-stage: implementing
+stage: review
 tags: [refactor, plugin, tooling]
 parent: null
 depends_on: []
@@ -302,3 +302,56 @@ the on-disk files are renamed).
   the term everywhere in prose + comments to `bibliography`/`BIBLIOGRAPHY`; the check's
   number (7) and function stay. Unrelated `index` words (reachability-indexed, graph
   index, the `index.rs` loader module) are out of scope and untouched.
+
+## Implementation summary
+
+All 4 child stories advanced directly to `done` (child stories never enter review):
+
+- **step-1** (done) — Purged `INDEX`/`index` as the bibliography term-of-art across
+  `ard-core/` prose (Reading B): SPEC §4.1/§10.2, CATALOGS `GR.9` + L96 + §3 check-7
+  description, discipline.md, kernel/README.md, and `catalogs.json` (data-mirror of
+  `GR.9`, an unplanned but in-scope hit). The check's number (7) + function preserved;
+  only the shorthand modernizes. Unrelated `index` words (reachability-indexed, graph
+  index, the generic "index-layer content" at CATALOGS:92) untouched.
+- **step-2** (done) — `git mv` kernel template `INDEX.md` → `BIBLIOGRAPHY.md` (history
+  preserved); template self-description updated. Purged `INDEX.md` from `convert/` +
+  `docs/` prose (research-substrate-scaffold.md tree diagram + heading + TOC anchor +
+  body, convert/SKILL.md, ADOPTION.md).
+- **step-3** (done) — Rust test fixtures + assertions renamed (`INDEX.md` →
+  `BIBLIOGRAPHY.md`, identity `"INDEX"` → `"BIBLIOGRAPHY"`, `# corpus INDEX` →
+  `# corpus BIBLIOGRAPHY`) across index.rs/parse.rs/filter.rs/model.rs/render.rs/
+  integration.rs. Lint comments (L55/L281/L625) purged per Reading B. **Verifies the
+  load-bearing claim:** all 165 Rust tests pass with no production-code change — the
+  loader derives the `ReferenceIndex` tier from the directory, not the filename;
+  `file_stem()` yields `BIBLIOGRAPHY` automatically. `ReferenceIndex` enum + `index`
+  loader module preserved (code identifiers, not the bibliography object).
+- **step-4** (done) — Migration script `scripts/migrate-index-to-bibliography.sh`
+  (dry-run default, `--apply` to execute) written + applied in-repo (2 files renamed:
+  `rust-binary-size`, `open-knowledge-format`). Verified: `lint-citations.py` passes
+  (citation chain intact); `research-view --tier reference` loads both `BIBLIOGRAPHY`
+  artifacts (file-stem fallback works on real on-disk files, not just tests).
+
+### Integrated verification (green)
+
+- `cargo test` (research-view workspace): 66 + 27 + 68 + 4 = **165 passed, 0 failed**
+- `lint-citations.py` against the OKF brief: **2 resolved/non-broken, 0 broken, 0 thin**
+- `research-view --tier reference`: loads both renamed `BIBLIOGRAPHY` artifacts
+
+### Out of scope (follow-up per-repo work)
+
+Sibling repos are one-command per-repo migrations via the script, operator-confirmed
+per ARD's real-data-migration posture: `SNC` (~70), `silas` (~25), `starmods` (~3),
+`skills-lint-ua-fix` (1). Not part of this feature's implementation pass.
+
+### Deviations
+
+- `catalogs.json` (kernel data file mirroring `GR.9` prose) was an unplanned hit in
+  step-1 — updated to match the CATALOGS edit. Prose-in-data, part of Reading B's
+  purge; not a scope expansion.
+- `integration.rs` (a test file not in step-3's original file list) also carried
+  `INDEX` fixtures and was swept in the same pass — in scope, not a scope expansion.
+- The OKF research brief (`.research/analysis/briefs/...`) references the check by its
+  old name at L144 — correctly untouched (historical research artifact,
+  `write-once-on-converge` temporal contract; research records stand as-is).
+- **VM crash mid-run** between step-3 and step-4 — all commits survived (crash happened
+  between steps, not mid-edit); working tree matched HEAD on recovery. No work lost.
