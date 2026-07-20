@@ -8,7 +8,7 @@ drift** (never overwrite authored substrate). Preserve-only is the default in bo
 
 - [Top-level layout](#top-level-layout)
 - [CONVENTIONS.md section skeleton](#conventionsmd-section-skeleton)
-- [Per-corpus INDEX shape](#per-corpus-index-shape)
+- [Per-corpus BIBLIOGRAPHY shape](#per-corpus-bibliography-shape)
 - [Bootstrap mode (no `.research/`)](#bootstrap-mode-no-research)
 - [Sync mode (`.research/` exists)](#sync-mode-research-exists)
 
@@ -19,8 +19,8 @@ drift** (never overwrite authored substrate). Preserve-only is the default in bo
 ├── CONVENTIONS.md          # the working contract (sections below)
 ├── README.md               # human orientation + gitignored-raws fetch recipe
 ├── references.md           # append-only bibliography ([handle]{N} resolves here)
-├── reference/              # source-direct: raw fetches (gitignored) + per-corpus INDEX.md
-│   └── <corpus>/INDEX.md
+├── reference/              # source-direct: raw fetches (gitignored) + per-corpus BIBLIOGRAPHY.md
+│   └── <corpus>/BIBLIOGRAPHY.md
 ├── attestation/            # flat per-source-handle attestation files (<handle>.md)
 ├── precis/                 # source-coherent unit aggregations authored from raw
 ├── analysis/               # cross-source analytical work
@@ -56,11 +56,11 @@ adopter edits the prose to their corpus):
 - **Invariants** — the non-erodable anti-fabrication floor + the one-way `.research/`→`.work/`
   direction.
 
-## Per-corpus INDEX shape
+## Per-corpus BIBLIOGRAPHY shape
 
-Each `reference/<corpus>/INDEX.md` carries a header + one row per piece (handle, title/source,
+Each `reference/<corpus>/BIBLIOGRAPHY.md` carries a header + one row per piece (handle, title/source,
 fetched date, `Themes:` line for the tag vocabulary). On first ingest into a corpus, bootstrap
-scaffolds the INDEX header; subsequent imports append rows.
+scaffolds the BIBLIOGRAPHY header; subsequent imports append rows.
 
 ## Bootstrap mode (no `.research/`)
 
@@ -76,7 +76,7 @@ Triggered when `.research/` is present. Convert **validates + reports**, never o
 substrate:
 
 - **Validate** — the top-level tier dirs exist; `CONVENTIONS.md` carries the required section
-  skeleton; per-corpus `INDEX.md` rows correspond to `reference/<corpus>/` contents; the citation
+  skeleton; per-corpus `BIBLIOGRAPHY.md` rows correspond to `reference/<corpus>/` contents; the citation
   surface passes `lint-citations.py` (delegated, not re-implemented).
 - **Refresh vs user-owned** — convert MAY *add* a missing tier dir or a missing scaffold file. It
   MAY NOT rewrite authored substrate (attestations, precis, analysis, or CONVENTIONS prose the

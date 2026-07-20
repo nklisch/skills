@@ -1,6 +1,6 @@
-# Per-corpus INDEX — template
+# Per-corpus BIBLIOGRAPHY — template
 
-A numbered bibliography of one corpus (ARD SPEC §10.2, reference tier). Lives at `.research/reference/<corpus>/INDEX.md`. The entry number `N` is the anchoring target for `[handle]{N}` citations — **append new entries; never renumber** (renumbering breaks every existing citation).
+A numbered bibliography of one corpus (ARD SPEC §10.2, reference tier). Lives at `.research/reference/<corpus>/BIBLIOGRAPHY.md`. The entry number `N` is the anchoring target for `[handle]{N}` citations — **append new entries; never renumber** (renumbering breaks every existing citation).
 
 > **Source license:** <upstream license for this corpus>.
 
