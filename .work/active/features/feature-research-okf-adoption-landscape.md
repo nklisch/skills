@@ -1,7 +1,7 @@
 ---
 id: feature-research-okf-adoption-landscape
 kind: feature
-stage: drafting
+stage: done
 tags: [research]
 parent: epic-ard-okf-representation-convergence
 depends_on: []
@@ -16,6 +16,7 @@ research_dials:
   output_kind: landscape-brief
 created: 2026-07-20
 updated: 2026-07-21
+research_completion_record: okf-adoption-landscape
 ---
 
 # Survey the OKF adoption landscape (who's using it, what's moved since announcement)
@@ -86,3 +87,20 @@ floor rigor is appropriate — the hard floor (lint + spot-check) fires; the
 selectable gates (adversarial-read, evaluate) are not warranted for a landscape
 survey. On completion the item closes per CONVENTIONS.md research_completion:
 close-to-done. -->
+
+## Engagement record
+
+- **Fan-out:** light (0 spawn). 9 sources fetched + attested inline (announcement,
+  totto critical analysis, Moselwal + Mattrx adoption, saschb2b bundles, ap7i plugin,
+  searchscore + opentechhub critical). 2 Medium articles recorded as acquisition
+  gaps (Cloudflare-blocked — OriginTrail DKG, codebase-knowledge-graph pipeline).
+- **Rigor:** `standard` — lint + spot-check (hard floor) fired; `adversarial-read`
+  performed inline as the `## Disconfirming analysis` section. `evaluate` out of a
+  single-survey light walk's floor.
+- **Lint:** 6 resolved/non-broken, 1 `unreachable-source` (low — the lint's own
+  re-probe of searchscore.io blocked by sandbox egress; the attestation is
+  substantive, so this is a false positive in this environment, not a chain break),
+  0 broken, 0 thin.
+- **Output:** `.research/analysis/briefs/okf-adoption-landscape.md` +
+  `.research/reference/okf-adoption/INDEX.md` + 8 attestations + raw fetches
+  (gitignored). Closed to `done` per `research_completion: close-to-done`.
