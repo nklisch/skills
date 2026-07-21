@@ -1,8 +1,8 @@
 ---
 id: feature-okf-interchange-layer
 kind: feature
-stage: drafting
-tags: [plugin, tooling]
+stage: done
+tags: [plugin, tooling, superseded]
 parent: null
 depends_on: []
 release_binding: null
@@ -80,3 +80,27 @@ anti-fabrication machinery ARD could adopt (no attestation tier, no
 `[handle]{N}`, no source-bound citation, no provenance fields, no tier
 directionality), which is why adopt was rejected and interop chosen — and why
 the import direction specifically requires operator-confirmed fetch per source.
+
+## Superseded by epic-ard-okf-representation-convergence
+
+**Status: superseded.** This feature framed "emit/consume OKF" as a standalone
+converter (Track B of the OKF assessment handoff). It is the right problem at
+the wrong altitude: the converter is the manifestation of a representation-
+layer decision that ripples across the `agentic-research` plugin and its
+consumers, not a single feature.
+
+Wider scoping (informed by the pioneer consumer — `SNC/games/library`, whose
+foundation doc records "ARD emits OKF" as committed direction, and whose
+posture is substrate-as-project) produced
+`epic-ard-okf-representation-convergence`, which opens the two architectural
+questions this feature prematurely closed:
+
+1. Whether the substrate *itself* should be OKF-shaped (not just the emitted
+   output) — full convergence vs boundary layer.
+2. Whether the substrate shape should be a fixed ARD contract or flexible
+   per-project (4-tier has worked for coding projects; the library may want a
+   different shape; OKF is deliberately shape-agnostic).
+
+Both are bold-refactor-territory architectural forks. Track B's scope folds
+into that epic's decomposition. This item closes to `done` as superseded;
+`research_origin` lineage is preserved.
