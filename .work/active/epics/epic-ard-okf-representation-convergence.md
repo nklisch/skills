@@ -2,17 +2,29 @@
 id: epic-ard-okf-representation-convergence
 kind: epic
 stage: drafting
-tags: [refactor]
+tags: [plugin]
 parent: null
 depends_on: []
 release_binding: null
 gate_origin: null
 research_origin: okf-format-assessment-against-ard-substrate
 created: 2026-07-20
-updated: 2026-07-20
+updated: 2026-07-21
 ---
 
-# Converge ARD's representation layer — discipline vs storage separation, and the OKF question
+# Converge agentic-research's representation layer — discipline vs storage separation, and the OKF question
+
+> **Naming/versioning settled.** This work lands as **`agentic-research` v0.7.0**
+> (same name, not ARD, not renamed, not a major bump). The ARD framework was
+> *absorbed* into the plugin (`7b0f52f`) and the content-version collapsed into
+> plugin SemVer (`73b89bc`); the framework's v0.1→v0.7 track is frozen
+> pre-absorption history, so v0.8 is the wrong number — v0.7.0 is the next
+> minor on the live plugin track (currently 0.6.5). The confusing name ("ARD")
+> is already internal-only; the published/package name `agentic-research` is
+> not confusing on its own, so no rename. The merge (plugin = discipline, one
+> semver) is *already landed in this repo*; what remains is downstream drift
+> (SNC's `ard/` submodule + dual-pin docs), which is a consumer-side
+> migration, not a v2 authoring task.
 
 ## Brief
 
@@ -135,14 +147,21 @@ superseded; its scope folds into this epic's decomposition.
 
 ## Next step
 
-**`/agile-workflow:bold-refactor` against this epic.** Apply the architectural
-lenses (unification, domain crystallization, elimination, inversion) to the two
-open questions above, produce child `[refactor]` features with declared
-`depends_on` chains. Expect at least one child to be a `[research]` feature
-validating the convergence against the discipline invariants before code moves
-(GR.9: don't assert "adopt is right" on analysis alone). The discipline-vs-
-storage separation is the domain-crystallization lens; the boundary-layer-vs-
-full-convergence-vs-flexible-substrate fork is what the lenses resolve.
+This is an architectural product-direction decision (what the substrate
+*should be*), not a code refactor or a single feature. The right vehicle is
+a **grounded `[research]` engagement** (`agentic-research:research-orchestrator`)
+that resolves Q1 and Q2 against the discipline invariants with evidence, then
+scope the implementation (refactor / feature / migration) from the concluded
+direction. GR.9 binds: don't assert "full convergence is right" on analysis
+alone — the first child of this epic's decomposition should be the `[research]`
+validation. The domain-crystallization (separate discipline from storage) is
+the lens; the boundary-layer-vs-full-convergence-vs-flexible-substrate fork is
+what the engagement resolves.
+
+**Out of scope:** streamlining `agentic-research`'s skills/ceremony (parallel
+to the agile-workflow v2 direction the maintainer indicated) — that's a
+sibling epic (`epic-agentic-research-skill-ceremony-streamline`), not part of
+this representation work. The two are independent and land in separate versions.
 
 ## Research grounding
 
