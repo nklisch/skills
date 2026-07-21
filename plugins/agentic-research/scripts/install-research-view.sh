@@ -127,18 +127,27 @@ main() {
 
   if triple="$(target_triple)"; then
     prebuilt="${PLUGIN_ROOT}/research-view/dist/${triple}/research-view"
-    if ! install_and_verify "$prebuilt" "$want"; then
-      echo "install-research-view: failed to install prebuilt research-view for ${triple} from ${prebuilt}" >&2
+    # Version pre-check: if the prebuilt is missing or reports a stale version,
+    # fall through to the bash fallback rather than hard-failing. A prebuilt
+    # not yet refreshed after a version bump (reports the old version) is the
+    # expected case here; the known-good bash fallback (which carries the
+    # current version stamp) handles install until CI refreshes the dist.
+    if [ -f "$prebuilt" ] && candidate_is_current "$prebuilt" "$want"; then
+      if install_and_verify "$prebuilt" "$want"; then
+        if candidate_is_current "$dest" "$want"; then
+          echo "installed prebuilt ${triple} (research-view ${want})"
+          return 0
+        fi
+        echo "install-research-view: installed copy does not report plugin version ${want}" >&2
+        return 1
+      fi
+      # install_and_verify failed despite a version match — the binary is
+      # corrupt (failed --help smoke) or unwritable. Hard-fail: do not fall
+      # back, because a corrupt prebuilt signals a real distribution problem.
+      echo "install-research-view: prebuilt for ${triple} failed verification (smoke/post-install) from ${prebuilt}" >&2
       return 1
     fi
-
-    if ! candidate_is_current "$dest" "$want"; then
-      echo "install-research-view: installed copy does not report plugin version ${want}" >&2
-      return 1
-    fi
-
-    echo "installed prebuilt ${triple} (research-view ${want})"
-    return 0
+    echo "install-research-view: prebuilt for ${triple} unavailable or stale (does not report ${want}); falling back to bash" >&2
   fi
 
   if ! install_and_verify "$fallback" "$want"; then

@@ -179,8 +179,8 @@ source, not a mechanical ingest.
 - **Lint:** citation chain `okf-spec`{1} → attestation → fetched SPEC.md is
   intact; the handle resolves to a source-direct attestation (not an
   analytical-tier artifact), so no `intra-program-resolved` laundering.
-- **Output paths:** attestation `.research/attestation/okf-spec.md`; corpus INDEX
-  `.research/reference/open-knowledge-format/INDEX.md`; this brief at
+- **Output paths:** attestation `.research/attestation/okf-spec.md`; corpus bibliography
+  `.research/reference/open-knowledge-format/BIBLIOGRAPHY.md` (originally authored as `INDEX.md`, renamed by feature-rename-reference-index-to-bibliography); this brief at
   `.research/analysis/briefs/okf-format-assessment-against-ard-substrate.md`.
 - **Commissioning item:** `feature-research-okf-format-assessment` — close to
   `done` per `CONVENTIONS.md research_completion: close-to-done` (verification
