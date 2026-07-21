@@ -147,16 +147,34 @@ superseded; its scope folds into this epic's decomposition.
 
 ## Next step
 
-This is an architectural product-direction decision (what the substrate
-*should be*), not a code refactor or a single feature. The right vehicle is
-a **grounded `[research]` engagement** (`agentic-research:research-orchestrator`)
-that resolves Q1 and Q2 against the discipline invariants with evidence, then
-scope the implementation (refactor / feature / migration) from the concluded
-direction. GR.9 binds: don't assert "full convergence is right" on analysis
-alone — the first child of this epic's decomposition should be the `[research]`
-validation. The domain-crystallization (separate discipline from storage) is
-the lens; the boundary-layer-vs-full-convergence-vs-flexible-substrate fork is
-what the engagement resolves.
+This is an **architectural design decision**, not a grounded research engagement
+and not a code refactor. The right vehicle is the discussion itself: resolve Q1
+and Q2 by reasoning about the tradeoffs (the attested OKF spec, the library's
+stated direction, the discipline invariants, the consumer risk surface), record
+the conclusions as `## Design decisions` in this epic body, and *then* hand to
+`/agile-workflow:epic-design` to decompose into child features.
+
+**Why not `research-orchestrator`:** the research engine grounds claims about
+*external fetched sources* (per-source attestation, citation chains, down-
+gradient tier directionality). OKF is already attested (the first engagement
+did that). What's unattested here isn't a source — it's internal artifacts
+(the library VISION, the SNC wiki code, ARD's own SPEC) that the discipline
+machinery has nothing to bite on. Forcing a `[research]` engagement would be
+empty ceremony: it'd produce a "brief" with no real citation chain because
+there's nothing external to be source-bound to. GR.9 forbids asserting
+"adopt is right" on analysis alone — but the guard against that is the
+discipline applied *to the discussion* (don't assert ungrounded claims about
+OKF; cite the attested spec), not a research engagement.
+
+**Why not `bold-refactor`:** that finds elegant abstractions in *existing code*
+and produces behavior-preserving `[refactor]` children. This reconceives the
+representation (behavior-changing) and decides what to build, not what to
+simplify in what exists.
+
+**Why not `epic-design` yet:** that decomposes a *settled* epic into child
+features. Running it before Q1/Q2 resolve would bake an answer to still-open
+architectural questions into the decomposition. It runs *after* the design
+decisions land.
 
 **Out of scope:** streamlining `agentic-research`'s skills/ceremony (parallel
 to the agile-workflow v2 direction the maintainer indicated) — that's a
