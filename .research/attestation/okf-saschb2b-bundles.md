@@ -21,16 +21,16 @@ content-rich third-party adopter found in the survey.
 
 ## Key passages
 
-**The what-is-true vs how-to-do framing:** "Where my skills tell an agent *how
-to do* something, these bundles tell it *what is true* about a domain: the
-concepts, the patterns, the anti-patterns, and the sources behind them." — a
-clear separation of knowledge (OKF) from procedure (skills), which maps onto
-ARD's distinction between substrate (what's attested) and skills (how to
-engage).
+**The what-is-true vs how-to-do framing:**
 
-**The format-as-contract framing:** "The contract is the format, so any
-producer can write a bundle and any consumer (an agent, a viewer, a search
-index) can read it." — OKF positioned as the producer/consumer boundary.
+> Where my skills tell an agent _how to do_ something, these bundles tell it
+> _what is true_ about a domain: the concepts, the patterns, the anti-patterns,
+> and the sources behind them.
+
+**The format-as-contract framing:**
+
+> The contract is the format, so any producer can write a bundle and any
+> consumer (an agent, a viewer, a search index) can read it.
 
 **Progressive disclosure acknowledged:** the README references OKF's
 `index.md`-as-progressive-disclosure model ("a root index.md declares the format

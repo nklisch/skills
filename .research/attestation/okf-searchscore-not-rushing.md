@@ -13,21 +13,22 @@ source_class: blog-post
 
 SearchScore's June 14, 2026 (2 days post-announcement) skeptical analysis. The
 skepticism is specifically about *consumer-side consumption*: consumer AI
-engines (ChatGPT, Gemini, Claude, Perplexity, Grok) "do not read website-hosted
-OKF bundles today" and there's "no evidence any of them do." The piece frames
-OKF as "two days old, explicitly version 0.1… a starting point with open
-questions still unanswered." This is adoption-realism, not format-rejection —
-the critique is about timing and consumer uptake, not OKF's soundness as a
-representation.
+engines "do not read website-hosted OKF bundles today" and there's "no evidence
+any of them do." The piece frames OKF as "two days old, explicitly version 0.1…
+a starting point with open questions still unanswered." This is adoption-realism,
+not format-rejection — the critique is about timing and consumer uptake, not
+OKF's soundness as a representation.
 
 ## Key passages
 
-**The consumer-uptake skepticism:** "consumer AI engines… do not read
-website-hosted OKF bundles today… no evidence any of them do."
+**The consumer-uptake skepticism:**
 
-**The v0.1 / starting-point framing:** "two days old, it is explicitly version
-0.1… a starting point with open questions still unanswered." — positions OKF as
-early, not failed.
+> do not read website-hosted OKF bundles today… no evidence any of them do
+
+**The v0.1 / starting-point framing:**
+
+> two days old, it is explicitly version 0.1… a starting point with open
+> questions still unanswered
 
 ## Structural metadata
 

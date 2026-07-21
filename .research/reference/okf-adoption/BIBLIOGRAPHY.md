@@ -1,4 +1,4 @@
-# okf-adoption — corpus INDEX
+# okf-adoption — corpus BIBLIOGRAPHY
 
 A numbered bibliography for the `okf-adoption` corpus (OKF adoption landscape,
 surveyed ~5 weeks after the June 12 2026 announcement). The entry number `N` is

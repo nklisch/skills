@@ -11,31 +11,30 @@ source_class: blog-post
 
 ## Summary
 
-Kai Ole Hartwig / Moselwal Digitalagentur's June 14, 2026 post (2 days after
-the announcement), the earliest named adopter found in the survey. Moselwal had
-a pre-existing "Moselwal Handbook" (a versioned knowledge base in Markdown +
-git); OKF "gave the few conventions a name" so the same files can be consumed
-by different agents "without a translation layer." The adoption is real but
+Kai Ole Hartwig / Moselwal Digitalagentur's June 14, 2026 post (2 days after the
+announcement), the earliest named adopter found in the survey. Moselwal had a
+pre-existing "Moselwal Handbook" (a versioned knowledge base in Markdown + git);
+OKF "gave the few conventions a name" so the same files can be consumed by
+different agents "without a translation layer." The adoption is real but
 low-friction — they were already ~OKF-shaped; OKF was a naming/standardization
-event for them, not a re-architecture.
+event, not a re-architecture.
 
 ## Key passages
 
-**The adoption claim (earliest named):** "We are not discussing OKF from a
-distance. We have already adopted it in the Moselwal Handbook."
+**The adoption claim (earliest named):**
 
-**Why it was low-friction for them:** "the handbook already sat as Markdown in
-git; OKF gave the few conventions a name, so that the same files can in future
-be consumed by different agents without a translation layer."
+> We are not discussing OKF from a distance. We have already adopted it in the
+> Moselwal Handbook.
+
+**Why it was low-friction for them:**
+
+> the handbook already sat as Markdown in git; OKF gave the few conventions a
+> name, so that the same files can in future be consumed by different agents
+> without a translation layer
 
 **What the Handbook is:** "the growing, versioned knowledge base with which we
 are building Moselwal into an AI company built on agentic engineering." The
 handbook is described as publicly viewable.
-
-**The adoption shape:** Moselwal frames OKF as fitting their existing
-Markdown-in-git handbook rather than requiring a new substrate. This is the
-"OKF as a naming event for already-shaped content" pattern — distinct from the
-Mattrx case (entry 5) where OKF drove a re-architecture.
 
 ## Structural metadata
 

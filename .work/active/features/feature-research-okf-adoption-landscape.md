@@ -11,7 +11,7 @@ research_origin: null
 research_refs: []
 research_dials:
   scope_authority: in-engagement-judgment
-  verification_rigor: floor
+  verification_rigor: standard
   intent: survey-landscape
   output_kind: landscape-brief
 created: 2026-07-20
@@ -82,9 +82,9 @@ internal artifacts. Do not let the survey drift into recommendations —
 `output_kind: landscape-brief`, not `adoption-recommendations`.
 
 <!-- research-orchestrator reads the research_dials above at kickoff (survey-
-landscape / landscape-brief / floor). Being informative (not decision-forcing),
-floor rigor is appropriate — the hard floor (lint + spot-check) fires; the
-selectable gates (adversarial-read, evaluate) are not warranted for a landscape
+landscape / landscape-brief / standard). Being informative (not decision-forcing),
+standard rigor is appropriate — the hard floor (lint + spot-check) fires; the
+selectable `adversarial-read` gate ran as the fresh-context PR review (gpt-5.6-sol)
 survey. On completion the item closes per CONVENTIONS.md research_completion:
 close-to-done. -->
 
@@ -102,5 +102,5 @@ close-to-done. -->
   substantive, so this is a false positive in this environment, not a chain break),
   0 broken, 0 thin.
 - **Output:** `.research/analysis/briefs/okf-adoption-landscape.md` +
-  `.research/reference/okf-adoption/INDEX.md` + 8 attestations + raw fetches
+  `.research/reference/okf-adoption/BIBLIOGRAPHY.md` + 8 attestations + raw fetches
   (gitignored). Closed to `done` per `research_completion: close-to-done`.
