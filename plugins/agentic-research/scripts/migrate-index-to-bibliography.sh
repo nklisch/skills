@@ -11,7 +11,7 @@
 # Usage:
 #   migrate-index-to-bibliography.sh [--root <path>] [--dry-run|--apply]
 #
-#   --root <path>   The .research/ parent (default: ./.research)
+#   --root <path>   The .research/ directory (default: ./.research)
 #   --dry-run       Print what would be renamed; change nothing (DEFAULT)
 #   --apply         Execute the renames
 #
