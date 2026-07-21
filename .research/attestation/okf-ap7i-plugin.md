@@ -13,9 +13,9 @@ source_class: blog-post
 
 ap7i's June 21, 2026 post announcing a Claude Code plugin to author/convert/
 validate OKF bundles, and reporting the author's own conversion of several
-documentation repositories to OKF. The adoption shape is the "naming event"
-pattern — pre-existing documentation repos that OKF structures for agent
-readability without re-explaining layout each time.
+documentation repositories to OKF. The author's motivation was
+implementability: "Reading the spec, the thing that jumped out was that I could
+actually implement it."
 
 ## Key passages
 

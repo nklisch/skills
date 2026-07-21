@@ -91,7 +91,6 @@ Of the three paths, this is the one that preserves ARD's anti-fabrication
 invariants (which OKF does not carry and would not survive an adopt) *and*
 captures OKF's genuine value (a specified, vendor-neutral interchange
 representation with progressive-disclosure affordances that ARD lacks).
-progressive-disclosure affordances that ARD lacks).
 
 **Secondary, defensive recommendation: rename ARD's `INDEX.md`.** Even on the
 interop path, the on-disk filename collision is a real hazard on

@@ -27,7 +27,7 @@ those gaps.
 > My first reaction was: this is good news. My second reaction was: they stopped
 > exactly where it gets hard.
 
-**On trust (the load-bearing gap for ARD):**
+**On trust (the gap the source names):**
 
 > OKF has no trust model… trust is implicit — if it's in the repo, it passed
 > through the deployment pipeline… [but for] a trust profile presented to a
@@ -48,6 +48,3 @@ where complementary layers (his KCP, others) will sit.
 - Date: 2026-06-17
 - Co-author tag: "Claude Code, Anthropic's AI coding assistant — co-author of
   research, structure, and prose" (the author flags Claude as a co-author)
-- The piece's framing of trust/verification/governance as deliberately-OKF's-
-  not-to-solve maps directly onto ARD's anti-fabrication discipline — the gap
-  ARD exists to fill is the gap OKF explicitly leaves open.

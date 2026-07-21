@@ -48,7 +48,5 @@ system).
 - The quantitative claims (18%→3%, 11%→1.5%) are self-reported by the vendor;
   no independent verification found. Treat as a practitioner claim, not a
   measured result.
-- **Architecturally load-bearing:** Mattrx's shape (OKF storage + separate
-  Context Engine for governance/freshness/retrieval) is the same layering ARD
-  would adopt if Q1 resolves as "OKF as storage, ARD discipline as the layer
-  above."
+- The piece includes a "when NOT to adopt OKF" section, signaling the author
+  treats adoption as conditional, not universal.

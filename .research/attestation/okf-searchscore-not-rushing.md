@@ -36,6 +36,4 @@ OKF's soundness as a representation.
 - Date: 2026-06-14
 - The critique is adoption-timing skepticism, not format critique — compatible
   with OKF being a sound representation that simply hasn't reached consumer-
-  engine consumption yet. Does not bear on whether ARD should adopt OKF as a
-  representation (ARD controls its own consumption; consumer-engine uptake is a
-  different question).
+  engine consumption yet.

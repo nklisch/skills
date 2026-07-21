@@ -104,7 +104,7 @@ The research tier does **not** use `.work/`'s stage pipeline. Instead:
 
 ## Authoring & enforcement
 
-- Templates: `plugins/agentic-research/templates/{attestation,precis,BIBLIOGRAPHY}.md`.
+- Templates: `plugins/agentic-research/ard-core/kernel/templates/{attestation,precis,BIBLIOGRAPHY}.md`.
 - Lint (the floor): `python3 plugins/agentic-research/scripts/lint-citations.py
   .research/analysis/ --exit-code-on high`. A failing lint is a real defect — fix the
   work, never game the check.

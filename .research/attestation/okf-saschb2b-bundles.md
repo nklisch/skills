@@ -41,9 +41,6 @@ disclosure").
 
 - Author: Sascha (saschb2b)
 - Repo: github.com/saschb2b/okf-bundles, MIT license, pushed 2026-07-07
-- Reach: 2 GitHub stars (substantive content, small reach)
+- Reach: 2 GitHub stars
 - The bundles cite primary sources (statutory text at gesetze-im-internet.de;
-  Bitcoin whitepaper/BIPs; ethereum.org/EIPs) — a lightweight citation posture,
-  but bare-URL/source-link style, not ARD's `[handle]{N}` attestation chain.
-- Adoption shape: content-rich "naming event" — the author had expert knowledge
-  and packaged it OKF-shaped; no provenance/verification machinery.
+  Bitcoin whitepaper/BIPs; ethereum.org/EIPs) via bare source links.

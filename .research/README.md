@@ -26,5 +26,5 @@ never the reverse. This directionality is the tier-level anti-fabrication guard.
 
 See [CONVENTIONS.md](CONVENTIONS.md) for the frontmatter contracts, the `[handle]{N}`
 citation rule, and the lifecycle. Authoring templates live in
-`plugins/agentic-research/templates/`; the citation-chain lint is
+`plugins/agentic-research/ard-core/kernel/templates/`; the citation-chain lint is
 `plugins/agentic-research/scripts/lint-citations.py`.

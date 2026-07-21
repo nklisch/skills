@@ -35,5 +35,4 @@ minimal technical critique.
 - Author: OpenTechHub
 - Date: 2026-07-02 (20 days post-announcement)
 - The piece is ecosystem/framing analysis, not adoption reporting or technical
-  critique — confirms OKF landed as a recognizable open format, without bearing
-  on the representation/trust questions ARD faces.
+  critique.
