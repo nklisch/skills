@@ -14,26 +14,26 @@ source_class: blog-post
 OpenTechHub's July 2, 2026 piece framing OKF in the open-format tradition. The
 substantive value the author extracts is the "what you can read" / asking-
 permission posture toward open formats, not the format's technical completeness.
-OKF is positioned as a positive example of an open format worth having
-("that is why it is why an open format is worth having"), with minimal technical
-critique.
+OKF is positioned as a positive example of an open format worth having, with
+minimal technical critique.
 
 ## Key passages
 
-**The open-format framing:** "What began with who can open your [files]…
-what you can read… asking permission. That is what makes an open format worth
-having." — the value is openness/readability, not the specific technical
-choices.
+**The open-format framing:**
 
-**The minimalism framing:** "No new model, no software to install, no account.
-Just a convention: plain text files, a few labels at the top of each, and
-ordinary links between them. That is the whole idea." — corroborates OKF's
-stated minimalism (one required field, markdown + frontmatter + links).
+> What began with who can open your [files]… what you can read… asking
+> permission. That is what makes an open format worth having.
+
+**The minimalism framing:**
+
+> No new model, no software to install, no account. Just a convention: plain
+> text files, a few labels at the top of each, and ordinary links between them.
+> That is the whole idea.
 
 ## Structural metadata
 
 - Author: OpenTechHub
 - Date: 2026-07-02 (20 days post-announcement)
 - The piece is ecosystem/framing analysis, not adoption reporting or technical
-  critique — confirms OKF landed as a recognizable open format, without
-  bearing on the representation/trust questions ARD faces.
+  critique — confirms OKF landed as a recognizable open format, without bearing
+  on the representation/trust questions ARD faces.

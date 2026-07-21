@@ -167,7 +167,7 @@ wrong bet:
 
 No disconfirming evidence found that would block the architectural discussion.
 The landscape is compatible with either Q1 resolution (boundary-layer or full
-convergence); it does not decide between them. The strongest signal is the
+convergence); it does not decide between them. The clearest signal is the
 *layering pattern* (point 2): OKF-as-storage + separate-engine-above is
 precedented, which leans toward "OKF as the representation layer is feasible"
 without forcing "the substrate must be universally OKF."
@@ -198,7 +198,7 @@ browser-class fetch becomes available.
 - **Lint:** citation chains resolve to source-direct attestations; no
   `intra-program-resolved` laundering.
 - **Output paths:** corpus INDEX
-  `.research/reference/okf-adoption/INDEX.md`; 4 attestations under
+  `.research/reference/okf-adoption/BIBLIOGRAPHY.md`; 8 attestations under
   `.research/attestation/okf-*.md` (the load-bearing sources: announcement,
   totto critical analysis, Moselwal + Mattrx adoption cases); this brief at
   `.research/analysis/briefs/okf-adoption-landscape.md`; raw fetches gitignored
