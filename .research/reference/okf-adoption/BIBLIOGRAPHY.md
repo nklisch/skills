@@ -122,7 +122,7 @@ renumber.**
 - **Covers:** Frames OKF in the open-format tradition; the "what you can read"
   / asking-permission posture toward open formats.
 
-## Acquisition gaps (blocking — fetch attempted, failed)
+## Acquisition gaps (enriching — fetch attempted, failed; not load-bearing for the landscape conclusion)
 
 - **OriginTrail DKG integration** (Medium, `medium.com/origintrail/...`) —
   Cloudflare challenge ("Enable JavaScript and cookies to continue"); not

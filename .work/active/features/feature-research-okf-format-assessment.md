@@ -15,7 +15,7 @@ research_dials:
   intent: calibrate-external
   output_kind: adoption-recommendations
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-07-21
 research_completion_record: okf-format-assessment-against-ard-substrate
 ---
 
@@ -136,7 +136,7 @@ on completion the item closes per CONVENTIONS.md research_completion: close-to-d
   invariant-preservation claim, not a composed superlative).
 - **Output paths:**
   - attestation: `.research/attestation/okf-spec.md`
-  - corpus INDEX: `.research/reference/open-knowledge-format/INDEX.md`
+  - corpus BIBLIOGRAPHY: `.research/reference/open-knowledge-format/BIBLIOGRAPHY.md`
   - brief: `.research/analysis/briefs/okf-format-assessment-against-ard-substrate.md`
   - raw fetches (gitignored): `.research/reference/open-knowledge-format/raw/`
 - **Decision:** **interop** (emit/consume OKF at a boundary, ARD internals

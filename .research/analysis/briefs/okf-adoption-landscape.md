@@ -10,7 +10,7 @@ temporal_contract: write-once-on-converge
 
 *Commissioned by `feature-research-okf-adoption-landscape`. Engagement:
 landscape survey, `survey-landscape` / `landscape-brief` / `standard` rigor.
-9 sources fetched + attested across the `okf-adoption` corpus (announcement,
+8 sources fetched + attested across the `okf-adoption` corpus (announcement,
 critical analysis, named adopters, third-party bundles, tooling); 2 Medium
 articles recorded as acquisition gaps (Cloudflare-blocked).*
 
@@ -58,7 +58,7 @@ an oversight. This is the exact gap ARD's anti-fabrication discipline fills.
 
 ### Storage-layer adopters (OKF + separate governance engine)
 
-- **Mattrx** (June 30) — the most substantive enterprise case. Restructured a
+- **Mattrx** (June 30) — an enterprise case. Restructured a
   knowledge base into "~11,000 OKF units (Markdown + metadata + relationships +
   APIs + schemas + business rules)" with a separate "Context Engine" layer
   handling governance, freshness (`valid_until` + live API refs), and hybrid
@@ -74,9 +74,9 @@ an oversight. This is the exact gap ARD's anti-fabrication discipline fills.
 
 ## The critical discourse — what OKF deliberately doesn't solve
 
-This is the most ARD-relevant finding. Three independent sources, converging:
+This is the ARD-relevant finding. Three independent sources, converging:
 
-- **totto.org (Hetland, June 17)** — the most substantive critique: "they
+- **totto.org (Hetland, June 17)** — a substantive critique: "they
   stopped exactly where it gets hard." Names three deliberately-unsolved
   problems: trust/verification, contradiction handling, governance/access-control.
   On trust specifically: "OKF has no trust model… trust is implicit — if it's
@@ -189,7 +189,7 @@ browser-class fetch becomes available.
 
 ## Engagement record
 
-- **Fan-out:** light (0 spawn). 9 sources fetched + attested inline; the survey
+- **Fan-out:** light (0 spawn). 8 sources fetched + attested inline; the survey
   is a single-corpus synthesis, not a multi-specialist decomposition.
 - **Rigor:** `standard` — lint + spot-check (hard floor) fired; `adversarial-read`
   performed inline as the `## Disconfirming analysis` section (sought evidence
@@ -197,7 +197,7 @@ browser-class fetch becomes available.
   walk's floor (no cross-specialist synthesis artifact to fence).
 - **Lint:** citation chains resolve to source-direct attestations; no
   `intra-program-resolved` laundering.
-- **Output paths:** corpus INDEX
+- **Output paths:** corpus bibliography
   `.research/reference/okf-adoption/BIBLIOGRAPHY.md`; 8 attestations under
   `.research/attestation/okf-*.md` (the load-bearing sources: announcement,
   totto critical analysis, Moselwal + Mattrx adoption cases); this brief at

@@ -54,7 +54,11 @@ fi
 # subshell/pipeline issues and to allow a two-pass (preflight then apply) walk.
 hits_file=$(mktemp)
 trap 'rm -f "$hits_file"' EXIT
-find "$ROOT/reference" -mindepth 2 -maxdepth 2 -name "INDEX.md" 2>/dev/null > "$hits_file" || true
+# Surface find errors (missing dir, permission) rather than swallowing them.
+if ! find "$ROOT/reference" -mindepth 2 -maxdepth 2 -name "INDEX.md" > "$hits_file" 2>/dev/null; then
+  echo "error: could not read $ROOT/reference/ (missing or unreadable)" >&2
+  exit 1
+fi
 
 n=$(grep -c . "$hits_file" 2>/dev/null) || n=0
 if [ "$n" -eq 0 ]; then
@@ -78,7 +82,7 @@ collision=0
 while IFS= read -r f; do
   [ -n "$f" ] || continue
   dir=$(dirname "$f")
-  if [ -e "$dir/BIBLIOGRAPHY.md" ]; then
+  if [ -e "$dir/BIBLIOGRAPHY.md" ] || [ -L "$dir/BIBLIOGRAPHY.md" ]; then
     echo "error: destination exists: $dir/BIBLIOGRAPHY.md (source: $f)" >&2
     collision=1
   fi
