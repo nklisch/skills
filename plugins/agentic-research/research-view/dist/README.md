@@ -33,9 +33,20 @@ overwritten and will not be reproducible.
 ## Fallback behaviour
 
 `install-research-view.sh` installs a matching prebuilt binary for supported
-platforms. If that binary is missing, fails its smoke test, or reports a stale
-version, installation fails loudly.
+platforms. It version-checks the prebuilt first: if the prebuilt is missing
+or reports a stale version, installation falls back to `scripts/research-view.sh`
+(the pure-bash CLI implementation) rather than failing — a dist not yet
+refreshed after a version bump must not block install. If the prebuilt's
+version matches but it then fails its `--help` smoke test (a corrupt or
+broken binary), installation fails loudly rather than falling back — a
+corrupt prebuilt signals a real distribution problem.
 
-Only unsupported platforms fall back to `scripts/research-view.sh` (the
-pure-bash CLI implementation). That fallback keeps agent query workflows working
-on any platform; it does not support any board-style interactive subcommand.
+Unsupported platforms (no matching target triple) fall back to
+`scripts/research-view.sh` directly. The bash fallback keeps agent query
+workflows working on any platform; it does not support any board-style
+interactive subcommand.
+
+After a `bump-version.sh` bump, run the manual refresh job
+(`workflow_dispatch` on `build-research-view.yml` with `commit_binaries: true`)
+to rebuild and commit the prebuilts at the new version — until that refresh
+lands, supported-platform installs use the bash fallback.
