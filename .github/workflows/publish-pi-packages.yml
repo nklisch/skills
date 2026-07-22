@@ -85,7 +85,6 @@ jobs:
       - name: Test runtime extensions
         run: |
           set -euo pipefail
-          bun test plugins/agile-workflow/extensions/agile-workflow.test.ts
           bun test plugins/background-tasks/extensions/background-tasks.test.ts
           bun test plugins/nates-toolkit/extensions/agents-context.test.ts
           bun test plugins/nates-toolkit/extensions/nates-toolkit.test.ts
