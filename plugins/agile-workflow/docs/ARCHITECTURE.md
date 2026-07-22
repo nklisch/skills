@@ -561,24 +561,14 @@ model turn sees them.
 
 This is a deterministic command hook — no LLM.
 
-### Pi hook parity adapter
+### Pi delivery
 
-Pi does not load `hooks/hooks.json`, so the Pi package reaches parity through
-`extensions/agile-workflow.ts`. The extension maps Pi lifecycle events to the
-same Python scripts instead of maintaining a TypeScript copy of the rules:
-
-- `before_agent_start` appends the `.agents/rules/*.md` block via the synthetic
-  `PiBeforeAgentStart` prompt-context path, then asks the same script for any
-  prompt-gated principles capsule and injects that capsule as a visible Pi
-  message (`customType: agile-workflow-principles`).
-- `session_start` and `session_compact` call the prompt-context script for the
-  same epoch/self-heal side effects Claude/Codex hooks get.
-- `tool_result` for mutating tools calls `substrate-maintainer.py`, so `updated:`
-  bumps and cheap validation come from the same implementation in all channels.
+Pi consumes the same `hooks/hooks.json` and shared Python scripts through a
+hook-capable plugin host; no parallel TypeScript adapter is maintained.
 
 The parity posture is: one substrate model, one generated rules source, one pair
 of deterministic hook scripts, with each host only adapting event names and UI
-plumbing. `scripts/tests/channel-parity.test.sh` guards that wiring.
+plumbing.
 
 ## Gate orchestration
 
@@ -701,7 +691,7 @@ All skills with their roles, invocability, and triggers.
 
 ### Delegation posture
 
-Agile-workflow ships skills, hooks, the Pi `/aw` extension, and substrate tools;
+Agile-workflow ships skills, hooks, and substrate tools;
 it does **not** ship custom subagent definitions for Pi, Claude Code, or Codex.
 When a skill needs breadth, isolation, fresh-context review, scanner work, or
 parallel write ownership, it prompts the host's existing generic/general-purpose

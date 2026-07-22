@@ -503,19 +503,17 @@ The plugin distributes through three equal channels:
 - OpenAI Codex via the same marketplace index and
   `plugins/agile-workflow/.codex-plugin/plugin.json`.
 - Pi via package metadata in the plugin root, with the same `skills/` directory
-  plus Pi-native extensions or prompt templates where they improve substrate
-  ergonomics.
+  and the same `hooks/hooks.json` command hooks, delivered through a
+  hook-capable plugin host.
 
 The three channel metadata files stay in lockstep on name, version,
-description, repository, and license. Pi-specific runtime surfaces wrap the same
-`.work/` substrate; they do not fork the workflow model.
+description, repository, and license. Pi consumes the same hook scripts and
+generated sources; no parallel TypeScript adapter is maintained.
 
-**Channel parity posture:** when agile-workflow adds or changes Claude/Codex hook
-behavior, Pi must receive a native extension adapter in the same change unless a
-host capability is explicitly impossible. The adapter should call the shared
-hook scripts or read the same generated sources rather than reimplementing rules
-in a parallel language. Drift is guarded by
-`plugins/agile-workflow/scripts/tests/channel-parity.test.sh`.
+**Channel parity posture:** hook behavior lives once in `hooks/hooks.json` and
+the shared Python scripts. Every hook-capable host (Claude Code, Codex, Pi via a
+plugin host) consumes that single surface, so parity drift is structural rather
+than guarded by a parallel-implementation check.
 
 ## Version strategy
 
@@ -861,34 +859,15 @@ explicit workflow verbs, or a known item id.
   capsule: code design, dispatch economy, or advisory review.
 
 It does not inject `.agents/rules/*.md` or queue snapshots at prompt time. Queue
-state remains available through explicit `work-view`, `/aw`, or board commands.
+state remains available through explicit `work-view` or board commands.
 
-### Pi hook parity adapter
+### Pi delivery
 
-Pi packages do not consume `hooks/hooks.json`. The Pi package therefore exposes
-`plugins/agile-workflow/extensions/agile-workflow.ts` as a **Pi hook parity
-adapter**. It maps Pi-native events onto the same deterministic hook scripts:
-
-- `session_start` → `prompt-context.py` with `hook_event_name: SessionStart` for
-  epoch reset and work-view self-heal side effects.
-- `session_compact` → `prompt-context.py` with `hook_event_name: PostCompact` for
-  epoch bump side effects.
-- `before_agent_start` → `prompt-context.py` twice: synthetic
-  `hook_event_name: PiBeforeAgentStart` with `force_rules_context: true` to
-  append `.agents/rules/*.md` into Pi's rebuilt-per-turn system prompt, then
-  `hook_event_name: UserPromptSubmit` for the same prompt-gated principles
-  capsules Claude/Codex receive. Principles are returned as an injected Pi
-  message (`customType: agile-workflow-principles`) rather than hidden permanent
-  instructions, matching hook-specific context visibility.
-- `tool_result` for mutating tools (`write`, `edit`, `apply_patch`) →
-  `substrate-maintainer.py` with `hook_event_name: PostToolUse`; validation
-  output is appended to the tool result so the next model step sees the same
-  substrate warnings.
-
-This adapter is intentionally thin: `.agents/rules/`, `prompt-context.py`, and
-`substrate-maintainer.py` remain the source of truth across Claude Code, Codex,
-and Pi. Any change to hook behavior must update the adapter and the parity check
-script in the same patch.
+Pi consumes the same `hooks/hooks.json` and shared Python scripts through a
+hook-capable plugin host; no parallel TypeScript adapter is maintained. The
+single hook surface covers SessionStart/PostCompact context, prompt-gated
+principles, and PostToolUse substrate maintenance identically across Claude
+Code, Codex, and Pi.
 
 ### PostToolUse hook
 

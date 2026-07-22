@@ -36,7 +36,6 @@
   ],
   "pi": {
     "extensions": [
-      "./plugins/agile-workflow/extensions/agile-workflow.ts",
       "./plugins/background-tasks/extensions/background-tasks.ts",
       "./plugins/zai-research/extensions/index.ts",
       "./plugins/nates-toolkit/extensions/nates-toolkit.ts"

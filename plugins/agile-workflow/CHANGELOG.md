@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Remove the Pi extension (`extensions/agile-workflow.ts`, `/aw` command): hooks now ship only through `hooks/hooks.json`, which every hook-capable host (Claude Code, Codex, Pi via a plugin host) consumes directly. The parallel TypeScript adapter and the channel-parity check script are gone.
+
 ### Adaptive feature refactoring
 
 - **Refactoring stays inside normal feature work** — feature design and

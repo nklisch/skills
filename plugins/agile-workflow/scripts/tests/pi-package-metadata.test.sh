@@ -90,7 +90,7 @@ echo "=== Preflight: jq and Pi package metadata ==="
 assert_true "jq is available" "command -v jq >/dev/null 2>&1"
 
 # Runtime-extension packages.
-assert_package "agile-workflow" "@nklisch/pi-agile-workflow" "yes" "yes"
+assert_package "agile-workflow" "@nklisch/pi-agile-workflow" "no" "yes"
 assert_package "background-tasks" "@nklisch/pi-background-tasks" "yes" "no"
 assert_package "nates-toolkit" "@nklisch/pi-nates-toolkit" "yes" "yes"
 assert_package "zai-research" "@nklisch/pi-zai-research" "yes" "yes"

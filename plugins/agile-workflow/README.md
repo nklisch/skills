@@ -36,10 +36,9 @@ pi install npm:@nklisch/pi-agile-workflow
 pi install -l ./plugins/agile-workflow
 ```
 
-Pi loads the same shared skills plus a native `/aw` extension command for queue
-snapshots (`/aw status`, `/aw ready`) and workflow handoffs (`/aw autopilot`,
-`/aw board`). Pi packages can execute extension code, so install from sources you
-trust.
+Pi loads the same shared skills and `hooks/hooks.json` command hooks through a
+hook-capable plugin host. Queue snapshots stay available through `work-view` and
+the board commands.
 
 Agile-workflow does not ship custom subagent definitions for Pi, Claude Code,
 or Codex. Skills that delegate work prompt the host's existing
