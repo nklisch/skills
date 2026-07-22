@@ -50,15 +50,21 @@ if [ ! -d "$ROOT" ]; then
 fi
 
 # Collect every reference/<corpus>/INDEX.md (one level of corpus dir under reference/).
-# Portable: no mapfile (Bash 3.2 on macOS lacks it). Store in a temp file to avoid
-# subshell/pipeline issues and to allow a two-pass (preflight then apply) walk.
+# Portable: no mapfile (Bash 3.2 on macOS lacks it); no GNU find -mindepth/-maxdepth
+# (not POSIX, not reliably on stock BSD find). Use a POSIX glob for exactly one
+# level of corpus dir, store hits in a temp file for the two-pass (preflight + apply) walk.
 hits_file=$(mktemp)
 trap 'rm -f "$hits_file"' EXIT
-# Surface find errors (missing dir, permission) rather than swallowing them.
-if ! find "$ROOT/reference" -mindepth 2 -maxdepth 2 -name "INDEX.md" > "$hits_file" 2>/dev/null; then
-  echo "error: could not read $ROOT/reference/ (missing or unreadable)" >&2
+ref_dir="$ROOT/reference"
+if [ ! -d "$ref_dir" ]; then
+  echo "error: could not read $ref_dir/ (missing or unreadable)" >&2
   exit 1
 fi
+# Glob reference/*/INDEX.md. nullglob isn't portable in sh/dash; guard the literal-no-match case.
+for f in "$ref_dir"/*/INDEX.md; do
+  [ -e "$f" ] || continue
+  printf '%s\n' "$f"
+done > "$hits_file"
 
 n=$(grep -c . "$hits_file" 2>/dev/null) || n=0
 if [ "$n" -eq 0 ]; then
