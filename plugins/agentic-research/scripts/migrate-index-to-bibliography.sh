@@ -53,7 +53,7 @@ fi
 # Portable: no mapfile (Bash 3.2 on macOS lacks it); no GNU find -mindepth/-maxdepth
 # (not POSIX, not reliably on stock BSD find). Use a POSIX glob for exactly one
 # level of corpus dir, store hits in a temp file for the two-pass (preflight + apply) walk.
-hits_file=$(mktemp)
+hits_file=$(mktemp "${TMPDIR:-/tmp}/migrate-index-to-bibliography.XXXXXX")
 trap 'rm -f "$hits_file"' EXIT
 ref_dir="$ROOT/reference"
 if [ ! -d "$ref_dir" ]; then
