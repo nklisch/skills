@@ -229,7 +229,15 @@ def url_alive(url, timeout=5):
     if not _url_allowed(url):
         return False
     try:
-        req = urllib.request.Request(url, method="HEAD")
+        # Send a User-Agent: Cloudflare and other bot-fight frontends return
+        # HTTP 403 to a headerless urllib request, which would falsely flag a
+        # live, properly-attested source as unreachable-source. A descriptive
+        # UA identifies the probe as a lint, not a bot — the SSRF fence in
+        # _url_allowed/_host_is_public is the security boundary, not UA
+        # absence.
+        req = urllib.request.Request(
+            url, method="HEAD", headers={"User-Agent": "ard-lint/1.0 (+source liveness probe)"}
+        )
         with _URL_OPENER.open(req, timeout=timeout) as resp:
             return 200 <= getattr(resp, "status", 200) < 400
     except Exception:
