@@ -84,7 +84,7 @@ impl Substrate {
 
             match parse_artifact(abs_path, &rel, *tier, corpus.clone(), &text) {
                 Ok(artifact) => artifacts.push(artifact),
-                // Reference-tier files (per-corpus INDEX bibliographies)
+                // Reference-tier files (per-corpus BIBLIOGRAPHY bibliographies)
                 // legitimately carry no frontmatter — load them leniently rather
                 // than recording a spurious parse error. Frontmatter-bearing
                 // reference entries still parse normally above; this only catches
@@ -568,15 +568,15 @@ mod tests {
     #[test]
     fn raw_subtrees_are_excluded_from_index() {
         let (_tmp, sub) = setup_substrate(&[
-            ("reference/my-corpus/INDEX.md", &reference_fm("index-entry")),
+            ("reference/my-corpus/BIBLIOGRAPHY.md", &reference_fm("index-entry")),
             ("reference/my-corpus/raw/some-fetched.md", &reference_fm("raw-entry")),
         ]);
-        // Only INDEX.md should load; raw/ is excluded.
+        // Only BIBLIOGRAPHY.md should load; raw/ is excluded.
         assert_eq!(sub.artifacts().len(), 1);
         assert_eq!(sub.artifacts()[0].identity, "index-entry");
     }
 
-    // ── reference INDEX without frontmatter loads leniently ────────────────
+    // ── reference BIBLIOGRAPHY without frontmatter loads leniently ────────────────
 
     #[test]
     fn reference_index_without_frontmatter_loads_leniently() {
@@ -585,10 +585,10 @@ mod tests {
         let research = root.join(".research");
         fs::create_dir_all(research.join("reference/my-corpus")).unwrap();
         fs::write(research.join("CONVENTIONS.md"), "# Conventions\n").unwrap();
-        // A per-corpus INDEX bibliography — no YAML frontmatter (by design).
+        // A per-corpus BIBLIOGRAPHY bibliography — no YAML frontmatter (by design).
         fs::write(
-            research.join("reference/my-corpus/INDEX.md"),
-            "# my-corpus — corpus INDEX\n\nA numbered bibliography.\n",
+            research.join("reference/my-corpus/BIBLIOGRAPHY.md"),
+            "# my-corpus — corpus BIBLIOGRAPHY\n\nA numbered bibliography.\n",
         )
         .unwrap();
 
@@ -597,11 +597,11 @@ mod tests {
         assert_eq!(sub.artifacts().len(), 1);
         assert!(
             report.parse_errors.is_empty(),
-            "a frontmatter-less reference INDEX must not be a parse error"
+            "a frontmatter-less reference BIBLIOGRAPHY must not be a parse error"
         );
         let a = &sub.artifacts()[0];
         assert_eq!(a.tier, ResearchTier::ReferenceIndex);
-        assert_eq!(a.identity, "INDEX", "identity falls back to the file stem");
+        assert_eq!(a.identity, "BIBLIOGRAPHY", "identity falls back to the file stem");
         assert_eq!(a.corpus.as_deref(), Some("my-corpus"));
         assert!(a.source_handle.is_none());
     }

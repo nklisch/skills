@@ -21,7 +21,7 @@ use std::{collections::HashMap, path::PathBuf};
 /// `reference → attestation → precis → analysis`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ResearchTier {
-    /// `reference/<corpus>/**` — raw corpus index entries
+    /// `reference/<corpus>/**` — raw corpus bibliography entries
     ReferenceIndex,
     /// `attestation/*.md` — citation anchors
     Attestation,
@@ -109,7 +109,7 @@ pub struct Artifact {
     /// each tag before storage.
     pub themes: Vec<String>,
 
-    /// Per-tag count of how many INDEX entries (i.e., `**Themes:**` lines) mention
+    /// Per-tag count of how many BIBLIOGRAPHY entries (i.e., `**Themes:**` lines) mention
     /// each tag in this artifact.  Keys match `themes` exactly.
     ///
     /// Non-empty only for `ReferenceIndex`-tier artifacts; empty for all others.

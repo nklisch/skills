@@ -52,7 +52,7 @@ from urllib.parse import urlparse
 
 # The citation wire-form grammar (ARD SPEC §4.2): handle = [\w-]+, N = \d+.
 # N is captured for reporting only — the kernel resolves by HANDLE, never by N.
-# {N}<->INDEX correspondence (CATALOGS §3 check 7) needs the deployment's INDEX
+# {N}<->bibliography correspondence (CATALOGS §3 check 7) needs the deployment's bibliography
 # structure (not an ARD invariant), so it is deployment-mapped, not validated here.
 CITATION_RE = re.compile(r"\[([\w-]+)\]\{(\d+)\}")
 
@@ -229,7 +229,15 @@ def url_alive(url, timeout=5):
     if not _url_allowed(url):
         return False
     try:
-        req = urllib.request.Request(url, method="HEAD")
+        # Send a User-Agent: Cloudflare and other bot-fight frontends return
+        # HTTP 403 to a headerless urllib request, which would falsely flag a
+        # live, properly-attested source as unreachable-source. A descriptive
+        # UA identifies the probe as a lint, not a bot — the SSRF fence in
+        # _url_allowed/_host_is_public is the security boundary, not UA
+        # absence.
+        req = urllib.request.Request(
+            url, method="HEAD", headers={"User-Agent": "ard-lint/1.0 (+source liveness probe)"}
+        )
         with _URL_OPENER.open(req, timeout=timeout) as resp:
             return 200 <= getattr(resp, "status", 200) < 400
     except Exception:
@@ -278,7 +286,7 @@ def intra_program_resolves(handle, analysis_dir):
     # resolves a cN handle nominally for another campaign (cross-campaign reuse), and the
     # parent path below binds nothing but existence. Fully binding `cN` needs a
     # cN -> campaign-directory map, a deployment naming convention (dirs are slugs, not
-    # numbers), not an ARD invariant — so it is deployment-mapped, like the {N}<->INDEX
+    # numbers), not an ARD invariant — so it is deployment-mapped, like the {N}<->bibliography
     # check (CATALOGS §3 check 7). The kernel does NOT silently bless it: a cN resolution
     # is reported "campaign-unbound" (surfaced), so a fabricated cross-campaign handle is
     # visible. A deployment binds `cN` by making the handle convention data-driven.
@@ -622,7 +630,7 @@ def main():
         if campaign_unbound_all:
             print(f"\n[note] {len(campaign_unbound_all)} intra-program handle(s) resolve by "
                   f"slug/existence but the kernel cannot bind the campaign number cN "
-                  f"(deployment-mapped, like the 7th INDEX check) — confirm each cN names the "
+                  f"(deployment-mapped, like the 7th bibliography-correspondence check) — confirm each cN names the "
                   f"intended campaign:")
             for h in campaign_unbound_all:
                 print(f"  - {h}")

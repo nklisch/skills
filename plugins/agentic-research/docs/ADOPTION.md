@@ -21,7 +21,7 @@ opt-in supplementary rationale.
 ## Standing up the `.research/` substrate
 
 Using ARD here means having a conformant `.research/` substrate (the tier layout +
-`CONVENTIONS.md` + per-corpus INDEX). The **`convert`** skill is the automated path: it bootstraps
+`CONVENTIONS.md` + per-corpus BIBLIOGRAPHY). The **`convert`** skill is the automated path: it bootstraps
 that substrate when none exists, and — for a repo that already has research authored *outside* ARD
 — discovers it, routes raw sources to `reference/` and claim-bearing syntheses to a holding area,
 then hands each synthesis to the orchestrator's refresh branch for rigor-uplift. Run `convert`

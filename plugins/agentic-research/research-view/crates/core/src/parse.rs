@@ -283,7 +283,7 @@ fn strip_new_marker(tag: &str) -> &str {
 /// Build an `Artifact` for a tier-located file that carries no parseable
 /// frontmatter.
 ///
-/// Used by the loader for `ReferenceIndex`-tier files — per-corpus `INDEX.md`
+/// Used by the loader for `ReferenceIndex`-tier files — per-corpus `BIBLIOGRAPHY.md`
 /// bibliographies legitimately have NO YAML frontmatter (the entry number `N`
 /// is the citation anchor, not a frontmatter field). Treating them as parse
 /// errors would emit a spurious warning on every run. The `identity` falls back
@@ -737,11 +737,11 @@ Body paragraph.
 
     #[test]
     fn parse_themes_hr_in_frontmatter_less_file_does_not_stop_parsing() {
-        // A markdown horizontal rule (`---`) in a frontmatter-less INDEX body must
+        // A markdown horizontal rule (`---`) in a frontmatter-less BIBLIOGRAPHY body must
         // not be mistaken for a frontmatter opener. Tags both before and after the
         // `---` must be parsed.
         let body = "\
-# corpus INDEX
+# corpus BIBLIOGRAPHY
 
 ### 1. Entry — `one`
 
@@ -809,7 +809,7 @@ provenance: source-direct
     #[test]
     fn lenient_artifact_extracts_themes_from_full_text() {
         let text = "\
-# corpus INDEX
+# corpus BIBLIOGRAPHY
 
 ### 1. Entry — `entry`
 
@@ -817,8 +817,8 @@ provenance: source-direct
 - **Themes:** retrieval, knowledge-graphs
 ";
         let a = lenient_artifact(
-            &p("/repo/.research/reference/my-corpus/INDEX.md"),
-            &p(".research/reference/my-corpus/INDEX.md"),
+            &p("/repo/.research/reference/my-corpus/BIBLIOGRAPHY.md"),
+            &p(".research/reference/my-corpus/BIBLIOGRAPHY.md"),
             ResearchTier::ReferenceIndex,
             Some("my-corpus".into()),
             text,

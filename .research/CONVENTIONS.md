@@ -12,7 +12,7 @@ upstream (ARD `SPEC.md` / `CATALOGS.md`) and oriented in
 ```
 .research/
   README.md  CONVENTIONS.md  references.md
-  reference/<corpus>/INDEX.md      # raw/ gitignored
+  reference/<corpus>/BIBLIOGRAPHY.md      # raw/ gitignored
   attestation/<handle>.md
   precis/<slug>.md
   analysis/{positions,briefs,campaigns,hypothesis}/
@@ -61,7 +61,7 @@ temporal_contract: write-once-on-converge
 
 `[handle]{N}` — `handle` resolves to `attestation/<handle>.md` (its `source_handle`
 must match); `N` resolves by number against `references.md` (and the per-corpus
-`INDEX.md`). **`references.md` and `INDEX.md` are append-only — assign the next
+`BIBLIOGRAPHY.md`). **`references.md` and `BIBLIOGRAPHY.md` are append-only — assign the next
 integer to a new source; never renumber.** Renumbering breaks every live citation.
 **Handles are unique** — a `source_handle` declared by two or more attestations resolves
 ambiguously; the lint flags it `colliding-handle` (ARD v0.4.1, *CATALOGS §3*).
@@ -104,14 +104,14 @@ The research tier does **not** use `.work/`'s stage pipeline. Instead:
 
 ## Authoring & enforcement
 
-- Templates: `plugins/agentic-research/templates/{attestation,precis,INDEX}.md`.
+- Templates: `plugins/agentic-research/ard-core/kernel/templates/{attestation,precis,BIBLIOGRAPHY}.md`.
 - Lint (the floor): `python3 plugins/agentic-research/scripts/lint-citations.py
   .research/analysis/ --exit-code-on high`. A failing lint is a real defect — fix the
   work, never game the check.
 
 ## Invariants
 
-1. Append-only `references.md` / `INDEX.md` (never renumber).
+1. Append-only `references.md` / `BIBLIOGRAPHY.md` (never renumber).
 2. Down-gradient reads (cite sources, not analytical siblings).
 3. No fabrication — every attributed claim traces to a `>` quote/anchor in its attestation.
 4. Raw fetches stay local (gitignored); only derived, IP-cleared material is committed.
