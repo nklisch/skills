@@ -143,9 +143,10 @@ into two independently-actionable tracks:
 `INDEX.md` → `BIBLIOGRAPHY.md`. Blast radius (from the commissioning item):
 ARD SPEC §10.2/§10.4 (prose + the `{N}<->INDEX` correspondence check, CATALOGS
 §3 check 7), `lint-citations.py` (`{N}<->INDEX` check), the Rust `research-view`
-(`core/src/index.rs`, `core/src/parse.rs`, `cli/src/render.rs` — the `INDEX`
-stem fallback + frontmatter-less-lenient parsing), the kernel template
-`ard-core/kernel/templates/INDEX.md`, and the ~99 on-disk `INDEX.md` files across
+(`core/src/index.rs`, `core/src/parse.rs`, `cli/src/render.rs` — the
+`BIBLIOGRAPHY` stem fallback + frontmatter-less-lenient parsing), the kernel
+template `ard-core/kernel/templates/BIBLIOGRAPHY.md`, and the ~99 on-disk
+`INDEX.md` files across
 `SNC/` (~70), `silas/` (~25), `starmods/` (~3), `skills/` (1),
 `skills-lint-ua-fix/` (1). A rename is a behavior-preserving structural change
 *of ARD's own surface* — it qualifies as `[refactor]` under the black-box test
