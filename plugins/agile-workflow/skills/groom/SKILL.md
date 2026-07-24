@@ -125,6 +125,13 @@ For each non-VALID finding, ask the operator before acting. Nothing moves withou
   item.
 - **DUPLICATE (confirmed)** → fold unique detail into the kept item, then dispose the absorbed one
   per the same convention.
+- **Stamp every absorbed/retired item at disposition time.** Any item archived (or merged into a
+  backlog rollup) as SUPERSEDED / DUPLICATE / absorbed MUST carry `status: superseded|duplicate`
+  plus a pointer (`superseded_by:` / `duplicate_of:` / `folded_into:`) in its frontmatter, and any
+  archived item that never reached `done` keeps its real stage — do not rewrite it to `done`.
+  release-deploy's archived-stub late-binding gather skips status-stamped and non-`done` archive
+  files; an unstamped husk gets re-swept into the next release's bind set as if it were fresh
+  unbound work.
 - **MERGEABLE (confirmed)** → this is a `scope` act: hand off to `/agile-workflow:scope` to cluster
   the items into one epic/feature, rather than mutating inline.
 - **STALE (confirmed dead)** → treat as DONE/SUPERSEDED disposition; **STALE but still wanted** →
