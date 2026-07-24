@@ -130,6 +130,16 @@ If the release is at `stage: planned`:
    prior=${prior:-pre-release}
    # Gather ALL unbound archived stubs (recurse: ROADMAP-phase epics archive to
    # .work/archive/epics/, not just the flat .work/archive/ root).
+   # Skip retired husks: some projects' archive tiers hold merge-absorbed,
+   # duplicate, superseded, or otherwise retired-but-unfinished items alongside
+   # genuinely done ones. A husk's substance lives elsewhere (a backlog merge
+   # item, a shipped duplicate, or a resolved doc), so sweeping it re-opens
+   # settled work on every release. Skip any archive file stamped
+   # `status: superseded|duplicate` (grooms must stamp absorbed items at merge
+   # time) and any file not at `stage: done` (an unfinished item belongs in
+   # backlog, not archive; if it is legitimately done, fix its stage and it
+   # will gather normally). Also match files with no release_binding field at
+   # all (older minimal frontmatter) — an absent field is unbound.
    # When agentic-research is installed: [research] items are research inputs, not
    # release members — exclude them. Use work-view's real tag parse for the exclusion
    # set, never a hand-rolled tags regex (a regex misreads block-style tag lists and
@@ -148,8 +158,12 @@ If the release is at `stage: planned`:
    fi
    find .work/archive -name '*.md' -type f | while read -r p; do
      [ -n "$research_paths" ] && printf '%s\n' "$research_paths" | grep -qxF "$p" && continue
+     status=$(grep -m1 '^status:' "$p" | awk '{print $2}')
+     [[ "$status" == "superseded" || "$status" == "duplicate" ]] && continue
+     stage=$(grep -m1 '^stage:' "$p" | awk '{print $2}')
+     [[ "$stage" != "done" ]] && continue
      binding=$(grep -m1 '^release_binding:' "$p" | awk '{print $2}')
-     [[ "$binding" == "null" ]] && echo "$p"
+     { [[ "$binding" == "null" ]] || [[ -z "$binding" ]]; } && echo "$p"
    done
    ```
    (Skip stubs already carrying a `release_binding` — they belong to an earlier release. Show each
