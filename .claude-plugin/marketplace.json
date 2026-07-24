@@ -94,7 +94,7 @@
       },
       "description": "Control a local Chromium browser and inspect transient behavior with source-linked temporal visual evidence.",
       "category": "developer-tools",
-      "version": "1.6.1",
+      "version": "1.6.2",
       "tags": [
         "browser",
         "cdp",

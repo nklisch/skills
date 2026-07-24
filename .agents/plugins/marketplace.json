@@ -130,7 +130,7 @@
       },
       "description": "Control a local Chromium browser and inspect transient behavior with source-linked temporal visual evidence.",
       "category": "Developer Tools",
-      "version": "1.6.1",
+      "version": "1.6.2",
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
