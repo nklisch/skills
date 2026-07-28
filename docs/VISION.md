@@ -19,11 +19,14 @@ their agents to arrive already knowing how to work.
 ## What this is
 
 A single git tree that authors and distributes agent skills, plugins, and
-packages through three equal channels: the **Claude Code marketplace**, the
-**OpenAI Codex marketplace**, and **Pi packages**. Every supported plugin ships
-to all three. Skills follow the open Agent Skills standard so the durable
-procedural knowledge crosses harnesses unchanged; each harness can add native
-ergonomics around that shared core.
+packages through three channels: the **Claude Code marketplace**, the **OpenAI
+Codex marketplace**, and **Pi packages**. Supported cross-channel plugins ship
+to all three. Capabilities that exist only in Pi's runtime ship as supported
+Pi-only packages by design: `background-tasks` and `pi-sandbox` currently ship
+`package.json` only, without Claude Code or Codex plugin manifests. Shared
+skills follow the open Agent Skills standard so durable procedural knowledge
+crosses applicable harnesses unchanged; each harness can add native ergonomics
+around that shared core.
 
 The catalog offers two distinct `.work/` systems: **agile-workflow** provides an
 explicit lifecycle and autonomous queue runner, while **workbench** centers
@@ -55,16 +58,18 @@ building itself, that is a signal worth catching before an adopter hits it.
 
 ## What success looks like
 
-- **Channel parity** — every supported plugin installs and behaves in Claude
-  Code, Codex, and Pi, with harness-native ergonomics where each environment
-  supports them.
+- **Channel parity** — supported cross-channel plugins install and behave in
+  Claude Code, Codex, and Pi, with harness-native ergonomics where each
+  environment supports them. Supported Pi-only runtime packages intentionally
+  target Pi and ship `package.json` only.
 - **Skills that trigger on intent** — they fire when they should and stay silent
   when they should not.
 - **A trustworthy substrate** — `.work/` is the single source of truth for this
   repo's work, and the agent-facing tooling answers "what can I do next?"
   correctly at any stage, not just one.
-- **Lockstep metadata** — a plugin's Claude manifest, Codex manifest, and Pi
-  package metadata never disagree about what it is.
+- **Lockstep metadata** — every channel metadata file a plugin ships agrees
+  about what it is; Pi-only packages are not required to carry inapplicable
+  Claude Code or Codex manifests.
 
 ## Where the details live
 
@@ -74,8 +79,9 @@ foundation docs — read those for purpose and internals:
 - **agile-workflow** (flagship) —
   `plugins/agile-workflow/docs/{VISION,SPEC,ARCHITECTURE,PRINCIPLES}.md`
 - **workbench** — `plugins/workbench/docs/{VISION,SPEC}.md`
-- **Other plugins** — see each plugin directory, README, and
-  `.claude-plugin/plugin.json`.
+- **Other plugins** — see each plugin directory and README, plus its
+  `.claude-plugin/plugin.json` when it is a cross-channel plugin or its
+  `package.json` when it is Pi-only.
 
 Repo-level structure and distribution mechanics live in `docs/ARCHITECTURE.md`;
 distribution constraints and versioning rules live in `docs/SPEC.md`.
