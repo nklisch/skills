@@ -27,9 +27,8 @@ output. Not for marketing copy or essays — the style strips voice on purpose.
   notes, prompt or transcript details, revision narration, or internal
   adjudication.
 - Workbench items and other explicitly agent-facing documents may retain
-  process prose when it adds material value for future implementation, review,
-  or operation. Discourage it otherwise. Prefer the resolved decision,
-  constraint, or risk over its history.
+  process prose when it adds material value. Otherwise, prefer the resolved
+  decision, constraint, or risk over its history.
 
 ### Words
 
