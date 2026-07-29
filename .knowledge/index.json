@@ -717,6 +717,17 @@
       "relationships": []
     },
     {
+      "path": ".research/attestations/okf-spec-v02.md",
+      "namespace": "research",
+      "kind": "attestation",
+      "id": "okf-spec-v02",
+      "title": "Attestation: Open Knowledge Format (OKF) v0.2 Specification",
+      "summary": null,
+      "updated": "2026-07-29",
+      "status": null,
+      "relationships": []
+    },
+    {
       "path": ".research/attestations/okf-spec.md",
       "namespace": "research",
       "kind": "attestation",
@@ -965,7 +976,7 @@
       "id": "okf-format-assessment-against-ard-substrate",
       "title": "OKF v0.1 versus the research substrate — adoption assessment",
       "summary": "OKF should be treated as an interchange boundary rather than the research substrate because its permissive format does not preserve source-bound attestation and verification invariants.",
-      "updated": "2026-07-19",
+      "updated": "2026-07-29",
       "status": null,
       "relationships": []
     },
@@ -1251,7 +1262,7 @@
       "id": "epic-ard-okf-representation-convergence",
       "title": "Converge agentic-research's representation layer — discipline vs storage separation, and the OKF question",
       "summary": null,
-      "updated": "2026-07-21",
+      "updated": "2026-07-29",
       "status": "active",
       "relationships": []
     },
