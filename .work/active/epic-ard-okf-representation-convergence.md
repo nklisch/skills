@@ -116,6 +116,77 @@ profile's mapping layer must now answer, in order:
    native families (`generated`, `status`) — decide before the migration
    tooling is designed.
 
+## Profile contract — decided layer (harvested 2026-07-29)
+
+Harvested from the superseded agile branch's profile-spec design and
+re-adjudicated against two new facts: this repo's Workbench migration (a
+canonical two-tier layout, a *generated* `bibliography.yaml`, zero `index.md`
+files, and attestation-internal `{N}` anchors) and OKF v0.2. The full
+original design text lives in the git history of
+`feat/ard-okf-representation-convergence`.
+
+Carried (unaffected or strengthened by the new direction):
+
+- **Standalone `ard-core/PROFILE.md`, separately versioned (`ard_profile`),
+  SPEC untouched except pointer notes.** The profile is the canonical OKF
+  mapping; SPEC keeps framework invariants.
+- **One bibliography model: per-corpus `BIBLIOGRAPHY.md`; root `references.md`
+  retires** (resolves the parked convert-scaffold drift bug). Delineation
+  added: ARD's bibliography entries are *authored, append-only anchors of
+  record* for `{N}`; Workbench's generated `bibliography.yaml` is the other
+  plugin's model for its own attestation-internal anchors. The profile does
+  not adopt the generated model — generating ARD's bibliography would move
+  its anchors into derived data.
+- **`type` + `title` required on every concept** (migration stamps `type`
+  from artifact kind, `title` from the existing H1). Binds
+  agentic-research-owned substrates only: Workbench substrates carry no
+  `type` and sit outside the profile per the owner declaration.
+- **Baseline type vocabulary (closed-with-extension):** `attestation`,
+  `precis`, `brief`, `position`, `hypothesis`, `campaign-parent`,
+  `campaign-specialist`, `campaign-record`, `bibliography`, `conventions`,
+  `readme`; deployments may coin extension types. `attestation` carries the
+  v0.2 disambiguation rule (question 3 above).
+- **Bundle boundary:** root = `.research/`; `raw/` subtrees excluded; no ARD
+  artifact collides with reserved names.
+- **Profile declaration in root `index.md` frontmatter** (`okf_version` +
+  `ard_profile`, riding OKF's producer-extension tolerance). The version
+  value is absorption question 1 above.
+- **Check-7 pieces model:** a BIBLIOGRAPHY entry for a multi-piece source
+  declares `**Pieces:** <slug, …>`; a compound handle `<entry>-<piece>`
+  resolves iff the entry handle is a strict prefix AND the piece is listed;
+  no `Pieces:` line ⇒ exact-handle only. Positional `{N}` survives OKF v0.2's
+  keyed-anchor critique because ARD entries are append-only — the number is a
+  stable key and order carries no meaning (question 4 above).
+- **Index conformance is semantic, not byte-exact** wherever indexes exist —
+  a consumer (the library) may curate section prose without failing
+  conformance.
+- **Schemas:** `concept.schema.json` (`type` + `title` required, additional
+  properties permitted per OKF); the attestation schema gains both.
+- **Fixture-stamping method:** the pre-re-key golden lint run must stay green
+  after fixtures are stamped — the executable proof of the additive ruling.
+  Fixtures stamp against the version pin from question 1.
+
+Revised (the skills/ direction changed the shape):
+
+- **Index rules.** Was: `index.md` required in every directory with fan-out
+  closure. Now: the root `index.md` is always required (it carries the
+  profile declaration); a nested `index.md` is required only where a
+  directory's layout deviates from the deployment's declared convention;
+  closure is checked over convention + index discovery combined. Rationale:
+  this repo runs a canonical layout with zero index files and discovery works
+  — ceremony should be proportional to deviation; the library's
+  domain-organized layout is what actually needs per-directory progressive
+  disclosure. Final call at stride 1 (interacts with library curation and
+  the v0.2 pin).
+
+Added (new from the skills/ direction):
+
+- **Authored-of-record vs generated boundary.** The profile states which
+  artifacts are authored records (attestations, bibliographies, briefs,
+  positions) and which are generated projections (`index.md` where present —
+  generator-emitted, never hand-authored beyond curated section prose under
+  the semantic-conformance rule).
+
 ## Constraint (non-negotiable)
 
 The anti-fabrication discipline stays untouched regardless of how the
@@ -199,7 +270,9 @@ this epic is the agentic-research representation decision. Joints:
   decomposition of this epic (five pre-cut features + three stories on the
   `feat/ard-okf-representation-convergence` branch, including a
   research-orchestrator validation child) is superseded by this item: the
-  adjudicated decisions carried over, the item tree did not. Validation of
+  adjudicated decisions carried over (epic level above; the profile-spec
+  feature's decided layer harvested into `## Profile contract — decided
+  layer`), the item tree did not. Validation of
   the convergence against the discipline invariant is a Workbench `research`
   engagement commissioned when the profile stride starts, not a routed
   `[research]` item.
