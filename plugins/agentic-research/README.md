@@ -1,5 +1,13 @@
 # Agentic Research Discipline
 
+> **Status: maintenance (2026-07-29).** The discipline bundle
+> (`ard-core/kernel/discipline.md`) is frozen and existing substrates remain
+> supported, but the plugin is no longer actively developed: the OKF
+> representation-convergence program (planned v0.7.0) was evaluated and
+> retired unshipped. Contract-drift fixes land as errata when their area is
+> touched. New research work should use the `workbench` plugin's `research`
+> skill.
+
 Grounded, verifiable AI research as an installable plugin. The Agentic Research
 Discipline (ARD) adds a non-erodable anti-fabrication floor, a per-engagement
 control-space of selectable verification gates, and a `.research/` substrate tier

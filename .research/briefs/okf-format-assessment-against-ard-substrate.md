@@ -151,3 +151,30 @@ Import was higher-risk. An OKF citation may be only a URL or relative path
 attestations. A safe importer would require operator-confirmed fetch and
 attestation for each source, then mint stable research handles rather than reuse
 path-derived OKF concept IDs [okf-spec]{9}.
+
+## v0.2 delta (2026-07-29)
+
+OKF v0.2 supersedes v0.1 [okf-spec-v02]{1} and natively adds families this
+assessment treated as absent from the envelope: `sources` with objective
+per-source credibility signals [okf-spec-v02]{2}{3}, `generated`/`verified`
+verification events with consumer-derived trust tiers [okf-spec-v02]{5}{6},
+`status`/`stale_after` lifecycle fields [okf-spec-v02]{7}, and an `Attested
+Computation` concept type [okf-spec-v02]{9}.
+
+The assessment's core conclusion survives. v0.2 records verification events but
+mandates no fetch-before-cite discipline: all §5 families are optional and
+conformance never rejects for their absence [okf-spec-v02]{10}. Its
+"attestation" is a per-run runtime proof, explicitly not stored in the bundle
+[okf-spec-v02]{9} — a different sense from the substrate's stored per-source
+attestation records. Trust tiers are advisory signals, not access control
+[okf-spec-v02]{6}. The verification stack, tier directionality, and
+fetched-during-engagement discipline remain substrate-side concerns.
+
+The delta reopened representation decisions downstream of this assessment. Two
+renames break v0.1 assumptions (`timestamp`→`generated.at`, body
+`# Citations`→`sources` frontmatter) [okf-spec-v02]{1}, and v0.2's per-claim
+attribution is keyed footnotes rather than positional anchors, by explicit
+design against silent misattribution on reorder [okf-spec-v02]{4}. The
+absorption questions were tracked in `epic-ard-okf-representation-convergence`,
+retired unshipped on 2026-07-29 when agentic-research entered maintenance;
+they survive in that item's git history should a profile effort ever revive.

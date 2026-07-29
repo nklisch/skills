@@ -1,69 +1,73 @@
 ---
 id: epic-workbench-research-hardening-knowledge-product-profile
 kind: feature
-status: blocked
+status: active
 tags: [plugin, skill]
 parent: epic-workbench-research-hardening
 blocked_by: []
-related_to: [epic-ard-okf-representation-convergence]
-research_refs: [.research/briefs/okf-format-assessment-against-ard-substrate.md]
+related_to: []
+research_refs: [.research/briefs/okf-format-assessment-against-ard-substrate.md, .research/attestations/okf-spec-v02.md]
 mock_refs: []
 created: 2026-07-28
 updated: 2026-07-29
 ---
-# Knowledge-product profile seam (deferred)
-
-## Blocker
-
-Blocked on the agentic-research ARD-on-OKF profile contract (stride 1 of
-`epic-ard-okf-representation-convergence`, re-scoped for Workbench on
-2026-07-29 and shipping as agentic-research v0.7.0), **including its OKF
-v0.2-absorption decisions**. The seam's extension points — artifact-kind
-inference, citation resolution, source location, validation, index projection —
-must be designed against the settled profile's type vocabulary and index
-fan-out discovery, not the pre-convergence four-tier shape. Clears when the
-profile contract is published; the seam is then designed once, against it.
+# Knowledge-product profile — Workbench-native support for substrate-as-product repos
 
 ## Brief
 
-(Scope amended 2026-07-29: split after adversarial review. The owner
-declaration + stop rule is now the active
-`epic-workbench-research-hardening-research-owner-guard`. What remains here is
-the part that was premature: the extension-point registry, designed against a
-substrate whose on-disk meaning the related representation epic is changing.)
+(Re-scoped 2026-07-29. Originally blocked on the agentic-research ARD-on-OKF
+profile contract; that convergence program was retired unshipped when
+agentic-research entered maintenance. The seam is now Workbench-native.)
 
-Let Workbench actively participate in knowledge-product repositories — where
-the durable knowledge substrate and its reader are themselves the product, as
-in `SNC/games/library` — beyond merely stopping before foreign schemas. A
-declared profile/adapter boundary should let a knowledge-product repository
-own additional tiers, local or ingested sources, artifact kinds, temporal
-behavior, validators, and a reader/export projection, while the lightweight
-built-in profile stays simple.
+Let Workbench fully support repositories where the durable knowledge substrate
+and its reader are themselves the product — as in `SNC/games/library` — rather
+than merely stopping before foreign schemas (the owner guard covers that).
+A knowledge-product repository may own additional artifact tiers, local or
+ingested sources, extra artifact kinds, temporal behavior, validators, and a
+reader/export projection, while the lightweight built-in profile stays simple
+and the canonical citation contract holds (anchors live in attestations;
+nothing derived carries citation meaning).
 
-## Design questions (open until unblocked)
+The library's recorded direction — emit OKF-conformant bundles for the reading
+surface — becomes an **export mapping** from a Workbench substrate (a
+projection, like `bibliography.yaml` or the knowledge index), not a substrate
+convergence. OKF v0.2's keyed-footnote attribution [okf-spec-v02]{4} is an
+emission-format concern handled by the exporter, not a change to Workbench's
+`[handle]{N}` anchor semantics.
 
-- Which extension points the owning profile actually needs: artifact-kind
-  inference, citation resolution, source location, validation, knowledge-index
-  projection — confirmed against the settled agentic-research profile, not
-  assumed now.
-- How `research`, `research-handoff`, and `work` delegate to the owning
-  profile deliberately, given the stop rule has already landed.
-- How `build-substrate` / knowledge-product intent is represented without a
+Legacy `agentic-research` substrates (frozen, in maintenance) are not extended
+by this profile: they remain foreign-owned under the owner declaration — stop,
+never rewrite.
+
+## Design questions
+
+- Which extension points a knowledge-product profile actually needs:
+  artifact-kind inference, citation resolution (against the canonical
+  attested-detail anchors), source location (local and ingested sources, not
+  only fetched URLs), validation, knowledge-index projection, and the OKF
+  export mapping.
+- How `build-substrate` / knowledge-product intent is declared in
+  `.research/CONVENTIONS.md` alongside the owner declaration — without a
   contrived one-shot downstream code decision; sustained future readers and
   design-system formation are valid consumers.
+- How the profile composes with the owner guard: `owner: workbench` plus a
+  declared knowledge-product profile extends; `owner: agentic-research`
+  stops.
 - How reader rendering, access control, and deployment stay repository-owned
   while exposing a clean contract by which a reader can consume validated
   artifacts and provenance.
 
-## Acceptance (draft — revisit at unblock)
+## Acceptance
 
-- A representative fixture shaped like `SNC/games/library` can use Workbench as
-  its work ledger without pluralizing/flattening the research tree, changing
-  `[handle]{N}` semantics, rejecting local source locators, or classifying
-  corpus manifests as briefs.
-- Workbench-native research projects continue to use the current lightweight
-  layout without installing agentic-research.
+- A representative fixture shaped like `SNC/games/library` can use Workbench
+  as its work ledger and research substrate without pluralizing/flattening
+  the research tree, changing `[handle]{N}` semantics, rejecting local source
+  locators, or classifying corpus manifests as briefs.
+- Workbench-native decision-support projects continue to use the current
+  lightweight layout unchanged.
 - `research_refs` and the knowledge index preserve the owning artifact's kind,
   authority, identity, and provenance.
+- An OKF bundle export, where configured, is generated from validated
+  artifacts and is never treated as an anchor of record.
 - Documentation presents knowledge-as-product as a supported profile, not an
   accidental wildcard-indexing side effect.

@@ -5,7 +5,7 @@ status: active
 tags: [plugin, skill]
 parent: epic-workbench-research-hardening
 blocked_by: []
-related_to: [epic-workbench-research-hardening-knowledge-product-profile, epic-ard-okf-representation-convergence]
+related_to: [epic-workbench-research-hardening-knowledge-product-profile]
 research_refs: []
 mock_refs: []
 created: 2026-07-29
@@ -31,8 +31,9 @@ the agentic-research profile decision.
 ## What lands
 
 - `.research/CONVENTIONS.md` carries a one-line owner declaration:
-  `owner: workbench` (Workbench-native), `owner: agentic-research` (an ARD
-  substrate), or absent (unknown).
+  `owner: workbench` (Workbench-native), `owner: agentic-research` (a legacy,
+  frozen ARD substrate — agentic-research is in maintenance), or absent
+  (unknown).
 - `research`, `setup`, and `work`'s research paths check the declaration once:
   - Workbench-native, or absent with an empty/new substrate: proceed as today.
   - Foreign (`agentic-research`) or unknown-but-nonempty: **stop** — surface

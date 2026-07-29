@@ -1267,17 +1267,6 @@
       "relationships": []
     },
     {
-      "path": ".work/active/epic-ard-okf-representation-convergence.md",
-      "namespace": "work",
-      "kind": "epic",
-      "id": "epic-ard-okf-representation-convergence",
-      "title": "Converge agentic-research's representation layer — discipline vs storage separation, and the OKF question",
-      "summary": null,
-      "updated": "2026-07-29",
-      "status": "active",
-      "relationships": []
-    },
-    {
       "path": ".work/active/epic-workbench-research-hardening.md",
       "namespace": "work",
       "kind": "epic",
@@ -1315,10 +1304,10 @@
       "namespace": "work",
       "kind": "feature",
       "id": "epic-workbench-research-hardening-knowledge-product-profile",
-      "title": "Knowledge-product profile seam (deferred)",
+      "title": "Knowledge-product profile — Workbench-native support for substrate-as-product repos",
       "summary": null,
       "updated": "2026-07-29",
-      "status": "blocked",
+      "status": "active",
       "relationships": []
     },
     {
