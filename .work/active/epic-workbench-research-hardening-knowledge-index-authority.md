@@ -5,7 +5,7 @@ status: active
 tags: [plugin, tooling]
 parent: epic-workbench-research-hardening
 blocked_by: []
-related_to: [epic-ard-okf-representation-convergence]
+related_to: []
 research_refs: [.research/briefs/okf-format-assessment-against-ard-substrate.md, .research/attestations/okf-spec-v02.md]
 mock_refs: []
 created: 2026-07-28
@@ -74,8 +74,7 @@ Open (the only remaining question):
   attestation it derives from); where path-fallback identity remains
   acceptable versus requiring an explicit stable id. Keep the rule set
   minimal — this is edge hygiene for a discovery projection, not a typed-edge
-  ontology (that research program belongs on the related representation
-  epic's side).
+  ontology (a typed-edge research program is out of scope here).
 
 ## Acceptance
 

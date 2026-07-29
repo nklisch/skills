@@ -5,7 +5,7 @@ status: active
 tags: [plugin, skill]
 parent: null
 blocked_by: []
-related_to: [epic-ard-okf-representation-convergence]
+related_to: []
 research_refs: [.research/briefs/okf-format-assessment-against-ard-substrate.md]
 mock_refs: []
 created: 2026-07-28

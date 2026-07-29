@@ -5,7 +5,7 @@ status: active
 tags: [plugin, skill, tooling]
 parent: epic-workbench-research-hardening
 blocked_by: []
-related_to: [epic-ard-okf-representation-convergence]
+related_to: []
 research_refs: [.research/attestations/okf-spec-v02.md]
 mock_refs: []
 created: 2026-07-28

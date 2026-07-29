@@ -25,7 +25,7 @@ anyway.
 ## Context
 
 Found during the `epic-ard-okf-representation-convergence` plugin audit
-(2026-07-23). Related to that epic's Q3 (registration ceremony is one of the
-pieces up for conventions-vs-discipline classification) — the fix direction
-depends on whether registration survives the trim, so this may resolve inside
-the epic; filed so the contradiction is tracked regardless.
+(2026-07-23). Update 2026-07-29: that convergence program (and its Q3
+registration-ceremony review) was retired unshipped when agentic-research
+entered maintenance — this stands as maintenance errata: fix when
+research-handoff is next touched, or document as a known limitation.

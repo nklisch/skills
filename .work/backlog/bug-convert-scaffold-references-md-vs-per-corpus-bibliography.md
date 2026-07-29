@@ -25,6 +25,7 @@ CATALOGS §3) is unimplemented in `lint-citations.py`.
 ## Context
 
 Found during the `epic-ard-okf-representation-convergence` plugin audit
-(2026-07-23). That epic's Q1 work (type-anchored re-founding of the
-representation layer, including building check-7) will likely subsume this —
-file it so the drift is tracked even if the epic's shape changes.
+(2026-07-23). Update 2026-07-29: that convergence program was retired
+unshipped when agentic-research entered maintenance, so the drift is no
+longer on any epic's path — this stands as maintenance errata: fix when the
+convert scaffold is next touched, or document as a known limitation.
