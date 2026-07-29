@@ -1058,6 +1058,17 @@
       "relationships": []
     },
     {
+      "path": ".work/backlog/bug-convert-scaffold-references-md-vs-per-corpus-bibliography.md",
+      "namespace": "work",
+      "kind": "backlog-item",
+      "id": "bug-convert-scaffold-references-md-vs-per-corpus-bibliography",
+      "title": "convert scaffold contradicts SPEC on {N} resolution: references.md vs per-corpus BIBLIOGRAPHY",
+      "summary": null,
+      "updated": "2026-07-23",
+      "status": null,
+      "relationships": []
+    },
+    {
       "path": ".work/backlog/bug-install-work-view-fallback-gating.md",
       "namespace": "work",
       "kind": "backlog-item",
@@ -1080,6 +1091,17 @@
       "relationships": []
     },
     {
+      "path": ".work/backlog/bug-research-handoff-output-kind-frontmatter.md",
+      "namespace": "work",
+      "kind": "backlog-item",
+      "id": "bug-research-handoff-output-kind-frontmatter",
+      "title": "research-handoff reads output_kind from artifact frontmatter; SPEC §9 says registration is dispatch-time",
+      "summary": null,
+      "updated": "2026-07-23",
+      "status": null,
+      "relationships": []
+    },
+    {
       "path": ".work/backlog/bug-work-view-dist-version-drift-0147.md",
       "namespace": "work",
       "kind": "backlog-item",
@@ -1087,17 +1109,6 @@
       "title": "Refresh stale work-view dist binaries for current manifest",
       "summary": null,
       "updated": "2026-06-21",
-      "status": null,
-      "relationships": []
-    },
-    {
-      "path": ".work/backlog/epic-agentic-research-skill-ceremony-streamline.md",
-      "namespace": "work",
-      "kind": "backlog-item",
-      "id": "epic-agentic-research-skill-ceremony-streamline",
-      "title": "Streamline agentic-research skills/ceremony — conventions + high-level guidelines over skill proliferation",
-      "summary": null,
-      "updated": "2026-07-21",
       "status": null,
       "relationships": []
     },

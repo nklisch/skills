@@ -140,9 +140,8 @@ time under `work`, not pre-cut as items.
 3. **Skill-surface re-architecture** — convert / orchestrator / handoff /
    discipline mapping under the Q3 posture. Also absorbs the two parked
    contract-drift bugs (`bug-convert-scaffold-references-md-vs-per-corpus-bibliography`,
-   `bug-research-handoff-output-kind-frontmatter` — both in backlog on the
-   agile branch; re-capture them here if that branch is discarded before the
-   stride starts).
+   `bug-research-handoff-output-kind-frontmatter` — both captured in this
+   backlog).
 4. **Consumer migration tooling** — additive type annotation per repo,
    dry-run-first, user-approved, on the `migrate-index-to-bibliography.sh`
    precedent. Needs 1 + 2.
