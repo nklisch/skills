@@ -70,6 +70,50 @@ growing the contract.
   retargeting that keeps a plausible detail is not statically detectable; the
   guard there is the authoring rule plus diff review, stated honestly as such.
 
+## Canonical vs convention-flexible (decided 2026-07-29)
+
+Context: `agentic-research` is moving to maintenance; Workbench's
+attested-detail model is the single live citation semantics going forward.
+ARD's bibliography-entry model is legacy/foreign — handled by the owner
+declaration on existing ARD substrates, never adopted as a Workbench
+convention.
+
+Canonical invariants (every Workbench research substrate, not overridable):
+
+- **Wire form** `[handle]{N}` in briefs; the handle is the attestation slug
+  (filename stem).
+- **Anchors live only inside attestations** (`## Attested details`). Nothing
+  else is an anchor of record — not `bibliography.yaml`, not the knowledge
+  index, not any authored bibliography. Citation meaning never lives in
+  derived data.
+- **The anchor lifecycle contract** below (append-only, never renumber,
+  never reuse, tombstones, splits/merges append).
+- **Attest-before-cite**: a detail is attested before it is cited (the
+  grounding floor, unchanged).
+- **Resolver declaration**: `.research/CONVENTIONS.md` names the
+  `[handle]{N}` resolver in one line, so the shared wire syntax never hides
+  which semantics a project uses.
+
+Convention-flexible (per project, declared in `.research/CONVENTIONS.md`):
+
+- **Anchor addressing**: positional numbers (default) or stable keyed labels
+  for projects that reorganize heavily. Lint enforces whichever scheme is
+  declared.
+- **Bibliography form**: none, generated (default — `bibliography.yaml`
+  stays a disposable projection, never hand-edited), or a curated authored
+  reading bibliography. All three are legal *because none is the anchor of
+  record*; an authored bibliography is a reading aid and must not define
+  citation meaning.
+- **Tombstone marker syntax** and any additional generated projections
+  (per-directory `index.md` for a reading surface, and similar).
+
+Explicitly not flexible:
+
+- Moving anchors out of attestations.
+- An authored bibliography as citation authority (the ARD model — legacy
+  substrates only, via the owner declaration).
+- Model memory as a bibliographic source (grounding floor).
+
 ## Acceptance
 
 - Reordering or inserting details cannot silently change what an existing
@@ -80,6 +124,11 @@ growing the contract.
   affected citations are reconciled per the change-integrity guard.
 - Splits, merges, deletions, and the resolver declaration have documented,
   test-covered behavior with no green-but-retargeted citation path.
+- The research skill's `.research/CONVENTIONS.md` init template carries the
+  resolver declaration and the declared bibliography form; lint reads the
+  declaration and enforces the declared anchor scheme.
+- Lint resolves citations only against attestations; no bibliography —
+  generated or authored — is ever consulted for citation meaning.
 - Existing Workbench research receives a deterministic validation or migration
   path if lint adoption surfaces currently ambiguous anchors.
 - The discipline, conventions, linter tests, and owner declaration describe
