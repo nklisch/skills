@@ -9,7 +9,7 @@ related_to: [epic-ard-okf-representation-convergence]
 research_refs: [.research/briefs/okf-format-assessment-against-ard-substrate.md]
 mock_refs: []
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-07-29
 ---
 # Make the knowledge index enforceably discovery-only
 
@@ -28,21 +28,46 @@ the index an explicitly derived projection over artifacts validated by their
 own authority, rather than a second knowledge substrate in which directory
 placement can manufacture warrant.
 
-## Required design decisions
+## Design decisions (core pinned 2026-07-29)
 
-- Define how an indexed entry declares its derived/discovery role, owning
-  authority, provenance class, and stable identity without duplicating source
-  content.
-- Align the builder's recursive discovery domain with the validators that are
-  entitled to classify an artifact as an attestation, brief, project document,
-  or work item.
-- Define source/target constraints and direction for `supports`, `contradicts`,
-  `informs`, and `supersedes`; reject self-supersession and authority-reversing
-  edges rather than validating existence alone.
-- Decide where path fallback identity remains acceptable and where an explicit
-  stable id or handle is required.
-- Require consumers to dereference the indexed artifact before relying on its
-  claims; an index summary is navigation, not evidence.
+Scope amended after adversarial review: the discovery-only core is decided up
+front — it is the cheapest rule set that prevents path placement from
+manufacturing warrant. Only the relationship-edge semantics remain open.
+
+Decided:
+
+- **Validated-only indexing.** The builder's discovery domain is exactly the
+  set of artifacts the research lint (and the work-ledger conventions) can
+  classify: canonical attestations, briefs, work items, and durable docs.
+  Nested or unvalidated Markdown is never indexed as evidence; whether it is
+  indexed as an unclassified document or omitted is an implementation choice,
+  documented either way.
+- **Entries carry identity and location, never warrant.** An entry declares
+  its derived/discovery role and its owning authority (taken from the
+  artifact's own frontmatter), plus a stable identity. The index never infers
+  `kind: attestation`, bibliography membership, or any evidence-shaped
+  classification from path placement.
+- **Machine-readable derivedness.** The index output identifies itself and
+  its entries as derived discovery metadata in the JSON contract, not in
+  prose alone; consumers must dereference the indexed artifact before relying
+  on its claims — an index summary is navigation, not evidence.
+- **Deterministic rebuild.** Existing valid Workbench repositories rebuild
+  deterministically; any migration of an existing index is explicit and
+  tested.
+- **Preserved defenses.** Separate citation authority, deterministic output,
+  no relationships to the index itself, and rejection of dangling targets all
+  stay.
+
+Open (the only remaining question):
+
+- **Relationship-edge semantics.** Source/target constraints and direction
+  for `supports`, `contradicts`, `informs`, and `supersedes`; rejection of
+  self-links and authority-reversing edges (a brief may not `supersede` the
+  attestation it derives from); where path-fallback identity remains
+  acceptable versus requiring an explicit stable id. Keep the rule set
+  minimal — this is edge hygiene for a discovery projection, not a typed-edge
+  ontology (that research program belongs on the related representation
+  epic's side).
 
 ## Acceptance
 
@@ -56,6 +81,3 @@ placement can manufacture warrant.
   unvalidated supersession have regression coverage.
 - Existing valid Workbench repositories rebuild deterministically, and any
   migration is explicit and tested.
-- The design preserves the useful defenses already present: separate citation
-  authority, deterministic output, no relationships to the index itself, and
-  rejection of dangling targets.
