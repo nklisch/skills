@@ -1262,7 +1262,18 @@
       "id": "epic-workbench-research-hardening",
       "title": "Preserve research discipline while keeping Workbench lightweight",
       "summary": null,
-      "updated": "2026-07-28",
+      "updated": "2026-07-29",
+      "status": "active",
+      "relationships": []
+    },
+    {
+      "path": ".work/active/epic-workbench-research-hardening-citation-anchor-stability.md",
+      "namespace": "work",
+      "kind": "feature",
+      "id": "epic-workbench-research-hardening-citation-anchor-stability",
+      "title": "Make attested-detail citation anchors stable",
+      "summary": null,
+      "updated": "2026-07-29",
       "status": "active",
       "relationships": []
     },
@@ -1273,7 +1284,7 @@
       "id": "epic-workbench-research-hardening-knowledge-index-authority",
       "title": "Make the knowledge index enforceably discovery-only",
       "summary": null,
-      "updated": "2026-07-28",
+      "updated": "2026-07-29",
       "status": "active",
       "relationships": []
     },
@@ -1282,10 +1293,10 @@
       "namespace": "work",
       "kind": "feature",
       "id": "epic-workbench-research-hardening-knowledge-product-profile",
-      "title": "Add an explicit research-owner and knowledge-product profile seam",
+      "title": "Knowledge-product profile seam (deferred)",
       "summary": null,
-      "updated": "2026-07-28",
-      "status": "active",
+      "updated": "2026-07-29",
+      "status": "blocked",
       "relationships": []
     },
     {
@@ -1322,57 +1333,24 @@
       "relationships": []
     },
     {
-      "path": ".work/active/epic-workbench-research-hardening-acquisition-grounding.md",
+      "path": ".work/active/epic-workbench-research-hardening-authoring-guards.md",
       "namespace": "work",
       "kind": "story",
-      "id": "epic-workbench-research-hardening-acquisition-grounding",
-      "title": "Extend source grounding to acquisition suggestions and unavailable-source claims",
+      "id": "epic-workbench-research-hardening-authoring-guards",
+      "title": "Close the verified discipline gaps in one prose pass",
       "summary": null,
-      "updated": "2026-07-28",
+      "updated": "2026-07-29",
       "status": "active",
       "relationships": []
     },
     {
-      "path": ".work/active/epic-workbench-research-hardening-citation-anchor-stability.md",
+      "path": ".work/active/epic-workbench-research-hardening-research-owner-guard.md",
       "namespace": "work",
       "kind": "story",
-      "id": "epic-workbench-research-hardening-citation-anchor-stability",
-      "title": "Make attested-detail citation anchors stable",
+      "id": "epic-workbench-research-hardening-research-owner-guard",
+      "title": "Declare research-substrate ownership; stop before rewriting foreign schemas",
       "summary": null,
-      "updated": "2026-07-28",
-      "status": "active",
-      "relationships": []
-    },
-    {
-      "path": ".work/active/epic-workbench-research-hardening-footnote-integrity.md",
-      "namespace": "work",
-      "kind": "story",
-      "id": "epic-workbench-research-hardening-footnote-integrity",
-      "title": "Restore the no-footnote-fabrication guard",
-      "summary": null,
-      "updated": "2026-07-28",
-      "status": "active",
-      "relationships": []
-    },
-    {
-      "path": ".work/active/epic-workbench-research-hardening-substrate-test.md",
-      "namespace": "work",
-      "kind": "story",
-      "id": "epic-workbench-research-hardening-substrate-test",
-      "title": "Restore the two-part substrate test to the Workbench discipline",
-      "summary": null,
-      "updated": "2026-07-28",
-      "status": "active",
-      "relationships": []
-    },
-    {
-      "path": ".work/active/epic-workbench-research-hardening-uncertainty-change-integrity.md",
-      "namespace": "work",
-      "kind": "story",
-      "id": "epic-workbench-research-hardening-uncertainty-change-integrity",
-      "title": "Preserve uncertainty and changed conclusions without restoring marker ceremony",
-      "summary": null,
-      "updated": "2026-07-28",
+      "updated": "2026-07-29",
       "status": "active",
       "relationships": []
     },
