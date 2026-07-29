@@ -2,8 +2,8 @@
 id: okf-format-assessment-against-ard-substrate
 kind: research-brief
 summary: OKF should be treated as an interchange boundary rather than the research substrate because its permissive format does not preserve source-bound attestation and verification invariants.
-updated: 2026-07-19
-source_handles: [okf-spec]
+updated: 2026-07-29
+source_handles: [okf-spec, okf-spec-v02]
 ---
 
 # OKF v0.1 versus the research substrate — adoption assessment
