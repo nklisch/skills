@@ -6,7 +6,7 @@ tags: [plugin, skill, tooling]
 parent: epic-workbench-research-hardening
 blocked_by: []
 related_to: [epic-ard-okf-representation-convergence]
-research_refs: []
+research_refs: [.research/attestations/okf-spec-v02.md]
 mock_refs: []
 created: 2026-07-28
 updated: 2026-07-29
@@ -41,6 +41,15 @@ growing the contract.
   its number never moves and is never reassigned to a different detail. New
   details take the next unused number; insertion order in the file is
   irrelevant to meaning.
+- **Considered alternative: OKF v0.2's keyed footnotes.** OKF v0.2 attributes
+  claims through footnotes keyed to stable `sources[].id` labels, explicitly
+  rejecting positional anchors because reorder silently misattributes
+  [okf-spec-v02]{4}. Workbench keeps positional numbers made stable by this
+  contract: under append-only + never-renumber the number *is* a stable key
+  and order carries no meaning, so the reorder failure mode OKF names does not
+  apply. Numbers win on human-readable Markdown and on the existing
+  `[handle]{N}` corpus; the fork between the two plugins' anchor models is
+  declared, not hidden.
 - **Correction preserves identity.** Correcting a cited detail keeps its
   number and reconciles the correction into the attestation; per the
   change-integrity guard, the correction also reaches every downstream claim

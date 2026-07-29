@@ -15,13 +15,14 @@ updated: 2026-07-29
 
 ## Blocker
 
-Blocked on the agentic-research ARD-on-OKF profile specification (the
-`profile-spec` child of `epic-ard-okf-representation-convergence`, shipping as
-agentic-research v0.7.0). The seam's extension points — artifact-kind
+Blocked on the agentic-research ARD-on-OKF profile contract (stride 1 of
+`epic-ard-okf-representation-convergence`, re-scoped for Workbench on
+2026-07-29 and shipping as agentic-research v0.7.0), **including its OKF
+v0.2-absorption decisions**. The seam's extension points — artifact-kind
 inference, citation resolution, source location, validation, index projection —
 must be designed against the settled profile's type vocabulary and index
 fan-out discovery, not the pre-convergence four-tier shape. Clears when the
-profile spec is published; the seam is then designed once, against it.
+profile contract is published; the seam is then designed once, against it.
 
 ## Brief
 

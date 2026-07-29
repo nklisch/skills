@@ -6,7 +6,7 @@ tags: [plugin, tooling]
 parent: epic-workbench-research-hardening
 blocked_by: []
 related_to: [epic-ard-okf-representation-convergence]
-research_refs: [.research/briefs/okf-format-assessment-against-ard-substrate.md]
+research_refs: [.research/briefs/okf-format-assessment-against-ard-substrate.md, .research/attestations/okf-spec-v02.md]
 mock_refs: []
 created: 2026-07-28
 updated: 2026-07-29
@@ -51,7 +51,10 @@ Decided:
   its derived/discovery role and its owning authority (taken from the
   artifact's own frontmatter), plus a stable identity. The index never infers
   `kind: attestation`, bibliography membership, or any evidence-shaped
-  classification from path placement.
+  classification from path placement. OKF v0.2's warrant-shaped fields —
+  `verified`, derived trust tiers, `usage_count`, `status`, `stale_after`
+  [okf-spec-v02]{2}{5}{6}{7} — are read from the artifact by the consumer and
+  are never projected into the index as entry-level metadata.
 - **Machine-readable derivedness.** The index output identifies itself and
   its entries as derived discovery metadata in the JSON contract, not in
   prose alone; consumers must dereference the indexed artifact before relying
