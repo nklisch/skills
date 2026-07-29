@@ -41,7 +41,12 @@ Decided:
   classify: canonical attestations, briefs, work items, and durable docs.
   Nested or unvalidated Markdown is never indexed as evidence; whether it is
   indexed as an unclassified document or omitted is an implementation choice,
-  documented either way.
+  documented either way. In a repository whose `.research/` is owned by a
+  foreign profile (per the owner declaration), Workbench's lint cannot
+  classify those artifacts, so none of them enter the evidence domain — the
+  builder states this in its output rather than silently omitting the tree.
+  Dereferencing the owning profile's own discovery (e.g. an ARD `index.md`
+  fan-out) for navigation is the deferred projection seam, not this feature.
 - **Entries carry identity and location, never warrant.** An entry declares
   its derived/discovery role and its owning authority (taken from the
   artifact's own frontmatter), plus a stable identity. The index never infers
@@ -79,5 +84,8 @@ Open (the only remaining question):
   with an actionable migration error rather than silently changing meaning.
 - Invalid direction, self-links, duplicate resolution-critical frontmatter, and
   unvalidated supersession have regression coverage.
+- A foreign-owned `.research/` tree (per the owner declaration) is reported as
+  outside the builder's evidence domain, never silently omitted or indexed as
+  evidence.
 - Existing valid Workbench repositories rebuild deterministically, and any
   migration is explicit and tested.
