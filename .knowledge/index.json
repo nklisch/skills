@@ -1333,6 +1333,17 @@
       "relationships": []
     },
     {
+      "path": ".work/active/epic-workbench-research-hardening-citation-anchor-stability.md",
+      "namespace": "work",
+      "kind": "story",
+      "id": "epic-workbench-research-hardening-citation-anchor-stability",
+      "title": "Make attested-detail citation anchors stable",
+      "summary": null,
+      "updated": "2026-07-28",
+      "status": "active",
+      "relationships": []
+    },
+    {
       "path": ".work/active/epic-workbench-research-hardening-footnote-integrity.md",
       "namespace": "work",
       "kind": "story",

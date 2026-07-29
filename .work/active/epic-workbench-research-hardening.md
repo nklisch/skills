@@ -21,8 +21,9 @@ not a request to restore research-orchestrator's registration, dials,
 checkpoints, verification topology, or four-tier storage layout.
 
 The work instead restores four compact authoring guards that were lost when the
-discipline was compressed, then addresses two adjacent architecture risks: the
-unified knowledge index can grant evidence-shaped metadata through path
+discipline was compressed, then addresses three adjacent representation and
+architecture risks: attested-detail numbers can silently retarget citations,
+the unified knowledge index can grant evidence-shaped metadata through path
 placement, and Workbench has no explicit composition seam for repositories such
 as `SNC/games/library` where the knowledge substrate and reader are the product.
 
@@ -36,6 +37,8 @@ storage representation.
 - Workbench's concise discipline again carries the substrate test,
   no-footnote-fabrication, source-bound acquisition, and uncertainty/change
   integrity without importing operational ceremony.
+- Workbench citation anchors remain stable across insertion, correction,
+  retirement, splitting, merging, and profile-specific resolution.
 - `.knowledge/index.json` is enforceably a derived discovery projection rather
   than an alternate evidence authority or permissive knowledge store.
 - A research-substrate owner/profile seam lets Workbench support both
@@ -56,4 +59,5 @@ storage representation.
   script, or fixture tests appropriate to its surface.
 - Workbench documentation clearly separates discipline, operationalization,
   representation, and knowledge-product concerns.
-- Existing lightweight Workbench research remains valid without migration.
+- Existing lightweight Workbench research remains valid or receives an explicit,
+  deterministic migration path.
