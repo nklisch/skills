@@ -133,6 +133,10 @@ sources:
     title: "Open Knowledge Format (OKF) v0.1 Specification"
     source_url: "https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md"
     fetched: "2026-07-19"
+  - source_handle: okf-spec-v02
+    title: "Open Knowledge Format (OKF) v0.2 Specification"
+    source_url: "https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md"
+    fetched: "2026-07-29"
   - source_handle: okf-totto-problems
     title: "Google's Open Knowledge Format and the problems it deliberately doesn't solve"
     source_url: "https://wiki.totto.org/blog/2026/06/17/googles-open-knowledge-format-and-the-problems-it-deliberately-doesnt-solve/"
