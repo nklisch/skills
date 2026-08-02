@@ -33,7 +33,9 @@ files or durable no-op records unless the user requests them.
 
 Read `.work/CONVENTIONS.md`, relevant work items, project instructions,
 foundation documents, `.knowledge/index.json` when present, and affected code
-before structural decisions. If the substrate is absent or owned by another
+before structural decisions. Foundation documents generally live in root
+`docs/` for repository-wide truth, with sub-project truth in
+`<sub-project>/docs/` or `docs/<sub-project>/` following repository convention. If the substrate is absent or owned by another
 system, stop and offer `setup`; do not invoke destructive conversion without
 the user's explicit choice.
 

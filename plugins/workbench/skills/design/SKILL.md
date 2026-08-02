@@ -28,7 +28,9 @@ files or durable no-op records unless the user requests them.
 
 Read `.work/CONVENTIONS.md`, the target item when present, project instructions,
 foundation documents, relevant code and tests, and `.knowledge/index.json` when
-present. Reconcile stale item claims against the repository before designing.
+present. Foundation documents generally live in root `docs/`, with sub-project
+truth in `<sub-project>/docs/` or `docs/<sub-project>/` following repository
+convention. Reconcile stale item claims against the repository before designing.
 If `.work/` is absent or owned by another system, stop and offer `setup`; do not
 create Workbench state or convert a competing substrate implicitly.
 

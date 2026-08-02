@@ -6,7 +6,10 @@ the work item.
 
 ## Find the affected foundations
 
-Inspect the request, active item, design, final diff, and relevant entries in
+Foundation documents generally live in root `docs/` for repository-wide truth;
+a sub-project's scope-owned foundations live in `<sub-project>/docs/` or
+`docs/<sub-project>/`, following established repository convention. Inspect the
+request, active item, design, final diff, and relevant entries in
 `.knowledge/index.json`. Treat a foundation as affected when the work changes
 or settles a durable:
 
