@@ -88,7 +88,10 @@ offer only relevant handoffs:
   scope within a monorepo or larger repository.
 
 Write only the handoffs the user explicitly selects. Project setup is one
-possible result, never the assumed result.
+possible result, never the assumed result. When the exploration bootstraps a
+project, include which engineering principles to pin in `docs/PRINCIPLES.md`
+among the decisions to settle — adopting them is a setup or foundation
+handoff, not an ideation write.
 
 Place a sub-project foundation at that scope's established documentation
 location, such as `<sub-project>/docs/` or `docs/<sub-project>/`, and follow its

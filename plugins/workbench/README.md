@@ -169,8 +169,9 @@ happens to finished items, and your documentation conventions (where foundation
 documents live, how they are named, and whether contract truth lives in code or
 documents) — and records them where they belong, mostly `.work/CONVENTIONS.md`,
 where you can change them later. It also asks whether to establish or extend
-`docs/PRINCIPLES.md`, suggesting principles on top of any it derives from the
-repository. For finished items:
+`docs/PRINCIPLES.md` — recommending two core invariants (contract truth
+ownership, compatibility is earned), offering optional code-design principles
+when bootstrapping, and adding anything it derives from the repository itself. For finished items:
 
 - `summarize` keeps a compact outcome stub, which can later feed a release
   summary;

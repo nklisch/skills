@@ -67,7 +67,9 @@ autonomy: adaptive|collaborative|autonomous
 Setup always asks the user how completed items should be retained, the
 repository's documentation conventions (foundation layout, naming, and
 contract-truth ownership), and whether to establish or extend
-`docs/PRINCIPLES.md` from derived and suggested candidates; it also aligns
+`docs/PRINCIPLES.md` — from derived candidates, the core suggested invariants
+(contract truth ownership, compatibility is earned), and, when bootstrapping,
+optional code-design principle candidates; it also aligns
 repository-specific conventions, including review weight and autonomy. It may recommend
 conventions from repository evidence, including parking useful out-of-scope
 findings and behavior-focused testing, but writes no new convention without

@@ -94,15 +94,14 @@ truth lives. Derive the recommendation from existing documents when present;
 otherwise recommend the smallest set that fits the project's shape. Present
 names as examples that should fit the project, never as a fixed required list.
 
-Always ask whether to establish or extend `docs/PRINCIPLES.md`. Present
-principles derived from repository evidence first, then Workbench-suggested
-principles even when nothing was derivable. The standing suggestion is contract
-truth ownership: structure that lives in code is defined once in a
-machine-readable artifact and never duplicated in prose; documents own
-semantics, invariants, conformance rules, and rationale; a protocol consumed
-beyond the repository may warrant a standalone or generated document spec, or a
-mix — but always with one structural authority. Record only confirmed
-principles.
+Always ask whether to establish or extend `docs/PRINCIPLES.md`. Read
+[references/principle-candidates.md](references/principle-candidates.md) and
+present three tiers: principles derived from repository evidence; the two core
+invariants Workbench always recommends — contract truth ownership and
+compatibility is earned; and, when bootstrapping a project or when no
+principles document exists, the optional code-design candidates, each offered
+as its own adopt, adapt, or reject decision rather than as a checklist. Record
+only confirmed principles.
 
 Write confirmed rules to the narrowest authority:
 
