@@ -39,7 +39,11 @@ and simplest coherent implementation shape.
 ## Refactor or cleanup
 
 - Apply the black-box test: a refactor preserves observable behavior. Route
-  intended behavior change through the new-work lens with explicit requirements.
+  intended behavior change through the new-work lens with explicit
+  requirements. The one exception is a provocation-driven bold refactor whose
+  behavior deltas the human explicitly accepted during ideation — record those
+  deltas here as explicit requirements (see ideate's
+  [../../ideate/references/provocation.md](../../ideate/references/provocation.md)).
 - Describe the actual current state and the costly or unsafe property.
 - Eliminate, inline, merge, or delete before extracting new abstractions.
 - State invariants and contracts that must remain unchanged.

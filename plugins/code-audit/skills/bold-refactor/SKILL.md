@@ -146,6 +146,10 @@ doing and why.
 ## Guardrails
 
 - Commit each proposal to one lens.
+- Workbench's `ideate` skill carries an adapted cousin of this lens table
+  (`plugins/workbench/skills/ideate/references/provocation.md`) for
+  provocation inside workbench substrate flows. The framing differs
+  deliberately; edit each on its own terms rather than syncing mechanically.
 - Reject trivial extraction and speculative abstraction.
 - Respect documented project intent; do not frame deliberate patterns as problems unless the
   evidence shows the pattern is failing.

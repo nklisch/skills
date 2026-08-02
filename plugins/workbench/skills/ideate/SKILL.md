@@ -39,6 +39,12 @@ Select only useful lenses:
 - evidence gaps;
 - privacy, compliance, and data handling.
 
+For an architectural rethink, bold refactor, deep simplification, or "what
+single idea would make this much simpler?" request, read
+[references/provocation.md](references/provocation.md) and apply its
+provocation lenses, including its human-approval gate for existing systems and
+its behavior-change callout rule.
+
 Use current-source research for unstable facts, but hand substantive
 investigation to an available `research` skill.
 

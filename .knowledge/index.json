@@ -1278,6 +1278,17 @@
       "relationships": []
     },
     {
+      "path": ".work/active/feature-ideate-provocation-lenses.md",
+      "namespace": "work",
+      "kind": "feature",
+      "id": "feature-ideate-provocation-lenses",
+      "title": "Provocation lenses for workbench ideation",
+      "summary": null,
+      "updated": "2026-06-11",
+      "status": "active",
+      "relationships": []
+    },
+    {
       "path": ".work/active/feature-scan-aware-substrate.md",
       "namespace": "work",
       "kind": "feature",
@@ -1285,17 +1296,6 @@
       "title": "Scan-aware substrate (paired with the deep-code-scan skill)",
       "summary": null,
       "updated": "2026-06-13",
-      "status": "active",
-      "relationships": []
-    },
-    {
-      "path": ".work/active/feature-workbench-session-posture-hook.md",
-      "namespace": "work",
-      "kind": "feature",
-      "id": "feature-workbench-session-posture-hook",
-      "title": "Workbench session-posture hook",
-      "summary": null,
-      "updated": "2026-06-11",
       "status": "active",
       "relationships": []
     },
