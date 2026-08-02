@@ -27,6 +27,18 @@ skill, not from the project. If discovery is necessary, locate the package
 containing both Workbench's manifest and this skill, verify its identity, and
 stop rather than guessing when multiple candidates remain.
 
+## Sync an existing Workbench repository
+
+When the repository already declares `owner: workbench`, treat setup as an
+upgrade and sync pass rather than a fresh adoption. Compare the repository's
+conventions, foundations, and substrate against this plugin's current contract:
+missing `CONVENTIONS.md` fields, always-asked conventions the repository never
+settled because an older Workbench version did not ask them, missing canonical
+markers, and superseded layout. Do not re-ask choices the repository has
+already settled; ask only newly required or conflicting ones. Reconcile drift
+in place and validate as usual — a repeat run still produces no material
+change.
+
 ## Align conventions
 
 Always conduct a user-confirmed conventions alignment, including for new or
@@ -73,10 +85,31 @@ language overrides the default and that autonomy never expands scope, quality
 obligations, permissions, or safety boundaries. Existing Workbench projects
 without the field retain the backward-compatible `adaptive` default.
 
+Always ask for the repository's documentation conventions, including in a
+greenfield repository with no documents yet. Cover where durable foundation
+documents live (root `docs/` by default), how they are named — one consolidated
+`SPEC.md`, several focused documents such as `ARCHITECTURE.md` or
+`JOURNEYS.md`, or a scoped directory like `docs/spec/` — and where contract
+truth lives. Derive the recommendation from existing documents when present;
+otherwise recommend the smallest set that fits the project's shape. Present
+names as examples that should fit the project, never as a fixed required list.
+
+Always ask whether to establish or extend `docs/PRINCIPLES.md`. Present
+principles derived from repository evidence first, then Workbench-suggested
+principles even when nothing was derivable. The standing suggestion is contract
+truth ownership: structure that lives in code is defined once in a
+machine-readable artifact and never duplicated in prose; documents own
+semantics, invariants, conformance rules, and rationale; a protocol consumed
+beyond the repository may warrant a standalone or generated document spec, or a
+mix — but always with one structural authority. Record only confirmed
+principles.
+
 Write confirmed rules to the narrowest authority:
 
 - repository-wide agent invariants → `AGENTS.md`;
 - Workbench commands and lifecycle → `.work/CONVENTIONS.md`;
+- documentation layout and naming conventions → `.work/CONVENTIONS.md`
+  project guidance, or `AGENTS.md` when they must bind every agent;
 - engineering or product principles → `docs/PRINCIPLES.md`;
 - research evidence and privacy rules → `.research/CONVENTIONS.md`.
 

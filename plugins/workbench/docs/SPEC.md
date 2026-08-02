@@ -64,7 +64,10 @@ autonomy: adaptive|collaborative|autonomous
 ---
 ```
 
-Setup always asks the user how completed items should be retained and aligns
+Setup always asks the user how completed items should be retained, the
+repository's documentation conventions (foundation layout, naming, and
+contract-truth ownership), and whether to establish or extend
+`docs/PRINCIPLES.md` from derived and suggested candidates; it also aligns
 repository-specific conventions, including review weight and autonomy. It may recommend
 conventions from repository evidence, including parking useful out-of-scope
 findings and behavior-focused testing, but writes no new convention without
@@ -198,6 +201,15 @@ durable truth is settled. Implementation closure reconciles affected assertions
 against the integrated result, reporting updated foundations, or—where an update
 was reasonably expected—why existing assertions remain accurate.
 
+Foundation names follow the repository's confirmed documentation conventions;
+`VISION.md`, `ARCHITECTURE.md`, `PRINCIPLES.md`, `SPEC.md`, `JOURNEYS.md`, and
+`WORKFLOWS.md` are examples, not a required set. A contract, schema, or
+protocol has one structural authority: code owns structure for
+repository-internal contracts while documents hold semantics, invariants,
+conformance rules, and rationale; a contract consumed beyond the repository may
+warrant a standalone or generated document spec, or a mix. No structural
+definition is maintained by hand in two places.
+
 Affected foundations are discovered from requirements, design, the final diff,
 and the knowledge index. Reconciliation replaces stale assertions in place,
 removes false claims, follows root or sub-project ownership, and links rather
@@ -292,6 +304,11 @@ Setup removes repository-scoped competing workflow plugins after conversion and
 reports user- or machine-scoped competing installs for the user to uninstall.
 It creates no migration archives, compatibility copies, `.bak` files, or legacy
 folders. A second run produces no material change.
+
+For a repository already owned by Workbench, setup runs as an upgrade and sync:
+it detects drift from the current contract — missing conventions fields,
+always-asked conventions an older version never settled, superseded layout —
+reconciles in place without re-asking settled choices, and remains idempotent.
 
 ## Session posture hook
 

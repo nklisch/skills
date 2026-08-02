@@ -153,7 +153,9 @@ Read
 [../work/references/foundation-truth.md](../work/references/foundation-truth.md).
 Update root or sub-project foundation assertions only when the design settles
 durable current or intended truth. Reconcile them in place and rebuild the
-knowledge index when required by that reference.
+knowledge index when required by that reference. A design that settles a
+contract, schema, or protocol names its intended structural authority —
+code-owned, document-owned, or a generated mix — following that reference.
 
 ## Review the design
 
@@ -170,7 +172,8 @@ do not lead with a suspected verdict.
 
 Require the reviewer to check whether proposed foundation changes accurately
 represent ownership, boundaries, current truth, and explicitly intended truth,
-and whether any affected foundation was missed.
+whether any affected foundation was missed, and that no proposed document
+duplicates structural truth that code owns.
 
 Adjudicate findings rather than accepting them blindly. Revise confirmed
 material problems. Explain rejected material proposals and the

@@ -46,6 +46,14 @@ AGENTS.md
 - `.knowledge/index.json` is generated discovery metadata with no independent
   authority.
 
+Foundation names follow the repository's confirmed documentation conventions.
+Common shapes are `VISION.md` for product intent, `ARCHITECTURE.md` for settled
+system structure, `PRINCIPLES.md` for binding principles, `SPEC.md` for a
+normative contract, and `JOURNEYS.md` or `WORKFLOWS.md` for supported user
+journeys and operating flows. These are examples, not a required set — from one
+consolidated document to several focused ones, the names should fit the
+project.
+
 The research capability ships with Workbench. Setup may omit `.research/` and
 `.knowledge/` until the project has research worth retaining.
 

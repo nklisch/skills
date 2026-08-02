@@ -21,6 +21,31 @@ or settles a durable:
 Do not create or update foundations for local implementation details that do
 not change durable project truth.
 
+## Decide where truth lives
+
+Before writing contract, schema, or protocol truth into a foundation, choose
+one structural authority based on where the consumers are:
+
+- **Consumers inside the repository.** Code owns structure: one
+  machine-readable schema or type artifact holds field-level definitions, and
+  no document re-states them. The document owns what code cannot express —
+  semantics, invariants, conformance rules, versioning policy, and rationale.
+  When a document pre-dates its code, label it as intended truth holding both
+  until the code lands, then slim it rather than maintaining two definitions.
+- **Consumers beyond the repository.** A published protocol, plugin API, or
+  storage format that external implementations consume may warrant a standalone
+  normative document, a generated specification, or a mix. Keep one structural
+  authority: generate the document's structural layer from the machine-readable
+  artifact or the artifact from the document — never maintain both by hand.
+
+Apply "link rather than duplicate" to code as well: reference the owning code
+artifact by path instead of re-typing what it defines.
+
+Foundation names follow the repository's confirmed documentation conventions.
+`VISION.md`, `ARCHITECTURE.md`, `PRINCIPLES.md`, `SPEC.md`, `JOURNEYS.md`, and
+`WORKFLOWS.md` are common examples, not a required set — the name should fit
+the project.
+
 ## Reconcile in place
 
 For every affected assertion:

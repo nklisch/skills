@@ -164,9 +164,13 @@ material discoverable, but it is not evidence or project truth on its own.
 Workbench validators check structure, relationships, citations, and generated
 state whenever agents create or reshape the corresponding artifacts.
 
-`setup` asks you for three defaults — autonomy, review weight, and what happens
-to finished items — and records them in `.work/CONVENTIONS.md`, where you can
-change them later. For finished items:
+`setup` asks you for the repository's defaults — autonomy, review weight, what
+happens to finished items, and your documentation conventions (where foundation
+documents live, how they are named, and whether contract truth lives in code or
+documents) — and records them where they belong, mostly `.work/CONVENTIONS.md`,
+where you can change them later. It also asks whether to establish or extend
+`docs/PRINCIPLES.md`, suggesting principles on top of any it derives from the
+repository. For finished items:
 
 - `summarize` keeps a compact outcome stub, which can later feed a release
   summary;
@@ -455,6 +459,12 @@ files it has migrated. It does not leave `.bak` copies or a legacy folder.
 Anything clean and tracked is recoverable from Git. Before removing anything
 modified, untracked, ignored, or otherwise unrecoverable, it asks you to create
 a pre-state commit or shows you the exact removal list for confirmation.
+
+Re-running `setup` on a repository that already uses Workbench is an upgrade
+and sync pass: it detects drift from the current plugin version — conventions
+questions a newer version asks that the repository never settled, missing
+fields, superseded layout — and reconciles it without re-asking choices you
+already made.
 
 Workbench and `agile-workflow` use mutually exclusive `.work/` schemas. Use
 `setup` to convert rather than running both systems in the same project.
