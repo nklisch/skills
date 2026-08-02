@@ -1,0 +1,17 @@
+{
+  "description": "workbench hook: SessionStart posture reminder. Fires only in Workbench-owned repositories (owner: workbench in .work/CONVENTIONS.md); fully static content, no prompt gating or session state.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/scripts/session-context.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

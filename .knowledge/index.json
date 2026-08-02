@@ -1289,6 +1289,17 @@
       "relationships": []
     },
     {
+      "path": ".work/active/feature-workbench-session-posture-hook.md",
+      "namespace": "work",
+      "kind": "feature",
+      "id": "feature-workbench-session-posture-hook",
+      "title": "Workbench session-posture hook",
+      "summary": null,
+      "updated": "2026-06-11",
+      "status": "active",
+      "relationships": []
+    },
+    {
       "path": ".work/active/gate-docs-substrate-binary-generalize.md",
       "namespace": "work",
       "kind": "story",

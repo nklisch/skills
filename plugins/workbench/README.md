@@ -409,6 +409,16 @@ You can invoke a skill explicitly, but normal requests should not require you to
 know which one is appropriate. The agent routes based on your intent and the
 repository state.
 
+## Session posture hook
+
+The plugin ships one lightweight `SessionStart` hook. In a Workbench-owned
+repository it injects a short, static reminder of high-level posture — read
+conventions and foundations first, keep scope narrow, orchestrate multi-unit
+boundaries, park out-of-scope findings, reconcile and close before done. It
+exists for ownership discoverability and post-compaction salience; the skills
+remain the contract, and a host that does not run hooks loses nothing. Codex
+requires trusting the plugin's hook definition before it fires.
+
 ## Starting and adopting
 
 Install from the `nklisch/skills` marketplace:

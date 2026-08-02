@@ -8,6 +8,7 @@
   "repository": "https://github.com/nklisch/skills",
   "license": "MIT",
   "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Workbench",
     "shortDescription": "Design, deliver, review, and research",

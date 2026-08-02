@@ -293,6 +293,22 @@ reports user- or machine-scoped competing installs for the user to uninstall.
 It creates no migration archives, compatibility copies, `.bak` files, or legacy
 folders. A second run produces no material change.
 
+## Session posture hook
+
+The plugin ships a single `SessionStart` hook (`hooks/hooks.json` +
+`hooks/scripts/session-context.py`). When an upward-found `.work/CONVENTIONS.md`
+declares `owner: workbench`, it emits a short, fully static posture reminder as
+additional context: read conventions and foundations first, one item per
+coherent outcome, orchestrate multi-unit boundaries while executing small
+coherent work inline, park out-of-scope findings, and reconcile and close
+before declaring done.
+
+The hook exists for ownership discoverability and post-compaction salience. It
+parses nothing beyond the owner check, keeps no session state, and has no
+escape-hatch flag — adopting Workbench is the opt-in. Skills remain the
+contract; a host that does not run or trust hooks degrades to absent, never to
+broken.
+
 ## Deterministic validation
 
 `validate-workbench.py` checks ownership, canonical directories and clone-stable
