@@ -1278,17 +1278,6 @@
       "relationships": []
     },
     {
-      "path": ".work/active/feature-ideate-provocation-lenses.md",
-      "namespace": "work",
-      "kind": "feature",
-      "id": "feature-ideate-provocation-lenses",
-      "title": "Provocation lenses for workbench ideation",
-      "summary": null,
-      "updated": "2026-06-11",
-      "status": "active",
-      "relationships": []
-    },
-    {
       "path": ".work/active/feature-scan-aware-substrate.md",
       "namespace": "work",
       "kind": "feature",

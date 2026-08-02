@@ -47,6 +47,12 @@ they read the evidence?
 
 ## Conceptual Lenses
 
+The six lenses below are a starting set, not a closed list. Devise your own when
+the code suggests it — a lens drawn from experience, including one not listed
+here, is exactly as valid as these. What matters is the *spirit* of provocation:
+dramatic simplification through reconception, not adherence to the enumerated
+lenses.
+
 Commit each proposal to one primary lens.
 
 | Lens | Core question |
@@ -89,6 +95,20 @@ Each proposal includes:
 - **Impact**: what code disappears, unifies, or gets simpler.
 - **Cost and risk**: migration hazards and what could break.
 - **Implementation slices**: an ordered sketch of small enough steps to try later.
+
+**Skeptical review.** Before the checkpoint, hand the proposals to a
+fresh-context reviewer sub-agent that shares none of the generation history —
+preferably a different model class than the one that generated them, or a
+starkly skeptical persona when only one class is available. The reviewer is
+the critical engineer standing in the way of unnecessary rewrites: it defaults
+to no, and the proposal carries the burden of proof. It checks that each
+proposal is real (the cited evidence exists and supports the thesis),
+feasible (it could actually land, with what breaks and the hardest part
+named), and a net simplification (it removes more complexity than it adds
+rather than moving it around). Verdicts — kill, narrow, or pass, with
+reasons — attach to each proposal and go into the checkpoint with them, so
+the user sees the ambition and the critique together. Generate without
+caution; let the reviewer do the filtering.
 
 Use a structured question tool when available to ask which proposals resonate, which to drop, and
 what is missing.

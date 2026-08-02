@@ -77,6 +77,11 @@ reconceptions into a single epic.
 
 ## Conceptual lenses
 
+These six are a starting set, not a closed list. If the code suggests a lens
+that isn't on this page — one your own experience names better than this table
+does — use it. The spirit is the point: dramatic simplification through
+reconception, not adherence to six enumerated boxes.
+
 Commit each suggestion to one lens. Don't hedge. Don't blend. Pick one and follow
 it to its logical conclusion.
 
@@ -124,6 +129,19 @@ Each suggestion:
 
 Vary the lenses across suggestions. If all 5 use Elimination, you're not
 thinking broadly enough.
+
+**Checkpoint pre-pass: the skeptic.** Before you show the user anything, hand
+your suggestions to a fresh-context reviewer sub-agent that shares none of your
+generation history — a different model class than yours when one is available,
+a starkly skeptical persona when it isn't. Its job is to be the critical
+engineer standing between you and an unnecessary rewrite. It defaults to no.
+For each suggestion it asks: Is it *real* — does the cited code actually exist
+and support the thesis? Could it *land* — is what breaks and the hardest part
+named and survivable? Does it *delete more complexity than it creates* — or
+does it just move the mess behind a new abstraction? Verdicts are kill /
+narrow / pass with reasons, and they ride into the checkpoint attached to each
+suggestion. You reach for the stars; the skeptic decides what's worth the
+user's time.
 
 **Checkpoint (structured question tool):** Present all suggestions. Ask which resonate,
 which to drop, what's missing. Expect pushback — that's the point.
@@ -242,3 +260,6 @@ the cascade manually.
   during normal conversation — it's too aggressive a verb for autonomous reach.
 - "Do nothing" is a valid output. If the exploration genuinely concludes the code
   is fine, say so confidently and don't manufacture an epic.
+- No suggestion reaches the user without the fresh-context, cross-model
+  skeptical review from Phase 2. Killed suggestions may still be advocated,
+  but only with the verdict attached.

@@ -2,38 +2,46 @@
 
 Use these lenses when the user asks for an architectural rethink, a bold
 refactor, deep simplification, or "what single idea would make this code much
-simpler?" They govern how to *find* the idea — a different axis from the
-delivery-shape lenses in design. This reference adapts the code-audit
-`bold-refactor` skill's lens table to ideation; the framing differs by design,
-so edit each cousin on its own terms rather than syncing them mechanically.
+simpler?" They govern how to *find* a reconception — a different axis from the
+delivery-shape lenses in `design`.
 
-## The human-approval gate
+This reference is a cousin of the code-audit `bold-refactor` skill's lens
+table. The table is shared; the framing is not. Edit each on its own terms
+rather than syncing them mechanically.
 
-Provocation applied to an **existing, established system** always goes through
-deliberate human discussion and approval before becoming work. Never
-autonomously scope a bold refactor of behavior-bearing existing code, whatever
-the current autonomy posture: surface proposals, stress-test them together,
-and let the user choose which — if any — become items.
+## Discuss established systems before creating work
 
-Exception: **net-new simplification** — reshaping new, unshipped, or
-not-yet-established code — carries no such gate and follows the normal
-autonomy rules.
+Provocation applied to an established system requires deliberate human
+discussion before it becomes work, regardless of the repository's autonomy
+posture. Do not autonomously scope a bold refactor of established
+behavior-bearing code. Surface proposals, stress-test them together, and let
+the human choose which — if any — become items.
 
-## Behavior change is allowed, never hidden
+The exception is **net-new simplification**: reshaping new, unshipped, or
+not-yet-established code follows the normal autonomy rules and carries no
+extra gate.
 
-A provocation proposal may change observable behavior where the simplification
-or unification warrants it. Two rules follow:
+## Name behavior changes instead of ruling them out
 
-1. Name every intended behavior delta explicitly during ideation and carry it
-   into the design record, so the human adjudicates with full knowledge.
-2. Behavior change alone is never grounds to drop, dilute, or apologize for a
-   proposal. The question is whether the simplification earns the delta.
+A proposal may change observable behavior when the simplification warrants
+it. Two rules apply:
 
-This is the one sanctioned exception to design's black-box rule that a
-refactor preserves observable behavior — and only after the human has
+1. Name every intended behavior delta during ideation, and carry each one
+   into the design record so the human adjudicates with full knowledge.
+2. Behavior change alone is never a reason to drop, dilute, or apologize for
+   a proposal. The question is whether the simplification earns the delta.
+
+This is the one sanctioned exception to `design`'s black-box rule that a
+refactor preserves observable behavior. It applies only after the human has
 accepted the named deltas.
 
 ## The lenses
+
+The six lenses below are a **starting set**, not a closed list. Devise your
+own when the code suggests it — a lens drawn from experience, including one
+not listed here, is exactly as valid as these. What matters is the *spirit*
+of provocation: dramatic simplification through reconception, not adherence
+to the enumerated lenses.
 
 Commit each proposal to one primary lens.
 
@@ -50,8 +58,8 @@ Commit each proposal to one primary lens.
 
 Every proposal must pass this test: would it surprise a senior engineer, then
 convince them after they read the evidence? One sharp proposal beats five
-mediocre ones, and "do nothing" is a legitimate conclusion when the code does
-not justify a bold change.
+mediocre ones. "Do nothing" is a legitimate conclusion when the code does not
+justify a bold change.
 
 Reject suggestions that amount to:
 
@@ -77,13 +85,37 @@ For each proposal that survives, capture:
 - **Cost and risk** — migration hazards and what could break.
 - **Riskiest assumption** — what to validate first.
 
+## Challenge proposals with a skeptical reviewer
+
+Before proposals reach the human, hand them to a fresh-context reviewer — a
+sub-agent that shares none of the generation history — preferring a different
+model class than the one that generated them. When only one model class is
+available, assign a starkly skeptical persona instead.
+
+The division of labor is deliberate: the generator reaches for the stars; the
+reviewer is the critical engineer standing in the way of unnecessary rewrites.
+The reviewer defaults to no, and the proposal carries the burden of proof. It
+checks that each proposal is:
+
+- **Real** — the cited evidence exists and actually supports the thesis; no
+  imagined patterns.
+- **Feasible** — the change could actually land, with what breaks and the
+  hardest part named.
+- **Net simplification** — it removes more complexity than it adds, rather
+  than moving complexity around or hiding it behind new abstraction.
+
+Verdicts are kill, narrow, or pass, each with reasons, and they travel with
+the proposals into the human discussion — the human adjudicates with the
+ambition and the critique both visible. A killed proposal may still be
+advocated, but only with its verdict attached.
+
 ## Outcomes are substrate, not reports
 
-Provocation inside workbench ends in the normal ideate handoffs the user
+Provocation inside workbench ends in the normal `ideate` handoffs the user
 explicitly selects: an activated item (with behavior deltas in its body), a
 parked idea, or commissioned research. Do not write a report artifact.
 
 When the user instead wants a full report-driven sweep outside workbench
 tracking and the code-audit `bold-refactor` skill is available, say so and
-defer to it — that skill's standalone report is the right artifact for
+defer to it. That skill's standalone report is the right artifact for
 non-substrate contexts.
