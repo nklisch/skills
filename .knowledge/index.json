@@ -1344,17 +1344,6 @@
       "relationships": []
     },
     {
-      "path": ".work/active/epic-workbench-research-hardening-authoring-guards.md",
-      "namespace": "work",
-      "kind": "story",
-      "id": "epic-workbench-research-hardening-authoring-guards",
-      "title": "Close the verified discipline gaps in one prose pass",
-      "summary": null,
-      "updated": "2026-07-29",
-      "status": "active",
-      "relationships": []
-    },
-    {
       "path": ".work/active/epic-workbench-research-hardening-research-owner-guard.md",
       "namespace": "work",
       "kind": "story",
