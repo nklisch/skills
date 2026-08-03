@@ -33,7 +33,11 @@ section it descends from.
    grounded in a fetched source that identifies it, not in model memory.
    "Unavailable" claims distinguish content absence from shallow or transient
    access failure and require proportionate alternative access attempts first.
-   Material acquired locally but not yet attested is not citable from memory —
+   This complements the discipline's `source_url` rule (omit and explain the
+   access surface when no public reference exists): that rule covers the
+   attestation field; this guard covers what the agent *claims* about
+   availability. Material acquired locally but not yet attested is not citable
+   from memory —
    it is read and attested first. This is an authoring boundary, not a request
    to restore ARD's acquisition queue, offgas artifacts, or refresh scanner.
 3. **Change integrity.** Correcting an artifact reaches the downstream claim

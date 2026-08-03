@@ -69,6 +69,9 @@ growing the contract.
   across a diff, reuse, and unmarked retirement are lintable. Semantic
   retargeting that keeps a plausible detail is not statically detectable; the
   guard there is the authoring rule plus diff review, stated honestly as such.
+  (Upstream signal: main v0.4.7 slimmed the research lint — `source_url`
+  checks became judgment rules — so this contract should prefer the few
+  mechanical checks that prove retargeting over broad format policing.)
 
 ## Canonical vs convention-flexible (decided 2026-07-29)
 

@@ -68,13 +68,16 @@ Decided:
 
 Open (the only remaining question):
 
-- **Relationship-edge semantics.** Source/target constraints and direction
-  for `supports`, `contradicts`, `informs`, and `supersedes`; rejection of
-  self-links and authority-reversing edges (a brief may not `supersede` the
-  attestation it derives from); where path-fallback identity remains
-  acceptable versus requiring an explicit stable id. Keep the rule set
-  minimal — this is edge hygiene for a discovery projection, not a typed-edge
-  ontology (a typed-edge research program is out of scope here).
+- **Relationship-edge semantics.** Main (v0.5.0) fixed the baseline: brief
+  frontmatter `relationships` written as `<type>:<target>` or a map, the four
+  types `supports`/`contradicts`/`informs`/`supersedes`, target a
+  repository-relative path of an indexed file. What remains open is the
+  hygiene layer above that baseline: source/target direction constraints,
+  rejection of self-links and authority-reversing edges (a brief may not
+  `supersede` the attestation it derives from), and where path-fallback
+  identity remains acceptable versus requiring an explicit stable id. Keep
+  the rule set minimal — edge hygiene for a discovery projection, not a
+  typed-edge ontology.
 
 ## Acceptance
 

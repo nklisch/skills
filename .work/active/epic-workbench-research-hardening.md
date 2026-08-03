@@ -32,7 +32,14 @@ agentic-research representation decision. This epic is Workbench-specific and
 does not decide whether ARD itself adopts, exports, or rejects an OKF-shaped
 storage representation.
 
-## Gap analysis (verified 2026-07-29)
+## Gap analysis (verified 2026-07-29, re-verified 2026-08-03)
+
+Re-verified after main v0.4.7–v0.6.1: the gaps below hold. One adjacency —
+main now relaxes the attestation `source_url` field (omit it and explain the
+access surface when no public reference exists); that covers the field, not
+the claims side of gap 2. Main also formalized brief `relationships`
+frontmatter (tracked in `knowledge-index-authority`) and slimmed the research
+lint toward judgment rules (tracked in `citation-anchor-stability`).
 
 Scope amended after an adversarial review diffed each "lost guard" claim
 against `plugins/workbench/skills/research/references/discipline.md` at
@@ -45,7 +52,8 @@ against `plugins/workbench/skills/research/references/discipline.md` at
 - **Source-bound acquisition — genuinely absent.** Nothing governs remembered
   acquisition suggestions, "source unavailable" claims after a shallow or
   transient access failure, or acquired-but-unattested material cited from
-  memory.
+  memory. (Adjacent: main's relaxed `source_url` rule — omit and explain the
+  access surface — covers the attestation field, not these claims.)
 - **Change integrity — genuinely absent.** Nothing requires a correction to
   reach the downstream claim it corrects, or a material reversal to preserve
   the prior position's lineage.
