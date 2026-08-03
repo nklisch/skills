@@ -12,7 +12,18 @@ other bibliographic fact.
 
 If a fetched source attributes a claim to an unfetched source, state that
 relationship explicitly and cite the fetched source. Do not present the
-unfetched source as independently verified.
+unfetched source as independently verified. Cite-through is sufficient when
+the fetched source supplies no fuller citation; visible citation asymmetry is
+the honest result, not a formatting defect.
+
+## Source-bound acquisition
+
+Recommend a source for acquisition only when a fetched source identifies it,
+not from memory. When a fetch fails, say what was actually tried: distinguish
+content absence from a shallow or transient access failure, and make
+proportionate alternative attempts before calling a source unavailable.
+Material acquired locally but not yet attested is not citable from memory;
+read and attest it first.
 
 ## Attest before synthesis
 
@@ -63,7 +74,12 @@ repository-relative path of an indexed file. Write a relationship as
 ## Separate source and composition
 
 An unmarked cited statement should be directly supported by its attestation.
-Label cross-source or beyond-source composition as inference. Do not write
+Label cross-source or beyond-source composition as inference. When plain
+`inference` would misstate a claim — the question is unresolved, sources
+actively contest it, or engagement with the source was thinner than the claim
+implies — mark it as uncertain or contested and name the reason in prose.
+Directly attested claims stay unmarked; do not annotate for annotation's
+sake. Do not write
 precise effort estimates, comparative superlatives, or named-feature claims
 without fetched support.
 
@@ -78,11 +94,28 @@ When sources differ, state their positions side by side and classify the
 relationship as contradiction, tension, qualification, or incommensurability.
 Do not smooth disagreement into a blended conclusion.
 
+## The substrate test
+
+Every committed research artifact — attestation or brief — must be usable by
+a reader without this project's hidden context, and must read as engagement
+with its subject, not as narration of the agent task or authoring history.
+Move leaked project framing downstream; remove leaked task instructions and
+session narration. A brief may name its explicit decision boundary; that is
+reusable research context, not hidden task context.
+
 ## Preserve authority boundaries
 
 Research informs work. Work items, project plans, prior syntheses, and framework
 rules are analytical lenses, not source attestations. Never rewrite an
 attestation to support a downstream project decision.
+
+## Change integrity
+
+A correction is not complete until it reaches the claims that relied on the
+corrected material: reconcile corrections into the artifact and its downstream
+citations rather than leaving them in conversation or review notes. When a
+conclusion materially changes, preserve and link the prior position — a dated
+note or a `supersedes` relationship — instead of silently rewriting history.
 
 ## Protect sensitive data
 
