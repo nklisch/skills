@@ -19,6 +19,16 @@ plans, research, generated indexes, foundation documents, CI, package scripts,
 release practices, and repeated repository behavior. Classify unknown systems
 by meaning instead of requiring a named adapter.
 
+Classify any `.research/` substrate by owner. An `owner: workbench`
+declaration (or the canonical two-tier layout) is Workbench-owned; a
+declaration naming another research system (for example
+`owner: agentic-research`) or a foreign tier layout is foreign-owned;
+artifacts with no discernible conventions are unknown. Report foreign or
+unknown research substrates separately from competing `.work` owners, and
+require explicit user approval before any representation change to them —
+never silently initialize a second schema alongside a foreign tree or flatten
+it.
+
 If another agent is actively editing an overlapping substrate, stop and
 coordinate. Preserve unrelated dirty-worktree changes.
 

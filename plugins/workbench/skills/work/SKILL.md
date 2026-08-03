@@ -72,7 +72,9 @@ Load references only as needed:
 When substantive external investigation is necessary, use an available
 `research` skill. If none is available, explain the degraded mode and limit
 current-source lookup to conversational support. Do not create an ungrounded
-project note.
+project note. If `.research/CONVENTIONS.md` declares another research system
+as owner, the research skill stops rather than writing; surface that stop
+instead of working around it.
 
 ## Resolve the requested boundary
 

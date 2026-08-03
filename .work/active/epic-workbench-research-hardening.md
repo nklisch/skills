@@ -9,7 +9,7 @@ related_to: []
 research_refs: [.research/briefs/okf-format-assessment-against-ard-substrate.md]
 mock_refs: []
 created: 2026-07-28
-updated: 2026-07-29
+updated: 2026-08-03
 ---
 # Preserve research discipline while keeping Workbench lightweight
 
@@ -90,13 +90,13 @@ and the deferred profile seam.
 
 - `epic-workbench-research-hardening-authoring-guards` (story) — the four
   verified prose guards plus the one-sentence cite-through clarification, in
-  one pass over `references/discipline.md`.
+  one pass over `references/discipline.md`. **Landed 2026-08-03.**
 - `epic-workbench-research-hardening-citation-anchor-stability` (feature) —
   the pre-decided append-only anchor contract plus lint enforcement.
 - `epic-workbench-research-hardening-knowledge-index-authority` (feature) —
   the pinned validated-only indexing invariant; edge semantics remain open.
 - `epic-workbench-research-hardening-research-owner-guard` (story) — owner
-  declaration + stop/delegate rule; lands now.
+  declaration + stop/delegate rule; lands now. **Landed 2026-08-03.**
 - `epic-workbench-research-hardening-knowledge-product-profile` (feature,
   blocked) — the extension-point seam; blocked on the agentic-research
   ARD-on-OKF profile specification.

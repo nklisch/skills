@@ -1273,7 +1273,7 @@
       "id": "epic-workbench-research-hardening",
       "title": "Preserve research discipline while keeping Workbench lightweight",
       "summary": null,
-      "updated": "2026-07-29",
+      "updated": "2026-08-03",
       "status": "active",
       "relationships": []
     },
@@ -1340,17 +1340,6 @@
       "title": "Scan-aware substrate (paired with the deep-code-scan skill)",
       "summary": null,
       "updated": "2026-06-13",
-      "status": "active",
-      "relationships": []
-    },
-    {
-      "path": ".work/active/epic-workbench-research-hardening-research-owner-guard.md",
-      "namespace": "work",
-      "kind": "story",
-      "id": "epic-workbench-research-hardening-research-owner-guard",
-      "title": "Declare research-substrate ownership; stop before rewriting foreign schemas",
-      "summary": null,
-      "updated": "2026-07-29",
       "status": "active",
       "relationships": []
     },

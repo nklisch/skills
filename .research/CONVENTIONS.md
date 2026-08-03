@@ -1,5 +1,7 @@
 # .research/ Conventions
 
+owner: workbench
+
 Working contract for the research substrate: externally sourced evidence and
 grounded synthesis that informs work, never the reverse. Aligned with
 `.work/CONVENTIONS.md` and `AGENTS.md`.
