@@ -58,10 +58,21 @@ Prefer current primary sources for load-bearing claims. When consequences or
 uncertainty are high, corroborate those claims with an independent source or
 state why corroboration was unavailable in the research brief.
 
-When the engagement warrants a committed brief and
-`.research/CONVENTIONS.md` is absent, initialize
+When the engagement warrants a committed brief, check substrate ownership
+first. `.research/CONVENTIONS.md` carries a one-line owner declaration:
+`owner: workbench`, a declaration naming another research system (for example
+`owner: agentic-research`), or absent. Workbench-owned, or absent with an
+empty or new substrate: proceed. Foreign-owned, or an existing `.research/`
+with artifacts and no Workbench conventions: stop — surface the owning
+system's skill or validator when available, otherwise report the conflict and
+ask. Never initialize a second schema alongside an existing substrate, and
+never rewrite its tree.
+
+When `.research/CONVENTIONS.md` is absent and the substrate is new or empty,
+initialize
 `.research/attestations/.gitkeep` and `.research/briefs/.gitkeep`. Write concise
-conventions for grounding, citation syntax, authority, and confirmed privacy
+conventions beginning with the `owner: workbench` declaration, covering
+grounding, citation syntax, authority, and confirmed privacy
 requirements. Keep both `.gitkeep` files so empty tiers survive a fresh clone.
 When a Workbench substrate exists, align these conventions with
 `.work/CONVENTIONS.md` and `AGENTS.md`. Do not overwrite an existing research
