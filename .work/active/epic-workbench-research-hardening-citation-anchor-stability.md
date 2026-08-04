@@ -62,9 +62,9 @@ growing the contract.
   successors) and appends new numbers; a merge appends the merged detail and
   tombstones the originals. No renumbering cascade, ever.
 - **One resolver declaration, not a registry.** The research-substrate owner
-  declaration (see the owner-guard story) names the `[handle]{N}` resolver in
-  one line — Workbench attested-detail semantics — so the same wire syntax is
-  never read with ARD bibliography-entry semantics by mistake.
+  declaration (see the owner-guard story) names the detail addressing scheme
+  in one line — positional or keyed attested-detail semantics — so the wire
+  syntax is never read with ARD bibliography-entry semantics by mistake.
 - **Static lint enforces what it can.** Uniqueness, existence, renumbering
   across a diff, reuse, and unmarked retirement are lintable. Semantic
   retargeting that keeps a plausible detail is not statically detectable; the
@@ -81,10 +81,25 @@ ARD's bibliography-entry model is legacy/foreign — handled by the owner
 declaration on existing ARD substrates, never adopted as a Workbench
 convention.
 
+Amended 2026-08-03: the single `[handle]{N}` wire form became a two-type
+grammar after a first-principles review of citation granularity (see the
+first invariant). The amendment is additive — existing citations keep their
+meaning and no Workbench substrate converts. Legacy ARD substrates, when
+deliberately converted, map bibliography-entry `{N}` anchors to their entry's
+handle — a lookup, not a rewrite, since entry and attestation describe the
+same source.
+
 Canonical invariants (every Workbench research substrate, not overridable):
 
-- **Wire form** `[handle]{N}` in briefs; the handle is the attestation slug
-  (filename stem).
+- **Two citation types, one anchor store.** A *detail reference*
+  `[handle]{N}` cites attested detail N within the attestation; a
+  *bibliographic reference* `[handle]` cites the attestation as a source
+  record. The handle is the attestation slug (filename stem). The shape
+  carries the granularity at the point of use — no declaration is needed to
+  tell the types apart. An unmarked claim of fact carries a detail reference;
+  bibliographic references serve context, framing, and claims about the
+  source itself. This is additive: `[handle]{N}` keeps its current meaning
+  everywhere it already appears, and no existing substrate converts.
 - **Anchors live only inside attestations** (`## Attested details`). Nothing
   else is an anchor of record — not `bibliography.yaml`, not the knowledge
   index, not any authored bibliography. Citation meaning never lives in
@@ -93,9 +108,9 @@ Canonical invariants (every Workbench research substrate, not overridable):
   never reuse, tombstones, splits/merges append).
 - **Attest-before-cite**: a detail is attested before it is cited (the
   grounding floor, unchanged).
-- **Resolver declaration**: `.research/CONVENTIONS.md` names the
-  `[handle]{N}` resolver in one line, so the shared wire syntax never hides
-  which semantics a project uses.
+- **Resolver declaration**: `.research/CONVENTIONS.md` names the detail
+  addressing scheme in one line (positional numbers or keyed labels), so the
+  wire syntax never hides which addressing a project uses.
 
 Convention-flexible (per project, declared in `.research/CONVENTIONS.md`):
 
@@ -109,6 +124,12 @@ Convention-flexible (per project, declared in `.research/CONVENTIONS.md`):
   citation meaning.
 - **Tombstone marker syntax** and any additional generated projections
   (per-directory `index.md` for a reading surface, and similar).
+- **Multi-piece addressing.** A multi-piece source (a book, a standard with
+  sections) is attested per piece under its own handle, with the piece
+  locator as its `source_url`; the generated bibliography groups the pieces.
+  There is no compound citation syntax — `[piece-handle]{N}` is an ordinary
+  detail reference. (This replaces the compound-handle pieces model
+  considered in the retired profile design.)
 
 Explicitly not flexible:
 
@@ -132,6 +153,9 @@ Explicitly not flexible:
   declaration and enforces the declared anchor scheme.
 - Lint resolves citations only against attestations; no bibliography —
   generated or authored — is ever consulted for citation meaning.
+- Lint recognizes bare `[handle]` bibliographic references, verifies the
+  attestation exists, and flags a load-bearing claim that carries only a
+  bibliographic reference (the granularity-honesty check).
 - Existing Workbench research receives a deterministic validation or migration
   path if lint adoption surfaces currently ambiguous anchors.
 - The discipline, conventions, linter tests, and owner declaration describe
