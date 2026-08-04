@@ -110,7 +110,9 @@ Canonical invariants (every Workbench research substrate, not overridable):
   grounding floor, unchanged).
 - **Resolver declaration**: `.research/CONVENTIONS.md` names the detail
   addressing scheme in one line (positional numbers or keyed labels), so the
-  wire syntax never hides which addressing a project uses.
+  wire syntax never hides which addressing a project uses. This repo dogfoods
+  the declaration keys (`owner`, `detail_addressing`, `bibliography`); the
+  research skill's init template and lint adoption land with this feature.
 
 Convention-flexible (per project, declared in `.research/CONVENTIONS.md`):
 
