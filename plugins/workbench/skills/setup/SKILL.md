@@ -27,7 +27,9 @@ artifacts with no discernible conventions are unknown. Report foreign or
 unknown research substrates separately from competing `.work` owners, and
 require explicit user approval before any representation change to them —
 never silently initialize a second schema alongside a foreign tree or flatten
-it.
+it. To convert a legacy `agentic-research` substrate deliberately, read
+[references/converting-ard-substrates.md](references/converting-ard-substrates.md)
+completely before writing.
 
 If another agent is actively editing an overlapping substrate, stop and
 coordinate. Preserve unrelated dirty-worktree changes.

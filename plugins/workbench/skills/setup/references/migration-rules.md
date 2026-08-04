@@ -24,7 +24,11 @@ Treat these only as discovery hints; inspect actual content before mapping:
 - GSD: `.planning/`, phase plans, state and progress files;
 - OpenSpec: `openspec/changes`, proposals, specs, and archived changes;
 - generic agent plans: `.claude/plans`, `.codex`, task files, TODO ledgers,
-  roadmaps, resume state, and session summaries.
+  roadmaps, resume state, and session summaries;
+- agentic-research (ARD): a `.research/` four-tier layout (`reference/`,
+  `attestation/`, `precis/`, `analysis/`), per-corpus `BIBLIOGRAPHY.md`,
+  `[handle]{N}` citations resolving to bibliography entries. The research-side
+  mapping is in [converting-ard-substrates.md](converting-ard-substrates.md).
 
 Flatten source stage or folder taxonomies into meaning. Drafting,
 implementation, and review all become `status: active`; only a concrete
