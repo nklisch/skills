@@ -115,10 +115,15 @@ AGENTS.md                # canonical cross-agent instructions
 
 ### How agents organize work
 
-Agents use epics, features, and stories as a lightweight hierarchy of durable
-outcomes. They break work into separate items only when those items need their
-own status, dependencies, ownership, or cross-session history; temporary agent
-tasks stay out of the ledger.
+Agents use features as the normal delivery and integrated review unit. An epic
+groups at least two independently meaningful feature outcomes. A story is a
+narrow independently verifiable slice. Features and stories may stand alone, so
+small work does not need wrapper items. Nested work follows
+`epic → feature → story` without skipping a tier.
+
+Agents create separate items only when those items need their own status,
+relationships, ownership, or cross-session history. Temporary agent tasks stay
+out of the ledger.
 
 Writing down an epic, feature, or story does not certify that it is fully
 designed. Before starting each item, the agent reads its current scope and the
@@ -131,12 +136,11 @@ delegation, integration, and acceptance across the requested boundary. For one
 small coherent unit, the same skill normally executes directly rather than
 creating coordination overhead.
 
-Hierarchy describes how outcomes belong together. Ordering is recorded
-separately: `blocked_by` identifies prerequisites that must finish before an
-item is ready, while `related_to` preserves useful context without blocking
-work. Agents use those relationships to choose the next valid item, coordinate
-parallel work, and continue through every item in the requested boundary rather
-than stopping after one feature or story.
+Hierarchy describes how outcomes belong together. Ordering is separate.
+`blocked_by` says another active item should finish first because serial work
+reduces rework, ambiguity, or integration risk. Each edge records that reason
+in `## Sequencing`. Independent items stay edge-free so agents can run them in
+parallel. `related_to` preserves useful context without controlling readiness.
 
 Both people and agents can use `park` when they uncover something valuable that
 does not belong in the current scope. It records the smallest useful backlog

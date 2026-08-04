@@ -46,6 +46,8 @@ updated: 2026-07-24
 ---
 
 # Example
+
+Useful item body.
 """,
         )
         return root
@@ -56,6 +58,39 @@ updated: 2026-07-24
             text=True,
             capture_output=True,
             check=False,
+        )
+
+    def write_active_item(
+        self,
+        root: Path,
+        item_id: str,
+        *,
+        kind: str = "feature",
+        status: str = "active",
+        parent: str = "null",
+        blocked_by: list[str] | None = None,
+        related_to: list[str] | None = None,
+        body: str | None = None,
+    ) -> None:
+        blocked = ", ".join(blocked_by or [])
+        related = ", ".join(related_to or [])
+        item_body = body if body is not None else f"# {item_id}\n\nUseful item body.\n"
+        write(
+            root / ".work/active" / f"{item_id}.md",
+            f"""---
+id: {item_id}
+kind: {kind}
+status: {status}
+tags: []
+parent: {parent}
+blocked_by: [{blocked}]
+related_to: [{related}]
+research_refs: []
+mock_refs: []
+created: 2026-07-24
+updated: 2026-07-24
+---
+{item_body}""",
         )
 
     def test_valid_project_passes(self) -> None:
@@ -222,12 +257,184 @@ updated: 2026-07-24
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_active_item_with_external_blocker_fails(self) -> None:
+        root = self.make_project()
+        path = root / ".work/active/example.md"
+        path.write_text(
+            path.read_text(encoding="utf-8")
+            + "\n## Blocker\n\nWaiting for vendor credentials.\n",
+            encoding="utf-8",
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("active status cannot have blocked_by or ## Blocker", result.stdout)
+
+    def test_special_headings_inside_code_fences_are_ignored(self) -> None:
+        root = self.make_project()
+        path = root / ".work/active/example.md"
+        path.write_text(
+            path.read_text(encoding="utf-8")
+            + "\n```markdown\n## Sequencing\n## Blocker\n```\n",
+            encoding="utf-8",
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_unrecognized_root_work_directory_fails(self) -> None:
         root = self.make_project()
         (root / ".work/planning").mkdir()
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 1)
         self.assertIn("noncanonical work directory", result.stdout)
+
+    def test_exact_optional_depth_hierarchy_passes(self) -> None:
+        root = self.make_project()
+        self.write_active_item(root, "epic-parent", kind="epic")
+        self.write_active_item(
+            root, "feature-child", kind="feature", parent="epic-parent"
+        )
+        self.write_active_item(
+            root, "story-child", kind="story", parent="feature-child"
+        )
+        self.write_active_item(root, "story-standalone", kind="story")
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_skipped_hierarchy_tier_fails(self) -> None:
+        root = self.make_project()
+        self.write_active_item(root, "epic-parent", kind="epic")
+        self.write_active_item(
+            root, "story-child", kind="story", parent="epic-parent"
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("invalid hierarchy epic -> story", result.stdout)
+
+    def test_story_cannot_parent_an_item(self) -> None:
+        root = self.make_project()
+        self.write_active_item(root, "story-parent", kind="story")
+        self.write_active_item(
+            root, "feature-child", kind="feature", parent="story-parent"
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("invalid hierarchy story -> feature", result.stdout)
+
+    def test_parent_cycle_fails(self) -> None:
+        root = self.make_project()
+        self.write_active_item(root, "cycle-a", parent="cycle-b")
+        self.write_active_item(root, "cycle-b", parent="cycle-a")
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("parent cycle:", result.stdout)
+
+    def test_blocked_item_with_reasoned_sequencing_passes(self) -> None:
+        root = self.make_project()
+        self.write_active_item(root, "prerequisite")
+        self.write_active_item(
+            root,
+            "dependent",
+            status="blocked",
+            blocked_by=["prerequisite"],
+            body=(
+                "# Dependent\n\nUseful item body.\n\n## Sequencing\n\n"
+                "- `prerequisite`: Settling its contract avoids rework.\n"
+            ),
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_active_item_with_blocked_by_fails(self) -> None:
+        root = self.make_project()
+        self.write_active_item(root, "prerequisite")
+        self.write_active_item(
+            root,
+            "dependent",
+            blocked_by=["prerequisite"],
+            body=(
+                "# Dependent\n\nUseful item body.\n\n## Sequencing\n\n"
+                "- `prerequisite`: Settling its contract avoids rework.\n"
+            ),
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("active status cannot have blocked_by", result.stdout)
+
+    def test_missing_or_stale_sequencing_reason_fails(self) -> None:
+        root = self.make_project()
+        self.write_active_item(root, "prerequisite")
+        self.write_active_item(
+            root,
+            "dependent",
+            status="blocked",
+            blocked_by=["prerequisite"],
+        )
+        self.write_active_item(
+            root,
+            "stale",
+            body=(
+                "# Stale\n\nUseful item body.\n\n## Sequencing\n\n"
+                "- `prerequisite`: This edge no longer exists.\n"
+            ),
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("requires exactly one ## Sequencing", result.stdout)
+        self.assertIn("## Sequencing requires blocked_by entries", result.stdout)
+
+    def test_duplicate_and_self_relationships_fail(self) -> None:
+        root = self.make_project()
+        self.write_active_item(
+            root,
+            "example",
+            related_to=["example", "example"],
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("related_to cannot target itself", result.stdout)
+        self.assertIn("duplicate related_to target example", result.stdout)
+
+    def test_reciprocal_related_to_is_valid(self) -> None:
+        root = self.make_project()
+        self.write_active_item(root, "related-a", related_to=["related-b"])
+        self.write_active_item(root, "related-b", related_to=["related-a"])
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_blocked_by_cycle_fails(self) -> None:
+        root = self.make_project()
+        self.write_active_item(
+            root,
+            "blocked-a",
+            status="blocked",
+            blocked_by=["blocked-b"],
+            body=(
+                "# A\n\nUseful item body.\n\n## Sequencing\n\n"
+                "- `blocked-b`: B should settle first.\n"
+            ),
+        )
+        self.write_active_item(
+            root,
+            "blocked-b",
+            status="blocked",
+            blocked_by=["blocked-a"],
+            body=(
+                "# B\n\nUseful item body.\n\n## Sequencing\n\n"
+                "- `blocked-a`: A should settle first.\n"
+            ),
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("blocked_by cycle:", result.stdout)
+
+    def test_item_requires_title_and_body_content(self) -> None:
+        root = self.make_project()
+        self.write_active_item(root, "missing-title", body="Plain body.\n")
+        self.write_active_item(root, "missing-content", body="# Title only\n")
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("first non-empty body line must be a Markdown title", result.stdout)
+        self.assertIn("item body needs content after its title", result.stdout)
 
 
 if __name__ == "__main__":

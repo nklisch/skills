@@ -33,11 +33,14 @@ When the repository already declares `owner: workbench`, treat setup as an
 upgrade and sync pass rather than a fresh adoption. Compare the repository's
 conventions, foundations, and substrate against this plugin's current contract:
 missing `CONVENTIONS.md` fields, always-asked conventions the repository never
-settled because an older Workbench version did not ask them, missing canonical
-markers, and superseded layout. Do not re-ask choices the repository has
-already settled; ask only newly required or conflicting ones. Reconcile drift
-in place and validate as usual — a repeat run still produces no material
-change.
+settled because an older Workbench version did not ask them, malformed item
+hierarchy, inconsistent readiness, unexplained sequencing, missing canonical
+markers, and superseded layout. Normalize facts that repository evidence can
+recover without invention. For legacy ordering edges without a recoverable
+reason, recommend removal and ask once about the ambiguous edge set. Do not
+grandfather invalid structure or fabricate item meaning. Do not re-ask choices
+the repository already settled. Reconcile drift in place and validate as usual.
+A repeat run still produces no material change.
 
 ## Align conventions
 

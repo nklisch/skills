@@ -16,6 +16,10 @@ ALLOWED_KINDS = {"epic", "feature", "story"}
 ALLOWED_STATUSES = {"active", "blocked"}
 ALLOWED_REVIEW_WEIGHTS = {"none", "light", "standard", "thorough", "maximum"}
 ALLOWED_AUTONOMY = {"adaptive", "collaborative", "autonomous"}
+ALLOWED_PARENT_CHILD_KINDS = {("epic", "feature"), ("feature", "story")}
+MARKDOWN_TITLE = re.compile(r"^#\s+\S")
+SECTION_HEADING = re.compile(r"^#{1,6}\s+\S")
+SEQUENCING_ENTRY = re.compile(r"^-\s+`([^`]+)`:\s*(\S.*)$")
 LEGACY_PATHS = (
     ".work/bin",
     ".work/active/epics",
@@ -79,6 +83,78 @@ def parse_frontmatter(path: Path) -> dict[str, Any]:
         else:
             result[key] = scalar(value)
     return result
+
+
+def markdown_body(text: str) -> str:
+    match = FRONTMATTER.match(text)
+    return text[match.end() :] if match else text
+
+
+def markdown_headings(body: str) -> list[tuple[int, str]]:
+    """Return Markdown headings outside fenced code blocks."""
+    headings: list[tuple[int, str]] = []
+    fence: str | None = None
+    for index, line in enumerate(body.splitlines()):
+        stripped = line.strip()
+        marker = stripped[:3]
+        if marker in {"```", "~~~"}:
+            if fence is None:
+                fence = marker
+            elif fence == marker:
+                fence = None
+            continue
+        if fence is None and SECTION_HEADING.match(stripped):
+            headings.append((index, stripped))
+    return headings
+
+
+def exact_sections(body: str, heading: str) -> list[list[str]]:
+    """Return bodies of exact second-level sections outside code fences."""
+    lines = body.splitlines()
+    headings = markdown_headings(body)
+    sections: list[list[str]] = []
+    for position, (index, text) in enumerate(headings):
+        if text != f"## {heading}":
+            continue
+        end = headings[position + 1][0] if position + 1 < len(headings) else len(lines)
+        sections.append(lines[index + 1 : end])
+    return sections
+
+
+def has_exact_heading(body: str, heading: str) -> bool:
+    return any(text == f"## {heading}" for _, text in markdown_headings(body))
+
+
+def find_cycle(graph: dict[str, list[str]]) -> list[str] | None:
+    """Return one deterministic directed cycle, including its repeated start."""
+    state: dict[str, int] = {}
+    stack: list[str] = []
+    positions: dict[str, int] = {}
+
+    def visit(node: str) -> list[str] | None:
+        state[node] = 1
+        positions[node] = len(stack)
+        stack.append(node)
+        for target in graph.get(node, []):
+            if target not in graph:
+                continue
+            if state.get(target, 0) == 0:
+                cycle = visit(target)
+                if cycle:
+                    return cycle
+            elif state.get(target) == 1:
+                return [*stack[positions[target] :], target]
+        stack.pop()
+        positions.pop(node, None)
+        state[node] = 2
+        return None
+
+    for node in sorted(graph):
+        if state.get(node, 0) == 0:
+            cycle = visit(node)
+            if cycle:
+                return cycle
+    return None
 
 
 def validate(project: Path) -> tuple[list[str], list[str]]:
@@ -156,6 +232,10 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
                     f"noncanonical nested work directory: {child.relative_to(project)}"
                 )
     active_ids = {path.stem for path in active_files}
+    active_data = {path.stem: parse_frontmatter(path) for path in active_files}
+    active_text = {
+        path.stem: path.read_text(encoding="utf-8") for path in active_files
+    }
     all_item_files = active_files + backlog_files + completed_files
     id_paths: dict[str, Path] = {}
     for path in all_item_files:
@@ -170,7 +250,9 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
 
     for path in active_files:
         rel = path.relative_to(project)
-        data = parse_frontmatter(path)
+        data = active_data[path.stem]
+        text = active_text[path.stem]
+        body = markdown_body(text)
         required = {
             "id",
             "kind",
@@ -196,22 +278,91 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
         for key in ("tags", "blocked_by", "related_to", "research_refs", "mock_refs"):
             if key in data and not isinstance(data[key], list):
                 errors.append(f"{rel}: {key} must be a list")
+
+        body_lines = body.splitlines()
+        first_content = next(
+            (index for index, line in enumerate(body_lines) if line.strip()), None
+        )
+        if first_content is None or not MARKDOWN_TITLE.match(
+            body_lines[first_content].strip()
+        ):
+            errors.append(f"{rel}: first non-empty body line must be a Markdown title")
+        elif not any(line.strip() for line in body_lines[first_content + 1 :]):
+            errors.append(f"{rel}: item body needs content after its title")
+
         parent = data.get("parent")
         if parent and parent not in active_ids:
             errors.append(f"{rel}: unresolved parent {parent}")
+        elif parent:
+            pair = (active_data[parent].get("kind"), data.get("kind"))
+            if pair not in ALLOWED_PARENT_CHILD_KINDS:
+                errors.append(
+                    f"{rel}: invalid hierarchy {pair[0]} -> {pair[1]}; "
+                    "nested items must follow epic -> feature -> story"
+                )
+
         for key in ("blocked_by", "related_to"):
             values = data.get(key, [])
-            if isinstance(values, list):
-                for target in values:
-                    if target not in active_ids:
-                        errors.append(f"{rel}: unresolved {key} target {target}")
-        if data.get("status") == "blocked":
-            blocked_by = data.get("blocked_by", [])
-            body = path.read_text(encoding="utf-8")
-            if not blocked_by and not re.search(r"(?m)^## Blocker\s*$", body):
+            if not isinstance(values, list):
+                continue
+            seen: set[Any] = set()
+            for target in values:
+                if target in seen:
+                    errors.append(f"{rel}: duplicate {key} target {target}")
+                seen.add(target)
+                if target == path.stem:
+                    errors.append(f"{rel}: {key} cannot target itself")
+                if target not in active_ids:
+                    errors.append(f"{rel}: unresolved {key} target {target}")
+
+        blocked_by = data.get("blocked_by", [])
+        blockers = blocked_by if isinstance(blocked_by, list) else []
+        has_external_blocker = has_exact_heading(body, "Blocker")
+        if data.get("status") == "active" and (blockers or has_external_blocker):
+            errors.append(
+                f"{rel}: active status cannot have blocked_by or ## Blocker"
+            )
+        if data.get("status") == "blocked" and not blockers and not has_external_blocker:
+            errors.append(f"{rel}: blocked status requires blocked_by or ## Blocker")
+
+        sequencing_sections = exact_sections(body, "Sequencing")
+        if not blockers and sequencing_sections:
+            errors.append(f"{rel}: ## Sequencing requires blocked_by entries")
+        elif blockers:
+            if len(sequencing_sections) != 1:
                 errors.append(
-                    f"{rel}: blocked status requires blocked_by or ## Blocker"
+                    f"{rel}: blocked_by requires exactly one ## Sequencing section"
                 )
+            else:
+                sequencing: dict[str, str] = {}
+                for line in sequencing_sections[0]:
+                    stripped = line.strip()
+                    if not stripped.startswith("-"):
+                        continue
+                    match = SEQUENCING_ENTRY.match(stripped)
+                    if not match:
+                        errors.append(
+                            f"{rel}: invalid sequencing entry {stripped!r}; "
+                            "use - `<id>`: <reason>"
+                        )
+                        continue
+                    target, reason = match.groups()
+                    if target in sequencing:
+                        errors.append(
+                            f"{rel}: duplicate sequencing reason for {target}"
+                        )
+                    sequencing[target] = reason
+                for target in blockers:
+                    if target not in sequencing:
+                        errors.append(
+                            f"{rel}: missing sequencing reason for {target}"
+                        )
+                for target in sequencing:
+                    if target not in blockers:
+                        errors.append(
+                            f"{rel}: stale sequencing reason for {target}"
+                        )
+
         refs = data.get("research_refs", [])
         if isinstance(refs, list):
             for ref in refs:
@@ -232,6 +383,31 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
                     or not (project / ref).is_file()
                 ):
                     errors.append(f"{rel}: unresolved mock ref {ref}")
+
+    parent_graph = {
+        item_id: [parent]
+        for item_id, data in active_data.items()
+        if isinstance((parent := data.get("parent")), str) and parent in active_ids
+    }
+    for item_id in active_ids - parent_graph.keys():
+        parent_graph[item_id] = []
+    parent_cycle = find_cycle(parent_graph)
+    if parent_cycle:
+        errors.append(f"parent cycle: {' -> '.join(parent_cycle)}")
+
+    sequencing_graph = {
+        item_id: [
+            target
+            for target in data.get("blocked_by", [])
+            if isinstance(target, str) and target in active_ids
+        ]
+        if isinstance(data.get("blocked_by", []), list)
+        else []
+        for item_id, data in active_data.items()
+    }
+    sequencing_cycle = find_cycle(sequencing_graph)
+    if sequencing_cycle:
+        errors.append(f"blocked_by cycle: {' -> '.join(sequencing_cycle)}")
 
     for path in backlog_files:
         rel = path.relative_to(project)

@@ -26,9 +26,28 @@ Treat these only as discovery hints; inspect actual content before mapping:
 - generic agent plans: `.claude/plans`, `.codex`, task files, TODO ledgers,
   roadmaps, resume state, and session summaries.
 
-Flatten source stage or folder taxonomies into meaning. Drafting,
-implementation, and review all become `status: active`; only a concrete
-unresolved blocker becomes `blocked`. Do not preserve stage narration.
+Flatten source stage or folder taxonomies into meaning. Do not preserve stage
+narration.
+
+Normalize each active item to Workbench's optional-depth hierarchy:
+
+- use a feature as the default delivery and integrated review unit;
+- keep an epic only when at least two independently meaningful feature outcomes
+  can be named;
+- use a story for a narrow independently verifiable slice;
+- keep epics top-level, features top-level or under epics, and stories top-level
+  or under features.
+
+Demote or reparent an item when its meaning makes the correction clear. Ask when
+several corrections would change the intended outcome. Do not invent child
+outcomes to preserve an epic label.
+
+Treat source dependencies as candidate queue order, not automatic Workbench
+edges. Keep an edge only when evidence shows that serial work reduces rework,
+ambiguity, or integration risk. Put its reason in `## Sequencing` and mark the
+item `blocked`. Leave independent items edge-free and `active`. If a legacy edge
+has no recoverable reason, recommend removing it and ask once about the
+ambiguous edge set. Never fabricate a reason to satisfy validation.
 
 ## Convention reconciliation
 

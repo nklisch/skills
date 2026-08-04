@@ -94,9 +94,35 @@ updated: YYYY-MM-DD
 ---
 ```
 
-Hierarchy expresses durable outcome structure. `blocked_by` names active
-prerequisites; `related_to` carries non-blocking context. An external blocker
-uses an exact `## Blocker` section naming the condition and how it clears.
+A feature is the default delivery and integrated review unit. An epic is a
+top-level outcome with at least two independently meaningful feature outcomes
+that can be named. A story is a narrow independently verifiable slice. Features
+may be top-level or belong to epics. Stories may be top-level or belong to
+features. Nested hierarchy follows `epic → feature → story` without skipping or
+reversing a tier. Skills and review judge whether an item's meaning fits its
+tier. The validator enforces structural parent-kind pairs.
+
+`blocked_by` records deliberate queue order. Use an edge for a hard prerequisite
+or when serial work materially reduces rework, ambiguity, or integration risk.
+Leave independent work edge-free for parallel execution. Parentage and shared
+files do not imply order. Every edge has one non-empty reason in an exact
+`## Sequencing` section:
+
+```markdown
+## Sequencing
+
+- `feature-contract`: Its settled contract prevents avoidable rework here.
+```
+
+The section contains exactly one entry for each edge and no stale entries. An
+item is `blocked` when it has `blocked_by` edges or an exact `## Blocker` section
+that names an external condition and how it clears. Otherwise it is `active`.
+`related_to` carries non-ordering context and may be reciprocal.
+
+The first non-empty active-item body line is a Markdown title. At least one
+non-empty content line follows it. Each active item communicates its outcome,
+scope, and observable acceptance evidence, but the headings may fit the work.
+
 Focused audits, cleanup, and refactors use tags rather than new item kinds.
 Prototype items use the `prototype` tag. They name the question, representative
 surface, evidence, and expected disposition: discard, revise, or adopt. Closure
@@ -112,9 +138,10 @@ Completed work never remains active.
   `.work/completed/<id>.md` outcome stub.
 - `completed_items: discard` removes the active item after verification.
 
-Before closure, remaining active relationships are reconciled and active
-children are completed. `release` may collapse selected completion stubs into
-one `.work/releases/<version>.md`; it does not tag, publish, or deploy.
+Before closure, active children are completed. Remaining relationships and
+matching sequencing entries are reconciled in the same edit. `release` may
+collapse selected completion stubs into one `.work/releases/<version>.md`; it
+does not tag, publish, or deploy.
 
 ## Design behavior
 
@@ -307,20 +334,23 @@ reports user- or machine-scoped competing installs for the user to uninstall.
 It creates no migration archives, compatibility copies, `.bak` files, or legacy
 folders. A second run produces no material change.
 
-For a repository already owned by Workbench, setup runs as an upgrade and sync:
-it detects drift from the current contract — missing conventions fields,
-always-asked conventions an older version never settled, superseded layout —
-reconciles in place without re-asking settled choices, and remains idempotent.
+For a repository already owned by Workbench, setup runs as an upgrade and sync.
+It detects missing conventions, malformed hierarchy, inconsistent readiness,
+unexplained sequencing, and superseded layout. Setup normalizes facts it can
+recover without invention. For legacy ordering edges without recoverable
+reasons, it recommends removal and asks once about the ambiguous edge set. It
+does not grandfather invalid structure or fabricate meaning. A second run
+remains idempotent.
 
 ## Session posture hook
 
 The plugin ships a single `SessionStart` hook (`hooks/hooks.json` +
 `hooks/scripts/session-context.py`). When an upward-found `.work/CONVENTIONS.md`
 declares `owner: workbench`, it emits a short, fully static posture reminder as
-additional context: read conventions and foundations first, one item per
-coherent outcome, orchestrate multi-unit boundaries while executing small
-coherent work inline, park out-of-scope findings, and reconcile and close
-before declaring done.
+additional context: read conventions and foundations first, use features as the
+default delivery unit, preserve strict nested tiers, keep independent work
+parallel, orchestrate multi-unit boundaries, park out-of-scope findings, and
+reconcile and close before declaring done.
 
 The hook exists for ownership discoverability and post-compaction salience. It
 parses nothing beyond the owner check, keeps no session state, and has no
@@ -331,8 +361,10 @@ broken.
 ## Deterministic validation
 
 `validate-workbench.py` checks ownership, canonical directories and clone-stable
-markers, item schemas, globally unique ids, active relationships, blocker
-evidence, research and mock references, and superseded substrate paths.
+markers, item schemas, globally unique ids, title and body presence, parent-kind
+pairs, parent and sequencing cycles, relationship integrity, readiness state,
+sequencing and blocker evidence, research and mock references, and superseded
+substrate paths. Semantic tier fit and reason quality remain review judgments.
 
 `lint-research.py` checks attestation metadata, sensitive markers, mandatory
 attested-detail and disconfirming sections, and citation resolution. Reference

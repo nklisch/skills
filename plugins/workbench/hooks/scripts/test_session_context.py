@@ -96,6 +96,8 @@ class MainTest(unittest.TestCase):
         self.assertEqual(data["hookSpecificOutput"]["hookEventName"], "SessionStart")
         self.assertIn("Workbench-owned", context)
         self.assertIn("review_weight", context)
+        self.assertIn("Use features by default", context)
+        self.assertIn("Keep independent items parallel", context)
 
     def test_non_workbench_repo_emits_nothing(self) -> None:
         root = self.make_root()

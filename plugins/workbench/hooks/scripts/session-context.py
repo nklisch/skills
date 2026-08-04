@@ -24,7 +24,11 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Read .work/CONVENTIONS.md and foundation docs (root docs/,
   scope-owned <sub-project>/docs/) before structural decisions; resolve
   the configured review_weight.
-- One active item per coherent outcome; keep narrow requests narrow.
+- One active item per coherent outcome. Use features by default, epics for
+  multiple feature outcomes, and stories for narrow slices. Preserve
+  epic -> feature -> story when items nest.
+- Keep independent items parallel. Use blocked_by only when serial work
+  reduces rework, ambiguity, or integration risk, and record why.
 - For multi-unit boundaries, orchestrate as outcome owner and own
   integration and acceptance; execute small coherent work inline when
   delegation adds no value.

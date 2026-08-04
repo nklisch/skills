@@ -177,13 +177,20 @@ the quality bar.
 
 Suppose you ask: *"Drive the onboarding epic to done."*
 
+Workbench does not treat every large request as an epic. A feature is the
+normal delivery and review unit. An epic groups at least two meaningful feature
+outcomes. A story is a narrow verifiable slice. Features and stories can stand
+alone, while nested work follows `epic → feature → story`.
+
 1. **Read first.** The agent reads the repo, the conventions, and the
    epic before acting.
 2. **Ask only what the repo can't answer.** It surfaces the consequential
    choices — product direction, irreversible actions, missing
    requirements — and decides routine details itself.
 3. **Record only durable state.** Temporary agent tasks don't become
-   ledger items; the ledger tracks outcomes, not process.
+   ledger items; the ledger tracks outcomes, not process. Ordering edges explain
+   why one item should finish first. Independent items remain available for
+   parallel work.
 4. **Route design when the shape is consequential.** If the
    implementation shape matters, it routes through `design` and picks the
    lens that fits: new work, refactor or cleanup, performance, defect or

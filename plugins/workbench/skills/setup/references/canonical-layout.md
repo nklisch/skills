@@ -94,8 +94,22 @@ updated: YYYY-MM-DD
 ---
 ```
 
-Only active and blocked may rest in `.work/active/`. Add body sections only
-when they carry useful state.
+Only active and blocked may rest in `.work/active/`. A feature is the default
+delivery and integrated review unit. An epic is top-level and groups at least
+two nameable feature outcomes. A story is a narrow independently verifiable
+slice. Features may be top-level or belong to epics. Stories may be top-level
+or belong to features. Nested work follows `epic → feature → story` without
+skipping a tier.
+
+Every item starts with a Markdown title and includes outcome, scope, and
+observable acceptance meaning under headings that fit the work. Add other body
+sections only when they carry useful state.
+
+Use `blocked_by` when another active item should finish first because serial
+work materially reduces rework, ambiguity, or integration risk. Each edge has
+one reason in an exact `## Sequencing` section. Independent work remains
+edge-free. An item with an edge or an external `## Blocker` is `blocked`.
+Otherwise it is `active`.
 
 Keep `.gitkeep` in every canonical state directory even while it contains
 items. Git does not preserve empty directories.
@@ -131,10 +145,12 @@ Maintain one marked Workbench section in the canonical root `AGENTS.md`:
 
 Confirm `owner: workbench` in `.work/CONVENTIONS.md`. Track active outcomes in
 `.work/active/` and deferred context in `.work/backlog/`. Treat natural-language
-requests as the workflow. Consult `.knowledge/index.json` when present. Ask the
-human about consequential requirements according to the effective autonomy
-posture. Park useful
-out-of-scope findings instead of silently expanding scope.
+requests as the workflow. Consult `.knowledge/index.json` when present. Use
+features as the normal delivery unit; reserve epics for multiple feature
+outcomes and stories for narrow slices. Preserve `epic → feature → story` when
+items nest. Ask the human about consequential requirements according to the
+effective autonomy posture. Park useful out-of-scope findings instead of
+silently expanding scope.
 
 Durable state is limited to work items, foundation documents, research
 attestations and briefs, mockups, generated indexes, completion stubs, release
@@ -153,6 +169,10 @@ concepts before using them. When provider terms matter, map the provider term to
 the project concept and a generic real-world term at the object level before
 field details. Do not define ordinary terms the intended audience can safely
 know.
+
+Keep independent items parallel by default. Add `blocked_by` only when serial
+work reduces rework, ambiguity, or integration risk, and record the reason in
+`## Sequencing`.
 
 Test behavior at stable interfaces, verify the full requested boundary,
 reconcile affected foundation truth, rebuild the knowledge index when indexed

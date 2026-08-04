@@ -33,9 +33,11 @@ workflow stages or an orchestration topology.
   and implementation review, while explicit user direction can override it for
   a request. `standard` gives substantive work one independent pass without
   manufacturing convergence.
-- **The ledger stays small.** `.work/` tracks active outcomes, deferred context,
-  completion summaries, and release summaries with three item kinds and two
-  active statuses.
+- **The ledger stays small and legible.** Features are the normal delivery unit.
+  Epics group multiple feature outcomes, stories hold narrow slices, and nested
+  hierarchy keeps that order without forcing wrapper items.
+- **Planning preserves parallelism.** Ordering edges explain why one item should
+  finish first. Independent work remains edge-free and available in parallel.
 - **One request may span several epics.** The orchestrating agent owns
   requirements, integration, verification, closure, and durable continuation
   across the full named boundary.

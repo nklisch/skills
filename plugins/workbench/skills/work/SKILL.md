@@ -117,13 +117,21 @@ the relevant active item without manufacturing a large template.
 
 ## Shape durable work
 
-Use one active item for one coherent outcome. Create hierarchy only when
-independent status or cross-session relationships matter. Temporary agent units
-belong in an execution approach, not automatically in `.work/active/`.
+Use one active item for one coherent outcome. A feature is the default delivery
+and integrated review unit. Use an epic only when at least two independently
+meaningful feature outcomes can be named. Use a story for a narrow independently
+verifiable slice. Create child files only when separate status or cross-session
+relationships matter. Temporary agent units belong in an execution approach,
+not automatically in `.work/active/`.
 
-Use `blocked_by` only when work would otherwise be invalid. Use `related_to` for
-useful context. A blocked item must name the concrete condition that unblocks
-it.
+Nested hierarchy follows `epic → feature → story` without skipping a tier.
+Read [references/lifecycle.md](references/lifecycle.md) before choosing an item
+kind or relationship.
+
+Use `blocked_by` when another active item should finish first because serial
+work materially reduces rework, ambiguity, or integration risk. Record one
+reason per edge in `## Sequencing`. Leave independent work edge-free so it can
+run in parallel. Use `related_to` for non-ordering context.
 
 A standalone cleanup, simplification, or refactor is normal Workbench work when
 it has a coherent boundary and observable completion evidence. Use tags such as
@@ -190,8 +198,9 @@ reply. Close every completed item immediately:
 - `completed_items: discard` → remove it.
 
 Before closing, remove the completed id from remaining `blocked_by` and
-`related_to` lists; a parent cannot close while active children remain. Run
-`validate-workbench.py` after creating, reshaping, or closing ledger items.
+`related_to` lists and remove its matching sequencing entry in the same edit. A
+parent cannot close while active children remain. Run `validate-workbench.py`
+after creating, reshaping, or closing ledger items.
 Resolve it from the loaded Workbench plugin package using setup's
 identity-verification rule; stop rather than guessing among ambiguous
 installations. Never leave completed items active.

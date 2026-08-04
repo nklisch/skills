@@ -1,26 +1,60 @@
 # Work Lifecycle
 
-## Relationships
+## Item tiers
+
+Use the smallest tier that matches the durable outcome. Optional depth prevents
+wrapper items, while strict nesting keeps each tier meaningful:
+
+- A **feature** is the default delivery and integrated review unit. Use one for
+  a coherent capability, behavior change, or maintenance outcome. It may be
+  top-level or belong to an epic.
+- An **epic** is a top-level outcome that needs at least two independently
+  meaningful feature outcomes. The features must be nameable, but they need not
+  all become active files before they need separate status or relationships.
+- A **story** is a narrow independently verifiable slice. It may be top-level or
+  belong to a feature, and it cannot have children.
+
+Nested items follow `epic → feature → story` without skipping or reversing a
+tier. Do not create an epic for importance, uncertainty, or size alone. Do not
+create hierarchy for temporary agent tasks. Keep those tasks in the item's
+execution approach.
+
+Every active item must communicate three things, using headings that fit the
+work:
+
+1. the outcome that becomes true;
+2. the included boundary and meaningful exclusions;
+3. the observable evidence that permits closure.
+
+## Relationships and readiness
 
 - `parent` expresses outcome hierarchy, not scheduling.
-- `blocked_by` names active prerequisites without which useful execution is
-  invalid.
+- `blocked_by` means another active item should finish first. Use it for a hard
+  prerequisite or when serial work materially reduces rework, ambiguity, or
+  integration risk.
 - `related_to` communicates useful context without controlling readiness.
-- `status: blocked` requires either an active prerequisite in `blocked_by` or
-  an exact `## Blocker` body section naming the concrete external blocker and
-  unblock condition.
+- Parentage, shared files, and a preferred working order do not create a
+  `blocked_by` edge by themselves. Leave independent items edge-free so agents
+  can run them in parallel.
 
-Structured relationships resolve to active items. Before closing an item,
-remove its id from remaining `blocked_by` and `related_to` lists. Do not close a
-parent while active children remain. Completed context belongs in the
-completion-stub body or version summary, not the active readiness graph.
+Every `blocked_by` edge needs one reason in an exact `## Sequencing` section:
+
+```markdown
+## Sequencing
+
+- `feature-contract`: Its settled contract prevents avoidable rework here.
+```
+
+The section contains exactly one non-empty entry for each edge and no stale
+entries. An item with `blocked_by` uses `status: blocked`. Remove a completed id
+and its sequencing entry together. Return the item to `active` when the final
+edge clears and no external blocker remains.
+
+An external blocker uses an exact `## Blocker` section that names the condition
+and how it clears. An item with that section also uses `status: blocked`.
+`related_to` may be reciprocal because it does not control readiness.
 
 ## Item shape
-
-Use an epic only when several independently meaningful outcomes benefit from a
-durable parent. Use a feature or story when independent status or relationship
-matters across sessions. These are outcome-hierarchy tiers only; they imply no
-stages or ceremonies. Do not mirror temporary agent tasks into the ledger.
 
 Active items use:
 
@@ -40,23 +74,26 @@ updated: YYYY-MM-DD
 ---
 ```
 
-Ids are unique across all `.work/`. Keep one coherent outcome in one item.
-Split only when separate status, relationship, ownership, or summary treatment
-provides durable value. Use tags such as `audit`, `security`, or `performance`
-for focused investigations rather than another item kind.
+Ids are unique across all `.work/`. The first non-empty body line is a Markdown
+title, followed by at least one non-empty content line. Keep one coherent
+outcome in one item. Use tags such as `audit`, `security`, or `performance` for
+focused investigations rather than another item kind.
 
 ## Completion sweep
 
 At entry and exit, inspect `.work/active/` for stale completion claims or
-interrupted work. Verify actual repository evidence before closing; never infer
+interrupted work. Verify actual repository evidence before closing. Never infer
 completion from a stale label.
 
 Close atomically:
 
-- `completed_items: summarize` → replace the active item with one
+- `completed_items: summarize` replaces the active item with one
   `.work/completed/` stub;
-- `completed_items: discard` → remove the active item.
+- `completed_items: discard` removes the active item.
 
-Run the Workbench validator after structural ledger changes. Never leave done
-or completed items active. Commit at coherent delivery boundaries when
-repository policy permits; item edits do not require their own commits.
+Before closure, remove the completed id from each active `blocked_by` and
+`related_to` list. Remove its matching `## Sequencing` entry in the same edit.
+Do not close a parent while active children remain. Run the Workbench validator
+after structural ledger changes. Never leave completed items active. Commit at
+coherent delivery boundaries when repository policy permits. Item edits do not
+require their own commits.
