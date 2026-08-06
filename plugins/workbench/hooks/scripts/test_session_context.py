@@ -98,6 +98,8 @@ class MainTest(unittest.TestCase):
         self.assertIn("review_weight", context)
         self.assertIn("Use features by default", context)
         self.assertIn("Keep independent items parallel", context)
+        self.assertIn("must not invent requirements", context)
+        self.assertIn("flag overbuilding", context)
 
     def test_non_workbench_repo_emits_nothing(self) -> None:
         root = self.make_root()

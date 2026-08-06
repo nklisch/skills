@@ -149,8 +149,10 @@ requests as the workflow. Consult `.knowledge/index.json` when present. Use
 features as the normal delivery unit; reserve epics for multiple feature
 outcomes and stories for narrow slices. Preserve `epic → feature → story` when
 items nest. Ask the human about consequential requirements according to the
-effective autonomy posture. Park useful out-of-scope findings instead of
-silently expanding scope.
+effective autonomy posture. Designs and reviews must not invent requirements or
+expand the user's original scope; apply foundation truth and the rational needs
+of the actual project type, flag overbuilding, and park useful adjacent findings
+instead.
 
 Durable state is limited to work items, foundation documents, research
 attestations and briefs, mockups, generated indexes, completion stubs, release

@@ -159,8 +159,10 @@ stories for narrow slices. Preserve `epic → feature → story` when items nest
 Ask the human about consequential requirements and pause for the answer. Keep
 independent items parallel. Add `blocked_by` only when serial work reduces
 rework, ambiguity, or integration risk, and record the reason in
-`## Sequencing`. Park useful out-of-scope findings instead of silently expanding
-scope. Test behavior at stable interfaces, verify the full requested boundary,
+`## Sequencing`. Designs and reviews must not invent requirements or expand the
+user's original scope; apply foundation truth and the rational needs of the
+actual project type, flag overbuilding, and park useful adjacent findings
+instead. Test behavior at stable interfaces, verify the full requested boundary,
 reconcile affected foundation truth, and remove or summarize completed items
 immediately.
 <!-- workbench:end -->

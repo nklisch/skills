@@ -248,6 +248,11 @@ to know about review:
 
 - **Review is not verification.** A reviewer saying "looks good" does not
   prove behavior works. The agent treats the two as separate obligations.
+- **Review cannot expand scope.** Reviewers check the user's original intent,
+  accepted design, and applicable foundation truth. They do not invent
+  requirements, impose their preferred ideal architecture, or turn adjacent
+  improvements into acceptance blockers. They also flag overbuilding relative
+  to the project's actual type and risks.
 - **Missing reviewers get disclosed.** When the configured weight needs
   an independent reviewer and none is reachable, the agent says so and
   asks how to proceed — it does not quietly approve its own work.

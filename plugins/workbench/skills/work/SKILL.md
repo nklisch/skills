@@ -82,7 +82,10 @@ not broaden the requested boundary or authorize production, real-data,
 irreversible, or external actions.
 
 Keep narrow requests narrow. Treat “finish,” “drive to done,” and “handle end
-to end” as instructions to reach the requested finish line.
+to end” as instructions to reach the requested finish line, not permission to
+invent requirements or enlarge it. Applicable foundation documents constrain
+and clarify that outcome; they do not automatically pull adjacent intended work
+into the current boundary.
 
 A request to review, audit, explain, or diagnose remains read-only. Report the
 result in the current conversation and change nothing unless the user also asks
@@ -185,8 +188,11 @@ external blocker prevents meaningful progress.
 Verify behavior at stable interfaces, run required project checks, and exercise
 meaningful user journeys. Read [references/review.md](references/review.md),
 resolve the effective `review_weight`, and apply its implementation-review
-policy. An explicit user request overrides the repository default. Verify and
-adjudicate reviewer findings rather than accepting them blindly.
+policy, including the mandatory non-expansion instruction in every review
+prompt. An explicit user request overrides the repository default. Verify and
+adjudicate reviewer findings rather than accepting them blindly; reject invented
+requirements and park useful out-of-scope proposals instead of making them
+acceptance blockers.
 
 Read [references/foundation-truth.md](references/foundation-truth.md).
 Reconcile affected foundation assertions against the integrated result before

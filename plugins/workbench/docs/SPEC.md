@@ -164,7 +164,13 @@ Security, privacy, accessibility, operations, compatibility, and testing are
 conditional overlays. Designs separate requirements, facts, assumptions, and
 decisions; state meaningful alternatives only where choice matters; identify
 boundaries, verification, risk, and recovery; and prefer the simplest coherent
-maintainable shape rather than the smallest diff.
+maintainable shape rather than the smallest diff. They may resolve necessary
+implementation detail but never invent product requirements or expand the
+accepted outcome. The user's original intent, accepted item, and applicable
+foundation truth bound the design; foundation aspirations outside that outcome
+do not silently enter scope. Design judgment is calibrated to the project's
+actual type, maturity, audience, deployment context, and stated risks so an
+agent's preferred ideal architecture cannot justify overbuilding.
 
 Effective autonomy resolves from explicit request language, repository
 conventions, then `adaptive`:
@@ -193,7 +199,11 @@ The effective `review_weight` resolves from explicit user direction,
 
 Review implementation-shaping designs before implementation becomes expensive
 to reverse. Review completed implementation at its integrated contract
-boundary. Only `thorough` and `maximum` repeat independent passes.
+boundary. Every reviewer is instructed not to invent requirements or expand
+scope, to flag overbuilding, and to judge against the rational expectations of
+the actual project type. Missing or contradicted authorized requirements may be
+blocking findings; adjacent improvements are non-blocking follow-ups and may be
+parked. Only `thorough` and `maximum` repeat independent passes.
 
 ## Work behavior
 

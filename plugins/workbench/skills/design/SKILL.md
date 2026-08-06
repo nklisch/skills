@@ -38,12 +38,24 @@ Read [../work/references/autonomy.md](../work/references/autonomy.md) and resolv
 the effective autonomy posture. Autonomy governs how decisions are discussed,
 not whether design quality, review, safety, or authority boundaries apply.
 
-Keep a clear narrow request narrow. Route through `ideate` if the outcome,
-ownership boundary, or success shape cannot yet form coherent work, or if
-several coupled product, domain, or business decisions materially reshape one
-another or the scope. Do not route away merely because a small number of mostly
-local choices remain. If a clear request has no active item, create the smallest
-coherent feature or story needed to hold durable design state, following
+Treat the user's original intent, later clarifications, explicit exclusions,
+and the accepted item outcome as the design boundary. Applicable foundation
+documents provide current or explicitly intended truth and constraints inside
+that boundary; they do not authorize pulling every adjacent aspiration into the
+current work. Design may resolve necessary implementation detail, but it must
+not invent product requirements, adjacent capabilities, or a broader quality
+bar to satisfy the designer's preferred ideal state.
+
+Keep a clear narrow request narrow. Calibrate the design to the project's actual
+type, maturity, audience, deployment context, and stated risks. Do not add
+enterprise, platform, production, extensibility, compatibility, operational, or
+validation machinery unless the authorized outcome or repository evidence
+requires it. Route through `ideate` if the outcome, ownership boundary, or
+success shape cannot yet form coherent work, or if several coupled product,
+domain, or business decisions materially reshape one another or the scope. Do
+not route away merely because a small number of mostly local choices remain. If
+a clear request has no active item, create the smallest coherent feature or
+story needed to hold durable design state, following
 [../work/references/lifecycle.md](../work/references/lifecycle.md). Do not create
 hierarchy merely to represent design activity.
 
@@ -96,10 +108,14 @@ Name meaningful alternatives when the choice is consequential; do not
 manufacture options for obvious local work.
 
 For formal design, prefer a dedicated fresh-context design agent when one is
-available. Give it raw requirements, relevant repository truth, constraints, and
-the target item rather than a proposed answer. The orchestrating agent owns the
-final synthesis and adjudication. Do not add delegation overhead when the design
-can be resolved well in the current context.
+available. Give it raw requirements, relevant repository truth, constraints,
+the target item, and an explicit instruction not to invent requirements or
+expand the outcome beyond the user's intent and rational scope of this project
+type. Ask it to identify overbuilding as a design defect and to separate useful
+out-of-scope ideas as non-blocking follow-ups. Do not give it a proposed answer.
+The orchestrating agent owns the final synthesis and adjudication. Do not add
+delegation overhead when the design can be resolved well in the current
+context.
 
 ## Record the design
 
@@ -164,11 +180,12 @@ effective `review_weight` from an explicit user instruction, then
 `.work/CONVENTIONS.md`, then `standard`.
 
 Always self-check the design against requirements, repository evidence, the
-selected lens, verification feasibility, unnecessary complexity, and reversal
-cost. Apply independent review as required by the effective weight before
-implementation becomes expensive to reverse. Give the reviewer raw
-requirements, the design, relevant foundations and code, and known evidence;
-do not lead with a suspected verdict.
+selected lens, verification feasibility, unnecessary complexity, reversal
+cost, and unauthorized scope growth. Apply independent review as required by
+the effective weight before implementation becomes expensive to reverse. Give
+the reviewer raw requirements, the design, relevant foundations and code, and
+known evidence. Include the mandatory non-expansion instruction from the review
+reference; do not lead with a suspected verdict.
 
 Require the reviewer to check whether proposed foundation changes accurately
 represent ownership, boundaries, current truth, and explicitly intended truth,

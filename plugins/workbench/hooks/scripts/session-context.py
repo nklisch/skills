@@ -32,7 +32,9 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
 - For multi-unit boundaries, orchestrate as outcome owner and own
   integration and acceptance; execute small coherent work inline when
   delegation adds no value.
-- Park useful out-of-scope findings instead of silently expanding scope.
+- Designs and reviews must not invent requirements or expand the user's
+  original scope. Judge against foundation truth and the rational needs
+  of this project type; flag overbuilding and park adjacent improvements.
 - Implementation done is not work done: verify at stable interfaces,
   review at the configured weight, reconcile affected foundation
   assertions, and close items before declaring done.

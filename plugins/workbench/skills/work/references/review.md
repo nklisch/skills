@@ -32,19 +32,56 @@ adding passes beyond the effective `review_weight`.
 Read [foundation-truth.md](foundation-truth.md) when the design or implementation
 may affect durable project truth.
 
-Give reviewers the raw requirements, artifacts, diff, and verification
-evidence available at that point. Do not lead them with the suspected answer.
-For design, ask about requirements coverage, boundaries, alternatives,
-assumptions, failure modes, verification feasibility, migration or rollback,
-unnecessary complexity, and accurate foundation roll-forward. For
-implementation, ask about correctness, missing behavior, safety, integration
-risk, simplification, foundation drift, and relevant security, privacy,
-accessibility, performance, compatibility, data-integrity, and operational
-concerns.
+## Keep review inside the authorized scope
 
-Treat findings as proposals. Reproduce or verify each substantive claim,
-accept changes that improve the work, and explain rejected material findings in
-the current conversation. When a rejection reflects a durable constraint, fold
-that constraint into the design's chosen approach or risks; keep no separate
-record of the adjudication. Review never substitutes for behavioral
-verification, and a reviewer saying “looks good” is not evidence.
+A review may detect that the design or implementation missed, contradicted, or
+unnecessarily exceeded an existing requirement. It must not create a new
+requirement, enlarge the accepted outcome, or treat an adjacent improvement as
+necessary for approval. The scope authority is:
+
+1. the user's original intent, later clarifications, and explicit exclusions;
+2. the accepted active-item outcome and design decisions inside that intent;
+3. applicable foundation documents as current or explicitly intended project
+   truth and constraints.
+
+Foundation documents constrain and clarify the work; they do not make every
+adjacent aspiration or possible improvement part of the current outcome. A
+reviewer's preferred architecture, ideal feature set, generic best practice, or
+personal quality bar is not scope authority.
+
+Judge the work for the project's actual type, maturity, audience, deployment
+context, and stated risks. Explicitly look for overbuilding: extra abstractions,
+capabilities, compatibility layers, hardening, infrastructure, configurability,
+or tests whose need is not established by the authorized outcome or repository
+evidence. Do not demand enterprise, platform, or production machinery from a
+prototype, internal tool, small utility, or other project whose rational scope
+does not require it.
+
+Every review prompt must state this boundary plainly. Give reviewers the raw
+requirements, artifacts, diff, and verification evidence available at that
+point, and tell them:
+
+> Do not invent requirements or expand scope. Evaluate only against the user's
+> original intent, accepted item and design, applicable foundation truth, and
+> the rational expectations of this project type. Flag overbuilding as a
+> defect. Treat worthwhile improvements outside that boundary as non-blocking
+> follow-ups, not findings required for acceptance.
+
+Do not lead reviewers with the suspected answer. For design, ask about
+requirements coverage, boundaries, alternatives, assumptions, failure modes,
+verification feasibility, migration or rollback, unnecessary complexity,
+accurate foundation roll-forward, and scope expansion. For implementation, ask
+about correctness, missing required behavior, safety, integration risk,
+simplification, foundation drift, overbuilding, and relevant security, privacy,
+accessibility, performance, compatibility, data-integrity, and operational
+concerns only where the authorized scope or evidence makes them relevant.
+
+Treat findings as proposals. Reproduce or verify each substantive claim, accept
+changes that improve the work inside its authorized boundary, and explain
+rejected material findings in the current conversation. A proposal that depends
+on an invented requirement or broader outcome is rejected as an acceptance
+finding; when useful, park it as a non-blocking follow-up instead of expanding
+the current work. When a rejection reflects a durable constraint, fold that
+constraint into the design's chosen approach or risks; keep no separate record
+of the adjudication. Review never substitutes for behavioral verification, and
+a reviewer saying “looks good” is not evidence.

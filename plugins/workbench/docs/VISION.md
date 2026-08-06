@@ -26,13 +26,18 @@ workflow stages or an orchestration topology.
   default determine whether work is collaborative, adaptive, or autonomous.
   Autonomy changes participation and continuation, never permissions, scope,
   safety, or quality.
+- **Scope is not a quality dial.** Design and review may resolve or check the
+  authorized outcome, but they never invent requirements or enlarge it. Judge
+  what is rational for the project's actual type, maturity, audience,
+  deployment context, and stated risks; flag overbuilding instead of rewarding
+  it.
 - **Simplicity is durable.** Prefer maintainable intended states with fewer
   concepts and lower operating and verification cost, not merely smaller diffs.
   Do not hide hacks or oversized validation systems inside autonomous work.
 - **Review depth is legible.** One repository `review_weight` governs design
   and implementation review, while explicit user direction can override it for
   a request. `standard` gives substantive work one independent pass without
-  manufacturing convergence.
+  manufacturing convergence or new scope.
 - **The ledger stays small and legible.** Features are the normal delivery unit.
   Epics group multiple feature outcomes, stories hold narrow slices, and nested
   hierarchy keeps that order without forcing wrapper items.

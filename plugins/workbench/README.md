@@ -231,7 +231,16 @@ scope, permissions, or safety.
 Workbench rewards durable simplicity, not the smallest diff.
 
 A good design has as few concepts as the problem allows, fits the repository,
-and leaves a maintainable intended state.
+and leaves a maintainable intended state inside the authorized outcome. The
+user's original intent, accepted item, and applicable foundation truth bound the
+design. Foundation documents clarify constraints; they do not make every
+adjacent aspiration current scope. Necessary implementation detail is design;
+new product requirements or adjacent capabilities require a scope decision.
+
+Design judgment also fits the actual project. A prototype, internal tool, small
+utility, and public production platform do not rationally need the same
+hardening, extensibility, compatibility machinery, infrastructure, or test
+surface. Workbench treats unjustified machinery as overbuilding, not quality.
 
 Formal design is not determined by an item's size label. Small and modest work
 usually stays inline when repository evidence and brief reasoning can resolve
@@ -277,9 +286,16 @@ the artifact without relying on the conversation that produced it.
 | `maximum` | Thorough convergence using different specialties, adversarial perspectives, and more than one model when available. |
 
 Review is not verification. A reviewer saying “looks good” does not prove the
-behavior works. When the selected weight requires an independent reviewer and
-none is available, the agent should disclose that limitation and ask how you
-want to proceed rather than quietly approving its own work.
+behavior works. Review is not a second chance to redefine the project, either:
+every reviewer is told not to invent requirements or expand scope, to judge the
+work against the user's original intent and the rational expectations of the
+actual project type, and to flag overbuilding. A missed authorized requirement
+may block acceptance; a worthwhile adjacent improvement is a non-blocking
+follow-up that can be parked.
+
+When the selected weight requires an independent reviewer and none is available,
+the agent should disclose that limitation and ask how you want to proceed rather
+than quietly approving its own work.
 
 ## Testing and verification
 
