@@ -6,6 +6,12 @@ rules in [migration-rules.md](migration-rules.md) still apply. The reference
 execution of this mapping is the skills/ migration of 2026-07-27 (50
 attestations restructured, 10 briefs converted, every citation remapped).
 
+Conversion mixes mechanical steps with real editorial judgment. The mapping
+below marks which is which. The mechanical steps (handle resolution,
+citation rewrite, frontmatter restriction) are repeatable; the judgment
+steps (deriving attested details, folding precis, disposing of campaign
+artifacts) are evidentiary decisions a user reviews per artifact.
+
 ## Detection
 
 A `.research/` substrate is ARD-owned when any of these hold:
@@ -18,61 +24,88 @@ A `.research/` substrate is ARD-owned when any of these hold:
 
 The agentic-research plugin being installed is corroborating, not decisive.
 
+If a substrate carries both a root `references.md` and per-corpus
+`BIBLIOGRAPHY.md` files that disagree about what an `{N}` target means (a
+known ARD drift), **stop** and resolve the ambiguity with the user before
+rewriting anything. The handle table below cannot be built on a contradiction.
+
 ## The semantic core
 
 ARD bibliography entries and Workbench attestations describe the same
-sources. Conversion is therefore a **lookup, not a rewrite of meaning**: the
-anchor moves from "entry N in a per-corpus bibliography" to "the attestation
-of that entry's source," and the two citation types carry the granularity:
+sources, so the anchor move is mechanical: from "entry N in a per-corpus
+bibliography" to "the attestation of that entry's source." The two citation
+types carry the granularity:
 
-- `[handle]` — bibliographic reference: the source record warrants the claim.
+- `[handle]{source}` — bibliographic reference: the source record warrants the claim.
 - `[handle]{N}` — detail reference: attested detail N warrants the claim.
 
 Granularity honesty governs the remap: when no specific attested detail
 supports the claim, downgrade to a bibliographic reference rather than
 inventing detail-level support.
 
+## Migration manifest
+
+Record a typed manifest before writing anything, and keep it through
+verification: for every source artifact — its path, its disposition
+(retain / fold / remove / split), every old-to-new citation target, and a
+confidence mark (mechanical / judgment). Ambiguous remaps (those marked
+judgment) get a semantic review each, not a sample spot-check. The manifest
+is the audit trail for a real-data migration.
+
 ## Tier mapping
 
-| ARD source | Workbench destination |
-|---|---|
-| `attestation/<handle>.md` | `attestations/<handle>.md` — keep required frontmatter (`source_handle`, `fetched`, `source_title`, `source_url` when available); extra ARD keys (`provenance`, `source_class`, and similar) may stay as optional extras; ensure a numbered `## Attested details` list derived from the attestation's key passages, preserving text and order |
-| `precis/<handle>.md` | Fold into the attestation's summary; remove the precis file. If the precis carries content the attestation lacks, merge it first |
-| `analysis/briefs/`, `analysis/positions/` | `briefs/<id>.md` — genuine synthesis becomes briefs under the discipline's brief-structure frontmatter contract |
-| `analysis/campaigns/**` | Engagement plumbing with no Workbench home: fold durable synthesis into the parent brief; remove process narration (Git history retains it). Ask the user for the disposition on large corpora |
-| `reference/<corpus>/BIBLIOGRAPHY.md` | Retain until the citation remap completes — it is the lookup table — then remove |
-| `reference/<corpus>/raw/` | Raw local copies are repository material, not research artifacts; move outside `.research/` or remove per user decision |
-| Root `references.md` (legacy duality) | Same as `BIBLIOGRAPHY.md`: lookup table, then remove |
+| ARD source | Workbench destination | Nature |
+|---|---|---|
+| `attestation/<handle>.md` | `attestations/<handle>.md` — keep required frontmatter (`source_handle`, `fetched`, `source_title`, `source_url` when a real URL exists); extra ARD keys (`provenance`, `source_class`, and similar) may stay as optional extras; ensure a numbered `## Attested details` list derived from the attestation's key passages, preserving text and order | mechanical for the move and frontmatter; **judgment** for deriving attested details |
+| `precis/<handle>.md` (single-source-faithful) | Fold into the attestation's summary after verification; remove the precis file | judgment |
+| `precis/<handle>.md` (composed or multi-source) | Promote to a `briefs/<id>.md` — composed precis content is synthesis, not a source-faithful summary | judgment |
+| `analysis/briefs/`, `analysis/positions/` | `briefs/<id>.md` — genuine synthesis becomes briefs under the discipline's brief-structure frontmatter contract | mechanical |
+| `analysis/campaigns/**` | Sort per artifact: durable specialist syntheses, contradiction records, and verification checklists become linked `briefs/`; only process narration (dispatch records, decomposition-rationale, restated checklists) is removed. Ask the user for the disposition on large corpora | judgment |
+| `reference/<corpus>/BIBLIOGRAPHY.md`, root `references.md` | Retain until the citation remap completes — the lookup table — then remove | mechanical |
+| `reference/<corpus>/raw/` | Raw local copies are repository material, not research artifacts; move outside `.research/` or remove per user decision | judgment |
+| Corpus-level metadata (licenses, themes, source grouping) | Preserve as a curated projection or a note in `.research/CONVENTIONS.md`; do not drop silently | mechanical |
 
 ## Anchor remap procedure
 
-1. **Build the handle table.** For every corpus `BIBLIOGRAPHY.md`: entry
-   number → handle, plus the `**Pieces:**` list when present.
+1. **Build the handle table.** For every corpus `BIBLIOGRAPHY.md` (and the
+   root `references.md` if present): entry number → handle, plus the
+   `**Pieces:**` list when present. If the two disagree about an entry,
+   stop — see Detection.
 2. **Split multi-piece sources.** For compound handles `<entry>-<piece>`,
-   create one attestation per piece (`<piece-handle>.md`, `source_url` = the
-   piece locator) carrying that piece's content. There is no compound
-   citation syntax in Workbench; a piece attestation is an ordinary source.
+   create one attestation per piece (`<piece-handle>.md`). Set `source_url`
+   only when the piece has a genuine URL; otherwise omit it and record the
+   piece locator and its access surface in the attestation (the discipline's
+   no-public-reference rule). There is no compound citation syntax in
+   Workbench; a piece attestation is an ordinary source.
 3. **Rewrite every citation.** Resolve each `[handle]{N}` through the table:
-   rewrite as `[handle]` (bibliographic) or as `[handle]{M}` pointing at a
-   specific attested detail that supports the claim. Never leave a citation
-   that resolves only under the old semantics.
-4. **Count check.** The number of citations before equals the number after;
-   every rewritten citation resolves against its attestation.
+   rewrite as `[handle]{source}` (bibliographic) or as `[handle]{M}` pointing
+   at a specific attested detail that supports the claim. Never leave a
+   citation that resolves only under the old semantics.
+4. **Disposition ledger.** Every retained source citation must map to one or
+   more warranted destination anchors; folded and removed artifacts are
+   accounted for in the manifest. Citation counts may legitimately *grow*
+   during conversion — the reference execution added detail-level anchors
+   where the record supported them (358 source citations → 387 converted
+   anchors). Count equality is not the check; complete, accounted resolution is.
 
 ## Verification
 
-- `lint-research.py` passes with zero errors; every citation resolves.
+- `lint-research.py` passes with zero errors; every citation — detail and
+  bibliographic — resolves.
 - Every attestation carries required frontmatter and a numbered
   `## Attested details` list; every brief lists its cited handles in
   `source_handles`.
 - `bibliography.yaml` and `.knowledge/index.json` build; the index `--check`
   passes.
-- Spot-check a sample of remapped citations against their original
-  bibliography entries — text on both sides should warrant the same claim.
+- Every judgment-marked remap in the manifest gets a semantic review against
+  its original bibliography entry — text on both sides should warrant the
+  same claim. Mechanical-marked remaps need only resolve.
+- The manifest is complete: no source citation is unaccounted for.
 
 ## Safety posture
 
 Dry-run inventory and mapping report first; the user approves the tier
-dispositions (precis folds, campaign removals, raw material) before any
-write. Hard cutover in one commit, Git-reversible, one repository at a time.
-Nothing in this mapping runs autonomously across repositories.
+dispositions (precis promotion vs fold, campaign artifact sorting, raw
+material, corpus metadata) before any write. Hard cutover in one commit,
+Git-reversible, one repository at a time. Nothing in this mapping runs
+autonomously across repositories.
