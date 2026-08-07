@@ -24,13 +24,14 @@ The work closes the verified gaps between Workbench's compressed research
 discipline and the ARD grounding floor it was compressed from (see
 `## Gap analysis`), stabilizes citation anchors, and makes the knowledge index
 enforceably discovery-only. A small owner guard stops Workbench from silently
-rewriting foreign research substrates; the larger knowledge-product profile
-seam is blocked pending the agentic-research representation decision.
+rewriting foreign research substrates (**landed 2026-08-03**); the
+knowledge-product profile seam is Workbench-native and active — the
+agentic-research convergence program it once waited on was retired 2026-07-29.
 
-The existing `epic-ard-okf-representation-convergence` remains the broader
-agentic-research representation decision. This epic is Workbench-specific and
-does not decide whether ARD itself adopts, exports, or rejects an OKF-shaped
-storage representation.
+Context 2026-07-29: `agentic-research` entered maintenance and the
+`epic-ard-okf-representation-convergence` representation program was retired
+unshipped; its decisions survive in git history. This epic is Workbench-
+specific; legacy ARD substrates are foreign-owned under the owner declaration.
 
 ## Gap analysis (verified 2026-07-29, re-verified 2026-08-03)
 
@@ -97,17 +98,16 @@ and the deferred profile seam.
   the pinned validated-only indexing invariant; edge semantics remain open.
 - `epic-workbench-research-hardening-research-owner-guard` (story) — owner
   declaration + stop/delegate rule; lands now. **Landed 2026-08-03.**
-- `epic-workbench-research-hardening-knowledge-product-profile` (feature,
-  blocked) — the extension-point seam; blocked on the agentic-research
-  ARD-on-OKF profile specification.
+- `epic-workbench-research-hardening-knowledge-product-profile` (feature) —
+  the Workbench-native knowledge-product seam; unblocked 2026-07-29 when the
+  convergence program was retired.
 
 ## Exclusions
 
 - Reintroducing ARD's ten-field registration or positioning dials.
 - Mandating specialist fan-out, decomposition artifacts, or a fixed gate stack.
 - Making Workbench's two-tier research layout identical to agentic-research.
-- Resolving the broader OKF adoption/interchange decision tracked by the related
-  representation epic.
+- Reopening the retired agentic-research representation-convergence program.
 
 ## Acceptance evidence
 
