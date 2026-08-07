@@ -11,7 +11,7 @@
   "interface": {
     "displayName": "Agentic Research Discipline",
     "shortDescription": "Grounded, verifiable AI research discipline",
-    "longDescription": "ARD makes AI research grounded and verifiable: a non-erodable anti-fabrication floor, a per-engagement control-space of selectable verification gates, and a .research/ substrate tier (attestations, precis, analytical syntheses) paralleling the operational .work/ tier. Citations use the [handle]{N} convention with per-source attestations, enforced by a citation-chain lint. ARD is the plugin's internal, empirically-warranted discipline, maintained in ard-core/.",
+    "longDescription": "ARD makes AI research grounded and verifiable: a non-erodable anti-fabrication floor, a per-engagement control-space of selectable verification gates, and a .research/ substrate tier (attestations, precis, analytical syntheses) paralleling the operational .work/ tier. Citations use the [handle]{N} convention with per-source attestations, enforced by a citation-chain lint. ARD is the plugin's internal, empirically-warranted discipline, maintained in ard-core/. ARD is in maintenance mode: the discipline bundle is frozen and existing substrates remain supported; new research engagements should use the workbench plugin's research skill.",
     "developerName": "Kevoun",
     "category": "Productivity",
     "capabilities": [
@@ -22,7 +22,7 @@
       "WebFetch"
     ],
     "defaultPrompt": [
-      "Use agentic-research to run a grounded research engagement with citation attestations and verification gates."
+      "Use agentic-research only on existing ARD substrates; for new research, use the workbench plugin's research skill instead."
     ],
     "websiteURL": "https://github.com/nklisch/skills"
   }
