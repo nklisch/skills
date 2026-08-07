@@ -156,8 +156,8 @@ path-derived OKF concept IDs [okf-spec]{9}.
 
 OKF v0.2 supersedes v0.1 [okf-spec-v02]{1} and natively adds families this
 assessment treated as absent from the envelope: `sources` with objective
-per-source credibility signals [okf-spec-v02]{2}{3}, `generated`/`verified`
-verification events with consumer-derived trust tiers [okf-spec-v02]{5}{6},
+per-source credibility signals [okf-spec-v02]{2} [okf-spec-v02]{3}, `generated`/`verified`
+verification events with consumer-derived trust tiers [okf-spec-v02]{5} [okf-spec-v02]{6},
 `status`/`stale_after` lifecycle fields [okf-spec-v02]{7}, and an `Attested
 Computation` concept type [okf-spec-v02]{9}.
 
