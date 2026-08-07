@@ -19,11 +19,12 @@ plans, research, generated indexes, foundation documents, CI, package scripts,
 release practices, and repeated repository behavior. Classify unknown systems
 by meaning instead of requiring a named adapter.
 
-Classify any `.research/` substrate by owner. An `owner: workbench`
-declaration (or the canonical two-tier layout) is Workbench-owned; a
+Classify any `.research/` substrate by owner. An explicit `owner: workbench`
+declaration marks Workbench ownership — layout alone never proves it. A
 declaration naming another research system (for example
-`owner: agentic-research`) or a foreign tier layout is foreign-owned;
-artifacts with no discernible conventions are unknown. Report foreign or
+`owner: agentic-research`) or a foreign tier layout is foreign-owned; a
+canonical-shaped tree without a declaration is unknown until the user
+confirms ownership. Report foreign or
 unknown research substrates separately from competing `.work` owners, and
 require explicit user approval before any representation change to them —
 never silently initialize a second schema alongside a foreign tree or flatten
