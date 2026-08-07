@@ -53,7 +53,8 @@ Decided:
   `kind: attestation`, bibliography membership, or any evidence-shaped
   classification from path placement. OKF v0.2's warrant-shaped fields —
   `verified`, derived trust tiers, `usage_count`, `status`, `stale_after`
-  [okf-spec-v02]{2}{5}{6}{7} — are read from the artifact by the consumer and
+  [okf-spec-v02]{2} [okf-spec-v02]{5} [okf-spec-v02]{6} [okf-spec-v02]{7} —
+  are read from the artifact by the consumer and
   are never projected into the index as entry-level metadata.
 - **Machine-readable derivedness.** The index output identifies itself and
   its entries as derived discovery metadata in the JSON contract, not in

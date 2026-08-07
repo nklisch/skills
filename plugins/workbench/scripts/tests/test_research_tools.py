@@ -160,6 +160,44 @@ relationships: []
         self.assertEqual(result.returncode, 1)
         self.assertIn("has no attested detail", result.stdout)
 
+    def test_source_reference_resolves(self) -> None:
+        root = self.make_project()
+        path = root / ".research/briefs/example.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "[source-a]{1}", "[source-a]{1} [source-a]{source}"
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_tool(LINT, root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_source_reference_must_resolve(self) -> None:
+        root = self.make_project()
+        path = root / ".research/briefs/example.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "[source-a]{1}", "[source-a]{1} [source-b]{source}"
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_tool(LINT, root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("unresolved citation handle source-b", result.stdout)
+
+    def test_chained_citation_braces_fail(self) -> None:
+        root = self.make_project()
+        path = root / ".research/briefs/example.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "[source-a]{1}", "[source-a]{1}{source}"
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_tool(LINT, root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("chained citation braces", result.stdout)
+
     def test_broken_relationship_fails_index(self) -> None:
         root = self.make_project()
         path = root / "docs/ARCHITECTURE.md"

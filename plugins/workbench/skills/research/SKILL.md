@@ -88,7 +88,8 @@ PII, PHI, credentials, or other prohibited sensitive data.
 
 ## Synthesize
 
-Write `.research/briefs/<id>.md`. Cite attested details as `[handle]{N}`.
+Write `.research/briefs/<id>.md`. Cite attested details as `[handle]{N}` and
+source-level warrant as `[handle]{source}`.
 Distinguish source claims from inference. Search for disconfirming evidence
 before each load-bearing conclusion.
 

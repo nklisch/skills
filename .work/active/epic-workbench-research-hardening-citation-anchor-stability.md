@@ -93,13 +93,15 @@ Canonical invariants (every Workbench research substrate, not overridable):
 
 - **Two citation types, one anchor store.** A *detail reference*
   `[handle]{N}` cites attested detail N within the attestation; a
-  *bibliographic reference* `[handle]` cites the attestation as a source
-  record. The handle is the attestation slug (filename stem). The shape
-  carries the granularity at the point of use — no declaration is needed to
-  tell the types apart. An unmarked claim of fact carries a detail reference;
-  bibliographic references serve context, framing, and claims about the
-  source itself. This is additive: `[handle]{N}` keeps its current meaning
-  everywhere it already appears, and no existing substrate converts.
+  *bibliographic reference* `[handle]{source}` cites the attestation as a
+  source record. The handle is the attestation slug (filename stem). The
+  `{source}` tag carries the granularity at the point of use — explicit,
+  lint-matchable, and never colliding with Markdown link syntax (a bare
+  `[handle]` form was rejected on review for exactly that collision and for
+  being invisible to the lint). An unmarked claim of fact carries a detail
+  reference; bibliographic references serve context, framing, and claims
+  about the source itself. This is additive: `[handle]{N}` keeps its current
+  meaning everywhere it already appears, and no existing substrate converts.
 - **Anchors live only inside attestations** (`## Attested details`). Nothing
   else is an anchor of record — not `bibliography.yaml`, not the knowledge
   index, not any authored bibliography. Citation meaning never lives in
@@ -155,9 +157,9 @@ Explicitly not flexible:
   declaration and enforces the declared anchor scheme.
 - Lint resolves citations only against attestations; no bibliography —
   generated or authored — is ever consulted for citation meaning.
-- Lint recognizes bare `[handle]` bibliographic references, verifies the
-  attestation exists, and flags a load-bearing claim that carries only a
-  bibliographic reference (the granularity-honesty check).
+- Lint recognizes `[handle]{source}` bibliographic references and verifies
+  the attestation exists; whether a claim is load-bearing (and so needs a
+  detail reference) is a review rule, not a lint check.
 - Existing Workbench research receives a deterministic validation or migration
   path if lint adoption surfaces currently ambiguous anchors.
 - The discipline, conventions, linter tests, and owner declaration describe

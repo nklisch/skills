@@ -12,6 +12,8 @@ from _frontmatter import parse
 
 
 CITATION = re.compile(r"\[([a-z0-9][a-z0-9-]*)\]\{([1-9][0-9]*)\}")
+SOURCE_REF = re.compile(r"\[([a-z0-9][a-z0-9-]*)\]\{source\}")
+CHAIN = re.compile(r"\{(?:[0-9]+|source)\}\{")
 NUMBERED = re.compile(r"^\s*(\d+)\.\s+\S", re.MULTILINE)
 HANDLE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 ATTESTED_DETAILS = re.compile(
@@ -105,7 +107,17 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
             number = int(number_text)
             if number not in handles[handle][1]:
                 errors.append(f"{rel}: [{handle}]{{{number}}} has no attested detail")
-        if declared and not citations:
+        source_refs = SOURCE_REF.findall(body)
+        for handle in source_refs:
+            if handle not in handles:
+                errors.append(f"{rel}: unresolved citation handle {handle}")
+            elif handle not in declared:
+                errors.append(f"{rel}: citation handle {handle} absent from source_handles")
+        if CHAIN.search(body):
+            errors.append(
+                f"{rel}: chained citation braces; repeat the full [handle]{{N}} form"
+            )
+        if declared and not citations and not source_refs:
             warnings.append(f"{rel}: declares sources but contains no citations")
         if SENSITIVE.search(body):
             errors.append(f"{rel}: possible sensitive-data marker")

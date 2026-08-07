@@ -51,6 +51,12 @@ or a credentialed URL. When no public URL exists, omit `source_url` and explain
 the external access surface in the attestation. These are judgment rules. The
 validation scripts do not decide whether a reference format is acceptable.
 
+Two citation types resolve into attestations. A **detail reference**
+`[handle]{N}` cites attested detail N; every unmarked claim of fact uses this
+form. A **bibliographic reference** `[handle]{source}` cites the source record
+as a whole; use it for context, framing, and claims about the source itself —
+never to imply detail-level support the attestation does not contain.
+
 ## Brief structure
 
 Use this frontmatter for `.research/briefs/<id>.md`:

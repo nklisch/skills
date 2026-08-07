@@ -1,6 +1,8 @@
 # .research/ Conventions
 
 owner: workbench
+detail_addressing: positional
+bibliography: generated
 
 Working contract for the research substrate: externally sourced evidence and
 grounded synthesis that informs work, never the reverse. Aligned with
@@ -32,10 +34,16 @@ grounded synthesis that informs work, never the reverse. Aligned with
 
 ## Citation syntax
 
-`[handle]{N}` — `handle` is the attestation's `source_handle` (lowercase
-kebab-case, equal to its filename); `N` is the numbered detail under that
-attestation's `## Attested details`. Put the detail in the attestation *before*
-citing it in a brief.
+`[handle]{N}` — a detail reference. `handle` is the attestation's
+`source_handle` (lowercase kebab-case, equal to its filename); `N` is the
+numbered detail under that attestation's `## Attested details`. Put the detail
+in the attestation *before* citing it in a brief.
+
+`[handle]{source}` — a bibliographic reference to the source record as a
+whole, for context, framing, and claims about the source itself. Never use it
+to imply detail-level support the attestation does not contain.
+
+Repeat the full form for every citation: `[h]{1} [h]{2}`, never `[h]{1}{2}`.
 
 ## Briefs
 
