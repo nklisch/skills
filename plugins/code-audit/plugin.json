@@ -1,0 +1,10 @@
+{
+  "name": "code-audit",
+  "version": "0.2.2",
+  "description": "Standalone code audit skills that produce markdown reports and remediation plans without requiring agile-workflow or any .work substrate.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT"
+}

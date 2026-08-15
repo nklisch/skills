@@ -46,12 +46,14 @@ behavior, run `python3 scripts/check-workbench-sync.py <skills-marketplace-root>
 against an updated marketplace checkout. The checker permits only the named
 split-package wording differences.
 
-## Two-channel distribution support (Claude Code + Codex, Pi via bridge)
+## Multi-channel distribution support (Claude Code, Codex, Antigravity, Pi via bridge)
 
 Each supported plugin ships channel metadata, kept in lockstep:
 
+- `plugins/<name>/plugin.json` — for Google Antigravity (`agy`).
 - `plugins/<name>/.claude-plugin/plugin.json` — for Claude Code (`/plugin install`).
 - `plugins/<name>/.codex-plugin/plugin.json` — for OpenAI Codex CLI (`codex plugin marketplace add`).
+- `.agents/plugins.json` — registers local workspace plugins for Antigravity discovery.
 - `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json` — separate native Claude and Codex catalogs with the same ordered plugin identities and semantically equivalent sources.
 
 **Pi installation goes through the bridge, not npm.** This repo no longer publishes Pi packages: the `@nklisch/pi-*` packages previously published from here are deprecated on npm, and Pi-native tool packages (`pi-background-tasks`, `pi-zai-research`, `pi-plugins` itself) publish from the `nklisch/pi-extensions` repo. Pi users install this repo's plugins with `@nklisch/pi-plugins`: `/plugins marketplace add nklisch/skills`, then `/plugins add <name>@nklisch-skills`. The bridge reads the marketplace catalogs and discovers skills by directory convention, so a plugin that is well-formed for Claude/Codex is well-formed for Pi.
@@ -61,6 +63,7 @@ The root `.claude-plugin/marketplace.json` uses the legacy string-path shape for
 **Shared surface (works everywhere):** SKILL.md files (open Agent Skills standard at agentskills.io) and each plugin's `skills/` directory.
 
 **Harness-specific surface:**
+- Antigravity: `plugin.json` manifest, `.agents/plugins.json` registry, `mcp_config.json`, and `hooks.json` lifecycle hooks where present.
 - Claude Code: `commands/<name>.md`, Claude hook behavior, and Claude agent definitions where present.
 - Codex: `.codex-plugin/plugin.json` interface metadata and `agents/openai.yaml` skill polish/invocation policy.
 - Pi: whatever the pi-plugins bridge can consume from the shared and Claude/Codex surfaces — Pi-native runtime extensions belong in `nklisch/pi-extensions`, not here.
@@ -69,7 +72,7 @@ Harness-specific surfaces must degrade to absent in other harnesses, never to br
 
 ### Channel parity posture
 
-For supported plugins, behavior is a parity contract, not a best-effort nicety. If Claude Code gets a hook, injection path, substrate maintainer, prompt nudge, command handoff, or generated context source, Codex gets the equivalent in the same change unless a channel capability is impossible. Prefer shared source files and thin adapters: one rules file, one hook script, one substrate model, with host surfaces only adapting event names and UI affordances. When parity cannot be exact, document the degradation and add a check that prevents silent drift.
+For supported plugins, behavior is a parity contract, not a best-effort nicety. If Claude Code gets a hook, injection path, substrate maintainer, prompt nudge, command handoff, or generated context source, Codex and Antigravity get the equivalent in the same change unless a channel capability is impossible. Prefer shared source files and thin adapters: one rules file, one hook script, one substrate model, with host surfaces only adapting event names and UI affordances. When parity cannot be exact, document the degradation and add a check that prevents silent drift.
 
 For agile-workflow specifically, `hooks/hooks.json` is the single hook surface for every host (Claude Code, Codex, and Pi via the bridge's hook-capable plugin host). Rules, prompt-context, and substrate maintenance live once in the shared scripts and `.agents/rules/` sources.
 
@@ -77,7 +80,7 @@ For full background on the Codex format, see `docs/research/codex-plugin-format.
 
 ## Versioning
 
-Each plugin has matching `version` fields across its Claude and Codex manifests. `bump-version.sh` bumps both at once and refuses to run if they're out of sync.
+Each plugin has matching `version` fields across its Claude, Codex, and Antigravity manifests. `bump-version.sh` bumps all manifests at once and refuses to run if they're out of sync.
 
 **Commit your feature changes BEFORE bumping.** `bump-version.sh` auto-commits and pushes the version bump on its own — if you run it with pending changes in the plugin dir, the published bump commit won't contain them. The script refuses to run if `plugins/<plugin>/` has uncommitted changes.
 

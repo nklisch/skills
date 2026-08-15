@@ -1,0 +1,10 @@
+{
+  "name": "workbench",
+  "version": "0.7.1",
+  "description": "Requirements-first delivery with semantic autonomy, lens-driven design, weighted review, and externally grounded research.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT"
+}

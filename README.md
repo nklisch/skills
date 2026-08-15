@@ -1,7 +1,7 @@
 # nklisch/skills
 
 A catalog of plugins and reference skills for AI coding agents — **Claude
-Code**, **OpenAI Codex**, and **Pi**. The plugins cover requirements-first
+Code**, **OpenAI Codex**, **Google Antigravity (AGY)**, and **Pi**. The plugins cover requirements-first
 delivery, grounded research, UI mockups, code audits, prose craftsmanship, and
 cross-agent coordination.
 
@@ -12,8 +12,8 @@ and delivery state live in the repository, not in the chat that produced them.
 
 ## Install
 
-You need Claude Code with Task/Agent tool support, the OpenAI Codex CLI, or
-Pi. To adopt Workbench in a project, that project must be a Git repository.
+You need Claude Code with Task/Agent tool support, the OpenAI Codex CLI,
+Google Antigravity (`agy`), or Pi. To adopt Workbench in a project, that project must be a Git repository.
 
 Pick your harness below. Install Workbench first, then add any standalone
 plugins you want.
@@ -44,6 +44,24 @@ codex plugin install nates-toolkit
 codex plugin install agentic-research
 codex plugin install agent-coordination
 codex plugin install prose-craft
+```
+
+### Google Antigravity (AGY)
+
+Clone or vendor the repository and add the desired plugins to your project (`.agents/plugins.json`) or global (`~/.gemini/config/plugins.json`) configuration:
+
+```json
+{
+  "entries": [
+    { "path": "path/to/skills/plugins/workbench" },
+    { "path": "path/to/skills/plugins/ux-ui-design" },
+    { "path": "path/to/skills/plugins/code-audit" },
+    { "path": "path/to/skills/plugins/nates-toolkit" },
+    { "path": "path/to/skills/plugins/agentic-research" },
+    { "path": "path/to/skills/plugins/agent-coordination" },
+    { "path": "path/to/skills/plugins/prose-craft" }
+  ]
+}
 ```
 
 ### Pi

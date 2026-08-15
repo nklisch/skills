@@ -10,10 +10,11 @@ Pi. Plugin behavior belongs to each plugin's own documentation.
 | --- | --- | --- |
 | Claude Code | `.claude-plugin/marketplace.json` | `plugins/<name>/.claude-plugin/plugin.json` |
 | OpenAI Codex | `.agents/plugins/marketplace.json` | `plugins/<name>/.codex-plugin/plugin.json` |
+| Antigravity | `.agents/plugins.json` | `plugins/<name>/plugin.json` |
 | Pi | The `@nklisch/pi-plugins` bridge registers both catalogs | The bridge consumes the catalog entries and plugin directory conventions |
 
 Claude Code uses `/plugin` commands. Codex uses `codex plugin marketplace`
-commands. Pi users install the bridge, add this marketplace, and then add a
+commands. Antigravity uses `.agents/plugins.json` entries. Pi users install the bridge, add this marketplace, and then add a
 plugin:
 
 ```text
@@ -29,16 +30,17 @@ plugins in this repository remains bridge-based.
 
 ## Plugin directory requirements
 
-Each local plugin in this repository distributed through the native catalogs has two channel manifests:
+Each local plugin in this repository distributed through the native channels has three channel manifests:
 
 ```text
 plugins/<name>/
+├── plugin.json                  # Antigravity
 ├── .claude-plugin/plugin.json   # Claude Code
 ├── .codex-plugin/plugin.json    # OpenAI Codex
 └── skills/                      # shared SKILL.md units
 ```
 
-Keep the two manifests aligned:
+Keep the manifests aligned:
 
 - They describe the same plugin identity.
 - They carry the **same `version`**. This is the load-bearing version

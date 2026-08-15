@@ -1,0 +1,10 @@
+{
+  "name": "workflow",
+  "version": "1.5.2",
+  "description": "Software development workflow skills — design features, implement from plans, refactor codebases, extract patterns, design tests, and ship releases.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT"
+}

@@ -25,9 +25,10 @@ plugin="$1"
 bump="$2"
 claude_json="plugins/$plugin/.claude-plugin/plugin.json"
 codex_json="plugins/$plugin/.codex-plugin/plugin.json"
+agy_json="plugins/$plugin/plugin.json"
 
-# Every plugin ships Claude + Codex manifests; the Claude manifest is the
-# canonical version source. (Pi packaging moved to the pi-extensions repo;
+# Every plugin ships Claude + Codex + Antigravity manifests; the Claude manifest
+# is the canonical version source. (Pi packaging moved to the pi-extensions repo;
 # plugin package.json files no longer exist in this repo.)
 if [[ ! -f "$claude_json" ]]; then
   echo "Error: no channel metadata found for $plugin"
@@ -59,9 +60,8 @@ fi
 
 current=$(jq -r '.version' "$claude_json")
 
-# If a Codex manifest exists, require its version to match before bumping.
-# A mismatch means a prior bump went sideways and we shouldn't silently
-# paper over it.
+# If Codex or Antigravity manifests exist, require their versions to match before bumping.
+# A mismatch means a prior bump went sideways and we shouldn't silently paper over it.
 if [[ -f "$codex_json" ]]; then
   codex_current=$(jq -r '.version' "$codex_json")
   if [[ "$current" != "$codex_current" ]]; then
@@ -70,7 +70,21 @@ if [[ -f "$codex_json" ]]; then
       echo "  $claude_json: $current"
       echo "  $codex_json:  $codex_current"
       echo ""
-      echo "Reconcile the two before bumping."
+      echo "Reconcile the manifests before bumping."
+    } >&2
+    exit 1
+  fi
+fi
+
+if [[ -f "$agy_json" ]]; then
+  agy_current=$(jq -r '.version' "$agy_json")
+  if [[ "$current" != "$agy_current" ]]; then
+    {
+      echo "Error: version mismatch between manifests for $plugin."
+      echo "  $claude_json: $current"
+      echo "  $agy_json:    $agy_current"
+      echo ""
+      echo "Reconcile the manifests before bumping."
     } >&2
     exit 1
   fi
@@ -94,6 +108,7 @@ bump_json() {
 
 bump_json "$claude_json"
 [[ -f "$codex_json" ]] && bump_json "$codex_json"
+[[ -f "$agy_json" ]] && bump_json "$agy_json"
 
 # Keep each plugin's self-reported binary version in lockstep with plugin.json.
 # The semver lives canonically in plugin.json; project it into both

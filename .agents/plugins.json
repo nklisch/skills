@@ -1,0 +1,12 @@
+{
+  "entries": [
+    { "path": "plugins/workbench" },
+    { "path": "plugins/nates-toolkit" },
+    { "path": "plugins/code-audit" },
+    { "path": "plugins/ux-ui-design" },
+    { "path": "plugins/agentic-research" },
+    { "path": "plugins/agent-coordination" },
+    { "path": "plugins/prose-craft" },
+    { "path": "plugins/agile-workflow" }
+  ]
+}
