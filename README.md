@@ -80,8 +80,8 @@ pi install npm:@nklisch/pi-background-tasks   # background jobs and monitors
 pi install npm:@nklisch/pi-zai-research       # Z.ai research tools
 ```
 
-**peeragent** (cross-harness peer delegation and review) is an external
-companion. Install it through the bridge or from
+**peeragent** (cross-harness peer delegation for implementation, research, and
+review) is an external companion. Install it through the bridge or from
 [its own repository](https://github.com/nklisch/peeragent):
 
 ```text
@@ -89,7 +89,7 @@ companion. Install it through the bridge or from
 ```
 
 ```bash
-pi install git:github.com/nklisch/peeragent@v0.4.1
+pi install git:github.com/nklisch/peeragent@v0.6.0
 ```
 
 ## Start using Workbench

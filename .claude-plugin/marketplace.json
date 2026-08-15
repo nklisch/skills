@@ -114,10 +114,10 @@
         "url": "https://github.com/nklisch/peeragent",
         "path": "plugin"
       },
-      "description": "Delegate arbitrary task work between local coding agents — any host (Claude Code, Codex, or Pi) can call any peer (Codex, Claude Code, Gemini through Antigravity, or Z.AI GLM 5.2 through Pi). Ships the peer and peer-review skills.",
+      "description": "Delegate arbitrary task work between local coding agents — any host (Claude Code, Codex, or Pi) can call any peer (Codex, Claude Code, Gemini through Antigravity, or Z.AI GLM 5.2 through Pi). Ships the peer skill.",
       "category": "productivity",
       "tags": [
-        "peer-review",
+        "peer",
         "delegation",
         "codex",
         "gemini",
