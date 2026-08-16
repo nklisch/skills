@@ -32,6 +32,7 @@
 ├── briefs/<id>.md
 └── bibliography.yaml
 .knowledge/index.json  # committed, deterministic discovery index
+corpora/<corpus-slug>/  # optional repo-named collection root — see Collection roots
 docs/<repository-wide foundations>
 <sub-project>/docs/<scope-owned foundations>
 docs/<sub-project>/<scope-owned foundations>
@@ -46,6 +47,9 @@ AGENTS.md
   convention.
 - `.knowledge/index.json` is generated discovery metadata with no independent
   authority.
+- a collection root holds a curated source collection — acquisition
+  manifests, licensing posture, fetch recipes, and gitignored raw fetches —
+  as product substrate rather than evidence.
 
 Foundation names follow the repository's confirmed documentation conventions;
 the contracts and examples below determine how to choose and shape them.
@@ -89,6 +93,25 @@ These names are examples, not a required bundle. Combine documents when their
 truth is small and cohesive; split them when scopes or audiences own materially
 different assertions. Code remains the structural authority for
 repository-internal contracts unless the confirmed convention says otherwise.
+
+## Collection roots
+
+A repository whose product includes a curated source collection — per-corpus
+manifests, licensing and provenance records, fetch recipes, and gitignored
+raw fetches — keeps it in a peer collection root instead of `.research/`.
+The directory name is the repository's (`corpora/` is one convention); setup
+records it in `.work/CONVENTIONS.md` project guidance when one is adopted.
+
+A collection root is product substrate, not evidence, and placement keeps
+the two apart: an attestation warrants a claim about what an engagement
+actually fetched; a corpus manifest describes an acquired source. Attestations
+cite into the collection by handle. The root carries no Workbench machinery
+of its own — no frontmatter contract, no validator requirements.
+
+When setup moves a legacy `reference/` tier into a collection root, it moves
+raw fetches together with their manifests (raws are never deleted by
+conversion) and rewrites inbound references that target the old path —
+gitignore patterns, render and build pipelines, scripts, and indexes.
 
 ## Workbench conventions
 

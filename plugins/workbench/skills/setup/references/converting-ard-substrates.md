@@ -24,6 +24,15 @@ A `.research/` substrate is ARD-owned when any of these hold:
 
 The agentic-research plugin being installed is corroborating, not decisive.
 
+`reference/` content must itself be classified before mapping. Curated corpus
+manifests — per-corpus INDEX or BIBLIOGRAPHY files, READMEs, licensing notes,
+fetch recipes — are a curated source collection, not evidence. When the
+repository's product is the corpus, map the collection to a peer collection
+root (canonical-layout.md § Collection roots) instead of forcing corpus
+entries into attestations: an attestation is agent warrant over what an
+engagement actually fetched, while a manifest describes an acquired source.
+The citation lookup table still runs through the manifests during remap.
+
 If a substrate carries both a root `references.md` and per-corpus
 `BIBLIOGRAPHY.md` files that disagree about what an `{N}` target means (a
 known ARD drift), **stop** and resolve the ambiguity with the user before
@@ -61,9 +70,10 @@ is the audit trail for a real-data migration.
 | `precis/<handle>.md` (composed or multi-source) | Promote to a `briefs/<id>.md` — composed precis content is synthesis, not a source-faithful summary | judgment |
 | `analysis/briefs/`, `analysis/positions/` | `briefs/<id>.md` — genuine synthesis becomes briefs under the discipline's brief-structure frontmatter contract | mechanical |
 | `analysis/campaigns/**` | Sort per artifact: durable specialist syntheses, contradiction records, and verification checklists become linked `briefs/`; only process narration (dispatch records, decomposition-rationale, restated checklists) is removed. Ask the user for the disposition on large corpora | judgment |
-| `reference/<corpus>/BIBLIOGRAPHY.md`, root `references.md` | Retain until the citation remap completes — the lookup table — then remove | mechanical |
-| `reference/<corpus>/raw/` | Raw local copies are repository material, not research artifacts; move outside `.research/` or remove per user decision | judgment |
-| Corpus-level metadata (licenses, themes, source grouping) | Preserve as a curated projection or a note in `.research/CONVENTIONS.md`; do not drop silently | mechanical |
+| `reference/<corpus>/` (curated manifests — INDEX/README, licenses, fetch recipes) | Move the corpus directory to a peer collection root (repo-named, e.g. `corpora/`) as product substrate — see canonical-layout.md § Collection roots | mechanical for the move; root naming and manifest reconciliation are judgment |
+| `reference/<corpus>/raw/`, gitignored raw fetches | Move with their corpus manifest to the collection root — raws are repository material, not research artifacts, and conversion never deletes them | mechanical |
+| `reference/<corpus>/BIBLIOGRAPHY.md`, root `references.md` | Retain until the citation remap completes — the lookup table — then remove; when the bibliography doubles as the corpus manifest it stays at the collection root with only its lookup role ending | mechanical |
+| Corpus-level metadata (licenses, themes, source grouping) | Stays in the corpus manifests at the collection root (or a note in `.research/CONVENTIONS.md` when no collection root exists); do not drop silently | mechanical |
 
 ## Anchor remap procedure
 
@@ -100,12 +110,15 @@ is the audit trail for a real-data migration.
 - Every judgment-marked remap in the manifest gets a semantic review against
   its original bibliography entry — text on both sides should warrant the
   same claim. Mechanical-marked remaps need only resolve.
+- Inbound references to moved `reference/` paths — gitignore patterns, render
+  and build pipelines, scripts — resolve against the collection root.
 - The manifest is complete: no source citation is unaccounted for.
 
 ## Safety posture
 
 Dry-run inventory and mapping report first; the user approves the tier
 dispositions (precis promotion vs fold, campaign artifact sorting, raw
-material, corpus metadata) before any write. Hard cutover in one commit,
-Git-reversible, one repository at a time. Nothing in this mapping runs
-autonomously across repositories.
+material, corpus metadata, collection-root naming) before any write. Hard
+cutover in one commit, Git-reversible, one repository at a time. Nothing in
+this mapping runs autonomously across repositories. Raw fetches are only ever
+moved with their manifests, never deleted.

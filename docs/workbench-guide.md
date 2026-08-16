@@ -318,6 +318,18 @@ Workbench never fetches, attests, synthesizes, or indexes PII, PHI,
 credentials, session material, or other prohibited sensitive data. Narrow
 or redact the source, or use an approved non-LLM process instead.
 
+### Curated source collections
+
+Some repositories curate sources as product, not just evidence — a media
+library, a standards corpus, a design sourcebook. The collection lives in a
+peer collection root (commonly `corpora/`) rather than `.research/`:
+acquisition manifests, licensing posture, and fetch recipes are tracked,
+while raw fetches stay gitignored and are served behind the repository's
+own access rules. Research attestations cite into the collection, and a
+browsable surface that reaches the sources is the owning project's
+rendering concern — setup rewrites its inbound paths when a legacy
+`reference/` tier moves to the collection root.
+
 ## Cut a release summary
 
 If your repo keeps `completed_items: summarize`, finished work leaves
@@ -351,6 +363,7 @@ After adoption, the repo carries:
 └── bibliography.yaml   # generated — don't edit by hand
 
 .knowledge/index.json   # deterministic discovery metadata
+corpora/                # optional curated source collection (product substrate)
 .mockups/               # optional UI alignment artifacts
 docs/                   # current or intended project truth
 AGENTS.md               # canonical cross-agent instructions
