@@ -64,9 +64,9 @@ pi install npm:@nklisch/pi-plugins
 /plugins add workbench@nklisch-skills --scope user
 ```
 
-**Expected result:** Workbench's skills are available to the agent. You
-don't need to invoke them by name — natural language is the control
-surface, and the agent routes from your intent and the repository state.
+**Expected result:** Workbench's skills are installed but inactive. They do
+not route requests until the repository explicitly adopts Workbench. The only
+pre-adoption route is a direct request to run `setup`.
 
 ## Adopt a repository
 
@@ -76,7 +76,7 @@ Tell your agent:
 
 `setup` works from any starting state — greenfield, ad-hoc notes, or an
 existing workflow system — and converges the repo to one clean Workbench
-state. It runs in four moves:
+state. It runs in four core moves, with a fifth continuation for greenfields:
 
 1. **Inventory first.** It reads Git state, agent instructions, workflow
    config, ledgers, plans, research, indexes, foundation docs, CI, and
@@ -91,6 +91,10 @@ state. It runs in four moves:
 4. **Validate, then remove.** It runs the validator, then deletes what it
    migrated. It leaves no `.bak` copies, no migration archives, no legacy
    folders, and no parallel substrates.
+5. **Continue greenfields into ideation.** When no code or foundation yet
+   establishes a coherent project direction, setup routes directly into
+   `ideate`. That continuation reads setup's canonical foundation format and
+   confirmed documentation choices before helping you shape the initial docs.
 
 Removals are classified before they happen. A clean tracked file is
 recoverable from Git. Before removing anything modified, untracked,
@@ -120,15 +124,25 @@ implementation details. It writes nothing binding without your answer.
 **Expected result:** `.work/` exists with conventions recorded,
 `AGENTS.md` carries the Workbench operating rules, and prior workflow
 files are consolidated or removed. `setup` may omit `.research/` and
-`.knowledge/` until the project has research worth retaining.
+`.knowledge/` until the project has research worth retaining. In a greenfield
+repository with no coherent direction yet, setup continues directly into
+`ideate`; ideation uses setup's foundation-document contract and the
+configuration you just confirmed, then offers the smallest useful initial
+foundation set for your explicit write handoff.
 
 **If setup stops:** resolve the exact ambiguity or removal risk it
 reports. Don't keep two active workflow substrates as a workaround.
 
-## Make requests in plain language
+## Make Workbench requests in plain language
 
-You don't need to name a skill. Describe the outcome and the agent routes
-from your intent and the repo state.
+After adoption, you don't need to name a skill for concrete Workbench
+workflows. Describe the tracked project outcome and the agent routes from your
+intent and the repo state. Adoption does not make every request a Workbench
+workflow: loose brainstorming, conversational lookups, explanations, unrelated
+reviews, and other requests that do not need Workbench state remain ordinary
+requests. In a repository without `.work/CONVENTIONS.md` declaring
+`owner: workbench`, all Workbench skills are ignored unless you explicitly ask
+`setup` to adopt it.
 
 | You say | What happens |
 |---|---|
@@ -232,7 +246,9 @@ material scope expansion, production or real-data actions, irreversible
 changes, and external coordination.
 
 **Review weight** controls independent review of consequential designs
-and completed implementation:
+and completed implementation inside concrete Workbench workflows. It does not
+control general reviews, audits, planning discussions, explanations, or loose
+requests merely because they happen in the same repository:
 
 - `none` — self-review and behavioral verification only.
 - `light` — at most one focused independent pass when risk warrants.
@@ -342,9 +358,9 @@ no authority of its own.
 
 ## Recover from common stops
 
-- **The agent offers setup instead of working.** Delivery skills require
-  an adopted repo. Run `setup`, or say you're just exploring — `ideate`
-  works before adoption.
+- **The agent invokes Workbench before adoption.** That is incorrect. Without
+  `.work/CONVENTIONS.md` declaring `owner: workbench`, every Workbench skill is
+  ignored unless you explicitly ask `setup` to adopt the repository.
 - **The agent keeps asking questions you consider obvious.** Your request
   implied a more collaborative posture than you want. Say "drive this to
   done autonomously" — the request wins over the repo default.

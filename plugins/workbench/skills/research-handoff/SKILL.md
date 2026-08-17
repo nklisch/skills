@@ -1,12 +1,18 @@
 ---
 name: research-handoff
-description: Turn actionable findings from completed .research briefs into user-confirmed Workbench items. Use when research suggests implementation, remediation, follow-up investigation, or a project decision worth tracking. Preserve the research record, explain each proposed item's grounding, and create only the items the user confirms.
+description: >
+  Turn actionable findings from completed .research briefs into user-confirmed Workbench items. Use
+  only when .work/CONVENTIONS.md declares owner: workbench and the user requests a concrete handoff
+  into its ledger; ignore this skill otherwise. Preserve the research record, explain each proposed
+  item's grounding, and create only the items the user confirms.
 ---
 
 # Hand Research to Workbench
 
-Read the relevant brief, cited attestations, `.work/CONVENTIONS.md`, and existing
-active and backlog items. Require `owner: workbench` before emitting work.
+First confirm that an upward-found `.work/CONVENTIONS.md` declares
+`owner: workbench`. If it does not, ignore this skill and do not offer setup.
+When active, read the relevant brief, cited attestations, conventions, and
+existing active and backlog items before proposing concrete ledger handoffs.
 
 Identify findings with concrete operational consequences. Do not rewrite
 research to match project preferences, and do not treat every observation as

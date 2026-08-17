@@ -4,6 +4,7 @@
 
 - Authority boundaries
 - Workbench conventions
+- Foundation document contract
 - Active-item frontmatter
 - Backlog frontmatter
 - Completion
@@ -46,16 +47,48 @@ AGENTS.md
 - `.knowledge/index.json` is generated discovery metadata with no independent
   authority.
 
-Foundation names follow the repository's confirmed documentation conventions.
-Common shapes are `VISION.md` for product intent, `ARCHITECTURE.md` for settled
-system structure, `PRINCIPLES.md` for binding principles, `SPEC.md` for a
-normative contract, and `JOURNEYS.md` or `WORKFLOWS.md` for supported user
-journeys and operating flows. These are examples, not a required set — from one
-consolidated document to several focused ones, the names should fit the
-project.
+Foundation names follow the repository's confirmed documentation conventions;
+the contracts and examples below determine how to choose and shape them.
 
 The research capability ships with Workbench. Setup may omit `.research/` and
 `.knowledge/` until the project has research worth retaining.
+
+## Foundation document contract
+
+Setup chooses and records the repository's foundation layout and naming
+convention. In a greenfield bootstrap, `ideate` uses this section directly when
+turning settled project intent into initial foundations; it does not invent a
+second document format.
+
+Every foundation document:
+
+- starts with one clear title and identifies the repository or sub-project scope
+  it owns when that is not obvious from its path;
+- states durable current behavior or explicitly intended project truth, never
+  progress narration, migration history, session history, or a roadmap;
+- defines each load-bearing term before relying on it and begins from user,
+  domain, or business meaning before technical representation;
+- keeps one assertion in one authoritative location and links across scopes
+  rather than duplicating contract truth;
+- uses sections selected for the document's purpose rather than a universal
+  template.
+
+Choose the smallest useful foundation set. Common document contracts are:
+
+- `VISION.md` — audience, problem, desired outcomes, boundaries, and non-goals;
+- `PRINCIPLES.md` — binding decision rules, each with enough rationale to apply
+  it when trade-offs arise;
+- `ARCHITECTURE.md` — settled ownership boundaries, major components, data or
+  control flow, integration points, and structural constraints;
+- `SPEC.md` — normative behavior, invariants, authority boundaries, schemas or
+  protocols whose semantics are document-owned, and conformance expectations;
+- `JOURNEYS.md` or `WORKFLOWS.md` — actors, triggers, observable paths,
+  decisions, failure paths, and completion conditions.
+
+These names are examples, not a required bundle. Combine documents when their
+truth is small and cohesive; split them when scopes or audiences own materially
+different assertions. Code remains the structural authority for
+repository-internal contracts unless the confirmed convention says otherwise.
 
 ## Workbench conventions
 
@@ -143,11 +176,14 @@ Maintain one marked Workbench section in the canonical root `AGENTS.md`:
 <!-- workbench:start -->
 ## Workbench
 
-Confirm `owner: workbench` in `.work/CONVENTIONS.md`. Track active outcomes in
-`.work/active/` and deferred context in `.work/backlog/`. Treat natural-language
-requests as the workflow. Consult `.knowledge/index.json` when present. Use
-features as the normal delivery unit; reserve epics for multiple feature
-outcomes and stories for narrow slices. Preserve `epic → feature → story` when
+Confirm `owner: workbench` in `.work/CONVENTIONS.md`. If that ownership marker
+is absent, ignore every Workbench skill unless the user explicitly asks to run
+`setup` for adoption or migration. In an adopted repository, route only concrete
+Workbench workflow requests through its skills; loose, conversational, and
+unrelated requests stay outside Workbench. Track active outcomes in
+`.work/active/` and deferred context in `.work/backlog/`. Consult
+`.knowledge/index.json` when present. Use features as the normal delivery unit;
+reserve epics for multiple feature outcomes and stories for narrow slices. Preserve `epic → feature → story` when
 items nest. Ask the human about consequential requirements according to the
 effective autonomy posture. Designs and reviews must not invent requirements or
 expand the user's original scope; apply foundation truth and the rational needs
@@ -176,10 +212,13 @@ Keep independent items parallel by default. Add `blocked_by` only when serial
 work reduces rework, ambiguity, or integration risk, and record the reason in
 `## Sequencing`.
 
-Test behavior at stable interfaces, verify the full requested boundary,
-reconcile affected foundation truth, rebuild the knowledge index when indexed
-documentation changes, apply the configured review weight to substantive design
-and implementation, and remove or summarize completed items immediately.
+For concrete Workbench workflows, test behavior at stable interfaces, verify
+the full requested boundary, reconcile affected foundation truth, rebuild the
+knowledge index when indexed documentation changes, apply the configured review
+weight to substantive Workbench design and implementation, and remove or
+summarize completed items immediately. Do not apply that review weight to every
+review, audit, planning discussion, explanation, or loose request in the
+repository.
 <!-- workbench:end -->
 ```
 

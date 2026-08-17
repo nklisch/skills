@@ -37,14 +37,18 @@ Think of Workbench as four things:
    release summaries, research, and research handoff are available when the
    request needs them.
 
-Natural language remains the control surface. You do not move cards through
-stages or decide how agents should coordinate before asking for work.
+Natural language remains the control surface for concrete Workbench workflows.
+You do not move cards through stages or decide how agents should coordinate
+before asking for tracked project work. This does not make Workbench a universal
+router: loose brainstorming, conversational lookups, explanations, unrelated
+reviews, and other requests that do not need Workbench state remain ordinary
+requests.
 
-Delivery skills — `work`, `design`, `park`, and `release` — require the
-repository to adopt Workbench through `setup`. Until then they stop and offer
-setup rather than creating a competing workflow. `ideate` works before
-adoption, so you can think a project through first and decide afterward whether
-to adopt anything.
+Every Workbench skill requires an upward-found `.work/CONVENTIONS.md` declaring
+`owner: workbench`. Without that ownership marker, all skills are ignored. The
+only exception is `setup`, and only when the user explicitly asks to initialize,
+adopt, or migrate to Workbench. Skills do not stop to offer setup merely because
+a request resembles delivery work.
 
 ```text
 Uncertain or coupled decisions ─→ ideate ─→ chosen handoff
@@ -205,8 +209,10 @@ You should not expect autonomy to override permission. Production actions,
 real-data migrations, irreversible decisions, missing product direction,
 external coordination, and material scope expansion still return to a human.
 
-Questions, explanations, diagnoses, and reviews are read-only unless you also
-ask the agent to make changes.
+Questions, explanations, diagnoses, and general reviews remain ordinary
+read-only requests unless you also ask the agent to make changes. They do not
+become Workbench workflows or inherit its review setting merely because the
+repository has adopted Workbench.
 
 ## Collaboration and autonomy
 
@@ -273,9 +279,12 @@ consequence, and better future direction should be explicit.
 
 ## Review depth
 
-One `review_weight` controls independent review of both consequential designs
-and completed implementation. An independent pass means another agent reviews
-the artifact without relying on the conversation that produced it.
+For a concrete Workbench workflow, one `review_weight` controls independent
+review of both its consequential designs and its completed implementation. An
+independent pass means another agent reviews the artifact without relying on the
+conversation that produced it. The setting is a delivery control, not a global
+instruction for every review, audit, planning discussion, explanation, or loose
+request in the repository.
 
 | Weight | Expected review |
 |---|---|
@@ -430,9 +439,11 @@ without explicit approval.
 | [`research`](skills/research/SKILL.md) | Investigating an external, unstable, unfamiliar, contested, or decision-relevant question. |
 | [`research-handoff`](skills/research-handoff/SKILL.md) | Turning selected research findings into proposed Workbench outcomes. |
 
-You can invoke a skill explicitly, but normal requests should not require you to
-know which one is appropriate. The agent routes based on your intent and the
-repository state.
+In an adopted repository, you can invoke a skill explicitly, but concrete
+Workbench requests should not require you to know which one is appropriate. The
+agent routes based on your intent and the repository state while leaving loose
+or unrelated requests outside Workbench. In an uninitialized repository, these
+skills are ignored unless you explicitly invoke `setup` to adopt Workbench.
 
 ## Session posture hook
 
@@ -464,10 +475,13 @@ pi install npm:@nklisch/pi-plugins
 /plugins add workbench@nklisch-skills --scope user
 ```
 
-Then ask:
+Explicitly adopt the repository first:
 
 - “Set up Workbench in this repository.”
-- “Help me think through this project.”
+
+After setup has established `owner: workbench`, ask:
+
+- “Help me think through this tracked project outcome.”
 - “Design this refactor with me.”
 - “Implement this feature.”
 - “Drive the onboarding epics to done.”
@@ -476,7 +490,14 @@ Then ask:
 - “Turn the confirmed findings in this brief into proposed Workbench items.”
 
 `setup` rewrites the repository into one clean state, and that includes deleting
-files it has migrated. It does not leave `.bak` copies or a legacy folder.
+files it has migrated. In a greenfield repository, once ownership and
+conventions are valid, setup continues directly into `ideate`. Ideation uses
+setup's canonical foundation-document contract and confirmed documentation
+choices to shape the project's initial foundations; it does not ask you to
+invoke another skill or invent a second format, and it still waits for your
+explicit foundation handoff before writing them.
+
+Setup does not leave `.bak` copies or a legacy folder.
 Anything clean and tracked is recoverable from Git. Before removing anything
 modified, untracked, ignored, or otherwise unrecoverable, it asks you to create
 a pre-state commit or shows you the exact removal list for confirmation.

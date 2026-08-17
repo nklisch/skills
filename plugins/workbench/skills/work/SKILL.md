@@ -1,6 +1,13 @@
 ---
 name: work
-description: Scope, clarify, build or evaluate a prototype, implement, fix, refactor, simplify, clean up, review, audit, continue, finish one epic, drive several epics to done, or complete ready work inside a named delivery boundary. Use in repositories that have adopted Workbench or may need to adopt it. Offer setup rather than acting when Workbench is absent or another workflow owns the repository. Gather consequential human requirements, route substantial design through design, coordinate execution, park out-of-scope findings, verify at the configured review weight, reconcile project truth, and continue until complete or genuinely blocked.
+description: >
+  Scope, clarify, build or evaluate a prototype, implement, fix, refactor, simplify, clean up,
+  review, audit, continue, finish one epic, drive several epics to done, or complete ready work
+  inside a named delivery boundary. Use only when .work/CONVENTIONS.md declares owner: workbench and
+  the request is a concrete Workbench workflow. Ignore this skill otherwise; do not offer setup or
+  force loose, conversational, or unrelated requests into Workbench. Gather consequential human
+  requirements, route substantial design through design, coordinate execution, verify concrete
+  delivery at the configured review weight, reconcile project truth, and continue until complete.
 ---
 
 # Work
@@ -31,13 +38,16 @@ user in the current conversation, including questions, offers, proposals,
 recommendations, explanations, summaries, and reports. Do not create report
 files or durable no-op records unless the user requests them.
 
-Read `.work/CONVENTIONS.md`, relevant work items, project instructions,
-foundation documents, `.knowledge/index.json` when present, and affected code
-before structural decisions. Foundation documents generally live in root
-`docs/` for repository-wide truth, with sub-project truth in
-`<sub-project>/docs/` or `docs/<sub-project>/` following repository convention. If the substrate is absent or owned by another
-system, stop and offer `setup`; do not invoke destructive conversion without
-the user's explicit choice.
+First confirm that an upward-found `.work/CONVENTIONS.md` declares
+`owner: workbench`. If it does not, ignore this skill and handle the request
+without Workbench; do not offer setup unless the user explicitly asks to adopt
+or initialize Workbench.
+
+When active, read `.work/CONVENTIONS.md`, relevant work items, project
+instructions, foundation documents, `.knowledge/index.json` when present, and
+affected code before structural decisions. Foundation documents generally live
+in root `docs/` for repository-wide truth, with sub-project truth in
+`<sub-project>/docs/` or `docs/<sub-project>/` following repository convention.
 
 Route through `ideate` when the intended outcome, ownership boundary, or basic
 success shape is too ambiguous to form coherent work. Also route there when an
@@ -87,9 +97,12 @@ invent requirements or enlarge it. Applicable foundation documents constrain
 and clarify that outcome; they do not automatically pull adjacent intended work
 into the current boundary.
 
-A request to review, audit, explain, or diagnose remains read-only. Report the
-result in the current conversation and change nothing unless the user also asks
-for a change.
+A concrete review or audit of a named Workbench outcome remains read-only.
+Report the result in the current conversation and change nothing unless the
+user also asks for a change. General code review, explanation, diagnosis, and
+other loose requests are not Workbench workflows and do not acquire ledger,
+closure, or configured review-weight obligations merely because the repository
+uses Workbench.
 
 For an epic, include required children and integration. For several epics,
 resolve the complete named target set. For a delivery outcome, discover
@@ -185,10 +198,11 @@ external blocker prevents meaningful progress.
 
 ## Verify, review, and close
 
-Verify behavior at stable interfaces, run required project checks, and exercise
-meaningful user journeys. Read [references/review.md](references/review.md),
-resolve the effective `review_weight`, and apply its implementation-review
-policy, including the mandatory non-expansion instruction in every review
+For the concrete Workbench delivery outcome, verify behavior at stable
+interfaces, run required project checks, and exercise meaningful user journeys.
+Read [references/review.md](references/review.md), resolve the effective
+`review_weight`, and apply its implementation-review policy to that Workbench
+outcome, including the mandatory non-expansion instruction in every review
 prompt. An explicit user request overrides the repository default. Verify and
 adjudicate reviewer findings rather than accepting them blindly; reject invented
 requirements and park useful out-of-scope proposals instead of making them

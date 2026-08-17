@@ -154,20 +154,26 @@ Verify both catalogs preserve the same ordered plugin identities and semanticall
 <!-- workbench:start -->
 ## Workbench
 
-Confirm `owner: workbench` in `.work/CONVENTIONS.md`. Track active outcomes in
-`.work/active/` and deferred context in `.work/backlog/`. Treat natural-language
-requests as the workflow. Consult `.knowledge/index.json` when present. Use
-features as the normal delivery unit, epics for multiple feature outcomes, and
-stories for narrow slices. Preserve `epic → feature → story` when items nest.
-Ask the human about consequential requirements and pause for the answer. Keep
+Confirm `owner: workbench` in `.work/CONVENTIONS.md`; without it, ignore every
+Workbench skill unless the user explicitly asks to run `setup` for adoption or
+migration. In an adopted repository, route only concrete Workbench workflow
+requests through its skills. Loose, conversational, and unrelated requests stay
+outside Workbench. Track active outcomes in `.work/active/` and deferred context
+in `.work/backlog/`. Consult `.knowledge/index.json` when present. Use features
+as the normal delivery unit, epics for multiple feature outcomes, and stories
+for narrow slices. Preserve `epic → feature → story` when items nest. Ask the
+human about consequential requirements and pause for the answer. Keep
 independent items parallel. Add `blocked_by` only when serial work reduces
 rework, ambiguity, or integration risk, and record the reason in
 `## Sequencing`. Designs and reviews must not invent requirements or expand the
 user's original scope; apply foundation truth and the rational needs of the
 actual project type, flag overbuilding, and park useful adjacent findings
-instead. Test behavior at stable interfaces, verify the full requested boundary,
-reconcile affected foundation truth, and remove or summarize completed items
-immediately.
+instead. For concrete Workbench workflows, test behavior at stable interfaces,
+verify the full requested boundary, apply the configured review weight to
+substantive Workbench design and implementation, reconcile affected foundation
+truth, and remove or summarize completed items immediately. Do not apply that
+review weight to every review, audit, planning discussion, explanation, or loose
+request in the repository.
 <!-- workbench:end -->
 
 ## Engineering posture

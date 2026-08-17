@@ -1,13 +1,20 @@
 ---
 name: release
-description: Prepare a versioned Workbench release summary from completed outcome stubs. Use when the user asks for release notes, names a release version, or asks to bind completed outcomes to a version. Verify eligible outcomes, write one summary under .work/releases, remove the selected completion stubs, and run repository-defined checks. This skill does not provide a conversational status summary, tag, publish, or deploy.
+description: >
+  Prepare a versioned Workbench release summary from completed outcome stubs. Use only when
+  .work/CONVENTIONS.md declares owner: workbench and the user asks to bind its completed outcomes to
+  a version; ignore this skill for uninitialized repositories or ordinary release-note requests.
+  Verify eligible outcomes, write one summary under .work/releases, remove the selected completion
+  stubs, and run repository-defined checks. This skill does not tag, publish, or deploy.
 ---
 
 # Release Workbench Outcomes
 
-Confirm Workbench ownership and `completed_items: summarize`. If conventions are
-absent, another system owns `.work/`, or `completed_items: discard`, stop and
-explain the applicable setup or convention change. Do not write a release.
+Confirm that an upward-found `.work/CONVENTIONS.md` declares `owner: workbench`.
+If it does not, ignore this skill and handle the request without Workbench; do
+not offer setup. When Workbench is active, require `completed_items: summarize`.
+If it is `discard`, explain the applicable convention change and do not write a
+release.
 Otherwise, read the selected completion stubs in `.work/completed/`, existing
 release history, and project delivery conventions.
 

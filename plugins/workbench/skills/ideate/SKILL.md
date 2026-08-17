@@ -1,12 +1,31 @@
 ---
 name: ideate
-description: Collaboratively clarify, explore, or stress-test uncertain work before it is scoped. Use when the user asks to brainstorm, think something through, explore prior art, explore whether or what to prototype, be grilled, challenge assumptions, bootstrap a project, or define a substantial sub-project; also use when an apparently clear request still depends on several coupled product, domain, or business decisions. Inspect discoverable context and write nothing until the user explicitly chooses a Workbench, research, backlog, or foundation handoff.
+description: >
+  Collaboratively clarify, explore, or stress-test uncertain Workbench work before it is scoped. Use
+  only when .work/CONVENTIONS.md declares owner: workbench and the user is exploring a concrete
+  project outcome that may enter its ledger. Ignore this skill for uninitialized repositories and
+  loose brainstorming, discussion, or exploration that does not need a Workbench handoff. Inspect
+  discoverable context and write nothing until the user explicitly chooses a Workbench, research,
+  backlog, or foundation handoff.
 ---
 
 # Ideate
 
 Help the user discover what they actually want before turning the conversation
 into project state.
+
+First confirm that an upward-found `.work/CONVENTIONS.md` declares
+`owner: workbench`. If it does not, ignore this skill and continue as an ordinary
+conversation without offering setup. Even in an adopted repository, use this
+skill only when the exploration concerns a concrete outcome that may need a
+Workbench handoff; loose brainstorming and discussion stay outside Workbench.
+
+When setup routes directly here after a greenfield bootstrap, read setup's
+[foundation document contract](../setup/references/canonical-layout.md#foundation-document-contract)
+and [principle candidates](../setup/references/principle-candidates.md) before
+exploration. Treat the documentation layout, naming, contract-truth ownership,
+and principles already confirmed during setup as settled inputs; do not ask for
+them again or invent a parallel foundation format.
 
 ## Explore
 
@@ -87,10 +106,14 @@ offer only relevant handoffs:
 - write sub-project foundation documents for a durable, independently coherent
   scope within a monorepo or larger repository.
 
-Write only the handoffs the user explicitly selects. Project setup is one
-possible result, never the assumed result. When the exploration bootstraps a
-project, include which engineering principles to pin in `docs/PRINCIPLES.md`
-among the decisions to settle — adopting them is a setup or foundation
+Write only the handoffs the user explicitly selects. When entered from a
+greenfield setup, continue until the project's initial direction is coherent
+enough to offer the smallest useful foundation set under setup's
+[foundation document contract](../setup/references/canonical-layout.md#foundation-document-contract).
+Include any still-open project-specific principles among the decisions to
+settle, using setup's
+[principle candidates](../setup/references/principle-candidates.md). Adopting
+those principles or writing initial foundations remains an explicit foundation
 handoff, not an ideation write.
 
 Place a sub-project foundation at that scope's established documentation

@@ -1,6 +1,6 @@
 interface:
   display_name: "Research Handoff"
-  short_description: "Turn confirmed research findings into Workbench items"
-  default_prompt: "Use $research-handoff to propose Workbench items from this completed research."
+  short_description: "Hand research into an adopted Workbench ledger"
+  default_prompt: "Use $research-handoff to propose items in this adopted Workbench repository."
 policy:
   allow_implicit_invocation: true

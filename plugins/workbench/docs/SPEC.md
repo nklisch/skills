@@ -38,6 +38,22 @@ AGENTS.md
 
 Workbench and agile-workflow are mutually exclusive `.work/` owners.
 
+## Activation and routing
+
+Workbench is active only when an upward-found `.work/CONVENTIONS.md` declares
+`owner: workbench`. Every Workbench skill checks that boundary and is ignored
+when it is absent or another system owns `.work/`. The sole pre-adoption entry
+point is `setup`, and only when the user explicitly asks to initialize, adopt,
+or migrate to Workbench; another skill must not offer setup merely because a
+request resembles a delivery workflow.
+
+Ownership activates the capabilities, not universal routing. Skills engage only
+for concrete Workbench workflows whose outcome, evidence, backlog capture, or
+release state belongs in Workbench. Loose brainstorming, conversational
+lookups, general explanations, unrelated reviews and audits, and other requests
+that do not need Workbench state remain ordinary requests even inside an
+adopted repository.
+
 ## Communication and durable state
 
 Unless a skill names a repository path or artifact, questions, offers,
@@ -185,8 +201,10 @@ Autonomy never expands scope, authority, safety boundaries, or quality
 obligations. Workarounds require a real constraint and retain the constraint,
 consequence, and better future direction.
 
-The effective `review_weight` resolves from explicit user direction,
-`.work/CONVENTIONS.md`, then `standard`:
+For a concrete Workbench design or delivery workflow, the effective
+`review_weight` resolves from explicit user direction, `.work/CONVENTIONS.md`,
+then `standard`. It does not govern general reviews, audits, planning,
+explanations, or unrelated requests made in the repository:
 
 - `none` uses self-review only while preserving verification;
 - `light` permits at most one risk-warranted fresh-context pass;
@@ -332,7 +350,17 @@ Allowed knowledge relationships are `supports`, `contradicts`, `informs`, and
 Setup inventories any existing workflow semantically, aligns conventions with
 the user, maps useful truth to the canonical destinations, validates retained
 content block by block, rewrites inbound references, and only then removes
-superseded artifacts.
+superseded artifacts. Its canonical-layout reference owns the shared foundation
+document contract: scope, durable-truth rules, authority, and the purpose of
+common foundation types.
+
+After a greenfield bootstrap establishes Workbench ownership and conventions but
+no code or foundation establishes coherent project direction, setup routes
+directly into `ideate` in the same engagement. It passes the confirmed
+documentation conventions and links ideation to setup's foundation contract and
+principle candidates. Ideation does not re-ask settled setup choices or duplicate
+the format; it clarifies project intent and writes the smallest useful initial
+foundation set only after the user selects that explicit handoff.
 
 Every removal target is classified as clean tracked, modified tracked,
 untracked, ignored, or otherwise unrecoverable. Clean tracked content is
@@ -357,10 +385,12 @@ remains idempotent.
 The plugin ships a single `SessionStart` hook (`hooks/hooks.json` +
 `hooks/scripts/session-context.py`). When an upward-found `.work/CONVENTIONS.md`
 declares `owner: workbench`, it emits a short, fully static posture reminder as
-additional context: read conventions and foundations first, use features as the
-default delivery unit, preserve strict nested tiers, keep independent work
-parallel, orchestrate multi-unit boundaries, park out-of-scope findings, and
-reconcile and close before declaring done.
+additional context: read conventions and foundations first, route only concrete
+Workbench workflows through its skills, use features as the default delivery
+unit, preserve strict nested tiers, keep independent work parallel, orchestrate
+multi-unit boundaries, park out-of-scope findings, and reconcile and close
+before declaring Workbench delivery done. It explicitly leaves loose,
+conversational, and unrelated requests outside Workbench.
 
 The hook exists for ownership discoverability and post-compaction salience. It
 parses nothing beyond the owner check, keeps no session state, and has no

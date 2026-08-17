@@ -1,6 +1,6 @@
 interface:
   display_name: "Park"
-  short_description: "Capture useful context without expanding current scope"
-  default_prompt: "Use $park to save this idea for later without derailing the current work."
+  short_description: "Capture context in an adopted Workbench backlog"
+  default_prompt: "Use $park to save this idea in the adopted Workbench backlog without expanding scope."
 policy:
   allow_implicit_invocation: true

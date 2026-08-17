@@ -1,8 +1,15 @@
 # Independent Review
 
-Resolve one effective `review_weight` from explicit user instruction,
-`.work/CONVENTIONS.md`, then `standard`. The same weight governs design and
-implementation review so the repository has one understandable rigor control.
+This policy applies only while reviewing a concrete Workbench workflow: an
+implementation-shaping design recorded for a Workbench outcome or completed
+implementation inside a Workbench delivery boundary. It does not govern every
+review, audit, planning discussion, explanation, or loose request made in a
+Workbench-owned repository.
+
+For an applicable workflow, resolve one effective `review_weight` from explicit
+user instruction, `.work/CONVENTIONS.md`, then `standard`. The same weight
+governs that outcome's design and implementation review so the repository has
+one understandable delivery rigor control.
 
 | Weight | Review policy |
 |---|---|

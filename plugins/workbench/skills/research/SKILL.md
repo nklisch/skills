@@ -1,12 +1,24 @@
 ---
 name: research
-description: Conduct and maintain source-grounded research for unstable, unfamiliar, contested, or decision-relevant questions. Use for prior-art analysis, technology or policy investigation, Workbench research commissions, reusable briefs, initializing .research, or rebuilding the unified knowledge index. Treat the user's prompt as scope authority and repository material as grounding; do not turn external research into an implementation audit unless requested. Attest fetched sources, seek disconfirming evidence, preserve contradictions, lint citations, and never place PII or PHI in research artifacts.
+description: >
+  Conduct and maintain source-grounded research for a concrete Workbench workflow. Use only when
+  .work/CONVENTIONS.md declares owner: workbench and the requested evidence should enter Workbench's
+  .research substrate or inform a tracked outcome. Ignore this skill in uninitialized repositories
+  and for loose lookups or unrelated research. Treat the user's prompt as scope authority, attest
+  fetched sources, seek disconfirming evidence, preserve contradictions, lint citations, and never
+  place PII or PHI in research artifacts.
 ---
 
 # Research
 
 Produce reusable research whose claims can be traced to sources fetched during
 the engagement.
+
+First confirm that an upward-found `.work/CONVENTIONS.md` declares
+`owner: workbench`. If it does not, ignore this skill and handle the request
+without Workbench; do not initialize `.research/`, rebuild Workbench's knowledge
+index, or offer setup. Even in an adopted repository, small conversational
+lookups and unrelated research stay outside this skill.
 
 Read [references/discipline.md](references/discipline.md) completely before
 engaging sources. Its grounding floor is mandatory at every depth.

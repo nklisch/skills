@@ -22,8 +22,7 @@ from pathlib import Path
 POSTURE_BLOCK = """\
 This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Read .work/CONVENTIONS.md and foundation docs (root docs/,
-  scope-owned <sub-project>/docs/) before structural decisions; resolve
-  the configured review_weight.
+  scope-owned <sub-project>/docs/) before structural decisions.
 - One active item per coherent outcome. Use features by default, epics for
   multiple feature outcomes, and stories for narrow slices. Preserve
   epic -> feature -> story when items nest.
@@ -35,11 +34,12 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Designs and reviews must not invent requirements or expand the user's
   original scope. Judge against foundation truth and the rational needs
   of this project type; flag overbuilding and park adjacent improvements.
-- Implementation done is not work done: verify at stable interfaces,
-  review at the configured weight, reconcile affected foundation
-  assertions, and close items before declaring done.
-- Route work through the workbench skills: work, design, ideate, park,
-  research, release."""
+- For concrete Workbench design and delivery workflows, implementation done
+  is not work done: verify at stable interfaces, review at the configured
+  weight, reconcile affected foundation assertions, and close items.
+- Route only concrete Workbench workflow requests through work, design,
+  ideate, park, research, or release. Do not force loose, conversational,
+  or unrelated requests into Workbench merely because this repo uses it."""
 
 
 def find_workbench_root(cwd: str | None) -> Path | None:

@@ -1,6 +1,6 @@
 interface:
   display_name: "Research"
-  short_description: "Produce grounded research from fetched source evidence"
-  default_prompt: "Use $research to investigate this question and produce a grounded research brief."
+  short_description: "Ground research for an adopted Workbench workflow"
+  default_prompt: "Use $research to investigate this adopted Workbench question and produce a grounded brief."
 policy:
   allow_implicit_invocation: true

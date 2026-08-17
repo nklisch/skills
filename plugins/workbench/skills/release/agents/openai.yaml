@@ -1,6 +1,6 @@
 interface:
   display_name: "Release"
-  short_description: "Summarize completed Workbench outcomes into a release"
+  short_description: "Release completed outcomes from adopted Workbench"
   default_prompt: "Use $release to prepare a concise release from completed Workbench outcomes."
 policy:
   allow_implicit_invocation: true

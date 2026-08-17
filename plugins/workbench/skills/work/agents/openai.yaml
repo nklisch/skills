@@ -1,6 +1,6 @@
 interface:
   display_name: "Work"
-  short_description: "Drive scoped work or multiple epics to completion"
-  default_prompt: "Use $work to carry this requested outcome through verified completion."
+  short_description: "Drive adopted Workbench outcomes to completion"
+  default_prompt: "Use $work to carry this adopted Workbench outcome through verified completion."
 policy:
   allow_implicit_invocation: true

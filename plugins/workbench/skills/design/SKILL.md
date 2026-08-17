@@ -1,19 +1,19 @@
 ---
 name: design
 description: >
-  Design or stress-test implementation-shaping work before execution. Use when the user asks to
-  design, architect, plan, define a prototype or feasibility experiment, or technically shape new
-  work, a refactor, cleanup, performance change, defect correction, UI journey, data change, or
-  integration. Grounds the design in repository truth, applies the relevant design lens, records a
-  proportionate design in the Workbench item, and reviews it at the configured review weight
-  without making design a mandatory project stage.
+  Design or stress-test concrete Workbench implementation-shaping work before execution. Use only
+  when .work/CONVENTIONS.md declares owner: workbench and the request targets a Workbench outcome;
+  ignore this skill otherwise. Applies the relevant design lens, records a proportionate design in
+  the Workbench item, and reviews that design at the configured review weight without turning loose
+  planning, architecture discussion, or unrelated requests into Workbench workflows.
 ---
 
 # Design
 
-Design reasoning is always required. Keep it inline when repository evidence and
-brief reasoning can resolve local, reversible choices confidently. Use this
-dedicated skill when implementation shape needs meaningful discovery,
+Within a concrete Workbench delivery workflow, design reasoning is always
+required. Keep it inline when repository evidence and brief reasoning can
+resolve local, reversible choices confidently. Use this dedicated skill when
+that Workbench outcome's implementation shape needs meaningful discovery,
 alternatives, boundary definition, or adjudication before execution. This is
 conditional routing, not a size threshold or mandatory project stage. A direct
 design request stops after the reviewed design; `work` may route here and then
@@ -26,13 +26,16 @@ files or durable no-op records unless the user requests them.
 
 ## Resolve the design boundary
 
-Read `.work/CONVENTIONS.md`, the target item when present, project instructions,
+First confirm that an upward-found `.work/CONVENTIONS.md` declares
+`owner: workbench`. If it does not, ignore this skill and handle the request
+without Workbench; do not offer setup unless the user explicitly asks to adopt
+or initialize Workbench.
+
+When active, read `.work/CONVENTIONS.md`, the target item, project instructions,
 foundation documents, relevant code and tests, and `.knowledge/index.json` when
 present. Foundation documents generally live in root `docs/`, with sub-project
 truth in `<sub-project>/docs/` or `docs/<sub-project>/` following repository
 convention. Reconcile stale item claims against the repository before designing.
-If `.work/` is absent or owned by another system, stop and offer `setup`; do not
-create Workbench state or convert a competing substrate implicitly.
 
 Read [../work/references/autonomy.md](../work/references/autonomy.md) and resolve
 the effective autonomy posture. Autonomy governs how decisions are discussed,
@@ -175,9 +178,11 @@ code-owned, document-owned, or a generated mix — following that reference.
 
 ## Review the design
 
-Read [../work/references/review.md](../work/references/review.md). Resolve the
+For this concrete Workbench design, read
+[../work/references/review.md](../work/references/review.md). Resolve the
 effective `review_weight` from an explicit user instruction, then
-`.work/CONVENTIONS.md`, then `standard`.
+`.work/CONVENTIONS.md`, then `standard`. Do not apply that setting to unrelated
+planning, explanation, or review requests.
 
 Always self-check the design against requirements, repository evidence, the
 selected lens, verification feasibility, unnecessary complexity, reversal

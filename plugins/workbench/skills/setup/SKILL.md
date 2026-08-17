@@ -1,12 +1,23 @@
 ---
 name: setup
-description: Destructively consolidate, initialize, migrate, adopt, or refresh Workbench in any repository, removing superseded workflow files after verified conversion. Use when a user asks to set up Workbench, replace agile-workflow or another planning system, reconcile project conventions, clean up overlapping workflow files, or normalize an existing repository into one canonical .work/ state. Always inventory first, align conventions with the user, validate migrated truth, and leave one clean final state.
+description: >
+  Destructively consolidate, initialize, migrate, adopt, or refresh Workbench in any repository,
+  removing superseded workflow files after verified conversion. Outside a Workbench-owned
+  repository, use only when the user explicitly asks to initialize, adopt, migrate to, or set up
+  Workbench; never infer adoption from an unrelated request or another Workbench skill. In an owned
+  repository, use for an explicit upgrade or reconciliation request. Always inventory first, align
+  conventions with the user, validate migrated truth, and leave one clean final state.
 ---
 
 # Setup Workbench
 
 Transform the repository from any starting state into one clean Workbench state.
 Detection changes the mapping, never the final outcome.
+
+When `.work/CONVENTIONS.md` does not declare `owner: workbench`, proceed only
+because the user explicitly requested Workbench initialization, adoption, or
+migration. Do not treat an offer from another skill, a generic implementation
+request, loose planning, or the plugin's availability as consent to adopt.
 
 ## Establish the boundary
 
@@ -179,12 +190,37 @@ silently mutate external scope.
 Re-run validation after cleanup. A second setup run must produce no material
 change.
 
+## Continue a greenfield bootstrap through ideation
+
+Treat the repository as greenfield when setup has initialized its working
+agreement but repository evidence does not yet establish a coherent product or
+project direction in code or foundation documents. After setup validates that
+bootstrap, route directly into [`ideate`](../ideate/SKILL.md) in the same
+engagement rather than ending with an invitation to invoke another skill.
+
+Pass the confirmed documentation location, naming, contract-truth ownership,
+and principles decisions into ideation. Direct `ideate` to read the
+[foundation document contract](references/canonical-layout.md#foundation-document-contract)
+and [principle candidates](references/principle-candidates.md) from setup; these
+are the shared format and decision sources, not prose to duplicate in the
+ideation skill. Ideation then clarifies the project and offers the smallest
+useful foundation-document handoff under its no-write rule. It writes those
+foundations only after the user explicitly selects that handoff.
+
+Do not take this route for an existing project whose code or foundations already
+establish its direction, or for an upgrade of an adopted Workbench repository.
+
 ## Reply to the user
 
-Reply in the current conversation with:
+For a non-greenfield setup or an upgrade, reply in the current conversation
+with:
 
 - conventions adopted, rejected, and reconciled;
 - artifacts consolidated, moved, and removed;
 - validation and project-check results;
 - unresolved ambiguity or external setup;
 - final idempotency result.
+
+For a greenfield bootstrap, give that setup summary as the opening context for
+the immediate `ideate` continuation rather than treating setup as the end of the
+request.

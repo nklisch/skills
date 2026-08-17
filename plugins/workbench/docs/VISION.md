@@ -3,10 +3,13 @@
 Workbench is a compact, requirements-first environment for getting project work
 done and preserving only the state another agent actually needs.
 
-The user speaks naturally: clarify this idea, set up this repository, scope this
-change, finish these epics, park that finding, research the prior art, or prepare
-a release summary. Workbench adapts internally without asking the user to choose
-workflow stages or an orchestration topology.
+In a repository that has explicitly adopted Workbench, the user can speak
+naturally about concrete project outcomes: clarify this tracked idea, scope this
+change, finish these epics, park that finding, commission durable research, or
+prepare a Workbench release summary. Workbench adapts internally without asking
+the user to choose workflow stages or an orchestration topology. It is not a
+universal router for every request, and its skills stay inactive outside an
+adopted repository except when the user explicitly asks `setup` to adopt one.
 
 ## Core commitments
 
@@ -34,9 +37,11 @@ workflow stages or an orchestration topology.
 - **Simplicity is durable.** Prefer maintainable intended states with fewer
   concepts and lower operating and verification cost, not merely smaller diffs.
   Do not hide hacks or oversized validation systems inside autonomous work.
-- **Review depth is legible.** One repository `review_weight` governs design
-  and implementation review, while explicit user direction can override it for
-  a request. `standard` gives substantive work one independent pass without
+- **Review depth is legible and bounded.** One repository `review_weight`
+  governs design and implementation review for concrete Workbench workflows,
+  while explicit user direction can override it for one such workflow. It does
+  not govern loose requests merely because they occur in an adopted repository.
+  `standard` gives substantive Workbench work one independent pass without
   manufacturing convergence or new scope.
 - **The ledger stays small and legible.** Features are the normal delivery unit.
   Epics group multiple feature outcomes, stories hold narrow slices, and nested
@@ -61,6 +66,12 @@ workflow stages or an orchestration topology.
 - **Maintenance follows evidence.** Cohesive cleanup can travel with delivery;
   standalone cleanup and refactors are normal bounded work; broader findings
   are parked.
-- **Setup converges.** Existing systems are semantically converted, validated,
-  and removed. Workbench does not preserve parallel workflow substrates,
+- **Adoption is explicit.** Every Workbench skill first requires
+  `.work/CONVENTIONS.md` with `owner: workbench`. Without it, skills are ignored;
+  only a direct request to initialize, adopt, or migrate may invoke `setup`.
+- **Setup converges and greenfields continue.** Existing systems are
+  semantically converted, validated, and removed. A greenfield bootstrap flows
+  directly into ideation using setup's shared foundation-document contract so
+  the project can establish its initial truth without a second invocation or a
+  competing format. Workbench does not preserve parallel workflow substrates,
   migration archives, or compatibility copies.

@@ -1,6 +1,6 @@
 interface:
   display_name: "Design"
-  short_description: "Shape and review implementation-ready designs"
-  default_prompt: "Use $design to shape and review this work before implementation."
+  short_description: "Shape designs for adopted Workbench outcomes"
+  default_prompt: "Use $design to shape and review this adopted Workbench outcome before implementation."
 policy:
   allow_implicit_invocation: true
