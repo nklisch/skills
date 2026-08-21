@@ -5,9 +5,10 @@ description: >
   review, audit, continue, finish one epic, drive several epics to done, or complete ready work
   inside a named delivery boundary. Use only when .work/CONVENTIONS.md declares owner: workbench and
   the request is a concrete Workbench workflow. Ignore this skill otherwise; do not offer setup or
-  force loose, conversational, or unrelated requests into Workbench. Gather consequential human
-  requirements, route substantial design through design, coordinate execution, verify concrete
-  delivery at the configured review weight, reconcile project truth, and continue until complete.
+  force unrelated requests into Workbench. Route valuable early exploration of substantial or
+  cross-cutting initiatives through ideate before design unless the user requests direct design or
+  execution. Gather consequential requirements, route substantial design through design, coordinate
+  execution, verify at the configured review weight, and continue until complete.
 ---
 
 # Work
@@ -20,10 +21,10 @@ require them to choose a phase, worker topology, or workflow skill.
 ```mermaid
 flowchart TD
     A["Natural-language outcome"] --> B["Inspect scope and repository truth"]
-    B --> C{"Scope coherent?"}
-    C -- "No, or coupled human decisions" --> D["Ideate"]
+    B --> C{"Would exploration materially improve what gets designed?"}
+    C -- "Yes: early, substantial, cross-cutting, or coupled decisions" --> D["Ideate"]
     D --> E["User-selected handoff"]
-    C -- "Yes" --> F["Assess each item's design readiness"]
+    C -- "No, or user requests direct execution/design" --> F["Assess each item's design readiness"]
     E --> F
     F --> G{"Can evidence and brief reasoning settle the shape?"}
     G -- "Yes" --> H["Execute directly or orchestrate units"]
@@ -50,9 +51,14 @@ in root `docs/` for repository-wide truth, with sub-project truth in
 `<sub-project>/docs/` or `docs/<sub-project>/` following repository convention.
 
 Route through `ideate` when the intended outcome, ownership boundary, or basic
-success shape is too ambiguous to form coherent work. Also route there when an
-apparently clear request still depends on several coupled product, domain, or
-business decisions whose answers materially reshape one another or the scope.
+success shape is too ambiguous to form coherent work. Also prefer it for the
+initial exploration of a substantial new initiative, cross-cutting change, or
+early design when a short collaborative pass could materially improve what gets
+designed, and when several coupled product, domain, or business decisions
+materially reshape one another or the scope. Large size alone is insufficient:
+an established mechanical outcome can remain in `work`. Skip the ideation pass
+when the user explicitly requests direct design or execution, or existing items
+and foundation truth already make exploration unlikely to change the outcome.
 Do not create or reshape work items while ideating; resume `work` only after the
 user explicitly selects a Workbench handoff.
 
@@ -112,10 +118,11 @@ does not require a synthetic program item.
 
 Keep clarification inside `work` when the outcome is clear and only a small
 number of mostly local consequential requirements remain. Large or multi-epic
-work stays in `work` when it is already coherent. Use `ideate` when selecting
-the outcome or boundary requires collaborative exploration, or when competing
-directions or several coupled human-owned decisions materially reshape one
-another or the scope.
+work stays in `work` when it is established and exploration would not materially
+change what gets designed. Use `ideate` for valuable initial exploration even
+when a headline request sounds coherent, especially when competing directions
+or several coupled human-owned decisions materially reshape one another or the
+scope.
 
 ## Gather requirements from the human
 

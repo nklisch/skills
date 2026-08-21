@@ -34,12 +34,15 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Designs and reviews must not invent requirements or expand the user's
   original scope. Judge against foundation truth and the rational needs
   of this project type; flag overbuilding and park adjacent improvements.
+- Prefer ideate before design when early exploration of substantial or
+  cross-cutting work could materially improve what gets designed, unless
+  the user requests direct design or execution.
 - For concrete Workbench design and delivery workflows, implementation done
   is not work done: verify at stable interfaces, review at the configured
   weight, reconcile affected foundation assertions, and close items.
-- Route only concrete Workbench workflow requests through work, design,
-  ideate, park, research, or release. Do not force loose, conversational,
-  or unrelated requests into Workbench merely because this repo uses it."""
+- Route only concrete stateful Workbench workflows through work, design,
+  park, research, or release. Ideate may also support write-free exploratory
+  conversation. Do not force unrelated requests into Workbench."""
 
 
 def find_workbench_root(cwd: str | None) -> Path | None:

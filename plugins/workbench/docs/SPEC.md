@@ -40,19 +40,23 @@ Workbench and agile-workflow are mutually exclusive `.work/` owners.
 
 ## Activation and routing
 
-Workbench is active only when an upward-found `.work/CONVENTIONS.md` declares
-`owner: workbench`. Every Workbench skill checks that boundary and is ignored
-when it is absent or another system owns `.work/`. The sole pre-adoption entry
-point is `setup`, and only when the user explicitly asks to initialize, adopt,
-or migrate to Workbench; another skill must not offer setup merely because a
-request resembles a delivery workflow.
+Workbench's stateful workflow is active only when an upward-found
+`.work/CONVENTIONS.md` declares `owner: workbench`. Every stateful skill checks
+that boundary and is ignored when it is absent or another system owns `.work/`.
+`setup` is the sole pre-adoption mutation route and runs only when the user
+explicitly invokes it or states that they want to initialize, adopt, migrate,
+upgrade, refresh, or reconcile Workbench. The same explicit-request requirement
+applies to already-owned repositories; detection, drift, or another skill's
+recommendation never invokes setup. `ideate` may run before adoption because it
+is conversational and write-free; it must not create Workbench or research
+state without an explicit adoption and handoff choice.
 
-Ownership activates the capabilities, not universal routing. Skills engage only
-for concrete Workbench workflows whose outcome, evidence, backlog capture, or
-release state belongs in Workbench. Loose brainstorming, conversational
-lookups, general explanations, unrelated reviews and audits, and other requests
-that do not need Workbench state remain ordinary requests even inside an
-adopted repository.
+Ownership activates the stateful capabilities, not universal routing. Those
+skills engage only for concrete Workbench workflows whose outcome, evidence,
+backlog capture, or release state belongs in Workbench. Ideate may support
+exploratory conversation without implying adoption. Conversational lookups,
+general explanations, unrelated reviews and audits, and other requests that do
+not need Workbench state remain ordinary requests.
 
 ## Communication and durable state
 
@@ -161,7 +165,10 @@ does not tag, publish, or deploy.
 
 ## Design behavior
 
-Design reasoning is always required. Repository evidence and brief reasoning
+Design reasoning is always required. Before formal design, `ideate` is preferred
+when initial exploration of substantial, cross-cutting, or early-stage work
+could materially change what should be designed, unless the user explicitly
+requests direct design. Size alone does not decide the route. Repository evidence and brief reasoning
 may resolve local, reversible choices inline. `design` is callable directly or
 from `work` when implementation shape needs meaningful discovery, alternatives,
 boundary definition, or adjudication. This is conditional routing, not a size
@@ -232,8 +239,11 @@ consequential human-owned choices, and continues until the full named boundary
 is complete or externally blocked.
 
 If the outcome, ownership boundary, or success shape cannot yet form coherent
-work, `work` routes through `ideate`. Ideate preserves a no-write boundary until
-the user selects a Workbench, backlog, research, or foundation handoff.
+work, `work` routes through `ideate`. It also prefers ideation for valuable
+initial exploration of substantial or cross-cutting work when that pass could
+materially improve what gets designed. Established mechanical work and explicit
+requests for direct design or execution bypass the preflight. Ideate preserves
+a no-write boundary until the user selects a handoff.
 
 Standalone cleanup, simplification, and refactoring are ordinary bounded work.
 Behavior-preserving cleanup may travel with a delivery when cohesive; intended

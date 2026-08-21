@@ -3,9 +3,10 @@ name: design
 description: >
   Design or stress-test concrete Workbench implementation-shaping work before execution. Use only
   when .work/CONVENTIONS.md declares owner: workbench and the request targets a Workbench outcome;
-  ignore this skill otherwise. Applies the relevant design lens, records a proportionate design in
-  the Workbench item, and reviews that design at the configured review weight without turning loose
-  planning, architecture discussion, or unrelated requests into Workbench workflows.
+  ignore this skill otherwise. Use after the outcome and basic success shape are understood, or
+  when the user explicitly asks to go directly to design; route valuable initial exploration of a
+  substantial or cross-cutting initiative through ideate first. Applies a design lens, records a
+  proportionate design, and reviews it at the configured weight.
 ---
 
 # Design
@@ -48,6 +49,17 @@ that boundary; they do not authorize pulling every adjacent aspiration into the
 current work. Design may resolve necessary implementation detail, but it must
 not invent product requirements, adjacent capabilities, or a broader quality
 bar to satisfy the designer's preferred ideal state.
+
+Before formal design, route through `ideate` when the user asks for initial
+exploration or when a short collaborative pass could materially change what
+should be designed. Prefer that pass for a substantial new initiative,
+cross-cutting change, or early design with unsettled outcomes, boundaries,
+non-goals, or competing directions. This is broader than inability to scope,
+but size alone is not decisive: a large mechanical change with an established
+outcome can proceed directly to design. Bypass ideation when the user explicitly
+asks to go straight to design or repository truth already settles the outcome
+and exploration is unlikely to change it. The bare use of “design” does not by
+itself mean the user wants to skip discovery.
 
 Keep a clear narrow request narrow. Calibrate the design to the project's actual
 type, maturity, audience, deployment context, and stated risks. Do not add

@@ -40,18 +40,20 @@ Think of Workbench as four things:
 Natural language remains the control surface for concrete Workbench workflows.
 You do not move cards through stages or decide how agents should coordinate
 before asking for tracked project work. This does not make Workbench a universal
-router: loose brainstorming, conversational lookups, explanations, unrelated
-reviews, and other requests that do not need Workbench state remain ordinary
-requests.
+router: unrelated conversation, lookups, explanations, and reviews that do not
+need its capabilities remain ordinary requests.
 
-Every Workbench skill requires an upward-found `.work/CONVENTIONS.md` declaring
-`owner: workbench`. Without that ownership marker, all skills are ignored. The
-only exception is `setup`, and only when the user explicitly asks to initialize,
-adopt, or migrate to Workbench. Skills do not stop to offer setup merely because
-a request resembles delivery work.
+Workbench's stateful skills require an upward-found `.work/CONVENTIONS.md`
+declaring `owner: workbench`. `setup` is the explicit adoption route. `ideate`
+is the only capability that may also run before adoption because it remains a
+write-free conversation; it creates no project state unless you choose a
+handoff and explicitly adopt the required substrate. Setup never starts from
+repository detection, drift, or another skill's recommendation; you must invoke
+it or state that you want Workbench initialized, adopted, migrated, upgraded,
+refreshed, or reconciled.
 
 ```text
-Uncertain or coupled decisions ─→ ideate ─→ chosen handoff
+Early, substantial, uncertain, or coupled work ─→ ideate ─→ chosen handoff
 Clear, coherent outcome ─────────────────────────→ work
 Consequential implementation shape ─→ design ─→ work
 work ─→ verify ─→ review ─→ close
@@ -66,11 +68,13 @@ implementation shape is consequential; obvious, local, reversible choices stay
 inside normal delivery. Research is used when a decision depends on evidence
 outside the repository, not simply because the agent needs to read the code.
 
-Ideation is based on decision uncertainty, not project size. A large, coherent
-initiative can move directly through `work`; a smaller request may need
-`ideate` when several connected product, domain, or business decisions still
-shape what should be built. For broad uncertainty, the agent surveys the open
-decisions before examining the most consequential one in depth.
+Ideation is based on the value of discovery, not ambiguity or size alone. It is
+preferred for the initial exploration of substantial or cross-cutting work when
+a short collaborative pass could materially improve what gets designed. A
+large mechanical change with an established outcome can move directly through
+`work`; a smaller request may need `ideate` when connected product, domain, or
+business decisions still shape what should be built. An explicit request to go
+straight to design or execution bypasses that preflight.
 
 ## What a session looks like
 
@@ -431,8 +435,8 @@ without explicit approval.
 | Skill | Use it when |
 |---|---|
 | [`setup`](skills/setup/SKILL.md) | Adopting Workbench or consolidating an existing workflow into one clean state. |
-| [`ideate`](skills/ideate/SKILL.md) | The outcome is unclear or several coupled human-owned decisions prevent reliable scoping. |
-| [`design`](skills/design/SKILL.md) | Implementation shape is consequential or you explicitly want a technical design. |
+| [`ideate`](skills/ideate/SKILL.md) | Exploring uncertain, substantial, cross-cutting, or early-stage work before committing to scope or design; it may run before adoption. |
+| [`design`](skills/design/SKILL.md) | Shaping consequential implementation after the outcome is understood, or when you explicitly request direct design. |
 | [`work`](skills/work/SKILL.md) | Scoping or delivering a clear outcome, feature, epic, or group of epics. |
 | [`park`](skills/park/SKILL.md) | Preserving a useful finding without expanding current work. |
 | [`release`](skills/release/SKILL.md) | Collapsing retained completion stubs into a concise version summary. It does not tag, publish, or deploy. |
@@ -441,9 +445,10 @@ without explicit approval.
 
 In an adopted repository, you can invoke a skill explicitly, but concrete
 Workbench requests should not require you to know which one is appropriate. The
-agent routes based on your intent and the repository state while leaving loose
-or unrelated requests outside Workbench. In an uninitialized repository, these
-skills are ignored unless you explicitly invoke `setup` to adopt Workbench.
+agent routes based on your intent and the repository state while leaving
+unrelated requests outside Workbench. In an uninitialized repository, `ideate`
+may explore conversationally; all stateful skills remain inactive unless you
+explicitly invoke `setup` to adopt Workbench.
 
 ## Session posture hook
 

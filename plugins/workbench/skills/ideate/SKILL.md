@@ -1,12 +1,12 @@
 ---
 name: ideate
 description: >
-  Collaboratively clarify, explore, or stress-test uncertain Workbench work before it is scoped. Use
-  only when .work/CONVENTIONS.md declares owner: workbench and the user is exploring a concrete
-  project outcome that may enter its ledger. Ignore this skill for uninitialized repositories and
-  loose brainstorming, discussion, or exploration that does not need a Workbench handoff. Inspect
-  discoverable context and write nothing until the user explicitly chooses a Workbench, research,
-  backlog, or foundation handoff.
+  Collaboratively explore, clarify, or stress-test work before committing to scope or design. Use
+  for brainstorming, challenge, initial exploration of a substantial or cross-cutting initiative,
+  early design exploration that could materially change what should be designed, or coupled
+  product, domain, or business decisions. May run before Workbench adoption because it remains
+  conversational and write-free; create project state only after the user explicitly chooses a
+  Workbench, research, backlog, or foundation handoff.
 ---
 
 # Ideate
@@ -14,11 +14,12 @@ description: >
 Help the user discover what they actually want before turning the conversation
 into project state.
 
-First confirm that an upward-found `.work/CONVENTIONS.md` declares
-`owner: workbench`. If it does not, ignore this skill and continue as an ordinary
-conversation without offering setup. Even in an adopted repository, use this
-skill only when the exploration concerns a concrete outcome that may need a
-Workbench handoff; loose brainstorming and discussion stay outside Workbench.
+Ideate may run before or after Workbench adoption. When an upward-found
+`.work/CONVENTIONS.md` declares `owner: workbench`, read its conventions and
+relevant ledger state as context. Otherwise explore conversationally without
+creating `.work/`, `.research/`, or other Workbench state and without treating
+the plugin's availability as consent to adopt it. A durable Workbench, research,
+or backlog handoff requires the user's explicit adoption choice first.
 
 When setup routes directly here after a greenfield bootstrap, read setup's
 [foundation document contract](../setup/references/canonical-layout.md#foundation-document-contract)
@@ -32,9 +33,10 @@ them again or invent a parallel foundation format.
 Inspect relevant files, documents, code, `.knowledge/index.json` when present,
 and recent decisions before asking questions the repository can answer.
 
-Match discovery to the uncertainty. For focused ambiguity, identify the most
-consequential open decision, ask one question at a time, and follow that thread
-deeply before moving sideways. For a broad initiative, first make a short
+Match discovery to its expected decision value. For focused ambiguity, identify
+the most consequential open decision, ask one question at a time, and follow
+that thread deeply before moving sideways. For a substantial, cross-cutting, or
+early-stage initiative, first make a short
 breadth-first survey of the desired outcome, settled constraints, open
 decisions, dependencies, and unresolved in-scope questions that are not yet
 precise enough to scope. Do not turn the survey into a tracker or artifact. Then
@@ -89,8 +91,10 @@ handoff rather than crossing the no-write boundary.
 Stop when the desired outcome and ownership boundary are understandable,
 important alternatives have been considered when relevant, and every remaining
 question is either precise enough for work, design, or research or explicitly
-deferred. If that is already true, say so and offer the next route without
-manufacturing an ideation phase. Stop earlier when the user stops the process.
+deferred. If a brief preflight shows that exploration would not materially
+change what should be designed, say so and offer the next route without
+manufacturing a longer ideation phase. Stop earlier when the user stops the
+process.
 
 ## Preserve the no-write boundary
 
@@ -98,10 +102,12 @@ Do not create files, edit foundations, bootstrap a project, or scope work during
 exploration. Conversational summaries are not project artifacts. At the end,
 offer only relevant handoffs:
 
-- activate a Workbench item, including a prototype whose explicit outcome is
-  learning;
-- park the idea;
-- commission research;
+- offer Workbench adoption and wait for explicit acceptance before invoking
+  `setup`, then activate an item; when already adopted, activate one directly,
+  including a prototype whose explicit outcome is learning;
+- park the idea when Workbench is already adopted, or adopt it first;
+- commission Workbench research when adopted, or use an ordinary conversational
+  research route without creating its substrate;
 - write root foundation documents for repository-wide truth;
 - write sub-project foundation documents for a durable, independently coherent
   scope within a monorepo or larger repository.

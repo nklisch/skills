@@ -97,12 +97,14 @@ class MainTest(unittest.TestCase):
         self.assertIn("Workbench-owned", context)
         self.assertIn("concrete Workbench design and delivery workflows", context)
         self.assertIn("review at the configured", context)
-        self.assertIn("Route only concrete Workbench workflow requests", context)
+        self.assertIn("Prefer ideate before design", context)
+        self.assertIn("Route only concrete stateful Workbench workflows", context)
+        self.assertIn("write-free exploratory", context)
         self.assertIn("Use features by default", context)
         self.assertIn("Keep independent items parallel", context)
         self.assertIn("must not invent requirements", context)
         self.assertIn("flag overbuilding", context)
-        self.assertIn("Do not force loose, conversational", context)
+        self.assertIn("Do not force unrelated requests", context)
 
     def test_non_workbench_repo_emits_nothing(self) -> None:
         root = self.make_root()

@@ -1,6 +1,6 @@
 interface:
   display_name: "Workbench Setup"
-  short_description: "Consolidate any repository into clean Workbench state"
-  default_prompt: "Use $setup to consolidate this repository into a clean Workbench setup."
+  short_description: "Explicitly consolidate a repository into Workbench"
+  default_prompt: "Use $setup because I want to consolidate this repository into Workbench."
 policy:
   allow_implicit_invocation: true

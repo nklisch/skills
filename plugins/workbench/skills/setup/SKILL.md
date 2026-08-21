@@ -2,11 +2,11 @@
 name: setup
 description: >
   Destructively consolidate, initialize, migrate, adopt, or refresh Workbench in any repository,
-  removing superseded workflow files after verified conversion. Outside a Workbench-owned
-  repository, use only when the user explicitly asks to initialize, adopt, migrate to, or set up
-  Workbench; never infer adoption from an unrelated request or another Workbench skill. In an owned
-  repository, use for an explicit upgrade or reconciliation request. Always inventory first, align
-  conventions with the user, validate migrated truth, and leave one clean final state.
+  removing superseded workflow files after verified conversion. Use only when the user explicitly
+  invokes setup or states that they want to initialize, adopt, migrate, upgrade, refresh, or
+  reconcile Workbench. Never infer authorization from repository state, detected drift, another
+  skill, or a setup recommendation. Always inventory first, align conventions with the user,
+  validate migrated truth, and leave one clean final state.
 ---
 
 # Setup Workbench
@@ -14,10 +14,14 @@ description: >
 Transform the repository from any starting state into one clean Workbench state.
 Detection changes the mapping, never the final outcome.
 
-When `.work/CONVENTIONS.md` does not declare `owner: workbench`, proceed only
-because the user explicitly requested Workbench initialization, adoption, or
-migration. Do not treat an offer from another skill, a generic implementation
-request, loose planning, or the plugin's availability as consent to adopt.
+Proceed only when the user explicitly invokes setup or states in the active
+request that they want to initialize, adopt, migrate, upgrade, refresh, or
+reconcile Workbench. This requirement applies whether or not the repository
+already declares `owner: workbench`. Repository ownership, detected drift,
+missing fields, an available newer version, a generic implementation request,
+the plugin's presence, or another skill's recommendation is not authorization.
+Another skill may offer setup, but wait until the user accepts that offer before
+invoking it. Do not carry an unaccepted offer forward as implied consent.
 
 ## Establish the boundary
 

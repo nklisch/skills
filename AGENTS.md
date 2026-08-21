@@ -154,11 +154,16 @@ Verify both catalogs preserve the same ordered plugin identities and semanticall
 <!-- workbench:start -->
 ## Workbench
 
-Confirm `owner: workbench` in `.work/CONVENTIONS.md`; without it, ignore every
-Workbench skill unless the user explicitly asks to run `setup` for adoption or
-migration. In an adopted repository, route only concrete Workbench workflow
-requests through its skills. Loose, conversational, and unrelated requests stay
-outside Workbench. Track active outcomes in `.work/active/` and deferred context
+Confirm `owner: workbench` in `.work/CONVENTIONS.md`; without it, stateful
+Workbench skills stay inactive unless the user explicitly asks to run `setup`
+for adoption, migration, upgrade, refresh, or reconciliation; detection, drift,
+or another skill's recommendation is not authorization. The write-free
+`ideate` skill may explore before adoption. In an adopted repository, route
+concrete Workbench workflows through
+its skills and prefer ideate before design when early exploration of substantial
+or cross-cutting work could materially improve what gets designed, unless the
+user requests direct design or execution. Unrelated requests stay outside
+Workbench. Track active outcomes in `.work/active/` and deferred context
 in `.work/backlog/`. Consult `.knowledge/index.json` when present. Use features
 as the normal delivery unit, epics for multiple feature outcomes, and stories
 for narrow slices. Preserve `epic → feature → story` when items nest. Ask the

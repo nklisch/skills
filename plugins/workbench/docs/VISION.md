@@ -8,16 +8,19 @@ naturally about concrete project outcomes: clarify this tracked idea, scope this
 change, finish these epics, park that finding, commission durable research, or
 prepare a Workbench release summary. Workbench adapts internally without asking
 the user to choose workflow stages or an orchestration topology. It is not a
-universal router for every request, and its skills stay inactive outside an
-adopted repository except when the user explicitly asks `setup` to adopt one.
+universal router for every request. Stateful skills stay inactive outside an
+adopted repository; write-free `ideate` may explore before adoption, and
+`setup` runs only when the user explicitly asks to adopt.
 
 ## Core commitments
 
 - **Human requirements are load-bearing.** Learn repository facts first, then
   ask the user about consequential choices only they can settle.
-- **Ideation precedes premature scope.** A coherent outcome remains in `work`.
-  An unclear outcome or several coupled human-owned decisions route through
-  `ideate`, which writes nothing until the user chooses a handoff.
+- **Ideation precedes premature commitment.** Unclear or coupled decisions and
+  valuable initial exploration of substantial or cross-cutting work route
+  through `ideate`, even before adoption. It writes nothing until the user
+  chooses a handoff. Established work remains in `work` when exploration would
+  not materially change what gets designed.
 - **Design is available, not imposed.** A dedicated `design` skill selects a
   new-work, prototype, refactor, performance, defect, UI/UX, or data/integration
   lens. It shapes implementation when discovery, alternatives, boundaries, or
@@ -66,9 +69,11 @@ adopted repository except when the user explicitly asks `setup` to adopt one.
 - **Maintenance follows evidence.** Cohesive cleanup can travel with delivery;
   standalone cleanup and refactors are normal bounded work; broader findings
   are parked.
-- **Adoption is explicit.** Every Workbench skill first requires
-  `.work/CONVENTIONS.md` with `owner: workbench`. Without it, skills are ignored;
-  only a direct request to initialize, adopt, or migrate may invoke `setup`.
+- **Adoption is explicit.** Stateful Workbench skills require
+  `.work/CONVENTIONS.md` with `owner: workbench`; only a direct request to
+  initialize, adopt, migrate, upgrade, refresh, or reconcile may invoke `setup`.
+  Detection, drift, and recommendations are never consent. Write-free `ideate`
+  may run before adoption without creating project state.
 - **Setup converges and greenfields continue.** Existing systems are
   semantically converted, validated, and removed. A greenfield bootstrap flows
   directly into ideation using setup's shared foundation-document contract so

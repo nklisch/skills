@@ -64,9 +64,11 @@ pi install npm:@nklisch/pi-plugins
 /plugins add workbench@nklisch-skills --scope user
 ```
 
-**Expected result:** Workbench's skills are installed but inactive. They do
-not route requests until the repository explicitly adopts Workbench. The only
-pre-adoption route is a direct request to run `setup`.
+**Expected result:** Stateful Workbench skills are installed but inactive;
+write-free `ideate` may still support exploration. Setup runs only after a
+direct invocation or a natural-language statement that the user wants
+Workbench initialized, adopted, migrated, upgraded, refreshed, or reconciled.
+Repository detection, drift, or another skill's recommendation is not consent.
 
 ## Adopt a repository
 
@@ -138,15 +140,14 @@ reports. Don't keep two active workflow substrates as a workaround.
 After adoption, you don't need to name a skill for concrete Workbench
 workflows. Describe the tracked project outcome and the agent routes from your
 intent and the repo state. Adoption does not make every request a Workbench
-workflow: loose brainstorming, conversational lookups, explanations, unrelated
-reviews, and other requests that do not need Workbench state remain ordinary
-requests. In a repository without `.work/CONVENTIONS.md` declaring
-`owner: workbench`, all Workbench skills are ignored unless you explicitly ask
-`setup` to adopt it.
+workflow: unrelated lookups, explanations, reviews, and other requests that do
+not need its capabilities remain ordinary requests. Before adoption, `ideate`
+may still provide write-free exploration; stateful Workbench skills remain
+inactive unless you explicitly ask `setup` to adopt the repository.
 
 | You say | What happens |
 |---|---|
-| *"Help me think through this project"* | `ideate` — structured exploration that writes nothing until you pick a handoff |
+| *"Help me think through this project"* | `ideate` — structured exploration before or after adoption that writes nothing until you pick a handoff |
 | *"Implement the rate-limiting feature"* | `work` — scopes, designs if consequential, implements, verifies, reviews, closes |
 | *"Drive the onboarding epic to done"* | `work` across the full epic boundary, not just the next item |
 | *"Design this refactor with me"* | `design` in collaborative mode — options discussed before anything binds |
@@ -205,8 +206,12 @@ alone, while nested work follows `epic → feature → story`.
    ledger items; the ledger tracks outcomes, not process. Ordering edges explain
    why one item should finish first. Independent items remain available for
    parallel work.
-4. **Route design when the shape is consequential.** If the
-   implementation shape matters, it routes through `design` and picks the
+4. **Explore before committing when it adds value.** Initial substantial or
+   cross-cutting work routes through `ideate` when a short collaborative pass
+   could materially improve what gets designed, unless you request direct
+   design or execution. Large mechanical work with an established outcome can
+   skip that preflight. If the implementation shape then matters, it routes
+   through `design` and picks the
    lens that fits: new work, refactor or cleanup, performance, defect or
    reliability, UI/UX, or data, migration, or integration. Obvious,
    local, reversible choices stay inline. Design is conditional routing,
@@ -358,9 +363,10 @@ no authority of its own.
 
 ## Recover from common stops
 
-- **The agent invokes Workbench before adoption.** That is incorrect. Without
-  `.work/CONVENTIONS.md` declaring `owner: workbench`, every Workbench skill is
-  ignored unless you explicitly ask `setup` to adopt the repository.
+- **The agent creates Workbench state before adoption.** That is incorrect.
+  Without `.work/CONVENTIONS.md` declaring `owner: workbench`, only write-free
+  `ideate` may run; stateful skills remain inactive unless you explicitly ask
+  `setup` to adopt the repository.
 - **The agent keeps asking questions you consider obvious.** Your request
   implied a more collaborative posture than you want. Say "drive this to
   done autonomously" — the request wins over the repo default.
