@@ -30,6 +30,7 @@ plugins you want.
 /plugin install agentic-research@nklisch-skills   # grounded research discipline
 /plugin install agent-coordination@nklisch-skills # cross-agent ledger
 /plugin install prose-craft@nklisch-skills        # prose drafting and review
+/plugin install declaudify@nklisch-skills          # every-turn writing posture
 ```
 
 ### OpenAI Codex
@@ -154,6 +155,7 @@ mutually exclusive within one project. Pick one:
 | **agentic-research** | Grounded, verifiable research discipline with attestations and citation gates. Stands alone or pairs with a work tracker. | [plugins/agentic-research/README.md](plugins/agentic-research/README.md) |
 | **agent-coordination** | Sparse cross-agent coordination ledger for shared repositories, backed by GitHub Discussions. | [plugins/agent-coordination/README.md](plugins/agent-coordination/README.md) |
 | **prose-craft** | Prose craftsmanship for human-facing docs: style-contract drafting, six-lens review, multi-model refine cycle. | [plugins/prose-craft/README.md](plugins/prose-craft/README.md) |
+| **declaudify** | Claude Code-only every-turn writing guidance: simple, deeply informative technical language with framed codebase references and no invented shorthand. | [plugins/declaudify/README.md](plugins/declaudify/README.md) |
 | **agile-workflow** | Structured stage-and-gate work tracking with a goal-backed autopilot queue. **Supported in maintenance mode** — see above. | [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md) |
 
 ## Reference skills
@@ -167,8 +169,8 @@ Zod v4, Biome v2, Drizzle, Hono, the TanStack family, Zustand, citty,
 ## Repository layout
 
 ```
-plugins/<name>/          # one directory per plugin, each with shared skills/
-                         # plus Claude and Codex channel metadata
+plugins/<name>/          # one directory per plugin; shared skills/
+                         # plus channel metadata (declaudify is Claude-only)
 .agents/skills/          # standalone reference-skill library (non-plugin)
 .claude-plugin/          # Claude Code marketplace catalog
 .agents/plugins/         # Codex marketplace catalog
@@ -176,9 +178,12 @@ scripts/bump-version.sh  # per-plugin version gate across all channel metadata
 docs/                    # repo-level vision, spec, architecture, and guides
 ```
 
-Every supported plugin ships the same `skills/` directory to all three
-harnesses and keeps its Claude and Codex manifests in version lockstep; the
-Pi bridge consumes the same catalogs.
+Every cross-channel supported plugin ships the same `skills/` directory to all
+three native harnesses and keeps its Claude and Codex manifests in version
+lockstep. Channel-specific plugins may intentionally expose only the host
+surface they target; `declaudify` is authored for Claude Code and is absent from
+the Codex and Antigravity catalogs. Pi's bridge can discover Claude catalog
+entries, but Pi support is not provided or claimed for this plugin.
 The distribution rules live in [docs/SPEC.md](docs/SPEC.md); the layout and
 wiring live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); the purpose and
 dogfooding thesis live in [docs/VISION.md](docs/VISION.md).

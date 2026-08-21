@@ -32,6 +32,7 @@ pipelines. A few terms carry the rest of this document:
 │   ├── agentic-research/     # grounded research discipline + .research substrate
 │   ├── agent-coordination/   # sparse cross-agent coordination ledger
 │   ├── prose-craft/          # prose drafting, lens review, refine cycle
+│   ├── declaudify/           # Claude Code-only every-turn writing posture
 │   └── workflow/             # DEPRECATED, frozen, kept for existing installs
 ├── .agents/skills/          # standalone reference-skill library (non-plugin)
 ├── .agents/plugins.json     # native Antigravity workspace plugin registry
@@ -57,8 +58,12 @@ reference skill that needs distribution is folded into a plugin.
 
 ## How a plugin is structured
 
-Each `plugins/<name>/` directory carries three channel manifests plus a mix
-of shared and harness-specific components:
+Each cross-channel `plugins/<name>/` directory carries three channel manifests
+plus a mix of shared and harness-specific components. A host-specific plugin
+may carry only the manifest and components for its target host; `declaudify`
+is the intentional Claude Code-only exception. Because Pi consumes the Claude
+catalog through its bridge, a Claude-only entry may still be discoverable in
+Pi; that does not make it a supported Pi plugin:
 
 ```
 plugins/<name>/
@@ -77,8 +82,11 @@ plugins/<name>/
 
 Two facts own the rest:
 
-- **Three manifests, no `package.json`.** Each plugin declares itself to
-  Claude Code, Codex, and Antigravity through one manifest each. Pi packaging moved to
+- **Three manifests for cross-channel plugins, no `package.json`.** A
+  cross-channel plugin declares itself to Claude Code, Codex, and Antigravity
+  through one manifest each. Host-specific plugins may intentionally omit the
+  other manifests; `declaudify` declares only Claude Code metadata because its
+  hook has no supported equivalent in the other catalogs. Pi packaging moved to
   the `nklisch/pi-extensions` repo, so this tree carries no per-plugin
   `package.json`. `scripts/bump-version.sh` treats the Claude manifest as
   the canonical version source.

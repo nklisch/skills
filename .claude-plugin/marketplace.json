@@ -150,6 +150,16 @@
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       }
+    },
+    {
+      "name": "declaudify",
+      "source": "./plugins/declaudify",
+      "description": "Claude Code-only every-turn writing guidance: simple, deeply informative technical language with explicit framing for codebase references and no invented shorthand.",
+      "category": "productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
     }
   ]
 }

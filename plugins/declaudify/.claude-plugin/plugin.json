@@ -1,0 +1,10 @@
+{
+  "name": "declaudify",
+  "version": "0.1.0",
+  "description": "A Claude Code hook that keeps every response simple, deeply informative, well-framed, and independent of Claude-like prose habits.",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT"
+}

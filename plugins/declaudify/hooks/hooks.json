@@ -1,0 +1,16 @@
+{
+  "description": "declaudify hook: injects the writing and context-framing guide on every user turn.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/declaudify.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
