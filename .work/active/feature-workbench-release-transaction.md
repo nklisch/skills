@@ -54,23 +54,37 @@ if the transaction existed — the strictest-config consumer as pilot.
   context, never self-reviewed by the releasing session.
 - **Audit**: the release summary carries the check list, per-check outcome,
   and finding item ids.
+- **Finding disposition semantics** (SNC design add, accepted): a finding
+  resolves two ways — by fix, or by explicit receiver adjudication (wontfix
+  or deferred → parked with the recorded reason). An unadjudicated finding
+  blocks; an adjudicated one does not. The audit record lists dispositions
+  alongside outcomes, so a single low-value finding cannot wedge a release
+  with no sanctioned exit. This is the standard review doctrine (findings
+  are proposals the receiver must verify and adjudicate) stated in release
+  terms.
 - **Doctrine compatibility**: Workbench already accepts mechanical invariants
   at the completion/release boundary (atomic completion transition, no
   lingering stubs, `release_mode` conventions). This is that shape, not a
   stage-machine port.
 
-## Open questions
+## Open questions — settled 2026-08-22 (SNC design review)
 
-1. **Scanner library gap.** The natural scanner wiring is the code-audit
-   skills, but SNC's five gates include cruft/docs/patterns — none have
-   code-audit equivalents (they are agile-workflow gate skills). Options:
-   (a) check names are project-defined; each names an available scanner
-   skill or carries a one-line description for an ad-hoc fresh-eyes pass;
-   (b) port the missing scanners to code-audit over time. Start with (a),
-   revisit if pilots accumulate ad-hoc descriptions.
-2. **Halt semantics**: propose halt-always when `release_checks` is present
-   (their live config used `binding_guard: halt` anyway) — no per-check
-   binding config until a pilot needs it.
+1. **Scanner library gap — resolved: not a blocker.** The tool-heavy gates
+   (security, tests) are exactly the ones code-audit ships. The three
+   judgment-heavy gates (cruft, docs, patterns) carry fine on one-line
+   descriptions; platform's can be lifted nearly verbatim from the
+   agile-workflow gate skill scopes (e.g. gate-cruft's "dead code, stale
+   comments, low-value tests, compatibility shims, defensive bloat,
+   over-abstraction"). Doctrine note: Workbench's maintenance boundary
+   already owns pattern *harvesting* at delivery time, so a patterns
+   release_check is only the drift-verification half (catalog reflects the
+   bundle's changed code), not the write. Revisit-if-pilots-accumulate
+   stands. Docs must include one or two example `release_checks` entries
+   showing intended description precision, so projects don't under-specify
+   ad-hoc passes.
+2. **Halt semantics — resolved: halt-always** when the key is present; no
+   per-check binding config until a pilot demands it. Platform (the live
+   halt-binding config) IS the pilot, so the demand path exists.
 
 ## Non-goals (from the proposal, honored)
 
@@ -81,10 +95,12 @@ Strictly a boundary contract.
 
 This item lives on the research-canon branch's ledger, but implementation
 targets the workbench line as its own PR — the research-canon PR stays
-focused. SNC platform pilots the affordance once it lands. Attribution: the
-proposal and its evidence (including the completed_items: discard dogfood
-gap — this repo never exercises the summarize/release path) are SNC's,
-delivered over mesh 2026-08-22.
+focused. Design settled 2026-08-22 via SNC mesh review; they review the
+implementation draft when work starts, and SNC platform pilots the
+affordance once it lands. Attribution: the proposal and its evidence
+(including the completed_items: discard dogfood gap — this repo never
+exercises the summarize/release path) are SNC's, delivered over mesh
+2026-08-22; the disposition-semantics add likewise.
 
 ## Acceptance
 
