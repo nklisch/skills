@@ -1322,28 +1322,6 @@
       "relationships": []
     },
     {
-      "path": ".work/active/feature-gate-configurability.md",
-      "namespace": "work",
-      "kind": "feature",
-      "id": "feature-gate-configurability",
-      "title": "Gate configurability for release findings and refactor scan roots",
-      "summary": null,
-      "updated": "2026-06-12",
-      "status": "active",
-      "relationships": []
-    },
-    {
-      "path": ".work/active/feature-scan-aware-substrate.md",
-      "namespace": "work",
-      "kind": "feature",
-      "id": "feature-scan-aware-substrate",
-      "title": "Scan-aware substrate (paired with the deep-code-scan skill)",
-      "summary": null,
-      "updated": "2026-06-13",
-      "status": "active",
-      "relationships": []
-    },
-    {
       "path": ".work/active/gate-docs-substrate-binary-generalize.md",
       "namespace": "work",
       "kind": "story",
@@ -1362,17 +1340,6 @@
       "title": "--research-origin / --research-refs not disambiguated end-to-end (shared fixture slug)",
       "summary": null,
       "updated": "2026-06-04",
-      "status": "active",
-      "relationships": []
-    },
-    {
-      "path": ".work/active/story-gate-stub-regate-alignment.md",
-      "namespace": "work",
-      "kind": "story",
-      "id": "story-gate-stub-regate-alignment",
-      "title": "Align gate bundle-gathers with re-gate semantics; Phase 7 honors terminal-tier retention",
-      "summary": null,
-      "updated": "2026-06-11",
       "status": "active",
       "relationships": []
     },

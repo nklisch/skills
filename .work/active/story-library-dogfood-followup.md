@@ -3,7 +3,7 @@ id: story-library-dogfood-followup
 kind: story
 status: active
 tags: [plugin, coordination]
-parent: epic-workbench-research-hardening
+parent: null
 blocked_by: []
 related_to: [epic-workbench-research-hardening-knowledge-product-profile, epic-workbench-research-hardening-citation-anchor-stability]
 research_refs: []

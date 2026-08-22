@@ -5,6 +5,7 @@
 - Authority boundaries
 - Workbench conventions
 - Foundation document contract
+- Collection roots
 - Active-item frontmatter
 - Backlog frontmatter
 - Completion
