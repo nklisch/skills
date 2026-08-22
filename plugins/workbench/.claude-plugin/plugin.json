@@ -1,7 +1,7 @@
 {
   "name": "workbench",
   "description": "Requirements-first delivery with semantic autonomy, lens-driven design, weighted review, and externally grounded research.",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "author": {
     "name": "nklisch"
   },
