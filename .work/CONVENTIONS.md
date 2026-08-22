@@ -2,6 +2,8 @@
 owner: workbench
 schema: 1
 completed_items: discard
+review_weight: standard
+autonomy: collaborative
 ---
 
 # Project Conventions
@@ -37,6 +39,10 @@ every push, so a local pass means a green pipeline:
 
 ## Project guidance
 
+- Repository-wide foundation truth lives in root `docs/`; plugin-specific
+  foundation truth lives in `plugins/<plugin>/docs/`. Code owns the structure
+  of repository-internal contracts; documents own their semantics, invariants,
+  and rationale.
 - Item ids are kebab-case slugs; children are prefixed with their parent's slug
   (e.g. `epic-substrate-tooling` → `feature-substrate-tooling-cli`).
 - Tags are informational only (no routing semantics): `refactor`, `perf`,

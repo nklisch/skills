@@ -176,16 +176,11 @@ Maintain one marked Workbench section in the canonical root `AGENTS.md`:
 <!-- workbench:start -->
 ## Workbench
 
-Confirm `owner: workbench` in `.work/CONVENTIONS.md`. If that ownership marker
-is absent, stateful Workbench skills stay inactive unless the user explicitly
-asks to run `setup` for adoption, migration, upgrade, refresh, or
-reconciliation. Detection, drift, or another skill's recommendation is not
-authorization; write-free `ideate` may explore before adoption. In an adopted
-repository, route concrete Workbench workflows through its skills and prefer
-ideate before design when early exploration of
-substantial or cross-cutting work could materially improve what gets designed,
-unless the user requests direct design or execution. Unrelated requests stay
-outside Workbench. Track active outcomes in
+This repository is Workbench-owned (`.work/CONVENTIONS.md`). Route concrete
+Workbench workflows through its skills and prefer ideate before design when
+early exploration of substantial or cross-cutting work could materially improve
+what gets designed, unless the user requests direct design or execution.
+Unrelated requests stay outside Workbench. Track active outcomes in
 `.work/active/` and deferred context in `.work/backlog/`. Consult
 `.knowledge/index.json` when present. Use features as the normal delivery unit;
 reserve epics for multiple feature outcomes and stories for narrow slices. Preserve `epic → feature → story` when

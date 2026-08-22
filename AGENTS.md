@@ -151,34 +151,60 @@ When creating a new plugin (a new directory under `plugins/`), register it in **
 
 Verify both catalogs preserve the same ordered plugin identities and semantically equivalent sources before considering the plugin shippable.
 
+## Workbench source synchronization
+
+This repository authors Workbench itself. When the canonical managed
+instructions in
+`plugins/workbench/skills/setup/references/canonical-layout.md` change, update
+the managed Workbench block below in the same change so this repository keeps
+dogfooding the behavior it ships.
+
 <!-- workbench:start -->
 ## Workbench
 
-Confirm `owner: workbench` in `.work/CONVENTIONS.md`; without it, stateful
-Workbench skills stay inactive unless the user explicitly asks to run `setup`
-for adoption, migration, upgrade, refresh, or reconciliation; detection, drift,
-or another skill's recommendation is not authorization. The write-free
-`ideate` skill may explore before adoption. In an adopted repository, route
-concrete Workbench workflows through
-its skills and prefer ideate before design when early exploration of substantial
-or cross-cutting work could materially improve what gets designed, unless the
-user requests direct design or execution. Unrelated requests stay outside
-Workbench. Track active outcomes in `.work/active/` and deferred context
-in `.work/backlog/`. Consult `.knowledge/index.json` when present. Use features
-as the normal delivery unit, epics for multiple feature outcomes, and stories
-for narrow slices. Preserve `epic → feature → story` when items nest. Ask the
-human about consequential requirements and pause for the answer. Keep
-independent items parallel. Add `blocked_by` only when serial work reduces
-rework, ambiguity, or integration risk, and record the reason in
-`## Sequencing`. Designs and reviews must not invent requirements or expand the
-user's original scope; apply foundation truth and the rational needs of the
-actual project type, flag overbuilding, and park useful adjacent findings
-instead. For concrete Workbench workflows, test behavior at stable interfaces,
-verify the full requested boundary, apply the configured review weight to
-substantive Workbench design and implementation, reconcile affected foundation
-truth, and remove or summarize completed items immediately. Do not apply that
-review weight to every review, audit, planning discussion, explanation, or loose
-request in the repository.
+This repository is Workbench-owned (`.work/CONVENTIONS.md`). Route concrete
+Workbench workflows through its skills and prefer ideate before design when
+early exploration of substantial or cross-cutting work could materially improve
+what gets designed, unless the user requests direct design or execution.
+Unrelated requests stay outside Workbench. Track active outcomes in
+`.work/active/` and deferred context in `.work/backlog/`. Consult
+`.knowledge/index.json` when present. Use features as the normal delivery unit;
+reserve epics for multiple feature outcomes and stories for narrow slices. Preserve `epic → feature → story` when
+items nest. Ask the human about consequential requirements according to the
+effective autonomy posture. Designs and reviews must not invent requirements or
+expand the user's original scope; apply foundation truth and the rational needs
+of the actual project type, flag overbuilding, and park useful adjacent findings
+instead.
+
+Durable state is limited to work items, foundation documents, research
+attestations and briefs, mockups, generated indexes, completion stubs, release
+summaries, and repository conventions; write these whenever a workflow names
+them. Everything else—questions, proposals, recommendations, explanations,
+progress summaries, and completion reports—belongs in your reply, not in a new
+file or a no-op record.
+
+Keep human-facing documents and designs clean and self-contained. Do not expose
+agent work history, review-correction notes, or revision narration. Agent-facing
+documents may retain process prose only when it adds material value.
+
+Frame human-facing documents from real-world and business meaning before
+technical representation. Define load-bearing data, domain, and interface
+concepts before using them. When provider terms matter, map the provider term to
+the project concept and a generic real-world term at the object level before
+field details. Do not define ordinary terms the intended audience can safely
+know.
+
+Keep independent items parallel by default. Add `blocked_by` only when serial
+work reduces rework, ambiguity, or integration risk, and record the reason in
+`## Sequencing`.
+
+For concrete Workbench workflows, test behavior at stable interfaces, verify
+the full requested boundary, reconcile affected foundation truth, rebuild the
+knowledge index when indexed documentation changes, apply the configured review
+weight to substantive Workbench design and implementation, and remove or
+summarize completed items immediately. Do not apply that review weight to every
+review, audit, planning discussion, explanation, or loose request in the
+repository.
 <!-- workbench:end -->
 
 ## Engineering posture
