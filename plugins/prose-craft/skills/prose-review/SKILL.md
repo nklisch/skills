@@ -37,6 +37,11 @@ not edit the document.
   Never invent a plan and then fault the draft for deviating from it.
 - **Lens selection.** Default (standard): audience, structure, clarity,
   accuracy. The user may name lenses or ask for all six.
+- **Source drafts (parallel-drafts mode only).** If the draft was produced
+  by merging parallel drafts, the source drafts must be available as
+  scratch: the structure and voice lenses check the merge against them.
+  Missing sources make those two checks no-ops — say so rather than
+  guessing at provenance.
 
 ## Review
 

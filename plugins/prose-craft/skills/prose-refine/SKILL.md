@@ -30,7 +30,9 @@ only micro-edits remain.
 2. Confirm the review weight. Use **standard** for 2 re-writers and the core
    lenses of audience, structure, clarity, and accuracy. Use **thorough** for 3
    re-writers and all six lenses. Default to standard when the user does not
-   specify a weight.
+   specify a weight. A draft produced by `prose-draft`'s parallel-drafts mode
+   has already been through one full multi-model pass: enter at round-2
+   scope instead of round 1, and say you did.
 
 ## Re-writers, not just reviewers
 

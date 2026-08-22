@@ -84,6 +84,14 @@ Draft in the chosen style profile with its deltas, under the universal floor
 concept apply under every profile. Drafting often teaches you the ordering
 is wrong; update the plan when that happens, and say you did.
 
+**Parallel drafts (optional, user-selected).** For a document that merits
+N× the drafting cost, recruit writers of different model classes, have
+each draft the full document against this same brief and plan, and merge
+with beat-anchored fusion. Read `references/parallel-drafts.md` for
+recruiting, spawning, the merge, and the scratch rules. Requires at least
+two model classes and the user's go-ahead; otherwise draft singly and say
+which path you took.
+
 ## 5. Self-check, then hand off
 
 Re-read the draft once as the modeled reader would — tracking your own
@@ -111,7 +119,10 @@ first: a comment left in a committed file is scaffolding shipped by
 accident. Preserve the brief in the commit message (or the work item that
 commissioned the document), so intent remains recoverable from history
 without living in the file. Never leave the plan dangling after the session
-that produced it: strip, or park it where its owner will find it. A later
+that produced it: strip, or park it where its owner will find it. In the
+parallel-drafts mode, the source drafts are scratch too: they persist
+until a review pass over the merged draft completes, then are cleaned
+with the rest (see `references/parallel-drafts.md`). A later
 review of the published document re-pins the brief from the document, the
 repository, and the user — which also forces a fresh check that the
 audience, venue, structure, and style are still right.

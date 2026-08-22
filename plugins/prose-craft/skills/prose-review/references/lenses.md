@@ -59,6 +59,11 @@ grants them.*
   definitions precede uses, tier-1 payload sits on the first screen. No
   carried plan? Derive the draft's actual beats first and judge that
   derived path on the same terms — and say the path was derived.
+- Merge fidelity (only when source drafts exist as scratch, per
+  `prose-draft`'s parallel-drafts mode): read the sources, and flag any
+  essential content present in a source but dropped by the merge. A
+  dropped idea that existed only in one source is still a drop — the
+  merge had access to it. Severity: material.
 - Is the document one Diátaxis mode, or does it mix modes (a tutorial that
   drifts into reference)?
 - Does the opening state purpose and reader payoff before details?
@@ -113,6 +118,15 @@ grants them.*
   `../../prose-refine/references/llm-tells.md`.
   Final prose should read as the document's own voice — not as any single
   model family.
+- Voice fusion (only when source drafts exist as scratch, per
+  `prose-draft`'s parallel-drafts mode): with the sources in hand, compare
+  side by side. Trace sentence provenance where you can, and hunt seams
+  at contribution boundaries — register shifts, rhythm breaks,
+  terminology wobble between merged segments; seam quality findings are
+  polish. The three fusion failures are material: one source family's
+  signatures dominate; both survive in patches; seams align with merge
+  boundaries. Success reads as a third voice — neither source really
+  appears anywhere.
 - No marketing-speak or hype adjectives: "seamless", "powerful", "blazing",
   "simply", "just".
 - Confidence without arrogance; limitations stated plainly, not buried.
