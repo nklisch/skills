@@ -96,18 +96,25 @@ repository-internal contracts unless the confirmed convention says otherwise.
 ---
 owner: workbench
 schema: 1
+workbench_version: <exact-loaded-plugin-semver>
 completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
+simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
 ---
 ```
 
+`workbench_version` records the exact verified plugin release that last adopted
+or reconciled the project. Read
+[version-compatibility.md](version-compatibility.md) for mismatch handling.
+
 Keep the body limited to authoritative verification commands, delivery rules,
 and Workbench-specific project guidance. Put repository-wide agent invariants
 in `AGENTS.md` and engineering principles in `docs/PRINCIPLES.md`. Existing
-substrates without `review_weight` resolve it as `standard`, and those without
-`autonomy` resolve it as `adaptive`; setup writes user-confirmed values when
-refreshing them.
+substrates without `review_weight` resolve it as `standard`, those without
+`simplification_posture` resolve it as `balanced`, and those without `autonomy`
+resolve it as `adaptive`; setup writes user-confirmed values when refreshing
+them.
 
 ## Active-item frontmatter
 
@@ -134,9 +141,13 @@ slice. Features may be top-level or belong to epics. Stories may be top-level
 or belong to features. Nested work follows `epic → feature → story` without
 skipping a tier.
 
-Every item starts with a Markdown title and includes outcome, scope, and
-observable acceptance meaning under headings that fit the work. Add other body
-sections only when they carry useful state.
+Every item starts with a Markdown title followed by this exact line:
+
+> Workbench version mismatch: stop and offer setup upgrade.
+
+It then includes outcome, scope, and observable acceptance meaning under
+headings that fit the work. Add other body sections only when they carry useful
+state.
 
 Use `blocked_by` when another active item should finish first because serial
 work materially reduces rework, ambiguity, or integration risk. Each edge has
@@ -158,14 +169,16 @@ updated: YYYY-MM-DD
 ---
 ```
 
-Do not invent missing requirements or priority during capture or migration.
+Every backlog item includes the same exact version guard line immediately after
+its title. Do not invent missing requirements or priority during capture or
+migration.
 
 ## Completion
 
 With `completed_items: summarize`, replace a completed active item with a compact
 `.work/completed/<id>.md` outcome stub containing identity, completion date, and
-delivered outcome. Remove its id from active relationships before closing it. A
-release summary replaces selected completion stubs. With
+delivered outcome and the exact version guard line. Remove its id from active
+relationships before closing it. A release summary replaces selected completion stubs. With
 `completed_items: discard`, remove the completed active item after verification.
 
 ## Managed instructions
@@ -176,8 +189,10 @@ Maintain one marked Workbench section in the canonical root `AGENTS.md`:
 <!-- workbench:start -->
 ## Workbench
 
-This repository is Workbench-owned (`.work/CONVENTIONS.md`). Route concrete
-Workbench workflows through its skills and prefer ideate before design when
+This repository is Workbench-owned (`.work/CONVENTIONS.md`). Before stateful
+Workbench work, compare its `workbench_version` with the loaded plugin; on a
+mismatch, stop and offer the appropriate setup upgrade rather than mutating
+project state. Route concrete Workbench workflows through its skills and prefer ideate before design when
 early exploration of substantial or cross-cutting work could materially improve
 what gets designed, unless the user requests direct design or execution.
 Unrelated requests stay outside Workbench. Track active outcomes in
@@ -215,10 +230,12 @@ work reduces rework, ambiguity, or integration risk, and record the reason in
 For concrete Workbench workflows, test behavior at stable interfaces, verify
 the full requested boundary, reconcile affected foundation truth, rebuild the
 knowledge index when indexed documentation changes, apply the configured review
-weight to substantive Workbench design and implementation, and remove or
-summarize completed items immediately. Do not apply that review weight to every
-review, audit, planning discussion, explanation, or loose request in the
-repository.
+weight and simplification posture to substantive Workbench design and
+implementation, and remove or summarize completed items immediately. Preserve
+behavior and measured performance constraints during simplification, avoid
+obvious plausible performance regressions, and do not turn ordinary work into
+speculative optimization. Do not apply the review weight to every review,
+audit, planning discussion, explanation, or loose request in the repository.
 <!-- workbench:end -->
 ```
 

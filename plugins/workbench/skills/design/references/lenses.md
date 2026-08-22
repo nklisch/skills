@@ -2,7 +2,8 @@
 
 Choose one primary lens and only the overlays that affect the decision. Every
 design still states the outcome, constraints, boundaries, verification, risks,
-and simplest coherent implementation shape.
+and simplest coherent implementation shape. Apply the effective simplification
+posture from Workbench conventions across every primary lens.
 
 ## New work
 
@@ -46,7 +47,9 @@ and simplest coherent implementation shape.
   [../../ideate/references/provocation.md](../../ideate/references/provocation.md)).
 - Describe the actual current state and the costly or unsafe property.
 - Eliminate, inline, merge, or delete before extracting new abstractions.
-- State invariants and contracts that must remain unchanged.
+- State behavioral invariants, measured performance constraints, and other
+  contracts that must remain unchanged. Avoid obvious plausible performance
+  regressions without manufacturing speculative optimization work.
 - Make steps independently understandable and verifiable when practical.
 - Include rollback or migration handling where a step is not trivially
   reversible.

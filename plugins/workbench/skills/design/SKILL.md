@@ -32,15 +32,19 @@ First confirm that an upward-found `.work/CONVENTIONS.md` declares
 without Workbench; do not offer setup unless the user explicitly asks to adopt
 or initialize Workbench.
 
-When active, read `.work/CONVENTIONS.md`, the target item, project instructions,
-foundation documents, relevant code and tests, and `.knowledge/index.json` when
-present. Foundation documents generally live in root `docs/`, with sub-project
+When active, read `.work/CONVENTIONS.md` and apply
+[setup's version-compatibility check](../setup/references/version-compatibility.md)
+before any stateful action; stop on mismatch. Then read the target item, project
+instructions, foundation documents, relevant code and tests, and
+`.knowledge/index.json` when present. Foundation documents generally live in root `docs/`, with sub-project
 truth in `<sub-project>/docs/` or `docs/<sub-project>/` following repository
 convention. Reconcile stale item claims against the repository before designing.
 
 Read [../work/references/autonomy.md](../work/references/autonomy.md) and resolve
 the effective autonomy posture. Autonomy governs how decisions are discussed,
-not whether design quality, review, safety, or authority boundaries apply.
+not whether design quality, review, safety, or authority boundaries apply. Read
+[../work/references/simplification.md](../work/references/simplification.md) and
+resolve the effective simplification posture for the design.
 
 Treat the user's original intent, later clarifications, explicit exclusions,
 and the accepted item outcome as the design boundary. Applicable foundation
@@ -109,7 +113,10 @@ implementation or review.
 
 Prefer the simplest coherent design that reaches a maintainable intended state.
 Measure simplicity in durable concepts, operating cost, and verification cost,
-not diff size. Do not choose a hack merely because it touches fewer files.
+not diff size. Apply the effective simplification posture to the affected
+design boundary; at `structural`, question whether existing files and modules
+should remain the decomposition. Do not choose a hack merely because it touches
+fewer files.
 
 In collaborative work, discuss ideal states and appropriately scoped options
 before binding the design. In adaptive work, recommend the ideal state when it
@@ -200,12 +207,14 @@ effective `review_weight` from an explicit user instruction, then
 planning, explanation, or review requests.
 
 Always self-check the design against requirements, repository evidence, the
-selected lens, verification feasibility, unnecessary complexity, reversal
-cost, and unauthorized scope growth. Apply independent review as required by
+selected lens, effective simplification posture, verification feasibility,
+unnecessary complexity, reversal cost, and unauthorized scope growth. Apply
+independent review as required by
 the effective weight before implementation becomes expensive to reverse. Give
-the reviewer raw requirements, the design, relevant foundations and code, and
-known evidence. Include the mandatory non-expansion instruction from the review
-reference; do not lead with a suspected verdict.
+the reviewer raw requirements, the design, relevant foundations and code, known
+evidence, and the effective simplification posture. Include the mandatory
+non-expansion instruction from the review reference; do not lead with a
+suspected verdict.
 
 Require the reviewer to check whether proposed foundation changes accurately
 represent ownership, boundaries, current truth, and explicitly intended truth,

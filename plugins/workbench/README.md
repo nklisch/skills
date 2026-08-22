@@ -28,7 +28,8 @@ Workbench is designed to:
 Think of Workbench as four things:
 
 1. **A working agreement** — project conventions say how agents should verify,
-   review, deliver, research, and collaborate.
+   review, deliver, research, and collaborate, and record which Workbench
+   release last reconciled that agreement.
 2. **A small durable memory** — `.work/` records active outcomes and useful
    deferred context so the next session does not depend on chat history.
 3. **An evidence layer** — `.research/` keeps fetched external evidence and
@@ -88,7 +89,9 @@ finds a worthwhile analytics cleanup that is unrelated to onboarding, it offers
 to park that finding rather than silently expanding the work.
 
 The durable record remains ordinary Markdown. You can read or edit it directly;
-the agent is responsible for keeping its structure valid.
+the agent is responsible for keeping its structure valid. Each work item carries
+one short reminder to stop and offer setup upgrade when the conventions version
+and loaded plugin version differ.
 
 Conversational questions, proposals, progress summaries, and completion replies
 remain chat prose unless the workflow explicitly names a repository artifact.
@@ -176,14 +179,18 @@ material discoverable, but it is not evidence or project truth on its own.
 Workbench validators check structure, relationships, citations, and generated
 state whenever agents create or reshape the corresponding artifacts.
 
-`setup` asks you for the repository's defaults — autonomy, review weight, what
-happens to finished items, and your documentation conventions (where foundation
-documents live, how they are named, and whether contract truth lives in code or
+`setup` stamps its exact loaded plugin version into conventions after successful
+reconciliation and adds the canonical mismatch reminder to every work item. It
+also asks you for the repository's defaults — autonomy, review weight,
+simplification posture, what happens to finished items, and your documentation
+conventions (where foundation documents live, how they are named, and whether
+contract truth lives in code or
 documents) — and records them where they belong, mostly `.work/CONVENTIONS.md`,
 where you can change them later. It also asks whether to establish or extend
-`docs/PRINCIPLES.md` — recommending two core invariants (contract truth
-ownership, compatibility is earned), offering optional code-design principles
-when bootstrapping, and adding anything it derives from the repository itself. For finished items:
+`docs/PRINCIPLES.md` — recommending three core invariants (contract truth
+ownership, compatibility is earned, and leave it simpler), offering optional
+code-design principles when bootstrapping, and adding anything it derives from
+the repository itself. For finished items:
 
 - `summarize` keeps a compact outcome stub, which can later feed a release
   summary;
@@ -281,6 +288,24 @@ Workarounds are sometimes correct because scope, time, compatibility, or
 authority is genuinely constrained. When that happens, the constraint,
 consequence, and better future direction should be explicit.
 
+## Simplification posture
+
+Workbench keeps baseline code hygiene at every level and lets each repository
+choose how proactively concrete workflows pursue behavior-preserving reduction:
+
+| Posture | Expected simplification |
+|---|---|
+| `hygiene` | Keep the touched area clean and catch obvious accidental complexity or algorithmic overwork without hunting beyond it. |
+| `balanced` | Actively simplify the affected contract boundary, including cohesive file movement or decomposition when worthwhile. This is the default. |
+| `structural` | Challenge the full authorized outcome boundary and permit cohesive file breakouts, consolidation, or substantial restructuring when demonstrably simpler and verifiable. |
+
+The posture applies to design, implementation, and each independent review pass.
+It does not expand the requested outcome. Simplification preserves observable
+behavior and measured performance constraints and avoids obvious plausible
+performance regressions in affected code; it does not trigger speculative
+profiling or low-level optimization when performance is not constrained or
+plausibly affected.
+
 ## Review depth
 
 For a concrete Workbench workflow, one `review_weight` controls independent
@@ -298,8 +323,10 @@ request in the repository.
 | `thorough` | Review, correct, and verify repeatedly until no confirmed material issue remains. |
 | `maximum` | Thorough convergence using different specialties, adversarial perspectives, and more than one model when available. |
 
-Review is not verification. A reviewer saying “looks good” does not prove the
-behavior works. Review is not a second chance to redefine the project, either:
+Review weight controls pass depth and repetition; simplification posture
+controls how strongly each pass looks for behavior-preserving reduction. Review
+is not verification. A reviewer saying “looks good” does not prove the behavior
+works. Review is not a second chance to redefine the project, either:
 every reviewer is told not to invent requirements or expand scope, to judge the
 work against the user's original intent and the rational expectations of the
 actual project type, and to flag overbuilding. A missed authorized requirement
@@ -453,8 +480,9 @@ explicitly invoke `setup` to adopt Workbench.
 ## Session posture hook
 
 The plugin ships one lightweight `SessionStart` hook. In a Workbench-owned
-repository it injects a short, static reminder of high-level posture — read
-conventions and foundations first, keep scope narrow, orchestrate multi-unit
+repository it injects a short, static reminder of high-level posture — read conventions
+and foundations first, stop and offer setup upgrade on a plugin-version
+mismatch, keep scope narrow, orchestrate multi-unit
 boundaries, park out-of-scope findings, reconcile and close before done. It
 exists for ownership discoverability and post-compaction salience; the skills
 remain the contract, and a host that does not run hooks loses nothing. Codex
@@ -508,10 +536,11 @@ modified, untracked, ignored, or otherwise unrecoverable, it asks you to create
 a pre-state commit or shows you the exact removal list for confirmation.
 
 Re-running `setup` on a repository that already uses Workbench is an upgrade
-and sync pass: it detects drift from the current plugin version — conventions
+and sync pass: it detects drift from the stamped plugin version — conventions
 questions a newer version asks that the repository never settled, missing
 fields, superseded layout — and reconciles it without re-asking choices you
-already made.
+already made. Stateful skills stop and ask before that upgrade; if the loaded
+plugin is older than the stamp, they ask you to update the plugin first.
 
 Workbench and `agile-workflow` use mutually exclusive `.work/` schemas. Use
 `setup` to convert rather than running both systems in the same project.

@@ -13,7 +13,9 @@ description: >
 Confirm that an upward-found `.work/CONVENTIONS.md` declares
 `owner: workbench`. If it does not, ignore this skill and handle the user's
 request without Workbench; do not offer setup unless they explicitly ask to
-adopt or initialize Workbench.
+adopt or initialize Workbench. Before writing, apply
+[setup's version-compatibility check](../setup/references/version-compatibility.md)
+and stop on mismatch.
 
 Create `.work/backlog/<id>.md` with:
 
@@ -25,6 +27,10 @@ created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---
 ```
+
+Start the body with a title and the exact line:
+
+> Workbench version mismatch: stop and offer setup upgrade.
 
 Preserve the user's useful context, why it may matter, known evidence, and any
 relationship to current work. Do not invent priority, acceptance criteria,

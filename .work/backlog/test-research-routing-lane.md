@@ -6,6 +6,8 @@ updated: 2026-06-09
 ---
 # Test coverage for the `[research]` routing lane
 
+> Workbench version mismatch: stop and offer setup upgrade.
+
 `convert-content-integrity.test.sh` (the check cited at the lane's PR time) covers the
 content-integrity gate and `.agents/rules` grounding — none of the `[research]` routing
 behavior has assertions:

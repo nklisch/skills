@@ -51,6 +51,13 @@ recommendation never invokes setup. `ideate` may run before adoption because it
 is conversational and write-free; it must not create Workbench or research
 state without an explicit adoption and handoff choice.
 
+Before a stateful capability mutates project state, it compares the exact
+`workbench_version` in conventions with the verified loaded plugin manifest. A
+missing or older project stamp stops and offers setup upgrade. An older loaded
+plugin stops and requires the plugin itself to be updated before setup can
+safely reconcile the project. Mismatch never invokes setup automatically;
+write-free ideation remains available.
+
 Ownership activates the stateful capabilities, not universal routing. Those
 skills engage only for concrete Workbench workflows whose outcome, evidence,
 backlog capture, or release state belongs in Workbench. Ideate may support
@@ -78,8 +85,10 @@ repository conventions.
 ---
 owner: workbench
 schema: 1
+workbench_version: <exact-loaded-plugin-semver>
 completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
+simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
 ---
 ```
@@ -88,13 +97,15 @@ Setup always asks the user how completed items should be retained, the
 repository's documentation conventions (foundation layout, naming, and
 contract-truth ownership), and whether to establish or extend
 `docs/PRINCIPLES.md` — from derived candidates, the core suggested invariants
-(contract truth ownership, compatibility is earned), and, when bootstrapping,
-optional code-design principle candidates; it also aligns
-repository-specific conventions, including review weight and autonomy. It may recommend
-conventions from repository evidence, including parking useful out-of-scope
-findings and behavior-focused testing, but writes no new convention without
-confirmation. A missing `review_weight` resolves to `standard`; missing
-`autonomy` resolves to `adaptive`.
+(contract truth ownership, compatibility is earned, leave it simpler), and,
+when bootstrapping, optional code-design principle candidates; it also aligns
+repository-specific conventions, including review weight, simplification
+posture, and autonomy. It may recommend conventions from repository evidence,
+including parking useful out-of-scope findings and behavior-focused testing,
+but writes no new convention without confirmation. A missing `review_weight`
+resolves to `standard`; missing `simplification_posture` resolves to `balanced`;
+missing `autonomy` resolves to `adaptive`. `workbench_version` has no fallback:
+setup stamps it from the verified loaded plugin after successful reconciliation.
 
 ## Active items
 
@@ -139,9 +150,14 @@ item is `blocked` when it has `blocked_by` edges or an exact `## Blocker` sectio
 that names an external condition and how it clears. Otherwise it is `active`.
 `related_to` carries non-ordering context and may be reciprocal.
 
-The first non-empty active-item body line is a Markdown title. At least one
-non-empty content line follows it. Each active item communicates its outcome,
-scope, and observable acceptance evidence, but the headings may fit the work.
+The first non-empty active-item body line is a Markdown title, followed by the
+exact line:
+
+> Workbench version mismatch: stop and offer setup upgrade.
+
+Each active item then communicates its outcome, scope, and observable acceptance
+evidence, but the headings may fit the work. Backlog items and completed stubs
+carry the same line; release summaries do not.
 
 Focused audits, cleanup, and refactors use tags rather than new item kinds.
 Prototype items use the `prototype` tag. They name the question, representative
@@ -236,6 +252,26 @@ flag overbuilding, and to judge against the rational expectations of the actual
 project type. Missing or contradicted authorized requirements may be blocking
 findings; adjacent improvements are non-blocking follow-ups and may be parked.
 Only `thorough` and `maximum` repeat independent passes.
+
+The effective `simplification_posture` separately resolves from explicit user
+direction, `.work/CONVENTIONS.md`, then `balanced`. It governs design,
+implementation, and each applicable review pass:
+
+- `hygiene` prevents or removes obvious local clutter and accidental complexity
+  in the touched area without broadening the boundary to hunt for refactors;
+- `balanced` actively seeks cohesive behavior-preserving simplification across
+  the affected contract boundary;
+- `structural` challenges the decomposition of the full authorized outcome
+  boundary and permits cohesive file breakouts, consolidation, and substantial
+  restructuring when the result is demonstrably simpler and verifiable.
+
+Every posture retains the hygiene floor, preserves observable behavior and
+measured performance constraints, and avoids obvious plausible performance
+regressions in affected code. It does not require speculative profiling,
+benchmarking, or low-level optimization without a constraint or credible risk.
+The posture controls simplification emphasis, while `review_weight` controls
+independent-review depth and repetition. It never makes unrelated cleanup part
+of acceptance.
 
 ## Work behavior
 
@@ -365,9 +401,10 @@ Allowed knowledge relationships are `supports`, `contradicts`, `informs`, and
 ## Setup conversion
 
 Setup inventories any existing workflow semantically, aligns conventions with
-the user, maps useful truth to the canonical destinations, validates retained
-content block by block, rewrites inbound references, and only then removes
-superseded artifacts. Its canonical-layout reference owns the shared foundation
+the user, maps useful truth to the canonical destinations, adds the canonical
+version guard line to every active, backlog, and completed item, validates
+retained content block by block, rewrites inbound references, and only then
+removes superseded artifacts. Its canonical-layout reference owns the shared foundation
 document contract: scope, durable-truth rules, authority, and the purpose of
 common foundation types.
 
@@ -387,7 +424,10 @@ user's exact-list confirmation.
 Setup removes repository-scoped competing workflow plugins after conversion and
 reports user- or machine-scoped competing installs for the user to uninstall.
 It creates no migration archives, compatibility copies, `.bak` files, or legacy
-folders. A second run produces no material change.
+folders. Immediately before final validation it stages the exact loaded plugin
+version in conventions; if validation or cleanup fails, it restores the prior
+stamp so incomplete reconciliation cannot claim compatibility. A second run
+produces no material change.
 
 For a repository already owned by Workbench, setup runs as an upgrade and sync.
 It detects missing conventions, malformed hierarchy, inconsistent readiness,
@@ -402,7 +442,8 @@ remains idempotent.
 The plugin ships a single `SessionStart` hook (`hooks/hooks.json` +
 `hooks/scripts/session-context.py`). When an upward-found `.work/CONVENTIONS.md`
 declares `owner: workbench`, it emits a short, fully static posture reminder as
-additional context: read conventions and foundations first, route only concrete
+additional context: read conventions and foundations first, compare the stamped
+Workbench version with the loaded plugin before stateful work, route only concrete
 Workbench workflows through its skills, use features as the default delivery
 unit, preserve strict nested tiers, keep independent work parallel, orchestrate
 multi-unit boundaries, park out-of-scope findings, and reconcile and close
@@ -417,8 +458,9 @@ broken.
 
 ## Deterministic validation
 
-`validate-workbench.py` checks ownership, canonical directories and clone-stable
-markers, item schemas, globally unique ids, title and body presence, parent-kind
+`validate-workbench.py` checks ownership, exact plugin-version compatibility,
+canonical work-item guard lines, canonical directories and clone-stable markers,
+item schemas, globally unique ids, title and body presence, parent-kind
 pairs, parent and sequencing cycles, relationship integrity, readiness state,
 sequencing and blocker evidence, research and mock references, and superseded
 substrate paths. Semantic tier fit and reason quality remain review judgments.

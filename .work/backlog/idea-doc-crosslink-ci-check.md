@@ -4,6 +4,8 @@ tags: [testing, documentation]
 created: 2026-06-04
 updated: 2026-06-04
 ---
+
+> Workbench version mismatch: stop and offer setup upgrade.
 gate-tests (pre-merge, 2026-06-04) Low: the handoff-live-fields docs roll-forward
 asserts "all cross-links resolve" (item
 `epic-research-work-handoff-live-fields-docs`) — the new `.work/CONVENTIONS.md`

@@ -90,9 +90,10 @@ state. It runs in four core moves, with a fifth continuation for greenfields:
 3. **Convert semantically.** Every source artifact gets exactly one
    disposition: retain, consolidate, move, or remove. References that
    point at removed sources are rewritten or removed first.
-4. **Validate, then remove.** It runs the validator, then deletes what it
-   migrated. It leaves no `.bak` copies, no migration archives, no legacy
-   folders, and no parallel substrates.
+4. **Stamp, validate, then remove.** It stamps the exact loaded Workbench
+   version into conventions, adds a short mismatch reminder to every work item,
+   runs the validator, then deletes what it migrated. It leaves no `.bak`
+   copies, migration archives, legacy folders, or parallel substrates.
 5. **Continue greenfields into ideation.** When no code or foundation yet
    establishes a coherent project direction, setup routes directly into
    `ideate`. That continuation reads setup's canonical foundation format and
@@ -106,9 +107,9 @@ It removes project-scoped competing workflow plugins after their content
 is converted, and reports any user- or machine-scoped competing installs
 for you to uninstall.
 
-### Three defaults you set during adoption
+### Four defaults you set during adoption
 
-`setup` always asks about three defaults and records your confirmed
+`setup` always asks about four defaults and records your confirmed
 choices in `.work/CONVENTIONS.md`. You can change any of them later by
 editing that file.
 
@@ -116,6 +117,7 @@ editing that file.
 |---|---|---|
 | **`autonomy`** | `collaborative`, `adaptive`, `autonomous` | `adaptive` for most repos — ask about human-owned choices, decide routine reversible details |
 | **`review_weight`** | `none`, `light`, `standard`, `thorough`, `maximum` | `standard` — one balanced independent review pass on substantive work |
+| **`simplification_posture`** | `hygiene`, `balanced`, `structural` | `balanced` — actively simplify the affected boundary without making unrelated cleanup part of delivery |
 | **`completed_items`** | `summarize`, `discard` | `summarize` if you want release summaries later; `discard` if Git history is enough (this turns off `release`) |
 
 `setup` may also recommend broader conventions from repo evidence — for
@@ -123,7 +125,8 @@ example, parking useful out-of-scope findings instead of expanding scope,
 or testing behavior at stable interfaces instead of coupling tests to
 implementation details. It writes nothing binding without your answer.
 
-**Expected result:** `.work/` exists with conventions recorded,
+**Expected result:** `.work/` exists with conventions recorded and stamped with
+the loaded Workbench version,
 `AGENTS.md` carries the Workbench operating rules, and prior workflow
 files are consolidated or removed. `setup` may omit `.research/` and
 `.knowledge/` until the project has research worth retaining. In a greenfield
@@ -197,8 +200,10 @@ normal delivery and review unit. An epic groups at least two meaningful feature
 outcomes. A story is a narrow verifiable slice. Features and stories can stand
 alone, while nested work follows `epic → feature → story`.
 
-1. **Read first.** The agent reads the repo, the conventions, and the
-   epic before acting.
+1. **Read first.** The agent reads the repo, the conventions, and the epic
+   before acting. If the stamped Workbench version differs from the loaded
+   plugin, it stops and asks whether to run setup upgrade; an older plugin must
+   be updated first.
 2. **Ask only what the repo can't answer.** It surfaces the consequential
    choices — product direction, irreversible actions, missing
    requirements — and decides routine details itself.
@@ -231,9 +236,9 @@ alone, while nested work follows `epic → feature → story`.
 The durable record is ordinary Markdown. You can read or edit `.work/`
 items directly; the agent keeps their structure valid.
 
-## Steer autonomy and review depth
+## Steer autonomy, simplification, and review depth
 
-Two repo defaults shape how the agent works, and both are overridable per
+Three repo defaults shape how the agent works, and each is overridable per
 request.
 
 **Autonomy** controls participation and continuation:
@@ -250,6 +255,19 @@ obligations. Every posture still pauses for missing product direction,
 material scope expansion, production or real-data actions, irreversible
 changes, and external coordination.
 
+**Simplification posture** controls how proactively design, implementation, and
+review pursue behavior-preserving reduction:
+
+- `hygiene` — keep the touched area clean and catch obvious accidental
+  complexity or algorithmic overwork;
+- `balanced` — actively simplify across the affected contract boundary;
+- `structural` — challenge the full authorized outcome boundary and permit
+  cohesive file breakouts, consolidation, or substantial restructuring.
+
+Every posture preserves behavior and measured performance constraints and
+avoids obvious plausible performance regressions. It does not authorize
+unrelated cleanup or speculative low-level optimization.
+
 **Review weight** controls independent review of consequential designs
 and completed implementation inside concrete Workbench workflows. It does not
 control general reviews, audits, planning discussions, explanations, or loose
@@ -264,7 +282,9 @@ requests merely because they happen in the same repository:
 - `maximum` — thorough convergence with adversarial perspectives and more
   than one model when available.
 
-Only `thorough` and `maximum` repeat independent passes. Two more things
+Review weight controls pass depth and repetition; simplification posture
+controls the simplification emphasis within each pass. Only `thorough` and
+`maximum` repeat independent passes. Two more things
 to know about review:
 
 - **Review is not verification.** A reviewer saying "looks good" does not
@@ -363,6 +383,9 @@ no authority of its own.
 
 ## Recover from common stops
 
+- **The stamped Workbench version differs from the loaded plugin.** Stateful
+  work stops before mutation and offers setup upgrade. If the loaded plugin is
+  older, update it first; older setup must not rewrite newer project state.
 - **The agent creates Workbench state before adoption.** That is incorrect.
   Without `.work/CONVENTIONS.md` declaring `owner: workbench`, only write-free
   `ideate` may run; stateful skills remain inactive unless you explicitly ask

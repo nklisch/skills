@@ -6,6 +6,8 @@ updated: 2026-07-21
 ---
 # Streamline agentic-research skills/ceremony — conventions + high-level guidelines over skill proliferation
 
+> Workbench version mismatch: stop and offer setup upgrade.
+
 ## Brief
 
 `agentic-research` currently carries a skill surface with substantial ceremony:

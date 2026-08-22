@@ -6,6 +6,8 @@ updated: 2026-06-09
 ---
 # Lock the `research_dials:` parse-tolerance contract with fixtures
 
+> Workbench version mismatch: stop and offer setup upgrade.
+
 The registration-carrying `[research]` work-item contract claims `work-view` "tolerates the
 `research_dials:` block harmlessly." This is true today only by serde default — `RawFrontmatter`
 in `work-view/crates/core/src/parse.rs` does not set `deny_unknown_fields`, so the nested block

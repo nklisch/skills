@@ -6,6 +6,8 @@ updated: 2026-06-03
 ---
 # Retire the bash work-view fallback — go fully Rust-only
 
+> Workbench version mismatch: stop and offer setup upgrade.
+
 Parked from `feature-work-view-scope`. We dropped bash<->Rust parity and froze
 `scripts/work-view.sh` as a degraded fallback (no `--scope`, no board). The full
 retirement is a cross-cutting change that needs its own design pass:

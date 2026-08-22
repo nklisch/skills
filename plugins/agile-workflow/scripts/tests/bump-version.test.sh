@@ -12,8 +12,10 @@
 #   * the Rust stamp `research-view/crates/cli/.research-view-version` (NO trailing newline)
 #   * the bash fallback's `RESEARCH_VIEW_VERSION="x.y.z"` literal in scripts/research-view.sh
 #
-# Both blocks use a Fail-Fast `grep` postcondition that exits 1 if the anchored
-# sed pattern no longer matches the literal.
+# A third projection advances Workbench's dogfood `.work/CONVENTIONS.md` stamp
+# in the same commit as its manifests, preventing an immediate self-mismatch.
+# Every projection uses a Fail-Fast `grep` postcondition when text substitution
+# could otherwise silently no-op.
 #
 # We run the REAL bump-version.sh (not a reimplementation) inside a throwaway
 # `git init` scratch repo whose tree mirrors the paths the script touches. To
@@ -124,7 +126,7 @@ EOF
 # new_scratch_repo — build a throwaway repo mirroring the paths bump-version.sh
 # touches, with a clean working tree (the script refuses a dirty plugin dir).
 #   $1 = plugin.json version to use for agile-workflow (and agentic-research)
-#   $2 = optional extra plugin name to seed (for the non-agile-workflow guard)
+#   $2 = optional extra plugin name to seed (including Workbench stamp fixtures)
 # Echoes the repo path.
 # ---------------------------------------------------------------------------
 new_scratch_repo() {
@@ -185,6 +187,12 @@ EOF
       > "${repo}/plugins/${extra_plugin}/.claude-plugin/plugin.json"
     printf '{\n  "name": "%s",\n  "version": "%s"\n}\n' "$extra_plugin" "$aw_version" \
       > "${repo}/plugins/${extra_plugin}/.codex-plugin/plugin.json"
+    if [ "$extra_plugin" = "workbench" ]; then
+      mkdir -p "${repo}/.work"
+      printf '%s\n' '---' 'owner: workbench' 'schema: 1' \
+        "workbench_version: ${aw_version}" '---' \
+        > "${repo}/.work/CONVENTIONS.md"
+    fi
   fi
 
   # Initialize a clean git repo (real git; commit happens via real git here,
@@ -492,6 +500,21 @@ assert_eq "ar: major .research-view-version == 2.0.0" "2.0.0" "$(cat "${REPO11}/
 assert_true "ar: major research-view.sh literal == 2.0.0" \
   "grep -q '^RESEARCH_VIEW_VERSION=\"2.0.0\"\$' '${REPO11}/${RV_SH_REL}'"
 rm -rf "$REPO11"
+
+# ---------------------------------------------------------------------------
+# Test group 9: Workbench bump advances the dogfood conventions stamp
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== Test group 9: Workbench bump projects conventions stamp ==="
+
+REPO12="$(new_scratch_repo "1.2.3" "workbench")"
+run_bump "$REPO12" workbench minor
+assert_eq "workbench bump exits 0" "0" "$BUMP_RC"
+assert_true "workbench conventions stamp == 1.3.0" \
+  "grep -q '^workbench_version: 1.3.0\$' '${REPO12}/.work/CONVENTIONS.md'"
+assert_true "workbench conventions stamp is staged" \
+  "is_staged '$REPO12' '.work/CONVENTIONS.md'"
+rm -rf "$REPO12"
 
 # ---------------------------------------------------------------------------
 # Summary

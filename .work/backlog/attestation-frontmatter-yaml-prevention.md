@@ -6,6 +6,8 @@ updated: 2026-06-25
 ---
 # Prevent invalid-YAML attestation frontmatter (template default + lint check)
 
+> Workbench version mismatch: stop and offer setup upgrade.
+
 ## The recurring bug
 
 The attestation authoring pattern emits `citation:` (and other prose fields like

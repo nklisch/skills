@@ -6,6 +6,8 @@ updated: 2026-06-09
 ---
 # Test that review's archive step honors CONVENTIONS Terminal-tier retention
 
+> Workbench version mismatch: stop and offer setup upgrade.
+
 The review skill's substrate-side-effects reference now branches the archive step on the
 CONVENTIONS `Terminal-tier retention` value (delete-refs → bodyless stub; retain-bodies → full
 body kept, same archived_atop/git_ref semantics). Nothing asserts it. Add fixture cases:

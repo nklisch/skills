@@ -17,8 +17,11 @@ the engagement.
 First confirm that an upward-found `.work/CONVENTIONS.md` declares
 `owner: workbench`. If it does not, ignore this skill and handle the request
 without Workbench; do not initialize `.research/`, rebuild Workbench's knowledge
-index, or offer setup. Even in an adopted repository, small conversational
-lookups and unrelated research stay outside this skill.
+index, or offer setup. When active, apply
+[setup's version-compatibility check](../setup/references/version-compatibility.md)
+before writing research state and stop on mismatch. Even in an adopted
+repository, small conversational lookups and unrelated research stay outside
+this skill.
 
 Read [references/discipline.md](references/discipline.md) completely before
 engaging sources. Its grounding floor is mandatory at every depth.

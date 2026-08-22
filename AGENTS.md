@@ -162,8 +162,10 @@ dogfooding the behavior it ships.
 <!-- workbench:start -->
 ## Workbench
 
-This repository is Workbench-owned (`.work/CONVENTIONS.md`). Route concrete
-Workbench workflows through its skills and prefer ideate before design when
+This repository is Workbench-owned (`.work/CONVENTIONS.md`). Before stateful
+Workbench work, compare its `workbench_version` with the loaded plugin; on a
+mismatch, stop and offer the appropriate setup upgrade rather than mutating
+project state. Route concrete Workbench workflows through its skills and prefer ideate before design when
 early exploration of substantial or cross-cutting work could materially improve
 what gets designed, unless the user requests direct design or execution.
 Unrelated requests stay outside Workbench. Track active outcomes in
@@ -201,10 +203,12 @@ work reduces rework, ambiguity, or integration risk, and record the reason in
 For concrete Workbench workflows, test behavior at stable interfaces, verify
 the full requested boundary, reconcile affected foundation truth, rebuild the
 knowledge index when indexed documentation changes, apply the configured review
-weight to substantive Workbench design and implementation, and remove or
-summarize completed items immediately. Do not apply that review weight to every
-review, audit, planning discussion, explanation, or loose request in the
-repository.
+weight and simplification posture to substantive Workbench design and
+implementation, and remove or summarize completed items immediately. Preserve
+behavior and measured performance constraints during simplification, avoid
+obvious plausible performance regressions, and do not turn ordinary work into
+speculative optimization. Do not apply the review weight to every review,
+audit, planning discussion, explanation, or loose request in the repository.
 <!-- workbench:end -->
 
 ## Engineering posture

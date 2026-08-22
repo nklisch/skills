@@ -37,15 +37,20 @@ adopted repository; write-free `ideate` may explore before adoption, and
   what is rational for the project's actual type, maturity, audience,
   deployment context, and stated risks; flag overbuilding instead of rewarding
   it.
-- **Simplicity is durable.** Prefer maintainable intended states with fewer
-  concepts and lower operating and verification cost, not merely smaller diffs.
-  Do not hide hacks or oversized validation systems inside autonomous work.
+- **Simplicity is durable and configurable.** Every workflow retains a hygiene
+  floor, while one repository `simplification_posture` controls whether design,
+  implementation, and review stay local, actively simplify the affected
+  contract boundary, or challenge its full structure. Simplification preserves
+  behavior and measured performance constraints and avoids obvious plausible
+  regressions without manufacturing speculative optimization work.
 - **Review depth is legible and bounded.** One repository `review_weight`
   governs design and implementation review for concrete Workbench workflows,
   while explicit user direction can override it for one such workflow. It does
   not govern loose requests merely because they occur in an adopted repository.
   `standard` gives substantive Workbench work one independent pass without
-  manufacturing convergence or new scope.
+  manufacturing convergence or new scope. Review weight controls review depth;
+  the simplification posture independently controls simplification emphasis
+  within design, implementation, and each review pass.
 - **The ledger stays small and legible.** Features are the normal delivery unit.
   Epics group multiple feature outcomes, stories hold narrow slices, and nested
   hierarchy keeps that order without forcing wrapper items.
@@ -69,6 +74,10 @@ adopted repository; write-free `ideate` may explore before adoption, and
 - **Maintenance follows evidence.** Cohesive cleanup can travel with delivery;
   standalone cleanup and refactors are normal bounded work; broader findings
   are parked.
+- **Project and plugin versions stay reconciled.** Setup stamps the exact loaded
+  Workbench version into conventions. Stateful workflows stop on mismatch and
+  offer setup upgrade rather than letting one release mutate project state
+  produced by another; an older plugin must itself be updated first.
 - **Adoption is explicit.** Stateful Workbench skills require
   `.work/CONVENTIONS.md` with `owner: workbench`; only a direct request to
   initialize, adopt, migrate, upgrade, refresh, or reconcile may invoke `setup`.

@@ -9,7 +9,10 @@ Workbench-owned repository.
 For an applicable workflow, resolve one effective `review_weight` from explicit
 user instruction, `.work/CONVENTIONS.md`, then `standard`. The same weight
 governs that outcome's design and implementation review so the repository has
-one understandable delivery rigor control.
+one understandable delivery rigor control. Separately read
+[simplification.md](simplification.md) and resolve the effective
+`simplification_posture`; it controls simplification emphasis within each pass,
+not the number of passes.
 
 | Weight | Review policy |
 |---|---|
@@ -56,7 +59,9 @@ necessary for approval. The scope authority is:
 Foundation documents constrain and clarify the work; they do not make every
 adjacent aspiration or possible improvement part of the current outcome. A
 reviewer's preferred architecture, ideal feature set, generic best practice, or
-personal quality bar is not scope authority.
+personal quality bar is not scope authority. The simplification posture permits
+cohesive restructuring inside the affected boundary but does not turn unrelated
+cleanup into an acceptance condition.
 
 Judge the work for the project's actual type, maturity, audience, deployment
 context, and stated risks. Explicitly look for overbuilding: extra abstractions,
@@ -76,14 +81,20 @@ point, and tell them:
 > defect. Treat worthwhile improvements outside that boundary as non-blocking
 > follow-ups, not findings required for acceptance.
 
-Do not lead reviewers with the suspected answer. For design, ask about
+Also state the effective simplification posture and give the reviewer its
+hygiene, balanced, or structural expectation from
+[simplification.md](simplification.md). Do not lead reviewers with the suspected
+answer. For design, ask about
 requirements coverage, boundaries, alternatives, assumptions, failure modes,
 verification feasibility, migration or rollback, unnecessary complexity,
 accurate foundation roll-forward, and scope expansion. For implementation, ask
 about correctness, missing required behavior, safety, integration risk,
-simplification, foundation drift, overbuilding, and relevant security, privacy,
-accessibility, performance, compatibility, data-integrity, and operational
-concerns only where the authorized scope or evidence makes them relevant.
+simplification at the effective posture, foundation drift, overbuilding, and
+relevant security, privacy, accessibility, performance, compatibility,
+data-integrity, and operational concerns only where the authorized scope or
+evidence makes them relevant. Every pass catches obvious algorithmic overwork
+and plausible performance regressions in affected code; require deeper
+performance investigation only when project constraints or evidence warrant it.
 
 Treat findings as proposals. Reproduce or verify each substantive claim, accept
 changes that improve the work inside its authorized boundary, and explain

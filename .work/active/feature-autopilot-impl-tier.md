@@ -13,6 +13,8 @@ updated: 2026-06-13
 ---
 # Autopilot / implement-orchestrator implementation-tier interview
 
+> Workbench version mismatch: stop and offer setup upgrade.
+
 ## Brief
 Make the implementation-agent tier a deliberate dial instead of a silent default. When the tier
 isn't specified (by goal/args/user/project convention), `autopilot` and `implement-orchestrator`

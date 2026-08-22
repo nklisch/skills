@@ -23,6 +23,8 @@ POSTURE_BLOCK = """\
 This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Read .work/CONVENTIONS.md and foundation docs (root docs/,
   scope-owned <sub-project>/docs/) before structural decisions.
+- Before stateful work, compare workbench_version with the loaded plugin;
+  on mismatch, stop and offer the appropriate setup upgrade.
 - One active item per coherent outcome. Use features by default, epics for
   multiple feature outcomes, and stories for narrow slices. Preserve
   epic -> feature -> story when items nest.

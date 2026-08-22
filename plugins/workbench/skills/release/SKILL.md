@@ -12,7 +12,9 @@ description: >
 
 Confirm that an upward-found `.work/CONVENTIONS.md` declares `owner: workbench`.
 If it does not, ignore this skill and handle the request without Workbench; do
-not offer setup. When Workbench is active, require `completed_items: summarize`.
+not offer setup. When Workbench is active, apply
+[setup's version-compatibility check](../setup/references/version-compatibility.md)
+and stop on mismatch, then require `completed_items: summarize`.
 If it is `discard`, explain the applicable convention change and do not write a
 release.
 Otherwise, read the selected completion stubs in `.work/completed/`, existing

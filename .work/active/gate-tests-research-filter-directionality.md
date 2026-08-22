@@ -13,6 +13,8 @@ updated: 2026-06-04
 ---
 # --research-origin / --research-refs not disambiguated end-to-end (shared fixture slug)
 
+> Workbench version mismatch: stop and offer setup upgrade.
+
 ## Priority
 Medium
 

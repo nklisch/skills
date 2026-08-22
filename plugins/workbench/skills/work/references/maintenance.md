@@ -1,10 +1,12 @@
 # Maintenance and Simplification
 
 Use this reference both for cleanup embedded in delivery and for standalone
-cleanup, simplification, refactor, or technical-debt outcomes.
+cleanup, simplification, refactor, or technical-debt outcomes. Read
+[simplification.md](simplification.md) first and apply the effective posture.
 
 For embedded maintenance, include only cohesive behavior-preserving cleanup
-exposed by the current delivery. Park broader opportunities.
+inside the affected delivery boundary. Its breadth follows the effective
+simplification posture; park unrelated opportunities.
 
 For standalone maintenance, create an ordinary feature or story with a bounded
 surface, reason the current structure is costly or unsafe, invariants to
@@ -12,7 +14,9 @@ preserve, observable completion evidence, and rollback or migration concerns
 where relevant. Tag it `cleanup` or `refactor`; use an epic only when several
 independently verifiable subsystems need durable coordination. Separate or
 explicitly gather requirements for intended behavior changes rather than
-hiding them inside a purportedly behavior-preserving refactor.
+hiding them inside a purportedly behavior-preserving refactor. Preserve measured
+performance constraints and avoid obvious plausible regressions in affected
+code; do not manufacture low-level optimization work without evidence.
 
 Then:
 

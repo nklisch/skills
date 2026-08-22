@@ -11,8 +11,11 @@ description: >
 
 First confirm that an upward-found `.work/CONVENTIONS.md` declares
 `owner: workbench`. If it does not, ignore this skill and do not offer setup.
-When active, read the relevant brief, cited attestations, conventions, and
-existing active and backlog items before proposing concrete ledger handoffs.
+When active, apply
+[setup's version-compatibility check](../setup/references/version-compatibility.md)
+and stop on mismatch. Then read the relevant brief, cited attestations,
+conventions, and existing active and backlog items before proposing concrete
+ledger handoffs.
 
 Identify findings with concrete operational consequences. Do not rewrite
 research to match project preferences, and do not treat every observation as
@@ -26,9 +29,10 @@ For each proposed item, present in the current conversation:
 - relationships to existing items;
 - unresolved decision or evidence risk.
 
-Ask the user which proposals to emit. Create only confirmed items and include
-the brief path in `research_refs`. Merge with equivalent existing work rather
-than duplicating it.
+Ask the user which proposals to emit. Create only confirmed items, include the
+brief path in `research_refs`, and include the canonical Workbench version guard
+line from the active- or backlog-item contract. Merge with equivalent existing
+work rather than duplicating it.
 
 Run `validate-workbench.py` from the installed Workbench plugin after emission,
 resolving its package root by verified plugin identity. If Workbench is

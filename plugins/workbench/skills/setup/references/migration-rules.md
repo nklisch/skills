@@ -94,6 +94,8 @@ uninstall them; setup does not silently mutate external scope.
 After conversion:
 
 - one system owns `.work/`;
+- conventions carry the exact loaded Workbench version;
+- every active, backlog, and completed item carries the canonical version guard line;
 - no old workflow hooks, binaries, managed rules, or indexes remain;
 - no meaningful decision lives only in removed state;
 - no completed item remains active;

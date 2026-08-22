@@ -100,6 +100,28 @@ esac
 
 new="$major.$minor.$patch"
 
+# This repository dogfoods Workbench. Refuse to begin a Workbench bump unless
+# the project stamp matches the current manifest and has no unrelated changes;
+# otherwise the bump could either bless unreconciled state or stage user work.
+if [[ "$plugin" == "workbench" ]]; then
+  conventions=".work/CONVENTIONS.md"
+  if [[ ! -f "$conventions" ]]; then
+    echo "bump-version: missing ${conventions} for Workbench version projection" >&2
+    exit 1
+  fi
+  if ! git diff --quiet -- "$conventions" \
+     || ! git diff --cached --quiet -- "$conventions"; then
+    echo "bump-version: ${conventions} has uncommitted changes" >&2
+    echo "  commit the reconciled Workbench conventions before bumping" >&2
+    exit 1
+  fi
+  if ! grep -q "^workbench_version: ${current}$" "$conventions"; then
+    echo "bump-version: ${conventions} is not stamped with current Workbench ${current}" >&2
+    echo "  run setup upgrade before bumping the plugin" >&2
+    exit 1
+  fi
+fi
+
 bump_json() {
   local file="$1"
   jq --arg v "$new" '.version = $v' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
@@ -109,6 +131,20 @@ bump_json() {
 bump_json "$claude_json"
 [[ -f "$codex_json" ]] && bump_json "$codex_json"
 [[ -f "$agy_json" ]] && bump_json "$agy_json"
+
+# Advance the dogfood stamp in the same commit as Workbench's manifests or the
+# newly bumped plugin would immediately refuse to mutate its own substrate.
+if [[ "$plugin" == "workbench" ]]; then
+  sed -i.bak -E \
+    's/^workbench_version: [^[:space:]]+$/workbench_version: '"$new"'/' \
+    "$conventions"
+  rm -f "${conventions}.bak"
+  if ! grep -q "^workbench_version: ${new}$" "$conventions"; then
+    echo "bump-version: failed to project version into ${conventions}" >&2
+    exit 1
+  fi
+  git add "$conventions"
+fi
 
 # Keep each plugin's self-reported binary version in lockstep with plugin.json.
 # The semver lives canonically in plugin.json; project it into both

@@ -4,6 +4,8 @@ tags: [testing]
 created: 2026-06-04
 updated: 2026-06-04
 ---
+
+> Workbench version mismatch: stop and offer setup upgrade.
 gate-tests (pre-merge, 2026-06-04) Low-priority complementary coverage — covered
 elsewhere, file for parity:
 - **`--research-origin null` (IsNull) has no integration test**, unlike its mirror

@@ -25,9 +25,14 @@ invoking it. Do not carry an unaccepted offer forward as implied consent.
 
 ## Establish the boundary
 
-Read [references/canonical-layout.md](references/canonical-layout.md) and
-[references/migration-rules.md](references/migration-rules.md) completely before
-writing.
+Read [references/canonical-layout.md](references/canonical-layout.md),
+[references/migration-rules.md](references/migration-rules.md), and
+[references/version-compatibility.md](references/version-compatibility.md)
+completely before writing. Resolve the loaded plugin version through the
+verified package manifest. If it is older than a valid stamped project version,
+stop and ask the user to update Workbench before this setup can safely continue.
+A missing or older project stamp is upgrade input, not another authorization
+prompt, because the user already invoked setup.
 
 Inspect Git state, agent instructions, workflow configuration, work ledgers,
 plans, research, generated indexes, foundation documents, CI, package scripts,
@@ -96,6 +101,15 @@ implementation-shaping design review and completed implementation review, while
 explicit user direction may override it for one request. Existing Workbench
 projects without the field retain the backward-compatible `standard` default.
 
+Always ask for the repository's default `simplification_posture`: `hygiene`,
+`balanced`, or `structural`. Recommend `balanced` for most projects. Explain
+that it controls how proactively design, implementation, and review pursue
+behavior-preserving reduction, while `review_weight` separately controls review
+depth and repetition. Every posture retains baseline hygiene and preserves
+measured performance constraints while avoiding obvious plausible performance
+regressions. Existing Workbench projects without the field retain the
+backward-compatible `balanced` default.
+
 Always ask for the repository's default `autonomy`: `adaptive`,
 `collaborative`, or `autonomous`. Recommend `adaptive` unless the repository has
 clear operating reasons for a different default. Explain that explicit request
@@ -114,11 +128,12 @@ names as examples that should fit the project, never as a fixed required list.
 
 Always ask whether to establish or extend `docs/PRINCIPLES.md`. Read
 [references/principle-candidates.md](references/principle-candidates.md) and
-present three tiers: principles derived from repository evidence; the two core
-invariants Workbench always recommends — contract truth ownership and
-compatibility is earned; and, when bootstrapping a project or when no
-principles document exists, the optional code-design candidates, each offered
-as its own adopt, adapt, or reject decision rather than as a checklist. Record
+present three tiers: principles derived from repository evidence; the three core
+invariants Workbench always recommends — contract truth ownership,
+compatibility is earned, and leave it simpler; and, when bootstrapping a
+project or when no principles document exists, the optional code-design
+candidates, each offered as its own adopt, adapt, or reject decision rather than
+as a checklist. Record
 only confirmed principles.
 
 Write confirmed rules to the narrowest authority:
@@ -149,6 +164,13 @@ outside the repository with its exact identifiable scope; do not claim a clean
 single-system state while that competing installation still injects behavior.
 
 ## Validate before cleanup
+
+After the target substrate is semantically complete, add the canonical version
+guard line to every active, backlog, and completed item. Stage the loaded plugin
+version as `workbench_version` in conventions immediately before validation.
+Remember the prior stamp; if validation or cleanup fails, restore that prior
+stamp (or remove the staged field when it was absent) before stopping so an
+unfinished reconciliation cannot claim compatibility.
 
 Run the plugin validator:
 
@@ -191,8 +213,9 @@ their content is converted and validated. For user- or machine-scoped plugin
 installs, report the exact installation that the user must uninstall; do not
 silently mutate external scope.
 
-Re-run validation after cleanup. A second setup run must produce no material
-change.
+Re-run validation after cleanup. Keep the new version stamp only after all
+reconciliation and cleanup checks pass. A second setup run must produce no
+material change.
 
 ## Continue a greenfield bootstrap through ideation
 

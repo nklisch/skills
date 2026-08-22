@@ -39,7 +39,11 @@ verified.
 
 Apply security, privacy, accessibility, performance, compatibility, data
 integrity, and operational-readiness lenses when the affected surface or
-discovered risk warrants them. These are lenses, not fixed gates.
+discovered risk warrants them. These are lenses, not fixed gates. For
+behavior-preserving simplification, also preserve measured performance
+constraints and check obvious plausible regressions such as worse algorithmic
+complexity, repeated work, or needless I/O; do not require speculative low-level
+optimization evidence.
 
 For reported defects, reproduce before correction whenever possible. Preserve a
 failing regression test or another repeatable before/after check, diagnose root

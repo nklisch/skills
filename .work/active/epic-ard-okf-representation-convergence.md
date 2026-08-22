@@ -13,6 +13,8 @@ updated: 2026-07-21
 ---
 # Converge agentic-research's representation layer — discipline vs storage separation, and the OKF question
 
+> Workbench version mismatch: stop and offer setup upgrade.
+
 > **Naming/versioning settled.** This work lands as **`agentic-research` v0.7.0**
 > (same name, not ARD, not renamed, not a major bump). The ARD framework was
 > *absorbed* into the plugin (`7b0f52f`) and the content-version collapsed into

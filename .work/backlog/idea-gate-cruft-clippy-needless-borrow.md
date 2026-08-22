@@ -4,6 +4,8 @@ tags: [cleanup]
 created: 2026-06-04
 updated: 2026-06-04
 ---
+
+> Workbench version mismatch: stop and offer setup upgrade.
 gate-cruft (pre-merge, 2026-06-04) Low: one clippy `needless_borrows_for_generic_args`
 on a test line — `index.rs:549` in research-view-core passes `&attestation_fm("good-src")`
 to `fs::write` where the owned value suffices. Drop the leading `&`. Test-only,

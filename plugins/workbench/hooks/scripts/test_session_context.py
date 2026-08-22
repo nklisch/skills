@@ -95,6 +95,8 @@ class MainTest(unittest.TestCase):
         context = data["hookSpecificOutput"]["additionalContext"]
         self.assertEqual(data["hookSpecificOutput"]["hookEventName"], "SessionStart")
         self.assertIn("Workbench-owned", context)
+        self.assertIn("compare workbench_version", context)
+        self.assertIn("appropriate setup upgrade", context)
         self.assertIn("concrete Workbench design and delivery workflows", context)
         self.assertIn("review at the configured", context)
         self.assertIn("Prefer ideate before design", context)

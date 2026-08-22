@@ -75,8 +75,11 @@ updated: YYYY-MM-DD
 ```
 
 Ids are unique across all `.work/`. The first non-empty body line is a Markdown
-title, followed by at least one non-empty content line. Keep one coherent
-outcome in one item. Use tags such as `audit`, `security`, or `performance` for
+title, immediately followed by the canonical line:
+
+> Workbench version mismatch: stop and offer setup upgrade.
+
+Keep one coherent outcome in one item. Use tags such as `audit`, `security`, or `performance` for
 focused investigations rather than another item kind.
 
 ## Completion sweep
@@ -88,7 +91,7 @@ completion from a stale label.
 Close atomically:
 
 - `completed_items: summarize` replaces the active item with one
-  `.work/completed/` stub;
+  `.work/completed/` stub that retains the canonical version guard line;
 - `completed_items: discard` removes the active item.
 
 Before closure, remove the completed id from each active `blocked_by` and

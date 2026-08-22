@@ -25,6 +25,13 @@ prefixes, deprecation shims, or dual-read paths when both sides are yours.
 Real-data migrations are planned by the agent and approved and executed by the
 user for production data.
 
+**Leave it simpler.** When touching an area, eliminate code, tests, checks,
+abstractions, and compatibility paths the current work makes unnecessary.
+Preserve behavior, guarantees, validation, compatibility, safety, and measured
+performance constraints unless the user explicitly authorizes a change. Avoid
+obvious plausible performance regressions. Ask before removing any of those
+meaningful properties.
+
 ## Optional bootstrap candidates (offer when bootstrapping)
 
 Offer these when the project is new or has no principles document, each as its
@@ -47,11 +54,6 @@ scope and consequences do not need.
 **Code economy.** Short, direct code is a virtue when it stays clear. Prefer
 fewer concepts, layers, branches, and options over speculative generality, and
 match rigor to the project's context.
-
-**Leave it simpler.** When touching an area, eliminate code, tests, checks,
-abstractions, and compatibility paths the current work makes unnecessary.
-Ask the user before removing meaningful behavior, guarantees, validation,
-compatibility, or safety.
 
 **Tests earn their keep.** Test behavior at stable interfaces, important
 behaviors, and regressions learned from real bugs — not every line or branch.

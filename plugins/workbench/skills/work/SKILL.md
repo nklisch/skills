@@ -44,9 +44,11 @@ First confirm that an upward-found `.work/CONVENTIONS.md` declares
 without Workbench; do not offer setup unless the user explicitly asks to adopt
 or initialize Workbench.
 
-When active, read `.work/CONVENTIONS.md`, relevant work items, project
-instructions, foundation documents, `.knowledge/index.json` when present, and
-affected code before structural decisions. Foundation documents generally live
+When active, read `.work/CONVENTIONS.md` and apply
+[setup's version-compatibility check](../setup/references/version-compatibility.md)
+before any stateful action; stop on mismatch. Then read relevant work items,
+project instructions, foundation documents, `.knowledge/index.json` when
+present, and affected code before structural decisions. Foundation documents generally live
 in root `docs/` for repository-wide truth, with sub-project truth in
 `<sub-project>/docs/` or `docs/<sub-project>/` following repository convention.
 
@@ -76,6 +78,8 @@ Load references only as needed:
   [references/model-roles.md](references/model-roles.md);
 - nontrivial UI or journey uncertainty →
   [references/ui-ux.md](references/ui-ux.md);
+- every design, implementation, and Workbench review →
+  [references/simplification.md](references/simplification.md);
 - substantial implementation, refactoring, or recurrence →
   [references/maintenance.md](references/maintenance.md);
 - implementation completion or review →
@@ -179,8 +183,11 @@ outcome owner and orchestrator; for small coherent work, execute directly when
 delegation would add no value.
 
 Before implementing or delegating each feature, story, or other coherent unit,
-read its current scope and assess design readiness against the repository. An
-item's existence, acceptance criteria, or place in an epic does not mean its
+read [references/simplification.md](references/simplification.md), resolve the
+effective simplification posture, and apply it within the affected boundary.
+Then read the unit's current scope and assess design readiness against the
+repository. An item's existence, acceptance criteria, or place in an epic does
+not mean its
 implementation shape has been designed. Keep design inline when repository
 evidence and brief reasoning can confidently resolve local, reversible choices.
 Route through Workbench's `design` skill when meaningful discovery,
@@ -210,9 +217,9 @@ external blocker prevents meaningful progress.
 For the concrete Workbench delivery outcome, verify behavior at stable
 interfaces, run required project checks, and exercise meaningful user journeys.
 Read [references/review.md](references/review.md), resolve the effective
-`review_weight`, and apply its implementation-review policy to that Workbench
+`review_weight` and simplification posture, and apply both to that Workbench
 outcome, including the mandatory non-expansion instruction in every review
-prompt. An explicit user request overrides the repository default. Verify and
+prompt. Explicit user direction overrides repository defaults. Verify and
 adjudicate reviewer findings rather than accepting them blindly; reject invented
 requirements and park useful out-of-scope proposals instead of making them
 acceptance blockers.

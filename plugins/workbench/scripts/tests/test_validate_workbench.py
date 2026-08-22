@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -8,6 +9,10 @@ from pathlib import Path
 
 
 SCRIPT = Path(__file__).parents[1] / "validate-workbench.py"
+INSTALLED_VERSION = json.loads(
+    (SCRIPT.parents[1] / "plugin.json").read_text(encoding="utf-8")
+)["version"]
+GUARD_LINE = "> Workbench version mismatch: stop and offer setup upgrade."
 
 
 def write(path: Path, content: str) -> None:
@@ -20,7 +25,7 @@ class ValidateWorkbenchTests(unittest.TestCase):
         root = Path(tempfile.mkdtemp())
         write(
             root / ".work/CONVENTIONS.md",
-            "---\nowner: workbench\nschema: 1\ncompleted_items: summarize\nreview_weight: standard\nautonomy: adaptive\n---\n",
+            f"---\nowner: workbench\nschema: 1\nworkbench_version: {INSTALLED_VERSION}\ncompleted_items: summarize\nreview_weight: standard\nsimplification_posture: balanced\nautonomy: adaptive\n---\n",
         )
         for directory in ("active", "backlog", "completed", "releases"):
             (root / ".work" / directory).mkdir(parents=True, exist_ok=True)
@@ -47,6 +52,8 @@ updated: 2026-07-24
 
 # Example
 
+> Workbench version mismatch: stop and offer setup upgrade.
+
 Useful item body.
 """,
         )
@@ -71,10 +78,13 @@ Useful item body.
         blocked_by: list[str] | None = None,
         related_to: list[str] | None = None,
         body: str | None = None,
+        include_version_guard: bool = True,
     ) -> None:
         blocked = ", ".join(blocked_by or [])
         related = ", ".join(related_to or [])
         item_body = body if body is not None else f"# {item_id}\n\nUseful item body.\n"
+        if include_version_guard and GUARD_LINE not in item_body.splitlines():
+            item_body = f"{item_body.rstrip()}\n\n{GUARD_LINE}\n"
         write(
             root / ".work/active" / f"{item_id}.md",
             f"""---
@@ -98,6 +108,80 @@ updated: 2026-07-24
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("validation passed", result.stdout)
 
+    def test_missing_work_item_version_guard_fails_in_every_item_state(self) -> None:
+        for state in ("active", "backlog", "completed"):
+            with self.subTest(state=state):
+                root = self.make_project()
+                if state == "active":
+                    path = root / ".work/active/example.md"
+                    path.write_text(
+                        path.read_text(encoding="utf-8").replace(
+                            f"{GUARD_LINE}\n\n", ""
+                        ),
+                        encoding="utf-8",
+                    )
+                elif state == "backlog":
+                    write(
+                        root / ".work/backlog/deferred.md",
+                        "---\nid: deferred\ntags: []\ncreated: 2026-07-24\n"
+                        "updated: 2026-07-24\n---\n\n# Deferred\n",
+                    )
+                else:
+                    write(
+                        root / ".work/completed/finished.md",
+                        "---\nid: finished\ncompleted: 2026-07-24\n---\n\n"
+                        "# Finished\n",
+                    )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("missing Workbench version guard line", result.stdout)
+
+    def test_missing_workbench_version_requires_setup_upgrade(self) -> None:
+        root = self.make_project()
+        path = root / ".work/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                f"workbench_version: {INSTALLED_VERSION}\n", ""
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("workbench_version must be", result.stdout)
+        self.assertIn("run setup upgrade", result.stdout)
+
+    def test_mismatched_workbench_version_requires_setup_upgrade(self) -> None:
+        root = self.make_project()
+        path = root / ".work/CONVENTIONS.md"
+        for mismatched in ("0.0.1", "999.0.0"):
+            with self.subTest(mismatched=mismatched):
+                text = path.read_text(encoding="utf-8")
+                path.write_text(
+                    text.replace(
+                        f"workbench_version: {INSTALLED_VERSION}",
+                        f"workbench_version: {mismatched}",
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("does not match installed Workbench", result.stdout)
+                path.write_text(text, encoding="utf-8")
+
+    def test_malformed_workbench_version_fails(self) -> None:
+        root = self.make_project()
+        path = root / ".work/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                f"workbench_version: {INSTALLED_VERSION}",
+                "workbench_version: latest",
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("workbench_version must be", result.stdout)
+
     def test_missing_review_weight_defaults_to_standard(self) -> None:
         root = self.make_project()
         path = root / ".work/CONVENTIONS.md"
@@ -120,6 +204,47 @@ updated: 2026-07-24
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 1)
         self.assertIn("review_weight must be", result.stdout)
+
+    def test_valid_simplification_postures_pass(self) -> None:
+        for posture in ("hygiene", "balanced", "structural"):
+            with self.subTest(posture=posture):
+                root = self.make_project()
+                path = root / ".work/CONVENTIONS.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "simplification_posture: balanced",
+                        f"simplification_posture: {posture}",
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_missing_simplification_posture_defaults_to_balanced(self) -> None:
+        root = self.make_project()
+        path = root / ".work/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "simplification_posture: balanced\n", ""
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_invalid_simplification_posture_fails(self) -> None:
+        root = self.make_project()
+        path = root / ".work/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "simplification_posture: balanced",
+                "simplification_posture: sweeping",
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("simplification_posture must be", result.stdout)
 
     def test_missing_autonomy_defaults_to_adaptive(self) -> None:
         root = self.make_project()
@@ -161,7 +286,7 @@ updated: 2026-07-24
         root = self.make_project()
         write(
             root / ".work/completed/finished.md",
-            "---\nid: finished\ncompleted: 2026-07-24\n---\n",
+            f"---\nid: finished\ncompleted: 2026-07-24\n---\n\n{GUARD_LINE}\n",
         )
         path = root / ".work/active/example.md"
         path.write_text(
@@ -178,7 +303,7 @@ updated: 2026-07-24
         root = self.make_project()
         write(
             root / ".work/backlog/example.md",
-            "---\nid: example\ntags: []\ncreated: 2026-07-24\nupdated: 2026-07-24\n---\n",
+            f"---\nid: example\ntags: []\ncreated: 2026-07-24\nupdated: 2026-07-24\n---\n\n{GUARD_LINE}\n",
         )
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 1)
@@ -429,8 +554,12 @@ updated: 2026-07-24
 
     def test_item_requires_title_and_body_content(self) -> None:
         root = self.make_project()
-        self.write_active_item(root, "missing-title", body="Plain body.\n")
-        self.write_active_item(root, "missing-content", body="# Title only\n")
+        self.write_active_item(
+            root, "missing-title", body="Plain body.\n", include_version_guard=False
+        )
+        self.write_active_item(
+            root, "missing-content", body="# Title only\n", include_version_guard=False
+        )
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 1)
         self.assertIn("first non-empty body line must be a Markdown title", result.stdout)

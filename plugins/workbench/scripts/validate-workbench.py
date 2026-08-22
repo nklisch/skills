@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import json
 import re
 import sys
 from pathlib import Path
@@ -12,9 +13,18 @@ from typing import Any
 
 
 FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---(?:\s*\n|\Z)", re.DOTALL)
+SEMVER = re.compile(
+    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
+)
+WORK_ITEM_VERSION_GUARD = (
+    "> Workbench version mismatch: stop and offer setup upgrade."
+)
 ALLOWED_KINDS = {"epic", "feature", "story"}
 ALLOWED_STATUSES = {"active", "blocked"}
 ALLOWED_REVIEW_WEIGHTS = {"none", "light", "standard", "thorough", "maximum"}
+ALLOWED_SIMPLIFICATION_POSTURES = {"hygiene", "balanced", "structural"}
 ALLOWED_AUTONOMY = {"adaptive", "collaborative", "autonomous"}
 ALLOWED_PARENT_CHILD_KINDS = {("epic", "feature"), ("feature", "story")}
 MARKDOWN_TITLE = re.compile(r"^#\s+\S")
@@ -157,6 +167,17 @@ def find_cycle(graph: dict[str, list[str]]) -> list[str] | None:
     return None
 
 
+def installed_workbench_version() -> str | None:
+    """Read the version from the manifest that owns this validator."""
+    manifest = Path(__file__).parents[1] / "plugin.json"
+    try:
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    version = data.get("version")
+    return version if isinstance(version, str) and SEMVER.fullmatch(version) else None
+
+
 def validate(project: Path) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -171,6 +192,20 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
         errors.append(".work/CONVENTIONS.md must declare owner: workbench")
     if config.get("schema") != 1:
         errors.append(".work/CONVENTIONS.md must declare schema: 1")
+    project_version = config.get("workbench_version")
+    installed_version = installed_workbench_version()
+    if not isinstance(project_version, str) or not SEMVER.fullmatch(project_version):
+        errors.append(
+            "workbench_version must be the installed Workbench semantic version; "
+            "run setup upgrade"
+        )
+    elif installed_version is None:
+        errors.append("cannot read a valid version from the installed Workbench manifest")
+    elif project_version != installed_version:
+        errors.append(
+            f"workbench_version {project_version} does not match installed Workbench "
+            f"{installed_version}; run setup upgrade"
+        )
     completed_items = config.get("completed_items")
     if completed_items not in {"summarize", "discard"}:
         errors.append("completed_items must be summarize or discard")
@@ -178,6 +213,11 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
     if review_weight not in ALLOWED_REVIEW_WEIGHTS:
         errors.append(
             "review_weight must be none, light, standard, thorough, or maximum"
+        )
+    simplification_posture = config.get("simplification_posture", "balanced")
+    if simplification_posture not in ALLOWED_SIMPLIFICATION_POSTURES:
+        errors.append(
+            "simplification_posture must be hygiene, balanced, or structural"
         )
     autonomy = config.get("autonomy", "adaptive")
     if autonomy not in ALLOWED_AUTONOMY:
@@ -239,6 +279,10 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
     all_item_files = active_files + backlog_files + completed_files
     id_paths: dict[str, Path] = {}
     for path in all_item_files:
+        if WORK_ITEM_VERSION_GUARD not in path.read_text(encoding="utf-8").splitlines():
+            errors.append(
+                f"{path.relative_to(project)}: missing Workbench version guard line"
+            )
         item_id = parse_frontmatter(path).get("id", path.stem)
         if isinstance(item_id, str) and item_id in id_paths:
             errors.append(

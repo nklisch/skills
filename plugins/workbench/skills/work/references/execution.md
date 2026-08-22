@@ -33,7 +33,8 @@ worktrees when isolation materially improves collision avoidance or rollback,
 not merely because several units exist.
 
 Give each delegate the conventions, required checks, effective review weight,
-and writing guidance that apply to its unit. Do not make a delegate rediscover
+effective simplification posture, and writing guidance that apply to its unit.
+Do not make a delegate rediscover
 the rules that the orchestrator already loaded.
 
 The orchestrator must inspect returned changes, reconcile interfaces and
