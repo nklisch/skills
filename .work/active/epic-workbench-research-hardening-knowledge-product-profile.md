@@ -64,6 +64,12 @@ as `1dc3651`). What the live adoption validated and changed:
   obligations — future grammar changes treat the wiki as a consumer.
 - **Settled by adoption**: INDEX (not BIBLIOGRAPHY) stays the corpus manifest
   name — the rename task's driver dissolved at conversion.
+- **Manifest link grammar (2026-08-22 signal)**: collection manifests keep
+  links collection-relative or prose, never repo-relative — repo-relative
+  links resolve in-repo but dangle under render surfaces that reshape the
+  collection into a served tree (surfaced by the library's first strict wiki
+  build; 8 links fixed there). Landed in `§ Collection roots`, the conversion
+  mapping, and the guide.
 - **Still open from the dogfood**: wiki citation-hook bug halves (`{N}` anchor
   resolution in nested corpora partially fixed; project scoping and
   silent-literal remain), parent SNC submodule pointers, wiki dual-layout

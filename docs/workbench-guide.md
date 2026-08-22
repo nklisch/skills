@@ -328,7 +328,9 @@ while raw fetches stay gitignored and are served behind the repository's
 own access rules. Research attestations cite into the collection, and a
 browsable surface that reaches the sources is the owning project's
 rendering concern — setup rewrites its inbound paths when a legacy
-`reference/` tier moves to the collection root.
+`reference/` tier moves to the collection root. Keep manifest links
+collection-relative or prose: render surfaces reshape the tree, and
+repo-relative links dangle at render time even when they resolve in-repo.
 
 ## Cut a release summary
 

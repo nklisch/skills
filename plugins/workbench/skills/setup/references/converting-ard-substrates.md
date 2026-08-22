@@ -112,6 +112,9 @@ is the audit trail for a real-data migration.
   same claim. Mechanical-marked remaps need only resolve.
 - Inbound references to moved `reference/` paths — gitignore patterns, render
   and build pipelines, scripts — resolve against the collection root.
+- Links inside moved manifests are collection-relative or prose; repo-relative
+  links are rewritten during the move (they resolve in-repo but dangle under
+  render surfaces that reshape the collection into a served tree).
 - The manifest is complete: no source citation is unaccounted for.
 
 ## Safety posture

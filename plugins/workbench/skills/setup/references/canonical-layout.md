@@ -114,6 +114,10 @@ raw fetches together with their manifests (raws are never deleted by
 conversion) and rewrites inbound references that target the old path —
 gitignore patterns, render and build pipelines, scripts, and indexes.
 
+Manifest links stay collection-relative or prose, never repo-relative: a
+render surface may reshape or symlink the collection into a served tree, and
+a repo-relative link that resolves in-repo dangles silently at render time.
+
 ## Workbench conventions
 
 ```yaml
