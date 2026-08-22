@@ -123,7 +123,10 @@ Name meaningful alternatives when the choice is consequential; do not
 manufacture options for obvious local work.
 
 For formal design, prefer a dedicated fresh-context design agent when one is
-available. Give it raw requirements, relevant repository truth, constraints,
+available. Select it using
+[../work/references/model-roles.md](../work/references/model-roles.md), matching
+technical precision or creative taste to the design lens rather than choosing
+by rank alone. Give it raw requirements, relevant repository truth, constraints,
 the target item, and an explicit instruction not to invent requirements or
 expand the outcome beyond the user's intent and rational scope of this project
 type. Ask it to identify overbuilding as a design defect and to separate useful

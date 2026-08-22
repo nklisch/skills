@@ -72,6 +72,8 @@ Load references only as needed:
   [references/lifecycle.md](references/lifecycle.md);
 - multi-unit or multi-epic execution →
   [references/execution.md](references/execution.md);
+- designer, implementor, or reviewer model selection →
+  [references/model-roles.md](references/model-roles.md);
 - nontrivial UI or journey uncertainty →
   [references/ui-ux.md](references/ui-ux.md);
 - substantial implementation, refactoring, or recurrence →

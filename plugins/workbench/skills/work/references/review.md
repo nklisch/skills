@@ -32,9 +32,11 @@ the integrated contract boundary. Small reversible work does not need a
 ceremonial design review merely because a design section exists.
 
 When `work` routes a unit through formal design, complete the required design
-review before implementation or delegation. Prefer a fresh-context reviewer from
-a different model family when available. This improves perspective without
-adding passes beyond the effective `review_weight`.
+review before implementation or delegation. Select reviewer capability and
+reasoning level using [model-roles.md](model-roles.md). Prefer a fresh-context
+reviewer from a different model family when available, but do not treat family
+diversity as mandatory or as an extra pass beyond the effective
+`review_weight`.
 
 Read [foundation-truth.md](foundation-truth.md) when the design or implementation
 may affect durable project truth.

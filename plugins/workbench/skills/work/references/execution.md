@@ -16,7 +16,9 @@ needed to maintain ownership and integration in the relevant active item:
 
 Keep tightly coupled work in one context. Delegate or parallelize only when
 independent focus, specialized capability, isolation, or throughput exceeds
-handoff and integration cost.
+handoff and integration cost. When selecting a delegate, use
+[model-roles.md](model-roles.md) to match capability and reasoning level to the
+role rather than spending a top design model on routine execution by default.
 
 Before assigning a unit, inspect its item and affected repository surfaces for
 design readiness. A decomposed or accepted item is not necessarily designed.

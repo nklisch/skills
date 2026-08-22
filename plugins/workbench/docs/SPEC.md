@@ -224,11 +224,18 @@ explanations, or unrelated requests made in the repository:
 
 Review implementation-shaping designs before implementation becomes expensive
 to reverse. Review completed implementation at its integrated contract
-boundary. Every reviewer is instructed not to invent requirements or expand
-scope, to flag overbuilding, and to judge against the rational expectations of
-the actual project type. Missing or contradicted authorized requirements may be
-blocking findings; adjacent improvements are non-blocking follow-ups and may be
-parked. Only `thorough` and `maximum` repeat independent passes.
+boundary. Model selection follows role fit: creative taste, technical precision,
+implementation throughput, and complementary review are distinct strengths.
+Reasoning level follows task difficulty, while consequence changes verification
+and review rather than automatically increasing reasoning effort. Current model
+examples and calibration live in the
+[model-role reference](../skills/work/references/model-roles.md).
+
+Every reviewer is instructed not to invent requirements or expand scope, to
+flag overbuilding, and to judge against the rational expectations of the actual
+project type. Missing or contradicted authorized requirements may be blocking
+findings; adjacent improvements are non-blocking follow-ups and may be parked.
+Only `thorough` and `maximum` repeat independent passes.
 
 ## Work behavior
 
