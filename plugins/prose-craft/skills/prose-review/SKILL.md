@@ -4,10 +4,12 @@ description: >
   Review a human-facing document (README, foundation doc, web article,
   guide, or reference page) through editorial lenses and report
   severity-tagged findings with concrete fixes. Lenses: audience, structure,
-  clarity, accuracy, voice, accessibility. Use for a single-pass review of
-  an existing draft. Findings are proposals for the author to adjudicate,
-  not verdicts. For a full draft-review-revise cycle with sub-agent
-  reviewers, use prose-refine.
+  clarity, accuracy, voice, accessibility. Traces structure against the
+  draft's reader-path plan (deriving the path when absent), checks audience
+  fit against the curse of knowledge, and checks word choice for
+  model-family voice. Use for a single-pass review of an existing draft.
+  Findings are proposals for the author to adjudicate, not verdicts. For a
+  full draft-review-revise cycle with sub-agent reviewers, use prose-refine.
 ---
 
 # Prose Review
@@ -19,14 +21,18 @@ not edit the document.
 
 - **The draft** (a path). Read the whole thing once for context before
   judging any part.
-- **The brief**: audience, venue, purpose, must-keeps. Look for a brief
-  carried with the draft (an HTML comment at the top, or a companion note).
-  Published documents normally carry no brief — `prose-draft` strips the
-  working comment at publication — so a missing brief is expected, not a
-  defect. If none exists, ask the user for audience and venue, or infer them
-  and say you did. If a brief exists but lacks audience, venue, purpose, or
-  must-keeps, treat it as incomplete: pin the missing fields (ask, or infer
-  and say so) before judging.
+- **The brief**: audience, venue, purpose, structure pattern, style profile,
+  must-keeps. Look for a brief carried with the draft (an HTML comment at
+  the top, or a companion note). Published documents normally carry no
+  brief — `prose-draft` strips the working comment at publication — so a
+  missing brief is expected, not a defect. If none exists, ask the user for
+  audience and venue, or infer them and say you did. If a brief exists but
+  lacks any of the six fields, treat it as incomplete: pin the missing
+  fields (ask, or infer and say so) before judging.
+- **The reader path**, carried with the brief (same comment or companion
+  note). If the draft carries no plan, the structure lens derives the
+  draft's actual beats and judges that derived path — saying it was derived.
+  Never invent a plan and then fault the draft for deviating from it.
 - **Lens selection.** Default (standard): audience, structure, clarity,
   accuracy. The user may name lenses or ask for all six.
 

@@ -1,7 +1,7 @@
 {
   "name": "prose-craft",
   "version": "0.1.3",
-  "description": "Standalone prose craftsmanship for human-facing documentation — draft docs to a plain-language style contract (prose-draft), review drafts through editorial lenses (prose-review), and run a multi-model rewrite-and-weave cycle to publication quality (prose-refine). No substrate dependency.",
+  "description": "Standalone prose craftsmanship for human-facing documentation — align audience, structure pattern, and style profile in a short interview before drafting (prose-draft), review through editorial lenses including model-voice detection (prose-review), and refine through a multi-model rewrite-and-weave cycle whose woven voice no single model family dominates (prose-refine). No substrate dependency.",
   "author": {
     "name": "nklisch"
   },

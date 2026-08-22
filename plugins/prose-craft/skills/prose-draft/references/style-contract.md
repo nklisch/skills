@@ -1,70 +1,17 @@
-# Style Contract
+# The Universal Floor
 
-Rules for drafting human-facing documentation. This contract draws on
-plain-language guidance and the Google and Microsoft developer documentation
-style guides. It is a working contract rather than an exhaustive style manual.
+Rules that apply to every drafted document regardless of the style profile
+chosen in `references/styles.md`. Style is a selection — sentence rhythm,
+register, warmth, voice are weights the interview settles. The floor is what
+no style choice exempts a document from.
 
-## Purpose first
+## Contents
 
-- Start with the reader's outcome. The first paragraph states what the doc does
-  for them.
-- Organize around the reader's task, not the system's internal structure.
-- Explain within the first screen why the reader should continue.
-
-## Ground concepts before details
-
-- Treat the document, and any ordered collection it belongs to, as the reader
-  will encounter it. Do not rely on hidden project context or a later page to
-  define a load-bearing term.
-- Before technical detail, explain what each important data object, domain
-  model, interface, or object group represents in the real world and why it
-  matters to a user or the business. Work definitions into the prose when a
-  glossary would feel forced.
-- When a provider uses its own vocabulary, map the provider term to the
-  project's concept and a generic real-world term. Explain major objects and
-  systems before mapping individual fields.
-- When provider models shape the document's concepts, compare representative
-  providers or standards through current-source research. Do not let one
-  provider's model silently become the project's model.
-- When relationships remain abstract, use a short real-world scenario before
-  diagrams, schemas, or field detail. Add only enough example to establish the
-  mental model.
-- Define terms that carry meaning or may be unfamiliar to the audience. Assume
-  ordinary knowledge and do not explain every common term.
-
-## Sentences
-
-- Use active voice. Use second person ("you") for instructions.
-- Keep sentences short by default. Aim for an average under 20 words. A sentence
-  over ~30 words must justify its length or be split.
-- Limit each sentence to one idea and each paragraph to one topic.
-- Prefer concrete verbs to nominalizations. Write "configure" instead of
-  "perform the configuration of".
-- Put the main point first. Place conditions and caveats after the main clause
-  when possible.
-
-## Words
-
-- Define jargon and abbreviations on first use, or link to a definition.
-- Use one term for each concept and use it consistently.
-- Prefer common words. Write "use" instead of "utilize" and "start" instead of
-  "commence".
-- Use contrastive correction only when the distinction prevents a real
-  misunderstanding. If “X, not Y” or “X does A, not B” merely adds emphasis,
-  state the positive claim and stop.
-- Prefer literal domain language to stock metaphors such as “seam,” “spine,”
-  “load-bearing,” “bridge,” or “north star.” Keep a metaphor when the user
-  requests it, the domain already uses it, or it makes the concept clearer.
-- Do not use hype or minimizers such as "simply", "just", "easy", "seamless",
-  or "powerful". Delete them or replace them with the fact they obscure.
-- Omit "please" from instructions and be direct.
-
-## Structure
-
-- Use informative headings. Write "Install on macOS" instead of "Installation".
-- Use lists for enumerations, tables for parallel facts, and prose for argument.
-- Commands and code blocks must be complete and work when copied as printed.
-- Include only sections required by the doc brief.
+1. Honesty
+2. Commands and code
+3. Terms
+4. Audience respect
+5. Where the rest of style lives
 
 ## Honesty
 
@@ -73,3 +20,39 @@ style guides. It is a working contract rather than an exhaustive style manual.
 - Verify behavioral claims against the subject being documented.
 - Give time-sensitive claims a specific basis. Write "as of v2.3" instead of
   "currently".
+- Never let stylistic confidence outrun the facts: a punchy register does not
+  license an unearned claim, and a hedged register does not excuse a missing
+  one.
+
+## Commands and code
+
+- Commands and code blocks must be complete and work when copied as printed.
+- Show expected output after key steps when the reader would otherwise be
+  guessing whether it worked.
+
+## Terms
+
+- One term per concept, used consistently. Renaming mid-document is a floor
+  violation even in styles that tolerate playful variation.
+- Define load-bearing terms at or before first use in reading order; the
+  define-before-use map in the reader path (`references/structure-patterns.md`)
+  tracks this. Where a term is deliberately left undefined for the audience,
+  that is a brief decision, not an oversight.
+- Abbreviations expand on first use, or link to a definition.
+
+## Audience respect
+
+- The document is organized around the reader's task, not the system's
+  internal structure — this holds whether the chosen structure pattern is
+  pyramid, chronicle, or spiral.
+- Nothing load-bearing is conveyed by formatting alone (emphasis, color,
+  position); the words carry it.
+
+## Where the rest of style lives
+
+- Sentence, word, and voice rules: the chosen profile in
+  `references/styles.md` plus its recorded deltas.
+- Machine-prose and model-family tells: `prose-refine`'s
+  `references/llm-tells.md` and `references/model-voice/`.
+- Structural obligations by venue: `references/doc-types.md` and the
+  structure pattern named in the brief.

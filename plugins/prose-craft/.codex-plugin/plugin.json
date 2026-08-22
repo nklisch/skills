@@ -1,7 +1,7 @@
 {
   "name": "prose-craft",
   "version": "0.1.3",
-  "description": "Standalone prose craftsmanship for human-facing documentation — draft docs to a plain-language style contract (prose-draft), review drafts through editorial lenses (prose-review), and run a multi-model rewrite-and-weave cycle to publication quality (prose-refine). No substrate dependency.",
+  "description": "Standalone prose craftsmanship for human-facing documentation — align audience, structure pattern, and style profile in a short interview before drafting (prose-draft), review through editorial lenses including model-voice detection (prose-review), and refine through a multi-model rewrite-and-weave cycle whose woven voice no single model family dominates (prose-refine). No substrate dependency.",
   "author": {
     "name": "nklisch"
   },
@@ -11,7 +11,7 @@
   "interface": {
     "displayName": "Prose Craft",
     "shortDescription": "Draft, lens-review, and refine human-facing docs",
-    "longDescription": "Standalone prose craftsmanship for documentation that will be published: prose-draft pins a five-field doc brief (audience, venue, purpose, must-keeps, scope) and writes to a plain-language style contract with Diátaxis doc-type obligations; prose-review runs a single-pass review through up to six editorial lenses (four by default — audience, structure, clarity, accuracy — plus voice and accessibility) with severity-tagged findings; prose-refine drives the full multi-model cycle — parallel fresh-context re-writers of different model classes, section-by-section weaving into one voice, scope that shrinks each round (full rewrite, machine-prose tell hunting, micro-edits), and convergence to publication quality within a 3-round cap.",
+    "longDescription": "Standalone prose craftsmanship for documentation that will be published: prose-draft opens with a short alignment interview modeled on ideate — it states the inferred audience and venue for confirmation, proposes directions combining a structure pattern, a style profile, and an opening move, then pins a six-field doc brief plus a reader-path plan (entry state, question-chain beats, define-before-use map, importance tiers) that may deliberately diverge from the heading tree — style is always a recorded selection, never a silent default; prose-review runs a single-pass review through up to six editorial lenses (four by default — audience, structure, clarity, accuracy — plus voice and accessibility), traces structure against the carried reader path, and checks word choice for model-family voice; prose-refine drives the full multi-model cycle — parallel fresh-context re-writers of different model classes, a weave that prefers the least model-toned version of each section so no single model family dominates, scope that shrinks each round (full rewrite, machine-prose tell hunting, micro-edits), and convergence to publication quality within a 3-round cap.",
     "developerName": "nklisch",
     "category": "Productivity",
     "capabilities": [

@@ -28,6 +28,13 @@ Thorough weight uses all six.
 *Persona: the actual target reader, armed with only the knowledge the brief
 grants them.*
 
+- Hold the reader model explicitly: you know only what the brief grants
+  plus what the draft itself establishes. Reread as that reader, not as
+  yourself — the curse of knowledge hides exactly the gaps this lens exists
+  to find.
+- If the brief's confirmed audience looks wrong for the document that
+  actually got written, that mismatch is itself a finding — do not judge
+  against an audience the doc no longer serves.
 - Does the draft assume knowledge the audience doesn't have (undisclosed
   prerequisites)?
 - Is every piece of jargon defined on first use, or safe for this audience?
@@ -44,11 +51,20 @@ grants them.*
 
 ## 2. Structure
 
-*Persona: a developmental editor.*
+*Persona: a developmental editor holding the reader path.*
 
+- Trace the draft against the carried reader path: every beat lands
+  somewhere, each beat answers a question earlier beats actually raised,
+  definitions precede uses, tier-1 payload sits on the first screen. No
+  carried plan? Derive the draft's actual beats first and judge that
+  derived path on the same terms — and say the path was derived.
 - Is the document one Diátaxis mode, or does it mix modes (a tutorial that
   drifts into reference)?
 - Does the opening state purpose and reader payoff before details?
+- Answered-before-asked: does detail arrive before the reader holds the
+  question it answers?
+- Used-before-defined: does any load-bearing term carry weight before the
+  reader's model contains it?
 - Are sections ordered by reader need, not by the system's internals?
 - Can readers follow the document collection in its intended order without
   waiting for a later page to define an earlier load-bearing concept?
@@ -87,8 +103,14 @@ grants them.*
 
 *Persona: a tone editor.*
 
-- Register matches the venue. A README, a foundation doc, and a web article
-  do not sound alike.
+- Register matches the chosen style profile and its recorded deltas — not
+  an assumed default. If the brief carries no style profile, flag that gap
+  instead of judging against one.
+- Model-family voice: does the prose read like one model family's default
+  output? Check word choice against `prose-refine`'s
+  `references/model-voice/` signatures and `references/llm-tells.md`.
+  Final prose should read as the document's own voice — not as any single
+  model family.
 - No marketing-speak or hype adjectives: "seamless", "powerful", "blazing",
   "simply", "just".
 - Confidence without arrogance; limitations stated plainly, not buried.

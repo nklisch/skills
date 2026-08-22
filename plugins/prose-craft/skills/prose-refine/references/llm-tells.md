@@ -6,7 +6,9 @@ are settled.
 
 A tell is not an error. A single em-dash is punctuation; five in one section
 is a tell. Hunt clusters, not occurrences. Rewrite each find into the
-document's own voice, not into your model family's voice.
+document's own voice, not into your model family's voice. For
+model-family-specific signatures beyond this generic catalog, see the
+`model-voice/` directory alongside this file.
 
 ## Contents
 
