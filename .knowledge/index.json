@@ -1322,6 +1322,17 @@
       "relationships": []
     },
     {
+      "path": ".work/active/feature-workbench-release-transaction.md",
+      "namespace": "work",
+      "kind": "feature",
+      "id": "feature-workbench-release-transaction",
+      "title": "Workbench release transaction — mechanical checks at the release boundary",
+      "summary": null,
+      "updated": "2026-08-22",
+      "status": "active",
+      "relationships": []
+    },
+    {
       "path": ".work/active/gate-docs-substrate-binary-generalize.md",
       "namespace": "work",
       "kind": "story",
