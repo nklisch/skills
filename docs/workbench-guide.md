@@ -118,18 +118,26 @@ editing that file.
 | **`autonomy`** | `collaborative`, `adaptive`, `autonomous` | `adaptive` for most repos — ask about human-owned choices, decide routine reversible details |
 | **`review_weight`** | `none`, `light`, `standard`, `thorough`, `maximum` | `standard` — one balanced independent review pass on substantive work |
 | **`simplification_posture`** | `hygiene`, `balanced`, `structural` | `balanced` — actively simplify the affected boundary without making unrelated cleanup part of delivery |
-| **`completed_items`** | `summarize`, `discard` | `summarize` if you want release summaries later; `discard` if Git history is enough (this turns off `release`) |
+| **`completed_items`** | `summarize`, `discard` | `summarize` keeps temporary stubs that make the next release easier to draft; `discard` relies on Git history instead |
 
 `setup` may also recommend broader conventions from repo evidence — for
 example, parking useful out-of-scope findings instead of expanding scope,
-or testing behavior at stable interfaces instead of coupling tests to
-implementation details. It writes nothing binding without your answer.
+testing behavior at stable interfaces, or resolving a repeated coding or module
+boundary inconsistency. It inspects coding rules, structural foundations, tool
+configuration, and project patterns, but asks no preference question without
+concrete evidence. Confirmed rules go to their owning tool, `AGENTS.md`,
+foundation, or canonical `.agents/skills/patterns/` catalog. Setup always
+creates a valid empty pattern index, but writes no pattern references without an
+evidence-backed maintenance outcome. It proactively offers root `CLAUDE.md` as
+a relative symlink to canonical `AGENTS.md`. When `CLAUDE.md` exists, it
+maintains `.claude/skills/patterns` as a relative symlink to the
+canonical `.agents` catalog after preserving any divergent content.
 
 **Expected result:** `.work/` exists with conventions recorded and stamped with
 the loaded Workbench version,
-`AGENTS.md` carries the Workbench operating rules, and prior workflow
-files are consolidated or removed. `setup` may omit `.research/` and
-`.knowledge/` until the project has research worth retaining. In a greenfield
+`AGENTS.md` carries the Workbench operating rules, the canonical pattern index
+exists, and prior workflow files are consolidated or removed. `setup` may omit
+`.research/` and `.knowledge/` until the project has research worth retaining. In a greenfield
 repository with no coherent direction yet, setup continues directly into
 `ideate`; ideation uses setup's foundation-document contract and the
 configuration you just confirmed, then offers the smallest useful initial
@@ -151,13 +159,43 @@ inactive unless you explicitly ask `setup` to adopt the repository.
 | You say | What happens |
 |---|---|
 | *"Help me think through this project"* | `ideate` — structured exploration before or after adoption that writes nothing until you pick a handoff |
-| *"Implement the rate-limiting feature"* | `work` — scopes, designs if consequential, implements, verifies, reviews, closes |
+| *"Implement the rate-limiting outcome"* | `work` — scopes, designs if consequential, and owns the full requested boundary |
+| *"Deliver the ready rate-limiting feature"* | `deliver` — implements, verifies, reviews, reconciles, and closes that one ready item |
 | *"Drive the onboarding epic to done"* | `work` across the full epic boundary, not just the next item |
 | *"Design this refactor with me"* | `design` in collaborative mode — options discussed before anything binds |
 | *"Park this finding for later"* | `park` — smallest useful backlog item, then back to the work in progress |
 | *"Research the prior art for this decision"* | `research` — fetched sources, per-source attestations, a grounded brief |
 | *"Turn the confirmed findings into work"* | `research-handoff` — proposes items, creates only the ones you confirm |
 | *"Prepare the v0.3 release summary"* | `release` — collapses completion stubs into one versioned summary |
+
+### Work versus deliver
+
+Use `work` for an outcome that still needs scoping, requirements, design routing,
+several implementation units, or wider integration. `work` remains responsible
+for the complete boundary and assigns each ready feature or story to `deliver`.
+
+Use `deliver` directly for one named active feature or story whose requirements
+and implementation shape are ready. A feature or standalone story receives its
+integrated review before closure. A story nested under a feature is an
+implementation slice: it closes after verification and leaves integrated review
+to the owning feature. Under `work` orchestration, deliverers report shared
+pattern implications and never close the parent boundary.
+
+### Pattern maintenance boundaries
+
+Setup creates an empty project-pattern index so future agents share one
+canonical destination. Ordinary feature delivery may repair a documented
+pattern that became stale, but it does not add new patterns merely because one
+implementation looks reusable.
+
+During a large multi-feature or multi-epic `work` run, deliverers return concrete
+candidate evidence to the outcome owner. At an explicit integration or planning
+boundary, `work` decides whether enough real recurrence exists. When it does,
+`work` creates a normal pattern/refactor/cleanup feature at the valid hierarchy
+level and sends it through `deliver` before closing the wider boundary. No fixed
+number of features or periodic cadence triggers this pass. You can also request
+pattern detection or extraction directly, which creates the same bounded
+maintenance feature without waiting for a larger run.
 
 A few phrasing habits pay off:
 
@@ -221,16 +259,24 @@ alone, while nested work follows `epic → feature → story`.
    reliability, UI/UX, or data, migration, or integration. Obvious,
    local, reversible choices stay inline. Design is conditional routing,
    not a mandatory stage.
-5. **Implement and verify.** It writes the code, verifies behavior at
-   stable interfaces using your existing test machinery, and exercises
-   meaningful user journeys.
-6. **Review at the configured weight.** It applies the effective
+5. **Deliver ready items.** Each ready feature or story routes through
+   `deliver`. It reads relevant project patterns, writes only its owned surface,
+   and verifies behavior at stable interfaces. Features and standalone stories
+   receive integrated item review. Nested stories return evidence to their
+   owning feature instead of duplicating review. Orchestrated deliverers report
+   stale patterns and credible promotion candidates instead of editing the
+   shared catalog.
+6. **Integrate project truth.** The `work` outcome owner integrates the units,
+   adjudicates any pattern updates, reconciles affected foundations, and keeps
+   pattern changes evidence-based rather than turning delivery into a conformity
+   sweep.
+7. **Review at the configured weight.** It applies the effective
    `review_weight` and adjudicates findings rather than accepting them
    blindly.
-7. **Park out-of-scope findings.** If it uncovers something valuable but
+8. **Park out-of-scope findings.** If it uncovers something valuable but
    unrelated — say, an analytics cleanup — it offers to `park` it instead
    of silently expanding the work.
-8. **Close the full boundary.** Every item in the epic completes,
+9. **Close the full boundary.** Every item in the epic completes,
    verified, with foundation docs reconciled if durable truth changed.
 
 The durable record is ordinary Markdown. You can read or edit `.work/`
@@ -340,17 +386,16 @@ or redact the source, or use an approved non-LLM process instead.
 
 ## Cut a release summary
 
-If your repo keeps `completed_items: summarize`, finished work leaves
-compact outcome stubs in `.work/completed/`. When you are ready to bind a
-version:
+When you are ready to bind completed outcomes to a version:
 
 > Prepare the v0.3.0 release summary.
 
-`release` verifies the eligible stubs, writes one
-`.work/releases/<version>.md` summary, removes the stubs it used, and
-runs repository-defined checks. That is all it does. It does not tag,
-publish, deploy, or bump versions — your project's own release mechanism
-owns those.
+`release` uses verified completion stubs when present and ordinary Git history
+when items were discarded. It asks only when the included outcomes are unclear,
+writes one `.work/releases/<version>.md` summary, runs repository-defined checks,
+and removes every completed outcome file. It preserves the canonical `.gitkeep`
+files. It does not tag, publish, deploy, or bump versions — your project's own
+release mechanism owns those.
 
 ## Reference: the durable state
 
@@ -361,7 +406,7 @@ After adoption, the repo carries:
 ├── CONVENTIONS.md      # collaboration, review, verification, delivery rules
 ├── active/             # outcomes currently being delivered
 ├── backlog/            # useful context parked for later
-├── completed/          # compact outcome stubs (if retained)
+├── completed/          # temporary outcome stubs before release, when retained
 └── releases/           # versioned outcome summaries
 
 .research/
@@ -372,6 +417,7 @@ After adoption, the repo carries:
 
 .knowledge/index.json   # deterministic discovery metadata
 .mockups/               # optional UI alignment artifacts
+.agents/skills/patterns/ # canonical index; references grow from evidence
 docs/                   # current or intended project truth
 AGENTS.md               # canonical cross-agent instructions
 ```
@@ -403,10 +449,9 @@ no authority of its own.
 - **Setup found another `.work/` owner.** Choose conversion through
   `setup`. Don't let Workbench and `agile-workflow` write to the same
   substrate.
-- **A release summary says there's nothing to bind.** Your repo is
-  probably `completed_items: discard` — stubs aren't retained, so
-  `release` has no input. Switch to `summarize` in
-  `.work/CONVENTIONS.md` if you want release summaries going forward.
+- **Release cannot identify the completed outcomes clearly.** Show it which
+  outcomes belong in this version. Workbench uses stubs when available and Git
+  history otherwise, but it does not guess through material ambiguity.
 - **A doc in `docs/` contradicts the code.** Say so. Reconciling durable
   truth is part of delivery, not a separate chore.
 

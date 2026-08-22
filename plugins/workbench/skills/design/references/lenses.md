@@ -39,6 +39,9 @@ posture from Workbench conventions across every primary lens.
 
 ## Refactor or cleanup
 
+- Read confirmed coding rules, structural foundations, and relevant
+  `.agents/skills/patterns/` references as project-specific evidence. They
+  extend this lens but do not make every deviation worth changing.
 - Apply the black-box test: a refactor preserves observable behavior. Route
   intended behavior change through the new-work lens with explicit
   requirements. The one exception is a provocation-driven bold refactor whose
@@ -53,7 +56,9 @@ posture from Workbench conventions across every primary lens.
 - Make steps independently understandable and verifiable when practical.
 - Include rollback or migration handling where a step is not trivially
   reversible.
-- Drop aesthetic churn whose payoff cannot be stated.
+- Drop aesthetic or conformity churn whose payoff cannot be stated in clearer
+  ownership, less duplication, easier navigation, lower coordination cost, or
+  another concrete project benefit.
 
 ## Performance
 

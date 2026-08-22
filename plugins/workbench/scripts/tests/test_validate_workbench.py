@@ -356,6 +356,24 @@ updated: 2026-07-24
         self.assertEqual(result.returncode, 1)
         self.assertIn("missing .work/backlog/.gitkeep", result.stdout)
 
+    def test_completion_directories_are_required_when_items_are_discarded(self) -> None:
+        for directory in ("completed", "releases"):
+            with self.subTest(directory=directory):
+                root = self.make_project()
+                conventions = root / ".work/CONVENTIONS.md"
+                conventions.write_text(
+                    conventions.read_text(encoding="utf-8").replace(
+                        "completed_items: summarize", "completed_items: discard"
+                    ),
+                    encoding="utf-8",
+                )
+                for child in (root / ".work" / directory).iterdir():
+                    child.unlink()
+                (root / ".work" / directory).rmdir()
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(f"missing .work/{directory}/", result.stdout)
+
     def test_blocked_item_requires_blocker_evidence(self) -> None:
         root = self.make_project()
         path = root / ".work/active/example.md"

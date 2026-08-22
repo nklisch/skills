@@ -5,6 +5,7 @@
 - Authority boundaries
 - Workbench conventions
 - Foundation document contract
+- Project pattern catalog
 - Active-item frontmatter
 - Backlog frontmatter
 - Completion
@@ -35,7 +36,10 @@
 docs/<repository-wide foundations>
 <sub-project>/docs/<scope-owned foundations>
 docs/<sub-project>/<scope-owned foundations>
+.agents/skills/patterns/  # canonical project pattern index and references
+.claude/skills/patterns  # relative symlink when CLAUDE.md exists
 AGENTS.md
+CLAUDE.md                # optional relative symlink to AGENTS.md
 ```
 
 - `.work/` holds outcomes the project may decide and deliver.
@@ -44,6 +48,8 @@ AGENTS.md
   sub-project may own foundations in either its local documentation root or a
   scoped directory under root `docs/`, following established repository
   convention.
+- `.agents/skills/patterns/` always holds the portable pattern index and holds
+  focused references only after evidence-backed extraction work.
 - `.knowledge/index.json` is generated discovery metadata with no independent
   authority.
 
@@ -52,6 +58,33 @@ the contracts and examples below determine how to choose and shape them.
 
 The research capability ships with Workbench. Setup may omit `.research/` and
 `.knowledge/` until the project has research worth retaining.
+
+## Workbench conventions
+
+```yaml
+---
+owner: workbench
+schema: 1
+workbench_version: <exact-loaded-plugin-semver>
+completed_items: summarize|discard
+review_weight: none|light|standard|thorough|maximum
+simplification_posture: hygiene|balanced|structural
+autonomy: adaptive|collaborative|autonomous
+---
+```
+
+`workbench_version` records the exact verified plugin release that last adopted
+or reconciled the project. Read
+[version-compatibility.md](version-compatibility.md) for mismatch handling.
+
+Keep the body limited to authoritative verification commands, delivery rules,
+and Workbench-specific project guidance. Put repository-wide agent invariants
+in `AGENTS.md`, engineering principles in `docs/PRINCIPLES.md`, and detailed
+recurring implementation shapes in `.agents/skills/patterns/`. Existing
+substrates without `review_weight` resolve it as `standard`, those without
+`simplification_posture` resolve it as `balanced`, and those without `autonomy`
+resolve it as `adaptive`; setup writes user-confirmed values when refreshing
+them.
 
 ## Foundation document contract
 
@@ -90,31 +123,10 @@ truth is small and cohesive; split them when scopes or audiences own materially
 different assertions. Code remains the structural authority for
 repository-internal contracts unless the confirmed convention says otherwise.
 
-## Workbench conventions
+## Project pattern catalog
 
-```yaml
----
-owner: workbench
-schema: 1
-workbench_version: <exact-loaded-plugin-semver>
-completed_items: summarize|discard
-review_weight: none|light|standard|thorough|maximum
-simplification_posture: hygiene|balanced|structural
-autonomy: adaptive|collaborative|autonomous
----
-```
-
-`workbench_version` records the exact verified plugin release that last adopted
-or reconciled the project. Read
-[version-compatibility.md](version-compatibility.md) for mismatch handling.
-
-Keep the body limited to authoritative verification commands, delivery rules,
-and Workbench-specific project guidance. Put repository-wide agent invariants
-in `AGENTS.md` and engineering principles in `docs/PRINCIPLES.md`. Existing
-substrates without `review_weight` resolve it as `standard`, those without
-`simplification_posture` resolve it as `balanced`, and those without `autonomy`
-resolve it as `adaptive`; setup writes user-confirmed values when refreshing
-them.
+Use [project-patterns.md](project-patterns.md) for the canonical catalog's stub,
+authority, format, adoption, and maintenance boundary.
 
 ## Active-item frontmatter
 
@@ -175,69 +187,15 @@ migration.
 
 ## Completion
 
-With `completed_items: summarize`, replace a completed active item with a compact
-`.work/completed/<id>.md` outcome stub containing identity, completion date, and
-delivered outcome and the exact version guard line. Remove its id from active
-relationships before closing it. A release summary replaces selected completion stubs. With
-`completed_items: discard`, remove the completed active item after verification.
+With `completed_items: summarize`, replace a completed item with a temporary
+`.work/completed/<id>.md` outcome stub. With `completed_items: discard`, remove
+it after verification. In both postures, keep `.work/completed/.gitkeep` and
+`.work/releases/.gitkeep`. A successful release writes one version summary and
+removes every completed outcome file.
 
 ## Managed instructions
 
-Maintain one marked Workbench section in the canonical root `AGENTS.md`:
-
-```markdown
-<!-- workbench:start -->
-## Workbench
-
-This repository is Workbench-owned (`.work/CONVENTIONS.md`). Before stateful
-Workbench work, compare its `workbench_version` with the loaded plugin; on a
-mismatch, stop and offer the appropriate setup upgrade rather than mutating
-project state. Route concrete Workbench workflows through its skills and prefer ideate before design when
-early exploration of substantial or cross-cutting work could materially improve
-what gets designed, unless the user requests direct design or execution.
-Unrelated requests stay outside Workbench. Track active outcomes in
-`.work/active/` and deferred context in `.work/backlog/`. Consult
-`.knowledge/index.json` when present. Use features as the normal delivery unit;
-reserve epics for multiple feature outcomes and stories for narrow slices. Preserve `epic → feature → story` when
-items nest. Ask the human about consequential requirements according to the
-effective autonomy posture. Designs and reviews must not invent requirements or
-expand the user's original scope; apply foundation truth and the rational needs
-of the actual project type, flag overbuilding, and park useful adjacent findings
-instead.
-
-Durable state is limited to work items, foundation documents, research
-attestations and briefs, mockups, generated indexes, completion stubs, release
-summaries, and repository conventions; write these whenever a workflow names
-them. Everything else—questions, proposals, recommendations, explanations,
-progress summaries, and completion reports—belongs in your reply, not in a new
-file or a no-op record.
-
-Keep human-facing documents and designs clean and self-contained. Do not expose
-agent work history, review-correction notes, or revision narration. Agent-facing
-documents may retain process prose only when it adds material value.
-
-Frame human-facing documents from real-world and business meaning before
-technical representation. Define load-bearing data, domain, and interface
-concepts before using them. When provider terms matter, map the provider term to
-the project concept and a generic real-world term at the object level before
-field details. Do not define ordinary terms the intended audience can safely
-know.
-
-Keep independent items parallel by default. Add `blocked_by` only when serial
-work reduces rework, ambiguity, or integration risk, and record the reason in
-`## Sequencing`.
-
-For concrete Workbench workflows, test behavior at stable interfaces, verify
-the full requested boundary, reconcile affected foundation truth, rebuild the
-knowledge index when indexed documentation changes, apply the configured review
-weight and simplification posture to substantive Workbench design and
-implementation, and remove or summarize completed items immediately. Preserve
-behavior and measured performance constraints during simplification, avoid
-obvious plausible performance regressions, and do not turn ordinary work into
-speculative optimization. Do not apply the review weight to every review,
-audit, planning discussion, explanation, or loose request in the repository.
-<!-- workbench:end -->
-```
-
-Add confirmed repository-specific invariants outside or within this section as
-appropriate, but do not duplicate them across agent-specific files.
+Maintain the canonical root `AGENTS.md` block from
+[managed-instructions.md](managed-instructions.md). Add confirmed
+repository-specific invariants at their narrowest authority without duplicating
+them across agent-specific files.

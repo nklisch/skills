@@ -1,4 +1,8 @@
-# Execution and Continuation
+# Orchestration and Continuation
+
+Use Workbench's `deliver` skill in orchestrated mode for each ready feature or
+story. This reference owns coordination, integration, and continuation across
+units.
 
 For a multi-unit or multi-epic boundary, write only the coordination detail
 needed to maintain ownership and integration in the relevant active item:
@@ -32,10 +36,13 @@ Assign non-overlapping write surfaces and explicit output evidence. Use
 worktrees when isolation materially improves collision avoidance or rollback,
 not merely because several units exist.
 
-Give each delegate the conventions, required checks, effective review weight,
-effective simplification posture, and writing guidance that apply to its unit.
-Do not make a delegate rediscover
-the rules that the orchestrator already loaded.
+Give each deliverer the explicit orchestrated mode, parent outcome, accepted
+scope, owned write surface, integration contract, relevant conventions and
+patterns, required checks, effective review weight, effective simplification
+posture, and return evidence. Do not make a deliverer rediscover rules the
+orchestrator already loaded. Deliverers report stale patterns and promotion
+candidates. Keep the shared pattern catalog in the outcome owner's write surface
+so parallel units do not collide.
 
 The orchestrator must inspect returned changes, reconcile interfaces and
 assumptions, run integrated checks, and continue across completed units until

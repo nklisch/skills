@@ -14,19 +14,10 @@ CANONICAL_ROOT = Path(__file__).resolve().parents[1]
 def normalize(relative: str, text: str, *, canonical: bool) -> str:
     if relative == "setup/references/canonical-layout.md":
         if canonical:
-            text = text.replace(
-                """## Contents
-
-- Authority boundaries
-- Workbench conventions
-- Active-item frontmatter
-- Backlog frontmatter
-- Completion
-- Managed instructions
-
-""",
-                "",
-            )
+            contents_start = text.find("## Contents\n")
+            authority_start = text.find("## Authority boundaries\n", contents_start)
+            if contents_start >= 0 and authority_start >= 0:
+                text = text[:contents_start] + text[authority_start:]
         canonical_text = (
             """The research capability ships with Workbench. Setup may omit `.research/` and
 `.knowledge/` until the project has research worth retaining.

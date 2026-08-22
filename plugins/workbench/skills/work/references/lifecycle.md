@@ -79,8 +79,11 @@ title, immediately followed by the canonical line:
 
 > Workbench version mismatch: stop and offer setup upgrade.
 
-Keep one coherent outcome in one item. Use tags such as `audit`, `security`, or `performance` for
-focused investigations rather than another item kind.
+Keep one coherent outcome in one item. Use tags such as `audit`, `security`,
+`performance`, `pattern`, `refactor`, or `cleanup` for focused outcomes rather
+than another item kind. A pattern-extraction or cleanup feature discovered at a
+large-work maintenance boundary belongs under the active epic when that epic
+owns the boundary; otherwise it is top-level. Never nest it under a feature.
 
 ## Completion sweep
 
@@ -90,8 +93,9 @@ completion from a stale label.
 
 Close atomically:
 
-- `completed_items: summarize` replaces the active item with one
-  `.work/completed/` stub that retains the canonical version guard line;
+- `completed_items: summarize` replaces the active item with one compact
+  `.work/completed/<id>.md` stub containing identity, completion date, delivered
+  outcome, and the canonical version guard line;
 - `completed_items: discard` removes the active item.
 
 Before closure, remove the completed id from each active `blocked_by` and

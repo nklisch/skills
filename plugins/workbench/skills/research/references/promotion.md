@@ -7,10 +7,10 @@ repeatable source-evaluation rules, or durable domain knowledge that would
 improve future agent behavior. Do not promote one-off findings, project
 decisions, citations, or a brief merely because it exists.
 
-In an interactive run, explain the candidate skill, intended triggers, durable
-content, expected maintenance cost, and why a skill is better than a foundation
-document or convention in the current conversation. Ask the user whether to
-promote it and pause. Do not create a promotion proposal artifact.
+In the current conversation, explain the candidate skill, its intended triggers,
+durable content, expected maintenance cost, and why a skill is better than a
+foundation document or convention. Ask the user whether to promote it and pause.
+Do not create a promotion proposal artifact.
 
 Never promote during an autonomous run. Never create or modify a skill without
 the user's explicit approval. After approval, use the repository's established

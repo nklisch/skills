@@ -34,11 +34,10 @@ meaningful properties.
 
 ## Optional bootstrap candidates (offer when bootstrapping)
 
-Offer these when the project is new or has no principles document, each as its
-own adopt, adapt, or reject decision. They
-are style choices, not invariants — right for many projects, wrong for some.
-Present them as adopt, adapt, or reject; do not recommend the whole set by
-default.
+Offer these when the project is new or has no principles document. They are
+style choices, not invariants — right for many projects and wrong for some.
+Present each as an adopt, adapt, or reject decision; do not recommend the whole
+set by default.
 
 **Ports & adapters.** Domain logic stays independent of databases,
 filesystems, HTTP, time, and other infrastructure. The domain defines the

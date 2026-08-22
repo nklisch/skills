@@ -1,8 +1,6 @@
 # Research Discipline
 
-This grounding floor applies to every committed research brief. Keep
-`.research/attestations/.gitkeep` and `.research/briefs/.gitkeep` so canonical
-empty tiers survive a fresh clone.
+This grounding floor applies to every committed research brief.
 
 ## Source-bound claims
 

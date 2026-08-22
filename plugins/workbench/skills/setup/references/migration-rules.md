@@ -8,6 +8,10 @@
 | Deferred idea | `.work/backlog/` |
 | Outcome-specific plan or design | Corresponding work-item body |
 | Current or intended project direction | Focused `docs/` foundation |
+| Mechanical formatting or lint rule | Formatter or linter configuration |
+| Concise coding or agent operating rule | Canonical `AGENTS.md` |
+| Settled structural or engineering decision | Architecture or principle foundation |
+| Proven recurring implementation shape | `.agents/skills/patterns/` |
 | Fetched evidence or grounded synthesis | `.research/` |
 | Completed outcome worth retaining | Completion stub or release summary |
 | Session or resume state | Fold durable discoveries into work, then remove |
@@ -20,7 +24,11 @@
 Treat these only as discovery hints; inspect actual content before mapping:
 
 - agile-workflow: `.work/active/{epics,features,stories}`, stage frontmatter,
-  `work-view`, managed rules, hooks, gates, and release directories;
+  `work-view`, managed rules, hooks, gates, release directories,
+  `.agents/skills/{refactor-conventions,patterns}/`, compatibility mirrors under
+  `.claude/skills/{refactor-conventions,patterns}/`, generated
+  `.agents/rules/patterns.md`, mixed-content `.claude/rules/patterns.md`, and
+  user-facing pattern extraction or refactor-convention skills and commands;
 - GSD: `.planning/`, phase plans, state and progress files;
 - OpenSpec: `openspec/changes`, proposals, specs, and archived changes;
 - generic agent plans: `.claude/plans`, `.codex`, task files, TODO ledgers,
@@ -69,7 +77,38 @@ Examples of evidence-based proposals:
   stable interfaces where each test protects enough meaningful behavior or risk
   to justify its maintenance cost.
 
-No proposal becomes binding without user confirmation.
+No proposal becomes binding without user confirmation. Inspect coding,
+structural, and pattern sources on every setup run, but ask only when concrete
+repository evidence or an explicit existing preference creates a consequential
+choice. Create the canonical empty pattern index when no reusable pattern truth
+exists; do not manufacture pattern references to populate it.
+
+For legacy refactor-convention and pattern artifacts, classify each useful rule
+before removal:
+
+- mechanical rules → formatter or linter configuration;
+- concise operating rules → `AGENTS.md`;
+- structural ownership and import constraints → architecture foundations;
+- engineering decision rules → principle foundations;
+- proven recurring implementation shapes → `.agents/skills/patterns/`.
+
+The pattern catalog keeps one portable `SKILL.md` navigation index and focused
+references. When `.agents` and `.claude` copies diverge, preserve user-authored
+content, surface the conflict, and consolidate the confirmed result into the
+`.agents` catalog. Split mixed rule files by meaning before removal. Remove
+generated wrappers, rule digests, extraction commands, and workflow-specific
+scanners after useful content and inbound references move. When root `CLAUDE.md`
+exists after reconciliation, replace the Claude pattern mirror with a relative
+`.claude/skills/patterns` symlink to `../../.agents/skills/patterns`.
+
+Proactively offer root `CLAUDE.md` as a relative symlink with target `AGENTS.md`,
+even when `CLAUDE.md` is absent. Treat a correct symlink as
+conformant. Inspect symlinks themselves rather than following them for removal.
+Classify regular files and directories, broken links, wrong-target links, and
+divergent mirrors. Consolidate useful content first, then apply the normal
+tracked, modified, untracked, ignored, and exact-confirmation rules before
+replacement. Do not create a new pattern from generic advice or audit every
+retained pattern against the code during setup.
 
 ## Cleanup safety
 
@@ -98,6 +137,8 @@ After conversion:
 - every active, backlog, and completed item carries the canonical version guard line;
 - no old workflow hooks, binaries, managed rules, or indexes remain;
 - no meaningful decision lives only in removed state;
+- the canonical pattern catalog has one valid portable index, resolved
+  references, and no competing generated wrapper or mirror;
 - no completed item remains active;
 - all references resolve;
 - running setup again yields no material diff.

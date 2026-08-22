@@ -223,19 +223,12 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
     if autonomy not in ALLOWED_AUTONOMY:
         errors.append("autonomy must be adaptive, collaborative, or autonomous")
 
-    for required in ("active", "backlog"):
+    for required in ("active", "backlog", "completed", "releases"):
         directory = work / required
         if not directory.is_dir():
             errors.append(f"missing .work/{required}/")
         elif not (directory / ".gitkeep").is_file():
             errors.append(f"missing .work/{required}/.gitkeep")
-    if completed_items == "summarize":
-        for required in ("completed", "releases"):
-            directory = work / required
-            if not directory.is_dir():
-                errors.append(f"missing .work/{required}/ for summarized completion")
-            elif not (directory / ".gitkeep").is_file():
-                errors.append(f"missing .work/{required}/.gitkeep")
 
     for legacy in LEGACY_PATHS:
         if (project / legacy).exists():

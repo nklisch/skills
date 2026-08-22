@@ -27,12 +27,17 @@
 docs/<repository-wide foundations>
 docs/<sub-project>/<scope-owned foundations>
 <sub-project>/docs/<scope-owned foundations>
+.agents/skills/patterns/  # canonical pattern index and references
+.claude/skills/patterns  # relative symlink when CLAUDE.md exists
 AGENTS.md
+CLAUDE.md                # optional relative symlink to AGENTS.md
 ```
 
 - `.work/` records outcomes the project may decide and deliver.
 - `.research/` records externally fetched evidence and grounded synthesis.
 - Foundation documents record current or explicitly intended project truth.
+- `.agents/skills/patterns/` records detailed recurring implementation shapes
+  when the project has patterns worth teaching to future agents.
 - `.knowledge/index.json` is committed discovery metadata with no independent
   authority.
 
@@ -73,9 +78,9 @@ current conversation. These replies are chat prose, not repository artifacts.
 Workbench does not create report files or durable no-op records unless the user
 requests them.
 
-Durable state is limited to explicitly named work items, foundations, research
-artifacts, mockups, generated indexes, completion stubs, release summaries, and
-repository conventions.
+Durable state is limited to explicitly named work items, foundations, project
+pattern catalogs, research artifacts, mockups, generated indexes, completion
+stubs, release summaries, and repository conventions.
 
 ## Work conventions
 
@@ -101,8 +106,13 @@ contract-truth ownership), and whether to establish or extend
 when bootstrapping, optional code-design principle candidates; it also aligns
 repository-specific conventions, including review weight, simplification
 posture, and autonomy. It may recommend conventions from repository evidence,
-including parking useful out-of-scope findings and behavior-focused testing,
-but writes no new convention without confirmation. A missing `review_weight`
+including parking useful out-of-scope findings and behavior-focused testing.
+It inspects coding, structural, and pattern evidence but asks no preference
+question without concrete evidence or an explicit existing user preference. It
+routes mechanical rules to tool configuration, concise operating rules to
+`AGENTS.md`, architecture and principles to foundations, and proven recurring
+implementation shapes to `.agents/skills/patterns/`. It writes no new convention
+without confirmation. A missing `review_weight`
 resolves to `standard`; missing `simplification_posture` resolves to `balanced`;
 missing `autonomy` resolves to `adaptive`. `workbench_version` has no fallback:
 setup stamps it from the verified loaded plugin after successful reconciliation.
@@ -170,21 +180,24 @@ adoption is an explicit next outcome.
 
 Completed work never remains active.
 
-- `completed_items: summarize` replaces an active item with a compact
-  `.work/completed/<id>.md` outcome stub.
-- `completed_items: discard` removes the active item after verification.
+- `completed_items: summarize` replaces an active item with a temporary compact
+  `.work/completed/<id>.md` outcome stub for the next release.
+- `completed_items: discard` removes the active item after verification and
+  leaves release to summarize from Git history.
 
-Before closure, active children are completed. Remaining relationships and
-matching sequencing entries are reconciled in the same edit. `release` may
-collapse selected completion stubs into one `.work/releases/<version>.md`; it
-does not tag, publish, or deploy.
+Both postures preserve `.work/completed/.gitkeep` and
+`.work/releases/.gitkeep`. Before closure, active children are completed and
+relationships are reconciled. `release` writes one version summary from stubs or
+ordinary Git history, then removes every completed outcome file after successful
+checks. It does not tag, publish, or deploy.
 
 ## Design behavior
 
 Design reasoning is always required. Before formal design, `ideate` is preferred
 when initial exploration of substantial, cross-cutting, or early-stage work
 could materially change what should be designed, unless the user explicitly
-requests direct design. Size alone does not decide the route. Repository evidence and brief reasoning
+requests direct design. Size alone does not decide the route. Repository evidence
+and brief reasoning
 may resolve local, reversible choices inline. `design` is callable directly or
 from `work` when implementation shape needs meaningful discovery, alternatives,
 boundary definition, or adjudication. This is conditional routing, not a size
@@ -200,7 +213,7 @@ active item and uses one primary lens:
 - data, migration, or integration.
 
 Security, privacy, accessibility, operations, compatibility, and testing are
-conditional overlays. Designs separate requirements, facts, assumptions, and
+risk overlays. Designs separate requirements, facts, assumptions, and
 decisions; state meaningful alternatives only where choice matters; identify
 boundaries, verification, risk, and recovery; and prefer the simplest coherent
 maintainable shape rather than the smallest diff. They may resolve necessary
@@ -292,6 +305,21 @@ Standalone cleanup, simplification, and refactoring are ordinary bounded work.
 Behavior-preserving cleanup may travel with a delivery when cohesive; intended
 behavior changes require explicit requirements.
 
+Every implementation-ready feature or story routes through `deliver`. In direct
+mode, `deliver` owns that single item's implementation, appropriate integrated
+review, truth reconciliation, pattern decisions, and closure. In orchestrated
+mode, `work` supplies the parent outcome, owned write surface, integration
+contract, and return evidence. The deliverer never writes the shared pattern
+catalog or closes the parent boundary.
+
+Features and standalone stories are integrated review boundaries. A story
+nested under a feature is an implementation slice: `deliver` verifies and closes
+it, then returns evidence for the feature's integrated review instead of running
+a duplicate independent pass. `work` remains the natural-language outcome owner
+for scoping, requirements, design routing, multi-unit orchestration, wider
+integration, and parent closure. It does not repeat completed item-level review;
+it reviews only substantive wider integration behavior not already covered.
+
 Verification targets stable interfaces and meaningful user journeys. A test
 must protect enough behavior, contract, boundary, risk, or regression to justify
 its maintenance cost. Review follows the effective weight, and findings are
@@ -302,6 +330,34 @@ observability, and benchmark machinery first. Small, cheap, contained evidence
 may be added directly. A new or materially expanded test framework, simulation
 platform, benchmark system, mock service, synthetic environment, or validation
 architecture requires user discussion.
+
+## Project pattern maintenance
+
+Setup always creates a portable `.agents/skills/patterns/SKILL.md` navigation
+index. It may remain an empty stub. Focused Markdown references own confirmed
+pattern details; the index links them without duplicating their rule bodies.
+
+Ordinary delivery repairs an existing pattern made stale by current work but
+does not promote a new pattern. During a user-authorized multi-unit boundary,
+deliverers report candidate evidence and the active parent retains it under
+`## Maintenance evidence`: completed item ids, real consumers or examples,
+recurrence, the emerging preferred shape, and expected maintenance value.
+
+At an explicit integration or planning boundary, `work` disposes of every
+candidate under the effective autonomy posture. Neither a fixed count nor a
+periodic schedule triggers extraction. Evidence that satisfies Workbench's
+[maintenance guidance](../skills/work/references/maintenance.md) creates an
+ordinary feature tagged `pattern` and, when relevant, `refactor` or `cleanup`.
+The feature belongs under the active epic when that epic owns the boundary;
+otherwise it is top-level. It must complete before the owning boundary closes.
+Immature useful evidence is offered for parking; rejected coincidence is
+removed. A direct user request to detect or extract patterns creates the same
+feature without waiting for a large run.
+
+Only that accepted maintenance feature may add new pattern references and any
+cohesive behavior-preserving cleanup. Nested stories and orchestrated delivery
+never write the shared catalog. Generic stack advice, one-off choices, formatter
+rules, and aesthetic coincidence are not project patterns.
 
 ## Foundation reconciliation
 
@@ -404,7 +460,24 @@ Setup inventories any existing workflow semantically, aligns conventions with
 the user, maps useful truth to the canonical destinations, adds the canonical
 version guard line to every active, backlog, and completed item, validates
 retained content block by block, rewrites inbound references, and only then
-removes superseded artifacts. Its canonical-layout reference owns the shared foundation
+removes superseded artifacts. Legacy convention and pattern catalogs are split
+by meaning: mechanical rules move to tool configuration, concise operating
+rules to `AGENTS.md`, structural and principle truth to foundations, and proven
+recurring shapes to `.agents/skills/patterns/`. Generated wrappers, digests,
+and workflow-specific scans are removed after migration. Setup creates or
+reconciles the canonical portable pattern index, validates its references, and
+does not manufacture entries or audit every retained pattern against code.
+
+Setup proactively offers root `CLAUDE.md` as a relative symlink to canonical
+root `AGENTS.md`, including when it is absent. When `CLAUDE.md` exists after
+reconciliation, setup maintains
+`.claude/skills/patterns` as a relative symlink to
+`../../.agents/skills/patterns`. Correct links are no-ops. Conflicting files,
+directories, broken or wrong-target links, and divergent mirrors are classified
+and consolidated under normal recovery and exact-confirmation rules before
+replacement; destructive inspection never follows the link.
+
+Its canonical-layout reference owns the shared foundation
 document contract: scope, durable-truth rules, authority, and the purpose of
 common foundation types.
 

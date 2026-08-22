@@ -69,7 +69,7 @@ its behavior-change callout rule.
 Use current-source research for unstable facts, but hand substantive
 investigation to an available `research` skill.
 
-Every several exchanges, summarize in the current conversation:
+Every few exchanges, summarize in the current conversation:
 
 - settled decisions;
 - open decisions that can be stated precisely;
@@ -114,7 +114,7 @@ offer only relevant handoffs:
 
 Write only the handoffs the user explicitly selects. When entered from a
 greenfield setup, continue until the project's initial direction is coherent
-enough to offer the smallest useful foundation set under setup's
+enough to offer the smallest useful foundation set described by setup's
 [foundation document contract](../setup/references/canonical-layout.md#foundation-document-contract).
 Include any still-open project-specific principles among the decisions to
 settle, using setup's

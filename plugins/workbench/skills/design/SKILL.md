@@ -20,12 +20,7 @@ conditional routing, not a size threshold or mandatory project stage. A direct
 design request stops after the reviewed design; `work` may route here and then
 continue through implementation.
 
-Unless an instruction names a repository path or artifact, communicate with the
-user in the current conversation, including questions, offers, proposals,
-recommendations, explanations, summaries, and reports. Do not create report
-files or durable no-op records unless the user requests them.
-
-## Resolve the design boundary
+## Confirm activation and context
 
 First confirm that an upward-found `.work/CONVENTIONS.md` declares
 `owner: workbench`. If it does not, ignore this skill and handle the request
@@ -36,15 +31,40 @@ When active, read `.work/CONVENTIONS.md` and apply
 [setup's version-compatibility check](../setup/references/version-compatibility.md)
 before any stateful action; stop on mismatch. Then read the target item, project
 instructions, foundation documents, relevant code and tests, and
-`.knowledge/index.json` when present. Foundation documents generally live in root `docs/`, with sub-project
-truth in `<sub-project>/docs/` or `docs/<sub-project>/` following repository
-convention. Reconcile stale item claims against the repository before designing.
+`.knowledge/index.json` when present. Foundation documents generally live in
+root `docs/`, with sub-project truth in `<sub-project>/docs/` or
+`docs/<sub-project>/` following repository convention. Reconcile stale item
+claims against the repository before designing.
 
 Read [../work/references/autonomy.md](../work/references/autonomy.md) and resolve
 the effective autonomy posture. Autonomy governs how decisions are discussed,
 not whether design quality, review, safety, or authority boundaries apply. Read
 [../work/references/simplification.md](../work/references/simplification.md) and
 resolve the effective simplification posture for the design.
+
+Unless an instruction names a repository path or artifact, communicate with the
+user in the current conversation, including questions, offers, proposals,
+recommendations, explanations, summaries, and reports. Do not create report
+files or durable no-op records unless the user requests them.
+
+## Decide whether to ideate
+
+Before formal design, route through `ideate` when the user asks for initial
+exploration, when a short collaborative pass could materially change what
+should be designed, or when the outcome, ownership boundary, or success shape
+cannot yet form coherent work. Prefer that pass for a substantial new
+initiative, cross-cutting change, early design with unsettled outcomes,
+boundaries, non-goals, or competing directions, or several coupled product,
+domain, or business decisions that materially reshape one another or the scope.
+
+Size alone is not decisive: a large mechanical change with an established
+outcome can proceed directly to design. Bypass ideation when the user explicitly
+asks to go straight to design or repository truth already settles the outcome
+and exploration is unlikely to change it. Do not route away merely because a
+small number of mostly local choices remain. The bare use of “design” does not
+by itself mean the user wants to skip discovery.
+
+## Set the design boundary
 
 Treat the user's original intent, later clarifications, explicit exclusions,
 and the accepted item outcome as the design boundary. Applicable foundation
@@ -54,33 +74,14 @@ current work. Design may resolve necessary implementation detail, but it must
 not invent product requirements, adjacent capabilities, or a broader quality
 bar to satisfy the designer's preferred ideal state.
 
-Before formal design, route through `ideate` when the user asks for initial
-exploration or when a short collaborative pass could materially change what
-should be designed. Prefer that pass for a substantial new initiative,
-cross-cutting change, or early design with unsettled outcomes, boundaries,
-non-goals, or competing directions. This is broader than inability to scope,
-but size alone is not decisive: a large mechanical change with an established
-outcome can proceed directly to design. Bypass ideation when the user explicitly
-asks to go straight to design or repository truth already settles the outcome
-and exploration is unlikely to change it. The bare use of “design” does not by
-itself mean the user wants to skip discovery.
-
 Keep a clear narrow request narrow. Calibrate the design to the project's actual
 type, maturity, audience, deployment context, and stated risks. Do not add
 enterprise, platform, production, extensibility, compatibility, operational, or
 validation machinery unless the authorized outcome or repository evidence
-requires it. Route through `ideate` if the outcome, ownership boundary, or
-success shape cannot yet form coherent work, or if several coupled product,
-domain, or business decisions materially reshape one another or the scope. Do
-not route away merely because a small number of mostly local choices remain. If
-a clear request has no active item, create the smallest coherent feature or
-story needed to hold durable design state, following
+requires it. If a clear request has no active item, create the smallest coherent
+feature or story needed to hold durable design state, following
 [../work/references/lifecycle.md](../work/references/lifecycle.md). Do not create
 hierarchy merely to represent design activity.
-
-Use substantive external investigation through an available `research` skill.
-If none is available, disclose the degraded mode and do not turn unattested
-external claims into committed design evidence.
 
 ## Select lenses
 
@@ -94,8 +95,8 @@ Read [references/lenses.md](references/lenses.md). Select one primary lens:
 - UI/UX;
 - data, migration, or integration.
 
-Apply only relevant overlays such as security, privacy, accessibility,
-operations, or compatibility. State the selected lens in the item. If the work
+Apply only relevant risk overlays: security, privacy, accessibility, operations,
+compatibility, and testing. State the selected lens in the item. If the work
 mixes materially different lenses, separate independently verifiable outcomes
 or name which lens governs each unit.
 
@@ -104,6 +105,10 @@ or name which lens governs each unit.
 Separate facts, requirements, assumptions, and decisions. Learn discoverable
 facts from the repository. Do not re-ask choices already settled by the user,
 the item, or foundation truth.
+
+Use substantive external investigation through an available `research` skill.
+If none is available, disclose the degraded mode and do not turn unattested
+external claims into committed design evidence.
 
 Ask the human about product direction, supported behavior, external contracts,
 irreversible choices, or expensive trade-offs only they can settle, then pause
@@ -175,12 +180,10 @@ Use exact paths, interfaces, or schemas only when they reduce implementation
 ambiguity. Avoid speculative code listings that merely pre-write the change.
 Write the design prose in the plain technical style of
 [../work/references/writing-style.md](../work/references/writing-style.md).
-For data models, domain objects, interfaces, and external integrations, establish
-the real-world and business meaning before schemas or field mappings. If a
-provider's vocabulary materially shapes the model, use `research` to compare
-representative providers or standards. Map provider terms through the project's
-concepts to generic real-world terms instead of adopting one provider's ontology
-by default. Use a short real-world scenario when relationships remain abstract.
+Apply that reference's concept-grounding rules to data models, interfaces, and
+provider vocabulary. Use a concrete scenario when relationships remain
+abstract, and use `research` when a provider ontology materially shapes the
+design.
 
 Design the smallest credible verification approach alongside implementation.
 Reuse existing tests, commands, fixtures, environments, and observability

@@ -26,6 +26,8 @@ invoking it. Do not carry an unaccepted offer forward as implied consent.
 ## Establish the boundary
 
 Read [references/canonical-layout.md](references/canonical-layout.md),
+[references/project-patterns.md](references/project-patterns.md),
+[references/managed-instructions.md](references/managed-instructions.md),
 [references/migration-rules.md](references/migration-rules.md), and
 [references/version-compatibility.md](references/version-compatibility.md)
 completely before writing. Resolve the loaded plugin version through the
@@ -36,8 +38,10 @@ prompt, because the user already invoked setup.
 
 Inspect Git state, agent instructions, workflow configuration, work ledgers,
 plans, research, generated indexes, foundation documents, CI, package scripts,
-release practices, and repeated repository behavior. Classify unknown systems
-by meaning instead of requiring a named adapter.
+release practices, formatter and linter configuration, project pattern catalogs,
+and repeated coding and structural behavior. Find legacy refactor-convention,
+pattern, and harness-specific rule catalogs. Classify unknown systems by meaning
+instead of requiring a named adapter.
 
 If another agent is actively editing an overlapping substrate, stop and
 coordinate. Preserve unrelated dirty-worktree changes.
@@ -77,8 +81,36 @@ Derive candidates from:
 
 Ask one consequential decision at a time. For every recommendation, explain the
 evidence, risk or friction, proposed rule, practical cost, and why it is the
-recommended choice. Do not present a generic checklist. Do not write rejected
-proposals or repeat them during the run.
+recommended choice. Do not present a generic checklist. Do not ask about coding,
+structural, or pattern preferences without concrete repository evidence or an
+explicit existing user preference. Group related proposals when one decision
+settles them. Inspection is mandatory; questions are conditional. Do not write
+rejected proposals or repeat them during the run.
+
+Classify confirmed engineering guidance before proposing its destination:
+
+- mechanical formatting and lint rules belong in tool configuration;
+- concise coding and agent operating rules belong in `AGENTS.md`;
+- settled module ownership, import direction, and structural constraints belong
+  in the applicable architecture foundation;
+- engineering decision rules belong in `docs/PRINCIPLES.md` or the repository's
+  confirmed equivalent;
+- detailed recurring implementation shapes belong in the canonical
+  `.agents/skills/patterns/` project catalog.
+
+Do not turn a convention violation into a refactor proposal unless correction
+has a concrete payoff such as clearer ownership, less duplication, easier
+navigation, or lower coordination cost. In a greenfield repository, leave
+unproven coding and structural preferences unset. Always create the portable
+pattern index stub from
+[references/project-patterns.md](references/project-patterns.md); an empty index
+is a destination for future evidence, not a claim that patterns already exist.
+
+Proactively offer root `CLAUDE.md` as a relative symlink with target `AGENTS.md`,
+including when it is absent. Treat a correct link as a no-op and reconcile
+divergent content before replacement. When `CLAUDE.md` exists after setup,
+maintain the Claude pattern symlink specified by
+[references/project-patterns.md](references/project-patterns.md).
 
 Proactively consider two defaults: park useful findings outside the current
 scope instead of silently expanding it, and test behavior at stable interfaces
@@ -89,9 +121,9 @@ maintenance cost. Recommend a repository-specific form when observed work would
 benefit, but make no new repository convention binding without the user's
 answer.
 
-Always ask how completed items should be retained. Recommend
-`completed_items: summarize` when the repository prepares release summaries;
-otherwise recommend `discard`. Record only the user's confirmed choice.
+Always ask how completed items should be retained before release. Recommend `summarize`
+when temporary stubs ease drafting; recommend `discard` when Git history is sufficient.
+Both postures support release. Record only the user's confirmed choice.
 
 Always ask for the repository's default `review_weight`: `none`, `light`,
 `standard`, `thorough`, or `maximum`. Recommend `standard` for most projects;
@@ -143,6 +175,7 @@ Write confirmed rules to the narrowest authority:
 - documentation layout and naming conventions → `.work/CONVENTIONS.md`
   project guidance, or `AGENTS.md` when they must bind every agent;
 - engineering or product principles → `docs/PRINCIPLES.md`;
+- recurring implementation patterns → `.agents/skills/patterns/`;
 - research evidence and privacy rules → `.research/CONVENTIONS.md`.
 
 ## Convert semantically
@@ -151,6 +184,17 @@ Inventory every source artifact and assign exactly one disposition: retain in
 place, consolidate, move, or remove. Map active outcomes into `.work/active/`,
 deferred ideas into `.work/backlog/`, grounded evidence into `.research/`, and
 current or intended project truth into focused foundation documents.
+
+Apply the authority classification from convention alignment to each legacy
+refactor-convention and pattern artifact. Create or reconcile the canonical
+portable `SKILL.md` stub and preserve focused pattern references without
+duplicating rule bodies in the index.
+Remove generated wrappers, digests, and
+workflow-specific scans after useful content and inbound references are
+reconciled. Replace Claude compatibility mirrors with the confirmed relative
+symlinks only after conflict-safe consolidation. Setup validates the catalog's
+structure and semantic disposition; it does not audit every retained pattern
+against the code.
 
 Fold durable discoveries out of session and resume files, then remove those
 files. Consolidate duplicate foundations instead of retaining competing
@@ -188,7 +232,9 @@ retained content block at its destination; matching file or item counts alone
 is insufficient.
 
 Confirm every canonical `.work/` and `.research/` state directory contains
-`.gitkeep` so an empty state survives a fresh clone. When
+`.gitkeep` so an empty state survives a fresh clone. Validate the canonical
+pattern `SKILL.md` and its referenced files even when the index remains empty.
+When
 `.knowledge/index.json` exists or is being created, confirm it is tracked rather
 than excluded by ignore rules, then rebuild it and run the builder with
 `--check`.

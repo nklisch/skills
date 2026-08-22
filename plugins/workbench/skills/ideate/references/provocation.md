@@ -5,9 +5,9 @@ refactor, deep simplification, or "what single idea would make this code much
 simpler?" They govern how to *find* a reconception — a different axis from the
 delivery-shape lenses in `design`.
 
-This reference is a cousin of the code-audit `bold-refactor` skill's lens
-table. The table is shared; the framing is not. Edit each on its own terms
-rather than syncing them mechanically.
+This lens table parallels the one in code-audit's `bold-refactor` skill. Keep
+the two aligned in spirit, but edit each on its own terms rather than syncing
+them mechanically.
 
 ## Discuss established systems before creating work
 
@@ -111,7 +111,7 @@ advocated, but only with its verdict attached.
 
 ## Outcomes are substrate, not reports
 
-Provocation inside workbench ends in the normal `ideate` handoffs the user
+Provocation inside Workbench ends in the normal `ideate` handoffs the user
 explicitly selects: an activated item (with behavior deltas in its body), a
 parked idea, or commissioned research. Do not write a report artifact.
 

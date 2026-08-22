@@ -55,9 +55,10 @@ refreshed, or reconciled.
 
 ```text
 Early, substantial, uncertain, or coupled work ─→ ideate ─→ chosen handoff
-Clear, coherent outcome ─────────────────────────→ work
-Consequential implementation shape ─→ design ─→ work
-work ─→ verify ─→ review ─→ close
+Clear, coherent or multi-unit outcome ───────────→ work
+Consequential implementation shape ─────────────→ design
+One named implementation-ready feature or story → deliver
+work ─→ deliver ready items ─→ integrate wider boundary ─→ close
 
 Useful but out of scope ──→ park
 Completed outcomes ───────→ release
@@ -83,9 +84,11 @@ Suppose you ask, “Drive the onboarding epic to done.”
 
 The agent reads the repository, Workbench conventions, and the epic before
 acting. It asks only for consequential choices the repository cannot answer,
-routes through design if the implementation shape warrants it, and then
-implements, verifies, reviews, and closes the full requested boundary. If it
-finds a worthwhile analytics cleanup that is unrelated to onboarding, it offers
+routes through design if the implementation shape warrants it, and sends each
+ready feature or story through `deliver`. Features receive integrated item
+review; nested stories return verification evidence to their owning feature.
+`work` integrates the delivered units and closes the full requested boundary. If
+it finds a worthwhile analytics cleanup that is unrelated to onboarding, it offers
 to park that finding rather than silently expanding the work.
 
 The durable record remains ordinary Markdown. You can read or edit it directly;
@@ -120,6 +123,7 @@ Workbench keeps its state deliberately small:
 └── index.json           # deterministic discovery metadata
 
 .mockups/                # optional UI alignment artifacts
+.agents/skills/patterns/ # canonical pattern index; references grow from evidence
 docs/                    # current or intended project truth
 AGENTS.md                # canonical cross-agent instructions
 ```
@@ -186,16 +190,22 @@ simplification posture, what happens to finished items, and your documentation
 conventions (where foundation documents live, how they are named, and whether
 contract truth lives in code or
 documents) — and records them where they belong, mostly `.work/CONVENTIONS.md`,
-where you can change them later. It also asks whether to establish or extend
+where you can change them later. Setup also inspects confirmed coding rules,
+structural foundations, tool configuration, and existing pattern catalogs. It
+asks about those only when repository evidence presents a consequential choice,
+then routes each confirmed rule to its narrowest authority instead of creating a
+generic refactor-conventions layer. It also asks whether to establish or extend
 `docs/PRINCIPLES.md` — recommending three core invariants (contract truth
 ownership, compatibility is earned, and leave it simpler), offering optional
 code-design principles when bootstrapping, and adding anything it derives from
 the repository itself. For finished items:
 
-- `summarize` keeps a compact outcome stub, which can later feed a release
-  summary;
-- `discard` removes the item after verification. Release summaries need
-  retained stubs, so this option turns off `release`.
+- `summarize` keeps a compact temporary outcome stub for the next release;
+- `discard` removes the item after verification and lets release summarize from
+  Git history.
+
+Both postures support release. After a successful release, Workbench removes all
+completed outcome files and keeps the concise version summary plus Git history.
 
 The optional `.mockups/` directory holds interactive UI walkthroughs when a
 user journey needs alignment. They are requirements evidence, not production
@@ -305,6 +315,35 @@ behavior and measured performance constraints and avoids obvious plausible
 performance regressions in affected code; it does not trigger speculative
 profiling or low-level optimization when performance is not constrained or
 plausibly affected.
+
+## Project patterns during delivery
+
+Setup always creates the portable `.agents/skills/patterns/SKILL.md` index. It
+starts as an honest empty stub. Focused references enter only through an
+explicit pattern-extraction maintenance feature; ordinary delivery does not
+promote patterns ad hoc. This is neither a style checklist nor a periodic gate.
+
+During a user-authorized multi-unit `work` boundary, deliverers report candidate
+evidence and the active parent accumulates it. At an explicit integration or
+planning boundary, `work` adjudicates the evidence using the
+[maintenance guidance](skills/work/references/maintenance.md). No item count or
+schedule triggers extraction. Enough concrete recurrence can produce an
+ordinary feature tagged `pattern` and, when relevant, `refactor` or `cleanup`.
+The feature belongs under the active epic or stays top-level when no epic owns
+the boundary, and `deliver` completes it before wider closure. Immature evidence
+is offered for parking; aesthetic coincidence is dropped. A direct user request
+to detect or extract patterns creates the same maintenance feature immediately.
+
+Ordinary delivery still repairs an existing pattern made stale by current work.
+Nested stories and orchestrated units never write the shared catalog. Mechanical
+formatting remains in tools, concise coding rules in `AGENTS.md`, and
+architecture and principles in foundation documents.
+
+`work` remains the natural-language outcome owner for ambiguous, unscoped,
+multi-unit, and end-to-end requests. `deliver` is the bounded skill for one named
+implementation-ready feature or story. Features and standalone stories receive
+item-level integrated review; nested stories return verification evidence to
+the owning feature instead of duplicating its review.
 
 ## Review depth
 
@@ -464,9 +503,10 @@ without explicit approval.
 | [`setup`](skills/setup/SKILL.md) | Adopting Workbench or consolidating an existing workflow into one clean state. |
 | [`ideate`](skills/ideate/SKILL.md) | Exploring uncertain, substantial, cross-cutting, or early-stage work before committing to scope or design; it may run before adoption. |
 | [`design`](skills/design/SKILL.md) | Shaping consequential implementation after the outcome is understood, or when you explicitly request direct design. |
-| [`work`](skills/work/SKILL.md) | Scoping or delivering a clear outcome, feature, epic, or group of epics. |
+| [`deliver`](skills/deliver/SKILL.md) | Implementing, verifying, reviewing, and closing one named implementation-ready feature or story. |
+| [`work`](skills/work/SKILL.md) | Scoping and owning a clear outcome, multi-unit boundary, epic, or group of epics. |
 | [`park`](skills/park/SKILL.md) | Preserving a useful finding without expanding current work. |
-| [`release`](skills/release/SKILL.md) | Collapsing retained completion stubs into a concise version summary. It does not tag, publish, or deploy. |
+| [`release`](skills/release/SKILL.md) | Summarizing completed outcomes from stubs or Git history, then cleaning retained completion files. It does not tag, publish, or deploy. |
 | [`research`](skills/research/SKILL.md) | Investigating an external, unstable, unfamiliar, contested, or decision-relevant question. |
 | [`research-handoff`](skills/research-handoff/SKILL.md) | Turning selected research findings into proposed Workbench outcomes. |
 
@@ -539,8 +579,16 @@ Re-running `setup` on a repository that already uses Workbench is an upgrade
 and sync pass: it detects drift from the stamped plugin version — conventions
 questions a newer version asks that the repository never settled, missing
 fields, superseded layout — and reconciles it without re-asking choices you
-already made. Stateful skills stop and ask before that upgrade; if the loaded
-plugin is older than the stamp, they ask you to update the plugin first.
+already made. It also migrates useful legacy refactor-convention and pattern
+content into tool configuration, `AGENTS.md`, foundations, or the canonical
+portable pattern catalog according to meaning. It creates an empty valid index
+when no recurring pattern truth exists. Setup proactively offers root
+`CLAUDE.md` as a relative symlink to canonical `AGENTS.md`. When `CLAUDE.md`
+exists, it maintains `.claude/skills/patterns` as a relative
+symlink to the canonical `.agents` catalog after conflict-safe reconciliation.
+Stateful skills stop and ask
+before that upgrade; if the loaded plugin is older than the stamp, they ask you
+to update the plugin first.
 
 Workbench and `agile-workflow` use mutually exclusive `.work/` schemas. Use
 `setup` to convert rather than running both systems in the same project.

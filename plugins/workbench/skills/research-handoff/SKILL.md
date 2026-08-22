@@ -35,7 +35,8 @@ line from the active- or backlog-item contract. Merge with equivalent existing
 work rather than duplicating it.
 
 Run `validate-workbench.py` from the installed Workbench plugin after emission,
-resolving its package root by verified plugin identity. If Workbench is
-unavailable, report that validation could not run rather than silently skipping
-it. Identify created or updated items in the current conversation and leave the
-research artifacts unchanged. Do not create a separate handoff report.
+resolving its package root by verified plugin identity. If the installed
+Workbench plugin package cannot be resolved, report that validation could not
+run rather than silently skipping it. Identify created or updated items in the
+current conversation and leave the research artifacts unchanged. Do not create
+a separate handoff report.

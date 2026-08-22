@@ -1,0 +1,6 @@
+interface:
+  display_name: "Deliver"
+  short_description: "Complete one ready Workbench item"
+  default_prompt: "Use $deliver to implement and close this ready Workbench feature or story."
+policy:
+  allow_implicit_invocation: true

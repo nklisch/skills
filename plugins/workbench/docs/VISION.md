@@ -27,7 +27,11 @@ adopted repository; write-free `ideate` may explore before adoption, and
   adjudication cannot be resolved confidently inline.
 - **Recorded work is not automatically designed.** Before each feature or story,
   `work` checks design readiness and completes consequential design review before
-  implementation or delegation.
+  routing an implementation-ready item through `deliver`.
+- **Delivery has one bounded owner.** `deliver` completes one ready feature or
+  story. Direct delivery owns that item through closure; orchestrated delivery
+  returns integration and pattern evidence to `work`, which retains the wider
+  outcome and shared surfaces without repeating item-level review.
 - **Autonomy follows intent.** Current request language and one repository
   default determine whether work is collaborative, adaptive, or autonomous.
   Autonomy changes participation and continuation, never permissions, scope,
@@ -73,7 +77,14 @@ adopted repository; write-free `ideate` may explore before adoption, and
   existing verification machinery and discuss substantial new infrastructure.
 - **Maintenance follows evidence.** Cohesive cleanup can travel with delivery;
   standalone cleanup and refactors are normal bounded work; broader findings
-  are parked.
+  are parked. Confirmed coding and structural conventions guide work without
+  making conformity an outcome. Setup creates one portable pattern index, while
+  new references enter only through an explicit evidence-led maintenance
+  feature after enough large-run work exists or the user requests extraction.
+  No fixed cadence turns maintenance into a gate.
+- **Release collapses temporary completion state.** Both completion postures can
+  produce a version summary. A successful release removes retained completed
+  outcome files and leaves concise release truth plus Git history.
 - **Project and plugin versions stay reconciled.** Setup stamps the exact loaded
   Workbench version into conventions. Stateful workflows stop on mismatch and
   offer setup upgrade rather than letting one release mutate project state
@@ -84,7 +95,10 @@ adopted repository; write-free `ideate` may explore before adoption, and
   Detection, drift, and recommendations are never consent. Write-free `ideate`
   may run before adoption without creating project state.
 - **Setup converges and greenfields continue.** Existing systems are
-  semantically converted, validated, and removed. A greenfield bootstrap flows
+  semantically converted, validated, and removed. Setup classifies coding,
+  structural, principle, and recurring-pattern truth into distinct authorities;
+  it does not ask preference questions without evidence or audit patterns as a
+  migration ceremony. A greenfield bootstrap flows
   directly into ideation using setup's shared foundation-document contract so
   the project can establish its initial truth without a second invocation or a
   competing format. Workbench does not preserve parallel workflow substrates,
