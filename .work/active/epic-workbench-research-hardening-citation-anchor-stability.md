@@ -142,6 +142,12 @@ Explicitly not flexible:
   substrates only, via the owner declaration).
 - Model memory as a bibliographic source (grounding floor).
 
+**Verified external consumer (2026-08-16):** `SNC/games/wiki` renders
+`[handle]{N}` citations, source handles, and append-only INDEX numbering
+straight from the substrate — the citation contract's first earned
+compatibility obligation. Grammar changes from here on treat the wiki as a
+consumer, per the compatibility-is-earned principle.
+
 ## Acceptance
 
 - Reordering or inserting details cannot silently change what an existing
