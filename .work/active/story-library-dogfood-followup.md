@@ -60,6 +60,20 @@ against main's v0.8.x line.
   dangle when a render surface reshapes the collection into a served tree.
   Canon patched in `§ Collection roots`, the conversion mapping, and the
   guide (workbench v0.8.5).
+- **2026-08-22 (second exchange).** v0.8.5 pulled and verified library-side.
+  Silent-drop reproduction delivered: a maxdepth directory-walk inventory
+  structurally cannot see kind-grouped items (files at depth 3), the
+  inherited "active is empty" reading skipped the file census, and
+  `git rm -q -r` suppressed the per-file list — only the cutover/ff-merge
+  diff review caught it. All four sharpenings landed as setup canon
+  (v0.8.6): file-level census of every tier being converted; per-file
+  disposition entries (directory-level `git rm -r` with unaccounted files is
+  the silent-loss signature); validate-then-remove diffs removed files
+  against the manifest and stops on any unaccounted file; never `-q` a
+  recursive source-tree removal. The removed-vs-manifest diff is the guard
+  that catches the failure even when the inventory misses. Library commits
+  to exercising `[handle]{source}` on real material in the kennedy drive
+  (INDEX bibliographic record as first use).
 
 ## Acceptance
 

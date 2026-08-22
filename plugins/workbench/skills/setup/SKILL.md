@@ -32,7 +32,12 @@ writing.
 Inspect Git state, agent instructions, workflow configuration, work ledgers,
 plans, research, generated indexes, foundation documents, CI, package scripts,
 release practices, and repeated repository behavior. Classify unknown systems
-by meaning instead of requiring a named adapter.
+by meaning instead of requiring a named adapter. Inventory at the **file
+level**: a file census of every tier slated for conversion (`find <substrate>
+-type f`), because a directory-shape walk cannot see kind-grouped items —
+`.work/active/features/<item>.md` sits below the group directories an
+inventory that stops at them reports as empty. Record the census as the
+baseline the disposition table keys on.
 
 Classify any `.research/` substrate by owner. An explicit `owner: workbench`
 declaration marks Workbench ownership — layout alone never proves it. A
@@ -172,7 +177,10 @@ python3 <workbench-plugin-root>/scripts/validate-workbench.py <project-root>
 When `.research/` exists or conversion creates research artifacts, also rebuild
 and validate `.knowledge/index.json`.
 
-Reconcile source and target inventories. Confirm relationships resolve,
+Reconcile source and target inventories: diff the files actually removed
+from the source tree against the disposition manifest — every removed file
+must match a manifest entry, and any unaccounted file stops the conversion.
+Confirm relationships resolve,
 completed items are absent from active work, foundation assertions remain true,
 and confirmed conventions landed in their authoritative files. Verify each
 retained content block at its destination; matching file or item counts alone

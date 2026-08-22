@@ -79,8 +79,12 @@ No proposal becomes binding without user confirmation.
 
 Before removal, maintain a disposition table containing source path, target
 path or redundancy evidence, Git/recovery class, inbound references, and
-validation result. Resolve exact targets; do not use broad globs or unresolved
-environment variables for deletion.
+validation result. Entries are **per file**, never per directory —
+`git rm -r` of a source directory whose files have no individual disposition
+entries is the exact silent-loss signature. Never suppress a recursive
+removal of a source tree (`git rm -q -r`): the per-file list it hides is the
+last cheap check that every file was accounted for. Resolve exact targets;
+do not use broad globs or unresolved environment variables for deletion.
 
 Clean tracked content is recoverable from Git. Preserve unrelated changes.
 Require a pre-state commit or exact-list confirmation before removing modified,
