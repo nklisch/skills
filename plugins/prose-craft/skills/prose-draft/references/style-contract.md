@@ -45,7 +45,7 @@ no style choice exempts a document from.
 - The document is organized around the reader's task, not the system's
   internal structure — this holds whether the chosen structure pattern is
   pyramid, chronicle, or spiral.
-- Nothing load-bearing is conveyed by formatting alone (emphasis, color,
+- Nothing essential is conveyed by formatting alone (emphasis, color,
   position); the words carry it.
 
 ## Where the rest of style lives

@@ -15,10 +15,14 @@ One file per captured model version, named for the exact model captured.
 Each file contains four verbatim snippets — the same four prompts for every
 model, so voices compare directly across modalities:
 
-1. **Explain** — a conceptual answer (indexes and query speed)
-2. **Instruct** — a procedural answer (undo last commit, keep changes)
-3. **Opine** — an opinion piece (tabs vs spaces)
-4. **README opener** — venue-voiced copy (a tiny CLI called `port`)
+The four prompts, verbatim — identical for every model:
+
+1. **Explain** — "Why do database indexes make queries faster?"
+2. **Instruct** — "How do I undo my last git commit but keep the changes?"
+3. **Opine** — "Tabs or spaces — make your case."
+4. **README opener** — "Write the opening 2–3 sentences for the README of
+   `port`, a tiny CLI tool that shows which process is listening on a given
+   port."
 
 Plus honest signature notes: patterns observed in that family's snippets,
 written after capture. Observations, not rules — a signature present in one
@@ -82,6 +86,6 @@ shapes worth tracking across families: the formatter-delegation closer
 ("configure the formatter and stop thinking about it" — Sol, Luna, Sonnet
 5, Opus 5, Opus 4.8), and the compressed negative-list README close ("no
 flags, no ceremony" / "no flags to memorize, no incantation to look up" —
-GLM-5.3, Opus 4.8, Sol). Expect the shared-average surface to grow as
+GLM-5.3, Opus 4.8). Expect the shared-average surface to grow as
 more models are captured; shared formulas are average-marks, not any
 family's signature.

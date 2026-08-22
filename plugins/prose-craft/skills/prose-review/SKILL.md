@@ -25,10 +25,12 @@ not edit the document.
   must-keeps. Look for a brief carried with the draft (an HTML comment at
   the top, or a companion note). Published documents normally carry no
   brief — `prose-draft` strips the working comment at publication — so a
-  missing brief is expected, not a defect. If none exists, ask the user for
-  audience and venue, or infer them and say you did. If a brief exists but
+  missing brief is expected, not a defect. If none exists, re-pin the full
+  six-field brief: recover what the document itself states, ask the user
+  for what it doesn't, and label any field you inferred so the user can
+  correct it. If a brief exists but
   lacks any of the six fields, treat it as incomplete: pin the missing
-  fields (ask, or infer and say so) before judging.
+  fields the same way before judging.
 - **The reader path**, carried with the brief (same comment or companion
   note). If the draft carries no plan, the structure lens derives the
   draft's actual beats and judges that derived path — saying it was derived.

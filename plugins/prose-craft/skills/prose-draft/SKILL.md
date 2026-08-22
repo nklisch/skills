@@ -45,7 +45,7 @@ is naming: no draft applies a structure or style silently.
 
 ## 2. Pin the brief
 
-Write down:
+Write down six required fields, plus the optional out-of-scope:
 
 - **Audience**: confirmed, not assumed — who reads this, and what they
   already know.
@@ -61,9 +61,11 @@ Write down:
   every later edit. These are the source of truth against review drift.
 - **Out of scope**: what this doc deliberately does not cover.
 
-For a rewrite, extract the brief from the existing document first; confirm
-with the user only when the apparent audience, venue, structure, or style
-seems wrong for what the document has become.
+For a rewrite, extract the brief from the existing document first, then
+confirm the recovered audience and purpose with the user before drafting —
+an extracted brief inherits old intent, and the document may have drifted
+from it. If the user has already pinned these explicitly in this session,
+proceed without re-asking.
 
 ## 3. Plan the reader path
 
@@ -102,10 +104,12 @@ incomplete and pin them before judging.
 ### The brief's and plan's lifecycle
 
 The carried comment is a working artifact, not part of the published
-document. It stays with the draft through draft, review, and refine. When
-the document is published — committed as final, not merely written — strip
-the comment and preserve the brief in the commit message (or the work item
-that commissioned the document), so intent remains recoverable from history
+document. It stays with the draft through draft, review, and refine. Strip
+it when the document is published — committed as final, not merely written
+— or when the writing engagement ends without publication, whichever comes
+first: a comment left in a committed file is scaffolding shipped by
+accident. Preserve the brief in the commit message (or the work item that
+commissioned the document), so intent remains recoverable from history
 without living in the file. Never leave the plan dangling after the session
 that produced it: strip, or park it where its owner will find it. A later
 review of the published document re-pins the brief from the document, the

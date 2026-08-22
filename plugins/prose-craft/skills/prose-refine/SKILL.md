@@ -43,22 +43,23 @@ return a findings list. Use `prose-review` for review without rewriting.
 classes, assign a different class to each re-writer. Different model families
 expose different prose defaults and blind spots. When only one class is
 available, assign distinct personas instead: a terse engineer, a longform
-editor, and a domain skeptic. When the harness cannot spawn sub-agents, perform
+editor, and a domain skeptic (standard weight draws two; thorough uses all
+three). When the harness cannot spawn sub-agents, perform
 sequential self-rewrites under those personas and report the fallback.
 
 Every re-writer receives the current draft, the full brief (including the
 chosen structure pattern and the style profile with its deltas), the
-reader-path plan, the universal floor (`prose-draft`'s
-`references/style-contract.md`), the venue obligations (`prose-draft`'s
-`references/doc-types.md`), and the lens checklists for the selected weight
-(`prose-review`'s `references/lenses.md`).
+reader-path plan, the universal floor
+(`../prose-draft/references/style-contract.md`), the venue obligations
+(`../prose-draft/references/doc-types.md`), and the lens checklists for the
+selected weight (`../prose-review/references/lenses.md`).
 The floor is not the style: re-writers write in the brief's style profile
 and its recorded deltas, under the floor. Give every re-writer the
-reader-path grounding rules explicitly — define load-bearing domain terms
+reader-path grounding rules explicitly — define essential domain terms
 from real-world and business meaning before technical use, without
 over-explaining terms the audience can safely know — as spelled out in the
-define-before-use section of `prose-draft`'s
-`references/structure-patterns.md`.
+define-before-use section of
+`../prose-draft/references/structure-patterns.md`.
 
 ## The round loop (cap: 3 rounds)
 
@@ -69,7 +70,7 @@ Scope narrows each round to ensure termination:
   define-before-use order, and the tier placement hold. Structural and
   sentence-level fixes are both in scope. A rewrite that wants to change
   the plan itself (reorder beats, retier content) returns that as a
-  proposal for the user, not a fait accompli.
+  proposal for the user, not an unapproved change woven in.
 - **Round 2: targeted rewrite.** Do not restructure unless a material defect
   requires it. Focus on machine-prose tells and fit with the document's
   chosen style profile. Give each re-writer `references/llm-tells.md` plus
@@ -88,8 +89,10 @@ Each round:
    the most human. When several re-writers land on near-identical phrasing,
    that convergence is the average machine voice, not a quality signal;
    prefer the version that strays from it while still serving the brief.
-   Must-keeps are invariant. Reject or repair in place any
-   rewrite that changes one. Then normalize the voice of the woven draft so it
+   Must-keeps are invariant. Reject any rewrite that changes one, repairing
+   accidental alterations in place and noting the repair in the change log;
+   a rewrite that deliberately argues against a must-keep is a genuine
+   conflict — hold it out for the user instead of repairing it. Then normalize the voice of the woven draft so it
    reads as one author — and not as any one model family's default: check the
    weave against `references/model-voice/` signatures (and
    `references/llm-tells.md`) so the blend doesn't tip toward the loudest
@@ -108,7 +111,8 @@ and link targets. Use one agent without lenses or re-writers.
 
 ## Guardrails
 
-- The brief's must-keeps are invariant. If a rewrite would change one, stop and
+- The brief's must-keeps are invariant. Accidental must-keep changes are
+  rejected and repaired; a rewrite that disputes a must-keep stops here —
   surface the conflict to the user. The reader path carries the same weight:
   re-writers propose plan changes (reordered beats, retiered content); the
   orchestrator surfaces those proposals to the user instead of weaving them in

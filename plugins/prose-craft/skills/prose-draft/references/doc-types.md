@@ -1,6 +1,6 @@
 # Document Types
 
-Assign one type to each document. Mixing modes is the most common
+Assign one type to each document. Mixing modes is a common
 structural defect: a tutorial drifts into reference, a README tries to be a
 book.
 
@@ -46,6 +46,15 @@ hint at points where readers commonly fail.
 Use reference mode. Make the page complete within its stated scope. Use a
 uniform entry format. Keep examples minimal and factual. Do not include
 persuasion.
+
+### Skill / agent instruction page
+
+Use reference-leaning mode with procedural sections: uniform imperative
+steps, workflow terms defined at first use, and long catalogs moved to
+linked references. The reader is a fresh agent context with no session
+knowledge — it arrives mid-task, reads once, and executes; there is no
+leisure reading and no rereading. Prefer one instruction per line, and keep
+any rationale for a guardrail beside the guardrail itself.
 
 ### Release notes / changelog entry
 

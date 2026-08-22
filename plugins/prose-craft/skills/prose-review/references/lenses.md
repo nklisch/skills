@@ -8,7 +8,8 @@ fewer defects in each.
 
 - **material**: a reader would be misled, blocked, or lose trust. In
   `prose-refine`, material-class rewrites keep the loop going.
-- **polish**: an improvement a reader wouldn't notice missing. Never blocks
+- **polish**: a worthwhile but nonblocking improvement — fixing it makes
+  the document better; not fixing it misleads no one. Never blocks
   convergence.
 
 Standard weight uses lenses 1–4 (audience, structure, clarity, accuracy).
@@ -38,13 +39,13 @@ grants them.*
 - Does the draft assume knowledge the audience doesn't have (undisclosed
   prerequisites)?
 - Is every piece of jargon defined on first use, or safe for this audience?
-- Does each load-bearing data object, domain model, interface, or object group
-  first say what it represents in the real world and why it matters?
-- Where provider vocabulary appears, does the document map provider terms
-  through project concepts to generic real-world terms before field details?
-- When relationships remain abstract, does a short real-world scenario establish
-  the mental model before diagrams or schemas?
-- Can the reader find their next action within the first screen?
+- Does each concept the workflow depends on first say what it represents
+  in the reader's world and why it matters, before its details?
+- When relationships stay abstract, does a short concrete scenario
+  establish the mental model before diagrams or schemas?
+- Can the reader find their next action within the first screen? (For
+  documents an agent reads as context rather than on a screen, tier 1
+  means: at the top of the file, before any detail.)
 - Does the entry path work? Whatever leads a reader here, does the doc
   catch them?
 - Are examples drawn from the reader's world, not the author's?
@@ -63,11 +64,11 @@ grants them.*
 - Does the opening state purpose and reader payoff before details?
 - Answered-before-asked: does detail arrive before the reader holds the
   question it answers?
-- Used-before-defined: does any load-bearing term carry weight before the
+- Used-before-defined: does any essential term carry weight before the
   reader's model contains it?
 - Are sections ordered by reader need, not by the system's internals?
 - Can readers follow the document collection in its intended order without
-  waiting for a later page to define an earlier load-bearing concept?
+  waiting for a later page to define an earlier essential concept?
 - Do headings carry information (not "Overview", "Misc")?
 - Is anything the brief promised missing? Anything present the brief
   excluded?
@@ -107,8 +108,9 @@ grants them.*
   an assumed default. If the brief carries no style profile, flag that gap
   instead of judging against one.
 - Model-family voice: does the prose read like one model family's default
-  output? Check word choice against `prose-refine`'s
-  `references/model-voice/` signatures and `references/llm-tells.md`.
+  output? Check word choice against
+  `../../prose-refine/references/model-voice/` signatures and
+  `../../prose-refine/references/llm-tells.md`.
   Final prose should read as the document's own voice — not as any single
   model family.
 - No marketing-speak or hype adjectives: "seamless", "powerful", "blazing",
@@ -126,7 +128,7 @@ grants them.*
 *Persona: a plain-language and inclusion reviewer.*
 
 - Reading level appropriate; long words only where precision requires them.
-- Idioms, culture-bound references, and wordplay don't carry load-bearing
+- Idioms, culture-bound references, and wordplay don't carry essential
   meaning. The text survives translation.
 - Inclusive language: avoid ableist terms and gendered defaults.
 - Formatting aids meaning but never substitutes for it (nothing conveyed by
@@ -143,3 +145,8 @@ One finding per line:
 ```
 [material|polish] lens-name — §section or "quoted anchor": issue → suggested fix
 ```
+
+For a defect that spans several documents (a shared convention, a
+repeated cross-reference error), file one finding anchored to the
+convention and list the affected paths in it, rather than one finding per
+document.
