@@ -42,6 +42,11 @@ posture from Workbench conventions across every primary lens.
 - Read confirmed coding rules, structural foundations, and relevant
   `.agents/skills/patterns/` references as project-specific evidence. They
   extend this lens but do not make every deviation worth changing.
+- Shape the target decomposition with
+  [../../work/references/structure.md](../../work/references/structure.md):
+  apply its calibration protocol and diagnostic questions so the intended
+  structure is judged against codebase norms and language idioms, and record
+  the chosen decomposition and its payoff for the review pass.
 - Apply the black-box test: a refactor preserves observable behavior. Route
   intended behavior change through the new-work lens with explicit
   requirements. The one exception is a provocation-driven bold refactor whose

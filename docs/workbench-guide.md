@@ -340,6 +340,11 @@ to know about review:
   requirements, impose their preferred ideal architecture, or turn adjacent
   improvements into acceptance blockers. They also flag overbuilding relative
   to the project's actual type and risks.
+- **Refactor work gets a structural-hygiene lens.** At `standard` weight and
+  above, refactor and cleanup items — and any change that reshapes
+  decomposition — are also judged on structure, conditionals, and breakout
+  quality, calibrated against the codebase's own conventions and language
+  idioms rather than fixed thresholds.
 - **Missing reviewers get disclosed.** When the configured weight needs
   an independent reviewer and none is reachable, the agent says so and
   asks how to proceed — it does not quietly approve its own work.

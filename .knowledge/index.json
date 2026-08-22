@@ -1267,6 +1267,17 @@
       "relationships": []
     },
     {
+      "path": ".work/active/feature-structure-review-lens.md",
+      "namespace": "work",
+      "kind": "feature",
+      "id": "feature-structure-review-lens",
+      "title": "Structural-hygiene review lens for workbench design and review",
+      "summary": null,
+      "updated": "2026-08-22",
+      "status": "active",
+      "relationships": []
+    },
+    {
       "path": ".work/active/gate-docs-substrate-binary-generalize.md",
       "namespace": "work",
       "kind": "story",

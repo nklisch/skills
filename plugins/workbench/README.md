@@ -363,7 +363,11 @@ request in the repository.
 | `maximum` | Thorough convergence using different specialties, adversarial perspectives, and more than one model when available. |
 
 Review weight controls pass depth and repetition; simplification posture
-controls how strongly each pass looks for behavior-preserving reduction. Review
+controls how strongly each pass looks for behavior-preserving reduction.
+Refactor work and changes that reshape decomposition also get a
+structural-hygiene lens at `standard` and above: structure, conditionals, and
+breakout quality are judged against the codebase's own conventions and
+language idioms, never against fixed numeric thresholds. Review
 is not verification. A reviewer saying “looks good” does not prove the behavior
 works. Review is not a second chance to redefine the project, either:
 every reviewer is told not to invent requirements or expand scope, to judge the

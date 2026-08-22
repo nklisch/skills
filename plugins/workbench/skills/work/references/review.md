@@ -96,6 +96,15 @@ evidence makes them relevant. Every pass catches obvious algorithmic overwork
 and plausible performance regressions in affected code; require deeper
 performance investigation only when project constraints or evidence warrant it.
 
+At `standard` weight and above, when the item is refactor/cleanup work or the
+change makes decomposition decisions, also apply
+[structure.md](structure.md): have the reviewer follow its calibration
+protocol and diagnostic questions so structural findings are judged against
+the codebase's own conventions and language idioms, and dispose of them by
+its payoff rule — potentially material inside the boundary when the change
+falls short of the effective simplification posture, parked outside it, never
+taste.
+
 Treat findings as proposals. Reproduce or verify each substantive claim, accept
 changes that improve the work inside its authorized boundary, and explain
 rejected material findings in the current conversation. A proposal that depends

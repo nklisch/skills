@@ -266,6 +266,16 @@ project type. Missing or contradicted authorized requirements may be blocking
 findings; adjacent improvements are non-blocking follow-ups and may be parked.
 Only `thorough` and `maximum` repeat independent passes.
 
+Refactor and cleanup work — and any change that makes decomposition
+decisions — additionally applies a shared structural-hygiene lens at
+`standard` weight and above, in both the refactor design lens and the
+implementation-review pass. The lens judges structure, conditionals,
+decomposition, and hygiene against the repository's own conventions and
+language idioms rather than absolute thresholds, and its findings follow the
+same scope disposition: material inside the authorized boundary, parked
+outside it. See the
+[structural-hygiene reference](../skills/work/references/structure.md).
+
 The effective `simplification_posture` separately resolves from explicit user
 direction, `.work/CONVENTIONS.md`, then `balanced`. It governs design,
 implementation, and each applicable review pass:
