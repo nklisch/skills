@@ -74,6 +74,13 @@ against main's v0.8.x line.
   that catches the failure even when the inventory misses. Library commits
   to exercising `[handle]{source}` on real material in the kennedy drive
   (INDEX bibliographic record as first use).
+- **2026-08-22 (round close).** v0.8.6 pulled and verified library-side
+  (80b6282) — all four guards confirmed in source, tests and substrate
+  green. Agreed: the removed-vs-manifest diff stays prose until a second
+  conversion exercises it, then tooling. The kennedy drive picks up the
+  fully-sharpened canon at session restart (operator's timing) and reports
+  citation-form coverage through this story. Loop closed for this round;
+  three canon bumps (v0.8.4 → v0.8.6) on one dogfood session.
 
 ## Acceptance
 
