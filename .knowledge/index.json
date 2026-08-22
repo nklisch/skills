@@ -1375,6 +1375,17 @@
       "updated": "2026-06-11",
       "status": "active",
       "relationships": []
+    },
+    {
+      "path": ".work/active/story-library-dogfood-followup.md",
+      "namespace": "work",
+      "kind": "story",
+      "id": "story-library-dogfood-followup",
+      "title": "Check in with the library's downstream Workbench adoption",
+      "summary": null,
+      "updated": "2026-08-22",
+      "status": "active",
+      "relationships": []
     }
   ]
 }
