@@ -30,6 +30,12 @@ them again or invent a parallel foundation format.
 
 ## Explore
 
+When an adopted project's request is primarily to look for problems,
+investigate a quality concern, or propose improvements in an existing surface
+without committing to remediation, route through `scan` instead. Ideate owns
+uncertainty about what outcome the user wants; scan owns discovery of
+opportunities in current project truth.
+
 Inspect relevant files, documents, code, `.knowledge/index.json` when present,
 and recent decisions before asking questions the repository can answer.
 

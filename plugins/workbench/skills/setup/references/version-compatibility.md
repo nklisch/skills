@@ -1,14 +1,15 @@
 # Workbench Version Compatibility
 
-The `workbench_version` in `.work/CONVENTIONS.md` records the exact Workbench plugin release that last adopted or reconciled the project. The version in the verified loaded plugin's `plugin.json` is the installed-version authority.
+The `workbench_version` in `.work/CONVENTIONS.md` records the Workbench plugin release that last adopted or reconciled the project. The version in the verified loaded plugin's `plugin.json` identifies the release currently guiding the session.
 
-Before any stateful Workbench skill changes project state, compare those exact versions:
+Before stateful Workbench work, compare the versions and use any difference as an advisory compatibility hint:
 
-- equal versions proceed;
-- a missing project stamp or a newer loaded plugin stops and asks whether the user wants to run setup upgrade;
-- an older loaded plugin stops and asks the user to update Workbench first, then offers setup upgrade;
-- no mismatch invokes setup automatically or treats repository detection as upgrade consent.
+- equal versions need no compatibility guidance;
+- a missing or malformed project stamp suggests running setup when convenient;
+- a newer loaded plugin suggests running setup so the project can adopt its current conventions;
+- an older loaded plugin suggests updating Workbench, then running setup;
+- work continues unless an actual schema or capability incompatibility is encountered.
 
-Setup is the reconciliation route. It performs the same directional check so an older plugin does not rewrite state produced by a newer release. After adoption or upgrade succeeds and final validation is ready, setup stamps the loaded plugin version once in conventions.
+Do not invoke setup automatically or treat repository detection as upgrade consent. Mention the recommendation once without repeatedly interrupting the workflow. Setup remains the explicit reconciliation route and stamps the loaded plugin version after successful reconciliation.
 
-The conventions stamp, skill preflight, validator, and session reminder together prevent one plugin release from mutating a substrate whose managed instructions and conventions were produced by another release without reconciliation. Work items carry no duplicate warning. Exact equality is intentional because managed workflow behavior may change without a substrate schema change. Write-free ideation remains available during mismatch.
+The stamp helps users notice that installed workflow guidance and project conventions may have drifted; it is not a lock, compatibility boundary, or permission check. The validator reports stamp problems as warnings. Concrete malformed state remains subject to its ordinary structural validation, and a skill should stop only when it encounters an actual incompatibility it cannot safely interpret—not merely because version strings differ.

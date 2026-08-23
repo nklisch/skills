@@ -1,5 +1,14 @@
 # Migration Rules
 
+## Contents
+
+- Semantic mapping
+- Known source hints
+- Convention reconciliation
+- Cleanup safety
+- Idempotency
+
+
 ## Semantic mapping
 
 | Source meaning | Destination |
@@ -33,6 +42,17 @@ Treat these only as discovery hints; inspect actual content before mapping:
 - OpenSpec: `openspec/changes`, proposals, specs, and archived changes;
 - generic agent plans: `.claude/plans`, `.codex`, task files, TODO ledgers,
   roadmaps, resume state, and session summaries.
+
+An agile-workflow `gates_for_release` list is evidence that the project values a
+release boundary, not a schema to copy mechanically. For each existing gate,
+separate work already owned during delivery from the release expectation that
+still matters across the completed bundle. Map that expectation to a concise
+`release_gates` lens name and, when the name is not self-explanatory through a
+bundled or project scan lens, a matching `### <gate-name>` section under
+`## Release gates` in conventions. Preserve real project-specific blocking
+expectations; drop stage machinery, binding metadata, scanner topology, and
+finding-routing policy that Workbench does not use. Present the proposed names
+and definitions for confirmation before writing anything.
 
 Flatten source stage or folder taxonomies into meaning. Do not preserve stage
 narration.
@@ -83,9 +103,15 @@ Examples of evidence-based proposals:
 - useful adjacent findings recur → propose an explicit park-with-evidence rule;
 - implementation-coupled tests churn → propose behavior-focused checks at
   stable interfaces where each test protects enough meaningful behavior or risk
-  to justify its maintenance cost.
+  to justify its maintenance cost;
+- established feature squashes, checkpoint commits, integration batches, or a
+  preserve-history policy → propose the matching `commit_posture`, accounting
+  for merge policy and whether agents share branches.
 
-No proposal becomes binding without user confirmation. Inspect coding,
+No proposal becomes binding without user confirmation. A legacy workflow rule
+that commits every item transition is process machinery, not evidence that the
+project prefers checkpoint granularity; infer commit posture from repository Git
+practice and explicit policy instead. Inspect coding,
 structural, and pattern sources on every setup run, but ask only when concrete
 repository evidence or an explicit existing preference creates a consequential
 choice. Create the canonical empty pattern index when no reusable pattern truth
@@ -103,9 +129,13 @@ before removal:
 The pattern catalog keeps one portable `SKILL.md` navigation index and focused
 references. When `.agents` and `.claude` copies diverge, preserve user-authored
 content, surface the conflict, and consolidate the confirmed result into the
-`.agents` catalog. Split mixed rule files by meaning before removal. Remove
-generated wrappers, rule digests, extraction commands, and workflow-specific
-scanners after useful content and inbound references move. When root `CLAUDE.md`
+`.agents` catalog. Split mixed rule files by meaning before removal. Default a
+short release expectation to inline conventions; preserve detailed reusable
+evidence-based scanning guidance as a project-local
+`.agents/skills/scan-<name>/` lens only after explicit user confirmation. Remove
+generated wrappers, rule digests,
+reports, extraction commands, and workflow-specific scanner orchestration after
+useful content and inbound references move. When root `CLAUDE.md`
 exists after reconciliation, replace the Claude pattern mirror with a relative
 `.claude/skills/patterns` symlink to `../../.agents/skills/patterns`.
 

@@ -31,10 +31,12 @@ Read [references/canonical-layout.md](references/canonical-layout.md),
 [references/migration-rules.md](references/migration-rules.md), and
 [references/version-compatibility.md](references/version-compatibility.md)
 completely before writing. Resolve the loaded plugin version through the
-verified package manifest. If it is older than a valid stamped project version,
-stop and ask the user to update Workbench before this setup can safely continue.
-A missing or older project stamp is upgrade input, not another authorization
-prompt, because the user already invoked setup.
+verified package manifest. If it differs from the project stamp, explain the
+direction of the difference and recommend updating Workbench first when the
+loaded plugin is older. The difference is advisory rather than blocking: because
+the user explicitly invoked setup, continue reconciliation with the loaded
+plugin unless an actual substrate incompatibility is encountered. A missing or
+older project stamp is upgrade input, not another authorization prompt.
 
 Inspect Git state, agent instructions, workflow configuration, work ledgers,
 plans, research, generated indexes, foundation documents, CI, package scripts,
@@ -149,6 +151,44 @@ language overrides the default and that autonomy never expands scope, quality
 obligations, permissions, or safety boundaries. Existing Workbench projects
 without the field retain the backward-compatible `adaptive` default.
 
+Treat `commit_posture` as optional. Inspect commit size and message patterns,
+merge policy, branch ownership, concurrent-agent practice, and explicit Git
+rules. Discuss and record `adaptive`, `feature`, `checkpoint`, `batch`, or
+`preserve` only when this evidence or an existing preference makes the choice
+consequential. Do not treat a legacy workflow's per-item commits as a project
+preference. Explain that explicit user direction overrides the project posture,
+ledger transitions never require their own commits, and squashing is advisory
+and safe only for clearly owned history. Missing configuration resolves to
+`adaptive`.
+
+Treat `release_gates` as optional. Discuss it when the user asks for release
+gates, when converting an existing gate list, or when repository evidence shows
+a consequential release boundary that recurring project checks do not already
+cover. Evidence can justify a recommendation, never silent adoption.
+
+Build a project-shaped starting set rather than a universal default. Libraries
+may benefit from compatibility, public-contract tests, and documentation;
+deployed applications from security, migrations/data, recovery/operations, and
+critical journeys; CLIs from install/upgrade, cross-platform behavior, and error
+recovery; skill/plugin repositories from trigger behavior, contract drift,
+channel parity, and metadata integrity; regulated or high-consequence systems
+from their actual privacy, compliance, safety, or audit obligations. Present
+only relevant candidates with the evidence, expected value, and practical cost,
+then let the user adopt, adapt, add, or reject each one.
+
+Record confirmed names as a simple unique kebab-case list. Default each custom
+or narrowed gate to one concise `### <gate-name>` stance under
+`## Release gates` in the conventions body: what matters and what would
+materially violate release readiness, not a scanner procedure. When a lens is
+reused beyond release or needs enough method, examples, or references that the
+conventions file would become a manual, offer a project-local
+`.agents/skills/scan-<gate-name>/SKILL.md` and create it only after explicit user
+confirmation. Never generate or promote one automatically. Bundled scan
+references are suggestions, not a closed registry. Missing or empty
+`release_gates` means Workbench adds no gates. On refresh, preserve confirmed
+names and project prose; never add, drop, or rewrite a gate without
+confirmation.
+
 Always ask for the repository's documentation conventions, including in a
 greenfield repository with no documents yet. Cover where durable foundation
 documents live (root `docs/` by default), how they are named — one consolidated
@@ -203,9 +243,12 @@ Apply the authority classification from convention alignment to each legacy
 refactor-convention and pattern artifact. Create or reconcile the canonical
 portable `SKILL.md` stub and preserve focused pattern references without
 duplicating rule bodies in the index.
-Remove generated wrappers, digests, and
-workflow-specific scans after useful content and inbound references are
-reconciled. Replace Claude compatibility mirrors with the confirmed relative
+Offer to preserve reusable project scanning guidance as portable
+`.agents/skills/scan-<name>/` lenses when it has a clear evidence contract, and
+write them only after explicit user confirmation. Remove generated wrappers,
+reports, and workflow-specific orchestration only after useful content and
+inbound references are reconciled. Replace Claude
+compatibility mirrors with the confirmed relative
 symlinks only after conflict-safe consolidation. Setup validates the catalog's
 structure and semantic disposition; it does not audit every retained pattern
 against the code.

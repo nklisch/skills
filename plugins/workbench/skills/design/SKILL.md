@@ -28,8 +28,9 @@ without Workbench; do not offer setup unless the user explicitly asks to adopt
 or initialize Workbench.
 
 When active, read `.work/CONVENTIONS.md` and apply
-[setup's version-compatibility check](../setup/references/version-compatibility.md)
-before any stateful action; stop on mismatch. Then read the target item, project
+[setup's version-compatibility guidance](../setup/references/version-compatibility.md)
+before any stateful action; mention useful upgrade/setup guidance on mismatch
+without blocking work. Then read the target item, project
 instructions, foundation documents, relevant code and tests, and
 `.knowledge/index.json` when present. Foundation documents generally live in
 root `docs/`, with sub-project truth in `<sub-project>/docs/` or

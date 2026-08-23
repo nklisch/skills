@@ -20,6 +20,7 @@ Workbench is designed to:
 - let agents continue substantial work across sessions;
 - keep consequential choices and authority with the human;
 - make verification, useful testing, and proportionate review part of delivery;
+- discover and triage improvement opportunities without silently starting work;
 - keep source evidence, agent inference, and project decisions distinct;
 - leave one clean project state that another person or agent can understand.
 
@@ -34,9 +35,9 @@ Think of Workbench as four things:
    deferred context so the next session does not depend on chat history.
 3. **An evidence layer** — `.research/` keeps fetched external evidence and
    grounded synthesis separate from project decisions.
-4. **A set of focused capabilities** — ideation, design, delivery, parking,
-   release summaries, research, and research handoff are available when the
-   request needs them.
+4. **A set of focused capabilities** — ideation, design, delivery, scanning,
+   parking, release summaries, research, and research handoff are available
+   when the request needs them.
 
 Natural language remains the control surface for concrete Workbench workflows.
 You do not move cards through stages or decide how agents should coordinate
@@ -60,9 +61,10 @@ Consequential implementation shape ─────────────→ de
 One named implementation-ready feature or story → deliver
 work ─→ deliver ready items ─→ integrate wider boundary ─→ close
 
-Useful but out of scope ──→ park
-Completed outcomes ───────→ release
-External evidence needed ─→ research ─→ confirmed handoff
+Look for or investigate opportunities ─→ scan ─→ selected handoff
+Useful but out of scope ───────────────→ park
+Completed outcomes ───────────────────→ release (optional scan-lens gates)
+External evidence needed ─────────────→ research ─→ confirmed handoff
 ```
 
 Design reasoning always happens. The dedicated `design` skill is used when the
@@ -92,9 +94,9 @@ it finds a worthwhile analytics cleanup that is unrelated to onboarding, it offe
 to park that finding rather than silently expanding the work.
 
 The durable record remains ordinary Markdown. You can read or edit it directly;
-the agent is responsible for keeping its structure valid. Each work item carries
-one short reminder to stop and offer setup upgrade when the conventions version
-and loaded plugin version differ.
+the agent is responsible for keeping its structure valid. When the conventions
+version and loaded plugin version differ, the agent gives one helpful update and
+setup recommendation without blocking legitimate work.
 
 Conversational questions, proposals, progress summaries, and completion replies
 remain chat prose unless the workflow explicitly names a repository artifact.
@@ -124,6 +126,7 @@ Workbench keeps its state deliberately small:
 
 .mockups/                # optional UI alignment artifacts
 .agents/skills/patterns/ # canonical pattern index; references grow from evidence
+.agents/skills/scan-*/   # optional user-confirmed project scan lenses
 docs/                    # current or intended project truth
 AGENTS.md                # canonical cross-agent instructions
 ```
@@ -184,9 +187,10 @@ material discoverable, but it is not evidence or project truth on its own.
 Workbench validators check structure, relationships, citations, and generated
 state whenever agents create or reshape the corresponding artifacts.
 
-`setup` stamps its exact loaded plugin version once in conventions after
-successful reconciliation. Skills, validation, and the session reminder enforce
-compatibility without duplicating a warning into every work item. Setup also
+`setup` stamps its loaded plugin version once in conventions after successful
+reconciliation. Skills, validation, and the session reminder use differences as
+advisory upgrade/setup guidance without duplicating a warning into every work
+item. Setup also
 asks you for the repository's defaults — autonomy, review weight,
 simplification posture, what happens to finished items, and your documentation
 conventions (where foundation documents live, how they are named, and whether
@@ -346,6 +350,20 @@ multi-unit, and end-to-end requests. `deliver` is the bounded skill for one name
 implementation-ready feature or story. Features and standalone stories receive
 item-level integrated review; nested stories return verification evidence to
 the owning feature instead of duplicating its review.
+
+## Commit posture
+
+Commit boundaries represent meaningful changes, not Workbench item transitions.
+The optional `commit_posture` may be `adaptive`, `feature`, `checkpoint`,
+`batch`, or `preserve`; missing configuration uses the adaptive default. An
+explicit request overrides the project setting.
+
+Review normally targets a coherent commit range, but it may use a clearly
+bounded working-tree diff when committing would interfere with concurrent work.
+Feature-level squashing is a preference only under the matching posture and
+only for exclusively owned history where consolidation is simple and safe.
+Workbench never requires ledger-only commits or rewrites shared history to
+achieve an ideal shape.
 
 ## Review depth
 
@@ -512,7 +530,8 @@ without explicit approval.
 | [`deliver`](skills/deliver/SKILL.md) | Implementing, verifying, reviewing, and closing one named implementation-ready feature or story. |
 | [`work`](skills/work/SKILL.md) | Scoping and owning a clear outcome, multi-unit boundary, epic, or group of epics. |
 | [`park`](skills/park/SKILL.md) | Preserving a useful finding without expanding current work. |
-| [`release`](skills/release/SKILL.md) | Summarizing completed outcomes from stubs or Git history, then cleaning retained completion files. It does not tag, publish, or deploy. |
+| [`scan`](skills/scan/SKILL.md) | Investigating project concerns, verifying and clustering opportunities, and asking which findings should survive as handoffs. |
+| [`release`](skills/release/SKILL.md) | Summarizing completed outcomes, optionally applying project-defined scan lenses as release gates, then cleaning retained completion files. It does not tag, publish, or deploy. |
 | [`research`](skills/research/SKILL.md) | Investigating an external, unstable, unfamiliar, contested, or decision-relevant question. |
 | [`research-handoff`](skills/research-handoff/SKILL.md) | Turning selected research findings into proposed Workbench outcomes. |
 
@@ -527,8 +546,8 @@ explicitly invoke `setup` to adopt Workbench.
 
 The plugin ships one lightweight `SessionStart` hook. In a Workbench-owned
 repository it injects a short, static reminder of high-level posture — read conventions
-and foundations first, stop and offer setup upgrade on a plugin-version
-mismatch, keep scope narrow, orchestrate multi-unit
+and foundations first, treat a plugin-version difference as advisory upgrade and
+setup guidance, keep scope narrow, orchestrate multi-unit
 boundaries, park out-of-scope findings, reconcile and close before done. It
 exists for ownership discoverability and post-compaction salience; the skills
 remain the contract, and a host that does not run hooks loses nothing. Codex
@@ -592,9 +611,8 @@ when no recurring pattern truth exists. Setup proactively offers root
 `CLAUDE.md` as a relative symlink to canonical `AGENTS.md`. When `CLAUDE.md`
 exists, it maintains `.claude/skills/patterns` as a relative
 symlink to the canonical `.agents` catalog after conflict-safe reconciliation.
-Stateful skills stop and ask
-before that upgrade; if the loaded plugin is older than the stamp, they ask you
-to update the plugin first.
+Stateful skills mention useful update and setup guidance when versions differ but
+continue unless they encounter a concrete incompatibility.
 
 Workbench and `agile-workflow` use mutually exclusive `.work/` schemas. Use
 `setup` to convert rather than running both systems in the same project.

@@ -23,6 +23,8 @@ ALLOWED_STATUSES = {"active", "blocked"}
 ALLOWED_REVIEW_WEIGHTS = {"none", "light", "standard", "thorough", "maximum"}
 ALLOWED_SIMPLIFICATION_POSTURES = {"hygiene", "balanced", "structural"}
 ALLOWED_AUTONOMY = {"adaptive", "collaborative", "autonomous"}
+ALLOWED_COMMIT_POSTURES = {"adaptive", "feature", "checkpoint", "batch", "preserve"}
+KEBAB_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 ALLOWED_PARENT_CHILD_KINDS = {("epic", "feature"), ("feature", "story")}
 MARKDOWN_TITLE = re.compile(r"^#\s+\S")
 SECTION_HEADING = re.compile(r"^#{1,6}\s+\S")
@@ -178,16 +180,20 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
     project_version = config.get("workbench_version")
     installed_version = installed_workbench_version()
     if not isinstance(project_version, str) or not SEMVER.fullmatch(project_version):
-        errors.append(
-            "workbench_version must be the installed Workbench semantic version; "
-            "run setup upgrade"
+        warnings.append(
+            "workbench_version is missing or is not a semantic version; "
+            "consider running setup to refresh Workbench conventions"
         )
     elif installed_version is None:
-        errors.append("cannot read a valid version from the installed Workbench manifest")
+        warnings.append(
+            "cannot read a valid version from the loaded Workbench manifest; "
+            "continuing without version guidance"
+        )
     elif project_version != installed_version:
-        errors.append(
-            f"workbench_version {project_version} does not match installed Workbench "
-            f"{installed_version}; run setup upgrade"
+        warnings.append(
+            f"workbench_version {project_version} differs from loaded Workbench "
+            f"{installed_version}; work may continue, but consider updating Workbench "
+            "if needed and running setup to reconcile conventions"
         )
     completed_items = config.get("completed_items")
     if completed_items not in {"summarize", "discard"}:
@@ -205,6 +211,30 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
     autonomy = config.get("autonomy", "adaptive")
     if autonomy not in ALLOWED_AUTONOMY:
         errors.append("autonomy must be adaptive, collaborative, or autonomous")
+    commit_posture = config.get("commit_posture", "adaptive")
+    if (
+        not isinstance(commit_posture, str)
+        or commit_posture not in ALLOWED_COMMIT_POSTURES
+    ):
+        errors.append(
+            "commit_posture must be adaptive, feature, checkpoint, batch, or preserve"
+        )
+
+    release_gates = config.get("release_gates", [])
+    if not isinstance(release_gates, list):
+        errors.append("release_gates must be a list of lowercase kebab-case names")
+    else:
+        seen_gates: set[str] = set()
+        for gate in release_gates:
+            if not isinstance(gate, str) or not KEBAB_NAME.fullmatch(gate):
+                errors.append(
+                    "release_gates entries must be lowercase kebab-case names: "
+                    f"{gate!r}"
+                )
+                continue
+            if gate in seen_gates:
+                errors.append(f"duplicate release_gates name: {gate}")
+            seen_gates.add(gate)
 
     for required in ("active", "backlog", "completed", "releases"):
         directory = work / required

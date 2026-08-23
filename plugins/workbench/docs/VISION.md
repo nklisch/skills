@@ -5,8 +5,9 @@ done and preserving only the state another agent actually needs.
 
 In a repository that has explicitly adopted Workbench, the user can speak
 naturally about concrete project outcomes: clarify this tracked idea, scope this
-change, finish these epics, park that finding, commission durable research, or
-prepare a Workbench release summary. Workbench adapts internally without asking
+change, finish these epics, scan for opportunities, park a selected finding,
+commission durable research, or prepare a Workbench release summary. Workbench
+adapts internally without asking
 the user to choose workflow stages or an orchestration topology. It is not a
 universal router for every request. Stateful skills stay inactive outside an
 adopted repository; write-free `ideate` may explore before adoption, and
@@ -60,6 +61,11 @@ adopted repository; write-free `ideate` may explore before adoption, and
   hierarchy keeps that order without forcing wrapper items.
 - **Planning preserves parallelism.** Ordering edges explain why one item should
   finish first. Independent work remains edge-free and available in parallel.
+- **Commit shape follows the project.** Commit boundaries represent meaningful
+  changes rather than ledger transitions. An optional project posture may favor
+  feature, checkpoint, batch, or preserved history; the adaptive default follows
+  repository practice and concurrency. Squashing is advisory and never justifies
+  rewriting shared or published history.
 - **One request may span several epics.** The orchestrating agent owns
   requirements, integration, verification, closure, and durable continuation
   across the full named boundary.
@@ -81,6 +87,17 @@ adopted repository; write-free `ideate` may explore before adoption, and
 - **Tests earn their keep.** Prefer meaningful behavior, contracts, boundaries,
   risks, and regressions over line coverage and implementation coupling. Reuse
   existing verification machinery and discuss substantial new infrastructure.
+- **Scanning discovers; people disposition.** A shared `scan` capability adapts
+  evidence, hypothesis, drift, evaluation, and provocation postures to the
+  user's question. It verifies and clusters opportunities — identifying ones the
+  ledger already tracks instead of presenting them as novel — then writes only
+  the backlog or active handoffs the user selects; discovery never starts
+  remediation by itself.
+- **Release gates are optional project lenses.** Projects may select scan lenses
+  for their release boundary and define what materially blocks them. Setup
+  recommends from project evidence rather than installing a universal gate set,
+  and unavailable preferred tools degrade to another credible inspection path
+  instead of bricking release by default.
 - **Maintenance follows evidence.** Cohesive cleanup can travel with delivery;
   standalone cleanup and refactors are normal bounded work; broader findings
   are parked. Confirmed coding and structural conventions guide work without
@@ -91,10 +108,10 @@ adopted repository; write-free `ideate` may explore before adoption, and
 - **Release collapses temporary completion state.** Both completion postures can
   produce a version summary. A successful release removes retained completed
   outcome files and leaves concise release truth plus Git history.
-- **Project and plugin versions stay reconciled.** Setup stamps the exact loaded
-  Workbench version into conventions. Stateful workflows stop on mismatch and
-  offer setup upgrade rather than letting one release mutate project state
-  produced by another; an older plugin must itself be updated first.
+- **Project and plugin version drift stays visible.** Setup stamps the loaded
+  Workbench version into conventions. Stateful workflows use a difference as a
+  helpful prompt to update Workbench and run setup, not as a lock on legitimate
+  work. They stop only for a concrete schema or capability incompatibility.
 - **Adoption is explicit.** Stateful Workbench skills require
   `.work/CONVENTIONS.md` with `owner: workbench`; only a direct request to
   initialize, adopt, migrate, upgrade, refresh, or reconcile may invoke `setup`.

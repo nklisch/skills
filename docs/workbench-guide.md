@@ -107,11 +107,11 @@ It removes project-scoped competing workflow plugins after their content
 is converted, and reports any user- or machine-scoped competing installs
 for you to uninstall.
 
-### Four defaults you set during adoption
+### Core defaults you set during adoption
 
-`setup` always asks about four defaults and records your confirmed
-choices in `.work/CONVENTIONS.md`. You can change any of them later by
-editing that file.
+`setup` always asks about four core defaults and records your confirmed choices
+in `.work/CONVENTIONS.md`. You can change any of them later by editing that
+file.
 
 | Default | Choices | Recommendation |
 |---|---|---|
@@ -119,6 +119,12 @@ editing that file.
 | **`review_weight`** | `none`, `light`, `standard`, `thorough`, `maximum` | `standard` — one balanced independent review pass on substantive work |
 | **`simplification_posture`** | `hygiene`, `balanced`, `structural` | `balanced` — actively simplify the affected boundary without making unrelated cleanup part of delivery |
 | **`completed_items`** | `summarize`, `discard` | `summarize` keeps temporary stubs that make the next release easier to draft; `discard` relies on Git history instead |
+
+Commit granularity is an optional, evidence-led convention. When repository
+history, merge policy, shared-agent practice, or an existing preference makes
+it consequential, setup may offer `commit_posture`: `adaptive`, `feature`,
+`checkpoint`, `batch`, or `preserve`. Missing configuration means adaptive;
+Workbench does not ask merely to populate the field.
 
 `setup` may also recommend broader conventions from repo evidence — for
 example, parking useful out-of-scope findings instead of expanding scope,
@@ -240,8 +246,8 @@ alone, while nested work follows `epic → feature → story`.
 
 1. **Read first.** The agent reads the repo, the conventions, and the epic
    before acting. If the stamped Workbench version differs from the loaded
-   plugin, it stops and asks whether to run setup upgrade; an older plugin must
-   be updated first.
+   plugin, it recommends the appropriate update and setup reconciliation but
+   continues unless it encounters a concrete incompatibility.
 2. **Ask only what the repo can't answer.** It surfaces the consequential
    choices — product direction, irreversible actions, missing
    requirements — and decides routine details itself.
@@ -272,11 +278,16 @@ alone, while nested work follows `epic → feature → story`.
    sweep.
 7. **Review at the configured weight.** It applies the effective
    `review_weight` and adjudicates findings rather than accepting them
-   blindly.
-8. **Park out-of-scope findings.** If it uncovers something valuable but
+   blindly. Review uses a stable commit range or a clearly bounded working-tree
+   diff according to the effective commit posture.
+8. **Shape history safely.** Commit boundaries represent meaningful changes,
+   not ledger transitions. Feature squashing is advisory and happens only when
+   the selected posture favors it and the history is exclusively owned and safe
+   to rewrite.
+9. **Park out-of-scope findings.** If it uncovers something valuable but
    unrelated — say, an analytics cleanup — it offers to `park` it instead
    of silently expanding the work.
-9. **Close the full boundary.** Every item in the epic completes,
+10. **Close the full boundary.** Every item in the epic completes,
    verified, with foundation docs reconciled if durable truth changed.
 
 The durable record is ordinary Markdown. You can read or edit `.work/`
@@ -389,6 +400,41 @@ Workbench never fetches, attests, synthesizes, or indexes PII, PHI,
 credentials, session material, or other prohibited sensitive data. Narrow
 or redact the source, or use an approved non-LLM process instead.
 
+## Scan for opportunities
+
+Ask naturally for a bounded investigation:
+
+> Look for compatibility risks in the plugin install flow.
+
+> Investigate our test architecture and propose the highest-value improvements.
+
+> Scan deployment recovery for problems worth addressing.
+
+Before substantial inspection, `scan` reflects its proposed goal, boundary,
+result shape, constraints, and threshold for a material finding. It asks you to
+settle any consequential part the request left open; a broad “scan the
+repository” request does not silently become a general-purpose campaign. When
+your request already settles the brief, it states that interpretation compactly
+and proceeds.
+
+`scan` then chooses relevant evidence, hypothesis, drift, evaluation, or
+provocation lenses from the confirmed question and project. A focused concern
+stays inline; complementary concerns may use a few fresh-context scanners; a
+broad campaign is decomposed and confirmed with you before any fan-out or
+scope expansion beyond the brief. What it finds is checked against your
+backlog and prior scan items, so something already tracked is identified as
+such instead of presented as new. Material claims are verified and related
+findings are clustered into coherent opportunities rather than emitted as one
+warning per location. An evaluation can also report verified strengths; those
+need no disposition.
+
+The result appears in conversation first. You decide what to discard,
+investigate further, park, activate through work/design, or accept in a
+location or authority your project has designated for such decisions. Only
+selected product-level outcomes enter the backlog or active work. Scanning
+does not implement fixes or start remediation merely because it found
+something.
+
 ## Cut a release summary
 
 When you are ready to bind completed outcomes to a version:
@@ -401,6 +447,29 @@ writes one `.work/releases/<version>.md` summary, runs repository-defined checks
 and removes every completed outcome file. It preserves the canonical `.gitkeep`
 files. It does not tag, publish, deploy, or bump versions — your project's own
 release mechanism owns those.
+
+Projects that need explicit release expectations can opt into `release_gates`
+in `.work/CONVENTIONS.md`:
+
+```yaml
+release_gates:
+  - compatibility
+  - test-quality
+```
+
+Each name selects a scan lens. By default, a project defines what that gate
+means as a short `### <gate-name>` stance in the conventions body. If a
+project-specific lens is reused or needs enough detailed method and references
+that conventions would become unwieldy, Workbench can create a reusable
+`.agents/skills/scan-<gate-name>/SKILL.md` only after you explicitly approve it.
+Workbench also ships adaptable starting lenses. Release applies each configured
+lens to the completed outcome
+boundary and asks you to disposition verified material findings. Only unresolved
+findings that materially violate the project's stated expectation block release
+completion. Ambient improvements can be discarded, investigated, or parked.
+Unavailable preferred tooling falls back to another credible inspection path or
+an explicit evidence limitation rather than failing solely because a tool is
+missing.
 
 ## Reference: the durable state
 
@@ -423,6 +492,7 @@ After adoption, the repo carries:
 .knowledge/index.json   # deterministic discovery metadata
 .mockups/               # optional UI alignment artifacts
 .agents/skills/patterns/ # canonical index; references grow from evidence
+.agents/skills/scan-*/   # optional user-confirmed project scan lenses
 docs/                   # current or intended project truth
 AGENTS.md               # canonical cross-agent instructions
 ```
@@ -441,11 +511,12 @@ only after your explicit approval and never by default. Git is the history,
 external evidence, and the knowledge index is discovery metadata with no
 authority of its own.
 
-## Recover from common stops
+## Recover from common issues
 
-- **The stamped Workbench version differs from the loaded plugin.** Stateful
-  work stops before mutation and offers setup upgrade. If the loaded plugin is
-  older, update it first; older setup must not rewrite newer project state.
+- **The stamped Workbench version differs from the loaded plugin.** The agent
+  should mention the appropriate update and setup reconciliation once, then
+  continue. Version drift is advisory; only a concrete schema or capability
+  incompatibility blocks the requested work.
 - **The agent creates Workbench state before adoption.** That is incorrect.
   Without `.work/CONVENTIONS.md` declaring `owner: workbench`, only write-free
   `ideate` may run; stateful skills remain inactive unless you explicitly ask

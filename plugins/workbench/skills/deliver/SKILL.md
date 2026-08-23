@@ -31,9 +31,9 @@ Require one named active feature or story. Resolve one mode:
   item outcome, shared pattern decisions, integrated review when applicable,
   reconciliation, and closure.
 - **Orchestrated:** `work` assigns the item inside a wider boundary and supplies
-  the parent outcome, owned write surface, integration contract, and return
-  evidence. `deliver` never writes the shared pattern catalog or closes the
-  parent boundary.
+  the parent outcome, owned write surface, integration contract, effective Git
+  posture, and return evidence. `deliver` never writes the shared pattern
+  catalog or closes the parent boundary.
 
 Do not infer orchestrated mode from parentage alone. A feature inside an epic may
 still be delivered directly. Orchestrated mode requires an explicit assignment
@@ -53,6 +53,8 @@ external contracts, irreversible choices, or behavior changes hidden inside a
 purported refactor.
 
 Resolve effective autonomy and simplification from the request and conventions.
+Resolve the effective [Git posture](../work/references/git-posture.md) from
+explicit user direction, project conventions, then `adaptive`.
 Read the applicable references under `../work/references/`, especially
 `simplification.md`, `maintenance.md`, and `verification.md`.
 
@@ -101,6 +103,12 @@ altitude test so delivery and qualification details remain in the work record
 or owning executable surfaces, and rebuild the knowledge index when indexed
 documentation changes.
 
+Establish a stable review target after this pre-review verification and
+reconciliation. Normally use a coherent commit or commit range; use a clearly
+bounded working-tree diff when committing would interfere with concurrent work
+or contradict project policy. Review corrections may remain separate while
+review is active when that makes their delta useful to inspect.
+
 ## Review at the correct boundary
 
 Determine the item's role:
@@ -125,6 +133,16 @@ Close the completed item immediately according to `completed_items` and
 [lifecycle.md](../work/references/lifecycle.md). A nested story may close after
 its slice is verified; its parent feature remains open for integration and
 review. Never close a parent or wider boundary from `deliver`.
+
+After a feature or standalone story passes its required review, close it and
+run final verification. Shape the resulting history according to the effective
+Git posture. Feature-level consolidation is preferred only under `feature`—or
+when `adaptive` resolves that way—and only when the history is exclusively
+owned and rewriting it is simple and safe. Checkpoint and preserve postures keep
+meaningful commits; batch posture leaves wider consolidation to `work`. Nested
+stories follow the owning feature's posture. Squashing is never an acceptance
+criterion, and shared, published, or concurrently owned history must not be
+rewritten merely to achieve an ideal shape.
 
 In orchestrated mode, return concise integration evidence to `work`: delivered
 behavior, files changed, checks and review performed, interface assumptions,
