@@ -1,8 +1,9 @@
 ---
 name: work
 description: >
-  Scope, clarify, build or evaluate a prototype, implement, fix, refactor, simplify, clean up,
-  review, continue, finish one epic, drive several epics to done, or complete ready work
+  Scope, clarify, groom or prioritize a backlog, build or evaluate a prototype, implement, fix,
+  refactor, simplify, clean up, review, continue, finish one epic, drive several epics to done, or
+  complete ready work
   inside a named delivery boundary. Use only when .work/CONVENTIONS.md declares owner: workbench and
   the request is a concrete Workbench workflow. Ignore this skill otherwise; do not offer setup or
   force unrelated requests into Workbench. Route valuable early exploration of substantial or
@@ -76,6 +77,8 @@ Load references only as needed:
   [references/requirements.md](references/requirements.md);
 - item creation, relationships, blocking, completion, or summaries →
   [references/lifecycle.md](references/lifecycle.md);
+- backlog walkthrough, grooming, grouping, deduplication, or prioritization →
+  [references/backlog-grooming.md](references/backlog-grooming.md);
 - multi-unit or multi-epic orchestration →
   [references/execution.md](references/execution.md);
 - designer, implementor, or reviewer model selection →
@@ -113,6 +116,12 @@ to end” as instructions to reach the requested finish line, not permission to
 invent requirements or enlarge it. Applicable foundation documents constrain
 and clarify that outcome; they do not automatically pull adjacent intended work
 into the current boundary.
+
+A request to groom, walk through, organize, deduplicate, or prioritize existing
+backlog outcomes stays in `work` and follows
+[references/backlog-grooming.md](references/backlog-grooming.md). Keep it
+conversation-first, scale large-backlog synthesis with bounded cheap read-only
+sub-agents when useful, and apply only user-confirmed dispositions.
 
 A request to look for problems, investigate a quality concern, scan a project
 surface, or propose improvements without starting remediation routes through
