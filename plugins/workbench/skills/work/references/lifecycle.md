@@ -37,18 +37,11 @@ work:
   `blocked_by` edge by themselves. Leave independent items edge-free so agents
   can run them in parallel.
 
-Every `blocked_by` edge needs one reason in an exact `## Sequencing` section:
-
-```markdown
-## Sequencing
-
-- `feature-contract`: Its settled contract prevents avoidable rework here.
-```
-
-The section contains exactly one non-empty entry for each edge and no stale
-entries. An item with `blocked_by` uses `status: blocked`. Remove a completed id
-and its sequencing entry together. Return the item to `active` when the final
-edge clears and no external blocker remains.
+An item with `blocked_by` uses `status: blocked`. Explain non-obvious ordering in
+ordinary item prose when it helps a future agent, but do not require a dedicated
+section or one explanation per edge. Remove a completed id when its dependency
+clears. Return the item to `active` when the final edge clears and no external
+blocker remains.
 
 An external blocker uses an exact `## Blocker` section that names the condition
 and how it clears. An item with that section also uses `status: blocked`.
@@ -75,15 +68,21 @@ updated: YYYY-MM-DD
 ```
 
 Ids are unique across all `.work/`. The first non-empty body line is a Markdown
-title, immediately followed by the canonical line:
-
-> Workbench version mismatch: stop and offer setup upgrade.
-
-Keep one coherent outcome in one item. Use tags such as `audit`, `security`,
+title. Keep one coherent outcome in one item. Use tags such as `audit`, `security`,
 `performance`, `pattern`, `refactor`, or `cleanup` for focused outcomes rather
 than another item kind. A pattern-extraction or cleanup feature discovered at a
 large-work maintenance boundary belongs under the active epic when that epic
 owns the boundary; otherwise it is top-level. Never nest it under a feature.
+
+## Backlog-to-active transition
+
+When `.work/CONVENTIONS.md` declares `roadmap: true`, `docs/ROADMAP.md` is a
+small ordered view over selected backlog items, never active work. If the chosen
+backlog item appears there, remove its roadmap entry in the same change that
+creates the active item. Preserve any still-useful direction in the active item;
+do not leave a status marker, completed entry, or active-item link in the
+roadmap. Validate that every remaining roadmap entry still resolves to exactly
+one `.work/backlog/` item.
 
 ## Completion sweep
 
@@ -94,13 +93,13 @@ completion from a stale label.
 Close atomically:
 
 - `completed_items: summarize` replaces the active item with one compact
-  `.work/completed/<id>.md` stub containing identity, completion date, delivered
-  outcome, and the canonical version guard line;
+  `.work/completed/<id>.md` stub containing identity, completion date, and the
+  delivered outcome;
 - `completed_items: discard` removes the active item.
 
 Before closure, remove the completed id from each active `blocked_by` and
-`related_to` list. Remove its matching `## Sequencing` entry in the same edit.
-Do not close a parent while active children remain. Run the Workbench validator
+`related_to` list. Do not close a parent while active children remain. Run the
+Workbench validator
 after structural ledger changes. Never leave completed items active. Commit at
 coherent delivery boundaries when repository policy permits. Item edits do not
 require their own commits.

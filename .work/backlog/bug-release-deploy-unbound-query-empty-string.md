@@ -6,8 +6,6 @@ updated: 2026-06-03
 ---
 # release-deploy "unbound done items" query uses `--release ""` (returns nothing)
 
-> Workbench version mismatch: stop and offer setup upgrade.
-
 `release-deploy/SKILL.md:82` lists release candidates with:
 
 ```bash

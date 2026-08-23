@@ -12,9 +12,6 @@ SCRIPT = Path(__file__).parents[1] / "validate-workbench.py"
 INSTALLED_VERSION = json.loads(
     (SCRIPT.parents[1] / "plugin.json").read_text(encoding="utf-8")
 )["version"]
-GUARD_LINE = "> Workbench version mismatch: stop and offer setup upgrade."
-
-
 def write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
@@ -52,8 +49,6 @@ updated: 2026-07-24
 
 # Example
 
-> Workbench version mismatch: stop and offer setup upgrade.
-
 Useful item body.
 """,
         )
@@ -78,13 +73,10 @@ Useful item body.
         blocked_by: list[str] | None = None,
         related_to: list[str] | None = None,
         body: str | None = None,
-        include_version_guard: bool = True,
     ) -> None:
         blocked = ", ".join(blocked_by or [])
         related = ", ".join(related_to or [])
         item_body = body if body is not None else f"# {item_id}\n\nUseful item body.\n"
-        if include_version_guard and GUARD_LINE not in item_body.splitlines():
-            item_body = f"{item_body.rstrip()}\n\n{GUARD_LINE}\n"
         write(
             root / ".work/active" / f"{item_id}.md",
             f"""---
@@ -107,34 +99,6 @@ updated: 2026-07-24
         result = self.run_validator(self.make_project())
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("validation passed", result.stdout)
-
-    def test_missing_work_item_version_guard_fails_in_every_item_state(self) -> None:
-        for state in ("active", "backlog", "completed"):
-            with self.subTest(state=state):
-                root = self.make_project()
-                if state == "active":
-                    path = root / ".work/active/example.md"
-                    path.write_text(
-                        path.read_text(encoding="utf-8").replace(
-                            f"{GUARD_LINE}\n\n", ""
-                        ),
-                        encoding="utf-8",
-                    )
-                elif state == "backlog":
-                    write(
-                        root / ".work/backlog/deferred.md",
-                        "---\nid: deferred\ntags: []\ncreated: 2026-07-24\n"
-                        "updated: 2026-07-24\n---\n\n# Deferred\n",
-                    )
-                else:
-                    write(
-                        root / ".work/completed/finished.md",
-                        "---\nid: finished\ncompleted: 2026-07-24\n---\n\n"
-                        "# Finished\n",
-                    )
-                result = self.run_validator(root)
-                self.assertEqual(result.returncode, 1)
-                self.assertIn("missing Workbench version guard line", result.stdout)
 
     def test_missing_workbench_version_requires_setup_upgrade(self) -> None:
         root = self.make_project()
@@ -286,7 +250,7 @@ updated: 2026-07-24
         root = self.make_project()
         write(
             root / ".work/completed/finished.md",
-            f"---\nid: finished\ncompleted: 2026-07-24\n---\n\n{GUARD_LINE}\n",
+            "---\nid: finished\ncompleted: 2026-07-24\n---\n\n# Finished\n",
         )
         path = root / ".work/active/example.md"
         path.write_text(
@@ -303,7 +267,7 @@ updated: 2026-07-24
         root = self.make_project()
         write(
             root / ".work/backlog/example.md",
-            f"---\nid: example\ntags: []\ncreated: 2026-07-24\nupdated: 2026-07-24\n---\n\n{GUARD_LINE}\n",
+            "---\nid: example\ntags: []\ncreated: 2026-07-24\nupdated: 2026-07-24\n---\n\n# Example backlog item\n",
         )
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 1)
@@ -417,7 +381,7 @@ updated: 2026-07-24
         path = root / ".work/active/example.md"
         path.write_text(
             path.read_text(encoding="utf-8")
-            + "\n```markdown\n## Sequencing\n## Blocker\n```\n",
+            + "\n```markdown\n## Blocker\n```\n",
             encoding="utf-8",
         )
         result = self.run_validator(root)
@@ -471,7 +435,7 @@ updated: 2026-07-24
         self.assertEqual(result.returncode, 1)
         self.assertIn("parent cycle:", result.stdout)
 
-    def test_blocked_item_with_reasoned_sequencing_passes(self) -> None:
+    def test_blocked_item_with_dependency_passes(self) -> None:
         root = self.make_project()
         self.write_active_item(root, "prerequisite")
         self.write_active_item(
@@ -479,10 +443,6 @@ updated: 2026-07-24
             "dependent",
             status="blocked",
             blocked_by=["prerequisite"],
-            body=(
-                "# Dependent\n\nUseful item body.\n\n## Sequencing\n\n"
-                "- `prerequisite`: Settling its contract avoids rework.\n"
-            ),
         )
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -494,36 +454,10 @@ updated: 2026-07-24
             root,
             "dependent",
             blocked_by=["prerequisite"],
-            body=(
-                "# Dependent\n\nUseful item body.\n\n## Sequencing\n\n"
-                "- `prerequisite`: Settling its contract avoids rework.\n"
-            ),
         )
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 1)
         self.assertIn("active status cannot have blocked_by", result.stdout)
-
-    def test_missing_or_stale_sequencing_reason_fails(self) -> None:
-        root = self.make_project()
-        self.write_active_item(root, "prerequisite")
-        self.write_active_item(
-            root,
-            "dependent",
-            status="blocked",
-            blocked_by=["prerequisite"],
-        )
-        self.write_active_item(
-            root,
-            "stale",
-            body=(
-                "# Stale\n\nUseful item body.\n\n## Sequencing\n\n"
-                "- `prerequisite`: This edge no longer exists.\n"
-            ),
-        )
-        result = self.run_validator(root)
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("requires exactly one ## Sequencing", result.stdout)
-        self.assertIn("## Sequencing requires blocked_by entries", result.stdout)
 
     def test_duplicate_and_self_relationships_fail(self) -> None:
         root = self.make_project()
@@ -551,20 +485,12 @@ updated: 2026-07-24
             "blocked-a",
             status="blocked",
             blocked_by=["blocked-b"],
-            body=(
-                "# A\n\nUseful item body.\n\n## Sequencing\n\n"
-                "- `blocked-b`: B should settle first.\n"
-            ),
         )
         self.write_active_item(
             root,
             "blocked-b",
             status="blocked",
             blocked_by=["blocked-a"],
-            body=(
-                "# B\n\nUseful item body.\n\n## Sequencing\n\n"
-                "- `blocked-a`: A should settle first.\n"
-            ),
         )
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 1)
@@ -573,10 +499,10 @@ updated: 2026-07-24
     def test_item_requires_title_and_body_content(self) -> None:
         root = self.make_project()
         self.write_active_item(
-            root, "missing-title", body="Plain body.\n", include_version_guard=False
+            root, "missing-title", body="Plain body.\n"
         )
         self.write_active_item(
-            root, "missing-content", body="# Title only\n", include_version_guard=False
+            root, "missing-content", body="# Title only\n"
         )
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 1)

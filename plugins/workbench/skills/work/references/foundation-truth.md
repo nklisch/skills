@@ -1,8 +1,33 @@
 # Foundation Truth
 
-Foundation documents describe durable current behavior or an explicitly
-intended project state. They are not progress logs, release notes, or a copy of
-the work item.
+Foundation documents describe durable, high-level current behavior or an
+explicitly intended project state. They explain what the repository or a
+scope-owned sub-project is, the boundaries and guarantees it maintains, and the
+principles that guide durable decisions. They are not progress logs, release
+notes, delivery records, or a copy of the work item.
+
+Keep specific delivery and implementation machinery in its owning authority:
+work-item ids, status, sequencing, acceptance progress, implementation plans,
+qualification commands and runners, receipt or evidence paths, and
+item-specific mechanisms belong in Workbench items or the code, scripts, tests,
+and focused references that implement them. A foundation may describe the
+high-level architecture, contract semantics, observable behavior, or durable
+verification principle those mechanisms serve; it must not narrate how one
+outcome is being delivered or qualified.
+
+`docs/ROADMAP.md` is the sole optional foundation exception. It exists for
+larger projects that need a small, information-dense, human-facing ordering of
+agreed longer-horizon goals. Every entry links exactly one `.work/backlog/` item,
+which owns the details. The roadmap may add a short directional statement and
+group entries into horizons or milestones, but it never tracks active work,
+delivery status, implementation, qualification, receipts, or evidence. When a
+backlog item becomes active, remove its roadmap entry in the same transition.
+
+Setup may offer this exception when repository evidence supports it, but may
+record `roadmap: true` and create or adopt `docs/ROADMAP.md` only after explicit
+user approval. Never infer consent from project size, an existing filename, or
+an agent's preference. Missing `roadmap` means `false`; in that state the file
+must not exist.
 
 ## Find the affected foundations
 
@@ -19,7 +44,11 @@ or settles a durable:
 - repository-wide or sub-project principle.
 
 Do not create or update foundations for local implementation details that do
-not change durable project truth.
+not change durable high-level project truth. Durability alone is insufficient:
+a long-lived runner, command, receipt format, file path, or delivery procedure
+is still implementation machinery unless the repository exposes it as a
+user-facing contract or the user has explicitly authorized that foundation to
+own it.
 
 ## Decide where truth lives
 
@@ -52,16 +81,22 @@ For every affected assertion:
 
 1. Compare the foundation, accepted requirements, design, and actual repository
    state.
-2. Replace stale assertions, remove claims that are no longer true, and add only
-   durable truth another contributor needs.
-3. If implementation diverged from an intended design, update the intended
-   assertion to the newly accepted state or leave the work open when the
-   divergence is unresolved.
-4. Keep repository-wide truth in root foundations and scope-owned truth in
+2. Apply the altitude test: retain only truth that still helps explain the
+   repository or sub-project after the current work item, commands, receipts,
+   and qualification run are removed.
+3. Replace stale assertions, remove claims that are no longer true, and add only
+   durable high-level truth another contributor needs. Move delivery-specific
+   detail to the active item or its owning executable/reference surface rather
+   than preserving it in the foundation.
+4. If implementation diverged from an intended design, update the intended
+   high-level assertion to the newly accepted state or leave the work open when
+   the divergence is unresolved.
+5. Keep repository-wide truth in root foundations and scope-owned truth in
    `<sub-project>/docs/` or `docs/<sub-project>/`, following repository
    convention. Link cross-scope contracts instead of duplicating assertions.
-5. Preserve no historical narration merely to explain the change. Git carries
-   history; release summaries carry delivered outcomes.
+6. Preserve no historical narration merely to explain the change. Git carries
+   history; work items carry delivery detail; release summaries carry delivered
+   outcomes.
 
 First determine whether the work affects durable project truth. If it
 does not, no foundation-specific note is required. If an update was reasonably
@@ -79,10 +114,15 @@ Before implementation closure, reconcile foundations against the integrated
 result rather than the design alone. Do not close work while an affected
 assertion is false, stale, contradictory, or ambiguously intended.
 
-For independent design review, check that the proposed foundation changes match
-requirements, ownership, boundaries, and meaningful alternatives. For
-implementation review, check the final diff against affected foundations and
-look for missing, stale, duplicated, or prematurely asserted truth.
+For independent design review, check that proposed foundation changes match
+requirements, ownership, boundaries, and meaningful alternatives, and remain at
+foundation altitude. For implementation review, check the final diff against
+affected foundations and look for missing, stale, duplicated, prematurely
+asserted, or delivery-specific truth. A reviewer must reject work-item tracking,
+qualification mechanics, evidence history, and item-specific implementation
+plans in every foundation. For a convention-authorized `docs/ROADMAP.md`, allow
+only concise ordering and direction over linked backlog items under the roadmap
+contract above; any reference to active work is a qualification failure.
 
 ## Keep discovery synchronized
 

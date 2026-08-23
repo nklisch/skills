@@ -185,8 +185,17 @@ them.
 Durable state is limited to work items, foundation documents, project pattern
 catalogs, research attestations and briefs, mockups, generated indexes,
 completion stubs, release summaries, and repository conventions; write these
-whenever a workflow names them. Everything else—questions, proposals,
-recommendations, explanations, progress summaries, and completion
+whenever a workflow names them. Work items are the work record. Keep foundations
+at repository or sub-project altitude: high-level purpose, boundaries,
+principles, architecture, observable behavior, and guarantees—not item ids or
+status, delivery-unit numbering, implementation plans, qualification mechanics,
+receipt paths, or evidence history. `docs/ROADMAP.md` is the sole optional
+exception: setup may offer it when useful, but create or adopt it only after
+explicit user approval and record `roadmap: true`. Keep it small and dense;
+every entry links one `.work/backlog/` item for details, and it never tracks
+active work. Do not infer approval from project size or repository files.
+Everything else—questions,
+proposals, recommendations, explanations, progress summaries, and completion
 reports—belongs in your reply, not in a new file or a no-op record.
 
 Keep human-facing documents and designs clean and self-contained. Do not expose
@@ -201,8 +210,9 @@ field details. Do not define ordinary terms the intended audience can safely
 know.
 
 Keep independent items parallel by default. Add `blocked_by` only when serial
-work reduces rework, ambiguity, or integration risk, and record the reason in
-`## Sequencing`. During a user-authorized large work boundary, retain concrete
+work reduces rework, ambiguity, or integration risk; explain non-obvious order
+in ordinary item prose only when useful. During a user-authorized large work
+boundary, retain concrete
 pattern candidates in the active parent and create a pattern/refactor/cleanup
 feature only at an explicit evidence-led maintenance boundary, never on a fixed
 cadence.

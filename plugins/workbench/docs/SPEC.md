@@ -35,7 +35,8 @@ CLAUDE.md                # optional relative symlink to AGENTS.md
 
 - `.work/` records outcomes the project may decide and deliver.
 - `.research/` records externally fetched evidence and grounded synthesis.
-- Foundation documents record current or explicitly intended project truth.
+- Foundation documents record high-level current or explicitly intended project
+  truth, not delivery tracking or implementation machinery.
 - `.agents/skills/patterns/` records detailed recurring implementation shapes
   when the project has patterns worth teaching to future agents.
 - `.knowledge/index.json` is committed discovery metadata with no independent
@@ -95,6 +96,7 @@ completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
 simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
+roadmap: true|false  # optional; missing means false
 ---
 ```
 
@@ -114,8 +116,9 @@ routes mechanical rules to tool configuration, concise operating rules to
 implementation shapes to `.agents/skills/patterns/`. It writes no new convention
 without confirmation. A missing `review_weight`
 resolves to `standard`; missing `simplification_posture` resolves to `balanced`;
-missing `autonomy` resolves to `adaptive`. `workbench_version` has no fallback:
-setup stamps it from the verified loaded plugin after successful reconciliation.
+missing `autonomy` resolves to `adaptive`; missing `roadmap` resolves to `false`.
+`workbench_version` has no fallback: setup stamps it from the verified loaded
+plugin after successful reconciliation.
 
 ## Active items
 
@@ -146,28 +149,18 @@ tier. The validator enforces structural parent-kind pairs.
 `blocked_by` records deliberate queue order. Use an edge for a hard prerequisite
 or when serial work materially reduces rework, ambiguity, or integration risk.
 Leave independent work edge-free for parallel execution. Parentage and shared
-files do not imply order. Every edge has one non-empty reason in an exact
-`## Sequencing` section:
-
-```markdown
-## Sequencing
-
-- `feature-contract`: Its settled contract prevents avoidable rework here.
-```
-
-The section contains exactly one entry for each edge and no stale entries. An
-item is `blocked` when it has `blocked_by` edges or an exact `## Blocker` section
+files do not imply order. The item may explain non-obvious ordering where that
+context is useful, but `blocked_by` is itself the machine-readable order and no
+fixed prose section is required. An item is `blocked` when it has `blocked_by`
+edges or an exact `## Blocker` section
 that names an external condition and how it clears. Otherwise it is `active`.
 `related_to` carries non-ordering context and may be reciprocal.
 
-The first non-empty active-item body line is a Markdown title, followed by the
-exact line:
-
-> Workbench version mismatch: stop and offer setup upgrade.
-
-Each active item then communicates its outcome, scope, and observable acceptance
-evidence, but the headings may fit the work. Backlog items and completed stubs
-carry the same line; release summaries do not.
+The first non-empty active-item body line is a Markdown title. Each active item
+then communicates its outcome, scope, and observable acceptance evidence, but
+the headings may fit the work. Version compatibility is checked once from
+`.work/CONVENTIONS.md` and reinforced by the skills and session reminder; it is
+not duplicated into every item.
 
 Focused audits, cleanup, and refactors use tags rather than new item kinds.
 Prototype items use the `prototype` tag. They name the question, representative
@@ -371,11 +364,35 @@ rules, and aesthetic coincidence are not project patterns.
 
 ## Foundation reconciliation
 
-Foundation documents contain durable current behavior or explicitly intended
-project truth, not progress narration. Design rolls them forward only after
-durable truth is settled. Implementation closure reconciles affected assertions
-against the integrated result, reporting updated foundations, or—where an update
-was reasonably expected—why existing assertions remain accurate.
+Foundation documents contain durable, high-level current behavior or explicitly
+intended project truth, not progress narration, delivery tracking, or
+item-specific implementation and qualification machinery. They describe the
+repository or a scope-owned sub-project through purpose, boundaries, principles,
+high-level architecture, observable behavior, guarantees, and intended
+direction. Work-item ids and status, delivery-unit numbering, implementation
+plans, qualification commands or runners, receipt paths, and evidence history
+belong in Workbench items or their owning code, scripts, tests, and focused
+references. Workbench items remain the work record.
+
+`docs/ROADMAP.md` is the sole optional foundation exception. For larger
+projects, it may provide a small, information-dense, human-facing ordering of
+explicitly agreed longer-horizon goals. Every entry links exactly one
+`.work/backlog/` item, which owns the details. The roadmap may add a short
+directional statement and group entries into horizons or milestones, but it
+never tracks active work, delivery status, implementation, qualification,
+receipts, or evidence. Activating a backlog item removes its roadmap entry in
+the same transition.
+
+Setup may offer this convention when repository evidence supports it, but
+creates or adopts the file and records `roadmap: true` only after explicit user
+approval. It never infers consent from project size or an existing roadmap-like
+file, and never adds one by default. Missing `roadmap` means `false`; in that
+state `docs/ROADMAP.md` must not exist.
+
+Design rolls foundations forward only after durable high-level truth is settled.
+Implementation closure reconciles affected assertions against the integrated
+result, reporting updated foundations, or—where an update was reasonably
+expected—why existing assertions remain accurate.
 
 Foundation names follow the repository's confirmed documentation conventions;
 `VISION.md`, `ARCHITECTURE.md`, `PRINCIPLES.md`, `SPEC.md`, `JOURNEYS.md`, and
@@ -388,11 +405,12 @@ definition is maintained by hand in two places.
 
 Affected foundations are discovered from requirements, design, the final diff,
 and the knowledge index. Reconciliation replaces stale assertions in place,
-removes false claims, follows root or sub-project ownership, and links rather
-than duplicates cross-scope contracts. Git carries history.
+removes false claims, follows root or sub-project ownership, links rather than
+duplicates cross-scope contracts, and removes delivery-specific detail that
+belongs in the work record or executable surfaces. Git carries history.
 
-Independent design and implementation review check foundation alignment when
-the work affects durable project truth. When indexed documentation changes,
+Independent design and implementation review check foundation alignment and
+altitude when the work affects durable project truth. When indexed documentation changes,
 the agent rebuilds `.knowledge/index.json` and verifies committed freshness with
 `--check`.
 
@@ -467,9 +485,8 @@ Allowed knowledge relationships are `supports`, `contradicts`, `informs`, and
 ## Setup conversion
 
 Setup inventories any existing workflow semantically, aligns conventions with
-the user, maps useful truth to the canonical destinations, adds the canonical
-version guard line to every active, backlog, and completed item, validates
-retained content block by block, rewrites inbound references, and only then
+the user, maps useful truth to the canonical destinations, validates retained
+content block by block, rewrites inbound references, and only then
 removes superseded artifacts. Legacy convention and pattern catalogs are split
 by meaning: mechanical rules move to tool configuration, concise operating
 rules to `AGENTS.md`, structural and principle truth to foundations, and proven
@@ -542,11 +559,11 @@ broken.
 ## Deterministic validation
 
 `validate-workbench.py` checks ownership, exact plugin-version compatibility,
-canonical work-item guard lines, canonical directories and clone-stable markers,
-item schemas, globally unique ids, title and body presence, parent-kind
-pairs, parent and sequencing cycles, relationship integrity, readiness state,
-sequencing and blocker evidence, research and mock references, and superseded
-substrate paths. Semantic tier fit and reason quality remain review judgments.
+canonical directories and clone-stable markers, item schemas, globally unique
+ids, title and body presence, parent-kind pairs, parent and dependency cycles,
+relationship integrity, readiness state, blocker evidence, research and mock
+references, and superseded substrate paths. Semantic tier fit, roadmap
+discipline, and the value of ordering edges remain review judgments.
 
 `lint-research.py` checks attestation metadata, sensitive markers, mandatory
 attested-detail and disconfirming sections, and citation resolution. Reference

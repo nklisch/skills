@@ -5,7 +5,6 @@ created: 2026-06-04
 updated: 2026-06-04
 ---
 
-> Workbench version mismatch: stop and offer setup upgrade.
 Deep-review finding (feature `epic-agentic-research-research-view`): the
 `build-research-view.yml` CI workflow lacks the dist-version guard that
 `build-work-view.yml` has. work-view runs a `work-view-dist-version.test.sh`

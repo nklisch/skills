@@ -6,8 +6,6 @@ updated: 2026-06-15
 ---
 # Arrow-2 emission must enumerate ALL parent.md corrected positions, not just claims-delta rows
 
-> Workbench version mismatch: stop and offer setup upgrade.
-
 ## The gap (mechanism side)
 
 The `.research/` → `.work/` emission (Arrow 2: `docs/HANDOFF.md` + the

@@ -13,8 +13,6 @@ updated: 2026-06-04
 ---
 # substrate-binary skill presents work-view as THE singular binary; research-view is now a 2nd instance
 
-> Workbench version mismatch: stop and offer setup upgrade.
-
 ## Drift category
 repo-skill-staleness (Medium)
 

@@ -18,9 +18,6 @@ SEMVER = re.compile(
     r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
     r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
 )
-WORK_ITEM_VERSION_GUARD = (
-    "> Workbench version mismatch: stop and offer setup upgrade."
-)
 ALLOWED_KINDS = {"epic", "feature", "story"}
 ALLOWED_STATUSES = {"active", "blocked"}
 ALLOWED_REVIEW_WEIGHTS = {"none", "light", "standard", "thorough", "maximum"}
@@ -29,7 +26,6 @@ ALLOWED_AUTONOMY = {"adaptive", "collaborative", "autonomous"}
 ALLOWED_PARENT_CHILD_KINDS = {("epic", "feature"), ("feature", "story")}
 MARKDOWN_TITLE = re.compile(r"^#\s+\S")
 SECTION_HEADING = re.compile(r"^#{1,6}\s+\S")
-SEQUENCING_ENTRY = re.compile(r"^-\s+`([^`]+)`:\s*(\S.*)$")
 LEGACY_PATHS = (
     ".work/bin",
     ".work/active/epics",
@@ -116,19 +112,6 @@ def markdown_headings(body: str) -> list[tuple[int, str]]:
         if fence is None and SECTION_HEADING.match(stripped):
             headings.append((index, stripped))
     return headings
-
-
-def exact_sections(body: str, heading: str) -> list[list[str]]:
-    """Return bodies of exact second-level sections outside code fences."""
-    lines = body.splitlines()
-    headings = markdown_headings(body)
-    sections: list[list[str]] = []
-    for position, (index, text) in enumerate(headings):
-        if text != f"## {heading}":
-            continue
-        end = headings[position + 1][0] if position + 1 < len(headings) else len(lines)
-        sections.append(lines[index + 1 : end])
-    return sections
 
 
 def has_exact_heading(body: str, heading: str) -> bool:
@@ -272,10 +255,6 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
     all_item_files = active_files + backlog_files + completed_files
     id_paths: dict[str, Path] = {}
     for path in all_item_files:
-        if WORK_ITEM_VERSION_GUARD not in path.read_text(encoding="utf-8").splitlines():
-            errors.append(
-                f"{path.relative_to(project)}: missing Workbench version guard line"
-            )
         item_id = parse_frontmatter(path).get("id", path.stem)
         if isinstance(item_id, str) and item_id in id_paths:
             errors.append(
@@ -361,44 +340,6 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
             )
         if data.get("status") == "blocked" and not blockers and not has_external_blocker:
             errors.append(f"{rel}: blocked status requires blocked_by or ## Blocker")
-
-        sequencing_sections = exact_sections(body, "Sequencing")
-        if not blockers and sequencing_sections:
-            errors.append(f"{rel}: ## Sequencing requires blocked_by entries")
-        elif blockers:
-            if len(sequencing_sections) != 1:
-                errors.append(
-                    f"{rel}: blocked_by requires exactly one ## Sequencing section"
-                )
-            else:
-                sequencing: dict[str, str] = {}
-                for line in sequencing_sections[0]:
-                    stripped = line.strip()
-                    if not stripped.startswith("-"):
-                        continue
-                    match = SEQUENCING_ENTRY.match(stripped)
-                    if not match:
-                        errors.append(
-                            f"{rel}: invalid sequencing entry {stripped!r}; "
-                            "use - `<id>`: <reason>"
-                        )
-                        continue
-                    target, reason = match.groups()
-                    if target in sequencing:
-                        errors.append(
-                            f"{rel}: duplicate sequencing reason for {target}"
-                        )
-                    sequencing[target] = reason
-                for target in blockers:
-                    if target not in sequencing:
-                        errors.append(
-                            f"{rel}: missing sequencing reason for {target}"
-                        )
-                for target in sequencing:
-                    if target not in blockers:
-                        errors.append(
-                            f"{rel}: stale sequencing reason for {target}"
-                        )
 
         refs = data.get("research_refs", [])
         if isinstance(refs, list):

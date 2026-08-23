@@ -5,7 +5,6 @@ created: 2026-06-04
 updated: 2026-06-04
 ---
 
-> Workbench version mismatch: stop and offer setup upgrade.
 Deep-review finding (feature `epic-agentic-research-research-view`): the
 `research-view.sh` bash fallback's `build_index` uses one recursive
 `find "${find_dirs[@]}" -type f -name '*.md'` over ALL tier dirs, but the binary

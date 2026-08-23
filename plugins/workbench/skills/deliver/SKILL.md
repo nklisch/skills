@@ -96,8 +96,10 @@ Apply the lifecycle in [maintenance.md](../work/references/maintenance.md):
   may add new pattern references and any cohesive behavior-preserving cleanup.
 
 Read [foundation-truth.md](../work/references/foundation-truth.md). Reconcile
-foundation assertions directly affected by this completed item and rebuild the
-knowledge index when indexed documentation changes.
+foundation assertions directly affected by this completed item, apply its
+altitude test so delivery and qualification details remain in the work record
+or owning executable surfaces, and rebuild the knowledge index when indexed
+documentation changes.
 
 ## Review at the correct boundary
 

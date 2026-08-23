@@ -6,8 +6,6 @@ updated: 2026-06-09
 ---
 # Test the route-aware foundation-doc preflight
 
-> Workbench version mismatch: stop and offer setup upgrade.
-
 The autopilot foundation-doc prerequisite is now route-aware (halts only when the resolved
 scope contains design-family routes; ordered after Phase 1 scope resolution). No test asserts
 it. Add fixture cases: (a) design-family scope without VISION/SPEC → halt before any

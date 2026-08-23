@@ -161,9 +161,10 @@ Read [references/lifecycle.md](references/lifecycle.md) before choosing an item
 kind or relationship.
 
 Use `blocked_by` when another active item should finish first because serial
-work materially reduces rework, ambiguity, or integration risk. Record one
-reason per edge in `## Sequencing`. Leave independent work edge-free so it can
-run in parallel. Use `related_to` for non-ordering context.
+work materially reduces rework, ambiguity, or integration risk. Leave
+independent work edge-free so it can run in parallel. Explain non-obvious order
+in ordinary item prose only when useful. Use `related_to` for non-ordering
+context.
 
 A standalone cleanup, simplification, refactor, or pattern-extraction outcome is
 normal Workbench work when it has a coherent boundary and observable completion
@@ -254,7 +255,10 @@ acceptance blockers.
 
 Read [references/foundation-truth.md](references/foundation-truth.md).
 Reconcile affected foundation assertions against the integrated result before
-completion. Rebuild `.knowledge/index.json` when indexed documentation changed,
+completion and apply its altitude test: foundations keep high-level durable
+truth while work tracking, implementation plans, qualification mechanics,
+receipts, and evidence stay in the work record or their owning executable
+surfaces. Rebuild `.knowledge/index.json` when indexed documentation changed,
 and include relevant reconciliation evidence in the user-facing completion
 reply. Close every completed item immediately:
 
@@ -262,8 +266,8 @@ reply. Close every completed item immediately:
 - `completed_items: discard` → remove it.
 
 Before closing, remove the completed id from remaining `blocked_by` and
-`related_to` lists and remove its matching sequencing entry in the same edit. A
-parent cannot close while active children remain. Run `validate-workbench.py`
+`related_to` lists. A parent cannot close while active children remain. Run
+`validate-workbench.py`
 after creating, reshaping, or closing ledger items.
 Resolve the validator's plugin root using setup's identity-verification rule;
 stop rather than guessing among ambiguous installations. Never leave completed

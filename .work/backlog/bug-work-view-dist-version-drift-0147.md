@@ -6,8 +6,6 @@ updated: 2026-06-21
 ---
 # Refresh stale work-view dist binaries for current manifest
 
-> Workbench version mismatch: stop and offer setup upgrade.
-
 ## Symptom
 
 `plugins/agile-workflow/scripts/tests/work-view-dist-version.test.sh` fails on the

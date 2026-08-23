@@ -37,6 +37,14 @@ Treat these only as discovery hints; inspect actual content before mapping:
 Flatten source stage or folder taxonomies into meaning. Do not preserve stage
 narration.
 
+A discovered roadmap has no automatic special status. If the user explicitly
+approves Workbench's optional roadmap convention, convert each retained
+longer-horizon entry into a `.work/backlog/` item and leave only a concise,
+ordered link plus brief direction in `docs/ROADMAP.md`; remove active, completed,
+status, implementation, qualification, receipt, and evidence detail. Otherwise
+map every useful entry through the table above and remove the superseded roadmap
+after normal recovery checks.
+
 Normalize each active item to Workbench's optional-depth hierarchy:
 
 - use a feature as the default delivery and integrated review unit;
@@ -52,10 +60,10 @@ outcomes to preserve an epic label.
 
 Treat source dependencies as candidate queue order, not automatic Workbench
 edges. Keep an edge only when evidence shows that serial work reduces rework,
-ambiguity, or integration risk. Put its reason in `## Sequencing` and mark the
-item `blocked`. Leave independent items edge-free and `active`. If a legacy edge
-has no recoverable reason, recommend removing it and ask once about the
-ambiguous edge set. Never fabricate a reason to satisfy validation.
+ambiguity, or integration risk, and mark the item `blocked`. Leave independent
+items edge-free and `active`. Preserve useful non-obvious ordering context in
+ordinary item prose, but do not require or manufacture a dedicated explanation
+section.
 
 ## Convention reconciliation
 
@@ -134,7 +142,6 @@ After conversion:
 
 - one system owns `.work/`;
 - conventions carry the exact loaded Workbench version;
-- every active, backlog, and completed item carries the canonical version guard line;
 - no old workflow hooks, binaries, managed rules, or indexes remain;
 - no meaningful decision lives only in removed state;
 - the canonical pattern catalog has one valid portable index, resolved

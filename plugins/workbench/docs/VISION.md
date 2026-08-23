@@ -69,9 +69,15 @@ adopted repository; write-free `ideate` may explore before adoption, and
 - **Knowledge is discoverable, not duplicated.** A committed deterministic
   `.knowledge/index.json` indexes durable docs, research, and work while each
   source retains its own authority.
-- **Foundations follow ownership.** Repository-wide truth belongs in root
+- **Foundations stay above delivery.** Repository-wide truth belongs in root
   foundations; durable sub-project truth may live in `docs/<sub-project>/` or
-  `<sub-project>/docs/` according to repository convention.
+  `<sub-project>/docs/` according to repository convention. These documents
+  remain high-level guidance rather than work tracking, qualification evidence,
+  or item-specific implementation machinery. Workbench items are the work
+  record. A user may explicitly approve one `docs/ROADMAP.md` convention: a
+  small, dense ordering of longer-horizon goals whose entries link backlog items
+  for detail and never track active work. Setup may offer it, but Workbench never
+  introduces it by default.
 - **Tests earn their keep.** Prefer meaningful behavior, contracts, boundaries,
   risks, and regressions over line coverage and implementation coupling. Reuse
   existing verification machinery and discuss substantial new infrastructure.

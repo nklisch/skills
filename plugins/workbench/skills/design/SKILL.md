@@ -222,7 +222,12 @@ suspected verdict.
 Require the reviewer to check whether proposed foundation changes accurately
 represent ownership, boundaries, current truth, and explicitly intended truth,
 whether any affected foundation was missed, and that no proposed document
-duplicates structural truth that code owns.
+duplicates structural truth that code owns. The reviewer must also apply the
+foundation-altitude test: reject work tracking, implementation plans,
+qualification mechanics, receipt paths, evidence history, and item-specific
+mechanisms. For a convention-authorized `docs/ROADMAP.md`, allow only the
+concise ordering and direction over linked backlog items defined by the
+foundation-truth reference; reject any active-work tracking.
 
 Adjudicate findings rather than accepting them blindly. Revise confirmed
 material problems. Explain rejected material proposals and the

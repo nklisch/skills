@@ -70,6 +70,7 @@ completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
 simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
+roadmap: true|false  # optional; missing means false
 ---
 ```
 
@@ -97,14 +98,39 @@ Every foundation document:
 
 - starts with one clear title and identifies the repository or sub-project scope
   it owns when that is not obvious from its path;
-- states durable current behavior or explicitly intended project truth, never
-  progress narration, migration history, session history, or a roadmap;
+- stays at repository or sub-project altitude: durable purpose, boundaries,
+  principles, high-level architecture, observable behavior, guarantees, and
+  explicitly intended direction;
+- excludes work-item ids and status, delivery-unit numbering, implementation
+  plans, qualification commands or runners, receipt and evidence paths, and
+  item-specific mechanisms; those belong in Workbench active or backlog items
+  or their owning code, scripts, tests, and focused references;
+- never carries progress narration, migration history, or session history;
 - defines each load-bearing term before relying on it and begins from user,
   domain, or business meaning before technical representation;
 - keeps one assertion in one authoritative location and links across scopes
   rather than duplicating contract truth;
 - uses sections selected for the document's purpose rather than a universal
   template.
+
+### Optional roadmap convention
+
+`docs/ROADMAP.md` is the sole optional exception to the no-tracking boundary.
+It is useful for larger projects that need a small, information-dense,
+human-facing ordering of explicitly agreed longer-horizon goals. Every roadmap
+entry links exactly one `.work/backlog/` item, which owns the details. The
+roadmap may add a short directional statement and group entries into horizons or
+milestones, but it never tracks active work, delivery status, implementation,
+qualification, receipts, or evidence. When a backlog item becomes active,
+remove its roadmap entry in the same transition.
+
+Setup may offer this convention when repository evidence suggests longer-horizon
+organization would help, but records `roadmap: true` and creates or adopts
+`docs/ROADMAP.md` only after explicit user approval. Never infer consent from
+project size or an existing roadmap-like file, and never create it as a default.
+If setup discovers such a file without approval, classify its contents under
+normal migration rules; do not silently grant it foundation authority. Missing
+`roadmap` means `false`; when false, `docs/ROADMAP.md` must not exist.
 
 Choose the smallest useful foundation set. Common document contracts are:
 
@@ -153,19 +179,16 @@ slice. Features may be top-level or belong to epics. Stories may be top-level
 or belong to features. Nested work follows `epic → feature → story` without
 skipping a tier.
 
-Every item starts with a Markdown title followed by this exact line:
-
-> Workbench version mismatch: stop and offer setup upgrade.
-
-It then includes outcome, scope, and observable acceptance meaning under
+Every item starts with a Markdown title. It then includes outcome, scope, and
+observable acceptance meaning under
 headings that fit the work. Add other body sections only when they carry useful
 state.
 
 Use `blocked_by` when another active item should finish first because serial
-work materially reduces rework, ambiguity, or integration risk. Each edge has
-one reason in an exact `## Sequencing` section. Independent work remains
-edge-free. An item with an edge or an external `## Blocker` is `blocked`.
-Otherwise it is `active`.
+work materially reduces rework, ambiguity, or integration risk. Independent
+work remains edge-free. Explain non-obvious ordering in ordinary item prose only
+when it adds useful context; no dedicated section is required. An item with an
+edge or an external `## Blocker` is `blocked`. Otherwise it is `active`.
 
 Keep `.gitkeep` in every canonical state directory even while it contains
 items. Git does not preserve empty directories.
@@ -181,9 +204,8 @@ updated: YYYY-MM-DD
 ---
 ```
 
-Every backlog item includes the same exact version guard line immediately after
-its title. Do not invent missing requirements or priority during capture or
-migration.
+Backlog items start with a title. Do not invent missing requirements or priority
+during capture or migration.
 
 ## Completion
 

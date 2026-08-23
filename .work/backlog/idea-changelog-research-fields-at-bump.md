@@ -5,7 +5,6 @@ created: 2026-06-04
 updated: 2026-06-04
 ---
 
-> Workbench version mismatch: stop and offer setup upgrade.
 gate-docs (pre-merge, 2026-06-04) Medium, deferred-to-release: when the
 agile-workflow plugin is next version-bumped to ship the handoff-live-fields
 work, its `CHANGELOG.md` should gain an entry noting the `research_refs`/

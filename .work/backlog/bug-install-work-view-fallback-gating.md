@@ -6,8 +6,6 @@ updated: 2026-06-20
 ---
 # install-work-view.sh never reaches the bash fallback on prebuilt failure
 
-> Workbench version mismatch: stop and offer setup upgrade.
-
 ## Symptom
 
 On a host where the prebuilt `work-view` binary for the detected target triple

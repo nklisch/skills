@@ -42,7 +42,13 @@ diversity as mandatory or as an extra pass beyond the effective
 `review_weight`.
 
 Read [foundation-truth.md](foundation-truth.md) when the design or implementation
-may affect durable project truth.
+may affect durable project truth. Treat foundation altitude as a qualification
+criterion: proposed foundation prose must remain high-level repository or
+sub-project truth, not work tracking, qualification mechanics, evidence history,
+or item-specific implementation detail. The only exception is a
+convention-authorized `docs/ROADMAP.md`, limited to concise ordering and
+direction over linked backlog items as defined by the foundation-truth
+reference; active-work tracking is always a failure.
 
 ## Keep review inside the authorized scope
 
@@ -87,9 +93,10 @@ hygiene, balanced, or structural expectation from
 answer. For design, ask about
 requirements coverage, boundaries, alternatives, assumptions, failure modes,
 verification feasibility, migration or rollback, unnecessary complexity,
-accurate foundation roll-forward, and scope expansion. For implementation, ask
-about correctness, missing required behavior, safety, integration risk,
-simplification at the effective posture, foundation drift, overbuilding, and
+accurate high-level foundation roll-forward, foundation-altitude violations,
+and scope expansion. For implementation, ask about correctness, missing
+required behavior, safety, integration risk, simplification at the effective
+posture, foundation drift or delivery-detail leakage, overbuilding, and
 relevant security, privacy, accessibility, performance, compatibility,
 data-integrity, and operational concerns only where the authorized scope or
 evidence makes them relevant. Every pass catches obvious algorithmic overwork

@@ -154,9 +154,23 @@ greenfield repository with no documents yet. Cover where durable foundation
 documents live (root `docs/` by default), how they are named — one consolidated
 `SPEC.md`, several focused documents such as `ARCHITECTURE.md` or
 `JOURNEYS.md`, or a scoped directory like `docs/spec/` — and where contract
-truth lives. Derive the recommendation from existing documents when present;
-otherwise recommend the smallest set that fits the project's shape. Present
-names as examples that should fit the project, never as a fixed required list.
+truth lives. State the foundation-altitude baseline from
+[references/canonical-layout.md](references/canonical-layout.md#foundation-document-contract):
+foundations are high-level repository or sub-project guidance and Workbench
+items are the work record. Derive the recommendation from existing documents
+when present; otherwise recommend the smallest set that fits the project's
+shape. Present names as examples that should fit the project, never as a fixed
+required list.
+
+When repository evidence suggests a larger project would benefit from
+longer-horizon organization, setup may offer `docs/ROADMAP.md`; never add or
+adopt it without explicit user approval. Explain the optional roadmap convention
+from the canonical-layout reference before asking: it is a small,
+information-dense ordering of agreed goals, every entry maps to one
+`.work/backlog/` item for details, and it never tracks active work. Record
+`roadmap: true` only when approved. Project size or an existing roadmap-like file
+does not itself imply consent. Without approval, record no roadmap convention
+and classify discovered content under ordinary migration rules.
 
 Always ask whether to establish or extend `docs/PRINCIPLES.md`. Read
 [references/principle-candidates.md](references/principle-candidates.md) and
@@ -209,8 +223,7 @@ single-system state while that competing installation still injects behavior.
 
 ## Validate before cleanup
 
-After the target substrate is semantically complete, add the canonical version
-guard line to every active, backlog, and completed item. Stage the loaded plugin
+After the target substrate is semantically complete, stage the loaded plugin
 version as `workbench_version` in conventions immediately before validation.
 Remember the prior stamp; if validation or cleanup fails, restore that prior
 stamp (or remove the staged field when it was absent) before stopping so an

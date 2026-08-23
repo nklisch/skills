@@ -91,8 +91,8 @@ state. It runs in four core moves, with a fifth continuation for greenfields:
    disposition: retain, consolidate, move, or remove. References that
    point at removed sources are rewritten or removed first.
 4. **Stamp, validate, then remove.** It stamps the exact loaded Workbench
-   version into conventions, adds a short mismatch reminder to every work item,
-   runs the validator, then deletes what it migrated. It leaves no `.bak`
+   version once in conventions, runs the validator, then deletes what it
+   migrated. It leaves no `.bak`
    copies, migration archives, legacy folders, or parallel substrates.
 5. **Continue greenfields into ideation.** When no code or foundation yet
    establishes a coherent project direction, setup routes directly into
@@ -427,10 +427,19 @@ docs/                   # current or intended project truth
 AGENTS.md               # canonical cross-agent instructions
 ```
 
-Each layer has one job. Code and foundation docs are the technical truth.
-Git is the history. `.work/` is the delivery state between them.
-`.research/` is evidence. The knowledge index is discovery metadata with
-no authority of its own.
+Each layer has one job. Code owns executable and structural truth. Foundation
+docs hold high-level repository or sub-project purpose, boundaries, principles,
+architecture, observable behavior, and guarantees. They do not track item
+status, implementation plans, qualification procedures, receipts, or evidence;
+`.work/` items are that detailed work record. A larger project may use the sole
+optional exception, `docs/ROADMAP.md`, as a small, information-dense ordering of
+agreed longer-horizon goals. Every entry links one `.work/backlog/` item for its
+details; the roadmap may add brief direction and horizon grouping but never
+tracks active work. Setup may offer this convention, but creates or adopts it
+only after your explicit approval and never by default. Git is the history,
+`.research/` is
+external evidence, and the knowledge index is discovery metadata with no
+authority of its own.
 
 ## Recover from common stops
 

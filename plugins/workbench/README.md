@@ -153,9 +153,10 @@ creating coordination overhead.
 
 Hierarchy describes how outcomes belong together. Ordering is separate.
 `blocked_by` says another active item should finish first because serial work
-reduces rework, ambiguity, or integration risk. Each edge records that reason
-in `## Sequencing`. Independent items stay edge-free so agents can run them in
-parallel. `related_to` preserves useful context without controlling readiness.
+reduces rework, ambiguity, or integration risk. Independent items stay edge-free
+so agents can run them in parallel. Non-obvious ordering may be explained in
+ordinary item prose when useful. `related_to` preserves useful context without
+controlling readiness.
 
 Both people and agents can use `park` when they uncover something valuable that
 does not belong in the current scope. It records the smallest useful backlog
@@ -183,9 +184,10 @@ material discoverable, but it is not evidence or project truth on its own.
 Workbench validators check structure, relationships, citations, and generated
 state whenever agents create or reshape the corresponding artifacts.
 
-`setup` stamps its exact loaded plugin version into conventions after successful
-reconciliation and adds the canonical mismatch reminder to every work item. It
-also asks you for the repository's defaults — autonomy, review weight,
+`setup` stamps its exact loaded plugin version once in conventions after
+successful reconciliation. Skills, validation, and the session reminder enforce
+compatibility without duplicating a warning into every work item. Setup also
+asks you for the repository's defaults — autonomy, review weight,
 simplification posture, what happens to finished items, and your documentation
 conventions (where foundation documents live, how they are named, and whether
 contract truth lives in code or

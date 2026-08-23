@@ -29,7 +29,7 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
   multiple feature outcomes, and stories for narrow slices. Preserve
   epic -> feature -> story when items nest.
 - Keep independent items parallel. Use blocked_by only when serial work
-  reduces rework, ambiguity, or integration risk, and record why.
+  materially reduces rework, ambiguity, or integration risk.
 - For multi-unit boundaries, orchestrate as outcome owner and own
   integration and acceptance; execute small coherent work inline when
   delegation adds no value.
@@ -39,9 +39,15 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Prefer ideate before design when early exploration of substantial or
   cross-cutting work could materially improve what gets designed, unless
   the user requests direct design or execution.
+- Work items are the work record. Keep foundations at high-level repository
+  or sub-project truth, never item status, delivery mechanics, qualification
+  procedures, or evidence history. The sole optional ROADMAP.md convention
+  requires explicit approval, maps every entry to a backlog item for details,
+  stays small and dense, and never tracks active work.
 - For concrete Workbench design and delivery workflows, implementation done
   is not work done: verify at stable interfaces, review at the configured
-  weight, reconcile affected foundation assertions, and close items.
+  weight, reconcile affected foundation assertions at that altitude, and close
+  items.
 - Route only concrete stateful Workbench workflows through work, design,
   park, research, or release. Ideate may also support write-free exploratory
   conversation. Do not force unrelated requests into Workbench."""

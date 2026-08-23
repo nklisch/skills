@@ -30,9 +30,8 @@ For each proposed item, present in the current conversation:
 - unresolved decision or evidence risk.
 
 Ask the user which proposals to emit. Create only confirmed items, include the
-brief path in `research_refs`, and include the canonical Workbench version guard
-line from the active- or backlog-item contract. Merge with equivalent existing
-work rather than duplicating it.
+brief path in `research_refs`, and merge with equivalent existing work rather
+than duplicating it.
 
 Run `validate-workbench.py` from the installed Workbench plugin after emission,
 resolving its package root by verified plugin identity. If the installed

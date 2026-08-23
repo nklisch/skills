@@ -106,6 +106,13 @@ class MainTest(unittest.TestCase):
         self.assertIn("Keep independent items parallel", context)
         self.assertIn("must not invent requirements", context)
         self.assertIn("flag overbuilding", context)
+        self.assertIn("Work items are the work record", context)
+        self.assertIn("Keep foundations at high-level", context)
+        self.assertIn("qualification", context)
+        self.assertIn("sole optional ROADMAP.md", context)
+        self.assertIn("requires explicit approval", context)
+        self.assertIn("backlog item for details", context)
+        self.assertIn("never tracks active work", context)
         self.assertIn("Do not force unrelated requests", context)
 
     def test_non_workbench_repo_emits_nothing(self) -> None:
