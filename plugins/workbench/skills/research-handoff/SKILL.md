@@ -12,8 +12,9 @@ description: >
 First confirm that an upward-found `.work/CONVENTIONS.md` declares
 `owner: workbench`. If it does not, ignore this skill and do not offer setup.
 When active, apply
-[setup's version-compatibility check](../setup/references/version-compatibility.md)
-and stop on mismatch. Then read the relevant brief, cited attestations,
+[setup's advisory version-compatibility guidance](../setup/references/version-compatibility.md);
+mention a useful upgrade/setup recommendation on mismatch without blocking the
+handoff. Then read the relevant brief, cited attestations,
 conventions, and existing active and backlog items before proposing concrete
 ledger handoffs.
 

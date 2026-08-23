@@ -1,7 +1,7 @@
 {
   "name": "workbench",
-  "version": "0.11.0",
-  "description": "Requirements-first delivery with semantic autonomy, lens-driven design, weighted review, and externally grounded research.",
+  "version": "0.12.0",
+  "description": "Requirements-first delivery with adaptive opportunity scanning, optional release gates, weighted review, and grounded research.",
   "author": {
     "name": "nklisch"
   },
@@ -11,8 +11,8 @@
   "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Workbench",
-    "shortDescription": "Design, deliver, review, and research",
-    "longDescription": "A compact workbench for collaborative ideation, semantic autonomy, lens-driven design, configurable review depth, natural-language delivery across one or several epics, and externally grounded research.",
+    "shortDescription": "Design, deliver, scan, review, and research",
+    "longDescription": "A compact workbench for collaborative ideation, adaptive opportunity scanning, optional project-defined release gates, configurable review depth, natural-language delivery across one or several epics, and externally grounded research.",
     "developerName": "nklisch",
     "category": "Productivity",
     "capabilities": [
@@ -21,7 +21,7 @@
       "Bash"
     ],
     "defaultPrompt": [
-      "Use Workbench to clarify, design, review, and carry this outcome through verified completion."
+      "Use Workbench to clarify, design, scan, review, and carry this outcome through verified completion."
     ],
     "websiteURL": "https://github.com/nklisch/skills"
   }

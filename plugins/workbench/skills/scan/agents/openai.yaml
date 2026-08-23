@@ -1,0 +1,6 @@
+interface:
+  display_name: "Scan"
+  short_description: "Discover and triage project improvement opportunities"
+  default_prompt: "Use $scan to investigate this project concern, verify and cluster opportunities, and ask which findings should survive as Workbench handoffs."
+policy:
+  allow_implicit_invocation: true

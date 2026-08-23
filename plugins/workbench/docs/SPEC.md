@@ -28,6 +28,7 @@ docs/<repository-wide foundations>
 docs/<sub-project>/<scope-owned foundations>
 <sub-project>/docs/<scope-owned foundations>
 .agents/skills/patterns/  # canonical pattern index and references
+.agents/skills/scan-*/    # optional reusable project scan lenses
 .claude/skills/patterns  # relative symlink when CLAUDE.md exists
 AGENTS.md
 CLAUDE.md                # optional relative symlink to AGENTS.md
@@ -39,6 +40,8 @@ CLAUDE.md                # optional relative symlink to AGENTS.md
   truth, not delivery tracking or implementation machinery.
 - `.agents/skills/patterns/` records detailed recurring implementation shapes
   when the project has patterns worth teaching to future agents.
+- `.agents/skills/scan-*/` optionally records reusable project-specific scan
+  lenses; natural-language one-off concerns need no catalog entry.
 - `.knowledge/index.json` is committed discovery metadata with no independent
   authority.
 
@@ -57,12 +60,13 @@ recommendation never invokes setup. `ideate` may run before adoption because it
 is conversational and write-free; it must not create Workbench or research
 state without an explicit adoption and handoff choice.
 
-Before a stateful capability mutates project state, it compares the exact
-`workbench_version` in conventions with the verified loaded plugin manifest. A
-missing or older project stamp stops and offers setup upgrade. An older loaded
-plugin stops and requires the plugin itself to be updated before setup can
-safely reconcile the project. Mismatch never invokes setup automatically;
-write-free ideation remains available.
+Before stateful work, a capability compares the `workbench_version` in
+conventions with the verified loaded plugin manifest. A difference is an
+advisory signal that project conventions and loaded workflow guidance may have
+drifted: recommend setup when the project stamp is missing or older, and
+recommend updating Workbench before setup when the loaded plugin is older. Work
+continues unless an actual schema or capability incompatibility is encountered.
+A mismatch never invokes setup automatically or implies upgrade consent.
 
 Ownership activates the stateful capabilities, not universal routing. Those
 skills engage only for concrete Workbench workflows whose outcome, evidence,
@@ -80,8 +84,9 @@ Workbench does not create report files or durable no-op records unless the user
 requests them.
 
 Durable state is limited to explicitly named work items, foundations, project
-pattern catalogs, research artifacts, mockups, generated indexes, completion
-stubs, release summaries, and repository conventions.
+pattern catalogs, user-confirmed project scan-lens skills, research artifacts,
+mockups, generated indexes, completion stubs, release summaries, and repository
+conventions.
 
 ## Work conventions
 
@@ -96,9 +101,26 @@ completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
 simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
+commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
 roadmap: true|false  # optional; missing means false
+release_gates:       # optional; missing or empty means disabled
+  - compatibility
+  - test-quality
 ---
 ```
+
+`release_gates` is a simple list of unique lowercase kebab-case scan-lens names.
+Absent or empty means Workbench adds no release gates. A project defines or
+narrows a configured gate with a concise `### <gate-name>` stance under
+`## Release gates` in the conventions body. When a project-specific lens is
+reused or needs detailed method and references, the user may explicitly approve
+`.agents/skills/scan-<gate-name>/SKILL.md`; Workbench never generates or promotes
+one by default. Bundled scan lenses are adaptive starting points, not a closed
+registry. At release, each configured lens is
+applied to the release boundary; only unresolved findings that materially
+violate that project's stated expectation block summary and cleanup. Preferred
+tool unavailability triggers a credible fallback or an explicit evidence limit,
+not an automatic failure.
 
 Setup always asks the user how completed items should be retained, the
 repository's documentation conventions (foundation layout, naming, and
@@ -107,7 +129,14 @@ contract-truth ownership), and whether to establish or extend
 (contract truth ownership, compatibility is earned, leave it simpler), and,
 when bootstrapping, optional code-design principle candidates; it also aligns
 repository-specific conventions, including review weight, simplification
-posture, and autonomy. It may recommend conventions from repository evidence,
+posture, and autonomy. Commit posture is optional: setup inspects repository Git
+practice, merge policy, branch ownership, and concurrent-agent evidence, but
+asks or writes the field only when that evidence or an existing preference
+makes commit granularity consequential. Setup discusses `release_gates` only from explicit user
+interest, an existing gate conversion, or concrete evidence of a consequential
+release boundary. It recommends a set adapted to the project type and preserves
+confirmed names and definitions on refresh; it never installs a universal set
+or adds, drops, or rewrites a gate without confirmation. It may recommend conventions from repository evidence,
 including parking useful out-of-scope findings and behavior-focused testing.
 It inspects coding, structural, and pattern evidence but asks no preference
 question without concrete evidence or an explicit existing user preference. It
@@ -116,7 +145,8 @@ routes mechanical rules to tool configuration, concise operating rules to
 implementation shapes to `.agents/skills/patterns/`. It writes no new convention
 without confirmation. A missing `review_weight`
 resolves to `standard`; missing `simplification_posture` resolves to `balanced`;
-missing `autonomy` resolves to `adaptive`; missing `roadmap` resolves to `false`.
+missing `autonomy` resolves to `adaptive`; missing `commit_posture` resolves to
+`adaptive`; missing `roadmap` resolves to `false`.
 `workbench_version` has no fallback: setup stamps it from the verified loaded
 plugin after successful reconciliation.
 
@@ -312,8 +342,8 @@ Every implementation-ready feature or story routes through `deliver`. In direct
 mode, `deliver` owns that single item's implementation, appropriate integrated
 review, truth reconciliation, pattern decisions, and closure. In orchestrated
 mode, `work` supplies the parent outcome, owned write surface, integration
-contract, and return evidence. The deliverer never writes the shared pattern
-catalog or closes the parent boundary.
+contract, effective Git posture, and return evidence. The deliverer never writes
+the shared pattern catalog or closes the parent boundary.
 
 Features and standalone stories are integrated review boundaries. A story
 nested under a feature is an implementation slice: `deliver` verifies and closes
@@ -327,6 +357,17 @@ Verification targets stable interfaces and meaningful user journeys. A test
 must protect enough behavior, contract, boundary, risk, or regression to justify
 its maintenance cost. Review follows the effective weight, and findings are
 verified before acceptance.
+
+Commit boundaries represent meaningful code changes, not Workbench item
+transitions. Effective `commit_posture` resolves from explicit user direction,
+the optional project convention, then `adaptive`: `feature` prefers one coherent
+feature commit when safe; `checkpoint` retains meaningful verified slices;
+`batch` groups closely related outcomes at an integration boundary; `preserve`
+retains natural history; and `adaptive` follows repository practice, ownership,
+change shape, and concurrency. Before review, identify a stable commit range or
+a clearly bounded working-tree diff. Squashing is advisory and never required
+for acceptance. Workbench does not require ledger-only commits or rewrite
+shared, published, or concurrently owned history to achieve an ideal shape.
 
 Verification reuses existing tests, fixtures, commands, environments,
 observability, and benchmark machinery first. Small, cheap, contained evidence
@@ -414,6 +455,54 @@ altitude when the work affects durable project truth. When indexed documentation
 the agent rebuilds `.knowledge/index.json` and verifies committed freshness with
 `--check`.
 
+## Scan behavior
+
+`scan` is Workbench's opportunity-discovery capability. It activates for a
+bounded request to look for problems, investigate a quality concern, or propose
+improvements in an adopted project; ordinary lookup, explanation, and delivery
+of accepted work remain outside it. Before substantial inspection or fan-out,
+it reflects the proposed goal, boundary, result posture, constraints, and
+materiality threshold. It asks the user to confirm any consequential choice not
+already explicit; a broad request never silently becomes a general-purpose
+campaign. The request and repository determine the lenses, which may come from
+bundled references, project `scan-*` skills, `CONVENTIONS.md`, or a one-off user
+concern. The bundled lenses are not a closed catalog. Scan is the adopted
+project's normal conversation-first route for these requests, but an
+explicitly invoked standalone audit skill, or an explicit request for its
+standalone report artifact, is honored on its own terms.
+
+Scan scales from focused inline inspection through a few complementary
+fresh-context passes to a decomposed campaign. Scan depth follows the confirmed
+scope, consequence, uncertainty, and expected value; `review_weight` does not
+govern it. It distinguishes verified defects and drift from evidence gaps,
+hypotheses, evaluations, and architectural provocations; an evaluation reports
+verified strengths and weaknesses, and only its actionable weaknesses or
+opportunities take a disposition. Relevant backlog entries and prior or active
+scan items are read before scanning, so already-tracked opportunities are
+identified as such and are not updated without a user-selected disposition. It
+verifies material claims, deduplicates root causes, clusters findings into
+coherent opportunities, challenges high-cost, architectural, or weakly
+evidenced proposals — inline or through a proportionate fresh-context pass — on
+whether they are real in context, respect documented project intent, and still
+earn action over doing nothing, and preserves coverage limits. Sub-agents are
+source-read-only and return proposals rather than artifacts or state.
+
+Results appear first as a concise opportunity deck in conversation. The user
+chooses whether each cluster is discarded, investigated further, parked,
+activated through work/design, or accepted in a location or authority the
+project has designated for such decisions.
+Only selected handoffs are written. Backlog stubs remain product-level outcomes
+with evidence, not one item per warning, and scan never starts remediation by
+itself. A multi-session campaign may temporarily track its discovery outcome as
+one active feature tagged `scan`; raw scanner packets and standalone reports are
+not durable state by default, and a standalone report is written only where the
+project's conventions designate a durable location for one.
+
+Release may invoke scan in release-bounded mode for optional `release_gates`.
+The configured lens defines the expectation, release defines the scope, and only
+unresolved material violations block completion. Ambient improvements follow
+normal scan disposition rather than silently entering release scope.
+
 ## Research
 
 The user's request is the authority for research direction, scope, and outcome.
@@ -490,8 +579,10 @@ content block by block, rewrites inbound references, and only then
 removes superseded artifacts. Legacy convention and pattern catalogs are split
 by meaning: mechanical rules move to tool configuration, concise operating
 rules to `AGENTS.md`, structural and principle truth to foundations, and proven
-recurring shapes to `.agents/skills/patterns/`. Generated wrappers, digests,
-and workflow-specific scans are removed after migration. Setup creates or
+recurring shapes to `.agents/skills/patterns/`. Reusable evidence-based scan
+lenses may move to `.agents/skills/scan-<name>/`; generated wrappers, reports,
+digests, and workflow-specific scanner orchestration are removed after
+migration. Setup creates or
 reconciles the canonical portable pattern index, validates its references, and
 does not manufacture entries or audit every retained pattern against code.
 
@@ -558,12 +649,15 @@ broken.
 
 ## Deterministic validation
 
-`validate-workbench.py` checks ownership, exact plugin-version compatibility,
-canonical directories and clone-stable markers, item schemas, globally unique
-ids, title and body presence, parent-kind pairs, parent and dependency cycles,
-relationship integrity, readiness state, blocker evidence, research and mock
-references, and superseded substrate paths. Semantic tier fit, roadmap
-discipline, and the value of ordering edges remain review judgments.
+`validate-workbench.py` checks ownership, reports plugin-version drift as an
+advisory warning, and checks canonical directories and clone-stable markers,
+item schemas, globally unique ids, title and body presence, parent-kind
+pairs, parent and dependency cycles, relationship integrity, readiness state,
+blocker evidence, research and mock references, superseded substrate paths,
+the optional `commit_posture` enum, and the shape of a declared `release_gates`
+list (unique lowercase kebab-case names). Semantic tier fit, roadmap discipline,
+gate-definition quality, and the value of ordering edges remain review
+judgments.
 
 `lint-research.py` checks attestation metadata, sensitive markers, mandatory
 attested-detail and disconfirming sections, and citation resolution. Reference

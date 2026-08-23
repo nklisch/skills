@@ -159,8 +159,9 @@ shipped as prebuilt binaries, and evolved is owned by
 
 ## Where to read next
 
-- Requirements-first delivery, research evidence, and compact release
-  summaries → `plugins/workbench/docs/{VISION,SPEC}.md`.
+- Requirements-first delivery, opportunity scanning, optional release gates,
+  research evidence, and compact release summaries →
+  `plugins/workbench/docs/{VISION,SPEC}.md`.
 - Structured substrate lifecycle, gates, releases, and the work-view query
   model (maintenance mode) →
   `plugins/agile-workflow/docs/{ARCHITECTURE,SPEC,PRINCIPLES}.md`.

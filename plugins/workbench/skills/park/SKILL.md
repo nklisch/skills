@@ -14,8 +14,8 @@ Confirm that an upward-found `.work/CONVENTIONS.md` declares
 `owner: workbench`. If it does not, ignore this skill and handle the user's
 request without Workbench; do not offer setup unless they explicitly ask to
 adopt or initialize Workbench. Before writing, apply
-[setup's version-compatibility check](../setup/references/version-compatibility.md)
-and stop on mismatch.
+[setup's advisory version-compatibility guidance](../setup/references/version-compatibility.md);
+a mismatch may prompt an upgrade/setup recommendation but does not block capture.
 
 Create `.work/backlog/<id>.md` with:
 

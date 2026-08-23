@@ -24,7 +24,8 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Read .work/CONVENTIONS.md and foundation docs (root docs/,
   scope-owned <sub-project>/docs/) before structural decisions.
 - Before stateful work, compare workbench_version with the loaded plugin;
-  on mismatch, stop and offer the appropriate setup upgrade.
+  on mismatch, recommend the appropriate update and setup reconciliation,
+  but continue unless an actual incompatibility is encountered.
 - One active item per coherent outcome. Use features by default, epics for
   multiple feature outcomes, and stories for narrow slices. Preserve
   epic -> feature -> story when items nest.
@@ -49,7 +50,7 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
   weight, reconcile affected foundation assertions at that altitude, and close
   items.
 - Route only concrete stateful Workbench workflows through work, design,
-  park, research, or release. Ideate may also support write-free exploratory
+  scan, park, research, or release. Ideate may also support write-free exploratory
   conversation. Do not force unrelated requests into Workbench."""
 
 

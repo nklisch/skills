@@ -38,7 +38,7 @@
     {
       "name": "workbench",
       "source": "./plugins/workbench",
-      "description": "Requirements-first delivery with semantic autonomy, lens-driven design, weighted review, and externally grounded research.",
+      "description": "Requirements-first delivery with adaptive opportunity scanning, optional release gates, weighted review, and grounded research.",
       "category": "productivity",
       "policy": {
         "installation": "AVAILABLE",

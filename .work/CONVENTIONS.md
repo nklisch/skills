@@ -1,11 +1,12 @@
 ---
 owner: workbench
 schema: 1
-workbench_version: 0.11.0
+workbench_version: 0.12.0
 completed_items: discard
 review_weight: standard
 simplification_posture: balanced
 autonomy: collaborative
+commit_posture: feature
 ---
 
 # Project Conventions

@@ -22,7 +22,7 @@ class ValidateWorkbenchTests(unittest.TestCase):
         root = Path(tempfile.mkdtemp())
         write(
             root / ".work/CONVENTIONS.md",
-            f"---\nowner: workbench\nschema: 1\nworkbench_version: {INSTALLED_VERSION}\ncompleted_items: summarize\nreview_weight: standard\nsimplification_posture: balanced\nautonomy: adaptive\n---\n",
+            f"---\nowner: workbench\nschema: 1\nworkbench_version: {INSTALLED_VERSION}\ncompleted_items: summarize\nreview_weight: standard\nsimplification_posture: balanced\nautonomy: adaptive\ncommit_posture: adaptive\n---\n",
         )
         for directory in ("active", "backlog", "completed", "releases"):
             (root / ".work" / directory).mkdir(parents=True, exist_ok=True)
@@ -100,7 +100,50 @@ updated: 2026-07-24
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("validation passed", result.stdout)
 
-    def test_missing_workbench_version_requires_setup_upgrade(self) -> None:
+    def test_release_gates_accepts_absent_empty_and_named_lists(self) -> None:
+        valid_cases = (
+            "release_gates:\n",
+            "release_gates: []\n",
+            "release_gates:\n  - security\n  - test-quality\n  - compatibility\n",
+            "release_gates: ['project-specific', 'operations']\n",
+        )
+        for extra in valid_cases:
+            with self.subTest(extra=extra):
+                root = self.make_project()
+                path = root / ".work/CONVENTIONS.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "autonomy: adaptive\n", f"autonomy: adaptive\n{extra}"
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_release_gates_rejects_non_lists_bad_names_and_duplicates(self) -> None:
+        invalid_cases = {
+            "scalar": "release_gates: security\n",
+            "mapping-like entry": "release_gates:\n  - security: strict\n",
+            "uppercase": "release_gates:\n  - Security\n",
+            "trailing hyphen": "release_gates:\n  - security-\n",
+            "doubled hyphen": "release_gates:\n  - test--quality\n",
+            "duplicate": "release_gates:\n  - security\n  - security\n",
+        }
+        for label, extra in invalid_cases.items():
+            with self.subTest(label=label):
+                root = self.make_project()
+                path = root / ".work/CONVENTIONS.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "autonomy: adaptive\n", f"autonomy: adaptive\n{extra}"
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("release_gates", result.stdout)
+
+    def test_missing_workbench_version_warns_without_blocking(self) -> None:
         root = self.make_project()
         path = root / ".work/CONVENTIONS.md"
         path.write_text(
@@ -110,11 +153,10 @@ updated: 2026-07-24
             encoding="utf-8",
         )
         result = self.run_validator(root)
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("workbench_version must be", result.stdout)
-        self.assertIn("run setup upgrade", result.stdout)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("consider running setup", result.stdout)
 
-    def test_mismatched_workbench_version_requires_setup_upgrade(self) -> None:
+    def test_mismatched_workbench_version_warns_without_blocking(self) -> None:
         root = self.make_project()
         path = root / ".work/CONVENTIONS.md"
         for mismatched in ("0.0.1", "999.0.0"):
@@ -128,11 +170,12 @@ updated: 2026-07-24
                     encoding="utf-8",
                 )
                 result = self.run_validator(root)
-                self.assertEqual(result.returncode, 1)
-                self.assertIn("does not match installed Workbench", result.stdout)
+                self.assertEqual(result.returncode, 0, result.stdout)
+                self.assertIn("differs from loaded Workbench", result.stdout)
+                self.assertIn("work may continue", result.stdout)
                 path.write_text(text, encoding="utf-8")
 
-    def test_malformed_workbench_version_fails(self) -> None:
+    def test_malformed_workbench_version_warns_without_blocking(self) -> None:
         root = self.make_project()
         path = root / ".work/CONVENTIONS.md"
         path.write_text(
@@ -143,8 +186,8 @@ updated: 2026-07-24
             encoding="utf-8",
         )
         result = self.run_validator(root)
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("workbench_version must be", result.stdout)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("not a semantic version", result.stdout)
 
     def test_missing_review_weight_defaults_to_standard(self) -> None:
         root = self.make_project()
@@ -232,6 +275,46 @@ updated: 2026-07-24
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 1)
         self.assertIn("autonomy must be", result.stdout)
+
+    def test_valid_commit_postures_pass(self) -> None:
+        for posture in ("adaptive", "feature", "checkpoint", "batch", "preserve"):
+            with self.subTest(posture=posture):
+                root = self.make_project()
+                path = root / ".work/CONVENTIONS.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "commit_posture: adaptive", f"commit_posture: {posture}"
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_missing_commit_posture_defaults_to_adaptive(self) -> None:
+        root = self.make_project()
+        path = root / ".work/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace("commit_posture: adaptive\n", ""),
+            encoding="utf-8",
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_invalid_commit_posture_fails_cleanly(self) -> None:
+        for value in ("per-item", "[feature]"):
+            with self.subTest(value=value):
+                root = self.make_project()
+                path = root / ".work/CONVENTIONS.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "commit_posture: adaptive", f"commit_posture: {value}"
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("commit_posture must be", result.stdout)
+                self.assertNotIn("Traceback", result.stderr)
 
     def test_unresolved_dependency_fails(self) -> None:
         root = self.make_project()

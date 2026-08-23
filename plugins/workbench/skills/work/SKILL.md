@@ -2,7 +2,7 @@
 name: work
 description: >
   Scope, clarify, build or evaluate a prototype, implement, fix, refactor, simplify, clean up,
-  review, audit, continue, finish one epic, drive several epics to done, or complete ready work
+  review, continue, finish one epic, drive several epics to done, or complete ready work
   inside a named delivery boundary. Use only when .work/CONVENTIONS.md declares owner: workbench and
   the request is a concrete Workbench workflow. Ignore this skill otherwise; do not offer setup or
   force unrelated requests into Workbench. Route valuable early exploration of substantial or
@@ -24,8 +24,9 @@ without Workbench; do not offer setup unless the user explicitly asks to adopt
 or initialize Workbench.
 
 When active, read `.work/CONVENTIONS.md` and apply
-[setup's version-compatibility check](../setup/references/version-compatibility.md)
-before any stateful action; stop on mismatch. Then read relevant work items,
+[setup's advisory version-compatibility guidance](../setup/references/version-compatibility.md)
+before any stateful action; mention useful upgrade/setup guidance on mismatch
+without blocking work. Then read relevant work items,
 project instructions, foundation documents, `.knowledge/index.json` when
 present, and affected code before structural decisions. Foundation documents
 usually live in root `docs/` for repository-wide truth, with sub-project truth
@@ -86,8 +87,9 @@ Load references only as needed:
 - substantial implementation, refactoring, or recurrence →
   [references/maintenance.md](references/maintenance.md);
 - implementation completion or review →
-  [references/verification.md](references/verification.md) and
-  [references/review.md](references/review.md);
+  [references/verification.md](references/verification.md),
+  [references/review.md](references/review.md), and
+  [references/git-posture.md](references/git-posture.md);
 - durable project truth, foundation changes, or implementation completion →
   [references/foundation-truth.md](references/foundation-truth.md);
 - durable prose in items, design sections, foundation docs, or release
@@ -112,12 +114,19 @@ invent requirements or enlarge it. Applicable foundation documents constrain
 and clarify that outcome; they do not automatically pull adjacent intended work
 into the current boundary.
 
-A concrete review or audit of a named Workbench outcome remains read-only.
-Report the result in the current conversation and change nothing unless the
-user also asks for a change. General code review, explanation, diagnosis, and
-other loose requests are not Workbench workflows and do not acquire ledger,
-closure, or configured review-weight obligations merely because the repository
-uses Workbench.
+A request to look for problems, investigate a quality concern, scan a project
+surface, or propose improvements without starting remediation routes through
+`scan`. If the user later selects an opportunity for active work, resume here or
+in `design` with that explicit handoff. Use `ideate` instead when the uncertainty
+is primarily about what product or project outcome the user wants rather than
+what opportunities exist in the current system.
+
+A concrete review of a named Workbench outcome remains read-only. Report the
+result in the current conversation and change nothing unless the user also asks
+for a change. General code review, explanation, diagnosis, and other loose
+requests are not Workbench workflows and do not acquire ledger, closure, or
+configured review-weight obligations merely because the repository uses
+Workbench.
 
 For an epic, include required children and integration. For several epics,
 resolve the complete named target set. For a delivery outcome, discover
@@ -203,11 +212,14 @@ not use a size label alone as the gate. A direct user request to design stops
 after design, while an end-to-end delivery request resumes implementation
 afterward.
 
-Route each ready feature or story through Workbench's `deliver` skill. For one
-ready item, direct mode lets `deliver` own item-level implementation, review,
-reconciliation, and closure. For a wider boundary, call it in orchestrated mode
-with the parent outcome, non-overlapping write surface, integration contract,
-and return evidence. Orchestrated deliverers report stale patterns and credible
+Route each ready feature or story through Workbench's `deliver` skill. Resolve
+the effective Git posture from explicit user direction, the optional project
+convention, then `adaptive`. For one ready item, direct mode lets `deliver` own
+item-level implementation, review, reconciliation, and closure. For a wider
+boundary, call it in orchestrated mode with the parent outcome, non-overlapping
+write surface, integration contract, effective Git posture, and return evidence.
+Under `batch`, `work` owns the wider commit boundary; deliverers must not reshape
+the wider history independently. Orchestrated deliverers report stale patterns and credible
 promotion candidates instead of writing the shared pattern catalog. During a
 user-authorized multi-unit boundary, retain candidate evidence in the active
 parent's `## Maintenance evidence` section using the fields and disposition
@@ -276,6 +288,9 @@ items active.
 Before interruption, handoff, or context loss, update affected items with
 settled requirements, completed outcomes, current evidence, next actions, and
 blockers. On resume, reconcile that state against Git and code before acting.
+Workbench item transitions do not require their own commits. Commit and any
+safe consolidation follow [references/git-posture.md](references/git-posture.md),
+never item-count or stage-transition mechanics.
 
 Reply to the user in the current conversation with a concise completion summary:
 completed outcomes, meaningful decisions, verification, closure disposition,

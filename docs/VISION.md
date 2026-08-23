@@ -27,8 +27,10 @@ harnesses unchanged; each harness can add native ergonomics around that shared
 core. Pi-native runtime packages live in the separate `nklisch/pi-extensions`
 repo.
 
-The catalog centers on **workbench**: requirements-first delivery driven by
-ordinary conversation, with grounded research as an integrated evidence layer.
+The catalog centers on **workbench**: requirements-first delivery and adaptive
+opportunity scanning driven by ordinary conversation, with optional
+project-defined release gates and grounded research as an integrated evidence
+layer.
 Around it sit standalone plugins — `ux-ui-design` (mockup-first UI design),
 `code-audit` (markdown audits), `nates-toolkit` (utilities),
 `agentic-research` (research discipline), `agent-coordination` (cross-agent

@@ -7,9 +7,10 @@ Maintain one marked Workbench section in the canonical root `AGENTS.md`:
 ## Workbench
 
 This repository is Workbench-owned (`.work/CONVENTIONS.md`). Before stateful
-Workbench work, compare its `workbench_version` with the loaded plugin; on a
-mismatch, stop and offer the appropriate setup upgrade rather than mutating
-project state. Route concrete Workbench workflows through its skills, use
+Workbench work, compare its `workbench_version` with the loaded plugin. On a
+mismatch, recommend the appropriate update and setup reconciliation, but
+continue unless an actual schema or capability incompatibility is encountered.
+Route concrete Workbench workflows through its skills, use
 `deliver` for one named implementation-ready feature or story, and prefer
 ideate before design when early exploration of substantial or cross-cutting work
 could materially improve what gets designed, unless the user requests direct
@@ -27,7 +28,8 @@ relevant `.agents/skills/patterns/` references when the canonical index contains
 them.
 
 Durable state is limited to work items, foundation documents, project pattern
-catalogs, research attestations and briefs, mockups, generated indexes,
+catalogs, user-confirmed project scan-lens skills, research attestations and
+briefs, mockups, generated indexes,
 completion stubs, release summaries, and repository conventions; write these
 whenever a workflow names them. Work items are the work record. Keep foundations
 at repository or sub-project altitude: high-level purpose, boundaries,
@@ -65,7 +67,9 @@ For concrete Workbench workflows, test behavior at stable interfaces, verify
 the full requested boundary, reconcile affected foundation truth and project
 patterns, rebuild the knowledge index when indexed documentation changes, apply
 the configured review weight and simplification posture to substantive Workbench
-design and implementation, and remove or summarize completed items immediately.
+design and implementation, follow the effective commit posture without making
+ledger transitions into required commits or rewriting shared history for an
+advisory squash, and remove or summarize completed items immediately.
 A successful release removes every completed outcome file under either
 completion posture and preserves the canonical `.gitkeep` files. Preserve
 behavior and measured performance constraints during simplification,

@@ -2,7 +2,8 @@
 
 A catalog of plugins and reference skills for AI coding agents — **Claude
 Code**, **OpenAI Codex**, **Google Antigravity (AGY)**, and **Pi**. The plugins cover requirements-first
-delivery, grounded research, UI mockups, code audits, prose craftsmanship, and
+delivery, adaptive opportunity scanning, grounded research, UI mockups, code
+audits, prose craftsmanship, and
 cross-agent coordination.
 
 The centerpiece is **Workbench**. You describe an outcome in plain language;

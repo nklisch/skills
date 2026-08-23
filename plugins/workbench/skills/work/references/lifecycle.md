@@ -100,6 +100,8 @@ Close atomically:
 Before closure, remove the completed id from each active `blocked_by` and
 `related_to` list. Do not close a parent while active children remain. Run the
 Workbench validator
-after structural ledger changes. Never leave completed items active. Commit at
-coherent delivery boundaries when repository policy permits. Item edits do not
-require their own commits.
+after structural ledger changes. Never leave completed items active. Follow the
+effective [Git posture](git-posture.md). Ledger creation, state changes, review
+metadata, and closure do not require standalone commits; let those edits travel
+with the nearest meaningful code or integration boundary. Preserve safe history
+when shared or overlapping work makes clean isolation impractical.
