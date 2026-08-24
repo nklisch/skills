@@ -32,6 +32,7 @@ pipelines. A few terms carry the rest of this document:
 │   ├── agentic-research/     # grounded research discipline + .research substrate
 │   ├── agent-coordination/   # sparse cross-agent coordination ledger
 │   ├── prose-craft/          # prose drafting, lens review, refine cycle
+│   ├── sol-calibration/      # agent working-posture calibration + proportionality
 │   ├── declaudify/           # Claude Code-only every-turn writing posture
 │   └── workflow/             # DEPRECATED, frozen, kept for existing installs
 ├── .agents/skills/          # standalone reference-skill library (non-plugin)

@@ -202,7 +202,7 @@ plugin before changing a skill or interpreting its behavior.
 | --- | --- |
 | Supported; centerpiece | `workbench` is the requirements-first delivery and grounded-research centerpiece. |
 | Supported; KTLO | `agile-workflow` is in keep-the-lights-on maintenance mode: bug fixes and compatibility work continue, but new workflow capability belongs in `workbench`. |
-| Supported | `ux-ui-design`, `code-audit`, `nates-toolkit`, `agentic-research`, `agent-coordination`, and `prose-craft`. |
+| Supported | `ux-ui-design`, `code-audit`, `nates-toolkit`, `agentic-research`, `agent-coordination`, `prose-craft`, and `sol-calibration`. |
 | Supported; Claude-only | `declaudify` provides an every-turn Claude Code writing-posture hook. It is absent from the Codex and Antigravity catalogs; Pi may discover the Claude catalog entry through its bridge, but Pi support is not claimed. |
 | Frozen | `workflow` is deprecated and frozen. It remains for existing installs, receives no new features or fixes, and must not be extended or cited as a sibling in new documentation. |
 

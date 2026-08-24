@@ -4,7 +4,7 @@ This repo contains agent skills distributed via the Claude Code plugin marketpla
 
 ## Orient first — `ls plugins/` before assuming
 
-**There are NINE distinct plugins under `plugins/`, not one.** Before designing on top of any plugin, run `ls plugins/` and read the target plugin's `plugin.json` + `docs/` (if it has them). Skill names overlap between plugins by design; the plugin a skill lives in determines its semantics.
+**There are TEN distinct plugins under `plugins/`, not one.** Before designing on top of any plugin, run `ls plugins/` and read the target plugin's `plugin.json` + `docs/` (if it has them). Skill names overlap between plugins by design; the plugin a skill lives in determines its semantics.
 
 ### Plugin map
 
@@ -18,6 +18,7 @@ This repo contains agent skills distributed via the Claude Code plugin marketpla
 | `plugins/agentic-research/` | `agentic-research` | supported | Agentic Research Discipline (ARD) as a plugin — grounded, verifiable AI research: an anti-fabrication floor, selectable verification gates, and a `.research/` substrate tier paralleling `.work/`. Fully supported alongside the other current plugins; ARD is the plugin's internal, empirically-warranted discipline, maintained as the single source of truth in `plugins/agentic-research/ard-core/` (absorbed — no separate framework repo or vendoring pin). |
 | `plugins/agent-coordination/` | `agent-coordination` | supported | Sparse cross-agent coordination ledger for shared repositories. Defines deliberate GitHub Discussion events for claims, handoffs, blockers, review summaries, and merge summaries. Lightly aware of agile-workflow `.work` IDs, but not coupled to the substrate. |
 | `plugins/prose-craft/` | `prose-craft` | supported | Standalone prose craftsmanship for human-facing documentation — `prose-draft` (doc brief + plain-language style contract, Diátaxis doc types), `prose-review` (six editorial lenses, severity-tagged findings as proposals), and `prose-refine` (multi-model rewrite-and-weave cycle — diverse model-class re-writers, one-voice weave, shrinking rounds, 3-round cap). No substrate dependency. |
+| `plugins/sol-calibration/` | `sol-calibration` | supported | Agent working-posture calibration — `calibrate-posture` (codebase exploration + adaptive interview that writes a risk-calibrated posture block into project/global AGENTS.md) and `proportionality-check` (light self-interrupt for uninvited verification, security, and locking machinery). Calibrates rigor to actual project risk in both directions. No substrate dependency. |
 | `plugins/workflow/` | `workflow` | **DEPRECATED — no longer supported** | Doc-driven software workflow with design docs as artifacts in `docs/designs/`. Kept in tree so existing installs don't break. No new features or fixes will land. New projects should use `workbench`; existing `workflow` projects migrate via `/workbench:setup` (consolidates older workflows) or `/agile-workflow:convert` (moves to the maintenance-mode tracker). |
 
 ### workflow is deprecated

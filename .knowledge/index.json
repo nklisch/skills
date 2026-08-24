@@ -1278,6 +1278,17 @@
       "relationships": []
     },
     {
+      "path": ".work/active/feature-sol-calibration.md",
+      "namespace": "work",
+      "kind": "feature",
+      "id": "feature-sol-calibration",
+      "title": "sol-calibration plugin — adaptive posture interview + proportionality self-check",
+      "summary": null,
+      "updated": "2026-08-23",
+      "status": "active",
+      "relationships": []
+    },
+    {
       "path": ".work/active/feature-workbench-release-gates.md",
       "namespace": "work",
       "kind": "feature",

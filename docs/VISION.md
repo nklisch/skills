@@ -34,7 +34,8 @@ layer.
 Around it sit standalone plugins — `ux-ui-design` (mockup-first UI design),
 `code-audit` (markdown audits), `nates-toolkit` (utilities),
 `agentic-research` (research discipline), `agent-coordination` (cross-agent
-ledger), `prose-craft` (prose craftsmanship), and `declaudify` (a Claude
+ledger), `prose-craft` (prose craftsmanship), `sol-calibration` (agent
+working-posture calibration), and `declaudify` (a Claude
 Code-only writing-posture hook) — a curated library of reference skills, and
 federated external plugins.
 

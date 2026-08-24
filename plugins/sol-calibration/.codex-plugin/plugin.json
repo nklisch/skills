@@ -1,0 +1,26 @@
+{
+  "name": "sol-calibration",
+  "version": "0.1.0",
+  "description": "Calibrate agent working posture to the project and the person — an adaptive interview that writes a risk-calibrated posture block into AGENTS.md (calibrate-posture), plus a light self-check that interrupts uninvited verification, security, and locking machinery so rigor matches actual project risk (proportionality-check).",
+  "author": {
+    "name": "nklisch"
+  },
+  "repository": "https://github.com/nklisch/skills",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Sol Calibration",
+    "shortDescription": "Calibrate agent rigor to actual project risk",
+    "longDescription": "Two short skills that keep agent effort proportional to the project in front of it. calibrate-posture explores the codebase, interviews you about the project and your preferences, proposes a spectrum of working postures in its own words — from ship-the-simplest-thing to verify-everything — and writes the one you pick into a managed block in AGENTS.md. proportionality-check is a light self-interrupt the agent reaches for before building uninvited verification, security, locking, or determinism machinery, so rigor matches the project's actual risk instead of its defaults.",
+    "developerName": "nklisch",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use sol-calibration to set or recalibrate working posture for a project, or when the agent is overengineering relative to the task."
+    ],
+    "websiteURL": "https://github.com/nklisch/skills"
+  }
+}

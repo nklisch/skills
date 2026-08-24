@@ -7,6 +7,7 @@
     { "path": "plugins/agentic-research" },
     { "path": "plugins/agent-coordination" },
     { "path": "plugins/prose-craft" },
+    { "path": "plugins/sol-calibration" },
     { "path": "plugins/agile-workflow" }
   ]
 }

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Proportionality Check"
+  short_description: "Keeps agent effort proportional to actual project risk"
+  default_prompt: "Use $proportionality-check before building uninvited verification, security, or locking machinery."
+policy:
+  allow_implicit_invocation: true

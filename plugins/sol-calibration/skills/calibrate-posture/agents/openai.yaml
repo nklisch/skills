@@ -1,0 +1,6 @@
+interface:
+  display_name: "Calibrate Posture"
+  short_description: "Interview that writes calibrated posture into AGENTS.md"
+  default_prompt: "Use $calibrate-posture to set or recalibrate working posture for this project."
+policy:
+  allow_implicit_invocation: true
