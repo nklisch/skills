@@ -1,7 +1,7 @@
 {
   "name": "sol-calibration",
   "description": "Calibrate agent working posture to the project and the person — an adaptive interview that writes a risk-calibrated posture block into AGENTS.md (calibrate-posture), plus a light self-check that interrupts uninvited verification, security, and locking machinery so rigor matches actual project risk (proportionality-check).",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "nklisch"
   },
