@@ -235,9 +235,13 @@ Write confirmed rules to the narrowest authority:
 ## Convert semantically
 
 Inventory every source artifact and assign exactly one disposition: retain in
-place, consolidate, move, or remove. Map active outcomes into `.work/active/`,
-deferred ideas into `.work/backlog/`, grounded evidence into `.research/`, and
-current or intended project truth into focused foundation documents.
+place, consolidate, move, or remove. For every source root that may be converted
+or removed, apply the recursive leaf census and per-artifact disposition rules
+from [migration-rules.md](references/migration-rules.md#cleanup-safety); a
+directory-level entry never accounts for nested content. Map active outcomes
+into `.work/active/`, deferred ideas into `.work/backlog/`, grounded evidence
+into `.research/`, and current or intended project truth into focused foundation
+documents.
 
 Apply the authority classification from convention alignment to each legacy
 refactor-convention and pattern artifact. Create or reconcile the canonical
@@ -281,11 +285,12 @@ python3 <workbench-plugin-root>/scripts/validate-workbench.py <project-root>
 When `.research/` exists or conversion creates research artifacts, also rebuild
 and validate `.knowledge/index.json`.
 
-Reconcile source and target inventories. Confirm relationships resolve,
-completed items are absent from active work, foundation assertions remain true,
-and confirmed conventions landed in their authoritative files. Verify each
-retained content block at its destination; matching file or item counts alone
-is insufficient.
+Reconcile source and target inventories. Confirm the planned removal set matches
+leaf-level dispositions before cleanup. Confirm relationships resolve, completed
+items are absent from active work, foundation assertions remain true, and
+confirmed conventions landed in their authoritative files. Verify each retained
+content block at its destination; matching file or item counts alone is
+insufficient.
 
 Confirm every canonical `.work/` and `.research/` state directory contains
 `.gitkeep` so an empty state survives a fresh clone. Validate the canonical
@@ -314,6 +319,10 @@ Remove project-scoped competing workflow plugins, hooks, and managed rules once
 their content is converted and validated. For user- or machine-scoped plugin
 installs, report the exact installation that the user must uninstall; do not
 silently mutate external scope.
+
+After cleanup, reconcile the pre-cleanup leaf census, surviving source paths,
+and tracked deletions against the authorized removal set. Stop on any unexpected
+removal or survivor.
 
 Re-run validation after cleanup. Keep the new version stamp only after all
 reconciliation and cleanup checks pass. A second setup run must produce no

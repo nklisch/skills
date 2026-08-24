@@ -150,10 +150,39 @@ retained pattern against the code during setup.
 
 ## Cleanup safety
 
-Before removal, maintain a disposition table containing source path, target
-path or redundancy evidence, Git/recovery class, inbound references, and
-validation result. Resolve exact targets; do not use broad globs or unresolved
+Before converting or removing a source root, recursively census every contained
+leaf artifact, including tracked, untracked, ignored, and symlink entries;
+inventory a symlink itself rather than traversing its target. Keep the census
+as ephemeral setup state rather than a committed migration manifest or report.
+A shallow directory walk is not an inventory of nested content. Refresh the
+census immediately before cleanup so an artifact that entered the source root
+during the run receives a disposition rather than disappearing with the tree.
+
+Key the disposition table by leaf artifact. Every entry contains the source
+path, target path or redundancy evidence, Git/recovery class, inbound
+references, and validation result. A directory-level disposition never accounts
+for its contents. Resolve exact targets; do not use broad globs or unresolved
 environment variables for deletion.
+
+Before cleanup, derive the authorized removal set from the leaf dispositions. A
+source path belongs to this set exactly when its artifact must no longer exist at
+that path after cleanup: removed outright, moved elsewhere, or consolidated
+away. A leaf converted or consolidated in place remains in the census but not in
+the removal set; verify its converted content at its destination instead of
+expecting it to disappear. Confirm that planned cleanup touches no source path
+outside the authorized set.
+
+Do not recursively remove a source tree until every contained artifact has an
+explicit disposition and retained content is verified at its destination. Never
+suppress the evidence of what was removed, even then; the per-file record of a
+recursive removal is the last cheap accounting check. Empty directories may be
+removed afterward.
+
+After cleanup, compare the pre-cleanup census with surviving source paths and
+compare tracked deletions with the authorized removal set. Stop on any unexpected
+removal or survivor. Git history cannot recover an untracked artifact omitted
+from the census, so this reconciliation supplements rather than replaces the
+recursive pre-cleanup accounting.
 
 Clean tracked content is recoverable from Git. Preserve unrelated changes.
 Require a pre-state commit or exact-list confirmation before removing modified,

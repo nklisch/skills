@@ -1256,17 +1256,6 @@
       "relationships": []
     },
     {
-      "path": ".work/active/epic-workbench-scanning-and-release-gates.md",
-      "namespace": "work",
-      "kind": "epic",
-      "id": "epic-workbench-scanning-and-release-gates",
-      "title": "Adaptive scanning and optional release gates",
-      "summary": null,
-      "updated": "2026-08-23",
-      "status": "active",
-      "relationships": []
-    },
-    {
       "path": ".work/active/feature-autopilot-impl-tier.md",
       "namespace": "work",
       "kind": "feature",
@@ -1274,39 +1263,6 @@
       "title": "Autopilot / implement-orchestrator implementation-tier interview",
       "summary": null,
       "updated": "2026-06-13",
-      "status": "active",
-      "relationships": []
-    },
-    {
-      "path": ".work/active/feature-sol-calibration.md",
-      "namespace": "work",
-      "kind": "feature",
-      "id": "feature-sol-calibration",
-      "title": "sol-calibration plugin — adaptive posture interview + proportionality self-check",
-      "summary": null,
-      "updated": "2026-08-23",
-      "status": "active",
-      "relationships": []
-    },
-    {
-      "path": ".work/active/feature-workbench-release-gates.md",
-      "namespace": "work",
-      "kind": "feature",
-      "id": "feature-workbench-release-gates",
-      "title": "Optional project-defined release gates",
-      "summary": null,
-      "updated": "2026-08-23",
-      "status": "blocked",
-      "relationships": []
-    },
-    {
-      "path": ".work/active/feature-workbench-scan.md",
-      "namespace": "work",
-      "kind": "feature",
-      "id": "feature-workbench-scan",
-      "title": "Adaptive opportunity discovery through Workbench scan",
-      "summary": null,
-      "updated": "2026-08-23",
       "status": "active",
       "relationships": []
     },
