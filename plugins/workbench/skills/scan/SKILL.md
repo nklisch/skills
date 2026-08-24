@@ -78,6 +78,20 @@ Scan depth follows the confirmed scope, consequence, uncertainty, and expected
 value of the question; the project's `review_weight` governs design and
 delivery review, not scan depth.
 
+For complementary scans and campaigns, choose economical initial scanners and
+reserve flagship reasoning for focused post-scan adjudication. Follow the
+[scanner and adjudicator model roles](references/model-selection.md): Luna at
+`xhigh` for the most accurate lane reports, Gemini Flash 3.7 for fast broad
+coverage, and GLM-5.2 for the middle ground. Initial scanner output remains
+candidate evidence, regardless of model.
+
+Do not spend Kimi, high-tier GLM, flagship GPT, Opus, or comparable flagship
+capacity on initial scanner lanes; use it only to challenge material, disputed,
+high-consequence, or weakly evidenced candidates after the lanes return.
+Discover the models the harness actually provides, use a comparable economical
+model when needed, and prefer a credible inline or narrower fallback over
+promoting a flagship model merely to preserve fan-out.
+
 State a compact plan before a campaign: scope, selected lenses, rough scanner
 budget, and what will be consolidated. Ask before multi-agent fan-out or any
 material scope expansion the confirmed brief did not already authorize.
