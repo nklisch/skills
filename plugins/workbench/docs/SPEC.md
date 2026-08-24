@@ -88,6 +88,24 @@ pattern catalogs, user-confirmed project scan-lens skills, research artifacts,
 mockups, generated indexes, completion stubs, release summaries, and repository
 conventions.
 
+## Agent instruction boundary
+
+The canonical root `AGENTS.md` is a compact, high-salience cross-agent operating
+contract. Its Workbench block holds the information an agent needs before a
+stateful skill takes over: ownership and activation, skill routing, human scope
+authority, the boundary between chat and durable output, the basic work-unit
+model, and the requirement to verify, reconcile, review, and close delivery.
+Confirmed repository-specific coding or operating invariants may join it when
+they must bind every agent.
+
+`AGENTS.md` does not mirror the Workbench specification. Conditional workflow
+mechanics, schemas, review-pass convergence, roadmap handling, pattern promotion,
+release cleanup, and other capability-specific rules remain in
+`.work/CONVENTIONS.md` or the skill and reference that owns them. Foundation
+documents retain durable project truth; tool configuration retains mechanical
+rules. This separation keeps the always-loaded contract short enough to remain
+salient while preserving precise behavior at the point of use.
+
 ## Work conventions
 
 `.work/CONVENTIONS.md` begins with:

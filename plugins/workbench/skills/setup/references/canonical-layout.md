@@ -251,4 +251,8 @@ removes every completed outcome file.
 Maintain the canonical root `AGENTS.md` block from
 [managed-instructions.md](managed-instructions.md). Add confirmed
 repository-specific invariants at their narrowest authority without duplicating
-them across agent-specific files.
+them across agent-specific files. `AGENTS.md` is a compact, high-salience
+cross-agent contract: it holds ownership and routing, authority boundaries,
+durable-output posture, and completion invariants needed before a skill takes
+over. Conditional mechanics, schemas, exact review convergence, roadmap rules,
+and release cleanup remain in their owning skills and references.
