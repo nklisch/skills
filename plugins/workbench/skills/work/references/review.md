@@ -9,18 +9,21 @@ Workbench-owned repository.
 For an applicable workflow, resolve one effective `review_weight` from explicit
 user instruction, `.work/CONVENTIONS.md`, then `standard`. The same weight
 governs that outcome's design and implementation review so the repository has
-one understandable delivery rigor control. Separately read
+one understandable delivery rigor control. For `thorough` or `maximum`, resolve
+`review_maximum_passes` from explicit user direction at work kickoff, then
+`.work/CONVENTIONS.md`, then the default of three; it caps independent passes
+per target and must be at least two. Separately read
 [simplification.md](simplification.md) and resolve the effective
-`simplification_posture`; it controls simplification emphasis within each pass,
-not the number of passes.
+`simplification_posture`; it controls simplification emphasis
+within each pass, not the number of passes.
 
 | Weight | Review policy |
 |---|---|
 | `none` | Self-review only. Independent review is skipped, but verification and acceptance evidence remain mandatory. |
 | `light` | At most one focused fresh-context pass when consequence, uncertainty, breadth, or reversibility warrants it. Fix and verify without re-review. |
 | `standard` | Default. Exactly one balanced fresh-context pass for each eligible design and completed integrated implementation boundary. Correct and verify findings without re-reviewing that target. |
-| `thorough` | A multi-pass convergence cycle: at least two independent passes per eligible target, with correction and verification between passes, continuing until a pass finds no receiver-confirmed material issue. |
-| `maximum` | The thorough multi-pass cycle with complementary and adversarial perspectives and cross-model coverage when available. |
+| `thorough` | A multi-pass convergence cycle: at least two independent passes per eligible target, with correction and verification between passes, ending when no confirmed major acceptance issue remains; nits may remain. A configurable three-pass-default limit bounds the cycle. |
+| `maximum` | The thorough multi-pass cycle with complementary and adversarial perspectives and cross-model coverage when available, subject to the same configurable limit. |
 
 ## Pass budget and review targets
 
@@ -42,9 +45,24 @@ review. Only an explicit user direction that changes the weight, or `thorough`
 or `maximum`, authorizes another pass over the same target.
 
 `thorough` and `maximum` deliberately have multi-pass budgets. Run a confirmation
-pass even when the first pass is clean; after any accepted finding, correct and
-verify before the next pass. Continue their convergence cycle until its final
-pass finds no receiver-confirmed material issue.
+pass even when the first pass is clean; after any accepted major finding, correct
+and verify before the next pass. They complete after at least two passes when no
+confirmed major acceptance issue remains. A major acceptance issue violates an
+accepted requirement, correctness, contract, safety, or other scope-grounded
+criterion; reviewer taste cannot make one major. Nits — proportionate,
+non-blocking polish or preference proposals — may remain and do not justify
+another pass; apply them only when they are cohesive and worthwhile inside the
+accepted scope.
+
+`review_maximum_passes` is an optional convention setting for `thorough` and
+`maximum`; when it is unspecified, the effective cap is three. An explicit
+work-kickoff direction overrides the convention. The cap applies separately to
+each design or implementation target and includes the initial and confirmation
+passes. It must be at least two; `standard` and `light` keep their fixed one-pass
+budgets regardless of the setting. When the cap is reached while a confirmed
+major acceptance issue remains, do not close or silently waive it: report the
+limit and issue, then ask the user whether to raise the cap or change the
+accepted outcome.
 
 An explicit request for cross-model review selects reviewer diversity, not
 automatically a heavier pass count. Under `standard`, broader lenses still fit

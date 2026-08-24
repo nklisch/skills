@@ -133,10 +133,13 @@ recommend another weight only from concrete consequence, uncertainty,
 regulatory, safety, or operating evidence. Explain that `standard` gives each
 implementation-shaping design and completed integrated implementation boundary
 exactly one independent pass; corrections are verified and self-reviewed, not
-independently re-reviewed. `thorough` and `maximum` use multiple passes. The
-weight governs both design and implementation review, while explicit user
-direction may override it for one request. Existing Workbench projects without
-the field retain the backward-compatible `standard` default.
+independently re-reviewed. `thorough` and `maximum` use multiple passes until
+only nits remain. Offer `review_maximum_passes` only when the project uses either
+weight or the user asks: it caps each target's passes, accepts an integer of at
+least two, and defaults to three when absent. The weight governs both design and
+implementation review, while explicit user direction may override it for one
+request. Existing Workbench projects without the field retain the
+backward-compatible `standard` default.
 
 Always ask for the repository's default `simplification_posture`: `hygiene`,
 `balanced`, or `structural`. Recommend `balanced` for most projects. Explain

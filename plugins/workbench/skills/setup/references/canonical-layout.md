@@ -71,6 +71,7 @@ schema: 1
 workbench_version: <exact-loaded-plugin-semver>
 completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
+review_maximum_passes: <integer >= 2>  # optional thorough/maximum cap; missing means 3
 simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
 commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
@@ -100,6 +101,7 @@ and Workbench-specific project guidance. Put repository-wide agent invariants
 in `AGENTS.md`, engineering principles in `docs/PRINCIPLES.md`, and detailed
 recurring implementation shapes in `.agents/skills/patterns/`. Existing
 substrates without `review_weight` resolve it as `standard`, those without
+`review_maximum_passes` use the thorough/maximum default of `3`, those without
 `simplification_posture` resolve it as `balanced`, those without `autonomy`
 resolve it as `adaptive`, and those without `commit_posture` use the adaptive
 Git posture; setup writes user-confirmed values when refreshing them.

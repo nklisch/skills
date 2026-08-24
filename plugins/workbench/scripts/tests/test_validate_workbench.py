@@ -212,6 +212,37 @@ updated: 2026-07-24
         self.assertEqual(result.returncode, 1)
         self.assertIn("review_weight must be", result.stdout)
 
+    def test_review_maximum_passes_accepts_two_or_more(self) -> None:
+        for maximum in (2, 3, 12):
+            with self.subTest(maximum=maximum):
+                root = self.make_project()
+                path = root / ".work/CONVENTIONS.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "review_weight: standard\n",
+                        f"review_weight: thorough\nreview_maximum_passes: {maximum}\n",
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_review_maximum_passes_rejects_invalid_values(self) -> None:
+        for maximum in ("1", "0", "-1", "true", "many"):
+            with self.subTest(maximum=maximum):
+                root = self.make_project()
+                path = root / ".work/CONVENTIONS.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "review_weight: standard\n",
+                        f"review_weight: thorough\nreview_maximum_passes: {maximum}\n",
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("review_maximum_passes", result.stdout)
+
     def test_valid_simplification_postures_pass(self) -> None:
         for posture in ("hygiene", "balanced", "structural"):
             with self.subTest(posture=posture):

@@ -55,7 +55,9 @@ adopted repository; write-free `ideate` may explore before adoption, and
   `standard` gives each substantive design and completed integrated implementation
   boundary exactly one independent pass: correct, verify, and self-review findings
   without re-reviewing that target. `thorough` and `maximum` deliberately use
-  multiple independent passes. Review weight controls review depth; the
+  multiple independent passes until no confirmed major acceptance issue remains;
+  nits may remain. An optional per-target pass cap resolves from work-kickoff
+  direction, repository conventions, then the default of three. Review weight controls review depth; the
   simplification posture independently controls simplification emphasis within
   design, implementation, and each review pass.
 - **The ledger stays small and legible.** Features are the normal delivery unit.
