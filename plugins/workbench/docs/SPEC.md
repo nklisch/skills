@@ -99,7 +99,6 @@ schema: 1
 workbench_version: <exact-loaded-plugin-semver>
 completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
-review_maximum_passes: <integer >= 2>|uncapped  # optional thorough/maximum cap; missing means 3
 simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
 commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
@@ -129,8 +128,8 @@ contract-truth ownership), and whether to establish or extend
 `docs/PRINCIPLES.md` — from derived candidates, the core suggested invariants
 (contract truth ownership, compatibility is earned, leave it simpler), and,
 when bootstrapping, optional code-design principle candidates; it also aligns
-repository-specific conventions, including review weight, an optional thorough/
-maximum review-pass cap, simplification posture, and autonomy. Commit posture is optional: setup inspects repository Git
+repository-specific conventions, including review weight, simplification
+posture, and autonomy. Commit posture is optional: setup inspects repository Git
 practice, merge policy, branch ownership, and concurrent-agent evidence, but
 asks or writes the field only when that evidence or an existing preference
 makes commit granularity consequential. Setup discusses `release_gates` only from explicit user
@@ -145,9 +144,8 @@ routes mechanical rules to tool configuration, concise operating rules to
 `AGENTS.md`, architecture and principles to foundations, and proven recurring
 implementation shapes to `.agents/skills/patterns/`. It writes no new convention
 without confirmation. A missing `review_weight`
-resolves to `standard`; missing `review_maximum_passes` resolves to `3`;
-`uncapped` removes the thorough/maximum numeric ceiling; missing
-`simplification_posture` resolves to `balanced`; missing `autonomy` resolves to
+resolves to `standard`; missing `simplification_posture` resolves to `balanced`;
+missing `autonomy` resolves to
 `adaptive`; missing `commit_posture` resolves to
 `adaptive`; missing `roadmap` resolves to `false`.
 `workbench_version` has no fallback: setup stamps it from the verified loaded
@@ -273,11 +271,13 @@ explanations, or unrelated requests made in the repository:
 - `standard` gives each substantive design and each completed integrated
   implementation boundary exactly one balanced fresh-context pass, then corrects,
   verifies, and self-reviews findings without re-reviewing that target;
-- `thorough` uses at least two independent passes per target, correcting and
-  verifying between passes until no confirmed major acceptance issue remains;
-  non-blocking nits may remain;
-- `maximum` uses the thorough multi-pass cycle with complementary, adversarial,
-  and cross-model coverage when available.
+- `thorough` uses independent passes, correcting and verifying between them
+  until no unresolved blocking finding remains; material, minor, and nit
+  findings may be parked, accepted, or rejected through outcome-owner
+  adjudication;
+- `maximum` uses thorough convergence with complementary, adversarial, and
+  cross-model coverage when available until no unresolved material or blocking
+  finding remains; minor and nit findings may remain.
 
 Review implementation-shaping designs before implementation becomes expensive
 to reverse. Review completed implementation at its integrated contract
@@ -294,14 +294,13 @@ project type. Missing or contradicted authorized requirements may be blocking
 findings; adjacent improvements are non-blocking follow-ups and may be parked.
 A correction and its verification are not another independent pass. Only
 `thorough`, `maximum`, or explicit user direction repeat independent passes over
-the same target. For `thorough` or `maximum`, an explicit work-kickoff cap
-overrides `review_maximum_passes` in conventions, which otherwise defaults to
-three; a numeric cap is at least two and counts every pass per target.
-`uncapped` removes that numeric ceiling, but does not permit
-repetition after no further corrective progress is possible: an unresolved
-confirmed major issue remains blocking and needs user direction. At a numeric
-cap, unresolved confirmed major issues remain blocking, while nits are
-non-blocking.
+the same target. Thorough review converges when no unresolved blocking finding
+remains; maximum review converges when no unresolved material finding remains.
+Minor and nit
+findings are non-blocking. A project may state a review-count preference in
+conventions, but Workbench does not interpret or enforce it; explicit user
+direction controls any limit or early stop. If convergence cannot make further
+corrective progress, report the remaining findings for user disposition.
 
 Refactor and cleanup work — and any change that makes decomposition
 decisions — additionally applies a shared structural-hygiene lens at
@@ -657,8 +656,12 @@ Workbench version with the loaded plugin before stateful work, route only concre
 Workbench workflows through its skills, use features as the default delivery
 unit, preserve strict nested tiers, keep independent work parallel, orchestrate
 multi-unit boundaries, park out-of-scope findings, and reconcile and close
-before declaring Workbench delivery done. It explicitly leaves loose,
-conversational, and unrelated requests outside Workbench.
+before declaring Workbench delivery done. For concrete design and delivery
+reviews, it directs reviewers to the work skill's `references/review.md`, which
+defines the proportional constraint lens and required review packet; reviewers propose and
+the outcome owner verifies and adjudicates against product goals and evidence.
+It explicitly leaves loose, conversational, and unrelated requests outside
+Workbench.
 
 The hook exists for ownership discoverability and post-compaction salience. It
 parses nothing beyond the owner check, keeps no session state, and has no

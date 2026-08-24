@@ -267,9 +267,8 @@ schedule, or smaller delivery as authority to manufacture maintenance work. The
 parent cannot close with undisposed maintenance evidence.
 
 Read [references/review.md](references/review.md), resolve the effective
-`review_weight`, `review_maximum_passes` for `thorough` or `maximum`, and
-simplification posture, and apply them to that Workbench outcome, including the
-mandatory non-expansion instruction in every review
+`review_weight` and simplification posture, and apply them to that Workbench
+outcome, including the mandatory non-expansion instruction in every review
 prompt. Explicit user direction overrides repository defaults. Verify and
 adjudicate reviewer findings rather than accepting them blindly; reject invented
 requirements and park useful out-of-scope proposals instead of making them

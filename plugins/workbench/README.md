@@ -379,20 +379,18 @@ request in the repository.
 | `none` | Self-review and behavioral verification only. |
 | `light` | At most one focused independent pass when risk warrants it. |
 | `standard` | Exactly one balanced independent pass for each eligible design and completed integrated implementation boundary. Correct, verify, and self-review findings without re-reviewing the target. This is the default. |
-| `thorough` | At least two independent passes per eligible target: correct and verify between passes until no confirmed major acceptance issue remains; nits may remain. A configurable three-pass-default limit bounds the cycle, or it may be uncapped. |
-| `maximum` | Thorough multi-pass convergence using different specialties, adversarial perspectives, and more than one model when available, subject to the same configurable limit. |
+| `thorough` | Multi-pass convergence: correct and verify between passes until no unresolved blocking finding remains. Material, minor, and nit findings may be parked, accepted, or rejected through outcome-owner adjudication. |
+| `maximum` | Thorough convergence using different specialties, adversarial perspectives, and more than one model when available, until no unresolved material or blocking finding remains. Minor and nit findings may remain. |
 
 For `standard`, an implementation-shaping design and its completed feature or
 standalone story are separate one-pass targets. A correction and its verification
 are not another pass; only `thorough`, `maximum`, or explicit user direction
-permits re-reviewing the same target. `review_maximum_passes` optionally
-configures the `thorough` and `maximum` cap per target (minimum two; default
-three), or accepts `uncapped` to remove the numeric ceiling;
-work-kickoff user direction overrides the convention. An uncapped review still
-ends when no confirmed major acceptance issue remains and stops for user
-direction when one cannot make further corrective progress. At a numeric cap,
-unresolved major issues block closure but nits do not. Review weight controls pass depth and repetition; simplification posture
-controls how strongly each pass looks for behavior-preserving reduction.
+permits re-reviewing the same target. Workbench does not enforce a numeric
+review cap: a project may state a preference in convention prose, and explicit
+user direction may bound, extend, or stop a review. When that ends a review
+before convergence, report remaining findings for a clear user disposition.
+Review weight controls pass depth and repetition; simplification posture controls
+how strongly each pass looks for behavior-preserving reduction.
 Refactor work and changes that reshape decomposition also get a
 structural-hygiene lens at `standard` and above: structure, conditionals, and
 breakout quality are judged against the codebase's own conventions and

@@ -9,21 +9,18 @@ Workbench-owned repository.
 For an applicable workflow, resolve one effective `review_weight` from explicit
 user instruction, `.work/CONVENTIONS.md`, then `standard`. The same weight
 governs that outcome's design and implementation review so the repository has
-one understandable delivery rigor control. For `thorough` or `maximum`, resolve
-`review_maximum_passes` from explicit user direction at work kickoff, then
-`.work/CONVENTIONS.md`, then the default of three. A numeric cap must be at
-least two; `uncapped` removes the numeric ceiling. Separately read
+one understandable delivery rigor control. Separately read
 [simplification.md](simplification.md) and resolve the effective
-`simplification_posture`; it controls simplification emphasis
-within each pass, not the number of passes.
+`simplification_posture`; it controls simplification emphasis within each pass,
+not the number of passes.
 
 | Weight | Review policy |
 |---|---|
 | `none` | Self-review only. Independent review is skipped, but verification and acceptance evidence remain mandatory. |
 | `light` | At most one focused fresh-context pass when consequence, uncertainty, breadth, or reversibility warrants it. Fix and verify without re-review. |
 | `standard` | Default. Exactly one balanced fresh-context pass for each eligible design and completed integrated implementation boundary. Correct and verify findings without re-reviewing that target. |
-| `thorough` | A multi-pass convergence cycle: at least two independent passes per eligible target, with correction and verification between passes, ending when no confirmed major acceptance issue remains; nits may remain. A configurable three-pass-default limit bounds the cycle unless it is uncapped. |
-| `maximum` | The thorough multi-pass cycle with complementary and adversarial perspectives and cross-model coverage when available, subject to the same configurable limit. |
+| `thorough` | Multi-pass convergence: correct and verify between passes until no unresolved `blocking` finding remains. Material, minor, and nit findings may be parked, accepted, or rejected through ordinary outcome-owner adjudication. |
+| `maximum` | Thorough convergence with complementary, adversarial, and cross-model coverage when available, until no unresolved `material` or `blocking` finding remains. Minor and nit findings may remain. |
 
 ## Pass budget and review targets
 
@@ -44,29 +41,21 @@ send the corrected design or implementation back for a second independent
 review. Only an explicit user direction that changes the weight, or `thorough`
 or `maximum`, authorizes another pass over the same target.
 
-`thorough` and `maximum` deliberately have multi-pass budgets. Run a confirmation
-pass even when the first pass is clean; after any accepted major finding, correct
-and verify before the next pass. They complete after at least two passes when no
-confirmed major acceptance issue remains. A major acceptance issue violates an
-accepted requirement, correctness, contract, safety, or other scope-grounded
-criterion; reviewer taste cannot make one major. Nits — proportionate,
-non-blocking polish or preference proposals — may remain and do not justify
-another pass; apply them only when they are cohesive and worthwhile inside the
-accepted scope.
+`thorough` and `maximum` deliberately repeat independent passes. Correct and
+verify accepted findings before the next pass. A `blocking` finding violates an
+accepted requirement, correctness, contract, integrity, safety, or other
+scope-grounded criterion; reviewer taste cannot make one blocking. A `material`
+finding has a nontrivial product consequence but may be resolved by an explicit
+outcome-owner decision to revise, reject, or park it. That disposition resolves
+the candidate for both convergence levels. Minor and nit findings do not justify
+another pass.
 
-`review_maximum_passes` is an optional convention setting for `thorough` and
-`maximum`; when it is unspecified, the effective numeric cap is three. An
-explicit work-kickoff direction overrides the convention. A numeric cap applies
-separately to each design or implementation target and includes the initial and
-confirmation passes; it must be at least two. `uncapped` removes that ceiling
-without changing the convergence condition: finish after at least two passes
-when no confirmed major acceptance issue remains. It does not authorize
-endlessly repeating the same unresolved problem. If a confirmed major
-issue cannot make further corrective progress, stop and ask the user for
-direction. `standard` and `light` keep their fixed one-pass budgets regardless
-of the setting. When a numeric cap is reached while a confirmed major acceptance
-issue remains, do not close or silently waive it: report the limit and issue,
-then ask the user whether to raise the cap or change the accepted outcome.
+Convergence has no Workbench-enforced numeric cap. A project may state a review
+count preference in its conventions, and an explicit user instruction may
+bound, extend, or stop a review. Honor that direction; if it ends a review before
+its selected convergence condition, report the remaining findings and obtain a
+clear disposition rather than silently closing over them. Stop and ask the user
+for direction when no corrective progress remains possible.
 
 An explicit request for cross-model review selects reviewer diversity, not
 automatically a heavier pass count. Under `standard`, broader lenses still fit
@@ -134,8 +123,40 @@ point, and tell them:
 > defect. Treat worthwhile improvements outside that boundary as non-blocking
 > follow-ups, not findings required for acceptance.
 
-Also state the effective simplification posture and give the reviewer its
-hygiene, balanced, or structural expectation from
+## Require a useful review packet
+
+Every independent reviewer returns a concise packet for the outcome owner to
+verify and adjudicate, not a bare verdict:
+
+- **Scope and evidence** — the authorized outcome, surfaces examined, and
+  material coverage limits.
+- **Findings** — each candidate's status (`confirmed`, `hypothesis`, or
+  `non-issue`), evidence, impact, confidence, and smallest justified
+  disposition.
+- **Materiality** — decide whether a candidate is `blocking` (a confirmed
+  violation of an accepted requirement, correctness, contract, integrity,
+  safety, or another scope-grounded criterion that prevents closure), `material`
+  (a nontrivial product consequence requiring an explicit outcome
+  owner decision), `minor` (real but low-payoff and non-blocking), or `nit`
+  (taste or polish without a meaningful product consequence). Do not use
+  project-priority labels such as P1 or P2 unless the project defines their
+  meaning; recommend fix-before-close, revise, park, or reject instead. An
+  outcome owner's explicit disposition resolves the candidate for convergence;
+  it does not rewrite the reviewer’s materiality judgment.
+- **Constraint calibration** — when a candidate concerns a limit, refusal,
+  recovery rule, or resource policy, name the failure it prevents, the
+  product's domain and intended use, the user cost of the constraint, and
+  whether a hard stop earns that cost or a credible degraded path or explicit
+  choice is better. A justified hard stop remains valid; do not substitute
+  permissiveness for a real safety or integrity requirement.
+- **Recommendation** — accept, reject, revise, or park each material candidate;
+  the outcome owner makes the final decision against product goals and evidence.
+
+A clean review says so with its coverage limits. Do not turn speculative leads
+or reviewer taste into acceptance blockers.
+
+Every review prompt also states the effective simplification posture and gives
+the reviewer its hygiene, balanced, or structural expectation from
 [simplification.md](simplification.md). Do not lead reviewers with the suspected
 answer. For design, ask about
 requirements coverage, boundaries, alternatives, assumptions, failure modes,

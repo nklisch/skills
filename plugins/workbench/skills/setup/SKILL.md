@@ -133,14 +133,15 @@ recommend another weight only from concrete consequence, uncertainty,
 regulatory, safety, or operating evidence. Explain that `standard` gives each
 implementation-shaping design and completed integrated implementation boundary
 exactly one independent pass; corrections are verified and self-reviewed, not
-independently re-reviewed. `thorough` and `maximum` use multiple passes until
-only nits remain. Offer `review_maximum_passes` only when the project uses either
-weight or the user asks: it accepts an integer of at least two or `uncapped`,
-and defaults to three when absent. `uncapped` removes the numeric ceiling but
-retains convergence: stop when no confirmed major issue remains, or ask for
-user direction when one cannot make further corrective progress. The weight governs both design and implementation review, while
-explicit user direction may override it for one request. Existing Workbench projects without the field retain the
-backward-compatible `standard` default.
+independently re-reviewed. `thorough` converges when no unresolved blocking
+finding remains; `maximum` converges when no unresolved material finding remains.
+A project may state a
+review-count preference in convention prose, but Workbench does not interpret or
+enforce it. Explicit user direction may bound, extend, or stop one review; when
+that happens before convergence, report the remaining findings for a clear user
+disposition. The weight governs both design and implementation review. Existing
+Workbench projects without `review_weight` retain the backward-compatible
+`standard` default.
 
 Always ask for the repository's default `simplification_posture`: `hygiene`,
 `balanced`, or `structural`. Recommend `balanced` for most projects. Explain

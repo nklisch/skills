@@ -37,6 +37,10 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Designs and reviews must not invent requirements or expand the user's
   original scope. Judge against foundation truth and the rational needs
   of this project type; flag overbuilding and park adjacent improvements.
+- Before reviewing a concrete Workbench design or delivery, read the work skill's
+  `references/review.md`: it defines the proportional constraint lens and
+  required review packet. Reviewers propose; the outcome owner verifies and
+  adjudicates against product goals and evidence.
 - Prefer ideate before design when early exploration of substantial or
   cross-cutting work could materially improve what gets designed, unless
   the user requests direct design or execution.

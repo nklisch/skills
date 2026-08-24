@@ -63,6 +63,15 @@ low-value checks or tests, accidental duplication, and abstractions that no
 longer earn their cost. Preserve behavior and real guarantees; consequential
 removal remains a decision proposal.
 
+### constraint-proportionality
+
+Examine whether limits, refusals, recovery barriers, identity/path checks,
+resource budgets, and optional-integration gates protect a named project risk
+at a user cost the product should bear. Apply the method and evidence bar in
+[constraint-proportionality.md](constraint-proportionality.md). Strict
+protections that earn their cost are verified strengths, not findings. This is
+an opt-in scan lens, not a default release gate or a mandate to relax guards.
+
 ### architecture
 
 Challenge the mental model through elimination, unification, inversion,

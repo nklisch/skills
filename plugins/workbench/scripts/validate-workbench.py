@@ -203,20 +203,6 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
         errors.append(
             "review_weight must be none, light, standard, thorough, or maximum"
         )
-    review_maximum_passes = config.get("review_maximum_passes")
-    # bool is an int subclass, but true is not a meaningful pass limit.
-    is_numeric_pass_cap = (
-        isinstance(review_maximum_passes, int)
-        and not isinstance(review_maximum_passes, bool)
-        and review_maximum_passes >= 2
-    )
-    if review_maximum_passes is not None and not (
-        is_numeric_pass_cap
-        or review_maximum_passes == "uncapped"
-    ):
-        errors.append(
-            'review_maximum_passes must be an integer of at least 2 or "uncapped"'
-        )
     simplification_posture = config.get("simplification_posture", "balanced")
     if simplification_posture not in ALLOWED_SIMPLIFICATION_POSTURES:
         errors.append(

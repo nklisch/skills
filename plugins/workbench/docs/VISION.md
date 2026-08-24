@@ -54,13 +54,16 @@ adopted repository; write-free `ideate` may explore before adoption, and
   not govern loose requests merely because they occur in an adopted repository.
   `standard` gives each substantive design and completed integrated implementation
   boundary exactly one independent pass: correct, verify, and self-review findings
-  without re-reviewing that target. `thorough` and `maximum` deliberately use
-  multiple independent passes until no confirmed major acceptance issue remains;
-  nits may remain. An optional per-target numeric pass cap resolves from
-  work-kickoff direction, repository conventions, then the default of three;
-  `uncapped` removes that ceiling while preserving the same convergence
-  condition. Review weight controls review depth; the
-  simplification posture independently controls simplification emphasis within
+  without re-reviewing that target. `thorough` deliberately uses multiple
+  independent passes until no unresolved blocking finding remains; material,
+  minor, and nit findings may be parked, accepted, or rejected through
+  outcome-owner adjudication. `maximum` converges until no unresolved material
+  or blocking finding
+  remains; minor and nit findings may remain. Workbench does not enforce a
+  numeric pass cap: a project may state a preference in convention prose, while
+  explicit user direction controls any limit or early stop. Review weight
+  controls review depth; the simplification posture independently controls
+  simplification emphasis within
   design, implementation, and each review pass.
 - **The ledger stays small and legible.** Features are the normal delivery unit.
   Epics group multiple feature outcomes, stories hold narrow slices, and nested

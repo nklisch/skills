@@ -179,10 +179,14 @@ Preserve `epic → feature → story` when items nest. Ask the human about
 consequential requirements according to the effective autonomy posture. Designs
 and reviews must not invent requirements or expand the user's original scope;
 apply foundation truth and the rational needs of the actual project type, flag
-overbuilding, and park useful adjacent findings instead. During implementation,
-follow confirmed coding and structural rules from their owning sources and read
-relevant `.agents/skills/patterns/` references when the canonical index contains
-them.
+overbuilding, and park useful adjacent findings instead. Before reviewing a
+concrete Workbench design or delivery, read the work skill's
+`references/review.md`: it defines the proportional constraint lens and
+required review packet. Reviewers propose; the outcome owner verifies and
+adjudicates against product goals and evidence. During implementation, follow
+confirmed coding and structural rules from their owning sources and read
+relevant `.agents/skills/patterns/` references when the canonical index
+contains them.
 
 Durable state is limited to work items, foundation documents, project pattern
 catalogs, user-confirmed project scan-lens skills, research attestations and
@@ -229,18 +233,21 @@ patterns, rebuild the knowledge index when indexed documentation changes, apply
 the configured review weight and simplification posture to substantive Workbench
 design and implementation, use exactly one independent pass per eligible design
 and completed integrated implementation boundary at `standard` (then correct,
-verify, and self-review without re-reviewing that target), reserve multi-pass convergence for
-`thorough` and `maximum` until only nits remain, capped at the work-kickoff or
-convention-specified `review_maximum_passes` (default three; `uncapped`
-removes the numeric ceiling), follow the effective commit posture without making
+verify, and self-review without re-reviewing that target), and reserve multi-pass
+convergence for `thorough` and `maximum`: thorough ends with no unresolved
+blocking finding, maximum with no unresolved material finding. A project may
+state a review-count preference
+in conventions, but Workbench does not enforce it; explicit user direction
+controls any limit or early stop. Parking a useful out-of-scope finding is a
+valid review disposition. Follow the effective commit posture without making
 ledger transitions into required commits or rewriting shared history for an
 advisory squash, and remove or summarize completed items immediately.
 A successful release removes every completed outcome file under either
 completion posture and preserves the canonical `.gitkeep` files. Preserve
-behavior and measured performance constraints during simplification,
-avoid obvious plausible performance regressions, and do not turn ordinary work
-into speculative optimization. Do not apply the review weight to every review,
-audit, planning discussion, explanation, or loose request in the repository.
+behavior and measured performance constraints during simplification, avoid
+obvious plausible performance regressions, and do not turn ordinary work into
+speculative optimization. Do not apply the review weight to every review, audit,
+planning discussion, explanation, or loose request in the repository.
 <!-- workbench:end -->
 
 ## Engineering posture
