@@ -35,11 +35,14 @@ whenever a workflow names them. Work items are the work record. Keep foundations
 at repository or sub-project altitude: high-level purpose, boundaries,
 principles, architecture, observable behavior, and guarantees—not item ids or
 status, delivery-unit numbering, implementation plans, qualification mechanics,
-receipt paths, or evidence history. `docs/ROADMAP.md` is the sole optional
-exception: setup may offer it when useful, but create or adopt it only after
-explicit user approval and record `roadmap: true`. Keep it small and dense;
-every entry links one `.work/backlog/` item for details, and it never tracks
-active work. Do not infer approval from project size or repository files.
+receipt paths, or evidence history. `docs/ROADMAP.md` is an optional,
+user-owned planning document: setup may offer Workbench recognition when useful,
+but create or adopt it only after explicit user approval and record
+`roadmap: true`. A small, dense set of `.work/backlog/` links is recommended,
+not required; roadmap metadata and explanatory discourse are allowed. `.work/`
+remains authoritative for operational state, so do not rewrite roadmap content
+as an incidental work-item transition. Do not infer approval from project size
+or repository files.
 Everything else—questions,
 proposals, recommendations, explanations, progress summaries, and completion
 reports—belongs in your reply, not in a new file or a no-op record.

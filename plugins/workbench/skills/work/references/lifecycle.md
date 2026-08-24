@@ -77,12 +77,10 @@ owns the boundary; otherwise it is top-level. Never nest it under a feature.
 ## Backlog-to-active transition
 
 When `.work/CONVENTIONS.md` declares `roadmap: true`, `docs/ROADMAP.md` is a
-small ordered view over selected backlog items, never active work. If the chosen
-backlog item appears there, remove its roadmap entry in the same change that
-creates the active item. Preserve any still-useful direction in the active item;
-do not leave a status marker, completed entry, or active-item link in the
-roadmap. Validate that every remaining roadmap entry still resolves to exactly
-one `.work/backlog/` item.
+user-owned planning document that may inform context but does not control the
+transition. Keep the roadmap unchanged when a backlog item becomes active
+unless the user explicitly asks to update it. Determine item state, completion,
+and next work from `.work/`, not from roadmap metadata or prose.
 
 ## Completion sweep
 

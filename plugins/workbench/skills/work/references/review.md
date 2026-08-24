@@ -87,10 +87,11 @@ Read [foundation-truth.md](foundation-truth.md) when the design or implementatio
 may affect durable project truth. Treat foundation altitude as a qualification
 criterion: proposed foundation prose must remain high-level repository or
 sub-project truth, not work tracking, qualification mechanics, evidence history,
-or item-specific implementation detail. The only exception is a
-convention-authorized `docs/ROADMAP.md`, limited to concise ordering and
-direction over linked backlog items as defined by the foundation-truth
-reference; active-work tracking is always a failure.
+or item-specific implementation detail. A convention-authorized
+`docs/ROADMAP.md` is a user-owned, free-form planning document rather than a
+restricted foundation template. Its metadata and discourse are not review
+failures; verify instead that `.work/`, not roadmap prose, remains the
+operational source of truth and that the roadmap was not changed incidentally.
 
 ## Keep review inside the authorized scope
 

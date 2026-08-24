@@ -209,14 +209,15 @@ shape. Present names as examples that should fit the project, never as a fixed
 required list.
 
 When repository evidence suggests a larger project would benefit from
-longer-horizon organization, setup may offer `docs/ROADMAP.md`; never add or
-adopt it without explicit user approval. Explain the optional roadmap convention
-from the canonical-layout reference before asking: it is a small,
-information-dense ordering of agreed goals, every entry maps to one
-`.work/backlog/` item for details, and it never tracks active work. Record
-`roadmap: true` only when approved. Project size or an existing roadmap-like file
-does not itself imply consent. Without approval, record no roadmap convention
-and classify discovered content under ordinary migration rules.
+longer-horizon organization, setup may offer Workbench recognition of
+`docs/ROADMAP.md`; never create or adopt it without explicit user approval.
+Explain the optional roadmap convention from the canonical-layout reference
+before asking: it is a user-owned planning document whose structure, metadata,
+and narrative are flexible. A small, dense set of `.work/backlog/` links is the
+recommended standard when it fits, not a requirement; `.work/` remains the
+operational record. Record `roadmap: true` only when approved. Project size or
+an existing roadmap-like file does not itself imply consent. Without approval,
+leave an existing roadmap unmanaged rather than migrating or rewriting it.
 
 Always ask whether to establish or extend `docs/PRINCIPLES.md`. Read
 [references/principle-candidates.md](references/principle-candidates.md) and

@@ -58,12 +58,12 @@ Flatten source stage or folder taxonomies into meaning. Do not preserve stage
 narration.
 
 A discovered roadmap has no automatic special status. If the user explicitly
-approves Workbench's optional roadmap convention, convert each retained
-longer-horizon entry into a `.work/backlog/` item and leave only a concise,
-ordered link plus brief direction in `docs/ROADMAP.md`; remove active, completed,
-status, implementation, qualification, receipt, and evidence detail. Otherwise
-map every useful entry through the table above and remove the superseded roadmap
-after normal recovery checks.
+approves Workbench recognition, preserve `docs/ROADMAP.md` in its user-chosen
+form; do not normalize its structure, remove metadata or discourse, or convert
+its entries automatically. Offer to create `.work/backlog/` items only for
+concrete outcomes the user wants Workbench to track. Otherwise leave the roadmap
+unmanaged and map only the useful material the user chooses through the table
+above.
 
 Normalize each active item to Workbench's optional-depth hierarchy:
 

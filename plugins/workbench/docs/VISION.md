@@ -84,10 +84,11 @@ adopted repository; write-free `ideate` may explore before adoption, and
   `<sub-project>/docs/` according to repository convention. These documents
   remain high-level guidance rather than work tracking, qualification evidence,
   or item-specific implementation machinery. Workbench items are the work
-  record. A user may explicitly approve one `docs/ROADMAP.md` convention: a
-  small, dense ordering of longer-horizon goals whose entries link backlog items
-  for detail and never track active work. Setup may offer it, but Workbench never
-  introduces it by default.
+  record. A user may explicitly approve Workbench recognition of a
+  `docs/ROADMAP.md` planning document. Its structure, metadata, and narrative
+  are user-owned; a small, dense set of backlog links is the recommended default,
+  not a required format. `.work/` remains authoritative for operational state,
+  and Workbench never introduces or rewrites the roadmap by default.
 - **Tests earn their keep.** Prefer meaningful behavior, contracts, boundaries,
   risks, and regressions over line coverage and implementation coupling. Reuse
   existing verification machinery and discuss substantial new infrastructure.

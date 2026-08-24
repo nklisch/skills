@@ -15,19 +15,25 @@ high-level architecture, contract semantics, observable behavior, or durable
 verification principle those mechanisms serve; it must not narrate how one
 outcome is being delivered or qualified.
 
-`docs/ROADMAP.md` is the sole optional foundation exception. It exists for
-larger projects that need a small, information-dense, human-facing ordering of
-agreed longer-horizon goals. Every entry links exactly one `.work/backlog/` item,
-which owns the details. The roadmap may add a short directional statement and
-group entries into horizons or milestones, but it never tracks active work,
-delivery status, implementation, qualification, receipts, or evidence. When a
-backlog item becomes active, remove its roadmap entry in the same transition.
+`docs/ROADMAP.md` is not a foundation document; it is an optional, user-owned
+planning document for projects that want a longer-horizon view. Its structure,
+level of detail, and voice are the user's choice: narrative, metadata, horizon
+or milestone grouping, status
+language, and links to other material are all valid. A small, dense set of
+links to `.work/backlog/` items is the recommended standard when it fits,
+because the ledger retains the operational detail; it is not a required schema.
 
-Setup may offer this exception when repository evidence supports it, but may
-record `roadmap: true` and create or adopt `docs/ROADMAP.md` only after explicit
-user approval. Never infer consent from project size, an existing filename, or
-an agent's preference. Missing `roadmap` means `false`; in that state the file
-must not exist.
+`.work/` remains the operational work record. Agents determine item state from
+it rather than roadmap prose, and must not normalize, remove, or rewrite roadmap
+content as an incidental effect of a work-item transition.
+
+Setup may offer Workbench recognition of this convention when repository evidence
+supports it, but may record `roadmap: true` and create or adopt `docs/ROADMAP.md`
+only after explicit user approval. Never infer consent from project size, an
+existing filename, or an agent's preference. A roadmap that exists while
+`roadmap` is missing or `false` remains an unmanaged user document rather than a
+setup-migration target. In that state, Workbench neither treats it as workflow
+context nor changes it.
 
 ## Find the affected foundations
 
@@ -120,9 +126,10 @@ foundation altitude. For implementation review, check the final diff against
 affected foundations and look for missing, stale, duplicated, prematurely
 asserted, or delivery-specific truth. A reviewer must reject work-item tracking,
 qualification mechanics, evidence history, and item-specific implementation
-plans in every foundation. For a convention-authorized `docs/ROADMAP.md`, allow
-only concise ordering and direction over linked backlog items under the roadmap
-contract above; any reference to active work is a qualification failure.
+plans in every foundation. A convention-authorized `docs/ROADMAP.md` is
+user-owned and free-form: its metadata, discourse, and status language are not
+qualification failures. Verify instead that `.work/`, not roadmap prose, remains
+the operational source of truth and that the roadmap was not changed incidentally.
 
 ## Keep discovery synchronized
 

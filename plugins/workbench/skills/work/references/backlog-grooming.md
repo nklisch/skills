@@ -36,7 +36,9 @@ Present a concise backlog map in conversation, then work through the useful deci
 - mark a premise as superseded or already delivered;
 - discard an item the user no longer wants;
 - activate a selected outcome through normal `work` or `design` routing;
-- adjust an approved `docs/ROADMAP.md` view when `roadmap: true` and the decision concerns longer-horizon ordering.
+- offer to update `docs/ROADMAP.md` when `roadmap: true` and a confirmed
+  disposition would leave an explicit roadmap link misleading; make the change
+  only if the user confirms it.
 
 Priority, duplication, supersession, merging, deletion, and activation remain proposals until the user confirms them. Age may prompt a question, but Workbench invents no staleness threshold. Do not treat an old item as unwanted merely because it is old.
 
@@ -44,6 +46,6 @@ Workbench has no priority frontmatter or mandatory total ordering. Do not create
 
 ## Apply selected changes
 
-Apply only confirmed dispositions. When merging, fold unique context and evidence into the retained item before removing the duplicate. Reconcile an approved `docs/ROADMAP.md` whenever a confirmed merge, discard, or activation removes or reshapes a listed backlog item, so every remaining entry still resolves. When activating, preserve settled outcome context and follow [lifecycle.md](lifecycle.md). Do not design or implement activated work inside grooming unless the user asks to continue into delivery.
+Apply only confirmed dispositions. When merging, fold unique context and evidence into the retained item before removing the duplicate. Do not reconcile or rewrite `docs/ROADMAP.md` as a side effect of a merge, discard, or activation; update it only when the user confirmed that roadmap change. When activating, preserve settled outcome context and follow [lifecycle.md](lifecycle.md). Do not design or implement activated work inside grooming unless the user asks to continue into delivery.
 
 Write no grooming report and create no backlog item about grooming the backlog. Validate Workbench after mutations. A useful walkthrough with no file changes is a valid result.

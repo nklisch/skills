@@ -141,22 +141,25 @@ Every foundation document:
 
 ### Optional roadmap convention
 
-`docs/ROADMAP.md` is the sole optional exception to the no-tracking boundary.
-It is useful for larger projects that need a small, information-dense,
-human-facing ordering of explicitly agreed longer-horizon goals. Every roadmap
-entry links exactly one `.work/backlog/` item, which owns the details. The
-roadmap may add a short directional statement and group entries into horizons or
-milestones, but it never tracks active work, delivery status, implementation,
-qualification, receipts, or evidence. When a backlog item becomes active,
-remove its roadmap entry in the same transition.
+`docs/ROADMAP.md` is not a foundation document; it is an optional, user-owned
+planning document for projects that want a longer-horizon view. Its structure,
+level of detail, and voice are the user's choice: narrative, metadata, horizon
+or milestone grouping, status
+language, and links to other material are all valid. A small, dense set of
+links to `.work/backlog/` items is the recommended standard when it fits,
+because the ledger retains the operational detail; it is not a required schema.
 
-Setup may offer this convention when repository evidence suggests longer-horizon
-organization would help, but records `roadmap: true` and creates or adopts
-`docs/ROADMAP.md` only after explicit user approval. Never infer consent from
-project size or an existing roadmap-like file, and never create it as a default.
-If setup discovers such a file without approval, classify its contents under
-normal migration rules; do not silently grant it foundation authority. Missing
-`roadmap` means `false`; when false, `docs/ROADMAP.md` must not exist.
+`.work/` remains the operational work record. Agents determine item state from
+it rather than roadmap prose, and must not normalize, remove, or rewrite roadmap
+content as an incidental effect of a work-item transition.
+
+Setup may offer Workbench recognition of this convention when repository evidence
+suggests longer-horizon organization would help, but records `roadmap: true` and
+creates or adopts `docs/ROADMAP.md` only after explicit user approval. Never
+infer consent from project size or an existing roadmap-like file, and never
+create it as a default. A roadmap that exists while `roadmap` is missing or
+`false` remains an unmanaged user document rather than a setup-migration target.
+In that state, Workbench neither treats it as workflow context nor changes it.
 
 Choose the smallest useful foundation set. Common document contracts are:
 

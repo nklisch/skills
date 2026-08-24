@@ -502,13 +502,14 @@ Each layer has one job. Code owns executable and structural truth. Foundation
 docs hold high-level repository or sub-project purpose, boundaries, principles,
 architecture, observable behavior, and guarantees. They do not track item
 status, implementation plans, qualification procedures, receipts, or evidence;
-`.work/` items are that detailed work record. A larger project may use the sole
-optional exception, `docs/ROADMAP.md`, as a small, information-dense ordering of
-agreed longer-horizon goals. Every entry links one `.work/backlog/` item for its
-details; the roadmap may add brief direction and horizon grouping but never
-tracks active work. Setup may offer this convention, but creates or adopts it
-only after your explicit approval and never by default. Git is the history,
-`.research/` is
+`.work/` items are that detailed work record. A larger project may use
+`docs/ROADMAP.md` as an optional, user-owned planning document for its
+longer-horizon view. Its structure, metadata, and narrative are up to you; a
+small, dense set of `.work/backlog/` links is the recommended standard when it
+fits, not a requirement. Agents still determine operational state from `.work/`
+and do not rewrite roadmap content incidentally. Setup may offer Workbench
+recognition of this convention, but creates or adopts it only after your
+explicit approval and never by default. Git is the history, `.research/` is
 external evidence, and the knowledge index is discovery metadata with no
 authority of its own.
 

@@ -111,10 +111,12 @@ class MainTest(unittest.TestCase):
         self.assertIn("Work items are the work record", context)
         self.assertIn("Keep foundations at high-level", context)
         self.assertIn("qualification", context)
-        self.assertIn("sole optional ROADMAP.md", context)
-        self.assertIn("requires explicit approval", context)
-        self.assertIn("backlog item for details", context)
-        self.assertIn("never tracks active work", context)
+        self.assertIn("optional user-owned ROADMAP.md", context)
+        self.assertIn("explicit approval", context)
+        self.assertIn("links is recommended, not required", context)
+        self.assertIn("metadata and explanatory discourse", context)
+        self.assertIn("remains authoritative for operational state", context)
+        self.assertIn("roadmap incidentally", context)
         self.assertIn("Do not force unrelated requests", context)
 
     def test_non_workbench_repo_emits_nothing(self) -> None:

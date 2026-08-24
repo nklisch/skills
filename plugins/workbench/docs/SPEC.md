@@ -424,20 +424,25 @@ plans, qualification commands or runners, receipt paths, and evidence history
 belong in Workbench items or their owning code, scripts, tests, and focused
 references. Workbench items remain the work record.
 
-`docs/ROADMAP.md` is the sole optional foundation exception. For larger
-projects, it may provide a small, information-dense, human-facing ordering of
-explicitly agreed longer-horizon goals. Every entry links exactly one
-`.work/backlog/` item, which owns the details. The roadmap may add a short
-directional statement and group entries into horizons or milestones, but it
-never tracks active work, delivery status, implementation, qualification,
-receipts, or evidence. Activating a backlog item removes its roadmap entry in
-the same transition.
+`docs/ROADMAP.md` is not a foundation document; it is an optional, user-owned
+planning document for projects that want a longer-horizon view. Its structure,
+level of detail, and voice are the user's choice: narrative, metadata, horizon
+or milestone grouping, status
+language, and links to other material are all valid. A small, dense set of
+links to `.work/backlog/` items is the recommended standard when it fits,
+because the ledger retains the operational detail; it is not a required schema.
 
-Setup may offer this convention when repository evidence supports it, but
-creates or adopts the file and records `roadmap: true` only after explicit user
-approval. It never infers consent from project size or an existing roadmap-like
-file, and never adds one by default. Missing `roadmap` means `false`; in that
-state `docs/ROADMAP.md` must not exist.
+`.work/` remains the operational work record. Agents determine item state from
+it rather than roadmap prose, and must not normalize, remove, or rewrite roadmap
+content as an incidental effect of a work-item transition.
+
+Setup may offer Workbench recognition of this convention when repository evidence
+supports it, but creates or adopts the file and records `roadmap: true` only
+after explicit user approval. It never infers consent from project size or an
+existing roadmap-like file, and never adds one by default. A roadmap that exists
+while `roadmap` is missing or `false` remains an unmanaged user document rather
+than a setup-migration target. In that state, Workbench neither treats it as
+workflow context nor changes it.
 
 Design rolls foundations forward only after durable high-level truth is settled.
 Implementation closure reconciles affected assertions against the integrated
@@ -664,9 +669,9 @@ item schemas, globally unique ids, title and body presence, parent-kind
 pairs, parent and dependency cycles, relationship integrity, readiness state,
 blocker evidence, research and mock references, superseded substrate paths,
 the optional `commit_posture` enum, and the shape of a declared `release_gates`
-list (unique lowercase kebab-case names). Semantic tier fit, roadmap discipline,
-gate-definition quality, and the value of ordering edges remain review
-judgments.
+list (unique lowercase kebab-case names). Semantic tier fit, roadmap authority
+boundaries, gate-definition quality, and the value of ordering edges remain
+review judgments.
 
 `lint-research.py` checks attestation metadata, sensitive markers, mandatory
 attested-detail and disconfirming sections, and citation resolution. Reference
