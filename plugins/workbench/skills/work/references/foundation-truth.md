@@ -27,11 +27,12 @@ because the ledger retains the operational detail; it is not a required schema.
 it rather than roadmap prose, and must not normalize, remove, or rewrite roadmap
 content as an incidental effect of a work-item transition.
 
-Setup may offer Workbench recognition of this convention when repository evidence
-supports it, but may record `roadmap: true` and create or adopt `docs/ROADMAP.md`
-only after explicit user approval. Never infer consent from project size, an
-existing filename, or an agent's preference. A roadmap that exists while
-`roadmap` is missing or `false` remains an unmanaged user document rather than a
+Setup always offers Workbench recognition of this convention as an optional
+configuration, but may record `roadmap: true` and create or adopt
+`docs/ROADMAP.md` only after explicit user approval. Repository evidence may
+recommend it but never implies consent; project size, an existing filename, and
+an agent's preference do not either. A roadmap that exists while `roadmap` is
+missing or `false` remains an unmanaged user document rather than a
 setup-migration target. In that state, Workbench neither treats it as workflow
 context nor changes it.
 

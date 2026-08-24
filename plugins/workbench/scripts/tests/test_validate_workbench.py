@@ -100,6 +100,19 @@ updated: 2026-07-24
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("validation passed", result.stdout)
 
+    def test_repository_specific_conventions_body_remains_open(self) -> None:
+        root = self.make_project()
+        path = root / ".work/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8")
+            + "\n## Generated assets\n\nRegenerate committed assets before review.\n",
+            encoding="utf-8",
+        )
+
+        result = self.run_validator(root)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_release_gates_accepts_absent_empty_and_named_lists(self) -> None:
         valid_cases = (
             "release_gates:\n",

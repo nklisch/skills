@@ -106,16 +106,21 @@ Examples of evidence-based proposals:
   to justify its maintenance cost;
 - established feature squashes, checkpoint commits, integration batches, or a
   preserve-history policy → propose the matching `commit_posture`, accounting
-  for merge policy and whether agents share branches.
+  for merge policy and whether agents share branches;
+- a repository-specific practice with no Workbench category — such as generated
+  file regeneration or changelog discipline — → propose it in its narrowest
+  authoritative home, not as a new frontmatter field.
 
 No proposal becomes binding without user confirmation. A legacy workflow rule
 that commits every item transition is process machinery, not evidence that the
 project prefers checkpoint granularity; infer commit posture from repository Git
-practice and explicit policy instead. Inspect coding,
-structural, and pattern sources on every setup run, but ask only when concrete
-repository evidence or an explicit existing preference creates a consequential
-choice. Create the canonical empty pattern index when no reusable pattern truth
-exists; do not manufacture pattern references to populate it.
+practice and explicit policy instead. Setup always offers Workbench's optional
+configurations regardless of repository evidence. Inspect coding, structural,
+and pattern sources on every setup run to discover unique, repository-specific
+convention candidates — including candidates outside Workbench's named
+configuration — but do not manufacture ungrounded preferences. Create the
+canonical empty pattern index when no reusable pattern truth exists; do not
+manufacture pattern references to populate it.
 
 For legacy refactor-convention and pattern artifacts, classify each useful rule
 before removal:

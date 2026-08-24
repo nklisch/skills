@@ -196,15 +196,24 @@ simplification posture, what happens to finished items, and your documentation
 conventions (where foundation documents live, how they are named, and whether
 contract truth lives in code or
 documents) — and records them where they belong, mostly `.work/CONVENTIONS.md`,
-where you can change them later. Setup also inspects confirmed coding rules,
-structural foundations, tool configuration, and existing pattern catalogs. It
-asks about those only when repository evidence presents a consequential choice,
-then routes each confirmed rule to its narrowest authority instead of creating a
-generic refactor-conventions layer. It also asks whether to establish or extend
-`docs/PRINCIPLES.md` — recommending three core invariants (contract truth
-ownership, compatibility is earned, and leave it simpler), offering optional
-code-design principles when bootstrapping, and adding anything it derives from
-the repository itself. For finished items:
+where you can change them later. It always offers the optional Workbench
+configurations as opt-in, decline, or defer choices: commit posture, release
+gates, Workbench recognition of a user-owned roadmap, and the `CLAUDE.md`
+compatibility projection. Repository evidence may explain why one is useful,
+but never hides the choice or adopts it for you.
+
+Setup also inspects coding rules, structural foundations, tool configuration,
+and pattern catalogs to discover unique repository-specific conventions. Those
+candidates may fall outside Workbench's named configuration: evidence is an
+open-ended discovery lens, not a predefined checklist. Each confirmed rule goes
+to its narrowest authority; a repository-specific delivery rule with no narrower
+home becomes named prose in the conventions body, never an invented configuration
+key or a generic refactor-conventions layer. Setup also asks whether to establish
+or extend `docs/PRINCIPLES.md` —
+recommending three core invariants (contract truth ownership, compatibility is
+earned, and leave it simpler), offering optional code-design principles when
+bootstrapping, and adding anything it derives from the repository itself. For
+finished items:
 
 - `summarize` keeps a compact temporary outcome stub for the next release;
 - `discard` removes the item after verification and lets release summarize from
@@ -611,7 +620,8 @@ Re-running `setup` on a repository that already uses Workbench is an upgrade
 and sync pass: it detects drift from the stamped plugin version — conventions
 questions a newer version asks that the repository never settled, missing
 fields, superseded layout — and reconciles it without re-asking choices you
-already made. It also migrates useful legacy refactor-convention and pattern
+already made. It still offers an optional configuration that remains unsettled,
+without re-opening one the repository already confirmed. It also migrates useful legacy refactor-convention and pattern
 content into tool configuration, `AGENTS.md`, foundations, or the canonical
 portable pattern catalog according to meaning. It creates an empty valid index
 when no recurring pattern truth exists. Setup proactively offers root

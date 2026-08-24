@@ -103,10 +103,14 @@ adopted repository; write-free `ideate` may explore before adoption, and
   ledger already tracks instead of presenting them as novel — then writes only
   the backlog or active handoffs the user selects; discovery never starts
   remediation by itself.
-- **Release gates are optional project lenses.** Projects may select scan lenses
-  for their release boundary and define what materially blocks them. Setup
-  recommends from project evidence rather than installing a universal gate set,
-  and unavailable preferred tools degrade to another credible inspection path
+- **Optional configuration stays in the user's hands.** Setup always offers
+  optional Workbench configuration — commit posture, release gates, roadmap
+  recognition, and the Claude compatibility projection — as explicit opt-in,
+  decline, or defer choices. Repository evidence can recommend a choice but
+  never controls whether it is offered or silently adopts it. Release gates are
+  project lenses: projects may select any useful scan concern, not only a
+  Workbench-defined lens, and define what materially blocks their release.
+  Unavailable preferred tools degrade to another credible inspection path
   instead of bricking release by default.
 - **Maintenance follows evidence.** Cohesive cleanup can travel with delivery;
   standalone cleanup and refactors are normal bounded work; broader findings
@@ -128,10 +132,12 @@ adopted repository; write-free `ideate` may explore before adoption, and
   Detection, drift, and recommendations are never consent. Write-free `ideate`
   may run before adoption without creating project state.
 - **Setup converges and greenfields continue.** Existing systems are
-  semantically converted, validated, and removed. Setup classifies coding,
-  structural, principle, and recurring-pattern truth into distinct authorities;
-  it does not ask preference questions without evidence or audit patterns as a
-  migration ceremony. A greenfield bootstrap flows
+  semantically converted, validated, and removed. Beyond its built-in options,
+  setup uses repository evidence to find unique conventions that may fall well
+  outside Workbench's predefined categories, then classifies coding, structural,
+  principle, and recurring-pattern truth into distinct authorities. It does not
+  invent ungrounded preferences or audit patterns as a migration ceremony. A
+  greenfield bootstrap flows
   directly into ideation using setup's shared foundation-document contract so
   the project can establish its initial truth without a second invocation or a
   competing format. Workbench does not preserve parallel workflow substrates,

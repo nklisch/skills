@@ -129,27 +129,36 @@ contract-truth ownership), and whether to establish or extend
 (contract truth ownership, compatibility is earned, leave it simpler), and,
 when bootstrapping, optional code-design principle candidates; it also aligns
 repository-specific conventions, including review weight, simplification
-posture, and autonomy. Commit posture is optional: setup inspects repository Git
-practice, merge policy, branch ownership, and concurrent-agent evidence, but
-asks or writes the field only when that evidence or an existing preference
-makes commit granularity consequential. Setup discusses `release_gates` only from explicit user
-interest, an existing gate conversion, or concrete evidence of a consequential
-release boundary. It recommends a set adapted to the project type and preserves
-confirmed names and definitions on refresh; it never installs a universal set
-or adds, drops, or rewrites a gate without confirmation. It may recommend conventions from repository evidence,
-including parking useful out-of-scope findings and behavior-focused testing.
-It inspects coding, structural, and pattern evidence but asks no preference
-question without concrete evidence or an explicit existing user preference. It
-routes mechanical rules to tool configuration, concise operating rules to
-`AGENTS.md`, architecture and principles to foundations, and proven recurring
-implementation shapes to `.agents/skills/patterns/`. It writes no new convention
-without confirmation. A missing `review_weight`
+posture, and autonomy. Setup always offers its optional configurations — commit
+posture, release gates, Workbench recognition of a user-owned roadmap, and the
+`CLAUDE.md` compatibility projection — as explicit opt-in, decline, or defer
+choices. Repository evidence may recommend a choice but never controls whether
+it is offered or silently adopts it. On refresh, setup presents an already
+confirmed choice as the current setting rather than re-asking it. Commit posture
+and release gates remain absent when declined or deferred; the adaptive Git
+posture and no Workbench gates apply. Setup preserves confirmed gate names and definitions;
+it never installs a universal set or adds, drops, or rewrites a gate without
+confirmation.
+
+Repository evidence is an open-ended search for unique, project-specific
+conventions, not a filter limited to Workbench's predefined configuration.
+Setup may propose operating agreements that have no Workbench field when
+concrete practice, friction, risk, or an existing rule supports them — including
+parking useful out-of-scope findings and behavior-focused testing. It does not
+invent ungrounded coding, structural, or pattern preferences. It routes
+mechanical rules to tool configuration, concise operating rules to `AGENTS.md`,
+architecture and principles to foundations, and proven recurring implementation
+shapes to `.agents/skills/patterns/`. It writes no new convention without
+confirmation. A missing `review_weight`
 resolves to `standard`; missing `simplification_posture` resolves to `balanced`;
 missing `autonomy` resolves to
 `adaptive`; missing `commit_posture` resolves to
 `adaptive`; missing `roadmap` resolves to `false`.
 `workbench_version` has no fallback: setup stamps it from the verified loaded
-plugin after successful reconciliation.
+plugin after successful reconciliation. The frontmatter schema is closed.
+Confirmed repository-specific delivery rules that have no narrower authority
+belong as named prose in the conventions body, not as invented configuration
+keys or forced matches to a Workbench category.
 
 ## Active items
 
@@ -440,13 +449,13 @@ because the ledger retains the operational detail; it is not a required schema.
 it rather than roadmap prose, and must not normalize, remove, or rewrite roadmap
 content as an incidental effect of a work-item transition.
 
-Setup may offer Workbench recognition of this convention when repository evidence
-supports it, but creates or adopts the file and records `roadmap: true` only
-after explicit user approval. It never infers consent from project size or an
-existing roadmap-like file, and never adds one by default. A roadmap that exists
-while `roadmap` is missing or `false` remains an unmanaged user document rather
-than a setup-migration target. In that state, Workbench neither treats it as
-workflow context nor changes it.
+Setup always offers Workbench recognition of this convention as an optional
+configuration, but creates or adopts the file and records `roadmap: true` only
+after explicit user approval. Repository evidence may recommend it but never
+implies consent; project size and an existing roadmap-like file do not either.
+A roadmap that exists while `roadmap` is missing or `false` remains an unmanaged
+user document rather than a setup-migration target. In that state, Workbench
+neither treats it as workflow context nor changes it.
 
 Design rolls foundations forward only after durable high-level truth is settled.
 Implementation closure reconciles affected assertions against the integrated

@@ -71,22 +71,37 @@ A repeat run still produces no material change.
 ## Align conventions
 
 Always conduct a user-confirmed conventions alignment, including for new or
-already-conformant repositories.
+already-conformant repositories. First offer every optional Workbench
+configuration as a compact opt-in, decline, or defer decision: `commit_posture`,
+`release_gates`, Workbench recognition of a user-owned roadmap, and the
+`CLAUDE.md` compatibility projection. Offer these choices even when the
+repository does not supply a reason to recommend one; a declined or deferred
+choice remains absent or unmanaged. On refresh, present an already confirmed
+choice as the current setting rather than re-asking it, unless the user asks to
+reconsider it.
 
-Derive candidates from:
+Then use repository evidence as an open-ended discovery lens for convention
+candidates. It is not a gate on whether optional Workbench configurations are
+visible, and it is not limited to the categories Workbench already defines.
+Look for repository-specific operating agreements that would make future work
+clearer or safer, including candidates with no corresponding Workbench field,
+and route each confirmed rule to its owning authority. Derive candidates from:
 
 - explicit existing rules;
 - consistent repository practice;
 - conflicts that need one resolution;
-- repository evidence suggesting a beneficial new convention;
+- unique repository evidence suggesting a beneficial convention, regardless of
+  whether Workbench has named that kind of convention;
 - binding privacy and security requirements.
 
-Ask one consequential decision at a time. For every recommendation, explain the
-evidence, risk or friction, proposed rule, practical cost, and why it is the
-recommended choice. Do not present a generic checklist. Do not ask about coding,
-structural, or pattern preferences without concrete repository evidence or an
-explicit existing user preference. Group related proposals when one decision
-settles them. Inspection is mandatory; questions are conditional. Do not write
+Ask one consequential decision at a time. For every evidence-backed
+recommendation, explain the evidence, risk or friction, proposed rule,
+practical cost, and why it is recommended. Keep the built-in optional
+configuration offer short rather than presenting it as a generic engineering
+checklist. Do not invent coding, structural, or pattern preferences when neither
+repository evidence nor an explicit user preference supports them. Group related
+proposals when one decision settles them. Inspection is mandatory; user
+confirmation is mandatory before a new rule becomes binding. Do not write
 rejected proposals or repeat them during the run.
 
 Classify confirmed engineering guidance before proposing its destination:
@@ -99,6 +114,15 @@ Classify confirmed engineering guidance before proposing its destination:
   confirmed equivalent;
 - detailed recurring implementation shapes belong in the canonical
   `.agents/skills/patterns/` project catalog.
+
+When evidence supports a repository-specific convention that does not fit a
+Workbench field or the categories above, still propose it. Name the operating
+agreement, state its evidence and cost, and give it the narrowest authority:
+prose in `.work/CONVENTIONS.md` for a Workbench delivery rule, `AGENTS.md` for
+an agent operating rule, or the applicable foundation or project scan lens.
+The frontmatter schema remains closed; do not invent configuration keys or force
+a rule into an unrelated Workbench category. Reconcile a candidate that overlaps
+an existing field with that field rather than creating competing prose.
 
 Do not turn a convention violation into a refactor proposal unless correction
 has a concrete payoff such as clearer ownership, less duplication, easier
@@ -159,20 +183,22 @@ language overrides the default and that autonomy never expands scope, quality
 obligations, permissions, or safety boundaries. Existing Workbench projects
 without the field retain the backward-compatible `adaptive` default.
 
-Treat `commit_posture` as optional. Inspect commit size and message patterns,
-merge policy, branch ownership, concurrent-agent practice, and explicit Git
-rules. Discuss and record `adaptive`, `feature`, `checkpoint`, `batch`, or
-`preserve` only when this evidence or an existing preference makes the choice
-consequential. Do not treat a legacy workflow's per-item commits as a project
-preference. Explain that explicit user direction overrides the project posture,
-ledger transitions never require their own commits, and squashing is advisory
-and safe only for clearly owned history. Missing configuration resolves to
-`adaptive`.
+Always offer `commit_posture` as an optional configuration. Inspect commit size
+and message patterns, merge policy, branch ownership, concurrent-agent practice,
+and explicit Git rules to recommend `adaptive`, `feature`, `checkpoint`,
+`batch`, or `preserve` when evidence warrants one. Otherwise explain that the
+adaptive default remains available without a recorded field. Do not treat a
+legacy workflow's per-item commits as a project preference. Explain that
+explicit user direction overrides the project posture, ledger transitions never
+require their own commits, and squashing is advisory and safe only for clearly
+owned history.
 
-Treat `release_gates` as optional. Discuss it when the user asks for release
-gates, when converting an existing gate list, or when repository evidence shows
-a consequential release boundary that recurring project checks do not already
-cover. Evidence can justify a recommendation, never silent adoption.
+Always offer `release_gates` as an optional configuration. Explain that absent
+or empty means no Workbench gates, then let the user opt in, decline, or defer.
+When the user is interested, converting an existing gate list, or repository
+evidence identifies a consequential release expectation that recurring checks do
+not cover, recommend a project-shaped set. Evidence can justify a recommendation
+but never silent adoption or limit the user to Workbench's bundled lenses.
 
 Build a project-shaped starting set rather than a universal default. Libraries
 may benefit from compatibility, public-contract tests, and documentation;
@@ -210,16 +236,16 @@ when present; otherwise recommend the smallest set that fits the project's
 shape. Present names as examples that should fit the project, never as a fixed
 required list.
 
-When repository evidence suggests a larger project would benefit from
-longer-horizon organization, setup may offer Workbench recognition of
-`docs/ROADMAP.md`; never create or adopt it without explicit user approval.
-Explain the optional roadmap convention from the canonical-layout reference
-before asking: it is a user-owned planning document whose structure, metadata,
-and narrative are flexible. A small, dense set of `.work/backlog/` links is the
+Always offer Workbench recognition of `docs/ROADMAP.md` as an optional
+configuration; never create or adopt it without explicit user approval. Explain
+the optional roadmap convention from the canonical-layout reference before
+asking: it is a user-owned planning document whose structure, metadata, and
+narrative are flexible. A small, dense set of `.work/backlog/` links is the
 recommended standard when it fits, not a requirement; `.work/` remains the
-operational record. Record `roadmap: true` only when approved. Project size or
-an existing roadmap-like file does not itself imply consent. Without approval,
-leave an existing roadmap unmanaged rather than migrating or rewriting it.
+operational record. Repository evidence may recommend the option, but project
+size or an existing roadmap-like file does not imply consent. Record
+`roadmap: true` only when approved. Without approval, leave an existing roadmap
+unmanaged rather than migrating or rewriting it.
 
 Always ask whether to establish or extend `docs/PRINCIPLES.md`. Read
 [references/principle-candidates.md](references/principle-candidates.md) and
