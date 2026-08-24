@@ -99,7 +99,7 @@ schema: 1
 workbench_version: <exact-loaded-plugin-semver>
 completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
-review_maximum_passes: <integer >= 2>  # optional thorough/maximum cap; missing means 3
+review_maximum_passes: <integer >= 2>|uncapped  # optional thorough/maximum cap; missing means 3
 simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
 commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
@@ -145,7 +145,8 @@ routes mechanical rules to tool configuration, concise operating rules to
 `AGENTS.md`, architecture and principles to foundations, and proven recurring
 implementation shapes to `.agents/skills/patterns/`. It writes no new convention
 without confirmation. A missing `review_weight`
-resolves to `standard`; missing `review_maximum_passes` resolves to `3`; missing
+resolves to `standard`; missing `review_maximum_passes` resolves to `3`;
+`uncapped` removes the thorough/maximum numeric ceiling; missing
 `simplification_posture` resolves to `balanced`; missing `autonomy` resolves to
 `adaptive`; missing `commit_posture` resolves to
 `adaptive`; missing `roadmap` resolves to `false`.
@@ -295,8 +296,12 @@ A correction and its verification are not another independent pass. Only
 `thorough`, `maximum`, or explicit user direction repeat independent passes over
 the same target. For `thorough` or `maximum`, an explicit work-kickoff cap
 overrides `review_maximum_passes` in conventions, which otherwise defaults to
-three; the cap is at least two and counts every pass per target. At the cap,
-unresolved confirmed major issues remain blocking, while nits are non-blocking.
+three; a numeric cap is at least two and counts every pass per target.
+`uncapped` removes that numeric ceiling, but does not permit
+repetition after no further corrective progress is possible: an unresolved
+confirmed major issue remains blocking and needs user direction. At a numeric
+cap, unresolved confirmed major issues remain blocking, while nits are
+non-blocking.
 
 Refactor and cleanup work — and any change that makes decomposition
 decisions — additionally applies a shared structural-hygiene lens at

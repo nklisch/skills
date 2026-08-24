@@ -48,7 +48,7 @@ adopted repository; write-free `ideate` may explore before adoption, and
   contract boundary, or challenge its full structure. Simplification preserves
   behavior and measured performance constraints and avoids obvious plausible
   regressions without manufacturing speculative optimization work.
-- **Review depth is legible and bounded.** One repository `review_weight`
+- **Review depth is legible and convergent.** One repository `review_weight`
   governs design and implementation review for concrete Workbench workflows,
   while explicit user direction can override it for one such workflow. It does
   not govern loose requests merely because they occur in an adopted repository.
@@ -56,8 +56,10 @@ adopted repository; write-free `ideate` may explore before adoption, and
   boundary exactly one independent pass: correct, verify, and self-review findings
   without re-reviewing that target. `thorough` and `maximum` deliberately use
   multiple independent passes until no confirmed major acceptance issue remains;
-  nits may remain. An optional per-target pass cap resolves from work-kickoff
-  direction, repository conventions, then the default of three. Review weight controls review depth; the
+  nits may remain. An optional per-target numeric pass cap resolves from
+  work-kickoff direction, repository conventions, then the default of three;
+  `uncapped` removes that ceiling while preserving the same convergence
+  condition. Review weight controls review depth; the
   simplification posture independently controls simplification emphasis within
   design, implementation, and each review pass.
 - **The ledger stays small and legible.** Features are the normal delivery unit.

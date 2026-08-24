@@ -71,7 +71,7 @@ schema: 1
 workbench_version: <exact-loaded-plugin-semver>
 completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
-review_maximum_passes: <integer >= 2>  # optional thorough/maximum cap; missing means 3
+review_maximum_passes: <integer >= 2>|uncapped  # optional thorough/maximum cap; missing means 3
 simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
 commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
@@ -100,11 +100,12 @@ Keep the body limited to authoritative verification commands, delivery rules,
 and Workbench-specific project guidance. Put repository-wide agent invariants
 in `AGENTS.md`, engineering principles in `docs/PRINCIPLES.md`, and detailed
 recurring implementation shapes in `.agents/skills/patterns/`. Existing
-substrates without `review_weight` resolve it as `standard`, those without
-`review_maximum_passes` use the thorough/maximum default of `3`, those without
-`simplification_posture` resolve it as `balanced`, those without `autonomy`
-resolve it as `adaptive`, and those without `commit_posture` use the adaptive
-Git posture; setup writes user-confirmed values when refreshing them.
+substrates without `review_weight` resolve it as `standard`; those without
+`review_maximum_passes` use the thorough/maximum default of `3`; `uncapped`
+removes its numeric ceiling; those without `simplification_posture` resolve it
+as `balanced`; those without `autonomy` resolve it as `adaptive`; and those
+without `commit_posture` use the adaptive Git posture. Setup writes
+user-confirmed values when refreshing them.
 
 Commit boundaries represent meaningful code changes, not work-item transitions.
 The optional `commit_posture` selects adaptive, feature, checkpoint, batch, or

@@ -212,8 +212,8 @@ updated: 2026-07-24
         self.assertEqual(result.returncode, 1)
         self.assertIn("review_weight must be", result.stdout)
 
-    def test_review_maximum_passes_accepts_two_or_more(self) -> None:
-        for maximum in (2, 3, 12):
+    def test_review_maximum_passes_accepts_numeric_or_uncapped_caps(self) -> None:
+        for maximum in (2, 3, 12, "uncapped"):
             with self.subTest(maximum=maximum):
                 root = self.make_project()
                 path = root / ".work/CONVENTIONS.md"
@@ -227,8 +227,21 @@ updated: 2026-07-24
                 result = self.run_validator(root)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_review_maximum_passes_allows_uncapped_when_unused(self) -> None:
+        root = self.make_project()
+        path = root / ".work/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "review_weight: standard\n",
+                "review_weight: standard\nreview_maximum_passes: uncapped\n",
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_review_maximum_passes_rejects_invalid_values(self) -> None:
-        for maximum in ("1", "0", "-1", "true", "many"):
+        for maximum in ("1", "0", "-1", "true", "unlimited", "many", "[]", "{}"):
             with self.subTest(maximum=maximum):
                 root = self.make_project()
                 path = root / ".work/CONVENTIONS.md"

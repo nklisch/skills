@@ -74,7 +74,8 @@ design and implementation, use exactly one independent pass per eligible design
 and completed integrated implementation boundary at `standard` (then correct,
 verify, and self-review without re-reviewing that target), reserve multi-pass convergence for
 `thorough` and `maximum` until only nits remain, capped at the work-kickoff or
-convention-specified `review_maximum_passes` (default three), follow the effective commit posture without making
+convention-specified `review_maximum_passes` (default three; `uncapped`
+removes the numeric ceiling), follow the effective commit posture without making
 ledger transitions into required commits or rewriting shared history for an
 advisory squash, and remove or summarize completed items immediately.
 A successful release removes every completed outcome file under either

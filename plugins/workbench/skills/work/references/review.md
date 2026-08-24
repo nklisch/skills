@@ -11,8 +11,8 @@ user instruction, `.work/CONVENTIONS.md`, then `standard`. The same weight
 governs that outcome's design and implementation review so the repository has
 one understandable delivery rigor control. For `thorough` or `maximum`, resolve
 `review_maximum_passes` from explicit user direction at work kickoff, then
-`.work/CONVENTIONS.md`, then the default of three; it caps independent passes
-per target and must be at least two. Separately read
+`.work/CONVENTIONS.md`, then the default of three. A numeric cap must be at
+least two; `uncapped` removes the numeric ceiling. Separately read
 [simplification.md](simplification.md) and resolve the effective
 `simplification_posture`; it controls simplification emphasis
 within each pass, not the number of passes.
@@ -22,7 +22,7 @@ within each pass, not the number of passes.
 | `none` | Self-review only. Independent review is skipped, but verification and acceptance evidence remain mandatory. |
 | `light` | At most one focused fresh-context pass when consequence, uncertainty, breadth, or reversibility warrants it. Fix and verify without re-review. |
 | `standard` | Default. Exactly one balanced fresh-context pass for each eligible design and completed integrated implementation boundary. Correct and verify findings without re-reviewing that target. |
-| `thorough` | A multi-pass convergence cycle: at least two independent passes per eligible target, with correction and verification between passes, ending when no confirmed major acceptance issue remains; nits may remain. A configurable three-pass-default limit bounds the cycle. |
+| `thorough` | A multi-pass convergence cycle: at least two independent passes per eligible target, with correction and verification between passes, ending when no confirmed major acceptance issue remains; nits may remain. A configurable three-pass-default limit bounds the cycle unless it is uncapped. |
 | `maximum` | The thorough multi-pass cycle with complementary and adversarial perspectives and cross-model coverage when available, subject to the same configurable limit. |
 
 ## Pass budget and review targets
@@ -55,14 +55,18 @@ another pass; apply them only when they are cohesive and worthwhile inside the
 accepted scope.
 
 `review_maximum_passes` is an optional convention setting for `thorough` and
-`maximum`; when it is unspecified, the effective cap is three. An explicit
-work-kickoff direction overrides the convention. The cap applies separately to
-each design or implementation target and includes the initial and confirmation
-passes. It must be at least two; `standard` and `light` keep their fixed one-pass
-budgets regardless of the setting. When the cap is reached while a confirmed
-major acceptance issue remains, do not close or silently waive it: report the
-limit and issue, then ask the user whether to raise the cap or change the
-accepted outcome.
+`maximum`; when it is unspecified, the effective numeric cap is three. An
+explicit work-kickoff direction overrides the convention. A numeric cap applies
+separately to each design or implementation target and includes the initial and
+confirmation passes; it must be at least two. `uncapped` removes that ceiling
+without changing the convergence condition: finish after at least two passes
+when no confirmed major acceptance issue remains. It does not authorize
+endlessly repeating the same unresolved problem. If a confirmed major
+issue cannot make further corrective progress, stop and ask the user for
+direction. `standard` and `light` keep their fixed one-pass budgets regardless
+of the setting. When a numeric cap is reached while a confirmed major acceptance
+issue remains, do not close or silently waive it: report the limit and issue,
+then ask the user whether to raise the cap or change the accepted outcome.
 
 An explicit request for cross-model review selects reviewer diversity, not
 automatically a heavier pass count. Under `standard`, broader lenses still fit

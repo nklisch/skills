@@ -135,10 +135,11 @@ implementation-shaping design and completed integrated implementation boundary
 exactly one independent pass; corrections are verified and self-reviewed, not
 independently re-reviewed. `thorough` and `maximum` use multiple passes until
 only nits remain. Offer `review_maximum_passes` only when the project uses either
-weight or the user asks: it caps each target's passes, accepts an integer of at
-least two, and defaults to three when absent. The weight governs both design and
-implementation review, while explicit user direction may override it for one
-request. Existing Workbench projects without the field retain the
+weight or the user asks: it accepts an integer of at least two or `uncapped`,
+and defaults to three when absent. `uncapped` removes the numeric ceiling but
+retains convergence: stop when no confirmed major issue remains, or ask for
+user direction when one cannot make further corrective progress. The weight governs both design and implementation review, while
+explicit user direction may override it for one request. Existing Workbench projects without the field retain the
 backward-compatible `standard` default.
 
 Always ask for the repository's default `simplification_posture`: `hygiene`,
