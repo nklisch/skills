@@ -53,6 +53,34 @@ gets confirmed, not silently trusted.
 State briefly what the evidence told you, then interview only the remaining
 unknowns.
 
+## 1b. Name your context pulls
+
+A written posture competes with everything else in your context, and some of
+that context pulls toward heavier rigor regardless of what AGENTS.md says.
+Before interviewing, name your pulls to the user — concretely, from this
+repo and this session, not as a generic lecture:
+
+- **Domain vocabulary** — medical, financial, legal, safety, or compliance
+  terms; "formal verification", "invariant", "guarantee", "audit". Regulated-
+  smelling domains trigger disproportionate carefulness even when the actual
+  blast radius is small.
+- **Verification infrastructure** — heavy test suites, coverage gates, strict
+  CI, lint gauntlets. Their presence reads as "this project cares about
+  rigor" whether or not the user wants that for the current task.
+- **Harness and plugin instructions** — system prompts, developer messages,
+  plugin-injected managed instructions that mandate verification, review
+  weights, or completion checks. These are in context every turn and do not
+  yield to a posture block on their own.
+- **Existing AGENTS.md rules** — hand-written rigor sections that predate
+  the calibration and may now contradict it.
+- **Session drift** — in long sessions, accumulated context ratchets toward
+  caution. A posture set early can quietly erode.
+
+For each pull you name, ask whether the user wants a counterweight written
+into the block ("even though this repo has X, posture Y holds unless I say
+otherwise") or whether the pull is legitimate and should stay. Only approved
+counterweights go in the block.
+
 ## 2. Interview the unknowns
 
 Keep it short — one batched round of structured questions where the host
@@ -118,6 +146,11 @@ Stop boundaries: <only when the user approved the module — e.g. "Before
 starting an ambiguous task, ask me when to stop and what to clarify first.
 Applies to ambiguous tasks with things I can likely clarify, not every
 task."> When declined, write "off (user declined)" or omit the line.
+
+Context counterweights: <only the pulls the user approved overriding —
+e.g. "This repo's heavy CI and formal-verification vocabulary pull toward
+rigor; the posture above holds anyway unless I say otherwise."> Omit when
+none were approved.
 <!-- sol-calibration:end -->
 ```
 

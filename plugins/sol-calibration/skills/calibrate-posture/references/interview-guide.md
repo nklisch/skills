@@ -10,6 +10,8 @@ round is usually enough.
 - Project questions
 - Person questions
 - Adaptivity question
+- Context-pull counterweights
+- Stop-boundaries offer
 - Shaping the spectrum
 
 ## Observed-posture confirmation
@@ -48,6 +50,19 @@ Always confirm observed repo state before treating it as intent:
   small, should the agent: (a) override the written posture for that task,
   (b) treat it as a nudge but stay near the posture, or (c) ignore framing
   cues and hold the posture steady?
+
+## Context-pull counterweights
+
+After naming observed context pulls (domain vocabulary, verification
+infrastructure, harness/plugin instructions, existing AGENTS.md rules,
+session drift), ask per pull or batched:
+
+- "These parts of my context pull me toward more rigor than the posture
+  you're picking — which should I explicitly override in the block, and
+  which are legitimate?"
+
+Record only approved overrides as counterweights. A pull the user
+acknowledges but keeps stays out of the block.
 
 ## Stop-boundaries offer
 
