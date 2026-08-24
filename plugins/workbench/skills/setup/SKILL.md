@@ -107,7 +107,9 @@ rejected proposals or repeat them during the run.
 Classify confirmed engineering guidance before proposing its destination:
 
 - mechanical formatting and lint rules belong in tool configuration;
-- concise coding and agent operating rules belong in `AGENTS.md`;
+- concise cross-agent coding and operating invariants needed before skill
+  routing belong in `AGENTS.md`; conditional workflow mechanics belong in their
+  owning skills and references;
 - settled module ownership, import direction, and structural constraints belong
   in the applicable architecture foundation;
 - engineering decision rules belong in `docs/PRINCIPLES.md` or the repository's

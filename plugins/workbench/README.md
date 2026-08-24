@@ -131,6 +131,12 @@ docs/                    # current or intended project truth
 AGENTS.md                # canonical cross-agent instructions
 ```
 
+`AGENTS.md` is deliberately compact. Its managed Workbench block carries the
+cross-agent ownership, routing, authority, output, and completion rules needed
+before a skill takes over. Detailed schemas, review convergence, roadmap
+handling, release cleanup, and other conditional mechanics stay in the
+conventions, skills, and references that own them.
+
 ### How agents organize work
 
 Agents use features as the normal delivery and integrated review unit. An epic

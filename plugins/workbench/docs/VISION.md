@@ -94,6 +94,11 @@ adopted repository; write-free `ideate` may explore before adoption, and
   are user-owned; a small, dense set of backlog links is the recommended default,
   not a required format. `.work/` remains authoritative for operational state,
   and Workbench never introduces or rewrites the roadmap by default.
+- **Agent instructions stay compact.** The canonical `AGENTS.md` holds the
+  cross-agent ownership, routing, authority, output, and completion invariants
+  needed before a skill takes over. Conditional mechanics and detailed policy
+  remain in conventions, foundations, and the skills or references that own
+  them rather than accumulating in an always-loaded managed block.
 - **Tests earn their keep.** Prefer meaningful behavior, contracts, boundaries,
   risks, and regressions over line coverage and implementation coupling. Reuse
   existing verification machinery and discuss substantial new infrastructure.
