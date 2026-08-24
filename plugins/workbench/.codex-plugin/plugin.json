@@ -1,6 +1,6 @@
 {
   "name": "workbench",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "description": "Requirements-first delivery with adaptive opportunity scanning, optional release gates, weighted review, and grounded research.",
   "author": {
     "name": "nklisch"
