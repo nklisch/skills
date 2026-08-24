@@ -18,4 +18,22 @@ Calibration runs in both directions: a low-blast-radius personal tool may
 legitimately skip almost all machinery, and a genuinely high-stakes project
 should land on more rigor, not less.
 
-Install from the marketplace: `nklisch/skills`, plugin `sol-calibration`.
+## Install
+
+```bash
+# Claude Code
+/plugin marketplace add nklisch/skills
+/plugin install sol-calibration@nklisch-skills
+
+# OpenAI Codex
+codex plugin marketplace add https://github.com/nklisch/skills
+codex plugin install sol-calibration
+
+# Pi (via the pi-plugins manager)
+pi install npm:@nklisch/pi-plugins
+# then, inside Pi:
+/plugins marketplace add nklisch/skills
+/plugins add sol-calibration@nklisch-skills --scope user
+```
+
+All channels load the same shared `skills/` directory.
