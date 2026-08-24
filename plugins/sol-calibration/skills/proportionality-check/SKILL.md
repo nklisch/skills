@@ -29,7 +29,10 @@ task and tone at hand:
   posture says to ignore these cues, let them set your pace.
 - **Written posture.** If AGENTS.md contains a `sol-calibration` posture
   block (or other working agreements), it wins over both your defaults and
-  this skill. Read it before deciding how much machinery to build.
+  this skill. Read it before deciding how much machinery to build. If the
+  block contains a stop-boundaries section and the task in front of you is
+  ambiguous with things the user can likely clarify, honor it: ask when to
+  stop and what to clarify before starting, then proceed.
 
 This pass takes seconds. Its job is to catch the mismatch *before* 500 lines
 of uninvited machinery exist, not to litigate them after.

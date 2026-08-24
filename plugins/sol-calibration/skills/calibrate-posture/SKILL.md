@@ -71,6 +71,13 @@ question bank; the core areas are:
   words like "quick", "fast", "get it done", or obviously small scope —
   versus holding the written posture steady? Should those cues override the
   posture for that task, nudge it, or be ignored?
+- **Stop boundaries (optional, requires explicit approval):** offer a
+  stop-boundaries section. When approved, the agent asks the user when it
+  should stop and what to clarify *before starting* an ambiguous task with
+  likely user-clarifiable unknowns — instead of charging ahead and
+  improvising past the ambiguity. Offer it, never fold it in silently:
+  pre-task questions are friction some users do not want, and the block must
+  record whether it was approved or declined.
 
 ## 3. Propose a spectrum, in your own words
 
@@ -106,6 +113,11 @@ the chosen posture as a managed block:
 
 Adaptivity: <how strongly to follow framing cues like "quick" / "fast" /
 small scope, per the interview>
+
+Stop boundaries: <only when the user approved the module — e.g. "Before
+starting an ambiguous task, ask me when to stop and what to clarify first.
+Applies to ambiguous tasks with things I can likely clarify, not every
+task."> When declined, write "off (user declined)" or omit the line.
 <!-- sol-calibration:end -->
 ```
 

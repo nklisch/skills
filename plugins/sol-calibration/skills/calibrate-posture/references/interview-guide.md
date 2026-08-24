@@ -49,6 +49,19 @@ Always confirm observed repo state before treating it as intent:
   (b) treat it as a nudge but stay near the posture, or (c) ignore framing
   cues and hold the posture steady?
 
+## Stop-boundaries offer
+
+Optional module — offer it, and include it in the block only on explicit
+approval:
+
+- "When a task is ambiguous and there are things you could likely clarify,
+  should the agent ask when to stop and what to clarify *before* starting —
+  or would you rather it make reasonable calls and keep moving?"
+
+If approved, record it in the block scoped to ambiguous, user-clarifiable
+tasks — not as a license to interrogate every request. If declined, record
+the decline (or omit the line) so the next session doesn't re-offer it.
+
 ## Shaping the spectrum
 
 - Write each option in your own words for *this* project — name its actual
