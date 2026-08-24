@@ -52,10 +52,12 @@ adopted repository; write-free `ideate` may explore before adoption, and
   governs design and implementation review for concrete Workbench workflows,
   while explicit user direction can override it for one such workflow. It does
   not govern loose requests merely because they occur in an adopted repository.
-  `standard` gives substantive Workbench work one independent pass without
-  manufacturing convergence or new scope. Review weight controls review depth;
-  the simplification posture independently controls simplification emphasis
-  within design, implementation, and each review pass.
+  `standard` gives each substantive design and completed integrated implementation
+  boundary exactly one independent pass: correct, verify, and self-review findings
+  without re-reviewing that target. `thorough` and `maximum` deliberately use
+  multiple independent passes. Review weight controls review depth; the
+  simplification posture independently controls simplification emphasis within
+  design, implementation, and each review pass.
 - **The ledger stays small and legible.** Features are the normal delivery unit.
   Epics group multiple feature outcomes, stories hold narrow slices, and nested
   hierarchy keeps that order without forcing wrapper items.

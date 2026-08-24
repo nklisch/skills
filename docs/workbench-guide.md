@@ -116,7 +116,7 @@ file.
 | Default | Choices | Recommendation |
 |---|---|---|
 | **`autonomy`** | `collaborative`, `adaptive`, `autonomous` | `adaptive` for most repos — ask about human-owned choices, decide routine reversible details |
-| **`review_weight`** | `none`, `light`, `standard`, `thorough`, `maximum` | `standard` — one balanced independent review pass on substantive work |
+| **`review_weight`** | `none`, `light`, `standard`, `thorough`, `maximum` | `standard` — exactly one balanced independent pass for each substantive design and completed integrated boundary; corrections are verified, not re-reviewed |
 | **`simplification_posture`** | `hygiene`, `balanced`, `structural` | `balanced` — actively simplify the affected boundary without making unrelated cleanup part of delivery |
 | **`completed_items`** | `summarize`, `discard` | `summarize` keeps temporary stubs that make the next release easier to draft; `discard` relies on Git history instead |
 

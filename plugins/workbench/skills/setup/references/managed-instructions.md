@@ -67,7 +67,10 @@ For concrete Workbench workflows, test behavior at stable interfaces, verify
 the full requested boundary, reconcile affected foundation truth and project
 patterns, rebuild the knowledge index when indexed documentation changes, apply
 the configured review weight and simplification posture to substantive Workbench
-design and implementation, follow the effective commit posture without making
+design and implementation, use exactly one independent pass per eligible design
+and completed integrated implementation boundary at `standard` (then correct,
+verify, and self-review without re-reviewing that target), reserve multi-pass convergence for
+`thorough` and `maximum`, follow the effective commit posture without making
 ledger transitions into required commits or rewriting shared history for an
 advisory squash, and remove or summarize completed items immediately.
 A successful release removes every completed outcome file under either

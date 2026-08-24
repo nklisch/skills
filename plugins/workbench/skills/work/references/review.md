@@ -18,9 +18,33 @@ not the number of passes.
 |---|---|
 | `none` | Self-review only. Independent review is skipped, but verification and acceptance evidence remain mandatory. |
 | `light` | At most one focused fresh-context pass when consequence, uncertainty, breadth, or reversibility warrants it. Fix and verify without re-review. |
-| `standard` | Default. Run one balanced fresh-context pass for substantive implementation-shaping designs and substantive completed changes. Fix and verify without a second pass. |
-| `thorough` | Repeat review, adjudication, correction, and verification until no receiver-confirmed material issue remains. |
-| `maximum` | Use the thorough convergence loop with complementary and adversarial perspectives and cross-model coverage when available. |
+| `standard` | Default. Exactly one balanced fresh-context pass for each eligible design and completed integrated implementation boundary. Correct and verify findings without re-reviewing that target. |
+| `thorough` | A multi-pass convergence cycle: at least two independent passes per eligible target, with correction and verification between passes, continuing until a pass finds no receiver-confirmed material issue. |
+| `maximum` | The thorough multi-pass cycle with complementary and adversarial perspectives and cross-model coverage when available. |
+
+## Pass budget and review targets
+
+A pass is one independent fresh-context review of one stable target. A correction,
+its affected verification, and the author's self-review are **not** another
+independent pass.
+
+`standard` has a fixed one-pass budget for every eligible target: one pass for
+an implementation-shaping design before implementation, and one pass for the
+completed integrated implementation of each feature or standalone story. Those
+are separate targets and separate one-pass budgets. A nested story returns
+verification evidence to its owning feature and does not gain a duplicate
+independent implementation pass.
+
+After a `standard` reviewer identifies an accepted finding, correct it, rerun
+the affected verification, and self-review the result; then continue. Do not
+send the corrected design or implementation back for a second independent
+review. Only an explicit user direction that changes the weight, or `thorough`
+or `maximum`, authorizes another pass over the same target.
+
+`thorough` and `maximum` deliberately have multi-pass budgets. Run a confirmation
+pass even when the first pass is clean; after any accepted finding, correct and
+verify before the next pass. Continue their convergence cycle until its final
+pass finds no receiver-confirmed material issue.
 
 An explicit request for cross-model review selects reviewer diversity, not
 automatically a heavier pass count. Under `standard`, broader lenses still fit

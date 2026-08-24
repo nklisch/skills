@@ -378,11 +378,14 @@ request in the repository.
 |---|---|
 | `none` | Self-review and behavioral verification only. |
 | `light` | At most one focused independent pass when risk warrants it. |
-| `standard` | One balanced independent pass for substantive work. This is the default. |
-| `thorough` | Review, correct, and verify repeatedly until no confirmed material issue remains. |
-| `maximum` | Thorough convergence using different specialties, adversarial perspectives, and more than one model when available. |
+| `standard` | Exactly one balanced independent pass for each eligible design and completed integrated implementation boundary. Correct, verify, and self-review findings without re-reviewing the target. This is the default. |
+| `thorough` | At least two independent passes per eligible target: correct and verify between passes, then continue until a pass finds no confirmed material issue. |
+| `maximum` | Thorough multi-pass convergence using different specialties, adversarial perspectives, and more than one model when available. |
 
-Review weight controls pass depth and repetition; simplification posture
+For `standard`, an implementation-shaping design and its completed feature or
+standalone story are separate one-pass targets. A correction and its verification
+are not another pass; only `thorough`, `maximum`, or explicit user direction
+permits re-reviewing the same target. Review weight controls pass depth and repetition; simplification posture
 controls how strongly each pass looks for behavior-preserving reduction.
 Refactor work and changes that reshape decomposition also get a
 structural-hygiene lens at `standard` and above: structure, conditionals, and

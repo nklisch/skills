@@ -267,12 +267,13 @@ explanations, or unrelated requests made in the repository:
 
 - `none` uses self-review only while preserving verification;
 - `light` permits at most one risk-warranted fresh-context pass;
-- `standard` gives substantive designs and completed changes one balanced
-  fresh-context pass;
-- `thorough` repeats review and correction until no confirmed material issue
-  remains;
-- `maximum` adds complementary, adversarial, and cross-model coverage when
-  available.
+- `standard` gives each substantive design and each completed integrated
+  implementation boundary exactly one balanced fresh-context pass, then corrects,
+  verifies, and self-reviews findings without re-reviewing that target;
+- `thorough` uses at least two independent passes per target, correcting and
+  verifying between passes until a pass finds no confirmed material issue;
+- `maximum` uses the thorough multi-pass cycle with complementary, adversarial,
+  and cross-model coverage when available.
 
 Review implementation-shaping designs before implementation becomes expensive
 to reverse. Review completed implementation at its integrated contract
@@ -287,7 +288,9 @@ Every reviewer is instructed not to invent requirements or expand scope, to
 flag overbuilding, and to judge against the rational expectations of the actual
 project type. Missing or contradicted authorized requirements may be blocking
 findings; adjacent improvements are non-blocking follow-ups and may be parked.
-Only `thorough` and `maximum` repeat independent passes.
+A correction and its verification are not another independent pass. Only
+`thorough`, `maximum`, or explicit user direction repeat independent passes over
+the same target.
 
 Refactor and cleanup work — and any change that makes decomposition
 decisions — additionally applies a shared structural-hygiene lens at

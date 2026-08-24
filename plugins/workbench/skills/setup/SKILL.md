@@ -130,10 +130,13 @@ Both postures support release. Record only the user's confirmed choice.
 Always ask for the repository's default `review_weight`: `none`, `light`,
 `standard`, `thorough`, or `maximum`. Recommend `standard` for most projects;
 recommend another weight only from concrete consequence, uncertainty,
-regulatory, safety, or operating evidence. Explain that the weight governs both
-implementation-shaping design review and completed implementation review, while
-explicit user direction may override it for one request. Existing Workbench
-projects without the field retain the backward-compatible `standard` default.
+regulatory, safety, or operating evidence. Explain that `standard` gives each
+implementation-shaping design and completed integrated implementation boundary
+exactly one independent pass; corrections are verified and self-reviewed, not
+independently re-reviewed. `thorough` and `maximum` use multiple passes. The
+weight governs both design and implementation review, while explicit user
+direction may override it for one request. Existing Workbench projects without
+the field retain the backward-compatible `standard` default.
 
 Always ask for the repository's default `simplification_posture`: `hygiene`,
 `balanced`, or `structural`. Recommend `balanced` for most projects. Explain
