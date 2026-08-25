@@ -105,11 +105,11 @@ Domain-specific docs (examples, not exhaustive):
 
 - **UX.md** — user experience: flows, interaction patterns, design system.
   *For projects with a user interface.*
-  When the `ux-ui-design` plugin is installed, UX.md should reference the
-  mockup-first convention (mocks live in `.mockups/`, generated via
-  `/ux-ui-design:screens` / `:flows` / `:palette`). For UI-bearing projects,
-  recommend running `/ux-ui-design:palette` after the foundation docs are
-  written so design-system tokens are locked in before feature work begins.
+  When the `ux-ui-design` plugin is installed, UX.md can reference the
+  mockup convention (mocks live in `.mockups/`, produced by the
+  `/ux-ui-design:ux-ui` concierge). For UI-bearing projects, recommend
+  running the concierge after the foundation docs are written so visual
+  direction is settled before feature work begins.
 - **USERSTORIES.md** — what users can do, with acceptance criteria.
   *For projects with distinct user-facing features that benefit from formal
   definition.*

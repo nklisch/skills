@@ -286,24 +286,23 @@ roll-forward in Phase 4.
 
 ### Phase 1.8: UI surface alignment (runs when ux-ui-design is installed)
 
-Per the tier rule in `ux-ui-principles` (mock at the highest tier where it
-can land), scope-tier locks the design system and any clear cross-feature
-journey before the item is written.
+For UI-bearing scope, consider offering the `/ux-ui-design:ux-ui`
+concierge before the item is written — it interviews the user and
+negotiates the artifact shape rather than following a fixed pipeline.
 
-- **Large scope + UI (epic-shaped)** →
-  1. If `.mockups/design-system/tokens.css` does NOT exist, invoke
-     `/ux-ui-design:palette` during the Phase 4 roll-forward.
-  2. If the idea spans a multi-screen journey that's already clear (signup,
-     onboarding, checkout, recovery), invoke `/ux-ui-design:flows
-     <flow-name>`. Reference the path under `## Strategic decisions` so
-     `epic-design` Phase 4.6 inherits it.
+- **Large scope + UI (epic-shaped)** → if the visual direction is
+  undefined, or the idea spans a cross-feature journey that's already
+  clear (signup, onboarding, checkout, recovery), offer the concierge
+  during the Phase 4 roll-forward. Record any produced mock paths under
+  `## Strategic decisions` so `epic-design` inherits them.
 
-  Screen-level mocks belong to `epic-design` once the decomposition exists.
+  Detailed surface work belongs to `epic-design` once the decomposition
+  exists.
 
 - **Medium scope (feature) + UI surface that's net-new or novel** → tag the
-  feature `[ui]` and note the surface in the body. Mocking happens at
-  whichever tier picks it up next — `epic-design` if there's an epic parent,
-  `feature-design` otherwise.
+  feature `[ui]` and note the surface in the body. Alignment happens at
+  whichever design pass picks it up next — `epic-design` if there's an epic
+  parent, `feature-design` otherwise.
 
 - **Small scope or no UI** → skip.
 
@@ -387,10 +386,9 @@ For each affected doc:
 3. **Do NOT add "previously" notes, "in v1.x", or migration prose.** Git carries
    history; the doc carries truth (rolling-foundation principle)
 
-**Design-system lock-in (UI-bearing large scope only).** If Phase 1.8 flagged
-palette or a flow, invoke `/ux-ui-design:palette` and/or
-`/ux-ui-design:flows <flow-name>` here. The locked mocks ship in the same
-roll-forward commit and are inherited by `epic-design` Phase 4.6.
+**UI alignment (UI-bearing large scope only).** If Phase 1.8 flagged UI
+alignment, run the `/ux-ui-design:ux-ui` offer here. Any mocks produced
+ship in the same roll-forward commit and are inherited by `epic-design`.
 
 ### Phase 5: Write the item file
 

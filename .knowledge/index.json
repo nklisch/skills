@@ -90,17 +90,6 @@
       "relationships": []
     },
     {
-      "path": "plugins/ux-ui-design/docs/evaluations/flows.md",
-      "namespace": "docs",
-      "kind": "flows",
-      "id": "plugins/ux-ui-design/docs/evaluations/flows",
-      "title": "Skill Evaluation: flows",
-      "summary": null,
-      "updated": null,
-      "status": null,
-      "relationships": []
-    },
-    {
       "path": "plugins/agentic-research/docs/HANDOFF.md",
       "namespace": "docs",
       "kind": "handoff",
@@ -156,17 +145,6 @@
       "relationships": []
     },
     {
-      "path": "plugins/ux-ui-design/docs/evaluations/palette.md",
-      "namespace": "docs",
-      "kind": "palette",
-      "id": "plugins/ux-ui-design/docs/evaluations/palette",
-      "title": "Skill Evaluation: palette",
-      "summary": null,
-      "updated": null,
-      "status": null,
-      "relationships": []
-    },
-    {
       "path": "docs/research/pi-package-format.md",
       "namespace": "docs",
       "kind": "pi-package-format",
@@ -205,17 +183,6 @@
       "kind": "roadmap",
       "id": "plugins/agile-workflow/docs/roadmap",
       "title": "agile-workflow v0.1.0 — Build Roadmap",
-      "summary": null,
-      "updated": null,
-      "status": null,
-      "relationships": []
-    },
-    {
-      "path": "plugins/ux-ui-design/docs/evaluations/screens.md",
-      "namespace": "docs",
-      "kind": "screens",
-      "id": "plugins/ux-ui-design/docs/evaluations/screens",
-      "title": "Skill Evaluation: screens",
       "summary": null,
       "updated": null,
       "status": null,
@@ -266,33 +233,11 @@
       "relationships": []
     },
     {
-      "path": "plugins/ux-ui-design/docs/proposals/ux-ui-design-enhancement-proposals.md",
-      "namespace": "docs",
-      "kind": "ux-ui-design-enhancement-proposals",
-      "id": "plugins/ux-ui-design/docs/proposals/ux-ui-design-enhancement-proposals",
-      "title": "UX/UI Design Skills — Enhancement Proposals",
-      "summary": null,
-      "updated": null,
-      "status": null,
-      "relationships": []
-    },
-    {
       "path": "docs/ux-ui-design-guide.md",
       "namespace": "docs",
       "kind": "ux-ui-design-guide",
       "id": "ux-ui-design-guide",
       "title": "UX/UI Design Guide",
-      "summary": null,
-      "updated": null,
-      "status": null,
-      "relationships": []
-    },
-    {
-      "path": "plugins/ux-ui-design/docs/evaluations/ux-ui-principles.md",
-      "namespace": "docs",
-      "kind": "ux-ui-principles",
-      "id": "plugins/ux-ui-design/docs/evaluations/ux-ui-principles",
-      "title": "Skill Evaluation: ux-ui-principles",
       "summary": null,
       "updated": null,
       "status": null,
@@ -1263,6 +1208,17 @@
       "title": "Autopilot / implement-orchestrator implementation-tier interview",
       "summary": null,
       "updated": "2026-06-13",
+      "status": "active",
+      "relationships": []
+    },
+    {
+      "path": ".work/active/feature-ux-ui-concierge.md",
+      "namespace": "work",
+      "kind": "feature",
+      "id": "feature-ux-ui-concierge",
+      "title": "ux-ui-design plugin: concierge restructure",
+      "summary": null,
+      "updated": "2026-08-24",
       "status": "active",
       "relationships": []
     },

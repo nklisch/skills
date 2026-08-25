@@ -1,0 +1,6 @@
+interface:
+  display_name: "UX / UI"
+  short_description: "Adaptive, interview-first UI/UX design and mockups"
+  default_prompt: "Use $ux-ui to explore and align on UI/UX direction through conversation, then produce mockups, tokens, or showcases that fit the product."
+policy:
+  allow_implicit_invocation: true

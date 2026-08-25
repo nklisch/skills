@@ -62,7 +62,7 @@
         "source": "local",
         "path": "./plugins/ux-ui-design"
       },
-      "description": "HTML/CSS/JS mockup-first UI/UX design. Generate multi-option screen mockups, multi-page user flows, and design-system palettes as throwaway single-file mockups in .mockups/ for alignment before implementation. Loosely integrates with agile-workflow.",
+      "description": "Adaptive, interview-first UI/UX design. A concierge skill that aligns on goals, audience, usage, and visual direction through plain-language conversation, then produces whatever fits — mockups, journeys, token systems, component and motion showcases — capturing screenshots of its work as the committed visual record. Loosely integrates with agile-workflow.",
       "category": "Productivity",
       "policy": {
         "installation": "AVAILABLE",

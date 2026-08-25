@@ -124,13 +124,12 @@ that's left to the real design pass autopilot runs later.
 - **`epic-design --only-questions`** handles arc-level choices: what this
   epic actually delivers, what's in scope versus out, what shape the user
   experience takes. When `ux-ui-design` is installed, this pass also
-  invokes `:screens` and `:flows` for the cross-feature journeys clear at
-  this tier — visual decisions get pinned at the same time as product
-  ones.
+  offers its concierge for UI surfaces — visual decisions get pinned at
+  the same time as product ones.
 - **`feature-design --only-questions`** drills into each feature: which
   components to reuse, where the edges are, what the acceptance criteria
-  look like. It picks up any remaining `:screens` / `:flows` for surfaces
-  not covered upstream.
+  look like. It offers the concierge for any surfaces the epic's alignment
+  didn't cover.
 
 Why this works:
 
@@ -178,14 +177,16 @@ proposes a structure, confirms once with you, then writes everything as
 epics / features / stories with declared `depends_on`. You can narrow it
 in plain language: *"scope the auth stuff."*
 
-### Align the visual direction in tiers
+### Align the visual direction as you go
 
-For interface work, mock before production code:
+For interface work, align before production code. The `ux-ui-design`
+plugin's concierge interviews and adapts the artifact shape to the
+project; the natural moments to run it:
 
-1. Run `palette` and `components` after ideation.
-2. Create load-bearing screens and flows during epic alignment.
-3. Fill remaining feature-level gaps during feature alignment.
-4. Use an ad-hoc mock only when a later design exposes a new surface.
+1. After ideation, when the visual direction is still open.
+2. During epic alignment, for load-bearing surfaces and journeys.
+3. During feature alignment, for surfaces the epic didn't cover.
+4. Ad hoc, whenever a later design exposes a new surface.
 
 The full visual workflow is in
 [ux-ui-design-guide.md](ux-ui-design-guide.md).
@@ -199,9 +200,8 @@ New projects should use Workbench.
 # 1. Foundation docs
 /agile-workflow:ideate
 
-# 2. Visual identity — palette + components — so every later mock inherits
-/ux-ui-design:palette
-/ux-ui-design:components
+# 2. Visual identity, while direction is open — the concierge adapts the shape
+/ux-ui-design:ux-ui
 
 # 3. Bootstrap the substrate
 /agile-workflow:convert
@@ -226,9 +226,9 @@ foundation docs, and run `convert` again.
 **Expected result:** `.work/` exists, `epicize` has created drafting
 epics, the alignment passes have recorded decisions without advancing
 stages, and the goal can proceed without guessing at product direction.
-Palette and components first means every later mock inherits the visual
-voice; the two `--only-questions` passes mean every later autopilot stride
-inherits both directional and visual alignment.
+Settling the visual direction early means every later mock inherits the
+visual voice; the two `--only-questions` passes mean every later autopilot
+stride inherits both directional and visual alignment.
 
 ## Bootstrap an existing repository
 
@@ -239,8 +239,8 @@ before it writes:
 # 1. Bootstrap the substrate (detects existing project shape)
 /agile-workflow:convert
 
-# 2. (Optional) Audit + mirror existing UI into mocks
-/ux-ui-design:adopt
+# 2. (Optional) Audit + mock the existing UI with the concierge
+/ux-ui-design:ux-ui
 
 # 3. Cluster your backlog or fresh ideas into structured work
 /agile-workflow:scope    # batch mode — clusters everything in backlog
@@ -368,7 +368,7 @@ updated: 2026-05-10
 <written by /agile-workflow:feature-design — not a separate doc>
 
 ## Mockups
-<written when /ux-ui-design generates mocks against this item>
+<written when the ux-ui skill generates mocks against this item>
 
 ## Implementation notes
 <accumulated by /agile-workflow:implement as work progresses>

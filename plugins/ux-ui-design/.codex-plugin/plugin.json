@@ -1,7 +1,7 @@
 {
   "name": "ux-ui-design",
   "version": "0.5.0",
-  "description": "HTML/CSS/JS mockup-first UI/UX design. Generate multi-option screen mockups, multi-page user flows, and design-system palettes as throwaway single-file mockups in .mockups/ for alignment before implementation. Loosely integrates with agile-workflow.",
+  "description": "Adaptive, interview-first UI/UX design. A concierge skill that aligns on goals, audience, usage, and visual direction through plain-language conversation, then produces whatever fits \u2014 mockups, journeys, token systems, component and motion showcases \u2014 capturing screenshots of its work as the committed visual record. Loosely integrates with agile-workflow.",
   "author": {
     "name": "nklisch"
   },
@@ -10,8 +10,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "UX / UI Design",
-    "shortDescription": "Mockup-first UI/UX design in HTML/CSS/JS",
-    "longDescription": "Seven skills for design-phase UI/UX work: ux-ui-principles (auto-loading reference + AGENTS.md convention installer, with CLAUDE.md compatibility), palette (color + typography design system), components (reusable component library + showcase), motion (named easing curves + Doherty-coupled durations + spring presets + reduced-motion), screens (4-option single-screen mockups), flows (multi-page user journeys — sequential, hub-and-spoke, hybrid, map-as-canvas, chat-as-canvas), adopt (existing-project bootstrap that scans, audits, and orchestrates the pipeline in mirror, reimagine, or diegetic-prototype mode with Whose-Default mirror-mocks). All outputs are standalone single-file HTML mockups in .mockups/ — throwaway artifacts that align design decisions before implementation, loosely integrated with agile-workflow item ids.",
+    "shortDescription": "Adaptive, interview-first UI/UX design",
+    "longDescription": "One concierge skill (ux-ui) for design-phase UI/UX work. It interviews first \u2014 goals, audience, usage, and how the product should feel \u2014 in plain language (no named-style menus), then adapts the artifact shape to the project: comprehensive mockups, piece-by-piece option sets, additive extensions, or flow-shaped journeys. It offers screenshot capture of existing UIs (any product, not just HTML) to target or extract visual systems, standardization showcases for tokens/typography/components/motion, and style research and mashups. Mockups are throwaway single-file HTML in .mockups/; the agent captures screenshots of its own mockups and commits them as the durable visual record. Loosely integrated with agile-workflow item ids.",
     "developerName": "nklisch",
     "category": "Productivity",
     "capabilities": [
@@ -20,7 +20,7 @@
       "Bash"
     ],
     "defaultPrompt": [
-      "Use ux-ui-design to create mockup-first UI/UX design artifacts before production code."
+      "Use ux-ui-design to align on UI/UX direction through conversation before production code."
     ],
     "websiteURL": "https://github.com/nklisch/skills"
   }
