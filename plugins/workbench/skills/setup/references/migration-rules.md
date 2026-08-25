@@ -107,6 +107,9 @@ Examples of evidence-based proposals:
 - established feature squashes, checkpoint commits, integration batches, or a
   preserve-history policy → propose the matching `commit_posture`, accounting
   for merge policy and whether agents share branches;
+- an established preference for one main runner or dedicated delivery roles →
+  propose the matching `execution_posture`, treating item size as a routing hint
+  rather than a threshold;
 - a repository-specific practice with no Workbench category — such as generated
   file regeneration or changelog discipline — → propose it in its narrowest
   authoritative home, not as a new frontmatter field.

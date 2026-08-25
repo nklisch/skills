@@ -192,7 +192,7 @@ in chat. Keep human-facing documents clean and self-contained: lead with
 business or real-world meaning, define important non-obvious domain concepts
 before using them, and omit agent history or review narration.
 
-For substantive Workbench delivery, apply the configured review,
+For substantive Workbench delivery, apply the configured execution, review,
 simplification, and commit postures. Test meaningful behavior at stable
 interfaces, verify the full requested boundary, reconcile affected foundation
 truth and indexes, and close completed work. Reviewers propose; the outcome

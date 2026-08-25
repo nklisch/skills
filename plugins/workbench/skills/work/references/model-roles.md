@@ -4,6 +4,11 @@ Treat model names and version numbers as current examples, not an availability
 allowlist. Discover the models the harness can actually provide, then choose by
 role fit.
 
+Read [execution-posture.md](execution-posture.md) before assigning a role. Model
+selection applies only when the effective posture permits another agent
+context. Under `inline`, use the main agent at an appropriate reasoning level
+for every role and separate review passes by lens without claiming independence.
+
 | Role | Good fits | Use them for |
 |---|---|---|
 | Taste-led design | Fable / Opus, Kimi K3; GLM 5.3 as a strong substitute | UI/UX, creativity, product feel, and choices where taste matters |

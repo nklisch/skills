@@ -1,6 +1,9 @@
 # Simplification Posture
 
-Use this posture across design, implementation, and independent review for every concrete Workbench workflow. It controls how proactively the workflow pursues behavior-preserving reduction; `review_weight` separately controls independent-review depth and repetition.
+Use this posture across design, implementation, and every applicable review pass
+for a concrete Workbench workflow. It controls how proactively the workflow
+pursues behavior-preserving reduction; `review_weight` separately controls review
+depth and repetition, while execution posture controls who performs each pass.
 
 Resolve the effective `simplification_posture` from explicit user direction, `.work/CONVENTIONS.md`, then `balanced`:
 

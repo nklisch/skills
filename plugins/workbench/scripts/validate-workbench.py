@@ -23,6 +23,7 @@ ALLOWED_STATUSES = {"active", "blocked"}
 ALLOWED_REVIEW_WEIGHTS = {"none", "light", "standard", "thorough", "maximum"}
 ALLOWED_SIMPLIFICATION_POSTURES = {"hygiene", "balanced", "structural"}
 ALLOWED_AUTONOMY = {"adaptive", "collaborative", "autonomous"}
+ALLOWED_EXECUTION_POSTURES = {"inline", "adaptive", "orchestrated"}
 ALLOWED_COMMIT_POSTURES = {"adaptive", "feature", "checkpoint", "batch", "preserve"}
 KEBAB_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 ALLOWED_PARENT_CHILD_KINDS = {("epic", "feature"), ("feature", "story")}
@@ -211,6 +212,14 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
     autonomy = config.get("autonomy", "adaptive")
     if autonomy not in ALLOWED_AUTONOMY:
         errors.append("autonomy must be adaptive, collaborative, or autonomous")
+    execution_posture = config.get("execution_posture", "adaptive")
+    if (
+        not isinstance(execution_posture, str)
+        or execution_posture not in ALLOWED_EXECUTION_POSTURES
+    ):
+        errors.append(
+            "execution_posture must be inline, adaptive, or orchestrated"
+        )
     commit_posture = config.get("commit_posture", "adaptive")
     if (
         not isinstance(commit_posture, str)

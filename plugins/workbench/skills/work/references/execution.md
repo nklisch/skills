@@ -23,14 +23,21 @@ independent focus, specialized capability, isolation, or throughput exceeds
 handoff and integration cost. When selecting a delegate, use
 [model-roles.md](model-roles.md) to match capability and reasoning level to the
 role rather than spending a top design model on routine execution by default.
+Apply [execution-posture.md](execution-posture.md) first. Under `inline`, the
+main agent performs every unit sequentially in its current context while still
+owning the wider integration boundary. Under `adaptive`, stories and small
+coherent features normally remain inline; larger or cross-cutting units use
+dedicated or mixed roles only when the handoff earns its cost. Under
+`orchestrated`, prefer dedicated role agents when available.
 
 Before assigning a unit, inspect its item and affected repository surfaces for
 design readiness. A decomposed or accepted item is not necessarily designed.
 Keep local, reversible choices inline when repository evidence and brief
 reasoning can resolve them confidently. When meaningful discovery, alternatives,
 boundary definition, or adjudication remains, use `design` and complete its
-review before a sub-agent begins. Prefer a dedicated fresh-context design agent
-when available, while keeping final synthesis with the orchestrator.
+review before implementation begins. Whether a dedicated designer performs that
+work follows the effective execution posture; the outcome owner always retains
+final synthesis.
 
 Assign non-overlapping write surfaces and explicit output evidence. Use
 worktrees when isolation materially improves collision avoidance or rollback,
@@ -39,7 +46,7 @@ not merely because several units exist.
 Give each deliverer the explicit orchestrated mode, parent outcome, accepted
 scope, owned write surface, integration contract, relevant conventions and
 patterns, required checks, effective review weight, effective simplification
-posture, and return evidence. Do not make a deliverer rediscover rules the
+posture, effective execution posture, and return evidence. Do not make a deliverer rediscover rules the
 orchestrator already loaded. Deliverers report stale patterns and promotion
 candidates. Keep the shared pattern catalog in the outcome owner's write surface
 so parallel units do not collide.

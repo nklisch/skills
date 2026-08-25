@@ -27,7 +27,7 @@ Respect stronger Git rules in repository instructions and established contributi
 
 ## Stable review targets
 
-Before independent review, identify a stable target:
+Before a distinct review pass, identify a stable target:
 
 - normally a coherent commit or commit range;
 - a clearly bounded working-tree diff when committing would interfere with concurrent work or contradict the effective posture.
