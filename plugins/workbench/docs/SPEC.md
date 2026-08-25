@@ -23,6 +23,7 @@
 └── bibliography.yaml
 
 .knowledge/index.json
+.knowledge/index-exclusions.txt  # optional tracked path-prefix exclusions
 .mockups/<item-id>/index.html
 docs/<repository-wide foundations>
 docs/<sub-project>/<scope-owned foundations>
@@ -629,7 +630,13 @@ or without explicit approval.
 `build-knowledge-index.py` indexes root and sub-project documentation,
 `.research/**/*.md`, and `.work/**/*.md`. It emits byte-stable JSON, rejects
 duplicate namespace/id pairs and unresolved relationships, generates the
-bibliography, and checks committed freshness with `--check`.
+bibliography, and checks committed freshness with `--check`. Projects may
+track `.knowledge/index-exclusions.txt` with one repository-relative path
+prefix per line; the builder prunes those trees before traversal. Repeatable
+`--exclude <path>` arguments add invocation-scoped exclusions. Exclusions are
+selected from repository context when companion checkouts, generated docs, or
+other irrelevant trees would undermine useful deterministic discovery; they
+must not conceal errors in intended indexed material.
 
 Allowed knowledge relationships are `supports`, `contradicts`, `informs`, and
 `supersedes`. Work hierarchy and scheduling continue to use `parent`,

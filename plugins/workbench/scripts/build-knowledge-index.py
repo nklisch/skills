@@ -15,6 +15,7 @@ from _frontmatter import first_heading, parse
 
 
 RELATIONSHIPS = {"supports", "contradicts", "informs", "supersedes"}
+EXCLUSIONS_FILE = Path(".knowledge/index-exclusions.txt")
 IGNORED_PARTS = {
     ".git",
     ".venv",
@@ -23,6 +24,85 @@ IGNORED_PARTS = {
     "node_modules",
     "vendor",
 }
+
+
+def normalize_exclusion(value: str, source: str, errors: list[str]) -> Path | None:
+    candidate = value.strip().rstrip("/")
+    if not candidate:
+        errors.append(f"{source}: exclusion must not be empty")
+        return None
+    if "\\" in candidate:
+        errors.append(f"{source}: exclusion must use repository-relative '/' paths")
+        return None
+    if candidate.startswith("/") or (
+        len(candidate) > 1 and candidate[1] == ":"
+    ) or any(
+        part in {"", ".", ".."} for part in candidate.split("/")
+    ):
+        errors.append(f"{source}: exclusion must stay within the project: {value!r}")
+        return None
+    if any(character in candidate for character in "*?["):
+        errors.append(f"{source}: exclusion is a path prefix, not a glob: {value!r}")
+        return None
+    return Path(candidate)
+
+
+def load_exclusions(project: Path, cli_values: list[str]) -> tuple[tuple[Path, ...], list[str]]:
+    errors: list[str] = []
+    exclusions: set[Path] = set()
+    config = project / EXCLUSIONS_FILE
+    if config.is_file():
+        for line_number, line in enumerate(config.read_text(encoding="utf-8").splitlines(), 1):
+            value = line.strip()
+            if not value or value.startswith("#"):
+                continue
+            exclusion = normalize_exclusion(
+                value,
+                f"{EXCLUSIONS_FILE.as_posix()}:{line_number}",
+                errors,
+            )
+            if exclusion is not None:
+                exclusions.add(exclusion)
+    for index, value in enumerate(cli_values, 1):
+        exclusion = normalize_exclusion(value, f"--exclude #{index}", errors)
+        if exclusion is not None:
+            exclusions.add(exclusion)
+    return tuple(sorted(exclusions, key=lambda path: path.as_posix())), errors
+
+
+def is_excluded(relative: Path, exclusions: tuple[Path, ...]) -> bool:
+    return any(relative == exclusion or exclusion in relative.parents for exclusion in exclusions)
+
+
+def markdown_paths(project: Path, exclusions: tuple[Path, ...]) -> list[Path]:
+    paths: list[Path] = []
+    for root, directories, filenames in os.walk(project, topdown=True, followlinks=False):
+        root_path = Path(root)
+        relative_root = root_path.relative_to(project)
+        retained_directories: list[str] = []
+        for directory in sorted(directories):
+            relative = relative_root / directory
+            if is_excluded(relative, exclusions):
+                continue
+            if (
+                relative.parts[0] not in {".research", ".work"}
+                and directory in IGNORED_PARTS
+            ):
+                continue
+            retained_directories.append(directory)
+        directories[:] = retained_directories
+        for filename in sorted(filenames):
+            if not filename.endswith(".md"):
+                continue
+            path = root_path / filename
+            if not path.is_file():
+                continue
+            relative = path.relative_to(project)
+            if is_excluded(relative, exclusions):
+                continue
+            if relative.parts[0] in {".research", ".work"} or "docs" in relative.parts:
+                paths.append(path)
+    return paths
 
 
 def namespace_for(relative: Path) -> str:
@@ -92,24 +172,13 @@ def atomic_write(path: Path, content: str) -> None:
             os.unlink(temp_name)
 
 
-def collect(project: Path) -> tuple[list[dict[str, Any]], list[str], list[dict[str, Any]]]:
+def collect(
+    project: Path, exclusions: tuple[Path, ...] = ()
+) -> tuple[list[dict[str, Any]], list[str], list[dict[str, Any]]]:
     errors: list[str] = []
     entries: list[dict[str, Any]] = []
     bibliography: list[dict[str, Any]] = []
-    paths = {
-        path
-        for pattern in (".research/**/*.md", ".work/**/*.md")
-        for path in project.glob(pattern)
-        if path.is_file()
-    }
-    paths.update(
-        path
-        for path in project.rglob("*.md")
-        if path.is_file()
-        and "docs" in path.relative_to(project).parts
-        and not IGNORED_PARTS.intersection(path.relative_to(project).parts)
-    )
-    paths = sorted(paths)
+    paths = markdown_paths(project, exclusions)
     seen: set[tuple[str, str]] = set()
 
     for path in paths:
@@ -181,9 +250,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("project", nargs="?", default=".", help="Project root")
     parser.add_argument("--check", action="store_true", help="Validate without writing")
+    parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="Exclude a repository-relative path prefix; repeat as needed",
+    )
     args = parser.parse_args()
     project = Path(args.project).resolve()
-    entries, errors, bibliography = collect(project)
+    exclusions, errors = load_exclusions(project, args.exclude)
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}")
+        print(f"Knowledge index failed: {len(errors)} error(s)")
+        return 1
+    entries, errors, bibliography = collect(project, exclusions)
     for error in errors:
         print(f"ERROR: {error}")
     if errors:

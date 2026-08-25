@@ -32,7 +32,8 @@
 ├── briefs/.gitkeep
 ├── briefs/<id>.md
 └── bibliography.yaml
-.knowledge/index.json  # committed, deterministic discovery index
+.knowledge/index.json            # committed, deterministic discovery index
+.knowledge/index-exclusions.txt  # optional tracked path-prefix exclusions
 docs/<repository-wide foundations>
 <sub-project>/docs/<scope-owned foundations>
 docs/<sub-project>/<scope-owned foundations>

@@ -107,6 +107,19 @@ Use frontmatter `relationships` with `supports`, `contradicts`, `informs`, or
 
 ## Validate
 
+Before rebuilding, inspect the intended documentation roots and
+`.knowledge/index-exclusions.txt` when present. If a repository-local companion
+checkout, generated documentation tree, or other unrelated subtree would make
+the index depend on local state or bury useful discovery, decide whether to
+exclude it from this project's index. Use repository context and the user's
+research boundary; do not infer exclusion from a directory name alone. Record
+recurring exclusions as repository-relative path prefixes in the tracked
+`.knowledge/index-exclusions.txt`, one per line with optional `#` comments.
+Use repeatable `--exclude <path>` arguments for temporary or caller-supplied
+exclusions, passing the same arguments to the rebuild and `--check` commands.
+Do not exclude intended project documentation, `.work/`, or `.research/`
+merely to silence metadata or relationship errors.
+
 Run:
 
 ```bash

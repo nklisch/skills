@@ -137,6 +137,62 @@ relationships: []
         self.assertEqual(result.returncode, 1)
         self.assertIn("missing or stale", result.stdout)
 
+    def test_tracked_path_prefix_excludes_companion_documentation(self) -> None:
+        root = self.make_project()
+        write(
+            root / "repo-ref/companion/docs/SPEC.md",
+            "# Companion specification\n",
+        )
+        write(
+            root / "repo-reference/docs/LOCAL.md",
+            "# Project-owned reference\n",
+        )
+        write(
+            root / ".knowledge/index-exclusions.txt",
+            "# Local companion repositories are not project knowledge.\nrepo-ref/\n",
+        )
+        result = self.run_tool(INDEX, root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        payload = json.loads((root / ".knowledge/index.json").read_text(encoding="utf-8"))
+        paths = {entry["path"] for entry in payload["entries"]}
+        self.assertNotIn("repo-ref/companion/docs/SPEC.md", paths)
+        self.assertIn("repo-reference/docs/LOCAL.md", paths)
+        self.assertIn("docs/ARCHITECTURE.md", paths)
+        check = self.run_tool(INDEX, root, "--check")
+        self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+
+    def test_repeatable_cli_exclusions_are_applied(self) -> None:
+        root = self.make_project()
+        write(root / "generated/docs/A.md", "# Generated A\n")
+        write(root / "companion/docs/B.md", "# Companion B\n")
+        result = self.run_tool(
+            INDEX,
+            root,
+            "--exclude",
+            "generated",
+            "--exclude",
+            "companion/docs",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        payload = json.loads((root / ".knowledge/index.json").read_text(encoding="utf-8"))
+        paths = {entry["path"] for entry in payload["entries"]}
+        self.assertNotIn("generated/docs/A.md", paths)
+        self.assertNotIn("companion/docs/B.md", paths)
+
+    def test_invalid_exclusion_fails_without_writing(self) -> None:
+        root = self.make_project()
+        write(root / ".knowledge/index-exclusions.txt", "../outside\n")
+        result = self.run_tool(INDEX, root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("must stay within the project", result.stdout)
+        self.assertFalse((root / ".knowledge/index.json").exists())
+
+    def test_portable_absolute_exclusion_fails(self) -> None:
+        root = self.make_project()
+        result = self.run_tool(INDEX, root, "--exclude", "C:/outside")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("must stay within the project", result.stdout)
+
     def test_absent_research_is_not_an_error(self) -> None:
         root = Path(tempfile.mkdtemp())
         result = self.run_tool(LINT, root)

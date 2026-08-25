@@ -331,7 +331,13 @@ python3 <workbench-plugin-root>/scripts/validate-workbench.py <project-root>
 ```
 
 When `.research/` exists or conversion creates research artifacts, also rebuild
-and validate `.knowledge/index.json`.
+and validate `.knowledge/index.json`. Before rebuilding, inspect the intended
+documentation roots and any existing `.knowledge/index-exclusions.txt`.
+Repository-local companion checkouts, generated documentation, and other
+irrelevant trees may be excluded when indexing them would make discovery
+nondeterministic or noisy. Choose from repository evidence rather than directory
+names, persist recurring repository-relative path prefixes, and do not use
+exclusions to hide errors in documentation the project intends to index.
 
 Reconcile source and target inventories. Confirm the planned removal set matches
 leaf-level dispositions before cleanup. Confirm relationships resolve, completed
