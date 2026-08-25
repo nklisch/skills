@@ -1,7 +1,7 @@
 {
   "name": "ux-ui-design",
-  "description": "Adaptive, interview-first UI/UX design. A concierge skill that aligns on goals, audience, usage, and visual direction through plain-language conversation, then produces whatever fits \u2014 mockups, journeys, token systems, component and motion showcases \u2014 capturing screenshots of its work as the committed visual record. Loosely integrates with agile-workflow.",
-  "version": "0.5.0",
+  "description": "Adaptive, interview-first UI/UX design. A concierge skill that aligns on goals, audience, usage, and visual direction through plain-language conversation, then produces whatever fits — mockups, journeys, token systems, component and motion showcases — capturing screenshots of its work as the committed visual record. Loosely integrates with agile-workflow.",
+  "version": "1.0.0",
   "author": {
     "name": "nklisch"
   },

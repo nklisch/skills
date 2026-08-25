@@ -1,7 +1,7 @@
 {
   "name": "ux-ui-design",
-  "version": "0.5.0",
-  "description": "Adaptive, interview-first UI/UX design. A concierge skill that aligns on goals, audience, usage, and visual direction through plain-language conversation, then produces whatever fits \u2014 mockups, journeys, token systems, component and motion showcases \u2014 capturing screenshots of its work as the committed visual record. Loosely integrates with agile-workflow.",
+  "version": "1.0.0",
+  "description": "Adaptive, interview-first UI/UX design. A concierge skill that aligns on goals, audience, usage, and visual direction through plain-language conversation, then produces whatever fits — mockups, journeys, token systems, component and motion showcases — capturing screenshots of its work as the committed visual record. Loosely integrates with agile-workflow.",
   "author": {
     "name": "nklisch"
   },
@@ -11,7 +11,7 @@
   "interface": {
     "displayName": "UX / UI Design",
     "shortDescription": "Adaptive, interview-first UI/UX design",
-    "longDescription": "One concierge skill (ux-ui) for design-phase UI/UX work. It interviews first \u2014 goals, audience, usage, and how the product should feel \u2014 in plain language (no named-style menus), then adapts the artifact shape to the project: comprehensive mockups, piece-by-piece option sets, additive extensions, or flow-shaped journeys. It offers screenshot capture of existing UIs (any product, not just HTML) to target or extract visual systems, standardization showcases for tokens/typography/components/motion, and style research and mashups. Mockups are throwaway single-file HTML in .mockups/; the agent captures screenshots of its own mockups and commits them as the durable visual record. Loosely integrated with agile-workflow item ids.",
+    "longDescription": "One concierge skill (ux-ui) for design-phase UI/UX work. It interviews first — goals, audience, usage, and how the product should feel — in plain language (no named-style menus), then adapts the artifact shape to the project: comprehensive mockups, piece-by-piece option sets, additive extensions, or flow-shaped journeys. It offers screenshot capture of existing UIs (any product, not just HTML) to target or extract visual systems, standardization showcases for tokens/typography/components/motion, and style research and mashups. Mockups are throwaway single-file HTML in .mockups/; the agent captures screenshots of its own mockups and commits them as the durable visual record. Loosely integrated with agile-workflow item ids.",
     "developerName": "nklisch",
     "category": "Productivity",
     "capabilities": [
