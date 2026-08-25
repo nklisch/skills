@@ -122,7 +122,8 @@ Workbench keeps its state deliberately small:
 └── briefs/             # grounded synthesis across sources
 
 .knowledge/
-└── index.json           # deterministic discovery metadata
+├── index.json           # deterministic discovery metadata
+└── index-exclusions.txt # optional tracked path-prefix exclusions
 
 .mockups/                # optional UI alignment artifacts
 .agents/skills/patterns/ # canonical pattern index; references grow from evidence
@@ -189,6 +190,11 @@ knowledge index.
 Research attestations record what external sources actually support. Research
 briefs synthesize across those sources. The knowledge index makes durable
 material discoverable, but it is not evidence or project truth on its own.
+When a repository contains companion checkouts, generated documentation, or
+other irrelevant trees, it can track repository-relative path prefixes in
+`.knowledge/index-exclusions.txt`. The builder prunes those trees before
+scanning; agents choose exclusions from repository context and keep intended
+project documentation visible.
 
 Workbench validators check structure, relationships, citations, and generated
 state whenever agents create or reshape the corresponding artifacts.

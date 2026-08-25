@@ -489,7 +489,9 @@ After adoption, the repo carries:
 ├── briefs/             # grounded synthesis across sources
 └── bibliography.yaml   # generated — don't edit by hand
 
-.knowledge/index.json   # deterministic discovery metadata
+.knowledge/
+├── index.json           # deterministic discovery metadata
+└── index-exclusions.txt # optional tracked path-prefix exclusions
 .mockups/               # optional UI alignment artifacts
 .agents/skills/patterns/ # canonical index; references grow from evidence
 .agents/skills/scan-*/   # optional user-confirmed project scan lenses
@@ -510,7 +512,12 @@ and do not rewrite roadmap content incidentally. Setup may offer Workbench
 recognition of this convention, but creates or adopts it only after your
 explicit approval and never by default. Git is the history, `.research/` is
 external evidence, and the knowledge index is discovery metadata with no
-authority of its own.
+authority of its own. If local companion checkouts, generated documentation, or
+another irrelevant tree would make that index noisy or clone-dependent, agents
+may record repository-relative prefixes in
+`.knowledge/index-exclusions.txt`. They should decide from repository context,
+not directory names, and should not exclude intended documentation to hide an
+indexing error.
 
 ## Recover from common issues
 
