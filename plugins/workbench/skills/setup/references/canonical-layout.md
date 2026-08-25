@@ -73,6 +73,7 @@ completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
 simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
+execution_posture: inline|adaptive|orchestrated  # optional; missing means adaptive
 commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
 roadmap: true|false  # optional; missing means false
 release_gates:       # optional; missing or empty means disabled
@@ -96,6 +97,16 @@ concerns. See [scan's release-gate contract](../../scan/references/release-gates
 or reconciled the project. Read
 [version-compatibility.md](version-compatibility.md) for mismatch handling.
 
+The optional `execution_posture` controls only the core delivery roles: design,
+implementation, and review. Explicit user direction overrides the project
+setting; missing uses `adaptive`. `inline` keeps those roles in the main agent
+context without weakening formal design or review depth, while `orchestrated`
+prefers dedicated role agents when available. Adaptive uses item kind and size
+only as light routing signals and may choose a mixed role split. A project may
+record a concise preferred split in convention prose without extending the
+frontmatter enum. See
+[execution-posture.md](../../work/references/execution-posture.md).
+
 Keep the body limited to authoritative verification commands, delivery rules,
 and Workbench-specific project guidance. It may hold a confirmed
 repository-specific delivery rule that has no narrower authority; frontmatter
@@ -104,8 +115,9 @@ agent invariants in `AGENTS.md`, engineering principles in `docs/PRINCIPLES.md`,
 and detailed recurring implementation shapes in `.agents/skills/patterns/`.
 Existing substrates without `review_weight` resolve it as `standard`; those without
 `simplification_posture` resolve it as `balanced`; those without `autonomy`
-resolve it as `adaptive`; and those without `commit_posture` use the adaptive
-Git posture. Setup writes user-confirmed values when refreshing them.
+resolve it as `adaptive`; those without `execution_posture` use adaptive
+topology; and those without `commit_posture` use the adaptive Git posture. Setup
+writes user-confirmed values when refreshing them.
 
 Commit boundaries represent meaningful code changes, not work-item transitions.
 The optional `commit_posture` selects adaptive, feature, checkpoint, batch, or

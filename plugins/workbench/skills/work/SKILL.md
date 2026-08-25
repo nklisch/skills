@@ -51,8 +51,8 @@ flowchart TD
     E --> F
     F --> G{"Can evidence and brief reasoning settle the shape?"}
     G -- "Yes" --> H["Route each ready unit through deliver"]
-    G -- "No" --> I["Formal design; prefer a dedicated design agent"]
-    I --> J["Review at configured weight; prefer cross-model"]
+    G -- "No" --> I["Formal design under effective execution posture"]
+    I --> J["Review at configured weight and execution posture"]
     J --> H
     H --> K["Integrate, verify, review, reconcile, and close"]
 ```
@@ -72,7 +72,8 @@ user explicitly selects a Workbench handoff.
 Load references only as needed:
 
 - every substantive request and continuation boundary →
-  [references/autonomy.md](references/autonomy.md);
+  [references/autonomy.md](references/autonomy.md) and
+  [references/execution-posture.md](references/execution-posture.md);
 - requirements or consequential ambiguity →
   [references/requirements.md](references/requirements.md);
 - item creation, relationships, blocking, completion, or summaries →
@@ -203,9 +204,12 @@ revising or adopting it requires an explicit next outcome.
 
 ## Execute to the requested finish line
 
-Order work from real prerequisites. For a multi-unit boundary, act as the
-outcome owner and orchestrator; for small coherent work, execute directly when
-delegation would add no value.
+Order work from real prerequisites. Resolve the effective execution posture
+from explicit user direction, the optional project convention, then `adaptive`.
+For a multi-unit boundary, act as the outcome owner and orchestrator even when
+every unit runs inline. For small coherent work, execute directly unless the
+effective posture and actual work make a role handoff worthwhile. Under
+`inline`, spawn no separate design, implementation, or review agents.
 
 Before implementing or delegating each feature, story, or other coherent unit,
 read [references/simplification.md](references/simplification.md), resolve the
@@ -221,12 +225,15 @@ not use a size label alone as the gate. A direct user request to design stops
 after design, while an end-to-end delivery request resumes implementation
 afterward.
 
-Route each ready feature or story through Workbench's `deliver` skill. Resolve
-the effective Git posture from explicit user direction, the optional project
-convention, then `adaptive`. For one ready item, direct mode lets `deliver` own
+Route each ready feature or story through Workbench's `deliver` skill. Skill
+routing does not itself require a new agent context: under `inline`, the main
+agent performs the deliver workflow directly. Resolve the effective Git posture
+from explicit user direction, the optional project convention, then `adaptive`.
+For one ready item, direct mode lets `deliver` own
 item-level implementation, review, reconciliation, and closure. For a wider
-boundary, call it in orchestrated mode with the parent outcome, non-overlapping
-write surface, integration contract, effective Git posture, and return evidence.
+boundary, use orchestrated mode with the parent outcome, non-overlapping write
+surface, integration contract, effective Git posture, effective execution
+posture, and return evidence. The deliverer may be the main agent or a role agent.
 Under `batch`, `work` owns the wider commit boundary; deliverers must not reshape
 the wider history independently. Orchestrated deliverers report stale patterns and credible
 promotion candidates instead of writing the shared pattern catalog. During a

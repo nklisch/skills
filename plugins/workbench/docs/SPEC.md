@@ -119,6 +119,7 @@ completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
 simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
+execution_posture: inline|adaptive|orchestrated  # optional; missing means adaptive
 commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
 roadmap: true|false  # optional; missing means false
 release_gates:       # optional; missing or empty means disabled
@@ -147,8 +148,8 @@ contract-truth ownership), and whether to establish or extend
 (contract truth ownership, compatibility is earned, leave it simpler), and,
 when bootstrapping, optional code-design principle candidates; it also aligns
 repository-specific conventions, including review weight, simplification
-posture, and autonomy. Setup always offers its optional configurations — commit
-posture, release gates, Workbench recognition of a user-owned roadmap, and the
+posture, and autonomy. Setup always offers its optional configurations — execution
+posture, commit posture, release gates, Workbench recognition of a user-owned roadmap, and the
 `CLAUDE.md` compatibility projection — as explicit opt-in, decline, or defer
 choices. Repository evidence may recommend a choice but never controls whether
 it is offered or silently adopts it. On refresh, setup presents an already
@@ -171,7 +172,8 @@ confirmation. A missing `review_weight`
 resolves to `standard`; missing `simplification_posture` resolves to `balanced`;
 missing `autonomy` resolves to
 `adaptive`; missing `commit_posture` resolves to
-`adaptive`; missing `roadmap` resolves to `false`.
+`adaptive`; missing `execution_posture` resolves to `adaptive`; missing
+`roadmap` resolves to `false`.
 `workbench_version` has no fallback: setup stamps it from the verified loaded
 plugin after successful reconciliation. The frontmatter schema is closed.
 Confirmed repository-specific delivery rules that have no narrower authority
@@ -288,23 +290,40 @@ Autonomy never expands scope, authority, safety boundaries, or quality
 obligations. Workarounds require a real constraint and retain the constraint,
 consequence, and better future direction.
 
+The effective `execution_posture` resolves from explicit user direction, the
+optional project convention, then `adaptive`. It governs the core delivery
+roles without changing formal design or review obligations:
+
+- `inline` keeps design, implementation, and review in the main agent context;
+- `adaptive` normally keeps stories and small coherent features inline and uses
+  dedicated or mixed roles when focus, consequence, isolation, specialization,
+  or throughput earns the handoff cost;
+- `orchestrated` prefers dedicated design, implementation, and review agents
+  when available while the main agent owns synthesis and integration.
+
+Item kind and apparent size are routing hints, not thresholds. A project may
+state a preferred mixed role assignment in convention prose, and explicit user
+direction always overrides the default. Scan, research, and other specialist
+workflows retain their own proportionate fan-out rules.
+
 For a concrete Workbench design or delivery workflow, the effective
 `review_weight` resolves from explicit user direction, `.work/CONVENTIONS.md`,
 then `standard`. It does not govern general reviews, audits, planning,
 explanations, or unrelated requests made in the repository:
 
-- `none` uses self-review only while preserving verification;
-- `light` permits at most one risk-warranted fresh-context pass;
+- `none` adds no distinct review pass while preserving verification;
+- `light` permits at most one risk-warranted pass;
 - `standard` gives each substantive design and each completed integrated
-  implementation boundary exactly one balanced fresh-context pass, then corrects,
+  implementation boundary exactly one balanced pass, then corrects,
   verifies, and self-reviews findings without re-reviewing that target;
-- `thorough` uses independent passes, correcting and verifying between them
+- `thorough` uses distinct passes, correcting and verifying between them
   until no unresolved blocking finding remains; material, minor, and nit
   findings may be parked, accepted, or rejected through outcome-owner
   adjudication;
 - `maximum` uses thorough convergence with complementary, adversarial, and
-  cross-model coverage when available until no unresolved material or blocking
-  finding remains; minor and nit findings may remain.
+  cross-model coverage when the execution posture permits and it is available
+  until no unresolved material or blocking finding remains; minor and nit
+  findings may remain.
 
 Review implementation-shaping designs before implementation becomes expensive
 to reverse. Review completed implementation at its integrated contract
@@ -319,8 +338,8 @@ Every reviewer is instructed not to invent requirements or expand scope, to
 flag overbuilding, and to judge against the rational expectations of the actual
 project type. Missing or contradicted authorized requirements may be blocking
 findings; adjacent improvements are non-blocking follow-ups and may be parked.
-A correction and its verification are not another independent pass. Only
-`thorough`, `maximum`, or explicit user direction repeat independent passes over
+A correction and its verification are not another distinct pass. Only
+`thorough`, `maximum`, or explicit user direction repeat distinct passes over
 the same target. Thorough review converges when no unresolved blocking finding
 remains; maximum review converges when no unresolved material finding remains.
 Minor and nit
@@ -356,7 +375,7 @@ measured performance constraints, and avoids obvious plausible performance
 regressions in affected code. It does not require speculative profiling,
 benchmarking, or low-level optimization without a constraint or credible risk.
 The posture controls simplification emphasis, while `review_weight` controls
-independent-review depth and repetition. It never makes unrelated cleanup part
+review depth and repetition and execution posture controls runner topology. It never makes unrelated cleanup part
 of acceptance.
 
 ## Work behavior
@@ -388,7 +407,7 @@ the shared pattern catalog or closes the parent boundary.
 Features and standalone stories are integrated review boundaries. A story
 nested under a feature is an implementation slice: `deliver` verifies and closes
 it, then returns evidence for the feature's integrated review instead of running
-a duplicate independent pass. `work` remains the natural-language outcome owner
+a duplicate review pass. `work` remains the natural-language outcome owner
 for scoping, requirements, design routing, multi-unit orchestration, wider
 integration, and parent closure. It does not repeat completed item-level review;
 it reviews only substantive wider integration behavior not already covered.
@@ -703,7 +722,7 @@ advisory warning, and checks canonical directories and clone-stable markers,
 item schemas, globally unique ids, title and body presence, parent-kind
 pairs, parent and dependency cycles, relationship integrity, readiness state,
 blocker evidence, research and mock references, superseded substrate paths,
-the optional `commit_posture` enum, and the shape of a declared `release_gates`
+the optional `execution_posture` and `commit_posture` enums, and the shape of a declared `release_gates`
 list (unique lowercase kebab-case names). Semantic tier fit, roadmap authority
 boundaries, gate-definition quality, and the value of ordering edges remain
 review judgments.

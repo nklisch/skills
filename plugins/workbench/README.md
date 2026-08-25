@@ -203,8 +203,8 @@ conventions (where foundation documents live, how they are named, and whether
 contract truth lives in code or
 documents) — and records them where they belong, mostly `.work/CONVENTIONS.md`,
 where you can change them later. It always offers the optional Workbench
-configurations as opt-in, decline, or defer choices: commit posture, release
-gates, Workbench recognition of a user-owned roadmap, and the `CLAUDE.md`
+configurations as opt-in, decline, or defer choices: execution posture, commit
+posture, release gates, Workbench recognition of a user-owned roadmap, and the `CLAUDE.md`
 compatibility projection. Repository evidence may explain why one is useful,
 but never hides the choice or adopts it for you.
 
@@ -294,9 +294,8 @@ Formal design is not determined by an item's size label. Small and modest work
 usually stays inline when repository evidence and brief reasoning can resolve
 the choices confidently. The dedicated skill earns its cost when discovery,
 alternatives, interface boundaries, or consequential trade-offs need to be
-settled before implementation. When available, Workbench prefers a dedicated
-fresh-context design agent and a reviewer from another model family, while the
-orchestrator retains responsibility for the final choice.
+settled before implementation. Who performs that design follows the execution
+posture; a formal design can remain entirely in the main agent context.
 
 The design skill selects the lens that matches the work:
 
@@ -330,7 +329,7 @@ choose how proactively concrete workflows pursue behavior-preserving reduction:
 | `balanced` | Actively simplify the affected contract boundary, including cohesive file movement or decomposition when worthwhile. This is the default. |
 | `structural` | Challenge the full authorized outcome boundary and permit cohesive file breakouts, consolidation, or substantial restructuring when demonstrably simpler and verifiable. |
 
-The posture applies to design, implementation, and each independent review pass.
+The posture applies to design, implementation, and each applicable review pass.
 It does not expand the requested outcome. Simplification preserves observable
 behavior and measured performance constraints and avoids obvious plausible
 performance regressions in affected code; it does not trigger speculative
@@ -380,22 +379,40 @@ only for exclusively owned history where consolidation is simple and safe.
 Workbench never requires ledger-only commits or rewrites shared history to
 achieve an ideal shape.
 
+## Execution posture
+
+Projects may choose how Workbench assigns its core delivery roles:
+
+| Posture | Expected execution |
+|---|---|
+| `inline` | The main agent performs design, implementation, and review. |
+| `adaptive` | Keep stories and small coherent features inline; use dedicated or mixed roles when their focus earns the handoff cost. This is the default. |
+| `orchestrated` | Prefer dedicated design, implementation, and review agents when available; the main agent owns synthesis and integration. |
+
+Item kind and apparent size are useful hints, not thresholds. A large mechanical
+change may remain inline, while a small specialized or consequential change may
+benefit from another context. A project can state a preferred mixed split in
+convention prose, and your current request always overrides the default.
+
+Execution posture does not change whether formal design, verification, or
+configured review depth applies. Scan, research, and other specialist workflows
+retain their own proportionate fan-out behavior.
+
 ## Review depth
 
-For a concrete Workbench workflow, one `review_weight` controls independent
-review of both its consequential designs and its completed implementation. An
-independent pass means another agent reviews the artifact without relying on the
-conversation that produced it. The setting is a delivery control, not a global
+For a concrete Workbench workflow, one `review_weight` controls review depth for
+both its consequential designs and its completed implementation. Execution
+posture controls who performs that review. The setting is a delivery control, not a global
 instruction for every review, audit, planning discussion, explanation, or loose
 request in the repository.
 
 | Weight | Expected review |
 |---|---|
-| `none` | Self-review and behavioral verification only. |
-| `light` | At most one focused independent pass when risk warrants it. |
-| `standard` | Exactly one balanced independent pass for each eligible design and completed integrated implementation boundary. Correct, verify, and self-review findings without re-reviewing the target. This is the default. |
+| `none` | No distinct review pass; behavioral verification remains required. |
+| `light` | At most one focused pass when risk warrants it. |
+| `standard` | Exactly one balanced pass for each eligible design and completed integrated implementation boundary. Correct, verify, and self-review findings without re-reviewing the target. This is the default. |
 | `thorough` | Multi-pass convergence: correct and verify between passes until no unresolved blocking finding remains. Material, minor, and nit findings may be parked, accepted, or rejected through outcome-owner adjudication. |
-| `maximum` | Thorough convergence using different specialties, adversarial perspectives, and more than one model when available, until no unresolved material or blocking finding remains. Minor and nit findings may remain. |
+| `maximum` | Thorough convergence using complementary and adversarial lenses, plus model diversity when the execution posture permits and it is available, until no unresolved material or blocking finding remains. Minor and nit findings may remain. |
 
 For `standard`, an implementation-shaping design and its completed feature or
 standalone story are separate one-pass targets. A correction and its verification
@@ -405,7 +422,8 @@ review cap: a project may state a preference in convention prose, and explicit
 user direction may bound, extend, or stop a review. When that ends a review
 before convergence, report remaining findings for a clear user disposition.
 Review weight controls pass depth and repetition; simplification posture controls
-how strongly each pass looks for behavior-preserving reduction.
+how strongly each pass looks for behavior-preserving reduction; execution
+posture controls whether the pass is inline or fresh-context.
 Refactor work and changes that reshape decomposition also get a
 structural-hygiene lens at `standard` and above: structure, conditionals, and
 breakout quality are judged against the codebase's own conventions and
@@ -418,9 +436,10 @@ actual project type, and to flag overbuilding. A missed authorized requirement
 may block acceptance; a worthwhile adjacent improvement is a non-blocking
 follow-up that can be parked.
 
-When the selected weight requires an independent reviewer and none is available,
-the agent should disclose that limitation and ask how you want to proceed rather
-than quietly approving its own work.
+Under `inline`, the main agent performs distinct lens-separated passes without
+claiming independence or model diversity. If you explicitly request an external,
+independent, or cross-model reviewer and none is available, the agent discloses
+that limitation and asks how you want to proceed.
 
 ## Testing and verification
 

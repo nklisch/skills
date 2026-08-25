@@ -37,6 +37,12 @@ adopted repository; write-free `ideate` may explore before adoption, and
   default determine whether work is collaborative, adaptive, or autonomous.
   Autonomy changes participation and continuation, never permissions, scope,
   safety, or quality.
+- **Runner topology is configurable.** Projects may prefer inline, adaptive, or
+  orchestrated design, implementation, and review while users can override that
+  default per request. Adaptive uses item size only as a light signal: it keeps
+  small coherent work inline and adopts dedicated or mixed roles when their
+  focus earns the handoff cost. Formal design and review depth do not disappear
+  when work stays with the main agent.
 - **Scope is not a quality dial.** Design and review may resolve or check the
   authorized outcome, but they never invent requirements or enlarge it. Judge
   what is rational for the project's actual type, maturity, audience,
@@ -53,9 +59,9 @@ adopted repository; write-free `ideate` may explore before adoption, and
   while explicit user direction can override it for one such workflow. It does
   not govern loose requests merely because they occur in an adopted repository.
   `standard` gives each substantive design and completed integrated implementation
-  boundary exactly one independent pass: correct, verify, and self-review findings
+  boundary exactly one distinct pass: correct, verify, and self-review findings
   without re-reviewing that target. `thorough` deliberately uses multiple
-  independent passes until no unresolved blocking finding remains; material,
+  distinct passes until no unresolved blocking finding remains; material,
   minor, and nit findings may be parked, accepted, or rejected through
   outcome-owner adjudication. `maximum` converges until no unresolved material
   or blocking finding
@@ -109,7 +115,7 @@ adopted repository; write-free `ideate` may explore before adoption, and
   the backlog or active handoffs the user selects; discovery never starts
   remediation by itself.
 - **Optional configuration stays in the user's hands.** Setup always offers
-  optional Workbench configuration — commit posture, release gates, roadmap
+  optional Workbench configuration — execution posture, commit posture, release gates, roadmap
   recognition, and the Claude compatibility projection — as explicit opt-in,
   decline, or defer choices. Repository evidence can recommend a choice but
   never controls whether it is offered or silently adopts it. Release gates are

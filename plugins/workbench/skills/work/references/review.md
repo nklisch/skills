@@ -12,36 +12,41 @@ governs that outcome's design and implementation review so the repository has
 one understandable delivery rigor control. Separately read
 [simplification.md](simplification.md) and resolve the effective
 `simplification_posture`; it controls simplification emphasis within each pass,
-not the number of passes.
+not the number of passes. Resolve the effective execution posture from explicit
+user direction, the optional project convention, then `adaptive`; it controls
+who performs each pass, not the selected rigor or convergence condition.
 
 | Weight | Review policy |
 |---|---|
-| `none` | Self-review only. Independent review is skipped, but verification and acceptance evidence remain mandatory. |
-| `light` | At most one focused fresh-context pass when consequence, uncertainty, breadth, or reversibility warrants it. Fix and verify without re-review. |
-| `standard` | Default. Exactly one balanced fresh-context pass for each eligible design and completed integrated implementation boundary. Correct and verify findings without re-reviewing that target. |
+| `none` | No distinct review pass. Ordinary implementation self-checking, verification, and acceptance evidence remain mandatory. |
+| `light` | At most one focused pass when consequence, uncertainty, breadth, or reversibility warrants it. Fix and verify without re-review. |
+| `standard` | Default. Exactly one balanced pass for each eligible design and completed integrated implementation boundary. Correct and verify findings without re-reviewing that target. |
 | `thorough` | Multi-pass convergence: correct and verify between passes until no unresolved `blocking` finding remains. Material, minor, and nit findings may be parked, accepted, or rejected through ordinary outcome-owner adjudication. |
-| `maximum` | Thorough convergence with complementary, adversarial, and cross-model coverage when available, until no unresolved `material` or `blocking` finding remains. Minor and nit findings may remain. |
+| `maximum` | Thorough convergence with complementary and adversarial lenses, using cross-model coverage when the execution posture permits and it is available, until no unresolved `material` or `blocking` finding remains. Minor and nit findings may remain. |
 
 ## Pass budget and review targets
 
-A pass is one independent fresh-context review of one stable target. A correction,
-its affected verification, and the author's self-review are **not** another
-independent pass.
+A pass is one distinct review of one stable target. Under `inline`, the main
+agent deliberately resets its lens and inspects the target again without
+claiming fresh-context independence. Under `adaptive` or `orchestrated`, prefer
+a fresh-context reviewer when another agent earns the handoff cost and is
+available. A correction, its affected verification, and the author's ordinary
+self-check are **not** another pass.
 
 `standard` has a fixed one-pass budget for every eligible target: one pass for
 an implementation-shaping design before implementation, and one pass for the
 completed integrated implementation of each feature or standalone story. Those
 are separate targets and separate one-pass budgets. A nested story returns
 verification evidence to its owning feature and does not gain a duplicate
-independent implementation pass.
+implementation review pass.
 
 After a `standard` reviewer identifies an accepted finding, correct it, rerun
 the affected verification, and self-review the result; then continue. Do not
-send the corrected design or implementation back for a second independent
-review. Only an explicit user direction that changes the weight, or `thorough`
+send the corrected design or implementation through a second distinct review
+pass. Only an explicit user direction that changes the weight, or `thorough`
 or `maximum`, authorizes another pass over the same target.
 
-`thorough` and `maximum` deliberately repeat independent passes. Correct and
+`thorough` and `maximum` deliberately repeat distinct passes. Correct and
 verify accepted findings before the next pass. A `blocking` finding violates an
 accepted requirement, correctness, contract, integrity, safety, or other
 scope-grounded criterion; reviewer taste cannot make one blocking. A `material`
@@ -59,10 +64,11 @@ for direction when no corrective progress remains possible.
 
 An explicit request for cross-model review selects reviewer diversity, not
 automatically a heavier pass count. Under `standard`, broader lenses still fit
-inside one pass. Only `thorough` and `maximum` repeat independent review.
-When the effective weight requires independent review and no fresh-context path
-is available, disclose the limitation and stop for the user's direction rather
-than silently approving inline or claiming a lower weight.
+inside one pass. Only `thorough` and `maximum` repeat review. When the user
+explicitly requests an external, independent, or cross-model reviewer and none
+is available, disclose the limitation and ask how to proceed. Otherwise
+`adaptive` may use a credible inline pass when delegation is unavailable, and
+`inline` is never treated as a reviewer-availability failure.
 
 Review a design after it is stable enough to constrain implementation and
 before implementation becomes expensive to reverse. Review completed work at
@@ -70,11 +76,12 @@ the integrated contract boundary. Small reversible work does not need a
 ceremonial design review merely because a design section exists.
 
 When `work` routes a unit through formal design, complete the required design
-review before implementation or delegation. Select reviewer capability and
-reasoning level using [model-roles.md](model-roles.md). Prefer a fresh-context
-reviewer from a different model family when available, but do not treat family
-diversity as mandatory or as an extra pass beyond the effective
-`review_weight`.
+review before implementation or delegation. Apply
+[execution-posture.md](execution-posture.md). When another context is permitted,
+select reviewer capability and reasoning level using
+[model-roles.md](model-roles.md) and prefer a different model family when
+available. Family diversity is not mandatory or an extra pass beyond the
+effective `review_weight`.
 
 Read [foundation-truth.md](foundation-truth.md) when the design or implementation
 may affect durable project truth. Treat foundation altitude as a qualification
@@ -125,8 +132,8 @@ point, and tell them:
 
 ## Require a useful review packet
 
-Every independent reviewer returns a concise packet for the outcome owner to
-verify and adjudicate, not a bare verdict:
+Every review pass produces a concise packet for the outcome owner to verify and
+adjudicate, not a bare verdict:
 
 - **Scope and evidence** — the authorized outcome, surfaces examined, and
   material coverage limits.

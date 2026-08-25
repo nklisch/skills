@@ -73,8 +73,8 @@ A repeat run still produces no material change.
 Always conduct a user-confirmed conventions alignment, including for new or
 already-conformant repositories. First offer every optional Workbench
 configuration as a compact opt-in, decline, or defer decision: `commit_posture`,
-`release_gates`, Workbench recognition of a user-owned roadmap, and the
-`CLAUDE.md` compatibility projection. Offer these choices even when the
+`execution_posture`, `release_gates`, Workbench recognition of a user-owned
+roadmap, and the `CLAUDE.md` compatibility projection. Offer these choices even when the
 repository does not supply a reason to recommend one; a declined or deferred
 choice remains absent or unmanaged. On refresh, present an already confirmed
 choice as the current setting rather than re-asking it, unless the user asks to
@@ -158,8 +158,9 @@ Always ask for the repository's default `review_weight`: `none`, `light`,
 recommend another weight only from concrete consequence, uncertainty,
 regulatory, safety, or operating evidence. Explain that `standard` gives each
 implementation-shaping design and completed integrated implementation boundary
-exactly one independent pass; corrections are verified and self-reviewed, not
-independently re-reviewed. `thorough` converges when no unresolved blocking
+exactly one distinct pass; execution posture determines whether it is inline or
+fresh-context. Corrections are verified and self-reviewed, not sent through
+another distinct pass. `thorough` converges when no unresolved blocking
 finding remains; `maximum` converges when no unresolved material finding remains.
 A project may state a
 review-count preference in convention prose, but Workbench does not interpret or
@@ -184,6 +185,16 @@ clear operating reasons for a different default. Explain that explicit request
 language overrides the default and that autonomy never expands scope, quality
 obligations, permissions, or safety boundaries. Existing Workbench projects
 without the field retain the backward-compatible `adaptive` default.
+
+Always offer `execution_posture` as an optional configuration: `inline`,
+`adaptive`, or `orchestrated`. Explain that it controls agent topology rather
+than autonomy or review rigor, that explicit user direction overrides it, and
+that formal design and configured review depth still apply under `inline`.
+Recommend `adaptive` for most projects; recommend `inline` when the project
+values one continuous main-agent context, and `orchestrated` when dedicated role
+agents routinely earn their handoff cost. A declined or deferred choice remains
+absent and resolves to `adaptive`. Concise prose may record a preferred mixed
+role assignment without adding another enum value.
 
 Always offer `commit_posture` as an optional configuration. Inspect commit size
 and message patterns, merge policy, branch ownership, concurrent-agent practice,

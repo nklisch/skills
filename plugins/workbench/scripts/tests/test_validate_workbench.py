@@ -22,7 +22,7 @@ class ValidateWorkbenchTests(unittest.TestCase):
         root = Path(tempfile.mkdtemp())
         write(
             root / ".work/CONVENTIONS.md",
-            f"---\nowner: workbench\nschema: 1\nworkbench_version: {INSTALLED_VERSION}\ncompleted_items: summarize\nreview_weight: standard\nsimplification_posture: balanced\nautonomy: adaptive\ncommit_posture: adaptive\n---\n",
+            f"---\nowner: workbench\nschema: 1\nworkbench_version: {INSTALLED_VERSION}\ncompleted_items: summarize\nreview_weight: standard\nsimplification_posture: balanced\nautonomy: adaptive\nexecution_posture: adaptive\ncommit_posture: adaptive\n---\n",
         )
         for directory in ("active", "backlog", "completed", "releases"):
             (root / ".work" / directory).mkdir(parents=True, exist_ok=True)
@@ -303,6 +303,50 @@ updated: 2026-07-24
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 1)
         self.assertIn("autonomy must be", result.stdout)
+
+    def test_valid_execution_postures_pass(self) -> None:
+        for posture in ("inline", "adaptive", "orchestrated"):
+            with self.subTest(posture=posture):
+                root = self.make_project()
+                path = root / ".work/CONVENTIONS.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "execution_posture: adaptive",
+                        f"execution_posture: {posture}",
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_missing_execution_posture_defaults_to_adaptive(self) -> None:
+        root = self.make_project()
+        path = root / ".work/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "execution_posture: adaptive\n", ""
+            ),
+            encoding="utf-8",
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_invalid_execution_posture_fails_cleanly(self) -> None:
+        for value in ("parallel", "[inline]"):
+            with self.subTest(value=value):
+                root = self.make_project()
+                path = root / ".work/CONVENTIONS.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "execution_posture: adaptive",
+                        f"execution_posture: {value}",
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("execution_posture must be", result.stdout)
+                self.assertNotIn("Traceback", result.stderr)
 
     def test_valid_commit_postures_pass(self) -> None:
         for posture in ("adaptive", "feature", "checkpoint", "batch", "preserve"):

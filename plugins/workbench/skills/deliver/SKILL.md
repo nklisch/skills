@@ -52,7 +52,12 @@ alternatives, boundary definition, or adjudication. Do not guess missing product
 external contracts, irreversible choices, or behavior changes hidden inside a
 purported refactor.
 
-Resolve effective autonomy and simplification from the request and conventions.
+Resolve effective autonomy, simplification, and
+[execution posture](../work/references/execution-posture.md) from the request
+and conventions. Under `inline`, the main agent performs this entire
+delivery workflow without spawning role agents. Under `adaptive` or
+`orchestrated`, a deliverer may be a dedicated implementation agent when the
+handoff is worthwhile or preferred.
 Resolve the effective [Git posture](../work/references/git-posture.md) from
 explicit user direction, project conventions, then `adaptive`.
 Read the applicable references under `../work/references/`, especially
@@ -119,10 +124,10 @@ Determine the item's role:
   foundations are coherent.
 - **Story nested under a feature:** this item is an implementation slice. Run
   self-review and behavioral verification, then return evidence to the feature
-  owner. Do not run a duplicate independent pass that belongs at the feature's
+  owner. Do not run a duplicate review pass that belongs at the feature's
   integrated boundary.
 
-Adjudicate findings rather than accepting them blindly. Every independent review
+Adjudicate findings rather than accepting them blindly. Every distinct review
 must carry the mandatory non-expansion instruction from `review.md`. `work` does
 not repeat completed feature or standalone-story review; it reviews only
 substantive wider integration behavior not covered at those item boundaries.

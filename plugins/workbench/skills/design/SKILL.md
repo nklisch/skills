@@ -40,6 +40,9 @@ claims against the repository before designing.
 Read [../work/references/autonomy.md](../work/references/autonomy.md) and resolve
 the effective autonomy posture. Autonomy governs how decisions are discussed,
 not whether design quality, review, safety, or authority boundaries apply. Read
+[../work/references/execution-posture.md](../work/references/execution-posture.md)
+and resolve who performs design and review. Formal design remains required when
+the implementation shape warrants it even under `inline`. Read
 [../work/references/simplification.md](../work/references/simplification.md) and
 resolve the effective simplification posture for the design.
 
@@ -135,8 +138,12 @@ item because they constrain future work.
 Name meaningful alternatives when the choice is consequential; do not
 manufacture options for obvious local work.
 
-For formal design, prefer a dedicated fresh-context design agent when one is
-available. Select it using
+For formal design, follow the effective execution posture. Under `inline`, the
+main agent performs the full design in the current context. Under `adaptive`,
+keep smaller coherent designs inline and use a dedicated designer when fresh
+context, consequence, breadth, specialization, or a clean handoff earns the
+cost. Under `orchestrated`, prefer a dedicated design agent when available.
+When assigning one, select it using
 [../work/references/model-roles.md](../work/references/model-roles.md), matching
 technical precision or creative taste to the design lens rather than choosing
 by rank alone. Give it raw requirements, relevant repository truth, constraints,
@@ -144,9 +151,8 @@ the target item, and an explicit instruction not to invent requirements or
 expand the outcome beyond the user's intent and rational scope of this project
 type. Ask it to identify overbuilding as a design defect and to separate useful
 out-of-scope ideas as non-blocking follow-ups. Do not give it a proposed answer.
-The orchestrating agent owns the final synthesis and adjudication. Do not add
-delegation overhead when the design can be resolved well in the current
-context.
+The outcome owner retains final synthesis and adjudication. Do not add
+delegation overhead merely to enact a role split.
 
 ## Record the design
 
@@ -213,8 +219,8 @@ planning, explanation, or review requests.
 Always self-check the design against requirements, repository evidence, the
 selected lens, effective simplification posture, verification feasibility,
 unnecessary complexity, reversal cost, and unauthorized scope growth. Apply
-independent review as required by
-the effective weight before implementation becomes expensive to reverse. Give
+review at the effective weight and execution posture before implementation
+becomes expensive to reverse. Give
 the reviewer raw requirements, the design, relevant foundations and code, known
 evidence, and the effective simplification posture. Include the mandatory
 non-expansion instruction from the review reference; do not lead with a
