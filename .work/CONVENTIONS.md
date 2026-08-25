@@ -7,6 +7,9 @@ review_weight: standard
 simplification_posture: balanced
 autonomy: collaborative
 commit_posture: feature
+release_gates:
+  - channel-parity
+  - metadata-integrity
 ---
 
 # Project Conventions
@@ -52,3 +55,25 @@ every push, so a local pass means a green pipeline:
   `skill`, `plugin`, `tooling`, `docs`, `bug`, `testing`, `documentation`,
   `prose`, `release-gates`.
 - `research_refs` entries are repo-relative paths to `.research/` artifacts.
+
+## Release gates
+
+### channel-parity
+
+Behavior is a parity contract across Claude Code, Codex, Antigravity, and
+the Pi bridge. A release is materially unready when a supported plugin
+ships a hook, injection path, substrate maintainer, prompt nudge, or
+generated context source on one channel without the equivalent on the
+others — unless a channel capability is genuinely impossible and the
+degradation is documented. Harness-specific surfaces must degrade to
+absent, never to broken.
+
+### metadata-integrity
+
+Manifests and marketplace catalogs are the distribution contract. A
+release is materially unready when a plugin's version fields disagree
+across its three manifests, when either catalog is invalid JSON or
+drops/reorders plugin identities, when a catalog source no longer
+resolves to its plugin, or when a shipped skill directory fails the
+portable frontmatter contract.
+

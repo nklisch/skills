@@ -167,6 +167,17 @@
       "relationships": []
     },
     {
+      "path": "docs/PRINCIPLES.md",
+      "namespace": "docs",
+      "kind": "principles",
+      "id": "principles",
+      "title": "Principles",
+      "summary": null,
+      "updated": null,
+      "status": null,
+      "relationships": []
+    },
+    {
       "path": "plugins/agile-workflow/docs/PRINCIPLES.md",
       "namespace": "docs",
       "kind": "principles",
@@ -1212,14 +1223,14 @@
       "relationships": []
     },
     {
-      "path": ".work/active/feature-ux-ui-concierge.md",
+      "path": ".work/releases/ux-ui-design-1.0.0.md",
       "namespace": "work",
-      "kind": "feature",
-      "id": "feature-ux-ui-concierge",
-      "title": "ux-ui-design plugin: concierge restructure",
+      "kind": "release",
+      "id": "releases/ux-ui-design-1.0.0",
+      "title": "ux-ui-design 1.0.0",
       "summary": null,
-      "updated": "2026-08-24",
-      "status": "active",
+      "updated": null,
+      "status": null,
       "relationships": []
     },
     {
