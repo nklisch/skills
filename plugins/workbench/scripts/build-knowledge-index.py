@@ -11,7 +11,12 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from _frontmatter import first_heading, parse
+from _frontmatter import (
+    WORKBENCH_RESEARCH_OWNER,
+    first_heading,
+    parse,
+    research_configuration,
+)
 
 
 RELATIONSHIPS = {"supports", "contradicts", "informs", "supersedes"}
@@ -259,6 +264,15 @@ def main() -> int:
     )
     args = parser.parse_args()
     project = Path(args.project).resolve()
+    owner, _, configuration_errors = research_configuration(project)
+    if owner is not None and owner != WORKBENCH_RESEARCH_OWNER:
+        print(f"Knowledge index not applicable: .research is owned by {owner}")
+        return 2
+    if configuration_errors:
+        for error in configuration_errors:
+            print(f"ERROR: {error}")
+        print(f"Knowledge index failed: {len(configuration_errors)} error(s)")
+        return 1
     exclusions, errors = load_exclusions(project, args.exclude)
     if errors:
         for error in errors:

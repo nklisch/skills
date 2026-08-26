@@ -442,6 +442,11 @@ actual project type, and to flag overbuilding. A missed authorized requirement
 may block acceptance; a worthwhile adjacent improvement is a non-blocking
 follow-up that can be parked.
 
+Formal design and implementation reviewers also read Workbench conventions,
+repository-wide principles, and principles owned by the affected scope. Those
+are evaluation lenses within the accepted outcome, not permission to invent
+requirements or widen it.
+
 Under `inline`, the main agent performs distinct lens-separated passes without
 claiming independence or model diversity. If you explicitly request an external,
 independent, or cross-model reviewer and none is available, the agent discloses
@@ -500,6 +505,16 @@ Grounded brief
 Research should not be rewritten to agree with a later product decision, and a
 project decision should not be presented as though an external source
 established it.
+
+`.research/CONVENTIONS.md` names the provider that owns this substrate. With
+`owner: workbench-research`, a separate `verification_rigor` setting tunes
+semantic assurance without forcing a larger investigation: `floor` applies the
+grounding discipline and deterministic checks, `standard` adds semantic
+source-support review, `full` adds an isolated coverage and framing-drift
+evaluation, and `adaptive` chooses proportionately. Another provider may own
+`.research/` and define its own artifacts and gates; Workbench does not run the
+bundled tools over that provider's substrate. Principles inform product
+judgment in research, but never substitute for source evidence.
 
 Suppose you ask, “Research the prior art for this architecture decision, and
 look for evidence against the leading option.”

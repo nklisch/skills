@@ -134,10 +134,13 @@ the operational source of truth and that the roadmap was not changed incidentall
 
 ## Keep discovery synchronized
 
-If `.knowledge/index.json` exists and indexed documentation changes, rebuild it
-with the Workbench `build-knowledge-index.py` script and run the same command
-with `--check`. Resolve the script from the loaded plugin package using
-Workbench's verified package-identity rule.
+If `.knowledge/index.json` exists and indexed documentation changes, inspect
+`.research/CONVENTIONS.md` when present. For `owner: workbench-research`, rebuild
+with Workbench Research's `build-knowledge-index.py` script and run the same
+command with `--check`. For another owner, follow that provider's declared
+index-maintenance convention and do not run Workbench Research tooling. Resolve
+any script from its loaded plugin package using Workbench's verified
+package-identity rule.
 
 Mention updated foundations and index validation in the user-facing completion
 reply. Persist only the actual foundation and generated-index changes.

@@ -21,6 +21,17 @@ def write(path: Path, content: str) -> None:
 class ResearchToolsTests(unittest.TestCase):
     def make_project(self) -> Path:
         root = Path(tempfile.mkdtemp())
+        write(
+            root / ".research/CONVENTIONS.md",
+            """---
+owner: workbench-research
+schema: 1
+verification_rigor: adaptive
+---
+
+# Research Conventions
+""",
+        )
         write(root / ".research/attestations/.gitkeep", "")
         write(root / ".research/briefs/.gitkeep", "")
         write(
@@ -110,7 +121,7 @@ relationships: []
         payload = json.loads((root / ".knowledge/index.json").read_text(encoding="utf-8"))
         self.assertEqual(payload["schema"], 1)
         self.assertNotIn("generated_at", payload)
-        self.assertEqual(len(payload["entries"]), 4)
+        self.assertEqual(len(payload["entries"]), 5)
         architecture = next(
             entry for entry in payload["entries"] if entry["id"] == "architecture"
         )
@@ -197,6 +208,73 @@ relationships: []
         root = Path(tempfile.mkdtemp())
         result = self.run_tool(LINT, root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_missing_research_owner_fails(self) -> None:
+        root = self.make_project()
+        (root / ".research/CONVENTIONS.md").unlink()
+        lint = self.run_tool(LINT, root)
+        index = self.run_tool(INDEX, root)
+        self.assertEqual(lint.returncode, 1)
+        self.assertEqual(index.returncode, 1)
+        self.assertIn("missing .research/CONVENTIONS.md", lint.stdout)
+
+    def test_invalid_workbench_research_rigor_fails(self) -> None:
+        root = self.make_project()
+        path = root / ".research/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace("adaptive", "ceremonial"),
+            encoding="utf-8",
+        )
+        lint = self.run_tool(LINT, root)
+        index = self.run_tool(INDEX, root)
+        self.assertEqual(lint.returncode, 1)
+        self.assertEqual(index.returncode, 1)
+        self.assertIn("verification_rigor", lint.stdout)
+
+    def test_invalid_workbench_research_schema_fails(self) -> None:
+        root = self.make_project()
+        path = root / ".research/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace("schema: 1", "schema: 2"),
+            encoding="utf-8",
+        )
+        lint = self.run_tool(LINT, root)
+        index = self.run_tool(INDEX, root)
+        self.assertEqual(lint.returncode, 1)
+        self.assertEqual(index.returncode, 1)
+        self.assertIn("schema must be 1", lint.stdout)
+
+    def test_missing_rigor_defaults_to_adaptive(self) -> None:
+        root = self.make_project()
+        path = root / ".research/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "verification_rigor: adaptive\n", ""
+            ),
+            encoding="utf-8",
+        )
+        self.assertEqual(self.run_tool(LINT, root).returncode, 0)
+        self.assertEqual(self.run_tool(INDEX, root).returncode, 0)
+
+    def test_alternate_owner_declines_without_writing(self) -> None:
+        root = self.make_project()
+        write(root / ".knowledge/index.json", "sentinel\n")
+        path = root / ".research/CONVENTIONS.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "workbench-research", "ceremonial-research"
+            ),
+            encoding="utf-8",
+        )
+        lint = self.run_tool(LINT, root)
+        index = self.run_tool(INDEX, root)
+        self.assertEqual(lint.returncode, 2)
+        self.assertEqual(index.returncode, 2)
+        self.assertIn("owned by ceremonial-research", lint.stdout)
+        self.assertEqual(
+            (root / ".knowledge/index.json").read_text(encoding="utf-8"),
+            "sentinel\n",
+        )
 
     def test_research_gitkeep_is_required_for_clone_stability(self) -> None:
         root = self.make_project()

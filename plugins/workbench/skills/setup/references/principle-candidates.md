@@ -45,10 +45,15 @@ ports it needs; adapters implement them; composition roots wire the two
 together. Fits domain-heavy systems with swappable infrastructure; usually
 overweight for CLIs, plugins, prototypes, and small tools.
 
-**Fail fast where it matters.** Validate untrusted input and required external
-contracts at system boundaries. Add internal checks only when the project's
-actual risks justify them; do not manufacture defensive layers the product's
-scope and consequences do not need.
+**Product-shaped reliability.** Keep the actual product, users, consequences,
+environment, and reversibility in view. Tune validation, security, testing, and
+verification to those realities. Fail immediately when continuing would corrupt
+state, mislead the user, cross a trust boundary, or make recovery harder;
+otherwise recover, retry, or degrade at the narrowest safe layer. Surface a
+failure to the actor who can respond. Successful recovery should stay out of
+the user's way, while degraded guarantees, lost work, and unresolved risk stay
+visible. Avoid unnecessary machinery while preserving baseline protection for
+credentials, private data, and irreversible actions.
 
 **Code economy.** Short, direct code is a virtue when it stays clear. Prefer
 fewer concepts, layers, branches, and options over speculative generality, and

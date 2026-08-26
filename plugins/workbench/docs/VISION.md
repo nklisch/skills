@@ -84,9 +84,16 @@ adopted repository; write-free `ideate` may explore before adoption, and
 - **One request may span several epics.** The orchestrating agent owns
   requirements, integration, verification, closure, and durable continuation
   across the full named boundary.
-- **Research has a separate authority.** `.research/` contains attestations of
-  externally fetched sources and grounded synthesis. It informs work without
-  being rewritten to match project decisions.
+- **Research has a separate, replaceable authority.** `.research/CONVENTIONS.md`
+  names the provider that owns research artifacts, verification, indexing, and
+  handoff. The bundled provider contains attestations of externally fetched
+  sources and grounded synthesis; another provider may define a different
+  substrate. Research informs work without being rewritten to match project
+  decisions.
+- **Research rigor checks distinct drift classes.** The bundled provider keeps
+  investigation scale separate from verification rigor. Every brief meets the
+  grounding floor; standard adds semantic source-support review, and full adds
+  an isolated coverage, framing, and scope-drift evaluation.
 - **Knowledge is discoverable, not duplicated.** A committed deterministic
   `.knowledge/index.json` indexes durable docs, research, and work while each
   source retains its own authority.

@@ -1,3 +1,9 @@
+---
+owner: workbench-research
+schema: 1
+verification_rigor: adaptive
+---
+
 # .research/ Conventions
 
 Working contract for the research substrate: externally sourced evidence and
@@ -23,8 +29,10 @@ grounded synthesis that informs work, never the reverse. Aligned with
   `.research/attestations/<handle>.md` with `source_handle`, `fetched`,
   `source_title`, `source_url` frontmatter, a source-faithful summary, and the
   numbered citable details under `## Attested details`. Attestations ground
-  external http(s) sources only — never local paths, never credentialed URLs.
-  Keep project framing and recommendations out of attestations.
+  fetched external sources, not repository files or credentialed references.
+  Record a direct reference when one is available; otherwise identify the
+  external access surface. Keep project framing and recommendations out of
+  attestations.
 - An unmarked cited statement must be directly supported by its attestation.
   Label cross-source or beyond-source composition as inference.
 

@@ -8,7 +8,7 @@ import re
 import sys
 from pathlib import Path
 
-from _frontmatter import parse
+from _frontmatter import WORKBENCH_RESEARCH_OWNER, parse, research_configuration
 
 
 CITATION = re.compile(r"\[([a-z0-9][a-z0-9-]*)\]\{([1-9][0-9]*)\}")
@@ -34,6 +34,9 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
 
     if not research.exists():
         return errors, warnings
+
+    _, _, configuration_errors = research_configuration(project)
+    errors.extend(configuration_errors)
 
     if not attestations.is_dir():
         errors.append("missing .research/attestations/")
@@ -124,7 +127,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("project", nargs="?", default=".", help="Project root")
     args = parser.parse_args()
-    errors, warnings = validate(Path(args.project).resolve())
+    project = Path(args.project).resolve()
+    owner, _, _ = research_configuration(project)
+    if owner is not None and owner != WORKBENCH_RESEARCH_OWNER:
+        print(f"Research lint not applicable: .research is owned by {owner}")
+        return 2
+    errors, warnings = validate(project)
     for warning in warnings:
         print(f"WARNING: {warning}")
     for error in errors:
