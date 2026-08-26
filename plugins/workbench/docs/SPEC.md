@@ -255,8 +255,27 @@ and brief reasoning
 may resolve local, reversible choices inline. `design` is callable directly or
 from `work` when implementation shape needs meaningful discovery, alternatives,
 boundary definition, or adjudication. This is conditional routing, not a size
-threshold or required lifecycle stage. It keeps outcome-specific design in the
-active item and uses one primary lens:
+threshold or required lifecycle stage.
+
+During ideation, proposed solution shapes are grounded in repository
+conventions, principles, foundations, architecture, and reusable mechanisms.
+When materially distinct, the agent contrasts a minimum coherent solution, a
+repository-fit recommendation, and an expanded or ideal option without treating
+three choices as a fixed template. Each serious option distinguishes necessary
+from avoidable complexity and accounts for its full durable footprint, including
+state, copied or generated artifacts, hooks, configuration, tests, validation,
+and operations. A system-level simplification outside the initial scope may be
+offered with explicit trade-offs and scope labeling, but it cannot silently
+enter the selected handoff. Machinery for correctness, accounting,
+verification, state management, or determinism is evaluated as a costed choice:
+it must protect a concrete product risk or durable invariant strongly enough to
+earn its synchronization, constraint, migration, and recovery burden. This
+shared lens follows the choice through formal design, implementation,
+behavioral verification, and review. It seeks the smallest durable protection;
+it does not waive accepted guarantees or evidence.
+
+Design keeps outcome-specific reasoning in the active item and uses one primary
+lens:
 
 - new work;
 - prototype or feasibility;

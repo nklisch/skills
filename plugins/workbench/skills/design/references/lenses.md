@@ -3,7 +3,10 @@
 Choose one primary lens and only the overlays that affect the decision. Every
 design still states the outcome, constraints, boundaries, verification, risks,
 and simplest coherent implementation shape. Apply the effective simplification
-posture from Workbench conventions across every primary lens.
+posture from Workbench conventions across every primary lens. Also apply the
+shared [assurance-machinery lens](../../work/references/assurance-machinery.md)
+whenever correctness, accounting, verification, state, or determinism machinery
+is proposed; risk overlays do not make that machinery automatically necessary.
 
 ## New work
 

@@ -22,6 +22,14 @@ adopted repository; write-free `ideate` may explore before adoption, and
   through `ideate`, even before adoption. It writes nothing until the user
   chooses a handoff. Established work remains in `work` when exploration would
   not materially change what gets designed.
+- **Solution choices expose their real cost.** Ideation grounds options in the
+  repository, distinguishes necessary complexity from avoidable machinery, and
+  makes a minimum coherent shape visible beside the repository-fit and broader
+  alternatives when those choices are real. A wider simplification may
+  challenge the initial scope conversationally but never expands the handoff
+  without the user's choice. The same assurance-machinery lens continues through
+  design, implementation, verification, and review without weakening required
+  guarantees.
 - **Design is available, not imposed.** A dedicated `design` skill selects a
   new-work, prototype, refactor, performance, defect, UI/UX, or data/integration
   lens. It shapes implementation when discovery, alternatives, boundaries, or
