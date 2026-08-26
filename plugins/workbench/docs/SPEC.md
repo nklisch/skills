@@ -337,8 +337,12 @@ examples and calibration live in the
 
 Every reviewer is instructed not to invent requirements or expand scope, to
 flag overbuilding, and to judge against the rational expectations of the actual
-project type. Missing or contradicted authorized requirements may be blocking
-findings; adjacent improvements are non-blocking follow-ups and may be parked.
+project type. Before each formal design or implementation review, the reviewer
+reads `.work/CONVENTIONS.md`, repository-wide principles, and applicable
+scope-owned principles and uses them as lenses inside the authorized outcome.
+They do not create requirements or enlarge scope. Missing or contradicted
+authorized requirements may be blocking findings; adjacent improvements are
+non-blocking follow-ups and may be parked.
 A correction and its verification are not another distinct pass. Only
 `thorough`, `maximum`, or explicit user direction repeat distinct passes over
 the same target. Thorough review converges when no unresolved blocking finding
@@ -580,6 +584,21 @@ Small conversational lookups remain in chat. The agent initializes `.research/`
 and writes a brief only when evidence must survive the conversation or inform a
 consequential decision.
 
+When `.research/` exists, `.research/CONVENTIONS.md` declares its provider
+owner. The bundled contract is:
+
+```yaml
+---
+owner: workbench-research
+schema: 1
+verification_rigor: adaptive|floor|standard|full
+---
+```
+
+Missing rigor means `adaptive`. Another provider owns its own schema, artifact
+shape, verification, index maintenance, and handoff. Core Workbench preserves
+that boundary, and Workbench Research scripts decline an alternate-owned tree.
+
 An attestation uses:
 
 ```yaml
@@ -620,6 +639,17 @@ preserve contradictions, and always include `## Disconfirming evidence`.
 Research may use specialist fan-out only when every specialist receives the
 full discipline, owns and lints its evidence, and the lead owns cross-source
 synthesis.
+
+Verification rigor is independent from source count, breadth, duration, and
+fan-out. `floor` applies grounding discipline, deterministic validation, and a
+lead spot-check of load-bearing conclusions. `standard` adds a semantic
+source-support pass over the final brief and its evidence chain. `full` adds an
+isolated evaluator that receives the accepted question and boundary, declared
+product constraints, and final synthesis—but not sources or research history—
+to detect coverage, framing, scope, contradiction, and groundedness drift.
+`adaptive` chooses the lowest credible level from consequence, uncertainty,
+novelty, disagreement, synthesis complexity, and corpus breadth. Project
+principles guide judgment but never count as external evidence.
 
 After interactive research, the skill may ask whether genuinely reusable
 guidance should become a project skill. It never promotes a skill autonomously

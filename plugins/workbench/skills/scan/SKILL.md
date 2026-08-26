@@ -20,13 +20,17 @@ discovery, but it does not displace standalone audit skills: when the user
 explicitly invokes one, or explicitly asks for its standalone report artifact,
 honor that skill on its own terms instead of routing through scan.
 
-Read conventions, relevant foundations, `.knowledge/index.json` when present,
-project patterns, the requested surface, and relevant `.work/backlog/` entries
+Read conventions, repository-wide and applicable scope-owned principles,
+relevant foundations, `.knowledge/index.json` when present, project patterns,
+the requested surface, and relevant `.work/backlog/` entries
 and active items tagged `scan` so already-tracked opportunities are identified
 rather than rediscovered as novel. Apply
 [setup's advisory version guidance](../setup/references/version-compatibility.md);
 a version difference may prompt one update/setup recommendation but does not
 block scanning.
+Use conventions and principles as evaluation lenses inside the requested scan
+boundary; they do not authorize broader inspection or turn adjacent concerns
+into findings required for action.
 
 Scan discovers possibilities. It does not implement fixes, silently activate
 work, or turn every warning into backlog. Ordinary code lookup, explanation,

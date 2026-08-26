@@ -63,6 +63,22 @@ the contracts and examples below determine how to choose and shape them.
 The research capability ships with Workbench. Setup may omit `.research/` and
 `.knowledge/` until the project has research worth retaining.
 
+When present, `.research/CONVENTIONS.md` declares the provider boundary. The
+bundled provider uses:
+
+```yaml
+---
+owner: workbench-research
+schema: 1
+verification_rigor: adaptive|floor|standard|full
+---
+```
+
+Missing `verification_rigor` means `adaptive`. Another owner may define a
+different schema, rigor model, artifacts, indexing, and handoff. Core Workbench
+interprets only the owner boundary: setup preserves alternate-owned research
+and Workbench Research tooling never validates or modifies it.
+
 ## Workbench conventions
 
 ```yaml

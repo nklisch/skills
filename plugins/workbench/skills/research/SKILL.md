@@ -3,8 +3,8 @@ name: research
 description: >
   Conduct and maintain source-grounded research for a concrete Workbench workflow. Use only when
   .work/CONVENTIONS.md declares owner: workbench and the requested evidence should enter Workbench's
-  .research substrate or inform a tracked outcome. Ignore this skill in uninitialized repositories
-  and for loose lookups or unrelated research. Treat the user's prompt as scope authority, attest
+  .research substrate owned by workbench-research or inform a tracked outcome. Ignore this skill in
+  uninitialized repositories, alternate-owned research substrates, and for loose lookups or unrelated research. Treat the user's prompt as scope authority, attest
   fetched sources, seek disconfirming evidence, preserve contradictions, lint citations, and never
   place PII or PHI in research artifacts.
 ---
@@ -24,8 +24,18 @@ without blocking the research. Even in an adopted
 repository, small conversational lookups and unrelated research stay outside
 this skill.
 
+If `.research/CONVENTIONS.md` exists, it must declare
+`owner: workbench-research`; otherwise defer to the named provider and do not
+interpret, lint, index, or modify its substrate. If an existing `.research/`
+tree has no owner declaration, stop and ask the user to resolve ownership rather
+than claiming it. A first durable Workbench Research engagement may initialize
+the missing tree with `owner: workbench-research`, `schema: 1`, and
+`verification_rigor: adaptive`.
+
 Read [references/discipline.md](references/discipline.md) completely before
 engaging sources. Its grounding floor is mandatory at every depth.
+Read [references/verification-rigor.md](references/verification-rigor.md) and
+resolve its verification gate independently from research scale and fan-out.
 Read [references/promotion.md](references/promotion.md) before offering to turn
 research method or domain guidance into a reusable project skill.
 
@@ -53,17 +63,20 @@ and existing `.research/` artifacts before acquiring duplicate evidence.
 If the requested research outcome is unclear, ask the user one concise
 load-bearing question before acquiring sources.
 
-Adapt depth from decision relevance, uncertainty, consequence, source
-disagreement, and corpus size. Use specialist fan-out, adversarial reading, or
-fresh-model review only when it improves evidence or judgment. Do not expose
-separate quick, deep, or program workflows to the user.
+Adapt depth and scale from decision relevance, uncertainty, consequence, source
+disagreement, and corpus size. Use specialist fan-out or adversarial reading
+only when it improves evidence or judgment. Research scale does not select or
+satisfy the verification-rigor gate. Do not expose separate quick, deep, or
+program workflows to the user.
 
 Prefer current primary sources for load-bearing claims. When consequences or
 uncertainty are high, corroborate those claims with an independent source or
 state why corroboration was unavailable in the research brief.
 
 When the engagement warrants a committed brief and
-`.research/CONVENTIONS.md` is absent, initialize
+`.research/CONVENTIONS.md` and `.research/` are absent, initialize the
+conventions with `owner: workbench-research`, `schema: 1`, and
+`verification_rigor: adaptive`, plus
 `.research/attestations/.gitkeep` and `.research/briefs/.gitkeep`. Write concise
 conventions for grounding, citation syntax, authority, and confirmed privacy
 requirements. Keep both `.gitkeep` files so empty tiers survive a fresh clone.
@@ -107,6 +120,9 @@ Use frontmatter `relationships` with `supports`, `contradicts`, `informs`, or
 
 ## Validate
 
+Apply the resolved verification-rigor gate from its reference. Project
+principles may guide product judgment but never count as cited evidence.
+
 Before rebuilding, inspect the intended documentation roots and
 `.knowledge/index-exclusions.txt` when present. If a repository-local companion
 checkout, generated documentation tree, or other unrelated subtree would make
@@ -134,7 +150,8 @@ ambiguous installations.
 
 Fix source-chain errors before calling the brief complete. Reply in the current
 conversation with the decision boundary, findings, contradictions, confidence
-limits, sources, and any research-handoff opportunity. This reply summarizes
+limits, sources, resolved verification rigor and evidence, and any
+research-handoff opportunity. This reply summarizes
 the durable brief; it is not a second research artifact.
 
 After an interactive research engagement, ask whether the user wants genuinely

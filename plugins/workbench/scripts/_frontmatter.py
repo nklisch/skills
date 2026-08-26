@@ -9,6 +9,8 @@ from typing import Any
 
 
 FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---(?:\s*\n|\Z)", re.DOTALL)
+WORKBENCH_RESEARCH_OWNER = "workbench-research"
+RESEARCH_RIGOR_VALUES = {"adaptive", "floor", "standard", "full"}
 
 
 def scalar(value: str) -> Any:
@@ -108,3 +110,32 @@ def first_heading(body: str) -> str | None:
         if line.startswith("# "):
             return line[2:].strip()
     return None
+
+
+def research_configuration(
+    project: Path,
+) -> tuple[str | None, dict[str, Any], list[str]]:
+    """Return the declared research owner, its metadata, and contract errors."""
+    research = project / ".research"
+    if not research.exists():
+        return None, {}, []
+    conventions = research / "CONVENTIONS.md"
+    if not conventions.is_file():
+        return None, {}, ["missing .research/CONVENTIONS.md"]
+    data, _ = parse(conventions)
+    owner = data.get("owner")
+    if not isinstance(owner, str) or not owner.strip():
+        return None, data, [".research/CONVENTIONS.md: missing owner"]
+    owner = owner.strip()
+    if owner != WORKBENCH_RESEARCH_OWNER:
+        return owner, data, []
+    errors: list[str] = []
+    if data.get("schema") != 1:
+        errors.append(".research/CONVENTIONS.md: schema must be 1")
+    rigor = data.get("verification_rigor", "adaptive")
+    if rigor not in RESEARCH_RIGOR_VALUES:
+        errors.append(
+            ".research/CONVENTIONS.md: verification_rigor must be "
+            "adaptive, floor, standard, or full"
+        )
+    return owner, data, errors

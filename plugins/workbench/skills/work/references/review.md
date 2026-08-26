@@ -95,6 +95,12 @@ operational source of truth and that the roadmap was not changed incidentally.
 
 ## Keep review inside the authorized scope
 
+Before every formal Workbench design or implementation review, read
+`.work/CONVENTIONS.md`, repository-wide principles, and principles owned by the
+affected scope. Include them in every delegated reviewer packet. Apply them as
+evaluation lenses inside the authorized outcome; they clarify product posture
+and durable constraints but do not authorize new requirements or scope growth.
+
 A review may detect that the design or implementation missed, contradicted, or
 unnecessarily exceeded an existing requirement. It must not create a new
 requirement, enlarge the accepted outcome, or treat an adjacent improvement as
@@ -121,8 +127,8 @@ prototype, internal tool, small utility, or other project whose rational scope
 does not require it.
 
 Every review prompt must state this boundary plainly. Give reviewers the raw
-requirements, artifacts, diff, and verification evidence available at that
-point, and tell them:
+requirements, applicable conventions and principles, artifacts, diff, and
+verification evidence available at that point, and tell them:
 
 > Do not invent requirements or expand scope. Evaluate only against the user's
 > original intent, accepted item and design, applicable foundation truth, and

@@ -41,7 +41,8 @@ from `work`.
 
 ## Check readiness
 
-Read the item, project instructions, relevant foundations, accepted design,
+Read the item, `.work/CONVENTIONS.md`, project instructions, repository-wide
+and applicable scope-owned principles, relevant foundations, accepted design,
 affected code and tests, `.knowledge/index.json` when present, and relevant references from the canonical
 `.agents/skills/patterns/SKILL.md` index.
 
@@ -62,6 +63,8 @@ Resolve the effective [Git posture](../work/references/git-posture.md) from
 explicit user direction, project conventions, then `adaptive`.
 Read the applicable references under `../work/references/`, especially
 `simplification.md`, `maintenance.md`, and `verification.md`.
+Use conventions and principles as implementation and review lenses within the
+accepted outcome; they do not authorize new requirements or adjacent work.
 
 ## Implement the item
 

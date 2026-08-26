@@ -2,8 +2,8 @@
 name: research-handoff
 description: >
   Turn actionable findings from completed .research briefs into user-confirmed Workbench items. Use
-  only when .work/CONVENTIONS.md declares owner: workbench and the user requests a concrete handoff
-  into its ledger; ignore this skill otherwise. Preserve the research record, explain each proposed
+  only when .work/CONVENTIONS.md declares owner: workbench, .research/CONVENTIONS.md declares owner:
+  workbench-research, and the user requests a concrete handoff into its ledger; ignore this skill otherwise. Preserve the research record, explain each proposed
   item's grounding, and create only the items the user confirms.
 ---
 
@@ -11,6 +11,10 @@ description: >
 
 First confirm that an upward-found `.work/CONVENTIONS.md` declares
 `owner: workbench`. If it does not, ignore this skill and do not offer setup.
+Then confirm `.research/CONVENTIONS.md` declares `owner: workbench-research`.
+If another provider owns it, use that provider's handoff behavior; do not
+interpret or modify its artifacts through this skill. If ownership is absent,
+ask the user to resolve it before handoff.
 When active, apply
 [setup's advisory version-compatibility guidance](../setup/references/version-compatibility.md);
 mention a useful upgrade/setup recommendation on mismatch without blocking the

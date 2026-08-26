@@ -384,6 +384,14 @@ a brief back to an attestation and a fetched source. Research is never
 rewritten to agree with a later product decision, and a project decision
 is never presented as if an external source established it.
 
+The research conventions name the provider that owns `.research/`. The bundled
+provider also offers a verification-rigor dial independent from investigation
+size: `floor` applies grounding and deterministic checks, `standard` adds a
+semantic source-support pass, `full` adds an isolated check for coverage and
+framing drift, and `adaptive` chooses proportionately. An alternate owner may
+define its own artifacts and gates; Workbench does not run the bundled tools
+over that provider's substrate.
+
 ### From research to work
 
 Research does not silently create work. The `research-handoff` skill

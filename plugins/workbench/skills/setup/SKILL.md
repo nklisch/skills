@@ -149,6 +149,14 @@ maintenance cost. Recommend a repository-specific form when observed work would
 benefit, but make no new repository convention binding without the user's
 answer.
 
+When the repository has durable research or expects to create it, always ask
+which provider should own `.research/`. If it selects `workbench-research`, ask
+for `verification_rigor`: `adaptive`, `floor`, `standard`, or `full`; recommend
+`adaptive` unless consequence, regulatory exposure, recurring semantic drift,
+or explicit assurance needs justify a fixed level. Explain that rigor controls
+semantic verification gates independently from source count, research breadth,
+and agent fan-out. Preserve an alternate provider's schema and mechanics.
+
 Always ask how completed items should be retained before release. Recommend `summarize`
 when temporary stubs ease drafting; recommend `discard` when Git history is sufficient.
 Both postures support release. Record only the user's confirmed choice.
@@ -270,6 +278,10 @@ candidates, each offered as its own adopt, adapt, or reject decision rather than
 as a checklist. Record
 only confirmed principles.
 
+On refresh, if an existing principle only says to fail fast, briefly offer the
+broader product-shaped reliability candidate as an upgrade. Do not rewrite the
+existing principle without confirmation.
+
 Write confirmed rules to the narrowest authority:
 
 - repository-wide agent invariants → `AGENTS.md`;
@@ -278,7 +290,8 @@ Write confirmed rules to the narrowest authority:
   project guidance, or `AGENTS.md` when they must bind every agent;
 - engineering or product principles → `docs/PRINCIPLES.md`;
 - recurring implementation patterns → `.agents/skills/patterns/`;
-- research evidence and privacy rules → `.research/CONVENTIONS.md`.
+- research provider ownership, evidence, verification rigor, and privacy rules
+  → `.research/CONVENTIONS.md`.
 
 ## Convert semantically
 
@@ -330,8 +343,13 @@ Run the plugin validator:
 python3 <workbench-plugin-root>/scripts/validate-workbench.py <project-root>
 ```
 
-When `.research/` exists or conversion creates research artifacts, also rebuild
-and validate `.knowledge/index.json`. Before rebuilding, inspect the intended
+When `.research/` exists or conversion creates research artifacts, first align
+its provider owner with the user. For `owner: workbench-research`, reconcile the
+bundled schema and also rebuild and validate `.knowledge/index.json`. For an
+alternate owner, preserve its substrate, use only its declared maintenance
+tools and conventions, and do not run Workbench Research's linter, builder, or
+handoff. An existing ownerless substrate requires an ownership decision rather
+than silent adoption. Before rebuilding, inspect the intended
 documentation roots and any existing `.knowledge/index-exclusions.txt`.
 Repository-local companion checkouts, generated documentation, and other
 irrelevant trees may be excluded when indexing them would make discovery

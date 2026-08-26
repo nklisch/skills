@@ -221,8 +221,11 @@ selected lens, effective simplification posture, verification feasibility,
 unnecessary complexity, reversal cost, and unauthorized scope growth. Apply
 review at the effective weight and execution posture before implementation
 becomes expensive to reverse. Give
-the reviewer raw requirements, the design, relevant foundations and code, known
-evidence, and the effective simplification posture. Include the mandatory
+the reviewer raw requirements, `.work/CONVENTIONS.md`, repository-wide and
+applicable scope-owned principles, the design, relevant foundations and code,
+known evidence, and the effective simplification posture. Apply conventions and
+principles as lenses within the authorized outcome, never as permission to add
+requirements. Include the mandatory
 non-expansion instruction from the review reference; do not lead with a
 suspected verdict.
 
