@@ -15,6 +15,8 @@ one understandable delivery rigor control. Separately read
 not the number of passes. Resolve the effective execution posture from explicit
 user direction, the optional project convention, then `adaptive`; it controls
 who performs each pass, not the selected rigor or convergence condition.
+Read [assurance-machinery.md](assurance-machinery.md) and apply it in every
+design and implementation review.
 
 | Weight | Review policy |
 |---|---|
@@ -126,6 +128,13 @@ evidence. Do not demand enterprise, platform, or production machinery from a
 prototype, internal tool, small utility, or other project whose rational scope
 does not require it.
 
+For correctness, accounting, verification, state-management, or determinism
+machinery, require a concrete protected failure or durable invariant and inspect
+the mechanism's authority, synchronization, migration, false-positive,
+blocked-state, and recovery costs. Flag a simpler credible mechanism that
+preserves accepted guarantees; never recommend deleting the mechanism merely
+because it is elaborate when the product risk earns that cost.
+
 Every review prompt must state this boundary plainly. Give reviewers the raw
 requirements, applicable conventions and principles, artifacts, diff, and
 verification evidence available at that point, and tell them:
@@ -174,7 +183,7 @@ the reviewer its hygiene, balanced, or structural expectation from
 answer. For design, ask about
 requirements coverage, boundaries, alternatives, assumptions, failure modes,
 verification feasibility, migration or rollback, unnecessary complexity,
-accurate high-level foundation roll-forward, foundation-altitude violations,
+assurance-machinery payoff, accurate high-level foundation roll-forward, foundation-altitude violations,
 and scope expansion. For implementation, ask about correctness, missing
 required behavior, safety, integration risk, simplification at the effective
 posture, foundation drift or delivery-detail leakage, overbuilding, and

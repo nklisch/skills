@@ -80,6 +80,10 @@ Apply the effective simplification posture. Eliminate unnecessary machinery
 before adding abstractions. Preserve observable behavior, guarantees, safety,
 compatibility obligations, and measured performance constraints unless the user
 explicitly authorizes a change. Do not turn pattern drift into conformity churn.
+Do not invent durable correctness, accounting, verification, state, or
+determinism machinery that the accepted design reasoning did not justify. If
+implementation reveals a consequential need for it, return to design instead
+of quietly growing the system; keep small, obvious local checks inline.
 
 Pause and return to the outcome owner when implementation exposes a missing
 requirement, consequential design choice, material scope expansion, or

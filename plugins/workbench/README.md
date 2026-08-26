@@ -80,6 +80,20 @@ large mechanical change with an established outcome can move directly through
 business decisions still shape what should be built. An explicit request to go
 straight to design or execution bypasses that preflight.
 
+When ideation reaches possible solutions, the agent grounds them in the current
+repository and makes their complexity visible. It normally contrasts the
+minimum coherent version, the best fit for existing boundaries and conventions,
+and a broader or more capable option when those are genuinely different. It
+labels necessary versus avoidable complexity across code, state, copied or
+generated files, hooks, configuration, tests, and operations. A broader
+architecture may be suggested when it materially simplifies the system, but it
+is identified as scope expansion and never silently enters the handoff.
+Correctness, accounting, verification, state-management, and determinism
+machinery must justify its own synchronization, constraint, migration, and
+failure costs against a concrete product risk. The same lens follows the chosen
+shape through design, behavioral verification, implementation, and review; it
+reduces machinery, not required guarantees or evidence.
+
 ## What a session looks like
 
 Suppose you ask, “Drive the onboarding epic to done.”

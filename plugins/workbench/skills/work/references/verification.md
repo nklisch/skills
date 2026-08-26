@@ -28,6 +28,12 @@ or benchmark may be added when it is cheap, contained, and protects meaningful
 behavior. Remove temporary probes after they answer the uncertainty unless
 their ongoing signal earns maintenance.
 
+Apply [assurance-machinery.md](assurance-machinery.md) when verification would
+introduce durable state, ledgers, generated receipts, canonicalization, bespoke
+validators, or a new harness. Challenging that machinery never permits skipping
+required evidence: replace it with the smallest credible behavioral proof, or
+state the unresolved verification limit.
+
 Do not invent or materially expand a test framework, simulation platform,
 benchmark system, mock service, synthetic environment, or validation
 architecture merely to prove one change. Discuss that investment with the user

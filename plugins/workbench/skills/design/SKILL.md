@@ -44,7 +44,10 @@ not whether design quality, review, safety, or authority boundaries apply. Read
 and resolve who performs design and review. Formal design remains required when
 the implementation shape warrants it even under `inline`. Read
 [../work/references/simplification.md](../work/references/simplification.md) and
-resolve the effective simplification posture for the design.
+resolve the effective simplification posture for the design. Read
+[../work/references/assurance-machinery.md](../work/references/assurance-machinery.md)
+and apply it while shaping correctness, accounting, verification, state, and
+determinism choices.
 
 Unless an instruction names a repository path or artifact, communicate with the
 user in the current conversation, including questions, offers, proposals,
@@ -138,6 +141,13 @@ item because they constrain future work.
 Name meaningful alternatives when the choice is consequential; do not
 manufacture options for obvious local work.
 
+Require every proposed assurance mechanism to name the product failure or
+durable invariant it protects, its authority, and why a simpler boundary check,
+derived state, recovery path, or existing mechanism is insufficient. Include
+its synchronization, migration, false-positive, blocked-state, and recovery
+costs. Preserve required correctness and credible verification; the goal is the
+smallest durable mechanism that protects them, not weaker guarantees.
+
 For formal design, follow the effective execution posture. Under `inline`, the
 main agent performs the full design in the current context. Under `adaptive`,
 keep smaller coherent designs inline and use a dedicated designer when fresh
@@ -218,7 +228,8 @@ planning, explanation, or review requests.
 
 Always self-check the design against requirements, repository evidence, the
 selected lens, effective simplification posture, verification feasibility,
-unnecessary complexity, reversal cost, and unauthorized scope growth. Apply
+unnecessary complexity, the assurance-machinery lens, reversal cost, and
+unauthorized scope growth. Apply
 review at the effective weight and execution posture before implementation
 becomes expensive to reverse. Give
 the reviewer raw requirements, `.work/CONVENTIONS.md`, repository-wide and

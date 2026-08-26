@@ -53,6 +53,18 @@ Include a working recommendation and rationale when it gives the user something
 useful to challenge. When the user asks to be grilled, increase the pressure on
 assumptions and trade-offs without changing the workflow.
 
+When proposing solution or architecture shapes, read
+[references/solution-shaping.md](references/solution-shaping.md). Offer a
+repository-aware spectrum that makes the minimum coherent approach, the best
+current-project fit, and a more expansive option visible when they are
+meaningfully different. Label necessary versus avoidable complexity and account
+for supporting files, state, hooks, configuration, tests, and operational
+surfaces—not only the headline implementation. Do not force three options when
+fewer or more explain the real choices better. Give special scrutiny to
+correctness, accounting, verification, state, and determinism machinery: it
+must earn its synchronization, constraint, migration, and failure cost against
+a concrete product risk.
+
 Select only useful lenses:
 
 - intent, audience, and desired outcome;
@@ -65,6 +77,12 @@ Select only useful lenses:
 - failure, safety, and operations;
 - evidence gaps;
 - privacy, compliance, and data handling.
+
+Ideation may surface a broader architectural alternative when it would
+materially simplify the whole system, even if it exceeds the initial scope.
+Label that expansion, compare it with the strongest in-scope option, and leave
+the choice with the user; never let a conversational alternative silently
+expand the eventual handoff.
 
 For an architectural rethink, bold refactor, deep simplification, or "what
 single idea would make this much simpler?" request, read
