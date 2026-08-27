@@ -115,6 +115,15 @@ altitude test so delivery and qualification details remain in the work record
 or owning executable surfaces, and rebuild the knowledge index when indexed
 documentation changes.
 
+When the item links or owns a provisional `docs/spec/` artifact, read
+[provisional-specs.md](../work/references/provisional-specs.md) and reconcile it
+before establishing the review target. Delete it when the described contract
+or interface is delivered and code owns the structure. If only part of its
+scope was delivered, narrow or split it so the surviving file describes only
+unresolved intended work and still names its owner and cleanup condition. Do
+not close an item while it leaves a stale provisional spec or duplicate
+structural authority.
+
 Establish a stable review target after this pre-review verification and
 reconciliation. Normally use a coherent commit or commit range; use a clearly
 bounded working-tree diff when committing would interfere with concurrent work

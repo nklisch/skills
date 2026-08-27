@@ -134,7 +134,11 @@ offer only relevant handoffs:
   research route without creating its substrate;
 - write root foundation documents for repository-wide truth;
 - write sub-project foundation documents for a durable, independently coherent
-  scope within a monorepo or larger repository.
+  scope within a monorepo or larger repository;
+- during a greenfield setup continuation, write provisional `docs/spec/`
+  contracts or interfaces when the user selected that bootstrap convention,
+  using
+  [the provisional-spec contract](../work/references/provisional-specs.md).
 
 Write only the handoffs the user explicitly selects. When entered from a
 greenfield setup, continue until the project's initial direction is coherent
@@ -152,3 +156,13 @@ local instructions. Use unscoped root foundations only for repository-wide
 truth. Link the levels where their contracts meet; do not duplicate the same
 assertion across locations or create a competing foundation for a scope that
 has no durable ownership boundary.
+
+Only offer provisional specs during a greenfield setup continuation. Explain
+the lifecycle before asking: they
+capture intended contracts with relevant design context while the code does
+not yet exist, then are deleted as that scope is delivered and code assumes
+structural authority. Offer this handoff only when the tentative contract would
+materially help design or coordination; do not turn every early idea into a
+spec. Honor the user's setup choice rather than asking again. In every other
+ideation flow, keep eventual implementation-shaping design in the Workbench
+item.

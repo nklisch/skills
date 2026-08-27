@@ -228,6 +228,17 @@ posture, release gates, Workbench recognition of a user-owned roadmap, and the `
 compatibility projection. Repository evidence may explain why one is useful,
 but never hides the choice or adopts it for you.
 
+During a greenfield bootstrap, setup also offers temporary `docs/spec/` design
+contracts as an optional convention. If you opt in, the bootstrap ideation and
+design can use them to make tentative
+interfaces concrete before the code exists. Each file says what outcome owns
+it and when it must be deleted. As delivery lands, code becomes the structural
+source of truth; the agent deletes the finished spec or narrows it to the part
+that is still unresolved. This is a lightweight convention, not a document
+registry or a second permanent contract system.
+After bootstrap, feature design belongs in Workbench items; the convention does
+not make `docs/spec/` an ongoing design workspace.
+
 Setup also inspects coding rules, structural foundations, tool configuration,
 and pattern catalogs to discover unique repository-specific conventions. Those
 candidates may fall outside Workbench's named configuration: evidence is an
@@ -670,6 +681,9 @@ setup's canonical foundation-document contract and confirmed documentation
 choices to shape the project's initial foundations; it does not ask you to
 invoke another skill or invent a second format, and it still waits for your
 explicit foundation handoff before writing them.
+If you selected provisional specs during setup, ideation may separately offer
+that handoff when a tentative contract would materially help the next design or
+implementation step. It does not create specs for every idea.
 
 Setup does not leave `.bak` copies or a legacy folder.
 Anything clean and tracked is recoverable from Git. Before removing anything

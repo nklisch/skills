@@ -523,6 +523,21 @@ Implementation closure reconciles affected assertions against the integrated
 result, reporting updated foundations, or—where an update was reasonably
 expected—why existing assertions remain accurate.
 
+A greenfield repository may explicitly opt into provisional `docs/spec/`
+artifacts as an optional bootstrap convention. These temporary design contracts
+may describe intended interfaces,
+schemas, protocols, or flows before their implementation exists. They are not
+foundation truth. Each identifies its owning Workbench outcome, the code or
+behavior that will replace it as structural authority, and its deletion
+condition. Design creates one only when it materially improves coordination or
+implementation clarity. Delivery deletes it when its scope is implemented, or
+narrows it to unresolved scope; durable semantics and invariants may move into
+the owning foundation, but duplicated structure may not remain. No registry,
+status schema, or dedicated validator governs this lifecycle.
+After bootstrap, new implementation-shaping design stays in Workbench active
+items; the convention authorizes reconciliation of surviving bootstrap specs,
+not creation of new feature design documents.
+
 Foundation names follow the repository's confirmed documentation conventions;
 `VISION.md`, `ARCHITECTURE.md`, `PRINCIPLES.md`, `SPEC.md`, `JOURNEYS.md`, and
 `WORKFLOWS.md` are examples, not a required set. A contract, schema, or
@@ -723,9 +738,11 @@ After a greenfield bootstrap establishes Workbench ownership and conventions but
 no code or foundation establishes coherent project direction, setup routes
 directly into `ideate` in the same engagement. It passes the confirmed
 documentation conventions and links ideation to setup's foundation contract and
-principle candidates. Ideation does not re-ask settled setup choices or duplicate
-the format; it clarifies project intent and writes the smallest useful initial
-foundation set only after the user selects that explicit handoff.
+principle candidates. It also passes the user's provisional-spec choice.
+Ideation does not re-ask settled setup choices or duplicate the format; it
+clarifies project intent and writes the smallest useful initial foundation set,
+or a useful provisional contract, only after the user selects that explicit
+handoff.
 
 Every removal target is classified as clean tracked, modified tracked,
 untracked, ignored, or otherwise unrecoverable. Clean tracked content is

@@ -218,6 +218,14 @@ knowledge index when required by that reference. A design that settles a
 contract, schema, or protocol names its intended structural authority —
 code-owned, document-owned, or a generated mix — following that reference.
 
+When the target item already links a provisional `docs/spec/` artifact created
+through the greenfield bootstrap convention,
+read [../work/references/provisional-specs.md](../work/references/provisional-specs.md).
+Reconcile it and name the implementation boundary that owns its cleanup. Do not
+create a new provisional spec during ordinary feature design, even when the
+repository once used the convention or the directory remains. Keep normal
+implementation-shaping design in the active item.
+
 ## Review the design
 
 For this concrete Workbench design, read
@@ -250,6 +258,11 @@ mechanisms. A convention-authorized `docs/ROADMAP.md` is user-owned and
 free-form: do not reject its metadata, discourse, or status language. Instead,
 verify that proposed operational conclusions come from `.work/` and that the
 agent is not rewriting the roadmap incidentally.
+
+When a provisional spec is part of the design, also check that it is plainly
+temporary, has one owning outcome and cleanup condition, does not masquerade as
+current foundation truth, and will not leave two hand-maintained structural
+authorities after delivery.
 
 Adjudicate findings rather than accepting them blindly. Revise confirmed
 material problems. Explain rejected material proposals and the

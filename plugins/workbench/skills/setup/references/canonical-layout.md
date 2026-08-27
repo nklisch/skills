@@ -35,6 +35,7 @@
 .knowledge/index.json            # committed, deterministic discovery index
 .knowledge/index-exclusions.txt  # optional tracked path-prefix exclusions
 docs/<repository-wide foundations>
+docs/spec/<provisional design contracts>  # optional greenfield-bootstrap opt-in
 <sub-project>/docs/<scope-owned foundations>
 docs/<sub-project>/<scope-owned foundations>
 .agents/skills/patterns/  # canonical project pattern index and references
@@ -59,6 +60,13 @@ CLAUDE.md                # optional relative symlink to AGENTS.md
 
 Foundation names follow the repository's confirmed documentation conventions;
 the contracts and examples below determine how to choose and shape them.
+
+During a greenfield bootstrap, an explicitly opted-in `docs/spec/` may hold
+temporary contracts and interfaces before their implementation exists. Those files follow
+[the provisional-spec contract](../../work/references/provisional-specs.md), are
+not foundations, and are deleted or narrowed as delivery moves structural
+authority into code. Established-project design remains in Workbench items; the
+directory name alone never establishes this meaning.
 
 The research capability ships with Workbench. Setup may omit `.research/` and
 `.knowledge/` until the project has research worth retaining.

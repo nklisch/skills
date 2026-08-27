@@ -257,6 +257,21 @@ when present; otherwise recommend the smallest set that fits the project's
 shape. Present names as examples that should fit the project, never as a fixed
 required list.
 
+For a greenfield bootstrap, offer an explicit opt-in to the optional
+provisional `docs/spec/` convention using
+[the provisional-spec contract](../work/references/provisional-specs.md).
+Explain that these temporary contracts and interfaces may guide design before
+code exists, are not foundation truth, and are deleted as their described
+scope is delivered and code becomes structural authority. A decline or defer
+decision creates no directory or convention. Record an accepted convention in
+the body of `.work/CONVENTIONS.md`; do not add a frontmatter field, registry, or
+validator. Recommend it only when initial contract design or parallel bootstrap
+implementation would benefit. Do not offer it as an ongoing alternative to
+active-item design in an established repository. On refresh, reconcile an
+already selected bootstrap convention and its surviving specs, but do not
+introduce it anew. Surface unclassified existing `docs/spec/` documents for
+disposition rather than silently adopting them as provisional.
+
 Always offer Workbench recognition of `docs/ROADMAP.md` as an optional
 configuration; never create or adopt it without explicit user approval. Explain
 the optional roadmap convention from the canonical-layout reference before
@@ -409,7 +424,8 @@ bootstrap, route directly into [`ideate`](../ideate/SKILL.md) in the same
 engagement rather than ending with an invitation to invoke another skill.
 
 Pass the confirmed documentation location, naming, contract-truth ownership,
-and principles decisions into ideation. Direct `ideate` to read the
+provisional-spec choice, and principles decisions into ideation. Direct
+`ideate` to read the
 [foundation document contract](references/canonical-layout.md#foundation-document-contract)
 and [principle candidates](references/principle-candidates.md) from setup; these
 are the shared format and decision sources, not prose to duplicate in the

@@ -6,6 +6,11 @@ scope-owned sub-project is, the boundaries and guarantees it maintains, and the
 principles that guide durable decisions. They are not progress logs, release
 notes, delivery records, or a copy of the work item.
 
+Convention-authorized provisional `docs/spec/` contracts are not foundations.
+They may temporarily describe intended structure before its code exists, but
+must follow [provisional-specs.md](provisional-specs.md) and be deleted or
+narrowed as delivery transfers structural authority to code.
+
 Keep specific delivery and implementation machinery in its owning authority:
 work-item ids, status, sequencing, acceptance progress, implementation plans,
 qualification commands and runners, receipt or evidence paths, and
@@ -66,8 +71,9 @@ one structural authority based on where the consumers are:
   machine-readable schema or type artifact holds field-level definitions, and
   no document re-states them. The document owns what code cannot express —
   semantics, invariants, conformance rules, versioning policy, and rationale.
-  When a document pre-dates its code, label it as intended truth holding both
-  until the code lands, then slim it rather than maintaining two definitions.
+  A durable foundation may pre-date its code only for semantics and invariants;
+  use a convention-authorized provisional spec for temporary field-level or
+  interface structure, then delete or narrow it when code lands.
 - **Consumers beyond the repository.** A published protocol, plugin API, or
   storage format that external implementations consume may warrant a standalone
   normative document, a generated specification, or a mix. Keep one structural

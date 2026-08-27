@@ -95,6 +95,11 @@ restricted foundation template. Its metadata and discourse are not review
 failures; verify instead that `.work/`, not roadmap prose, remains the
 operational source of truth and that the roadmap was not changed incidentally.
 
+When the outcome uses a provisional design spec, also read
+[provisional-specs.md](provisional-specs.md). Treat missing provisional status,
+unclear ownership or cleanup, stale delivered scope, and duplicated
+hand-maintained structural truth as review findings.
+
 ## Keep review inside the authorized scope
 
 Before every formal Workbench design or implementation review, read
