@@ -31,12 +31,15 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
   epic -> feature -> story when items nest.
 - Keep independent items parallel. Use blocked_by only when serial work
   materially reduces rework, ambiguity, or integration risk.
+- Designs and reviews, including loose requests, must apply the current
+  `## Overbuilding calibration` and must not invent requirements or expand the
+  user's scope; flag overbuilding and return adjacent ideas separately as
+  non-blocking follow-ups. Loose work does not
+  acquire other Workbench mechanics. Pass the calibration to delegated roles
+  rather than assuming fresh context inherited it.
 - For multi-unit boundaries, orchestrate as outcome owner and own
   integration and acceptance; execute small coherent work inline when
   delegation adds no value.
-- Designs and reviews must not invent requirements or expand the user's
-  original scope. Judge against foundation truth and the rational needs
-  of this project type; flag overbuilding and park adjacent improvements.
 - Before reviewing a concrete Workbench design or delivery, read the work skill's
   `references/review.md`: it defines the proportional constraint lens and
   required review packet. Reviewers propose; the outcome owner verifies and

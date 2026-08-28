@@ -16,7 +16,9 @@ into project state.
 
 Ideate may run before or after Workbench adoption. When an upward-found
 `.work/CONVENTIONS.md` declares `owner: workbench`, read its conventions and
-relevant ledger state as context. Otherwise explore conversationally without
+relevant ledger state as context. Apply the current `## Overbuilding calibration`
+when shaping options; if it is missing, use current repository evidence without
+inventing a durable calibration. Otherwise explore conversationally without
 creating `.work/`, `.research/`, or other Workbench state and without treating
 the plugin's availability as consent to adopt it. A durable Workbench, research,
 or backlog handoff requires the user's explicit adoption choice first.
@@ -93,6 +95,16 @@ its behavior-change callout rule.
 Use current-source research for unstable facts, but hand substantive
 investigation to an available `research` skill.
 
+Before handing off an adopted project or greenfield setup continuation whose
+calibration is missing, wait until project type, audience, deployment, and
+consequence are clear enough, then explicitly offer an initial calibration.
+When concrete
+solution choices expose stale guidance, offer one narrowly scoped refinement
+handoff. Exploration remains write-free. If the user selects that handoff, end
+exploration and write only the confirmed `## Overbuilding calibration` prose.
+Never promote one incident or preference; replace stale guidance rather than
+appending history.
+
 Every few exchanges, summarize in the current conversation:
 
 - settled decisions;
@@ -140,7 +152,9 @@ offer only relevant handoffs:
   using
   [the provisional-spec contract](../work/references/provisional-specs.md).
 
-Write only the handoffs the user explicitly selects. When entered from a
+Write only the handoffs the user explicitly selects. A selected calibration
+handoff writes only the confirmed conventions prose; it does not create a
+receipt, item, validator rule, or other Workbench state. When entered from a
 greenfield setup, continue until the project's initial direction is coherent
 enough to offer the smallest useful foundation set described by setup's
 [foundation document contract](../setup/references/canonical-layout.md#foundation-document-contract).

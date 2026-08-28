@@ -34,6 +34,20 @@ every push, so a local pass means a green pipeline:
 - **Marketplace catalog changes** (`.claude-plugin/marketplace.json`,
   `.agents/plugins/marketplace.json`): `jq` validity check on both catalogs.
 
+## Overbuilding calibration
+
+- **Project context:** Shared skills ship across Claude Code, Codex,
+  Antigravity, and Pi; Workbench and research substrates use closed schemas.
+- **Likely overbuilding:** Duplicated host-specific workflow prose, generic
+  registries or adapters, receipts and counters, exhaustive validators, and
+  compatibility shims for project-owned surfaces—especially guards without a
+  named threat or capability.
+- **Justified complexity:** Channel-parity adapters and checks, deterministic
+  structural validation, and machinery protecting a real invariant, external
+  consumer, or documented failure.
+- **Revisit when:** Real use exposes a gap or proposed machinery lacks an earned
+  consumer or failure. Prefer the simpler boundary or a credible degraded path.
+
 ## Delivery rules
 
 - Shipping happens through `scripts/bump-version.sh <plugin> <major|minor|patch>`

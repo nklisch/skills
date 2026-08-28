@@ -81,7 +81,8 @@ Load references only as needed:
 - backlog walkthrough, grooming, grouping, deduplication, or prioritization →
   [references/backlog-grooming.md](references/backlog-grooming.md);
 - multi-unit or multi-epic orchestration →
-  [references/execution.md](references/execution.md);
+  [references/execution.md](references/execution.md) and the shared
+  [references/role-handoffs.md](references/role-handoffs.md);
 - designer, implementor, or reviewer model selection →
   [references/model-roles.md](references/model-roles.md);
 - nontrivial UI or journey uncertainty →
@@ -136,7 +137,12 @@ result in the current conversation and change nothing unless the user also asks
 for a change. General code review, explanation, diagnosis, and other loose
 requests are not Workbench workflows and do not acquire ledger, closure, or
 configured review-weight obligations merely because the repository uses
-Workbench.
+Workbench. In an adopted repository, apply the current `## Overbuilding
+calibration` to any loose design or review as a proportionality lens, while
+leaving ledger, review-weight, convergence, formal review packet, and closure
+mechanics out. Delegated loose design or review receives the calibration explicitly rather
+than assuming fresh context inherited it; use the concise contract in
+[references/role-handoffs.md](references/role-handoffs.md).
 
 For an epic, include required children and integration. For several epics,
 resolve the complete named target set. For a delivery outcome, discover
@@ -165,6 +171,12 @@ as permission to guess or continue.
 
 Record accepted outcomes, constraints, exclusions, and acceptance evidence in
 the relevant active item without manufacturing a large template.
+
+An active stateful Workbench workflow may apply a directly confirmed,
+evidence-backed calibration refinement when concrete work exposes stale or
+missing guidance. It replaces the stale prose rather than appending incident
+history. A loose request proposes a refinement only, unless the user explicitly
+asks to edit `.work/CONVENTIONS.md`.
 
 ## Shape durable work
 
@@ -275,8 +287,10 @@ parent cannot close with undisposed maintenance evidence.
 
 Read [references/review.md](references/review.md), resolve the effective
 `review_weight` and simplification posture, and apply them to that Workbench
-outcome, including the mandatory non-expansion instruction in every review
-prompt. Explicit user direction overrides repository defaults. Verify and
+outcome. Read the current project calibration and include the exact canonical
+non-expansion instruction from
+[references/role-handoffs.md](references/role-handoffs.md) in every formal
+review prompt. Explicit user direction overrides repository defaults. Verify and
 adjudicate reviewer findings rather than accepting them blindly; reject invented
 requirements and park useful out-of-scope proposals instead of making them
 acceptance blockers.

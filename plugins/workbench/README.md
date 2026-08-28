@@ -45,6 +45,13 @@ before asking for tracked project work. This does not make Workbench a universal
 router: unrelated conversation, lookups, explanations, and reviews that do not
 need its capabilities remain ordinary requests.
 
+An adopted repository may record a concise, user-confirmed
+`## Overbuilding calibration` in `.work/CONVENTIONS.md`: project context, likely
+overbuilding, justified complexity, and reasons to revisit it. Every design and
+review applies this lens, including loose requests, without importing other
+Workbench mechanics. Setup establishes or reconciles it; ideate can propose a
+confirmed refinement without turning exploration into an automatic write.
+
 Workbench's stateful skills require an upward-found `.work/CONVENTIONS.md`
 declaring `owner: workbench`. `setup` is the explicit adoption route. `ideate`
 is the only capability that may also run before adoption because it remains a

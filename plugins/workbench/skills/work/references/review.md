@@ -1,10 +1,12 @@
 # Independent Review
 
-This policy applies only while reviewing a concrete Workbench workflow: an
-implementation-shaping design recorded for a Workbench outcome or completed
-implementation inside a Workbench delivery boundary. It does not govern every
-review, audit, planning discussion, explanation, or loose request made in a
-Workbench-owned repository.
+This policy applies as a formal review contract only while reviewing a
+concrete Workbench workflow: an implementation-shaping design recorded for a
+Workbench outcome or completed implementation inside a Workbench delivery
+boundary. Every design and review in an adopted repository still applies the
+current `## Overbuilding calibration`, including a loose request. Loose work
+gets that proportionality lens without this policy's ledger, review-weight,
+convergence, formal review packet, or closure mechanics.
 
 For an applicable workflow, resolve one effective `review_weight` from explicit
 user instruction, `.work/CONVENTIONS.md`, then `standard`. The same weight
@@ -140,20 +142,18 @@ blocked-state, and recovery costs. Flag a simpler credible mechanism that
 preserves accepted guarantees; never recommend deleting the mechanism merely
 because it is elaborate when the product risk earns that cost.
 
-Every review prompt must state this boundary plainly. Give reviewers the raw
+Every formal review prompt must include the exact canonical boundary
+instruction from [role-handoffs.md](role-handoffs.md). Give reviewers the raw
 requirements, applicable conventions and principles, artifacts, diff, and
-verification evidence available at that point, and tell them:
-
-> Do not invent requirements or expand scope. Evaluate only against the user's
-> original intent, accepted item and design, applicable foundation truth, and
-> the rational expectations of this project type. Flag overbuilding as a
-> defect. Treat worthwhile improvements outside that boundary as non-blocking
-> follow-ups, not findings required for acceptance.
+verification evidence available at that point. Pass the project calibration
+explicitly rather than assuming a fresh context inherited it.
 
 ## Require a useful review packet
 
-Every review pass produces a concise packet for the outcome owner to verify and
-adjudicate, not a bare verdict:
+Every formal Workbench review pass produces a concise packet for the outcome
+owner to verify and adjudicate, not a bare verdict. The packet below remains
+owned by this reference; a loose delegated review instead follows the smaller
+contract in [role-handoffs.md](role-handoffs.md).
 
 - **Scope and evidence** — the authorized outcome, surfaces examined, and
   material coverage limits.

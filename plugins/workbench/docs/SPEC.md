@@ -181,6 +181,20 @@ Confirmed repository-specific delivery rules that have no narrower authority
 belong as named prose in the conventions body, not as invented configuration
 keys or forced matches to a Workbench category.
 
+An adopted repository may also keep one concise `## Overbuilding calibration`
+section in the conventions body. Its evidence-backed prose describes project
+context, likely overbuilding shapes, justified complexity, and evidence for
+revisiting the guidance; it has no required count or checklist semantics and is
+not validated as an enum. The calibration applies to every design and review,
+including loose requests. Missing guidance falls back to repository evidence.
+Setup establishes or reconciles it with confirmation, does not ritually re-ask
+an existing setting, and replaces stale guidance rather than appending incident
+history. Ideate remains write-free until a user selects a narrowly scoped
+calibration handoff. An active stateful workflow may apply a directly confirmed
+refinement; a loose request proposes one unless the user explicitly asks to edit
+conventions. Loose work does not acquire Workbench ledger, review-weight,
+convergence, formal review packet, or closure mechanics.
+
 ## Active items
 
 ```yaml
@@ -775,7 +789,12 @@ Workbench version with the loaded plugin before stateful work, route only concre
 Workbench workflows through its skills, use features as the default delivery
 unit, preserve strict nested tiers, keep independent work parallel, orchestrate
 multi-unit boundaries, park out-of-scope findings, and reconcile and close
-before declaring Workbench delivery done. For concrete design and delivery
+before declaring Workbench delivery done. It directs every design and review to
+apply the current project calibration, including loose requests, and tells
+delegators to pass that calibration explicitly rather than assume fresh context
+inherited it. Loose work does not acquire Workbench ledger, review-weight,
+convergence, formal review packet, or closure mechanics. For concrete design and
+delivery
 reviews, it directs reviewers to the work skill's `references/review.md`, which
 defines the proportional constraint lens and required review packet; reviewers propose and
 the outcome owner verifies and adjudicates against product goals and evidence.

@@ -6,8 +6,11 @@ design hardens.
 
 ## Ground proposals in the repository
 
-When a repository is available, inspect the relevant conventions, principles,
-foundations, existing architecture, and reusable mechanisms first. Explain how
+When a repository is available, inspect the relevant conventions, including its
+`## Overbuilding calibration` when adopted, principles, foundations, existing
+architecture, and reusable mechanisms first. Apply the calibration as a
+project-specific proportionality lens; if it is absent, use current repository
+evidence without inventing durable guidance. Explain how
 each proposal fits, replaces, or intentionally departs from them. Do not propose
 generic infrastructure that duplicates a capability the project already owns.
 

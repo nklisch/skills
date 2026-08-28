@@ -41,9 +41,10 @@ from `work`.
 
 ## Check readiness
 
-Read the item, `.work/CONVENTIONS.md`, project instructions, repository-wide
-and applicable scope-owned principles, relevant foundations, accepted design,
-affected code and tests, `.knowledge/index.json` when present, and relevant references from the canonical
+Read the item, `.work/CONVENTIONS.md`, its current `## Overbuilding
+calibration`, project instructions, repository-wide and applicable scope-owned
+principles, relevant foundations, accepted design, affected code and tests,
+`.knowledge/index.json` when present, and relevant references from the canonical
 `.agents/skills/patterns/SKILL.md` index.
 
 Return control to `work` when the target is missing, blocked, unscoped, spans
@@ -68,8 +69,12 @@ accepted outcome; they do not authorize new requirements or adjacent work.
 
 ## Implement the item
 
-Work only inside the accepted outcome and assigned surface. Follow confirmed
-coding and structural guidance from its owning authority:
+Work only inside the accepted outcome and assigned surface. Apply the current
+project calibration as a proportionality lens; it does not add requirements.
+When implementation is delegated, use the shared context from
+[role-handoffs.md](../work/references/role-handoffs.md) and give the implementer
+an exact owned write surface, integration contract, checks, and return evidence.
+Follow confirmed coding and structural guidance from its owning authority:
 
 - formatter and linter configuration owns mechanical rules;
 - `AGENTS.md` owns concise agent operating rules;
@@ -143,10 +148,12 @@ Determine the item's role:
   owner. Do not run a duplicate review pass that belongs at the feature's
   integrated boundary.
 
-Adjudicate findings rather than accepting them blindly. Every distinct review
-must carry the mandatory non-expansion instruction from `review.md`. `work` does
-not repeat completed feature or standalone-story review; it reviews only
-substantive wider integration behavior not covered at those item boundaries.
+Adjudicate findings rather than accepting them blindly. Every formal distinct
+review must include the exact canonical boundary instruction from
+[role-handoffs.md](../work/references/role-handoffs.md), as required by
+`review.md`. `work` does not repeat completed feature or standalone-story
+review; it reviews only substantive wider integration behavior not covered at
+those item boundaries.
 
 ## Close and return
 

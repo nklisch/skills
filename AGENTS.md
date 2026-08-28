@@ -185,6 +185,11 @@ the normal delivery unit, epics for multiple feature outcomes, and stories for
 narrow slices. Keep independent items parallel and add `blocked_by` only for a
 real sequencing dependency.
 
+Before any design or review, including a loose request, apply the current
+`## Overbuilding calibration` from `.work/CONVENTIONS.md`. Loose work gets the
+lens without other Workbench mechanics. Pass it to delegated roles rather than
+assuming fresh context inherited it.
+
 `.work/` is the operational record; foundation documents describe durable
 project truth. Only write durable artifacts named by the active workflow.
 Questions, proposals, progress, recommendations, and completion reports belong

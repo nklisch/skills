@@ -56,6 +56,11 @@ adopted repository; write-free `ideate` may explore before adoption, and
   what is rational for the project's actual type, maturity, audience,
   deployment context, and stated risks; flag overbuilding instead of rewarding
   it.
+- **Calibration is project truth.** A concise, user-confirmed
+  `## Overbuilding calibration` records what disproportionate and justified
+  complexity look like here. Every design and review applies it, including loose
+  requests, without importing other Workbench mechanics. Setup establishes or
+  reconciles it; later refinements remain evidence-backed and user-confirmed.
 - **Simplicity is durable and configurable.** Every workflow retains a hygiene
   floor, while one repository `simplification_posture` controls whether design,
   implementation, and review stay local, actively simplify the affected

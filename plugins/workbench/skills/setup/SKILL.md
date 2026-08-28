@@ -80,6 +80,21 @@ choice remains absent or unmanaged. On refresh, present an already confirmed
 choice as the current setting rather than re-asking it, unless the user asks to
 reconsider it.
 
+Also establish or reconcile the project's `## Overbuilding calibration` section
+from [the conventions contract](references/canonical-layout.md#overbuilding-calibration).
+On an adoption with enough existing project context, explain the evidence,
+contrast likely overbuilding with justified complexity, and ask the user to
+confirm the starting guidance. For a greenfield bootstrap without coherent
+project direction, defer that confirmation to the immediate ideate continuation.
+For an existing Workbench repository, an existing section is current project
+truth: inspect it and use it without ritually asking the same question again.
+Offer a replacement only when repository evidence or the user's request shows
+that it is missing or stale, and require confirmation before writing it. Keep
+this prose concise and evidence-backed—project context, likely overbuilding
+shapes, justified complexity, and revisit evidence—not a count, checklist, or
+validator contract. Missing guidance falls back to current evidence-based
+judgment.
+
 Then use repository evidence as an open-ended discovery lens for convention
 candidates. It is not a gate on whether optional Workbench configurations are
 visible, and it is not limited to the categories Workbench already defines.
@@ -424,8 +439,11 @@ bootstrap, route directly into [`ideate`](../ideate/SKILL.md) in the same
 engagement rather than ending with an invitation to invoke another skill.
 
 Pass the confirmed documentation location, naming, contract-truth ownership,
-provisional-spec choice, and principles decisions into ideation. Direct
-`ideate` to read the
+provisional-spec choice, principles decisions, and calibration context into
+ideation. For a greenfield repository, wait until project type, audience,
+deployment, and consequence are understandable before offering the initial
+calibration; then let ideation carry it as one of the decisions for explicit
+confirmation. Direct `ideate` to read the
 [foundation document contract](references/canonical-layout.md#foundation-document-contract)
 and [principle candidates](references/principle-candidates.md) from setup; these
 are the shared format and decision sources, not prose to duplicate in the

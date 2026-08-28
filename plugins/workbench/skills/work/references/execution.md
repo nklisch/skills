@@ -2,7 +2,9 @@
 
 Use Workbench's `deliver` skill in orchestrated mode for each ready feature or
 story. This reference owns coordination, integration, and continuation across
-units.
+units. Use [role-handoffs.md](role-handoffs.md) for the shared context and
+authority contract; this reference owns the implementation-specific assignment
+and return details.
 
 For a multi-unit or multi-epic boundary, write only the coordination detail
 needed to maintain ownership and integration in the relevant active item:
@@ -45,9 +47,11 @@ not merely because several units exist.
 
 Give each deliverer the explicit orchestrated mode, parent outcome, accepted
 scope, owned write surface, integration contract, relevant conventions and
-patterns, required checks, effective review weight, effective simplification
-posture, effective execution posture, and return evidence. Do not make a deliverer rediscover rules the
-orchestrator already loaded. Deliverers report stale patterns and promotion
+patterns, current project calibration, required checks, effective review weight,
+effective simplification posture, effective execution posture, and return
+evidence. Use the shared context and canonical boundary instruction from
+[role-handoffs.md](role-handoffs.md); do not make a deliverer rediscover rules
+the orchestrator already loaded. Deliverers report stale patterns and promotion
 candidates. Keep the shared pattern catalog in the outcome owner's write surface
 so parallel units do not collide.
 

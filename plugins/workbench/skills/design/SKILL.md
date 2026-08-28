@@ -47,7 +47,9 @@ the implementation shape warrants it even under `inline`. Read
 resolve the effective simplification posture for the design. Read
 [../work/references/assurance-machinery.md](../work/references/assurance-machinery.md)
 and apply it while shaping correctness, accounting, verification, state, and
-determinism choices.
+determinism choices. Read
+[../work/references/role-handoffs.md](../work/references/role-handoffs.md) when
+delegating a core-delivery role.
 
 Unless an instruction names a repository path or artifact, communicate with the
 user in the current conversation, including questions, offers, proposals,
@@ -82,7 +84,9 @@ not invent product requirements, adjacent capabilities, or a broader quality
 bar to satisfy the designer's preferred ideal state.
 
 Keep a clear narrow request narrow. Calibrate the design to the project's actual
-type, maturity, audience, deployment context, and stated risks. Do not add
+type, maturity, audience, deployment context, and stated risks. Apply the
+current `## Overbuilding calibration` from `.work/CONVENTIONS.md` when present;
+missing calibration falls back to current repository evidence. Do not add
 enterprise, platform, production, extensibility, compatibility, operational, or
 validation machinery unless the authorized outcome or repository evidence
 requires it. If a clear request has no active item, create the smallest coherent
@@ -156,13 +160,21 @@ cost. Under `orchestrated`, prefer a dedicated design agent when available.
 When assigning one, select it using
 [../work/references/model-roles.md](../work/references/model-roles.md), matching
 technical precision or creative taste to the design lens rather than choosing
-by rank alone. Give it raw requirements, relevant repository truth, constraints,
-the target item, and an explicit instruction not to invent requirements or
-expand the outcome beyond the user's intent and rational scope of this project
-type. Ask it to identify overbuilding as a design defect and to separate useful
-out-of-scope ideas as non-blocking follow-ups. Do not give it a proposed answer.
-The outcome owner retains final synthesis and adjudication. Do not add
-delegation overhead merely to enact a role split.
+by rank alone. Give it the formal designer context and boundary instruction from
+[role-handoffs.md](../work/references/role-handoffs.md), including the selected
+lens and effective simplification posture. Do not give it a proposed answer.
+The outcome owner retains final synthesis and adjudication. Do not add delegation
+overhead merely to enact a role split.
+
+A formal designer is proposal-only and returns a concise structure separating:
+
+- **Facts** — repository or source-grounded observations;
+- **Assumptions** — unresolved premises and their consequence;
+- **Alternatives** — meaningful options and trade-offs;
+- **Recommendation** — the smallest coherent fit inside scope;
+- **Overbuilding** — extra machinery or complexity that lacks earned need; and
+- **Non-blocking ideas** — useful out-of-scope follow-ups, clearly separated
+  from acceptance requirements.
 
 ## Record the design
 
@@ -240,13 +252,14 @@ unnecessary complexity, the assurance-machinery lens, reversal cost, and
 unauthorized scope growth. Apply
 review at the effective weight and execution posture before implementation
 becomes expensive to reverse. Give
-the reviewer raw requirements, `.work/CONVENTIONS.md`, repository-wide and
-applicable scope-owned principles, the design, relevant foundations and code,
-known evidence, and the effective simplification posture. Apply conventions and
-principles as lenses within the authorized outcome, never as permission to add
-requirements. Include the mandatory
-non-expansion instruction from the review reference; do not lead with a
-suspected verdict.
+the reviewer raw requirements, `.work/CONVENTIONS.md`, its current `##
+Overbuilding calibration`, repository-wide and applicable scope-owned
+principles, the design, relevant foundations and code, known evidence, and the
+effective simplification posture. Apply conventions and principles as lenses
+within the authorized outcome, never as permission to add requirements. Include
+the exact canonical boundary instruction from
+[../work/references/role-handoffs.md](../work/references/role-handoffs.md); do
+not lead with a suspected verdict.
 
 Require the reviewer to check whether proposed foundation changes accurately
 represent ownership, boundaries, current truth, and explicitly intended truth,

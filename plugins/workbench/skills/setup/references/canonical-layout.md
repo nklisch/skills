@@ -144,6 +144,30 @@ resolve it as `adaptive`; those without `execution_posture` use adaptive
 topology; and those without `commit_posture` use the adaptive Git posture. Setup
 writes user-confirmed values when refreshing them.
 
+## Overbuilding calibration
+
+An adopted repository may keep one concise `## Overbuilding calibration` section
+in the conventions body. It is project-specific prose, not frontmatter, a
+validator target, or an exhaustive checklist. Keep it short and evidence-backed:
+
+- **Project context** — the project's type, audience, consequence, and other
+  facts that set a proportionate complexity bar;
+- **Likely overbuilding shapes** — recurring extra machinery that is not normally
+  justified here;
+- **Justified complexity** — capabilities or safeguards the project does need,
+  and why; and
+- **Revisit evidence** — concrete evidence that should cause the guidance to be
+  refined or replaced.
+
+The section guides every design and review in an adopted repository, including a
+loose request, but it does not import Workbench's ledger, review-weight,
+convergence, formal review packet, or closure mechanics into loose work. Missing
+calibration degrades to current repository-evidence judgment. Setup establishes
+or reconciles the section only with user confirmation: an existing section is
+current project truth and is not ritually re-asked; a refinement replaces stale
+guidance rather than appending incident history. No count or checklist semantics
+are required.
+
 Commit boundaries represent meaningful code changes, not work-item transitions.
 The optional `commit_posture` selects adaptive, feature, checkpoint, batch, or
 preserved history. Project instructions and established contribution policy may
