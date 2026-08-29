@@ -35,7 +35,7 @@ Before closing the owning feature or standalone story:
 - delete the spec when all behavior it describes is implemented and code now
   owns the structure;
 - when delivery is partial, narrow or split the spec so only unresolved
-  speculative scope remains, and keep its provisional notice accurate;
+  provisional scope remains, and keep its provisional notice accurate;
 - move only durable semantics, invariants, or rationale that code cannot
   express into the appropriate foundation document;
 - remove duplicated field, type, or interface definitions from durable prose
