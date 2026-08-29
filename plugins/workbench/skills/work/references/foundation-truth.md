@@ -6,6 +6,14 @@ scope-owned sub-project is, the boundaries and guarantees it maintains, and the
 principles that guide durable decisions. They are not progress logs, release
 notes, delivery records, or a copy of the work item.
 
+“High-level” means repository or sub-project altitude, not conceptual-only
+content. Durable engineering shape belongs in foundations when contributors
+need it after the current item disappears: stack and framework roles,
+repository and dependency topology, runtime and deployment composition,
+contract and persistence authority, testing layers, generated-code policy, and
+engineering gates. Follow setup's
+[engineering foundation contract](../../setup/references/canonical-layout.md#engineering-foundation-coverage).
+
 Convention-authorized provisional `docs/spec/` contracts are not foundations.
 They may temporarily describe intended structure before its code exists, but
 must follow [provisional-specs.md](provisional-specs.md) and be deleted or
@@ -51,12 +59,15 @@ request, active item, design, final diff, and relevant entries in
 or settles a durable:
 
 - ownership boundary, architecture, contract, schema, protocol, or data flow;
+- stack or framework role, repository topology, dependency direction, host or
+  deployment composition, CI/CD target, persistence or migration ownership,
+  testing-layer boundary, generated-code policy, or engineering gate;
 - supported behavior, user journey, operating model, or compatibility promise;
 - security, privacy, accessibility, reliability, or performance guarantee;
 - repository-wide or sub-project principle.
 
 Do not create or update foundations for local implementation details that do
-not change durable high-level project truth. Durability alone is insufficient:
+not change durable project-level truth. Durability alone is insufficient:
 a long-lived runner, command, receipt format, file path, or delivery procedure
 is still implementation machinery unless the repository exposes it as a
 user-facing contract or the user has explicitly authorized that foundation to
@@ -84,9 +95,9 @@ Apply "link rather than duplicate" to code as well: reference the owning code
 artifact by path instead of re-typing what it defines.
 
 Foundation names follow the repository's confirmed documentation conventions.
-`VISION.md`, `ARCHITECTURE.md`, `PRINCIPLES.md`, `SPEC.md`, `JOURNEYS.md`, and
-`WORKFLOWS.md` are common examples, not a required set — the name should fit
-the project.
+`VISION.md`, `ARCHITECTURE.md`, `ENGINEERING.md`, `PRINCIPLES.md`, `SPEC.md`,
+`JOURNEYS.md`, and `WORKFLOWS.md` are common examples, not a required set — the
+name should fit the project.
 
 ## Reconcile in place
 

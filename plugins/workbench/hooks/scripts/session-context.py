@@ -47,8 +47,9 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Prefer ideate before design when early exploration of substantial or
   cross-cutting work could materially improve what gets designed, unless
   the user requests direct design or execution.
-- Work items are the work record. Keep foundations at high-level repository
-  or sub-project truth, never item status, delivery mechanics, qualification
+- Work items are the work record. Keep foundations at durable repository or
+  sub-project truth, including the engineering shape contributors need after
+  an item closes—never item status, delivery mechanics, qualification
   procedures, or evidence history. An optional user-owned ROADMAP.md may receive
   Workbench recognition only with explicit approval. A small, dense set of backlog
   links is recommended, not required; metadata and explanatory discourse are

@@ -37,7 +37,7 @@ CLAUDE.md                # optional relative symlink to AGENTS.md
 
 - `.work/` records outcomes the project may decide and deliver.
 - `.research/` records externally fetched evidence and grounded synthesis.
-- Foundation documents record high-level current or explicitly intended project
+- Foundation documents record durable current or explicitly intended project
   truth, not delivery tracking or implementation machinery.
 - `.agents/skills/patterns/` records detailed recurring implementation shapes
   when the project has patterns worth teaching to future agents.
@@ -512,6 +512,31 @@ plans, qualification commands or runners, receipt paths, and evidence history
 belong in Workbench items or their owning code, scripts, tests, and focused
 references. Workbench items remain the work record.
 
+Here, high-level means repository or sub-project altitude rather than
+conceptual-only prose. A bootstrapped software project explicitly covers its
+durable engineering shape: selected stack and framework roles; repository,
+solution, and project topology; component ownership and dependency direction;
+runtime, host, deployment, and CI/CD composition; API, OpenAPI, schema, and
+generated-code authority; persistence and migration ownership; testing layers;
+and formatting, linting, compiler, or analyzer gates. Framework-wide rules that
+materially shape composition, messaging, lifecycle, or failure behavior also
+belong when they remain useful beyond one item.
+
+The coverage may share `ARCHITECTURE.md` in a small cohesive project or use a
+focused `ENGINEERING.md`, `TECHNICAL-FOUNDATION.md`, or repository-native
+equivalent. This is a content contract, not a fixed document bundle or heading
+checklist. Mechanical style stays authoritative in tool configuration, concise
+cross-agent rules in `AGENTS.md`, and detailed proven recurring implementation
+shapes in `.agents/skills/patterns/`.
+
+Foundation presentation follows the relationship being explained: repository
+trees for solution shape, tables for ownership and authority, dependency or
+data-flow graphs, deployment topologies, and pipeline diagrams. Markdown with
+Mermaid is the portable default, not a mandate. Another source-controlled
+diagram format is valid when the repository maintains it; a discoverable
+Markdown foundation defines its meaning and links to its source. Workbench does
+not add a diagram toolchain merely to satisfy this contract.
+
 `docs/ROADMAP.md` is not a foundation document; it is an optional, user-owned
 planning document for projects that want a longer-horizon view. Its structure,
 level of detail, and voice are the user's choice: narrative, metadata, horizon
@@ -532,10 +557,10 @@ A roadmap that exists while `roadmap` is missing or `false` remains an unmanaged
 user document rather than a setup-migration target. In that state, Workbench
 neither treats it as workflow context nor changes it.
 
-Design rolls foundations forward only after durable high-level truth is settled.
-Implementation closure reconciles affected assertions against the integrated
-result, reporting updated foundations, or—where an update was reasonably
-expected—why existing assertions remain accurate.
+Design rolls foundations forward only after durable project-level truth is
+settled. Implementation closure reconciles affected assertions against the
+integrated result, reporting updated foundations, or—where an update was
+reasonably expected—why existing assertions remain accurate.
 
 A greenfield repository may explicitly opt into provisional `docs/spec/`
 artifacts as an optional bootstrap convention. These temporary design contracts
@@ -553,9 +578,9 @@ items; the convention authorizes reconciliation of surviving bootstrap specs,
 not creation of new feature design documents.
 
 Foundation names follow the repository's confirmed documentation conventions;
-`VISION.md`, `ARCHITECTURE.md`, `PRINCIPLES.md`, `SPEC.md`, `JOURNEYS.md`, and
-`WORKFLOWS.md` are examples, not a required set. A contract, schema, or
-protocol has one structural authority: code owns structure for
+`VISION.md`, `ARCHITECTURE.md`, `ENGINEERING.md`, `PRINCIPLES.md`, `SPEC.md`,
+`JOURNEYS.md`, and `WORKFLOWS.md` are examples, not a required set. A contract,
+schema, or protocol has one structural authority: code owns structure for
 repository-internal contracts while documents hold semantics, invariants,
 conformance rules, and rationale; a contract consumed beyond the repository may
 warrant a standalone or generated document spec, or a mix. No structural

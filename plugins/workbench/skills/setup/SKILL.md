@@ -266,11 +266,35 @@ documents live (root `docs/` by default), how they are named — one consolidate
 `JOURNEYS.md`, or a scoped directory like `docs/spec/` — and where contract
 truth lives. State the foundation-altitude baseline from
 [references/canonical-layout.md](references/canonical-layout.md#foundation-document-contract):
-foundations are high-level repository or sub-project guidance and Workbench
+foundations are durable repository or sub-project guidance and Workbench
 items are the work record. Derive the recommendation from existing documents
 when present; otherwise recommend the smallest set that fits the project's
 shape. Present names as examples that should fit the project, never as a fixed
 required list.
+
+For every software-project bootstrap, explicitly align engineering-foundation
+coverage using the
+[engineering foundation contract](references/canonical-layout.md#engineering-foundation-coverage).
+Discuss the durable engineering shape contributors need before building:
+selected stack and framework roles; repository, solution, or project topology;
+component and dependency direction; runtime and host composition; deployment
+environments and CI/CD targets; API, schema, and generated-code authority;
+persistence and migration ownership; testing layers; and formatting, linting,
+compiler, or analyzer gates. Resolve what repository evidence already settles,
+ask about consequential human-owned choices, and leave genuinely undecided
+choices explicit rather than guessing. Recommend combining this truth with
+`ARCHITECTURE.md` for a small cohesive project or using a focused name such as
+`ENGINEERING.md` when the material has a distinct audience or enough depth.
+Require coverage, not either filename or a universal section list.
+
+Also align the representation convention. Prefer a repository tree, ownership
+table, dependency graph, deployment topology, or pipeline diagram when it is
+clearer than paragraphs. Markdown with Mermaid is the portable default, but a
+repository-native source-controlled format such as PlantUML, Structurizr, or
+Draw.io is valid when the project can maintain it. Non-Markdown diagram sources
+must have a discoverable Markdown foundation that explains their meaning and
+links to the authority. Do not introduce a diagram toolchain merely to satisfy
+the convention.
 
 For a greenfield bootstrap, offer an explicit opt-in to the optional
 provisional `docs/spec/` convention using

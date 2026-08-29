@@ -89,9 +89,12 @@ effective `review_weight`.
 
 Read [foundation-truth.md](foundation-truth.md) when the design or implementation
 may affect durable project truth. Treat foundation altitude as a qualification
-criterion: proposed foundation prose must remain high-level repository or
+criterion: proposed foundation content must remain durable repository or
 sub-project truth, not work tracking, qualification mechanics, evidence history,
-or item-specific implementation detail. A convention-authorized
+or item-specific implementation detail. Concrete engineering topology,
+dependency direction, deployment shape, authority, testing layers, generation
+policy, and gates are valid at that altitude when they outlive the item. A
+convention-authorized
 `docs/ROADMAP.md` is a user-owned, free-form planning document rather than a
 restricted foundation template. Its metadata and discourse are not review
 failures; verify instead that `.work/`, not roadmap prose, remains the
@@ -188,7 +191,8 @@ the reviewer its hygiene, balanced, or structural expectation from
 answer. For design, ask about
 requirements coverage, boundaries, alternatives, assumptions, failure modes,
 verification feasibility, migration or rollback, unnecessary complexity,
-assurance-machinery payoff, accurate high-level foundation roll-forward, foundation-altitude violations,
+assurance-machinery payoff, accurate durable foundation roll-forward,
+missing engineering-foundation coverage, foundation-altitude violations,
 and scope expansion. For implementation, ask about correctness, missing
 required behavior, safety, integration risk, simplification at the effective
 posture, foundation drift or delivery-detail leakage, overbuilding, and

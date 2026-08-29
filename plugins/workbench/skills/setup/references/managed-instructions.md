@@ -34,9 +34,11 @@ lens without other Workbench mechanics. Pass it to delegated roles rather than
 assuming fresh context inherited it.
 
 `.work/` is the operational record; foundation documents describe durable
-project truth. Only write durable artifacts named by the active workflow.
-Questions, proposals, progress, recommendations, and completion reports belong
-in chat. Keep human-facing documents clean and self-contained: lead with
+project truth, including the engineering shape contributors need to build and
+operate the repository coherently. Only write durable artifacts named by the
+active workflow. Questions, proposals, progress, recommendations, and
+completion reports belong in chat. Keep human-facing documents clean and
+self-contained: lead with
 business or real-world meaning, define important non-obvious domain concepts
 before using them, and omit agent history or review narration.
 

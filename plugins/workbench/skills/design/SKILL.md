@@ -229,6 +229,13 @@ durable current or intended truth. Reconcile them in place and rebuild the
 knowledge index when required by that reference. A design that settles a
 contract, schema, or protocol names its intended structural authority —
 code-owned, document-owned, or a generated mix — following that reference.
+When the design changes durable engineering shape—stack or framework roles,
+repository topology, dependency direction, runtime or deployment composition,
+CI/CD targets, contract or persistence authority, testing-layer boundaries,
+generation policy, or engineering gates—reconcile the applicable engineering
+foundation. Prefer a tree, table, or source-controlled diagram when it makes the
+relationship clearer than prose; do not create a diagram toolchain just to
+document the change.
 
 When the target item already links a provisional `docs/spec/` artifact created
 through the greenfield bootstrap convention,
@@ -271,6 +278,11 @@ mechanisms. A convention-authorized `docs/ROADMAP.md` is user-owned and
 free-form: do not reject its metadata, discourse, or status language. Instead,
 verify that proposed operational conclusions come from `.work/` and that the
 agent is not rewriting the roadmap incidentally.
+Do not reject durable technical specificity merely because it is concrete.
+Check that the engineering foundation makes the affected repository topology,
+dependency rules, deployment shape, authority boundaries, and engineering
+gates understandable where those truths changed, while mechanical settings
+remain owned by their tools.
 
 When a provisional spec is part of the design, also check that it is plainly
 temporary, has one owning outcome and cleanup condition, does not masquerade as

@@ -76,6 +76,9 @@ Select only useful lenses:
 - prior art and alternatives;
 - whether a small prototype could resolve an important uncertainty;
 - feasibility and dependencies;
+- engineering shape: stack and framework roles, repository and dependency
+  topology, host and deployment composition, contract and persistence
+  authority, testing layers, generation policy, and engineering gates;
 - failure, safety, and operations;
 - evidence gaps;
 - privacy, compliance, and data handling.
@@ -158,6 +161,14 @@ receipt, item, validator rule, or other Workbench state. When entered from a
 greenfield setup, continue until the project's initial direction is coherent
 enough to offer the smallest useful foundation set described by setup's
 [foundation document contract](../setup/references/canonical-layout.md#foundation-document-contract).
+For a software project, do not stop at product and domain concepts: resolve or
+explicitly defer the consequential choices in setup's
+[engineering foundation coverage](../setup/references/canonical-layout.md#engineering-foundation-coverage).
+Offer trees, tables, or source-controlled diagrams when they communicate the
+repository, dependency, runtime, deployment, or pipeline shape more clearly
+than prose. Do not choose frameworks, infrastructure, or delivery machinery for
+the user when the choice is consequential and repository evidence does not
+settle it.
 Include any still-open project-specific principles among the decisions to
 settle, using setup's
 [principle candidates](../setup/references/principle-candidates.md). Adopting

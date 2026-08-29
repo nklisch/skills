@@ -297,7 +297,7 @@ acceptance blockers.
 
 Read [references/foundation-truth.md](references/foundation-truth.md).
 Reconcile affected foundation assertions against the integrated result before
-completion and apply its altitude test: foundations keep high-level durable
+completion and apply its altitude test: foundations keep durable project-level
 truth while work tracking, implementation plans, qualification mechanics,
 receipts, and evidence stay in the work record or their owning executable
 surfaces. Rebuild `.knowledge/index.json` when indexed documentation changed,

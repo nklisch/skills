@@ -208,6 +208,21 @@ review, and reports either the changes or why the existing assertions remain
 accurate. If indexed documentation changed, it also rebuilds and checks the
 knowledge index.
 
+Foundation altitude is project-level, not conceptual-only. For a software
+project, foundations also capture the durable engineering shape needed to build
+the repository coherently: stack and framework roles, repository and dependency
+topology, runtime and deployment composition, contract and persistence
+authority, testing layers, generated-code policy, and engineering gates.
+Mechanical formatting remains in its tools, concise agent rules in `AGENTS.md`,
+and detailed proven patterns in `.agents/skills/patterns/`.
+
+The agent should use the clearest representation instead of turning every
+decision into paragraphs: trees for repository shape, tables for ownership,
+graphs for dependencies, and topology or pipeline diagrams for runtime and
+delivery flow. Markdown with Mermaid is the portable default. A project may use
+another source-controlled diagram format it already supports, linked and
+explained from a discoverable Markdown foundation.
+
 Research attestations record what external sources actually support. Research
 briefs synthesize across those sources. The knowledge index makes durable
 material discoverable, but it is not evidence or project truth on its own.
@@ -234,6 +249,12 @@ configurations as opt-in, decline, or defer choices: execution posture, commit
 posture, release gates, Workbench recognition of a user-owned roadmap, and the `CLAUDE.md`
 compatibility projection. Repository evidence may explain why one is useful,
 but never hides the choice or adopts it for you.
+
+For a software bootstrap, setup explicitly aligns engineering-foundation
+coverage and presentation. A small project may combine it with
+`ARCHITECTURE.md`; a larger project may use a focused `ENGINEERING.md` or
+repository-native equivalent. Workbench requires useful coverage, not a fixed
+filename or template.
 
 During a greenfield bootstrap, setup also offers temporary `docs/spec/` design
 contracts as an optional convention. If you opt in, the bootstrap ideation and

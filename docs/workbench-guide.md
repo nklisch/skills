@@ -105,6 +105,10 @@ state. It runs in four core moves, with a fifth continuation for greenfields:
    establishes a coherent project direction, setup routes directly into
    `ideate`. That continuation reads setup's canonical foundation format and
    confirmed documentation choices before helping you shape the initial docs.
+   For a software project, it also resolves or explicitly defers the durable
+   engineering shape: stack, repository topology, dependency rules, runtime and
+   deployment composition, contract and persistence authority, testing layers,
+   generation policy, and engineering gates.
 
 Removals are classified before they happen. A clean tracked file is
 recoverable from Git. Before removing anything modified, untracked,
@@ -155,6 +159,14 @@ repository with no coherent direction yet, setup continues directly into
 `ideate`; ideation uses setup's foundation-document contract and the
 configuration you just confirmed, then offers the smallest useful initial
 foundation set for your explicit write handoff.
+
+The initial foundation set is not limited to product concepts. A small project
+may keep its engineering shape in `ARCHITECTURE.md`; a larger repository may use
+`ENGINEERING.md`, `TECHNICAL-FOUNDATION.md`, or a scope-owned equivalent. The
+agent prefers compact trees, tables, and source-controlled diagrams when they
+make topology or authority clearer than prose. Markdown with Mermaid is the
+portable default, while repository-native diagram formats remain valid when a
+Markdown foundation links and explains them.
 
 **If setup stops:** resolve the exact ambiguity or removal risk it
 reports. Don't keep two active workflow substrates as a workaround.
@@ -515,10 +527,11 @@ AGENTS.md               # canonical cross-agent instructions
 ```
 
 Each layer has one job. Code owns executable and structural truth. Foundation
-docs hold high-level repository or sub-project purpose, boundaries, principles,
-architecture, observable behavior, and guarantees. They do not track item
-status, implementation plans, qualification procedures, receipts, or evidence;
-`.work/` items are that detailed work record. A larger project may use
+docs hold durable repository or sub-project purpose, boundaries, principles,
+architecture, engineering shape, observable behavior, and guarantees. They do
+not track item status, implementation plans, qualification procedures,
+receipts, or evidence; `.work/` items are that detailed work record. A larger
+project may use
 `docs/ROADMAP.md` as an optional, user-owned planning document for its
 longer-horizon view. Its structure, metadata, and narrative are up to you; a
 small, dense set of `.work/backlog/` links is the recommended standard when it
