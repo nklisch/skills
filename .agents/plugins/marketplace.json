@@ -114,7 +114,7 @@
         "source": "local",
         "path": "./plugins/sol-calibration"
       },
-      "description": "Calibrate agent working posture to the project and the person — calibrate-posture (adaptive interview that writes a risk-calibrated posture block into AGENTS.md) and proportionality-check (a light self-interrupt for uninvited verification, security, and locking machinery).",
+      "description": "Calibrate agent working posture to the project and the person — calibrate-posture (adaptive interview that writes a risk-calibrated posture block into AGENTS.md), proportionality-check (a light self-interrupt for uninvited verification, security, and locking machinery), and overbuilder-review (an after-the-fact audit of docs or code for proof rituals, speculative seams, and configurability nobody uses, proposing the smallest mechanism that preserves each real guarantee).",
       "category": "Productivity",
       "policy": {
         "installation": "AVAILABLE",

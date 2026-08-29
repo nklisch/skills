@@ -1,0 +1,6 @@
+interface:
+  display_name: "Overbuilder Review"
+  short_description: "Audit docs or code for machinery the product has not earned"
+  default_prompt: "Use $overbuilder-review to audit this design, spec set, or codebase for unnecessary machinery and propose the smallest mechanism that preserves each real guarantee."
+policy:
+  allow_implicit_invocation: true

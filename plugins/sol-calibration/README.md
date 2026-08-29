@@ -1,6 +1,6 @@
 # sol-calibration
 
-Two short skills that keep agent effort proportional to the project in front
+Three short skills that keep agent effort proportional to the project in front
 of it.
 
 - **`calibrate-posture`** explores the codebase, confirms what it observes
@@ -13,6 +13,11 @@ of it.
   before building uninvited verification, security, locking, or determinism
   machinery, so rigor matches the project's actual risk instead of the
   agent's defaults.
+- **`overbuilder-review`** audits an existing design, spec set, or codebase
+  after the fact. It separates what must be true from how it is proven, and
+  returns a ranked packet of cuts, deferrals, and demotions — each with the
+  smallest mechanism that still preserves the real guarantee — plus an explicit
+  list of what is earned and not being flagged.
 
 Calibration runs in both directions: a low-blast-radius personal tool may
 legitimately skip almost all machinery, and a genuinely high-stakes project
