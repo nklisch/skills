@@ -1234,6 +1234,17 @@
       "relationships": []
     },
     {
+      "path": ".work/releases/workbench-0.17.1.md",
+      "namespace": "work",
+      "kind": "release",
+      "id": "releases/workbench-0.17.1",
+      "title": "workbench 0.17.1",
+      "summary": null,
+      "updated": null,
+      "status": null,
+      "relationships": []
+    },
+    {
       "path": ".work/active/gate-docs-substrate-binary-generalize.md",
       "namespace": "work",
       "kind": "story",
