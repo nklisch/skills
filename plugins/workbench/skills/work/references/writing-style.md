@@ -60,6 +60,25 @@ output. Not for marketing copy or essays — the style strips voice on purpose.
   audience. Assume ordinary knowledge and avoid turning the document into a
   dictionary.
 
+### Failure-mode rationale
+
+A prohibition or boundary assertion at foundation altitude names the failure it
+prevents, in the same sentence or the next. Name the mechanism of harm, not the
+value upheld: "do not X: violated, Y happens," not "do not X, because
+correctness matters." A rule tied to a failure extrapolates to cases the
+document did not enumerate; a rule tied to a value covers only the cases it
+lists.
+
+- Append the rationale. Do not double the passage's length.
+- The failure names a visible victim: a user-visible behavior, a cost someone
+  pays, a decision corrupted, or a recovery path lost. "It becomes messy" is
+  not a failure mode.
+- Apply to prohibitions ("do not", "never", "must not"), boundary and
+  ownership assertions, and stated non-goals. Descriptive prose does not need
+  one.
+- Enforcement is review-time judgment. A mechanical check cannot distinguish a
+  mechanism from a platitude.
+
 ### Words
 
 - Use one name for one thing. Do not call the same item by two names.
