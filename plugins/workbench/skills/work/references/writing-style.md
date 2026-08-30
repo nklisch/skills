@@ -66,7 +66,7 @@ A prohibition or boundary assertion at foundation altitude names the failure it
 prevents, in the same sentence or the next. Name the mechanism of harm, not the
 value upheld: "do not X: violated, Y happens," not "do not X, because
 correctness matters." A rule tied to a failure extrapolates to cases the
-document did not enumerate; a rule tied to a value covers only the cases it
+document did not enumerate. A rule tied to a value covers only the cases it
 lists.
 
 - Append the rationale. Do not double the passage's length.
