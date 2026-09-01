@@ -7,9 +7,10 @@ In a repository that has explicitly adopted Workbench, the user can speak
 naturally about concrete project outcomes: clarify this tracked idea, scope this
 change, finish these epics, scan for opportunities, park a selected finding,
 commission durable research, or prepare a Workbench release summary. Workbench
-adapts internally without asking
-the user to choose workflow stages or an orchestration topology. It is not a
-universal router for every request. Stateful skills stay inactive outside an
+adapts internally without asking the user to design workflow stages or an
+orchestration topology. When it builds durable topology, it proposes that
+execution model for explicit alignment. It is not a universal router for every
+request. Stateful skills stay inactive outside an
 adopted repository; write-free `ideate` may explore before adoption, and
 `setup` runs only when the user explicitly asks to adopt.
 
@@ -89,6 +90,16 @@ adopted repository; write-free `ideate` may explore before adoption, and
   hierarchy keeps that order without forcing wrapper items.
 - **Planning preserves parallelism.** Ordering edges explain why one item should
   finish first. Independent work remains edge-free and available in parallel.
+- **Long runs retain an adaptive delivery topology.** An epic or broad feature
+  set records topology when continuation or integration complexity needs durable
+  ownership. Item tier and count are signals, not gates. An existing owner
+  carries the state when possible. When Workbench builds a topology, it presents
+  the execution model in chat before execution starts. Every autonomy posture
+  waits for explicit user alignment. A coordination feature requires an observable
+  integrated result that no existing item owns. Persistence alone does not earn
+  a wrapper. The topology changes with evidence. Fixed schedules, model
+  allowlists, and per-agent tasks stay out of schema because they expire as the
+  run changes.
 - **Commit shape follows the project.** Commit boundaries represent meaningful
   changes rather than ledger transitions. An optional project posture may favor
   feature, checkpoint, batch, or preserved history; the adaptive default follows

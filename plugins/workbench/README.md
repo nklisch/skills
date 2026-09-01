@@ -182,6 +182,11 @@ delegation, integration, and acceptance across the requested boundary. For one
 small coherent unit, the same skill normally executes directly rather than
 creating coordination overhead.
 
+An epic or broad feature set gets durable delivery topology only when
+continuation or integration complexity earns that state. When Workbench builds
+one, it proposes the execution model and waits for explicit user alignment
+before execution. This pause applies even in autonomous mode.
+
 Hierarchy describes how outcomes belong together. Ordering is separate.
 `blocked_by` says another active item should finish first because serial work
 reduces rework, ambiguity, or integration risk. Independent items stay edge-free

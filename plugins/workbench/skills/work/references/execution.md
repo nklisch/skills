@@ -6,8 +6,8 @@ units. Use [role-handoffs.md](role-handoffs.md) for the shared context and
 authority contract; this reference owns the implementation-specific assignment
 and return details.
 
-For a multi-unit or multi-epic boundary, write only the coordination detail
-needed to maintain ownership and integration in the relevant active item:
+For an ordinary multi-unit boundary, write only the coordination detail needed
+to maintain ownership and integration in the relevant active item:
 
 ```markdown
 ## Execution approach
@@ -19,6 +19,10 @@ needed to maintain ownership and integration in the relevant active item:
   - Isolation:
   - Verification:
 ```
+
+When an epic or broad feature set earns durable continuation or integration
+state, read [delivery-topology.md](delivery-topology.md). Choose one owner and
+keep its `## Delivery topology` current as evidence changes the run.
 
 Keep tightly coupled work in one context. Delegate or parallelize only when
 independent focus, specialized capability, isolation, or throughput exceeds
@@ -33,7 +37,8 @@ dedicated or mixed roles only when the handoff earns its cost. Under
 `orchestrated`, prefer dedicated role agents when available.
 
 Before assigning a unit, inspect its item and affected repository surfaces for
-design readiness. A decomposed or accepted item is not necessarily designed.
+current premises and design readiness. A decomposed or accepted item is not
+necessarily current or designed.
 Keep local, reversible choices inline when repository evidence and brief
 reasoning can resolve them confidently. When meaningful discovery, alternatives,
 boundary definition, or adjudication remains, use `design` and complete its
@@ -61,5 +66,7 @@ the user's full boundary is satisfied.
 
 Before a context limit, interruption, or deliberate handoff, update affected
 active items with settled requirements, current repository evidence, delivered
-outcomes, remaining next actions, and blockers. On resume, compare that state to
-Git and code before continuing.
+outcomes, remaining next actions, and blockers. For a topology-owned run, also
+record the integrated commits or branches when useful, reusable evidence, and
+next dispatch or integration point. On resume, compare that state to Git and code
+before continuing.

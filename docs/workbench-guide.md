@@ -28,8 +28,10 @@ finish. While it works, four durable layers record what matters:
 - **Focused capabilities** — ideation, design, delivery, parking,
   releases, and research engage when your request needs them.
 
-You do not move cards through stages or pick an orchestration topology.
-You describe the outcome; the agent routes internally.
+You do not move cards through stages or design an orchestration topology.
+You describe the outcome; the agent routes internally. When a long run needs
+durable topology, the agent proposes its execution model and waits for your
+alignment before execution starts.
 
 An adopted repository may record a concise, user-confirmed
 `## Overbuilding calibration` in `.work/CONVENTIONS.md`: project context, likely
@@ -284,30 +286,35 @@ alone, while nested work follows `epic → feature → story`.
    reliability, UI/UX, or data, migration, or integration. Obvious,
    local, reversible choices stay inline. Design is conditional routing,
    not a mandatory stage.
-5. **Deliver ready items.** Each ready feature or story routes through
+5. **Align on durable topology when needed.** An epic or broad feature set may
+   need shared execution state across integrations or sessions. The agent then
+   proposes the owner, roles, waves, parallelism, gates, review, and integration
+   point. It waits for your confirmation before execution, even in autonomous
+   mode. Many large boundaries still need no topology.
+6. **Deliver ready items.** Each ready feature or story routes through
    `deliver`. It reads relevant project patterns, writes only its owned surface,
    and verifies behavior at stable interfaces. Features and standalone stories
    receive integrated item review. Nested stories return evidence to their
    owning feature instead of duplicating review. Orchestrated deliverers report
    stale patterns and credible promotion candidates instead of editing the
    shared catalog.
-6. **Integrate project truth.** The `work` outcome owner integrates the units,
+7. **Integrate project truth.** The `work` outcome owner integrates the units,
    adjudicates any pattern updates, reconciles affected foundations, and keeps
    pattern changes evidence-based rather than turning delivery into a conformity
    sweep.
-7. **Review at the configured weight.** It applies the effective
+8. **Review at the configured weight.** It applies the effective
    `review_weight` and adjudicates findings rather than accepting them
    blindly. Review uses a stable commit range or a clearly bounded working-tree
    diff according to the effective commit posture.
-8. **Shape history safely.** Commit boundaries represent meaningful changes,
+9. **Shape history safely.** Commit boundaries represent meaningful changes,
    not ledger transitions. Feature squashing is advisory and happens only when
    the selected posture favors it and the history is exclusively owned and safe
    to rewrite.
-9. **Park out-of-scope findings.** If it uncovers something valuable but
-   unrelated — say, an analytics cleanup — it offers to `park` it instead
-   of silently expanding the work.
-10. **Close the full boundary.** Every item in the epic completes,
-   verified, with foundation docs reconciled if durable truth changed.
+10. **Park out-of-scope findings.** If it uncovers something valuable but
+    unrelated — say, an analytics cleanup — it offers to `park` it instead
+    of silently expanding the work.
+11. **Close the full boundary.** Every item in the epic completes,
+    verified, with foundation docs reconciled if durable truth changed.
 
 The durable record is ordinary Markdown. You can read or edit `.work/`
 items directly; the agent keeps their structure valid.
@@ -578,8 +585,9 @@ indexing error.
 
 ## Tips
 
-- **Describe outcomes, not workflow steps.** Workbench adapts internally;
-  you never pick stages or topology.
+- **Describe outcomes, not workflow steps.** Workbench adapts internally. When
+  it proposes durable topology, confirm or correct the execution model instead
+  of designing one from scratch.
 - **Use `park` liberally.** Capturing a finding costs one small backlog
   item and keeps the current scope clean.
 - **Ask diagnostic questions freely.** "What's in flight?", "why is this

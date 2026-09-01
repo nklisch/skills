@@ -244,6 +244,18 @@ records what was learned, carries material learning into the affected
 foundation or active item, and removes code marked for discard. Revision or
 adoption is an explicit next outcome.
 
+An epic or a boundary across many features may keep one `## Delivery topology`
+when durable continuation or integration complexity earns it. Item tier and
+count are signals, not gates. The active epic or integration-owning feature
+carries the section.
+
+When several top-level outcomes produce one observable integrated result,
+Workbench may create a top-level feature tagged `coordination`. Use it only when
+no existing item owns that result. Cross-session persistence alone does not
+earn the item. It is an ordinary feature, not a parent above epics. Temporary
+agent assignments remain inside the topology because child items represent
+independently meaningful outcomes.
+
 ## Completion
 
 Completed work never remains active.
@@ -423,6 +435,21 @@ design, implementation, review, integration, or several epics. It resolves
 autonomy from the request and conventions, gathers human input for
 consequential human-owned choices, and continues until the full named boundary
 is complete or externally blocked.
+
+Before broad dispatch on a topology-owned run, the outcome owner validates
+tracked premises against current code, foundations, and relevant Git history.
+It records the current roles, waves, ownership, gates, evidence, and next
+integration point. When Workbench builds a topology, the owner presents the
+planned execution model in chat before implementation or broad dispatch. It
+asks the user to confirm or correct the plan and waits for explicit alignment.
+This requirement applies in every autonomy posture. The summary names the
+boundary, owner, roles, waves, parallelism, gates, review, and next integration
+point.
+
+The operational hypothesis changes when repository state, agent returns,
+design, verification, review, or integration disproves an assumption. An epic
+or broad feature set needs no topology when one context can finish it safely.
+Unrelated ready work continues when one agent stalls.
 
 If the outcome, ownership boundary, or success shape cannot yet form coherent
 work, `work` routes through `ideate`. It also prefers ideation for valuable

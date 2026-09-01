@@ -15,7 +15,7 @@ description: >
 # Work
 
 Carry the user's natural-language boundary to its requested finish line. Never
-require them to choose a phase, worker topology, or workflow skill.
+require them to design a phase, worker topology, or workflow skill.
 
 ## Confirm activation
 
@@ -83,6 +83,9 @@ Load references only as needed:
 - multi-unit or multi-epic orchestration →
   [references/execution.md](references/execution.md) and the shared
   [references/role-handoffs.md](references/role-handoffs.md);
+- epic delivery or delivery across many features needing durable continuation
+  or integration state →
+  [references/delivery-topology.md](references/delivery-topology.md);
 - designer, implementor, or reviewer model selection →
   [references/model-roles.md](references/model-roles.md);
 - nontrivial UI or journey uncertainty →
