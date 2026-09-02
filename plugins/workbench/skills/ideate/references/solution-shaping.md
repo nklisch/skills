@@ -58,6 +58,11 @@ Read and apply the shared
 serious option. Use it to compare the mechanism's product value with the
 complexity and failure modes it introduces.
 
+When an option crosses that lens's consequential boundary, use its machinery
+forecast before recommending a handoff. Show the minimum coherent and proposed
+chains to the user, then let their response shape the recommendation. Do not
+turn routine type or interface choices into an alignment ceremony.
+
 ## Let architecture challenge scope without taking it over
 
 A simpler system-wide boundary may sit outside the user's initial scope. Offer
