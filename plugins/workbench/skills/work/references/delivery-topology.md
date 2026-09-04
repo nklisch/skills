@@ -12,7 +12,7 @@ one context can finish it safely.
 2. [Choose one topology owner](#choose-one-topology-owner)
 3. [Record the living topology](#record-the-living-topology)
 4. [Build a role-fit loadout](#build-a-role-fit-loadout)
-5. [Align before execution](#align-before-execution)
+5. [Communicate before execution](#communicate-before-execution)
 6. [Arrange adaptive waves](#arrange-adaptive-waves)
 7. [Replan from evidence](#replan-from-evidence)
 8. [Integrate and retire](#integrate-and-retire)
@@ -78,29 +78,44 @@ plan.
 
 Use [model-roles.md](model-roles.md) and
 [execution-posture.md](execution-posture.md) to choose available agents and
-reasoning levels. Record a concrete model only when continuation depends on that
-choice. Treat it as a current assignment, not a permanent allowlist. Preserve
-project restrictions from their owning authority.
+reasoning levels. Record the aligned role, model, and thinking assignments so
+continuation preserves the user's choices. Treat them as current assignments,
+not a permanent allowlist. Preserve project restrictions from their owning authority.
 
 Pass delegated roles the shared context and boundary instruction from
 [role-handoffs.md](role-handoffs.md). The outcome owner retains requirements,
 synthesis, adjudication, integration, and closure.
 
-## Align before execution
+## Communicate before execution
 
-Only when building a topology, present the planned execution model in chat before
-the first implementation or broad dispatch. This requirement applies in every
-autonomy posture, including autonomous work.
+When building a topology, explain the execution model in chat before implementation
+or broad dispatch. Summarize the owner, roles, proposed models and thinking
+levels, parallelism, meaningful isolation, review, and next integration point.
+Model and effort choices are part of alignment, not hidden implementation detail.
+Reuse explicit user choices or confirmed project preferences as standing
+alignment. Otherwise ask once about the proposed model/effort lineup before
+its dispatch. General plugin recommendations alone are not user confirmation.
+Ask before departing from an aligned lineup unless its fallback is already
+authorized. Do not re-ask for routine assignments within aligned roles and settings.
 
-Summarize the boundary and owner, inline or delegated roles, waves and
-parallelism, meaningful isolation, gates, review, and the next integration
-point. Keep model details internal unless a specific choice materially affects
-the user or continuation.
+Apply the effective [autonomy posture](autonomy.md):
 
-Ask the user to confirm or correct the plan and wait for explicit alignment.
-Hidden execution choices can impose unexpected coordination costs or conflict
-with how the user expects the work to proceed. Record material corrections in
-the living topology before execution starts.
+- **Collaborative:** propose the plan and wait for alignment before binding it.
+- **Adaptive or autonomous:** announce routine execution choices and proceed
+  inside the authorized boundary and aligned model/effort choices. Creating
+  topology does not itself require another approval of settled choices.
+
+Ask before a plan introduces a consequential commitment not already authorized:
+material spending or resource use, changed isolation or data exposure, external
+actions, requirements, or scope. Ordinary use of available agents within the
+agreed resources and local write boundaries is an execution choice. An explicit
+request to approve the plan still takes precedence. Ask only about the unsettled
+commitment, not the entire workflow. Continue independent authorized work when
+it does not depend on that decision.
+
+Record settled corrections in the existing topology. Apply the same authority
+boundary when replanning so an announced plan cannot quietly acquire new costs
+or permissions.
 
 ## Arrange adaptive waves
 
@@ -142,8 +157,9 @@ repository before dispatch.
 ## Integrate and retire
 
 The topology owner inspects every return and resolves interface assumptions. It
-runs wider evidence, reconciles foundations and indexes, disposes maintenance
-evidence, and closes the named units.
+runs wider evidence, reconciles foundations and indexes, and closes the named
+units. Finish required cleanup, but offer optional maintenance separately under
+[maintenance.md](maintenance.md). Unselected extraction does not delay closure.
 
 Close a coordination feature only after its observable integration evidence
 passes and every named outcome is integrated and closed. Do not preserve the

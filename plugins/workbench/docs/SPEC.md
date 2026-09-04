@@ -373,11 +373,13 @@ explanations, or unrelated requests made in the repository:
 
 Review implementation-shaping designs before implementation becomes expensive
 to reverse. Review completed implementation at its integrated contract
-boundary. Model selection follows role fit: creative taste, technical precision,
-implementation throughput, and complementary review are distinct strengths.
-Reasoning level follows task difficulty, while consequence changes verification
-and review rather than automatically increasing reasoning effort. Current model
-examples and calibration live in the
+boundary. Model selection follows current operator calibration and actual availability.
+Design and orchestration favor intent-reading, sound solution shape, and
+integration judgment. Reviewer confidence never replaces the owner's evidence
+checks. Thinking effort follows unresolved reasoning, not role prestige or task
+size. Low-effort implementation can fit challenging work with settled contracts.
+Consequence changes verification and review rather than automatically increasing
+thinking effort. Named model preferences and effort guidance live in the
 [model-role reference](../skills/work/references/model-roles.md).
 
 Every reviewer is instructed not to invent requirements or expand scope, to
@@ -430,21 +432,40 @@ of acceptance.
 
 ## Work behavior
 
-`work` keeps a clear request in one workflow even when it requires requirements,
-design, implementation, review, integration, or several epics. It resolves
-autonomy from the request and conventions, gathers human input for
-consequential human-owned choices, and continues until the full named boundary
+`work` keeps a clear request in one workflow even when it spans several epics.
+The ordinary path uses the smallest useful item, implementation, verification
+and reconciliation, appropriate review, and closure. Review receives coherent
+code and affected foundations as one stable target. Exploration, formal design,
+topology, research, and maintenance engage only when the outcome needs them.
+An agent reuses unchanged guidance within one context across skill handoffs.
+Fresh contexts read their governing guidance and reconcile current repository
+facts. This avoids repeated policy loading without treating old state as current.
+
+`work` resolves autonomy from the request and conventions. It gathers human input
+for consequential human-owned choices and continues until the named boundary
 is complete or externally blocked.
 
 Before broad dispatch on a topology-owned run, the outcome owner validates
 tracked premises against current code, foundations, and relevant Git history.
 It records the current roles, waves, ownership, gates, evidence, and next
-integration point. When Workbench builds a topology, the owner presents the
-planned execution model in chat before implementation or broad dispatch. It
-asks the user to confirm or correct the plan and waits for explicit alignment.
-This requirement applies in every autonomy posture. The summary names the
-boundary, owner, roles, waves, parallelism, gates, review, and next integration
-point.
+integration point. When Workbench builds a topology, the owner explains the
+execution model in chat before implementation or broad dispatch. It includes
+the proposed models and thinking levels. Explicit user choices and confirmed
+project preferences provide standing alignment. Otherwise the owner asks once
+about the lineup before dispatch. Plugin recommendations alone are not user
+confirmation. Departures require alignment unless the fallback is already authorized.
+
+Collaborative work waits for plan alignment. Adaptive and autonomous work
+announce routine choices within the granted authority and aligned model/effort
+choices. Settled assignments do not require repeated approval.
+
+A plan or replan requires a decision when it introduces an unauthorized
+consequential commitment: material cost, changed isolation or data exposure,
+external actions, requirements, or scope. An explicit request for plan approval
+also applies. Ordinary agent assignments within agreed resources and local
+write boundaries do not themselves require approval. The owner asks about the
+unsettled commitment and may continue independent authorized work. This boundary
+prevents unexpected costs without requiring users to manage routine execution.
 
 The operational hypothesis changes when repository state, agent returns,
 design, verification, review, or integration disproves an assumption. An epic
@@ -511,16 +532,20 @@ deliverers report candidate evidence and the active parent retains it under
 `## Maintenance evidence`: completed item ids, real consumers or examples,
 recurrence, the emerging preferred shape, and expected maintenance value.
 
-At an explicit integration or planning boundary, `work` disposes of every
-candidate under the effective autonomy posture. Neither a fixed count nor a
-periodic schedule triggers extraction. Evidence that satisfies Workbench's
-[maintenance guidance](../skills/work/references/maintenance.md) creates an
-ordinary feature tagged `pattern` and, when relevant, `refactor` or `cleanup`.
-The feature belongs under the active epic when that epic owns the boundary;
-otherwise it is top-level. It must complete before the owning boundary closes.
-Immature useful evidence is offered for parking; rejected coincidence is
-removed. A direct user request to detect or extract patterns creates the same
-feature without waiting for a large run.
+At integration or planning, `work` separates required cleanup from optional
+learning using the [maintenance guidance](../skills/work/references/maintenance.md).
+Required cleanup names the accepted requirement or affected contract it serves
+and remains inside delivery. Recurrence can justify recommending extraction,
+but cannot authorize it or make it a completion dependency. Otherwise learning
+would silently enlarge the user's requested outcome.
+
+Optional extraction requires a user-selected outcome or an accepted scope that
+already includes it. A selected feature uses the `pattern` tag and belongs under
+an epic only when that epic owns its outcome. Independent follow-ups remain
+independent. An unanswered optional offer does not block closure. The completion
+reply may carry the recommendation, while only selected durable handoffs survive
+the owning item's normal closure. Coincidence is discarded. No fixed count,
+schedule, or evidence-disposition ceremony creates a maintenance gate.
 
 Only that accepted maintenance feature may add new pattern references and any
 cohesive behavior-preserving cleanup. Nested stories and orchestrated delivery

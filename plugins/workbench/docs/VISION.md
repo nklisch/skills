@@ -8,9 +8,10 @@ naturally about concrete project outcomes: clarify this tracked idea, scope this
 change, finish these epics, scan for opportunities, park a selected finding,
 commission durable research, or prepare a Workbench release summary. Workbench
 adapts internally without asking the user to design workflow stages or an
-orchestration topology. When it builds durable topology, it proposes that
-execution model for explicit alignment. It is not a universal router for every
-request. Stateful skills stay inactive outside an
+orchestration topology. When it builds durable topology, it explains the execution
+model, including models and thinking levels. Routine adaptive or autonomous
+execution proceeds within granted authority and aligned model choices. It is not a universal router for every request. Stateful skills
+stay inactive outside an
 adopted repository; write-free `ideate` may explore before adoption, and
 `setup` runs only when the user explicitly asks to adopt.
 
@@ -31,6 +32,11 @@ adopted repository; write-free `ideate` may explore before adoption, and
   without the user's choice. The same assurance-machinery lens continues through
   design, implementation, verification, and review without weakening required
   guarantees.
+- **Ordinary delivery stays direct.** A clear request becomes the smallest useful
+  item, then implementation, verification and reconciliation, appropriate review,
+  and closure. Review receives coherent code and affected foundations together. Conditional capabilities serve that path rather than adding stages.
+  An agent reuses unchanged guidance within its context while checking current
+  project facts at continuation boundaries.
 - **Design is available, not imposed.** A dedicated `design` skill selects a
   new-work, prototype, refactor, performance, defect, UI/UX, or data/integration
   lens. It shapes implementation when discovery, alternatives, boundaries, or
@@ -93,10 +99,14 @@ adopted repository; write-free `ideate` may explore before adoption, and
 - **Long runs retain an adaptive delivery topology.** An epic or broad feature
   set records topology when continuation or integration complexity needs durable
   ownership. Item tier and count are signals, not gates. An existing owner
-  carries the state when possible. When Workbench builds a topology, it presents
-  the execution model in chat before execution starts. Every autonomy posture
-  waits for explicit user alignment. A coordination feature requires an observable
-  integrated result that no existing item owns. Persistence alone does not earn
+  carries the state when possible. When Workbench builds a topology, it explains
+  the execution model before execution starts. Collaborative work waits for
+  alignment. Adaptive and autonomous work proceed with routine choices within
+  aligned model and thinking preferences. The owner asks about an unaligned
+  lineup, departures from it, or consequential commitments not already authorized. This keeps coordination
+  from imposing unexpected costs without making the user manage agent assignments.
+  A coordination feature requires an observable integrated result that no existing
+  item owns. Persistence alone does not earn
   a wrapper. The topology changes with evidence. Fixed schedules, model
   allowlists, and per-agent tasks stay out of schema because they expire as the
   run changes.
@@ -158,9 +168,15 @@ adopted repository; write-free `ideate` may explore before adoption, and
   standalone cleanup and refactors are normal bounded work; broader findings
   are parked. Confirmed coding and structural conventions guide work without
   making conformity an outcome. Setup creates one portable pattern index, while
-  new references enter only through an explicit evidence-led maintenance
-  feature after enough large-run work exists or the user requests extraction.
-  No fixed cadence turns maintenance into a gate.
+  new references enter only through an accepted evidence-led extraction feature.
+  Recurrence establishes a pattern's potential value, not permission to extract it.
+  Required in-scope cleanup belongs in delivery. Optional learning requires a
+  selected handoff and does not delay the original outcome's closure.
+- **Workflow growth follows observed use.** Improve the ordinary delivery path
+  before adding more workflow controls. Representative jobs and resumed sessions
+  reveal unnecessary questions, missing decisions, review value, and confusing
+  state. Distinguish walkthrough predictions from observed behavior. Existing
+  delivery evidence is preferable to a new measurement platform.
 - **Release collapses temporary completion state.** Both completion postures can
   produce a version summary. A successful release removes retained completed
   outcome files and leaves concise release truth plus Git history.

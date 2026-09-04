@@ -29,9 +29,14 @@ finish. While it works, four durable layers record what matters:
   releases, and research engage when your request needs them.
 
 You do not move cards through stages or design an orchestration topology.
-You describe the outcome; the agent routes internally. When a long run needs
-durable topology, the agent proposes its execution model and waits for your
-alignment before execution starts.
+You describe the outcome. The ordinary route is a small useful item, delivery,
+verification and reconciliation, appropriate review, and closure. When a long
+run needs durable topology, the agent explains its execution model, including
+models and thinking levels. Your explicit choices or confirmed project
+preferences provide standing alignment. Otherwise the agent asks once about
+the lineup before dispatch. Collaborative work waits for plan alignment.
+Adaptive and autonomous work proceed with routine choices inside your granted
+authority and aligned model/effort choices.
 
 An adopted repository may record a concise, user-confirmed
 `## Overbuilding calibration` in `.work/CONVENTIONS.md`: project context, likely
@@ -215,14 +220,13 @@ canonical destination. Ordinary feature delivery may repair a documented
 pattern that became stale, but it does not add new patterns merely because one
 implementation looks reusable.
 
-During a large multi-feature or multi-epic `work` run, deliverers return concrete
-candidate evidence to the outcome owner. At an explicit integration or planning
-boundary, `work` decides whether enough real recurrence exists. When it does,
-`work` creates a normal pattern/refactor/cleanup feature at the valid hierarchy
-level and sends it through `deliver` before closing the wider boundary. No fixed
-number of features or periodic cadence triggers this pass. You can also request
-pattern detection or extraction directly, which creates the same bounded
-maintenance feature without waiting for a larger run.
+During a multi-feature or multi-epic run, deliverers return useful candidate
+evidence to the outcome owner. Required cleanup keeps the agreed outcome
+correct and coherent. Recurrence may justify recommending pattern extraction,
+but it does not authorize more work. Optional extraction requires your selected
+outcome or an accepted scope that already includes it. An unanswered offer does
+not delay closure. Independent follow-ups stay independent. You can also request
+pattern detection or extraction directly as a bounded maintenance feature.
 
 A few phrasing habits pay off:
 
@@ -286,11 +290,16 @@ alone, while nested work follows `epic → feature → story`.
    reliability, UI/UX, or data, migration, or integration. Obvious,
    local, reversible choices stay inline. Design is conditional routing,
    not a mandatory stage.
-5. **Align on durable topology when needed.** An epic or broad feature set may
-   need shared execution state across integrations or sessions. The agent then
-   proposes the owner, roles, waves, parallelism, gates, review, and integration
-   point. It waits for your confirmation before execution, even in autonomous
-   mode. Many large boundaries still need no topology.
+5. **Explain durable topology when needed.** An epic or broad feature set may
+   need shared execution state across integrations or sessions. The agent
+   explains ownership, models and thinking levels, parallelism, review, and the
+   next integration point. It reuses your explicit or project-confirmed model
+   preferences, otherwise asks once about the lineup. Departures need alignment
+   unless their fallback is already authorized. Collaborative work waits for
+   plan alignment. Adaptive and autonomous work proceed with routine choices
+   within that alignment. New material costs, changed isolation or data exposure,
+   external actions, requirements, or scope still need authority. Many large
+   boundaries need no topology.
 6. **Deliver ready items.** Each ready feature or story routes through
    `deliver`. It reads relevant project patterns, writes only its owned surface,
    and verifies behavior at stable interfaces. Features and standalone stories
@@ -585,9 +594,9 @@ indexing error.
 
 ## Tips
 
-- **Describe outcomes, not workflow steps.** Workbench adapts internally. When
-  it proposes durable topology, confirm or correct the execution model instead
-  of designing one from scratch.
+- **Describe outcomes, not workflow steps.** Workbench adapts internally. You
+  can correct its execution model or request approval before it starts, without
+  designing the workflow yourself.
 - **Use `park` liberally.** Capturing a finding costs one small backlog
   item and keeps the current scope clean.
 - **Ask diagnostic questions freely.** "What's in flight?", "why is this

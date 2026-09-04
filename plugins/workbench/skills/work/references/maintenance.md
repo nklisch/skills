@@ -41,24 +41,33 @@ to the owning large `work` boundary: completed item ids, real consumers or
 examples, recurrence, the emerging preferred shape, and the expected reduction
 in ambiguity or coordination cost.
 
-The active parent keeps that evidence in a compact `## Maintenance evidence`
-section until an explicit integration or planning boundary. No fixed count or
-periodic schedule triggers extraction. Treat roughly three genuine occurrences
-as a useful signal, not a quota. At the boundary, the `work` owner must dispose
-of each candidate:
+When candidates exist, keep only useful continuation context in the active
+parent's `## Maintenance evidence` section. Do not create an empty section.
+At integration or planning, distinguish these cases:
 
-- enough evidence → create and complete an ordinary feature tagged `pattern`
-  plus `refactor` or `cleanup` when applicable;
-- potentially useful but immature → offer to `park` the evidence for a future
-  boundary;
-- aesthetic coincidence or insufficient value → remove the candidate.
+- **Required cleanup:** finish cohesive behavior-preserving work needed to leave
+  the accepted outcome correct and coherent. Name the accepted requirement or
+  affected contract that makes it necessary. Mere recurrence is insufficient.
+- **Optional learning or extraction:** recommend the benefit and offer a separate
+  outcome or parking, whether the evidence is mature or tentative.
+- **Coincidence or insufficient value:** discard the candidate.
 
-A maintenance feature belongs under the active epic when that epic owns the
-large boundary; otherwise it is top-level. Never nest it under another feature.
-In collaborative mode, discuss a consequential maintenance outcome before
-binding it. In adaptive or autonomous mode, the owner may create it when the
-user-authorized multi-unit boundary and concrete recurrence establish the scope.
-A smaller delivery never gains an extraction feature silently.
+Evidence establishes usefulness, not authorization. A multi-unit request,
+autonomous posture, or repeated pattern does not authorize catalog expansion.
+Create an extraction feature only when the user selects it or the accepted
+scope already includes it. Only required in-scope cleanup or explicitly
+included extraction can be a completion dependency. Do not turn useful learning
+into a surprise condition for finishing the original request.
+
+An unanswered optional offer does not block delivery or closure. Include it in
+the completion reply and preserve only user-selected durable handoffs. Remove
+its temporary evidence with the completed owner under the normal lifecycle.
+No count, schedule, or evidence-disposition ceremony creates a maintenance gate.
+
+A selected maintenance feature belongs under the active epic only when that
+epic owns its accepted outcome. Otherwise it is top-level. Never nest it under
+another feature or attach a separately selected follow-up as a prerequisite
+without an actual dependency.
 
 An explicit user request to detect or extract patterns creates the same ordinary
 feature directly. That feature owns catalog additions and cohesive

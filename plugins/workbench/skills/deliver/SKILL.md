@@ -14,6 +14,11 @@ finish line. `deliver` is the bounded implementation skill. `work` remains the
 outcome owner for scoping, requirements, design routing, multi-unit orchestration,
 wider integration, and parent closure.
 
+The ordinary path is: confirm readiness → implement → verify and reconcile →
+review at the configured weight → close and report. The sections below own
+those steps. Do not add a separate plan, worker, or maintenance phase merely
+because delivery uses a skill.
+
 Unless an instruction names a repository path or artifact, communicate in the
 current conversation. Do not create report files or durable no-op records.
 
@@ -62,10 +67,13 @@ delivery workflow without spawning role agents. Under `adaptive` or
 handoff is worthwhile or preferred.
 Resolve the effective [Git posture](../work/references/git-posture.md) from
 explicit user direction, project conventions, then `adaptive`.
-Read the applicable references under `../work/references/`, especially
-`simplification.md`, `maintenance.md`, and `verification.md`.
-Use conventions and principles as implementation and review lenses within the
-accepted outcome; they do not authorize new requirements or adjacent work.
+Read `simplification.md` and `verification.md` under `../work/references/`.
+Load `maintenance.md` when cleanup or pattern implications arise. Reuse
+unchanged guidance already read in this context, including when `work` hands
+control here. A fresh context reads its own governing guidance. Reconcile
+current project facts rather than treating a previous read as current evidence.
+Use conventions and principles as lenses within the accepted outcome. They do
+not authorize new requirements or adjacent work.
 
 ## Implement the item
 
@@ -102,17 +110,12 @@ interfaces or meaningful user journeys. Inspect the final item diff for
 correctness, accidental behavior change, unnecessary complexity, plausible
 performance regression, and scope expansion.
 
-Apply the lifecycle in [maintenance.md](../work/references/maintenance.md):
-
-- repair an existing pattern when this outcome makes it stale and the item owns
-  that catalog surface;
-- ordinary delivery never promotes a new pattern ad hoc;
-- orchestrated delivery returns candidate evidence for the active parent's
-  `## Maintenance evidence` section and never writes the shared catalog;
-- a direct ordinary item reports a candidate for explicit parking or a future
-  large-work boundary;
-- only an accepted feature explicitly scoped to pattern detection or extraction
-  may add new pattern references and any cohesive behavior-preserving cleanup.
+When cleanup or pattern implications arise, apply
+[maintenance.md](../work/references/maintenance.md). Repair stale patterns only
+on an owned catalog surface. Orchestrated delivery reports them to the owner.
+Only an accepted extraction feature adds new pattern references. Return useful
+optional candidates without making extraction or their disposition a condition
+of this item's closure.
 
 Read [foundation-truth.md](../work/references/foundation-truth.md). Reconcile
 foundation assertions directly affected by this completed item, apply its

@@ -39,23 +39,24 @@ user in the current conversation, including questions, offers, proposals,
 recommendations, explanations, summaries, and reports. Do not create report
 files or durable no-op records unless the user requests them.
 
-## Routing sketch
+## Ordinary delivery path
 
-```mermaid
-flowchart TD
-    A["Natural-language outcome"] --> B["Inspect scope and repository truth"]
-    B --> C{"Would exploration materially improve what gets designed?"}
-    C -- "Yes: early, substantial, cross-cutting, or coupled decisions" --> D["Ideate"]
-    D --> E["User-selected handoff"]
-    C -- "No, or user requests direct execution/design" --> F["Assess each item's design readiness"]
-    E --> F
-    F --> G{"Can evidence and brief reasoning settle the shape?"}
-    G -- "Yes" --> H["Route each ready unit through deliver"]
-    G -- "No" --> I["Formal design under effective execution posture"]
-    I --> J["Review at configured weight and execution posture"]
-    J --> H
-    H --> K["Integrate, verify, review, reconcile, and close"]
-```
+For a clear, bounded request:
+
+1. Read current project truth and settle the outcome, exclusions, and acceptance evidence.
+2. Use the smallest useful item, normally one feature. Resolve local, reversible design choices inline.
+3. Route the ready item through `deliver`, in the same context unless delegation earns its cost.
+4. Verify behavior and reconcile affected truth before the configured review. Then close the item.
+5. Report the result and meaningful evidence in chat.
+
+For one ready item, `deliver` owns steps 3–5. Do not repeat its checks or review
+merely because control returns to `work`. For several items, retain wider
+integration and acceptance here.
+
+This is the normal route, not a reduced-quality mode. Add exploration, formal
+design, topology, research, or maintenance only when the request needs them.
+
+## Conditional routes and references
 
 Route through `ideate` when the intended outcome, ownership boundary, or basic
 success shape is too ambiguous to form coherent work. Also prefer it for the
@@ -69,9 +70,13 @@ and foundation truth already make exploration unlikely to change the outcome.
 Do not create or reshape work items while ideating; resume `work` only after the
 user explicitly selects a Workbench handoff.
 
-Load references only as needed:
+Load references when their condition applies. Reuse guidance already read in
+this context across skill handoffs. Reread it when it changes or is no longer
+available, not merely because the skill name changes. Fresh contexts load their
+own governing guidance. Always reconcile current items and repository facts on
+resume.
 
-- every substantive request and continuation boundary →
+- resolving decision authority or runner choice →
   [references/autonomy.md](references/autonomy.md) and
   [references/execution-posture.md](references/execution-posture.md);
 - requirements or consequential ambiguity →
@@ -92,7 +97,7 @@ Load references only as needed:
   [references/ui-ux.md](references/ui-ux.md);
 - every design, implementation, and Workbench review →
   [references/simplification.md](references/simplification.md);
-- substantial implementation, refactoring, or recurrence →
+- embedded cleanup, stale patterns, or credible extraction candidates →
   [references/maintenance.md](references/maintenance.md);
 - implementation completion or review →
   [references/verification.md](references/verification.md),
@@ -152,14 +157,6 @@ resolve the complete named target set. For a delivery outcome, discover
 necessary work inside that boundary without silently draining unrelated queues.
 If the boundary is unclear, ask which items are in scope. A multi-epic request
 does not require a synthetic program item.
-
-Keep clarification inside `work` when the outcome is clear and only a small
-number of mostly local consequential requirements remain. Large or multi-epic
-work stays in `work` when it is established and exploration would not materially
-change what gets designed. Use `ideate` for valuable initial exploration even
-when a headline request sounds coherent, especially when competing directions
-or several coupled human-owned decisions materially reshape one another or the
-scope.
 
 ## Gather requirements from the human
 
@@ -250,13 +247,13 @@ boundary, use orchestrated mode with the parent outcome, non-overlapping write
 surface, integration contract, effective Git posture, effective execution
 posture, and return evidence. The deliverer may be the main agent or a role agent.
 Under `batch`, `work` owns the wider commit boundary; deliverers must not reshape
-the wider history independently. Orchestrated deliverers report stale patterns and credible
-promotion candidates instead of writing the shared pattern catalog. During a
-user-authorized multi-unit boundary, retain candidate evidence in the active
-parent's `## Maintenance evidence` section using the fields and disposition
-rules from [references/maintenance.md](references/maintenance.md). Do not repeat
-a completed feature or standalone-story review; review only substantive wider
-integration behavior not covered at those item boundaries.
+the wider history independently. Orchestrated deliverers report stale patterns
+and credible promotion candidates instead of writing the shared pattern catalog.
+When candidates arise, retain useful continuation context in the existing
+parent's `## Maintenance evidence` section. Follow
+[references/maintenance.md](references/maintenance.md) without creating an empty
+section or an extraction obligation. Do not repeat a completed item-level
+review. Review only substantive wider integration behavior not covered there.
 
 Research only to the depth needed. Parallelize only genuinely independent units
 with clear ownership and integration points.
@@ -278,34 +275,31 @@ external blocker prevents meaningful progress.
 
 For the concrete Workbench delivery outcome, verify behavior at stable
 interfaces, run required project checks, and exercise meaningful user journeys.
-For a user-authorized multi-unit boundary, apply
-[references/maintenance.md](references/maintenance.md) at an explicit integration
-or planning boundary. Adjudicate every entry in `## Maintenance evidence`. When
-concrete recurrence warrants extraction or cohesive cleanup, create the ordinary
-maintenance feature at the valid hierarchy level and route it through `deliver`
-before the owning epic or wider boundary closes. Offer immature useful evidence
-to `park`; remove rejected coincidence. Do not use a fixed item count, periodic
-schedule, or smaller delivery as authority to manufacture maintenance work. The
-parent cannot close with undisposed maintenance evidence.
+When maintenance candidates exist, distinguish required cleanup from optional
+learning using [references/maintenance.md](references/maintenance.md). Finish
+cohesive cleanup needed for the accepted outcome. Offer useful optional
+extraction separately, even when recurrence is strong. It requires a selected
+outcome, not a surprise completion dependency. An unanswered offer does not
+block closure. Preserve selected follow-ups through `park` and discard rejected
+coincidence. Do not manufacture a maintenance pass when no candidate exists.
 
-Read [references/review.md](references/review.md), resolve the effective
-`review_weight` and simplification posture, and apply them to that Workbench
-outcome. Read the current project calibration and include the exact canonical
-non-expansion instruction from
-[references/role-handoffs.md](references/role-handoffs.md) in every formal
-review prompt. Explicit user direction overrides repository defaults. Verify and
-adjudicate reviewer findings rather than accepting them blindly; reject invented
-requirements and park useful out-of-scope proposals instead of making them
-acceptance blockers.
+Before establishing the stable review target, read
+[references/foundation-truth.md](references/foundation-truth.md) and reconcile
+affected assertions against the integrated result. Apply its altitude test:
+foundations keep durable project truth, not work tracking, implementation plans,
+or qualification evidence. Rebuild `.knowledge/index.json` when indexed
+documentation changed. Include relevant reconciliation evidence in the completion reply.
 
-Read [references/foundation-truth.md](references/foundation-truth.md).
-Reconcile affected foundation assertions against the integrated result before
-completion and apply its altitude test: foundations keep durable project-level
-truth while work tracking, implementation plans, qualification mechanics,
-receipts, and evidence stay in the work record or their owning executable
-surfaces. Rebuild `.knowledge/index.json` when indexed documentation changed,
-and include relevant reconciliation evidence in the user-facing completion
-reply. Close every completed item immediately:
+Read [references/review.md](references/review.md) and apply the effective review
+weight, simplification posture, and current calibration to that coherent target.
+Include the canonical boundary instruction from
+[references/role-handoffs.md](references/role-handoffs.md) in every formal review
+prompt. User direction overrides defaults. Verify and adjudicate findings.
+Reject invented requirements and offer useful out-of-scope proposals separately.
+After corrections, rerun affected verification and self-check affected foundations.
+Do not add a distinct pass beyond the configured review policy.
+
+Close every completed item immediately:
 
 - `completed_items: summarize` → replace it with a compact completed stub;
 - `completed_items: discard` → remove it.

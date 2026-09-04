@@ -63,5 +63,15 @@ blocked. Fix incidental defects within scope only when they block or are caused
 by the delivery and the correction is cohesive. Park unrelated defects with
 reproduction evidence.
 
+For agent-workflow changes, check the instructions against representative tasks
+before adding more workflow machinery. Useful cases include a small fix, an
+ambiguous feature, multi-feature integration, and interrupted/resumed delivery.
+Choose cases affected by the change rather than imposing a fixed release suite.
+Inspect unnecessary questions, missing authority checks, restart effort, review
+value, and ledger clarity. Use existing runs where available. Label instruction
+walkthroughs as walkthroughs, not observed delivery results. Keep this evidence
+in the work record or chat, without new telemetry, counters, or a benchmark
+system. Prefer correcting observed friction over adding speculative controls.
+
 Do not declare completion while required verification fails or a consequential
 blocker remains.

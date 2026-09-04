@@ -103,6 +103,11 @@ reduces machinery, not required guarantees or evidence.
 
 ## What a session looks like
 
+For a clear request, the agent uses the smallest useful item, implements it,
+verifies behavior and reconciles affected truth, applies the configured review,
+and closes it. Extra workflow capabilities engage only when needed. Routing
+between skills does not require another agent or a repeated review.
+
 Suppose you ask, “Drive the onboarding epic to done.”
 
 The agent reads the repository, Workbench conventions, and the epic before
@@ -183,9 +188,15 @@ small coherent unit, the same skill normally executes directly rather than
 creating coordination overhead.
 
 An epic or broad feature set gets durable delivery topology only when
-continuation or integration complexity earns that state. When Workbench builds
-one, it proposes the execution model and waits for explicit user alignment
-before execution. This pause applies even in autonomous mode.
+continuation or integration complexity earns that state. The agent explains its
+execution model before starting, including models and thinking levels. Your
+explicit choices or confirmed project preferences provide standing alignment.
+Otherwise the agent asks once about the lineup, and asks before departing from
+it without an authorized fallback. Collaborative work waits for plan alignment.
+Adaptive and autonomous work proceed with routine choices inside that alignment
+and your granted authority. New consequential commitments, such as material
+costs or changed data exposure, still require your decision. You may also
+explicitly request plan approval.
 
 Hierarchy describes how outcomes belong together. Ordering is separate.
 `blocked_by` says another active item should finish first because serial work
@@ -411,12 +422,12 @@ During a user-authorized multi-unit `work` boundary, deliverers report candidate
 evidence and the active parent accumulates it. At an explicit integration or
 planning boundary, `work` adjudicates the evidence using the
 [maintenance guidance](skills/work/references/maintenance.md). No item count or
-schedule triggers extraction. Enough concrete recurrence can produce an
-ordinary feature tagged `pattern` and, when relevant, `refactor` or `cleanup`.
-The feature belongs under the active epic or stays top-level when no epic owns
-the boundary, and `deliver` completes it before wider closure. Immature evidence
-is offered for parking; aesthetic coincidence is dropped. A direct user request
-to detect or extract patterns creates the same maintenance feature immediately.
+schedule triggers extraction. Recurrence can justify a recommendation, not
+permission to add work. Required cleanup keeps the accepted outcome coherent.
+Optional extraction becomes a feature only when you select it or the accepted
+scope already includes it. An unanswered offer does not delay closure. Selected
+follow-ups stay independent unless an actual dependency exists. A direct request
+to detect or extract patterns creates the same bounded maintenance feature.
 
 Ordinary delivery still repairs an existing pattern made stale by current work.
 Nested stories and orchestrated units never write the shared catalog. Mechanical

@@ -26,6 +26,12 @@ preserve fan-out.
 
 ## Adjudication
 
+Prefer Astra as the scan orchestrator and final outcome owner when available,
+following the shared [role and thinking guidance](../../work/references/model-roles.md).
+It verifies intent, evidence, and scope rather than accepting a confident
+scanner or reviewer at face value. A separate adjudicator proposes, not decides.
+Keeping Astra as owner does not require another agent or an additional pass.
+
 After initial lanes return, use a flagship model when a fresh, more capable
 judgment can materially improve the outcome: material disagreement between
 lanes, high-consequence candidate findings, architectural proposals, or weakly
