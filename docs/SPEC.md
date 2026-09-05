@@ -103,8 +103,11 @@ source object:
 Codex uses its native category casing and source objects. For every
 cross-channel entry, keep the plugin identity and source semantically
 equivalent to the Claude catalog entry at the same position. Host-specific
-entries are absent here by design. External `git-subdir` entries must point to
-the corresponding repository and subdirectory in both catalogs.
+entries are absent here by design. External `git-subdir` entries must point to the corresponding repository and
+plugin package in both catalogs. The package subdirectory may differ by host
+when each directory is self-contained and the two manifests retain the same
+public plugin identity and semantically equivalent behavior; otherwise use one
+shared subdirectory.
 
 ### Registering a plugin
 

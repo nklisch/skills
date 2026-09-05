@@ -163,6 +163,20 @@
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       }
+    },
+    {
+      "name": "theatre-feedback",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/nklisch/theatre",
+        "path": "client-plugins/codex"
+      },
+      "description": "Operate Theatre's Stage and Director tools with portable Godot guidance and optional pending-feedback notices.",
+      "category": "Developer Tools",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
     }
   ]
 }

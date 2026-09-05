@@ -108,9 +108,11 @@ Native discovery configurations live in this repo:
 | Codex | `.agents/plugins/marketplace.json` | object: `{ "source": "local", "path": "./plugins/<name>" }` |
 | Antigravity | `.agents/plugins.json` + `plugin.json` | entry path: `"plugins/<name>"` |
 
-Both catalogs also federate the same three external companions
-(`krometrail`, `peeragent`, `skilltap`) through `git-subdir` sources that
-point at their own repositories.
+Both catalogs also federate external companions through `git-subdir` sources
+that point at their own repositories. `krometrail`, `peeragent`, and `skilltap`
+use one shared plugin root per repository. `theatre-feedback` uses Theatre's
+separate self-contained Claude and Codex package roots; both roots carry the
+same public plugin identity and synchronized operating skills.
 
 Pi does not get a third catalog in this tree. It consumes the same two
 through the `@nklisch/pi-plugins` bridge, maintained in

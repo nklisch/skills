@@ -31,6 +31,7 @@ plugins you want.
 /plugin install agentic-research@nklisch-skills   # grounded research discipline
 /plugin install agent-coordination@nklisch-skills # cross-agent ledger
 /plugin install prose-craft@nklisch-skills        # prose drafting and review
+/plugin install theatre-feedback@nklisch-skills   # Theatre operating skills and feedback notices
 /plugin install declaudify@nklisch-skills          # every-turn writing posture
 ```
 
@@ -46,7 +47,16 @@ codex plugin install nates-toolkit
 codex plugin install agentic-research
 codex plugin install agent-coordination
 codex plugin install prose-craft
+codex plugin install theatre-feedback
 ```
+
+`theatre-feedback` adds Stage and Director operating guidance and an optional
+pending-feedback hook. Install the Theatre CLI and Godot addons separately from
+[nklisch/theatre](https://github.com/nklisch/theatre); the plugin does not install
+or register the MCP servers. Hook trust remains an explicit client choice. The
+current `0.3.4` prebuilt Theatre release predates the `feedback-hook` helper, so
+build Theatre from current source if you want pending-feedback notices before a
+newer release is available. The operating skills remain useful without the hook.
 
 ### Google Antigravity (AGY)
 
@@ -87,6 +97,7 @@ Then, inside Pi:
 /plugins add agentic-research@nklisch-skills --scope user
 /plugins add agent-coordination@nklisch-skills --scope user
 /plugins add prose-craft@nklisch-skills --scope user
+/plugins add theatre-feedback@nklisch-skills --scope user
 ```
 
 Use `--scope project` instead of `--scope user` to enable a plugin for one
@@ -166,6 +177,7 @@ mutually exclusive within one project. Pick one:
 | **agentic-research** | Grounded, verifiable research discipline with attestations and citation gates. Stands alone or pairs with a work tracker. | [plugins/agentic-research/README.md](plugins/agentic-research/README.md) |
 | **agent-coordination** | Sparse cross-agent coordination ledger for shared repositories, backed by GitHub Discussions. | [plugins/agent-coordination/README.md](plugins/agent-coordination/README.md) |
 | **prose-craft** | Prose craftsmanship for human-facing docs: style-contract drafting, six-lens review, multi-model refine cycle. | [plugins/prose-craft/README.md](plugins/prose-craft/README.md) |
+| **theatre-feedback** | External Theatre companion with Stage and Director operating skills plus optional pending Godot feedback notices. Theatre itself is installed separately. | [nklisch/theatre](https://github.com/nklisch/theatre) |
 | **declaudify** | Claude Code-only every-turn writing guidance: simple, deeply informative technical language with framed codebase references and no invented shorthand. | [plugins/declaudify/README.md](plugins/declaudify/README.md) |
 | **agile-workflow** | Structured stage-and-gate work tracking with a goal-backed autopilot queue. **Supported in maintenance mode** — see above. | [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md) |
 
