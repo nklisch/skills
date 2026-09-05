@@ -30,10 +30,11 @@ finish. While it works, four durable layers record what matters:
 
 You do not move cards through stages or design an orchestration topology.
 You describe the outcome. The ordinary route is a small useful item, delivery,
-verification and reconciliation, appropriate review, and closure. When a long
-run needs durable topology, the agent explains its execution model, including
-models and thinking levels. Your explicit choices or confirmed project
-preferences provide standing alignment. Otherwise the agent asks once about
+verification and reconciliation, appropriate review, and closure. Before any
+task requiring multiple sub-agents, the agent discovers
+available models and aligns models and thinking levels with you in chat. This
+includes scans, research, and sequential assignments without durable topology.
+Your explicit choices or confirmed project preferences provide standing alignment. Otherwise the agent asks once about
 the lineup before dispatch. Collaborative work waits for plan alignment.
 Adaptive and autonomous work proceed with routine choices inside your granted
 authority and aligned model/effort choices.

@@ -91,8 +91,8 @@ resume.
 - epic delivery or delivery across many features needing durable continuation
   or integration state →
   [references/delivery-topology.md](references/delivery-topology.md);
-- designer, implementor, or reviewer model selection →
-  [references/model-roles.md](references/model-roles.md);
+- any task requiring multiple sub-agents →
+  [pre-execution model alignment](references/execution-posture.md#align-models-before-multi-subagent-execution);
 - nontrivial UI or journey uncertainty →
   [references/ui-ux.md](references/ui-ux.md);
 - every design, implementation, and Workbench review →

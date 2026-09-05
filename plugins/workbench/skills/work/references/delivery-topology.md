@@ -76,9 +76,9 @@ plan.
 
 ## Build a role-fit loadout
 
-Use [model-roles.md](model-roles.md) and
-[execution-posture.md](execution-posture.md) to choose available agents and
-reasoning levels. Record the aligned role, model, and thinking assignments so
+Follow [execution posture and model alignment](execution-posture.md) before
+assigning agents, including initial read-only discovery agents. Record the
+aligned role, model, and thinking assignments so
 continuation preserves the user's choices. Treat them as current assignments,
 not a permanent allowlist. Preserve project restrictions from their owning authority.
 
@@ -91,12 +91,9 @@ synthesis, adjudication, integration, and closure.
 When building a topology, explain the execution model in chat before implementation
 or broad dispatch. Summarize the owner, roles, proposed models and thinking
 levels, parallelism, meaningful isolation, review, and next integration point.
-Model and effort choices are part of alignment, not hidden implementation detail.
-Reuse explicit user choices or confirmed project preferences as standing
-alignment. Otherwise ask once about the proposed model/effort lineup before
-its dispatch. General plugin recommendations alone are not user confirmation.
-Ask before departing from an aligned lineup unless its fallback is already
-authorized. Do not re-ask for routine assignments within aligned roles and settings.
+Follow [model alignment](execution-posture.md#align-models-before-multi-subagent-execution)
+for every task requiring multiple sub-agents, even when no durable topology is
+needed. Align before initial discovery dispatch, not only implementation.
 
 Apply the effective [autonomy posture](autonomy.md):
 

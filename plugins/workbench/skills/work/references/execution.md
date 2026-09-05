@@ -26,9 +26,8 @@ keep its `## Delivery topology` current as evidence changes the run.
 
 Keep tightly coupled work in one context. Delegate or parallelize only when
 independent focus, specialized capability, isolation, or throughput exceeds
-handoff and integration cost. When selecting a delegate, use
-[model-roles.md](model-roles.md) to match capability and reasoning level to the
-role rather than spending a top design model on routine execution by default.
+handoff and integration cost. Before multi-subagent execution, follow
+[model alignment](execution-posture.md#align-models-before-multi-subagent-execution).
 Apply [execution-posture.md](execution-posture.md) first. Under `inline`, the
 main agent performs every unit sequentially in its current context while still
 owning the wider integration boundary. Under `adaptive`, stories and small

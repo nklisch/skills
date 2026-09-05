@@ -157,10 +157,9 @@ main agent performs the full design in the current context. Under `adaptive`,
 keep smaller coherent designs inline and use a dedicated designer when fresh
 context, consequence, breadth, specialization, or a clean handoff earns the
 cost. Under `orchestrated`, prefer a dedicated design agent when available.
-When assigning one, select it using
-[../work/references/model-roles.md](../work/references/model-roles.md), matching
-technical precision or creative taste to the design lens rather than choosing
-by rank alone. Give it the formal designer context and boundary instruction from
+For work requiring multiple sub-agents, first follow
+[model alignment](../work/references/execution-posture.md#align-models-before-multi-subagent-execution).
+Give the designer the formal context and boundary instruction from
 [role-handoffs.md](../work/references/role-handoffs.md), including the selected
 lens and effective simplification posture. Do not give it a proposed answer.
 The outcome owner retains final synthesis and adjudication. Do not add delegation

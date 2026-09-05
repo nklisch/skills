@@ -82,9 +82,10 @@ ceremonial design review merely because a design section exists.
 When `work` routes a unit through formal design, complete the required design
 review before implementation or delegation. Apply
 [execution-posture.md](execution-posture.md). When another context is permitted,
-select reviewer capability and reasoning level using
-[model-roles.md](model-roles.md) and prefer a different model family when
-available. Family diversity is not mandatory or an extra pass beyond the
+follow its [model alignment](execution-posture.md#align-models-before-multi-subagent-execution)
+rule for tasks requiring multiple sub-agents. Consider complementary model
+families within the user-aligned choices. Family diversity is not mandatory or
+an extra pass beyond the
 effective `review_weight`.
 
 Read [foundation-truth.md](foundation-truth.md) when the design or implementation

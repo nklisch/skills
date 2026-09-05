@@ -8,8 +8,9 @@ naturally about concrete project outcomes: clarify this tracked idea, scope this
 change, finish these epics, scan for opportunities, park a selected finding,
 commission durable research, or prepare a Workbench release summary. Workbench
 adapts internally without asking the user to design workflow stages or an
-orchestration topology. When it builds durable topology, it explains the execution
-model, including models and thinking levels. Routine adaptive or autonomous
+orchestration topology. Before any task requiring multiple sub-agents, it
+discovers available models and aligns models and thinking levels with the user
+in chat. Routine adaptive or autonomous
 execution proceeds within granted authority and aligned model choices. It is not a universal router for every request. Stateful skills
 stay inactive outside an
 adopted repository; write-free `ideate` may explore before adoption, and

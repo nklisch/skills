@@ -22,6 +22,10 @@ because delivery uses a skill.
 Unless an instruction names a repository path or artifact, communicate in the
 current conversation. Do not create report files or durable no-op records.
 
+For any task requiring multiple sub-agents, follow
+[pre-execution model alignment](../work/references/execution-posture.md#align-models-before-multi-subagent-execution)
+before dispatch, including exploratory or source-gathering assignments.
+
 ## Confirm activation and mode
 
 Confirm that an upward-found `.work/CONVENTIONS.md` declares `owner: workbench`.

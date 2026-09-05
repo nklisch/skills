@@ -373,14 +373,14 @@ explanations, or unrelated requests made in the repository:
 
 Review implementation-shaping designs before implementation becomes expensive
 to reverse. Review completed implementation at its integrated contract
-boundary. Model selection follows current operator calibration and actual availability.
-Design and orchestration favor intent-reading, sound solution shape, and
-integration judgment. Reviewer confidence never replaces the owner's evidence
-checks. Thinking effort follows unresolved reasoning, not role prestige or task
-size. Low-effort implementation can fit challenging work with settled contracts.
-Consequence changes verification and review rather than automatically increasing
-thinking effort. Named model preferences and effort guidance live in the
-[model-role reference](../skills/work/references/model-roles.md).
+boundary. For any task requiring multiple sub-agents, Workbench discovers actual
+model availability and aligns the lineup with the user in chat before execution.
+This applies to exploration, scanning, research, and sequential assignments as
+well as delivery. Explicit choices or user-confirmed standing preferences can
+supply alignment without repeated approval. Unapproved substitutions require
+renewed alignment so execution does not silently change cost or capability.
+Workbench does not prescribe named model rankings or thinking defaults.
+Reviewer confidence never replaces the owner's evidence checks.
 
 Every reviewer is instructed not to invent requirements or expand scope, to
 flag overbuilding, and to judge against the rational expectations of the actual
