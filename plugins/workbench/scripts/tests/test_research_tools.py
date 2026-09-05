@@ -20,7 +20,9 @@ def write(path: Path, content: str) -> None:
 
 class ResearchToolsTests(unittest.TestCase):
     def make_project(self) -> Path:
-        root = Path(tempfile.mkdtemp())
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
         write(
             root / ".research/CONVENTIONS.md",
             """---
@@ -136,6 +138,41 @@ relationships: []
         )
         bibliography = (root / ".research/bibliography.yaml").read_text(encoding="utf-8")
         self.assertIn("source_handle: source-a", bibliography)
+        check = self.run_tool(INDEX, root, "--check")
+        self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+
+    def test_compact_and_full_work_items_have_identical_index_entries(self) -> None:
+        root = self.make_project()
+        item = root / ".work/active/empty-search.md"
+        compact = (
+            "---\nid: empty-search\nkind: story\nstatus: active\n"
+            "created: 2026-09-05\nupdated: 2026-09-05\n---\n"
+            "# Empty search\n\nAn empty query returns no matches.\n"
+        )
+        write(item, compact)
+        result = self.run_tool(INDEX, root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        index_path = root / ".knowledge/index.json"
+        compact_index = index_path.read_bytes()
+        entry = next(
+            entry for entry in json.loads(compact_index)["entries"]
+            if entry["path"] == ".work/active/empty-search.md"
+        )
+        self.assertEqual(entry["id"], "empty-search")
+        self.assertEqual(entry["kind"], "story")
+        self.assertEqual(entry["status"], "active")
+        self.assertEqual(entry["relationships"], [])
+        write(
+            item,
+            compact.replace(
+                "status: active\n",
+                "status: active\ntags: []\nparent: null\nblocked_by: []\n"
+                "related_to: []\nresearch_refs: []\nmock_refs: []\n",
+            ),
+        )
+        result = self.run_tool(INDEX, root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(index_path.read_bytes(), compact_index)
         check = self.run_tool(INDEX, root, "--check")
         self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
 

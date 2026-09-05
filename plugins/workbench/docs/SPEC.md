@@ -142,23 +142,22 @@ violate that project's stated expectation block summary and cleanup. Preferred
 tool unavailability triggers a credible fallback or an explicit evidence limit,
 not an automatic failure.
 
-Setup always asks the user how completed items should be retained, the
-repository's documentation conventions (foundation layout, naming, and
-contract-truth ownership), and whether to establish or extend
-`docs/PRINCIPLES.md` — from derived candidates, the core suggested invariants
-(contract truth ownership, compatibility is earned, leave it simpler), and,
-when bootstrapping, optional code-design principle candidates; it also aligns
-repository-specific conventions, including review weight, simplification
-posture, and autonomy. Setup always offers its optional configurations — execution
-posture, commit posture, release gates, Workbench recognition of a user-owned roadmap, and the
-`CLAUDE.md` compatibility projection — as explicit opt-in, decline, or defer
-choices. Repository evidence may recommend a choice but never controls whether
-it is offered or silently adopts it. On refresh, setup presents an already
-confirmed choice as the current setting rather than re-asking it. Commit posture
-and release gates remain absent when declined or deferred; the adaptive Git
-posture and no Workbench gates apply. Setup preserves confirmed gate names and definitions;
-it never installs a universal set or adds, drops, or rewrites a gate without
-confirmation.
+Setup presents one repository-grounded recommended working agreement. It covers
+completion retention, review weight, simplification, autonomy, documentation
+layout and truth ownership, project calibration, and principles. The user may
+accept the agreement together or adjust individual choices. Only consequential
+unresolved decisions need separate questions; the option catalog is not an interview
+sequence. Existing evidence informs recommendations, not silent adoption.
+
+Optional execution posture, commit posture, release gates, roadmap recognition,
+and the `CLAUDE.md` projection remain visible opt-in, decline, or defer choices.
+Each proposed adoption or deferral is explicit in the agreement. A refresh retains
+confirmed choices and surfaces meaningful differences, rather than repeating
+unchanged options. Declined or deferred options remain absent or unmanaged.
+Missing commit posture means adaptive Git behavior; missing release gates adds
+no Workbench gates. A gate change still requires confirmation, because it changes
+what can prevent release. Destructive conversion retains its separate recovery
+and exact-removal consent requirements.
 
 Repository evidence is an open-ended search for unique, project-specific
 conventions, not a filter limited to Workbench's predefined configuration.
@@ -202,16 +201,18 @@ convergence, formal review packet, or closure mechanics.
 id: <stable-kebab-id>
 kind: epic|feature|story
 status: active|blocked
-tags: []
-parent: null
-blocked_by: []
-related_to: []
-research_refs: []
-mock_refs: []
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---
 ```
+
+Empty metadata need not be written. Optional `tags`, `blocked_by`, `related_to`,
+`research_refs`, and `mock_refs` default to empty lists. Optional `parent` defaults
+to no parent. Supplied values retain their type, hierarchy, readiness, and reference
+rules. Full-form records remain valid; existing items need no migration or
+cosmetic rewriting. The body communicates outcome, boundary, and acceptance
+without required section furniture. Decisions and next actions appear only when
+useful for continuation.
 
 A feature is the default delivery and integrated review unit. An epic is a
 top-level outcome with at least two independently meaningful feature outcomes
@@ -300,8 +301,14 @@ shared lens follows the choice through formal design, implementation,
 behavioral verification, and review. It seeks the smallest durable protection;
 it does not waive accepted guarantees or evidence.
 
-Design keeps outcome-specific reasoning in the active item and uses one primary
-lens:
+Design keeps outcome-specific reasoning in the active item. New technical
+evidence revises the affected decision and its dependent contracts and checks,
+not every settled part of the plan. Local implementation details remain in
+normal delivery. Consequential new choices receive focused design scrutiny before
+expensive implementation; changed product requirements or authority still need
+human direction. Corrections do not create extra review passes.
+
+Design uses one primary lens:
 
 - new work;
 - prototype or feasibility;
@@ -341,9 +348,10 @@ optional project convention, then `adaptive`. It governs the core delivery
 roles without changing formal design or review obligations:
 
 - `inline` keeps design, implementation, and review in the main agent context;
-- `adaptive` normally keeps stories and small coherent features inline and uses
-  dedicated or mixed roles when focus, consequence, isolation, specialization,
-  or throughput earns the handoff cost;
+- `adaptive` weighs each new context's contribution against lost continuity,
+  briefing, and integration cost. Quick implementation and focused review often
+  benefit from the existing context. Independent challenge, specialization,
+  isolation, breadth, or throughput can justify dedicated or mixed roles;
 - `orchestrated` prefers dedicated design, implementation, and review agents
   when available while the main agent owns synthesis and integration.
 
@@ -381,6 +389,14 @@ supply alignment without repeated approval. Unapproved substitutions require
 renewed alignment so execution does not silently change cost or capability.
 Workbench does not prescribe named model rankings or thinking defaults.
 Reviewer confidence never replaces the owner's evidence checks.
+
+A review pass is a deliberate inspection, not a required agent assignment or
+report template. Effort scales to the target's consequence, uncertainty, breadth,
+and reversibility within the configured weight. Inline review applies the same
+scope and evidence standards without claiming fresh-context independence.
+Report what was checked, actionable findings with evidence, and material limits.
+Use fuller analysis only when it helps the owner adjudicate a consequential
+finding. Explicit reviewer preferences and review pass obligations still apply.
 
 Every reviewer is instructed not to invent requirements or expand scope, to
 flag overbuilding, and to judge against the rational expectations of the actual
@@ -432,14 +448,19 @@ of acceptance.
 
 ## Work behavior
 
-`work` keeps a clear request in one workflow even when it spans several epics.
+`work` keeps one continuous outcome owner even when a request spans several epics.
 The ordinary path uses the smallest useful item, implementation, verification
-and reconciliation, appropriate review, and closure. Review receives coherent
-code and affected foundations as one stable target. Exploration, formal design,
-topology, research, and maintenance engage only when the outcome needs them.
-An agent reuses unchanged guidance within one context across skill handoffs.
-Fresh contexts read their governing guidance and reconcile current repository
-facts. This avoids repeated policy loading without treating old state as current.
+and reconciliation, proportionate review, and closure. Design and delivery are
+capabilities inside that flow, not lifecycle stages. Review receives coherent code
+and affected foundations. Exploration, topology, research, and maintenance engage
+only when they add value to the outcome.
+
+An agent reuses unchanged guidance, settled scope, decisions, and evidence across
+capabilities in the same context. It does not repeat activation, posture selection,
+or readiness ceremonies merely because a different skill supplies the next step.
+Fresh contexts load governing guidance. Resumed work reconciles selected items,
+Git, and affected code; it does not sweep unrelated active work. This preserves
+continuity without treating old state as current.
 
 `work` resolves autonomy from the request and conventions. It gathers human input
 for consequential human-owned choices and continues until the named boundary
@@ -483,12 +504,15 @@ Standalone cleanup, simplification, and refactoring are ordinary bounded work.
 Behavior-preserving cleanup may travel with a delivery when cohesive; intended
 behavior changes require explicit requirements.
 
-Every implementation-ready feature or story routes through `deliver`. In direct
-mode, `deliver` owns that single item's implementation, appropriate integrated
-review, truth reconciliation, pattern decisions, and closure. In orchestrated
-mode, `work` supplies the parent outcome, owned write surface, integration
-contract, effective Git posture, and return evidence. The deliverer never writes
-the shared pattern catalog or closes the parent boundary.
+Ready features and stories use `deliver`'s implementation and completion contract.
+The current owner reads that guidance when implementation starts and reuses it
+across ready units; no repeated invocation or context transfer is required.
+Direct `deliver` remains an entry point for one named ready item and owns its
+implementation, review, reconciliation, pattern decisions, and closure. For
+assigned delivery, `work` supplies the parent outcome, owned surface, integration
+contract, Git posture, and return evidence. An assigned deliverer does not write
+the shared pattern catalog or close the parent, because the owner must integrate
+all contributing work first.
 
 Features and standalone stories are integrated review boundaries. A story
 nested under a feature is an implementation slice: `deliver` verifies and closes
@@ -873,8 +897,11 @@ inherited it. Loose work does not acquire Workbench ledger, review-weight,
 convergence, formal review packet, or closure mechanics. For concrete design and
 delivery
 reviews, it directs reviewers to the work skill's `references/review.md`, which
-defines the proportional constraint lens and required review packet; reviewers propose and
-the outcome owner verifies and adjudicates against product goals and evidence.
+defines proportionate review, the constraint lens, and useful findings with
+material evidence limits. Reviewers propose and the outcome owner verifies and
+adjudicates against product goals and evidence. The reminder favors continuous
+ownership and reuse of unchanged context, with quick implementation and focused
+review often benefiting from the current context rather than an obligatory delegate.
 It explicitly leaves loose, conversational, and unrelated requests outside
 Workbench.
 

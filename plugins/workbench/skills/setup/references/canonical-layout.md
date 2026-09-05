@@ -4,6 +4,7 @@
 
 - Authority boundaries
 - Workbench conventions
+- Overbuilding calibration
 - Foundation document contract
 - Project pattern catalog
 - Active-item frontmatter
@@ -126,9 +127,11 @@ The optional `execution_posture` controls only the core delivery roles: design,
 implementation, and review. Explicit user direction overrides the project
 setting; missing uses `adaptive`. `inline` keeps those roles in the main agent
 context without weakening formal design or review depth, while `orchestrated`
-prefers dedicated role agents when available. Adaptive uses item kind and size
-only as light routing signals and may choose a mixed role split. A project may
-record a concise preferred split in convention prose without extending the
+prefers dedicated role agents when available. Adaptive weighs each role's value
+against handoff cost — quick implementation and focused review often benefit
+from the current context — using item kind and size only as light routing
+signals, with no inline mandate, and may choose a mixed role split. A project
+may record a concise preferred split in convention prose without extending the
 frontmatter enum. See
 [execution-posture.md](../../work/references/execution-posture.md).
 
@@ -306,21 +309,25 @@ authority, format, adoption, and maintenance boundary.
 
 ## Active-item frontmatter
 
+The compact canonical form keeps required fields only:
+
 ```yaml
 ---
 id: <stable-kebab-id>
 kind: epic|feature|story
 status: active|blocked
-tags: []
-parent: null
-blocked_by: []
-related_to: []
-research_refs: []
-mock_refs: []
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---
 ```
+
+Identity, kind, status, and dates are required. `tags`, `blocked_by`,
+`related_to`, `research_refs`, and `mock_refs` are optional lists that default
+to empty when omitted; `parent` is optional and defaults to no parent. Add
+these fields when they carry information. Existing full-form items that list
+every field remain valid and need no migration or cosmetic rewriting.
+[lifecycle.md](../../work/references/lifecycle.md) details relationships,
+readiness, and item shape.
 
 Only active and blocked may rest in `.work/active/`. A feature is the default
 delivery and integrated review unit. An epic is top-level and groups at least

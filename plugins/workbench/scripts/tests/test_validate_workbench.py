@@ -19,7 +19,9 @@ def write(path: Path, content: str) -> None:
 
 class ValidateWorkbenchTests(unittest.TestCase):
     def make_project(self) -> Path:
-        root = Path(tempfile.mkdtemp())
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
         write(
             root / ".work/CONVENTIONS.md",
             f"---\nowner: workbench\nschema: 1\nworkbench_version: {INSTALLED_VERSION}\ncompleted_items: summarize\nreview_weight: standard\nsimplification_posture: balanced\nautonomy: adaptive\nexecution_posture: adaptive\ncommit_posture: adaptive\n---\n",
@@ -99,6 +101,67 @@ updated: 2026-07-24
         result = self.run_validator(self.make_project())
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("validation passed", result.stdout)
+
+    def write_compact_item(self, root: Path, extra: str = "", body: str = "") -> None:
+        write(
+            root / ".work/active/example.md",
+            "---\nid: example\nkind: feature\nstatus: active\n"
+            "created: 2026-09-05\nupdated: 2026-09-05\n"
+            f"{extra}---\n# Example\n\nReturn no matches for an empty query.\n{body}",
+        )
+
+    def test_compact_item_passes_without_empty_metadata(self) -> None:
+        root = self.make_project()
+        self.write_compact_item(root)
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_compact_item_still_requires_identity_state_and_dates(self) -> None:
+        for field in ("id", "kind", "status", "created", "updated"):
+            with self.subTest(field=field):
+                root = self.make_project()
+                self.write_compact_item(root)
+                path = root / ".work/active/example.md"
+                lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+                path.write_text(
+                    "".join(line for line in lines if not line.startswith(f"{field}:")),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(f"missing {field}", result.stdout)
+
+    def test_compact_item_validates_supplied_metadata(self) -> None:
+        cases = (
+            ("tags: wrong\n", "tags must be a list"),
+            ("parent: []\n", "parent must be an item id or null"),
+            ("parent: absent\n", "unresolved parent absent"),
+            ("blocked_by: [absent]\n", "unresolved blocked_by target absent"),
+            ("related_to: [absent]\n", "unresolved related_to target absent"),
+            ("research_refs: [.research/missing.md]\n", "unresolved research ref"),
+            ("mock_refs: [.mockups/missing.html]\n", "unresolved mock ref"),
+        )
+        for metadata, expected in cases:
+            with self.subTest(metadata=metadata):
+                root = self.make_project()
+                self.write_compact_item(root, metadata)
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn(expected, result.stdout)
+
+    def test_compact_item_preserves_blocker_readiness(self) -> None:
+        root = self.make_project()
+        self.write_compact_item(root, body="\n## Blocker\nWaiting for the test service.\n")
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("active status cannot have", result.stdout)
+        path = root / ".work/active/example.md"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace("status: active", "status: blocked"),
+            encoding="utf-8",
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_repository_specific_conventions_body_remains_open(self) -> None:
         root = self.make_project()

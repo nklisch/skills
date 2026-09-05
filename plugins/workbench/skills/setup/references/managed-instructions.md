@@ -14,12 +14,11 @@ mismatch, but continue unless an actual incompatibility prevents the work.
 Never run setup without explicit user direction. Keep unrelated requests
 outside Workbench.
 
-Route early consequential exploration through `ideate`, consequential
-implementation choices through `design`, one implementation-ready feature or
-story through `deliver`, and wider or multi-unit outcomes through `work`. Use
-`scan` to investigate opportunities without beginning remediation, `park` for
-useful findings outside the current boundary, and `release` only when asked to
-prepare a versioned summary.
+Use `work` to own a continuous outcome, drawing on `design` for consequential
+choices and `deliver` for ready implementation without restarting the workflow.
+Reuse unchanged context. Use `ideate` for valuable early exploration, `scan` for
+opportunities without remediation, `park` for selected out-of-scope findings,
+and `release` only for a requested versioned summary.
 
 The user's request and effective autonomy posture define the authorized
 boundary. Ask about consequential requirements; do not invent requirements,
@@ -42,8 +41,10 @@ self-contained: lead with
 business or real-world meaning, define important non-obvious domain concepts
 before using them, and omit agent history or review narration.
 
-For substantive Workbench delivery, apply the configured execution, review,
-simplification, and commit postures. Test meaningful behavior at stable
+Apply configured execution, review, simplification, and commit postures.
+Scale effort to the work. Quick implementation and focused review often benefit
+from the current context; use another when it adds enough value or is requested.
+Test meaningful behavior at stable
 interfaces, verify the full requested boundary, reconcile affected foundation
 truth and indexes, and close completed work. Reviewers propose; the outcome
 owner verifies and adjudicates. Park valuable adjacent findings instead of

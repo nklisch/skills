@@ -1,10 +1,9 @@
 # Orchestration and Continuation
 
-Use Workbench's `deliver` skill in orchestrated mode for each ready feature or
-story. This reference owns coordination, integration, and continuation across
-units. Use [role-handoffs.md](role-handoffs.md) for the shared context and
-authority contract; this reference owns the implementation-specific assignment
-and return details.
+Use `deliver`'s contract for ready features or stories inside the owned outcome.
+Reuse it across units in the same context rather than reenacting a handoff.
+This reference owns coordination, integration, and continuation across units.
+Use [role-handoffs.md](role-handoffs.md) only for actual context boundaries.
 
 For an ordinary multi-unit boundary, write only the coordination detail needed
 to maintain ownership and integration in the relevant active item:
@@ -49,7 +48,7 @@ Assign non-overlapping write surfaces and explicit output evidence. Use
 worktrees when isolation materially improves collision avoidance or rollback,
 not merely because several units exist.
 
-Give each deliverer the explicit orchestrated mode, parent outcome, accepted
+For an actual assignment, give the deliverer its assigned delivery mode, parent outcome, accepted
 scope, owned write surface, integration contract, relevant conventions and
 patterns, current project calibration, required checks, effective review weight,
 effective simplification posture, effective execution posture, and return

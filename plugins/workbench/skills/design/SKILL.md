@@ -1,307 +1,138 @@
 ---
 name: design
 description: >
-  Design or stress-test concrete Workbench implementation-shaping work before execution. Use only
-  when .work/CONVENTIONS.md declares owner: workbench and the request targets a Workbench outcome;
-  ignore this skill otherwise. Use after the outcome and basic success shape are understood, or
-  when the user explicitly asks to go directly to design; route valuable initial exploration of a
-  substantial or cross-cutting initiative through ideate first. Applies a design lens, records a
-  proportionate design, and reviews it at the configured weight.
+  Resolve consequential implementation choices for a Workbench outcome, or stress-test its
+  design before costly implementation. Use only when .work/CONVENTIONS.md declares owner:
+  workbench. Keep accepted context and the same outcome owner, revise only decisions affected by
+  new evidence, and review proportionately. Use ideate when the desired outcome itself needs
+  exploration; ordinary local choices stay inside delivery.
 ---
 
 # Design
 
-Within a concrete Workbench delivery workflow, design reasoning is always
-required. Keep it inline when repository evidence and brief reasoning can
-resolve local, reversible choices confidently. Use this dedicated skill when
-that Workbench outcome's implementation shape needs meaningful discovery,
-alternatives, boundary definition, or adjudication before execution. This is
-conditional routing, not a size threshold or mandatory project stage. A direct
-design request stops after the reviewed design; `work` may route here and then
-continue through implementation.
+Supply focused design reasoning inside a continuous Workbench outcome. Use this
+capability when discovery, alternatives, boundaries, or adjudication need more
+attention than local implementation judgment. Size and a design heading do not
+create a formal stage. A direct design request stops after the reviewed design;
+an end-to-end request continues into implementation without renewed permission.
 
-## Confirm activation and context
+## Establish only missing context
 
-First confirm that an upward-found `.work/CONVENTIONS.md` declares
-`owner: workbench`. If it does not, ignore this skill and handle the request
-without Workbench; do not offer setup unless the user explicitly asks to adopt
-or initialize Workbench.
+For direct entry, confirm an upward-found `.work/CONVENTIONS.md` declares
+`owner: workbench`. Otherwise handle the request without Workbench. Read project
+instructions, conventions, relevant items, foundations, code, and tests. Use the
+knowledge index when present and apply
+[version guidance](../setup/references/version-compatibility.md) before mutation.
 
-When active, read `.work/CONVENTIONS.md` and apply
-[setup's version-compatibility guidance](../setup/references/version-compatibility.md)
-before any stateful action; mention useful upgrade/setup guidance on mismatch
-without blocking work. Then read the target item, project
-instructions, foundation documents, relevant code and tests, and
-`.knowledge/index.json` when present. Foundation documents generally live in
-root `docs/`, with sub-project truth in `<sub-project>/docs/` or
-`docs/<sub-project>/` following repository convention. Reconcile stale item
-claims against the repository before designing.
+When `work` or `deliver` already supplied this context, carry it forward. Do not
+repeat activation or settled questions. Reconcile changed repository facts and
+unresolved assumptions. Fresh contexts load their own governing guidance.
 
-Read [../work/references/autonomy.md](../work/references/autonomy.md) and resolve
-the effective autonomy posture. Autonomy governs how decisions are discussed,
-not whether design quality, review, safety, or authority boundaries apply. Read
-[../work/references/execution-posture.md](../work/references/execution-posture.md)
-and resolve who performs design and review. Formal design remains required when
-the implementation shape warrants it even under `inline`. Read
-[../work/references/simplification.md](../work/references/simplification.md) and
-resolve the effective simplification posture for the design. Read
-[../work/references/assurance-machinery.md](../work/references/assurance-machinery.md)
-and apply it while shaping correctness, accounting, verification, state, and
-determinism choices. Read
-[../work/references/role-handoffs.md](../work/references/role-handoffs.md) when
-delegating a core-delivery role.
+Resolve authority and runner choices only if not already settled through
+[autonomy](../work/references/autonomy.md) and
+[execution posture](../work/references/execution-posture.md). Apply
+[simplification](../work/references/simplification.md), current project calibration,
+and [assurance machinery](../work/references/assurance-machinery.md).
 
-Unless an instruction names a repository path or artifact, communicate with the
-user in the current conversation, including questions, offers, proposals,
-recommendations, explanations, summaries, and reports. Do not create report
-files or durable no-op records unless the user requests them.
+Use [ideate](../ideate/SKILL.md) when the outcome or success shape needs exploration,
+or early discovery could materially reshape a substantial initiative. Do not
+restart ideation for a bounded technical choice within accepted work. Explicit
+direct execution and established mechanical work bypass that preflight.
 
-## Decide whether to ideate
+## Bound the decision
 
-Before formal design, route through `ideate` when the user asks for initial
-exploration, when a short collaborative pass could materially change what
-should be designed, or when the outcome, ownership boundary, or success shape
-cannot yet form coherent work. Prefer that pass for a substantial new
-initiative, cross-cutting change, early design with unsettled outcomes,
-boundaries, non-goals, or competing directions, or several coupled product,
-domain, or business decisions that materially reshape one another or the scope.
+The user's intent, clarifications, exclusions, and accepted item define scope.
+Foundations constrain that scope; they do not pull every adjacent aspiration into
+it. Never invent requirements to justify a preferred architecture or extra rigor.
+Use the project's actual audience, maturity, deployment, and risks as calibration.
 
-Size alone is not decisive: a large mechanical change with an established
-outcome can proceed directly to design. Bypass ideation when the user explicitly
-asks to go straight to design or repository truth already settles the outcome
-and exploration is unlikely to change it. Do not route away merely because a
-small number of mostly local choices remain. The bare use of “design” does not
-by itself mean the user wants to skip discovery.
+For a clear direct request without an item, create the smallest useful feature or
+story using [lifecycle](../work/references/lifecycle.md). Keep design in that item.
+Do not add hierarchy or a separate document just to represent design activity.
 
-## Set the design boundary
+Read [lenses](references/lenses.md), choose the relevant primary lens, and apply
+only risk overlays that matter. State the lens when it helps interpretation.
+Separate facts, requirements, assumptions, and decisions without requiring four
+empty sections. Learn facts from the repository; ask the user about unsettled
+product direction, external contracts, irreversible choices, and expensive
+trade-offs. Use grounded research only when substantive external evidence matters.
 
-Treat the user's original intent, later clarifications, explicit exclusions,
-and the accepted item outcome as the design boundary. Applicable foundation
-documents provide current or explicitly intended truth and constraints inside
-that boundary; they do not authorize pulling every adjacent aspiration into the
-current work. Design may resolve necessary implementation detail, but it must
-not invent product requirements, adjacent capabilities, or a broader quality
-bar to satisfy the designer's preferred ideal state.
+## Resolve the consequential choices
 
-Keep a clear narrow request narrow. Calibrate the design to the project's actual
-type, maturity, audience, deployment context, and stated risks. Apply the
-current `## Overbuilding calibration` from `.work/CONVENTIONS.md` when present;
-missing calibration falls back to current repository evidence. Do not add
-enterprise, platform, production, extensibility, compatibility, operational, or
-validation machinery unless the authorized outcome or repository evidence
-requires it. If a clear request has no active item, create the smallest coherent
-feature or story needed to hold durable design state, following
-[../work/references/lifecycle.md](../work/references/lifecycle.md). Do not create
-hierarchy merely to represent design activity.
+Prefer the simplest maintainable approach, measured in durable concepts and
+operating cost rather than diff size. Name alternatives only where choice matters.
+Keep ordinary type, interface, and local implementation decisions proportionate.
 
-## Select lenses
+For consequential assurance machinery, name the failure or invariant protected,
+its authority, and why an existing or simpler mechanism is insufficient. Account
+for synchronization, migration, false positives, blocked states, and recovery.
+Preserve accepted guarantees while removing machinery that does not earn its cost.
 
-Read [references/lenses.md](references/lenses.md). Select one primary lens:
+Design verification alongside the change. Reuse existing tests, commands,
+fixtures, and environments. Cheap contained evidence may be added directly;
+a substantial new test framework, simulation, or benchmark platform requires
+user discussion. Name credible recovery for consequential failure modes.
 
-- new work;
-- prototype or feasibility;
-- refactor or cleanup;
-- performance;
-- defect or reliability;
-- UI/UX;
-- data, migration, or integration.
+Use the current context when continuity supplies enough reasoning and challenge.
+Consider a dedicated designer for specialization, breadth, or fresh perspective
+that outweighs the handoff cost. Honor explicit execution preferences. If
+multiple sub-agents are useful, follow model alignment before dispatch.
+A delegated designer uses [role handoffs](../work/references/role-handoffs.md),
+receives raw requirements rather than a proposed answer, and returns proposals
+only. Ask for facts, unresolved assumptions, meaningful alternatives, a justified
+recommendation, and any overbuilding or non-blocking follow-ups. Keep that reply
+as small as the decision permits.
 
-Apply only relevant risk overlays: security, privacy, accessibility, operations,
-compatibility, and testing. State the selected lens in the item. If the work
-mixes materially different lenses, separate independently verifiable outcomes
-or name which lens governs each unit.
+## Update decisions in place
 
-## Resolve decisions
+Record the chosen approach, rationale, and useful verification or recovery details
+in the owning item. Add implementation units only when decomposition helps actual
+execution. Paths and interfaces should reduce ambiguity, not pre-write the code.
+Use [writing style](../work/references/writing-style.md) for durable prose.
 
-Separate facts, requirements, assumptions, and decisions. Learn discoverable
-facts from the repository. Do not re-ask choices already settled by the user,
-the item, or foundation truth.
+During delivery, revise only the decision affected by new evidence and inspect its
+dependents. Preserve unaffected scope, accepted decisions, and completed evidence.
+A revised local assumption does not trigger a full design rewrite or reapproval.
+A material boundary or guarantee change does require its appropriate authority
+and review before expensive implementation. An uncertain label cannot hide that
+consequence. Continue independent authorized work when possible.
 
-Use substantive external investigation through an available `research` skill.
-If none is available, disclose the degraded mode and do not turn unattested
-external claims into committed design evidence.
+Follow [foundation truth](../work/references/foundation-truth.md) when a decision
+settles durable project truth. Reconcile affected root or scope-owned assertions
+in place, including engineering shape where it changed. Foundations own durable
+semantics and rationale, not work tracking or copied internal schema structure.
+Use trees, tables, or existing source-controlled diagrams when clearer than prose.
+Rebuild the knowledge index when required.
 
-Ask the human about product direction, supported behavior, external contracts,
-irreversible choices, or expensive trade-offs only they can settle, then pause
-for the answer. Resolve routine reversible implementation choices with judgment
-and include rationale in the active item's design only when it helps future
-implementation or review.
+For a linked bootstrap provisional spec, follow
+[provisional specs](../work/references/provisional-specs.md). Name its implementation
+owner and cleanup condition. Ordinary design does not create new provisional specs.
 
-Prefer the simplest coherent design that reaches a maintainable intended state.
-Measure simplicity in durable concepts, operating cost, and verification cost,
-not diff size. Apply the effective simplification posture to the affected
-design boundary; at `structural`, question whether existing files and modules
-should remain the decomposition. Do not choose a hack merely because it touches
-fewer files.
+## Review and continue
 
-In collaborative work, discuss ideal states and appropriately scoped options
-before binding the design. In adaptive work, recommend the ideal state when it
-materially affects the current choice. In autonomous work, choose the strongest
-maintainable design inside the authorized outcome and park improvements that
-would expand it. Use a workaround only when a real constraint requires it, and
-record the constraint, consequence, and better future direction in the active
-item because they constrain future work.
+Self-check requirements, scope, assumptions, alternatives, unnecessary complexity,
+verification, and recovery. Then apply [review](../work/references/review.md) at the
+effective weight. Review consequential design before reversal becomes expensive.
+Small reversible reasoning needs no ceremonial design review merely because it
+was written down. A changed decision gets focused scrutiny of its consequences,
+not repeated review of unchanged decisions. Corrections remain governed by the
+existing pass policy.
 
-Name meaningful alternatives when the choice is consequential; do not
-manufacture options for obvious local work.
+An inline pass is a deliberate change of lens, not a claim of independence.
+Delegate only when fresh context materially improves the review or an explicit
+preference calls for it. Every reviewer receives the accepted boundary, relevant
+project truth, calibration, and evidence under the review contract.
 
-Require every proposed assurance mechanism to name the product failure or
-durable invariant it protects, its authority, and why a simpler boundary check,
-derived state, recovery path, or existing mechanism is insufficient. Include
-its synchronization, migration, false-positive, blocked-state, and recovery
-costs. Preserve required correctness and credible verification; the goal is the
-smallest durable mechanism that protects them, not weaker guarantees.
+Check proposed foundation changes for current versus intended truth, ownership,
+engineering coverage, and altitude. Reject duplicated code-owned structure and
+work-item narration. Preserve user-owned roadmap content and the temporary nature
+of any provisional specs. These checks belong to the affected target, not a
+repository-wide documentation audit.
 
-For formal design, follow the effective execution posture. Under `inline`, the
-main agent performs the full design in the current context. Under `adaptive`,
-keep smaller coherent designs inline and use a dedicated designer when fresh
-context, consequence, breadth, specialization, or a clean handoff earns the
-cost. Under `orchestrated`, prefer a dedicated design agent when available.
-For work requiring multiple sub-agents, first follow
-[model alignment](../work/references/execution-posture.md#align-models-before-multi-subagent-execution).
-Give the designer the formal context and boundary instruction from
-[role-handoffs.md](../work/references/role-handoffs.md), including the selected
-lens and effective simplification posture. Do not give it a proposed answer.
-The outcome owner retains final synthesis and adjudication. Do not add delegation
-overhead merely to enact a role split.
+Verify and adjudicate findings. Correct real in-scope problems, explain rejected
+material proposals in chat, and offer adjacent ideas separately. When a reason is
+a durable constraint, record the constraint rather than the review history.
 
-A formal designer is proposal-only and returns a concise structure separating:
-
-- **Facts** — repository or source-grounded observations;
-- **Assumptions** — unresolved premises and their consequence;
-- **Alternatives** — meaningful options and trade-offs;
-- **Recommendation** — the smallest coherent fit inside scope;
-- **Overbuilding** — extra machinery or complexity that lacks earned need; and
-- **Non-blocking ideas** — useful out-of-scope follow-ups, clearly separated
-  from acceptance requirements.
-
-## Record the design
-
-Keep outcome-specific design in the active item rather than a parallel design
-document. Add only useful sections:
-
-```markdown
-## Design
-
-**Primary lens:** <lens>
-
-### Outcome and constraints
-<requirements, exclusions, and success evidence>
-
-### Chosen approach
-<boundaries, contracts, data flow, and rationale>
-
-### Alternatives
-<meaningful rejected options and trade-offs, when consequential>
-
-### Implementation units
-<coherent units, owned surfaces, dependencies, and integration points>
-
-### Verification
-<behavior, contract, benchmark, migration, or journey evidence>
-
-### Risks and recovery
-<failure modes, assumptions, rollback, fallback, or observability>
-```
-
-Use exact paths, interfaces, or schemas only when they reduce implementation
-ambiguity. Avoid speculative code listings that merely pre-write the change.
-Write the design prose in the plain technical style of
-[../work/references/writing-style.md](../work/references/writing-style.md).
-Apply that reference's concept-grounding rules to data models, interfaces, and
-provider vocabulary. Use a concrete scenario when relationships remain
-abstract, and use `research` when a provider ontology materially shapes the
-design.
-
-Design the smallest credible verification approach alongside implementation.
-Reuse existing tests, commands, fixtures, environments, and observability
-first. Add lightweight evidence when its confidence clearly exceeds its upkeep.
-Do not invent a test framework, benchmark platform, mock service, simulation,
-synthetic environment, or other substantial validation system without
-discussing it with the user, unless the addition is demonstrably small, cheap,
-and contained.
-
-Read
-[../work/references/foundation-truth.md](../work/references/foundation-truth.md).
-Update root or sub-project foundation assertions only when the design settles
-durable current or intended truth. Reconcile them in place and rebuild the
-knowledge index when required by that reference. A design that settles a
-contract, schema, or protocol names its intended structural authority —
-code-owned, document-owned, or a generated mix — following that reference.
-When the design changes durable engineering shape—stack or framework roles,
-repository topology, dependency direction, runtime or deployment composition,
-CI/CD targets, contract or persistence authority, testing-layer boundaries,
-generation policy, or engineering gates—reconcile the applicable engineering
-foundation. Prefer a tree, table, or source-controlled diagram when it makes the
-relationship clearer than prose; do not create a diagram toolchain just to
-document the change.
-
-When the target item already links a provisional `docs/spec/` artifact created
-through the greenfield bootstrap convention,
-read [../work/references/provisional-specs.md](../work/references/provisional-specs.md).
-Reconcile it and name the implementation boundary that owns its cleanup. Do not
-create a new provisional spec during ordinary feature design, even when the
-repository once used the convention or the directory remains. Keep normal
-implementation-shaping design in the active item.
-
-## Review the design
-
-For this concrete Workbench design, read
-[../work/references/review.md](../work/references/review.md). Resolve the
-effective `review_weight` from an explicit user instruction, then
-`.work/CONVENTIONS.md`, then `standard`. Do not apply that setting to unrelated
-planning, explanation, or review requests.
-
-Always self-check the design against requirements, repository evidence, the
-selected lens, effective simplification posture, verification feasibility,
-unnecessary complexity, the assurance-machinery lens, reversal cost, and
-unauthorized scope growth. Apply
-review at the effective weight and execution posture before implementation
-becomes expensive to reverse. Give
-the reviewer raw requirements, `.work/CONVENTIONS.md`, its current `##
-Overbuilding calibration`, repository-wide and applicable scope-owned
-principles, the design, relevant foundations and code, known evidence, and the
-effective simplification posture. Apply conventions and principles as lenses
-within the authorized outcome, never as permission to add requirements. Include
-the exact canonical boundary instruction from
-[../work/references/role-handoffs.md](../work/references/role-handoffs.md); do
-not lead with a suspected verdict.
-
-Require the reviewer to check whether proposed foundation changes accurately
-represent ownership, boundaries, current truth, and explicitly intended truth,
-whether any affected foundation was missed, and that no proposed document
-duplicates structural truth that code owns. The reviewer must also apply the
-foundation-altitude test: reject work tracking, implementation plans,
-qualification mechanics, receipt paths, evidence history, and item-specific
-mechanisms. A convention-authorized `docs/ROADMAP.md` is user-owned and
-free-form: do not reject its metadata, discourse, or status language. Instead,
-verify that proposed operational conclusions come from `.work/` and that the
-agent is not rewriting the roadmap incidentally.
-Do not reject durable technical specificity merely because it is concrete.
-Check that the engineering foundation makes the affected repository topology,
-dependency rules, deployment shape, authority boundaries, and engineering
-gates understandable where those truths changed, while mechanical settings
-remain owned by their tools.
-
-When a provisional spec is part of the design, also check that it is plainly
-temporary, has one owning outcome and cleanup condition, does not masquerade as
-current foundation truth, and will not leave two hand-maintained structural
-authorities after delivery.
-
-Adjudicate findings rather than accepting them blindly. Revise confirmed
-material problems. Explain rejected material proposals and the
-repository-grounded reason in the current conversation. When the reason reflects
-a durable constraint, fold that constraint into the design's `Chosen approach`
-or `Risks and recovery` rather than recording the adjudication.
-
-## Reply or return control
-
-For a direct design request, reply in the current conversation with the chosen
-approach, decisive trade-offs, effective review weight and evidence, unresolved
-decisions, and the next implementation boundary. This reply is not a separate
-design report artifact. Do not implement unless the user also requested
-delivery.
-
-When called from `work`, return control after the design and its required
-review are coherent. `work` owns implementation, integration, verification,
-closure, and the full requested finish line.
+Report the approach, decisive trade-offs, verification plan, review limits, and
+unresolved decisions in chat. For direct design, stop there. Within delivery,
+continue from the revised decision without staging a workflow handoff.

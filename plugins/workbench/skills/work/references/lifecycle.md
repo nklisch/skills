@@ -1,5 +1,13 @@
 # Work Lifecycle
 
+## Contents
+
+- Item tiers
+- Relationships and readiness
+- Item shape
+- Backlog-to-active transition
+- Completion sweep
+
 ## Item tiers
 
 Use the smallest tier that matches the durable outcome. Optional depth prevents
@@ -49,23 +57,32 @@ and how it clears. An item with that section also uses `status: blocked`.
 
 ## Item shape
 
-Active items use:
+The smallest active item uses:
 
-```yaml
+```markdown
 ---
-id: <stable-kebab-id>
-kind: epic|feature|story
-status: active|blocked
-tags: []
-parent: null
-blocked_by: []
-related_to: []
-research_refs: []
-mock_refs: []
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
+id: fix-empty-search
+kind: story
+status: active
+created: 2026-09-05
+updated: 2026-09-05
 ---
+# Return no matches for an empty search
+
+An empty query returns no matches instead of every record. Other search behavior
+stays unchanged. Verify through the search API with empty and non-empty queries.
 ```
+
+Identity, kind, status, and dates remain explicit. `tags`, `blocked_by`,
+`related_to`, `research_refs`, and `mock_refs` are optional lists and default to
+empty when omitted. `parent` is optional and defaults to no parent. Add these
+fields when they carry information. Existing full-form items remain valid and
+need no migration or cosmetic rewriting. Supplied values still follow the same
+type, relationship, hierarchy, readiness, and reference rules.
+
+The body holds outcome, scope, and acceptance evidence in whatever concise shape
+fits. Add decisions, next actions, or blockers when needed for continuation.
+Do not fill unused sections or duplicate acceptance prose in a separate design.
 
 Ids are unique across all `.work/`. The first non-empty body line is a Markdown
 title. Keep one coherent outcome in one item. Use tags such as `audit`, `security`,
@@ -84,9 +101,10 @@ and next work from `.work/`, not from roadmap metadata or prose.
 
 ## Completion sweep
 
-At entry and exit, inspect `.work/active/` for stale completion claims or
-interrupted work. Verify actual repository evidence before closing. Never infer
-completion from a stale label.
+At entry or resume, inspect the selected boundary and its relationships for
+interrupted work or stale completion claims. At exit, reconcile affected items.
+Do not sweep unrelated active work as a delivery ceremony. Verify repository
+evidence before closing; a stale label does not establish completion.
 
 Close atomically:
 

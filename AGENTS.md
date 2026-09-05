@@ -40,12 +40,8 @@ If a user asks for the workflow plugin or wants to migrate, point them at:
 
 - Reference and principle skills (not part of a plugin) live in `.agents/skills/<skill-name>/`.
 
-The combined `plugins/workbench/` tree is the canonical source for shared
-Workbench behavior. The Orderly marketplace distributes that behavior as
-separate `workbench` and `workbench-research` plugins. After changing shared
-behavior, run `python3 scripts/check-workbench-sync.py <skills-marketplace-root>`
-against an updated marketplace checkout. The checker permits only the named
-split-package wording differences.
+The `plugins/workbench/` tree is the canonical source for shared Workbench
+behavior.
 
 ## Multi-channel distribution support (Claude Code, Codex, Antigravity, Pi via bridge)
 
@@ -171,12 +167,11 @@ mismatch, but continue unless an actual incompatibility prevents the work.
 Never run setup without explicit user direction. Keep unrelated requests
 outside Workbench.
 
-Route early consequential exploration through `ideate`, consequential
-implementation choices through `design`, one implementation-ready feature or
-story through `deliver`, and wider or multi-unit outcomes through `work`. Use
-`scan` to investigate opportunities without beginning remediation, `park` for
-useful findings outside the current boundary, and `release` only when asked to
-prepare a versioned summary.
+Use `work` to own a continuous outcome, drawing on `design` for consequential
+choices and `deliver` for ready implementation without restarting the workflow.
+Reuse unchanged context. Use `ideate` for valuable early exploration, `scan` for
+opportunities without remediation, `park` for selected out-of-scope findings,
+and `release` only for a requested versioned summary.
 
 The user's request and effective autonomy posture define the authorized
 boundary. Ask about consequential requirements; do not invent requirements,
@@ -191,14 +186,18 @@ lens without other Workbench mechanics. Pass it to delegated roles rather than
 assuming fresh context inherited it.
 
 `.work/` is the operational record; foundation documents describe durable
-project truth. Only write durable artifacts named by the active workflow.
-Questions, proposals, progress, recommendations, and completion reports belong
-in chat. Keep human-facing documents clean and self-contained: lead with
+project truth, including the engineering shape contributors need to build and
+operate the repository coherently. Only write durable artifacts named by the
+active workflow. Questions, proposals, progress, recommendations, and
+completion reports belong in chat. Keep human-facing documents clean and
+self-contained: lead with
 business or real-world meaning, define important non-obvious domain concepts
 before using them, and omit agent history or review narration.
 
-For substantive Workbench delivery, apply the configured execution, review,
-simplification, and commit postures. Test meaningful behavior at stable
+Apply configured execution, review, simplification, and commit postures.
+Scale effort to the work. Quick implementation and focused review often benefit
+from the current context; use another when it adds enough value or is requested.
+Test meaningful behavior at stable
 interfaces, verify the full requested boundary, reconcile affected foundation
 truth and indexes, and close completed work. Reviewers propose; the outcome
 owner verifies and adjudicates. Park valuable adjacent findings instead of

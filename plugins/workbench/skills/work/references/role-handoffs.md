@@ -20,6 +20,9 @@ Pass this context explicitly; a fresh context must not be expected to inherit it
 - the integration contract, required checks, and return evidence expected from
   the role, when relevant.
 
+This handoff is for a real context boundary. Do not compose a packet to yourself
+or reload unchanged guidance when the current owner changes capabilities.
+
 Treat the project calibration as a proportionality lens, not a checklist or a
 new requirement. It applies to design and review in an adopted repository,
 including loose requests, but loose use does not acquire Workbench ledger,
@@ -45,7 +48,8 @@ requirement.
   item, foundations, or code. Follow the return contract in
   [design](../../design/SKILL.md).
 - **Reviewer — proposal-only.** Does not edit the stable target. Follow the
-  packet, materiality, and adjudication contract in [review](review.md).
+  proportionate findings, materiality, and adjudication contract in
+  [review](review.md).
 - **Implementer — assignment-scoped writes.** May edit only the exact owned
   surface; authority does not include scope growth or shared-catalog changes.
   Follow [execution](execution.md) and [deliver](../../deliver/SKILL.md).

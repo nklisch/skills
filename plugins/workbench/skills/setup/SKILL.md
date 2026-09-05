@@ -58,294 +58,97 @@ stop rather than guessing when multiple candidates remain.
 When the repository already declares `owner: workbench`, treat setup as an
 upgrade and sync pass rather than a fresh adoption. Compare the repository's
 conventions, foundations, and substrate against this plugin's current contract:
-missing `CONVENTIONS.md` fields, always-asked conventions the repository never
-settled because an older Workbench version did not ask them, malformed item
+missing `CONVENTIONS.md` fields, choices an older Workbench version never
+surfaced so the repository never settled them, malformed item
 hierarchy, inconsistent readiness, unexplained sequencing, missing canonical
 markers, and superseded layout. Normalize facts that repository evidence can
 recover without invention. For legacy ordering edges without a recoverable
 reason, recommend removal and ask once about the ambiguous edge set. Do not
-grandfather invalid structure or fabricate item meaning. Do not re-ask choices
-the repository already settled. Reconcile drift in place and validate as usual.
-A repeat run still produces no material change.
+grandfather invalid structure or fabricate item meaning. Present the current
+working agreement as settled context and surface only meaningful differences
+for decision; do not re-ask choices the repository already settled. Reconcile
+drift in place and validate as usual. A repeat run still produces no material
+change.
 
 ## Align conventions
 
-Always conduct a user-confirmed conventions alignment, including for new or
-already-conformant repositories. First offer every optional Workbench
-configuration as a compact opt-in, decline, or defer decision: `commit_posture`,
-`execution_posture`, `release_gates`, Workbench recognition of a user-owned
-roadmap, and the `CLAUDE.md` compatibility projection. Offer these choices even when the
-repository does not supply a reason to recommend one; a declined or deferred
-choice remains absent or unmanaged. On refresh, present an already confirmed
-choice as the current setting rather than re-asking it, unless the user asks to
-reconsider it.
+For adoption or changed conventions, propose one repository-grounded working
+agreement for confirmation rather than a sequence of individual questions.
+On refresh, retain the current agreement. No changed choice means no new approval.
 
-Also establish or reconcile the project's `## Overbuilding calibration` section
-from [the conventions contract](references/canonical-layout.md#overbuilding-calibration).
-On an adoption with enough existing project context, explain the evidence,
-contrast likely overbuilding with justified complexity, and ask the user to
-confirm the starting guidance. For a greenfield bootstrap without coherent
-project direction, defer that confirmation to the immediate ideate continuation.
-For an existing Workbench repository, an existing section is current project
-truth: inspect it and use it without ritually asking the same question again.
-Offer a replacement only when repository evidence or the user's request shows
-that it is missing or stale, and require confirmation before writing it. Keep
-this prose concise and evidence-backed—project context, likely overbuilding
-shapes, justified complexity, and revisit evidence—not a count, checklist, or
-validator contract. Missing guidance falls back to current evidence-based
-judgment.
+Compose the agreement from
+[convention-options.md](references/convention-options.md): the core settings
+every alignment settles — completed-item retention, review weight,
+simplification posture, autonomy, documentation conventions including
+engineering-foundation coverage and representation for a software bootstrap,
+the overbuilding calibration, and `docs/PRINCIPLES.md` — plus every optional
+configuration as an explicit opt-in, decline, or defer choice:
+`execution_posture`, `commit_posture`, `release_gates`, Workbench recognition
+of a user-owned roadmap, and the `CLAUDE.md` compatibility projection — and
+the conditional choices whose condition holds. Ground each recommendation in
+repository evidence and state its practical cost; when evidence does not
+distinguish, use the catalog's defaults. Offer these choices even when the
+repository supplies no reason to recommend one; a declined or deferred choice
+remains absent or unmanaged.
 
-Then use repository evidence as an open-ended discovery lens for convention
-candidates. It is not a gate on whether optional Workbench configurations are
-visible, and it is not limited to the categories Workbench already defines.
-Look for repository-specific operating agreements that would make future work
-clearer or safer, including candidates with no corresponding Workbench field,
-and route each confirmed rule to its owning authority. Derive candidates from:
+Present the proposed agreement as one compact decision the user may accept
+together or adjust item by item. Keep optional choices visible on adoption,
+including proposed decline or defer choices. Nothing binds without confirmation.
+On refresh, present only meaningful differences and their consequences. Existing
+settings and the option catalog remain available without repeating the full list.
+A missing optional field alone is not an unresolved decision. Do not reopen a
+settled choice unless the user asks or changed evidence warrants a proposal.
 
-- explicit existing rules;
-- consistent repository practice;
-- conflicts that need one resolution;
-- unique repository evidence suggesting a beneficial convention, regardless of
-  whether Workbench has named that kind of convention;
-- binding privacy and security requirements.
+Reserve individual questions for consequential unresolved choices, such as an
+unknown research owner or an engineering decision repository evidence cannot
+settle. Existing ownership and confirmed settings stay settled. Calibration and
+research rigor may join the agreement when their recommendation is understandable
+without another conversation. Explain the evidence, practical cost, and meaningful
+trade-off for proposed changes. Group related proposals when one decision settles them. For a greenfield bootstrap without coherent project
+direction, defer calibration confirmation to the immediate ideate
+continuation. In a greenfield repository, leave unproven coding and
+structural preferences unset.
 
-Ask one consequential decision at a time. For every evidence-backed
-recommendation, explain the evidence, risk or friction, proposed rule,
-practical cost, and why it is recommended. Keep the built-in optional
-configuration offer short rather than presenting it as a generic engineering
-checklist. Do not invent coding, structural, or pattern preferences when neither
-repository evidence nor an explicit user preference supports them. Group related
-proposals when one decision settles them. Inspection is mandatory; user
-confirmation is mandatory before a new rule becomes binding. Do not write
-rejected proposals or repeat them during the run.
+Use repository evidence as an open-ended discovery lens for convention
+candidates beyond the catalog. It is not a gate on whether optional
+Workbench configurations are visible, and it is not limited to the categories
+Workbench already defines. Draw candidates from explicit existing rules,
+consistent repository practice, conflicts that need one resolution, unique
+repository evidence suggesting a beneficial convention, and binding privacy
+and security requirements. Route each confirmed rule to its narrowest
+authority:
 
-Classify confirmed engineering guidance before proposing its destination:
-
-- mechanical formatting and lint rules belong in tool configuration;
+- mechanical formatting and lint rules → tool configuration;
 - concise cross-agent coding and operating invariants needed before skill
-  routing belong in `AGENTS.md`; conditional workflow mechanics belong in their
-  owning skills and references;
-- settled module ownership, import direction, and structural constraints belong
-  in the applicable architecture foundation;
-- engineering decision rules belong in `docs/PRINCIPLES.md` or the repository's
+  routing → `AGENTS.md`; conditional workflow mechanics → their owning
+  skills and references;
+- settled module ownership, import direction, and structural constraints →
+  the applicable architecture foundation;
+- engineering decision rules → `docs/PRINCIPLES.md` or the repository's
   confirmed equivalent;
-- detailed recurring implementation shapes belong in the canonical
-  `.agents/skills/patterns/` project catalog.
-
-When evidence supports a repository-specific convention that does not fit a
-Workbench field or the categories above, still propose it. Name the operating
-agreement, state its evidence and cost, and give it the narrowest authority:
-prose in `.work/CONVENTIONS.md` for a Workbench delivery rule, `AGENTS.md` for
-an agent operating rule, or the applicable foundation or project scan lens.
-The frontmatter schema remains closed; do not invent configuration keys or force
-a rule into an unrelated Workbench category. Reconcile a candidate that overlaps
-an existing field with that field rather than creating competing prose.
-
-Do not turn a convention violation into a refactor proposal unless correction
-has a concrete payoff such as clearer ownership, less duplication, easier
-navigation, or lower coordination cost. In a greenfield repository, leave
-unproven coding and structural preferences unset. Always create the portable
-pattern index stub from
-[references/project-patterns.md](references/project-patterns.md); an empty index
-is a destination for future evidence, not a claim that patterns already exist.
-
-Proactively offer root `CLAUDE.md` as a relative symlink with target `AGENTS.md`,
-including when it is absent. Treat a correct link as a no-op and reconcile
-divergent content before replacement. When `CLAUDE.md` exists after setup,
-maintain the Claude pattern symlink specified by
-[references/project-patterns.md](references/project-patterns.md).
-
-Proactively consider two defaults: park useful findings outside the current
-scope instead of silently expanding it, and test behavior at stable interfaces
-instead of coupling tests to implementation details. Testing conventions should
-focus effort on meaningful behaviors, contracts, boundaries, risks, and
-regressions—not every line or branch—and require tests to justify their
-maintenance cost. Recommend a repository-specific form when observed work would
-benefit, but make no new repository convention binding without the user's
-answer.
-
-When the repository has durable research or expects to create it, always ask
-which provider should own `.research/`. If it selects `workbench-research`, ask
-for `verification_rigor`: `adaptive`, `floor`, `standard`, or `full`; recommend
-`adaptive` unless consequence, regulatory exposure, recurring semantic drift,
-or explicit assurance needs justify a fixed level. Explain that rigor controls
-semantic verification gates independently from source count, research breadth,
-and agent fan-out. Preserve an alternate provider's schema and mechanics.
-
-Always ask how completed items should be retained before release. Recommend `summarize`
-when temporary stubs ease drafting; recommend `discard` when Git history is sufficient.
-Both postures support release. Record only the user's confirmed choice.
-
-Always ask for the repository's default `review_weight`: `none`, `light`,
-`standard`, `thorough`, or `maximum`. Recommend `standard` for most projects;
-recommend another weight only from concrete consequence, uncertainty,
-regulatory, safety, or operating evidence. Explain that `standard` gives each
-implementation-shaping design and completed integrated implementation boundary
-exactly one distinct pass; execution posture determines whether it is inline or
-fresh-context. Corrections are verified and self-reviewed, not sent through
-another distinct pass. `thorough` converges when no unresolved blocking
-finding remains; `maximum` converges when no unresolved material finding remains.
-A project may state a
-review-count preference in convention prose, but Workbench does not interpret or
-enforce it. Explicit user direction may bound, extend, or stop one review; when
-that happens before convergence, report the remaining findings for a clear user
-disposition. The weight governs both design and implementation review. Existing
-Workbench projects without `review_weight` retain the backward-compatible
-`standard` default.
-
-Always ask for the repository's default `simplification_posture`: `hygiene`,
-`balanced`, or `structural`. Recommend `balanced` for most projects. Explain
-that it controls how proactively design, implementation, and review pursue
-behavior-preserving reduction, while `review_weight` separately controls review
-depth and repetition. Every posture retains baseline hygiene and preserves
-measured performance constraints while avoiding obvious plausible performance
-regressions. Existing Workbench projects without the field retain the
-backward-compatible `balanced` default.
-
-Always ask for the repository's default `autonomy`: `adaptive`,
-`collaborative`, or `autonomous`. Recommend `adaptive` unless the repository has
-clear operating reasons for a different default. Explain that explicit request
-language overrides the default and that autonomy never expands scope, quality
-obligations, permissions, or safety boundaries. Existing Workbench projects
-without the field retain the backward-compatible `adaptive` default.
-
-Always offer `execution_posture` as an optional configuration: `inline`,
-`adaptive`, or `orchestrated`. Explain that it controls agent topology rather
-than autonomy or review rigor, that explicit user direction overrides it, and
-that formal design and configured review depth still apply under `inline`.
-Recommend `adaptive` for most projects; recommend `inline` when the project
-values one continuous main-agent context, and `orchestrated` when dedicated role
-agents routinely earn their handoff cost. A declined or deferred choice remains
-absent and resolves to `adaptive`. Concise prose may record a preferred mixed
-role assignment without adding another enum value.
-
-Always offer `commit_posture` as an optional configuration. Inspect commit size
-and message patterns, merge policy, branch ownership, concurrent-agent practice,
-and explicit Git rules to recommend `adaptive`, `feature`, `checkpoint`,
-`batch`, or `preserve` when evidence warrants one. Otherwise explain that the
-adaptive default remains available without a recorded field. Do not treat a
-legacy workflow's per-item commits as a project preference. Explain that
-explicit user direction overrides the project posture, ledger transitions never
-require their own commits, and squashing is advisory and safe only for clearly
-owned history.
-
-Always offer `release_gates` as an optional configuration. Explain that absent
-or empty means no Workbench gates, then let the user opt in, decline, or defer.
-When the user is interested, converting an existing gate list, or repository
-evidence identifies a consequential release expectation that recurring checks do
-not cover, recommend a project-shaped set. Evidence can justify a recommendation
-but never silent adoption or limit the user to Workbench's bundled lenses.
-
-Build a project-shaped starting set rather than a universal default. Libraries
-may benefit from compatibility, public-contract tests, and documentation;
-deployed applications from security, migrations/data, recovery/operations, and
-critical journeys; CLIs from install/upgrade, cross-platform behavior, and error
-recovery; skill/plugin repositories from trigger behavior, contract drift,
-channel parity, and metadata integrity; regulated or high-consequence systems
-from their actual privacy, compliance, safety, or audit obligations. Present
-only relevant candidates with the evidence, expected value, and practical cost,
-then let the user adopt, adapt, add, or reject each one.
-
-Record confirmed names as a simple unique kebab-case list. Default each custom
-or narrowed gate to one concise `### <gate-name>` stance under
-`## Release gates` in the conventions body: what matters and what would
-materially violate release readiness, not a scanner procedure. When a lens is
-reused beyond release or needs enough method, examples, or references that the
-conventions file would become a manual, offer a project-local
-`.agents/skills/scan-<gate-name>/SKILL.md` and create it only after explicit user
-confirmation. Never generate or promote one automatically. Bundled scan
-references are suggestions, not a closed registry. Missing or empty
-`release_gates` means Workbench adds no gates. On refresh, preserve confirmed
-names and project prose; never add, drop, or rewrite a gate without
-confirmation.
-
-Always ask for the repository's documentation conventions, including in a
-greenfield repository with no documents yet. Cover where durable foundation
-documents live (root `docs/` by default), how they are named — one consolidated
-`SPEC.md`, several focused documents such as `ARCHITECTURE.md` or
-`JOURNEYS.md`, or a scoped directory like `docs/spec/` — and where contract
-truth lives. State the foundation-altitude baseline from
-[references/canonical-layout.md](references/canonical-layout.md#foundation-document-contract):
-foundations are durable repository or sub-project guidance and Workbench
-items are the work record. Derive the recommendation from existing documents
-when present; otherwise recommend the smallest set that fits the project's
-shape. Present names as examples that should fit the project, never as a fixed
-required list.
-
-For every software-project bootstrap, explicitly align engineering-foundation
-coverage using the
-[engineering foundation contract](references/canonical-layout.md#engineering-foundation-coverage).
-Discuss the durable engineering shape contributors need before building:
-selected stack and framework roles; repository, solution, or project topology;
-component and dependency direction; runtime and host composition; deployment
-environments and CI/CD targets; API, schema, and generated-code authority;
-persistence and migration ownership; testing layers; and formatting, linting,
-compiler, or analyzer gates. Resolve what repository evidence already settles,
-ask about consequential human-owned choices, and leave genuinely undecided
-choices explicit rather than guessing. Recommend combining this truth with
-`ARCHITECTURE.md` for a small cohesive project or using a focused name such as
-`ENGINEERING.md` when the material has a distinct audience or enough depth.
-Require coverage, not either filename or a universal section list.
-
-Also align the representation convention. Prefer a repository tree, ownership
-table, dependency graph, deployment topology, or pipeline diagram when it is
-clearer than paragraphs. Markdown with Mermaid is the portable default, but a
-repository-native source-controlled format such as PlantUML, Structurizr, or
-Draw.io is valid when the project can maintain it. Non-Markdown diagram sources
-must have a discoverable Markdown foundation that explains their meaning and
-links to the authority. Do not introduce a diagram toolchain merely to satisfy
-the convention.
-
-For a greenfield bootstrap, offer an explicit opt-in to the optional
-provisional `docs/spec/` convention using
-[the provisional-spec contract](../work/references/provisional-specs.md).
-Explain that these temporary contracts and interfaces may guide design before
-code exists, are not foundation truth, and are deleted as their described
-scope is delivered and code becomes structural authority. A decline or defer
-decision creates no directory or convention. Record an accepted convention in
-the body of `.work/CONVENTIONS.md`; do not add a frontmatter field, registry, or
-validator. Recommend it only when initial contract design or parallel bootstrap
-implementation would benefit. Do not offer it as an ongoing alternative to
-active-item design in an established repository. On refresh, reconcile an
-already selected bootstrap convention and its surviving specs, but do not
-introduce it anew. Surface unclassified existing `docs/spec/` documents for
-disposition rather than silently adopting them as provisional.
-
-Always offer Workbench recognition of `docs/ROADMAP.md` as an optional
-configuration; never create or adopt it without explicit user approval. Explain
-the optional roadmap convention from the canonical-layout reference before
-asking: it is a user-owned planning document whose structure, metadata, and
-narrative are flexible. A small, dense set of `.work/backlog/` links is the
-recommended standard when it fits, not a requirement; `.work/` remains the
-operational record. Repository evidence may recommend the option, but project
-size or an existing roadmap-like file does not imply consent. Record
-`roadmap: true` only when approved. Without approval, leave an existing roadmap
-unmanaged rather than migrating or rewriting it.
-
-Always ask whether to establish or extend `docs/PRINCIPLES.md`. Read
-[references/principle-candidates.md](references/principle-candidates.md) and
-present three tiers: principles derived from repository evidence; the three core
-invariants Workbench always recommends — contract truth ownership,
-compatibility is earned, and leave it simpler; and, when bootstrapping a
-project or when no principles document exists, the optional code-design
-candidates, each offered as its own adopt, adapt, or reject decision rather than
-as a checklist. Record
-only confirmed principles.
-
-On refresh, if an existing principle only says to fail fast, briefly offer the
-broader product-shaped reliability candidate as an upgrade. Do not rewrite the
-existing principle without confirmation.
-
-Write confirmed rules to the narrowest authority:
-
-- repository-wide agent invariants → `AGENTS.md`;
-- Workbench commands and lifecycle → `.work/CONVENTIONS.md`;
-- documentation layout and naming conventions → `.work/CONVENTIONS.md`
+- detailed recurring implementation shapes → the canonical
+  `.agents/skills/patterns/` project catalog;
+- a Workbench delivery rule with no narrower home → prose in
+  `.work/CONVENTIONS.md`; documentation layout and naming → conventions
   project guidance, or `AGENTS.md` when they must bind every agent;
-- engineering or product principles → `docs/PRINCIPLES.md`;
-- recurring implementation patterns → `.agents/skills/patterns/`;
-- research provider ownership, evidence, verification rigor, and privacy rules
-  → `.research/CONVENTIONS.md`.
+- research provider ownership, evidence, verification rigor, and privacy
+  rules → `.research/CONVENTIONS.md`.
+
+The frontmatter schema remains closed; do not invent configuration keys or
+force a rule into an unrelated Workbench category. Reconcile a candidate that
+overlaps an existing field with that field rather than creating competing
+prose. Do not invent coding, structural, or pattern preferences when neither
+repository evidence nor an explicit user preference supports them. Do not
+write rejected proposals or repeat them during the run. Do not turn a
+convention violation into a refactor proposal unless correction has a
+concrete payoff such as clearer ownership, less duplication, easier
+navigation, or lower coordination cost.
+
+Always create the portable pattern index stub from
+[references/project-patterns.md](references/project-patterns.md); an empty
+index is a destination for future evidence, not a claim that patterns already
+exist. When `CLAUDE.md` exists after setup, maintain the Claude pattern
+symlink specified there.
 
 ## Convert semantically
 

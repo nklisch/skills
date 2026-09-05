@@ -1,4 +1,10 @@
-# Independent Review
+# Proportionate Review
+
+## Contents
+
+- Pass budget and review targets
+- Keep review inside the authorized scope
+- Return useful findings, not a form
 
 This policy applies as a formal review contract only while reviewing a
 concrete Workbench workflow: an implementation-shaping design recorded for a
@@ -30,12 +36,21 @@ design and implementation review.
 
 ## Pass budget and review targets
 
-A pass is one distinct review of one stable target. Under `inline`, the main
-agent deliberately resets its lens and inspects the target again without
-claiming fresh-context independence. Under `adaptive` or `orchestrated`, prefer
-a fresh-context reviewer when another agent earns the handoff cost and is
-available. A correction, its affected verification, and the author's ordinary
-self-check are **not** another pass.
+A pass is one deliberate review of one stable target, not an agent assignment
+or a required amount of prose. In the current context, reset the lens and inspect
+the target again without claiming fresh-context independence. Under `adaptive`,
+weigh what a fresh reviewer would add against context transfer and coordination.
+A familiar, bounded change often needs only a focused inline pass. Hidden coupling,
+specialized risk, or author blind spots may justify another context. Honor explicit
+`inline`, `orchestrated`, independent, and cross-model requests.
+
+Scale effort within the selected weight to consequence, uncertainty, breadth,
+and reversibility. Inspect the whole accepted boundary, but spend detail on its
+credible failure paths. A small change does not need a broad audit, a full review
+form, or a delegate to qualify as reviewed. Do not narrate a role transition or
+write a packet to yourself when reviewing inline. Report useful findings, evidence,
+and material limits. A correction, its affected verification, and ordinary author
+self-checking are **not** another pass.
 
 `standard` has a fixed one-pass budget for every eligible target: one pass for
 an implementation-shaping design before implementation, and one pass for the
@@ -79,40 +94,25 @@ before implementation becomes expensive to reverse. Review completed work at
 the integrated contract boundary. Small reversible work does not need a
 ceremonial design review merely because a design section exists.
 
-When `work` routes a unit through formal design, complete the required design
-review before implementation or delegation. Apply
-[execution-posture.md](execution-posture.md). When another context is permitted,
-follow its [model alignment](execution-posture.md#align-models-before-multi-subagent-execution)
-rule for tasks requiring multiple sub-agents. Consider complementary model
-families within the user-aligned choices. Family diversity is not mandatory or
-an extra pass beyond the
-effective `review_weight`.
+When consequential design needs review, complete it before expensive implementation.
+A changed technical assumption focuses design scrutiny on the affected decision
+and its dependents, not a fresh review of unchanged work. A genuinely new consequential
+decision is a new target; an accepted correction is not. Apply
+[execution-posture.md](execution-posture.md), including model alignment for multiple
+sub-agents. Family diversity may help but is not an extra pass.
 
-Read [foundation-truth.md](foundation-truth.md) when the design or implementation
-may affect durable project truth. Treat foundation altitude as a qualification
-criterion: proposed foundation content must remain durable repository or
-sub-project truth, not work tracking, qualification mechanics, evidence history,
-or item-specific implementation detail. Concrete engineering topology,
-dependency direction, deployment shape, authority, testing layers, generation
-policy, and gates are valid at that altitude when they outlive the item. A
-convention-authorized
-`docs/ROADMAP.md` is a user-owned, free-form planning document rather than a
-restricted foundation template. Its metadata and discourse are not review
-failures; verify instead that `.work/`, not roadmap prose, remains the
-operational source of truth and that the roadmap was not changed incidentally.
-
-When the outcome uses a provisional design spec, also read
-[provisional-specs.md](provisional-specs.md). Treat missing provisional status,
-unclear ownership or cleanup, stale delivered scope, and duplicated
-hand-maintained structural truth as review findings.
+For affected durable truth, apply [foundation-truth.md](foundation-truth.md):
+check ownership, current versus intended behavior, engineering coverage, and
+foundation altitude. Reject work tracking and duplicated code-owned structure.
+Preserve the user-owned roadmap rather than grading its format. When a provisional
+spec is involved, apply [provisional-specs.md](provisional-specs.md) to its
+ownership, temporary status, remaining scope, and cleanup.
 
 ## Keep review inside the authorized scope
 
-Before every formal Workbench design or implementation review, read
-`.work/CONVENTIONS.md`, repository-wide principles, and principles owned by the
-affected scope. Include them in every delegated reviewer packet. Apply them as
-evaluation lenses inside the authorized outcome; they clarify product posture
-and durable constraints but do not authorize new requirements or scope growth.
+Use conventions, project calibration, and root and scope-owned principles as
+lenses within the authorized outcome. Read them when missing or changed in context;
+pass them explicitly to a fresh reviewer. They do not authorize scope growth.
 
 A review may detect that the design or implementation missed, contradicted, or
 unnecessarily exceeded an existing requirement. It must not create a new
@@ -124,84 +124,58 @@ necessary for approval. The scope authority is:
 3. applicable foundation documents as current or explicitly intended project
    truth and constraints.
 
-Foundation documents constrain and clarify the work; they do not make every
-adjacent aspiration or possible improvement part of the current outcome. A
-reviewer's preferred architecture, ideal feature set, generic best practice, or
-personal quality bar is not scope authority. The simplification posture permits
-cohesive restructuring inside the affected boundary but does not turn unrelated
-cleanup into an acceptance condition.
+Foundations constrain the outcome; adjacent aspirations and reviewer preferences
+are not acceptance requirements. Judge against the project's actual audience,
+maturity, deployment, and risks. Flag abstractions, compatibility layers, hardening,
+configuration, and tests that lack an earned need. Simplification may restructure
+the affected boundary, not absorb unrelated cleanup.
 
-Judge the work for the project's actual type, maturity, audience, deployment
-context, and stated risks. Explicitly look for overbuilding: extra abstractions,
-capabilities, compatibility layers, hardening, infrastructure, configurability,
-or tests whose need is not established by the authorized outcome or repository
-evidence. Do not demand enterprise, platform, or production machinery from a
-prototype, internal tool, small utility, or other project whose rational scope
-does not require it.
+Apply [assurance-machinery.md](assurance-machinery.md) to formal protections and
+state machinery. Prefer simpler credible mechanisms while preserving guarantees
+whose product risk earns their cost.
 
-For correctness, accounting, verification, state-management, or determinism
-machinery, require a concrete protected failure or durable invariant and inspect
-the mechanism's authority, synchronization, migration, false-positive,
-blocked-state, and recovery costs. Flag a simpler credible mechanism that
-preserves accepted guarantees; never recommend deleting the mechanism merely
-because it is elaborate when the product risk earns that cost.
+Every delegated formal review uses the canonical boundary instruction from
+[role-handoffs.md](role-handoffs.md). Supply raw requirements, relevant conventions,
+principles, artifacts, diff, and available verification evidence. Pass calibration
+explicitly. Inline review applies the same boundary without copying a prompt or
+reloading unchanged guidance.
 
-Every formal review prompt must include the exact canonical boundary
-instruction from [role-handoffs.md](role-handoffs.md). Give reviewers the raw
-requirements, applicable conventions and principles, artifacts, diff, and
-verification evidence available at that point. Pass the project calibration
-explicitly rather than assuming a fresh context inherited it.
+## Return useful findings, not a form
 
-## Require a useful review packet
+A review communicates what was checked, actionable findings with evidence, and
+material coverage limits. A short paragraph can be complete. A delegated reviewer
+returns enough context for the owner to verify the claims; an inline reviewer
+reports the useful result without manufacturing a handoff packet. A clean review
+says so briefly with any material limits, not a bare unsupported verdict.
 
-Every formal Workbench review pass produces a concise packet for the outcome
-owner to verify and adjudicate, not a bare verdict. The packet below remains
-owned by this reference; a loose delegated review instead follows the smaller
-contract in [role-handoffs.md](role-handoffs.md).
+For each consequential finding, explain the observed or hypothesized failure,
+its product impact, evidence and uncertainty, and the smallest justified action.
+Use explicit labels when they help adjudication or convergence:
 
-- **Scope and evidence** — the authorized outcome, surfaces examined, and
-  material coverage limits.
-- **Findings** — each candidate's status (`confirmed`, `hypothesis`, or
-  `non-issue`), evidence, impact, confidence, and smallest justified
-  disposition.
-- **Materiality** — decide whether a candidate is `blocking` (a confirmed
-  violation of an accepted requirement, correctness, contract, integrity,
-  safety, or another scope-grounded criterion that prevents closure), `material`
-  (a nontrivial product consequence requiring an explicit outcome
-  owner decision), `minor` (real but low-payoff and non-blocking), or `nit`
-  (taste or polish without a meaningful product consequence). Do not use
-  project-priority labels such as P1 or P2 unless the project defines their
-  meaning; recommend fix-before-close, revise, park, or reject instead. An
-  outcome owner's explicit disposition resolves the candidate for convergence;
-  it does not rewrite the reviewer’s materiality judgment.
-- **Constraint calibration** — when a candidate concerns a limit, refusal,
-  recovery rule, or resource policy, name the failure it prevents, the
-  product's domain and intended use, the user cost of the constraint, and
-  whether a hard stop earns that cost or a credible degraded path or explicit
-  choice is better. A justified hard stop remains valid; do not substitute
-  permissiveness for a real safety or integrity requirement.
-- **Recommendation** — accept, reject, revise, or park each material candidate;
-  the outcome owner makes the final decision against product goals and evidence.
+- **blocking:** a confirmed violation of an accepted requirement, correctness,
+  contract, integrity, safety, or another scope-grounded criterion preventing closure;
+- **material:** a nontrivial product consequence requiring owner disposition;
+- **minor:** real but low-payoff and non-blocking;
+- **nit:** taste or polish without meaningful product consequence.
 
-A clean review says so with its coverage limits. Do not turn speculative leads
-or reviewer taste into acceptance blockers.
+Do not invent project-priority labels. Recommend revise, fix-before-close, park,
+or reject; the owner verifies and decides. Disposition resolves the candidate for
+convergence without rewriting the reviewer's materiality judgment. Keep hypotheses
+and uncertainty clear; neither speculation nor taste creates a blocker.
 
-Every review prompt also states the effective simplification posture and gives
-the reviewer its hygiene, balanced, or structural expectation from
-[simplification.md](simplification.md). Do not lead reviewers with the suspected
-answer. For design, ask about
-requirements coverage, boundaries, alternatives, assumptions, failure modes,
-verification feasibility, migration or rollback, unnecessary complexity,
-assurance-machinery payoff, accurate durable foundation roll-forward,
-missing engineering-foundation coverage, foundation-altitude violations,
-and scope expansion. For implementation, ask about correctness, missing
-required behavior, safety, integration risk, simplification at the effective
-posture, foundation drift or delivery-detail leakage, overbuilding, and
-relevant security, privacy, accessibility, performance, compatibility,
-data-integrity, and operational concerns only where the authorized scope or
-evidence makes them relevant. Every pass catches obvious algorithmic overwork
-and plausible performance regressions in affected code; require deeper
-performance investigation only when project constraints or evidence warrant it.
+For a limit, refusal, recovery rule, or resource policy, explain the failure it
+prevents and the cost to actual users. Weigh a hard stop against a credible degraded
+path or explicit choice. Preserve justified safety and integrity protections.
+Do not expand ordinary findings into constraint analysis when no constraint is at issue.
+
+A delegated prompt states the effective [simplification](simplification.md)
+expectation and does not lead with a suspected answer. Focus design review on
+requirements, choices, assumptions, verification, recovery, and unnecessary
+complexity. Focus implementation review on correctness, required behavior,
+integration, simplification, and affected foundation truth. Apply security,
+privacy, accessibility, compatibility, data, and operational lenses only where
+scope or evidence warrants them. Check obvious algorithmic overwork and plausible
+performance regressions without inventing a profiling exercise.
 
 At `standard` weight and above, when the item is refactor/cleanup work or the
 change makes decomposition decisions, also apply

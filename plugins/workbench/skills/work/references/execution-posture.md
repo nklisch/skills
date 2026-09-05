@@ -20,13 +20,13 @@ request.
   and configured review depth still apply. Distinct review
   passes deliberately reset their lens and inspect the stable target again, but
   never claim fresh-context independence or model diversity.
-- **`adaptive`** — keep stories and small coherent features inline unless
-  specialization, isolation, fresh context, breadth, consequence, or throughput
-  clearly earns the handoff and integration cost. Larger or cross-cutting
-  features are a reason to consider dedicated or mixed roles, not a threshold;
-  use them only when the handoff earns its cost. Mixed execution is valid: the
-  main agent may design and delegate implementation, delegate design and
-  implement, or retain both while delegating review.
+- **`adaptive`** — choose from the work in front of you, not a presumed role
+  topology. Weigh a new context's contribution against lost continuity, briefing,
+  and integration. Quick implementation and focused review often finish better in
+  the current context. Use another context when specialization, isolation,
+  independent challenge, breadth, or throughput adds enough value. The same
+  judgment applies separately to design, implementation, and review; review is
+  not automatically a delegated role. Mixed execution is valid.
 - **`orchestrated`** — prefer dedicated design, implementation, and review
   agents when available. The main agent still owns requirements,
   synthesis, adjudication, integration, and the full requested boundary.
@@ -34,12 +34,16 @@ request.
 Story, feature, and apparent size are light signals, not gates. A large
 mechanical change may stay inline; a small but specialized or high-consequence
 change may benefit from another context. Keep tightly coupled work together and
-never delegate merely to enact a ceremonial role split.
+never delegate merely to enact a ceremonial role split. Nor should continuity
+become an inline-only rule: a small security-sensitive change may earn an
+independent reviewer, while a large mechanical edit may not need role handoffs.
+Make routine choices without a topology announcement or justification essay.
+Explain only consequential trade-offs, explicit preference departures, or a
+coordination plan that the user needs to understand.
 
-Deliver's **orchestrated delivery mode** describes parent ownership, integration
-contracts, and return evidence inside a wider boundary; it does not select the
-`orchestrated` execution posture. An orchestrated delivery unit may still run in
-the main agent context under `inline`.
+An assigned delivery inside a wider outcome carries parent ownership, integration
+contracts, and return evidence. That assignment does not select the `orchestrated`
+execution posture; its implementation may still stay in the current context.
 
 ## Project and request preferences
 

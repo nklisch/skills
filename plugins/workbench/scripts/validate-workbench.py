@@ -308,19 +308,9 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
         data = active_data[path.stem]
         text = active_text[path.stem]
         body = markdown_body(text)
-        required = {
-            "id",
-            "kind",
-            "status",
-            "tags",
-            "parent",
-            "blocked_by",
-            "related_to",
-            "research_refs",
-            "mock_refs",
-            "created",
-            "updated",
-        }
+        # Optional metadata already reads through empty defaults below. Requiring
+        # it on disk adds bookkeeping without protecting relationships or readiness.
+        required = {"id", "kind", "status", "created", "updated"}
         for key in sorted(required - data.keys()):
             errors.append(f"{rel}: missing {key}")
         item_id = data.get("id")
@@ -346,7 +336,9 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
             errors.append(f"{rel}: item body needs content after its title")
 
         parent = data.get("parent")
-        if parent and parent not in active_ids:
+        if parent is not None and not isinstance(parent, str):
+            errors.append(f"{rel}: parent must be an item id or null")
+        elif parent and parent not in active_ids:
             errors.append(f"{rel}: unresolved parent {parent}")
         elif parent:
             pair = (active_data[parent].get("kind"), data.get("kind"))

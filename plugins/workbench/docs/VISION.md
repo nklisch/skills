@@ -33,15 +33,16 @@ adopted repository; write-free `ideate` may explore before adoption, and
   without the user's choice. The same assurance-machinery lens continues through
   design, implementation, verification, and review without weakening required
   guarantees.
-- **Ordinary delivery stays direct.** A clear request becomes the smallest useful
-  item, then implementation, verification and reconciliation, appropriate review,
-  and closure. Review receives coherent code and affected foundations together. Conditional capabilities serve that path rather than adding stages.
-  An agent reuses unchanged guidance within its context while checking current
-  project facts at continuation boundaries.
-- **Design is available, not imposed.** A dedicated `design` skill selects a
-  new-work, prototype, refactor, performance, defect, UI/UX, or data/integration
-  lens. It shapes implementation when discovery, alternatives, boundaries, or
-  adjudication cannot be resolved confidently inline.
+- **Ordinary delivery stays continuous.** One owner carries a clear request from
+  the smallest useful item through implementation, verification, reconciliation,
+  proportionate review, and closure. Skills supply capabilities rather than stage
+  transitions. Settled context carries forward without repeated readiness or
+  activation ceremonies. Resumed work checks current facts in its own boundary.
+- **Design is available, not imposed.** Focused design reasoning uses the lens
+  that fits the unresolved choice. Local details stay in delivery. New evidence
+  revises the affected decision and its dependents rather than restarting the
+  design. Consequential choices still receive scrutiny before costly implementation,
+  and changed requirements or authority still need the human.
 - **Recorded work is not automatically designed.** Before each feature or story,
   `work` checks design readiness and completes consequential design review before
   routing an implementation-ready item through `deliver`.
@@ -56,9 +57,11 @@ adopted repository; write-free `ideate` may explore before adoption, and
 - **Runner topology is configurable.** Projects may prefer inline, adaptive, or
   orchestrated design, implementation, and review while users can override that
   default per request. Adaptive uses item size only as a light signal: it keeps
-  small coherent work inline and adopts dedicated or mixed roles when their
-  focus earns the handoff cost. Formal design and review depth do not disappear
-  when work stays with the main agent.
+  continuity when another context would add less value than its handoff cost.
+  Quick implementation and focused review often fit the current context; independent
+  challenge, specialization, isolation, or throughput can justify dedicated roles.
+  This is judgment, not an inline mandate. Review is not automatically delegated,
+  and formal design and configured review obligations still apply.
 - **Scope is not a quality dial.** Design and review may resolve or check the
   authorized outcome, but they never invent requirements or enlarge it. Judge
   what is rational for the project's actual type, maturity, audience,
@@ -90,11 +93,13 @@ adopted repository; write-free `ideate` may explore before adoption, and
   numeric pass cap: a project may state a preference in convention prose, while
   explicit user direction controls any limit or early stop. Review weight
   controls review depth; the simplification posture independently controls
-  simplification emphasis within
-  design, implementation, and each review pass.
-- **The ledger stays small and legible.** Features are the normal delivery unit.
-  Epics group multiple feature outcomes, stories hold narrow slices, and nested
-  hierarchy keeps that order without forcing wrapper items.
+  simplification emphasis. A review's effort and reporting scale to the actual
+  risk. Useful findings and material evidence limits matter, not a form or a
+  separate agent. Inline review never claims fresh-context independence.
+- **The ledger stays small and legible.** An item records outcome, scope,
+  acceptance, and useful continuation context. Empty optional metadata and unused
+  sections stay absent. Features remain the normal delivery unit, epics group
+  features, and stories hold narrow slices without forcing wrappers.
 - **Planning preserves parallelism.** Ordering edges explain why one item should
   finish first. Independent work remains edge-free and available in parallel.
 - **Long runs retain an adaptive delivery topology.** An epic or broad feature
@@ -156,11 +161,13 @@ adopted repository; write-free `ideate` may explore before adoption, and
   ledger already tracks instead of presenting them as novel — then writes only
   the backlog or active handoffs the user selects; discovery never starts
   remediation by itself.
-- **Optional configuration stays in the user's hands.** Setup always offers
-  optional Workbench configuration — execution posture, commit posture, release gates, roadmap
-  recognition, and the Claude compatibility projection — as explicit opt-in,
-  decline, or defer choices. Repository evidence can recommend a choice but
-  never controls whether it is offered or silently adopts it. Release gates are
+- **Setup proposes an agreement, not a settings interview.** A repository-grounded
+  recommendation can be accepted together or adjusted. Optional execution posture,
+  commit posture, release gates, roadmap recognition, and the Claude projection
+  remain visible opt-in, decline, or defer choices. Only consequential unresolved
+  decisions need separate questions; refresh surfaces meaningful changes rather
+  than re-asking settled choices. Approval remains explicit, and migration keeps
+  its recovery and exact-removal protections. Release gates are
   project lenses: projects may select any useful scan concern, not only a
   Workbench-defined lens, and define what materially blocks their release.
   Unavailable preferred tools degrade to another credible inspection path

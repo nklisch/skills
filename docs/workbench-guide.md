@@ -98,10 +98,10 @@ state. It runs in four core moves, with a fifth continuation for greenfields:
 1. **Inventory first.** It reads Git state, agent instructions, workflow
    config, ledgers, plans, research, indexes, foundation docs, CI, and
    scripts before touching anything.
-2. **Align conventions with you.** It asks one consequential decision at
-   a time. For every recommendation it shows the evidence, risk, proposed
-   rule, and why it is the recommended choice — never a generic
-   checklist.
+2. **Propose a working agreement.** It recommends conventions grounded in the
+   repository. Accept them together or adjust individual choices. Separate
+   questions focus on consequential unresolved decisions, not every setting.
+   Refresh shows meaningful changes without re-asking settled choices.
 3. **Convert semantically.** Every source artifact gets exactly one
    disposition: retain, consolidate, move, or remove. References that
    point at removed sources are rewritten or removed first.
@@ -128,22 +128,23 @@ for you to uninstall.
 
 ### Core defaults you set during adoption
 
-`setup` always asks about four core defaults and records your confirmed choices
-in `.work/CONVENTIONS.md`. You can change any of them later by editing that
-file.
+The proposed agreement includes four core defaults and explains their practical
+effect. You can approve them together, adjust a choice, or defer an unsettled
+decision. Setup records confirmed choices in `.work/CONVENTIONS.md`.
 
 | Default | Choices | Recommendation |
 |---|---|---|
 | **`autonomy`** | `collaborative`, `adaptive`, `autonomous` | `adaptive` for most repos — ask about human-owned choices, decide routine reversible details |
-| **`review_weight`** | `none`, `light`, `standard`, `thorough`, `maximum` | `standard` — exactly one balanced independent pass for each substantive design and completed integrated boundary; corrections are verified, not re-reviewed |
+| **`review_weight`** | `none`, `light`, `standard`, `thorough`, `maximum` | `standard` — exactly one proportionate pass for each substantive design and completed integrated boundary; corrections are verified, not re-reviewed |
 | **`simplification_posture`** | `hygiene`, `balanced`, `structural` | `balanced` — actively simplify the affected boundary without making unrelated cleanup part of delivery |
 | **`completed_items`** | `summarize`, `discard` | `summarize` keeps temporary stubs that make the next release easier to draft; `discard` relies on Git history instead |
 
-Commit granularity is an optional, evidence-led convention. When repository
-history, merge policy, shared-agent practice, or an existing preference makes
-it consequential, setup may offer `commit_posture`: `adaptive`, `feature`,
-`checkpoint`, `batch`, or `preserve`. Missing configuration means adaptive;
-Workbench does not ask merely to populate the field.
+Optional execution posture, commit posture, release gates, roadmap recognition,
+and the Claude compatibility projection stay visible in the agreement. Opt in,
+decline, or defer; accepting a bundle approves only its explicit choices. Missing
+execution or commit posture means adaptive behavior. No field needs a separate
+question merely to populate it. Destructive migration still follows its recovery
+and exact-removal approval rules.
 
 `setup` may also recommend broader conventions from repo evidence — for
 example, parking useful out-of-scope findings instead of expanding scope,
@@ -205,7 +206,9 @@ inactive unless you explicitly ask `setup` to adopt the repository.
 
 Use `work` for an outcome that still needs scoping, requirements, design routing,
 several implementation units, or wider integration. `work` remains responsible
-for the complete boundary and assigns each ready feature or story to `deliver`.
+for the complete boundary and uses `deliver`'s contract for ready implementation.
+That is usually a continuation, not a context switch. Settled scope and decisions
+carry forward without repeated readiness checks or permission questions.
 
 Use `deliver` directly for one named active feature or story whose requirements
 and implementation shape are ready. A feature or standalone story receives its
@@ -213,6 +216,13 @@ integrated review before closure. A story nested under a feature is an
 implementation slice: it closes after verification and leaves integrated review
 to the owning feature. Under `work` orchestration, deliverers report shared
 pattern implications and never close the parent boundary.
+
+For example, a small fix may use one compact item, a local decision, implementation,
+tests, and a focused inline review before closure. If a technical assumption changes,
+the owner updates that decision and its dependent checks instead of restarting.
+Changed product requirements still need your input. Another context remains useful
+when its expertise or independent challenge earns the handoff cost; inline work
+is not a blanket rule.
 
 ### Pattern maintenance boundaries
 
@@ -361,24 +371,29 @@ Every posture preserves behavior and measured performance constraints and
 avoids obvious plausible performance regressions. It does not authorize
 unrelated cleanup or speculative low-level optimization.
 
-**Review weight** controls independent review of consequential designs
-and completed implementation inside concrete Workbench workflows. It does not
+**Review weight** controls review of consequential designs and completed
+implementation inside concrete Workbench workflows. Execution posture determines
+whether the review stays inline or uses a separate context. It does not
 control general reviews, audits, planning discussions, explanations, or loose
 requests merely because they happen in the same repository:
 
 - `none` — self-review and behavioral verification only.
-- `light` — at most one focused independent pass when risk warrants.
-- `standard` (the usual default) — one balanced independent pass for
-  substantive work.
-- `thorough` — review, correct, and verify until no confirmed material
-  issue remains.
-- `maximum` — thorough convergence with adversarial perspectives and more
-  than one model when available.
+- `light` — at most one focused pass when risk warrants.
+- `standard` (the usual default) — exactly one proportionate pass for each
+  substantive design and completed integrated boundary. Correct, verify, and
+  self-review findings without another distinct pass.
+- `thorough` — review, correct, and verify until no unresolved blocking finding
+  remains. The owner may revise, reject, or park material non-blocking findings.
+- `maximum` — converge until no unresolved material or blocking finding remains,
+  with adversarial perspectives and model diversity when execution preferences
+  permit and suitable models are available.
 
 Review weight controls pass depth and repetition; simplification posture
 controls the simplification emphasis within each pass. Only `thorough` and
-`maximum` repeat independent passes. Two more things
-to know about review:
+`maximum` repeat distinct passes unless you explicitly request otherwise.
+A short inline review can satisfy a pass without claiming independence. Effort
+and reporting follow the risk: what was checked, actionable findings, and material
+evidence limits, not a required form. Other things to know:
 
 - **Review is not verification.** A reviewer saying "looks good" does not
   prove behavior works. The agent treats the two as separate obligations.
@@ -392,9 +407,9 @@ to know about review:
   decomposition — are also judged on structure, conditionals, and breakout
   quality, calibrated against the codebase's own conventions and language
   idioms rather than fixed thresholds.
-- **Missing reviewers get disclosed.** When the configured weight needs
-  an independent reviewer and none is reachable, the agent says so and
-  asks how to proceed — it does not quietly approve its own work.
+- **Requested independence stays explicit.** If you request an independent or
+  cross-model reviewer and none is reachable, the agent asks how to proceed.
+  Review weight alone does not require delegation.
 
 ## Use research for external evidence
 
@@ -577,10 +592,10 @@ indexing error.
 - **The agent keeps asking questions you consider obvious.** Your request
   implied a more collaborative posture than you want. Say "drive this to
   done autonomously" — the request wins over the repo default.
-- **The agent approved its own work.** That shouldn't happen silently at
-  `standard` weight or above — it should have disclosed the missing
-  independent reviewer. Ask it to get a fresh-context review, or lower
-  the weight deliberately for this request.
+- **The agent reviewed inline.** This is valid under inline or adaptive execution
+  when it deliberately inspected the result and verified behavior. It must not
+  claim independent review. Ask for a fresh-context reviewer when that challenge
+  matters; you do not need to change review weight to choose who reviews.
 - **Scope grew past what you asked.** Material scope expansion should
   come back to you as a question or a parked item. Say "park everything
   outside the original request and show me what changed."

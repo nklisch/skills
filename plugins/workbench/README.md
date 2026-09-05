@@ -66,7 +66,7 @@ Early, substantial, uncertain, or coupled work ─→ ideate ─→ chosen hando
 Clear, coherent or multi-unit outcome ───────────→ work
 Consequential implementation shape ─────────────→ design
 One named implementation-ready feature or story → deliver
-work ─→ deliver ready items ─→ integrate wider boundary ─→ close
+work owns the continuous outcome, drawing on design and deliver as needed
 
 Look for or investigate opportunities ─→ scan ─→ selected handoff
 Useful but out of scope ───────────────→ park
@@ -103,10 +103,17 @@ reduces machinery, not required guarantees or evidence.
 
 ## What a session looks like
 
-For a clear request, the agent uses the smallest useful item, implements it,
-verifies behavior and reconciles affected truth, applies the configured review,
-and closes it. Extra workflow capabilities engage only when needed. Routing
-between skills does not require another agent or a repeated review.
+For a clear request, one owner records the smallest useful item, implements it,
+verifies behavior, reconciles affected truth, reviews, and closes it. Design and
+delivery guidance support that continuous flow rather than creating stages.
+Settled decisions and unchanged context carry forward without repeated questions
+or readiness checks.
+
+If implementation reveals a changed technical assumption, the agent revises that
+decision and its dependent checks. It does not restart the whole design. Changed
+product requirements or consequential commitments still return to you. Quick
+implementation and focused review often fit the current context; another agent
+is useful when its contribution outweighs the handoff cost, or you request it.
 
 Suppose you ask, “Drive the onboarding epic to done.”
 
@@ -119,8 +126,11 @@ review; nested stories return verification evidence to their owning feature.
 it finds a worthwhile analytics cleanup that is unrelated to onboarding, it offers
 to park that finding rather than silently expanding the work.
 
-The durable record remains ordinary Markdown. You can read or edit it directly;
-the agent is responsible for keeping its structure valid. When the conventions
+The durable record remains ordinary Markdown. Each item explains its outcome,
+boundary, acceptance evidence, and any useful continuation context. Empty tags,
+relationships, and reference lists may be omitted; identity, kind, status, and
+dates stay explicit. Existing full-form items remain valid without migration.
+You can edit either form directly; the agent keeps its structure valid. When the conventions
 version and loaded plugin version differ, the agent gives one helpful update and
 setup recommendation without blocking legitimate work.
 
@@ -254,17 +264,14 @@ state whenever agents create or reshape the corresponding artifacts.
 `setup` stamps its loaded plugin version once in conventions after successful
 reconciliation. Skills, validation, and the session reminder use differences as
 advisory upgrade/setup guidance without duplicating a warning into every work
-item. Setup also
-asks you for the repository's defaults — autonomy, review weight,
-simplification posture, what happens to finished items, and your documentation
-conventions (where foundation documents live, how they are named, and whether
-contract truth lives in code or
-documents) — and records them where they belong, mostly `.work/CONVENTIONS.md`,
-where you can change them later. It always offers the optional Workbench
-configurations as opt-in, decline, or defer choices: execution posture, commit
-posture, release gates, Workbench recognition of a user-owned roadmap, and the `CLAUDE.md`
-compatibility projection. Repository evidence may explain why one is useful,
-but never hides the choice or adopts it for you.
+item. Setup proposes a repository-grounded working agreement covering autonomy,
+review, simplification, completion retention, and documentation conventions.
+You can accept the recommendations together or adjust individual choices; only
+consequential unresolved decisions need separate questions. Optional execution
+posture, commit posture, release gates, roadmap recognition, and the `CLAUDE.md`
+projection stay visible as explicit opt-in, decline, or defer choices. Your
+confirmation makes the agreement binding; recommendations never adopt themselves.
+The agent records choices where they belong, mostly `.work/CONVENTIONS.md`.
 
 For a software bootstrap, setup explicitly aligns engineering-foundation
 coverage and presentation. A small project may combine it with
@@ -461,7 +468,7 @@ Projects may choose how Workbench assigns its core delivery roles:
 | Posture | Expected execution |
 |---|---|
 | `inline` | The main agent performs design, implementation, and review. |
-| `adaptive` | Keep stories and small coherent features inline; use dedicated or mixed roles when their focus earns the handoff cost. This is the default. |
+| `adaptive` | Weigh another context's value against lost continuity and handoff cost, for review as well as implementation. This is the default. |
 | `orchestrated` | Prefer dedicated design, implementation, and review agents when available; the main agent owns synthesis and integration. |
 
 Item kind and apparent size are useful hints, not thresholds. A large mechanical
@@ -516,8 +523,13 @@ repository-wide principles, and principles owned by the affected scope. Those
 are evaluation lenses within the accepted outcome, not permission to invent
 requirements or widen it.
 
-Under `inline`, the main agent performs distinct lens-separated passes without
-claiming independence or model diversity. If you explicitly request an external,
+A review is a deliberate inspection, not an agent assignment or a required form.
+A bounded change may need only a short inline pass covering its credible risks.
+The agent reports what it checked, useful findings with evidence, and material
+limits. Fuller analysis earns its place when a consequential finding needs it.
+Configured pass counts remain unchanged; reducing paperwork does not waive review.
+Under `inline`, or when adaptive execution keeps the pass in the current context,
+the main agent changes its lens without claiming independence or model diversity. If you explicitly request an external,
 independent, or cross-model reviewer and none is available, the agent discloses
 that limitation and asks how you want to proceed.
 
@@ -734,12 +746,12 @@ Anything clean and tracked is recoverable from Git. Before removing anything
 modified, untracked, ignored, or otherwise unrecoverable, it asks you to create
 a pre-state commit or shows you the exact removal list for confirmation.
 
-Re-running `setup` on a repository that already uses Workbench is an upgrade
-and sync pass: it detects drift from the stamped plugin version — conventions
-questions a newer version asks that the repository never settled, missing
-fields, superseded layout — and reconciles it without re-asking choices you
-already made. It still offers an optional configuration that remains unsettled,
-without re-opening one the repository already confirmed. It also migrates useful legacy refactor-convention and pattern
+Re-running `setup` is an upgrade and sync pass. It presents meaningful differences
+such as unresolved conventions, malformed required state, or superseded layout.
+Settled choices stay settled. A changed agreement can be approved together or
+adjusted; a conformant repository needs no ritual settings interview. Optional
+choices remain discoverable, without treating an absent field as a reason to
+repeatedly ask about it. It also migrates useful legacy refactor-convention and pattern
 content into tool configuration, `AGENTS.md`, foundations, or the canonical
 portable pattern catalog according to meaning. It creates an empty valid index
 when no recurring pattern truth exists. Setup proactively offers root

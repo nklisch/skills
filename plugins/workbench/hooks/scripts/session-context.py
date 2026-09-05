@@ -37,13 +37,16 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
   non-blocking follow-ups. Loose work does not
   acquire other Workbench mechanics. Pass the calibration to delegated roles
   rather than assuming fresh context inherited it.
-- For multi-unit boundaries, orchestrate as outcome owner and own
-  integration and acceptance; execute small coherent work inline when
-  delegation adds no value.
-- Before reviewing a concrete Workbench design or delivery, read the work skill's
-  `references/review.md`: it defines the proportional constraint lens and
-  required review packet. Reviewers propose; the outcome owner verifies and
-  adjudicates against product goals and evidence.
+- Keep one continuous outcome owner. Reuse unchanged context across capabilities;
+  revise affected decisions rather than restarting the workflow. Own integration
+  and acceptance across multi-unit boundaries. Quick implementation and focused
+  review often benefit from the current context; use another when it adds enough
+  value or is requested.
+- Before reviewing a concrete Workbench design or delivery, use the work skill's
+  `references/review.md`: it defines proportionate review and the proportional
+  constraint lens. Report useful findings, evidence, and material limits, not a
+  required form. Reviewers propose; the outcome owner verifies and adjudicates
+  against product goals and evidence.
 - Prefer ideate before design when early exploration of substantial or
   cross-cutting work could materially improve what gets designed, unless
   the user requests direct design or execution.
