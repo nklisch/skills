@@ -42,6 +42,9 @@ business or real-world meaning, define important non-obvious domain concepts
 before using them, and omit agent history or review narration.
 
 Apply configured execution, review, simplification, and commit postures.
+Align optional design review once per run. Choose adaptive implementation review
+boundaries, including shared reviews across features or deliveries. Verify each
+unit promptly and keep deferred review visible until the owning items can close.
 Scale effort to the work. Quick implementation and focused review often benefit
 from the current context; use another when it adds enough value or is requested.
 Test meaningful behavior at stable

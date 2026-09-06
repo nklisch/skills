@@ -48,6 +48,14 @@ every push, so a local pass means a green pipeline:
 - **Revisit when:** Real use exposes a gap or proposed machinery lacks an earned
   consumer or failure. Prefer the simpler boundary or a credible degraded path.
 
+## Review approach
+
+Prefer adaptive, coherent implementation reviews across features or deliveries
+when context reuse and integration visibility outweigh delayed feedback. Verify
+each delivery promptly. Keep features and standalone stories active until their
+shared review and acceptance are satisfied. Align optional design review once
+per run, reusing explicit direction or confirmed standing alignment.
+
 ## Delivery rules
 
 - Shipping happens through `scripts/bump-version.sh <plugin> <major|minor|patch>`

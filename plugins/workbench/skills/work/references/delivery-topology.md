@@ -63,8 +63,9 @@ fit the work. Preserve these concepts:
   to continuation.
 - **Waves** — Group ready units by prerequisites, write overlap, integration
   cost, and evidence boundaries.
-- **Gates and evidence** — Name design or formal gates, targeted checks,
-  integration checks, human journeys, and reusable evidence.
+- **Review and evidence** — Name the aligned optional design review, adaptive
+  implementation review checkpoints and owners, actual formal gates, targeted
+  and integration checks, human journeys, and reusable evidence.
 - **Adaptation state** — Name the next dispatch or integration point, current
   blockers, and events that require replanning.
 
@@ -129,6 +130,10 @@ Use `blocked_by` for a hard prerequisite or when serial delivery materially
 reduces rework, ambiguity, or integration risk. Keep soft order and shared
 verification context in topology prose so independent items remain runnable.
 
+Use [review-boundaries.md](review-boundaries.md) to group compatible deliveries
+for shared review and correction without tying review size to implementation size.
+Keep pending review in existing item prose. Verify units promptly and defer their
+closure when shared review remains, except verified nested stories.
 Follow [review.md](review.md) for pass depth and
 [git-posture.md](git-posture.md) for commit ownership. Review stable targets, not
 moving branches. Correct and verify accepted findings before another authorized

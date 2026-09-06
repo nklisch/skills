@@ -39,10 +39,10 @@ current premises and design readiness. A decomposed or accepted item is not
 necessarily current or designed.
 Keep local, reversible choices inline when repository evidence and brief
 reasoning can resolve them confidently. When meaningful discovery, alternatives,
-boundary definition, or adjudication remains, use `design` and complete its
-review before implementation begins. Whether a dedicated designer performs that
-work follows the effective execution posture; the outcome owner always retains
-final synthesis.
+boundary definition, or adjudication remains, use `design` and follow the run's
+aligned optional design-review approach. Complete selected reviews before
+expensive dependent implementation. Designer context follows the effective
+execution posture. The outcome owner retains final synthesis.
 
 Assign non-overlapping write surfaces and explicit output evidence. Use
 worktrees when isolation materially improves collision avoidance or rollback,
@@ -51,8 +51,9 @@ not merely because several units exist.
 For an actual assignment, give the deliverer its assigned delivery mode, parent outcome, accepted
 scope, owned write surface, integration contract, relevant conventions and
 patterns, current project calibration, required checks, effective review weight,
-effective simplification posture, effective execution posture, and return
-evidence. Use the shared context and canonical boundary instruction from
+aligned design-review approach, implementation review checkpoint and owner,
+effective simplification posture, effective execution posture, and return evidence.
+Use the shared context and canonical boundary instruction from
 [role-handoffs.md](role-handoffs.md); do not make a deliverer rediscover rules
 the orchestrator already loaded. Deliverers report stale patterns and promotion
 candidates. Keep the shared pattern catalog in the outcome owner's write surface
@@ -60,7 +61,10 @@ so parallel units do not collide.
 
 The orchestrator must inspect returned changes, reconcile interfaces and
 assumptions, run integrated checks, and continue across completed units until
-the user's full boundary is satisfied.
+the user's full boundary is satisfied. Use [review-boundaries.md](review-boundaries.md)
+to batch compatible deliveries for integrated review and correction. Assigned units
+return verified work without premature closure when review is deferred. Keep
+pending review in existing item prose and close units after shared acceptance.
 
 Before a context limit, interruption, or deliberate handoff, update affected
 active items with settled requirements, current repository evidence, delivered

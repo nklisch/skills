@@ -13,8 +13,9 @@ description: >
 Supply focused design reasoning inside a continuous Workbench outcome. Use this
 capability when discovery, alternatives, boundaries, or adjudication need more
 attention than local implementation judgment. Size and a design heading do not
-create a formal stage. A direct design request stops after the reviewed design;
-an end-to-end request continues into implementation without renewed permission.
+create a formal stage. A direct design request stops after the settled design
+and any selected review. An end-to-end request continues into implementation
+without renewed permission.
 
 ## Establish only missing context
 
@@ -94,8 +95,8 @@ During delivery, revise only the decision affected by new evidence and inspect i
 dependents. Preserve unaffected scope, accepted decisions, and completed evidence.
 A revised local assumption does not trigger a full design rewrite or reapproval.
 A material boundary or guarantee change does require its appropriate authority
-and review before expensive implementation. An uncertain label cannot hide that
-consequence. Continue independent authorized work when possible.
+and reconsideration of the aligned review approach before expensive implementation.
+An uncertain label cannot hide that consequence. Continue independent authorized work when possible.
 
 Follow [foundation truth](../work/references/foundation-truth.md) when a decision
 settles durable project truth. Reconcile affected root or scope-owned assertions
@@ -111,12 +112,16 @@ owner and cleanup condition. Ordinary design does not create new provisional spe
 ## Review and continue
 
 Self-check requirements, scope, assumptions, alternatives, unnecessary complexity,
-verification, and recovery. Then apply [review](../work/references/review.md) at the
-effective weight. Review consequential design before reversal becomes expensive.
-Small reversible reasoning needs no ceremonial design review merely because it
-was written down. A changed decision gets focused scrutiny of its consequences,
-not repeated review of unchanged decisions. Corrections remain governed by the
-existing pass policy.
+verification, and recovery. A separate design review is optional. Apply
+[review boundaries](../work/references/review-boundaries.md) to align no separate
+pass, selected-decision review, or broader review once with the user for this run.
+Reuse explicit direction or confirmed standing alignment without another question.
+
+For selected targets, apply [review](../work/references/review.md) at the effective
+weight before expensive dependent implementation. Related feature decisions can
+share a design review. A changed decision gets focused scrutiny of its consequences,
+not repeated review of unchanged decisions. Revisit the agreement only when material
+new evidence warrants it. Corrections retain the existing pass policy.
 
 An inline pass is a deliberate change of lens, not a claim of independence.
 Delegate only when fresh context materially improves the review or an explicit

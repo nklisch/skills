@@ -14,10 +14,13 @@ current `## Overbuilding calibration`, including a loose request. Loose work
 gets that proportionality lens without this policy's ledger, review-weight,
 convergence, formal review packet, or closure mechanics.
 
-For an applicable workflow, resolve one effective `review_weight` from explicit
-user instruction, `.work/CONVENTIONS.md`, then `standard`. The same weight
-governs that outcome's design and implementation review so the repository has
-one understandable delivery rigor control. Separately read
+For an applicable workflow, resolve the effective `review_weight` from explicit
+user instruction, `.work/CONVENTIONS.md`, then `standard`. It controls the depth
+of selected design and implementation reviews, not whether design review is
+selected or how many deliveries a target covers.
+Apply [review-boundaries.md](review-boundaries.md) to align optional design review
+once per run and choose adaptive implementation checkpoints across one or several
+features or deliveries. Separately read
 [simplification.md](simplification.md) and resolve the effective
 `simplification_posture`; it controls simplification emphasis within each pass,
 not the number of passes. Resolve the effective execution posture from explicit
@@ -30,7 +33,7 @@ design and implementation review.
 |---|---|
 | `none` | No distinct review pass. Ordinary implementation self-checking, verification, and acceptance evidence remain mandatory. |
 | `light` | At most one focused pass when consequence, uncertainty, breadth, or reversibility warrants it. Fix and verify without re-review. |
-| `standard` | Default. Exactly one balanced pass for each eligible design and completed integrated implementation boundary. Correct and verify findings without re-reviewing that target. |
+| `standard` | Default. Exactly one balanced pass for each selected design target and completed integrated implementation target. Correct and verify findings without re-reviewing that target. |
 | `thorough` | Multi-pass convergence: correct and verify between passes until no unresolved `blocking` finding remains. Material, minor, and nit findings may be parked, accepted, or rejected through ordinary outcome-owner adjudication. |
 | `maximum` | Thorough convergence with complementary and adversarial lenses, using cross-model coverage when the execution posture permits and it is available, until no unresolved `material` or `blocking` finding remains. Minor and nit findings may remain. |
 
@@ -52,12 +55,11 @@ write a packet to yourself when reviewing inline. Report useful findings, eviden
 and material limits. A correction, its affected verification, and ordinary author
 self-checking are **not** another pass.
 
-`standard` has a fixed one-pass budget for every eligible target: one pass for
-an implementation-shaping design before implementation, and one pass for the
-completed integrated implementation of each feature or standalone story. Those
-are separate targets and separate one-pass budgets. A nested story returns
-verification evidence to its owning feature and does not gain a duplicate
-implementation review pass.
+`standard` has a fixed one-pass budget per selected target. An optional design
+review and an implementation review have separate budgets. An implementation
+target may cover several features or deliveries. The shared pass satisfies their
+review obligations without adding item-level passes. A nested story returns
+verification evidence to its owning feature without a duplicate review.
 
 After a `standard` reviewer identifies an accepted finding, correct it, rerun
 the affected verification, and self-review the result; then continue. Do not
@@ -89,15 +91,11 @@ is available, disclose the limitation and ask how to proceed. Otherwise
 `adaptive` may use a credible inline pass when delegation is unavailable, and
 `inline` is never treated as a reviewer-availability failure.
 
-Review a design after it is stable enough to constrain implementation and
-before implementation becomes expensive to reverse. Review completed work at
-the integrated contract boundary. Small reversible work does not need a
-ceremonial design review merely because a design section exists.
-
-When consequential design needs review, complete it before expensive implementation.
-A changed technical assumption focuses design scrutiny on the affected decision
-and its dependents, not a fresh review of unchanged work. A genuinely new consequential
-decision is a new target; an accepted correction is not. Apply
+When design review is selected for the run, review stable decisions before
+expensive dependent implementation. A changed technical assumption focuses
+scrutiny on the affected decision and its dependents, not unchanged work.
+A genuinely new consequential decision may warrant a new target under the
+aligned approach. An accepted correction is not a new target. Apply
 [execution-posture.md](execution-posture.md), including model alignment for multiple
 sub-agents. Family diversity may help but is not an extra pass.
 

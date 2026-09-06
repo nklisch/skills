@@ -149,7 +149,8 @@ accept the agreement together or adjust individual choices. Only consequential
 unresolved decisions need separate questions; the option catalog is not an interview
 sequence. Existing evidence informs recommendations, not silent adoption.
 
-Optional execution posture, commit posture, release gates, roadmap recognition,
+Optional execution posture, commit posture, prose preferences for review boundaries
+and optional design review, release gates, roadmap recognition,
 and the `CLAUDE.md` projection remain visible opt-in, decline, or defer choices.
 Each proposed adoption or deferral is explicit in the agreement. A refresh retains
 confirmed choices and surfaces meaningful differences, rather than repeating
@@ -214,7 +215,7 @@ cosmetic rewriting. The body communicates outcome, boundary, and acceptance
 without required section furniture. Decisions and next actions appear only when
 useful for continuation.
 
-A feature is the default delivery and integrated review unit. An epic is a
+A feature is the default delivery unit, not a mandatory review unit. An epic is a
 top-level outcome with at least two independently meaningful feature outcomes
 that can be named. A story is a narrow independently verifiable slice. Features
 may be top-level or belong to epics. Stories may be top-level or belong to
@@ -259,7 +260,12 @@ independently meaningful outcomes.
 
 ## Completion
 
-Completed work never remains active.
+Completed work never remains active. Implementation alone is not completion:
+features and standalone stories remain active while their chosen shared review
+is pending. The outcome owner closes them after that review, corrections,
+affected verification, and foundation reconciliation are satisfied. Nested
+stories may close after slice verification; their owning feature remains open
+for review. No additional status or batch object is needed.
 
 - `completed_items: summarize` replaces an active item with a temporary compact
   `.work/completed/<id>.md` outcome stub for the next release.
@@ -304,9 +310,14 @@ it does not waive accepted guarantees or evidence.
 Design keeps outcome-specific reasoning in the active item. New technical
 evidence revises the affected decision and its dependent contracts and checks,
 not every settled part of the plan. Local implementation details remain in
-normal delivery. Consequential new choices receive focused design scrutiny before
+normal delivery. Consequential new choices receive design reasoning before
 expensive implementation; changed product requirements or authority still need
-human direction. Corrections do not create extra review passes.
+human direction. Separate design review is independently optional. Align once
+per run with the user on skipping it, reviewing focused decisions, or reviewing
+a broader design. An explicit request or confirmed standing preference supplies
+alignment without a repeated question; revisit it when material change affects
+the choice. A shared design review may span related feature decisions before
+expensive dependent implementation. Corrections do not create extra review passes.
 
 Design uses one primary lens:
 
@@ -345,7 +356,7 @@ consequence, and better future direction.
 
 The effective `execution_posture` resolves from explicit user direction, the
 optional project convention, then `adaptive`. It governs the core delivery
-roles without changing formal design or review obligations:
+roles without changing design reasoning, aligned optional design review, or review depth:
 
 - `inline` keeps design, implementation, and review in the main agent context;
 - `adaptive` weighs each new context's contribution against lost continuity,
@@ -362,14 +373,16 @@ workflows retain their own proportionate fan-out rules.
 
 For a concrete Workbench design or delivery workflow, the effective
 `review_weight` resolves from explicit user direction, `.work/CONVENTIONS.md`,
-then `standard`. It does not govern general reviews, audits, planning,
+then `standard`. It controls the depth of selected design and implementation
+review targets, not whether design review is selected or how many deliveries a
+review covers. It does not govern general reviews, audits, planning,
 explanations, or unrelated requests made in the repository:
 
 - `none` adds no distinct review pass while preserving verification;
 - `light` permits at most one risk-warranted pass;
-- `standard` gives each substantive design and each completed integrated
-  implementation boundary exactly one balanced pass, then corrects,
-  verifies, and self-reviews findings without re-reviewing that target;
+- `standard` gives each selected target exactly one balanced pass, then batches
+  corrections and affected verification and self-reviews the fixes without
+  re-reviewing that target;
 - `thorough` uses distinct passes, correcting and verifying between them
   until no unresolved blocking finding remains; material, minor, and nit
   findings may be parked, accepted, or rejected through outcome-owner
@@ -379,9 +392,10 @@ explanations, or unrelated requests made in the repository:
   until no unresolved material or blocking finding remains; minor and nit
   findings may remain.
 
-Review implementation-shaping designs before implementation becomes expensive
-to reverse. Review completed implementation at its integrated contract
-boundary. For any task requiring multiple sub-agents, Workbench discovers actual
+When design review is selected, review the chosen decisions before their
+implementation becomes expensive to reverse. Review completed implementation
+at a coherent integrated contract boundary, which may span features and
+deliveries. For any task requiring multiple sub-agents, Workbench discovers actual
 model availability and aligns the lineup with the user in chat before execution.
 This applies to exploration, scanning, research, and sequential assignments as
 well as delivery. Explicit choices or user-confirmed standing preferences can
@@ -510,17 +524,29 @@ across ready units; no repeated invocation or context transfer is required.
 Direct `deliver` remains an entry point for one named ready item and owns its
 implementation, review, reconciliation, pattern decisions, and closure. For
 assigned delivery, `work` supplies the parent outcome, owned surface, integration
-contract, Git posture, and return evidence. An assigned deliverer does not write
-the shared pattern catalog or close the parent, because the owner must integrate
-all contributing work first.
+contract, chosen review boundary, Git posture, and return evidence. An assigned
+deliverer does not write the shared pattern catalog or close the parent, because
+the owner must integrate all contributing work first.
 
-Features and standalone stories are integrated review boundaries. A story
-nested under a feature is an implementation slice: `deliver` verifies and closes
-it, then returns evidence for the feature's integrated review instead of running
-a duplicate review pass. `work` remains the natural-language outcome owner
-for scoping, requirements, design routing, multi-unit orchestration, wider
-integration, and parent closure. It does not repeat completed item-level review;
-it reviews only substantive wider integration behavior not already covered.
+Implementation units need not equal review units. Adaptive coherent review
+batches across related features and deliveries are the default. A project may
+state a review-boundary preference in convention prose, and explicit user
+direction overrides it for the run. The owner chooses useful checkpoints from
+coupling, consequence, and available context budget, not a fixed feature count
+or `review_weight`. Shared context setup can reduce repeated briefing and expose
+integration behavior that separate reviews miss, but larger targets are not
+universally better for every model. Keep the boundary small enough to inspect
+credibly. No schema key, batch object, or separate ledger is introduced.
+
+Verify each implementation unit promptly. Features and standalone stories stay
+active pending their chosen shared review; the outcome owner closes them after
+review, corrections, affected verification, and reconciliation. A story nested
+under a feature remains the exception: `deliver` verifies and closes the slice,
+then returns evidence while its feature stays open for review. `work` retains
+scoping, requirements, design routing, multi-unit orchestration, wider
+integration, and parent closure. A completed batch review is not followed by
+per-feature review of the same work; later integration review covers only new
+behavior not already reviewed.
 
 Verification targets stable interfaces and meaningful user journeys. A test
 must protect enough behavior, contract, boundary, risk, or regression to justify
@@ -668,7 +694,7 @@ removes false claims, follows root or sub-project ownership, links rather than
 duplicates cross-scope contracts, and removes delivery-specific detail that
 belongs in the work record or executable surfaces. Git carries history.
 
-Independent design and implementation review check foundation alignment and
+Selected design and implementation reviews check foundation alignment and
 altitude when the work affects durable project truth. When indexed documentation changes,
 the agent rebuilds `.knowledge/index.json` and verifies committed freshness with
 `--check`.

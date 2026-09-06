@@ -13,7 +13,7 @@
 Use the smallest tier that matches the durable outcome. Optional depth prevents
 wrapper items, while strict nesting keeps each tier meaningful:
 
-- A **feature** is the default delivery and integrated review unit. Use one for
+- A **feature** is the default delivery unit. Use one for
   a coherent capability, behavior change, or maintenance outcome. It may be
   top-level or belong to an epic.
 - An **epic** is a top-level outcome that needs at least two independently
@@ -105,6 +105,12 @@ At entry or resume, inspect the selected boundary and its relationships for
 interrupted work or stale completion claims. At exit, reconcile affected items.
 Do not sweep unrelated active work as a delivery ceremony. Verify repository
 evidence before closing; a stale label does not establish completion.
+
+Features and standalone stories with review deferred to a shared checkpoint remain
+active. Preserve pending scope, owner, and next checkpoint in existing item prose
+under [review-boundaries.md](review-boundaries.md). Pending review alone does not
+create a blocked status or dependency. Verified nested stories may close under an
+open owning feature, which retains integrated acceptance.
 
 Close atomically:
 

@@ -135,7 +135,7 @@ decision. Setup records confirmed choices in `.work/CONVENTIONS.md`.
 | Default | Choices | Recommendation |
 |---|---|---|
 | **`autonomy`** | `collaborative`, `adaptive`, `autonomous` | `adaptive` for most repos — ask about human-owned choices, decide routine reversible details |
-| **`review_weight`** | `none`, `light`, `standard`, `thorough`, `maximum` | `standard` — exactly one proportionate pass for each substantive design and completed integrated boundary; corrections are verified, not re-reviewed |
+| **`review_weight`** | `none`, `light`, `standard`, `thorough`, `maximum` | `standard` — exactly one proportionate pass for each selected design target and completed integrated boundary; corrections are verified, not re-reviewed |
 | **`simplification_posture`** | `hygiene`, `balanced`, `structural` | `balanced` — actively simplify the affected boundary without making unrelated cleanup part of delivery |
 | **`completed_items`** | `summarize`, `discard` | `summarize` keeps temporary stubs that make the next release easier to draft; `discard` relies on Git history instead |
 
@@ -212,7 +212,8 @@ carry forward without repeated readiness checks or permission questions.
 
 Use `deliver` directly for one named active feature or story whose requirements
 and implementation shape are ready. A feature or standalone story receives its
-integrated review before closure. A story nested under a feature is an
+integrated review before closure, possibly shared with several other deliveries.
+Pending shared review keeps that item active. A story nested under a feature is an
 implementation slice: it closes after verification and leaves integrated review
 to the owning feature. Under `work` orchestration, deliverers report shared
 pattern implications and never close the parent boundary.
@@ -276,7 +277,7 @@ the quality bar.
 Suppose you ask: *"Drive the onboarding epic to done."*
 
 Workbench does not treat every large request as an epic. A feature is the
-normal delivery and review unit. An epic groups at least two meaningful feature
+normal delivery unit, not a fixed review boundary. An epic groups at least two meaningful feature
 outcomes. A story is a narrow verifiable slice. Features and stories can stand
 alone, while nested work follows `epic → feature → story`.
 
@@ -300,7 +301,9 @@ alone, while nested work follows `epic → feature → story`.
    lens that fits: new work, refactor or cleanup, performance, defect or
    reliability, UI/UX, or data, migration, or integration. Obvious,
    local, reversible choices stay inline. Design is conditional routing,
-   not a mandatory stage.
+   not a mandatory stage. Separately align whether this run needs no design-review
+   pass, review of selected decisions, or a broader design review. Reuse explicit
+   direction or confirmed standing preferences rather than asking per feature.
 5. **Explain durable topology when needed.** An epic or broad feature set may
    need shared execution state across integrations or sessions. The agent
    explains ownership, models and thinking levels, parallelism, review, and the
@@ -314,8 +317,8 @@ alone, while nested work follows `epic → feature → story`.
 6. **Deliver ready items.** Each ready feature or story routes through
    `deliver`. It reads relevant project patterns, writes only its owned surface,
    and verifies behavior at stable interfaces. Features and standalone stories
-   receive integrated item review. Nested stories return evidence to their
-   owning feature instead of duplicating review. Orchestrated deliverers report
+   may share an integrated review checkpoint and stay active until acceptance.
+   Nested stories return evidence to their owning feature instead of duplicating review. Orchestrated deliverers report
    stale patterns and credible promotion candidates instead of editing the
    shared catalog.
 7. **Integrate project truth.** The `work` outcome owner integrates the units,
@@ -371,8 +374,9 @@ Every posture preserves behavior and measured performance constraints and
 avoids obvious plausible performance regressions. It does not authorize
 unrelated cleanup or speculative low-level optimization.
 
-**Review weight** controls review of consequential designs and completed
-implementation inside concrete Workbench workflows. Execution posture determines
+**Review weight** controls the depth of selected design reviews and completed
+implementation reviews inside concrete Workbench workflows. It does not require
+a design-review pass or determine how many features share a review. Execution posture determines
 whether the review stays inline or uses a separate context. It does not
 control general reviews, audits, planning discussions, explanations, or loose
 requests merely because they happen in the same repository:
@@ -380,13 +384,31 @@ requests merely because they happen in the same repository:
 - `none` — self-review and behavioral verification only.
 - `light` — at most one focused pass when risk warrants.
 - `standard` (the usual default) — exactly one proportionate pass for each
-  substantive design and completed integrated boundary. Correct, verify, and
+  selected design target and completed integrated boundary. Correct, verify, and
   self-review findings without another distinct pass.
 - `thorough` — review, correct, and verify until no unresolved blocking finding
   remains. The owner may revise, reject, or park material non-blocking findings.
 - `maximum` — converge until no unresolved material or blocking finding remains,
   with adversarial perspectives and model diversity when execution preferences
   permit and suitable models are available.
+
+**Review boundaries are adaptive.** Small implementation units can share a larger
+review-and-fix pass. The agent groups coherent work when shared context and
+integration visibility outweigh delayed feedback. It chooses earlier checkpoints
+when consequence, uncertainty, or context limits make a large pass less useful.
+Each delivery still receives prompt verification. Features and standalone stories
+remain active until their shared review, corrections, and acceptance are complete.
+A shared pass replaces per-feature passes rather than adding to them.
+
+You can state a preference in conventions prose or for one run:
+
+> Implement in small deliveries, review related features together, and skip a
+> separate design review this run unless new evidence warrants discussing it.
+
+Design review is independently optional. Agree once on no separate pass, focused
+decisions, or a broader review, then revisit only material changes. Related feature
+decisions can share a selected design review before expensive dependent work.
+These preferences need no new configuration fields or batch records.
 
 Review weight controls pass depth and repetition; simplification posture
 controls the simplification emphasis within each pass. Only `thorough` and

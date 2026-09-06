@@ -120,9 +120,13 @@ Suppose you ask, “Drive the onboarding epic to done.”
 The agent reads the repository, Workbench conventions, and the epic before
 acting. It asks only for consequential choices the repository cannot answer,
 routes through design if the implementation shape warrants it, and sends each
-ready feature or story through `deliver`. Features receive integrated item
-review; nested stories return verification evidence to their owning feature.
-`work` integrates the delivered units and closes the full requested boundary. If
+ready feature or story through `deliver`. Each unit is verified promptly;
+related features can share an integrated review rather than receiving separate
+passes. Features and standalone stories stay active until that review,
+corrections, affected verification, and reconciliation are satisfied and the
+owner closes them. Nested stories may close after slice verification while their
+owning feature stays open for review. `work` integrates the delivered units and
+closes the full requested boundary. If
 it finds a worthwhile analytics cleanup that is unrelated to onboarding, it offers
 to park that finding rather than silently expanding the work.
 
@@ -176,7 +180,7 @@ conventions, skills, and references that own them.
 
 ### How agents organize work
 
-Agents use features as the normal delivery and integrated review unit. An epic
+Agents use features as the normal delivery unit, not a mandatory review unit. An epic
 groups at least two independently meaningful feature outcomes. A story is a
 narrow independently verifiable slice. Features and stories may stand alone, so
 small work does not need wrapper items. Nested work follows
@@ -189,8 +193,8 @@ out of the ledger.
 Writing down an epic, feature, or story does not certify that it is fully
 designed. Before starting each item, the agent reads its current scope and the
 affected repository surfaces. Consequential implementation shape goes through
-`design` and its configured review before implementation or delegation;
-obvious, local, reversible choices remain inline.
+`design` before implementation or delegation; separate design review follows the
+run's aligned choice, while obvious, local, reversible choices remain inline.
 
 For several meaningful units, `work` owns orchestration, dependency order,
 delegation, integration, and acceptance across the requested boundary. For one
@@ -443,9 +447,9 @@ architecture and principles in foundation documents.
 
 `work` remains the natural-language outcome owner for ambiguous, unscoped,
 multi-unit, and end-to-end requests. `deliver` is the bounded skill for one named
-implementation-ready feature or story. Features and standalone stories receive
-item-level integrated review; nested stories return verification evidence to
-the owning feature instead of duplicating its review.
+implementation-ready feature or story. Features and standalone stories may share
+an integrated review; nested stories return verification evidence to the owning
+feature instead of duplicating its review.
 
 ## Commit posture
 
@@ -476,15 +480,33 @@ change may remain inline, while a small specialized or consequential change may
 benefit from another context. A project can state a preferred mixed split in
 convention prose, and your current request always overrides the default.
 
-Execution posture does not change whether formal design, verification, or
-configured review depth applies. Scan, research, and other specialist workflows
+Execution posture preserves design reasoning, the aligned optional design-review
+approach, verification, and configured review depth. Scan, research, and other specialist workflows
 retain their own proportionate fan-out behavior.
 
-## Review depth
+## Review boundaries and depth
+
+Implementation units need not equal review units. By default, the agent chooses
+adaptive, coherent review batches across related features and deliveries. A
+project can state its preference in convention prose, and you can override it
+for a run. No new schema field or batch object is needed. Batching can save
+repeated context setup and reveal integration behavior that isolated reviews
+miss; it does not mean every model reviews larger changes better. Coupling,
+consequence, and context budget determine the useful boundary. Each unit is
+still verified promptly, and a shared review is not followed by duplicate
+per-feature passes. Later review covers only new integration behavior.
+
+Separate design review is optional, independently of implementation review. The
+agent aligns with you once per run: skip it, focus on selected decisions, or
+review a broader design. Your explicit request or confirmed standing preference
+supplies that alignment without another question. Material change may warrant
+revisiting it; moving to another feature does not. Shared design review can cover
+related feature decisions before expensive dependent implementation.
 
 For a concrete Workbench workflow, one `review_weight` controls review depth for
-both its consequential designs and its completed implementation. Execution
-posture controls who performs that review. The setting is a delivery control, not a global
+selected design and implementation targets, not design-review eligibility or
+batch size. Execution posture controls who performs that review. The setting is
+a delivery control, not a global
 instruction for every review, audit, planning discussion, explanation, or loose
 request in the repository.
 
@@ -492,13 +514,14 @@ request in the repository.
 |---|---|
 | `none` | No distinct review pass; behavioral verification remains required. |
 | `light` | At most one focused pass when risk warrants it. |
-| `standard` | Exactly one balanced pass for each eligible design and completed integrated implementation boundary. Correct, verify, and self-review findings without re-reviewing the target. This is the default. |
+| `standard` | Exactly one balanced pass per selected target. Batch corrections and affected verification, then self-review the fixes without re-reviewing the target. This is the default. |
 | `thorough` | Multi-pass convergence: correct and verify between passes until no unresolved blocking finding remains. Material, minor, and nit findings may be parked, accepted, or rejected through outcome-owner adjudication. |
 | `maximum` | Thorough convergence using complementary and adversarial lenses, plus model diversity when the execution posture permits and it is available, until no unresolved material or blocking finding remains. Minor and nit findings may remain. |
 
-For `standard`, an implementation-shaping design and its completed feature or
-standalone story are separate one-pass targets. A correction and its verification
-are not another pass; only `thorough`, `maximum`, or explicit user direction
+For `standard`, a selected design review and a completed implementation batch
+are separate one-pass targets; the batch may include one or several deliveries.
+A correction and its verification are not another pass; only `thorough`,
+`maximum`, or explicit user direction
 permits re-reviewing the same target. Workbench does not enforce a numeric
 review cap: a project may state a preference in convention prose, and explicit
 user direction may bound, extend, or stop a review. When that ends a review

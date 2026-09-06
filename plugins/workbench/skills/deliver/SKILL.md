@@ -34,8 +34,11 @@ actual gap. A local technical discovery does not make the whole item unready.
 - **Direct delivery:** own the item, its shared pattern decisions, appropriate
   integrated review, reconciliation, and closure.
 - **Assigned delivery:** `work` supplies the parent outcome, owned write surface,
-  integration contract, Git posture, and return evidence. Do not write the shared
-  pattern catalog or close the parent. Parentage alone does not imply assignment.
+  integration contract, review checkpoint and owner, Git posture, and return evidence.
+  Keep features and standalone stories active when review belongs to a later shared
+  checkpoint. Verified nested stories may close under their open owning feature.
+  Do not write the shared pattern catalog or close the parent. Parentage alone
+  does not imply assignment.
 
 Use [autonomy](../work/references/autonomy.md),
 [execution posture](../work/references/execution-posture.md),
@@ -61,9 +64,10 @@ cost under [assurance machinery](../work/references/assurance-machinery.md).
 When evidence changes the approach, use `work`'s decision distinction: resolve
 local details, amend affected technical assumptions and dependent checks, or ask
 about missing requirements and authority. Use [design](../design/SKILL.md) for
-consequential implementation choices before they become costly to reverse. Review
-the affected decision at the configured weight, not every unchanged part of the
-plan. Keep independent authorized implementation moving.
+consequential implementation choices before they become costly to reverse.
+Follow the run's aligned optional design-review approach under
+[review boundaries](../work/references/review-boundaries.md). Revisit only affected
+decisions when changed evidence warrants it. Keep independent authorized work moving.
 
 If delegation earns its cost, use
 [role handoffs](../work/references/role-handoffs.md) with an exact write surface,
@@ -92,9 +96,12 @@ this item's closure.
 Establish a coherent commit range or bounded working-tree diff for review:
 
 - **Feature or standalone story:** apply [review](../work/references/review.md)
-  to the integrated code and affected foundations.
+  to the integrated code and affected foundations at the chosen checkpoint. Under
+  a shared review, return verified work and pending review scope to `work` instead
+  of adding a per-item pass. Keep the item active until shared acceptance.
 - **Story nested under a feature:** verify and self-check the slice, then return
-  evidence for the feature's integrated review. Do not duplicate that pass.
+  evidence for the feature's integrated review, which may itself join a batch.
+  Do not duplicate that pass.
 
 Scale review effort and reporting to consequence and uncertainty. A focused
 inline pass can satisfy the configured review without claiming independence.
@@ -104,8 +111,11 @@ without adding passes beyond the review policy.
 
 ## Close and report
 
-Close the completed item under [lifecycle](../work/references/lifecycle.md),
-reconcile relationships, and validate the resulting ledger. Never close the wider
+Close only after applicable review, corrections, verification, and reconciliation
+are satisfied under [lifecycle](../work/references/lifecycle.md). For deferred
+shared review, preserve its owner and checkpoint in existing item prose and return
+without closure. Verified nested stories may close under their open owning feature.
+Reconcile relationships and validate ledger changes. Never close the wider
 boundary from an assigned delivery. Follow the effective Git posture without
 rewriting shared history or treating squashing as acceptance.
 

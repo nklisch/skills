@@ -1,12 +1,9 @@
 # Convention Options
 
-Decision catalog setup composes into one repository-grounded recommended working agreement.
-The skill owns the presentation flow: one compact decision accepted together or adjusted
-item by item, individual questions reserved for consequential unresolved choices. This
-reference owns what each choice controls, its values, defaults, and recommendation
-guidance. Nothing binds until the user confirms it; a declined or deferred optional choice
-stays absent or unmanaged, and evidence never silently adopts a choice. Refresh keeps
-confirmed settings and presents meaningful differences, not the full option list again.
+Setup proposes one grounded agreement to accept or adjust, with questions for consequential
+unresolved choices. This reference owns values, defaults, and recommendations.
+Nothing binds without confirmation. Declined or deferred choices stay absent or unmanaged.
+Refresh preserves confirmed settings and presents only meaningful differences.
 
 ## Contents
 
@@ -27,15 +24,15 @@ history — both postures support release. Recommend `summarize` when stubs ease
 
 `review_weight`: `none`, `light`, `standard`, `thorough`, or `maximum`. Recommend
 `standard` for most projects; another weight only from concrete consequence, uncertainty,
-regulatory, safety, or operating evidence. `standard` gives each implementation-shaping
-design and each completed integrated implementation boundary exactly one distinct pass;
+regulatory, safety, or operating evidence. `standard` gives each selected design target
+and each completed integrated implementation target exactly one distinct pass;
 execution posture determines whether it is inline or fresh-context. Corrections are
 verified and self-reviewed, not sent through another distinct pass. `thorough` converges
 when no unresolved blocking finding remains; `maximum` when no unresolved material finding
 remains. A project may state a review-count preference in prose, but Workbench does not
 enforce it; explicit user direction may bound, extend, or stop one review — report
-remaining findings for disposition. The weight governs design and implementation review;
-existing substrates without the field keep the backward-compatible `standard` default.
+remaining findings for disposition. Weight controls depth, not design-review eligibility
+or batch size. Existing substrates without the field resolve to `standard`.
 
 ### Simplification posture
 
@@ -76,9 +73,8 @@ universal section list.
 Also include the representation convention: prefer a repository tree, ownership table,
 dependency graph, deployment topology, or pipeline diagram when clearer than paragraphs.
 Markdown with Mermaid is the portable default; PlantUML, Structurizr, or Draw.io is valid
-when the project maintains it. Non-Markdown diagram sources need a discoverable Markdown
-foundation explaining their meaning and linking the authority — never a new toolchain
-merely for compliance.
+when the project maintains it. Link non-Markdown diagram sources from a discoverable Markdown
+foundation explaining their meaning. Never add a toolchain merely for compliance.
 
 ### Overbuilding calibration
 
@@ -105,12 +101,19 @@ without confirmation.
 
 ## Optional configurations
 
+### Review boundaries and design-review preference
+
+Offer optional prose preferences under [review boundaries](../../work/references/review-boundaries.md).
+Recommend adaptive shared implementation reviews and independently optional design review,
+aligned once per run. A confirmed standing preference can supply that alignment.
+Declining leaves those defaults, not mandatory design review. No new fields or batch records.
+
 ### Execution posture
 
 `execution_posture`: `inline`, `adaptive`, or `orchestrated` — see
 [execution-posture.md](../../work/references/execution-posture.md). Controls agent
 topology rather than autonomy or review rigor; explicit user direction overrides it, and
-formal design and configured review depth still apply under `inline`. Adaptive weighs
+design reasoning, aligned optional design review, and configured depth still apply under `inline`. Adaptive weighs
 each role's value against handoff cost — quick implementation and focused review often
 benefit from the current context — with no inline mandate. Recommend `adaptive` for most
 projects, `inline` when the project values one continuous main-agent context,
@@ -191,9 +194,6 @@ bootstrap implementation would benefit, never as an ongoing alternative in an es
 repository. On refresh, reconcile an already selected convention and surviving specs
 without introducing it anew; surface unclassified `docs/spec/` documents for disposition.
 
-Consider two standing defaults while composing the recommendation: park useful findings
-outside the current scope instead of silently expanding it, and test behavior at stable
-interfaces instead of implementation details. Testing conventions should focus effort on
-meaningful behaviors, contracts, boundaries, risks, and regressions — not every line or
-branch — and justify their maintenance cost; recommend a repository-specific form when
-observed work would benefit, but make no new convention binding without the user's answer.
+Recommend parking out-of-scope findings and testing meaningful behavior at stable interfaces.
+Tests must earn their upkeep by protecting contracts, risks, and regressions, not every line or branch.
+Adapt these defaults to observed work, and confirm before making them binding.

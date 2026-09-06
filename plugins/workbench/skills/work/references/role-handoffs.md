@@ -16,7 +16,8 @@ Pass this context explicitly; a fresh context must not be expected to inherit it
   or an explicit note that it is absent and current evidence-based judgment
   applies;
 - the effective execution and review postures when the assignment is a formal
-  Workbench workflow; and
+  Workbench workflow, including aligned optional design review, the implementation
+  review checkpoint and owner, and whether the unit returns before shared review; and
 - the integration contract, required checks, and return evidence expected from
   the role, when relevant.
 

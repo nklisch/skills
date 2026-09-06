@@ -42,6 +42,9 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
   and acceptance across multi-unit boundaries. Quick implementation and focused
   review often benefit from the current context; use another when it adds enough
   value or is requested.
+- Align optional design review once per run. Choose adaptive implementation review
+  checkpoints, including shared reviews across features or deliveries. Verify each
+  unit promptly and keep deferred review visible until the owning items can close.
 - Before reviewing a concrete Workbench design or delivery, use the work skill's
   `references/review.md`: it defines proportionate review and the proportional
   constraint lens. Report useful findings, evidence, and material limits, not a

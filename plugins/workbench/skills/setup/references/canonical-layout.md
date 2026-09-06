@@ -126,7 +126,8 @@ or reconciled the project. Read
 The optional `execution_posture` controls only the core delivery roles: design,
 implementation, and review. Explicit user direction overrides the project
 setting; missing uses `adaptive`. `inline` keeps those roles in the main agent
-context without weakening formal design or review depth, while `orchestrated`
+context while preserving design reasoning, aligned optional design review, and review
+depth, while `orchestrated`
 prefers dedicated role agents when available. Adaptive weighs each role's value
 against handoff cost — quick implementation and focused review often benefit
 from the current context — using item kind and size only as light routing
@@ -136,7 +137,9 @@ frontmatter enum. See
 [execution-posture.md](../../work/references/execution-posture.md).
 
 Keep the body limited to authoritative verification commands, delivery rules,
-and Workbench-specific project guidance. It may hold a confirmed
+and Workbench-specific project guidance, including optional review-boundary and
+design-review preferences in prose. See [review boundaries](../../work/references/review-boundaries.md).
+It may hold a confirmed
 repository-specific delivery rule that has no narrower authority; frontmatter
 remains a closed schema rather than an extension point. Put repository-wide
 agent invariants in `AGENTS.md`, engineering principles in `docs/PRINCIPLES.md`,

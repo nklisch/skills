@@ -47,6 +47,10 @@ Read delivery guidance when implementation starts, then apply it across ready
 units without reloading or reenacting a handoff. For one item, its owner carries
 the whole path. For several items, retain wider integration and acceptance here.
 Do not repeat checks or review already satisfied at the right boundary.
+Apply [review boundaries](references/review-boundaries.md): align optional design
+review once for the run and choose adaptive implementation review checkpoints.
+Several features or deliveries may share one review-and-fix pass while each unit
+receives prompt verification. Keep pending review visible until closure.
 
 Use the current context when it can finish the next piece well. Another context
 must offer useful focus, independence, specialization, isolation, or throughput
@@ -84,7 +88,7 @@ Before implementation becomes costly to reverse, assess the unresolved choices:
 - **Changed technical assumption inside scope:** update the affected decision,
   inspect its dependent contracts, and revise only the necessary work and checks.
 - **Consequential implementation shape:** use [design](../design/SKILL.md) for
-  discovery, alternatives, and its appropriate review. Keep the same owner and
+  discovery, alternatives, and any review selected for the run. Keep the same owner and
   accepted context. Revisit the affected decision, not the whole design.
 - **Missing product requirement or changed authority:** ask about that commitment.
   Continue independent authorized work when possible.
@@ -141,10 +145,11 @@ boundaries, never ledger-transition commits or cosmetic shared-history rewrites.
 ## Finish the accepted boundary
 
 Apply [deliver](../deliver/SKILL.md)'s verification, reconciliation, review, and
-closure rules. Features and standalone stories receive integrated review. Nested
-stories return verified slice evidence to their feature. Review wider integration
-only for substantive behavior not already covered; returning to the owner does
-not create another review budget.
+closure rules. Features and standalone stories may share an integrated review
+checkpoint. Keep them active until their selected review and acceptance are
+satisfied. Nested stories return verified slice evidence to their feature.
+Review wider integration only for substantive behavior not already covered.
+Returning to the owner does not create another review budget.
 
 Required cohesive cleanup remains in scope. Follow
 [maintenance](references/maintenance.md) when stale patterns or credible extraction

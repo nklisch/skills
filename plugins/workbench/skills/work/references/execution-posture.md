@@ -16,8 +16,8 @@ request.
 ## Postures
 
 - **`inline`** — the main agent performs design, implementation, review, and
-  integration without spawning separate agents for those roles. Formal design
-  and configured review depth still apply. Distinct review
+  integration without spawning separate agents for those roles. Design reasoning,
+  the aligned optional design-review approach, and configured review depth still apply. Distinct review
   passes deliberately reset their lens and inspect the stable target again, but
   never claim fresh-context independence or model diversity.
 - **`adaptive`** — choose from the work in front of you, not a presumed role

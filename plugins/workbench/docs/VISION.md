@@ -44,12 +44,27 @@ adopted repository; write-free `ideate` may explore before adoption, and
   design. Consequential choices still receive scrutiny before costly implementation,
   and changed requirements or authority still need the human.
 - **Recorded work is not automatically designed.** Before each feature or story,
-  `work` checks design readiness and completes consequential design review before
-  routing an implementation-ready item through `deliver`.
-- **Delivery has one bounded owner.** `deliver` completes one ready feature or
-  story. Direct delivery owns that item through closure; orchestrated delivery
-  returns integration and pattern evidence to `work`, which retains the wider
-  outcome and shared surfaces without repeating item-level review.
+  `work` checks design readiness before routing implementation-ready work through
+  `deliver`. Separate design review is optional: align once per run on skipping
+  it, focusing on selected decisions, or reviewing a broader design. An explicit
+  request or confirmed standing preference supplies that alignment without another
+  question. Revisit it only when material change warrants it. Shared design review
+  may cover related feature decisions before expensive dependent implementation.
+- **Delivery has one bounded owner.** `deliver` implements and promptly verifies
+  one ready feature or story. Direct delivery owns that item through closure;
+  assigned delivery returns evidence to the outcome owner. Features and standalone
+  stories remain active until their chosen review boundary, corrections,
+  verification, and reconciliation are satisfied and the owner closes them.
+  Nested stories may close after slice verification, while their feature remains
+  open for review.
+- **Review boundaries follow coherent work.** Implementation units need not be
+  review units. Adaptive review batches across related features and deliveries
+  are the default, with project preferences in convention prose and a per-run
+  user override. Shared context setup can cost less and expose integration behavior
+  that isolated reviews miss; larger reviews are not universally better for every
+  model. Coupling, consequence, and context budget determine the useful boundary.
+  A batch needs no new schema or ledger object, and does not trigger duplicate
+  per-feature review afterward. Later review covers only new integration behavior.
 - **Autonomy follows intent.** Current request language and one repository
   default determine whether work is collaborative, adaptive, or autonomous.
   Autonomy changes participation and continuation, never permissions, scope,
@@ -61,7 +76,7 @@ adopted repository; write-free `ideate` may explore before adoption, and
   Quick implementation and focused review often fit the current context; independent
   challenge, specialization, isolation, or throughput can justify dedicated roles.
   This is judgment, not an inline mandate. Review is not automatically delegated,
-  and formal design and configured review obligations still apply.
+  and design reasoning, aligned optional design review, and configured depth still apply.
 - **Scope is not a quality dial.** Design and review may resolve or check the
   authorized outcome, but they never invent requirements or enlarge it. Judge
   what is rational for the project's actual type, maturity, audience,
@@ -79,12 +94,13 @@ adopted repository; write-free `ideate` may explore before adoption, and
   behavior and measured performance constraints and avoids obvious plausible
   regressions without manufacturing speculative optimization work.
 - **Review depth is legible and convergent.** One repository `review_weight`
-  governs design and implementation review for concrete Workbench workflows,
-  while explicit user direction can override it for one such workflow. It does
-  not govern loose requests merely because they occur in an adopted repository.
-  `standard` gives each substantive design and completed integrated implementation
-  boundary exactly one distinct pass: correct, verify, and self-review findings
-  without re-reviewing that target. `thorough` deliberately uses multiple
+  governs the depth of selected design and implementation review targets for
+  concrete Workbench workflows, not design-review eligibility or batch size.
+  Explicit user direction can override it for one such workflow. It does not
+  govern loose requests merely because they occur in an adopted repository.
+  `standard` gives each selected target exactly one distinct pass: batch the
+  corrections and affected verification, then self-review the fixes without
+  re-reviewing that target. `thorough` deliberately uses multiple
   distinct passes until no unresolved blocking finding remains; material,
   minor, and nit findings may be parked, accepted, or rejected through
   outcome-owner adjudication. `maximum` converges until no unresolved material

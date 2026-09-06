@@ -67,7 +67,7 @@ above.
 
 Normalize each active item to Workbench's optional-depth hierarchy:
 
-- use a feature as the default delivery and integrated review unit;
+- use a feature as the default delivery unit, with adaptive shared review boundaries;
 - keep an epic only when at least two independently meaningful feature outcomes
   can be named;
 - use a story for a narrow independently verifiable slice;
