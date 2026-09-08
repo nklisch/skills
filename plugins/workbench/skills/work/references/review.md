@@ -102,7 +102,12 @@ sub-agents. Family diversity may help but is not an extra pass.
 For affected durable truth, apply [foundation-truth.md](foundation-truth.md):
 check ownership, current versus intended behavior, engineering coverage, and
 foundation altitude. Reject work tracking and duplicated code-owned structure.
-Preserve the user-owned roadmap rather than grading its format. When a provisional
+Preserve the user-owned roadmap rather than grading its format. Read any linked
+[design attachments](design-attachments.md) as part of the item's design contract.
+Reviewers return proposals without editing that contract. The outcome owner
+adjudicates findings, and the designer records accepted design corrections before
+dependent implementation. Implementation review checks attachment cleanup at closure,
+including when a completion summary will remain. When a provisional
 spec is involved, apply [provisional-specs.md](provisional-specs.md) to its
 ownership, temporary status, remaining scope, and cleanup.
 

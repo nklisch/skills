@@ -185,6 +185,12 @@ Before any design or review, including a loose request, apply the current
 lens without other Workbench mechanics. Pass it to delegated roles rather than
 assuming fresh context inherited it.
 
+The work item is the contract between design, review, and implementation. The
+assigned designer authors and revises its design directly. The outcome owner
+adjudicates scope and acceptance. Implementers read the recorded contract, not
+an orchestrator's reconstruction. Optional linked design attachments belong to
+the item and are always deleted when it completes, even if a summary is kept.
+
 `.work/` is the operational record; foundation documents describe durable
 project truth, including the engineering shape contributors need to build and
 operate the repository coherently. Only write durable artifacts named by the

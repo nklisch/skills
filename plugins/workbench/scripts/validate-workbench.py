@@ -255,7 +255,7 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
     for legacy in LEGACY_PATHS:
         if (project / legacy).exists():
             errors.append(f"superseded workflow path remains: {legacy}")
-    allowed_work_dirs = {"active", "backlog", "completed", "releases"}
+    allowed_work_dirs = {"active", "backlog", "completed", "releases", "attachments"}
     for child in sorted(path for path in work.iterdir() if path.is_dir()):
         if child.name not in allowed_work_dirs:
             errors.append(f"noncanonical work directory: {child.relative_to(project)}")
@@ -287,6 +287,20 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
                     f"noncanonical nested work directory: {child.relative_to(project)}"
                 )
     active_ids = {path.stem for path in active_files}
+    attachments = work / "attachments"
+    if attachments.is_dir():
+        # Temporary specifications must not survive their owner and misdirect
+        # later work. Completion summaries deliberately do not count as owners.
+        for child in sorted(attachments.iterdir()):
+            if child.is_dir():
+                if child.name not in active_ids:
+                    errors.append(
+                        f"{child.relative_to(project)}: attachment directory has no active owner"
+                    )
+            elif child.name != ".gitkeep":
+                errors.append(
+                    f"{child.relative_to(project)}: attachment must be inside an active item's directory"
+                )
     active_data = {path.stem: parse_frontmatter(path) for path in active_files}
     active_text = {
         path.stem: path.read_text(encoding="utf-8") for path in active_files

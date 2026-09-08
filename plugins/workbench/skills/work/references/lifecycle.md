@@ -83,6 +83,9 @@ type, relationship, hierarchy, readiness, and reference rules.
 The body holds outcome, scope, and acceptance evidence in whatever concise shape
 fits. Add decisions, next actions, or blockers when needed for continuation.
 Do not fill unused sections or duplicate acceptance prose in a separate design.
+Optional detailed specifications follow [design attachments](design-attachments.md).
+They live under `.work/attachments/<item-id>/` and form part of the owning item's
+contract through ordinary Markdown links. They have no independent item status.
 
 Ids are unique across all `.work/`. The first non-empty body line is a Markdown
 title. Keep one coherent outcome in one item. Use tags such as `audit`, `security`,
@@ -118,6 +121,13 @@ Close atomically:
   `.work/completed/<id>.md` stub containing identity, completion date, and the
   delivered outcome;
 - `completed_items: discard` removes the active item.
+
+In both postures, always delete the completed item's entire
+`.work/attachments/<item-id>/` directory. Do not archive attachments or retain them
+with a completion stub. Reconcile needed durable truth and remaining references
+before deletion under [design attachments](design-attachments.md). Keep attachments
+while their item is active, including pending review. Rebuild an existing knowledge
+index after deletion.
 
 Before closure, remove the completed id from each active `blocked_by` and
 `related_to` list. Do not close a parent while active children remain. Run the

@@ -225,6 +225,29 @@ Changed product requirements still need your input. Another context remains usef
 when its expertise or independent challenge earns the handoff cost; inline work
 is not a blanket rule.
 
+### Design contracts and optional specifications
+
+The work item is the contract between design, review, and implementation.
+The designer writes and revises the design directly in that item. The outcome
+owner adjudicates scope and acceptance rather than rewriting the design for an
+implementer. Reviewers remain read-only. Accepted design corrections reach the
+item before dependent implementation, and dispatch points to the recorded contract.
+Inline work follows the same rule without requiring separate agents.
+
+Ordinary designs stay in the item. Dense contracts may use an optional Markdown
+specification at `.work/attachments/<item-id>/contract.md`. The item links to it,
+and implementers read it as part of the design. Use exact interfaces, transition
+tables, error behavior, and examples where they remove consequential guessing.
+Link existing executable schemas or interfaces rather than copying them.
+
+Attachments are always deleted when their owning item completes, whether the
+project discards completed items or keeps summaries. They are not archived or
+moved into documentation as completed designs. Reconcile needed durable truth
+and remaining references before deletion. Interrupted work retains its active
+item and attachments. See the
+[attachment contract](../plugins/workbench/skills/work/references/design-attachments.md)
+for details.
+
 ### Pattern maintenance boundaries
 
 Setup creates an empty project-pattern index so future agents share one

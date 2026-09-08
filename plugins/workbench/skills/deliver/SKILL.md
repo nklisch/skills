@@ -25,7 +25,12 @@ If the repository is not Workbench-owned, handle the request without this skill.
 When the current owner already has this context, reuse it. Check only facts that
 are missing or changed. Do not repeat activation, posture resolution, settled
 questions, or readiness checks merely because `work` now uses delivery guidance.
-A fresh deliverer loads its own governing guidance.
+A fresh deliverer loads its own governing guidance and reads the owning item,
+its design, any linked [design attachments](../work/references/design-attachments.md),
+and relevant parent or linked contracts. The work item is the
+implementation contract, not the dispatch summary or another agent's memory.
+If a consequential decision is missing or conflicts with the assignment, resolve
+it in the item before dependent implementation. Continue independent ready work.
 
 Require one active feature or story with a coherent scope and success shape.
 For an unready, blocked, missing, or multi-unit target, use `work` to resolve the
@@ -33,8 +38,9 @@ actual gap. A local technical discovery does not make the whole item unready.
 
 - **Direct delivery:** own the item, its shared pattern decisions, appropriate
   integrated review, reconciliation, and closure.
-- **Assigned delivery:** `work` supplies the parent outcome, owned write surface,
-  integration contract, review checkpoint and owner, Git posture, and return evidence.
+- **Assigned delivery:** `work` points to the recorded item contract and supplies
+  the parent outcome, owned write surface, review checkpoint and owner, Git posture,
+  and return evidence. The briefing supplements the item rather than replaces it.
   Keep features and standalone stories active when review belongs to a later shared
   checkpoint. Verified nested stories may close under their open owning feature.
   Do not write the shared pattern catalog or close the parent. Parentage alone
@@ -112,9 +118,11 @@ without adding passes beyond the review policy.
 ## Close and report
 
 Close only after applicable review, corrections, verification, and reconciliation
-are satisfied under [lifecycle](../work/references/lifecycle.md). For deferred
-shared review, preserve its owner and checkpoint in existing item prose and return
-without closure. Verified nested stories may close under their open owning feature.
+are satisfied under [lifecycle](../work/references/lifecycle.md). Always delete the
+completed item's `.work/attachments/<item-id>/` directory, even when retaining a
+completion stub. Reconcile durable truth and remaining references first, then
+refresh any existing knowledge index. For deferred shared review, preserve its
+owner and checkpoint in existing item prose and return without closure. Verified nested stories may close under their open owning feature.
 Reconcile relationships and validate ledger changes. Never close the wider
 boundary from an assigned delivery. Follow the effective Git posture without
 rewriting shared history or treating squashing as acceptance.

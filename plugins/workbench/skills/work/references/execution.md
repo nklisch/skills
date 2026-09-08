@@ -42,16 +42,24 @@ reasoning can resolve them confidently. When meaningful discovery, alternatives,
 boundary definition, or adjudication remains, use `design` and follow the run's
 aligned optional design-review approach. Complete selected reviews before
 expensive dependent implementation. Designer context follows the effective
-execution posture. The outcome owner retains final synthesis.
+execution posture. The designer writes and revises the owning item's design.
+The outcome owner adjudicates readiness and checks that accepted decisions and
+consequential review corrections are recorded before dependent implementation.
 
 Assign non-overlapping write surfaces and explicit output evidence. Use
 worktrees when isolation materially improves collision avoidance or rollback,
 not merely because several units exist.
 
-For an actual assignment, give the deliverer its assigned delivery mode, parent outcome, accepted
-scope, owned write surface, integration contract, relevant conventions and
-patterns, current project calibration, required checks, effective review weight,
-aligned design-review approach, implementation review checkpoint and owner,
+For an actual assignment, point the deliverer to the owning item and its recorded
+design, including relevant parent or linked contracts. Require it to read those
+sources rather than rely on a rewritten summary. The item must contain the decisions
+needed by the assigned work. Resolve missing or conflicting consequential decisions
+there before dependent implementation, while independent work continues.
+
+Supply assignment-specific delivery mode, parent outcome, owned write surface,
+relevant conventions and patterns, current project calibration, required checks,
+effective review weight, aligned design-review approach, implementation review
+checkpoint and owner,
 effective simplification posture, effective execution posture, and return evidence.
 Use the shared context and canonical boundary instruction from
 [role-handoffs.md](role-handoffs.md); do not make a deliverer rediscover rules

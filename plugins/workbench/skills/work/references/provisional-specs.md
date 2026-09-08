@@ -8,8 +8,11 @@ truth and not a permanent second authority.
 
 Use them only when the user selected the convention during setup and then
 selected the corresponding ideate handoff. After bootstrap, normal design lives
-in Workbench active items; do not create new provisional specs for later
-features. Existing bootstrap specs remain until their owning work is delivered.
+in Workbench active items, with optional linked
+[design attachments](design-attachments.md) for dense contracts. Do not create new
+bootstrap provisional specs for later features. Unlike this bootstrap exception,
+item attachments need no setup opt-in and are always deleted at item completion.
+Existing bootstrap specs remain until their owning work is delivered.
 Do not create a registry, status schema, generated manifest, or validator for
 their lifecycle.
 

@@ -176,6 +176,30 @@ relationships: []
         check = self.run_tool(INDEX, root, "--check")
         self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
 
+    def test_design_attachment_is_indexed_as_temporary_design_not_an_item(self) -> None:
+        root = self.make_project()
+        relative = ".work/attachments/example/contract.md"
+        attachment = root / relative
+        write(attachment, "# Sync contract\n\nDelete when its owning item completes.\n")
+        result = self.run_tool(INDEX, root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        index_path = root / ".knowledge/index.json"
+        entry = next(
+            entry for entry in json.loads(index_path.read_text())["entries"]
+            if entry["path"] == relative
+        )
+        self.assertEqual(entry["namespace"], "work")
+        self.assertEqual(entry["kind"], "design-attachment")
+        self.assertEqual(entry["id"], "attachments/example/contract")
+        attachment.unlink()
+        result = self.run_tool(INDEX, root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn(
+            relative,
+            [entry["path"] for entry in json.loads(index_path.read_text())["entries"]],
+        )
+        self.assertEqual(self.run_tool(INDEX, root, "--check").returncode, 0)
+
     def test_check_detects_stale_index(self) -> None:
         root = self.make_project()
         self.assertEqual(self.run_tool(INDEX, root).returncode, 0)

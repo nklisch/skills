@@ -84,8 +84,9 @@ continuation preserves the user's choices. Treat them as current assignments,
 not a permanent allowlist. Preserve project restrictions from their owning authority.
 
 Pass delegated roles the shared context and boundary instruction from
-[role-handoffs.md](role-handoffs.md). The outcome owner retains requirements,
-synthesis, adjudication, integration, and closure.
+[role-handoffs.md](role-handoffs.md). Designers author the assigned items' design
+contracts. The outcome owner retains requirements, adjudication, integration, and
+closure rather than rewriting designs for dispatch.
 
 ## Communicate before execution
 

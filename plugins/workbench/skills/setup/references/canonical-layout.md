@@ -19,6 +19,7 @@
 ├── CONVENTIONS.md
 ├── active/.gitkeep
 ├── active/<id>.md
+├── attachments/<id>/contract.md  # optional, deleted at item completion
 ├── backlog/.gitkeep
 ├── backlog/<id>.md
 ├── completed/.gitkeep
@@ -66,8 +67,11 @@ During a greenfield bootstrap, an explicitly opted-in `docs/spec/` may hold
 temporary contracts and interfaces before their implementation exists. Those files follow
 [the provisional-spec contract](../../work/references/provisional-specs.md), are
 not foundations, and are deleted or narrowed as delivery moves structural
-authority into code. Established-project design remains in Workbench items; the
-directory name alone never establishes this meaning.
+authority into code. Established-project design remains in Workbench items,
+including optional linked specifications under `.work/attachments/<item-id>/`.
+Those follow [design attachments](../../work/references/design-attachments.md) and
+are always deleted when the owning item completes. Neither directory name alone
+makes a document durable foundation truth.
 
 The research capability ships with Workbench. Setup may omit `.research/` and
 `.knowledge/` until the project has research worth retaining.
@@ -371,7 +375,10 @@ during capture or migration.
 
 With `completed_items: summarize`, replace a completed item with a temporary
 `.work/completed/<id>.md` outcome stub. With `completed_items: discard`, remove
-it after verification. In both postures, keep `.work/completed/.gitkeep` and
+it after verification. In both postures, always delete the owning item's entire
+`.work/attachments/<id>/` directory. Do not retain or archive its attachments with
+the summary. Attachments are optional and need no `.gitkeep` or setup opt-in.
+Keep `.work/completed/.gitkeep` and
 `.work/releases/.gitkeep`. A successful release writes one version summary and
 removes every completed outcome file.
 

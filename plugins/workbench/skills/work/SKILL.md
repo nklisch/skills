@@ -108,6 +108,14 @@ Create children only when separate status, ownership, or continuation earns them
 Temporary agent assignments do not become ledger items.
 
 Record the outcome, scope, acceptance evidence, and useful continuation context.
+The work item is the contract between design, review, and implementation. The
+assigned designer authors and revises its design directly. The outcome owner
+adjudicates scope and readiness, not a second design handoff. Before dependent
+implementation, check that accepted decisions and design corrections are in the
+item. Dispatch points to that contract rather than reconstructing it from memory.
+Use optional [design attachments](references/design-attachments.md) only when detailed
+specifications reduce ambiguity. They remain part of the item's contract and are
+always deleted when their owner completes, even when a completion stub is retained.
 Omit empty optional metadata and unused sections. Add design, dependencies, or
 coordination detail only when the work needs them. Do not reformat existing items
 merely to make them shorter. Replace superseded decisions instead of keeping a

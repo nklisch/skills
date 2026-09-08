@@ -2,10 +2,10 @@
 name: design
 description: >
   Resolve consequential implementation choices for a Workbench outcome, or stress-test its
-  design before costly implementation. Use only when .work/CONVENTIONS.md declares owner:
-  workbench. Keep accepted context and the same outcome owner, revise only decisions affected by
-  new evidence, and review proportionately. Use ideate when the desired outcome itself needs
-  exploration; ordinary local choices stay inside delivery.
+  design before costly implementation, authoring the design directly in its work item. Use only
+  when .work/CONVENTIONS.md declares owner: workbench. Keep accepted context and the same outcome
+  owner, revise only decisions affected by new evidence, and review proportionately. Use ideate
+  when the desired outcome itself needs exploration; ordinary local choices stay inside delivery.
 ---
 
 # Design
@@ -49,7 +49,9 @@ Use the project's actual audience, maturity, deployment, and risks as calibratio
 
 For a clear direct request without an item, create the smallest useful feature or
 story using [lifecycle](../work/references/lifecycle.md). Keep design in that item.
-Do not add hierarchy or a separate document just to represent design activity.
+When dense contracts need more space, use an optional linked specification under
+[design attachments](../work/references/design-attachments.md). Do not add hierarchy
+or a separate document just to represent design activity.
 
 Read [lenses](references/lenses.md), choose the relevant primary lens, and apply
 only risk overlays that matter. State the lens when it helps interpretation.
@@ -78,18 +80,35 @@ Use the current context when continuity supplies enough reasoning and challenge.
 Consider a dedicated designer for specialization, breadth, or fresh perspective
 that outweighs the handoff cost. Honor explicit execution preferences. If
 multiple sub-agents are useful, follow model alignment before dispatch.
-A delegated designer uses [role handoffs](../work/references/role-handoffs.md),
-receives raw requirements rather than a proposed answer, and returns proposals
-only. Ask for facts, unresolved assumptions, meaningful alternatives, a justified
-recommendation, and any overbuilding or non-blocking follow-ups. Keep that reply
-as small as the decision permits.
+A delegated designer uses [role handoffs](../work/references/role-handoffs.md).
+Give it raw requirements, the owning item path, and an explicit item-scoped write
+assignment rather than a proposed answer. Include any owned design attachments.
+The designer authors the design in that item and revises it after adjudication.
+Include useful facts, unresolved assumptions, meaningful alternatives, and the
+justified approach in the design.
+Return the item path, a short decision summary, and unresolved questions. Return
+out-of-scope ideas separately as non-blocking follow-ups, not item requirements.
 
 ## Update decisions in place
 
-Record the chosen approach, rationale, and useful verification or recovery details
-in the owning item. Add implementation units only when decomposition helps actual
-execution. Paths and interfaces should reduce ambiguity, not pre-write the code.
-Use [writing style](../work/references/writing-style.md) for durable prose.
+The work item is the contract between design, review, and implementation.
+The designer records the chosen approach, rationale, and useful verification or
+recovery details directly in the owning item. Inline design has the same writing
+responsibility without a separate agent or a packet to itself. Add implementation
+units only when decomposition helps execution. Paths and interfaces should reduce
+ambiguity, not pre-write the code. Use
+[writing style](../work/references/writing-style.md) for durable prose.
+
+Distinguish unsettled choices from decisions ready for implementation in ordinary
+item prose. Writing a design does not approve new requirements or settle human-owned
+choices. The outcome owner adjudicates readiness from the item and repository evidence.
+Do not leave implementation-shaping decisions only in chat or an agent's memory.
+
+After adjudication, the designer applies accepted design corrections to the item
+before dependent implementation. If that context is unavailable, assign a replacement
+designer, which may be the current owner, to revise the same item. Do not reconstruct
+an undocumented design in the implementer's briefing. Preserve useful partial design
+and unresolved questions in the item before interruption or return.
 
 During delivery, revise only the decision affected by new evidence and inspect its
 dependents. Preserve unaffected scope, accepted decisions, and completed evidence.
@@ -134,9 +153,10 @@ work-item narration. Preserve user-owned roadmap content and the temporary natur
 of any provisional specs. These checks belong to the affected target, not a
 repository-wide documentation audit.
 
-Verify and adjudicate findings. Correct real in-scope problems, explain rejected
-material proposals in chat, and offer adjacent ideas separately. When a reason is
-a durable constraint, record the constraint rather than the review history.
+The outcome owner verifies and adjudicates findings. The designer records accepted
+design corrections in the item. Explain rejected material proposals in chat, and
+offer adjacent ideas separately. When a reason is a durable constraint, record
+the constraint rather than the review history.
 
 Report the approach, decisive trade-offs, verification plan, review limits, and
 unresolved decisions in chat. For direct design, stop there. Within delivery,

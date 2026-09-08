@@ -39,15 +39,20 @@ Include this instruction exactly in every delegated core-delivery handoff:
 > project type. Treat unearned machinery as a defect. Return worthwhile ideas
 > outside that boundary separately as non-blocking follow-ups.
 
-The caller owns final synthesis and adjudication. Reviewers and designers
-propose; they do not turn a preference, incident, or adjacent opportunity into a
-requirement.
+The work item is the contract between design, review, and implementation.
+Design authorship does not grant scope or approval authority. The outcome owner
+adjudicates requirements, readiness, and acceptance rather than rewriting the
+designer's work into a second handoff. Neither designers nor reviewers may turn
+preferences or adjacent opportunities into requirements.
 
 ## Formal core-delivery roles
 
-- **Designer — proposal-only.** May recommend a shape but does not edit the
-  item, foundations, or code. Follow the return contract in
-  [design](../../design/SKILL.md).
+- **Designer — item-scoped writes.** Authors and revises the design directly in
+  the assigned work item and any linked specification under
+  [design attachments](design-attachments.md). The assignment names the item and
+  owned design and attachment surfaces. Preserve accepted requirements and
+  unrelated sections. Do not edit code or foundations without a separate assignment.
+  Return the item path, decision summary, and unresolved questions under [design](../../design/SKILL.md).
 - **Reviewer — proposal-only.** Does not edit the stable target. Follow the
   proportionate findings, materiality, and adjudication contract in
   [review](review.md).

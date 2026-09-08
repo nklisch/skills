@@ -43,6 +43,11 @@ adopted repository; write-free `ideate` may explore before adoption, and
   revises the affected decision and its dependents rather than restarting the
   design. Consequential choices still receive scrutiny before costly implementation,
   and changed requirements or authority still need the human.
+- **The item carries the design contract.** Designers author and revise the
+  owning item's design directly. The outcome owner adjudicates scope and acceptance.
+  Implementers read the recorded contract, not a reconstructed briefing that can
+  lose decisions. Optional linked specifications hold dense detail and always
+  disappear when the item completes, including when a completion summary remains.
 - **Recorded work is not automatically designed.** Before each feature or story,
   `work` checks design readiness before routing implementation-ready work through
   `deliver`. Separate design review is optional: align once per run on skipping

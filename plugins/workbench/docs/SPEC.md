@@ -7,6 +7,7 @@
 ├── CONVENTIONS.md
 ├── active/.gitkeep
 ├── active/<id>.md
+├── attachments/<id>/contract.md  # optional, deleted at item completion
 ├── backlog/.gitkeep
 ├── backlog/<id>.md
 ├── completed/.gitkeep
@@ -84,8 +85,9 @@ current conversation. These replies are chat prose, not repository artifacts.
 Workbench does not create report files or durable no-op records unless the user
 requests them.
 
-Durable state is limited to explicitly named work items, foundations, project
-pattern catalogs, user-confirmed project scan-lens skills, research artifacts,
+Durable state is limited to explicitly named work items and their optional design
+attachments, foundations, project pattern catalogs, user-confirmed project scan-lens
+skills, research artifacts,
 mockups, generated indexes, completion stubs, release summaries, and repository
 conventions.
 
@@ -272,6 +274,12 @@ for review. No additional status or batch object is needed.
 - `completed_items: discard` removes the active item after verification and
   leaves release to summarize from Git history.
 
+Both postures always delete the completed item's entire
+`.work/attachments/<item-id>/` directory. Attachments are not archived or retained
+with summaries, because expired specifications can misdirect later implementation.
+Reconcile needed durable truth and references from remaining work before deletion.
+Refresh an existing knowledge index so it no longer points to deleted attachments.
+
 Both postures preserve `.work/completed/.gitkeep` and
 `.work/releases/.gitkeep`. Before closure, active children are completed and
 relationships are reconciled. `release` writes one version summary from stubs or
@@ -307,9 +315,27 @@ shared lens follows the choice through formal design, implementation,
 behavioral verification, and review. It seeks the smallest durable protection;
 it does not waive accepted guarantees or evidence.
 
-Design keeps outcome-specific reasoning in the active item. New technical
-evidence revises the affected decision and its dependent contracts and checks,
-not every settled part of the plan. Local implementation details remain in
+The work item is the contract between design, review, and implementation. The
+assigned designer authors and revises its design directly, including any linked
+specification. The outcome owner adjudicates scope, readiness, and acceptance.
+Implementers read the recorded contract rather than an orchestrator's reconstruction,
+which can lose decisions or preserve stale assumptions. Reviewers remain proposal-only.
+Accepted design corrections reach the item before dependent implementation.
+Dispatch messages point to the contract and add assignment-specific details.
+Inline execution follows the same contract without requiring another agent.
+
+Design keeps outcome-specific reasoning in the active item. An optional Markdown
+specification may hold dense interfaces, state transitions, error behavior, and
+examples under `.work/attachments/<item-id>/`, usually in `contract.md`. The item
+links to it as part of the design, not as an independent authority. No new
+frontmatter, status, or mandatory template is needed. Durable machine-consumed
+contracts stay in their normal source location, linked rather than copied.
+[Design attachments](../skills/work/references/design-attachments.md) defines
+ownership and unconditional deletion at item completion. Unlike bootstrap
+provisional specs, these attachments need no setup opt-in.
+
+New technical evidence revises the affected decision and its dependent contracts
+and checks, not every settled part of the plan. Local implementation details remain in
 normal delivery. Consequential new choices receive design reasoning before
 expensive implementation; changed product requirements or authority still need
 human direction. Separate design review is independently optional. Align once
@@ -364,7 +390,8 @@ roles without changing design reasoning, aligned optional design review, or revi
   benefit from the existing context. Independent challenge, specialization,
   isolation, breadth, or throughput can justify dedicated or mixed roles;
 - `orchestrated` prefers dedicated design, implementation, and review agents
-  when available while the main agent owns synthesis and integration.
+  when available. Designers author item contracts while the main agent owns
+  adjudication and integration.
 
 Item kind and apparent size are routing hints, not thresholds. A project may
 state a preferred mixed role assignment in convention prose, and explicit user
@@ -523,8 +550,9 @@ The current owner reads that guidance when implementation starts and reuses it
 across ready units; no repeated invocation or context transfer is required.
 Direct `deliver` remains an entry point for one named ready item and owns its
 implementation, review, reconciliation, pattern decisions, and closure. For
-assigned delivery, `work` supplies the parent outcome, owned surface, integration
-contract, chosen review boundary, Git posture, and return evidence. An assigned
+assigned delivery, `work` points to the recorded item and linked design contracts.
+It supplies the parent outcome, owned surface, chosen review boundary, Git posture,
+and return evidence rather than carrying missing design in the briefing. An assigned
 deliverer does not write the shared pattern catalog or close the parent, because
 the owner must integrate all contributing work first.
 

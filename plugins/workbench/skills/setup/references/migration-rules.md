@@ -15,7 +15,7 @@
 |---|---|
 | Active epic, initiative, feature, task, change, proposal | `.work/active/` |
 | Deferred idea | `.work/backlog/` |
-| Outcome-specific plan or design | Corresponding work-item body |
+| Outcome-specific plan or design | Corresponding work-item body, with optional linked `.work/attachments/<id>/` specification for dense contracts |
 | Current or intended project direction | Focused `docs/` foundation |
 | Mechanical formatting or lint rule | Formatter or linter configuration |
 | Concise coding or agent operating rule | Canonical `AGENTS.md` |

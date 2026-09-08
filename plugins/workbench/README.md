@@ -364,6 +364,22 @@ scope, permissions, or safety.
 
 Workbench rewards durable simplicity, not the smallest diff.
 
+The work item is the contract between design, review, and implementation.
+The designer writes and revises its design directly. The outcome owner adjudicates
+scope and acceptance, while implementers read the recorded contract. Reviewers
+return findings without editing it. Accepted design corrections reach the item
+before dependent implementation. Dispatch messages do not substitute for the design.
+
+Most designs fit inside the item. For dense contracts, the designer may add an
+optional Markdown specification at `.work/attachments/<item-id>/contract.md` and
+link it from the item. Exact interfaces, transitions, errors, and examples can
+reduce implementation guesswork. Existing executable contracts stay in their
+normal source location rather than being copied into the specification.
+Attachments are always deleted when their owning item completes, even when a
+completion summary is kept. See
+[design attachments](skills/work/references/design-attachments.md) for the format
+and lifecycle. No separate designer, attachment, or new approval stage is required.
+
 A good design has as few concepts as the problem allows, fits the repository,
 and leaves a maintainable intended state inside the authorized outcome. The
 user's original intent, accepted item, and applicable foundation truth bound the

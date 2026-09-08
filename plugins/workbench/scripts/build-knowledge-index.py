@@ -127,6 +127,8 @@ def inferred_kind(relative: Path) -> str:
     if relative.parts[0] == ".research":
         return "attestation" if "attestations" in relative.parts else "research-brief"
     if relative.parts[0] == ".work":
+        if relative.parts[1] == "attachments":
+            return "design-attachment"
         if "active" in relative.parts:
             return "work-item"
         if "backlog" in relative.parts:

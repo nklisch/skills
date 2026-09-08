@@ -28,8 +28,9 @@ request.
   judgment applies separately to design, implementation, and review; review is
   not automatically a delegated role. Mixed execution is valid.
 - **`orchestrated`** — prefer dedicated design, implementation, and review
-  agents when available. The main agent still owns requirements,
-  synthesis, adjudication, integration, and the full requested boundary.
+  agents when available. Designers author the assigned items' designs directly.
+  The main agent still owns requirements, adjudication, integration, and the full
+  requested boundary. Accountability does not require rewriting the design.
 
 Story, feature, and apparent size are light signals, not gates. A large
 mechanical change may stay inline; a small but specialized or high-consequence

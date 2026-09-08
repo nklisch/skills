@@ -102,6 +102,51 @@ updated: 2026-07-24
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("validation passed", result.stdout)
 
+    def test_linked_design_attachment_passes_without_item_frontmatter(self) -> None:
+        root = self.make_project()
+        item = root / ".work/active/example.md"
+        write(item, item.read_text() + "\n[Contract](../attachments/example/contract.md)\n")
+        write(
+            root / ".work/attachments/example/contract.md",
+            "# Contract\n\n[Owner](../../active/example.md). Delete at completion.\n",
+        )
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_completion_requires_attachment_deletion_under_both_postures(self) -> None:
+        for posture in ("summarize", "discard"):
+            with self.subTest(posture=posture):
+                root = self.make_project()
+                conventions = root / ".work/CONVENTIONS.md"
+                write(
+                    conventions,
+                    conventions.read_text().replace(
+                        "completed_items: summarize", f"completed_items: {posture}"
+                    ),
+                )
+                attachment = root / ".work/attachments/example/contract.md"
+                write(attachment, "# Temporary contract\n")
+                (root / ".work/active/example.md").unlink()
+                if posture == "summarize":
+                    write(
+                        root / ".work/completed/example.md",
+                        "---\nid: example\ncompleted: 2026-09-07\n---\n# Delivered\n",
+                    )
+                result = self.run_validator(root)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("attachment directory has no active owner", result.stdout)
+                attachment.unlink()
+                attachment.parent.rmdir()
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_design_attachment_requires_item_directory(self) -> None:
+        root = self.make_project()
+        write(root / ".work/attachments/contract.md", "# Unowned contract\n")
+        result = self.run_validator(root)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("attachment must be inside an active item's directory", result.stdout)
+
     def write_compact_item(self, root: Path, extra: str = "", body: str = "") -> None:
         write(
             root / ".work/active/example.md",
