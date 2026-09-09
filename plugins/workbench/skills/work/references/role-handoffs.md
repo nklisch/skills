@@ -52,7 +52,12 @@ preferences or adjacent opportunities into requirements.
   [design attachments](design-attachments.md). The assignment names the item and
   owned design and attachment surfaces. Preserve accepted requirements and
   unrelated sections. Do not edit code or foundations without a separate assignment.
-  Return the item path, decision summary, and unresolved questions under [design](../../design/SKILL.md).
+  Return the item path, relevant attachment or section references, and brief
+  supplementary notes under [design](../../design/SKILL.md), not the full design.
+  The receiving owner, reviewer, or implementer reads those sources directly.
+  Forwarding the assignment follows the same rule: pass references and minor
+  assignment-specific details, not a copied or reconstructed design. Record
+  implementation-shaping decisions and corrections in the sources before handoff.
 - **Reviewer — proposal-only.** Does not edit the stable target. Follow the
   proportionate findings, materiality, and adjudication contract in
   [review](review.md).

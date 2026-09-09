@@ -86,8 +86,12 @@ assignment rather than a proposed answer. Include any owned design attachments.
 The designer authors the design in that item and revises it after adjudication.
 Include useful facts, unresolved assumptions, meaningful alternatives, and the
 justified approach in the design.
-Return the item path, a short decision summary, and unresolved questions. Return
-out-of-scope ideas separately as non-blocking follow-ups, not item requirements.
+When handing off to another agent, return the item path, relevant attachment or
+section references, and only brief supplementary details such as what changed or
+which questions remain. Do not paste or retell the whole design in the handoff;
+the receiving agent reads the recorded sources directly. Keep implementation-shaping
+details in those sources, not only in the message. Return out-of-scope ideas
+separately as non-blocking follow-ups, not item requirements.
 
 ## Update decisions in place
 

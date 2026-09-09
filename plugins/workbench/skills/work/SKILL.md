@@ -112,7 +112,9 @@ The work item is the contract between design, review, and implementation. The
 assigned designer authors and revises its design directly. The outcome owner
 adjudicates scope and readiness, not a second design handoff. Before dependent
 implementation, check that accepted decisions and design corrections are in the
-item. Dispatch points to that contract rather than reconstructing it from memory.
+item. Design-agent returns and onward dispatch pass item and attachment references
+plus brief supplementary details, not the full design or a reconstruction of it.
+The receiving agent reads the recorded contract directly.
 Use optional [design attachments](references/design-attachments.md) only when detailed
 specifications reduce ambiguity. They remain part of the item's contract and are
 always deleted when their owner completes, even when a completion stub is retained.
