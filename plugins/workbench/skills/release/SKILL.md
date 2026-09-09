@@ -68,8 +68,8 @@ and briefly summarize material findings and dispositions. Do not preserve raw
 scanner output, packet identities, repeated checkpoints, or a transaction audit
 unless the project's own conventions explicitly require that evidence.
 
-Prefer user-visible behavior over commit chronology. Use the plain technical
-style from [../work/references/writing-style.md](../work/references/writing-style.md).
+Prefer user-visible behavior over commit chronology. Use the audience- and
+domain-appropriate style from [../work/references/writing-style.md](../work/references/writing-style.md).
 Validate the summary. After project checks and configured gates are satisfied,
 remove every `.work/completed/*.md` outcome file. Preserve
 `.work/completed/.gitkeep` and `.work/releases/.gitkeep`, then run the Workbench

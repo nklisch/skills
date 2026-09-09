@@ -15,6 +15,12 @@ Nothing is a silent default here. Every draft names its audience (confirmed,
 not assumed), its structure pattern, and its style profile — chosen with you
 during a short interview modeled on ideate, never applied behind your back.
 
+Language follows the readers, domain, purpose, and venue—not the presence of
+code. An engine reference, a game devlog, a creative-writing guide, and patient
+instructions can use different vocabulary and voices. The skills preserve useful
+specialist terms and explain what the intended audience may not know, rather
+than steering everything toward plain technical prose.
+
 ## What each skill does
 
 - **prose-draft** — Draft or rewrite a document through an alignment

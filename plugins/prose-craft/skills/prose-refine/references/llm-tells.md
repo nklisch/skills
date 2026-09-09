@@ -8,7 +8,9 @@ A tell is not an error. A single em-dash is punctuation; five in one section
 is a tell. Hunt clusters, not occurrences. Rewrite each find into the
 document's own voice, not into your model family's voice. For
 model-family-specific signatures beyond this generic catalog, see the
-`model-voice/` directory alongside this file.
+`model-voice/` directory alongside this file. Judge every candidate in its domain
+and intended voice: a landscape in a game, a narrative journey, or a clinical
+term is not a tell merely because the same word is filler elsewhere.
 
 ## Contents
 
@@ -77,9 +79,9 @@ model-family-specific signatures beyond this generic catalog, see the
 
 1. Read the draft once end to end, marking clusters. A cluster is three or
    more of the same tell in a section.
-2. For each cluster, rewrite in the document's existing voice, moving
-   along whichever dimension the surrounding text already favors: shorter,
-   plainer, or more direct.
+2. For each cluster, rewrite in the document's chosen voice to restore useful
+   meaning and natural variation. That may call for more vivid, reflective, or
+   domain-specific language—not necessarily shorter, plainer, or more direct.
 3. Log every change in the change log with its tell category. An
    unjustified change is a taste change; taste changes are out of scope in
    rounds 2 and 3.

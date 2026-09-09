@@ -83,11 +83,14 @@ grants them.*
 
 *Persona: a line editor with the style contract in hand.*
 
-- Active voice unless the actor is genuinely unknown or irrelevant.
-- Sentences short on average; any sentence over ~30 words earns its length
-  or splits.
-- Concrete verbs over nominalizations ("decide", not "make a decision").
-- One idea per paragraph; the paragraph's point is its first sentence.
+- Judge clarity for the intended readers, domain, purpose, and chosen style,
+  not against a generic technical-English baseline. Code does not imply a
+  web-developer audience.
+- Do voice, sentence rhythm, and paragraph shape help these readers follow the
+  meaning? Active voice, short sentences, and point-first paragraphs are useful
+  tools, not universal requirements.
+- Prefer concrete wording where it improves understanding without replacing
+  precise domain terms or flattening deliberate creative voice.
 - No hedging pile-ups, throat-clearing openings, or double negatives.
 - Contrastive corrections such as “X, not Y” add a necessary distinction
   instead of repeating a rhetorical pattern.
@@ -139,9 +142,10 @@ grants them.*
 
 ## 6. Accessibility
 
-*Persona: a plain-language and inclusion reviewer.*
+*Persona: an accessibility and inclusion reviewer for the intended audience.*
 
-- Reading level appropriate; long words only where precision requires them.
+- Reading level and terminology suit these readers. Explain unfamiliar essential
+  language without treating specialist vocabulary or expressive prose as defects.
 - Idioms, culture-bound references, and wordplay don't carry essential
   meaning. The text survives translation.
 - Inclusive language: avoid ableist terms and gendered defaults.

@@ -44,10 +44,10 @@ return a findings list. Use `prose-review` for review without rewriting.
 **Diversify the model classes.** When the harness can access different model
 classes, assign a different class to each re-writer. Different model families
 expose different prose defaults and blind spots. When only one class is
-available, assign distinct personas instead: a terse engineer, a longform
-editor, and a domain skeptic (standard weight draws two; thorough uses all
-three). When the harness cannot spawn sub-agents, perform
-sequential self-rewrites under those personas and report the fallback.
+available, assign distinct audience-appropriate personas instead: a target
+reader, an editor suited to the venue, and a domain specialist (standard weight
+draws two; thorough uses all three). When the harness cannot spawn sub-agents,
+perform sequential self-rewrites under those personas and report the fallback.
 
 Every re-writer receives the current draft, the full brief (including the
 chosen structure pattern and the style profile with its deltas), the
@@ -56,7 +56,10 @@ reader-path plan, the universal floor
 (`../prose-draft/references/doc-types.md`), and the lens checklists for the
 selected weight (`../prose-review/references/lenses.md`).
 The floor is not the style: re-writers write in the brief's style profile
-and its recorded deltas, under the floor. Give every re-writer the
+and its recorded deltas, under the floor. Preserve domain terminology and
+intentional voice; do not normalize code-related prose into generic technical
+English or replace unfamiliar specialist terms merely because they are unfamiliar
+to the re-writer. Give every re-writer the
 reader-path grounding rules explicitly — define essential domain terms
 from real-world and business meaning before technical use, without
 over-explaining terms the audience can safely know — as spelled out in the

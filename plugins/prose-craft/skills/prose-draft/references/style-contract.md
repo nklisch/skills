@@ -32,6 +32,12 @@ no style choice exempts a document from.
 
 ## Terms
 
+- Preserve the domain's accurate vocabulary. Legibility is relative to the
+  intended audience: explain unfamiliar essential terms, but do not replace
+  familiar specialist terms with vague everyday words or web-development
+  analogies. Clinicians and patients, or engine programmers and players, need
+  different explanations even when the subject is the same.
+
 - One term per concept, used consistently. Renaming mid-document is a floor
   violation even in styles that tolerate playful variation.
 - Define load-bearing terms at or before first use in reading order; the

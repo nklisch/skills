@@ -6,7 +6,10 @@ outside this catalog is expected and correct whenever the doc calls for
 it. The catalog exists so that style is chosen and recorded instead of
 silently defaulted, and so the interview has shared vocabulary. A profile
 is a set of weights on those dimensions. Compose, bend, or invent freely,
-then record what you chose in the brief.
+then record what you chose in the brief. Start with the actual readers, domain,
+purpose, and venue. Neither code nor a `docs/` path makes plain technical prose
+the right suggestion. Specialist terminology and expressive voice can be the
+clearest fit; adapt explanation depth to the audience rather than erasing them.
 
 ## Contents
 
@@ -33,11 +36,11 @@ Every seed sentence carries the same facts (the CLI exits with status 1
 when its config file is missing, and reports the expected path), so only
 the voice varies:
 
-1. **plain tech-doc** — the classic developer-docs register
-   (Google/Microsoft style-guide lineage). Short active sentences, second
-   person, literal, no hype, lists where lists help. Fits most `docs/`
-   pages and README bodies. *Seed: "If the config file is missing, the CLI
-   exits with status 1 and prints the path it expected."*
+1. **direct instructional** — action-focused language for readers completing
+   a concrete task. Active sentences, second person where useful, and lists
+   where lists help. Use the task domain's vocabulary; this is not a default
+   for documentation or code-related subjects. *Seed: "If the config file is
+   missing, the CLI exits with status 1 and prints the path it expected."*
 
 2. **terse reference** — dry, uniform, minimal. Every sentence carries a
    fact; no transitions, no motivation. Fits reference pages and option
@@ -107,12 +110,13 @@ the voice varies:
 
 ## Choosing and recording
 
-- **Suggest, then confirm**: the venue suggests a starting profile
-  (`doc-types.md` archetypes note their natural fit); the user's context
-  confirms or overrides it. Never apply a profile silently.
+- **Suggest, then confirm**: audience, domain, purpose, and venue together
+  suggest a starting profile. Venue alone does not select the voice. Never
+  apply a profile silently. The CLI seeds above compare rhythm, not subject
+  matter: proposals should use examples from the reader's world.
 - **Record base plus deltas**: write the profile name and any changed
-  weights in the brief's style-profile field — "plain tech-doc, but first
-  person allowed and 10% warmer."
+  weights in the brief's style-profile field — "game-dev field guide, familiar
+  engine terms and a playful voice" or "patient guide, reassuring and concrete."
 - **Capture unweighed dimensions**: deltas may pull in a dimension the
   profile doesn't weigh, as in "casual blog, but no emoji."
 - **Project guides take precedence**: a project style guide, where one

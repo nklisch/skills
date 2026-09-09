@@ -659,6 +659,12 @@ checklist. Mechanical style stays authoritative in tool configuration, concise
 cross-agent rules in `AGENTS.md`, and detailed proven recurring implementation
 shapes in `.agents/skills/patterns/`.
 
+Durable prose adapts to the intended audience, domain, purpose, and venue.
+Code-related subjects do not imply a generic technical-English register or a
+web-development vocabulary. Preserve accurate specialist terms and appropriate
+voice; explain concepts the intended readers may not know. Writing guidance
+lives in [writing style](../skills/work/references/writing-style.md).
+
 Foundation presentation follows the relationship being explained: repository
 trees for solution shape, tables for ownership and authority, dependency or
 data-flow graphs, deployment topologies, and pipeline diagrams. Markdown with

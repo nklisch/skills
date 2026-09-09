@@ -27,8 +27,11 @@ first so proposals are grounded, not generic. Then:
 2. **Propose two or three directions.** Each direction names a structure
    pattern from `references/structure-patterns.md`, a style profile from
    `references/styles.md`, and the opening move the pattern implies. Tie the
-   proposals to what you found in the repo. Ask which direction fits, or
-   what to mix.
+   proposals to the intended readers, domain, purpose, and venue, not merely
+   the presence of code or a `docs/` directory. Do not routinely suggest plain
+   technical language: game engines, web development, creative writing, and
+   medicine have different vocabularies, and audiences within each differ too.
+   Ask which direction fits, or what to mix.
 3. **Offer the catalog as examples, not a menu limit.** Say plainly that
    patterns and profiles are weighted starting points — composing, bending,
    or inventing outside them is expected. Alignment is the goal, not
@@ -48,15 +51,15 @@ is naming: no draft applies a structure or style silently.
 Write down six required fields, plus the optional out-of-scope:
 
 - **Audience**: confirmed, not assumed — who reads this, and what they
-  already know.
+  already know, including their domain and familiarity with its terminology.
 - **Venue**: README, foundation doc, web article, guide, or reference page
   (see `references/doc-types.md`).
 - **Purpose**: one sentence. After reading, the reader can ___.
 - **Structure pattern**: the chosen pattern (or combination) from step 1,
   with the opening move.
 - **Style profile**: the chosen profile name plus deltas, recorded as
-  weights — "plain tech-doc, but first person allowed". Never a bare
-  "default".
+  weights — "game-dev field guide, familiar engine terms and a playful voice".
+  Never a bare "default".
 - **Must-keeps**: facts, claims, commands, or phrasings that must survive
   every later edit. These are the source of truth against review drift.
 - **Out of scope**: what this doc deliberately does not cover.
