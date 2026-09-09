@@ -23,9 +23,10 @@ and `release` only for a requested versioned summary.
 The user's request and effective autonomy posture define the authorized
 boundary. Ask about consequential requirements; do not invent requirements,
 expand scope, or treat repository aspirations as current work. Use features as
-the normal delivery unit, epics for multiple feature outcomes, and stories for
-narrow slices. Keep independent items parallel and add `blocked_by` only for a
-real sequencing dependency.
+the normal delivery unit; follow `work/references/lifecycle.md` for hierarchy and
+splitting. Keep independent items parallel; `blocked_by` needs a real dependency.
+Completion cleanup is mandatory: summarize or discard per conventions, remove
+completed active files and attachments; see the same lifecycle reference.
 
 Before any design or review, including a loose request, apply the current
 `## Overbuilding calibration` from `.work/CONVENTIONS.md`. Loose work gets the

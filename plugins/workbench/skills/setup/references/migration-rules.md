@@ -65,14 +65,11 @@ concrete outcomes the user wants Workbench to track. Otherwise leave the roadmap
 unmanaged and map only the useful material the user chooses through the table
 above.
 
-Normalize each active item to Workbench's optional-depth hierarchy:
-
-- use a feature as the default delivery unit, with adaptive shared review boundaries;
-- keep an epic only when at least two independently meaningful feature outcomes
-  can be named;
-- use a story for a narrow independently verifiable slice;
-- keep epics top-level, features top-level or under epics, and stories top-level
-  or under features.
+Normalize active items using the
+[lifecycle hierarchy](../../work/references/lifecycle.md#item-tiers). A standalone
+legacy story becomes a feature unless an existing feature clearly owns its slice.
+Decompose an epic into its real feature outcomes rather than preserving one large
+activity record.
 
 Demote or reparent an item when its meaning makes the correction clear. Ask when
 several corrections would change the intended outcome. Do not invent child

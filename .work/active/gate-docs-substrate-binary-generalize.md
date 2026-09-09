@@ -1,6 +1,6 @@
 ---
 id: gate-docs-substrate-binary-generalize
-kind: story
+kind: feature
 status: active
 tags: [documentation]
 parent: null
@@ -9,7 +9,7 @@ related_to: []
 research_refs: []
 mock_refs: []
 created: 2026-06-04
-updated: 2026-06-04
+updated: 2026-09-05
 ---
 # substrate-binary skill presents work-view as THE singular binary; research-view is now a 2nd instance
 

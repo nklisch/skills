@@ -38,8 +38,7 @@ in the same alignment instead of promising a pass that will be skipped.
 ## Choose implementation review checkpoints adaptively
 
 Start with explicit run direction, then any repository preference in conventions
-prose. Otherwise choose adaptive boundaries. A target may be one feature, one
-standalone story, or a coherent batch spanning several features or deliveries.
+prose. Otherwise choose adaptive boundaries. A target may be one feature or a coherent batch spanning several features or deliveries.
 The outcome owner names the included items and integrated behavior. A batch does
 not change their requirements, hierarchy, or implementation ownership.
 

@@ -14,6 +14,13 @@ Carry the user's natural-language outcome to its requested finish line. Keep one
 continuous conversation and one outcome owner. Skills supply capabilities, not
 stages the user or agent must repeatedly enter and leave.
 
+Epics coordinate and always have feature children; features may stand alone,
+but stories always belong to a feature. Split large features into stories as
+needed during design, implementation, or review follow-up; keep detailed work in
+those children, not one parent file. Completion cleanup is mandatory: summarize
+or discard per conventions and remove completed active files and attachments.
+See [lifecycle](references/lifecycle.md) for the full rules.
+
 ## Start from current truth
 
 Confirm that an upward-found `.work/CONVENTIONS.md` declares `owner: workbench`.
@@ -101,11 +108,7 @@ stops at that requested boundary; an end-to-end request continues through it.
 ## Keep durable work small
 
 Read [lifecycle](references/lifecycle.md) when creating, relating, blocking, or
-closing items. One item holds one coherent outcome. Features are the usual
-integrated delivery unit; epics group independently meaningful features; stories
-hold narrow verifiable slices. Nested hierarchy remains `epic → feature → story`.
-Create children only when separate status, ownership, or continuation earns them.
-Temporary agent assignments do not become ledger items.
+closing items. Temporary agent assignments do not become ledger items.
 
 Record the outcome, scope, acceptance evidence, and useful continuation context.
 The work item is the contract between design, review, and implementation. The
@@ -155,7 +158,7 @@ boundaries, never ledger-transition commits or cosmetic shared-history rewrites.
 ## Finish the accepted boundary
 
 Apply [deliver](../deliver/SKILL.md)'s verification, reconciliation, review, and
-closure rules. Features and standalone stories may share an integrated review
+closure rules. Features may share an integrated review
 checkpoint. Keep them active until their selected review and acceptance are
 satisfied. Nested stories return verified slice evidence to their feature.
 Review wider integration only for substantive behavior not already covered.

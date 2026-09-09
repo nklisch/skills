@@ -1,6 +1,6 @@
 ---
 id: gate-tests-research-filter-directionality
-kind: story
+kind: feature
 status: active
 tags: [testing]
 parent: null
@@ -9,7 +9,7 @@ related_to: []
 research_refs: []
 mock_refs: []
 created: 2026-06-04
-updated: 2026-06-04
+updated: 2026-09-05
 ---
 # --research-origin / --research-refs not disambiguated end-to-end (shared fixture slug)
 

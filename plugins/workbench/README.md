@@ -122,7 +122,7 @@ acting. It asks only for consequential choices the repository cannot answer,
 routes through design if the implementation shape warrants it, and sends each
 ready feature or story through `deliver`. Each unit is verified promptly;
 related features can share an integrated review rather than receiving separate
-passes. Features and standalone stories stay active until that review,
+passes. Features stay active until that review,
 corrections, affected verification, and reconciliation are satisfied and the
 owner closes them. Nested stories may close after slice verification while their
 owning feature stays open for review. `work` integrates the delivered units and
@@ -180,15 +180,10 @@ conventions, skills, and references that own them.
 
 ### How agents organize work
 
-Agents use features as the normal delivery unit, not a mandatory review unit. An epic
-groups at least two independently meaningful feature outcomes. A story is a
-narrow independently verifiable slice. Features and stories may stand alone, so
-small work does not need wrapper items. Nested work follows
-`epic → feature → story` without skipping a tier.
-
-Agents create separate items only when those items need their own status,
-relationships, ownership, or cross-session history. Temporary agent tasks stay
-out of the ledger.
+Agents use features as the normal delivery unit, not a mandatory review unit.
+The [lifecycle reference](skills/work/references/lifecycle.md) defines item tiers,
+when to split work, and completion cleanup. Temporary agent tasks stay out of
+the ledger.
 
 Writing down an epic, feature, or story does not certify that it is fully
 designed. Before starting each item, the agent reads its current scope and the
@@ -463,7 +458,7 @@ architecture and principles in foundation documents.
 
 `work` remains the natural-language outcome owner for ambiguous, unscoped,
 multi-unit, and end-to-end requests. `deliver` is the bounded skill for one named
-implementation-ready feature or story. Features and standalone stories may share
+implementation-ready feature or story. Features may share
 an integrated review; nested stories return verification evidence to the owning
 feature instead of duplicating its review.
 

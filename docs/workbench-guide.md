@@ -211,7 +211,7 @@ That is usually a continuation, not a context switch. Settled scope and decision
 carry forward without repeated readiness checks or permission questions.
 
 Use `deliver` directly for one named active feature or story whose requirements
-and implementation shape are ready. A feature or standalone story receives its
+and implementation shape are ready. A feature receives its
 integrated review before closure, possibly shared with several other deliveries.
 Pending shared review keeps that item active. A story nested under a feature is an
 implementation slice: it closes after verification and leaves integrated review
@@ -299,10 +299,9 @@ the quality bar.
 
 Suppose you ask: *"Drive the onboarding epic to done."*
 
-Workbench does not treat every large request as an epic. A feature is the
-normal delivery unit, not a fixed review boundary. An epic groups at least two meaningful feature
-outcomes. A story is a narrow verifiable slice. Features and stories can stand
-alone, while nested work follows `epic → feature → story`.
+Workbench uses features as the normal delivery unit. For item hierarchy,
+splitting growing work, and completion cleanup, follow the
+[lifecycle guidance](../plugins/workbench/skills/work/references/lifecycle.md).
 
 1. **Read first.** The agent reads the repo, the conventions, and the epic
    before acting. If the stamped Workbench version differs from the loaded
@@ -339,7 +338,7 @@ alone, while nested work follows `epic → feature → story`.
    boundaries need no topology.
 6. **Deliver ready items.** Each ready feature or story routes through
    `deliver`. It reads relevant project patterns, writes only its owned surface,
-   and verifies behavior at stable interfaces. Features and standalone stories
+   and verifies behavior at stable interfaces. Features
    may share an integrated review checkpoint and stay active until acceptance.
    Nested stories return evidence to their owning feature instead of duplicating review. Orchestrated deliverers report
    stale patterns and credible promotion candidates instead of editing the
@@ -419,7 +418,7 @@ requests merely because they happen in the same repository:
 review-and-fix pass. The agent groups coherent work when shared context and
 integration visibility outweigh delayed feedback. It chooses earlier checkpoints
 when consequence, uncertainty, or context limits make a large pass less useful.
-Each delivery still receives prompt verification. Features and standalone stories
+Each delivery still receives prompt verification. Features
 remain active until their shared review, corrections, and acceptance are complete.
 A shared pass replaces per-feature passes rather than adding to them.
 

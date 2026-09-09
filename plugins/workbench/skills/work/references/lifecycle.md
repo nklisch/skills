@@ -3,6 +3,7 @@
 ## Contents
 
 - Item tiers
+- Decompose as work develops
 - Relationships and readiness
 - Item shape
 - Backlog-to-active transition
@@ -10,17 +11,20 @@
 
 ## Item tiers
 
-Use the smallest tier that matches the durable outcome. Optional depth prevents
-wrapper items, while strict nesting keeps each tier meaningful:
+Use the smallest tier that matches the durable outcome. Features may stand alone;
+epics and stories require their feature relationships:
 
 - A **feature** is the default delivery unit. Use one for
   a coherent capability, behavior change, or maintenance outcome. It may be
   top-level or belong to an epic.
 - An **epic** is a top-level outcome that needs at least two independently
-  meaningful feature outcomes. The features must be nameable, but they need not
-  all become active files before they need separate status or relationships.
-- A **story** is a narrow independently verifiable slice. It may be top-level or
-  belong to a feature, and it cannot have children.
+  meaningful feature outcomes and always decomposes into feature items. It holds
+  the shared outcome, feature links, cross-feature decisions, and integrated
+  acceptance—not the detailed execution or activity record. Create the owning
+  feature before its design or implementation proceeds. Every active epic has
+  feature children; do not leave an epic as an undecomposed execution file.
+- A **story** is a narrow independently verifiable slice that always belongs to
+  a feature through `parent`. It cannot stand alone or have children.
 
 Nested items follow `epic → feature → story` without skipping or reversing a
 tier. Do not create an epic for importance, uncertainty, or size alone. Do not
@@ -33,6 +37,26 @@ work:
 1. the outcome that becomes true;
 2. the included boundary and meaningful exclusions;
 3. the observable evidence that permits closure.
+
+## Decompose as work develops
+
+Features and stories are the detailed work records. Split a large feature into
+stories when distinct slices, remaining work, or follow-ups need their own status,
+acceptance evidence, or continuation context. Do not keep extending one feature
+file into a task ledger. A small coherent feature needs no stories.
+
+Create or revise children whenever the need becomes clear: during design,
+implementation, after a review wave, or on resume. Decomposition is not confined
+to initial planning and does not restart settled work. Move each slice's scope,
+design decisions, acceptance, and next actions into its owning child; leave only
+shared contracts, child links, and integrated acceptance in the parent. Attachments
+hold dense specifications, not a substitute task ledger.
+
+Accepted in-scope review follow-ups belong to the affected feature, with stories
+when separate tracking helps. Keep required corrections under an open feature
+until verified and integrated; creating stories does not discharge review or
+acceptance. For already closed work, create a new owning feature rather than
+referencing a deleted parent. Out-of-scope findings still need a selected handoff. Do not create an item per warning or temporary agent task.
 
 ## Relationships and readiness
 
@@ -62,7 +86,7 @@ The smallest active item uses:
 ```markdown
 ---
 id: fix-empty-search
-kind: story
+kind: feature
 status: active
 created: 2026-09-05
 updated: 2026-09-05
@@ -75,9 +99,9 @@ stays unchanged. Verify through the search API with empty and non-empty queries.
 
 Identity, kind, status, and dates remain explicit. `tags`, `blocked_by`,
 `related_to`, `research_refs`, and `mock_refs` are optional lists and default to
-empty when omitted. `parent` is optional and defaults to no parent. Add these
-fields when they carry information. Existing full-form items remain valid and
-need no migration or cosmetic rewriting. Supplied values still follow the same
+empty when omitted. `parent` is required for stories and defaults to no parent
+otherwise. Add optional fields when they carry information; full-form records
+remain valid when their hierarchy conforms. Supplied values still follow the same
 type, relationship, hierarchy, readiness, and reference rules.
 
 The body holds outcome, scope, and acceptance evidence in whatever concise shape
@@ -109,7 +133,7 @@ interrupted work or stale completion claims. At exit, reconcile affected items.
 Do not sweep unrelated active work as a delivery ceremony. Verify repository
 evidence before closing; a stale label does not establish completion.
 
-Features and standalone stories with review deferred to a shared checkpoint remain
+Features with review deferred to a shared checkpoint remain
 active. Preserve pending scope, owner, and next checkpoint in existing item prose
 under [review-boundaries.md](review-boundaries.md). Pending review alone does not
 create a blocked status or dependency. Verified nested stories may close under an
@@ -130,7 +154,10 @@ while their item is active, including pending review. Rebuild an existing knowle
 index after deletion.
 
 Before closure, remove the completed id from each active `blocked_by` and
-`related_to` list. Do not close a parent while active children remain. Run the
+`related_to` list. Close the final feature children and their accepted epic in
+the same sweep;
+retain any still-needed integration work in an owning feature until then. Do not
+close a parent while unfinished children remain. Run the
 Workbench validator
 after structural ledger changes. Never leave completed items active. Follow the
 effective [Git posture](git-posture.md). Ledger creation, state changes, review

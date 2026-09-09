@@ -350,6 +350,8 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
             errors.append(f"{rel}: item body needs content after its title")
 
         parent = data.get("parent")
+        if data.get("kind") == "story" and not parent:
+            errors.append(f"{rel}: story requires a feature parent")
         if parent is not None and not isinstance(parent, str):
             errors.append(f"{rel}: parent must be an item id or null")
         elif parent and parent not in active_ids:

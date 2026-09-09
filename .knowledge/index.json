@@ -1223,6 +1223,28 @@
       "relationships": []
     },
     {
+      "path": ".work/active/gate-docs-substrate-binary-generalize.md",
+      "namespace": "work",
+      "kind": "feature",
+      "id": "gate-docs-substrate-binary-generalize",
+      "title": "substrate-binary skill presents work-view as THE singular binary; research-view is now a 2nd instance",
+      "summary": null,
+      "updated": "2026-09-05",
+      "status": "active",
+      "relationships": []
+    },
+    {
+      "path": ".work/active/gate-tests-research-filter-directionality.md",
+      "namespace": "work",
+      "kind": "feature",
+      "id": "gate-tests-research-filter-directionality",
+      "title": "--research-origin / --research-refs not disambiguated end-to-end (shared fixture slug)",
+      "summary": null,
+      "updated": "2026-09-05",
+      "status": "active",
+      "relationships": []
+    },
+    {
       "path": ".work/releases/ux-ui-design-1.0.0.md",
       "namespace": "work",
       "kind": "release",
@@ -1242,28 +1264,6 @@
       "summary": null,
       "updated": null,
       "status": null,
-      "relationships": []
-    },
-    {
-      "path": ".work/active/gate-docs-substrate-binary-generalize.md",
-      "namespace": "work",
-      "kind": "story",
-      "id": "gate-docs-substrate-binary-generalize",
-      "title": "substrate-binary skill presents work-view as THE singular binary; research-view is now a 2nd instance",
-      "summary": null,
-      "updated": "2026-06-04",
-      "status": "active",
-      "relationships": []
-    },
-    {
-      "path": ".work/active/gate-tests-research-filter-directionality.md",
-      "namespace": "work",
-      "kind": "story",
-      "id": "gate-tests-research-filter-directionality",
-      "title": "--research-origin / --research-refs not disambiguated end-to-end (shared fixture slug)",
-      "summary": null,
-      "updated": "2026-06-04",
-      "status": "active",
       "relationships": []
     }
   ]

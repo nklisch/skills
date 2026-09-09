@@ -26,9 +26,9 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Before stateful work, compare workbench_version with the loaded plugin;
   on mismatch, recommend the appropriate update and setup reconciliation,
   but continue unless an actual incompatibility is encountered.
-- One active item per coherent outcome. Use features by default, epics for
-  multiple feature outcomes, and stories for narrow slices. Preserve
-  epic -> feature -> story when items nest.
+- Use features by default; follow the work skill's references/lifecycle.md for
+  hierarchy and splitting. Completion cleanup is mandatory: summarize or discard
+  per conventions, removing completed active files and attachments.
 - Keep independent items parallel. Use blocked_by only when serial work
   materially reduces rework, ambiguity, or integration risk.
 - Designs and reviews, including loose requests, must apply the current

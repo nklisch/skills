@@ -330,18 +330,14 @@ updated: YYYY-MM-DD
 
 Identity, kind, status, and dates are required. `tags`, `blocked_by`,
 `related_to`, `research_refs`, and `mock_refs` are optional lists that default
-to empty when omitted; `parent` is optional and defaults to no parent. Add
+to empty when omitted; `parent` is required for stories and otherwise defaults to no parent. Add
 these fields when they carry information. Existing full-form items that list
 every field remain valid and need no migration or cosmetic rewriting.
 [lifecycle.md](../../work/references/lifecycle.md) details relationships,
 readiness, and item shape.
 
-Only active and blocked may rest in `.work/active/`. A feature is the default
-delivery and integrated review unit. An epic is top-level and groups at least
-two nameable feature outcomes. A story is a narrow independently verifiable
-slice. Features may be top-level or belong to epics. Stories may be top-level
-or belong to features. Nested work follows `epic → feature → story` without
-skipping a tier.
+Only active and blocked may rest in `.work/active/`. Follow
+[lifecycle.md](../../work/references/lifecycle.md) for item tiers and decomposition.
 
 Every item starts with a Markdown title. It then includes outcome, scope, and
 observable acceptance meaning under

@@ -33,7 +33,7 @@ active item, and link the spec from that item using an ordinary repository path.
 
 ## Reconcile at delivery
 
-Before closing the owning feature or standalone story:
+Before closing the owning feature:
 
 - delete the spec when all behavior it describes is implemented and code now
   owns the structure;

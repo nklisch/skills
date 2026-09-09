@@ -210,20 +210,17 @@ updated: YYYY-MM-DD
 ```
 
 Empty metadata need not be written. Optional `tags`, `blocked_by`, `related_to`,
-`research_refs`, and `mock_refs` default to empty lists. Optional `parent` defaults
+`research_refs`, and `mock_refs` default to empty lists. `parent` is required for stories and otherwise defaults
 to no parent. Supplied values retain their type, hierarchy, readiness, and reference
 rules. Full-form records remain valid; existing items need no migration or
 cosmetic rewriting. The body communicates outcome, boundary, and acceptance
 without required section furniture. Decisions and next actions appear only when
 useful for continuation.
 
-A feature is the default delivery unit, not a mandatory review unit. An epic is a
-top-level outcome with at least two independently meaningful feature outcomes
-that can be named. A story is a narrow independently verifiable slice. Features
-may be top-level or belong to epics. Stories may be top-level or belong to
-features. Nested hierarchy follows `epic → feature → story` without skipping or
-reversing a tier. Skills and review judge whether an item's meaning fits its
-tier. The validator enforces structural parent-kind pairs.
+A feature is the default delivery unit, not a mandatory review unit. The
+[lifecycle reference](../skills/work/references/lifecycle.md) owns item tiers,
+decomposition, and mandatory completion cleanup. The validator checks structural
+parent-kind pairs and requires a feature parent for every active story.
 
 `blocked_by` records deliberate queue order. Use an edge for a hard prerequisite
 or when serial work materially reduces rework, ambiguity, or integration risk.
@@ -263,7 +260,7 @@ independently meaningful outcomes.
 ## Completion
 
 Completed work never remains active. Implementation alone is not completion:
-features and standalone stories remain active while their chosen shared review
+features remain active while their chosen shared review
 is pending. The outcome owner closes them after that review, corrections,
 affected verification, and foundation reconciliation are satisfied. Nested
 stories may close after slice verification; their owning feature remains open
@@ -566,7 +563,7 @@ integration behavior that separate reviews miss, but larger targets are not
 universally better for every model. Keep the boundary small enough to inspect
 credibly. No schema key, batch object, or separate ledger is introduced.
 
-Verify each implementation unit promptly. Features and standalone stories stay
+Verify each implementation unit promptly. Features stay
 active pending their chosen shared review; the outcome owner closes them after
 review, corrections, affected verification, and reconciliation. A story nested
 under a feature remains the exception: `deliver` verifies and closes the slice,
