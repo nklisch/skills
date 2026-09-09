@@ -57,6 +57,25 @@ bans or word-count caps. Remove empty hype and needless complexity, not voice.
   or operation. Discourage it otherwise. Prefer the resolved decision,
   constraint, or risk over its history.
 
+### Authority in retained summaries
+
+Use these terms when an item contains summaries or orientation prose whose
+authority could otherwise be ambiguous:
+
+- **Current** governs present work or status.
+- **Reference-only** retains context but does not govern status, decisions, or
+  remaining work. A reference-only summary contains no mutable pending or current
+  status and points readers to the authoritative current decision or remaining-work
+  section.
+- **Settled** is accepted and remains authoritative.
+- **Superseded** has been replaced and is no longer accurate; normally remove or
+  rewrite it instead of retaining it as orientation.
+
+Use `reference-only` as the primary label. Do not substitute `archival`,
+`historic`, or `preserved`: those words can imply unrelated lifecycle or authority
+semantics. Express the distinction in ordinary prose, not frontmatter, item state,
+queue state, or validator schema.
+
 ### Concept grounding
 
 - Treat a document, or an ordered collection of documents, as a reader will
