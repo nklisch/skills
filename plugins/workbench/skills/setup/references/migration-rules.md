@@ -66,10 +66,10 @@ unmanaged and map only the useful material the user chooses through the table
 above.
 
 Normalize active items using the
-[lifecycle hierarchy](../../work/references/lifecycle.md#item-tiers). A standalone
-legacy story becomes a feature unless an existing feature clearly owns its slice.
-Decompose an epic into its real feature outcomes rather than preserving one large
-activity record.
+[lifecycle hierarchy](../../work/references/lifecycle.md#item-tiers). Preserve
+standalone stories for small bugs or small items; feature slices belong to their
+owning feature. Decompose an epic into its real feature outcomes rather than
+preserving one large activity record.
 
 Demote or reparent an item when its meaning makes the correction clear. Ask when
 several corrections would change the intended outcome. Do not invent child

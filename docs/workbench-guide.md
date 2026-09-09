@@ -211,7 +211,7 @@ That is usually a continuation, not a context switch. Settled scope and decision
 carry forward without repeated readiness checks or permission questions.
 
 Use `deliver` directly for one named active feature or story whose requirements
-and implementation shape are ready. A feature receives its
+and implementation shape are ready. A feature or standalone story receives its
 integrated review before closure, possibly shared with several other deliveries.
 Pending shared review keeps that item active. A story nested under a feature is an
 implementation slice: it closes after verification and leaves integrated review
@@ -338,7 +338,7 @@ splitting growing work, and completion cleanup, follow the
    boundaries need no topology.
 6. **Deliver ready items.** Each ready feature or story routes through
    `deliver`. It reads relevant project patterns, writes only its owned surface,
-   and verifies behavior at stable interfaces. Features
+   and verifies behavior at stable interfaces. Features and standalone stories
    may share an integrated review checkpoint and stay active until acceptance.
    Nested stories return evidence to their owning feature instead of duplicating review. Orchestrated deliverers report
    stale patterns and credible promotion candidates instead of editing the
@@ -418,7 +418,7 @@ requests merely because they happen in the same repository:
 review-and-fix pass. The agent groups coherent work when shared context and
 integration visibility outweigh delayed feedback. It chooses earlier checkpoints
 when consequence, uncertainty, or context limits make a large pass less useful.
-Each delivery still receives prompt verification. Features
+Each delivery still receives prompt verification. Features and standalone stories
 remain active until their shared review, corrections, and acceptance are complete.
 A shared pass replaces per-feature passes rather than adding to them.
 

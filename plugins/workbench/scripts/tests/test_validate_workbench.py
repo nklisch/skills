@@ -657,7 +657,7 @@ updated: 2026-07-24
         self.assertEqual(result.returncode, 1)
         self.assertIn("noncanonical work directory", result.stdout)
 
-    def test_feature_root_and_nested_hierarchy_passes(self) -> None:
+    def test_exact_optional_depth_hierarchy_passes(self) -> None:
         root = self.make_project()
         self.write_active_item(root, "epic-parent", kind="epic")
         self.write_active_item(
@@ -666,19 +666,9 @@ updated: 2026-07-24
         self.write_active_item(
             root, "story-child", kind="story", parent="feature-child"
         )
+        self.write_active_item(root, "story-standalone", kind="story")
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-    def test_story_requires_parent(self) -> None:
-        for parent_line in ("parent: null\n", "parent: \n", ""):
-            with self.subTest(parent_line=parent_line):
-                root = self.make_project()
-                self.write_active_item(root, "orphan", kind="story")
-                item = root / ".work/active/orphan.md"
-                write(item, item.read_text().replace("parent: null\n", parent_line))
-                result = self.run_validator(root)
-                self.assertEqual(result.returncode, 1)
-                self.assertIn("story requires a feature parent", result.stdout)
 
     def test_skipped_hierarchy_tier_fails(self) -> None:
         root = self.make_project()

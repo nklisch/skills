@@ -14,9 +14,9 @@ Finish one ready feature or story. This is the implementation capability inside
 [work](../work/SKILL.md)'s continuous flow, and a direct entry point for a named
 ready item. It does not add a plan, handoff, worker, or maintenance phase.
 
-Epics coordinate and always have feature children; features may stand alone,
-but stories always belong to a feature. Split large features into stories as
-needed during design, implementation, or review follow-up; keep detailed work in
+Epics coordinate and always have feature children. Features may stand alone;
+stories may also stand alone for small bugs or small items. Split large features
+into child stories during design, implementation, or review follow-up; keep work in
 those children, not one parent file. Completion cleanup is mandatory: summarize
 or discard per conventions and remove completed active files and attachments.
 See [lifecycle](../work/references/lifecycle.md) for the full rules.
@@ -48,7 +48,7 @@ actual gap. A local technical discovery does not make the whole item unready.
 - **Assigned delivery:** `work` points to the recorded item contract and supplies
   the parent outcome, owned write surface, review checkpoint and owner, Git posture,
   and return evidence. The briefing supplements the item rather than replaces it.
-  Keep features active when review belongs to a later shared
+  Keep features and standalone stories active when review belongs to a later shared
   checkpoint. Verified nested stories may close under their open owning feature.
   Do not write the shared pattern catalog or close the parent. Parentage alone
   does not imply assignment.
@@ -108,7 +108,7 @@ this item's closure.
 
 Establish a coherent commit range or bounded working-tree diff for review:
 
-- **Feature:** apply [review](../work/references/review.md)
+- **Feature or standalone story:** apply [review](../work/references/review.md)
   to the integrated code and affected foundations at the chosen checkpoint. Under
   a shared review, return verified work and pending review scope to `work` instead
   of adding a per-item pass. Keep the item active until shared acceptance.

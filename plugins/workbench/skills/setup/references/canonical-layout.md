@@ -330,7 +330,7 @@ updated: YYYY-MM-DD
 
 Identity, kind, status, and dates are required. `tags`, `blocked_by`,
 `related_to`, `research_refs`, and `mock_refs` are optional lists that default
-to empty when omitted; `parent` is required for stories and otherwise defaults to no parent. Add
+to empty when omitted; `parent` is optional and defaults to no parent. Add
 these fields when they carry information. Existing full-form items that list
 every field remain valid and need no migration or cosmetic rewriting.
 [lifecycle.md](../../work/references/lifecycle.md) details relationships,

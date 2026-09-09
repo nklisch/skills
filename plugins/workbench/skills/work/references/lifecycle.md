@@ -11,8 +11,8 @@
 
 ## Item tiers
 
-Use the smallest tier that matches the durable outcome. Features may stand alone;
-epics and stories require their feature relationships:
+Use the smallest tier that matches the durable outcome. Features and small
+stories may stand alone; epics always decompose into features:
 
 - A **feature** is the default delivery unit. Use one for
   a coherent capability, behavior change, or maintenance outcome. It may be
@@ -23,8 +23,9 @@ epics and stories require their feature relationships:
   acceptance—not the detailed execution or activity record. Create the owning
   feature before its design or implementation proceeds. Every active epic has
   feature children; do not leave an epic as an undecomposed execution file.
-- A **story** is a narrow independently verifiable slice that always belongs to
-  a feature through `parent`. It cannot stand alone or have children.
+- A **story** is a narrow independently verifiable slice. It may stand alone for
+  a small bug or small item. A slice of a larger feature belongs to that feature
+  through `parent`. Stories cannot have children.
 
 Nested items follow `epic → feature → story` without skipping or reversing a
 tier. Do not create an epic for importance, uncertainty, or size alone. Do not
@@ -55,8 +56,9 @@ hold dense specifications, not a substitute task ledger.
 Accepted in-scope review follow-ups belong to the affected feature, with stories
 when separate tracking helps. Keep required corrections under an open feature
 until verified and integrated; creating stories does not discharge review or
-acceptance. For already closed work, create a new owning feature rather than
-referencing a deleted parent. Out-of-scope findings still need a selected handoff. Do not create an item per warning or temporary agent task.
+acceptance. For already closed work, create a new feature or standalone story
+rather than referencing a deleted parent. Out-of-scope findings still need a
+selected handoff. Do not create an item per warning or temporary agent task.
 
 ## Relationships and readiness
 
@@ -86,7 +88,7 @@ The smallest active item uses:
 ```markdown
 ---
 id: fix-empty-search
-kind: feature
+kind: story
 status: active
 created: 2026-09-05
 updated: 2026-09-05
@@ -99,8 +101,7 @@ stays unchanged. Verify through the search API with empty and non-empty queries.
 
 Identity, kind, status, and dates remain explicit. `tags`, `blocked_by`,
 `related_to`, `research_refs`, and `mock_refs` are optional lists and default to
-empty when omitted. `parent` is required for stories and defaults to no parent
-otherwise. Add optional fields when they carry information; full-form records
+empty when omitted. `parent` is optional and defaults to no parent. Add optional fields when they carry information; full-form records
 remain valid when their hierarchy conforms. Supplied values still follow the same
 type, relationship, hierarchy, readiness, and reference rules.
 
@@ -133,7 +134,7 @@ interrupted work or stale completion claims. At exit, reconcile affected items.
 Do not sweep unrelated active work as a delivery ceremony. Verify repository
 evidence before closing; a stale label does not establish completion.
 
-Features with review deferred to a shared checkpoint remain
+Features and standalone stories with review deferred to a shared checkpoint remain
 active. Preserve pending scope, owner, and next checkpoint in existing item prose
 under [review-boundaries.md](review-boundaries.md). Pending review alone does not
 create a blocked status or dependency. Verified nested stories may close under an

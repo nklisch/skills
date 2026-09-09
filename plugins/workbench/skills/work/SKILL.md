@@ -14,9 +14,9 @@ Carry the user's natural-language outcome to its requested finish line. Keep one
 continuous conversation and one outcome owner. Skills supply capabilities, not
 stages the user or agent must repeatedly enter and leave.
 
-Epics coordinate and always have feature children; features may stand alone,
-but stories always belong to a feature. Split large features into stories as
-needed during design, implementation, or review follow-up; keep detailed work in
+Epics coordinate and always have feature children. Features may stand alone;
+stories may also stand alone for small bugs or small items. Split large features
+into child stories during design, implementation, or review follow-up; keep work in
 those children, not one parent file. Completion cleanup is mandatory: summarize
 or discard per conventions and remove completed active files and attachments.
 See [lifecycle](references/lifecycle.md) for the full rules.
@@ -158,7 +158,7 @@ boundaries, never ledger-transition commits or cosmetic shared-history rewrites.
 ## Finish the accepted boundary
 
 Apply [deliver](../deliver/SKILL.md)'s verification, reconciliation, review, and
-closure rules. Features may share an integrated review
+closure rules. Features and standalone stories may share an integrated review
 checkpoint. Keep them active until their selected review and acceptance are
 satisfied. Nested stories return verified slice evidence to their feature.
 Review wider integration only for substantive behavior not already covered.
