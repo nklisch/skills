@@ -217,13 +217,10 @@ cosmetic rewriting. The body communicates outcome, boundary, and acceptance
 without required section furniture. Decisions and next actions appear only when
 useful for continuation.
 
-A feature is the default delivery unit, not a mandatory review unit. An epic is a
-top-level outcome with at least two independently meaningful feature outcomes
-that can be named. A story is a narrow independently verifiable slice. Features
-may be top-level or belong to epics. Stories may be top-level or belong to
-features. Nested hierarchy follows `epic → feature → story` without skipping or
-reversing a tier. Skills and review judge whether an item's meaning fits its
-tier. The validator enforces structural parent-kind pairs.
+A feature is the default delivery unit, not a mandatory review unit. The
+[lifecycle reference](../skills/work/references/lifecycle.md) owns item tiers,
+decomposition, and mandatory completion cleanup. The validator checks structural
+parent-kind pairs when items nest.
 
 `blocked_by` records deliberate queue order. Use an edge for a hard prerequisite
 or when serial work materially reduces rework, ambiguity, or integration risk.

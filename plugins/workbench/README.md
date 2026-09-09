@@ -180,15 +180,10 @@ conventions, skills, and references that own them.
 
 ### How agents organize work
 
-Agents use features as the normal delivery unit, not a mandatory review unit. An epic
-groups at least two independently meaningful feature outcomes. A story is a
-narrow independently verifiable slice. Features and stories may stand alone, so
-small work does not need wrapper items. Nested work follows
-`epic → feature → story` without skipping a tier.
-
-Agents create separate items only when those items need their own status,
-relationships, ownership, or cross-session history. Temporary agent tasks stay
-out of the ledger.
+Agents use features as the normal delivery unit, not a mandatory review unit.
+The [lifecycle reference](skills/work/references/lifecycle.md) defines item tiers,
+when to split work, and completion cleanup. Temporary agent tasks stay out of
+the ledger.
 
 Writing down an epic, feature, or story does not certify that it is fully
 designed. Before starting each item, the agent reads its current scope and the

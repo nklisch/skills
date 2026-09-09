@@ -299,10 +299,9 @@ the quality bar.
 
 Suppose you ask: *"Drive the onboarding epic to done."*
 
-Workbench does not treat every large request as an epic. A feature is the
-normal delivery unit, not a fixed review boundary. An epic groups at least two meaningful feature
-outcomes. A story is a narrow verifiable slice. Features and stories can stand
-alone, while nested work follows `epic → feature → story`.
+Workbench uses features as the normal delivery unit. For item hierarchy,
+splitting growing work, and completion cleanup, follow the
+[lifecycle guidance](../plugins/workbench/skills/work/references/lifecycle.md).
 
 1. **Read first.** The agent reads the repo, the conventions, and the epic
    before acting. If the stamped Workbench version differs from the loaded

@@ -14,6 +14,13 @@ Finish one ready feature or story. This is the implementation capability inside
 [work](../work/SKILL.md)'s continuous flow, and a direct entry point for a named
 ready item. It does not add a plan, handoff, worker, or maintenance phase.
 
+Epics coordinate and always have feature children. Features may stand alone;
+stories may also stand alone for small bugs or small items. Split large features
+into child stories during design, implementation, or review follow-up; keep work in
+those children, not one parent file. Completion cleanup is mandatory: summarize
+or discard per conventions and remove completed active files and attachments.
+See [lifecycle](../work/references/lifecycle.md) for the full rules.
+
 ## Pick up the outcome, not a new workflow
 
 For direct entry, confirm Workbench ownership and read conventions, project
