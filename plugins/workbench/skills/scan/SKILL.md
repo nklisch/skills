@@ -85,8 +85,11 @@ delivery review, not scan depth.
 Before a scan requiring multiple sub-agents, follow
 [model alignment](../work/references/execution-posture.md#align-models-before-multi-subagent-execution).
 Choose from actual availability with the user, considering coverage, evidence
-quality, and cost. Initial scanner output remains candidate evidence regardless
-of model. Use focused adjudication when disputed or high-consequence findings
+quality, and cost. Follow
+[model tendencies](../work/references/model-tendencies.md): spend the initial
+budget on coverage, lane ownership, and evidence, and reserve stronger judgment
+for adjudicating the bounded candidate set. Initial scanner output remains
+candidate evidence regardless of model. Use focused adjudication when disputed or high-consequence findings
 warrant it, not as a mandatory extra pass.
 
 State a compact plan before a campaign: scope, selected lenses, rough scanner

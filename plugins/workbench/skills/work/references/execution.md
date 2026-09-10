@@ -19,13 +19,20 @@ to maintain ownership and integration in the relevant active item:
   - Verification:
 ```
 
+A hard dependency belongs in `blocked_by` only when proceeding would make useful
+execution invalid. A soft dependency means coordination would help, but the unit
+can proceed under an explicit assumption and reconcile later; record it as
+related context, never as an edge.
+
 When an epic or broad feature set earns durable continuation or integration
 state, read [delivery-topology.md](delivery-topology.md). Choose one owner and
 keep its `## Delivery topology` current as evidence changes the run.
 
 Keep tightly coupled work in one context. Delegate or parallelize only when
 independent focus, specialized capability, isolation, or throughput exceeds
-handoff and integration cost. Before multi-subagent execution, follow
+handoff and integration cost. Never map item, checklist, or line counts to a
+number of agents; actual work independence decides that. Before multi-subagent
+execution, follow
 [model alignment](execution-posture.md#align-models-before-multi-subagent-execution).
 Apply [execution-posture.md](execution-posture.md) first. Under `inline`, the
 main agent performs every unit sequentially in its current context while still
@@ -66,6 +73,10 @@ Use the shared context and canonical boundary instruction from
 the orchestrator already loaded. Deliverers report stale patterns and promotion
 candidates. Keep the shared pattern catalog in the outcome owner's write surface
 so parallel units do not collide.
+
+Sub-agents do not spawn sub-agents. A fresh reviewer does not implement its own
+findings unless the orchestrator explicitly returns the work to an
+implementation unit.
 
 The orchestrator must inspect returned changes, reconcile interfaces and
 assumptions, run integrated checks, and continue across completed units until

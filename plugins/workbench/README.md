@@ -462,6 +462,16 @@ implementation-ready feature or story. Features and standalone stories may share
 an integrated review; nested stories return verification evidence to the owning
 feature instead of duplicating its review.
 
+## Evidence depth
+
+`evidence_depth` sets how much behavioral evidence a change must produce before
+it counts as done. It may be `lean`, `standard`, or `deep`, and missing
+configuration uses `standard`. It scales verification breadth, mockup inspection,
+and pattern-harvest reach. It does not control review passes (`review_weight`),
+reduction reach (`simplification_posture`), or the research substrate's semantic
+gates (`verification_rigor`). No depth permits invented evidence, ignored
+failures, weakened tests, or unverified completion.
+
 ## Commit posture
 
 Commit boundaries represent meaningful changes, not Workbench item transitions.

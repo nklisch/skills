@@ -1,5 +1,13 @@
 # Maintenance and Simplification
 
+## Contents
+
+- Cleanup work
+- Pattern lifecycle
+- Pattern shape
+
+## Cleanup work
+
 Use this reference both for cleanup embedded in delivery and for standalone
 cleanup, simplification, refactor, or technical-debt outcomes. Read
 [simplification.md](simplification.md) first and apply the effective posture.
@@ -75,3 +83,45 @@ behavior-preserving cleanup before integrated review. A confirmed pattern
 records the recurring problem, preferred shape, repository benefit, real
 consumers or examples, and exceptions. Generic stack advice, mechanical
 formatting, and architecture or principle truth belong elsewhere.
+
+## Pattern shape
+
+The effective `evidence_depth` sets the reach of candidate evidence gathering:
+`lean` records only an obvious, high-value candidate; `standard` checks touched
+code and nearby consumers; `deep` may examine relevant packages.
+
+Recurrence makes a candidate real. Roughly a third genuine occurrence of the
+same shape, solving the same class of problem for the same underlying reason, is
+strong evidence. One implementation is never a pattern.
+
+Each `.agents/skills/patterns/<slug>.md` reference carries:
+
+```markdown
+# <Pattern name>
+
+> <One-line description of the recurring structure.>
+
+## Why it exists
+
+<Project-specific problem and trade-off.>
+
+## Evidence
+
+- `path/file:line` — <role in the pattern>
+
+## Shape
+
+<Boundaries, data flow, ownership, or sequence that defines the pattern.>
+
+## Use when
+
+- <circumstance, and the exception or competing pattern that overrides it>
+
+## Meaningful drift
+
+<How to recognize divergence worth investigating.>
+```
+
+Prefer file references and structural explanations to large copied snippets,
+which stale quickly. Update an existing pattern when its shape or exceptions
+change, consolidating near-duplicates instead of accumulating them.

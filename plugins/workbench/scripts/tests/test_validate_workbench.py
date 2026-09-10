@@ -496,6 +496,42 @@ updated: 2026-07-24
                 self.assertIn("commit_posture must be", result.stdout)
                 self.assertNotIn("Traceback", result.stderr)
 
+    def test_evidence_depth_is_optional_and_validated(self) -> None:
+        for depth in ("lean", "standard", "deep"):
+            with self.subTest(depth=depth):
+                root = self.make_project()
+                path = root / ".work/CONVENTIONS.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "commit_posture: adaptive",
+                        f"commit_posture: adaptive\nevidence_depth: {depth}",
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        root = self.make_project()
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_invalid_evidence_depth_fails_cleanly(self) -> None:
+        for value in ("rigorous", "[deep]"):
+            with self.subTest(value=value):
+                root = self.make_project()
+                path = root / ".work/CONVENTIONS.md"
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "commit_posture: adaptive",
+                        f"commit_posture: adaptive\nevidence_depth: {value}",
+                    ),
+                    encoding="utf-8",
+                )
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("evidence_depth must be", result.stdout)
+                self.assertNotIn("Traceback", result.stderr)
+
     def test_unresolved_dependency_fails(self) -> None:
         root = self.make_project()
         path = root / ".work/active/example.md"

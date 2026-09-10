@@ -83,7 +83,7 @@ simplification posture, autonomy, documentation conventions including
 engineering-foundation coverage and representation for a software bootstrap,
 the overbuilding calibration, and `docs/PRINCIPLES.md` — plus every optional
 configuration as an explicit opt-in, decline, or defer choice:
-`execution_posture`, `commit_posture`, `release_gates`, prose preferences for
+`execution_posture`, `commit_posture`, `evidence_depth`, `release_gates`, prose preferences for
 review boundaries and optional design review, Workbench recognition of a
 user-owned roadmap, and the `CLAUDE.md` compatibility projection — and
 the conditional choices whose condition holds. Ground each recommendation in

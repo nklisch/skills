@@ -131,6 +131,18 @@ machinery, not a project preference. Explicit user direction overrides the proje
 posture, ledger transitions never require their own commits, and squashing is advisory
 and safe only for clearly owned history.
 
+### Evidence depth
+
+`evidence_depth`: `lean`, `standard`, or `deep` —
+[verification.md](../../work/references/verification.md) owns its semantics.
+It controls the behavioral evidence a change must produce: verification breadth,
+mockup inspection, and pattern-harvest reach. It is separate from
+`review_weight` (passes and convergence), `simplification_posture` (reduction
+reach), and the research substrate's `verification_rigor` (semantic gates on
+research artifacts). Recommend `standard`; recommend another depth only with
+concrete consequence, operating, or audience evidence. Declined or deferred
+remains absent and resolves to `standard`.
+
 ### Release gates
 
 Absent or empty `release_gates` means Workbench adds no gates. When the user is

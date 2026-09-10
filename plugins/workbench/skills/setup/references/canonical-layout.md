@@ -105,6 +105,7 @@ simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
 execution_posture: inline|adaptive|orchestrated  # optional; missing means adaptive
 commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
+evidence_depth: lean|standard|deep  # optional; missing means standard
 roadmap: true|false  # optional; missing means false
 release_gates:       # optional; missing or empty means disabled
   - compatibility
