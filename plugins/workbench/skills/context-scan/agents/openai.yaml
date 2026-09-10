@@ -1,0 +1,6 @@
+interface:
+  display_name: "Context Scanner"
+  short_description: "Assess task context and prepare bounded remediation"
+  default_prompt: "Use $context-scan to assess this task's context and prepare eligible remediation at the default high threshold."
+policy:
+  allow_implicit_invocation: true
