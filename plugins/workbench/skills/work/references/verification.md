@@ -83,6 +83,8 @@ blocked. Fix incidental defects within scope only when they block or are caused
 by the delivery and the correction is cohesive. Park unrelated defects with
 reproduction evidence.
 
+## Agent-workflow changes
+
 For agent-workflow changes, check the instructions against representative tasks
 before adding more workflow machinery. Useful cases include a small fix, an
 ambiguous feature, multi-feature integration, and interrupted/resumed delivery.
@@ -92,6 +94,15 @@ value, and ledger clarity. Use existing runs where available. Label instruction
 walkthroughs as walkthroughs, not observed delivery results. Keep this evidence
 in the work record or chat, without new telemetry, counters, or a benchmark
 system. Prefer correcting observed friction over adding speculative controls.
+
+After an accepted or revised design-decision edit, perform a focused integrity
+self-check across the owning item: confirm the decision is recorded, every
+dependent statement agrees, the queue names only the residual delta, affected
+verification is updated, and unrelated settled or unresolved work is unchanged.
+This is acceptance-edit verification, not a separate design-review pass, and it
+remains required when no separate design review was selected. Use the
+[decision-reconciliation walkthrough](../../design/references/decision-reconciliation-walkthrough.md)
+for the known all-50 routing-default regression.
 
 Do not declare completion while required verification fails or a consequential
 blocker remains.

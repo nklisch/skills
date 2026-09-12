@@ -121,11 +121,36 @@ designer, which may be the current owner, to revise the same item. Do not recons
 an undocumented design in the implementer's briefing. Preserve useful partial design
 and unresolved questions in the item before interruption or return.
 
-During delivery, revise only the decision affected by new evidence and inspect its
-dependents. Preserve unaffected scope, accepted decisions, and completed evidence.
-A revised local assumption does not trigger a full design rewrite or reapproval.
-A material boundary or guarantee change does require its appropriate authority
-and reconsideration of the aligned review approach before expensive implementation.
+After accepting or revising a decision, search the entire owning item for that
+decision's subject and reconcile each dependent statement. Inspect overview and
+status summaries, design narrative, accepted or settled decisions, actionable or
+remaining-work queues, verification plans, and continuation notes or handoffs.
+This is focused dependency inspection for the affected decision, not permission
+to rewrite the whole design. Preserve unrelated scope, settled decisions, evidence,
+and genuinely unresolved neighboring work.
+
+Name the exact unresolved delta in actionable or remaining-work queues rather
+than the broader design subject. Queue wording must not imply that an accepted
+sub-decision is pending. When the delta overlaps a settled subject, state the
+accepted boundary briefly enough to prevent a later agent from reopening it.
+For example, after curve-envelope and anchor-position decisions settle, name the
+remaining handle construction and retry ordering instead of saying only that
+"curve fitting remains."
+
+Use [writing style](../work/references/writing-style.md#authority-in-retained-summaries)
+when retaining orientation prose that no longer governs the item. Apply the
+focused decision-integrity self-check from
+[verification](../work/references/verification.md#agent-workflow-changes) after
+each acceptance edit. This check is part of applying the edit even when the run
+declined a separate design-review pass; it does not consume another review pass.
+Use the linked
+[decision-reconciliation walkthrough](references/decision-reconciliation-walkthrough.md)
+as the regression case for this rule.
+
+During delivery, revise only the decision affected by new evidence. A revised
+local assumption does not trigger a full design rewrite or reapproval. A material
+boundary or guarantee change does require its appropriate authority and
+reconsideration of the aligned review approach before expensive implementation.
 An uncertain label cannot hide that consequence. Continue independent authorized work when possible.
 
 Follow [foundation truth](../work/references/foundation-truth.md) when a decision
