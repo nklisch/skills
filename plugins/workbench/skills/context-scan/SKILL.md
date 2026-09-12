@@ -120,8 +120,10 @@ another routine confirmation, within existing task authority:
 
 - Preserve continuation state in the existing owning work item: accepted scope,
   current decisions, relevant file pointers, verified versus pending work,
-  unresolved questions, and the next concrete action. Recommend a fresh session
-  when useful; do not create a new user-owned task or end this session automatically.
+  unresolved questions, and the next concrete action. If no owning work item
+  exists, return a compact conversational continuation handoff; do not create an
+  item solely for the scan. Recommend a fresh session when useful; do not create
+  a new user-owned task or end this session automatically.
 - For overloaded workstreams, prepare a design handoff using [work](../work/SKILL.md)
   and its [lifecycle](../work/references/lifecycle.md). Reuse existing items; split
   only where useful ownership boundaries are clear. Preserve dependencies and
