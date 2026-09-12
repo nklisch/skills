@@ -69,6 +69,7 @@ One named implementation-ready feature or story → deliver
 work owns the continuous outcome, drawing on design and deliver as needed
 
 Look for or investigate opportunities ─→ scan ─→ selected handoff
+Run context scanner ──────────────────→ context-scan ─→ rated recovery actions
 Useful but out of scope ───────────────→ park
 Completed outcomes ───────────────────→ release (optional scan-lens gates)
 External evidence needed ─────────────→ research ─→ confirmed handoff
@@ -707,6 +708,29 @@ offer that option and explain the benefit and maintenance cost. It never
 promotes a skill during an autonomous run and never creates or changes one
 without explicit approval.
 
+## Check a task's context
+
+Request `context-scan` or "run context scanner" when accumulated material may be
+obscuring the current work. One diagnostic sub-agent assesses the available task
+context and returns an overall warning, individually rated findings, evidence,
+confidence, and suggested recovery. File counts and session length are signals;
+the scanner looks for their effect on decisions and unfinished work.
+
+An optional `none`, `low`, `medium`, `high`, or `critical` selects the minimum
+finding severity for automatic remediation in that invocation. The default is
+`high`; `context-scan none` returns advice only. Eligibility applies per finding,
+so an overall high warning does not authorize action on unrelated low findings.
+See [context-scan](skills/context-scan/SKILL.md) for the rating and action contract.
+
+Eligible actions prepare continuation or design handoffs within existing task
+authority. Instruction rewrites are proposed only in a separate branch and
+isolated checkout, with a diff for user review before application. If that
+isolation is unavailable, automatic rewriting is skipped and requires an explicit
+request to pursue. The scanner reports limited visibility and cannot promise
+exact context usage when the host does not expose it. If a sub-agent is
+unavailable, it provides a labeled limited inline assessment without automatic
+remediation. It runs on request, without a monitoring hook.
+
 ## The skills
 
 | Skill | Use it when |
@@ -718,6 +742,7 @@ without explicit approval.
 | [`work`](skills/work/SKILL.md) | Scoping and owning a clear outcome, multi-unit boundary, epic, or group of epics. |
 | [`park`](skills/park/SKILL.md) | Preserving a useful finding without expanding current work. |
 | [`scan`](skills/scan/SKILL.md) | Investigating project concerns, verifying and clustering opportunities, and asking which findings should survive as handoffs. |
+| [`context-scan`](skills/context-scan/SKILL.md) | Checking the current task's context and preparing recovery for findings at the requested severity threshold. |
 | [`release`](skills/release/SKILL.md) | Summarizing completed outcomes, optionally applying project-defined scan lenses as release gates, then cleaning retained completion files. It does not tag, publish, or deploy. |
 | [`research`](skills/research/SKILL.md) | Investigating an external, unstable, unfamiliar, contested, or decision-relevant question. |
 | [`research-handoff`](skills/research-handoff/SKILL.md) | Turning selected research findings into proposed Workbench outcomes. |
