@@ -50,6 +50,22 @@ For a clear request:
 4. Verify behavior, reconcile affected truth, and review the coherent result.
 5. Close completed work and report the result in chat.
 
+```mermaid
+flowchart TD
+    A["Natural-language outcome"] --> B{"Outcome or scope still unformed?"}
+    B -- yes --> C["ideate, write-free"]
+    C --> D["Settle requirements; create or reuse the smallest item"]
+    B -- no --> D
+    D --> E{"Consequential implementation choice?"}
+    E -- yes --> F["design: author the decisions in the item"]
+    F --> G["deliver: implement and verify"]
+    E -- no --> G
+    G --> H["Integrate, review at the aligned boundary, reconcile truth"]
+    H --> I{"Requested boundary complete?"}
+    I -- no --> D
+    I -- yes --> J["Close items and report in chat"]
+```
+
 Read delivery guidance when implementation starts, then apply it across ready
 units without reloading or reenacting a handoff. For one item, its owner carries
 the whole path. For several items, retain wider integration and acceptance here.
@@ -185,6 +201,7 @@ the user requests them. Keep questions, proposals, and progress out of foundatio
 Load these only when relevant, reusing unchanged guidance already in context:
 
 - runner choice → [execution posture](references/execution-posture.md);
+- model and effort proposals → [model tendencies](references/model-tendencies.md);
 - any design, implementation, or Workbench review →
   [simplification](references/simplification.md), including project calibration;
 - verification and review → [verification](references/verification.md) and

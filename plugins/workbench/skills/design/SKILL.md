@@ -166,8 +166,11 @@ owner and cleanup condition. Ordinary design does not create new provisional spe
 
 ## Review and continue
 
-Self-check requirements, scope, assumptions, alternatives, unnecessary complexity,
-verification, and recovery. A separate design review is optional. Apply
+Self-check whether the design solves the right problem with the best justified
+approach, considers consequential details, and reuses the right repository systems.
+Apply [design review priorities](../work/references/design-review.md): correctness
+is a necessary baseline, not the main purpose of design review. A separate design
+review is optional. Apply
 [review boundaries](../work/references/review-boundaries.md) to align no separate
 pass, selected-decision review, or broader review once with the user for this run.
 Reuse explicit direction or confirmed standing alignment without another question.

@@ -155,6 +155,7 @@ simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
 execution_posture: inline|adaptive|orchestrated  # optional; missing means adaptive
 commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
+evidence_depth: lean|standard|deep  # optional; missing means standard
 roadmap: true|false  # optional; missing means false
 release_gates:       # optional; missing or empty means disabled
   - compatibility
@@ -182,8 +183,8 @@ accept the agreement together or adjust individual choices. Only consequential
 unresolved decisions need separate questions; the option catalog is not an interview
 sequence. Existing evidence informs recommendations, not silent adoption.
 
-Optional execution posture, commit posture, prose preferences for review boundaries
-and optional design review, release gates, roadmap recognition,
+Optional execution posture, commit posture, evidence depth, prose preferences for
+review boundaries and optional design review, release gates, roadmap recognition,
 and the `CLAUDE.md` projection remain visible opt-in, decline, or defer choices.
 Each proposed adoption or deferral is explicit in the agreement. A refresh retains
 confirmed choices and surfaces meaningful differences, rather than repeating
@@ -207,7 +208,7 @@ resolves to `standard`; missing `simplification_posture` resolves to `balanced`;
 missing `autonomy` resolves to
 `adaptive`; missing `commit_posture` resolves to
 `adaptive`; missing `execution_posture` resolves to `adaptive`; missing
-`roadmap` resolves to `false`.
+`evidence_depth` resolves to `standard`; missing `roadmap` resolves to `false`.
 `workbench_version` has no fallback: setup stamps it from the verified loaded
 plugin after successful reconciliation. The frontmatter schema is closed.
 Confirmed repository-specific delivery rules that have no narrower authority
@@ -372,6 +373,15 @@ a broader design. An explicit request or confirmed standing preference supplies
 alignment without a repeated question; revisit it when material change affects
 the choice. A shared design review may span related feature decisions before
 expensive dependent implementation. Corrections do not create extra review passes.
+
+Design review primarily judges whether the design solves the right problem with
+the best justified approach for the project, accounts for consequential details,
+and reuses the appropriate repository systems. Correctness is a necessary baseline,
+not the review's main purpose: a feasible design can still deliver the wrong outcome
+or duplicate a better existing mechanism. Reviewers challenge choices against user
+intent, credible alternatives, and repository evidence without inventing requirements
+or expanding scope. The shared [design review priorities](../skills/work/references/design-review.md)
+define this lens.
 
 Design uses one primary lens:
 

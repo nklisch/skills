@@ -11,6 +11,13 @@ Verify the requested outcome at the most stable useful interface.
 5. Review proportionately to consequence, uncertainty, and reversibility.
 6. Reconcile affected foundation assertions.
 
+Resolve `evidence_depth` from explicit user direction, the optional project
+convention, then `standard`. `lean` proves the primary path for low-risk,
+reversible work; `standard` covers authoritative checks and important acceptance
+paths; `deep` extends evidence across journeys, states, viewports, and adjacent
+consumers. Depth changes breadth, not the rules: it never permits invented
+evidence, ignored failures, weakened tests, or unverified completion.
+
 Prefer tests that prove externally meaningful behavior at stable interfaces.
 Avoid tautological mocks, implementation-detail assertions, and coverage-only
 tests that cannot catch a real regression. When durable behavior changes, add
@@ -51,10 +58,23 @@ constraints and check obvious plausible regressions such as worse algorithmic
 complexity, repeated work, or needless I/O; do not require speculative low-level
 optimization evidence.
 
-For reported defects, reproduce before correction whenever possible. Preserve a
-failing regression test or another repeatable before/after check, diagnose root
-cause, correct the smallest coherent boundary, and prove the original behavior
-now passes. Never weaken a test merely to obtain green output.
+For reported defects, reproduce before correction whenever possible. Keep a
+failing regression test or another repeatable before/after check, diagnose the
+root cause, correct the smallest coherent boundary, and prove the original
+behavior now passes. Run the evidence before fixing the defect, and confirm it
+fails for the expected reason rather than a broken fixture, environment, or
+assertion.
+
+An automated regression test is not always the right evidence. Use a small
+executable reproduction, browser walkthrough with captured state, protocol
+transcript, or deterministic log assertion when a test would mislead or cost
+too much. Record the evidence used and why.
+
+Never weaken, broadly skip, or delete a test just to obtain green output. If
+production behavior is correct and the test is wrong, repair the stale fixture,
+mock, or assertion and record that the test was at fault. If diagnosis shows the
+expected behavior is ambiguous or would change the product, return to
+requirements rather than settle a contract under the label of a bug fix.
 
 If a reported defect cannot be reproduced, do not make a speculative fix.
 Investigate environment, state, timing, versions, and observability; otherwise

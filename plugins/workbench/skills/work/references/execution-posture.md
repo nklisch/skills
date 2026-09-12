@@ -67,10 +67,11 @@ the user in chat before execution starts. This includes sequential assignments,
 exploratory work, scans, and research, not only delivery topology.
 
 Discover the models and thinking settings the current harness actually provides.
-Present the proposed roles, models, and supported thinking levels, with brief
-reasons tied to the task and meaningful cost or capability trade-offs. Ask for
-confirmation before dispatch unless explicit user choices or user-confirmed
-standing preferences already cover the lineup. In that case, state the reused
+Shape the proposal with [model tendencies](model-tendencies.md) rather than a
+fixed role-to-model table. Present the proposed roles, models, and supported
+thinking levels, with brief reasons tied to the task and meaningful cost or
+capability trade-offs. Ask for confirmation before dispatch unless explicit user
+choices or user-confirmed standing preferences already cover the lineup. In that case, state the reused
 alignment in chat without asking again. General autonomy is not model approval.
 
 Honor user and project restrictions. Ask before substituting a model or effort
@@ -79,6 +80,6 @@ If availability cannot be established, disclose the limitation and align a
 credible alternative rather than guessing model identifiers. Keep routine
 assignments within the agreed lineup moving without repeated approval.
 
-Keep this alignment in the conversation. It does not require a new reference,
-configuration file, model ranking, or durable topology. When topology already
+Keep this alignment in the conversation. It does not require a configuration
+file, a model ranking, or a durable topology. When topology already
 exists, preserve confirmed choices there only as needed for continuation.

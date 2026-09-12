@@ -5,6 +5,7 @@
 - Pass budget and review targets
 - Keep review inside the authorized scope
 - Return useful findings, not a form
+- Keep review advisory
 
 This policy applies as a formal review contract only while reviewing a
 concrete Workbench workflow: an implementation-shaping design recorded for a
@@ -153,7 +154,11 @@ says so briefly with any material limits, not a bare unsupported verdict.
 
 For each consequential finding, explain the observed or hypothesized failure,
 its product impact, evidence and uncertainty, and the smallest justified action.
-Use explicit labels when they help adjudication or convergence:
+When it helps adjudication or convergence, label a consequential candidate on
+two axes. Its evidence status is `confirmed` if the reviewer reproduced or
+verified it, `hypothesis` if it is plausible but unverified, or `non-issue` if
+inspection cleared it. A hypothesis may be raised but never blocks on its own.
+Its materiality is:
 
 - **blocking:** a confirmed violation of an accepted requirement, correctness,
   contract, integrity, safety, or another scope-grounded criterion preventing closure;
@@ -161,10 +166,10 @@ Use explicit labels when they help adjudication or convergence:
 - **minor:** real but low-payoff and non-blocking;
 - **nit:** taste or polish without meaningful product consequence.
 
-Do not invent project-priority labels. Recommend revise, fix-before-close, park,
-or reject; the owner verifies and decides. Disposition resolves the candidate for
-convergence without rewriting the reviewer's materiality judgment. Keep hypotheses
-and uncertainty clear; neither speculation nor taste creates a blocker.
+Do not use project-priority labels such as P1 or P2 unless the project defines
+them. Recommend revise, fix-before-close, park, or reject; the owner verifies
+and decides. Disposition resolves a candidate for convergence without changing
+the reviewer's materiality judgment. Taste never creates a blocker.
 
 For a limit, refusal, recovery rule, or resource policy, explain the failure it
 prevents and the cost to actual users. Weigh a hard stop against a credible degraded
@@ -172,9 +177,12 @@ path or explicit choice. Preserve justified safety and integrity protections.
 Do not expand ordinary findings into constraint analysis when no constraint is at issue.
 
 A delegated prompt states the effective [simplification](simplification.md)
-expectation and does not lead with a suspected answer. Focus design review on
-requirements, choices, assumptions, verification, recovery, and unnecessary
-complexity. Focus implementation review on correctness, required behavior,
+expectation and does not lead with a suspected answer. Set reviewer effort from
+the review problem, not the designer's setting, following
+[model tendencies](model-tendencies.md). For design targets, read and apply
+[design-review.md](design-review.md): prioritize the right problem, best-fit
+solution, consequential omissions, and repository reuse; correctness is a necessary
+baseline, not the main purpose. Focus implementation review on correctness, required behavior,
 integration, simplification, and affected foundation truth. Apply security,
 privacy, accessibility, compatibility, data, and operational lenses only where
 scope or evidence warrants them. Check obvious algorithmic overwork and plausible
@@ -189,12 +197,20 @@ its payoff rule — potentially material inside the boundary when the change
 falls short of the effective simplification posture, parked outside it, never
 taste.
 
-Treat findings as proposals. Reproduce or verify each substantive claim, accept
-changes that improve the work inside its authorized boundary, and explain
-rejected material findings in the current conversation. A proposal that depends
-on an invented requirement or broader outcome is rejected as an acceptance
-finding; when useful, park it as a non-blocking follow-up instead of expanding
-the current work. When a rejection reflects a durable constraint, fold that
-constraint into the design's chosen approach or risks; keep no separate record
-of the adjudication. Review never substitutes for behavioral verification, and
-a reviewer saying “looks good” is not evidence.
+## Keep review advisory
+
+Treat findings as proposals. The outcome owner adjudicates them against product
+goals and evidence; reviewer confidence, detail, or preferred architecture does
+not grant scope authority. Reproduce or verify each substantive claim. Accept
+changes that improve the work inside its authorized boundary, explain rejected
+material findings in the current conversation, and accept real defects even
+when they contradict the accepted design.
+
+Reject invented requirements, speculative hardening, unnecessary abstraction,
+and review-driven scope growth. Reject as an acceptance finding any proposal
+that depends on an invented requirement or broader outcome; park it as a
+non-blocking follow-up if it remains useful. When a rejection reflects a durable
+constraint, fold it into the design's chosen approach or risks and keep no
+separate adjudication record. Do not add a pass merely to reach agreement.
+Review never substitutes for behavioral verification, and a reviewer saying
+“looks good” is not evidence.

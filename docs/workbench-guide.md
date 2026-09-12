@@ -139,10 +139,12 @@ decision. Setup records confirmed choices in `.work/CONVENTIONS.md`.
 | **`simplification_posture`** | `hygiene`, `balanced`, `structural` | `balanced` — actively simplify the affected boundary without making unrelated cleanup part of delivery |
 | **`completed_items`** | `summarize`, `discard` | `summarize` keeps temporary stubs that make the next release easier to draft; `discard` relies on Git history instead |
 
-Optional execution posture, commit posture, release gates, roadmap recognition,
-and the Claude compatibility projection stay visible in the agreement. Opt in,
-decline, or defer; accepting a bundle approves only its explicit choices. Missing
-execution or commit posture means adaptive behavior. No field needs a separate
+Optional execution posture, commit posture, evidence depth, release gates,
+roadmap recognition, and the Claude compatibility projection stay visible in the
+agreement. Opt in, decline, or defer; accepting a bundle approves only its
+explicit choices. Missing execution or commit posture means adaptive behavior;
+missing `evidence_depth` means `standard` verification, mockup inspection, and
+pattern-harvest breadth. No field needs a separate
 question merely to populate it. Destructive migration still follows its recovery
 and exact-removal approval rules.
 

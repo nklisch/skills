@@ -25,6 +25,7 @@ ALLOWED_SIMPLIFICATION_POSTURES = {"hygiene", "balanced", "structural"}
 ALLOWED_AUTONOMY = {"adaptive", "collaborative", "autonomous"}
 ALLOWED_EXECUTION_POSTURES = {"inline", "adaptive", "orchestrated"}
 ALLOWED_COMMIT_POSTURES = {"adaptive", "feature", "checkpoint", "batch", "preserve"}
+ALLOWED_EVIDENCE_DEPTHS = {"lean", "standard", "deep"}
 KEBAB_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 ALLOWED_PARENT_CHILD_KINDS = {("epic", "feature"), ("feature", "story")}
 MARKDOWN_TITLE = re.compile(r"^#\s+\S")
@@ -228,6 +229,13 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
         errors.append(
             "commit_posture must be adaptive, feature, checkpoint, batch, or preserve"
         )
+
+    evidence_depth = config.get("evidence_depth", "standard")
+    if (
+        not isinstance(evidence_depth, str)
+        or evidence_depth not in ALLOWED_EVIDENCE_DEPTHS
+    ):
+        errors.append("evidence_depth must be lean, standard, or deep")
 
     release_gates = config.get("release_gates", [])
     if not isinstance(release_gates, list):
