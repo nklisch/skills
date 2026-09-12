@@ -89,7 +89,38 @@ Durable state is limited to explicitly named work items and their optional desig
 attachments, foundations, project pattern catalogs, user-confirmed project scan-lens
 skills, research artifacts,
 mockups, generated indexes, completion stubs, release summaries, and repository
-conventions.
+conventions. A requested context scan may also prepare instruction changes in an
+isolated proposal branch for user review; those changes do not govern the active
+task or enter its working checkout automatically.
+
+## Context health
+
+An explicitly requested `context-scan` assesses whether accumulated context is
+interfering with the spawning task's decisions and remaining work. A diagnostic
+sub-agent returns supported findings with individual severity, evidence,
+confidence, and visibility limits. Counts and duration do not independently
+establish a problem. Incomplete visibility remains explicit rather than becoming
+a healthy result or an invented utilization measurement.
+
+The user selects a per-invocation minimum severity for automatic remediation;
+the default includes high and critical findings, and `none` disables it.
+Eligibility follows each finding rather than the overall warning so one serious
+problem cannot authorize unrelated changes. The main agent verifies the evidence
+and prepares recovery within existing scope and authority. Existing work items
+retain continuation and design handoffs; a scan does not introduce a parallel
+report store or silently launch a new task.
+
+Instruction rewrites require a separate branch and isolated checkout, preserving
+the active instructions until the user reviews and requests application. When
+isolation cannot be established, automatic rewriting is skipped; another approach
+requires an explicit request. This prevents an unreviewed proposal from changing
+the instructions governing its own preparation or the user's ongoing work.
+
+The shared [skill](../skills/context-scan/SKILL.md) owns invocation, rating, and
+remediation mechanics across supported hosts. Context inheritance and transcript
+access depend on host capabilities; partial evidence is labeled. If delegation
+is unavailable, a limited inline assessment remains advisory. No always-running
+hook is required, keeping the diagnostic from adding repeated context overhead.
 
 ## Agent instruction boundary
 
