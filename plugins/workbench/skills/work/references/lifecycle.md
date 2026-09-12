@@ -121,6 +121,12 @@ owns the boundary; otherwise it is top-level. Never nest it under a feature.
 
 ## Backlog-to-active transition
 
+Backlog items may own linked attachments under the same
+`.work/attachments/<item-id>/` layout. Preserve the id and attachment directory
+on activation, updating owner backlinks from backlog to active. Attachment
+presence does not establish design readiness. See
+[design attachments](design-attachments.md) for ownership and deletion rules.
+
 When `.work/CONVENTIONS.md` declares `roadmap: true`, `docs/ROADMAP.md` is a
 user-owned planning document that may inform context but does not control the
 transition. Keep the roadmap unchanged when a backlog item becomes active
@@ -151,8 +157,8 @@ In both postures, always delete the completed item's entire
 `.work/attachments/<item-id>/` directory. Do not archive attachments or retain them
 with a completion stub. Reconcile needed durable truth and remaining references
 before deletion under [design attachments](design-attachments.md). Keep attachments
-while their item is active, including pending review. Rebuild an existing knowledge
-index after deletion.
+while their item is in backlog or active, including pending review. Rebuild an
+existing knowledge index after deletion.
 
 Before closure, remove the completed id from each active `blocked_by` and
 `related_to` list. Close the final feature children and their accepted epic in

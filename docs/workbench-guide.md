@@ -242,6 +242,10 @@ and implementers read it as part of the design. Use exact interfaces, transition
 tables, error behavior, and examples where they remove consequential guessing.
 Link existing executable schemas or interfaces rather than copying them.
 
+Backlog items may also own attachments for supplied context or tentative
+specifications. Keep the same attachment directory on activation and update
+backlinks to the owner; having an attachment does not establish design readiness.
+
 Attachments are always deleted when their owning item completes, whether the
 project discards completed items or keeps summaries. They are not archived or
 moved into documentation as completed designs. Reconcile needed durable truth

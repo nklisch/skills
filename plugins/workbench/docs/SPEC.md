@@ -330,7 +330,10 @@ frontmatter, status, or mandatory template is needed. Durable machine-consumed
 contracts stay in their normal source location, linked rather than copied.
 [Design attachments](../skills/work/references/design-attachments.md) defines
 ownership and unconditional deletion at item completion. Unlike bootstrap
-provisional specs, these attachments need no setup opt-in.
+provisional specs, these attachments need no setup opt-in. Backlog items may also
+own attachments to preserve context and tentative specifications without implying
+design approval. Attachments stay with the same item across backlog and active
+states and are removed when the owner completes or is discarded.
 
 New technical evidence revises the affected decision and its dependent contracts
 and checks, not every settled part of the plan. Local implementation details remain in

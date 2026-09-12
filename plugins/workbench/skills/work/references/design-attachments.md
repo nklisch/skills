@@ -4,7 +4,9 @@ The work item is the contract between design, review, and implementation. It
 owns requirements, accepted decisions, and acceptance evidence. When detailed
 contracts would obscure that core, the designer may add a linked specification
 under `.work/attachments/<item-id>/`. The attachment is part of the item's design,
-not an independent work item or a competing authority.
+not an independent work item or a competing authority. Active and backlog items
+may own attachments. Backlog attachments preserve supplied context or tentative
+specifications; they do not imply approved design or readiness for implementation.
 
 ## When and how to use one
 
@@ -21,11 +23,17 @@ Use Markdown by default, usually `contract.md`. Include only useful detail:
 - assumptions and unresolved choices that constrain dependent implementation.
 
 Link the attachment from the owning item with an ordinary Markdown link. For
-`.work/active/feature-sync.md`, use `../attachments/feature-sync/contract.md`.
+`.work/active/feature-sync.md` or `.work/backlog/feature-sync.md`, use
+`../attachments/feature-sync/contract.md`.
 Name its role so implementers and reviewers know which decisions it supplies.
 The attachment links back to its owner and states that completion deletes it.
 No new frontmatter, registry, status, or mandatory template is needed. Create the
 directory only when used; it needs no `.gitkeep`.
+
+Keep the item id and attachment directory when moving between backlog and active.
+Update attachment backlinks to the owner's new location; item-to-attachment links
+remain valid. Removing a backlog item also removes its attachment directory, after
+preserving any still-needed context and reconciling references.
 
 Native formats such as OpenAPI, JSON Schema, or Protobuf are useful when a real
 tool consumes them. Keep durable executable contracts in their normal source
@@ -61,8 +69,8 @@ specifications. A shared temporary contract belongs to an active integration
 owner that stays open while dependent work needs it. Deleting a child's
 attachments must not delete a parent's attachments.
 
-On interruption, retain the owning active item and its attachments with useful
-partial decisions and unresolved questions. Resume from those files and current
+On interruption, retain the owning active or backlog item and its attachments
+with useful partial decisions and unresolved questions. Resume from those files and current
 repository evidence. Completion, not interruption or implementation alone,
 triggers deletion. Rebuild an existing knowledge index after attachment changes
 or deletion under [foundation truth](foundation-truth.md).

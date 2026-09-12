@@ -370,6 +370,8 @@ optional Markdown specification at `.work/attachments/<item-id>/contract.md` and
 link it from the item. Exact interfaces, transitions, errors, and examples can
 reduce implementation guesswork. Existing executable contracts stay in their
 normal source location rather than being copied into the specification.
+Backlog items may also own attachments for context or tentative specifications;
+activation preserves them without implying design approval.
 Attachments are always deleted when their owning item completes, even when a
 completion summary is kept. See
 [design attachments](skills/work/references/design-attachments.md) for the format

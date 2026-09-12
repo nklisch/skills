@@ -297,17 +297,18 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
     active_ids = {path.stem for path in active_files}
     attachments = work / "attachments"
     if attachments.is_dir():
-        # Temporary specifications must not survive their owner and misdirect
-        # later work. Completion summaries deliberately do not count as owners.
+        # Parked context remains useful before activation. Temporary attachments
+        # must not outlive their owner; completion summaries do not count.
+        attachment_owner_ids = active_ids | {path.stem for path in backlog_files}
         for child in sorted(attachments.iterdir()):
             if child.is_dir():
-                if child.name not in active_ids:
+                if child.name not in attachment_owner_ids:
                     errors.append(
-                        f"{child.relative_to(project)}: attachment directory has no active owner"
+                        f"{child.relative_to(project)}: attachment directory has no active or backlog owner"
                     )
             elif child.name != ".gitkeep":
                 errors.append(
-                    f"{child.relative_to(project)}: attachment must be inside an active item's directory"
+                    f"{child.relative_to(project)}: attachment must be inside an active or backlog item's directory"
                 )
     active_data = {path.stem: parse_frontmatter(path) for path in active_files}
     active_text = {

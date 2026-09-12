@@ -113,6 +113,32 @@ updated: 2026-07-24
         result = self.run_validator(root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_backlog_attachment_survives_activation(self) -> None:
+        root = self.make_project()
+        backlog = root / ".work/backlog/parked.md"
+        write(
+            backlog,
+            "---\nid: parked\ntags: []\ncreated: 2026-09-09\nupdated: 2026-09-09\n---\n"
+            "# Parked idea\n\n[Context](../attachments/parked/context.md)\n",
+        )
+        attachment = root / ".work/attachments/parked/context.md"
+        write(attachment, "# Context\n\n[Owner](../../backlog/parked.md)\n")
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        backlog.rename(root / ".work/active/parked.md")
+        self.write_active_item(
+            root, "parked", body="# Parked idea\n\n[Context](../attachments/parked/context.md)\n"
+        )
+        write(attachment, attachment.read_text().replace("../../backlog/", "../../active/"))
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        (root / ".work/active/parked.md").unlink()
+        result = self.run_validator(root)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("attachment directory has no active or backlog owner", result.stdout)
+
     def test_completion_requires_attachment_deletion_under_both_postures(self) -> None:
         for posture in ("summarize", "discard"):
             with self.subTest(posture=posture):
@@ -134,7 +160,7 @@ updated: 2026-07-24
                     )
                 result = self.run_validator(root)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("attachment directory has no active owner", result.stdout)
+                self.assertIn("attachment directory has no active or backlog owner", result.stdout)
                 attachment.unlink()
                 attachment.parent.rmdir()
                 result = self.run_validator(root)
@@ -145,7 +171,7 @@ updated: 2026-07-24
         write(root / ".work/attachments/contract.md", "# Unowned contract\n")
         result = self.run_validator(root)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("attachment must be inside an active item's directory", result.stdout)
+        self.assertIn("attachment must be inside an active or backlog item's directory", result.stdout)
 
     def write_compact_item(self, root: Path, extra: str = "", body: str = "") -> None:
         write(

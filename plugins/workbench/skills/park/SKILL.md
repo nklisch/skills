@@ -33,6 +33,12 @@ may matter, known evidence, and any
 relationship to current work. Do not invent priority, acceptance criteria,
 design, estimates, or assignment.
 
+When supplied context needs a separate file, link it under
+`.work/attachments/<id>/` using the shared
+[attachment rules](../work/references/design-attachments.md). Preserve existing
+attachments when parking active work; update their owner backlinks without
+turning tentative material into approved design.
+
 If equivalent backlog context already exists, update it instead of creating a
 duplicate. Run the Workbench validator after writing the item. Briefly identify
 the captured item in the current conversation, then return to the prior scope.
