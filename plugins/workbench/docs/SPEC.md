@@ -343,6 +343,15 @@ alignment without a repeated question; revisit it when material change affects
 the choice. A shared design review may span related feature decisions before
 expensive dependent implementation. Corrections do not create extra review passes.
 
+Design review primarily judges whether the design solves the right problem with
+the best justified approach for the project, accounts for consequential details,
+and reuses the appropriate repository systems. Correctness is a necessary baseline,
+not the review's main purpose: a feasible design can still deliver the wrong outcome
+or duplicate a better existing mechanism. Reviewers challenge choices against user
+intent, credible alternatives, and repository evidence without inventing requirements
+or expanding scope. The shared [design review priorities](../skills/work/references/design-review.md)
+define this lens.
+
 Design uses one primary lens:
 
 - new work;

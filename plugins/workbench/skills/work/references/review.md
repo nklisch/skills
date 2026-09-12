@@ -179,9 +179,10 @@ Do not expand ordinary findings into constraint analysis when no constraint is a
 A delegated prompt states the effective [simplification](simplification.md)
 expectation and does not lead with a suspected answer. Set reviewer effort from
 the review problem, not the designer's setting, following
-[model tendencies](model-tendencies.md). Focus design review on
-requirements, choices, assumptions, verification, recovery, and unnecessary
-complexity. Focus implementation review on correctness, required behavior,
+[model tendencies](model-tendencies.md). For design targets, read and apply
+[design-review.md](design-review.md): prioritize the right problem, best-fit
+solution, consequential omissions, and repository reuse; correctness is a necessary
+baseline, not the main purpose. Focus implementation review on correctness, required behavior,
 integration, simplification, and affected foundation truth. Apply security,
 privacy, accessibility, compatibility, data, and operational lenses only where
 scope or evidence warrants them. Check obvious algorithmic overwork and plausible
