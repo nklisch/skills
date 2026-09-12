@@ -8,9 +8,7 @@ Maintain one marked Workbench section in the canonical root `AGENTS.md`:
 
 This repository is Workbench-owned. For stateful Workbench work, read
 `.work/CONVENTIONS.md`, relevant foundation documents, and the selected skill
-before acting. Follow that skill's required references. Compare
-`workbench_version` with the loaded plugin; recommend setup reconciliation on a
-mismatch, but continue unless an actual incompatibility prevents the work.
+before acting. Follow that skill's required references.
 Never run setup without explicit user direction. Keep unrelated requests
 outside Workbench.
 

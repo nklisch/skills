@@ -327,9 +327,7 @@ splitting growing work, and completion cleanup, follow the
 [lifecycle guidance](../plugins/workbench/skills/work/references/lifecycle.md).
 
 1. **Read first.** The agent reads the repo, the conventions, and the epic
-   before acting. If the stamped Workbench version differs from the loaded
-   plugin, it recommends the appropriate update and setup reconciliation but
-   continues unless it encounters a concrete incompatibility.
+   before acting.
 2. **Ask only what the repo can't answer.** It surfaces the consequential
    choices — product direction, irreversible actions, missing
    requirements — and decides routine details itself.
@@ -648,10 +646,6 @@ indexing error.
 
 ## Recover from common issues
 
-- **The stamped Workbench version differs from the loaded plugin.** The agent
-  should mention the appropriate update and setup reconciliation once, then
-  continue. Version drift is advisory; only a concrete schema or capability
-  incompatibility blocks the requested work.
 - **The agent creates Workbench state before adoption.** That is incorrect.
   Without `.work/CONVENTIONS.md` declaring `owner: workbench`, only write-free
   `ideate` may run; stateful skills remain inactive unless you explicitly ask

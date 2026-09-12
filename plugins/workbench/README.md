@@ -135,9 +135,7 @@ The durable record remains ordinary Markdown. Each item explains its outcome,
 boundary, acceptance evidence, and any useful continuation context. Empty tags,
 relationships, and reference lists may be omitted; identity, kind, status, and
 dates stay explicit. Existing full-form items remain valid without migration.
-You can edit either form directly; the agent keeps its structure valid. When the conventions
-version and loaded plugin version differ, the agent gives one helpful update and
-setup recommendation without blocking legitimate work.
+You can edit either form directly; the agent keeps its structure valid.
 
 Conversational questions, proposals, progress summaries, and completion replies
 remain chat prose unless the workflow explicitly names a repository artifact.
@@ -262,10 +260,8 @@ Workbench validators check structure, relationships, citations, and generated
 state whenever agents create or reshape the corresponding artifacts.
 
 `setup` stamps its loaded plugin version once in conventions after successful
-reconciliation. Skills, validation, and the session reminder use differences as
-advisory upgrade/setup guidance without duplicating a warning into every work
-item. Setup proposes a repository-grounded working agreement covering autonomy,
-review, simplification, completion retention, and documentation conventions.
+reconciliation. Setup proposes a repository-grounded working agreement covering
+autonomy, review, simplification, completion retention, and documentation conventions.
 You can accept the recommendations together or adjust individual choices; only
 consequential unresolved decisions need separate questions. Optional execution
 posture, commit posture, release gates, roadmap recognition, and the `CLAUDE.md`

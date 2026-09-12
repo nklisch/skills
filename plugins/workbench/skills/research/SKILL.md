@@ -17,10 +17,7 @@ the engagement.
 First confirm that an upward-found `.work/CONVENTIONS.md` declares
 `owner: workbench`. If it does not, ignore this skill and handle the request
 without Workbench; do not initialize `.research/`, rebuild Workbench's knowledge
-index, or offer setup. When active, apply
-[setup's advisory version-compatibility guidance](../setup/references/version-compatibility.md)
-before writing research state; mention useful upgrade/setup guidance on mismatch
-without blocking the research. Even in an adopted
+index, or offer setup. Even in an adopted
 repository, small conversational lookups and unrelated research stay outside
 this skill.
 

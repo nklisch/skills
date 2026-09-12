@@ -24,10 +24,7 @@ Read conventions, repository-wide and applicable scope-owned principles,
 relevant foundations, `.knowledge/index.json` when present, project patterns,
 the requested surface, and relevant `.work/backlog/` entries
 and active items tagged `scan` so already-tracked opportunities are identified
-rather than rediscovered as novel. Apply
-[setup's advisory version guidance](../setup/references/version-compatibility.md);
-a version difference may prompt one update/setup recommendation but does not
-block scanning.
+rather than rediscovered as novel.
 Use conventions and principles as evaluation lenses inside the requested scan
 boundary; they do not authorize broader inspection or turn adjacent concerns
 into findings required for action.

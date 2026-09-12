@@ -13,9 +13,7 @@ description: >
 
 Confirm that an upward-found `.work/CONVENTIONS.md` declares `owner: workbench`.
 If it does not, ignore this skill and handle the request without Workbench; do
-not offer setup. Apply
-[setup's advisory version guidance](../setup/references/version-compatibility.md);
-mention a useful upgrade/setup recommendation on mismatch, then continue. Read
+not offer setup. Read
 conventions, completed stubs when present, ordinary Git history, existing
 Workbench release summaries, and project delivery rules. If the user did not
 name a version, ask for it.

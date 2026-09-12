@@ -125,8 +125,7 @@ adaptive starting points, not a mandatory catalog or limit on project-defined
 concerns. See [scan's release-gate contract](../../scan/references/release-gates.md).
 
 `workbench_version` records the exact verified plugin release that last adopted
-or reconciled the project. Read
-[version-compatibility.md](version-compatibility.md) for mismatch handling.
+or reconciled the project.
 
 The optional `execution_posture` controls only the core delivery roles: design,
 implementation, and review. Explicit user direction overrides the project

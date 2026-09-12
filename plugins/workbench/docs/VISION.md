@@ -214,10 +214,6 @@ adopted repository; write-free `ideate` may explore before adoption, and
 - **Release collapses temporary completion state.** Both completion postures can
   produce a version summary. A successful release removes retained completed
   outcome files and leaves concise release truth plus Git history.
-- **Project and plugin version drift stays visible.** Setup stamps the loaded
-  Workbench version into conventions. Stateful workflows use a difference as a
-  helpful prompt to update Workbench and run setup, not as a lock on legitimate
-  work. They stop only for a concrete schema or capability incompatibility.
 - **Adoption is explicit.** Stateful Workbench skills require
   `.work/CONVENTIONS.md` with `owner: workbench`; only a direct request to
   initialize, adopt, migrate, upgrade, refresh, or reconcile may invoke `setup`.

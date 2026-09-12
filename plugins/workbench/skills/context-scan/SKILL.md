@@ -18,7 +18,7 @@ not a continuous monitor or a repository-wide audit.
 
 Require an upward-found `.work/CONVENTIONS.md` with `owner: workbench`.
 Otherwise explain that this skill requires an adopted project; do not run setup.
-Reuse known conventions and apply [version guidance](../setup/references/version-compatibility.md).
+Reuse known conventions.
 Do not load foundations or source files merely to enlarge the diagnostic input.
 
 Accept `context-scan [threshold]` and `run context scanner [threshold]`, including

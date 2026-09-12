@@ -31,8 +31,6 @@ Read conventions, project instructions, relevant items, foundations, and affecte
 code. Use `.knowledge/index.json` when present to discover relevant truth, not
 as a reason to read every indexed document. Root foundations own repository-wide
 truth; scope-owned foundations live at the repository's established location.
-Apply [version guidance](../setup/references/version-compatibility.md) before
-stateful work. A mismatch is advisory, not consent to run setup.
 
 Load guidance once while it remains available and unchanged in this context.
 A skill invocation is not a fresh session: carry forward scope, decisions,

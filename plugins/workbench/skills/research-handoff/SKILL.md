@@ -15,10 +15,7 @@ Then confirm `.research/CONVENTIONS.md` declares `owner: workbench-research`.
 If another provider owns it, use that provider's handoff behavior; do not
 interpret or modify its artifacts through this skill. If ownership is absent,
 ask the user to resolve it before handoff.
-When active, apply
-[setup's advisory version-compatibility guidance](../setup/references/version-compatibility.md);
-mention a useful upgrade/setup recommendation on mismatch without blocking the
-handoff. Then read the relevant brief, cited attestations,
+Read the relevant brief, cited attestations,
 conventions, and existing active and backlog items before proposing concrete
 ledger handoffs.
 

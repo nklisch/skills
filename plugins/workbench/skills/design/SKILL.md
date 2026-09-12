@@ -29,8 +29,7 @@ See [lifecycle](../work/references/lifecycle.md) for the full rules.
 For direct entry, confirm an upward-found `.work/CONVENTIONS.md` declares
 `owner: workbench`. Otherwise handle the request without Workbench. Read project
 instructions, conventions, relevant items, foundations, code, and tests. Use the
-knowledge index when present and apply
-[version guidance](../setup/references/version-compatibility.md) before mutation.
+knowledge index when present.
 
 When `work` or `deliver` already supplied this context, carry it forward. Do not
 repeat activation or settled questions. Reconcile changed repository facts and

@@ -27,16 +27,10 @@ invoking it. Do not carry an unaccepted offer forward as implied consent.
 
 Read [references/canonical-layout.md](references/canonical-layout.md),
 [references/project-patterns.md](references/project-patterns.md),
-[references/managed-instructions.md](references/managed-instructions.md),
-[references/migration-rules.md](references/migration-rules.md), and
-[references/version-compatibility.md](references/version-compatibility.md)
-completely before writing. Resolve the loaded plugin version through the
-verified package manifest. If it differs from the project stamp, explain the
-direction of the difference and recommend updating Workbench first when the
-loaded plugin is older. The difference is advisory rather than blocking: because
-the user explicitly invoked setup, continue reconciliation with the loaded
-plugin unless an actual substrate incompatibility is encountered. A missing or
-older project stamp is upgrade input, not another authorization prompt.
+[references/managed-instructions.md](references/managed-instructions.md), and
+[references/migration-rules.md](references/migration-rules.md) completely before
+writing. Resolve the loaded plugin version through the verified package manifest
+for the conventions stamp.
 
 Inspect Git state, agent instructions, workflow configuration, work ledgers,
 plans, research, generated indexes, foundation documents, CI, package scripts,

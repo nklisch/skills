@@ -62,14 +62,6 @@ recommendation never invokes setup. `ideate` may run before adoption because it
 is conversational and write-free; it must not create Workbench or research
 state without an explicit adoption and handoff choice.
 
-Before stateful work, a capability compares the `workbench_version` in
-conventions with the verified loaded plugin manifest. A difference is an
-advisory signal that project conventions and loaded workflow guidance may have
-drifted: recommend setup when the project stamp is missing or older, and
-recommend updating Workbench before setup when the loaded plugin is older. Work
-continues unless an actual schema or capability incompatibility is encountered.
-A mismatch never invokes setup automatically or implies upgrade consent.
-
 Ownership activates the stateful capabilities, not universal routing. Those
 skills engage only for concrete Workbench workflows whose outcome, evidence,
 backlog capture, or release state belongs in Workbench. Ideate may support

@@ -23,9 +23,6 @@ POSTURE_BLOCK = """\
 This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Read .work/CONVENTIONS.md and foundation docs (root docs/,
   scope-owned <sub-project>/docs/) before structural decisions.
-- Before stateful work, compare workbench_version with the loaded plugin;
-  on mismatch, recommend the appropriate update and setup reconciliation,
-  but continue unless an actual incompatibility is encountered.
 - Use features by default; follow the work skill's references/lifecycle.md for
   hierarchy and splitting. Completion cleanup is mandatory: summarize or discard
   per conventions, removing completed active files and attachments.

@@ -25,8 +25,7 @@ See [lifecycle](../work/references/lifecycle.md) for the full rules.
 
 For direct entry, confirm Workbench ownership and read conventions, project
 instructions, the item, relevant foundations, code, tests, and project patterns.
-Use the knowledge index for discovery when present. Apply
-[version guidance](../setup/references/version-compatibility.md) before mutation.
+Use the knowledge index for discovery when present.
 If the repository is not Workbench-owned, handle the request without this skill.
 
 When the current owner already has this context, reuse it. Check only facts that

@@ -117,7 +117,6 @@ if [[ "$plugin" == "workbench" ]]; then
   fi
   if ! grep -q "^workbench_version: ${current}$" "$conventions"; then
     echo "bump-version: ${conventions} is not stamped with current Workbench ${current}" >&2
-    echo "  run setup upgrade before bumping the plugin" >&2
     exit 1
   fi
 fi
@@ -132,8 +131,8 @@ bump_json "$claude_json"
 [[ -f "$codex_json" ]] && bump_json "$codex_json"
 [[ -f "$agy_json" ]] && bump_json "$agy_json"
 
-# Advance the dogfood stamp in the same commit as Workbench's manifests or the
-# newly bumped plugin would immediately refuse to mutate its own substrate.
+# Advance the dogfood stamp with the manifests because this repository authors
+# and reconciles the Workbench contract in the same delivery.
 if [[ "$plugin" == "workbench" ]]; then
   sed -i.bak -E \
     's/^workbench_version: [^[:space:]]+$/workbench_version: '"$new"'/' \
