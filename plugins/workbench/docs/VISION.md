@@ -190,9 +190,11 @@ adopted repository; write-free `ideate` may explore before adoption, and
   them rather than accumulating in an always-loaded managed block.
 - **Context recovery is deliberate.** A requested context scan distinguishes
   necessary complexity from interference with current decisions, reports evidence
-  and visibility limits, and prepares recovery at the user's severity threshold.
-  Instruction rewrites remain isolated proposals until reviewed, preserving the
-  user's active instructions while making cleanup concrete.
+  and visibility limits through an immediate diagnostic sub-agent. A separate
+  fresh sub-agent performs recovery at the user's severity threshold and returns
+  any handoff and privilege-bound residue for the main agent to integrate and
+  finish. Instruction rewrites remain isolated proposals until reviewed,
+  preserving the user's active instructions while making cleanup concrete.
 - **Tests earn their keep.** Prefer meaningful behavior, contracts, boundaries,
   risks, and regressions over line coverage and implementation coupling. Reuse
   existing verification machinery and discuss substantial new infrastructure.

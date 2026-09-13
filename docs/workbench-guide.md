@@ -200,25 +200,32 @@ inactive unless you explicitly ask `setup` to adopt the repository.
 | *"Drive the onboarding epic to done"* | `work` across the full epic boundary, not just the next item |
 | *"Design this refactor with me"* | `design` in collaborative mode — options discussed before anything binds |
 | *"Park this finding for later"* | `park` — smallest useful backlog item, then back to the work in progress |
-| *"Run context scanner medium"* | `context-scan` — rates the current task's context and prepares eligible recovery for medium or higher findings |
+| *"Run context scanner medium"* | `context-scan` — delegates context diagnosis, then sends eligible recovery to a separate sub-agent for medium or higher findings |
 | *"Research the prior art for this decision"* | `research` — fetched sources, per-source attestations, a grounded brief |
 | *"Turn the confirmed findings into work"* | `research-handoff` — proposes items, creates only the ones you confirm |
 | *"Prepare the v0.3 release summary"* | `release` — collapses completion stubs into one versioned summary |
 
 ### Check context before it obscures the work
 
-Use `context-scan` or "run context scanner" for a one-time assessment by a
-diagnostic sub-agent. Append `none`, `low`, `medium`, `high`, or `critical` to
-choose the minimum finding severity for automatic remediation. Omission means
-`high`; `none` gives a report and advice without starting remediation. Each
-finding has its own rating, evidence, confidence, and suggested action.
+Use `context-scan` or "run context scanner" for a one-time assessment. After the
+threshold is resolved, the main agent immediately sends the diagnostic to a
+sub-agent instead of scanning itself. Append `none`, `low`, `medium`, `high`, or
+`critical` to choose the minimum finding severity for automatic remediation.
+Omission means `high`; `none` gives a report and advice without starting
+remediation. Each finding has its own rating, evidence, confidence, and suggested
+action.
 
-Recovery may preserve continuation state or prepare a design handoff to divide
-overloaded workstreams. Instruction rewrites are prepared only in a separate
-branch and isolated checkout for review, never automatically applied. If that
-isolation is unavailable, the agent reports the limitation and leaves rewriting
-for an explicit request. Limited context visibility is disclosed; unavailable
-delegation yields a labeled advisory assessment. See the
+After verifying the diagnostic report, the main agent sends eligible recovery to
+a different sub-agent. That worker may preserve continuation state or prepare a
+design handoff to divide overloaded workstreams, then reports completed actions,
+the handoff, and anything left solely because it needs main-agent privileges. The
+main agent integrates the result and finishes that privileged residue. Instruction
+rewrites are prepared only in a separate branch and isolated checkout for review,
+never automatically applied. If that isolation is unavailable, the agent reports
+the limitation and leaves rewriting for an explicit request. Limited context
+visibility is disclosed; unavailable diagnostic delegation yields a labeled
+advisory assessment, while unavailable remediation delegation does not silently
+move ordinary recovery into the main context. See the
 [context-scan skill](../plugins/workbench/skills/context-scan/SKILL.md) for details.
 
 ### Work versus deliver

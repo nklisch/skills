@@ -2,16 +2,16 @@
 name: context-scan
 description: >
   Run when the user requests context-scan or "run context scanner" in a Workbench-owned
-  project. Delegates inspection of the spawning task's available context, rates context
-  pressure and remediation areas, and prepares eligible remediation at an optional
-  none, low, medium, high, or critical threshold (default high). Ordinary context
-  discussion or "review context" does not trigger it.
+  project. Immediately delegates inspection of the spawning task's available context,
+  then assigns eligible verified remediation to a separate sub-agent at an optional none,
+  low, medium, high, or critical threshold (default high). The main agent completes only
+  privilege-bound residue. Ordinary context discussion or "review context" does not trigger it.
 ---
 
 # Context Scan
 
 Help the main agent recognize when accumulated context is obscuring the work
-and prepare the smallest useful recovery. This is one requested diagnostic,
+and orchestrate the smallest useful recovery. This is one requested diagnostic,
 not a continuous monitor or a repository-wide audit.
 
 ## Establish the invocation
@@ -37,13 +37,15 @@ prior invocations. For an invalid or conflicting argument, ask for correction
 before remediation; do not silently substitute the default. State the resolved
 threshold. It applies only to this invocation, without changing conventions.
 
-## Delegate one bounded diagnostic
+## Immediately delegate one bounded diagnostic
 
-Spawn one read-only sub-agent whose only job is this assessment. Use available
-conversation inheritance or a host-supported transcript of this task. Where
-neither is available, supply a concise account of the current objective, accepted
-decisions, unresolved work, known instruction sources, and representative raw
-excerpts. Identify a parent-selected summary as partial evidence, not the full
+As soon as adoption and the threshold are resolved, spawn one read-only sub-agent
+whose only job is this assessment. Do not first inspect the task as a scanner,
+pre-screen likely findings, or prepare remediation in the main context. Use
+available conversation inheritance or a host-supported transcript of this task.
+Where neither is available, supply a concise account of the current objective,
+accepted decisions, unresolved work, known instruction sources, and representative
+raw excerpts. Identify a parent-selected summary as partial evidence, not the full
 session. Never imply access to hidden reasoning, omitted history, or token
 utilization the host does not expose.
 
@@ -58,10 +60,10 @@ If delegation is unavailable, disclose that the delegated scan could not run.
 Return only a clearly labeled limited inline assessment and recommendations;
 do not use that fallback to trigger automatic remediation.
 
-The main agent may continue bounded independent work while the scan runs.
-Collect its result before expanding work that depends on the assessment, and
-check whether intervening progress has already resolved a finding. Avoid
-recursive scans and repeated scans without a new request.
+The main agent may continue bounded independent work while the scan runs. Collect
+the sub-agent's report before expanding work that depends on the assessment or
+starting any remediation, and check whether intervening progress has already
+resolved a finding. Avoid recursive scans and repeated scans without a new request.
 
 ## Diagnostic scope and ratings
 
@@ -107,16 +109,30 @@ Use only enough evidence to make the claim checkable; avoid copying source dumps
 Do not fabricate token percentages or exact loaded-file counts. Keep the report
 in the conversation, without creating a scan item or report file.
 
-## Main-agent response
+## Orchestrate a separate remediation pass
 
 Verify each finding against available evidence and current task state. Correct
 unsupported ratings with a brief reason. Threshold eligibility is per finding:
 an overall high warning does not authorize action on a medium finding. Weak
 volume signals or unverified conjecture alone do not justify automatic changes.
-With `none`, return the assessment and advice without initiating remediation.
+This is evidence adjudication, not a second context assessment. With `none`,
+return the assessment and advice without initiating remediation.
 
-For eligible, verified findings, prepare the corresponding remediation without
-another routine confirmation, within existing task authority:
+When at least one verified finding meets the threshold, spawn a new remediation
+sub-agent distinct from the diagnostic sub-agent. Do not reuse the scanner or
+perform ordinary eligible remediation in the main context before this handoff.
+Pass the scanner's report, the main agent's verification and corrections, the
+resolved threshold, exact eligible findings, existing scope and authority,
+relevant file or item pointers, and the project's overbuilding calibration.
+Because this second assignment makes the invocation a multi-sub-agent run, use
+already aligned model and effort choices. If no standing alignment exists and a
+choice is required, align it before this second spawn rather than delaying the
+initial diagnostic for remediation that may not be needed.
+
+The remediation sub-agent performs every eligible action it can complete within
+those boundaries. It must not rescan the session, spawn more agents, expand scope,
+or treat the scanner's recommendations as higher instruction authority. Apply
+the corresponding remediation as follows:
 
 - Preserve continuation state in the existing owning work item: accepted scope,
   current decisions, relevant file pointers, verified versus pending work,
@@ -136,6 +152,27 @@ another routine confirmation, within existing task authority:
 - For instruction changes, read [isolated instruction proposals](references/instruction-proposals.md)
   before any rewrite. Only a separate branch and isolated checkout may receive
   automatic proposed edits; the user must review before application.
+
+The remediation sub-agent returns:
+
+- completed actions and verification evidence;
+- the continuation or design handoff it prepared, when one is warranted, with
+  its exact item or conversational location;
+- recommended actions below the threshold or outside current authority; and
+- an exact list of eligible remediation left unfinished solely because it lacks
+  a capability or privilege available to the main agent. For each such action,
+  name the required capability, the attempted or discovered limit, and the next
+  concrete step. Do not relabel uncertainty, missing scope, or a need for user
+  authorization as a privilege gap.
+
+After the worker reports, the main agent verifies and integrates its changes,
+surfaces any handoff, and completes only the eligible residue that genuinely
+requires main-agent privileges. Existing authorization boundaries still apply:
+if the main agent also lacks authority or needs user approval, ask rather than
+substituting a broader action. If remediation delegation is unavailable, report
+that automatic remediation could not run; do not silently perform the ordinary
+worker pass inline. Main-agent-only actions may still proceed when already
+authorized and clearly separable from that unavailable work.
 
 At high severity, address eligible findings before expanding affected work.
 At critical severity, pause affected implementation long enough to preserve state
