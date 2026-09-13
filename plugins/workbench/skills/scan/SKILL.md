@@ -82,12 +82,19 @@ delivery review, not scan depth.
 Before a scan requiring multiple sub-agents, follow
 [model alignment](../work/references/execution-posture.md#align-models-before-multi-subagent-execution).
 Choose from actual availability with the user, considering coverage, evidence
-quality, and cost. Follow
-[model tendencies](../work/references/model-tendencies.md): spend the initial
-budget on coverage, lane ownership, and evidence, and reserve stronger judgment
-for adjudicating the bounded candidate set. Initial scanner output remains
-candidate evidence regardless of model. Use focused adjudication when disputed or high-consequence findings
-warrant it, not as a mandatory extra pass.
+quality, and cost. [Model tendencies](../work/references/model-tendencies.md)
+informs capability fit. For broad scanning, do not use a flagship model for the
+first unverified finding pass: spend that budget on coverage, lane ownership, and
+evidence. Reserve stronger reasoning for adjudicating a bounded candidate set,
+such as lane disagreement, high-consequence findings, architectural proposals,
+or weakly evidenced claims. If no economical scanner is available, inspect inline,
+narrow the scan, or disclose the coverage limit rather than promoting a flagship
+model just to preserve fan-out. This scan-specific rule is not a ban on strong
+design, difficult implementation, or consequential delivery review.
+
+Initial scanner output remains candidate evidence regardless of model. Use focused
+adjudication when disputed or high-consequence findings warrant it, not as a
+mandatory extra pass.
 
 State a compact plan before a campaign: scope, selected lenses, rough scanner
 budget, and what will be consolidated. Ask before multi-agent fan-out or any

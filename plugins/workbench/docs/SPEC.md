@@ -544,8 +544,10 @@ corrections after review retain the configured pass budget. Current availability
 supported effort settings, user preferences, and evidence govern the actual lineup.
 One model or inline execution can cover multiple assignments without pretending
 to provide model diversity. Explicit unavailable-reviewer requirements still need
-user disposition. [Model tendencies](../skills/work/references/model-tendencies.md)
-owns assignment and difficulty guidance.
+user disposition. [Design](../skills/design/SKILL.md#assess-implementation-difficulty)
+owns difficulty assessment; [delivery](../skills/deliver/SKILL.md#choose-implementation-and-follow-up)
+owns correction and cleanup mechanics. [Model tendencies](../skills/work/references/model-tendencies.md)
+informs capability and context trade-offs; it does not own workflow procedures.
 
 Optional `.work/MODEL-NOTES.md` retains qualified observations from models used in
 this repository. Working guidance and recent observations distinguish verified,

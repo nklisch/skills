@@ -60,18 +60,46 @@ already resolved. Under adaptive execution, compare another context's expected
 value with the handoff cost. Quick coherent implementation often benefits more
 from continuity. Explicit role preferences still apply.
 
+## Choose implementation and follow-up
+
+Prefer a capable economical initial implementer for a settled contract when that
+fits the available, aligned lineup. Keep small or mechanical corrections with it;
+give accepted findings as a clear numbered list with evidence, required behavior,
+and affected verification. Do not turn every item into a three-agent pipeline or
+force a weaker model onto unresolved design work. A user's explicit first-implementer
+choice wins over this default. [Model tendencies](../work/references/model-tendencies.md)
+informs capability fit, not the delivery procedure.
+
+Recommend stronger reasoning when diagnosis, missed invariants, cross-cutting
+coupling, or weak decomposition makes another mechanical correction list
+insufficient. The [design assessment](../design/SKILL.md#assess-implementation-difficulty)
+may forecast that need before implementation. Conversely, minor findings or a sound
+straightforward delivery do not earn a mandatory cleanup stage. Repeated failures
+or unsupported verification claims warrant reassessing the assignment and checking
+underlying evidence, not endlessly retrying the same brief.
+
+A follow-up is implementation with an explicit owned write boundary. Give it license
+to improve clarity and structure under the effective
+[simplification posture](../work/references/simplification.md): clearer ownership
+and names, simpler control flow, cohesive file splits or consolidation, and removal
+of accidental complexity where the payoff is real. It reads the recorded contract
+and inspects underlying failure paths, not only numbered findings. Preserve accepted
+behavior, guarantees, and measured performance; return unrelated opportunities
+separately.
+
+Prefer planned cleanup before the selected implementation review so the reviewer
+sees the actual result. After review, corrections may still include cohesive
+cleanup; verify and self-check the changed boundary. Follow
+[review.md](../work/references/review.md#pass-budget-and-review-targets) for what
+counts as a distinct pass, independence, and extra-round authority; a change of
+implementer does not itself authorize re-review.
+
 ## Implement and adjust
 
 Work inside the accepted outcome and owned surface. Apply project calibration,
 principles, and confirmed patterns without turning them into new requirements.
 Mechanical rules belong in tool configuration, operating rules in `AGENTS.md`,
 engineering truth in foundations, and recurring shapes in the pattern catalog.
-
-Use [economical implementation and selective follow-up](../work/references/model-tendencies.md#economical-implementation-and-selective-follow-up)
-within the aligned lineup. Keep mechanical corrections economical; recommend
-stronger reasoning for difficult diagnosis, missed invariants, or weak structure.
-A follow-up may improve code clarity and decomposition inside its owned boundary;
-it is implementation, not automatically another review or a required stage.
 
 Preserve behavior, guarantees, safety, compatibility obligations, and measured
 performance constraints unless a change is authorized. Simplify cohesively rather

@@ -164,10 +164,10 @@ ready work moving when one unit stalls.
 
 For multiple sub-agents, follow
 [model alignment](references/execution-posture.md#align-models-before-multi-subagent-execution).
-Use [model tendencies](references/model-tendencies.md) and applicable
-[model notes](references/model-notes.md) to propose economical implementation and
-selective stronger follow-up, not a mandatory agent pipeline. The outcome owner
-observes meaningful returns and prunes useful repository notes at integration,
+Follow [delivery's assignment and follow-up guidance](../deliver/SKILL.md#choose-implementation-and-follow-up),
+using [model tendencies](references/model-tendencies.md) for capability fit and
+[model notes](references/model-notes.md) for qualified local evidence. The outcome
+owner observes meaningful returns and prunes useful repository notes at integration,
 handoff, and completion. Notes inform proposals; they never grant model approval.
 Respect aligned resources and explicit preferences. Routine assignments within
 that agreement do not require repeated permission. New consequential commitments

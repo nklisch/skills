@@ -77,13 +77,6 @@ its authority, and why an existing or simpler mechanism is insufficient. Account
 for synchronization, migration, false positives, blocked states, and recovery.
 Preserve accepted guarantees while removing machinery that does not earn its cost.
 
-Where difficulty affects assignments or follow-up, record a concise
-[implementation-difficulty assessment](../work/references/model-tendencies.md#explain-implementation-difficulty)
-in the item: reasoning difficulty separately from failure consequence, likely
-mistakes, and useful follow-up. Make consequential ownership, ordering, readiness,
-and failure behavior explicit, using attachments only when they reduce guesswork.
-Do not pre-write every function or treat a difficulty label as a review-weight switch.
-
 Design verification alongside the change. Reuse existing tests, commands,
 fixtures, and environments. Cheap contained evidence may be added directly;
 a substantial new test framework, simulation, or benchmark platform requires
@@ -105,6 +98,29 @@ which questions remain. Do not paste or retell the whole design in the handoff;
 the receiving agent reads the recorded sources directly. Keep implementation-shaping
 details in those sources, not only in the message. Return out-of-scope ideas
 separately as non-blocking follow-ups, not item requirements.
+
+## Assess implementation difficulty
+
+For designed units where difficulty affects implementation or follow-up, record a
+short assessment in the item. Describe reasoning difficulty in ordinary language
+(for example, low, moderate, or high), separately from the consequence of failure.
+Name straightforward portions, remaining judgment or hidden coupling, likely
+mistakes, and the follow-up most likely to help. No score, new frontmatter, or
+required section is needed for an obvious local change.
+
+A large mechanical edit can be straightforward but consequential; a small
+multi-owner transition can require difficult reasoning. Assess the actual contract
+rather than counting files, lines, or findings. The owner revises the forecast when
+implementation, verification, or review reveals a different problem. Difficulty
+advises assignments; it does not select review weight or authorize spending or
+additional rounds.
+
+Use [design attachments](../work/references/design-attachments.md) when explicit
+interfaces, ownership, state transitions, readiness, ordering, partial failure,
+recovery, and representative sequences would reduce consequential guesswork.
+Detail the dangerous boundaries, including what must remain unchanged after
+failure, not every function. Greater detail cannot substitute for needed reasoning
+or create new requirements.
 
 ## Update decisions in place
 

@@ -33,19 +33,19 @@ Those choices do not independently change pass depth or convergence.
 
 ## Pass budget and review targets
 
-A pass is one deliberate review of one stable target, not an agent assignment
-or a required amount of prose. In the current context, reset the lens and inspect
-the target again without claiming fresh-context independence. Under `adaptive`,
-weigh what a fresh reviewer would add against context transfer and coordination.
-A familiar, bounded change often needs only a focused inline pass. Hidden coupling,
-specialized risk, or author blind spots may justify another context. Honor explicit
-`inline`, `orchestrated`, independent, and cross-model requests.
+A pass is deliberate review of a stable target, not an agent assignment or prose
+quota. Inline review resets the lens without claiming fresh-context independence.
+Under `adaptive`, weigh fresh perspective against handoff cost: familiar bounded
+changes often fit inline, while hidden coupling, specialized risk, or author blind
+spots may justify another context. Honor explicit `inline`, `orchestrated`,
+independent, and cross-model requests.
 
 Scale effort to consequence, uncertainty, breadth, and reversibility. Inspect the
 whole accepted boundary, concentrating on credible failure paths. A small change
 needs no broad audit, full form, or delegate; inline review needs no role narration
-or self-addressed packet. A correction, its verification, and ordinary author
-self-checking are **not** another pass.
+or self-addressed packet. Corrections, verification, changing implementer, and author
+self-checks are **not** another pass or independent review. A distinct inspection
+counts as review regardless of its assignment's name.
 
 `standard` has a fixed one-pass budget per selected target. An optional design
 review and an implementation review have separate budgets. An implementation

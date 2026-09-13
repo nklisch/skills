@@ -55,10 +55,12 @@ from that preference when the current work clearly benefits, and explicit user
 direction always wins.
 
 If an explicitly requested role agent or cross-model review is unavailable,
-disclose the limitation and ask how to proceed. Otherwise `adaptive` degrades to
-credible inline execution when delegation is unavailable; report that coverage
-fact without treating it as a blocker. `inline` is an intentional topology, not
-an unavailable-review failure.
+disclose the limitation and ask how to proceed. Otherwise, when a stronger or
+independent model is unavailable, use a credible same-model fresh context,
+narrower assignment, or inline pass within the aligned fallbacks. Report missing
+independence or coverage; model scarcity never lowers acceptance requirements.
+`adaptive` degrades to credible inline execution when delegation is unavailable.
+Intentional `inline` is not an unavailable-review failure.
 
 ## Align models before multi-subagent execution
 
@@ -68,7 +70,8 @@ exploratory work, scans, and research, not only delivery topology.
 
 Discover the models and thinking settings the current harness actually provides.
 Shape the proposal with [model tendencies](model-tendencies.md), the item's
-implementation-difficulty assessment when useful, and applicable
+[implementation-difficulty assessment](../../design/SKILL.md#assess-implementation-difficulty)
+when useful, and applicable
 [repository model notes](model-notes.md), rather than a fixed role-to-model table.
 Notes are qualified observations, never availability or user approval. Present
 useful assignments, models, supported thinking levels, and authorized fallbacks,
