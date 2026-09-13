@@ -18,8 +18,9 @@ Use Markdown by default, usually `contract.md`. Include only useful detail:
 
 - domain meaning, boundaries, and terminology;
 - exact interfaces or schemas in fenced code blocks;
-- state transitions, ordering, retries, and error behavior;
-- concrete inputs, outputs, and verification cases;
+- ownership, state transitions, readiness, ordering, retries, and error behavior;
+- partial-failure and recovery behavior, including what must remain unchanged;
+- concrete inputs, outputs, and verification sequences across those boundaries;
 - assumptions and unresolved choices that constrain dependent implementation.
 
 Link the attachment from the owning item with an ordinary Markdown link. For

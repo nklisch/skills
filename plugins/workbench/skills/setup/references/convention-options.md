@@ -29,10 +29,12 @@ and each completed integrated implementation target exactly one distinct pass;
 execution posture determines whether it is inline or fresh-context. Corrections are
 verified and self-reviewed, not sent through another distinct pass. `thorough` converges
 when no unresolved blocking finding remains; `maximum` when no unresolved material finding
-remains. A project may state a review-count preference in prose, but Workbench does not
-enforce it; explicit user direction may bound, extend, or stop one review — report
-remaining findings for disposition. Weight controls depth, not design-review eligibility
-or batch size. Existing substrates without the field resolve to `standard`.
+remains. Explicit direction or user-confirmed convention prose can bound repeated
+review; complex targets may warrant a proposed bounded plan. Such limits do not add
+rounds to `standard` without authorization for repeated review. Stop at convergence
+or the aligned limit, reporting unresolved required corrections without closing over
+them. See [review](../../work/references/review.md). Weight controls depth, not
+design-review eligibility or batch size. Existing substrates without the field resolve to `standard`.
 
 ### Simplification posture
 

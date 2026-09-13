@@ -200,6 +200,45 @@ relationships: []
         )
         self.assertEqual(self.run_tool(INDEX, root, "--check").returncode, 0)
 
+    def test_model_notes_do_not_enter_or_stale_the_knowledge_index(self) -> None:
+        root = self.make_project()
+        # Only the advisory scratch file is excluded, not its basename everywhere.
+        write(root / "docs/MODEL-NOTES.md", "# Model interface documentation\n")
+        write(root / ".work/backlog/MODEL-NOTES.md", "# An ordinary backlog entry\n")
+        result = self.run_tool(INDEX, root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        index_path = root / ".knowledge/index.json"
+        baseline = index_path.read_bytes()
+        paths = {entry["path"] for entry in json.loads(baseline)["entries"]}
+        self.assertIn("docs/MODEL-NOTES.md", paths)
+        self.assertIn(".work/backlog/MODEL-NOTES.md", paths)
+
+        notes = root / ".work/MODEL-NOTES.md"
+        for content in (
+            "# Model notes\n\n## Recent observations\n\nTentative local evidence.\n",
+            "# Model notes\n\n## Working guidance\n\nA distilled lesson.\n",
+        ):
+            write(notes, content)
+            check = self.run_tool(INDEX, root, "--check")
+            self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+            result = self.run_tool(INDEX, root)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(index_path.read_bytes(), baseline)
+        notes.unlink()
+        check = self.run_tool(INDEX, root, "--check")
+        self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+
+    def test_model_notes_cannot_be_durable_relationship_targets(self) -> None:
+        root = self.make_project()
+        write(root / ".work/MODEL-NOTES.md", "# Model notes\n")
+        path = root / "docs/ARCHITECTURE.md"
+        write(path, path.read_text().replace(
+            ".research/briefs/example.md", ".work/MODEL-NOTES.md"
+        ))
+        result = self.run_tool(INDEX, root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("unresolved relationship target .work/MODEL-NOTES.md", result.stdout)
+
     def test_check_detects_stale_index(self) -> None:
         root = self.make_project()
         self.assertEqual(self.run_tool(INDEX, root).returncode, 0)

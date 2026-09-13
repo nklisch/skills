@@ -160,6 +160,11 @@ before deletion under [design attachments](design-attachments.md). Keep attachme
 while their item is in backlog or active, including pending review. Rebuild an
 existing knowledge index after deletion.
 
+At integration, handoff, and run completion, the outcome owner also prunes existing
+[model notes](model-notes.md): retain useful qualified lessons, remove redundant
+observations and obsolete pointers, and delete an empty scratch file. Notes survive
+an item only when still useful; they are not completion artifacts or required output.
+
 Before closure, remove the completed id from each active `blocked_by` and
 `related_to` list. Close the final feature children and their accepted epic in
 the same sweep;

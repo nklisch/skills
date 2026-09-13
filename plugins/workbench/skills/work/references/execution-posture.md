@@ -67,12 +67,17 @@ the user in chat before execution starts. This includes sequential assignments,
 exploratory work, scans, and research, not only delivery topology.
 
 Discover the models and thinking settings the current harness actually provides.
-Shape the proposal with [model tendencies](model-tendencies.md) rather than a
-fixed role-to-model table. Present the proposed roles, models, and supported
-thinking levels, with brief reasons tied to the task and meaningful cost or
-capability trade-offs. Ask for confirmation before dispatch unless explicit user
-choices or user-confirmed standing preferences already cover the lineup. In that case, state the reused
-alignment in chat without asking again. General autonomy is not model approval.
+Shape the proposal with [model tendencies](model-tendencies.md), the item's
+implementation-difficulty assessment when useful, and applicable
+[repository model notes](model-notes.md), rather than a fixed role-to-model table.
+Notes are qualified observations, never availability or user approval. Present
+useful assignments, models, supported thinking levels, and authorized fallbacks,
+with brief task-specific cost or capability trade-offs. Initial implementation,
+complex correction/cleanup, and consequential review may use different models or
+the same one; none is a mandatory extra agent or pass. Ask for confirmation before
+dispatch unless explicit choices or user-confirmed standing preferences cover the
+lineup. In that case, state the reused alignment without asking again. General
+autonomy is not model approval.
 
 Honor user and project restrictions. Ask before substituting a model or effort
 setting outside the aligned choices unless the user authorized that fallback.

@@ -385,6 +385,39 @@ splitting growing work, and completion cleanup, follow the
 The durable record is ordinary Markdown. You can read or edit `.work/`
 items directly; the agent keeps their structure valid.
 
+## Steer model assignments
+
+Workbench discovers your available models rather than prescribing a provider or
+assuming everyone has the same thinking settings. You can ask:
+
+> Start settled implementation economically. Keep mechanical fixes with that
+> implementer; use stronger reasoning for difficult corrections and scoped code
+> cleanup. Propose the models and fallbacks from what I have available.
+
+Designers explain implementation difficulty separately from failure consequence
+when it affects assignments. They identify likely mistakes and make consequential
+state transitions or failure behavior explicit, using existing design attachments
+when helpful. A stronger follow-up may improve clarity and structure, not only
+fix numbered findings, while preserving the accepted behavior and scope.
+These assignments can share a model; simple work does not need extra agents.
+
+For complex batches you can bound extra review explicitly:
+
+> Use two review-and-correction rounds, with a third only if consequential findings
+> remain and corrections are making useful progress. Stop sooner if clean. Bring
+> remaining blockers back to me rather than looping or calling the work done.
+
+This authorizes repeated review for that target; ordinary `standard` work retains
+its one-pass budget. A cleanup author's self-check is not independent review.
+
+The owner may keep `.work/MODEL-NOTES.md` when local experience could improve future
+assignments. It separates qualified working guidance from recent observations,
+including strengths and counterexamples, and distinguishes verified evidence from
+user reports and tentative claims. Owners prune at integration, handoff, and
+completion: retain useful distilled lessons, not a run diary. Empty notes disappear.
+The file is optional, unindexed, and never substitutes for your preferences,
+current availability, or approval. No model rankings are seeded during setup.
+
 ## Steer autonomy, simplification, and review depth
 
 Three repo defaults shape how the agent works, and each is overridable per

@@ -102,6 +102,20 @@ updated: 2026-07-24
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("validation passed", result.stdout)
 
+    def test_model_notes_are_optional_prose_not_work_items(self) -> None:
+        root = self.make_project()
+        notes = root / ".work/MODEL-NOTES.md"
+        for content in (
+            "# Model notes\n\n## Recent observations\n\nTentative local evidence.\n",
+            "# Model notes\n\n## Working guidance\n\nKeep only useful lessons.\n",
+        ):
+            write(notes, content)
+            result = self.run_validator(root)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        notes.unlink()
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_linked_design_attachment_passes_without_item_frontmatter(self) -> None:
         root = self.make_project()
         item = root / ".work/active/example.md"

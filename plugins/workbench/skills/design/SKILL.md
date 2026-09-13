@@ -77,6 +77,13 @@ its authority, and why an existing or simpler mechanism is insufficient. Account
 for synchronization, migration, false positives, blocked states, and recovery.
 Preserve accepted guarantees while removing machinery that does not earn its cost.
 
+Where difficulty affects assignments or follow-up, record a concise
+[implementation-difficulty assessment](../work/references/model-tendencies.md#explain-implementation-difficulty)
+in the item: reasoning difficulty separately from failure consequence, likely
+mistakes, and useful follow-up. Make consequential ownership, ordering, readiness,
+and failure behavior explicit, using attachments only when they reduce guesswork.
+Do not pre-write every function or treat a difficulty label as a review-weight switch.
+
 Design verification alongside the change. Reuse existing tests, commands,
 fixtures, and environments. Cheap contained evidence may be added directly;
 a substantial new test framework, simulation, or benchmark platform requires

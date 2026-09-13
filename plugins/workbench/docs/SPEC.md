@@ -5,6 +5,7 @@
 ```text
 .work/
 ├── CONVENTIONS.md
+├── MODEL-NOTES.md               # optional, pruned model observations
 ├── active/.gitkeep
 ├── active/<id>.md
 ├── attachments/<id>/contract.md  # optional, deleted at item completion
@@ -77,9 +78,9 @@ current conversation. These replies are chat prose, not repository artifacts.
 Workbench does not create report files or durable no-op records unless the user
 requests them.
 
-Durable state is limited to explicitly named work items and their optional design
-attachments, foundations, project pattern catalogs, user-confirmed project scan-lens
-skills, research artifacts,
+Retained state is limited to explicitly named work items and their optional design
+attachments, provisional repository model notes, foundations, project pattern catalogs,
+user-confirmed project scan-lens skills, research artifacts,
 mockups, generated indexes, completion stubs, release summaries, and repository
 conventions. A requested context scan may also prepare instruction changes in an
 isolated proposal branch for user review; those changes do not govern the active
@@ -484,11 +485,16 @@ A correction and its verification are not another distinct pass. Only
 `thorough`, `maximum`, or explicit user direction repeat distinct passes over
 the same target. Thorough review converges when no unresolved blocking finding
 remains; maximum review converges when no unresolved material finding remains.
-Minor and nit
-findings are non-blocking. A project may state a review-count preference in
-conventions, but Workbench does not interpret or enforce it; explicit user
-direction controls any limit or early stop. If convergence cannot make further
-corrective progress, report the remaining findings for user disposition.
+Minor and nit findings are non-blocking. For complex targets warranting repeated
+review, Workbench proposes a bounded plan rather than endless retries. Explicit
+user direction or user-confirmed convention prose supplies any round limit;
+there is no universal numeric cap. A limit does not add rounds to `standard`
+without authorization for repeated review. Stop early when convergence is met;
+at the limit or when corrective progress stalls, report remaining findings for
+user disposition. Limits bound effort, not acceptance: unresolved required
+corrections or failed verification prevent closure unless the user explicitly
+revises the accepted scope or requirements. The shared [review policy](../skills/work/references/review.md)
+owns round planning and convergence.
 
 Refactor and cleanup work — and any change that makes decomposition
 decisions — additionally applies a shared structural-hygiene lens at
@@ -519,6 +525,42 @@ benchmarking, or low-level optimization without a constraint or credible risk.
 The posture controls simplification emphasis, while `review_weight` controls
 review depth and repetition and execution posture controls runner topology. It never makes unrelated cleanup part
 of acceptance.
+
+## Model assignments and observations
+
+Workbench prefers capable economical implementation of settled contracts and
+mechanical corrections, with selective stronger reasoning for difficult diagnosis,
+missed invariants, or structural improvement. These are assignments, not mandatory
+agents or fixed model tiers. Designers explain implementation difficulty separately
+from failure consequence where it affects delivery choices, naming likely mistakes
+and useful follow-up. Precise attachments clarify consequential boundaries rather
+than pre-write the implementation. Difficulty remains a revisable assessment, not
+an automatic review-weight or spending decision.
+
+A stronger follow-up may improve clarity and decomposition within the owned scope
+and simplification posture. It remains implementation; the author's self-check is
+not independent review. Planned cleanup precedes the selected review where useful;
+corrections after review retain the configured pass budget. Current availability,
+supported effort settings, user preferences, and evidence govern the actual lineup.
+One model or inline execution can cover multiple assignments without pretending
+to provide model diversity. Explicit unavailable-reviewer requirements still need
+user disposition. [Model tendencies](../skills/work/references/model-tendencies.md)
+owns assignment and difficulty guidance.
+
+Optional `.work/MODEL-NOTES.md` retains qualified observations from models used in
+this repository. Working guidance and recent observations distinguish verified,
+user-reported, and tentative evidence, including strengths and counterexamples.
+The outcome owner consults applicable notes when proposing assignments and prunes
+them at integration, replanning, handoff, and completion. Useful distilled lessons
+may survive runs; redundant, superseded, or irrelevant material and empty files do
+not. Delegates return candidate observations rather than competing edits.
+
+These notes have no frontmatter schema, scores, availability authority, or user
+approval authority. They are excluded from the knowledge index so provisional
+observations cannot masquerade as durable project truth. Setup recognizes an
+existing file but never seeds model beliefs. Missing notes do not block execution.
+[Model notes](../skills/work/references/model-notes.md) owns evidence qualification,
+concurrent editing, and aggressive pruning without a separate tracking service.
 
 ## Work behavior
 
@@ -900,7 +942,9 @@ or without explicit approval.
 ## Knowledge index
 
 `build-knowledge-index.py` indexes root and sub-project documentation,
-`.research/**/*.md`, and `.work/**/*.md`. It emits byte-stable JSON, rejects
+`.research/**/*.md`, and `.work/**/*.md`, except the provisional scratch file
+`.work/MODEL-NOTES.md`. That exact path is not a durable relationship target;
+editing or deleting it does not stale the index. It emits byte-stable JSON, rejects
 duplicate namespace/id pairs and unresolved relationships, generates the
 bibliography, and checks committed freshness with `--check`. Projects may
 track `.knowledge/index-exclusions.txt` with one repository-relative path

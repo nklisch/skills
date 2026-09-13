@@ -67,6 +67,12 @@ principles, and confirmed patterns without turning them into new requirements.
 Mechanical rules belong in tool configuration, operating rules in `AGENTS.md`,
 engineering truth in foundations, and recurring shapes in the pattern catalog.
 
+Use [economical implementation and selective follow-up](../work/references/model-tendencies.md#economical-implementation-and-selective-follow-up)
+within the aligned lineup. Keep mechanical corrections economical; recommend
+stronger reasoning for difficult diagnosis, missed invariants, or weak structure.
+A follow-up may improve code clarity and decomposition inside its owned boundary;
+it is implementation, not automatically another review or a required stage.
+
 Preserve behavior, guarantees, safety, compatibility obligations, and measured
 performance constraints unless a change is authorized. Simplify cohesively rather
 than creating conformity churn. Follow the accepted design's assurance choices;
@@ -132,6 +138,11 @@ owner and checkpoint in existing item prose and return without closure. Verified
 Reconcile relationships and validate ledger changes. Never close the wider
 boundary from an assigned delivery. Follow the effective Git posture without
 rewriting shared history or treating squashing as acceptance.
+
+The outcome owner considers useful [model observations](../work/references/model-notes.md)
+and prunes existing notes at integration and closure. Assigned deliverers return
+candidate observations rather than editing the shared scratch file. Do not create
+an observation merely to record ordinary completion.
 
 Return delivered behavior, meaningful checks and review, interface assumptions,
 foundation changes, pattern implications, limitations, and excluded findings.

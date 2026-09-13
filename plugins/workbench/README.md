@@ -149,6 +149,7 @@ Workbench keeps its state deliberately small:
 ```text
 .work/
 ├── CONVENTIONS.md      # collaboration, review, verification, and delivery rules
+├── MODEL-NOTES.md      # optional, pruned observations about models used here
 ├── active/             # outcomes currently being delivered
 ├── backlog/            # useful context parked for later
 ├── completed/          # compact completion summaries, when retained
@@ -205,6 +206,21 @@ Adaptive and autonomous work proceed with routine choices inside that alignment
 and your granted authority. New consequential commitments, such as material
 costs or changed data exposure, still require your decision. You may also
 explicitly request plan approval.
+
+Model assignments fit the work and the models you actually have. Settled
+implementation and mechanical corrections normally start economically; difficult
+diagnosis or structural cleanup may earn a stronger follow-up. Designers explain
+implementation difficulty separately from failure consequence and clarify tricky
+contracts with optional attachments. This is not a mandatory three-agent pipeline:
+one model can cover several assignments. Cleanup has scoped write authority and
+preserves behavior; it does not count as independent review of its own changes.
+
+An optional `.work/MODEL-NOTES.md` helps future assignments use local experience.
+The owner retains qualified strengths, weaknesses, and counterexamples, separating
+current working guidance from recent observations. It prunes the record during
+integration and at run completion, retaining only useful lessons and deleting an
+empty file. Notes never grant model approval or establish availability, and stay
+out of the knowledge index. See [model notes](skills/work/references/model-notes.md).
 
 Hierarchy describes how outcomes belong together. Ordering is separate.
 `blocked_by` says another active item should finish first because serial work
@@ -542,10 +558,12 @@ For `standard`, a selected design review and a completed implementation batch
 are separate one-pass targets; the batch may include one or several deliveries.
 A correction and its verification are not another pass; only `thorough`,
 `maximum`, or explicit user direction
-permits re-reviewing the same target. Workbench does not enforce a numeric
-review cap: a project may state a preference in convention prose, and explicit
-user direction may bound, extend, or stop a review. When that ends a review
-before convergence, report remaining findings for a clear user disposition.
+permits re-reviewing the same target. Complex targets may use an aligned bounded
+plan, such as two review-and-correction rounds with a third only while useful
+progress continues on consequential findings. There is no universal cap; your
+explicit direction or confirmed convention prose supplies the bounds. Stop early
+at convergence. A limit bounds effort, not acceptance: remaining required
+corrections need user disposition and cannot be silently closed.
 Review weight controls pass depth and repetition; simplification posture controls
 how strongly each pass looks for behavior-preserving reduction; execution
 posture controls whether the pass is inline or fresh-context.

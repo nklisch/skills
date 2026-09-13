@@ -79,9 +79,12 @@ plan.
 
 Follow [execution posture and model alignment](execution-posture.md) before
 assigning agents, including initial read-only discovery agents. Record the
-aligned role, model, and thinking assignments so
-continuation preserves the user's choices. Treat them as current assignments,
-not a permanent allowlist. Preserve project restrictions from their owning authority.
+aligned role, model, thinking, and fallback assignments so
+continuation preserves the user's choices. Use the designer's difficulty assessment
+and applicable [model observations](model-notes.md) for economical initial delivery,
+selective stronger correction/cleanup, and consequential review. These assignments
+can share a model; they do not mandate separate agents. Treat them as current
+assignments, not a permanent allowlist. Preserve project restrictions from their owning authority.
 
 Pass delegated roles the shared context and boundary instruction from
 [role-handoffs.md](role-handoffs.md). Designers author the assigned items' design
@@ -147,6 +150,12 @@ every worker.
 The topology is an execution hypothesis, not a requirement or fixed schedule.
 Update it when repository state, design, write overlap, verification, review,
 agent returns, or an external blocker disproves an assumption.
+
+Reassess model fit when accepted findings expose missed invariants, difficult
+diagnosis, or unreliable verification claims. Keep mechanical corrections with
+the initial implementer when appropriate; follow [model tendencies](model-tendencies.md)
+for stronger implementation and cleanup. Update qualified observations and prune
+[model notes](model-notes.md) at meaningful checkpoints, not after every tool call.
 
 Interrupt or replace a stalled agent when more waiting does not earn its cost.
 Retain only independently verifiable partial evidence. Continue unrelated ready

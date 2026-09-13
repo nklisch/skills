@@ -23,6 +23,7 @@
 | Proven recurring implementation shape | `.agents/skills/patterns/` |
 | Fetched evidence or grounded synthesis | `.research/` |
 | Completed outcome worth retaining | Completion stub or release summary |
+| Useful observations about models used in this repository | Qualified, pruned `.work/MODEL-NOTES.md` under [model notes](../../work/references/model-notes.md); never a policy or ranking |
 | Session or resume state | Fold durable discoveries into work, then remove |
 | Generated navigation or cache | Rebuild knowledge index, then remove |
 | Workflow hooks, binaries, managed rules | Remove after target validation |

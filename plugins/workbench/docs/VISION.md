@@ -82,6 +82,19 @@ adopted repository; write-free `ideate` may explore before adoption, and
   challenge, specialization, isolation, or throughput can justify dedicated roles.
   This is judgment, not an inline mandate. Review is not automatically delegated,
   and design reasoning, aligned optional design review, and configured depth still apply.
+- **Model assignments learn from local evidence.** Settled implementation and
+  mechanical corrections normally start economically; difficult diagnosis and
+  cohesive structural improvement may earn stronger reasoning. Designers explain
+  difficulty separately from failure consequence and clarify dangerous boundaries
+  rather than pre-write every function. These are useful assignments, not a
+  mandatory agent pipeline. Actual availability and user alignment determine the
+  lineup, including credible single-model or inline execution.
+- **Model memory stays provisional.** An optional `.work/MODEL-NOTES.md` keeps
+  qualified strengths, weaknesses, and counterexamples from this repository.
+  Owners use it to inform proposals, not override approval or infer availability.
+  They prune during integration and after runs, retaining only useful distilled
+  lessons. It remains outside the knowledge index and foundations: observations
+  must not harden into unsupported model rankings or project policy.
 - **Scope is not a quality dial.** Design and review may resolve or check the
   authorized outcome, but they never invent requirements or enlarge it. Judge
   what is rational for the project's actual type, maturity, audience,
@@ -111,8 +124,10 @@ adopted repository; write-free `ideate` may explore before adoption, and
   outcome-owner adjudication. `maximum` converges until no unresolved material
   or blocking finding
   remains; minor and nit findings may remain. Workbench does not enforce a
-  numeric pass cap: a project may state a preference in convention prose, while
-  explicit user direction controls any limit or early stop. Review weight
+  universal numeric pass cap. Complex targets may use an aligned bounded plan;
+  explicit user direction or confirmed convention prose supplies its limits.
+  Stop early when convergence is met; a round limit never makes unresolved
+  required corrections acceptable. Remaining blockers need user disposition. Review weight
   controls review depth; the simplification posture independently controls
   simplification emphasis. A review's effort and reporting scale to the actual
   risk. Useful findings and material evidence limits matter, not a form or a

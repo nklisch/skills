@@ -63,7 +63,11 @@ preferences or adjacent opportunities into requirements.
   [review](review.md).
 - **Implementer — assignment-scoped writes.** May edit only the exact owned
   surface; authority does not include scope growth or shared-catalog changes.
-  Follow [execution](execution.md) and [deliver](../../deliver/SKILL.md).
+  Follow [execution](execution.md) and [deliver](../../deliver/SKILL.md). A complex
+  correction/cleanup assignment reads the contract and may improve code structure
+  within the assigned boundary and simplification posture, not only tick off
+  findings. Its author self-check is not independent review. Return useful model
+  observations to the owner rather than editing shared [model notes](model-notes.md).
 
 ## Loose delegated design or review
 

@@ -18,6 +18,20 @@ paths; `deep` extends evidence across journeys, states, viewports, and adjacent
 consumers. Depth changes breadth, not the rules: it never permits invented
 evidence, ignored failures, weakened tests, or unverified completion.
 
+Make consequential verification claims traceable to the actual command or
+operation, relevant checkout/commit and environment, observed result, and material
+limits. Distinguish passed, failed, blocked before reaching the target, and not run.
+A build stopped in a dependency did not check downstream code; a passing journey
+does not establish unexercised states. Preserve the checked command's exit status
+when filtering output (for example, use pipeline failure propagation or capture
+status before printing a tail). A successful output filter is not a successful check.
+
+The outcome owner spot-checks load-bearing returned claims against underlying
+output, code/dependency boundaries, or a reproduction before acceptance. An agent's
+summary and a reviewer's confidence are not substitute evidence. Investigate
+contradictions and correct unsupported claims, regardless of model capability.
+Use existing logs and work-item evidence pointers; do not add a receipt database.
+
 Prefer tests that prove externally meaningful behavior at stable interfaces.
 Avoid tautological mocks, implementation-detail assertions, and coverage-only
 tests that cannot catch a real regression. When durable behavior changes, add

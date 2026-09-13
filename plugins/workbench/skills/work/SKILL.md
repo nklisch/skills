@@ -164,6 +164,11 @@ ready work moving when one unit stalls.
 
 For multiple sub-agents, follow
 [model alignment](references/execution-posture.md#align-models-before-multi-subagent-execution).
+Use [model tendencies](references/model-tendencies.md) and applicable
+[model notes](references/model-notes.md) to propose economical implementation and
+selective stronger follow-up, not a mandatory agent pipeline. The outcome owner
+observes meaningful returns and prunes useful repository notes at integration,
+handoff, and completion. Notes inform proposals; they never grant model approval.
 Respect aligned resources and explicit preferences. Routine assignments within
 that agreement do not require repeated permission. New consequential commitments
 still do. Use [Git posture](references/git-posture.md) for meaningful commit

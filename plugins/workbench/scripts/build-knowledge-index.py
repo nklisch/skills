@@ -105,6 +105,10 @@ def markdown_paths(project: Path, exclusions: tuple[Path, ...]) -> list[Path]:
             relative = path.relative_to(project)
             if is_excluded(relative, exclusions):
                 continue
+            # Provisional model observations are read at assignment time, not
+            # projected into durable knowledge or its relationship targets.
+            if relative == Path(".work/MODEL-NOTES.md"):
+                continue
             if relative.parts[0] in {".research", ".work"} or "docs" in relative.parts:
                 paths.append(path)
     return paths

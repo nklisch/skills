@@ -17,6 +17,7 @@
 ```text
 .work/
 ├── CONVENTIONS.md
+├── MODEL-NOTES.md               # optional, pruned model observations
 ├── active/.gitkeep
 ├── active/<id>.md
 ├── attachments/<id>/contract.md  # optional, deleted at item completion
@@ -72,6 +73,12 @@ including optional linked specifications under `.work/attachments/<item-id>/`.
 Those follow [design attachments](../../work/references/design-attachments.md) and
 are always deleted when the owning item completes. Neither directory name alone
 makes a document durable foundation truth.
+
+The optional `.work/MODEL-NOTES.md` holds provisional repository-local model
+observations under [model notes](../../work/references/model-notes.md). Recognize
+and prune an existing record without treating it as legacy workflow state. Do not
+seed an empty file, model rankings, or inferred preferences during setup. It has
+no frontmatter schema and is excluded from the knowledge index.
 
 The research capability ships with Workbench. Setup may omit `.research/` and
 `.knowledge/` until the project has research worth retaining.
