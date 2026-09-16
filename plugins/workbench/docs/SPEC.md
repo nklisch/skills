@@ -82,51 +82,7 @@ Retained state is limited to explicitly named work items and their optional desi
 attachments, provisional repository model notes, foundations, project pattern catalogs,
 user-confirmed project scan-lens skills, research artifacts,
 mockups, generated indexes, completion stubs, release summaries, and repository
-conventions. A requested context scan may also prepare instruction changes in an
-isolated proposal branch for user review; those changes do not govern the active
-task or enter its working checkout automatically.
-
-## Context health
-
-An explicitly requested `context-scan` assesses whether accumulated context is
-interfering with the spawning task's decisions and remaining work. After adoption
-and threshold resolution, the main agent immediately spawns a diagnostic
-sub-agent rather than scanning itself. That sub-agent returns supported findings
-with individual severity, evidence, confidence, and visibility limits. Counts
-and duration do not independently establish a problem. Incomplete visibility
-remains explicit rather than becoming a healthy result or an invented utilization
-measurement.
-
-The user selects a per-invocation minimum severity for automatic remediation;
-the default includes high and critical findings, and `none` disables it.
-Eligibility follows each finding rather than the overall warning so one serious
-problem cannot authorize unrelated changes. The main agent verifies the returned
-evidence without repeating the scan. When eligible verified remediation exists,
-it uses the run's aligned model and effort choices to spawn a different sub-agent
-and perform every authorized action available to that worker. Alignment for that
-second assignment does not delay the initial diagnostic when remediation may not
-be needed. The worker returns completed actions, verification evidence, any
-continuation or design handoff, recommendations outside the threshold or authority,
-and an exact account of eligible work left solely because it lacks a main-agent
-capability or privilege. The main agent integrates the return and completes only
-that privilege-bound residue; missing user authorization remains a stop, not a
-privilege shortcut. Existing work items retain continuation and design handoffs;
-a scan does not introduce a parallel report store or silently launch a new task.
-
-Instruction rewrites require a separate branch and isolated checkout, preserving
-the active instructions until the user reviews and requests application. When
-isolation cannot be established, automatic rewriting is skipped; another approach
-requires an explicit request. This prevents an unreviewed proposal from changing
-the instructions governing its own preparation or the user's ongoing work.
-
-The shared [skill](../skills/context-scan/SKILL.md) owns invocation, rating, and
-remediation mechanics across supported hosts. Context inheritance and transcript
-access depend on host capabilities; partial evidence is labeled. If diagnostic
-delegation is unavailable, a limited inline assessment remains advisory. If the
-separate remediation assignment is unavailable, ordinary automatic remediation
-does not move into the main context; authorized main-agent-only actions may still
-proceed when separable. No always-running hook is required, keeping the diagnostic
-from adding repeated context overhead.
+conventions.
 
 ## Agent instruction boundary
 

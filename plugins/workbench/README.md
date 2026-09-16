@@ -69,7 +69,6 @@ One named implementation-ready feature or story → deliver
 work owns the continuous outcome, drawing on design and deliver as needed
 
 Look for or investigate opportunities ─→ scan ─→ selected handoff
-Run context scanner ──────────────────→ context-scan ─→ delegated recovery actions
 Useful but out of scope ───────────────→ park
 Completed outcomes ───────────────────→ release (optional scan-lens gates)
 External evidence needed ─────────────→ research ─→ confirmed handoff
@@ -724,35 +723,6 @@ offer that option and explain the benefit and maintenance cost. It never
 promotes a skill during an autonomous run and never creates or changes one
 without explicit approval.
 
-## Check a task's context
-
-Request `context-scan` or "run context scanner" when accumulated material may be
-obscuring the current work. After the threshold is resolved, one diagnostic
-sub-agent immediately assesses the available task context and returns an overall
-warning, individually rated findings, evidence, confidence, and suggested recovery.
-The main agent verifies that report without re-running the scan. File counts and
-session length are signals; the scanner looks for their effect on decisions and
-unfinished work.
-
-An optional `none`, `low`, `medium`, `high`, or `critical` selects the minimum
-finding severity for automatic remediation in that invocation. The default is
-`high`; `context-scan none` returns advice only. Eligibility applies per finding,
-so an overall high warning does not authorize action on unrelated low findings.
-See [context-scan](skills/context-scan/SKILL.md) for the rating and action contract.
-
-Eligible verified actions go to a second, distinct remediation sub-agent within
-existing task authority. That worker returns completed recovery, any continuation
-or design handoff, and exact unfinished actions that require main-agent privileges;
-the main agent integrates the result and finishes only that privileged residue.
-Instruction rewrites are proposed only in a separate branch and isolated checkout,
-with a diff for user review before application. If that isolation is unavailable,
-automatic rewriting is skipped and requires an explicit request to pursue. The
-scanner reports limited visibility and cannot promise exact context usage when the
-host does not expose it. Unavailable diagnostic delegation yields a labeled limited
-inline assessment without automatic remediation; unavailable remediation delegation
-does not silently move ordinary recovery into the main context. It runs on request,
-without a monitoring hook.
-
 ## The skills
 
 | Skill | Use it when |
@@ -764,10 +734,12 @@ without a monitoring hook.
 | [`work`](skills/work/SKILL.md) | Scoping and owning a clear outcome, multi-unit boundary, epic, or group of epics. |
 | [`park`](skills/park/SKILL.md) | Preserving a useful finding without expanding current work. |
 | [`scan`](skills/scan/SKILL.md) | Investigating project concerns, verifying and clustering opportunities, and asking which findings should survive as handoffs. |
-| [`context-scan`](skills/context-scan/SKILL.md) | Delegating diagnosis of the current task's context, then assigning eligible recovery to a separate sub-agent. |
 | [`release`](skills/release/SKILL.md) | Summarizing completed outcomes, optionally applying project-defined scan lenses as release gates, then cleaning retained completion files. It does not tag, publish, or deploy. |
 | [`research`](skills/research/SKILL.md) | Investigating an external, unstable, unfamiliar, contested, or decision-relevant question. |
 | [`research-handoff`](skills/research-handoff/SKILL.md) | Turning selected research findings into proposed Workbench outcomes. |
+
+The `context-scan` skill is no longer included in Workbench. It is maintained in
+[DavidCC00/agent-skills](https://github.com/DavidCC00/agent-skills).
 
 In an adopted repository, you can invoke a skill explicitly, but concrete
 Workbench requests should not require you to know which one is appropriate. The

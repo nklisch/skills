@@ -1,6 +1,0 @@
-interface:
-  display_name: "Context Scanner"
-  short_description: "Delegate context diagnosis and bounded remediation"
-  default_prompt: "Use $context-scan to delegate this task's diagnosis, then send eligible remediation to a separate sub-agent at the default high threshold."
-policy:
-  allow_implicit_invocation: true
