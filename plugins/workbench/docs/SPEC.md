@@ -34,7 +34,6 @@ docs/<sub-project>/<scope-owned foundations>
 .agents/skills/scan-*/    # optional reusable project scan lenses
 .claude/skills/patterns  # relative symlink when CLAUDE.md exists
 AGENTS.md
-CLAUDE.md                # optional relative symlink to AGENTS.md
 ```
 
 - `.work/` records outcomes the project may decide and deliver.
@@ -178,8 +177,8 @@ unresolved decisions need separate questions; the option catalog is not an inter
 sequence. Existing evidence informs recommendations, not silent adoption.
 
 Optional execution posture, commit posture, evidence depth, prose preferences for
-review boundaries and optional design review, release gates, roadmap recognition,
-and the `CLAUDE.md` projection remain visible opt-in, decline, or defer choices.
+review boundaries and optional design review, release gates, and roadmap recognition
+remain visible opt-in, decline, or defer choices.
 Each proposed adoption or deferral is explicit in the agreement. A refresh retains
 confirmed choices and surfaces meaningful differences, rather than repeating
 unchanged options. Declined or deferred options remain absent or unmanaged.
@@ -1005,9 +1004,9 @@ migration. Setup creates or
 reconciles the canonical portable pattern index, validates its references, and
 does not manufacture entries or audit every retained pattern against code.
 
-Setup proactively offers root `CLAUDE.md` as a relative symlink to canonical
-root `AGENTS.md`, including when it is absent. When `CLAUDE.md` exists after
-reconciliation, setup maintains
+Setup does not propose a `CLAUDE.md` projection for project instructions. Existing
+files and links are preserved unless their reconciliation is part of the agreed
+migration. When `CLAUDE.md` exists after reconciliation, setup maintains
 `.claude/skills/patterns` as a relative symlink to
 `../../.agents/skills/patterns`. Correct links are no-ops. Conflicting files,
 directories, broken or wrong-target links, and divergent mirrors are classified
@@ -1054,11 +1053,9 @@ remains idempotent.
 Skill descriptions expose entry points; each stateful skill checks Workbench
 ownership. Adopted-project operating instructions live in the managed root
 `AGENTS.md` block, not a session hook. Workbench ships no runtime instruction
-injection. Host loading remains explicit: Claude Code uses the optional approved
-`CLAUDE.md` projection or another existing instruction path to the same source.
-Without that path, the agent must explicitly read `AGENTS.md`; skill discovery
-alone does not guarantee always-loaded project rules. Workbench does not claim
-that every host handles compaction identically.
+injection. The host's project-instruction loading supplies that block; skill
+discovery alone does not guarantee always-loaded project rules. Workbench does
+not claim that every host handles compaction identically.
 
 ## Deterministic validation
 

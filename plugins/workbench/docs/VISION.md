@@ -208,8 +208,8 @@ adopted repository; write-free `ideate` may explore before adoption, and
   remediation by itself.
 - **Setup proposes an agreement, not a settings interview.** A repository-grounded
   recommendation can be accepted together or adjusted. Optional execution posture,
-  commit posture, release gates, roadmap recognition, and the Claude projection
-  remain visible opt-in, decline, or defer choices. Only consequential unresolved
+  commit posture, release gates, and roadmap recognition remain visible opt-in,
+  decline, or defer choices. Only consequential unresolved
   decisions need separate questions; refresh surfaces meaningful changes rather
   than re-asking settled choices. Approval remains explicit, and migration keeps
   its recovery and exact-removal protections. Release gates are

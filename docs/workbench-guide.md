@@ -127,9 +127,7 @@ is converted, and reports any user- or machine-scoped competing installs
 for you to uninstall.
 
 Workbench has no session hook. Its managed `AGENTS.md` block supplies project
-instructions when your host loads that file. For Claude Code, setup recommends
-the optional `CLAUDE.md` projection; if you decline it and have no equivalent,
-ask the agent to read `AGENTS.md` when using Workbench.
+instructions when your host loads that file; no `CLAUDE.md` projection is proposed.
 
 ### Core defaults you set during adoption
 
@@ -145,8 +143,7 @@ decision. Setup records confirmed choices in `.work/CONVENTIONS.md`.
 | **`completed_items`** | `summarize`, `discard` | `summarize` keeps temporary stubs that make the next release easier to draft; `discard` relies on Git history instead |
 
 Optional execution posture, commit posture, evidence depth, release gates,
-roadmap recognition, and the Claude compatibility projection stay visible in the
-agreement. Opt in, decline, or defer; accepting a bundle approves only its
+and roadmap recognition stay visible in the agreement. Opt in, decline, or defer; accepting a bundle approves only its
 explicit choices. Missing execution posture means inline-first; missing commit
 posture still means adaptive history boundaries;
 missing `evidence_depth` means `standard` verification, mockup inspection, and
@@ -162,9 +159,8 @@ configuration, and project patterns, but asks no preference question without
 concrete evidence. Confirmed rules go to their owning tool, `AGENTS.md`,
 foundation, or canonical `.agents/skills/patterns/` catalog. Setup always
 creates a valid empty pattern index, but writes no pattern references without an
-evidence-backed maintenance outcome. It proactively offers root `CLAUDE.md` as
-a relative symlink to canonical `AGENTS.md`. When `CLAUDE.md` exists, it
-maintains `.claude/skills/patterns` as a relative symlink to the
+evidence-backed maintenance outcome. When `CLAUDE.md` already exists, it maintains
+`.claude/skills/patterns` as a relative symlink to the
 canonical `.agents` catalog after preserving any divergent content.
 
 **Expected result:** `.work/` exists with conventions recorded and stamped with

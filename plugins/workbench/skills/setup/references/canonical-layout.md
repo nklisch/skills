@@ -45,7 +45,6 @@ docs/<sub-project>/<scope-owned foundations>
 .agents/skills/scan-*/    # optional reusable project scan lenses
 .claude/skills/patterns  # relative symlink when CLAUDE.md exists
 AGENTS.md
-CLAUDE.md                # optional relative symlink to AGENTS.md
 ```
 
 - `.work/` holds outcomes the project may decide and deliver.

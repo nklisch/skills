@@ -165,15 +165,6 @@ approval; record `roadmap: true` only when approved, and leave an existing roadm
 unmanaged rather than migrated or rewritten — project size or an existing roadmap-like
 file never implies consent.
 
-### CLAUDE.md projection
-
-Recommend root `CLAUDE.md` as a relative symlink to `AGENTS.md` when Claude Code
-is used. Workbench has no session hook: without the projection or an existing
-equivalent, that host needs an explicit read of `AGENTS.md`. Offer the projection
-even when absent, but preserve opt-in; a correct link is a no-op, and divergent
-content needs reconciliation before replacement. When `CLAUDE.md` exists after
-setup, maintain the pattern symlink in [project-patterns.md](project-patterns.md).
-
 ## Conditional and standing choices
 
 When the repository has or expects durable research, retain confirmed provider ownership

@@ -145,9 +145,10 @@ useful content and inbound references move. When root `CLAUDE.md`
 exists after reconciliation, replace the Claude pattern mirror with a relative
 `.claude/skills/patterns` symlink to `../../.agents/skills/patterns`.
 
-Proactively offer root `CLAUDE.md` as a relative symlink with target `AGENTS.md`,
-even when `CLAUDE.md` is absent. Treat a correct symlink as
-conformant. Inspect symlinks themselves rather than following them for removal.
+Do not create a `CLAUDE.md` projection by default or remove existing files or links
+merely because the projection is no longer needed. Reconcile existing instruction
+content only within the agreed migration. Inspect symlinks themselves rather than
+following them for removal.
 Classify regular files and directories, broken links, wrong-target links, and
 divergent mirrors. Consolidate useful content first, then apply the normal
 tracked, modified, untracked, ignored, and exact-confirmation rules before
