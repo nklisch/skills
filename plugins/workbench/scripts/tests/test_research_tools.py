@@ -141,6 +141,14 @@ relationships: []
         check = self.run_tool(INDEX, root, "--check")
         self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
 
+    def test_generated_files_keep_lf_newlines_on_every_platform(self) -> None:
+        root = self.make_project()
+        index = self.run_tool(INDEX, root)
+        self.assertEqual(index.returncode, 0, index.stdout + index.stderr)
+        for relative in (".knowledge/index.json", ".research/bibliography.yaml"):
+            raw = (root / relative).read_bytes()
+            self.assertNotIn(b"\r", raw, f"{relative} must not contain CR bytes")
+
     def test_compact_and_full_work_items_have_identical_index_entries(self) -> None:
         root = self.make_project()
         item = root / ".work/active/empty-search.md"
