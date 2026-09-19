@@ -273,7 +273,13 @@ scanning; agents choose exclusions from repository context and keep intended
 project documentation visible.
 
 Workbench validators check structure, relationships, citations, and generated
-state whenever agents create or reshape the corresponding artifacts.
+state whenever agents create or reshape the corresponding artifacts. Projects can
+replace ledger validation by adding `validator_command: [python3, scripts/validate-work.py]`
+to `.work/CONVENTIONS.md`. The usual `validate-workbench.py` entry point runs that
+command from the project root instead of bundled checks. `--builtin` explicitly
+runs the bundled policy, including from a custom wrapper. See
+[project validation policy](skills/work/references/validation.md) for the contract
+and examples. Other required checks remain in force.
 
 `setup` stamps its loaded plugin version once in conventions after successful
 reconciliation. Setup proposes a repository-grounded working agreement covering

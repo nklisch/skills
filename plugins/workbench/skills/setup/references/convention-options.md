@@ -130,8 +130,9 @@ commit size and message patterns, merge policy, branch ownership, concurrent-age
 practice, and explicit Git rules; recommend one when evidence warrants, leaving the
 adaptive default unrecorded otherwise. Legacy per-item commits are process
 machinery, not a project preference. Explicit user direction overrides the project
-posture, ledger transitions never require their own commits, and squashing is advisory
-and safe only for clearly owned history.
+posture. Routine transitions do not need their own commits, except for the
+[pre-trim preservation floor](../../work/references/git-posture.md#preserve-items-before-trimming).
+Squashing is advisory and must preserve recoverable item history.
 
 ### Evidence depth
 
@@ -144,6 +145,16 @@ reach), and the research substrate's `verification_rigor` (semantic gates on
 research artifacts). Recommend `standard`; recommend another depth only with
 concrete consequence, operating, or audience evidence. Declined or deferred
 remains absent and resolves to `standard`.
+
+### Project validator
+
+`validator_command`: an optional non-empty argument list, such as
+`[python3, scripts/validate-work.py]`. It replaces bundled ledger checks when the
+usual validator entry point runs. Missing means bundled checks; `--builtin`
+lets wrappers reuse them. See [validation policy](../../work/references/validation.md).
+Offer this when an existing project script or deliberate policy difference earns
+it; preserve confirmed overrides on refresh. Do not generate a custom validator
+by default or adopt one simply to suppress a failure.
 
 ### Release gates
 

@@ -149,6 +149,7 @@ autonomy: adaptive|collaborative|autonomous
 execution_posture: inline|adaptive|orchestrated  # optional; missing means adaptive
 commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
 evidence_depth: lean|standard|deep  # optional; missing means standard
+validator_command: [python3, scripts/validate-work.py]  # optional replacement policy
 roadmap: true|false  # optional; missing means false
 release_gates:       # optional; missing or empty means disabled
   - compatibility
@@ -1075,7 +1076,21 @@ broken.
 
 ## Deterministic validation
 
-`validate-workbench.py` checks ownership, reports plugin-version drift as an
+`validate-workbench.py <project-root>` is the project-aware validation entry point.
+By default, or with `--builtin`, it runs the bundled structural policy described
+below. A project's optional `validator_command` argument list in conventions
+replaces that policy: it runs from the project root without shell expansion or
+implicit arguments, inherits standard streams, and returns the command's exit
+status (signals become `128 + signal`). Configuration or launch errors return 2,
+not a fallback pass. `WORKBENCH_VALIDATOR` exposes the absolute entry script path
+so a wrapper can call it with `--builtin` without recursion. A custom success
+means that project's policy passed; it does not imply bundled checks ran.
+This override does not replace other required tests, review, research checks, or
+index maintenance. See the [validation policy reference](../skills/work/references/validation.md)
+for configuration and wrapper examples. Only explicit validator invocation executes
+the command; context hooks and conventions readers do not.
+
+The bundled policy checks ownership, reports plugin-version drift as an
 advisory warning, and checks canonical directories and clone-stable markers,
 item schemas, globally unique ids, title and body presence, parent-kind
 pairs, parent and dependency cycles, relationship integrity, readiness state,

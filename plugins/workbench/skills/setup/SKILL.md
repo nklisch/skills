@@ -189,7 +189,8 @@ Remember the prior stamp; if validation or cleanup fails, restore that prior
 stamp (or remove the staged field when it was absent) before stopping so an
 unfinished reconciliation cannot claim compatibility.
 
-Run the plugin validator:
+Run the plugin validator, which honors the confirmed project
+[validation policy](../work/references/validation.md) when configured:
 
 ```bash
 python3 <workbench-plugin-root>/scripts/validate-workbench.py <project-root>

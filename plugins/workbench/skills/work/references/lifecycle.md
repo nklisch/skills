@@ -195,6 +195,6 @@ requirements rather than merely deleting their references. Do not rewrite a
 user-owned roadmap without permission; report any reference needing that decision.
 Close final children and their accepted parent in the same sweep; retain needed
 integration work in an owning feature until then. Never close a parent with
-unfinished children. Run the Workbench validator after structural changes.
+unfinished children. Run the [project-aware validator](validation.md) after structural changes.
 Follow [Git posture](git-posture.md): preserve the pre-trim snapshot without
 letting preferred commit shape leave verified work dangling or erase its record.

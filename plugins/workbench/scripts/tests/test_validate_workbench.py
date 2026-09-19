@@ -56,9 +56,9 @@ Useful item body.
         )
         return root
 
-    def run_validator(self, root: Path) -> subprocess.CompletedProcess[str]:
+    def run_validator(self, root: Path, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, str(SCRIPT), str(root)],
+            [sys.executable, str(SCRIPT), str(root), *args],
             text=True,
             capture_output=True,
             check=False,
@@ -101,6 +101,89 @@ updated: 2026-07-24
         result = self.run_validator(self.make_project())
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("validation passed", result.stdout)
+
+    def set_validator_command(self, root: Path, value: str) -> None:
+        conventions = root / ".work/CONVENTIONS.md"
+        write(conventions, conventions.read_text().replace(
+            "\n---\n", f"\nvalidator_command: {value}\n---\n", 1,
+        ))
+
+    def test_project_validator_replaces_builtin_and_uses_project_root(self) -> None:
+        root = self.make_project()
+        # A project may intentionally support a layout rejected by bundled policy.
+        (root / ".work/bin").mkdir()
+        write(root / "scripts/validate project.py", """\
+from pathlib import Path
+import sys
+assert Path('.work/CONVENTIONS.md').is_file()
+assert sys.argv[1:] == ['argument with spaces', 'literal;not-a-shell-command', '']
+print('project policy passed')
+""")
+        self.set_validator_command(root, json.dumps([
+            sys.executable, "scripts/validate project.py", "argument with spaces",
+            "literal;not-a-shell-command", "",
+        ]))
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.strip(), "project policy passed")
+        builtin = self.run_validator(root, "--builtin")
+        self.assertNotEqual(builtin.returncode, 0)
+        self.assertIn("noncanonical work directory: .work/bin", builtin.stdout)
+
+    def test_project_validator_preserves_failure_and_output(self) -> None:
+        root = self.make_project()
+        self.set_validator_command(root, json.dumps([
+            sys.executable, "-c",
+            "import sys; print('check output'); print('policy failed', file=sys.stderr); sys.exit(7)",
+        ]))
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 7)
+        self.assertEqual(result.stdout.strip(), "check output")
+        self.assertEqual(result.stderr.strip(), "policy failed")
+
+    def test_project_validator_wrapper_can_run_builtin_without_recursion(self) -> None:
+        root = self.make_project()
+        write(root / "scripts/validate.py", """\
+import os
+import subprocess
+import sys
+print('wrapper', flush=True)
+sys.exit(subprocess.run([
+    sys.executable, os.environ['WORKBENCH_VALIDATOR'], '--builtin', '.',
+], check=False, timeout=5).returncode)
+""")
+        # Block-list YAML is supported as well as the compact argument-list form.
+        self.set_validator_command(root, f"\n  - {json.dumps(sys.executable)}\n  - scripts/validate.py")
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.count("wrapper"), 1)
+        self.assertIn("Workbench validation passed", result.stdout)
+        (root / ".work/active/example.md").write_text("invalid item\n")
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("Workbench validation failed", result.stdout)
+
+    def test_invalid_project_validator_does_not_fall_back_to_builtin(self) -> None:
+        for value in (
+            '[]', 'null', 'python3 script.py', '[42]', '[" "]', '["python3", 7]',
+            json.dumps(["bad\0command"]),
+        ):
+            with self.subTest(value=value):
+                root = self.make_project()
+                self.set_validator_command(root, value)
+                result = self.run_validator(root)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("validator_command must be", result.stderr)
+                self.assertNotIn("validation passed", result.stdout)
+
+    def test_unlaunchable_project_validator_reports_actionable_error(self) -> None:
+        root = self.make_project()
+        self.set_validator_command(root, '["./missing-project-validator"]')
+        result = self.run_validator(root)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("cannot run validator_command", result.stderr)
+        self.assertIn("missing-project-validator", result.stderr)
+        self.assertNotIn("validation passed", result.stdout)
 
     def test_model_notes_are_optional_prose_not_work_items(self) -> None:
         root = self.make_project()

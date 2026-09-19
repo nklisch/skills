@@ -11,6 +11,13 @@ Verify the requested outcome at the most stable useful interface.
 5. Review proportionately to consequence, uncertainty, and reversibility.
 6. Reconcile affected foundation assertions.
 
+For ledger validation, use the installed `validate-workbench.py` entry point.
+It honors the optional `validator_command` in `.work/CONVENTIONS.md`; the project
+may replace bundled policy or wrap its checks. Follow [validation](validation.md)
+for the command contract. Do not impose bundled checks on top of a replacement
+or change validation policy just to get a green result. Other required checks
+remain in force.
+
 Resolve `evidence_depth` from explicit user direction, the optional project
 convention, then `standard`. `lean` proves the primary path for low-risk,
 reversible work; `standard` covers authoritative checks and important acceptance

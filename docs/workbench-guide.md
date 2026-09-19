@@ -611,6 +611,27 @@ later change, and consolidation preserves that history. Already-recorded items
 reuse Git history instead of requiring a commit for each status edit. If you have
 prohibited commits, the agent retains the record and explains the limitation.
 
+### Use your own ledger validator
+
+The bundled structural checks are the default, not the only policy a project can
+use. To select your own script, add an argument list to the frontmatter of
+`.work/CONVENTIONS.md`:
+
+```yaml
+validator_command: [python3, scripts/validate-work.py]
+```
+
+Keep running `python3 <workbench-plugin-root>/scripts/validate-workbench.py .`.
+It now runs your script from the project root, passes arguments literally, and
+preserves its output and exit status. A failure stays a failure; Workbench does
+not silently substitute bundled checks. Remove the field to restore the default.
+
+A wrapper can reuse the bundled checks by invoking the script path in
+`WORKBENCH_VALIDATOR` with `--builtin .`, then adding project checks. A replacement
+can implement its own policy without that call. See the
+[command contract and wrapper example](../plugins/workbench/skills/work/references/validation.md).
+This changes ledger validation only, not the project's other tests or review.
+
 ## Cut a release summary
 
 When you are ready to bind completed outcomes to a version:

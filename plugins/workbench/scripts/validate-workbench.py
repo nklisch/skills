@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -472,8 +474,39 @@ def validate(project: Path) -> tuple[list[str], list[str]]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("project", nargs="?", default=".", help="Project root")
+    parser.add_argument(
+        "--builtin", action="store_true",
+        help="Run bundled checks, ignoring the project's validator_command override",
+    )
     args = parser.parse_args()
     project = Path(args.project).resolve()
+    conventions = project / ".work" / "CONVENTIONS.md"
+    if not args.builtin and conventions.is_file():
+        config = parse_frontmatter(conventions)
+        if "validator_command" in config:
+            command = config["validator_command"]
+            if (
+                not isinstance(command, list)
+                or not command
+                or not all(isinstance(arg, str) for arg in command)
+                or not command[0].strip()
+                or any("\0" in arg for arg in command)
+            ):
+                print(
+                    "ERROR: validator_command must be a non-empty argument list "
+                    "of strings with a non-blank executable and no NUL characters",
+                    file=sys.stderr,
+                )
+                return 2
+            # This is project-owned executable policy, not an additional check:
+            # running bundled checks first would make replacement impossible.
+            env = {**os.environ, "WORKBENCH_VALIDATOR": str(Path(__file__).resolve())}
+            try:
+                result = subprocess.run(command, cwd=project, env=env, check=False)
+            except OSError as exc:
+                print(f"ERROR: cannot run validator_command: {exc}", file=sys.stderr)
+                return 2
+            return result.returncode if result.returncode >= 0 else 128 - result.returncode
     errors, warnings = validate(project)
     for warning in warnings:
         print(f"WARNING: {warning}")
