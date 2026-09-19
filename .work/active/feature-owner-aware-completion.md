@@ -29,3 +29,17 @@ records before final handoff; update PR #64 only, without merging or publishing.
 
 Feedback: https://github.com/nklisch/skills/pull/64#discussion_r4053695769 and
 https://github.com/nklisch/skills/pull/64#discussion_r4053695775.
+
+## Candidate evidence
+
+Lifecycle.md now owns the convention-ownership hook, pending-acceptance distinction,
+and partial-delivery/rescope rule; SPEC and the guide agree. No core ownership field,
+new status, validator policy or automatic backlog deferral was added.
+
+Instruction walkthroughs (not observed agent runs): another owner's merged item with
+pending human acceptance stays open and is reported; three-of-four with a required
+fourth keeps its owner open while eligible completed children may close; an explicitly
+agreed rescope records the decision and independently tracks the remainder before
+closing the smaller accepted boundary. The unfinished-parent prohibition still holds.
+The integrated candidate passes the shared 83-test, link/style and isolated-ledger
+checks recorded in the Claude discovery item. One shared committed review is pending.

@@ -183,6 +183,9 @@ mutually exclusive within one project. Pick one:
 | **declaudify** | Claude Code-only every-turn writing guidance: simple, deeply informative technical language with framed codebase references and no invented shorthand. | [plugins/declaudify/README.md](plugins/declaudify/README.md) |
 | **agile-workflow** | Structured stage-and-gate work tracking with a goal-backed autopilot queue. **Supported in maintenance mode** — see above. | [docs/agile-workflow-guide.md](docs/agile-workflow-guide.md) |
 
+The `context-scan` skill has moved out of Workbench and is maintained in
+[DavidCC00/agent-skills](https://github.com/DavidCC00/agent-skills).
+
 ## Reference skills
 
 Beyond the plugins, `.agents/skills/` carries a curated library of reference
