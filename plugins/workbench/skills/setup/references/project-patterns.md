@@ -47,11 +47,11 @@ The canonical `.agents/skills/` tree holds all project skills; the projection
 exposes patterns, scan lenses, and other project skills together. This does not
 depend on a root `CLAUDE.md`. A correct directory link is a no-op.
 
-Inspect both skill trees before replacement, not just `patterns`. Preserve unique
-Claude-only skills and reconcile same-name differences into the canonical tree
-without silently choosing a winner. Treat existing per-skill links into `.agents`
-as views of that content, not files to copy back onto their own targets. Ensure
-the canonical tree does not itself point back through the projection.
+Inspect both skill trees before replacement, not just `patterns`. Move unique
+Claude-only skills into `.agents/skills/` and reconcile same-name differences
+there without silently choosing a winner. Treat existing per-skill links into
+`.agents` as views of that content, not files to copy back onto their own targets.
+Ensure the canonical tree does not itself point back through the projection.
 
 Classify conflicting files, directories, broken or wrong-target links, and
 mirrors under [migration rules](migration-rules.md#cleanup-safety). Only replace
