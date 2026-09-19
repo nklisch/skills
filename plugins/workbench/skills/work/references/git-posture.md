@@ -30,6 +30,10 @@ count or permits leaving owned changes uncommitted at handoff.
 
 ## Commit before handing back
 
+Stronger user and repository Git/contribution rules govern where and how commits
+land. If those rules prevent a commit, disclose the exception rather than bypassing
+them to satisfy this floor.
+
 Before review, delegation that consumes the changes, a planned pause/context
 handoff, or the final response:
 
@@ -41,9 +45,9 @@ handoff, or the final response:
    not just code. Never absorb another actor's edits to make the tree look clean.
 3. Confirm commit success and check for remaining owned changes. The commit is
    the last content-changing repository action before handoff. Read-only checks,
-   reporting, and authorized transfer of those commits may follow; if a later
-   action changes files, commit that delta
-   before handing back. Give the recipient the commit id or base/head range.
+   reporting, and authorized transfer of those commits may follow. If a later
+   action changes files, commit that delta before handing back. Give the recipient
+   the commit id or base/head range.
 
 Routine item transitions within continuing work do not each need a commit; handoff
 is the boundary. Read-only work and no-change runs create no empty commits. A

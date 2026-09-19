@@ -242,8 +242,9 @@ folders. Classify every removal target as tracked and clean, tracked and
 modified, untracked, or ignored. A clean tracked file is recoverable from Git.
 Before removing modified, untracked, ignored, or otherwise unrecoverable
 content, require either a user-created pre-state commit or the user's explicit
-confirmation of the exact removal list. Never delete an ambiguous user-authored
-file until its content is classified and either migrated or proven redundant.
+confirmation of the exact removal list; the agent's handoff commit does not replace
+that safeguard. Never delete ambiguous user content before it is classified and
+either migrated or proven redundant.
 
 Remove project-scoped competing workflow plugins, hooks, and managed rules once
 their content is converted and validated. For user- or machine-scoped plugin
@@ -284,8 +285,8 @@ establish its direction, or for an upgrade of an adopted Workbench repository.
 
 ## Reply to the user
 
-For a non-greenfield setup or an upgrade, reply in the current conversation
-with:
+Apply the [Git handoff floor](../work/references/git-posture.md) before returning
+or handing off setup's writes. For a non-greenfield setup or upgrade, report:
 
 - conventions adopted, rejected, and reconciled;
 - artifacts consolidated, moved, and removed;
