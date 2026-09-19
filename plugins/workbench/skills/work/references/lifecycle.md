@@ -60,6 +60,12 @@ acceptance. For already closed work, create a new feature or standalone story
 rather than referencing a deleted parent. Out-of-scope findings still need a
 selected handoff. Do not create an item per warning or temporary agent task.
 
+Splitting partial delivery does not reduce the accepted commitment. Keep required
+remainder under its open outcome; eligible completed children can close. Only an
+explicitly agreed scope change permits closing a smaller delivered outcome and
+tracking the remainder separately. Record that agreement and the remainder's
+disposition; a lack of current activity never authorizes deferral.
+
 ## Relationships and readiness
 
 - `parent` expresses outcome hierarchy, not scheduling.
@@ -151,10 +157,15 @@ Record a brief disposition and evidence before removing an item; report meaningf
 cleanup in chat. Merged or superseded does not mean delivered.
 
 Age or old authorship establishes neither abandonment nor live ownership.
-Investigate rather than skip. Narrow unfinished items to their actual remaining
-scope and next action or blocker. Do not erase unmet requirements, reprioritize,
-or cancel still-wanted work as hygiene; ask about unresolved consequential
-choices and coordinate around another agent's live assignment.
+Investigate rather than skip. Project conventions may define item ownership;
+where they do, leave another owner's items to that owner and report findings
+unless an explicit coordinated handoff authorizes action. Merged implementation
+alone does not satisfy required human acceptance or pending review.
+
+Show remaining scope and its next action or blocker; use the
+[decomposition rules](#decompose-as-work-develops) when splitting helps. Do not erase
+unmet requirements, reprioritize, or cancel still-wanted work as hygiene. Ask about
+unresolved consequential choices and coordinate around live assignments.
 
 ### Close eligible items now
 

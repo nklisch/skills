@@ -43,7 +43,7 @@ docs/spec/<provisional design contracts>  # optional greenfield-bootstrap opt-in
 docs/<sub-project>/<scope-owned foundations>
 .agents/skills/patterns/  # canonical project pattern index and references
 .agents/skills/scan-*/    # optional reusable project scan lenses
-.claude/skills/patterns  # relative symlink when CLAUDE.md exists
+.claude/skills          # relative symlink to ../.agents/skills
 AGENTS.md
 ```
 

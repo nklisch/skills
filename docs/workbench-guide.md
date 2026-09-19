@@ -143,8 +143,8 @@ decision. Setup records confirmed choices in `.work/CONVENTIONS.md`.
 | **`completed_items`** | `summarize`, `discard` | `summarize` keeps temporary stubs that make the next release easier to draft; `discard` relies on Git history instead |
 
 Optional execution posture, commit posture, evidence depth, release gates,
-and roadmap recognition stay visible in the agreement. Opt in, decline, or defer; accepting a bundle approves only its
-explicit choices. Missing execution posture means inline-first; missing commit
+and roadmap recognition stay visible in the agreement. Opt in, decline, or defer;
+accepting a bundle approves only its explicit choices. Missing execution posture means inline-first; missing commit
 posture still means adaptive history boundaries;
 missing `evidence_depth` means `standard` verification, mockup inspection, and
 pattern-harvest breadth. No field needs a separate
@@ -159,9 +159,10 @@ configuration, and project patterns, but asks no preference question without
 concrete evidence. Confirmed rules go to their owning tool, `AGENTS.md`,
 foundation, or canonical `.agents/skills/patterns/` catalog. Setup always
 creates a valid empty pattern index, but writes no pattern references without an
-evidence-backed maintenance outcome. When `CLAUDE.md` already exists, it maintains
-`.claude/skills/patterns` as a relative symlink to the
-canonical `.agents` catalog after preserving any divergent content.
+evidence-backed maintenance outcome. A directory link, `.claude/skills` →
+`../.agents/skills`, exposes every project skill to Claude, independently of
+`CLAUDE.md`. Existing Claude-only skills and divergent content are preserved and
+reconciled before the old skills directory is replaced.
 
 **Expected result:** `.work/` exists with conventions recorded and stamped with
 the loaded Workbench version,
@@ -647,7 +648,16 @@ housekeeping separately. They check encountered stale items against current code
 verification, and Git history, close finished outcomes at integration checkpoints,
 and merge or trim redundant records while preserving unique requirements. Old
 items are not automatically unwanted, and cleanup does not authorize canceling
-unfinished scope or disrupting another agent's live assignment.
+unfinished scope or disrupting another agent's live assignment. Where your
+conventions define ownership, agents leave another owner's items to that owner
+unless a coordinated handoff authorizes action. Merged code alone does not satisfy
+required human acceptance.
+
+Splitting an item does not reduce its commitment. If three of four requirements
+are met, the required fourth keeps the owning outcome open; completed child
+stories can close independently. Closing a smaller delivered outcome and tracking
+the remainder separately needs an explicitly agreed scope change. A lack of
+current activity is not permission to move a requirement into the backlog.
 
 Each delivery leaves its result, verification pointers, and any pending acceptance
 in the item. This makes missed closure recoverable after a campaign is interrupted.

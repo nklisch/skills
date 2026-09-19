@@ -287,8 +287,8 @@ autonomy, review, simplification, completion retention, and documentation conven
 You can accept the recommendations together or adjust individual choices; only
 consequential unresolved decisions need separate questions. Optional execution
 posture, commit posture, release gates, and roadmap recognition stay visible as
-explicit opt-in, decline, or defer choices. Your
-confirmation makes the agreement binding; recommendations never adopt themselves.
+explicit opt-in, decline, or defer choices. Your confirmation makes the agreement
+binding; recommendations never adopt themselves.
 The agent records choices where they belong, mostly `.work/CONVENTIONS.md`.
 
 For a software bootstrap, setup explicitly aligns engineering-foundation
@@ -858,9 +858,9 @@ choices remain discoverable, without treating an absent field as a reason to
 repeatedly ask about it. It also migrates useful legacy refactor-convention and pattern
 content into tool configuration, `AGENTS.md`, foundations, or the canonical
 portable pattern catalog according to meaning. It creates an empty valid index
-when no recurring pattern truth exists. When `CLAUDE.md` already exists, it
-maintains `.claude/skills/patterns` as a relative
-symlink to the canonical `.agents` catalog after conflict-safe reconciliation.
+when no recurring pattern truth exists. It exposes all canonical project skills
+through `.claude/skills` → `../.agents/skills`, independently of `CLAUDE.md`, after
+preserving and reconciling any existing Claude-only or divergent skills.
 Stateful skills mention useful update and setup guidance when versions differ but
 continue unless they encounter a concrete incompatibility.
 

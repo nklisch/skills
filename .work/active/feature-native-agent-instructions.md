@@ -23,16 +23,13 @@ resolution across patterns and another project skill. Commit the
 candidate before one bounded external review, then commit any correction and
 item cleanup before reporting. Update PR #64 only; no version bump or publication.
 
-## Continuation
+## Integration
 
-Partial checkpoint before discussing the new PR feedback. Draft edits remove the
-CLAUDE.md offer and obsolete loading warnings. The requested directory-level skill
-projection is recorded above but not yet implemented or reviewed; current guidance
-still contains the old patterns-only links. Finish that change and consolidate the
-affected migration section (already over the reference length target at baseline),
-then verify and review the combined candidate. No acceptance or completion claimed.
-
-PR feedback to discuss, not yet authorized as new implementation: convention-defined
-ownership before cleanup; whether partial completion should split rather than narrow.
-See PR #64 discussion_r4053695769 and discussion_r4053695775. Preserve unmet
-commitments and the current rule against closing parents with unfinished children.
+The initial CLAUDE.md advice removal is preserved in checkpoint f03553ca. Finish
+the directory-level projection, reconcile affected guidance, then verify the
+combined candidate. Share one committed review checkpoint with
+[owner-aware completion](feature-owner-aware-completion.md); neither change is a
+prerequisite for the other. The user also requested reconciliation of PR merge
+conflicts: merge current main without rewriting the preserved work-item commits,
+respect upstream removal of context-scan, and validate the integrated candidate
+before review. No setup or repository-symlink migration is authorized.

@@ -147,8 +147,8 @@ navigation, or lower coordination cost.
 Always create the portable pattern index stub from
 [references/project-patterns.md](references/project-patterns.md); an empty
 index is a destination for future evidence, not a claim that patterns already
-exist. When `CLAUDE.md` exists after setup, maintain the Claude pattern
-symlink specified there.
+exist. Maintain the directory-level Claude skill projection specified there,
+independently of whether `CLAUDE.md` exists.
 
 ## Convert semantically
 

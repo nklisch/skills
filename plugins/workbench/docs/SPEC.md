@@ -32,7 +32,7 @@ docs/<sub-project>/<scope-owned foundations>
 <sub-project>/docs/<scope-owned foundations>
 .agents/skills/patterns/  # canonical pattern index and references
 .agents/skills/scan-*/    # optional reusable project scan lenses
-.claude/skills/patterns  # relative symlink when CLAUDE.md exists
+.claude/skills          # relative symlink to ../.agents/skills
 AGENTS.md
 ```
 
@@ -290,7 +290,12 @@ close delivered outcomes, clear obsolete blockers, merge duplicates, and trim
 superseded records while retaining unmet requirements and useful context. Routine
 hygiene needs no separate approval; age alone proves neither completion nor
 abandonment. Cancellation of still-wanted scope and product priority changes
-remain consequential decisions, and live concurrent ownership is respected.
+remain consequential decisions. Project-defined ownership governs cleanup of
+another owner's items, and merged code does not replace required human acceptance.
+Splitting partial delivery preserves its accepted commitment: required remainder
+keeps the owning outcome open. Only an explicitly agreed scope change permits a
+smaller delivered boundary to close with its remainder tracked separately;
+inactivity alone never authorizes deferral.
 
 Completed work never remains active. Implementation alone is not completion:
 features and standalone stories remain active while their chosen shared review
@@ -1006,12 +1011,11 @@ does not manufacture entries or audit every retained pattern against code.
 
 Setup does not propose a `CLAUDE.md` projection for project instructions. Existing
 files and links are preserved unless their reconciliation is part of the agreed
-migration. When `CLAUDE.md` exists after reconciliation, setup maintains
-`.claude/skills/patterns` as a relative symlink to
-`../../.agents/skills/patterns`. Correct links are no-ops. Conflicting files,
-directories, broken or wrong-target links, and divergent mirrors are classified
-and consolidated under normal recovery and exact-confirmation rules before
-replacement; destructive inspection never follows the link.
+migration. The independent `.claude/skills` directory link points to
+`../.agents/skills`, exposing all canonical project skills, not only patterns.
+[Skill reconciliation](../skills/setup/references/project-patterns.md#claude-skill-discovery)
+preserves unique and divergent Claude skills before replacing the old container;
+destructive inspection never follows a link to its target.
 
 Its canonical-layout reference owns the shared foundation
 document contract: scope, durable-truth rules, authority, and the purpose of
