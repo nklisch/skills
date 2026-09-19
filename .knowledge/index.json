@@ -1223,17 +1223,6 @@
       "relationships": []
     },
     {
-      "path": ".work/active/feature-project-validator.md",
-      "namespace": "work",
-      "kind": "feature",
-      "id": "feature-project-validator",
-      "title": "Support a project-owned Workbench validator",
-      "summary": null,
-      "updated": "2026-09-19",
-      "status": "active",
-      "relationships": []
-    },
-    {
       "path": ".work/releases/ux-ui-design-1.0.0.md",
       "namespace": "work",
       "kind": "release",
