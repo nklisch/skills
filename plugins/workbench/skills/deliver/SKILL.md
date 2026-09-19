@@ -14,12 +14,8 @@ Finish one ready feature or story. This is the implementation capability inside
 [work](../work/SKILL.md)'s continuous flow, and a direct entry point for a named
 ready item. It does not add a plan, handoff, worker, or maintenance phase.
 
-Epics coordinate and always have feature children. Features may stand alone;
-stories may also stand alone for small bugs or small items. Split large features
-into child stories during design, implementation, or review follow-up; keep work in
-those children, not one parent file. Completion cleanup is mandatory: summarize
-or discard per conventions and remove completed active files and attachments.
-See [lifecycle](../work/references/lifecycle.md) for the full rules.
+Use [lifecycle](../work/references/lifecycle.md) when creating, splitting, relating,
+or closing items.
 
 ## Pick up the outcome, not a new workflow
 
@@ -61,6 +57,9 @@ value with the handoff cost. Quick coherent implementation often benefits more
 from continuity. Explicit role preferences still apply.
 
 ## Choose implementation and follow-up
+
+Read this section only when assigning implementation or follow-up to another
+context. For inline work with no reassignment, continue at **Implement and adjust**.
 
 Prefer a capable economical initial implementer for a settled contract when that
 fits the available, aligned lineup. Keep small or mechanical corrections with it;
@@ -165,24 +164,15 @@ Use concise existing prose, not a new status, receipt, or report. If the assigne
 write surface excludes the item, return the exact update for the owner to apply
 at integration rather than silently omitting it.
 
-Close as soon as applicable review, corrections, verification, and reconciliation
-are satisfied under [lifecycle](../work/references/lifecycle.md), in the same run
-without another user prompt. Reconcile stale state rather than leaving verified
-finished work dangling. Before completion or trimming, preserve never-committed
-items under the
-[Git preservation floor](../work/references/git-posture.md#preserve-items-before-trimming).
-Always delete the completed item's `.work/attachments/<item-id>/` directory, even when retaining a
-completion stub. Reconcile durable truth and remaining references first, then
-refresh any existing knowledge index. For deferred shared review, preserve its
-owner and checkpoint in existing item prose and return without closure. Verified nested stories may close under their open owning feature.
-Reconcile relationships and validate ledger changes. Never close the wider
-boundary from an assigned delivery. Follow the effective Git posture without
-rewriting shared history or treating squashing as acceptance.
+Apply the [completion sweep](../work/references/lifecycle.md#completion-sweep)
+in this run. Assigned delivery closes only its eligible owned unit, not the wider
+boundary. If shared review is pending, retain its owner and checkpoint in the item
+and return the verified result for integration.
 
-The outcome owner considers useful [model observations](../work/references/model-notes.md)
-and prunes existing notes at integration and closure. Assigned deliverers return
-candidate observations rather than editing the shared scratch file. Do not create
-an observation merely to record ordinary completion.
+On a run that uses model assignments, the outcome owner prunes existing
+[model notes](../work/references/model-notes.md); assigned deliverers return useful
+observations instead. Skip this for ordinary inline work and never create notes
+just to record completion.
 
 Return delivered behavior, meaningful checks and review, interface assumptions,
 foundation changes, pattern implications, limitations, and excluded findings.

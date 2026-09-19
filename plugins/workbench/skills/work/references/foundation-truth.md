@@ -11,8 +11,9 @@ content. Durable engineering shape belongs in foundations when contributors
 need it after the current item disappears: stack and framework roles,
 repository and dependency topology, runtime and deployment composition,
 contract and persistence authority, testing layers, generated-code policy, and
-engineering gates. Follow setup's
-[engineering foundation contract](../../setup/references/canonical-layout.md#engineering-foundation-coverage).
+engineering gates. When creating or reshaping a foundation, use
+[foundation authoring](foundation-authoring.md) for its document contract,
+engineering coverage, and representation choices.
 
 Convention-authorized provisional `docs/spec/` contracts are not foundations.
 They may temporarily describe intended structure before its code exists, but
@@ -27,6 +28,8 @@ and focused references that implement them. A foundation may describe the
 high-level architecture, contract semantics, observable behavior, or durable
 verification principle those mechanisms serve; it must not narrate how one
 outcome is being delivered or qualified.
+
+## Optional roadmap
 
 `docs/ROADMAP.md` is not a foundation document; it is an optional, user-owned
 planning document for projects that want a longer-horizon view. Its structure,

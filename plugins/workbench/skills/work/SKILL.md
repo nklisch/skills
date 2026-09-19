@@ -133,8 +133,7 @@ item. Design-agent returns and onward dispatch pass item and attachment referenc
 plus brief supplementary details, not the full design or a reconstruction of it.
 The receiving agent reads the recorded contract directly.
 Use optional [design attachments](references/design-attachments.md) only when detailed
-specifications reduce ambiguity. They remain part of the item's contract and are
-always deleted when their owner completes, even when a completion stub is retained.
+specifications reduce ambiguity. They remain part of the item's contract.
 Omit empty optional metadata and unused sections. Add design, dependencies, or
 coordination detail only when the work needs them. Do not reformat existing items
 merely to make them shorter. Replace superseded decisions instead of keeping a
@@ -171,9 +170,7 @@ owner observes meaningful returns and prunes useful repository notes at integrat
 handoff, and completion. Notes inform proposals; they never grant model approval.
 Respect aligned resources and explicit preferences. Routine assignments within
 that agreement do not require repeated permission. New consequential commitments
-still do. Use [Git posture](references/git-posture.md) for meaningful commit
-boundaries and the required pre-trim item snapshot, never cosmetic shared-history
-rewrites.
+still do. Use [Git posture](references/git-posture.md) for commit boundaries.
 
 ## Finish the accepted boundary
 
@@ -190,13 +187,9 @@ candidates arise. Optional learning or extraction requires a selected outcome an
 never delays closure. Orchestrated deliverers report shared pattern implications
 instead of editing the shared catalog.
 
-Treat `.work/` as agent-maintained tracking space. Proactively reconcile stale
-items encountered during stateful work, preserve unique remaining scope, and
-close verified finished outcomes in the same run without another user prompt.
-Routine cleanup is authorized; cancellation of unmet requirements is not.
-Preserve never-committed items before completion or trimming under
-[Git posture](references/git-posture.md#preserve-items-before-trimming), apply
-configured retention, and validate structural ledger changes. Continue until the full requested boundary is
+Own ledger hygiene and close eligible items at each integration checkpoint under
+the [completion sweep](references/lifecycle.md#completion-sweep), including stale
+records encountered along the way. Continue until the full requested boundary is
 complete or a concrete external blocker prevents meaningful progress. Before
 interruption, preserve settled decisions, useful evidence, next actions, and
 blockers in the affected item. Reconcile them against the repository on resume.

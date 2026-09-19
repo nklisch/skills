@@ -135,66 +135,49 @@ and next work from `.work/`, not from roadmap metadata or prose.
 
 ## Completion sweep
 
-`.work/` is the agents' working ledger, not a user-maintained queue. During
-stateful work, proactively reconcile it at entry/resume, after verification or
-integration, and before reporting completion. Inspect the selected boundary and
-its relationships; also resolve clearly stale records encountered along the way
-rather than avoiding them because they predate the session. Do not turn this into
-a mandatory repository-wide audit or implement unrelated unfinished work.
+### Reconcile current state
 
-Use current code, checks, Git history, and item evidence to determine disposition:
-close delivered outcomes once applicable acceptance is satisfied; remove cleared
-blockers; merge duplicates while preserving unique requirements; trim superseded
-records after carrying forward still-needed context. Routine evidence-backed
-ledger maintenance needs no separate user approval, even under collaborative
-posture. Record a brief disposition and evidence in the item before removing it,
-and report meaningful cleanup in chat. Do not call merged or superseded work
-“delivered.” Follow [Git posture](git-posture.md#preserve-items-before-trimming)
-before completion, deletion, or destructive trimming.
+`.work/` is the agents' working ledger. At entry/resume, integration checkpoints,
+and before reporting completion, reconcile the selected boundary and its links.
+Resolve clearly stale records encountered along the way rather than avoiding
+work that predates this session. This is not a repository-wide audit or authority
+to implement unrelated unfinished work.
 
-Age, an unfamiliar author, or an old status is a reason to investigate, not to
-skip the record or assume it is unwanted. If work remains, narrow the item to the
-actual remaining scope and concrete next action or blocker. Do not erase unmet
-requirements, change product priorities, or cancel still-wanted work as hygiene;
-ask only when that consequential decision is unresolved. Coordinate before
-changing another agent's currently owned work; old authorship alone is not a
-live claim.
+Use code, checks, Git history, and item evidence to close accepted outcomes,
+remove cleared blockers, merge duplicates while retaining unique requirements,
+and trim superseded records after carrying forward useful context. Routine
+hygiene needs no separate approval, including under collaborative posture.
+Record a brief disposition and evidence before removing an item; report meaningful
+cleanup in chat. Merged or superseded does not mean delivered.
 
-Features and standalone stories with review deferred to a shared checkpoint remain
-active. Preserve pending scope, owner, and next checkpoint in existing item prose
-under [review-boundaries.md](review-boundaries.md). Pending review alone does not
-create a blocked status or dependency. Verified nested stories may close under an
-open owning feature, which retains integrated acceptance.
+Age or old authorship establishes neither abandonment nor live ownership.
+Investigate rather than skip. Narrow unfinished items to their actual remaining
+scope and next action or blocker. Do not erase unmet requirements, reprioritize,
+or cancel still-wanted work as hygiene; ask about unresolved consequential
+choices and coordinate around another agent's live assignment.
 
-Once applicable acceptance is satisfied, close in the same run without waiting
-for another user prompt, a release, or unrelated work. Preserve the pre-trim Git
-snapshot first, then reconcile the ledger together:
+### Close eligible items now
 
-- `completed_items: summarize` replaces the active item with one compact
-  `.work/completed/<id>.md` stub containing identity, completion date, and the
-  delivered outcome;
-- `completed_items: discard` removes the active item.
+Once acceptance is satisfied, close in the same run, not at a later release or
+one final campaign step:
 
-In both postures, always delete the completed item's entire
-`.work/attachments/<item-id>/` directory. Do not archive attachments or retain them
-with a completion stub. Reconcile needed durable truth and remaining references
-before deletion under [design attachments](design-attachments.md). Keep attachments
-while their item is in backlog or active, including pending review. Rebuild an
-existing knowledge index after deletion.
-
-At integration, handoff, and run completion, the outcome owner also prunes existing
-[model notes](model-notes.md): retain useful qualified lessons, remove redundant
-observations and obsolete pointers, and delete an empty scratch file. Notes survive
-an item only when still useful; they are not completion artifacts or required output.
-
-Before closure, search the remaining ledger, including backlog prose and links,
-for the retiring id and item/attachment paths. Remove completed dependency and
-relationship edges; replace obsolete “current owner” claims and links with the
-surviving owner, durable truth, or a useful Git pointer. Preserve still-needed
-requirements rather than merely deleting their references. Do not rewrite a
-user-owned roadmap without permission; report any reference needing that decision.
-Close final children and their accepted parent in the same sweep; retain needed
-integration work in an owning feature until then. Never close a parent with
-unfinished children. Run the [project-aware validator](validation.md) after structural changes.
-Follow [Git posture](git-posture.md): preserve the pre-trim snapshot without
-letting preferred commit shape leave verified work dangling or erase its record.
+1. Confirm applicable verification, review, corrections, and reconciliation.
+   Features and standalone stories awaiting shared review retain its owner and
+   checkpoint under [review boundaries](review-boundaries.md); pending review
+   alone is not a blocked status. Verified nested stories may close while their
+   feature owns integrated acceptance. Never close a parent with unfinished
+   children; close accepted parents with their final children.
+2. Apply the [Git preservation floor](git-posture.md#preserve-items-before-trimming)
+   before completion or destructive trimming.
+3. Reconcile needed durable truth and search the remaining ledger, including
+   backlog prose, for retiring ids and item/attachment paths. Remove cleared
+   dependency and relationship edges; replace obsolete owner claims and links
+   with the surviving owner, durable truth, or useful Git pointer. Preserve
+   still-needed requirements. Report user-owned roadmap links needing a decision
+   rather than changing the roadmap without permission.
+4. Apply `completed_items`: `summarize` replaces the item with a compact
+   `.work/completed/<id>.md` stub containing identity, completion date, and outcome;
+   `discard` removes it. Under both, delete its entire `.work/attachments/<id>/`
+   directory—never archive it with the stub. Unfinished items keep their attachments.
+5. Refresh an existing knowledge index and run the
+   [project-aware validator](validation.md) after structural changes.

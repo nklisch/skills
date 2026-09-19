@@ -504,11 +504,9 @@ Review normally targets a coherent commit range, but it may use a clearly
 bounded working-tree diff when committing would interfere with concurrent work.
 Feature-level squashing is a preference only under the matching posture and
 only for exclusively owned history where consolidation is simple and safe.
-Routine transitions do not require ledger-only commits. The exception is
-preserving a never-committed item and its useful attachments before completion
-or trimming: first commit the record, then clean it up in a later change. Keep
-that snapshot recoverable rather than squashing away the only history. Workbench
-never rewrites shared history to achieve an ideal shape.
+The [Git posture reference](skills/work/references/git-posture.md) owns commit
+boundaries and history preservation; the
+[completion sweep](skills/work/references/lifecycle.md#completion-sweep) applies them.
 
 Agents maintain `.work/` proactively: reconcile encountered stale records, close
 verified finished work at integration checkpoints, and merge or trim redundant
@@ -786,16 +784,14 @@ unrelated requests outside Workbench. In an uninitialized repository, `ideate`
 may explore conversationally; all stateful skills remain inactive unless you
 explicitly invoke `setup` to adopt Workbench.
 
-## Session posture hook
+## Project instructions and activation
 
-The plugin ships one lightweight `SessionStart` hook. In a Workbench-owned
-repository it injects a short, static reminder of high-level posture — read conventions
-and foundations first, treat a plugin-version difference as advisory upgrade and
-setup guidance, keep scope narrow, orchestrate multi-unit
-boundaries, park out-of-scope findings, reconcile and close before done. It
-exists for ownership discoverability and post-compaction salience; the skills
-remain the contract, and a host that does not run hooks loses nothing. Codex
-requires trusting the plugin's hook definition before it fires.
+Workbench uses skill descriptions for discovery and the managed `AGENTS.md` block
+for adopted-project instructions. It ships no session hook or duplicate injected
+policy. A host must load the project's instruction file for that block to be
+always available. For Claude Code, setup recommends the optional `CLAUDE.md` →
+`AGENTS.md` projection; without it or an existing equivalent, explicitly load
+`AGENTS.md` when using Workbench. Setup never adds that projection without consent.
 
 ## Starting and adopting
 
@@ -834,7 +830,7 @@ After setup has established `owner: workbench`, ask:
 `setup` rewrites the repository into one clean state, and that includes deleting
 files it has migrated. In a greenfield repository, once ownership and
 conventions are valid, setup continues directly into `ideate`. Ideation uses
-setup's canonical foundation-document contract and confirmed documentation
+the shared foundation-authoring contract and confirmed documentation
 choices to shape the project's initial foundations; it does not ask you to
 invoke another skill or invent a second format, and it still waits for your
 explicit foundation handoff before writing them.

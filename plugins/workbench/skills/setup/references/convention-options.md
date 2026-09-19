@@ -23,18 +23,10 @@ history — both postures support release. Recommend `summarize` when stubs ease
 ### Review weight
 
 `review_weight`: `none`, `light`, `standard`, `thorough`, or `maximum`. Recommend
-`standard` for most projects; another weight only from concrete consequence, uncertainty,
-regulatory, safety, or operating evidence. `standard` gives each selected design target
-and each completed integrated implementation target exactly one distinct pass;
-execution posture determines whether it is inline or fresh-context. Corrections are
-verified and self-reviewed, not sent through another distinct pass. `thorough` converges
-when no unresolved blocking finding remains; `maximum` when no unresolved material finding
-remains. Explicit direction or user-confirmed convention prose can bound repeated
-review; complex targets may warrant a proposed bounded plan. Such limits do not add
-rounds to `standard` without authorization for repeated review. Stop at convergence
-or the aligned limit, reporting unresolved required corrections without closing over
-them. See [review](../../work/references/review.md). Weight controls depth, not
-design-review eligibility or batch size. Existing substrates without the field resolve to `standard`.
+`standard` unless consequence, uncertainty, or operating evidence warrants another.
+[Review](../../work/references/review.md) owns pass budgets, convergence, and scope;
+weight controls depth, not design-review eligibility or batch size. Missing means
+`standard`; setup does not introduce additional review rounds.
 
 ### Simplification posture
 
@@ -54,29 +46,14 @@ boundaries; missing field resolves to `adaptive`.
 
 ### Documentation conventions
 
-Include in the agreement — greenfield repositories with no documents yet included — where
-durable foundations live (root `docs/` by default), how they are named — one consolidated
-`SPEC.md`, focused documents such as `ARCHITECTURE.md` or `JOURNEYS.md`, or a scoped
-directory like `docs/spec/` — and where contract truth lives, stating the
-foundation-altitude baseline from
-[the foundation document contract](canonical-layout.md#foundation-document-contract).
-Derive the recommendation from existing documents; otherwise the smallest set that fits
-the project's shape. Names are examples that should fit the project, never a fixed
-required list.
-
-For every software-project bootstrap, include engineering-foundation coverage per [the
-coverage contract](canonical-layout.md#engineering-foundation-coverage): resolve what
-repository evidence already settles, ask about consequential human-owned choices, and
-leave genuinely undecided choices explicit rather than guessing. Combine with
-`ARCHITECTURE.md` for a small cohesive project, or use a focused name such as
-`ENGINEERING.md` for a distinct audience or depth — require coverage, not a filename or
-universal section list.
-
-Also include the representation convention: prefer a repository tree, ownership table,
-dependency graph, deployment topology, or pipeline diagram when clearer than paragraphs.
-Markdown with Mermaid is the portable default; PlantUML, Structurizr, or Draw.io is valid
-when the project maintains it. Link non-Markdown diagram sources from a discoverable Markdown
-foundation explaining their meaning. Never add a toolchain merely for compliance.
+Confirm where foundations live (root `docs/` by default), how they are named,
+and which scope owns each kind of truth. Use existing documents where available,
+otherwise the smallest useful set; names such as `SPEC.md` or `ARCHITECTURE.md`
+are examples, not a required bundle. Follow
+[foundation authoring](../../work/references/foundation-authoring.md) for document
+shape, engineering coverage and representation. A software bootstrap must settle
+or explicitly defer consequential engineering choices, not just product concepts.
+Use an existing diagram format when clearer; do not add tooling for compliance.
 
 ### Overbuilding calibration
 
@@ -130,21 +107,15 @@ commit size and message patterns, merge policy, branch ownership, concurrent-age
 practice, and explicit Git rules; recommend one when evidence warrants, leaving the
 adaptive default unrecorded otherwise. Legacy per-item commits are process
 machinery, not a project preference. Explicit user direction overrides the project
-posture. Routine transitions do not need their own commits, except for the
-[pre-trim preservation floor](../../work/references/git-posture.md#preserve-items-before-trimming).
-Squashing is advisory and must preserve recoverable item history.
+posture; [Git posture](../../work/references/git-posture.md) owns preservation
+and consolidation rules.
 
 ### Evidence depth
 
-`evidence_depth`: `lean`, `standard`, or `deep` —
-[verification.md](../../work/references/verification.md) owns its semantics.
-It controls the behavioral evidence a change must produce: verification breadth,
-mockup inspection, and pattern-harvest reach. It is separate from
-`review_weight` (passes and convergence), `simplification_posture` (reduction
-reach), and the research substrate's `verification_rigor` (semantic gates on
-research artifacts). Recommend `standard`; recommend another depth only with
-concrete consequence, operating, or audience evidence. Declined or deferred
-remains absent and resolves to `standard`.
+`evidence_depth`: `lean`, `standard`, or `deep`. Recommend `standard`; use another
+only with consequence, operating, or audience evidence. Missing means `standard`.
+[Verification](../../work/references/verification.md) owns its breadth and safeguards;
+review passes, simplification reach, and research rigor remain separate settings.
 
 ### Project validator
 
@@ -183,7 +154,7 @@ confirmed names and prose; never add, drop, or rewrite a gate without confirmati
 ### Roadmap recognition
 
 Offer Workbench recognition of `docs/ROADMAP.md`, explaining the optional convention from
-[canonical-layout.md](canonical-layout.md#optional-roadmap-convention): a user-owned
+[foundation truth](../../work/references/foundation-truth.md#optional-roadmap): a user-owned
 planning document whose structure, metadata, and narrative stay flexible; a small, dense
 set of `.work/backlog/` links is the recommended standard when it fits, not a requirement;
 `.work/` remains the operational record. Never create or adopt it without explicit
@@ -193,10 +164,12 @@ file never implies consent.
 
 ### CLAUDE.md projection
 
-Proactively offer root `CLAUDE.md` as a relative symlink with target `AGENTS.md`,
-including when it is absent; treat a correct link as a no-op and reconcile divergent
-content before replacement. When `CLAUDE.md` exists after setup, maintain the Claude
-pattern symlink specified in [project-patterns.md](project-patterns.md).
+Recommend root `CLAUDE.md` as a relative symlink to `AGENTS.md` when Claude Code
+is used. Workbench has no session hook: without the projection or an existing
+equivalent, that host needs an explicit read of `AGENTS.md`. Offer the projection
+even when absent, but preserve opt-in; a correct link is a no-op, and divergent
+content needs reconciliation before replacement. When `CLAUDE.md` exists after
+setup, maintain the pattern symlink in [project-patterns.md](project-patterns.md).
 
 ## Conditional and standing choices
 

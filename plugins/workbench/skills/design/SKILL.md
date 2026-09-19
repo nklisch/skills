@@ -17,12 +17,8 @@ create a formal stage. A direct design request stops after the settled design
 and any selected review. An end-to-end request continues into implementation
 without renewed permission.
 
-Epics coordinate and always have feature children. Features may stand alone;
-stories may also stand alone for small bugs or small items. Split large features
-into child stories during design, implementation, or review follow-up; keep work in
-those children, not one parent file. Completion cleanup is mandatory: summarize
-or discard per conventions and remove completed active files and attachments.
-See [lifecycle](../work/references/lifecycle.md) for the full rules.
+Use [lifecycle](../work/references/lifecycle.md) when creating, splitting, relating,
+or closing items.
 
 ## Establish only missing context
 

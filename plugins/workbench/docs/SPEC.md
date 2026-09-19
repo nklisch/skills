@@ -261,7 +261,7 @@ that names an external condition and how it clears. Otherwise it is `active`.
 The first non-empty active-item body line is a Markdown title. Each active item
 then communicates its outcome, scope, and observable acceptance evidence, but
 the headings may fit the work. Version compatibility is checked once from
-`.work/CONVENTIONS.md` and reinforced by the skills and session reminder; it is
+`.work/CONVENTIONS.md` and reported by the bundled validator; it is
 not duplicated into every item.
 
 Focused audits, cleanup, and refactors use tags rather than new item kinds.
@@ -304,13 +304,8 @@ checkpoints close eligible units promptly, not only at the end of a campaign;
 resumed work can recover missed closure. No additional status or batch object is
 needed.
 
-Before completion or destructive trimming, never-committed items and their useful
-attachments receive an atomic Git snapshot. Existing committed history is reused;
-substantial new context is preserved before deletion. Consolidation must not erase
-the only snapshot. If commits are prohibited or unavailable, the record remains
-with the specific preservation limitation rather than being silently removed.
-The [Git preservation floor](../skills/work/references/git-posture.md#preserve-items-before-trimming)
-owns the mechanics.
+The [completion sweep](../skills/work/references/lifecycle.md#completion-sweep)
+owns closure order, including Git history preservation before destructive trimming.
 
 - `completed_items: summarize` replaces an active item with a temporary compact
   `.work/completed/<id>.md` outcome stub for the next release.
@@ -688,10 +683,8 @@ feature commit when safe; `checkpoint` retains meaningful verified slices;
 retains natural history; and `adaptive` follows repository practice, ownership,
 change shape, and concurrency. Before review, identify a stable commit range or
 a clearly bounded working-tree diff. Squashing is advisory and never required
-for acceptance. Routine transitions do not require ledger-only commits; the
-pre-trim preservation floor is the exception when no meaningful implementation
-commit contains the item. Workbench does not rewrite shared, published, or
-concurrently owned history to achieve an ideal shape.
+for acceptance. The [Git posture reference](../skills/work/references/git-posture.md)
+owns preservation and consolidation constraints across all postures.
 
 Verification reuses existing tests, fixtures, commands, environments,
 observability, and benchmark machinery first. Small, cheap, contained evidence
@@ -1015,7 +1008,7 @@ common foundation types.
 After a greenfield bootstrap establishes Workbench ownership and conventions but
 no code or foundation establishes coherent project direction, setup routes
 directly into `ideate` in the same engagement. It passes the confirmed
-documentation conventions and links ideation to setup's foundation contract and
+documentation conventions and links ideation to the shared foundation contract and
 principle candidates. It also passes the user's provisional-spec choice.
 Ideation does not re-ask settled setup choices or duplicate the format; it
 clarifies project intent and writes the smallest useful initial foundation set,
@@ -1043,36 +1036,16 @@ reasons, it recommends removal and asks once about the ambiguous edge set. It
 does not grandfather invalid structure or fabricate meaning. A second run
 remains idempotent.
 
-## Session posture hook
+## Activation and project instructions
 
-The plugin ships a single `SessionStart` hook (`hooks/hooks.json` +
-`hooks/scripts/session-context.py`). When an upward-found `.work/CONVENTIONS.md`
-declares `owner: workbench`, it emits a short, fully static posture reminder as
-additional context: read conventions and foundations first, compare the stamped
-Workbench version with the loaded plugin before stateful work, route only concrete
-Workbench workflows through its skills, use features as the default delivery
-unit, preserve strict nested tiers, keep independent work parallel, orchestrate
-multi-unit boundaries, park out-of-scope findings, and reconcile and close
-before declaring Workbench delivery done. It directs every design and review to
-apply the current project calibration, including loose requests, and tells
-delegators to pass that calibration explicitly rather than assume fresh context
-inherited it. Loose work does not acquire Workbench ledger, review-weight,
-convergence, formal review packet, or closure mechanics. For concrete design and
-delivery
-reviews, it directs reviewers to the work skill's `references/review.md`, which
-defines proportionate review, the constraint lens, and useful findings with
-material evidence limits. Reviewers propose and the outcome owner verifies and
-adjudicates against product goals and evidence. The reminder favors continuous
-ownership and reuse of unchanged context, with quick implementation and focused
-review often benefiting from the current context rather than an obligatory delegate.
-It explicitly leaves loose, conversational, and unrelated requests outside
-Workbench.
-
-The hook exists for ownership discoverability and post-compaction salience. It
-parses nothing beyond the owner check, keeps no session state, and has no
-escape-hatch flag — adopting Workbench is the opt-in. Skills remain the
-contract; a host that does not run or trust hooks degrades to absent, never to
-broken.
+Skill descriptions expose entry points; each stateful skill checks Workbench
+ownership. Adopted-project operating instructions live in the managed root
+`AGENTS.md` block, not a session hook. Workbench ships no runtime instruction
+injection. Host loading remains explicit: Claude Code uses the optional approved
+`CLAUDE.md` projection or another existing instruction path to the same source.
+Without that path, the agent must explicitly read `AGENTS.md`; skill discovery
+alone does not guarantee always-loaded project rules. Workbench does not claim
+that every host handles compaction identically.
 
 ## Deterministic validation
 
@@ -1088,7 +1061,7 @@ means that project's policy passed; it does not imply bundled checks ran.
 This override does not replace other required tests, review, research checks, or
 index maintenance. See the [validation policy reference](../skills/work/references/validation.md)
 for configuration and wrapper examples. Only explicit validator invocation executes
-the command; context hooks and conventions readers do not.
+the command; reading conventions does not.
 
 The bundled policy checks ownership, reports plugin-version drift as an
 advisory warning, and checks canonical directories and clone-stable markers,

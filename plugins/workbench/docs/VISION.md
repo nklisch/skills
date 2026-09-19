@@ -160,9 +160,8 @@ adopted repository; write-free `ideate` may explore before adoption, and
   changes rather than ledger transitions. An optional project posture may favor
   feature, checkpoint, batch, or preserved history; the adaptive default follows
   repository practice and concurrency. Squashing is advisory and never justifies
-  rewriting shared or published history. Before completion or trimming, a
-  never-committed item receives an atomic snapshot so a compact ledger does not
-  erase the work record.
+  rewriting shared or published history. Compact working state must not erase
+  the recoverable work record; the shared Git policy owns preservation mechanics.
 - **One request may span several epics.** The orchestrating agent owns
   requirements, integration, verification, closure, and durable continuation
   across the full named boundary.
@@ -247,7 +246,7 @@ adopted repository; write-free `ideate` may explore before adoption, and
   principle, and recurring-pattern truth into distinct authorities. It does not
   invent ungrounded preferences or audit patterns as a migration ceremony. A
   greenfield bootstrap flows
-  directly into ideation using setup's shared foundation-document contract so
+  directly into ideation using the shared foundation-authoring contract so
   the project can establish its initial truth without a second invocation or a
   competing format. Workbench does not preserve parallel workflow substrates,
   migration archives, or compatibility copies.

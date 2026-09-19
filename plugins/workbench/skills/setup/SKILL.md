@@ -267,9 +267,9 @@ ideation. For a greenfield repository, wait until project type, audience,
 deployment, and consequence are understandable before offering the initial
 calibration; then let ideation carry it as one of the decisions for explicit
 confirmation. Direct `ideate` to read the
-[foundation document contract](references/canonical-layout.md#foundation-document-contract)
-and [principle candidates](references/principle-candidates.md) from setup; these
-are the shared format and decision sources, not prose to duplicate in the
+[foundation document contract](../work/references/foundation-authoring.md)
+and setup's [principle candidates](references/principle-candidates.md); these
+are the format and decision sources, not prose to duplicate in the
 ideation skill. Ideation then clarifies the project and offers the smallest
 useful foundation-document handoff under its no-write rule. It writes those
 foundations only after the user explicitly selects that handoff.

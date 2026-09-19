@@ -6,6 +6,10 @@ Use the installed Workbench entry point after structural ledger changes:
 python3 <workbench-plugin-root>/scripts/validate-workbench.py <project-root>
 ```
 
+For ordinary work, run that command and act on its result; no further reading is
+needed unless configuring or diagnosing the project's validator. The rest of this
+reference is for validator authors.
+
 By default it runs bundled structural checks. A project can replace that policy
 with an optional argument list in `.work/CONVENTIONS.md` frontmatter:
 
@@ -37,7 +41,7 @@ policy merely to silence an inconvenient failure.
   a wrapper can invoke bundled checks without finding the installed plugin again.
 
 This is executable project policy, like a test command, not passive metadata.
-Reading conventions or receiving a session reminder does not execute it. A custom
+Reading conventions does not execute it. A custom
 success means the project policy passed, not that bundled checks ran. It replaces
 ledger validation only, not required behavioral tests, review, research linting,
 or knowledge-index maintenance.

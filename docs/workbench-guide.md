@@ -126,6 +126,11 @@ It removes project-scoped competing workflow plugins after their content
 is converted, and reports any user- or machine-scoped competing installs
 for you to uninstall.
 
+Workbench has no session hook. Its managed `AGENTS.md` block supplies project
+instructions when your host loads that file. For Claude Code, setup recommends
+the optional `CLAUDE.md` projection; if you decline it and have no equivalent,
+ask the agent to read `AGENTS.md` when using Workbench.
+
 ### Core defaults you set during adoption
 
 The proposed agreement includes four core defaults and explains their practical
@@ -605,11 +610,10 @@ Each delivery leaves its result, verification pointers, and any pending acceptan
 in the item. This makes missed closure recoverable after a campaign is interrupted.
 Closing an item also repairs remaining ledger references, including backlog prose.
 
-Before an item that has never been committed is completed or trimmed, the agent
-commits its full record and useful attachments atomically. Cleanup follows in a
-later change, and consolidation preserves that history. Already-recorded items
-reuse Git history instead of requiring a commit for each status edit. If you have
-prohibited commits, the agent retains the record and explains the limitation.
+Compact working state still preserves the work record. The
+[Git policy](../plugins/workbench/skills/work/references/git-posture.md#preserve-items-before-trimming)
+defines the history required before trimming and what to do when commits are
+prohibited; cleanup does not override your Git permissions.
 
 ### Use your own ledger validator
 
