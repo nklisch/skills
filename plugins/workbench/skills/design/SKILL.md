@@ -200,8 +200,9 @@ not repeated review of unchanged decisions. Revisit the agreement only when mate
 new evidence warrants it. Corrections retain the existing pass policy.
 
 An inline pass is a deliberate change of lens, not a claim of independence.
-Delegate only when fresh context materially improves the review or an explicit
-preference calls for it. Every reviewer receives the accepted boundary, relevant
+For selected design review, follow
+[execution posture](../work/references/execution-posture.md): inline-first keeps
+that pass inline unless selected otherwise. Every reviewer receives the accepted boundary, relevant
 project truth, calibration, and evidence under the review contract.
 
 Check proposed foundation changes for current versus intended truth, ownership,

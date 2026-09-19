@@ -40,7 +40,10 @@ Keep a small conversational lookup in the current conversation. Do not
 initialize `.research/` or write a brief unless the evidence must survive the
 conversation or inform a consequential decision.
 
-For any task requiring multiple sub-agents, follow
+Use [execution posture](../work/references/execution-posture.md) for dispatch;
+unset means inline-first, not automatic source-gathering fan-out. Selected research
+verification gates retain their independent-evaluator requirements.
+For an authorized task requiring multiple sub-agents, follow
 [pre-execution model alignment](../work/references/execution-posture.md#align-models-before-multi-subagent-execution)
 before dispatch, including exploratory or source-gathering assignments.
 

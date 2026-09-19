@@ -536,7 +536,7 @@ sys.exit(subprocess.run([
         self.assertIn("autonomy must be", result.stdout)
 
     def test_valid_execution_postures_pass(self) -> None:
-        for posture in ("inline", "adaptive", "orchestrated"):
+        for posture in ("inline-first", "inline", "adaptive", "orchestrated"):
             with self.subTest(posture=posture):
                 root = self.make_project()
                 path = root / ".work/CONVENTIONS.md"
@@ -550,7 +550,7 @@ sys.exit(subprocess.run([
                 result = self.run_validator(root)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_missing_execution_posture_defaults_to_adaptive(self) -> None:
+    def test_execution_posture_can_be_omitted(self) -> None:
         root = self.make_project()
         path = root / ".work/CONVENTIONS.md"
         path.write_text(

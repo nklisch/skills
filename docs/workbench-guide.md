@@ -147,7 +147,8 @@ decision. Setup records confirmed choices in `.work/CONVENTIONS.md`.
 Optional execution posture, commit posture, evidence depth, release gates,
 roadmap recognition, and the Claude compatibility projection stay visible in the
 agreement. Opt in, decline, or defer; accepting a bundle approves only its
-explicit choices. Missing execution or commit posture means adaptive behavior;
+explicit choices. Missing execution posture means inline-first; missing commit
+posture still means adaptive history boundaries;
 missing `evidence_depth` means `standard` verification, mockup inspection, and
 pattern-harvest breadth. No field needs a separate
 question merely to populate it. Destructive migration still follows its recovery
@@ -389,6 +390,33 @@ splitting growing work, and completion cleanup, follow the
 
 The durable record is ordinary Markdown. You can read or edit `.work/`
 items directly; the agent keeps their structure valid.
+
+## Choose inline work or orchestration
+
+With no execution preference, Workbench keeps design, implementation, corrections,
+and supporting discovery inline. Under standard review, one external-context
+review covers the coherent integrated result; fixes and verification return to
+the main agent. It does not automatically create designer and implementer roles
+because a task is large.
+
+To keep that default, leave `execution_posture` absent or set `inline-first`.
+Use `inline` for no delegation at all, `adaptive` to let the agent choose role
+splits, or `orchestrated` to prefer dedicated roles. Existing explicit settings
+remain effective during ordinary work. On upgrade, setup explains the new default
+and offers to keep, replace, or rework older adaptive/orchestrated choices; it does
+not silently migrate them or repeat a settled decision on each refresh. Review
+weight remains separate, so `none` does not acquire a reviewer. Ordinary convention
+prose can name a standing reviewer or an inline-review exception.
+
+For one request, say:
+
+- “Orchestrate this.”
+- “Keep design here; use two implementation lanes and one final reviewer.”
+- “Propose an execution topology before doing any work.”
+
+The last asks for a plan only. Role assignments override only the named roles,
+and model/resource alignment still applies before dispatch. A request override
+ends with the outcome; it does not silently change the repository's default.
 
 ## Steer model assignments
 
@@ -730,10 +758,10 @@ indexing error.
 - **The agent keeps asking questions you consider obvious.** Your request
   implied a more collaborative posture than you want. Say "drive this to
   done autonomously" — the request wins over the repo default.
-- **The agent reviewed inline.** This is valid under inline or adaptive execution
-  when it deliberately inspected the result and verified behavior. It must not
-  claim independent review. Ask for a fresh-context reviewer when that challenge
-  matters; you do not need to change review weight to choose who reviews.
+- **The agent reviewed inline.** This is valid under strict inline, an adaptive
+  choice, a confirmed review exception, or a disclosed fallback when the default
+  external reviewer is unavailable. It must not claim independence. An explicitly
+  required unavailable reviewer needs your decision, not silent substitution.
 - **Scope grew past what you asked.** Material scope expansion should
   come back to you as a question or a parked item. Say "park everything
   outside the original request and show me what changed."

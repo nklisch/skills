@@ -1,9 +1,8 @@
 # Convention Options
 
-Setup proposes one grounded agreement to accept or adjust, with questions for consequential
-unresolved choices. This reference owns values, defaults, and recommendations.
-Nothing binds without confirmation. Declined or deferred choices stay absent or unmanaged.
-Refresh preserves confirmed settings and presents only meaningful differences.
+Propose one grounded agreement for confirmation. This reference owns values, defaults,
+and recommendations. Declined or deferred choices stay absent or unmanaged; refresh
+preserves confirmed settings and presents only meaningful differences.
 
 ## Contents
 
@@ -82,23 +81,27 @@ without confirmation.
 
 ### Review boundaries and design-review preference
 
-Offer optional prose preferences under [review boundaries](../../work/references/review-boundaries.md).
-Recommend adaptive shared implementation reviews and independently optional design review,
-aligned once per run. A confirmed standing preference can supply that alignment.
-Declining leaves those defaults, not mandatory design review. No new fields or batch records.
+Offer prose preferences under [review boundaries](../../work/references/review-boundaries.md):
+adaptive shared implementation reviews and independently optional design review.
+Reuse standing alignment; declining creates no mandatory design review or new fields.
 
 ### Execution posture
 
-`execution_posture`: `inline`, `adaptive`, or `orchestrated` — see
-[execution-posture.md](../../work/references/execution-posture.md). Controls agent
-topology rather than autonomy or review rigor; explicit user direction overrides it, and
-design reasoning, aligned optional design review, and configured depth still apply under `inline`. Adaptive weighs
-each role's value against handoff cost — quick implementation and focused review often
-benefit from the current context — with no inline mandate. Recommend `adaptive` for most
-projects, `inline` when the project values one continuous main-agent context,
-`orchestrated` when dedicated role agents routinely earn their handoff cost. Declined or
-deferred stays absent and resolves to `adaptive`; concise prose may record a preferred
-mixed role assignment without another enum value.
+`execution_posture`: `inline-first`, `inline`, `adaptive`, or `orchestrated`.
+Recommend the unset `inline-first` default: inline delivery with one external
+standard implementation review. Use `inline` for no delegation, `adaptive` for
+agent-selected role splits, or `orchestrated` for dedicated roles. See
+[execution posture](../../work/references/execution-posture.md) for review placement,
+per-request role overrides and plan-only topology requests. Prose can record
+mixed-role exceptions; leave an accepted fallback absent rather than stamping it.
+
+Inline-first starts at **0.25.0**. When the loaded release is 0.25.0 or newer and
+the prior `workbench_version` is older, missing, or invalid, explain the changed
+fallback and offer to keep, replace, or rework adaptive/orchestrated choices.
+Their presence alone does not establish intent. Keep them until a change is
+confirmed. A prior stamp at or beyond 0.25.0 means this upgrade was considered;
+do not repeat the offer absent new direction. Successful setup records its loaded
+version as usual; unfinished alignment must not advance that stamp.
 
 ### Commit posture
 

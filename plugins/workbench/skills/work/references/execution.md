@@ -34,12 +34,11 @@ handoff and integration cost. Never map item, checklist, or line counts to a
 number of agents; actual work independence decides that. Before multi-subagent
 execution, follow
 [model alignment](execution-posture.md#align-models-before-multi-subagent-execution).
-Apply [execution-posture.md](execution-posture.md) first. Under `inline`, the
-main agent performs every unit sequentially in its current context while still
-owning the wider integration boundary. Under `adaptive`, stories and small
-coherent features normally remain inline; larger or cross-cutting units use
-dedicated or mixed roles only when the handoff earns its cost. Under
-`orchestrated`, prefer dedicated role agents when available.
+Apply [execution posture](execution-posture.md) before choosing contexts. A
+multi-unit outcome does not itself authorize delegation: `inline-first` keeps the
+work inline with an external implementation review, while strict `inline` keeps
+review inline too. Explicit `adaptive` or `orchestrated` permits broader role
+assignment under its contract.
 
 Before assigning a unit, inspect its item and affected repository surfaces for
 current premises and design readiness. A decomposed or accepted item is not

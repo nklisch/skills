@@ -146,7 +146,7 @@ completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
 simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
-execution_posture: inline|adaptive|orchestrated  # optional; missing means adaptive
+execution_posture: inline-first|inline|adaptive|orchestrated  # optional; missing means inline-first
 commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
 evidence_depth: lean|standard|deep  # optional; missing means standard
 validator_command: [python3, scripts/validate-work.py]  # optional replacement policy
@@ -201,7 +201,7 @@ confirmation. A missing `review_weight`
 resolves to `standard`; missing `simplification_posture` resolves to `balanced`;
 missing `autonomy` resolves to
 `adaptive`; missing `commit_posture` resolves to
-`adaptive`; missing `execution_posture` resolves to `adaptive`; missing
+`adaptive`; missing `execution_posture` resolves to `inline-first`; missing
 `evidence_depth` resolves to `standard`; missing `roadmap` resolves to `false`.
 `workbench_version` has no fallback: setup stamps it from the verified loaded
 plugin after successful reconciliation. The frontmatter schema is closed.
@@ -432,22 +432,30 @@ obligations. Workarounds require a real constraint and retain the constraint,
 consequence, and better future direction.
 
 The effective `execution_posture` resolves from explicit user direction, the
-optional project convention, then `adaptive`. It governs the core delivery
-roles without changing design reasoning, aligned optional design review, or review depth:
+optional project convention and confirmed role exceptions, then `inline-first`.
+Ordinary work honors existing explicit settings. Setup's upgrade alignment explains
+the changed default and offers to retain, replace, or rework older adaptive or
+orchestrated choices; it never silently rewrites them or repeatedly reopens a
+confirmed agreement. The prior `workbench_version` identifies this upgrade:
+0.25.0 introduces inline-first, and a stamp at or beyond it means the change has
+been considered. Successful setup advances the loaded-version stamp only after
+alignment and validation. The shared
+[execution posture](../skills/work/references/execution-posture.md) owns dispatch
+and fallback rules:
 
-- `inline` keeps design, implementation, and review in the main agent context;
-- `adaptive` weighs each new context's contribution against lost continuity,
-  briefing, and integration cost. Quick implementation and focused review often
-  benefit from the existing context. Independent challenge, specialization,
-  isolation, breadth, or throughput can justify dedicated or mixed roles;
-- `orchestrated` prefers dedicated design, implementation, and review agents
-  when available. Designers author item contracts while the main agent owns
-  adjudication and integration.
+- `inline-first` keeps design, implementation, corrections, integration, and
+  supporting discovery inline, with an external-context implementation review at
+  the coherent checkpoint under `standard`. Other review weights and selected
+  design review retain their own obligations; this does not mandate a role pipeline.
+- `inline` keeps all delivery roles, including review, in the current context.
+- `adaptive` permits agent-selected context splits when their value earns the cost.
+- `orchestrated` prefers dedicated roles while retaining one outcome owner.
 
-Item kind and apparent size are routing hints, not thresholds. A project may
-state a preferred mixed role assignment in convention prose, and explicit user
-direction always overrides the default. Scan, research, and other specialist
-workflows retain their own proportionate fan-out rules.
+Task size alone never opts work into orchestration. “Orchestrate this” overrides
+execution for the current outcome; named roles override those roles only. A request
+to propose a topology is plan-only, not authorization to dispatch. Scope, model
+alignment, and resource authority remain unchanged. Scan and research dispatch
+also follows the execution preference without weakening their verification gates.
 
 For a concrete Workbench design or delivery workflow, the effective
 `review_weight` resolves from explicit user direction, `.work/CONVENTIONS.md`,

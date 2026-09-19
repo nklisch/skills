@@ -517,22 +517,26 @@ remaining ledger references, including backlog prose.
 
 ## Execution posture
 
-Projects may choose how Workbench assigns its core delivery roles:
+With no execution preference, Workbench uses **inline-first**. You can select a
+standing posture in `.work/CONVENTIONS.md` or override it for one outcome:
 
 | Posture | Expected execution |
 |---|---|
-| `inline` | The main agent performs design, implementation, and review. |
-| `adaptive` | Weigh another context's value against lost continuity and handoff cost, for review as well as implementation. This is the default. |
-| `orchestrated` | Prefer dedicated design, implementation, and review agents when available; the main agent owns synthesis and integration. |
+| `inline-first` | Default: design, implement, correct, and integrate inline; one external-context review for the coherent result under standard review. |
+| `inline` | Keep all delivery roles, including review, in the current context. |
+| `adaptive` | Let the agent choose context splits when their value earns the handoff cost. |
+| `orchestrated` | Prefer dedicated roles; the main agent retains integration and acceptance. |
 
-Item kind and apparent size are useful hints, not thresholds. A large mechanical
-change may remain inline, while a small specialized or consequential change may
-benefit from another context. A project can state a preferred mixed split in
-convention prose, and your current request always overrides the default.
+“Orchestrate this” opts the current outcome into delegation. Naming roles overrides
+only those roles. “Propose an execution topology” asks for a plan, not immediate
+dispatch. Size alone never changes the posture. Leave the field absent to use the
+default; existing explicit settings and confirmed role exceptions remain effective.
 
-Execution posture preserves design reasoning, the aligned optional design-review
-approach, verification, and configured review depth. Scan, research, and other specialist workflows
-retain their own proportionate fan-out behavior.
+See [execution posture](skills/work/references/execution-posture.md) for authority,
+model alignment, and unavailable-reviewer fallbacks. Supporting discovery, scans,
+and research also honor dispatch preferences. Review weight and specialist
+verification gates remain independent; inline-first adds no pass to `none` or a
+`light` decision that no review is warranted.
 
 ## Review boundaries and depth
 
@@ -599,12 +603,13 @@ are evaluation lenses within the accepted outcome, not permission to invent
 requirements or widen it.
 
 A review is a deliberate inspection, not an agent assignment or a required form.
-A bounded change may need only a short inline pass covering its credible risks.
+A bounded change may need only a short pass covering its credible risks; execution
+posture determines whether that pass is inline or in another context.
 The agent reports what it checked, useful findings with evidence, and material
 limits. Fuller analysis earns its place when a consequential finding needs it.
 Configured pass counts remain unchanged; reducing paperwork does not waive review.
-Under `inline`, or when adaptive execution keeps the pass in the current context,
-the main agent changes its lens without claiming independence or model diversity. If you explicitly request an external,
+When explicit posture or a disclosed unavailable-reviewer fallback keeps a pass
+inline, the main agent changes its lens without claiming independence or model diversity. If you explicitly request an external,
 independent, or cross-model reviewer and none is available, the agent discloses
 that limitation and asks how you want to proceed.
 

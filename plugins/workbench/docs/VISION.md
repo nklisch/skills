@@ -74,14 +74,12 @@ adopted repository; write-free `ideate` may explore before adoption, and
   default determine whether work is collaborative, adaptive, or autonomous.
   Autonomy changes participation and continuation, never permissions, scope,
   safety, or quality.
-- **Runner topology is configurable.** Projects may prefer inline, adaptive, or
-  orchestrated design, implementation, and review while users can override that
-  default per request. Adaptive uses item size only as a light signal: it keeps
-  continuity when another context would add less value than its handoff cost.
-  Quick implementation and focused review often fit the current context; independent
-  challenge, specialization, isolation, or throughput can justify dedicated roles.
-  This is judgment, not an inline mandate. Review is not automatically delegated,
-  and design reasoning, aligned optional design review, and configured depth still apply.
+- **Work stays inline unless directed otherwise.** With no execution preference,
+  `inline-first` keeps delivery and supporting discovery in the current context,
+  using one external-context review for a coherent standard implementation target.
+  Explicit strict-inline, adaptive, orchestrated, and mixed-role preferences remain
+  available. Size alone does not trigger orchestration; a topology proposal is not
+  dispatch authority. Review rigor and selected design review remain independent.
 - **Model assignments learn from local evidence.** Settled implementation and
   mechanical corrections normally start economically; difficult diagnosis and
   cohesive structural improvement may earn stronger reasoning. Designers explain

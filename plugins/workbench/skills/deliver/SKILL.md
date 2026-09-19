@@ -52,9 +52,9 @@ Use [autonomy](../work/references/autonomy.md),
 [execution posture](../work/references/execution-posture.md),
 [simplification](../work/references/simplification.md), and
 [Git posture](../work/references/git-posture.md) as needed. Reuse effective choices
-already resolved. Under adaptive execution, compare another context's expected
-value with the handoff cost. Quick coherent implementation often benefits more
-from continuity. Explicit role preferences still apply.
+already resolved. Delivery stays in the current context under the inline-first
+default; review placement follows execution posture. Explicit role preferences
+still apply.
 
 ## Choose implementation and follow-up
 
@@ -148,9 +148,9 @@ Establish a coherent commit range or bounded working-tree diff for review:
   evidence for the feature's integrated review, which may itself join a batch.
   Do not duplicate that pass.
 
-Scale review effort and reporting to consequence and uncertainty. A focused
-inline pass can satisfy the configured review without claiming independence.
-Fresh context is useful when it adds credible challenge, not merely formality.
+Scale review effort and reporting to consequence and uncertainty. Use
+[execution posture](../work/references/execution-posture.md) for placement;
+a short review is not an exception to the default external implementation pass.
 Verify and adjudicate findings; correct, rerun affected checks, and self-review
 without adding passes beyond the review policy.
 

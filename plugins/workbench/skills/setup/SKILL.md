@@ -64,6 +64,11 @@ for decision; do not re-ask choices the repository already settled. Reconcile
 drift in place and validate as usual. A repeat run still produces no material
 change.
 
+For the inline-first upgrade, use the prior `workbench_version` stamp and the
+[execution-posture upgrade rule](references/convention-options.md#execution-posture).
+Offer to keep, replace, or rework earlier adaptive/orchestrated choices; never infer
+intent from the field alone or silently migrate it. Do not re-ask a settled upgrade.
+
 ## Align conventions
 
 For adoption or changed conventions, propose one repository-grounded working

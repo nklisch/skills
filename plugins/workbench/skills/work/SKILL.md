@@ -73,11 +73,10 @@ review once for the run and choose adaptive implementation review checkpoints.
 Several features or deliveries may share one review-and-fix pass while each unit
 receives prompt verification. Keep pending review visible until closure.
 
-Use the current context when it can finish the next piece well. Another context
-must offer useful focus, independence, specialization, isolation, or throughput
-relative to its handoff cost. This applies to review as much as implementation.
-A short review can be a deliberate inline inspection, not an agent assignment.
-Follow explicit execution preferences rather than imposing an inline-only rule.
+Use [execution posture](references/execution-posture.md) when choosing contexts.
+Unstated execution preference means inline-first, not automatic orchestration.
+Respect explicit role assignments and plan-only topology requests; task size
+alone does not authorize delegation.
 
 ## Resolve authority and uncertainty
 

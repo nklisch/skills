@@ -189,8 +189,9 @@ truth, not delivery history. Write only durable artifacts named by the workflow;
 keep questions, proposals, progress, and reports in chat. Preserve user-owned
 roadmaps rather than rewriting them incidentally.
 
-Apply configured execution, review, simplification, and commit postures. Align
-optional design review once per run and choose coherent implementation checkpoints.
+Apply configured execution, review, simplification, and commit postures; unset
+execution means `inline-first` under `work/references/execution-posture.md`.
+Align optional design review once per run and choose coherent implementation checkpoints.
 Use `work/references/review.md` for concrete Workbench reviews. Verify each unit
 promptly; keep pending review visible until acceptance. Before closure, reconcile
 affected foundations and indexes and complete the lifecycle sweep. Use another

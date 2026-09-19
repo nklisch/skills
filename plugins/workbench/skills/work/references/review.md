@@ -34,16 +34,15 @@ Those choices do not independently change pass depth or convergence.
 ## Pass budget and review targets
 
 A pass is deliberate review of a stable target, not an agent assignment or prose
-quota. Inline review resets the lens without claiming fresh-context independence.
-Under `adaptive`, weigh fresh perspective against handoff cost: familiar bounded
-changes often fit inline, while hidden coupling, specialized risk, or author blind
-spots may justify another context. Honor explicit `inline`, `orchestrated`,
-independent, and cross-model requests.
+quota. Placement follows [execution posture](execution-posture.md): when unstated,
+the standard implementation pass runs in another context under inline-first.
+Explicit `adaptive` weighs fresh perspective against handoff cost; strict `inline`
+and confirmed role exceptions still apply. Inline review never claims independence.
 
 Scale effort to consequence, uncertainty, breadth, and reversibility. Inspect the
 whole accepted boundary, concentrating on credible failure paths. A small change
-needs no broad audit, full form, or delegate; inline review needs no role narration
-or self-addressed packet. Corrections, verification, changing implementer, and author
+needs no broad audit or full form; when inline review is selected, it needs no
+role narration or self-addressed packet. Corrections, verification, changing implementer, and author
 self-checks are **not** another pass or independent review. A distinct inspection
 counts as review regardless of its assignment's name.
 
@@ -85,8 +84,9 @@ work open unless the user explicitly revises its accepted scope or requirements.
 
 Cross-model review selects diversity, not extra passes. Under `standard`, broader
 lenses fit inside one pass. An explicitly required unavailable reviewer needs user
-disposition. Otherwise `adaptive` may use credible inline review when delegation
-is unavailable; intentional `inline` is not a reviewer-availability failure.
+disposition. Otherwise use execution posture's disclosed fallback when the default
+reviewer or optional delegation is unavailable; intentional `inline` is not a
+reviewer-availability failure.
 
 When design review is selected for the run, review stable decisions before
 expensive dependent implementation. A changed technical assumption focuses
