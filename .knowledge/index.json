@@ -1223,17 +1223,6 @@
       "relationships": []
     },
     {
-      "path": ".work/active/feature-inline-first-default.md",
-      "namespace": "work",
-      "kind": "feature",
-      "id": "feature-inline-first-default",
-      "title": "Default Workbench to inline work with one external review",
-      "summary": null,
-      "updated": "2026-09-19",
-      "status": "active",
-      "relationships": []
-    },
-    {
       "path": ".work/releases/ux-ui-design-1.0.0.md",
       "namespace": "work",
       "kind": "release",
