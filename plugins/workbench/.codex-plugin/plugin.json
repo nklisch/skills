@@ -1,6 +1,6 @@
 {
   "name": "workbench",
-  "version": "0.24.4",
+  "version": "0.25.0",
   "description": "Requirements-first delivery with adaptive opportunity scanning, optional release gates, weighted review, and grounded research.",
   "author": {
     "name": "nklisch"
@@ -8,7 +8,6 @@
   "repository": "https://github.com/nklisch/skills",
   "license": "MIT",
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Workbench",
     "shortDescription": "Design, deliver, scan, review, and research",

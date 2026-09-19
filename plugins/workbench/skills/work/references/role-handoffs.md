@@ -18,8 +18,9 @@ Pass this context explicitly; a fresh context must not be expected to inherit it
 - the effective execution and review postures when the assignment is a formal
   Workbench workflow, including aligned optional design review, the implementation
   review checkpoint and owner, and whether the unit returns before shared review; and
-- the integration contract, required checks, and return evidence expected from
-  the role, when relevant.
+- the integration contract, committed target (or base/head range), required checks,
+  and return evidence. Writing roles follow the [Git handoff floor](git-posture.md);
+  read-only reviewers do not create commits.
 
 This handoff is for a real context boundary. Do not compose a packet to yourself
 or reload unchanged guidance when the current owner changes capabilities.

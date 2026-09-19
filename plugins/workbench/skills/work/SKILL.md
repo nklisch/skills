@@ -73,11 +73,10 @@ review once for the run and choose adaptive implementation review checkpoints.
 Several features or deliveries may share one review-and-fix pass while each unit
 receives prompt verification. Keep pending review visible until closure.
 
-Use the current context when it can finish the next piece well. Another context
-must offer useful focus, independence, specialization, isolation, or throughput
-relative to its handoff cost. This applies to review as much as implementation.
-A short review can be a deliberate inline inspection, not an agent assignment.
-Follow explicit execution preferences rather than imposing an inline-only rule.
+Use [execution posture](references/execution-posture.md) when choosing contexts.
+Unstated execution preference means inline-first, not automatic orchestration.
+Respect explicit role assignments and plan-only topology requests; task size
+alone does not authorize delegation.
 
 ## Resolve authority and uncertainty
 
@@ -133,8 +132,7 @@ item. Design-agent returns and onward dispatch pass item and attachment referenc
 plus brief supplementary details, not the full design or a reconstruction of it.
 The receiving agent reads the recorded contract directly.
 Use optional [design attachments](references/design-attachments.md) only when detailed
-specifications reduce ambiguity. They remain part of the item's contract and are
-always deleted when their owner completes, even when a completion stub is retained.
+specifications reduce ambiguity. They remain part of the item's contract.
 Omit empty optional metadata and unused sections. Add design, dependencies, or
 coordination detail only when the work needs them. Do not reformat existing items
 merely to make them shorter. Replace superseded decisions instead of keeping a
@@ -171,8 +169,7 @@ owner observes meaningful returns and prunes useful repository notes at integrat
 handoff, and completion. Notes inform proposals; they never grant model approval.
 Respect aligned resources and explicit preferences. Routine assignments within
 that agreement do not require repeated permission. New consequential commitments
-still do. Use [Git posture](references/git-posture.md) for meaningful commit
-boundaries, never ledger-transition commits or cosmetic shared-history rewrites.
+still do. Use [Git posture](references/git-posture.md) for commit boundaries.
 
 ## Finish the accepted boundary
 
@@ -189,14 +186,16 @@ candidates arise. Optional learning or extraction requires a selected outcome an
 never delays closure. Orchestrated deliverers report shared pattern implications
 instead of editing the shared catalog.
 
-Close completed items immediately under the configured retention posture and
-validate structural ledger changes. Continue until the full requested boundary is
+Own ledger hygiene and close eligible items at each integration checkpoint under
+the [completion sweep](references/lifecycle.md#completion-sweep), including stale
+records encountered along the way. Continue until the full requested boundary is
 complete or a concrete external blocker prevents meaningful progress. Before
 interruption, preserve settled decisions, useful evidence, next actions, and
 blockers in the affected item. Reconcile them against the repository on resume.
 
-Report outcomes, meaningful decisions, verification, limitations, closure, and
-selected follow-ups in chat. Do not create report files or no-op records unless
+Before handing back, apply the [commit floor](references/git-posture.md#commit-before-handing-back),
+including continuation state or final cleanup. Report outcomes, meaningful decisions,
+verification, limitations, closure, and selected follow-ups in chat. Do not create report files or no-op records unless
 the user requests them. Keep questions, proposals, and progress out of foundations.
 
 ## Draw on focused guidance

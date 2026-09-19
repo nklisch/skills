@@ -40,15 +40,22 @@ audit every pattern against code. Concrete delivery repairs stale existing
 patterns. New pattern references enter through an explicit pattern-extraction
 maintenance feature, not ordinary delivery.
 
-## Claude compatibility projection
+## Claude skill discovery
 
-When root `CLAUDE.md` exists after setup reconciliation, maintain
-`.claude/skills/patterns` as a relative symlink with target
-`../../.agents/skills/patterns`. The `.agents` catalog remains authoritative. A
-correct symlink is a no-op.
+Maintain `.claude/skills` as one relative directory symlink to `../.agents/skills`.
+The canonical `.agents/skills/` tree holds all project skills; the projection
+exposes patterns, scan lenses, and other project skills together. This does not
+depend on a root `CLAUDE.md`. A correct directory link is a no-op.
 
-Inspect a conflicting path without following the symlink for destructive
-operations. Classify a regular file or directory, broken symlink, wrong-target
-symlink, and divergent mirror before replacement. Consolidate useful
-user-authored content into the canonical catalog and apply setup's normal Git,
-recovery, and exact-confirmation rules before removing an unrecoverable path.
+Inspect both skill trees before replacement, not just `patterns`. Move unique
+Claude-only skills into `.agents/skills/` and reconcile same-name differences
+there without silently choosing a winner. Treat existing per-skill links into
+`.agents` as views of that content, not files to copy back onto their own targets.
+Ensure the canonical tree does not itself point back through the projection.
+
+Classify conflicting files, directories, broken or wrong-target links, and
+mirrors under [migration rules](migration-rules.md#cleanup-safety). Only replace
+the old `.claude/skills` container after retained contents and references are
+verified, applying the normal Git/recovery and exact-confirmation rules. Inspect
+and remove links themselves, never their targets. Do not retain parallel skill
+copies or rebuild per-skill links after the directory projection is established.

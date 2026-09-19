@@ -58,7 +58,7 @@ group compatible targets or keep their reviews separate rather than averaging
 away a requirement.
 
 Verify and self-check each delivery promptly. At a checkpoint, integrate the
-included work and establish a stable commit range or bounded diff. Review its
+included work and commit the candidate; identify its exact base/head range. Review its
 accepted requirements, interactions, and affected foundations together. A shared
 pass satisfies the included items' review obligation without duplicate per-item
 passes. Already-reviewed work supplies context, not another review target. Review
@@ -84,8 +84,8 @@ enough context in those items and let `work` own integration. No new batch objec
 status, receipt, or coordination feature is needed just to remember a review.
 Pending review alone is not a `blocked_by` dependency or an external blocker.
 
-On interruption, preserve the stable target or current diff, verified work,
-remaining findings, and next action in the affected items. On resume, compare
+Before a planned interruption, checkpoint owned changes and record the committed
+target, verified work, remaining findings, and next action in the affected items. On resume, compare
 that evidence with Git before continuing. Shrink or split a batch when one unit
 stalls so ready work need not wait for unrelated work. Never mark a feature done
 while its required review remains deferred. With `none`, or a `light` decision

@@ -32,9 +32,8 @@ docs/<sub-project>/<scope-owned foundations>
 <sub-project>/docs/<scope-owned foundations>
 .agents/skills/patterns/  # canonical pattern index and references
 .agents/skills/scan-*/    # optional reusable project scan lenses
-.claude/skills/patterns  # relative symlink when CLAUDE.md exists
+.claude/skills          # relative symlink to ../.agents/skills
 AGENTS.md
-CLAUDE.md                # optional relative symlink to AGENTS.md
 ```
 
 - `.work/` records outcomes the project may decide and deliver.
@@ -115,9 +114,10 @@ completed_items: summarize|discard
 review_weight: none|light|standard|thorough|maximum
 simplification_posture: hygiene|balanced|structural
 autonomy: adaptive|collaborative|autonomous
-execution_posture: inline|adaptive|orchestrated  # optional; missing means adaptive
+execution_posture: inline-first|inline|adaptive|orchestrated  # optional; missing means inline-first
 commit_posture: adaptive|feature|checkpoint|batch|preserve  # optional; missing means adaptive
 evidence_depth: lean|standard|deep  # optional; missing means standard
+validator_command: [python3, scripts/validate-work.py]  # optional replacement policy
 roadmap: true|false  # optional; missing means false
 release_gates:       # optional; missing or empty means disabled
   - compatibility
@@ -146,8 +146,8 @@ unresolved decisions need separate questions; the option catalog is not an inter
 sequence. Existing evidence informs recommendations, not silent adoption.
 
 Optional execution posture, commit posture, evidence depth, prose preferences for
-review boundaries and optional design review, release gates, roadmap recognition,
-and the `CLAUDE.md` projection remain visible opt-in, decline, or defer choices.
+review boundaries and optional design review, release gates, and roadmap recognition
+remain visible opt-in, decline, or defer choices.
 Each proposed adoption or deferral is explicit in the agreement. A refresh retains
 confirmed choices and surfaces meaningful differences, rather than repeating
 unchanged options. Declined or deferred options remain absent or unmanaged.
@@ -169,7 +169,7 @@ confirmation. A missing `review_weight`
 resolves to `standard`; missing `simplification_posture` resolves to `balanced`;
 missing `autonomy` resolves to
 `adaptive`; missing `commit_posture` resolves to
-`adaptive`; missing `execution_posture` resolves to `adaptive`; missing
+`adaptive`; missing `execution_posture` resolves to `inline-first`; missing
 `evidence_depth` resolves to `standard`; missing `roadmap` resolves to `false`.
 `workbench_version` has no fallback: setup stamps it from the verified loaded
 plugin after successful reconciliation. The frontmatter schema is closed.
@@ -229,7 +229,7 @@ that names an external condition and how it clears. Otherwise it is `active`.
 The first non-empty active-item body line is a Markdown title. Each active item
 then communicates its outcome, scope, and observable acceptance evidence, but
 the headings may fit the work. Version compatibility is checked once from
-`.work/CONVENTIONS.md` and reinforced by the skills and session reminder; it is
+`.work/CONVENTIONS.md` and reported by the bundled validator; it is
 not duplicated into every item.
 
 Focused audits, cleanup, and refactors use tags rather than new item kinds.
@@ -253,12 +253,32 @@ independently meaningful outcomes.
 
 ## Completion
 
+`.work/` is agent-maintained working state. During stateful work, agents resolve
+encountered stale records against repository evidence rather than avoiding them:
+close delivered outcomes, clear obsolete blockers, merge duplicates, and trim
+superseded records while retaining unmet requirements and useful context. Routine
+hygiene needs no separate approval; age alone proves neither completion nor
+abandonment. Cancellation of still-wanted scope and product priority changes
+remain consequential decisions. Project-defined ownership governs cleanup of
+another owner's items, and merged code does not replace required human acceptance.
+Splitting partial delivery preserves its accepted commitment: required remainder
+keeps the owning outcome open. Only an explicitly agreed scope change permits a
+smaller delivered boundary to close with its remainder tracked separately;
+inactivity alone never authorizes deferral.
+
 Completed work never remains active. Implementation alone is not completion:
 features and standalone stories remain active while their chosen shared review
 is pending. The outcome owner closes them after that review, corrections,
 affected verification, and foundation reconciliation are satisfied. Nested
 stories may close after slice verification; their owning feature remains open
-for review. No additional status or batch object is needed.
+for review. Deliveries leave concise result and verification pointers in their
+items, including pending acceptance and its owner when applicable. Integration
+checkpoints close eligible units promptly, not only at the end of a campaign;
+resumed work can recover missed closure. No additional status or batch object is
+needed.
+
+The [completion sweep](../skills/work/references/lifecycle.md#completion-sweep)
+owns closure order, including Git history preservation before destructive trimming.
 
 - `completed_items: summarize` replaces an active item with a temporary compact
   `.work/completed/<id>.md` outcome stub for the next release.
@@ -273,7 +293,8 @@ Refresh an existing knowledge index so it no longer points to deleted attachment
 
 Both postures preserve `.work/completed/.gitkeep` and
 `.work/releases/.gitkeep`. Before closure, active children are completed and
-relationships are reconciled. `release` writes one version summary from stubs or
+relationships and remaining ledger prose/links are reconciled, including backlog
+claims about a retired current owner. `release` writes one version summary from stubs or
 ordinary Git history, then removes every completed outcome file after successful
 checks. It does not tag, publish, or deploy.
 
@@ -384,22 +405,30 @@ obligations. Workarounds require a real constraint and retain the constraint,
 consequence, and better future direction.
 
 The effective `execution_posture` resolves from explicit user direction, the
-optional project convention, then `adaptive`. It governs the core delivery
-roles without changing design reasoning, aligned optional design review, or review depth:
+optional project convention and confirmed role exceptions, then `inline-first`.
+Ordinary work honors existing explicit settings. Setup's upgrade alignment explains
+the changed default and offers to retain, replace, or rework older adaptive or
+orchestrated choices; it never silently rewrites them or repeatedly reopens a
+confirmed agreement. The prior `workbench_version` identifies this upgrade:
+0.25.0 introduces inline-first, and a stamp at or beyond it means the change has
+been considered. Successful setup advances the loaded-version stamp only after
+alignment and validation. The shared
+[execution posture](../skills/work/references/execution-posture.md) owns dispatch
+and fallback rules:
 
-- `inline` keeps design, implementation, and review in the main agent context;
-- `adaptive` weighs each new context's contribution against lost continuity,
-  briefing, and integration cost. Quick implementation and focused review often
-  benefit from the existing context. Independent challenge, specialization,
-  isolation, breadth, or throughput can justify dedicated or mixed roles;
-- `orchestrated` prefers dedicated design, implementation, and review agents
-  when available. Designers author item contracts while the main agent owns
-  adjudication and integration.
+- `inline-first` keeps design, implementation, corrections, integration, and
+  supporting discovery inline, with an external-context implementation review at
+  the coherent checkpoint under `standard`. Other review weights and selected
+  design review retain their own obligations; this does not mandate a role pipeline.
+- `inline` keeps all delivery roles, including review, in the current context.
+- `adaptive` permits agent-selected context splits when their value earns the cost.
+- `orchestrated` prefers dedicated roles while retaining one outcome owner.
 
-Item kind and apparent size are routing hints, not thresholds. A project may
-state a preferred mixed role assignment in convention prose, and explicit user
-direction always overrides the default. Scan, research, and other specialist
-workflows retain their own proportionate fan-out rules.
+Task size alone never opts work into orchestration. “Orchestrate this” overrides
+execution for the current outcome; named roles override those roles only. A request
+to propose a topology is plan-only, not authorization to dispatch. Scope, model
+alignment, and resource authority remain unchanged. Scan and research dispatch
+also follows the execution preference without weakening their verification gates.
 
 For a concrete Workbench design or delivery workflow, the effective
 `review_weight` resolves from explicit user direction, `.work/CONVENTIONS.md`,
@@ -627,16 +656,21 @@ must protect enough behavior, contract, boundary, risk, or regression to justify
 its maintenance cost. Review follows the effective weight, and findings are
 verified before acceptance.
 
-Commit boundaries represent meaningful code changes, not Workbench item
-transitions. Effective `commit_posture` resolves from explicit user direction,
+Writing agents commit owned changes before handoff, planned pause, or final report;
+this also covers loose repository edits without adding Workbench tracking. Reviews
+use identified committed targets, not working-tree diffs. Read-only work creates
+no empty commits. Explicit prohibitions or concrete commit/ownership failures are
+disclosed exceptions, not silent dirty handoffs or acceptance claims.
+
+Effective `commit_posture` shapes history above that floor and resolves from explicit user direction,
 the optional project convention, then `adaptive`: `feature` prefers one coherent
 feature commit when safe; `checkpoint` retains meaningful verified slices;
 `batch` groups closely related outcomes at an integration boundary; `preserve`
 retains natural history; and `adaptive` follows repository practice, ownership,
-change shape, and concurrency. Before review, identify a stable commit range or
-a clearly bounded working-tree diff. Squashing is advisory and never required
-for acceptance. Workbench does not require ledger-only commits or rewrite
-shared, published, or concurrently owned history to achieve an ideal shape.
+change shape, and concurrency. Each writing worker commits before returning even
+when a batch owner will consolidate later. Squashing is advisory, not required
+for acceptance, and never substitutes for a committed handoff. The [Git posture reference](../skills/work/references/git-posture.md)
+owns preservation and consolidation constraints across all postures.
 
 Verification reuses existing tests, fixtures, commands, environments,
 observability, and benchmark machinery first. Small, cheap, contained evidence
@@ -944,14 +978,13 @@ migration. Setup creates or
 reconciles the canonical portable pattern index, validates its references, and
 does not manufacture entries or audit every retained pattern against code.
 
-Setup proactively offers root `CLAUDE.md` as a relative symlink to canonical
-root `AGENTS.md`, including when it is absent. When `CLAUDE.md` exists after
-reconciliation, setup maintains
-`.claude/skills/patterns` as a relative symlink to
-`../../.agents/skills/patterns`. Correct links are no-ops. Conflicting files,
-directories, broken or wrong-target links, and divergent mirrors are classified
-and consolidated under normal recovery and exact-confirmation rules before
-replacement; destructive inspection never follows the link.
+Setup does not propose a `CLAUDE.md` projection for project instructions. Existing
+files and links are preserved unless their reconciliation is part of the agreed
+migration. The independent `.claude/skills` directory link points to
+`../.agents/skills`, exposing all canonical project skills, not only patterns.
+[Skill reconciliation](../skills/setup/references/project-patterns.md#claude-skill-discovery)
+preserves unique and divergent Claude skills before replacing the old container;
+destructive inspection never follows a link to its target.
 
 Its canonical-layout reference owns the shared foundation
 document contract: scope, durable-truth rules, authority, and the purpose of
@@ -960,7 +993,7 @@ common foundation types.
 After a greenfield bootstrap establishes Workbench ownership and conventions but
 no code or foundation establishes coherent project direction, setup routes
 directly into `ideate` in the same engagement. It passes the confirmed
-documentation conventions and links ideation to setup's foundation contract and
+documentation conventions and links ideation to the shared foundation contract and
 principle candidates. It also passes the user's provisional-spec choice.
 Ideation does not re-ask settled setup choices or duplicate the format; it
 clarifies project intent and writes the smallest useful initial foundation set,
@@ -988,40 +1021,32 @@ reasons, it recommends removal and asks once about the ambiguous edge set. It
 does not grandfather invalid structure or fabricate meaning. A second run
 remains idempotent.
 
-## Session posture hook
+## Activation and project instructions
 
-The plugin ships a single `SessionStart` hook (`hooks/hooks.json` +
-`hooks/scripts/session-context.py`). When an upward-found `.work/CONVENTIONS.md`
-declares `owner: workbench`, it emits a short, fully static posture reminder as
-additional context: read conventions and foundations first, compare the stamped
-Workbench version with the loaded plugin before stateful work, route only concrete
-Workbench workflows through its skills, use features as the default delivery
-unit, preserve strict nested tiers, keep independent work parallel, orchestrate
-multi-unit boundaries, park out-of-scope findings, and reconcile and close
-before declaring Workbench delivery done. It directs every design and review to
-apply the current project calibration, including loose requests, and tells
-delegators to pass that calibration explicitly rather than assume fresh context
-inherited it. Loose work does not acquire Workbench ledger, review-weight,
-convergence, formal review packet, or closure mechanics. For concrete design and
-delivery
-reviews, it directs reviewers to the work skill's `references/review.md`, which
-defines proportionate review, the constraint lens, and useful findings with
-material evidence limits. Reviewers propose and the outcome owner verifies and
-adjudicates against product goals and evidence. The reminder favors continuous
-ownership and reuse of unchanged context, with quick implementation and focused
-review often benefiting from the current context rather than an obligatory delegate.
-It explicitly leaves loose, conversational, and unrelated requests outside
-Workbench.
-
-The hook exists for ownership discoverability and post-compaction salience. It
-parses nothing beyond the owner check, keeps no session state, and has no
-escape-hatch flag — adopting Workbench is the opt-in. Skills remain the
-contract; a host that does not run or trust hooks degrades to absent, never to
-broken.
+Skill descriptions expose entry points; each stateful skill checks Workbench
+ownership. Adopted-project operating instructions live in the managed root
+`AGENTS.md` block, not a session hook. Workbench ships no runtime instruction
+injection. The host's project-instruction loading supplies that block; skill
+discovery alone does not guarantee always-loaded project rules. Workbench does
+not claim that every host handles compaction identically.
 
 ## Deterministic validation
 
-`validate-workbench.py` checks ownership, reports plugin-version drift as an
+`validate-workbench.py <project-root>` is the project-aware validation entry point.
+By default, or with `--builtin`, it runs the bundled structural policy described
+below. A project's optional `validator_command` argument list in conventions
+replaces that policy: it runs from the project root without shell expansion or
+implicit arguments, inherits standard streams, and returns the command's exit
+status (signals become `128 + signal`). Configuration or launch errors return 2,
+not a fallback pass. `WORKBENCH_VALIDATOR` exposes the absolute entry script path
+so a wrapper can call it with `--builtin` without recursion. A custom success
+means that project's policy passed; it does not imply bundled checks ran.
+This override does not replace other required tests, review, research checks, or
+index maintenance. See the [validation policy reference](../skills/work/references/validation.md)
+for configuration and wrapper examples. Only explicit validator invocation executes
+the command; reading conventions does not.
+
+The bundled policy checks ownership, reports plugin-version drift as an
 advisory warning, and checks canonical directories and clone-stable markers,
 item schemas, globally unique ids, title and body presence, parent-kind
 pairs, parent and dependency cycles, relationship integrity, readiness state,

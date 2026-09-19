@@ -4,7 +4,9 @@ Use this reference when an epic or broad feature set needs durable continuation
 or has enough integration complexity to justify shared operational state. Item
 tier and feature count are signals, not gates. A smaller boundary may qualify
 when integration risk is high. A large mechanical boundary may not qualify when
-one context can finish it safely.
+one context can finish it safely. A topology may describe entirely inline work;
+it does not grant permission to delegate. Honor the effective execution posture.
+A request to propose a topology is plan-only unless execution is also requested.
 
 ## Contents
 
@@ -142,7 +144,7 @@ closure when shared review remains, except verified nested stories.
 Follow [review.md](review.md) for pass depth and
 [git-posture.md](git-posture.md) for commit ownership. Review stable targets, not
 moving branches. Correct and verify accepted findings before another authorized
-review pass. Integrate returned commits or diffs deliberately. Run combined
+review pass. Integrate returned commits deliberately. Run combined
 evidence once at the owning boundary instead of replaying the largest suite in
 every worker.
 

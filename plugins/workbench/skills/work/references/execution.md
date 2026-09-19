@@ -34,12 +34,11 @@ handoff and integration cost. Never map item, checklist, or line counts to a
 number of agents; actual work independence decides that. Before multi-subagent
 execution, follow
 [model alignment](execution-posture.md#align-models-before-multi-subagent-execution).
-Apply [execution-posture.md](execution-posture.md) first. Under `inline`, the
-main agent performs every unit sequentially in its current context while still
-owning the wider integration boundary. Under `adaptive`, stories and small
-coherent features normally remain inline; larger or cross-cutting units use
-dedicated or mixed roles only when the handoff earns its cost. Under
-`orchestrated`, prefer dedicated role agents when available.
+Apply [execution posture](execution-posture.md) before choosing contexts. A
+multi-unit outcome does not itself authorize delegation: `inline-first` keeps the
+work inline with an external implementation review, while strict `inline` keeps
+review inline too. Explicit `adaptive` or `orchestrated` permits broader role
+assignment under its contract.
 
 Before assigning a unit, inspect its item and affected repository surfaces for
 current premises and design readiness. A decomposed or accepted item is not
@@ -84,10 +83,15 @@ the user's full boundary is satisfied. Use [review-boundaries.md](review-boundar
 to batch compatible deliveries for integrated review and correction. Assigned units
 return verified work without premature closure when review is deferred. Keep
 pending review in existing item prose and close units after shared acceptance.
+At each integration checkpoint, apply delivery evidence to the owning items and
+close every eligible unit immediately; do not accumulate closure for one final
+campaign step. The owner closes accepted parents when their final children and
+integrated acceptance are complete. A later session may recover missed closure
+from repository evidence without needing the original session to return.
 
 Before a context limit, interruption, or deliberate handoff, update affected
 active items with settled requirements, current repository evidence, delivered
 outcomes, remaining next actions, and blockers. For a topology-owned run, also
-record the integrated commits or branches when useful, reusable evidence, and
-next dispatch or integration point. On resume, compare that state to Git and code
-before continuing.
+record integrated commits, reusable evidence, and the next dispatch or integration
+point. Commit the owned continuation state under [Git posture](git-posture.md)
+before handoff. On resume, compare it to Git and code before continuing.

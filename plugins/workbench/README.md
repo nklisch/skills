@@ -272,16 +272,22 @@ scanning; agents choose exclusions from repository context and keep intended
 project documentation visible.
 
 Workbench validators check structure, relationships, citations, and generated
-state whenever agents create or reshape the corresponding artifacts.
+state whenever agents create or reshape the corresponding artifacts. Projects can
+replace ledger validation by adding `validator_command: [python3, scripts/validate-work.py]`
+to `.work/CONVENTIONS.md`. The usual `validate-workbench.py` entry point runs that
+command from the project root instead of bundled checks. `--builtin` explicitly
+runs the bundled policy, including from a custom wrapper. See
+[project validation policy](skills/work/references/validation.md) for the contract
+and examples. Other required checks remain in force.
 
 `setup` stamps its loaded plugin version once in conventions after successful
 reconciliation. Setup proposes a repository-grounded working agreement covering
 autonomy, review, simplification, completion retention, and documentation conventions.
 You can accept the recommendations together or adjust individual choices; only
 consequential unresolved decisions need separate questions. Optional execution
-posture, commit posture, release gates, roadmap recognition, and the `CLAUDE.md`
-projection stay visible as explicit opt-in, decline, or defer choices. Your
-confirmation makes the agreement binding; recommendations never adopt themselves.
+posture, commit posture, release gates, and roadmap recognition stay visible as
+explicit opt-in, decline, or defer choices. Your confirmation makes the agreement
+binding; recommendations never adopt themselves.
 The agent records choices where they belong, mostly `.work/CONVENTIONS.md`.
 
 For a software bootstrap, setup explicitly aligns engineering-foundation
@@ -488,36 +494,52 @@ failures, weakened tests, or unverified completion.
 
 ## Commit posture
 
-Commit boundaries represent meaningful changes, not Workbench item transitions.
+The minimum posture is commit-before-handoff: writing agents commit their owned
+changes before review, a planned pause, or the final report, including corrections
+and cleanup. Read-only work needs no empty commit. This also covers loose repository
+edits without creating Workbench items. A local commit does not authorize a push.
+
 The optional `commit_posture` may be `adaptive`, `feature`, `checkpoint`,
 `batch`, or `preserve`; missing configuration uses the adaptive default. An
 explicit request overrides the project setting.
 
-Review normally targets a coherent commit range, but it may use a clearly
-bounded working-tree diff when committing would interfere with concurrent work.
-Feature-level squashing is a preference only under the matching posture and
+Reviews target identified commits or base/head ranges, not uncommitted work or
+moving branches. Report an explicit no-commit instruction, ownership conflict, or
+commit failure rather than silently using a dirty target. Feature-level squashing is a preference only under the matching posture and
 only for exclusively owned history where consolidation is simple and safe.
-Workbench never requires ledger-only commits or rewrites shared history to
-achieve an ideal shape.
+The [Git posture reference](skills/work/references/git-posture.md) owns commit
+boundaries and history preservation; the
+[completion sweep](skills/work/references/lifecycle.md#completion-sweep) applies them.
+
+Agents maintain `.work/` proactively: reconcile encountered stale records, close
+verified finished work at integration checkpoints, and merge or trim redundant
+items without a separate housekeeping request. Deliveries record their result and
+verification pointers so interrupted campaigns can resume without reconstructing
+every lane. Cleanup preserves unmet requirements and live ownership and repairs
+remaining ledger references, including backlog prose.
 
 ## Execution posture
 
-Projects may choose how Workbench assigns its core delivery roles:
+With no execution preference, Workbench uses **inline-first**. You can select a
+standing posture in `.work/CONVENTIONS.md` or override it for one outcome:
 
 | Posture | Expected execution |
 |---|---|
-| `inline` | The main agent performs design, implementation, and review. |
-| `adaptive` | Weigh another context's value against lost continuity and handoff cost, for review as well as implementation. This is the default. |
-| `orchestrated` | Prefer dedicated design, implementation, and review agents when available; the main agent owns synthesis and integration. |
+| `inline-first` | Default: design, implement, correct, and integrate inline; one external-context review for the coherent result under standard review. |
+| `inline` | Keep all delivery roles, including review, in the current context. |
+| `adaptive` | Let the agent choose context splits when their value earns the handoff cost. |
+| `orchestrated` | Prefer dedicated roles; the main agent retains integration and acceptance. |
 
-Item kind and apparent size are useful hints, not thresholds. A large mechanical
-change may remain inline, while a small specialized or consequential change may
-benefit from another context. A project can state a preferred mixed split in
-convention prose, and your current request always overrides the default.
+“Orchestrate this” opts the current outcome into delegation. Naming roles overrides
+only those roles. “Propose an execution topology” asks for a plan, not immediate
+dispatch. Size alone never changes the posture. Leave the field absent to use the
+default; existing explicit settings and confirmed role exceptions remain effective.
 
-Execution posture preserves design reasoning, the aligned optional design-review
-approach, verification, and configured review depth. Scan, research, and other specialist workflows
-retain their own proportionate fan-out behavior.
+See [execution posture](skills/work/references/execution-posture.md) for authority,
+model alignment, and unavailable-reviewer fallbacks. Supporting discovery, scans,
+and research also honor dispatch preferences. Review weight and specialist
+verification gates remain independent; inline-first adds no pass to `none` or a
+`light` decision that no review is warranted.
 
 ## Review boundaries and depth
 
@@ -584,12 +606,13 @@ are evaluation lenses within the accepted outcome, not permission to invent
 requirements or widen it.
 
 A review is a deliberate inspection, not an agent assignment or a required form.
-A bounded change may need only a short inline pass covering its credible risks.
+A bounded change may need only a short pass covering its credible risks; execution
+posture determines whether that pass is inline or in another context.
 The agent reports what it checked, useful findings with evidence, and material
 limits. Fuller analysis earns its place when a consequential finding needs it.
 Configured pass counts remain unchanged; reducing paperwork does not waive review.
-Under `inline`, or when adaptive execution keeps the pass in the current context,
-the main agent changes its lens without claiming independence or model diversity. If you explicitly request an external,
+When explicit posture or a disclosed unavailable-reviewer fallback keeps a pass
+inline, the main agent changes its lens without claiming independence or model diversity. If you explicitly request an external,
 independent, or cross-model reviewer and none is available, the agent discloses
 that limitation and asks how you want to proceed.
 
@@ -748,16 +771,12 @@ unrelated requests outside Workbench. In an uninitialized repository, `ideate`
 may explore conversationally; all stateful skills remain inactive unless you
 explicitly invoke `setup` to adopt Workbench.
 
-## Session posture hook
+## Project instructions and activation
 
-The plugin ships one lightweight `SessionStart` hook. In a Workbench-owned
-repository it injects a short, static reminder of high-level posture — read conventions
-and foundations first, treat a plugin-version difference as advisory upgrade and
-setup guidance, keep scope narrow, orchestrate multi-unit
-boundaries, park out-of-scope findings, reconcile and close before done. It
-exists for ownership discoverability and post-compaction salience; the skills
-remain the contract, and a host that does not run hooks loses nothing. Codex
-requires trusting the plugin's hook definition before it fires.
+Workbench uses skill descriptions for discovery and the managed `AGENTS.md` block
+for adopted-project instructions. It ships no session hook or duplicate injected
+policy. A host must load the project's instruction file for that block to be
+always available; setup does not recommend a `CLAUDE.md` projection.
 
 ## Starting and adopting
 
@@ -796,7 +815,7 @@ After setup has established `owner: workbench`, ask:
 `setup` rewrites the repository into one clean state, and that includes deleting
 files it has migrated. In a greenfield repository, once ownership and
 conventions are valid, setup continues directly into `ideate`. Ideation uses
-setup's canonical foundation-document contract and confirmed documentation
+the shared foundation-authoring contract and confirmed documentation
 choices to shape the project's initial foundations; it does not ask you to
 invoke another skill or invent a second format, and it still waits for your
 explicit foundation handoff before writing them.
@@ -817,10 +836,9 @@ choices remain discoverable, without treating an absent field as a reason to
 repeatedly ask about it. It also migrates useful legacy refactor-convention and pattern
 content into tool configuration, `AGENTS.md`, foundations, or the canonical
 portable pattern catalog according to meaning. It creates an empty valid index
-when no recurring pattern truth exists. Setup proactively offers root
-`CLAUDE.md` as a relative symlink to canonical `AGENTS.md`. When `CLAUDE.md`
-exists, it maintains `.claude/skills/patterns` as a relative
-symlink to the canonical `.agents` catalog after conflict-safe reconciliation.
+when no recurring pattern truth exists. It exposes all canonical project skills
+through `.claude/skills` → `../.agents/skills`, independently of `CLAUDE.md`, after
+preserving and reconciling any existing Claude-only or divergent skills.
 Stateful skills mention useful update and setup guidance when versions differ but
 continue unless they encounter a concrete incompatibility.
 

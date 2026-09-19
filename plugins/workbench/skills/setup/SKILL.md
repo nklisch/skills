@@ -64,6 +64,11 @@ for decision; do not re-ask choices the repository already settled. Reconcile
 drift in place and validate as usual. A repeat run still produces no material
 change.
 
+For the inline-first upgrade, use the prior `workbench_version` stamp and the
+[execution-posture upgrade rule](references/convention-options.md#execution-posture).
+Offer to keep, replace, or rework earlier adaptive/orchestrated choices; never infer
+intent from the field alone or silently migrate it. Do not re-ask a settled upgrade.
+
 ## Align conventions
 
 For adoption or changed conventions, propose one repository-grounded working
@@ -79,7 +84,7 @@ the overbuilding calibration, and `docs/PRINCIPLES.md` — plus every optional
 configuration as an explicit opt-in, decline, or defer choice:
 `execution_posture`, `commit_posture`, `evidence_depth`, `release_gates`, prose preferences for
 review boundaries and optional design review, Workbench recognition of a
-user-owned roadmap, and the `CLAUDE.md` compatibility projection — and
+user-owned roadmap — and
 the conditional choices whose condition holds. Ground each recommendation in
 repository evidence and state its practical cost; when evidence does not
 distinguish, use the catalog's defaults. Offer these choices even when the
@@ -142,8 +147,8 @@ navigation, or lower coordination cost.
 Always create the portable pattern index stub from
 [references/project-patterns.md](references/project-patterns.md); an empty
 index is a destination for future evidence, not a claim that patterns already
-exist. When `CLAUDE.md` exists after setup, maintain the Claude pattern
-symlink specified there.
+exist. Maintain the directory-level Claude skill projection specified there,
+independently of whether `CLAUDE.md` exists.
 
 ## Convert semantically
 
@@ -189,7 +194,8 @@ Remember the prior stamp; if validation or cleanup fails, restore that prior
 stamp (or remove the staged field when it was absent) before stopping so an
 unfinished reconciliation cannot claim compatibility.
 
-Run the plugin validator:
+Run the plugin validator, which honors the confirmed project
+[validation policy](../work/references/validation.md) when configured:
 
 ```bash
 python3 <workbench-plugin-root>/scripts/validate-workbench.py <project-root>
@@ -236,8 +242,9 @@ folders. Classify every removal target as tracked and clean, tracked and
 modified, untracked, or ignored. A clean tracked file is recoverable from Git.
 Before removing modified, untracked, ignored, or otherwise unrecoverable
 content, require either a user-created pre-state commit or the user's explicit
-confirmation of the exact removal list. Never delete an ambiguous user-authored
-file until its content is classified and either migrated or proven redundant.
+confirmation of the exact removal list; the agent's handoff commit does not replace
+that safeguard. Never delete ambiguous user content before it is classified and
+either migrated or proven redundant.
 
 Remove project-scoped competing workflow plugins, hooks, and managed rules once
 their content is converted and validated. For user- or machine-scoped plugin
@@ -266,9 +273,9 @@ ideation. For a greenfield repository, wait until project type, audience,
 deployment, and consequence are understandable before offering the initial
 calibration; then let ideation carry it as one of the decisions for explicit
 confirmation. Direct `ideate` to read the
-[foundation document contract](references/canonical-layout.md#foundation-document-contract)
-and [principle candidates](references/principle-candidates.md) from setup; these
-are the shared format and decision sources, not prose to duplicate in the
+[foundation document contract](../work/references/foundation-authoring.md)
+and setup's [principle candidates](references/principle-candidates.md); these
+are the format and decision sources, not prose to duplicate in the
 ideation skill. Ideation then clarifies the project and offers the smallest
 useful foundation-document handoff under its no-write rule. It writes those
 foundations only after the user explicitly selects that handoff.
@@ -278,8 +285,8 @@ establish its direction, or for an upgrade of an adopted Workbench repository.
 
 ## Reply to the user
 
-For a non-greenfield setup or an upgrade, reply in the current conversation
-with:
+Apply the [Git handoff floor](../work/references/git-posture.md) before returning
+or handing off setup's writes. For a non-greenfield setup or upgrade, report:
 
 - conventions adopted, rejected, and reconciled;
 - artifacts consolidated, moved, and removed;

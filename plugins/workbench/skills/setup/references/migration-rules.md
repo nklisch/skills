@@ -8,7 +8,6 @@
 - Cleanup safety
 - Idempotency
 
-
 ## Semantic mapping
 
 | Source meaning | Destination |
@@ -55,8 +54,7 @@ expectations; drop stage machinery, binding metadata, scanner topology, and
 finding-routing policy that Workbench does not use. Present the proposed names
 and definitions for confirmation before writing anything.
 
-Flatten source stage or folder taxonomies into meaning. Do not preserve stage
-narration.
+Flatten legacy folder taxonomies by meaning; do not preserve stage narration.
 
 A discovered roadmap has no automatic special status. If the user explicitly
 approves Workbench recognition, preserve `docs/ROADMAP.md` in its user-chosen
@@ -72,9 +70,8 @@ standalone stories for small bugs or small items; feature slices belong to their
 owning feature. Decompose an epic into its real feature outcomes rather than
 preserving one large activity record.
 
-Demote or reparent an item when its meaning makes the correction clear. Ask when
-several corrections would change the intended outcome. Do not invent child
-outcomes to preserve an epic label.
+Demote or reparent when meaning is clear; ask about changed outcomes.
+Do not invent child outcomes merely to preserve an epic label.
 
 Treat source dependencies as candidate queue order, not automatic Workbench
 edges. Keep an edge only when evidence shows that serial work reduces rework,
@@ -123,36 +120,22 @@ configuration — but do not manufacture ungrounded preferences. Create the
 canonical empty pattern index when no reusable pattern truth exists; do not
 manufacture pattern references to populate it.
 
-For legacy refactor-convention and pattern artifacts, classify each useful rule
-before removal:
+Classify mixed convention and pattern files by the mapping above before removal.
+[Project patterns](project-patterns.md) owns the portable catalog and promotion
+rules; setup neither invents patterns nor audits retained patterns against code.
 
-- mechanical rules → formatter or linter configuration;
-- concise operating rules → `AGENTS.md`;
-- structural ownership and import constraints → architecture foundations;
-- engineering decision rules → principle foundations;
-- proven recurring implementation shapes → `.agents/skills/patterns/`.
+Keep short release expectations in conventions. Preserve reusable evidence-based
+scanning guidance as `.agents/skills/scan-<name>/` only with explicit user confirmation.
+Remove generated wrappers, rule digests, reports, extraction commands, and
+workflow-specific scanner orchestration after useful content and references move.
 
-The pattern catalog keeps one portable `SKILL.md` navigation index and focused
-references. When `.agents` and `.claude` copies diverge, preserve user-authored
-content, surface the conflict, and consolidate the confirmed result into the
-`.agents` catalog. Split mixed rule files by meaning before removal. Default a
-short release expectation to inline conventions; preserve detailed reusable
-evidence-based scanning guidance as a project-local
-`.agents/skills/scan-<name>/` lens only after explicit user confirmation. Remove
-generated wrappers, rule digests,
-reports, extraction commands, and workflow-specific scanner orchestration after
-useful content and inbound references move. When root `CLAUDE.md`
-exists after reconciliation, replace the Claude pattern mirror with a relative
-`.claude/skills/patterns` symlink to `../../.agents/skills/patterns`.
+Apply [directory-level skill reconciliation](project-patterns.md#claude-skill-discovery)
+to the full `.claude/skills` tree, including legacy per-skill mirrors, before
+establishing the single link to `.agents/skills`.
 
-Proactively offer root `CLAUDE.md` as a relative symlink with target `AGENTS.md`,
-even when `CLAUDE.md` is absent. Treat a correct symlink as
-conformant. Inspect symlinks themselves rather than following them for removal.
-Classify regular files and directories, broken links, wrong-target links, and
-divergent mirrors. Consolidate useful content first, then apply the normal
-tracked, modified, untracked, ignored, and exact-confirmation rules before
-replacement. Do not create a new pattern from generic advice or audit every
-retained pattern against the code during setup.
+Do not create a `CLAUDE.md` projection by default or remove existing files or links
+merely because the projection is no longer needed. Reconcile existing instruction
+content only within the agreed migration and the cleanup protections below.
 
 ## Cleanup safety
 

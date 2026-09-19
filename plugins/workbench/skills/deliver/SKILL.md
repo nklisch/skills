@@ -14,12 +14,8 @@ Finish one ready feature or story. This is the implementation capability inside
 [work](../work/SKILL.md)'s continuous flow, and a direct entry point for a named
 ready item. It does not add a plan, handoff, worker, or maintenance phase.
 
-Epics coordinate and always have feature children. Features may stand alone;
-stories may also stand alone for small bugs or small items. Split large features
-into child stories during design, implementation, or review follow-up; keep work in
-those children, not one parent file. Completion cleanup is mandatory: summarize
-or discard per conventions and remove completed active files and attachments.
-See [lifecycle](../work/references/lifecycle.md) for the full rules.
+Use [lifecycle](../work/references/lifecycle.md) when creating, splitting, relating,
+or closing items.
 
 ## Pick up the outcome, not a new workflow
 
@@ -56,11 +52,14 @@ Use [autonomy](../work/references/autonomy.md),
 [execution posture](../work/references/execution-posture.md),
 [simplification](../work/references/simplification.md), and
 [Git posture](../work/references/git-posture.md) as needed. Reuse effective choices
-already resolved. Under adaptive execution, compare another context's expected
-value with the handoff cost. Quick coherent implementation often benefits more
-from continuity. Explicit role preferences still apply.
+already resolved. Delivery stays in the current context under the inline-first
+default; review placement follows execution posture. Explicit role preferences
+still apply.
 
 ## Choose implementation and follow-up
+
+Read this section only when assigning implementation or follow-up to another
+context. For inline work with no reassignment, continue at **Implement and adjust**.
 
 Prefer a capable economical initial implementer for a settled contract when that
 fits the available, aligned lineup. Keep small or mechanical corrections with it;
@@ -139,7 +138,8 @@ implications arise. Repair stale patterns on an owned catalog surface. Only an
 accepted extraction outcome adds new patterns; optional proposals never block
 this item's closure.
 
-Establish a coherent commit range or bounded working-tree diff for review:
+Commit the candidate and identify its commit or base/head range for review under
+[Git posture](../work/references/git-posture.md#stable-review-targets):
 
 - **Feature or standalone story:** apply [review](../work/references/review.md)
   to the integrated code and affected foundations at the chosen checkpoint. Under
@@ -149,30 +149,34 @@ Establish a coherent commit range or bounded working-tree diff for review:
   evidence for the feature's integrated review, which may itself join a batch.
   Do not duplicate that pass.
 
-Scale review effort and reporting to consequence and uncertainty. A focused
-inline pass can satisfy the configured review without claiming independence.
-Fresh context is useful when it adds credible challenge, not merely formality.
+Scale review effort and reporting to consequence and uncertainty. Use
+[execution posture](../work/references/execution-posture.md) for placement;
+a short review is not an exception to the default external implementation pass.
 Verify and adjudicate findings; correct, rerun affected checks, and self-review
 without adding passes beyond the review policy.
 
 ## Close and report
 
-Close only after applicable review, corrections, verification, and reconciliation
-are satisfied under [lifecycle](../work/references/lifecycle.md). Always delete the
-completed item's `.work/attachments/<item-id>/` directory, even when retaining a
-completion stub. Reconcile durable truth and remaining references first, then
-refresh any existing knowledge index. For deferred shared review, preserve its
-owner and checkpoint in existing item prose and return without closure. Verified nested stories may close under their open owning feature.
-Reconcile relationships and validate ledger changes. Never close the wider
-boundary from an assigned delivery. Follow the effective Git posture without
-rewriting shared history or treating squashing as acceptance.
+Before returning a delivery, update its item with the delivered result, actual
+verification and the committed target, plus anything still pending and who owns
+the next checkpoint. Include the item update in the delivery handoff commit so
+integrated code carries more than a planning-only item.
+Use concise existing prose, not a new status, receipt, or report. If the assigned
+write surface excludes the item, return the exact update for the owner to apply
+at integration rather than silently omitting it.
 
-The outcome owner considers useful [model observations](../work/references/model-notes.md)
-and prunes existing notes at integration and closure. Assigned deliverers return
-candidate observations rather than editing the shared scratch file. Do not create
-an observation merely to record ordinary completion.
+Apply the [completion sweep](../work/references/lifecycle.md#completion-sweep)
+in this run. Assigned delivery closes only its eligible owned unit, not the wider
+boundary. If shared review is pending, retain its owner and checkpoint in the item
+and return the verified result for integration.
 
-Return delivered behavior, meaningful checks and review, interface assumptions,
+On a run that uses model assignments, the outcome owner prunes existing
+[model notes](../work/references/model-notes.md); assigned deliverers return useful
+observations instead. Skip this for ordinary inline work and never create notes
+just to record completion.
+
+Finish with the [handoff commit](../work/references/git-posture.md#commit-before-handing-back),
+including final corrections and cleanup. Return delivered behavior, meaningful checks and review, interface assumptions,
 foundation changes, pattern implications, limitations, and excluded findings.
 Assigned delivery returns that evidence to `work`; direct delivery reports it in
 chat with the closure disposition. Neither route creates a completion-report file.
