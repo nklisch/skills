@@ -33,8 +33,8 @@ Those choices do not independently change pass depth or convergence.
 
 ## Pass budget and review targets
 
-A pass is deliberate review of a stable target, not an agent assignment or prose
-quota. Placement follows [execution posture](execution-posture.md): when unstated,
+A pass reviews a committed target under [Git posture](git-posture.md#stable-review-targets),
+not an agent assignment or prose quota. Placement follows [execution posture](execution-posture.md): when unstated,
 the standard implementation pass runs in another context under inline-first.
 Explicit `adaptive` weighs fresh perspective against handoff cost; strict `inline`
 and confirmed role exceptions still apply. Inline review never claims independence.

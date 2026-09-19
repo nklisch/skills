@@ -495,14 +495,18 @@ failures, weakened tests, or unverified completion.
 
 ## Commit posture
 
-Commit boundaries represent meaningful changes, not Workbench item transitions.
+The minimum posture is commit-before-handoff: writing agents commit their owned
+changes before review, a planned pause, or the final report, including corrections
+and cleanup. Read-only work needs no empty commit. This also covers loose repository
+edits without creating Workbench items. A local commit does not authorize a push.
+
 The optional `commit_posture` may be `adaptive`, `feature`, `checkpoint`,
 `batch`, or `preserve`; missing configuration uses the adaptive default. An
 explicit request overrides the project setting.
 
-Review normally targets a coherent commit range, but it may use a clearly
-bounded working-tree diff when committing would interfere with concurrent work.
-Feature-level squashing is a preference only under the matching posture and
+Reviews target identified commits or base/head ranges, not uncommitted work or
+moving branches. Report an explicit no-commit instruction, ownership conflict, or
+commit failure rather than silently using a dirty target. Feature-level squashing is a preference only under the matching posture and
 only for exclusively owned history where consolidation is simple and safe.
 The [Git posture reference](skills/work/references/git-posture.md) owns commit
 boundaries and history preservation; the

@@ -144,7 +144,7 @@ closure when shared review remains, except verified nested stories.
 Follow [review.md](review.md) for pass depth and
 [git-posture.md](git-posture.md) for commit ownership. Review stable targets, not
 moving branches. Correct and verify accepted findings before another authorized
-review pass. Integrate returned commits or diffs deliberately. Run combined
+review pass. Integrate returned commits deliberately. Run combined
 evidence once at the owning boundary instead of replaying the largest suite in
 every worker.
 

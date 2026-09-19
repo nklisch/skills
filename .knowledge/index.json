@@ -1223,6 +1223,17 @@
       "relationships": []
     },
     {
+      "path": ".work/active/feature-committed-handoffs.md",
+      "namespace": "work",
+      "kind": "feature",
+      "id": "feature-committed-handoffs",
+      "title": "Make committed handoffs the minimum agent Git posture",
+      "summary": null,
+      "updated": "2026-09-19",
+      "status": "active",
+      "relationships": []
+    },
+    {
       "path": ".work/releases/ux-ui-design-1.0.0.md",
       "namespace": "work",
       "kind": "release",

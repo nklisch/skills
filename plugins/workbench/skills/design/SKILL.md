@@ -193,8 +193,8 @@ review is optional. Apply
 pass, selected-decision review, or broader review once with the user for this run.
 Reuse explicit direction or confirmed standing alignment without another question.
 
-For selected targets, apply [review](../work/references/review.md) at the effective
-weight before expensive dependent implementation. Related feature decisions can
+Commit selected design targets before [review](../work/references/review.md) at the
+effective weight and before expensive dependent implementation. Related feature decisions can
 share a design review. A changed decision gets focused scrutiny of its consequences,
 not repeated review of unchanged decisions. Revisit the agreement only when material
 new evidence warrants it. Corrections retain the existing pass policy.
@@ -216,6 +216,7 @@ design corrections in the item. Explain rejected material proposals in chat, and
 offer adjacent ideas separately. When a reason is a durable constraint, record
 the constraint rather than the review history.
 
-Report the approach, decisive trade-offs, verification plan, review limits, and
-unresolved decisions in chat. For direct design, stop there. Within delivery,
+Commit owned design changes under [Git posture](../work/references/git-posture.md)
+before handoff. Report the approach, decisive trade-offs, verification plan, review
+limits, and unresolved decisions in chat. For direct design, stop there. Within delivery,
 continue from the revised decision without staging a workflow handoff.

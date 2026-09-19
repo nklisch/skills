@@ -38,18 +38,20 @@ linked references. Preserve user intent, permissions, and necessary constraints.
 If a conflict requires a user decision, explain it rather than silently choosing.
 Use the repository's instruction-authoring and channel-parity conventions.
 
-Leave the proposal as a local diff in the isolated checkout, associated with the
-proposal branch; commit only if the user has already authorized local commits.
+Commit the proposal on its isolated branch before review under the
+[Git handoff floor](../../work/references/git-posture.md). A local proposal commit
+does not activate its instructions; explicit no-commit or ownership constraints
+must be reported as exceptions.
 Do not automatically push, open an external review, merge, cherry-pick, install,
 copy back, or otherwise apply it. A severity rating never supplies review approval.
 
 ## Return for review
 
 Give the user the proposal branch, base, checkout location, affected files, and
-a readable diff or link to it. Briefly explain the intended reduction and any
-decision still needed. Identify whether the edits are committed or remain in
-that checkout so the user can find the actual proposal. Keep it available for
-review; do not remove an uncommitted proposal's worktree as routine cleanup.
+the exact committed range and a readable diff or link to it. Briefly explain the
+intended reduction and any decision still needed. If committing was prevented,
+report the uncommitted location and blocker instead of claiming a review-ready
+candidate. Keep the proposal available; never remove unpreserved changes as cleanup.
 
 Application is a separate, explicitly requested action after review. Until then,
 the active checkout and effective instructions remain unchanged.

@@ -154,8 +154,9 @@ adopted repository; write-free `ideate` may explore before adoption, and
   a wrapper. The topology changes with evidence. Fixed schedules, model
   allowlists, and per-agent tasks stay out of schema because they expire as the
   run changes.
-- **Commit shape follows the project.** Commit boundaries represent meaningful
-  changes rather than ledger transitions. An optional project posture may favor
+- **Agents hand back committed work.** Writing agents commit before review and
+  handoff, including final cleanup; read-only runs create no empty commits.
+  Commit shape follows the project above that minimum. An optional project posture may favor
   feature, checkpoint, batch, or preserved history; the adaptive default follows
   repository practice and concurrency. Squashing is advisory and never justifies
   rewriting shared or published history. Compact working state must not erase

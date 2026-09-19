@@ -92,6 +92,6 @@ from repository evidence without needing the original session to return.
 Before a context limit, interruption, or deliberate handoff, update affected
 active items with settled requirements, current repository evidence, delivered
 outcomes, remaining next actions, and blockers. For a topology-owned run, also
-record the integrated commits or branches when useful, reusable evidence, and
-next dispatch or integration point. On resume, compare that state to Git and code
-before continuing.
+record integrated commits, reusable evidence, and the next dispatch or integration
+point. Commit the owned continuation state under [Git posture](git-posture.md)
+before handoff. On resume, compare it to Git and code before continuing.

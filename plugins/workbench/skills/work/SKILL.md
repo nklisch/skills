@@ -193,8 +193,9 @@ complete or a concrete external blocker prevents meaningful progress. Before
 interruption, preserve settled decisions, useful evidence, next actions, and
 blockers in the affected item. Reconcile them against the repository on resume.
 
-Report outcomes, meaningful decisions, verification, limitations, closure, and
-selected follow-ups in chat. Do not create report files or no-op records unless
+Before handing back, apply the [commit floor](references/git-posture.md#commit-before-handing-back),
+including continuation state or final cleanup. Report outcomes, meaningful decisions,
+verification, limitations, closure, and selected follow-ups in chat. Do not create report files or no-op records unless
 the user requests them. Keep questions, proposals, and progress out of foundations.
 
 ## Draw on focused guidance

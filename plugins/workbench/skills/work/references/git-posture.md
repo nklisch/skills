@@ -1,81 +1,114 @@
 # Git Posture
 
-Commit boundaries represent meaningful code changes, not Workbench item transitions. Resolve the effective posture from an explicit request, the optional `commit_posture` in `.work/CONVENTIONS.md`, then `adaptive`.
+A writing agent hands back committed work. This floor applies to all repository
+writes, including loose edits, design, research, setup, and ledger maintenance;
+it does not turn unrelated requests into tracked Workbench outcomes. Convention
+postures shape history above that floor, not whether the agent commits.
+
+Resolve the history-shaping posture from an explicit request, the optional
+`commit_posture` in `.work/CONVENTIONS.md`, then `adaptive`.
+
+## Contents
+
+- Postures
+- Commit before handing back
+- Preserve items before trimming
+- Stable review targets
+- Consolidation and orchestration
 
 ## Postures
 
-- `adaptive` — infer sensible boundaries from repository practice, branch ownership, change size, review needs, and concurrent agents.
-- `feature` — prefer one coherent final commit per feature when consolidation is simple and safe.
-- `checkpoint` — retain finer commits at meaningful, independently verified implementation checkpoints.
-- `batch` — group several closely related features or fixes at an integration boundary owned by `work`.
-- `preserve` — retain natural commit history without squashing or reorganizing it.
+- `adaptive` — infer coherent boundaries from repository practice, ownership,
+  change size, review needs, and concurrent agents.
+- `feature` — prefer a coherent final feature history when consolidation is safe.
+- `checkpoint` — retain meaningful, independently verifiable checkpoints.
+- `batch` — consolidate related outcomes at the integration owner's boundary.
+- `preserve` — retain natural history without squashing or reorganizing it.
 
-Missing configuration means `adaptive`. A posture describes desired semantic granularity, not a required number of commits.
+Missing configuration means `adaptive`. No posture requires a particular commit
+count or permits leaving owned changes uncommitted at handoff.
 
-## Universal floor
+## Commit before handing back
 
-Under every posture:
+Before review, delegation that consumes the changes, a planned pause/context
+handoff, or the final response:
 
-- Commit at coherent, recoverable boundaries.
-- Routine item transitions do not need separate commits. Preserve never-committed
-  items before completion or trimming as required below.
-- Keep unrelated changes separate when practical.
-- Do not rewrite shared, published, or concurrently owned history merely to achieve an ideal shape.
-- Never force-push or perform an elaborate rebase without repository authority and clearly owned history.
-- When clean separation is impractical, preserve safe history and explain the result.
+1. Finish the applicable checks and update useful continuation state. Incomplete
+   work may be checkpointed, but record remaining work and failed or unrun checks
+   honestly; a commit does not establish acceptance.
+2. Stage only owned changes, inspect the staged diff, and commit them. Include
+   relevant item state, documentation, generated indexes, corrections and cleanup,
+   not just code. Never absorb another actor's edits to make the tree look clean.
+3. Confirm commit success and check for remaining owned changes. The commit is
+   the last content-changing repository action before handoff. Read-only checks,
+   reporting, and authorized transfer of those commits may follow; if a later
+   action changes files, commit that delta
+   before handing back. Give the recipient the commit id or base/head range.
 
-Respect stronger Git rules in repository instructions and established contribution policy. Workbench's posture does not grant permission to commit, rewrite, push, or publish where the repository or user withholds it.
+Routine item transitions within continuing work do not each need a commit; handoff
+is the boundary. Read-only work and no-change runs create no empty commits. A
+reviewer reports findings against the supplied commits and does not commit merely
+to end its session. Use partial checkpoints before a foreseeable interruption,
+not a promise to recover uncommitted progress later.
+
+Explicit no-commit instructions, missing Git, a failed commit, or overlapping
+ownership are concrete exceptions—not reasons to silently substitute a dirty
+handoff. Preserve the files, identify the exact limitation and next action, and
+continue independent work where possible. Coordinate or use authorized isolation
+rather than taking over shared edits. Do not initialize Git, bypass commit hooks,
+rewrite history, or claim committed completion merely to satisfy this floor.
+A local commit never grants permission to push, merge, publish, or deploy.
 
 ## Preserve items before trimming
 
 Before moving an item to completed, replacing it with a summary, deleting it,
-or trimming away substantive context, inspect Git history for that item (including
-prior paths after moves). An untracked file, staging, or an add-and-delete inside
-one uncommitted change does not preserve history.
+or trimming substantive context, inspect its Git history, including prior paths.
+Staging or an add-and-delete inside one uncommitted change preserves no history.
 
-If the item has never been committed, make an atomic commit containing its full
-pre-trim record and useful owned attachments before changing or removing them.
-Prefer including that snapshot in a coherent implementation commit; when no such
-boundary is available, a small ledger-only preservation commit is required.
-Include the outcome or cleanup disposition and useful evidence, not just an empty
-placeholder. For an already-committed item, reuse existing history; preserve any
-substantial uncommitted decisions or evidence that would otherwise be lost, without
-requiring a new snapshot for every status edit.
+A never-committed item needs an atomic commit containing its full pre-trim record
+and useful owned attachments before changing or removing them. Prefer including
+that snapshot in a coherent implementation commit; otherwise make a preservation
+commit. Include the outcome or disposition and useful evidence, not an empty
+placeholder. Reuse existing committed history for recorded items; preserve
+substantial new decisions or evidence that would otherwise be lost without
+snapshotting every status edit.
 
-Then apply retention and cleanup in a later change. Confirm the snapshot is
-recoverable in retained history; do not squash an item's creation and deletion
-into a result where the item never existed. This preservation floor takes
-precedence over preferred feature or batch commit counts. It requires no new
-receipt file, archive directory, or schema field.
-
-Stage only owned changes and inspect the staged diff; do not absorb another
-actor's work to obtain a checkpoint. If an explicit no-commit instruction, missing
-Git repository, or commit failure prevents preservation, retain the affected
-record, state the exact limitation and next action, and continue independent work.
-Do not silently delete it or claim cleanup is complete. Never initialize Git,
-rewrite shared history, or push merely to satisfy this rule.
+Apply retention and cleanup in a later change and commit it before handing back.
+Keep the snapshot recoverable: do not squash creation and deletion into a history
+where the item never existed. This floor overrides preferred feature/batch counts
+and needs no receipt, archive directory, or schema field. If preservation is
+prevented by an exception above, retain the record and disclose incomplete cleanup.
 
 ## Stable review targets
 
-Before a distinct review pass, identify a stable target:
+A distinct design or implementation review uses an identified commit or base/head
+range. Commit the candidate before dispatch; reviewers inspect that snapshot and
+its diff, not a moving branch, index, or working tree. Give them the item and
+attachment versions belonging to the same target. Scope-bound review findings
+must cite that committed state; local uncommitted changes are not review evidence.
 
-- normally a coherent commit or commit range;
-- a clearly bounded working-tree diff when committing would interfere with concurrent work or contradict the effective posture.
+If a candidate cannot be committed, disclose the exception and resolve authority
+or ownership before claiming its review obligation satisfied. Do not silently
+fall back to a working-tree review. An explicit request to inspect uncommitted
+work may still receive advisory feedback, clearly labeled as such rather than
+acceptance of a committed candidate.
 
-Review-fix commits may remain separate while review is active because their delta is useful evidence. They are not mandatory when another representation is clearer or safer.
+Commit accepted corrections after affected verification, then self-check them.
+New commits do not themselves authorize another distinct review pass; the review
+policy still owns that budget. Close and commit remaining ledger cleanup before
+reporting completion.
 
-After review:
+## Consolidation and orchestration
 
-- `feature` may consolidate implementation, corrections, and closure into one feature commit when the branch is exclusively owned and doing so is simple and safe;
-- `checkpoint` retains meaningful checkpoint and correction commits;
-- `batch` leaves consolidation to the integration owner at the agreed wider boundary; in direct `deliver` mode, keep the item's own coherent history because no wider integration owner exists;
-- `preserve` leaves history alone;
-- `adaptive` follows repository evidence and current ownership, preferring feature granularity for a safely owned coherent feature and preservation when history is shared or already meaningful.
+Conventions may suggest grouping or squashing above this floor. `feature` and
+`batch` can consolidate at a safely owned boundary; `checkpoint` and `preserve`
+retain meaningful natural history; `adaptive` follows repository evidence.
+Squashing is optional, never an acceptance criterion, and cannot erase required
+item snapshots. Workers commit their own handoffs even under `batch`; the
+integration owner—not each worker—decides any later consolidation.
 
-Squashing is a preference, never an acceptance criterion. Final verification and Workbench closure do not depend on achieving the preferred history shape.
-
-Treat history as exclusively owned only when it is local and unshared, or when explicit coordination confirms that no other actor, branch, or open review depends on its exact commits. Never infer exclusive ownership merely because a pushed branch appears personal.
-
-## Orchestration
-
-`work` supplies the effective posture to deliverers. Deliverers own only their assigned write surfaces and report the commits or diff that represent their work. Under `batch`, they must not independently reshape the wider history; the integration owner decides the final boundary. With multiple agents on one branch, default away from history rewriting unless coordination and exclusive ownership make it plainly safe.
+Never rewrite shared, published, or concurrently owned history for an ideal
+shape. Exclusive ownership requires local unshared history or explicit
+coordination, not merely a personal-looking branch name. Do not force-push or
+perform an elaborate rebase without repository authority. Preserve safe history
+when clean separation is impractical and explain the result.

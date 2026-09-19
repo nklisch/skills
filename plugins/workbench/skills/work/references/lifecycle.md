@@ -179,5 +179,5 @@ one final campaign step:
    `.work/completed/<id>.md` stub containing identity, completion date, and outcome;
    `discard` removes it. Under both, delete its entire `.work/attachments/<id>/`
    directory—never archive it with the stub. Unfinished items keep their attachments.
-5. Refresh an existing knowledge index and run the
-   [project-aware validator](validation.md) after structural changes.
+5. Refresh an existing knowledge index, run the [project-aware validator](validation.md),
+   and commit the owned cleanup before handing back under [Git posture](git-posture.md).

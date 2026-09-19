@@ -189,6 +189,10 @@ truth, not delivery history. Write only durable artifacts named by the workflow;
 keep questions, proposals, progress, and reports in chat. Preserve user-owned
 roadmaps rather than rewriting them incidentally.
 
+For all repository writes, including loose edits, commit owned changes before
+handoff or the final report. Reviews use committed targets; follow the minimum
+Git floor in `work/references/git-posture.md`. Read-only work needs no empty commit.
+
 Apply configured execution, review, simplification, and commit postures; unset
 execution means `inline-first` under `work/references/execution-posture.md`.
 Align optional design review once per run and choose coherent implementation checkpoints.

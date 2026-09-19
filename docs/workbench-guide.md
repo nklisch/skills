@@ -376,8 +376,8 @@ splitting growing work, and completion cleanup, follow the
    sweep.
 8. **Review at the configured weight.** It applies the effective
    `review_weight` and adjudicates findings rather than accepting them
-   blindly. Review uses a stable commit range or a clearly bounded working-tree
-   diff according to the effective commit posture.
+   blindly. The agent commits the candidate before review and identifies its
+   exact commit or base/head range; review does not target uncommitted work.
 9. **Shape history safely.** Commit boundaries represent meaningful changes,
    not ledger transitions. Feature squashing is advisory and happens only when
    the selected posture favors it and the history is exclusively owned and safe
@@ -390,6 +390,25 @@ splitting growing work, and completion cleanup, follow the
 
 The durable record is ordinary Markdown. You can read or edit `.work/`
 items directly; the agent keeps their structure valid.
+
+## Commit before handing back
+
+The default last repository-writing action is a commit. Agents finish applicable
+checks and continuation notes, commit their own changes, then hand off or report.
+This covers code, docs, research, and ledger cleanup—including loose edits that do
+not need a Workbench item. Reviewers inspect named commits rather than a working
+tree that might still be changing. Accepted fixes and final cleanup are committed
+before the agent hands back again.
+
+A read-only review creates no empty commit. A partial checkpoint preserves progress
+without claiming completion or passing checks. Explicit no-commit instructions,
+commit failures, and shared ownership conflicts must be disclosed, not bypassed.
+No agent stages somebody else's work merely to make the tree clean.
+
+`commit_posture` may suggest feature commits, checkpoints, batches, or safe
+squashing, but all retain this minimum. The
+[Git policy](../plugins/workbench/skills/work/references/git-posture.md) owns the
+exceptions and history-preservation rules. Local commits do not authorize publishing.
 
 ## Choose inline work or orchestration
 

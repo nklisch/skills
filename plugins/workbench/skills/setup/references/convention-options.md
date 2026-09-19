@@ -108,10 +108,10 @@ version as usual; unfinished alignment must not advance that stamp.
 `commit_posture`: `adaptive`, `feature`, `checkpoint`, `batch`, or `preserve`. Inspect
 commit size and message patterns, merge policy, branch ownership, concurrent-agent
 practice, and explicit Git rules; recommend one when evidence warrants, leaving the
-adaptive default unrecorded otherwise. Legacy per-item commits are process
-machinery, not a project preference. Explicit user direction overrides the project
-posture; [Git posture](../../work/references/git-posture.md) owns preservation
-and consolidation rules.
+adaptive default unrecorded otherwise. This shapes history above the
+[Git handoff floor](../../work/references/git-posture.md): writers still commit
+before review and handoff. Explicit user direction overrides the preferred shape;
+consolidation never erases required snapshots or postpones a worker's commit.
 
 ### Evidence depth
 

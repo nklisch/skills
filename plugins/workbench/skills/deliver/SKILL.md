@@ -138,7 +138,8 @@ implications arise. Repair stale patterns on an owned catalog surface. Only an
 accepted extraction outcome adds new patterns; optional proposals never block
 this item's closure.
 
-Establish a coherent commit range or bounded working-tree diff for review:
+Commit the candidate and identify its commit or base/head range for review under
+[Git posture](../work/references/git-posture.md#stable-review-targets):
 
 - **Feature or standalone story:** apply [review](../work/references/review.md)
   to the integrated code and affected foundations at the chosen checkpoint. Under
@@ -157,9 +158,9 @@ without adding passes beyond the review policy.
 ## Close and report
 
 Before returning a delivery, update its item with the delivered result, actual
-verification and a commit/branch or bounded diff pointer, plus anything still
-pending and who owns the next checkpoint. Carry that update with the delivery
-commit when practical so integrated code carries more than a planning-only item.
+verification and the committed target, plus anything still pending and who owns
+the next checkpoint. Include the item update in the delivery handoff commit so
+integrated code carries more than a planning-only item.
 Use concise existing prose, not a new status, receipt, or report. If the assigned
 write surface excludes the item, return the exact update for the owner to apply
 at integration rather than silently omitting it.
@@ -174,7 +175,8 @@ On a run that uses model assignments, the outcome owner prunes existing
 observations instead. Skip this for ordinary inline work and never create notes
 just to record completion.
 
-Return delivered behavior, meaningful checks and review, interface assumptions,
+Finish with the [handoff commit](../work/references/git-posture.md#commit-before-handing-back),
+including final corrections and cleanup. Return delivered behavior, meaningful checks and review, interface assumptions,
 foundation changes, pattern implications, limitations, and excluded findings.
 Assigned delivery returns that evidence to `work`; direct delivery reports it in
 chat with the closure disposition. Neither route creates a completion-report file.

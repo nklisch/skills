@@ -683,15 +683,20 @@ must protect enough behavior, contract, boundary, risk, or regression to justify
 its maintenance cost. Review follows the effective weight, and findings are
 verified before acceptance.
 
-Commit boundaries represent meaningful code changes, not Workbench item
-transitions. Effective `commit_posture` resolves from explicit user direction,
+Writing agents commit owned changes before handoff, planned pause, or final report;
+this also covers loose repository edits without adding Workbench tracking. Reviews
+use identified committed targets, not working-tree diffs. Read-only work creates
+no empty commits. Explicit prohibitions or concrete commit/ownership failures are
+disclosed exceptions, not silent dirty handoffs or acceptance claims.
+
+Effective `commit_posture` shapes history above that floor and resolves from explicit user direction,
 the optional project convention, then `adaptive`: `feature` prefers one coherent
 feature commit when safe; `checkpoint` retains meaningful verified slices;
 `batch` groups closely related outcomes at an integration boundary; `preserve`
 retains natural history; and `adaptive` follows repository practice, ownership,
-change shape, and concurrency. Before review, identify a stable commit range or
-a clearly bounded working-tree diff. Squashing is advisory and never required
-for acceptance. The [Git posture reference](../skills/work/references/git-posture.md)
+change shape, and concurrency. Each writing worker commits before returning even
+when a batch owner will consolidate later. Squashing is advisory, not required
+for acceptance, and never substitutes for a committed handoff. The [Git posture reference](../skills/work/references/git-posture.md)
 owns preservation and consolidation constraints across all postures.
 
 Verification reuses existing tests, fixtures, commands, environments,
