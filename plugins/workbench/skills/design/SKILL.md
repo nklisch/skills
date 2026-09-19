@@ -17,12 +17,8 @@ create a formal stage. A direct design request stops after the settled design
 and any selected review. An end-to-end request continues into implementation
 without renewed permission.
 
-Epics coordinate and always have feature children. Features may stand alone;
-stories may also stand alone for small bugs or small items. Split large features
-into child stories during design, implementation, or review follow-up; keep work in
-those children, not one parent file. Completion cleanup is mandatory: summarize
-or discard per conventions and remove completed active files and attachments.
-See [lifecycle](../work/references/lifecycle.md) for the full rules.
+Use [lifecycle](../work/references/lifecycle.md) when creating, splitting, relating,
+or closing items.
 
 ## Establish only missing context
 
@@ -197,15 +193,16 @@ review is optional. Apply
 pass, selected-decision review, or broader review once with the user for this run.
 Reuse explicit direction or confirmed standing alignment without another question.
 
-For selected targets, apply [review](../work/references/review.md) at the effective
-weight before expensive dependent implementation. Related feature decisions can
+Commit selected design targets before [review](../work/references/review.md) at the
+effective weight and before expensive dependent implementation. Related feature decisions can
 share a design review. A changed decision gets focused scrutiny of its consequences,
 not repeated review of unchanged decisions. Revisit the agreement only when material
 new evidence warrants it. Corrections retain the existing pass policy.
 
 An inline pass is a deliberate change of lens, not a claim of independence.
-Delegate only when fresh context materially improves the review or an explicit
-preference calls for it. Every reviewer receives the accepted boundary, relevant
+For selected design review, follow
+[execution posture](../work/references/execution-posture.md): inline-first keeps
+that pass inline unless selected otherwise. Every reviewer receives the accepted boundary, relevant
 project truth, calibration, and evidence under the review contract.
 
 Check proposed foundation changes for current versus intended truth, ownership,
@@ -219,6 +216,7 @@ design corrections in the item. Explain rejected material proposals in chat, and
 offer adjacent ideas separately. When a reason is a durable constraint, record
 the constraint rather than the review history.
 
-Report the approach, decisive trade-offs, verification plan, review limits, and
-unresolved decisions in chat. For direct design, stop there. Within delivery,
+Commit owned design changes under [Git posture](../work/references/git-posture.md)
+before handoff. Report the approach, decisive trade-offs, verification plan, review
+limits, and unresolved decisions in chat. For direct design, stop there. Within delivery,
 continue from the revised decision without staging a workflow handoff.

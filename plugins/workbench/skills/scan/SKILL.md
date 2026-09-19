@@ -63,8 +63,11 @@ hypotheses, drift, evaluations, and provocations keep honest evidence standards.
 
 ## Scale to expected value
 
-Read [references/campaigns.md](references/campaigns.md) and choose the lightest
-shape that can answer the question:
+Apply [execution posture](../work/references/execution-posture.md) before choosing
+contexts; unset means inline-first here too. A broad scan is not authorization
+to fan out. Read [references/campaigns.md](references/campaigns.md) when parallel
+scanning is authorized or the scope needs a multi-session campaign. Choose the
+lightest authorized shape that can answer the question:
 
 - **Focused** — inspect inline when one bounded concern or surface can be
   understood directly.
@@ -120,9 +123,8 @@ The orchestrator owns the result:
 5. Challenge high-cost, architectural, or weakly evidenced proposals before
    offering them: is the claim real in this context, does it respect the
    project's documented intent, and does acting still beat doing nothing? Use a
-   fresh-context sub-agent for that challenge when consequence or uncertainty
-   justifies an independent pass; otherwise make the challenge explicitly
-   inline. The challenge may reject or narrow the proposal; recommend doing
+   fresh-context sub-agent when independent challenge is authorized and useful;
+   otherwise make the challenge explicitly inline. The challenge may reject or narrow the proposal; recommend doing
    nothing when an idea does not earn its cost.
 6. Record important coverage limits. An empty verified result is valid.
 

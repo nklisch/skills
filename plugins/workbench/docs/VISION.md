@@ -74,14 +74,12 @@ adopted repository; write-free `ideate` may explore before adoption, and
   default determine whether work is collaborative, adaptive, or autonomous.
   Autonomy changes participation and continuation, never permissions, scope,
   safety, or quality.
-- **Runner topology is configurable.** Projects may prefer inline, adaptive, or
-  orchestrated design, implementation, and review while users can override that
-  default per request. Adaptive uses item size only as a light signal: it keeps
-  continuity when another context would add less value than its handoff cost.
-  Quick implementation and focused review often fit the current context; independent
-  challenge, specialization, isolation, or throughput can justify dedicated roles.
-  This is judgment, not an inline mandate. Review is not automatically delegated,
-  and design reasoning, aligned optional design review, and configured depth still apply.
+- **Work stays inline unless directed otherwise.** With no execution preference,
+  `inline-first` keeps delivery and supporting discovery in the current context,
+  using one external-context review for a coherent standard implementation target.
+  Explicit strict-inline, adaptive, orchestrated, and mixed-role preferences remain
+  available. Size alone does not trigger orchestration; a topology proposal is not
+  dispatch authority. Review rigor and selected design review remain independent.
 - **Model assignments learn from local evidence.** Settled implementation and
   mechanical corrections normally start economically; difficult diagnosis and
   cohesive structural improvement may earn stronger reasoning. Designers explain
@@ -135,7 +133,11 @@ adopted repository; write-free `ideate` may explore before adoption, and
 - **The ledger stays small and legible.** An item records outcome, scope,
   acceptance, and useful continuation context. Empty optional metadata and unused
   sections stay absent. Features remain the normal delivery unit, epics group
-  features, and stories hold narrow slices without forcing wrappers.
+  features, and stories hold narrow slices without forcing wrappers. Agents
+  actively maintain this tracking space: resolve encountered stale state, close
+  accepted outcomes at integration checkpoints, and trim redundant records without
+  making the user administer the ledger. Unmet requirements and live ownership
+  remain protected; routine hygiene does not cancel wanted work.
 - **Planning preserves parallelism.** Ordering edges explain why one item should
   finish first. Independent work remains edge-free and available in parallel.
 - **Long runs retain an adaptive delivery topology.** An epic or broad feature
@@ -152,11 +154,13 @@ adopted repository; write-free `ideate` may explore before adoption, and
   a wrapper. The topology changes with evidence. Fixed schedules, model
   allowlists, and per-agent tasks stay out of schema because they expire as the
   run changes.
-- **Commit shape follows the project.** Commit boundaries represent meaningful
-  changes rather than ledger transitions. An optional project posture may favor
+- **Agents hand back committed work.** Writing agents commit before review and
+  handoff, including final cleanup; read-only runs create no empty commits.
+  Commit shape follows the project above that minimum. An optional project posture may favor
   feature, checkpoint, batch, or preserved history; the adaptive default follows
   repository practice and concurrency. Squashing is advisory and never justifies
-  rewriting shared or published history.
+  rewriting shared or published history. Compact working state must not erase
+  the recoverable work record; the shared Git policy owns preservation mechanics.
 - **One request may span several epics.** The orchestrating agent owns
   requirements, integration, verification, closure, and durable continuation
   across the full named boundary.
@@ -199,8 +203,8 @@ adopted repository; write-free `ideate` may explore before adoption, and
   remediation by itself.
 - **Setup proposes an agreement, not a settings interview.** A repository-grounded
   recommendation can be accepted together or adjusted. Optional execution posture,
-  commit posture, release gates, roadmap recognition, and the Claude projection
-  remain visible opt-in, decline, or defer choices. Only consequential unresolved
+  commit posture, release gates, and roadmap recognition remain visible opt-in,
+  decline, or defer choices. Only consequential unresolved
   decisions need separate questions; refresh surfaces meaningful changes rather
   than re-asking settled choices. Approval remains explicit, and migration keeps
   its recovery and exact-removal protections. Release gates are
@@ -236,7 +240,7 @@ adopted repository; write-free `ideate` may explore before adoption, and
   principle, and recurring-pattern truth into distinct authorities. It does not
   invent ungrounded preferences or audit patterns as a migration ceremony. A
   greenfield bootstrap flows
-  directly into ideation using setup's shared foundation-document contract so
+  directly into ideation using the shared foundation-authoring contract so
   the project can establish its initial truth without a second invocation or a
   competing format. Workbench does not preserve parallel workflow substrates,
   migration archives, or compatibility copies.

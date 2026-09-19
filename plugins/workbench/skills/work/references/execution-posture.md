@@ -4,17 +4,30 @@ Execution posture controls which agent contexts perform Workbench's core
 delivery roles: design, implementation, and review. It is orthogonal to
 autonomy, review weight, simplification posture, and commit posture: those
 control decision authority, review rigor, simplification depth, and history
-shape rather than topology. Scan, research, and other specialist workflows keep
-their own proportionate fan-out rules unless the user explicitly asks for one
-context across the wider workflow.
+shape rather than topology. The dispatch preference also covers supporting
+exploration, scans, and research; their own verification requirements still apply.
+Do not bypass an inline preference by calling delegation “preflight” or “discovery.”
 
-Resolve one effective posture from explicit user direction, the optional
-`execution_posture` project convention, then `adaptive`. A user may override the
-posture or assign a particular phase to the main agent or a role agent for one
-request.
+Resolve the posture from explicit user direction, the optional `execution_posture`
+project convention (including confirmed role exceptions in prose), then
+`inline-first`. Missing configuration needs no new field or setup run. Ordinary
+work honors existing settings. During an explicitly requested upgrade, setup
+explains the changed default and offers to reconsider older adaptive/orchestrated
+choices; it never silently migrates them.
 
 ## Postures
 
+- **`inline-first`** — the default. Keep design, implementation, corrections,
+  integration, and supporting discovery in the current context. Use one external
+  reviewer for the coherent integrated implementation target under `standard`
+  review, then correct and verify inline without a second pass. “External” means
+  another agent context, not necessarily another provider or model family.
+  `none` adds no pass; `light` adds one only when warranted; explicitly heavier
+  weights and selected design review retain their own obligations. Selected design
+  review stays inline unless chosen otherwise. Prefer one
+  shared checkpoint when coherent, not a reviewer per delivery. This is not a
+  mandate to hold unrelated work for one giant review. Do not spawn designers,
+  implementers, or exploration helpers without a request or standing role exception.
 - **`inline`** — the main agent performs design, implementation, review, and
   integration without spawning separate agents for those roles. Design reasoning,
   the aligned optional design-review approach, and configured review depth still apply. Distinct review
@@ -32,15 +45,12 @@ request.
   The main agent still owns requirements, adjudication, integration, and the full
   requested boundary. Accountability does not require rewriting the design.
 
-Story, feature, and apparent size are light signals, not gates. A large
-mechanical change may stay inline; a small but specialized or high-consequence
-change may benefit from another context. Keep tightly coupled work together and
-never delegate merely to enact a ceremonial role split. Nor should continuity
-become an inline-only rule: a small security-sensitive change may earn an
-independent reviewer, while a large mechanical edit may not need role handoffs.
-Make routine choices without a topology announcement or justification essay.
-Explain only consequential trade-offs, explicit preference departures, or a
-coordination plan that the user needs to understand.
+Item kind and size alone never select orchestration. Under `inline-first`, keep
+large work inline too; propose delegation when it offers a material benefit, but
+do not dispatch before that departure is authorized. Under explicit `adaptive`,
+choose contexts by the work's needs. Keep tightly coupled work together under
+every posture. Explain consequential departures or coordination plans, not routine
+inline choices.
 
 An assigned delivery inside a wider outcome carries parent ownership, integration
 contracts, and return evidence. That assignment does not select the `orchestrated`
@@ -48,19 +58,32 @@ execution posture; its implementation may still stay in the current context.
 
 ## Project and request preferences
 
-Projects may add concise convention prose for a preferred mixed assignment such
-as keeping design with the main agent while delegating settled implementation.
-Do not add more enum values for role combinations. Adaptive routing may depart
-from that preference when the current work clearly benefits, and explicit user
-direction always wins.
+Use ordinary language for per-outcome overrides:
+
+- “Orchestrate this” selects `orchestrated` for that outcome, subject to model
+  alignment and existing scope/resource authority—not for future requests.
+- Named roles assign only those roles; unspecified roles keep the effective default.
+- “Propose an execution topology” or “show me the roles first” asks for a plan,
+  not dispatch or implementation. Present it in chat; record an accepted plan in
+  an existing item only when continuation needs it.
+- “No delegation” selects strict `inline`; “review inline” changes review placement
+  without waiving the applicable pass or changing implementation ownership.
+
+Projects may keep concise convention prose for standing role exceptions, such as
+inline delivery with an inline reviewer, or a preferred independent reviewer.
+Do not add enums for each role combination. Explicit user direction wins; a
+suggested topology or task size never overrides the current preference by itself.
 
 If an explicitly requested role agent or cross-model review is unavailable,
 disclose the limitation and ask how to proceed. Otherwise, when a stronger or
 independent model is unavailable, use a credible same-model fresh context,
 narrower assignment, or inline pass within the aligned fallbacks. Report missing
 independence or coverage; model scarcity never lowers acceptance requirements.
-`adaptive` degrades to credible inline execution when delegation is unavailable.
-Intentional `inline` is not an unavailable-review failure.
+The default external review under `inline-first`, like optional delegation under
+`adaptive`, degrades to a credible inline pass when unavailable; disclose that it
+was not independent. Do not block ordinary work on an unavailable default, and do
+not claim an explicitly required independent review passed. Intentional `inline`
+is not an unavailable-review failure.
 
 ## Align models before multi-subagent execution
 
@@ -86,7 +109,9 @@ Honor user and project restrictions. Ask before substituting a model or effort
 setting outside the aligned choices unless the user authorized that fallback.
 If availability cannot be established, disclose the limitation and align a
 credible alternative rather than guessing model identifiers. Keep routine
-assignments within the agreed lineup moving without repeated approval.
+assignments within the agreed lineup moving without repeated approval. A confirmed
+reviewer/model choice covers later checkpoints within that agreement; do not ask
+again just because the same role reviews another target.
 
 Keep this alignment in the conversation. It does not require a configuration
 file, a model ranking, or a durable topology. When topology already

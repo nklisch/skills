@@ -23,8 +23,8 @@ creating `.work/`, `.research/`, or other Workbench state and without treating
 the plugin's availability as consent to adopt it. A durable Workbench, research,
 or backlog handoff requires the user's explicit adoption choice first.
 
-When setup routes directly here after a greenfield bootstrap, read setup's
-[foundation document contract](../setup/references/canonical-layout.md#foundation-document-contract)
+When setup routes directly here after a greenfield bootstrap, read the shared
+[foundation document contract](../work/references/foundation-authoring.md)
 and [principle candidates](../setup/references/principle-candidates.md) before
 exploration. Treat the documentation layout, naming, contract-truth ownership,
 and principles already confirmed during setup as settled inputs; do not ask for
@@ -163,11 +163,11 @@ Write only the handoffs the user explicitly selects. A selected calibration
 handoff writes only the confirmed conventions prose; it does not create a
 receipt, item, validator rule, or other Workbench state. When entered from a
 greenfield setup, continue until the project's initial direction is coherent
-enough to offer the smallest useful foundation set described by setup's
-[foundation document contract](../setup/references/canonical-layout.md#foundation-document-contract).
+enough to offer the smallest useful foundation set described by the shared
+[foundation document contract](../work/references/foundation-authoring.md).
 For a software project, do not stop at product and domain concepts: resolve or
-explicitly defer the consequential choices in setup's
-[engineering foundation coverage](../setup/references/canonical-layout.md#engineering-foundation-coverage).
+explicitly defer the consequential choices in the shared
+[engineering foundation coverage](../work/references/foundation-authoring.md#engineering-foundation-coverage).
 Offer trees, tables, or source-controlled diagrams when they communicate the
 repository, dependency, runtime, deployment, or pipeline shape more clearly
 than prose. Do not choose frameworks, infrastructure, or delivery machinery for

@@ -1,9 +1,8 @@
 # Convention Options
 
-Setup proposes one grounded agreement to accept or adjust, with questions for consequential
-unresolved choices. This reference owns values, defaults, and recommendations.
-Nothing binds without confirmation. Declined or deferred choices stay absent or unmanaged.
-Refresh preserves confirmed settings and presents only meaningful differences.
+Propose one grounded agreement for confirmation. This reference owns values, defaults,
+and recommendations. Declined or deferred choices stay absent or unmanaged; refresh
+preserves confirmed settings and presents only meaningful differences.
 
 ## Contents
 
@@ -23,18 +22,10 @@ history — both postures support release. Recommend `summarize` when stubs ease
 ### Review weight
 
 `review_weight`: `none`, `light`, `standard`, `thorough`, or `maximum`. Recommend
-`standard` for most projects; another weight only from concrete consequence, uncertainty,
-regulatory, safety, or operating evidence. `standard` gives each selected design target
-and each completed integrated implementation target exactly one distinct pass;
-execution posture determines whether it is inline or fresh-context. Corrections are
-verified and self-reviewed, not sent through another distinct pass. `thorough` converges
-when no unresolved blocking finding remains; `maximum` when no unresolved material finding
-remains. Explicit direction or user-confirmed convention prose can bound repeated
-review; complex targets may warrant a proposed bounded plan. Such limits do not add
-rounds to `standard` without authorization for repeated review. Stop at convergence
-or the aligned limit, reporting unresolved required corrections without closing over
-them. See [review](../../work/references/review.md). Weight controls depth, not
-design-review eligibility or batch size. Existing substrates without the field resolve to `standard`.
+`standard` unless consequence, uncertainty, or operating evidence warrants another.
+[Review](../../work/references/review.md) owns pass budgets, convergence, and scope;
+weight controls depth, not design-review eligibility or batch size. Missing means
+`standard`; setup does not introduce additional review rounds.
 
 ### Simplification posture
 
@@ -54,29 +45,14 @@ boundaries; missing field resolves to `adaptive`.
 
 ### Documentation conventions
 
-Include in the agreement — greenfield repositories with no documents yet included — where
-durable foundations live (root `docs/` by default), how they are named — one consolidated
-`SPEC.md`, focused documents such as `ARCHITECTURE.md` or `JOURNEYS.md`, or a scoped
-directory like `docs/spec/` — and where contract truth lives, stating the
-foundation-altitude baseline from
-[the foundation document contract](canonical-layout.md#foundation-document-contract).
-Derive the recommendation from existing documents; otherwise the smallest set that fits
-the project's shape. Names are examples that should fit the project, never a fixed
-required list.
-
-For every software-project bootstrap, include engineering-foundation coverage per [the
-coverage contract](canonical-layout.md#engineering-foundation-coverage): resolve what
-repository evidence already settles, ask about consequential human-owned choices, and
-leave genuinely undecided choices explicit rather than guessing. Combine with
-`ARCHITECTURE.md` for a small cohesive project, or use a focused name such as
-`ENGINEERING.md` for a distinct audience or depth — require coverage, not a filename or
-universal section list.
-
-Also include the representation convention: prefer a repository tree, ownership table,
-dependency graph, deployment topology, or pipeline diagram when clearer than paragraphs.
-Markdown with Mermaid is the portable default; PlantUML, Structurizr, or Draw.io is valid
-when the project maintains it. Link non-Markdown diagram sources from a discoverable Markdown
-foundation explaining their meaning. Never add a toolchain merely for compliance.
+Confirm where foundations live (root `docs/` by default), how they are named,
+and which scope owns each kind of truth. Use existing documents where available,
+otherwise the smallest useful set; names such as `SPEC.md` or `ARCHITECTURE.md`
+are examples, not a required bundle. Follow
+[foundation authoring](../../work/references/foundation-authoring.md) for document
+shape, engineering coverage and representation. A software bootstrap must settle
+or explicitly defer consequential engineering choices, not just product concepts.
+Use an existing diagram format when clearer; do not add tooling for compliance.
 
 ### Overbuilding calibration
 
@@ -105,45 +81,54 @@ without confirmation.
 
 ### Review boundaries and design-review preference
 
-Offer optional prose preferences under [review boundaries](../../work/references/review-boundaries.md).
-Recommend adaptive shared implementation reviews and independently optional design review,
-aligned once per run. A confirmed standing preference can supply that alignment.
-Declining leaves those defaults, not mandatory design review. No new fields or batch records.
+Offer prose preferences under [review boundaries](../../work/references/review-boundaries.md):
+adaptive shared implementation reviews and independently optional design review.
+Reuse standing alignment; declining creates no mandatory design review or new fields.
 
 ### Execution posture
 
-`execution_posture`: `inline`, `adaptive`, or `orchestrated` — see
-[execution-posture.md](../../work/references/execution-posture.md). Controls agent
-topology rather than autonomy or review rigor; explicit user direction overrides it, and
-design reasoning, aligned optional design review, and configured depth still apply under `inline`. Adaptive weighs
-each role's value against handoff cost — quick implementation and focused review often
-benefit from the current context — with no inline mandate. Recommend `adaptive` for most
-projects, `inline` when the project values one continuous main-agent context,
-`orchestrated` when dedicated role agents routinely earn their handoff cost. Declined or
-deferred stays absent and resolves to `adaptive`; concise prose may record a preferred
-mixed role assignment without another enum value.
+`execution_posture`: `inline-first`, `inline`, `adaptive`, or `orchestrated`.
+Recommend the unset `inline-first` default: inline delivery with one external
+standard implementation review. Use `inline` for no delegation, `adaptive` for
+agent-selected role splits, or `orchestrated` for dedicated roles. See
+[execution posture](../../work/references/execution-posture.md) for review placement,
+per-request role overrides and plan-only topology requests. Prose can record
+mixed-role exceptions; leave an accepted fallback absent rather than stamping it.
+
+Inline-first starts at **0.25.0**. When the loaded release is 0.25.0 or newer and
+the prior `workbench_version` is older, missing, or invalid, explain the changed
+fallback and offer to keep, replace, or rework adaptive/orchestrated choices.
+Their presence alone does not establish intent. Keep them until a change is
+confirmed. A prior stamp at or beyond 0.25.0 means this upgrade was considered;
+do not repeat the offer absent new direction. Successful setup records its loaded
+version as usual; unfinished alignment must not advance that stamp.
 
 ### Commit posture
 
 `commit_posture`: `adaptive`, `feature`, `checkpoint`, `batch`, or `preserve`. Inspect
 commit size and message patterns, merge policy, branch ownership, concurrent-agent
 practice, and explicit Git rules; recommend one when evidence warrants, leaving the
-adaptive default unrecorded otherwise. Legacy per-item commits are process
-machinery, not a project preference. Explicit user direction overrides the project
-posture, ledger transitions never require their own commits, and squashing is advisory
-and safe only for clearly owned history.
+adaptive default unrecorded otherwise. This shapes history above the
+[Git handoff floor](../../work/references/git-posture.md): writers still commit
+before review and handoff. Explicit user direction overrides the preferred shape;
+consolidation never erases required snapshots or postpones a worker's commit.
 
 ### Evidence depth
 
-`evidence_depth`: `lean`, `standard`, or `deep` —
-[verification.md](../../work/references/verification.md) owns its semantics.
-It controls the behavioral evidence a change must produce: verification breadth,
-mockup inspection, and pattern-harvest reach. It is separate from
-`review_weight` (passes and convergence), `simplification_posture` (reduction
-reach), and the research substrate's `verification_rigor` (semantic gates on
-research artifacts). Recommend `standard`; recommend another depth only with
-concrete consequence, operating, or audience evidence. Declined or deferred
-remains absent and resolves to `standard`.
+`evidence_depth`: `lean`, `standard`, or `deep`. Recommend `standard`; use another
+only with consequence, operating, or audience evidence. Missing means `standard`.
+[Verification](../../work/references/verification.md) owns its breadth and safeguards;
+review passes, simplification reach, and research rigor remain separate settings.
+
+### Project validator
+
+`validator_command`: an optional non-empty argument list, such as
+`[python3, scripts/validate-work.py]`. It replaces bundled ledger checks when the
+usual validator entry point runs. Missing means bundled checks; `--builtin`
+lets wrappers reuse them. See [validation policy](../../work/references/validation.md).
+Offer this when an existing project script or deliberate policy difference earns
+it; preserve confirmed overrides on refresh. Do not generate a custom validator
+by default or adopt one simply to suppress a failure.
 
 ### Release gates
 
@@ -172,20 +157,13 @@ confirmed names and prose; never add, drop, or rewrite a gate without confirmati
 ### Roadmap recognition
 
 Offer Workbench recognition of `docs/ROADMAP.md`, explaining the optional convention from
-[canonical-layout.md](canonical-layout.md#optional-roadmap-convention): a user-owned
+[foundation truth](../../work/references/foundation-truth.md#optional-roadmap): a user-owned
 planning document whose structure, metadata, and narrative stay flexible; a small, dense
 set of `.work/backlog/` links is the recommended standard when it fits, not a requirement;
 `.work/` remains the operational record. Never create or adopt it without explicit
 approval; record `roadmap: true` only when approved, and leave an existing roadmap
 unmanaged rather than migrated or rewritten — project size or an existing roadmap-like
 file never implies consent.
-
-### CLAUDE.md projection
-
-Proactively offer root `CLAUDE.md` as a relative symlink with target `AGENTS.md`,
-including when it is absent; treat a correct link as a no-op and reconcile divergent
-content before replacement. When `CLAUDE.md` exists after setup, maintain the Claude
-pattern symlink specified in [project-patterns.md](project-patterns.md).
 
 ## Conditional and standing choices
 

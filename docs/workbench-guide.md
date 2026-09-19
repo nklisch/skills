@@ -126,6 +126,9 @@ It removes project-scoped competing workflow plugins after their content
 is converted, and reports any user- or machine-scoped competing installs
 for you to uninstall.
 
+Workbench has no session hook. Its managed `AGENTS.md` block supplies project
+instructions when your host loads that file; no `CLAUDE.md` projection is proposed.
+
 ### Core defaults you set during adoption
 
 The proposed agreement includes four core defaults and explains their practical
@@ -140,9 +143,9 @@ decision. Setup records confirmed choices in `.work/CONVENTIONS.md`.
 | **`completed_items`** | `summarize`, `discard` | `summarize` keeps temporary stubs that make the next release easier to draft; `discard` relies on Git history instead |
 
 Optional execution posture, commit posture, evidence depth, release gates,
-roadmap recognition, and the Claude compatibility projection stay visible in the
-agreement. Opt in, decline, or defer; accepting a bundle approves only its
-explicit choices. Missing execution or commit posture means adaptive behavior;
+and roadmap recognition stay visible in the agreement. Opt in, decline, or defer;
+accepting a bundle approves only its explicit choices. Missing execution posture means inline-first; missing commit
+posture still means adaptive history boundaries;
 missing `evidence_depth` means `standard` verification, mockup inspection, and
 pattern-harvest breadth. No field needs a separate
 question merely to populate it. Destructive migration still follows its recovery
@@ -156,10 +159,10 @@ configuration, and project patterns, but asks no preference question without
 concrete evidence. Confirmed rules go to their owning tool, `AGENTS.md`,
 foundation, or canonical `.agents/skills/patterns/` catalog. Setup always
 creates a valid empty pattern index, but writes no pattern references without an
-evidence-backed maintenance outcome. It proactively offers root `CLAUDE.md` as
-a relative symlink to canonical `AGENTS.md`. When `CLAUDE.md` exists, it
-maintains `.claude/skills/patterns` as a relative symlink to the
-canonical `.agents` catalog after preserving any divergent content.
+evidence-backed maintenance outcome. A directory link, `.claude/skills` →
+`../.agents/skills`, exposes every project skill to Claude, independently of
+`CLAUDE.md`. Existing Claude-only skills and divergent content are preserved and
+reconciled before the old skills directory is replaced.
 
 **Expected result:** `.work/` exists with conventions recorded and stamped with
 the loaded Workbench version,
@@ -353,8 +356,8 @@ splitting growing work, and completion cleanup, follow the
    sweep.
 8. **Review at the configured weight.** It applies the effective
    `review_weight` and adjudicates findings rather than accepting them
-   blindly. Review uses a stable commit range or a clearly bounded working-tree
-   diff according to the effective commit posture.
+   blindly. The agent commits the candidate before review and identifies its
+   exact commit or base/head range; review does not target uncommitted work.
 9. **Shape history safely.** Commit boundaries represent meaningful changes,
    not ledger transitions. Feature squashing is advisory and happens only when
    the selected posture favors it and the history is exclusively owned and safe
@@ -367,6 +370,52 @@ splitting growing work, and completion cleanup, follow the
 
 The durable record is ordinary Markdown. You can read or edit `.work/`
 items directly; the agent keeps their structure valid.
+
+## Commit before handing back
+
+The default last repository-writing action is a commit. Agents finish applicable
+checks and continuation notes, commit their own changes, then hand off or report.
+This covers code, docs, research, and ledger cleanup—including loose edits that do
+not need a Workbench item. Reviewers inspect named commits rather than a working
+tree that might still be changing. Accepted fixes and final cleanup are committed
+before the agent hands back again.
+
+A read-only review creates no empty commit. A partial checkpoint preserves progress
+without claiming completion or passing checks. Explicit no-commit instructions,
+commit failures, and shared ownership conflicts must be disclosed, not bypassed.
+No agent stages somebody else's work merely to make the tree clean.
+
+`commit_posture` may suggest feature commits, checkpoints, batches, or safe
+squashing, but all retain this minimum. The
+[Git policy](../plugins/workbench/skills/work/references/git-posture.md) owns the
+exceptions and history-preservation rules. Local commits do not authorize publishing.
+
+## Choose inline work or orchestration
+
+With no execution preference, Workbench keeps design, implementation, corrections,
+and supporting discovery inline. Under standard review, one external-context
+review covers the coherent integrated result; fixes and verification return to
+the main agent. It does not automatically create designer and implementer roles
+because a task is large.
+
+To keep that default, leave `execution_posture` absent or set `inline-first`.
+Use `inline` for no delegation at all, `adaptive` to let the agent choose role
+splits, or `orchestrated` to prefer dedicated roles. Existing explicit settings
+remain effective during ordinary work. On upgrade, setup explains the new default
+and offers to keep, replace, or rework older adaptive/orchestrated choices; it does
+not silently migrate them or repeat a settled decision on each refresh. Review
+weight remains separate, so `none` does not acquire a reviewer. Ordinary convention
+prose can name a standing reviewer or an inline-review exception.
+
+For one request, say:
+
+- “Orchestrate this.”
+- “Keep design here; use two implementation lanes and one final reviewer.”
+- “Propose an execution topology before doing any work.”
+
+The last asks for a plan only. Role assignments override only the named roles,
+and model/resource alignment still applies before dispatch. A request override
+ends with the outcome; it does not silently change the repository's default.
 
 ## Steer model assignments
 
@@ -575,6 +624,54 @@ selected product-level outcomes enter the backlog or active work. Scanning
 does not implement fixes or start remediation merely because it found
 something.
 
+## Keep the work ledger current
+
+Agents maintain `.work/` as part of stateful work; you do not need to request
+housekeeping separately. They check encountered stale items against current code,
+verification, and Git history, close finished outcomes at integration checkpoints,
+and merge or trim redundant records while preserving unique requirements. Old
+items are not automatically unwanted, and cleanup does not authorize canceling
+unfinished scope or disrupting another agent's live assignment. Where your
+conventions define ownership, agents leave another owner's items to that owner
+unless a coordinated handoff authorizes action. Merged code alone does not satisfy
+required human acceptance.
+
+Splitting an item does not reduce its commitment. If three of four requirements
+are met, the required fourth keeps the owning outcome open; completed child
+stories can close independently. Closing a smaller delivered outcome and tracking
+the remainder separately needs an explicitly agreed scope change. A lack of
+current activity is not permission to move a requirement into the backlog.
+
+Each delivery leaves its result, verification pointers, and any pending acceptance
+in the item. This makes missed closure recoverable after a campaign is interrupted.
+Closing an item also repairs remaining ledger references, including backlog prose.
+
+Compact working state still preserves the work record. The
+[Git policy](../plugins/workbench/skills/work/references/git-posture.md#preserve-items-before-trimming)
+defines the history required before trimming and what to do when commits are
+prohibited; cleanup does not override your Git permissions.
+
+### Use your own ledger validator
+
+The bundled structural checks are the default, not the only policy a project can
+use. To select your own script, add an argument list to the frontmatter of
+`.work/CONVENTIONS.md`:
+
+```yaml
+validator_command: [python3, scripts/validate-work.py]
+```
+
+Keep running `python3 <workbench-plugin-root>/scripts/validate-workbench.py .`.
+It now runs your script from the project root, passes arguments literally, and
+preserves its output and exit status. A failure stays a failure; Workbench does
+not silently substitute bundled checks. Remove the field to restore the default.
+
+A wrapper can reuse the bundled checks by invoking the script path in
+`WORKBENCH_VALIDATOR` with `--builtin .`, then adding project checks. A replacement
+can implement its own policy without that call. See the
+[command contract and wrapper example](../plugins/workbench/skills/work/references/validation.md).
+This changes ledger validation only, not the project's other tests or review.
+
 ## Cut a release summary
 
 When you are ready to bind completed outcomes to a version:
@@ -669,10 +766,10 @@ indexing error.
 - **The agent keeps asking questions you consider obvious.** Your request
   implied a more collaborative posture than you want. Say "drive this to
   done autonomously" — the request wins over the repo default.
-- **The agent reviewed inline.** This is valid under inline or adaptive execution
-  when it deliberately inspected the result and verified behavior. It must not
-  claim independent review. Ask for a fresh-context reviewer when that challenge
-  matters; you do not need to change review weight to choose who reviews.
+- **The agent reviewed inline.** This is valid under strict inline, an adaptive
+  choice, a confirmed review exception, or a disclosed fallback when the default
+  external reviewer is unavailable. It must not claim independence. An explicitly
+  required unavailable reviewer needs your decision, not silent substitution.
 - **Scope grew past what you asked.** Material scope expansion should
   come back to you as a question or a parked item. Say "park everything
   outside the original request and show me what changed."

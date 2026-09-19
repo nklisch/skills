@@ -4,9 +4,6 @@ Choose capability for the work at hand. Model names and rankings age quickly, so
 this reference records durable tendencies, not a role-to-model table or an
 availability allowlist. Explicit user choices and project restrictions override
 every tendency here.
-[Model alignment](execution-posture.md#align-models-before-multi-subagent-execution)
-owns lineup confirmation and availability fallbacks. Consult applicable
-[repository model notes](model-notes.md) for qualified local evidence.
 
 ## Capability tendencies
 
