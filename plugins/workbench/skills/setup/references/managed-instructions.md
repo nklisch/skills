@@ -23,8 +23,13 @@ boundary. Ask about consequential requirements; do not invent requirements,
 expand scope, or treat repository aspirations as current work. Use features as
 the normal delivery unit; follow `work/references/lifecycle.md` for hierarchy and
 splitting. Keep independent items parallel; `blocked_by` needs a real dependency.
-Completion cleanup is mandatory: summarize or discard per conventions, remove
-completed active files and attachments; see the same lifecycle reference.
+Agents own `.work/` hygiene: proactively reconcile encountered stale records,
+close verified finished work in the same run, and trim duplicates or superseded
+items while preserving unmet requirements and live ownership. Routine cleanup
+needs no separate approval. Before completion or trimming, preserve any
+never-committed item in an atomic Git commit; follow the lifecycle reference and
+its Git preservation floor. Then summarize or discard per conventions and remove
+completed active files and attachments.
 
 Before any design or review, including a loose request, apply the current
 `## Overbuilding calibration` from `.work/CONVENTIONS.md`. Loose work gets the

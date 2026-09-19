@@ -84,6 +84,11 @@ the user's full boundary is satisfied. Use [review-boundaries.md](review-boundar
 to batch compatible deliveries for integrated review and correction. Assigned units
 return verified work without premature closure when review is deferred. Keep
 pending review in existing item prose and close units after shared acceptance.
+At each integration checkpoint, apply delivery evidence to the owning items and
+close every eligible unit immediately; do not accumulate closure for one final
+campaign step. The owner closes accepted parents when their final children and
+integrated acceptance are complete. A later session may recover missed closure
+from repository evidence without needing the original session to return.
 
 Before a context limit, interruption, or deliberate handoff, update affected
 active items with settled requirements, current repository evidence, delivered

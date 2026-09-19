@@ -1,6 +1,6 @@
 # Backlog Grooming
 
-Use this reference when the user asks to walk through, groom, organize, deduplicate, clarify, or prioritize `.work/backlog/`. Grooming is a conversational `work` activity, not a separate audit, release gate, report, or recurring ceremony.
+Use this reference when the user asks to walk through, groom, organize, deduplicate, clarify, or prioritize `.work/backlog/`. Grooming is a conversational `work` activity, not a separate audit, release gate, report, or recurring ceremony. Routine ledger hygiene also happens proactively during stateful work under [lifecycle](lifecycle.md); it does not require a grooming request.
 
 ## Align the conversation
 
@@ -40,12 +40,12 @@ Present a concise backlog map in conversation, then work through the useful deci
   disposition would leave an explicit roadmap link misleading; make the change
   only if the user confirms it.
 
-Priority, duplication, supersession, merging, deletion, and activation remain proposals until the user confirms them. Age may prompt a question, but Workbench invents no staleness threshold. Do not treat an old item as unwanted merely because it is old.
+Apply evidence-backed hygiene directly: reconcile already-delivered work, merge clear duplicates, and remove superseded records while preserving unique requirements and useful context. Priority changes, cancellation of still-wanted outcomes, ambiguous supersession, and activation of new implementation remain user decisions unless already authorized. Age prompts investigation, not avoidance or automatic deletion; Workbench invents no staleness threshold. Respect live ownership, not historical authorship alone.
 
 Workbench has no priority frontmatter or mandatory total ordering. Do not create either during grooming. Preserve user-confirmed rationale in an item's body only when it will help a future decision; otherwise keep conversational ranking in the conversation. Activation is the durable signal that the user chose work now.
 
 ## Apply selected changes
 
-Apply only confirmed dispositions. When merging, fold unique context and evidence into the retained item before removing the duplicate. Do not reconcile or rewrite `docs/ROADMAP.md` as a side effect of a merge, discard, or activation; update it only when the user confirmed that roadmap change. When activating, preserve settled outcome context and follow [lifecycle.md](lifecycle.md). Do not design or implement activated work inside grooming unless the user asks to continue into delivery.
+Apply routine hygiene and authorized consequential dispositions. Before completion, deletion, or destructive trimming, follow the [Git preservation floor](git-posture.md#preserve-items-before-trimming). When merging, fold unique context and evidence into the retained item before removing the duplicate. Do not reconcile or rewrite `docs/ROADMAP.md` as a side effect of a merge, discard, or activation; update it only when the user confirmed that roadmap change. When activating, preserve settled outcome context and follow [lifecycle.md](lifecycle.md). Do not design or implement activated work inside grooming unless the user asks to continue into delivery.
 
 Write no grooming report and create no backlog item about grooming the backlog. Validate Workbench after mutations. A useful walkthrough with no file changes is a valid result.

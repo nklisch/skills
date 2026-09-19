@@ -157,9 +157,21 @@ without adding passes beyond the review policy.
 
 ## Close and report
 
-Close only after applicable review, corrections, verification, and reconciliation
-are satisfied under [lifecycle](../work/references/lifecycle.md). Always delete the
-completed item's `.work/attachments/<item-id>/` directory, even when retaining a
+Before returning a delivery, update its item with the delivered result, actual
+verification and a commit/branch or bounded diff pointer, plus anything still
+pending and who owns the next checkpoint. Carry that update with the delivery
+commit when practical so integrated code carries more than a planning-only item.
+Use concise existing prose, not a new status, receipt, or report. If the assigned
+write surface excludes the item, return the exact update for the owner to apply
+at integration rather than silently omitting it.
+
+Close as soon as applicable review, corrections, verification, and reconciliation
+are satisfied under [lifecycle](../work/references/lifecycle.md), in the same run
+without another user prompt. Reconcile stale state rather than leaving verified
+finished work dangling. Before completion or trimming, preserve never-committed
+items under the
+[Git preservation floor](../work/references/git-posture.md#preserve-items-before-trimming).
+Always delete the completed item's `.work/attachments/<item-id>/` directory, even when retaining a
 completion stub. Reconcile durable truth and remaining references first, then
 refresh any existing knowledge index. For deferred shared review, preserve its
 owner and checkpoint in existing item prose and return without closure. Verified nested stories may close under their open owning feature.

@@ -498,8 +498,18 @@ Review normally targets a coherent commit range, but it may use a clearly
 bounded working-tree diff when committing would interfere with concurrent work.
 Feature-level squashing is a preference only under the matching posture and
 only for exclusively owned history where consolidation is simple and safe.
-Workbench never requires ledger-only commits or rewrites shared history to
-achieve an ideal shape.
+Routine transitions do not require ledger-only commits. The exception is
+preserving a never-committed item and its useful attachments before completion
+or trimming: first commit the record, then clean it up in a later change. Keep
+that snapshot recoverable rather than squashing away the only history. Workbench
+never rewrites shared history to achieve an ideal shape.
+
+Agents maintain `.work/` proactively: reconcile encountered stale records, close
+verified finished work at integration checkpoints, and merge or trim redundant
+items without a separate housekeeping request. Deliveries record their result and
+verification pointers so interrupted campaigns can resume without reconstructing
+every lane. Cleanup preserves unmet requirements and live ownership and repairs
+remaining ledger references, including backlog prose.
 
 ## Execution posture
 

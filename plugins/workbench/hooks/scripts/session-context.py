@@ -24,8 +24,13 @@ This repository is Workbench-owned (.work/CONVENTIONS.md).
 - Read .work/CONVENTIONS.md and foundation docs (root docs/,
   scope-owned <sub-project>/docs/) before structural decisions.
 - Use features by default; follow the work skill's references/lifecycle.md for
-  hierarchy and splitting. Completion cleanup is mandatory: summarize or discard
-  per conventions, removing completed active files and attachments.
+  hierarchy and splitting. Agents own .work hygiene: reconcile encountered stale
+  records, close verified finished work in the same run, and trim duplicates or
+  superseded items without separate approval. Preserve unmet requirements and
+  live ownership. Before completion or trimming, preserve never-committed items
+  in an atomic Git commit under the lifecycle reference's Git preservation floor.
+  Then summarize or discard per conventions, removing completed active files
+  and attachments.
 - Keep independent items parallel. Use blocked_by only when serial work
   materially reduces rework, ambiguity, or integration risk.
 - Designs and reviews, including loose requests, must apply the current

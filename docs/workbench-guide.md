@@ -592,6 +592,25 @@ selected product-level outcomes enter the backlog or active work. Scanning
 does not implement fixes or start remediation merely because it found
 something.
 
+## Keep the work ledger current
+
+Agents maintain `.work/` as part of stateful work; you do not need to request
+housekeeping separately. They check encountered stale items against current code,
+verification, and Git history, close finished outcomes at integration checkpoints,
+and merge or trim redundant records while preserving unique requirements. Old
+items are not automatically unwanted, and cleanup does not authorize canceling
+unfinished scope or disrupting another agent's live assignment.
+
+Each delivery leaves its result, verification pointers, and any pending acceptance
+in the item. This makes missed closure recoverable after a campaign is interrupted.
+Closing an item also repairs remaining ledger references, including backlog prose.
+
+Before an item that has never been committed is completed or trimmed, the agent
+commits its full record and useful attachments atomically. Cleanup follows in a
+later change, and consolidation preserves that history. Already-recorded items
+reuse Git history instead of requiring a commit for each status edit. If you have
+prohibited commits, the agent retains the record and explains the limitation.
+
 ## Cut a release summary
 
 When you are ready to bind completed outcomes to a version:

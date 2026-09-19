@@ -135,7 +135,11 @@ adopted repository; write-free `ideate` may explore before adoption, and
 - **The ledger stays small and legible.** An item records outcome, scope,
   acceptance, and useful continuation context. Empty optional metadata and unused
   sections stay absent. Features remain the normal delivery unit, epics group
-  features, and stories hold narrow slices without forcing wrappers.
+  features, and stories hold narrow slices without forcing wrappers. Agents
+  actively maintain this tracking space: resolve encountered stale state, close
+  accepted outcomes at integration checkpoints, and trim redundant records without
+  making the user administer the ledger. Unmet requirements and live ownership
+  remain protected; routine hygiene does not cancel wanted work.
 - **Planning preserves parallelism.** Ordering edges explain why one item should
   finish first. Independent work remains edge-free and available in parallel.
 - **Long runs retain an adaptive delivery topology.** An epic or broad feature
@@ -156,7 +160,9 @@ adopted repository; write-free `ideate` may explore before adoption, and
   changes rather than ledger transitions. An optional project posture may favor
   feature, checkpoint, batch, or preserved history; the adaptive default follows
   repository practice and concurrency. Squashing is advisory and never justifies
-  rewriting shared or published history.
+  rewriting shared or published history. Before completion or trimming, a
+  never-committed item receives an atomic snapshot so a compact ledger does not
+  erase the work record.
 - **One request may span several epics.** The orchestrating agent owns
   requirements, integration, verification, closure, and durable continuation
   across the full named boundary.

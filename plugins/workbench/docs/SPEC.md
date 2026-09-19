@@ -284,12 +284,32 @@ independently meaningful outcomes.
 
 ## Completion
 
+`.work/` is agent-maintained working state. During stateful work, agents resolve
+encountered stale records against repository evidence rather than avoiding them:
+close delivered outcomes, clear obsolete blockers, merge duplicates, and trim
+superseded records while retaining unmet requirements and useful context. Routine
+hygiene needs no separate approval; age alone proves neither completion nor
+abandonment. Cancellation of still-wanted scope and product priority changes
+remain consequential decisions, and live concurrent ownership is respected.
+
 Completed work never remains active. Implementation alone is not completion:
 features and standalone stories remain active while their chosen shared review
 is pending. The outcome owner closes them after that review, corrections,
 affected verification, and foundation reconciliation are satisfied. Nested
 stories may close after slice verification; their owning feature remains open
-for review. No additional status or batch object is needed.
+for review. Deliveries leave concise result and verification pointers in their
+items, including pending acceptance and its owner when applicable. Integration
+checkpoints close eligible units promptly, not only at the end of a campaign;
+resumed work can recover missed closure. No additional status or batch object is
+needed.
+
+Before completion or destructive trimming, never-committed items and their useful
+attachments receive an atomic Git snapshot. Existing committed history is reused;
+substantial new context is preserved before deletion. Consolidation must not erase
+the only snapshot. If commits are prohibited or unavailable, the record remains
+with the specific preservation limitation rather than being silently removed.
+The [Git preservation floor](../skills/work/references/git-posture.md#preserve-items-before-trimming)
+owns the mechanics.
 
 - `completed_items: summarize` replaces an active item with a temporary compact
   `.work/completed/<id>.md` outcome stub for the next release.
@@ -304,7 +324,8 @@ Refresh an existing knowledge index so it no longer points to deleted attachment
 
 Both postures preserve `.work/completed/.gitkeep` and
 `.work/releases/.gitkeep`. Before closure, active children are completed and
-relationships are reconciled. `release` writes one version summary from stubs or
+relationships and remaining ledger prose/links are reconciled, including backlog
+claims about a retired current owner. `release` writes one version summary from stubs or
 ordinary Git history, then removes every completed outcome file after successful
 checks. It does not tag, publish, or deploy.
 
@@ -666,8 +687,10 @@ feature commit when safe; `checkpoint` retains meaningful verified slices;
 retains natural history; and `adaptive` follows repository practice, ownership,
 change shape, and concurrency. Before review, identify a stable commit range or
 a clearly bounded working-tree diff. Squashing is advisory and never required
-for acceptance. Workbench does not require ledger-only commits or rewrite
-shared, published, or concurrently owned history to achieve an ideal shape.
+for acceptance. Routine transitions do not require ledger-only commits; the
+pre-trim preservation floor is the exception when no meaningful implementation
+commit contains the item. Workbench does not rewrite shared, published, or
+concurrently owned history to achieve an ideal shape.
 
 Verification reuses existing tests, fixtures, commands, environments,
 observability, and benchmark machinery first. Small, cheap, contained evidence

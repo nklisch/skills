@@ -135,10 +135,30 @@ and next work from `.work/`, not from roadmap metadata or prose.
 
 ## Completion sweep
 
-At entry or resume, inspect the selected boundary and its relationships for
-interrupted work or stale completion claims. At exit, reconcile affected items.
-Do not sweep unrelated active work as a delivery ceremony. Verify repository
-evidence before closing; a stale label does not establish completion.
+`.work/` is the agents' working ledger, not a user-maintained queue. During
+stateful work, proactively reconcile it at entry/resume, after verification or
+integration, and before reporting completion. Inspect the selected boundary and
+its relationships; also resolve clearly stale records encountered along the way
+rather than avoiding them because they predate the session. Do not turn this into
+a mandatory repository-wide audit or implement unrelated unfinished work.
+
+Use current code, checks, Git history, and item evidence to determine disposition:
+close delivered outcomes once applicable acceptance is satisfied; remove cleared
+blockers; merge duplicates while preserving unique requirements; trim superseded
+records after carrying forward still-needed context. Routine evidence-backed
+ledger maintenance needs no separate user approval, even under collaborative
+posture. Record a brief disposition and evidence in the item before removing it,
+and report meaningful cleanup in chat. Do not call merged or superseded work
+“delivered.” Follow [Git posture](git-posture.md#preserve-items-before-trimming)
+before completion, deletion, or destructive trimming.
+
+Age, an unfamiliar author, or an old status is a reason to investigate, not to
+skip the record or assume it is unwanted. If work remains, narrow the item to the
+actual remaining scope and concrete next action or blocker. Do not erase unmet
+requirements, change product priorities, or cancel still-wanted work as hygiene;
+ask only when that consequential decision is unresolved. Coordinate before
+changing another agent's currently owned work; old authorship alone is not a
+live claim.
 
 Features and standalone stories with review deferred to a shared checkpoint remain
 active. Preserve pending scope, owner, and next checkpoint in existing item prose
@@ -146,7 +166,9 @@ under [review-boundaries.md](review-boundaries.md). Pending review alone does no
 create a blocked status or dependency. Verified nested stories may close under an
 open owning feature, which retains integrated acceptance.
 
-Close atomically:
+Once applicable acceptance is satisfied, close in the same run without waiting
+for another user prompt, a release, or unrelated work. Preserve the pre-trim Git
+snapshot first, then reconcile the ledger together:
 
 - `completed_items: summarize` replaces the active item with one compact
   `.work/completed/<id>.md` stub containing identity, completion date, and the
@@ -165,14 +187,14 @@ At integration, handoff, and run completion, the outcome owner also prunes exist
 observations and obsolete pointers, and delete an empty scratch file. Notes survive
 an item only when still useful; they are not completion artifacts or required output.
 
-Before closure, remove the completed id from each active `blocked_by` and
-`related_to` list. Close the final feature children and their accepted epic in
-the same sweep;
-retain any still-needed integration work in an owning feature until then. Do not
-close a parent while unfinished children remain. Run the
-Workbench validator
-after structural ledger changes. Never leave completed items active. Follow the
-effective [Git posture](git-posture.md). Ledger creation, state changes, review
-metadata, and closure do not require standalone commits; let those edits travel
-with the nearest meaningful code or integration boundary. Preserve safe history
-when shared or overlapping work makes clean isolation impractical.
+Before closure, search the remaining ledger, including backlog prose and links,
+for the retiring id and item/attachment paths. Remove completed dependency and
+relationship edges; replace obsolete “current owner” claims and links with the
+surviving owner, durable truth, or a useful Git pointer. Preserve still-needed
+requirements rather than merely deleting their references. Do not rewrite a
+user-owned roadmap without permission; report any reference needing that decision.
+Close final children and their accepted parent in the same sweep; retain needed
+integration work in an owning feature until then. Never close a parent with
+unfinished children. Run the Workbench validator after structural changes.
+Follow [Git posture](git-posture.md): preserve the pre-trim snapshot without
+letting preferred commit shape leave verified work dangling or erase its record.

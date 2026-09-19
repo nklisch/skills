@@ -172,7 +172,8 @@ handoff, and completion. Notes inform proposals; they never grant model approval
 Respect aligned resources and explicit preferences. Routine assignments within
 that agreement do not require repeated permission. New consequential commitments
 still do. Use [Git posture](references/git-posture.md) for meaningful commit
-boundaries, never ledger-transition commits or cosmetic shared-history rewrites.
+boundaries and the required pre-trim item snapshot, never cosmetic shared-history
+rewrites.
 
 ## Finish the accepted boundary
 
@@ -189,8 +190,13 @@ candidates arise. Optional learning or extraction requires a selected outcome an
 never delays closure. Orchestrated deliverers report shared pattern implications
 instead of editing the shared catalog.
 
-Close completed items immediately under the configured retention posture and
-validate structural ledger changes. Continue until the full requested boundary is
+Treat `.work/` as agent-maintained tracking space. Proactively reconcile stale
+items encountered during stateful work, preserve unique remaining scope, and
+close verified finished outcomes in the same run without another user prompt.
+Routine cleanup is authorized; cancellation of unmet requirements is not.
+Preserve never-committed items before completion or trimming under
+[Git posture](references/git-posture.md#preserve-items-before-trimming), apply
+configured retention, and validate structural ledger changes. Continue until the full requested boundary is
 complete or a concrete external blocker prevents meaningful progress. Before
 interruption, preserve settled decisions, useful evidence, next actions, and
 blockers in the affected item. Reconcile them against the repository on resume.
