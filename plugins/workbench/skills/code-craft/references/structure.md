@@ -8,9 +8,11 @@ landed. Both phases use the same calibration and the same questions so design
 and review never grade against different rulers.
 
 This lens is a complement to
-[simplification.md](simplification.md), not a replacement: the posture
+[simplification.md](../../work/references/simplification.md), not a replacement: the posture
 controls how much reduction is pursued, this lens controls how structural
-quality is judged. Neither expands the authorized boundary.
+quality is judged. Neither expands the authorized boundary. Where a question
+below describes a named [pathology](pathologies.md), cite that name in the
+finding.
 
 ## Contents
 
@@ -63,7 +65,8 @@ territory belongs to tooling.
 - Does a long `if`/`else` or `switch` chain encode a dispatch the language
   expresses natively — pattern matching, a lookup table, polymorphism, or a
   discriminated union? The finding is the missed dispatch, not the chain's
-  length.
+  length. Meaning carried by tuples or sentinels is
+  [disguised enums](pathologies.md#disguised-enums).
 - Is nesting guarding special cases that guard clauses or early returns would
   flatten? Calibrate first: some codebases deliberately prefer single-exit
   structure.
@@ -77,7 +80,7 @@ territory belongs to tooling.
 - Did a breakout land on a real seam — a stable interface, independent
   testability, a distinct owner concept — or did it only move code? The
   mirror question matters too: is a large unit actually several cohesive
-  units forced together?
+  units forced together ([god objects](pathologies.md#god-objects))?
 - Does every new abstraction earn its keep with a call site or extension
   point that exists today? Eliminate, inline, and merge before extracting;
   an abstraction that only relocates complexity is churn.
@@ -86,7 +89,9 @@ territory belongs to tooling.
 
 - Is the duplication conceptual — the same rule expressed in two places, so a
   change must find both — or incidental, two things that merely look alike?
-  Only conceptual duplication is a finding.
+  Only conceptual duplication is a finding. Copies whose divergence cannot be
+  judged from the text are [near-copies](pathologies.md#near-copies); copies of
+  an existing helper are a [half-adopted helper](pathologies.md#half-adopted-helper).
 - Does each layer of indirection (wrapper, registry, factory, pass-through)
   add an extension point or decoupling the code uses today? Indirection kept
   "for later" is a finding; the simplification posture already authorizes
@@ -97,21 +102,35 @@ territory belongs to tooling.
 - Dead code, stale comments that contradict the code, names that misdescribe
   their contents, and leftover scaffolding are findings when the delivery
   introduced or exposed them. The hygiene floor in
-  [simplification.md](simplification.md) governs how far to pursue them;
+  [simplification.md](../../work/references/simplification.md) governs how far to pursue them;
   do not widen the boundary to hunt.
 
 ## Idiom table
 
-Constructs that look complex but are idiomatic. Do not flag the left column
-merely for its form or apparent complexity — an idiomatic construct can still
-participate in a real ownership, correctness, or decomposition problem, which
-the diagnostic questions above will catch. Do consider the right column's
-question.
+Some shapes look dense in any language and are fine:
+
+- dispatch tables and interpreter arms whose cases are each self-contained;
+- guard-clause checklists: verbose but scannable, each check independent;
+- declarative tables and explicit contracts, such as a spelled-out byte order;
+- trivial typed wrappers kept explicit because generating them would hurt
+  discoverability;
+- vendored ports with recorded provenance, where the density is intentional;
+- straight-line pipelines with honest comments;
+- a genuinely hard algorithm, where the difficulty is the problem rather than
+  ceremony. Pin its behavior with tests before moving anything; exact
+  comparisons in it are often load-bearing.
+
+Add an entry when a review wrongly flags a shape. The table below lists
+language-specific constructs that look complex but are idiomatic. Do not flag
+the left column merely for its form or apparent complexity — an idiomatic
+construct can still participate in a real ownership, correctness, or
+decomposition problem, which the diagnostic questions above will catch. Do
+consider the right column's question.
 
 | Language | Looks complex, is fine | Worth a question |
 |---|---|---|
 | Rust | Long `match` — it is the dispatch mechanism; exhaustive arms are a feature | A chain of `if let`/`else` re-testing one value that a `match` would make exhaustive |
-| Go | `if err != nil` ladders — the language's explicit error style | Repetitive ladder bodies that a small helper or early wrap would unify |
+| Go | `if err != nil` ladders — the language's explicit error style | Repetitive ladder bodies that a small helper or early wrap would unify ([error ladders](pathologies.md#error-ladders)) |
 | Python | Dispatch dicts of functions; `*args`-forwarding decorators | An `if`/`elif` ladder on a string or enum that a dict dispatch collapses |
 | TypeScript / JavaScript | Discriminated-union `switch` with a `never` exhaustiveness check | `instanceof` or boolean-flag chains that a union type would make total |
 | Shell | Short `case` dispatch on arguments; `set -e`-style preamble boilerplate | Long positional-argument parsing by hand when the codebase has a parser pattern |

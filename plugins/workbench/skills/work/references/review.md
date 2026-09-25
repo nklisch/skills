@@ -178,10 +178,13 @@ privacy, accessibility, compatibility, data, and operational lenses only where
 scope or evidence warrants them. Check obvious algorithmic overwork and plausible
 performance regressions without inventing a profiling exercise.
 
-At `standard` and above, refactor/cleanup or decomposition decisions also use
-[structure.md](structure.md)'s calibration and diagnostic questions. Judge against
-repository conventions and language idioms, not taste: a missed simplification
-may be material inside the boundary; unrelated improvements stay non-blocking.
+Name readability findings with [code craft](../../code-craft/SKILL.md#review)'s
+pathologies and the repository's own catalog rather than "too complex". At
+`standard` and above, refactor/cleanup or decomposition decisions also use the
+[structure lens](../../code-craft/references/structure.md)'s calibration and
+diagnostic questions. Judge against repository conventions and language idioms,
+not taste: a missed simplification may be material inside the boundary;
+unrelated improvements stay non-blocking.
 
 ## Keep review advisory
 

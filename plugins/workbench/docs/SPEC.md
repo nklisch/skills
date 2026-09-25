@@ -502,7 +502,17 @@ decomposition, and hygiene against the repository's own conventions and
 language idioms rather than absolute thresholds, and its findings follow the
 same scope disposition: material inside the authorized boundary, parked
 outside it. See the
-[structural-hygiene reference](../skills/work/references/structure.md).
+[structural-hygiene reference](../skills/code-craft/references/structure.md).
+
+The `code-craft` skill owns general code quality in an adopted repository:
+finding the repository's existing model before inventing one, designing an
+abstraction with its first consumer, and a shared vocabulary of named
+[readability pathologies](../skills/code-craft/references/pathologies.md) that
+reviews cite instead of "too complex". The structural-hygiene lens is part of
+that skill. Each repository records where pathologies occur, and where the good
+model lives, in `.agents/skills/patterns/references/pathologies.md`; the skill
+owns that file's entry shape and limits, and project pattern maintenance owns
+when it is written.
 
 The effective `simplification_posture` separately resolves from explicit user
 direction, `.work/CONVENTIONS.md`, then `balanced`. It governs design,

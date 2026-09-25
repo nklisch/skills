@@ -756,6 +756,7 @@ without explicit approval.
 | [`deliver`](skills/deliver/SKILL.md) | Implementing, verifying, reviewing, and closing one named implementation-ready feature or story. |
 | [`work`](skills/work/SKILL.md) | Scoping and owning a clear outcome, multi-unit boundary, epic, or group of epics. |
 | [`park`](skills/park/SKILL.md) | Preserving a useful finding without expanding current work. |
+| [`code-craft`](skills/code-craft/SKILL.md) | Keeping code readable while designing, implementing, and reviewing: reusing the repository's existing models, naming readability pathologies, and judging decomposition. |
 | [`scan`](skills/scan/SKILL.md) | Investigating project concerns, verifying and clustering opportunities, and asking which findings should survive as handoffs. |
 | [`release`](skills/release/SKILL.md) | Summarizing completed outcomes, optionally applying project-defined scan lenses as release gates, then cleaning retained completion files. It does not tag, publish, or deploy. |
 | [`research`](skills/research/SKILL.md) | Investigating an external, unstable, unfamiliar, contested, or decision-relevant question. |

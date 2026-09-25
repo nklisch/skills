@@ -45,8 +45,8 @@ is proposed; risk overlays do not make that machinery automatically necessary.
 - Read confirmed coding rules, structural foundations, and relevant
   `.agents/skills/patterns/` references as project-specific evidence. They
   extend this lens but do not make every deviation worth changing.
-- Shape the target decomposition with
-  [../../work/references/structure.md](../../work/references/structure.md):
+- Shape the target decomposition with the
+  [structure lens](../../code-craft/references/structure.md) from code craft:
   apply its calibration protocol and diagnostic questions so the intended
   structure is judged against codebase norms and language idioms, and record
   the chosen decomposition and its payoff for the review pass.
