@@ -12,21 +12,24 @@ name: patterns
 description: >
   Project-specific recurring implementation patterns. Use when implementing,
   designing, reviewing, refactoring, or extracting patterns in this repository;
-  the index starts empty and grows only from evidence-backed maintenance work.
+  the index starts empty and grows only from evidence-backed catalog passes.
 ---
 
 # Project Patterns
 
-No project patterns have been recorded yet. Add focused references only after a
-pattern-extraction maintenance outcome confirms recurrence, concrete consumers,
-and material maintenance value.
+No project patterns have been recorded yet. Add focused references only when a
+catalog pass at an integration checkpoint confirms recurrence, concrete
+consumers, and material maintenance value.
 ```
 
 Focused Markdown references own confirmed pattern details. The index names and
 links them without duplicating their rule bodies. Each reference records the
 recurring problem, preferred implementation shape, why it helps in this
 repository, real consumers or examples, and exceptions. Promotion follows the
-criteria in [maintenance.md](../../work/references/maintenance.md).
+criteria in [maintenance.md](../../work/references/maintenance.md). The
+repository's pathology examples live in a `pathologies.md` reference, in the
+shape that [code craft](../../code-craft/SKILL.md#the-repository-catalog)
+defines, and the index links it once it exists.
 
 Keep authority separate:
 
@@ -37,8 +40,8 @@ Keep authority separate:
 
 Setup structurally and semantically reconciles an existing catalog but does not
 audit every pattern against code. Concrete delivery repairs stale existing
-patterns. New pattern references enter through an explicit pattern-extraction
-maintenance feature, not ordinary delivery.
+patterns. New entries enter through the catalog pass at an integration
+checkpoint or an explicit extraction request, not ordinary delivery.
 
 ## Claude skill discovery
 

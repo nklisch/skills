@@ -260,17 +260,18 @@ for details.
 ### Pattern maintenance boundaries
 
 Setup creates an empty project-pattern index so future agents share one
-canonical destination. Ordinary feature delivery may repair a documented
-pattern that became stale, but it does not add new patterns merely because one
-implementation looks reusable.
+canonical destination. Ordinary feature delivery may repair a documented pattern
+or pathology example that became stale, but it does not add new entries merely
+because one implementation looks reusable.
 
-During a multi-feature or multi-epic run, deliverers return useful candidate
-evidence to the outcome owner. Required cleanup keeps the agreed outcome
-correct and coherent. Recurrence may justify recommending pattern extraction,
-but it does not authorize more work. Optional extraction requires your selected
-outcome or an accepted scope that already includes it. An unanswered offer does
-not delay closure. Independent follow-ups stay independent. You can also request
-pattern detection or extraction directly as a bounded maintenance feature.
+Deliverers return useful candidate evidence to the outcome owner, who records
+what recurs at integration checkpoints and lists those catalog changes in the
+completion reply so you can revert any of them. Required cleanup keeps the
+agreed outcome correct and coherent; optional cleanup beyond the boundary still
+needs your selected outcome and never delays closure. You can also request
+pattern detection or extraction directly. The
+[pattern lifecycle](../plugins/workbench/skills/work/references/maintenance.md#pattern-lifecycle)
+holds the exact rules.
 
 A few phrasing habits pay off:
 

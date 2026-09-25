@@ -1,0 +1,6 @@
+interface:
+  display_name: "Code Craft"
+  short_description: "Keep Workbench code readable and ceremony-free"
+  default_prompt: "Use $code-craft to shape or review this change for readability and named pathologies."
+policy:
+  allow_implicit_invocation: true

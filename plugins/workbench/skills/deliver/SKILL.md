@@ -49,7 +49,7 @@ actual gap. A local technical discovery does not make the whole item unready.
   does not imply assignment.
 
 Use [autonomy](../work/references/autonomy.md),
-[execution posture](../work/references/execution-posture.md),
+[sub-agents](../work/references/sub-agents.md),
 [simplification](../work/references/simplification.md), and
 [Git posture](../work/references/git-posture.md) as needed. Reuse effective choices
 already resolved. Delivery stays in the current context under the inline-first
@@ -66,8 +66,8 @@ fits the available, aligned lineup. Keep small or mechanical corrections with it
 give accepted findings as a clear numbered list with evidence, required behavior,
 and affected verification. Do not turn every item into a three-agent pipeline or
 force a weaker model onto unresolved design work. A user's explicit first-implementer
-choice wins over this default. [Model tendencies](../work/references/model-tendencies.md)
-informs capability fit, not the delivery procedure.
+choice wins over this default. The [model tendencies](../work/references/sub-agents.md#choose-models)
+inform capability fit, not the delivery procedure.
 
 Recommend stronger reasoning when diagnosis, missed invariants, cross-cutting
 coupling, or weak decomposition makes another mechanical correction list
@@ -96,7 +96,8 @@ implementer does not itself authorize re-review.
 ## Implement and adjust
 
 Work inside the accepted outcome and owned surface. Apply project calibration,
-principles, and confirmed patterns without turning them into new requirements.
+principles, confirmed patterns, and [code craft](../code-craft/SKILL.md) without
+turning them into new requirements.
 Mechanical rules belong in tool configuration, operating rules in `AGENTS.md`,
 engineering truth in foundations, and recurring shapes in the pattern catalog.
 
@@ -114,10 +115,10 @@ Follow the run's aligned optional design-review approach under
 [review boundaries](../work/references/review-boundaries.md). Revisit only affected
 decisions when changed evidence warrants it. Keep independent authorized work moving.
 
-If delegation earns its cost, use
-[role handoffs](../work/references/role-handoffs.md) with an exact write surface,
-checks, integration contract, and return evidence. Follow model alignment for
-multiple sub-agents. Do not delegate merely because implementation is a named role.
+If delegation earns its cost, [hand over](../work/references/sub-agents.md#hand-over)
+an exact write surface, checks, integration contract, and return evidence. Agree
+models with the user before using several sub-agents. Do not delegate merely
+because implementation is a named role.
 
 ## Verify, reconcile, and review
 
@@ -134,9 +135,10 @@ scope or narrow it to unresolved work before review. Do not leave duplicate
 structural authority.
 
 Use [maintenance](../work/references/maintenance.md) only when cleanup or pattern
-implications arise. Repair stale patterns on an owned catalog surface. Only an
-accepted extraction outcome adds new patterns; optional proposals never block
-this item's closure.
+implications arise. Repair stale entries on an owned catalog surface and report
+new pattern or pathology candidates to the outcome owner, who adds new entries
+at an integration checkpoint. Optional proposals never block this item's
+closure.
 
 Commit the candidate and identify its commit or base/head range for review under
 [Git posture](../work/references/git-posture.md#stable-review-targets):
@@ -150,8 +152,10 @@ Commit the candidate and identify its commit or base/head range for review under
   Do not duplicate that pass.
 
 Scale review effort and reporting to consequence and uncertainty. Use
-[execution posture](../work/references/execution-posture.md) for placement;
+[sub-agents](../work/references/sub-agents.md#when-to-use-another-agent) for placement;
 a short review is not an exception to the default external implementation pass.
+If spawning is unavailable or not allowed, review inline and say it was not
+independent.
 Verify and adjudicate findings; correct, rerun affected checks, and self-review
 without adding passes beyond the review policy.
 

@@ -30,9 +30,9 @@ exploration. Treat the documentation layout, naming, contract-truth ownership,
 and principles already confirmed during setup as settled inputs; do not ask for
 them again or invent a parallel foundation format.
 
-For any task requiring multiple sub-agents, follow
-[pre-execution model alignment](../work/references/execution-posture.md#align-models-before-multi-subagent-execution)
-before dispatch, including exploratory or source-gathering assignments.
+Agree models with the user before using several sub-agents, including
+exploratory or source-gathering ones
+([sub-agents](../work/references/sub-agents.md#choose-models)).
 
 ## Explore
 

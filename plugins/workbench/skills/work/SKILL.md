@@ -73,7 +73,7 @@ review once for the run and choose adaptive implementation review checkpoints.
 Several features or deliveries may share one review-and-fix pass while each unit
 receives prompt verification. Keep pending review visible until closure.
 
-Use [execution posture](references/execution-posture.md) when choosing contexts.
+Choose contexts with [sub-agents](references/sub-agents.md#when-to-use-another-agent).
 Unstated execution preference means inline-first, not automatic orchestration.
 Respect explicit role assignments and plan-only topology requests; task size
 alone does not authorize delegation.
@@ -150,7 +150,7 @@ remove code marked for discard, and treat revision or adoption as a next outcome
 ## Coordinate only what needs coordination
 
 For multi-unit work, read [execution](references/execution.md) and
-[role handoffs](references/role-handoffs.md). The outcome owner retains integration,
+[sub-agents](references/sub-agents.md). The outcome owner retains integration,
 acceptance, shared surfaces, and parent closure even when every unit runs inline.
 Delegate only independent work with clear ownership and an integration contract.
 Inspect returned changes and evidence; a worker's completion claim is not acceptance.
@@ -160,11 +160,10 @@ integration complexity needs durable coordination. Prefer an existing owning ite
 rather than a wrapper. Update the approach when facts change, and keep unrelated
 ready work moving when one unit stalls.
 
-For multiple sub-agents, follow
-[model alignment](references/execution-posture.md#align-models-before-multi-subagent-execution).
+Agree models with the user before using several sub-agents, and sub-agents never
+spawn sub-agents ([sub-agents](references/sub-agents.md)).
 Follow [delivery's assignment and follow-up guidance](../deliver/SKILL.md#choose-implementation-and-follow-up),
-using [model tendencies](references/model-tendencies.md) for capability fit and
-[model notes](references/model-notes.md) for qualified local evidence. The outcome
+using [model notes](references/model-notes.md) for qualified local evidence. The outcome
 owner observes meaningful returns and prunes useful repository notes at integration,
 handoff, and completion. Notes inform proposals; they never grant model approval.
 Respect aligned resources and explicit preferences. Routine assignments within
@@ -181,10 +180,13 @@ Review wider integration only for substantive behavior not already covered.
 Returning to the owner does not create another review budget.
 
 Required cohesive cleanup remains in scope. Follow
-[maintenance](references/maintenance.md) when stale patterns or credible extraction
-candidates arise. Optional learning or extraction requires a selected outcome and
-never delays closure. Orchestrated deliverers report shared pattern implications
-instead of editing the shared catalog.
+[maintenance](references/maintenance.md) when stale entries or pattern candidates
+arise. At an integration checkpoint, typically an epic or multi-feature review,
+run its catalog pass when candidates meet the bar, and list the catalog changes
+in the completion reply. Optional
+cleanup beyond the boundary requires a selected outcome and never delays closure.
+Orchestrated deliverers report shared pattern implications instead of editing
+the shared catalog.
 
 Own ledger hygiene and close eligible items at each integration checkpoint under
 the [completion sweep](references/lifecycle.md#completion-sweep), including stale
@@ -202,10 +204,10 @@ the user requests them. Keep questions, proposals, and progress out of foundatio
 
 Load these only when relevant, reusing unchanged guidance already in context:
 
-- runner choice → [execution posture](references/execution-posture.md);
-- model and effort proposals → [model tendencies](references/model-tendencies.md);
+- runner choice, model proposals, and handoffs → [sub-agents](references/sub-agents.md);
 - any design, implementation, or Workbench review →
   [simplification](references/simplification.md), including project calibration;
+- code shape, readability, or decomposition → [code craft](../code-craft/SKILL.md);
 - verification and review → [verification](references/verification.md) and
   [review](references/review.md);
 - durable project truth → [foundation truth](references/foundation-truth.md);

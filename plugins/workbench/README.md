@@ -456,23 +456,22 @@ plausibly affected.
 ## Project patterns during delivery
 
 Setup always creates the portable `.agents/skills/patterns/SKILL.md` index. It
-starts as an honest empty stub. Focused references enter only through an
-explicit pattern-extraction maintenance feature; ordinary delivery does not
-promote patterns ad hoc. This is neither a style checklist nor a periodic gate.
+starts as an honest empty stub and grows from evidence, not as a style checklist
+or a periodic gate. It holds focused pattern references and, once the first
+example is recorded, the repository's pathology catalog in the shape the
+`code-craft` skill defines.
 
-During a user-authorized multi-unit `work` boundary, deliverers report candidate
-evidence and the active parent accumulates it. At an explicit integration or
-planning boundary, `work` adjudicates the evidence using the
-[maintenance guidance](skills/work/references/maintenance.md). No item count or
-schedule triggers extraction. Recurrence can justify a recommendation, not
-permission to add work. Required cleanup keeps the accepted outcome coherent.
-Optional extraction becomes a feature only when you select it or the accepted
-scope already includes it. An unanswered offer does not delay closure. Selected
-follow-ups stay independent unless an actual dependency exists. A direct request
-to detect or extract patterns creates the same bounded maintenance feature.
+Deliverers repair entries their work made false and report new candidates. At
+an integration checkpoint, typically an epic or multi-feature review, the outcome
+owner records what recurs and lists every catalog change in the completion reply
+so you can revert any of it. The
+[pattern lifecycle](skills/work/references/maintenance.md#pattern-lifecycle)
+holds the exact rules.
 
-Ordinary delivery still repairs an existing pattern made stale by current work.
-Nested stories and orchestrated units never write the shared catalog. Mechanical
+Required cleanup keeps the accepted outcome coherent. Optional cleanup beyond
+the boundary becomes a feature only when you select it or the accepted scope
+already includes it, and an unanswered offer does not delay closure. Nested
+stories and orchestrated units never write the shared catalog. Mechanical
 formatting remains in tools, concise coding rules in `AGENTS.md`, and
 architecture and principles in foundation documents.
 
@@ -535,8 +534,8 @@ only those roles. “Propose an execution topology” asks for a plan, not immed
 dispatch. Size alone never changes the posture. Leave the field absent to use the
 default; existing explicit settings and confirmed role exceptions remain effective.
 
-See [execution posture](skills/work/references/execution-posture.md) for authority,
-model alignment, and unavailable-reviewer fallbacks. Supporting discovery, scans,
+See [sub-agents](skills/work/references/sub-agents.md) for authority, model
+agreement, handoffs, and unavailable or restricted reviewers. Supporting discovery, scans,
 and research also honor dispatch preferences. Review weight and specialist
 verification gates remain independent; inline-first adds no pass to `none` or a
 `light` decision that no review is warranted.
@@ -756,6 +755,7 @@ without explicit approval.
 | [`deliver`](skills/deliver/SKILL.md) | Implementing, verifying, reviewing, and closing one named implementation-ready feature or story. |
 | [`work`](skills/work/SKILL.md) | Scoping and owning a clear outcome, multi-unit boundary, epic, or group of epics. |
 | [`park`](skills/park/SKILL.md) | Preserving a useful finding without expanding current work. |
+| [`code-craft`](skills/code-craft/SKILL.md) | Keeping code readable while designing, implementing, and reviewing: reusing the repository's existing models, naming readability pathologies, and judging decomposition. |
 | [`scan`](skills/scan/SKILL.md) | Investigating project concerns, verifying and clustering opportunities, and asking which findings should survive as handoffs. |
 | [`release`](skills/release/SKILL.md) | Summarizing completed outcomes, optionally applying project-defined scan lenses as release gates, then cleaning retained completion files. It does not tag, publish, or deploy. |
 | [`research`](skills/research/SKILL.md) | Investigating an external, unstable, unfamiliar, contested, or decision-relevant question. |

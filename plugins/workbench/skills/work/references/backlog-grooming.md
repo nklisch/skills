@@ -24,7 +24,7 @@ For a large backlog, use a small number of cheap read-only sub-agents when avail
 - useful thematic groups;
 - questions the user must answer.
 
-Every semantic claim cites the relevant item text. Sub-agents propose only; they do not edit files, assign priority, or activate work. The orchestrator verifies material claims and checks across slices because duplicate or related items may fall into different groups. Avoid one agent per item and disclose reduced breadth when the available context or tooling cannot cover the requested backlog credibly.
+Every semantic claim cites the relevant item text. Helpers only propose; they do not assign priority or activate work ([sub-agents](sub-agents.md#what-each-agent-may-write)). The orchestrator verifies material claims and checks across slices because duplicate or related items may fall into different groups. Avoid one agent per item and disclose reduced breadth when the available context or tooling cannot cover the requested backlog credibly.
 
 ## Walk through and prioritize
 

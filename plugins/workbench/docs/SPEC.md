@@ -327,6 +327,17 @@ shared lens follows the choice through formal design, implementation,
 behavioral verification, and review. It seeks the smallest durable protection;
 it does not waive accepted guarantees or evidence.
 
+When a proposal adds or materially changes a component that owns changing
+state, publishes results others read, records history, recovers from failure,
+keeps unfinished work alive across calls, or spans layers, hosts, or providers,
+design raises a machinery forecast with the user before the design is settled,
+without waiting to be asked. It starts from one
+user action and the failure to prevent, asks what new state the proposal adds,
+why the existing owner cannot handle it, and what changes for the user, contrasts
+the simplest working chain with the proposed one, and ends with a recommendation
+and a question. Routine types and local choices inside an accepted boundary stay
+autonomous.
+
 The work item is the contract between design, review, and implementation. The
 assigned designer authors and revises its design directly, including any linked
 specification. The outcome owner adjudicates scope, readiness, and acceptance.
@@ -413,8 +424,8 @@ confirmed agreement. The prior `workbench_version` identifies this upgrade:
 0.25.0 introduces inline-first, and a stamp at or beyond it means the change has
 been considered. Successful setup advances the loaded-version stamp only after
 alignment and validation. The shared
-[execution posture](../skills/work/references/execution-posture.md) owns dispatch
-and fallback rules:
+[sub-agents reference](../skills/work/references/sub-agents.md) owns dispatch,
+model agreement, handoff, write-authority, nesting, and fallback rules:
 
 - `inline-first` keeps design, implementation, corrections, integration, and
   supporting discovery inline, with an external-context implementation review at
@@ -429,6 +440,8 @@ execution for the current outcome; named roles override those roles only. A requ
 to propose a topology is plan-only, not authorization to dispatch. Scope, model
 alignment, and resource authority remain unchanged. Scan and research dispatch
 also follows the execution preference without weakening their verification gates.
+A user or project rule that forbids spawning is treated like an unavailable
+reviewer: the pass runs inline and discloses that it was not independent.
 
 For a concrete Workbench design or delivery workflow, the effective
 `review_weight` resolves from explicit user direction, `.work/CONVENTIONS.md`,
@@ -502,7 +515,17 @@ decomposition, and hygiene against the repository's own conventions and
 language idioms rather than absolute thresholds, and its findings follow the
 same scope disposition: material inside the authorized boundary, parked
 outside it. See the
-[structural-hygiene reference](../skills/work/references/structure.md).
+[structural-hygiene reference](../skills/code-craft/references/structure.md).
+
+The `code-craft` skill owns general code quality in an adopted repository:
+finding the repository's existing model before inventing one, designing an
+abstraction with its first consumer, and a shared vocabulary of named
+[readability pathologies](../skills/code-craft/references/pathologies.md) that
+reviews cite instead of "too complex". The structural-hygiene lens is part of
+that skill. Each repository records where pathologies occur, and where the good
+model lives, in a `pathologies.md` reference inside its patterns skill; the skill
+owns that file's entry shape and limits, and project pattern maintenance owns
+when it is written.
 
 The effective `simplification_posture` separately resolves from explicit user
 direction, `.work/CONVENTIONS.md`, then `balanced`. It governs design,
@@ -544,8 +567,9 @@ One model or inline execution can cover multiple assignments without pretending
 to provide model diversity. Explicit unavailable-reviewer requirements still need
 user disposition. [Design](../skills/design/SKILL.md#assess-implementation-difficulty)
 owns difficulty assessment; [delivery](../skills/deliver/SKILL.md#choose-implementation-and-follow-up)
-owns correction and cleanup mechanics. [Model tendencies](../skills/work/references/model-tendencies.md)
-informs capability and context trade-offs; it does not own workflow procedures.
+owns correction and cleanup mechanics. The
+[model tendencies](../skills/work/references/sub-agents.md#choose-models) inform
+capability and context trade-offs; they do not own workflow procedures.
 
 Optional `.work/MODEL-NOTES.md` retains qualified observations from models used in
 this repository. Working guidance and recent observations distinguish verified,
@@ -682,33 +706,43 @@ architecture requires user discussion.
 
 Setup always creates a portable `.agents/skills/patterns/SKILL.md` navigation
 index. It may remain an empty stub. Focused Markdown references own confirmed
-pattern details; the index links them without duplicating their rule bodies.
+pattern details, and a `pathologies.md` reference holds the repository's
+pathology examples in the shape the `code-craft` skill defines; the index links
+them without duplicating their rule bodies.
 
-Ordinary delivery repairs an existing pattern made stale by current work but
-does not promote a new pattern. During a user-authorized multi-unit boundary,
-deliverers report candidate evidence and the active parent retains it under
-`## Maintenance evidence`: completed item ids, real consumers or examples,
-recurrence, the emerging preferred shape, and expected maintenance value.
+Ordinary delivery repairs an existing entry made stale by current work but adds
+no new entry. Deliverers report candidate evidence, and during a multi-unit
+boundary the active parent retains it under `## Maintenance evidence`: completed
+item ids, real consumers or examples, recurrence, the emerging preferred shape,
+and expected maintenance value.
+
+An integration checkpoint the outcome owner controls includes a catalog pass
+when candidates meet the recurrence bar (three genuine occurrences of the same
+shape for the same underlying reason); epic and multi-feature reviews are
+typically the most useful points. The owner adds or updates patterns, adds or
+replaces pathology examples within code craft's limits, consolidates before
+adding, removes entries the work made false, and lists the catalog changes in
+the completion reply so the user can revert them. The pass needs no separate
+extraction outcome and never extends the checkpoint beyond its own entries.
+When a refactor, rewrite, or simplification lands, the owner checks
+proactively for catalog effects in the same pass: a unification or better model
+updates an existing entry without a recurrence count, while a new pattern still
+needs three consumers sharing the shape. An
+explicit user request to detect or extract patterns runs the same pass as an
+ordinary feature tagged `pattern`.
 
 At integration or planning, `work` separates required cleanup from optional
-learning using the [maintenance guidance](../skills/work/references/maintenance.md).
+cleanup using the [maintenance guidance](../skills/work/references/maintenance.md).
 Required cleanup names the accepted requirement or affected contract it serves
-and remains inside delivery. Recurrence can justify recommending extraction,
-but cannot authorize it or make it a completion dependency. Otherwise learning
-would silently enlarge the user's requested outcome.
+and remains inside delivery. Optional cleanup or refactoring beyond the boundary
+requires a user-selected outcome or an accepted scope that already includes it,
+belongs under an epic only when that epic owns its outcome, and never blocks
+closure. Coincidence is discarded. No fixed count, schedule, or
+evidence-disposition ceremony creates a maintenance gate.
 
-Optional extraction requires a user-selected outcome or an accepted scope that
-already includes it. A selected feature uses the `pattern` tag and belongs under
-an epic only when that epic owns its outcome. Independent follow-ups remain
-independent. An unanswered optional offer does not block closure. The completion
-reply may carry the recommendation, while only selected durable handoffs survive
-the owning item's normal closure. Coincidence is discarded. No fixed count,
-schedule, or evidence-disposition ceremony creates a maintenance gate.
-
-Only that accepted maintenance feature may add new pattern references and any
-cohesive behavior-preserving cleanup. Nested stories and orchestrated delivery
-never write the shared catalog. Generic stack advice, one-off choices, formatter
-rules, and aesthetic coincidence are not project patterns.
+Only the outcome owner writes the catalog. Nested stories and orchestrated
+delivery never write it. Generic stack advice, one-off choices, formatter rules,
+and aesthetic coincidence are not project patterns.
 
 ## Foundation reconciliation
 

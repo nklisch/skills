@@ -3,7 +3,7 @@
 Use `deliver`'s contract for ready features or stories inside the owned outcome.
 Reuse it across units in the same context rather than reenacting a handoff.
 This reference owns coordination, integration, and continuation across units.
-Use [role-handoffs.md](role-handoffs.md) only for actual context boundaries.
+Use [sub-agents](sub-agents.md) only for actual context boundaries.
 
 For an ordinary multi-unit boundary, write only the coordination detail needed
 to maintain ownership and integration in the relevant active item:
@@ -28,17 +28,9 @@ When an epic or broad feature set earns durable continuation or integration
 state, read [delivery-topology.md](delivery-topology.md). Choose one owner and
 keep its `## Delivery topology` current as evidence changes the run.
 
-Keep tightly coupled work in one context. Delegate or parallelize only when
-independent focus, specialized capability, isolation, or throughput exceeds
-handoff and integration cost. Never map item, checklist, or line counts to a
-number of agents; actual work independence decides that. Before multi-subagent
-execution, follow
-[model alignment](execution-posture.md#align-models-before-multi-subagent-execution).
-Apply [execution posture](execution-posture.md) before choosing contexts. A
-multi-unit outcome does not itself authorize delegation: `inline-first` keeps the
-work inline with an external implementation review, while strict `inline` keeps
-review inline too. Explicit `adaptive` or `orchestrated` permits broader role
-assignment under its contract.
+Choose contexts under [sub-agents](sub-agents.md#when-to-use-another-agent). A
+multi-unit outcome does not itself authorize delegation, and several sub-agents
+need the user's model agreement first.
 
 Before assigning a unit, inspect its item and affected repository surfaces for
 current premises and design readiness. A decomposed or accepted item is not
@@ -52,34 +44,16 @@ execution posture. The designer writes and revises the owning item's design.
 The outcome owner adjudicates readiness and checks that accepted decisions and
 consequential review corrections are recorded before dependent implementation.
 
-Assign non-overlapping write surfaces and explicit output evidence. Use
-worktrees when isolation materially improves collision avoidance or rollback,
-not merely because several units exist.
+For an actual assignment, [hand over](sub-agents.md#hand-over) the owning item
+and its recorded design with a non-overlapping write surface and explicit return
+evidence. The item must contain the decisions the assigned work needs. Resolve
+missing or conflicting consequential decisions there before dependent
+implementation, while independent work continues. Deliverers report stale
+patterns and promotion candidates; the shared pattern catalog stays in the
+outcome owner's write surface so parallel units do not collide.
 
-For an actual assignment, point the deliverer to the owning item and its recorded
-design, including relevant parent or linked contracts. Require it to read those
-sources rather than rely on a rewritten summary. The item must contain the decisions
-needed by the assigned work. Resolve missing or conflicting consequential decisions
-there before dependent implementation, while independent work continues.
-
-Supply assignment-specific delivery mode, parent outcome, owned write surface,
-relevant conventions and patterns, current project calibration, required checks,
-effective review weight, aligned design-review approach, implementation review
-checkpoint and owner,
-effective simplification posture, effective execution posture, and return evidence.
-Use the shared context and canonical boundary instruction from
-[role-handoffs.md](role-handoffs.md); do not make a deliverer rediscover rules
-the orchestrator already loaded. Deliverers report stale patterns and promotion
-candidates. Keep the shared pattern catalog in the outcome owner's write surface
-so parallel units do not collide.
-
-Sub-agents do not spawn sub-agents. A fresh reviewer does not implement its own
-findings unless the orchestrator explicitly returns the work to an
-implementation unit.
-
-The orchestrator must inspect returned changes, reconcile interfaces and
-assumptions, run integrated checks, and continue across completed units until
-the user's full boundary is satisfied. Use [review-boundaries.md](review-boundaries.md)
+The orchestrator [handles returned work](sub-agents.md#handle-returned-work) and
+continues across completed units until the user's full boundary is satisfied. Use [review-boundaries.md](review-boundaries.md)
 to batch compatible deliveries for integrated review and correction. Assigned units
 return verified work without premature closure when review is deferred. Keep
 pending review in existing item prose and close units after shared acceptance.

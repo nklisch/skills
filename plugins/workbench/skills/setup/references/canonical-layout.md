@@ -52,7 +52,8 @@ AGENTS.md
 - root `docs/` foundations own repository-wide truth; sub-project foundations
   follow the established local or root-scoped documentation convention.
 - `.agents/skills/patterns/` always holds the portable pattern index and holds
-  focused references only after evidence-backed extraction work.
+  focused references, including the pathology catalog, only after
+  evidence-backed catalog passes.
 - `.agents/skills/scan-*/` optionally holds reusable project-specific evidence
   lenses selected by scan or release gates; one-off concerns need no skill.
 - `.knowledge/index.json` is generated discovery metadata with no independent
