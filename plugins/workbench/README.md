@@ -535,8 +535,8 @@ only those roles. “Propose an execution topology” asks for a plan, not immed
 dispatch. Size alone never changes the posture. Leave the field absent to use the
 default; existing explicit settings and confirmed role exceptions remain effective.
 
-See [execution posture](skills/work/references/execution-posture.md) for authority,
-model alignment, and unavailable-reviewer fallbacks. Supporting discovery, scans,
+See [sub-agents](skills/work/references/sub-agents.md) for authority, model
+agreement, handoffs, and unavailable or restricted reviewers. Supporting discovery, scans,
 and research also honor dispatch preferences. Review weight and specialist
 verification gates remain independent; inline-first adds no pass to `none` or a
 `light` decision that no review is warranted.

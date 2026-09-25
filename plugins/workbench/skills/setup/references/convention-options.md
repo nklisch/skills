@@ -91,7 +91,7 @@ Reuse standing alignment; declining creates no mandatory design review or new fi
 Recommend the unset `inline-first` default: inline delivery with one external
 standard implementation review. Use `inline` for no delegation, `adaptive` for
 agent-selected role splits, or `orchestrated` for dedicated roles. See
-[execution posture](../../work/references/execution-posture.md) for review placement,
+[sub-agents](../../work/references/sub-agents.md#when-to-use-another-agent) for review placement,
 per-request role overrides and plan-only topology requests. Prose can record
 mixed-role exceptions; leave an accepted fallback absent rather than stamping it.
 

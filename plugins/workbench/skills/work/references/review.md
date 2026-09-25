@@ -19,7 +19,7 @@ Resolve `review_weight` from explicit user instruction, `.work/CONVENTIONS.md`,
 then `standard`. It controls depth, not design-review eligibility or batch size.
 Use [review-boundaries.md](review-boundaries.md) to align optional design review
 once and choose implementation checkpoints. Apply [simplification.md](simplification.md)
-for simplification emphasis, [execution-posture.md](execution-posture.md) for
+for simplification emphasis, [sub-agents](sub-agents.md) for
 runner choice, and [assurance-machinery.md](assurance-machinery.md) to every review.
 Those choices do not independently change pass depth or convergence.
 
@@ -34,7 +34,7 @@ Those choices do not independently change pass depth or convergence.
 ## Pass budget and review targets
 
 A pass reviews a committed target under [Git posture](git-posture.md#stable-review-targets),
-not an agent assignment or prose quota. Placement follows [execution posture](execution-posture.md): when unstated,
+not an agent assignment or prose quota. Placement follows [sub-agents](sub-agents.md#when-to-use-another-agent): when unstated,
 the standard implementation pass runs in another context under inline-first.
 Explicit `adaptive` weighs fresh perspective against handoff cost; strict `inline`
 and confirmed role exceptions still apply. Inline review never claims independence.
@@ -93,8 +93,8 @@ expensive dependent implementation. A changed technical assumption focuses
 scrutiny on the affected decision and its dependents, not unchanged work.
 A genuinely new consequential decision may warrant a new target under the
 aligned approach. An accepted correction is not a new target. Apply
-[execution-posture.md](execution-posture.md), including model alignment for multiple
-sub-agents. Family diversity may help but is not an extra pass.
+[sub-agents](sub-agents.md), including model agreement for several sub-agents.
+Family diversity may help but is not an extra pass.
 
 Apply [foundation-truth.md](foundation-truth.md) to affected truth: ownership,
 current versus intended behavior, engineering coverage, and altitude. Reject work
@@ -130,8 +130,8 @@ Apply [assurance-machinery.md](assurance-machinery.md) to formal protections and
 state machinery. Prefer simpler credible mechanisms while preserving guarantees
 whose product risk earns their cost.
 
-Every delegated formal review uses the canonical boundary instruction from
-[role-handoffs.md](role-handoffs.md). Supply raw requirements, relevant conventions,
+Every delegated formal review uses the boundary instruction in
+[sub-agents](sub-agents.md#hand-over). Supply raw requirements, relevant conventions,
 principles, artifacts, diff, and available verification evidence. Pass calibration
 explicitly. Inline review applies the same boundary without copying a prompt or
 reloading unchanged guidance.
@@ -168,8 +168,8 @@ Do not expand ordinary findings into constraint analysis when no constraint is a
 
 A delegated prompt states the effective [simplification](simplification.md)
 expectation and does not lead with a suspected answer. Set reviewer effort from
-the review problem, not the designer's setting, following
-[model tendencies](model-tendencies.md). For design targets, read and apply
+the review problem, not the designer's setting, following the
+[model tendencies](sub-agents.md#choose-models). For design targets, read and apply
 [design-review.md](design-review.md): prioritize the right problem, best-fit
 solution, consequential omissions, and repository reuse; correctness is a necessary
 baseline, not the main purpose. Focus implementation review on correctness, required behavior,

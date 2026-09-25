@@ -76,9 +76,9 @@ specific defect hunt.
 
 Every scanner receives the full bounded question, relevant project truth,
 selected posture and lens, allowed file or subsystem scope, existing findings
-to avoid duplicating, and the requested output shape. Scanners read source and
-return proposals only. They do not edit files, create reports, write Workbench
-state, implement fixes, or spawn nested agents.
+to avoid duplicating, and the requested output shape. Scanners only read and
+propose, and never spawn agents
+([sub-agents](../../work/references/sub-agents.md#what-each-agent-may-write)).
 
 The orchestrator verifies and consolidates. Model strength, reasoning depth,
 number of passes, source lookup, and tools adapt to consequence and uncertainty;

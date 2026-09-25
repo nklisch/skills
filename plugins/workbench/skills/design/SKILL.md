@@ -33,7 +33,7 @@ unresolved assumptions. Fresh contexts load their own governing guidance.
 
 Resolve authority and runner choices only if not already settled through
 [autonomy](../work/references/autonomy.md) and
-[execution posture](../work/references/execution-posture.md). Apply
+[sub-agents](../work/references/sub-agents.md#when-to-use-another-agent). Apply
 [simplification](../work/references/simplification.md), current project calibration,
 and [assurance machinery](../work/references/assurance-machinery.md).
 
@@ -80,9 +80,9 @@ user discussion. Name credible recovery for consequential failure modes.
 
 Use the current context when continuity supplies enough reasoning and challenge.
 Consider a dedicated designer for specialization, breadth, or fresh perspective
-that outweighs the handoff cost. Honor explicit execution preferences. If
-multiple sub-agents are useful, follow model alignment before dispatch.
-A delegated designer uses [role handoffs](../work/references/role-handoffs.md).
+that outweighs the handoff cost. Honor explicit execution preferences. Agree
+models with the user before using several sub-agents. A delegated designer is
+briefed under [sub-agents](../work/references/sub-agents.md#hand-over).
 Give it raw requirements, the owning item path, and an explicit item-scoped write
 assignment rather than a proposed answer. Include any owned design attachments.
 The designer authors the design in that item and revises it after adjudication.
@@ -201,8 +201,8 @@ new evidence warrants it. Corrections retain the existing pass policy.
 
 An inline pass is a deliberate change of lens, not a claim of independence.
 For selected design review, follow
-[execution posture](../work/references/execution-posture.md): inline-first keeps
-that pass inline unless selected otherwise. Every reviewer receives the accepted boundary, relevant
+[sub-agents](../work/references/sub-agents.md#when-to-use-another-agent): inline-first
+keeps that pass inline unless selected otherwise. Every reviewer receives the accepted boundary, relevant
 project truth, calibration, and evidence under the review contract.
 
 Check proposed foundation changes for current versus intended truth, ownership,

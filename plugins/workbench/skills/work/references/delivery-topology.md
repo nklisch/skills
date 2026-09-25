@@ -79,8 +79,8 @@ plan.
 
 ## Build a role-fit loadout
 
-Follow [execution posture and model alignment](execution-posture.md) before
-assigning agents, including initial read-only discovery agents. Record the
+Agree models under [sub-agents](sub-agents.md#choose-models) before assigning
+agents, including initial read-only discovery agents. Record the
 aligned role, model, thinking, and fallback assignments so
 continuation preserves the user's choices. Use the designer's
 [difficulty assessment](../../design/SKILL.md#assess-implementation-difficulty)
@@ -89,8 +89,7 @@ and applicable [model observations](model-notes.md) with
 can share a model; they do not mandate separate agents. Treat them as current
 assignments, not a permanent allowlist. Preserve project restrictions from their owning authority.
 
-Pass delegated roles the shared context and boundary instruction from
-[role-handoffs.md](role-handoffs.md). Designers author the assigned items' design
+Brief delegated roles under [sub-agents](sub-agents.md#hand-over). Designers author the assigned items' design
 contracts. The outcome owner retains requirements, adjudication, integration, and
 closure rather than rewriting designs for dispatch.
 
@@ -99,9 +98,8 @@ closure rather than rewriting designs for dispatch.
 When building a topology, explain the execution model in chat before implementation
 or broad dispatch. Summarize the owner, roles, proposed models and thinking
 levels, parallelism, meaningful isolation, review, and next integration point.
-Follow [model alignment](execution-posture.md#align-models-before-multi-subagent-execution)
-for every task requiring multiple sub-agents, even when no durable topology is
-needed. Align before initial discovery dispatch, not only implementation.
+Agree models with the user for every task that uses several sub-agents, even
+when no durable topology is needed. Align before initial discovery dispatch, not only implementation.
 
 Apply the effective [autonomy posture](autonomy.md):
 

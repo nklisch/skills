@@ -63,8 +63,8 @@ hypotheses, drift, evaluations, and provocations keep honest evidence standards.
 
 ## Scale to expected value
 
-Apply [execution posture](../work/references/execution-posture.md) before choosing
-contexts; unset means inline-first here too. A broad scan is not authorization
+Choose contexts with [sub-agents](../work/references/sub-agents.md#when-to-use-another-agent);
+unset means inline-first here too. A broad scan is not authorization
 to fan out. Read [references/campaigns.md](references/campaigns.md) when parallel
 scanning is authorized or the scope needs a multi-session campaign. Choose the
 lightest authorized shape that can answer the question:
@@ -82,11 +82,9 @@ Scan depth follows the confirmed scope, consequence, uncertainty, and expected
 value of the question; the project's `review_weight` governs design and
 delivery review, not scan depth.
 
-Before a scan requiring multiple sub-agents, follow
-[model alignment](../work/references/execution-posture.md#align-models-before-multi-subagent-execution).
-Choose from actual availability with the user, considering coverage, evidence
-quality, and cost. [Model tendencies](../work/references/model-tendencies.md)
-informs capability fit. For broad scanning, do not use a flagship model for the
+Before a scan that uses several sub-agents, agree the models with the user
+([sub-agents](../work/references/sub-agents.md#choose-models)), considering
+coverage, evidence quality, and cost. For broad scanning, do not use a flagship model for the
 first unverified finding pass: spend that budget on coverage, lane ownership, and
 evidence. Reserve stronger reasoning for adjudicating a bounded candidate set,
 such as lane disagreement, high-consequence findings, architectural proposals,
@@ -102,8 +100,8 @@ mandatory extra pass.
 State a compact plan before a campaign: scope, selected lenses, rough scanner
 budget, and what will be consolidated. Ask before multi-agent fan-out or any
 material scope expansion the confirmed brief did not already authorize.
-Sub-agents remain source-read-only, do not create reports or work items, and
-return proposals to the orchestrator.
+Scanners only read and propose; they never write files or spawn agents
+([sub-agents](../work/references/sub-agents.md#what-each-agent-may-write)).
 
 ## Verify and consolidate
 

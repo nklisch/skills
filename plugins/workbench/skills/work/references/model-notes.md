@@ -9,9 +9,9 @@ does not create it unless the user requests the record.
 ## Consult before assigning
 
 When model selection matters, read existing notes alongside the current task,
-its implementation difficulty, and [model tendencies](model-tendencies.md).
+its implementation difficulty, and the [model tendencies](sub-agents.md#choose-models).
 Check applicability to the actual model/version, effort, harness, and task shape.
-Discover current availability and follow [model alignment](execution-posture.md).
+Discover current availability and agree models under [sub-agents](sub-agents.md#choose-models).
 Notes never authorize a model, spending, a fallback, or a change to user policy.
 A missing or stale file does not block work or require a replacement.
 

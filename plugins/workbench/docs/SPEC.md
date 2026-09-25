@@ -413,8 +413,8 @@ confirmed agreement. The prior `workbench_version` identifies this upgrade:
 0.25.0 introduces inline-first, and a stamp at or beyond it means the change has
 been considered. Successful setup advances the loaded-version stamp only after
 alignment and validation. The shared
-[execution posture](../skills/work/references/execution-posture.md) owns dispatch
-and fallback rules:
+[sub-agents reference](../skills/work/references/sub-agents.md) owns dispatch,
+model agreement, handoff, write-authority, nesting, and fallback rules:
 
 - `inline-first` keeps design, implementation, corrections, integration, and
   supporting discovery inline, with an external-context implementation review at
@@ -429,6 +429,8 @@ execution for the current outcome; named roles override those roles only. A requ
 to propose a topology is plan-only, not authorization to dispatch. Scope, model
 alignment, and resource authority remain unchanged. Scan and research dispatch
 also follows the execution preference without weakening their verification gates.
+A user or project rule that forbids spawning is treated like an unavailable
+reviewer: the pass runs inline and discloses that it was not independent.
 
 For a concrete Workbench design or delivery workflow, the effective
 `review_weight` resolves from explicit user direction, `.work/CONVENTIONS.md`,
@@ -554,8 +556,9 @@ One model or inline execution can cover multiple assignments without pretending
 to provide model diversity. Explicit unavailable-reviewer requirements still need
 user disposition. [Design](../skills/design/SKILL.md#assess-implementation-difficulty)
 owns difficulty assessment; [delivery](../skills/deliver/SKILL.md#choose-implementation-and-follow-up)
-owns correction and cleanup mechanics. [Model tendencies](../skills/work/references/model-tendencies.md)
-informs capability and context trade-offs; it does not own workflow procedures.
+owns correction and cleanup mechanics. The
+[model tendencies](../skills/work/references/sub-agents.md#choose-models) inform
+capability and context trade-offs; they do not own workflow procedures.
 
 Optional `.work/MODEL-NOTES.md` retains qualified observations from models used in
 this repository. Working guidance and recent observations distinguish verified,

@@ -41,7 +41,7 @@ handoff or the final report. Reviews use committed targets; follow the minimum
 Git floor in `work/references/git-posture.md`. Read-only work needs no empty commit.
 
 Apply configured execution, review, simplification, and commit postures; unset
-execution means `inline-first` under `work/references/execution-posture.md`.
+execution means `inline-first` under `work/references/sub-agents.md`.
 Align optional design review once per run and choose coherent implementation checkpoints.
 Use `work/references/review.md` for concrete Workbench reviews. Verify each unit
 promptly; keep pending review visible until acceptance. Before closure, reconcile
