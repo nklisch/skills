@@ -181,8 +181,9 @@ Returning to the owner does not create another review budget.
 
 Required cohesive cleanup remains in scope. Follow
 [maintenance](references/maintenance.md) when stale entries or pattern candidates
-arise. At an integration review covering an epic or several features, run its
-catalog pass and list the catalog changes in the completion reply. Optional
+arise. At an integration checkpoint, typically an epic or multi-feature review,
+run its catalog pass when candidates meet the bar, and list the catalog changes
+in the completion reply. Optional
 cleanup beyond the boundary requires a selected outcome and never delays closure.
 Orchestrated deliverers report shared pattern implications instead of editing
 the shared catalog.

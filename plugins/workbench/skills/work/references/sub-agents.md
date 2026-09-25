@@ -137,7 +137,9 @@ verification. A more capable model is not an evidence guarantee;
 
 ## Hand over
 
-A fresh context inherits nothing. Pass explicitly:
+Do not assume a new context has the governing instructions or the decisive
+evidence, even when the harness shares some conversation history. Pass
+explicitly:
 
 - the authoritative request or Workbench outcome, including its accepted scope;
 - explicit exclusions and the owned write surface, if the role may write;
@@ -189,9 +191,12 @@ or reload unchanged guidance when the current owner changes capabilities.
   simplification posture. Its self-check is not independent review.
 - **Reviewer — proposals only.** Does not edit the stable target and does not
   commit merely to end its session; follow [review](review.md).
-- **Scanners, research source gatherers, and backlog-grooming helpers —
-  proposals only.** They read sources and return findings. They do not edit
-  files, create reports or work items, write Workbench state, or implement fixes.
+- **Research specialists — their assigned attestations.** Each writes and lints
+  only the source attestations and scoped findings it was assigned, under the
+  research discipline; the lead owns synthesis and final lint.
+- **Scanners and backlog-grooming helpers — proposals only.** They read sources
+  and return findings. They do not edit files, create reports or work items,
+  write Workbench state, or implement fixes.
 
 Only the outcome owner writes shared surfaces: the pattern catalog, repository
 [model notes](model-notes.md), and parent items. Workers report pattern

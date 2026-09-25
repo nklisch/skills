@@ -462,13 +462,15 @@ example is recorded, the repository's pathology catalog in the shape the
 `code-craft` skill defines.
 
 During delivery, deliverers repair entries their work made false and report new
-candidates; the active parent of a multi-unit boundary accumulates them. When an
-integration review covers an epic or several features, it includes a catalog
-pass: the outcome owner adds or updates patterns that recur at least three times
-for the same reason, records pathology examples within their limits,
-consolidates before adding, and lists every catalog change in the completion
-reply so you can revert any of it. A single feature or story adds nothing new,
-and a direct request to detect or extract patterns runs the same pass.
+candidates; the active parent of a multi-unit boundary accumulates them. At an
+integration checkpoint, typically an epic or multi-feature review, the outcome
+owner runs a catalog pass for candidates that recur at least three times for the
+same reason: it adds or updates patterns, records pathology examples within
+their limits, consolidates before adding, and lists every catalog change in the
+completion reply so you can revert any of it. When a refactor, rewrite, or
+simplification lands, the owner also checks whether it established a shared
+shape worth recording. A direct request to detect or extract patterns runs the
+same pass.
 
 Required cleanup keeps the accepted outcome coherent. Optional cleanup beyond
 the boundary becomes a feature only when you select it or the accepted scope

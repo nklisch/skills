@@ -26,6 +26,9 @@ hiding them inside a purportedly behavior-preserving refactor. Preserve measured
 performance constraints and avoid obvious plausible regressions in affected
 code; do not manufacture low-level optimization work without evidence.
 
+When the cleanup lands, apply the proactive pattern check in the
+[pattern lifecycle](#pattern-lifecycle).
+
 Then:
 
 1. Eliminate obsolete concepts, code, configuration, and compatibility before
@@ -53,9 +56,11 @@ shape, and the expected reduction in ambiguity or coordination cost. In
 multi-unit work, keep useful candidates in the active parent's
 `## Maintenance evidence` section. Do not create an empty section.
 
-At an integration review that covers an epic or several features, the outcome
-owner runs a catalog pass as part of that checkpoint. It needs no separate
-extraction outcome or approval:
+At an integration checkpoint the outcome owner controls, the owner runs a
+catalog pass when candidates meet the recurrence bar. Larger boundaries, such as
+an integration review that covers an epic or several features, are typically
+the most useful points, because recurrence shows across units there. The pass
+needs no separate extraction outcome or approval:
 
 - Add or update a pattern when its shape meets the recurrence bar in
   [pattern shape](#pattern-shape).
@@ -68,10 +73,16 @@ extraction outcome or approval:
 - List what the pass added, changed, or removed in the completion reply so the
   user can revert any of it.
 
-A single feature or story does not run the pass; its candidates wait for the
-next large review boundary or are discarded. An explicit user request to detect
-or extract patterns runs the same pass as an ordinary feature. Only the outcome
-owner writes the catalog; nested stories and assigned units report candidates.
+Candidates that do not yet meet the bar wait for a later checkpoint or are
+discarded. An explicit user request to detect or extract patterns runs the same
+pass as an ordinary feature. Only the outcome owner writes new entries; nested
+stories and assigned units report candidates.
+
+A refactor, rewrite, or simplification often creates the shape a pattern
+records. When one lands, check proactively whether it unified near-copies into
+one model or established a shape that three or more consumers now share. If so,
+record the pattern, or update the pathology catalog's model to copy, in that
+outcome's catalog pass rather than leaving the lesson in the work item.
 
 At integration or planning, distinguish cleanup the same way:
 

@@ -136,8 +136,8 @@ structural authority.
 
 Use [maintenance](../work/references/maintenance.md) only when cleanup or pattern
 implications arise. Repair stale entries on an owned catalog surface and report
-new pattern or pathology candidates to the outcome owner; new entries are added
-only at the large review boundary. Optional proposals never block this item's
+new pattern or pathology candidates to the outcome owner, who adds new entries
+at an integration checkpoint. Optional proposals never block this item's
 closure.
 
 Commit the candidate and identify its commit or base/head range for review under

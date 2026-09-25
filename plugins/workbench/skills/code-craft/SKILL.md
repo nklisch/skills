@@ -37,14 +37,15 @@ exists in the repository, never speculation.
 - Separate mechanical extraction, an implementation choice, from a new
   abstraction that owns state or touches admission, publication, or recovery.
   The second is a design decision; raise it through design's
-  [forecast step](../design/SKILL.md#forecast-new-state-before-it-binds).
+  [forecast step](../design/SKILL.md#forecast-new-state-before-the-design-settles).
 - When the design adds, splits, merges, or moves units, or introduces a layer,
   shape the decomposition with [structure](references/structure.md).
 
 ## Implementation
 
-- Look for the existing helper before writing a block. If the same block appears
-  twice in your own change, extract it now, not in a later cleanup.
+- Look for the existing helper before writing a block. If two blocks in your own
+  change implement the same rule, extract it now, not in a later cleanup. Blocks
+  that only look alike, with independent reasons to change, stay separate.
 - Keep one construct per nesting level. Depth should follow the grammar or the
   algorithm, not error plumbing.
 - Do not fix ceremony by splitting alone; that produces two ceremony-laden
@@ -78,9 +79,11 @@ Each repository keeps its own examples in a `pathologies.md` reference inside
 its `patterns` skill, beside its pattern references and linked from the index
 (by default `.agents/skills/patterns/pathologies.md`). The general pathologies here are the vocabulary; the repository catalog
 records where they occur in this codebase and where the good model lives. Read it
-when it exists. It is written only at the review boundaries in
-[maintenance](../work/references/maintenance.md#pattern-lifecycle); during
-ordinary delivery, report candidates to the outcome owner instead of editing it.
+when it exists. New entries are added only in the catalog pass at an
+integration checkpoint under
+[maintenance](../work/references/maintenance.md#pattern-lifecycle). During
+ordinary delivery, correct or remove an entry your change made false, and report
+new candidates to the outcome owner.
 
 Keep each entry to this shape:
 
@@ -97,7 +100,8 @@ Keep each entry to this shape:
 - One line per example: `path:line` and what it shows. No copied code.
 - Delete an example once it is fixed, unless the fix becomes the model to copy.
   Git keeps the history.
-- Remove a pathology from the file when no live example remains.
+- When no live example remains, keep the pathology with only its model to copy;
+  remove it when no useful model remains either.
 - A pathology found only in this repository gets a short memorable name and a
   one-paragraph definition of its symptom and fix. It needs three occurrences
   with the same underlying cause. Match findings by cause, not symptom: two

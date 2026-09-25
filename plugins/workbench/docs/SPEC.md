@@ -327,10 +327,11 @@ shared lens follows the choice through formal design, implementation,
 behavioral verification, and review. It seeks the smallest durable protection;
 it does not waive accepted guarantees or evidence.
 
-When a proposal adds or materially changes a mutable authority, a publication or
-history owner, a recovery path, an asynchronous lifetime, or a lifecycle that
-crosses layers, hosts, or providers, design raises a machinery forecast with the
-user before the design binds, without waiting to be asked. It starts from one
+When a proposal adds or materially changes a component that owns changing
+state, publishes results others read, records history, recovers from failure,
+keeps unfinished work alive across calls, or spans layers, hosts, or providers,
+design raises a machinery forecast with the user before the design is settled,
+without waiting to be asked. It starts from one
 user action and the failure to prevent, asks what new state the proposal adds,
 why the existing owner cannot handle it, and what changes for the user, contrasts
 the simplest working chain with the proposed one, and ends with a recommendation
@@ -715,16 +716,19 @@ boundary the active parent retains it under `## Maintenance evidence`: completed
 item ids, real consumers or examples, recurrence, the emerging preferred shape,
 and expected maintenance value.
 
-An integration review that covers an epic or several features includes a
-catalog pass. The outcome owner adds or updates patterns that meet the
-recurrence bar (three genuine occurrences of the same shape for the same
-underlying reason), adds or replaces pathology examples within code craft's
-limits, consolidates before adding, removes entries the work made false, and
-lists the catalog changes in the completion reply so the user can revert them.
-The pass needs no separate extraction outcome and never extends the checkpoint
-beyond its own entries. A single feature or story does not run it. An explicit
-user request to detect or extract patterns runs the same pass as an ordinary
-feature tagged `pattern`.
+An integration checkpoint the outcome owner controls includes a catalog pass
+when candidates meet the recurrence bar (three genuine occurrences of the same
+shape for the same underlying reason); epic and multi-feature reviews are
+typically the most useful points. The owner adds or updates patterns, adds or
+replaces pathology examples within code craft's limits, consolidates before
+adding, removes entries the work made false, and lists the catalog changes in
+the completion reply so the user can revert them. The pass needs no separate
+extraction outcome and never extends the checkpoint beyond its own entries.
+When a refactor, rewrite, or simplification lands, the owner checks
+proactively whether it unified near-copies or established a shape three or more
+consumers share, and records that pattern or model in the same pass. An
+explicit user request to detect or extract patterns runs the same pass as an
+ordinary feature tagged `pattern`.
 
 At integration or planning, `work` separates required cleanup from optional
 cleanup using the [maintenance guidance](../skills/work/references/maintenance.md).

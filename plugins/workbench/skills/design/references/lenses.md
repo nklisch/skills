@@ -49,7 +49,9 @@ is proposed; risk overlays do not make that machinery automatically necessary.
   [structure lens](../../code-craft/references/structure.md) from code craft:
   apply its calibration protocol and diagnostic questions so the intended
   structure is judged against codebase norms and language idioms, and record
-  the chosen decomposition and its payoff for the review pass.
+  the chosen decomposition and its payoff for the review pass. When the target
+  unifies near-copies or sets a shape several consumers will share, name the
+  pattern it establishes so the catalog pass can record it.
 - Apply the black-box test: a refactor preserves observable behavior. Route
   intended behavior change through the new-work lens with explicit
   requirements. The one exception is a provocation-driven bold refactor whose

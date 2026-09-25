@@ -35,7 +35,8 @@ Resolve authority and runner choices only if not already settled through
 [autonomy](../work/references/autonomy.md) and
 [sub-agents](../work/references/sub-agents.md#when-to-use-another-agent). Apply
 [simplification](../work/references/simplification.md), current project calibration,
-and [assurance machinery](../work/references/assurance-machinery.md).
+[assurance machinery](../work/references/assurance-machinery.md), and the design
+habits in [code craft](../code-craft/SKILL.md#design).
 
 Use [ideate](../ideate/SKILL.md) when the outcome or success shape needs exploration,
 or early discovery could materially reshape a substantial initiative. Do not
@@ -73,12 +74,12 @@ its authority, and why an existing or simpler mechanism is insufficient. Account
 for synchronization, migration, false positives, blocked states, and recovery.
 Preserve accepted guarantees while removing machinery that does not earn its cost.
 
-### Forecast new state before it binds
+### Forecast new state before the design settles
 
-When a proposal adds or materially changes a mutable authority, a publication or
-history owner, a recovery path, an asynchronous lifetime, or a lifecycle that
-crosses layers, hosts, or providers, raise it with the user before the design
-binds instead of waiting to be asked. Describe one user action and the concrete
+When a proposal adds or materially changes a component that owns changing state,
+publishes results others read, records history, recovers from failure, keeps
+unfinished work alive across calls, or spans layers, hosts, or providers, raise
+it with the user before the design is settled instead of waiting to be asked. Describe one user action and the concrete
 failure the design must prevent, then answer three questions: what new state or
 lifecycle this introduces, why the existing owner cannot handle it, and what
 changes for the user, including failure behavior and cost. Show the simplest

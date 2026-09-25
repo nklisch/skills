@@ -64,9 +64,9 @@ pass satisfies the included items' review obligation without duplicate per-item
 passes. Already-reviewed work supplies context, not another review target. Review
 only substantive new integration behavior not covered by earlier passes.
 
-When the checkpoint covers an epic or several features, it includes the
-[catalog pass](maintenance.md#pattern-lifecycle) for patterns and pathology
-examples. Adjudicate findings across the batch, make cohesive corrections, and
+Each checkpoint includes the [catalog pass](maintenance.md#pattern-lifecycle)
+when candidates meet its bar; epic and multi-feature checkpoints are where that
+usually happens. Adjudicate findings across the batch, make cohesive corrections, and
 rerun the affected unit and integration checks. Ordinary correction self-checking is not a
 new pass. At `standard`, do not send each corrected feature through review again.
 Heavier weights retain their convergence rules at the chosen target.

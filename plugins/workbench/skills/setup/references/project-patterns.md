@@ -18,8 +18,8 @@ description: >
 # Project Patterns
 
 No project patterns have been recorded yet. Add focused references only when a
-catalog pass at a large review boundary confirms recurrence, concrete consumers,
-and material maintenance value.
+catalog pass at an integration checkpoint confirms recurrence, concrete
+consumers, and material maintenance value.
 ```
 
 Focused Markdown references own confirmed pattern details. The index names and
@@ -40,8 +40,8 @@ Keep authority separate:
 
 Setup structurally and semantically reconciles an existing catalog but does not
 audit every pattern against code. Concrete delivery repairs stale existing
-patterns. New entries enter through the catalog pass at a large review
-boundary or an explicit extraction request, not ordinary delivery.
+patterns. New entries enter through the catalog pass at an integration
+checkpoint or an explicit extraction request, not ordinary delivery.
 
 ## Claude skill discovery
 

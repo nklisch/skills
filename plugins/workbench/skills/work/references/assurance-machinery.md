@@ -16,8 +16,9 @@ retry, recovery, or cross-layer orchestration.
 ## Forecast consequential machinery
 
 Raise a forecast proactively during ideation or design alignment, before a
-proposal binds, when it adds or materially changes a mutable authority, a
-publication or history owner, a recovery path, an asynchronous lifetime, or an
+proposal is settled, when it adds or materially changes a component that owns
+changing state, publishes results others read, records history, recovers from
+failure, or keeps unfinished work alive across calls, or when it changes an
 ownership, lifecycle, publication, or integration boundary that crosses layers,
 hosts, or providers. Do not run it for routine local choices inside an accepted
 authority chain: immutable values, checked views, focused types, and local
