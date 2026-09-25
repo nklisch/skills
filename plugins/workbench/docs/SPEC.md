@@ -695,33 +695,39 @@ architecture requires user discussion.
 
 Setup always creates a portable `.agents/skills/patterns/SKILL.md` navigation
 index. It may remain an empty stub. Focused Markdown references own confirmed
-pattern details; the index links them without duplicating their rule bodies.
+pattern details, and `references/pathologies.md` holds the repository's
+pathology examples in the shape the `code-craft` skill defines; the index links
+them without duplicating their rule bodies.
 
-Ordinary delivery repairs an existing pattern made stale by current work but
-does not promote a new pattern. During a user-authorized multi-unit boundary,
-deliverers report candidate evidence and the active parent retains it under
-`## Maintenance evidence`: completed item ids, real consumers or examples,
-recurrence, the emerging preferred shape, and expected maintenance value.
+Ordinary delivery repairs an existing entry made stale by current work but adds
+no new entry. Deliverers report candidate evidence, and during a multi-unit
+boundary the active parent retains it under `## Maintenance evidence`: completed
+item ids, real consumers or examples, recurrence, the emerging preferred shape,
+and expected maintenance value.
+
+An integration review that covers an epic or several features includes a
+catalog pass. The outcome owner adds or updates patterns that meet the
+recurrence bar (three genuine occurrences of the same shape for the same
+underlying reason), adds or replaces pathology examples within code craft's
+limits, consolidates before adding, removes entries the work made false, and
+lists the catalog changes in the completion reply so the user can revert them.
+The pass needs no separate extraction outcome and never extends the checkpoint
+beyond its own entries. A single feature or story does not run it. An explicit
+user request to detect or extract patterns runs the same pass as an ordinary
+feature tagged `pattern`.
 
 At integration or planning, `work` separates required cleanup from optional
-learning using the [maintenance guidance](../skills/work/references/maintenance.md).
+cleanup using the [maintenance guidance](../skills/work/references/maintenance.md).
 Required cleanup names the accepted requirement or affected contract it serves
-and remains inside delivery. Recurrence can justify recommending extraction,
-but cannot authorize it or make it a completion dependency. Otherwise learning
-would silently enlarge the user's requested outcome.
+and remains inside delivery. Optional cleanup or refactoring beyond the boundary
+requires a user-selected outcome or an accepted scope that already includes it,
+belongs under an epic only when that epic owns its outcome, and never blocks
+closure. Coincidence is discarded. No fixed count, schedule, or
+evidence-disposition ceremony creates a maintenance gate.
 
-Optional extraction requires a user-selected outcome or an accepted scope that
-already includes it. A selected feature uses the `pattern` tag and belongs under
-an epic only when that epic owns its outcome. Independent follow-ups remain
-independent. An unanswered optional offer does not block closure. The completion
-reply may carry the recommendation, while only selected durable handoffs survive
-the owning item's normal closure. Coincidence is discarded. No fixed count,
-schedule, or evidence-disposition ceremony creates a maintenance gate.
-
-Only that accepted maintenance feature may add new pattern references and any
-cohesive behavior-preserving cleanup. Nested stories and orchestrated delivery
-never write the shared catalog. Generic stack advice, one-off choices, formatter
-rules, and aesthetic coincidence are not project patterns.
+Only the outcome owner writes the catalog. Nested stories and orchestrated
+delivery never write it. Generic stack advice, one-off choices, formatter rules,
+and aesthetic coincidence are not project patterns.
 
 ## Foundation reconciliation
 

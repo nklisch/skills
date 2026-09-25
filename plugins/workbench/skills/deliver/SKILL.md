@@ -134,9 +134,10 @@ scope or narrow it to unresolved work before review. Do not leave duplicate
 structural authority.
 
 Use [maintenance](../work/references/maintenance.md) only when cleanup or pattern
-implications arise. Repair stale patterns on an owned catalog surface. Only an
-accepted extraction outcome adds new patterns; optional proposals never block
-this item's closure.
+implications arise. Repair stale entries on an owned catalog surface and report
+new pattern or pathology candidates to the outcome owner; new entries are added
+only at the large review boundary. Optional proposals never block this item's
+closure.
 
 Commit the candidate and identify its commit or base/head range for review under
 [Git posture](../work/references/git-posture.md#stable-review-targets):

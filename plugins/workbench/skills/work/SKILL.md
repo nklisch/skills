@@ -180,10 +180,12 @@ Review wider integration only for substantive behavior not already covered.
 Returning to the owner does not create another review budget.
 
 Required cohesive cleanup remains in scope. Follow
-[maintenance](references/maintenance.md) when stale patterns or credible extraction
-candidates arise. Optional learning or extraction requires a selected outcome and
-never delays closure. Orchestrated deliverers report shared pattern implications
-instead of editing the shared catalog.
+[maintenance](references/maintenance.md) when stale entries or pattern candidates
+arise. At an integration review covering an epic or several features, run its
+catalog pass and list the catalog changes in the completion reply. Optional
+cleanup beyond the boundary requires a selected outcome and never delays closure.
+Orchestrated deliverers report shared pattern implications instead of editing
+the shared catalog.
 
 Own ledger hygiene and close eligible items at each integration checkpoint under
 the [completion sweep](references/lifecycle.md#completion-sweep), including stale
