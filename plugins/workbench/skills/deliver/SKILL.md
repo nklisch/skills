@@ -96,7 +96,8 @@ implementer does not itself authorize re-review.
 ## Implement and adjust
 
 Work inside the accepted outcome and owned surface. Apply project calibration,
-principles, and confirmed patterns without turning them into new requirements.
+principles, confirmed patterns, and [code craft](../code-craft/SKILL.md) without
+turning them into new requirements.
 Mechanical rules belong in tool configuration, operating rules in `AGENTS.md`,
 engineering truth in foundations, and recurring shapes in the pattern catalog.
 

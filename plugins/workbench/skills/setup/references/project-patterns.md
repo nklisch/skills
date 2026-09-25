@@ -27,7 +27,7 @@ links them without duplicating their rule bodies. Each reference records the
 recurring problem, preferred implementation shape, why it helps in this
 repository, real consumers or examples, and exceptions. Promotion follows the
 criteria in [maintenance.md](../../work/references/maintenance.md). The
-repository's pathology examples live in `references/pathologies.md`, in the
+repository's pathology examples live in a `pathologies.md` reference, in the
 shape that [code craft](../../code-craft/SKILL.md#the-repository-catalog)
 defines, and the index links it once it exists.
 

@@ -522,7 +522,7 @@ abstraction with its first consumer, and a shared vocabulary of named
 [readability pathologies](../skills/code-craft/references/pathologies.md) that
 reviews cite instead of "too complex". The structural-hygiene lens is part of
 that skill. Each repository records where pathologies occur, and where the good
-model lives, in `.agents/skills/patterns/references/pathologies.md`; the skill
+model lives, in a `pathologies.md` reference inside its patterns skill; the skill
 owns that file's entry shape and limits, and project pattern maintenance owns
 when it is written.
 
@@ -705,7 +705,7 @@ architecture requires user discussion.
 
 Setup always creates a portable `.agents/skills/patterns/SKILL.md` navigation
 index. It may remain an empty stub. Focused Markdown references own confirmed
-pattern details, and `references/pathologies.md` holds the repository's
+pattern details, and a `pathologies.md` reference holds the repository's
 pathology examples in the shape the `code-craft` skill defines; the index links
 them without duplicating their rule bodies.
 

@@ -161,7 +161,7 @@ rather than a wrapper. Update the approach when facts change, and keep unrelated
 ready work moving when one unit stalls.
 
 Agree models with the user before using several sub-agents, and sub-agents never
-spawn sub-agents ([sub-agents](references/sub-agents.md#choose-models)).
+spawn sub-agents ([sub-agents](references/sub-agents.md)).
 Follow [delivery's assignment and follow-up guidance](../deliver/SKILL.md#choose-implementation-and-follow-up),
 using [model notes](references/model-notes.md) for qualified local evidence. The outcome
 owner observes meaningful returns and prunes useful repository notes at integration,
@@ -206,6 +206,7 @@ Load these only when relevant, reusing unchanged guidance already in context:
 - runner choice, model proposals, and handoffs → [sub-agents](references/sub-agents.md);
 - any design, implementation, or Workbench review →
   [simplification](references/simplification.md), including project calibration;
+- code shape, readability, or decomposition → [code craft](../code-craft/SKILL.md);
 - verification and review → [verification](references/verification.md) and
   [review](references/review.md);
 - durable project truth → [foundation truth](references/foundation-truth.md);

@@ -40,8 +40,8 @@ Then:
 ## Pattern lifecycle
 
 The canonical `.agents/skills/patterns/SKILL.md` indexes the repository's
-catalog: focused pattern references and the pathology catalog,
-`references/pathologies.md`, whose entry shape and limits
+catalog: focused pattern references and the `pathologies.md` reference, whose
+entry shape and limits
 [code craft](../../code-craft/SKILL.md#the-repository-catalog) defines. The index
 may remain an empty setup stub; it links references without duplicating their
 bodies.

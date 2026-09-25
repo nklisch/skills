@@ -36,7 +36,8 @@ exists in the repository, never speculation.
   for error variants, typed boundary values, parser methods, context structs.
 - Separate mechanical extraction, an implementation choice, from a new
   abstraction that owns state or touches admission, publication, or recovery.
-  The second is a design decision; use the design skill's forecast step for it.
+  The second is a design decision; raise it through design's
+  [forecast step](../design/SKILL.md#forecast-new-state-before-it-binds).
 - When the design adds, splits, merges, or moves units, or introduces a layer,
   shape the decomposition with [structure](references/structure.md).
 
@@ -73,9 +74,9 @@ catalog. Use them the same way.
 
 ## The repository catalog
 
-Each repository keeps its own examples in
-`.agents/skills/patterns/references/pathologies.md`, linked from its `patterns`
-index. The general pathologies here are the vocabulary; the repository catalog
+Each repository keeps its own examples in a `pathologies.md` reference inside
+its `patterns` skill, beside its pattern references and linked from the index
+(by default `.agents/skills/patterns/pathologies.md`). The general pathologies here are the vocabulary; the repository catalog
 records where they occur in this codebase and where the good model lives. Read it
 when it exists. It is written only at the review boundaries in
 [maintenance](../work/references/maintenance.md#pattern-lifecycle); during
