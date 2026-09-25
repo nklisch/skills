@@ -725,8 +725,9 @@ adding, removes entries the work made false, and lists the catalog changes in
 the completion reply so the user can revert them. The pass needs no separate
 extraction outcome and never extends the checkpoint beyond its own entries.
 When a refactor, rewrite, or simplification lands, the owner checks
-proactively whether it unified near-copies or established a shape three or more
-consumers share, and records that pattern or model in the same pass. An
+proactively for catalog effects in the same pass: a unification or better model
+updates an existing entry without a recurrence count, while a new pattern still
+needs three consumers sharing the shape. An
 explicit user request to detect or extract patterns runs the same pass as an
 ordinary feature tagged `pattern`.
 

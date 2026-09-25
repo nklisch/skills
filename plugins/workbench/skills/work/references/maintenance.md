@@ -79,10 +79,15 @@ pass as an ordinary feature. Only the outcome owner writes new entries; nested
 stories and assigned units report candidates.
 
 A refactor, rewrite, or simplification often creates the shape a pattern
-records. When one lands, check proactively whether it unified near-copies into
-one model or established a shape that three or more consumers now share. If so,
-record the pattern, or update the pathology catalog's model to copy, in that
-outcome's catalog pass rather than leaving the lesson in the work item.
+records. When one lands, check proactively what it changed in the catalog, in
+that outcome's catalog pass rather than leaving the lesson in the work item:
+
+- If it unified near-copies or produced a better model for an existing pattern
+  or pathology, update that entry or its model to copy. Updating an existing
+  entry needs no recurrence count.
+- If it established a new shape that three or more consumers now share, record
+  it as a new pattern.
+- A new shape with fewer consumers stays a candidate until it meets the bar.
 
 At integration or planning, distinguish cleanup the same way:
 

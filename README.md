@@ -135,8 +135,9 @@ setup then writes the confirmed conventions and a small `.work/` ledger.
 It also reconciles project conventions, creates an empty canonical pattern
 index for future evidence-backed extraction, can offer `CLAUDE.md` as a symlink
 to canonical `AGENTS.md`, and projects the pattern catalog into Claude's skill
-directory when applicable. During large runs, useful recurring evidence can justify
-an extraction proposal, but only a selected outcome authorizes that work.
+directory when applicable. The outcome owner keeps that catalog current at
+integration checkpoints; see the
+[pattern lifecycle](plugins/workbench/skills/work/references/maintenance.md#pattern-lifecycle).
 
 From there, direct the agent in ordinary language. `work` owns the continuous
 outcome, using `design` and `deliver` guidance without repeated handoffs.

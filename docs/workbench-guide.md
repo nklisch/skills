@@ -264,15 +264,14 @@ canonical destination. Ordinary feature delivery may repair a documented pattern
 or pathology example that became stale, but it does not add new entries merely
 because one implementation looks reusable.
 
-Deliverers return useful candidate evidence to the outcome owner. At an
-integration checkpoint, typically an epic or multi-feature review, the owner
-records patterns and pathology examples that recur at least three times for the
-same reason, and lists those catalog changes in the completion reply so you can
-revert any of them. A refactor, rewrite, or simplification is checked
-proactively for a shared shape worth recording. Required cleanup keeps the
+Deliverers return useful candidate evidence to the outcome owner, who records
+what recurs at integration checkpoints and lists those catalog changes in the
+completion reply so you can revert any of them. Required cleanup keeps the
 agreed outcome correct and coherent; optional cleanup beyond the boundary still
 needs your selected outcome and never delays closure. You can also request
-pattern detection or extraction directly as a bounded maintenance feature.
+pattern detection or extraction directly. The
+[pattern lifecycle](../plugins/workbench/skills/work/references/maintenance.md#pattern-lifecycle)
+holds the exact rules.
 
 A few phrasing habits pay off:
 

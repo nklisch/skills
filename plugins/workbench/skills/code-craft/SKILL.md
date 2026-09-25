@@ -59,9 +59,11 @@ exists in the repository, never speculation.
 
 Read for feel, then name the pathology from
 [the catalog](references/pathologies.md) instead of saying "too long" or "too
-complex". A finding is material when ceremony hides the algorithm, the same block
-appears three or more times in a file or change, nesting follows plumbing rather
-than logic, or a file mixes subsystems past reviewability. Ask for rework that
+complex". A finding is material when ceremony hides the algorithm, three or more
+blocks in a file or change implement the same rule and the repetition costs
+readability or maintenance, nesting follows plumbing rather than logic, or a file
+mixes subsystems past reviewability. Blocks that only look alike are not a
+finding. Ask for rework that
 names the pathology and the suggested abstraction; the outcome owner adjudicates.
 Non-material ceremony is a note, not a blocker.
 
