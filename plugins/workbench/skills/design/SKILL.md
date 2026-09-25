@@ -73,6 +73,20 @@ its authority, and why an existing or simpler mechanism is insufficient. Account
 for synchronization, migration, false positives, blocked states, and recovery.
 Preserve accepted guarantees while removing machinery that does not earn its cost.
 
+### Forecast new state before it binds
+
+When a proposal adds or materially changes a mutable authority, a publication or
+history owner, a recovery path, an asynchronous lifetime, or a lifecycle that
+crosses layers, hosts, or providers, raise it with the user before the design
+binds instead of waiting to be asked. Describe one user action and the concrete
+failure the design must prevent, then answer three questions: what new state or
+lifecycle this introduces, why the existing owner cannot handle it, and what
+changes for the user, including failure behavior and cost. Show the simplest
+chain that works beside the proposed one, recommend a direction, and ask. The
+[machinery forecast](../work/references/assurance-machinery.md#forecast-consequential-machinery)
+owns the details. Routine types, local modules, and choices inside the accepted
+boundary stay autonomous.
+
 Design verification alongside the change. Reuse existing tests, commands,
 fixtures, and environments. Cheap contained evidence may be added directly;
 a substantial new test framework, simulation, or benchmark platform requires

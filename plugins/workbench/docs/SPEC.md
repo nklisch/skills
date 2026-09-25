@@ -327,6 +327,16 @@ shared lens follows the choice through formal design, implementation,
 behavioral verification, and review. It seeks the smallest durable protection;
 it does not waive accepted guarantees or evidence.
 
+When a proposal adds or materially changes a mutable authority, a publication or
+history owner, a recovery path, an asynchronous lifetime, or a lifecycle that
+crosses layers, hosts, or providers, design raises a machinery forecast with the
+user before the design binds, without waiting to be asked. It starts from one
+user action and the failure to prevent, asks what new state the proposal adds,
+why the existing owner cannot handle it, and what changes for the user, contrasts
+the simplest working chain with the proposed one, and ends with a recommendation
+and a question. Routine types and local choices inside an accepted boundary stay
+autonomous.
+
 The work item is the contract between design, review, and implementation. The
 assigned designer authors and revises its design directly, including any linked
 specification. The outcome owner adjudicates scope, readiness, and acceptance.

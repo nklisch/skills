@@ -1,8 +1,9 @@
 # Decision Reconciliation Walkthrough
 
 This is an instruction walkthrough, not an observed delivery result. It protects
-the whole-item reconciliation rule against the routing-default inconsistency seen
-in Voxlar commit `e601c73e` and later reconciled in `56586549`.
+the whole-item reconciliation rule against a failure seen in real delivery: an
+accepted default was recorded in one section while the status, design, and
+remaining-work sections of the same item still called it undecided.
 
 ## Starting item
 
