@@ -62,6 +62,8 @@ including it.
 Clarify the question, what downstream decision the answer may change, current
 knowledge, exclusions, and stopping condition. Inspect `.knowledge/index.json`
 and existing `.research/` artifacts before acquiring duplicate evidence.
+The knowledge index omits work items; inspect `.work/` directly when item state
+matters.
 If the requested research outcome is unclear, ask the user one concise
 load-bearing question before acquiring sources.
 
@@ -136,9 +138,7 @@ recurring exclusions as repository-relative path prefixes in the tracked
 Use repeatable `--exclude <path>` arguments for temporary or caller-supplied
 exclusions, passing the same arguments to the rebuild and `--check` commands.
 Do not exclude intended project documentation, indexed `.work/` context, or
-`.research/` merely to silence metadata or relationship errors. The builder
-always excludes work items under `.work/active/`, `.work/backlog/`, and
-`.work/completed/`.
+`.research/` merely to silence metadata or relationship errors.
 
 Run:
 
