@@ -149,38 +149,40 @@ relationships: []
             raw = (root / relative).read_bytes()
             self.assertNotIn(b"\r", raw, f"{relative} must not contain CR bytes")
 
-    def test_compact_and_full_work_items_have_identical_index_entries(self) -> None:
+    def test_work_items_are_excluded_and_old_entries_are_stripped(self) -> None:
         root = self.make_project()
-        item = root / ".work/active/empty-search.md"
-        compact = (
-            "---\nid: empty-search\nkind: story\nstatus: active\n"
-            "created: 2026-09-05\nupdated: 2026-09-05\n---\n"
-            "# Empty search\n\nAn empty query returns no matches.\n"
-        )
-        write(item, compact)
+        item_paths = [
+            ".work/active/empty-search.md",
+            ".work/backlog/next-search.md",
+            ".work/completed/old-search.md",
+        ]
+        for relative in item_paths:
+            write(root / relative, "# Search work item\n")
+        write(root / ".work/CONVENTIONS.md", "# Work conventions\n")
+        write(root / ".work/releases/search.md", "# Search release\n")
         result = self.run_tool(INDEX, root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         index_path = root / ".knowledge/index.json"
-        compact_index = index_path.read_bytes()
-        entry = next(
-            entry for entry in json.loads(compact_index)["entries"]
-            if entry["path"] == ".work/active/empty-search.md"
+        baseline = index_path.read_bytes()
+        payload = json.loads(baseline)
+        paths = {entry["path"] for entry in payload["entries"]}
+        self.assertTrue(set(item_paths).isdisjoint(paths))
+        self.assertIn(".work/CONVENTIONS.md", paths)
+        self.assertIn(".work/releases/search.md", paths)
+
+        payload["entries"].extend(
+            {"path": relative, "namespace": "work", "kind": "work-item"}
+            for relative in item_paths
         )
-        self.assertEqual(entry["id"], "empty-search")
-        self.assertEqual(entry["kind"], "story")
-        self.assertEqual(entry["status"], "active")
-        self.assertEqual(entry["relationships"], [])
-        write(
-            item,
-            compact.replace(
-                "status: active\n",
-                "status: active\ntags: []\nparent: null\nblocked_by: []\n"
-                "related_to: []\nresearch_refs: []\nmock_refs: []\n",
-            ),
-        )
+        index_path.write_text(json.dumps(payload), encoding="utf-8")
+        check = self.run_tool(INDEX, root, "--check")
+        self.assertEqual(check.returncode, 1)
+        self.assertIn("missing or stale", check.stdout)
         result = self.run_tool(INDEX, root)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(index_path.read_bytes(), compact_index)
+        self.assertEqual(index_path.read_bytes(), baseline)
+        for relative in item_paths:
+            write(root / relative, "# Changed work item\n")
         check = self.run_tool(INDEX, root, "--check")
         self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
 
@@ -210,7 +212,7 @@ relationships: []
 
     def test_model_notes_do_not_enter_or_stale_the_knowledge_index(self) -> None:
         root = self.make_project()
-        # Only the advisory scratch file is excluded, not its basename everywhere.
+        # Only the advisory scratch file is excluded outside the work-item trees.
         write(root / "docs/MODEL-NOTES.md", "# Model interface documentation\n")
         write(root / ".work/backlog/MODEL-NOTES.md", "# An ordinary backlog entry\n")
         result = self.run_tool(INDEX, root)
@@ -219,7 +221,7 @@ relationships: []
         baseline = index_path.read_bytes()
         paths = {entry["path"] for entry in json.loads(baseline)["entries"]}
         self.assertIn("docs/MODEL-NOTES.md", paths)
-        self.assertIn(".work/backlog/MODEL-NOTES.md", paths)
+        self.assertNotIn(".work/backlog/MODEL-NOTES.md", paths)
 
         notes = root / ".work/MODEL-NOTES.md"
         for content in (
@@ -246,6 +248,18 @@ relationships: []
         result = self.run_tool(INDEX, root)
         self.assertEqual(result.returncode, 1)
         self.assertIn("unresolved relationship target .work/MODEL-NOTES.md", result.stdout)
+
+    def test_work_items_cannot_be_knowledge_relationship_targets(self) -> None:
+        root = self.make_project()
+        relative = ".work/active/search.md"
+        write(root / relative, "# Search work item\n")
+        path = root / "docs/ARCHITECTURE.md"
+        write(path, path.read_text().replace(
+            ".research/briefs/example.md", relative
+        ))
+        result = self.run_tool(INDEX, root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(f"unresolved relationship target {relative}", result.stdout)
 
     def test_check_detects_stale_index(self) -> None:
         root = self.make_project()

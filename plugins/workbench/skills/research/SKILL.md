@@ -135,8 +135,10 @@ recurring exclusions as repository-relative path prefixes in the tracked
 `.knowledge/index-exclusions.txt`, one per line with optional `#` comments.
 Use repeatable `--exclude <path>` arguments for temporary or caller-supplied
 exclusions, passing the same arguments to the rebuild and `--check` commands.
-Do not exclude intended project documentation, `.work/`, or `.research/`
-merely to silence metadata or relationship errors.
+Do not exclude intended project documentation, indexed `.work/` context, or
+`.research/` merely to silence metadata or relationship errors. The builder
+always excludes work items under `.work/active/`, `.work/backlog/`, and
+`.work/completed/`.
 
 Run:
 

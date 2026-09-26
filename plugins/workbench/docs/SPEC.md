@@ -981,9 +981,12 @@ or without explicit approval.
 ## Knowledge index
 
 `build-knowledge-index.py` indexes root and sub-project documentation,
-`.research/**/*.md`, and `.work/**/*.md`, except the provisional scratch file
-`.work/MODEL-NOTES.md`. That exact path is not a durable relationship target;
-editing or deleting it does not stale the index. It emits byte-stable JSON, rejects
+`.research/**/*.md`, and `.work/` conventions, release summaries, and design
+attachments. It excludes `.work/active/`, `.work/backlog/`, and
+`.work/completed/` work items and the provisional scratch file
+`.work/MODEL-NOTES.md`. Those paths are not durable relationship targets;
+editing or deleting them does not stale the index. A normal rebuild removes
+work-item entries from an older index. The builder emits byte-stable JSON, rejects
 duplicate namespace/id pairs and unresolved relationships, generates the
 bibliography, and checks committed freshness with `--check`. Projects may
 track `.knowledge/index-exclusions.txt` with one repository-relative path

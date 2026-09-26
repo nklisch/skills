@@ -29,6 +29,7 @@ IGNORED_PARTS = {
     "node_modules",
     "vendor",
 }
+WORK_ITEM_DIRECTORIES = {"active", "backlog", "completed"}
 
 
 def normalize_exclusion(value: str, source: str, errors: list[str]) -> Path | None:
@@ -89,6 +90,8 @@ def markdown_paths(project: Path, exclusions: tuple[Path, ...]) -> list[Path]:
             relative = relative_root / directory
             if is_excluded(relative, exclusions):
                 continue
+            if relative_root == Path(".work") and directory in WORK_ITEM_DIRECTORIES:
+                continue
             if (
                 relative.parts[0] not in {".research", ".work"}
                 and directory in IGNORED_PARTS
@@ -133,12 +136,6 @@ def inferred_kind(relative: Path) -> str:
     if relative.parts[0] == ".work":
         if relative.parts[1] == "attachments":
             return "design-attachment"
-        if "active" in relative.parts:
-            return "work-item"
-        if "backlog" in relative.parts:
-            return "backlog-item"
-        if "completed" in relative.parts:
-            return "completed-item"
         if "releases" in relative.parts:
             return "release"
         return "conventions"

@@ -175,8 +175,8 @@ adopted repository; write-free `ideate` may explore before adoption, and
   grounding floor; standard adds semantic source-support review, and full adds
   an isolated coverage, framing, and scope-drift evaluation.
 - **Knowledge is discoverable, not duplicated.** A committed deterministic
-  `.knowledge/index.json` indexes durable docs, research, and work while each
-  source retains its own authority.
+  `.knowledge/index.json` indexes durable docs, research, and selected Workbench
+  context, excluding work items, while each source retains its own authority.
 - **Foundations stay above delivery.** Repository-wide truth belongs in root
   foundations; durable sub-project truth may live in `docs/<sub-project>/` or
   `<sub-project>/docs/` according to repository convention. These documents
