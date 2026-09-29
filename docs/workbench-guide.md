@@ -41,7 +41,8 @@ authority and aligned model/effort choices.
 
 An adopted repository may record a concise, user-confirmed
 `## Overbuilding calibration` in `.work/CONVENTIONS.md`: project context, likely
-overbuilding, justified complexity, and reasons to revisit it. Every design and
+overbuilding, justified complexity, optionally where cost is felt, and reasons to
+revisit it. Every design and
 review applies this lens, including loose requests, without importing other
 Workbench mechanics. Setup establishes or reconciles it; ideate can propose a
 confirmed refinement without turning exploration into an automatic write.

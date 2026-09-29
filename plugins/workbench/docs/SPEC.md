@@ -179,8 +179,8 @@ keys or forced matches to a Workbench category.
 
 An adopted repository may also keep one concise `## Overbuilding calibration`
 section in the conventions body. Its evidence-backed prose describes project
-context, likely overbuilding shapes, justified complexity, and evidence for
-revisiting the guidance; it has no required count or checklist semantics and is
+context, likely overbuilding shapes, justified complexity, optionally where cost
+is felt, and evidence for revisiting the guidance; it has no required count or checklist semantics and is
 not validated as an enum. The calibration applies to every design and review,
 including loose requests. Missing guidance falls back to repository evidence.
 Setup establishes or reconciles it with confirmation, does not ritually re-ask
@@ -393,7 +393,9 @@ Design uses one primary lens:
 Security, privacy, accessibility, operations, compatibility, and testing are
 risk overlays. Designs separate requirements, facts, assumptions, and
 decisions; state meaningful alternatives only where choice matters; identify
-boundaries, verification, risk, and recovery; and prefer the simplest coherent
+boundaries, verification, risk, and recovery; record the approach, its traps,
+and the work it brings or avoids where cost or technique carries the risk; and
+prefer the simplest coherent
 maintainable shape rather than the smallest diff. They may resolve necessary
 implementation detail but never invent product requirements or expand the
 accepted outcome. The user's original intent, accepted item, and applicable

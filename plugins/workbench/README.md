@@ -47,7 +47,8 @@ need its capabilities remain ordinary requests.
 
 An adopted repository may record a concise, user-confirmed
 `## Overbuilding calibration` in `.work/CONVENTIONS.md`: project context, likely
-overbuilding, justified complexity, and reasons to revisit it. Every design and
+overbuilding, justified complexity, optionally where cost is felt, and reasons to
+revisit it. Every design and
 review applies this lens, including loose requests, without importing other
 Workbench mechanics. Setup establishes or reconciles it; ideate can propose a
 confirmed refinement without turning exploration into an automatic write.
@@ -426,6 +427,12 @@ The design skill selects the lens that matches the work:
 
 Security, privacy, accessibility, operations, compatibility, and testing are
 considered when relevant instead of being applied as automatic checklists.
+
+Where the calibration says cost is felt, or a unit relies on a specialized
+technique with known traps, the design records a short approach note: the chosen
+technique and why it fits, its traps, the work it brings or avoids, and the
+evidence that it fits. Otherwise the implementer's first plausible approach
+would become the design by default.
 
 A prototype is a learning outcome, not an abbreviated production release. Its
 design names the question, representative behavior, evidence, and intended

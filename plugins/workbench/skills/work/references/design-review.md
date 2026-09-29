@@ -19,6 +19,9 @@ evidence rather than treating the written design as self-justifying:
   need for new machinery. Explain trade-offs in user value, complexity, operating
   cost, and reversibility—not personal architectural preference. “Best” does not
   require an exhaustive search or an idealized system beyond the accepted scope.
+  Where cost or technique carries the risk, check that the recorded approach fits
+  the budget and names the real traps; an unspecified approach there is an
+  omission.
 - **Important omissions:** What unexamined assumption, interaction, constraint,
   or detail could change the choice or leave implementers guessing about something
   consequential? Follow representative usage and relevant failure paths through

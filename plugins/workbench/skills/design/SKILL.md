@@ -74,6 +74,40 @@ its authority, and why an existing or simpler mechanism is insufficient. Account
 for synchronization, migration, false positives, blocked states, and recovery.
 Preserve accepted guarantees while removing machinery that does not earn its cost.
 
+### Specify the approach where it carries the risk
+
+Record a short approach note in the item when a unit's cost or correctness
+depends mainly on how it computes. Otherwise the implementer's first plausible approach becomes
+the design by default, and on a hot path that choice decides the cost. The note
+applies when the unit sits where the project's calibration says cost is felt,
+when a user would notice its cost as latency, stutter, startup delay, or exhausted
+memory, or when it uses a specialized technique with known traps, such as
+meshing, diffing, scheduling, incremental recomputation, geometric precision, or
+concurrent handoff. A unit whose obvious implementation is fine needs no note.
+
+Keep the note short and specific:
+
+- the chosen algorithm, data structure, or technique, and why its cost fits the
+  representative scale or budget;
+- the naive approach it rejects, when that approach is the trap;
+- traps specific to this technique, not generic edge-case reminders;
+- the supporting work it brings, such as invalidation for a cache, upkeep for an
+  index, or change tracking for incremental updates;
+- the work it avoids by skipping, batching, reusing, or recomputing only what
+  changed; and
+- the evidence that shows it fits, such as a representative workload measured
+  against the budget or a check aimed at a named trap.
+
+Load any available domain craft skill or project pattern reference that covers
+the technique. When the fit is uncertain or the technique is unfamiliar, use a
+small measurement, a prototype under the feasibility lens, or grounded research
+instead of a confident guess. Without a budget, a cost users would notice, or a
+known trap, add no optimization: "might be slow" is not a trigger, and
+speculative tuning costs code and upkeep for a cost nobody measured. Name the technique, its cost, and its invariants; reserve pseudocode
+for a genuinely tricky core rather than pre-writing routine code. When delivery
+finds a trap the note missed, amend the note and report the trap as a pattern
+candidate under [maintenance](../work/references/maintenance.md#pattern-lifecycle).
+
 ### Forecast new state before the design settles
 
 When a proposal adds or materially changes a component that owns changing state,
@@ -116,8 +150,9 @@ For designed units where difficulty affects implementation or follow-up, record 
 short assessment in the item. Describe reasoning difficulty in ordinary language
 (for example, low, moderate, or high), separately from the consequence of failure.
 Name straightforward portions, remaining judgment or hidden coupling, likely
-mistakes, and the follow-up most likely to help. No score, new frontmatter, or
-required section is needed for an obvious local change.
+mistakes not already named as traps in an approach note, and the follow-up most
+likely to help. No score, new frontmatter, or required section is needed for an
+obvious local change.
 
 A large mechanical edit can be straightforward but consequential; a small
 multi-owner transition can require difficult reasoning. Assess the actual contract

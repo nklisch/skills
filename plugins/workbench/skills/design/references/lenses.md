@@ -15,6 +15,9 @@ is proposed; risk overlays do not make that machinery automatically necessary.
 - Choose explicitly and explain the trade-off.
 - Design the riskiest or least-known unit first.
 - Define contracts, ownership, state flow, failure behavior, and integration.
+- Where cost or technique carries the risk, record the approach, its traps, and
+  the work it brings or avoids
+  ([approach note](../SKILL.md#specify-the-approach-where-it-carries-the-risk)).
 - Run a pre-mortem: identify the weakest assumption, likely production failure,
   and fallback.
 - Eliminate unnecessary concepts, layers, options, compatibility paths, and

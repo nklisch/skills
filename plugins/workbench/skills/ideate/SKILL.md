@@ -104,7 +104,8 @@ investigation to an available `research` skill.
 
 Before handing off an adopted project or greenfield setup continuation whose
 calibration is missing, wait until project type, audience, deployment, and
-consequence are clear enough, then explicitly offer an initial calibration.
+consequence are clear enough, then explicitly offer an initial calibration,
+including where cost is felt when the project has hot paths.
 When concrete
 solution choices expose stale guidance, offer one narrowly scoped refinement
 handoff. Exploration remains write-free. If the user selects that handoff, end

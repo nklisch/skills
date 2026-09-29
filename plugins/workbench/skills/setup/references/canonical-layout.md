@@ -117,16 +117,17 @@ and detailed recurring implementation shapes in `.agents/skills/patterns/`.
 
 An adopted repository may keep one concise `## Overbuilding calibration` section
 in the conventions body. It is project-specific prose, not frontmatter, a
-validator target, or an exhaustive checklist. Keep it short and evidence-backed:
+validator target, count, or exhaustive checklist. Keep it short and evidence-backed:
 
 - **Project context** — the project's type, audience, consequence, and other
   facts that set a proportionate complexity bar;
-- **Likely overbuilding shapes** — recurring extra machinery that is not normally
-  justified here;
+- **Likely overbuilding shapes** — recurring machinery not normally justified here;
 - **Justified complexity** — capabilities or safeguards the project does need,
-  and why; and
-- **Revisit evidence** — concrete evidence that should cause the guidance to be
-  refined or replaced.
+  and why;
+- **Where cost is felt** — optional: hot paths whose approach decides a cost users
+  feel, in units such as frame time, latency, startup, memory, or context tokens;
+  link any numeric budget's owning document rather than copying it; and
+- **Revisit evidence** — concrete evidence that should refine or replace it.
 
 The section guides every design and review in an adopted repository, including a
 loose request, but it does not import Workbench's ledger, review-weight,
@@ -134,8 +135,7 @@ convergence, formal review packet, or closure mechanics into loose work. Missing
 calibration degrades to current repository-evidence judgment. Setup establishes
 or reconciles the section only with user confirmation: an existing section is
 current project truth and is not ritually re-asked; a refinement replaces stale
-guidance rather than appending incident history. No count or checklist semantics
-are required.
+guidance rather than appending incident history.
 
 ## Foundations
 

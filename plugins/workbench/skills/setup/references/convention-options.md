@@ -59,7 +59,8 @@ Use an existing diagram format when clearer; do not add tooling for compliance.
 Establish or reconcile the project's `## Overbuilding calibration` per
 [canonical-layout.md](canonical-layout.md#overbuilding-calibration). On an adoption with
 enough existing project context, explain the evidence, contrast likely overbuilding with
-justified complexity, and ask the user to confirm the starting guidance; for a greenfield
+justified complexity, name any hot paths where cost is felt and the unit it is measured
+in, and ask the user to confirm the starting guidance; for a greenfield
 bootstrap without coherent project direction, defer that confirmation to the immediate
 ideate continuation. An existing section is current project truth; offer a replacement
 only when evidence or the request shows it missing or stale, and confirm before writing
