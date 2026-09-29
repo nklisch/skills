@@ -107,6 +107,11 @@ than creating conformity churn. Follow the accepted design's assurance choices;
 small obvious checks stay local, while consequential new machinery must earn its
 cost under [assurance machinery](../work/references/assurance-machinery.md).
 
+Run the checks for any load-bearing assumptions the design marks before
+dependent work. When one proves false, return it to the design owner with the
+evidence instead of adding an unplanned fallback, stub, or mock; otherwise the
+code appears to work while the design's premise is gone.
+
 When evidence changes the approach, use `work`'s decision distinction: resolve
 local details, amend affected technical assumptions and dependent checks, or ask
 about missing requirements and authority. Use [design](../design/SKILL.md) for
@@ -125,7 +130,9 @@ because implementation is a named role.
 Use [verification](../work/references/verification.md): run authoritative project
 checks, prove meaningful behavior at stable interfaces, and inspect the final diff
 for accidental behavior changes, scope expansion, unnecessary complexity, and
-plausible performance regressions. Unresolved required verification prevents closure.
+plausible performance regressions. When the design lists what the change adds
+and retires, confirm the diff matches: no unlisted additions, no surviving
+retired paths, and a cleanup owner for each runtime resource. Unresolved required verification prevents closure.
 
 Reconcile directly affected assertions using
 [foundation truth](../work/references/foundation-truth.md). Update the knowledge

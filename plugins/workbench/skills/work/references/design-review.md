@@ -27,7 +27,11 @@ evidence rather than treating the written design as self-justifying:
   consequential? Follow representative usage and relevant failure paths through
   the design. Consider boundaries, ownership, data flow, integration, migration,
   recovery, and verification where they matter; do not demand every possible
-  edge case or pre-write routine implementation details.
+  edge case or pre-write routine implementation details. Where a
+  [design note](../../design/references/design-notes.md) trigger applies, an
+  unlisted addition, an old path kept without a named consumer, a refusal
+  without its threat and degraded path, or an unmarked load-bearing assumption
+  is an omission.
 - **Repository fit and reuse:** Inspect the actual systems, abstractions, contracts,
   and conventions the change should build on. Is the design using the right
   existing owner and extension point, or creating a parallel authority or duplicate

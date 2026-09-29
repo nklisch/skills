@@ -74,39 +74,23 @@ its authority, and why an existing or simpler mechanism is insufficient. Account
 for synchronization, migration, false positives, blocked states, and recovery.
 Preserve accepted guarantees while removing machinery that does not earn its cost.
 
-### Specify the approach where it carries the risk
+### Record the design notes that apply
 
-Record a short approach note in the item when a unit's cost or correctness
-depends mainly on how it computes. Otherwise the implementer's first plausible approach becomes
-the design by default, and on a hot path that choice decides the cost. The note
-applies when the unit sits where the project's calibration says cost is felt,
-when a user would notice its cost as latency, stutter, startup delay, or exhausted
-memory, or when it uses a specialized technique with known traps, such as
-meshing, diffing, scheduling, incremental recomputation, geometric precision, or
-concurrent handoff. A unit whose obvious implementation is fine needs no note.
+Some units need detail that ordinary designs skip. Read
+[design notes](references/design-notes.md) and record in the item only the notes
+whose triggers apply:
 
-Keep the note short and specific:
+- **Approach**, when cost or technique carries the risk: the technique, why it
+  fits, its traps, and the work it brings or avoids.
+- **Adds and retires**, when the change adds or removes anything lasting: new
+  public names, formats, dependencies, runtime resources, and terms, plus what
+  it deletes.
+- **Refusals and hard stops**, when the design makes anything refuse or stop:
+  the threat, what legitimate users lose, and the degraded path.
+- **Load-bearing assumptions**, when an unconfirmed fact would change the
+  design: the check to run first and what happens if it is false.
 
-- the chosen algorithm, data structure, or technique, and why its cost fits the
-  representative scale or budget;
-- the naive approach it rejects, when that approach is the trap;
-- traps specific to this technique, not generic edge-case reminders;
-- the supporting work it brings, such as invalidation for a cache, upkeep for an
-  index, or change tracking for incremental updates;
-- the work it avoids by skipping, batching, reusing, or recomputing only what
-  changed; and
-- the evidence that shows it fits, such as a representative workload measured
-  against the budget or a check aimed at a named trap.
-
-Load any available domain craft skill or project pattern reference that covers
-the technique. When the fit is uncertain or the technique is unfamiliar, use a
-small measurement, a prototype under the feasibility lens, or grounded research
-instead of a confident guess. Without a budget, a cost users would notice, or a
-known trap, add no optimization: "might be slow" is not a trigger, and
-speculative tuning costs code and upkeep for a cost nobody measured. Name the technique, its cost, and its invariants; reserve pseudocode
-for a genuinely tricky core rather than pre-writing routine code. When delivery
-finds a trap the note missed, amend the note and report the trap as a pattern
-candidate under [maintenance](../work/references/maintenance.md#pattern-lifecycle).
+An item whose triggers do not apply records none of them.
 
 ### Forecast new state before the design settles
 

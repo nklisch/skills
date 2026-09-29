@@ -428,11 +428,11 @@ The design skill selects the lens that matches the work:
 Security, privacy, accessibility, operations, compatibility, and testing are
 considered when relevant instead of being applied as automatic checklists.
 
-Where the calibration says cost is felt, or a unit relies on a specialized
-technique with known traps, the design records a short approach note: the chosen
-technique and why it fits, its traps, the work it brings or avoids, and the
-evidence that it fits. Otherwise the implementer's first plausible approach
-would become the design by default.
+Designs also record short conditional notes when their triggers apply: the
+approach where cost or technique carries the risk; what the change adds and
+retires, including dependencies and runtime resources; the threat and degraded
+path behind any refusal; and load-bearing assumptions the implementer checks
+first and returns on rather than working around. An ordinary item records none.
 
 A prototype is a learning outcome, not an abbreviated production release. Its
 design names the question, representative behavior, evidence, and intended

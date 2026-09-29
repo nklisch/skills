@@ -393,9 +393,10 @@ Design uses one primary lens:
 Security, privacy, accessibility, operations, compatibility, and testing are
 risk overlays. Designs separate requirements, facts, assumptions, and
 decisions; state meaningful alternatives only where choice matters; identify
-boundaries, verification, risk, and recovery; record the approach, its traps,
-and the work it brings or avoids where cost or technique carries the risk; and
-prefer the simplest coherent
+boundaries, verification, risk, and recovery; record conditional notes only
+where their triggers apply (the approach where cost or technique carries the
+risk, what the change adds and retires, the threat and degraded path behind a
+refusal, and load-bearing assumptions to check first); and prefer the simplest coherent
 maintainable shape rather than the smallest diff. They may resolve necessary
 implementation detail but never invent product requirements or expand the
 accepted outcome. The user's original intent, accepted item, and applicable

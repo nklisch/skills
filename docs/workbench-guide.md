@@ -42,9 +42,8 @@ authority and aligned model/effort choices.
 An adopted repository may record a concise, user-confirmed
 `## Overbuilding calibration` in `.work/CONVENTIONS.md`: project context, likely
 overbuilding, justified complexity, optionally where cost is felt, and reasons to
-revisit it. Every design and
-review applies this lens, including loose requests, without importing other
-Workbench mechanics. Setup establishes or reconciles it; ideate can propose a
+revisit it. Every design and review applies this lens, including loose requests,
+without importing other Workbench mechanics. Setup establishes or reconciles it; ideate can propose a
 confirmed refinement without turning exploration into an automatic write.
 
 ## Before you start
@@ -239,6 +238,12 @@ owner adjudicates scope and acceptance rather than rewriting the design for an
 implementer. Reviewers remain read-only. Accepted design corrections reach the
 item before dependent implementation, and dispatch points to the recorded contract.
 Inline work follows the same rule without requiring separate agents.
+
+Designs record short conditional notes only when their triggers apply: the
+approach where cost or technique carries the risk, what the change adds and
+retires, the threat and degraded path behind any refusal, and load-bearing
+assumptions the implementer checks first. See
+[design notes](../plugins/workbench/skills/design/references/design-notes.md).
 
 Ordinary designs stay in the item. Dense contracts may use an optional Markdown
 specification at `.work/attachments/<item-id>/contract.md`. The item links to it,
