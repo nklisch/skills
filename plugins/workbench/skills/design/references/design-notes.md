@@ -31,7 +31,20 @@ the cost. A unit whose obvious implementation is fine needs no note.
 Record:
 
 - the chosen algorithm, data structure, or technique, and why its cost fits the
-  representative scale or budget;
+  representative scale or budget. Name every budget the cost lands on: moving
+  work to another thread or deferring it shifts the cost to latency or
+  throughput rather than removing it;
+- the earlier stage that already knows what the unit needs, when one does.
+  Identities, grouping, order, and changes are cheapest where they are created;
+  carry them forward instead of rediscovering them by hashing, searching,
+  sorting, or diffing derived values, such as matching mesh corners by hashing
+  final positions the mesher already placed on an integer grid;
+- the data shape, when the unit keeps, groups, or looks up data per element:
+  what the keys are and how many values they can take, which decides the
+  container, since small, bounded, or already-indexed keys can index an array
+  directly and a hash map then needs a reason; where working memory lives, and
+  whether it is reused across calls and reset cheaply instead of reallocated or
+  cleared; and the order the data is walked;
 - the naive approach it rejects, when that approach is the trap;
 - traps specific to this technique, not generic edge-case reminders;
 - the supporting work it brings, such as invalidation for a cache, upkeep for an

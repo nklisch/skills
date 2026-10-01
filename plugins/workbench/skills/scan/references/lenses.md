@@ -52,9 +52,11 @@ risk.
 ### performance
 
 Generate located hypotheses from algorithmic work, data movement, allocation,
-I/O, batching, caching, concurrency, runtime behavior, and workload shape. Never
-assert improvement without measurement; every proposal needs a validation path
-and a reason it may matter.
+I/O, batching, caching, concurrency, runtime behavior, and workload shape,
+including containers mismatched to the range of their keys, working memory
+rebuilt on every call, and structure a later stage rediscovers that an earlier
+one already knew. Never assert improvement without measurement; every proposal
+needs a validation path and a reason it may matter.
 
 ### simplification
 

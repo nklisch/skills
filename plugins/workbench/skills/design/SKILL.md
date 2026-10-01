@@ -81,7 +81,8 @@ Some units need detail that ordinary designs skip. Read
 whose triggers apply:
 
 - **Approach**, when cost or technique carries the risk: the technique, why it
-  fits, its traps, and the work it brings or avoids.
+  fits, where its data comes from and how it is shaped, its traps, and the work
+  it brings or avoids.
 - **Adds and retires**, when the change adds or removes anything lasting: new
   public names, formats, dependencies, runtime resources, and terms, plus what
   it deletes.

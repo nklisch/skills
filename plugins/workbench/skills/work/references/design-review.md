@@ -20,7 +20,9 @@ evidence rather than treating the written design as self-justifying:
   cost, and reversibility—not personal architectural preference. “Best” does not
   require an exhaustive search or an idealized system beyond the accepted scope.
   Where cost or technique carries the risk, check that the recorded approach fits
-  the budget and names the real traps; an unspecified approach there is an
+  every budget its cost lands on, names the real traps, and uses what an earlier
+  stage already knows instead of rediscovering it; an unspecified approach
+  there, including the shape of data it keeps or looks up per element, is an
   omission.
 - **Important omissions:** What unexamined assumption, interaction, constraint,
   or detail could change the choice or leave implementers guessing about something
