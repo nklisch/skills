@@ -189,6 +189,13 @@ truth, not delivery history. Write only durable artifacts named by the workflow;
 keep questions, proposals, progress, and reports in chat. Preserve user-owned
 roadmaps rather than rewriting them incidentally.
 
+Reference work by name. Items, epics, and delivery units take domain-native
+names — game mechanics, engine or framework vocabulary, not generic labels.
+A number or letter code never stands alone in user-facing communication
+(conversation, reports, commit messages): pair it with its name. Include the
+context a reader needs when the transcript does not already carry it. Machine
+fields and dense intra-item tables keep bare identifiers.
+
 For all repository writes, including loose edits, commit owned changes before
 handoff or the final report. Reviews use committed targets; follow the minimum
 Git floor in `work/references/git-posture.md`. Read-only work needs no empty commit.

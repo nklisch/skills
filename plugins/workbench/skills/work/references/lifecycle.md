@@ -119,7 +119,7 @@ They live under `.work/attachments/<item-id>/` and form part of the owning item'
 contract through ordinary Markdown links. They have no independent item status.
 
 Ids are unique across all `.work/`. The first non-empty body line is a Markdown
-title. Keep one coherent outcome in one item. Use tags such as `audit`, `security`,
+title carrying a domain-native informational name. Keep one coherent outcome in one item. Use tags such as `audit`, `security`,
 `performance`, `pattern`, `refactor`, or `cleanup` for focused outcomes rather
 than another item kind. A cleanup or explicitly requested pattern-extraction
 feature discovered at a large-work maintenance boundary belongs under the active

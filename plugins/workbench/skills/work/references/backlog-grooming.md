@@ -14,7 +14,8 @@ Do not make the user choose a scanner, workflow stage, or scoring system. If the
 
 ## Scale to the backlog
 
-For a small backlog, read it directly and walk through it casually. Group related items when that makes the conversation easier, but keep item identities visible.
+For a small backlog, read it directly and walk through it casually. Group related items when that makes the conversation easier, but keep item
+names visible: pair each id with its title.
 
 For a large backlog, use a small number of cheap read-only sub-agents when available to summarize bounded slices. Give each agent the grooming goal and item bodies in its slice. Ask for:
 

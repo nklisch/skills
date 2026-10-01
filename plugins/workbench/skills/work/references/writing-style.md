@@ -8,6 +8,7 @@ register, and software domains do not share one vocabulary or voice.
 ## Contents
 
 - Choose language from context
+- Reference work by name
 - Keep meaning accessible
 - Reader check
 
@@ -34,6 +35,31 @@ Do not introduce a style interview for every ordinary edit.
 - Use controlled language or a strict procedural style when an actual audience,
   task, or applicable standard calls for it, not because a document mentions code
   or safety. Preserve required terminology and exact operational instructions.
+
+## Reference work by name
+
+Tracked work — items, epics, stories, features, backlog entries, delivery
+units, campaign targets — carries a name, and references keep that name
+visible. Violated, the reader cannot resolve "units 2 and 3" or "F3" without
+opening the ledger, and a summary written for one transcript misleads every
+later one.
+
+- Give new work a domain-native name at authoring time: game mechanics and
+  world terms, engine vocabulary, or the framework's own concepts — not
+  generic labels such as "feature 3" or "the refactor". The item's Markdown
+  title is its name for every future reference.
+- Pair a number or letter code with its name on first mention in conversation,
+  reports, summaries, and commit messages: "unit 2 (causal-order checkpoint)",
+  "c009 — ore-driven mine workings". Later mentions within the same exchange
+  may shorten to the name alone.
+- Restate the name when an ordinal recurs across item or section boundaries;
+  "Unit 2" alone is ambiguous when several items each carry a unit 2.
+- Restate what the work is when the transcript does not already carry it; a
+  summary after a gap names the outcome, not just its status.
+- Exempt from pairing: machine fields (frontmatter ids, `parent`,
+  `blocked_by`, attachment paths), dense intra-item tables, and existing
+  commit history. Tool-emitted labels such as profiler codes pair with their
+  meaning when narrated.
 
 ## Keep meaning accessible
 

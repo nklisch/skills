@@ -60,7 +60,7 @@ material configured expectation.
 ## Write and clean
 
 Write `.work/releases/<version>.md` with the version, date, concise delivered
-outcomes, item ids when recoverable, meaningful compatibility or operational
+outcomes, item ids with titles when recoverable, meaningful compatibility or operational
 notes, and repository-defined verification. When release gates ran, name them
 and briefly summarize material findings and dispositions. Do not preserve raw
 scanner output, packet identities, repeated checkpoints, or a transaction audit

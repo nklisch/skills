@@ -26,7 +26,7 @@ updated: YYYY-MM-DD
 ---
 ```
 
-Start the body with a clear title. Preserve the user's useful context, why it
+Start the body with a clear, domain-native title. Preserve the user's useful context, why it
 may matter, known evidence, and any
 relationship to current work. Do not invent priority, acceptance criteria,
 design, estimates, or assignment.
