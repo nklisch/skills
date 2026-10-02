@@ -100,7 +100,8 @@ merge touched their surfaces. Unrelated upstream commits do not restart the gate
 - Returned evidence, and the notes written into work items, are the verdict, the
   commit, and one log path. Add tables, per-run figures, or load records only
   when a check failed or alarmed, or when the item's question is a measurement.
-- A reviewer or checker never deletes a build folder or worktree it did not
-  create; it names leftovers for the owner to remove.
+- A delegated implementer, reviewer, or checker never deletes a worktree,
+  branch, or build folder it did not create; it names leftovers for the owner
+  to remove.
 - Reviews keep their depth. Batch units into one review only when they share no
   files or land together.
