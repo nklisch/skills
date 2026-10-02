@@ -18,6 +18,10 @@ for the command contract. Do not impose bundled checks on top of a replacement
 or change validation policy just to get a green result. Other required checks
 remain in force.
 
+When several units, agents, or correction rounds deliver into one target, follow
+[verification cadence](verification-cadence.md) for which checks each boundary
+owes and when a check runs only once per batch or at the epic boundary.
+
 Resolve `evidence_depth` from explicit user direction, the optional project
 convention, then `standard`. `lean` proves the primary path for low-risk,
 reversible work; `standard` covers authoritative checks and important acceptance

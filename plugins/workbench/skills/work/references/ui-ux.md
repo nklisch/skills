@@ -56,3 +56,7 @@ markup, links, viewport behavior, and interactions. Give the user the entry path
 and say which visual inspection could not be performed. Refine the walkthrough
 with the user before implementation, and record decisions and rejected qualities
 in the item. Do not require mockups for small, already-settled UI changes.
+
+Human-facing UI also gets a taste and usability pass from real use, beside code
+review: friction, visual design, and copy. Proposals that change an approved
+mockup go to whoever approved it.

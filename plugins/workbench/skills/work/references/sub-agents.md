@@ -151,7 +151,9 @@ explicitly:
   aligned optional design review, the implementation review checkpoint and owner,
   and whether the unit returns before shared review; and
 - the integration contract, committed target or base/head range, required
-  checks, and return evidence.
+  checks, and return evidence, following
+  [verification cadence](verification-cadence.md#delegated-units) for which
+  checks the unit runs and how evidence returns.
 
 Point a designer, implementer, or reviewer at the owning item, its design, any
 linked [design attachments](design-attachments.md), and relevant parent or linked

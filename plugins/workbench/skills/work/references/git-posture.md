@@ -116,3 +116,7 @@ shape. Exclusive ownership requires local unshared history or explicit
 coordination, not merely a personal-looking branch name. Do not force-push or
 perform an elaborate rebase without repository authority. Preserve safe history
 when clean separation is impractical and explain the result.
+
+Check a merge's result, its exit status or `git status` for unmerged paths,
+before any follow-on step. Never pipe a merge into another command and chain the
+next step after it unconditionally.

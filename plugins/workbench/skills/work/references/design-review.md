@@ -51,3 +51,11 @@ Apply [review.md](review.md)'s scope, materiality, and owner-adjudication rules.
 Do not turn alternatives into new requirements or restart settled choices without
 reason. Apply the project's overbuilding calibration: broader ideas remain
 separate, non-blocking follow-ups unless the user authorizes them.
+
+A design or formal-model review of a concurrency protocol stops after its second
+round unless the remaining failures are hangs, crashes, or data corruption.
+Check proportionality before the first model and at every later round: is the
+protocol earned by something a player or user would notice? When a round's
+findings sit in machinery a simpler design would not need, put the simpler
+design and its cost to the owner before another round. Implementation reviews
+are not rounds under this rule.

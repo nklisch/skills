@@ -3,7 +3,8 @@
 Use `deliver`'s contract for ready features or stories inside the owned outcome.
 Reuse it across units in the same context rather than reenacting a handoff.
 This reference owns coordination, integration, and continuation across units.
-Use [sub-agents](sub-agents.md) only for actual context boundaries.
+Use [sub-agents](sub-agents.md) only for actual context boundaries. Schedule
+verification across units with [verification cadence](verification-cadence.md).
 
 For an ordinary multi-unit boundary, write only the coordination detail needed
 to maintain ownership and integration in the relevant active item:
