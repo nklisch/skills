@@ -64,7 +64,9 @@ newest head.
   or red, time, failing check) where merging sessions can read it, so a session
   knows when it would inherit a red head.
   - **Green** publishes that head to the shared remote, so the published branch
-    holds only gated commits.
+    holds only gated commits. Merging sessions never publish the integration
+    branch themselves; only the gate runner does, apart from the ledger-only
+    case below.
   - **Red** bisects the first-parent merges since the last green, using only the
     failing check, and sends the merge commit, the check and its log to the
     owner named in the merge log. A failure that needs two merges together goes
