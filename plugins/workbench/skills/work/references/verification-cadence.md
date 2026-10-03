@@ -8,6 +8,7 @@ protects. Project conventions name the actual commands for each boundary.
 
 - Boundaries
 - Merges
+- Merge first, gate after
 - Expensive lanes
 - Timing
 - Builds and tests
@@ -21,15 +22,12 @@ protects. Project conventions name the actual commands for each boundary.
   or test harness, that harness's own tests are its touched tests.
 - **Most verification waits for the epic boundary.** Journeys, expensive lanes,
   cross-platform runs, and measurement belong to integration points and epic
-  closure. A landing owes the static gate plus the tests of what it touched and
-  of what depends on it.
-- **Batch integration gates across parallel deliveries.** When several agents
-  deliver into one target on one machine, each unit lands after its own loop
-  checks and static gate. The outcome owner runs the full integration gate once
-  per batch of landings, sized to the number of sessions delivering in parallel
-  (about one gate per round of landings across them), and always before an epic
-  closes or a release is cut. Bisect a failing batch gate through the landing
-  commits. A unit whose own checks are red does not land.
+  closure. A merge owes the unit's loop checks; the integration gate and the
+  tests of what depends on the change run after merging.
+- **Merge first and gate after when several sessions deliver into one
+  repository on one machine** (see Merge first, gate after). The integration
+  gate also runs before an epic closes or a release is cut. A unit whose own
+  checks are red does not merge.
 - **The integration gate includes dependents:** the tests of every crate or
   module that depends on what the batch changed, with the feature combinations
   those dependents build.
@@ -41,6 +39,47 @@ affect: the static gate plus tests of the crates or modules both sides touched,
 of any crate where a conflict was resolved by hand, and of both units when a
 merge auto-resolved files both changed. Re-run end-to-end journeys only when the
 merge touched their surfaces. Unrelated upstream commits do not restart the gate.
+
+## Merge first, gate after
+
+When several sessions deliver into one repository on one machine, they merge
+into a local integration branch first, and the long gates run afterwards on its
+newest head.
+
+- **Before merging**, a unit owes its review and loop checks, plus any fast
+  focused contract the project names for the area it touched. No integration,
+  boundary, journey, golden or sanitizer run comes first.
+- **Merge under one merge lock.** Merge the integration branch into the unit's
+  branch, rerun the loop checks only if that merge touched the unit's files,
+  fast-forward the integration branch, and record the merged commit, the session
+  and the work item in a merge log outside version control. Hold the lock for
+  the merge only, never for a gate. A repository with a single merger needs no
+  lock.
+- **The integration checkout may be the person's working checkout.** Never
+  stash, reset or clean it. When a fast-forward refuses because of local
+  changes, ask the person.
+- **One gate runner per repository** runs the project's post-merge gate on the
+  integration branch's newest head. It runs one gate at a time, and only when
+  merges have arrived since the last green. It records each result (head, green
+  or red, time, failing check) where merging sessions can read it, so a session
+  knows when it would inherit a red head.
+  - **Green** publishes that head to the shared remote, so the published branch
+    holds only gated commits.
+  - **Red** bisects the first-parent merges since the last green, using only the
+    failing check, and sends the merge commit, the check and its log to the
+    owner named in the merge log. A failure that needs two merges together goes
+    to both owners.
+- **The owner fixes forward within one gate cycle.** Otherwise, or when the
+  failure blocks others, the runner reverts that merge and tells the owner.
+  Merging continues meanwhile.
+- **An item closes only after a green gate on a head that contains its merge.**
+- **Ledger-only changes** (work items and docs) need no gate. When everything
+  unpublished is ledger-only, it may be published directly.
+- **Releases** come from a green head, and timing checks stay in their quiet
+  measurement batch.
+- **Where the specifics live:** project conventions name the gate's contents
+  and how they scale with what changed. Personal machine instructions name the
+  lock, log and result paths, the integration checkouts and the gate runners.
 
 ## Expensive lanes
 
