@@ -62,21 +62,26 @@ newest head.
   integration branch's newest head. It runs one gate at a time, and only when
   merges have arrived since the last green. It records each result (head, green
   or red, time, failing check) where merging sessions can read it, so a session
-  knows when it would inherit a red head.
+  knows when it would inherit a red head. A unit may still merge onto a red
+  head outside its area: it does not fix others' failures, but its own loop
+  checks must pass on the merged head. Merges that arrive during a run wait for
+  the next one, and a green gate publishes only the head it tested.
   - **Green** publishes that head to the shared remote, so the published branch
     holds only gated commits. Merging sessions never publish the integration
     branch themselves; only the gate runner does, apart from the ledger-only
-    case below.
+    case below. Publishing never forces: if the published branch moved
+    outside the runner, the runner stops and asks.
   - **Red** bisects the first-parent merges since the last green, using only the
     failing check, and sends the merge commit, the check and its log to the
     owner named in the merge log. A failure that needs two merges together goes
     to both owners.
 - **The owner fixes forward within one gate cycle.** Otherwise, or when the
-  failure blocks others, the runner reverts that merge and tells the owner.
+  failure blocks others, the runner reverts that merge and tells the owner. A
+  revert is itself a merge: it takes the merge lock and goes in the merge log.
   Merging continues meanwhile.
 - **An item closes only after a green gate on a head that contains its merge.**
 - **Ledger-only changes** (work items and docs) need no gate. When everything
-  unpublished is ledger-only, it may be published directly.
+  unpublished is ledger-only, any session may publish it.
 - **Releases** come from a green head, and timing checks stay in their quiet
   measurement batch.
 - **Where the specifics live:** project conventions name the gate's contents
