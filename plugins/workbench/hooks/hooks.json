@@ -1,0 +1,33 @@
+{
+  "description": "Reload pointers after compaction or resume in Workbench projects. PostCompact covers the Pi bridge, which does not emit SessionStart on compaction.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^(compact|resume)$",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "if command -v python3 >/dev/null 2>&1; then exec python3 -B \"${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py\"; else exec python -B \"${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py\"; fi",
+            "commandWindows": "python -B \"%CLAUDE_PLUGIN_ROOT%/scripts/session-context.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "^(manual|threshold|overflow)$",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "if command -v python3 >/dev/null 2>&1; then exec python3 -B \"${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py\"; else exec python -B \"${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py\"; fi",
+            "commandWindows": "python -B \"%CLAUDE_PLUGIN_ROOT%/scripts/session-context.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

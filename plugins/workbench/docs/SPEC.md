@@ -1065,10 +1065,16 @@ remains idempotent.
 
 Skill descriptions expose entry points; each stateful skill checks Workbench
 ownership. Adopted-project operating instructions live in the managed root
-`AGENTS.md` block, not a session hook. Workbench ships no runtime instruction
-injection. The host's project-instruction loading supplies that block; skill
-discovery alone does not guarantee always-loaded project rules. Workbench does
-not claim that every host handles compaction identically.
+`AGENTS.md` block. The host's project-instruction loading supplies that block;
+skill discovery alone does not guarantee always-loaded project rules.
+
+After compaction or resume, a small hook reminds Workbench-owned sessions to
+reload the actual skills and lifecycle reference before changing the ledger.
+It finds the nearest `.work/CONVENTIONS.md` upward from the session working
+directory and stays silent unless that file declares `owner: workbench`.
+The hook supplies pointers, not a second copy of the operating instructions.
+See [activation and host support](../README.md#project-instructions-and-activation)
+for delivery differences and requirements.
 
 ## Deterministic validation
 

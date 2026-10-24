@@ -781,9 +781,35 @@ explicitly invoke `setup` to adopt Workbench.
 ## Project instructions and activation
 
 Workbench uses skill descriptions for discovery and the managed `AGENTS.md` block
-for adopted-project instructions. It ships no session hook or duplicate injected
-policy. A host must load the project's instruction file for that block to be
-always available; setup does not recommend a `CLAUDE.md` projection.
+for adopted-project instructions. A host must load the project's instruction file
+for that block to be always available; setup does not recommend a `CLAUDE.md`
+projection.
+
+After compaction or resume, the [shared hook](hooks/hooks.json) emits a short
+[reminder](hooks/reload-reminder.md) to reload the actual skills and lifecycle
+reference before changing the ledger. A summary saying a skill was loaded is
+not the skill. The hook finds the nearest `.work/CONVENTIONS.md` upward from the
+session working directory and stays silent unless it declares `owner: workbench`.
+It only reads files and adds context; it does not edit the ledger or inject full
+skills.
+
+- Claude Code and Codex use `SessionStart` with source `compact` or `resume`.
+  Codex must trust the plugin's hooks before running them.
+- Pi's plugin bridge uses `SessionStart` with reason `resume`, and `PostCompact`
+  with reason `manual`, `threshold`, or `overflow`. Native Claude Code/Codex
+  `PostCompact` input stays silent to avoid duplicate reminders.
+- Antigravity's [documented events](https://antigravity.google/docs/hooks)
+  expose session startup without a compaction or resume source, and no
+  post-compaction event. It cannot receive this reminder at the same boundary;
+  no incompatible hook is installed there. Its managed `AGENTS.md` block remains
+  the fallback: read the skills and lifecycle reference before ledger changes.
+
+The hook requires Python 3. On Linux and macOS the command selects `python3`,
+falling back to `python`. Claude Code uses Bash, including Git Bash on Windows;
+Codex's Windows command uses `python` directly. Python must be on `PATH`.
+Windows and macOS execution have not been exercised here. Supported hook hosts
+share one reminder and script; focused tests pin event routing, silent handling
+of Antigravity startup input, and the Codex pointer.
 
 ## Starting and adopting
 

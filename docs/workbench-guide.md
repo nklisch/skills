@@ -126,8 +126,12 @@ It removes project-scoped competing workflow plugins after their content
 is converted, and reports any user- or machine-scoped competing installs
 for you to uninstall.
 
-Workbench has no session hook. Its managed `AGENTS.md` block supplies project
-instructions when your host loads that file; no `CLAUDE.md` projection is proposed.
+Workbench's managed `AGENTS.md` block supplies project instructions when your host
+loads that file; no `CLAUDE.md` projection is proposed. A short hook reminder after
+compaction or resume points Workbench sessions back to the actual skills and
+lifecycle reference before ledger changes. See the plugin's
+[activation and host support](../plugins/workbench/README.md#project-instructions-and-activation)
+for host and runtime requirements.
 
 ### Core defaults you set during adoption
 
