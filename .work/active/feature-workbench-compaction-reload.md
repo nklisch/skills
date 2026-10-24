@@ -45,3 +45,7 @@ Windows/macOS execution and live host event dispatch were not exercised.
 No full suite was run before landing, per the assignment. The implementation
 self-check found no redundant scans or persisted state; independent review,
 acceptance, landing, publishing, and item closure remain with godot-2d.
+
+Implementation target: `4599e40d` (Reload Workbench guidance after compaction).
+Prepared Workbench 0.26.12 in all three manifests and the dogfood version stamp;
+the version bump is local because publishing belongs to godot-2d.

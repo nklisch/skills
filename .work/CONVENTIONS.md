@@ -1,7 +1,7 @@
 ---
 owner: workbench
 schema: 1
-workbench_version: 0.26.11
+workbench_version: 0.26.12
 completed_items: discard
 review_weight: standard
 simplification_posture: balanced
