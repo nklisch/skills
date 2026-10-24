@@ -132,9 +132,9 @@ class SessionContextTests(unittest.TestCase):
 
         self.conventions(self.root)
         handler = session["hooks"][0]
-        command = handler["commandWindows"] if os.name == "nt" else handler["command"]
+        self.assertEqual(handler["shell"], "bash")  # Claude Code runs it in Git Bash on Windows.
         result = subprocess.run(
-            command, shell=True, cwd=self.root,
+            ["bash", "-c", handler["command"]], cwd=self.root,
             env={**os.environ, "CLAUDE_PLUGIN_ROOT": str(PLUGIN)},
             input=json.dumps({"hook_event_name": "SessionStart", "source": "compact", "cwd": str(self.root)}),
             text=True, capture_output=True, check=False,

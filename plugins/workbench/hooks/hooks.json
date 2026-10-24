@@ -9,7 +9,6 @@
             "type": "command",
             "shell": "bash",
             "command": "if command -v python3 >/dev/null 2>&1; then exec python3 -B \"${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py\"; else exec python -B \"${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py\"; fi",
-            "commandWindows": "python -B \"%CLAUDE_PLUGIN_ROOT%/scripts/session-context.py\"",
             "timeout": 5
           }
         ]
@@ -23,7 +22,6 @@
             "type": "command",
             "shell": "bash",
             "command": "if command -v python3 >/dev/null 2>&1; then exec python3 -B \"${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py\"; else exec python -B \"${CLAUDE_PLUGIN_ROOT}/scripts/session-context.py\"; fi",
-            "commandWindows": "python -B \"%CLAUDE_PLUGIN_ROOT%/scripts/session-context.py\"",
             "timeout": 5
           }
         ]
