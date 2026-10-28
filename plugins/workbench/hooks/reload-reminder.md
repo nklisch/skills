@@ -1,3 +1,3 @@
 This is a Workbench project.
-A summary saying a skill was loaded is not the skill; read the skill itself in this context.
-Before any ledger change, reload Workbench's work skill (and deliver when implementing), and read work/references/lifecycle.md.
+A summary saying a skill was loaded is not the skill; reload the selected Workbench skill before continuing.
+Before changing work items, also read work/references/lifecycle.md. When implementing a ready item, reload deliver.

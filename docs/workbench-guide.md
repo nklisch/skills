@@ -128,8 +128,8 @@ for you to uninstall.
 
 Workbench's managed `AGENTS.md` block supplies project instructions when your host
 loads that file; no `CLAUDE.md` projection is proposed. A short hook reminder after
-compaction or resume points Workbench sessions back to the actual skills and
-lifecycle reference before ledger changes. See the plugin's
+compaction or resume points a Workbench session back to its selected active skill,
+adding lifecycle before work-item changes and deliver only for implementation. See the plugin's
 [activation and host support](../plugins/workbench/README.md#project-instructions-and-activation)
 for host and runtime requirements.
 
