@@ -97,6 +97,7 @@ def main() -> int:
     hook_pairs = (
         "hooks/hooks.json",
         "hooks/reload-reminder.md",
+        "scripts/_frontmatter.py",
         "scripts/session-context.py",
         "scripts/tests/test_session_context.py",
     )
