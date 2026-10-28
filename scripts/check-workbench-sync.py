@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -92,6 +93,30 @@ def main() -> int:
         error = compare_file(canonical, distributed, f"scripts/{relative}")
         if error:
             errors.append(error)
+
+    hook_pairs = (
+        "hooks/hooks.json",
+        "hooks/reload-reminder.md",
+        "scripts/_frontmatter.py",
+        "scripts/session-context.py",
+        "scripts/tests/test_session_context.py",
+    )
+    for relative in hook_pairs:
+        canonical = CANONICAL_ROOT / "plugins/workbench" / relative
+        distributed = marketplace / "plugins/workbench" / relative
+        error = compare_file(canonical, distributed, relative)
+        if error:
+            errors.append(error)
+
+    canonical_manifest = CANONICAL_ROOT / "plugins/workbench/.codex-plugin/plugin.json"
+    distributed_manifest = marketplace / "plugins/workbench/.codex-plugin/plugin.json"
+    if distributed_manifest.is_file():
+        canonical_hooks = json.loads(canonical_manifest.read_text(encoding="utf-8")).get("hooks")
+        distributed_hooks = json.loads(distributed_manifest.read_text(encoding="utf-8")).get("hooks")
+        if canonical_hooks != distributed_hooks:
+            errors.append("behavioral drift: .codex-plugin/plugin.json hooks")
+    else:
+        errors.append(f"missing marketplace file: {distributed_manifest}")
 
     for error in errors:
         print(f"ERROR: {error}")

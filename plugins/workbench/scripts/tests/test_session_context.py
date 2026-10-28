@@ -47,6 +47,12 @@ class SessionContextTests(unittest.TestCase):
             "hookSpecificOutput": {"hookEventName": event, "additionalContext": REMINDER},
         })
 
+    def test_reminder_preserves_the_selected_capability(self) -> None:
+        self.assertIn("reload the selected Workbench skill", REMINDER)
+        self.assertIn("Before changing work items", REMINDER)
+        self.assertIn("When implementing a ready item, reload deliver", REMINDER)
+        self.assertNotIn("reload Workbench's work skill", REMINDER)
+
     def test_workbench_compaction_and_resume(self) -> None:
         self.conventions(self.root)
         for source in ("compact", "resume"):

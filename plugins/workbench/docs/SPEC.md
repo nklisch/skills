@@ -1069,10 +1069,12 @@ ownership. Adopted-project operating instructions live in the managed root
 skill discovery alone does not guarantee always-loaded project rules.
 
 After compaction or resume, a small hook reminds Workbench-owned sessions to
-reload the actual skills and lifecycle reference before changing the ledger.
-It finds the nearest `.work/CONVENTIONS.md` upward from the session working
-directory and stays silent unless that file declares `owner: workbench`.
-The hook supplies pointers, not a second copy of the operating instructions.
+reload the selected active skill. It adds the lifecycle reference before
+work-item changes and deliver only when implementation begins. It finds the
+nearest `.work/CONVENTIONS.md` upward from the session working directory and
+stays silent unless that file declares `owner: workbench`. The hook supplies
+pointers, not a second copy of the operating instructions, and does not choose
+the session's capability.
 See [activation and host support](../README.md#project-instructions-and-activation)
 for delivery differences and requirements.
 

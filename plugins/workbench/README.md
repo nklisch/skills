@@ -786,12 +786,14 @@ for that block to be always available; setup does not recommend a `CLAUDE.md`
 projection.
 
 After compaction or resume, the [shared hook](hooks/hooks.json) emits a short
-[reminder](hooks/reload-reminder.md) to reload the actual skills and lifecycle
-reference before changing the ledger. A summary saying a skill was loaded is
-not the skill. The hook finds the nearest `.work/CONVENTIONS.md` upward from the
-session working directory and stays silent unless it declares `owner: workbench`.
-It only reads files and adds context; it does not edit the ledger or inject full
-skills.
+[reminder](hooks/reload-reminder.md) to reload the selected active skill. Before
+work-item changes it also points to lifecycle; when implementation begins it
+points to deliver. A summary saying a skill was loaded is not the skill. The
+hook finds the nearest `.work/CONVENTIONS.md` upward from the session working
+directory and stays silent unless it declares `owner: workbench`. It only reads
+files and adds context; it does not edit the ledger, choose a capability, or
+inject full skills. The managed `AGENTS.md` block and skill activation remain
+the complete fallback when a host cannot run the hook.
 
 - Claude Code and Codex use `SessionStart` with source `compact` or `resume`.
   Codex must trust the plugin's hooks before running them.
@@ -802,7 +804,7 @@ skills.
   expose session startup without a compaction or resume source, and no
   post-compaction event. It cannot receive this reminder at the same boundary;
   no incompatible hook is installed there. Its managed `AGENTS.md` block remains
-  the fallback: read the skills and lifecycle reference before ledger changes.
+  the fallback: reload the active skill and any references its next action needs.
 
 The hook requires Python 3. On Linux and macOS the command selects `python3`,
 falling back to `python`. Claude Code uses Bash, including Git Bash on Windows;
